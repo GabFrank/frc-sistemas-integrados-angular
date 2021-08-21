@@ -1,0 +1,35 @@
+::ng-deep snack-bar-container.warn {
+    background: #F57C00 !important;
+    color: white !important;    
+  }
+
+  ::ng-deep snack-bar-container.success {
+    background: #43A047 !important;
+    color: white !important;    
+  }
+
+  ::ng-deep snack-bar-container.info {
+    background: #54C5F8 !important;
+    color: white !important;    
+  }
+
+  ::ng-deep snack-bar-container.neutral {
+    background: #757575 !important;
+    color: white !important;    
+  }
+
+  ::ng-deep snack-bar-container.danger {
+    background: #f44336 !important;
+    color: white !important;    
+  }
+
+::ng-deep .mat-simple-snackbar {
+    font-size: 150% !important;
+    justify-content: center !important;
+  }
+
+  input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

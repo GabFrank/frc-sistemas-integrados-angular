@@ -1,0 +1,121 @@
+<div class="container" style="padding: 15px;">
+  <form [formGroup]="formGroup" (ngSubmit)="onSubmit()">
+
+    <div fxLayout="row" fxFlexAlign="start center">
+      <div fxFlex="50" style="width: 100%;">
+        <div fxLayout="row" fxFlexAlign="space-around center">
+          <div fxFlex="50">
+            <mat-form-field class="form-element" >
+              <input matInput placeholder="Nombre" formControlName="nombre">
+            </mat-form-field>
+            <mat-error *ngIf="!formGroup.controls['nombre'].valid && formGroup.controls['nombre'].touched">
+                <h6>Este campo es obligatorio.</h6>
+            </mat-error>
+          </div>
+
+          <div fxFlex="50" fxFlexAlign="space-around center">
+            <mat-form-field class="form-element">
+              <input matInput placeholder="Apodo" formControlName="apodo">
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div fxLayout="row" fxFlexAlign="space-around center">
+          <div fxFlex="50">
+            <mat-form-field class="form-element" style="width: 50%;">
+              <input matInput placeholder="C.I." formControlName="documento">
+            </mat-form-field>
+          </div>
+
+          <div fxFlex="50" fxFlexAlign="space-around center">
+            <mat-form-field class="form-element">
+              <input matInput placeholder="Teléfono" formControlName="telefono">
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div fxLayout="row" fxFlexAlign="space-around center">
+          <div fxFlex="50">
+            <mat-form-field class="form-element">
+              <input matInput placeholder="Dirección" formControlName="direccion">
+            </mat-form-field>
+          </div>
+
+          <div fxFlex="50" fxFlexAlign="space-around center">
+            <mat-form-field>
+              <input type="text" placeholder="Ciudad" aria-label="Ciudad" matInput [matAutocomplete]="autoCiudad"
+                formControlName="ciudad">
+              <mat-autocomplete autoActiveFirstOption #autoCiudad="matAutocomplete">
+                <mat-option *ngFor="let ciudad of ciudadFilteredOptions | async" [value]="ciudad">
+                  {{ciudad}}
+                </mat-option>
+              </mat-autocomplete>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div fxLayout="row" fxFlexAlign="space-around center">
+          <div fxFlex="35">
+            <mat-form-field class="form-element">
+              <input matInput placeholder="Usuario en Facebook" formControlName="socialMedia">
+            </mat-form-field>
+          </div>
+
+          <div fxFlex="15">
+            <button mat-button color="primary" (click)="verificarFacebook()">
+              <h6 style="padding-top: 15px;">Verificar</h6>
+            </button>
+          </div>
+
+          <div fxFlex="50">
+            <mat-form-field>
+              <input type="text" placeholder="Sexo" aria-label="Sexo" matInput [matAutocomplete]="autoSexo"
+                formControlName="sexo">
+              <mat-autocomplete #autoSexo="matAutocomplete" autoActiveFirstOption>
+                <mat-option *ngFor="let sexo of sexoFilteredOptions | async" [value]="sexo">
+                  {{sexo}}
+                </mat-option>
+              </mat-autocomplete>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div fxLayout="row" fxFlexAlign="space-around center">
+          <div fxFlex="70">
+            <mat-form-field class="form-element" style="width: 100%;">
+              <input matInput placeholder="Email" formControlName="email">
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div fxLayout="row">
+          <div fxFlex="50">
+            <mat-form-field>
+              <mat-label>Fecha de nacimiento</mat-label>
+              <input matInput [matDatepicker]="picker">
+              <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-datepicker #picker></mat-datepicker>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <br>
+
+        <div fxLayout="row" fxFlexAlign="space-around center">
+          <div fxFlex="20">
+            <button mat-raised-button color="primary" [disabled]="!formGroup.valid" type="submit">Aceptar</button>
+          </div>
+          <div fxFlex="20">
+            <button mat-raised-button color="Warn" type="reset">Cancelar</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div fxFlex="30">
+
+      </div>
+    </div>
+
+  </form>
+</div>

@@ -1,0 +1,248 @@
+<div class="container" style="width: 70vw; height: 80vh">
+  <form [formGroup]="formGroup">
+    <h3>Buscar Producto</h3>
+    <div fxLayout="column">
+      <div
+        fxLayout="row"
+        fxLayoutAlign="start center"
+        fxLayoutGap="20px"
+        style="width: 100%"
+      >
+        <div
+          fxFlex="50"
+          fxLayout="row"
+          fxLayoutAlign="center center"
+          fxLayoutGap="40px"
+          style="width: 100%"
+        >
+          <div fxFlex="33">
+            <mat-form-field>
+              <mat-label>Cantidad</mat-label>
+              <input
+                formControlName="cantidad"
+                type="number"
+                matInput
+                style="font-size: 1.5em; text-align: center"
+                min="1"
+                autofocus="off"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="33">
+            <button
+            type="button"
+              mat-raised-button
+              style="width: 50%; height: 3em"
+              (click)="openTecladoNumerico()"
+              color="primary"
+            >
+              <mat-icon style="width: 50%; height: 0.8em; font-size: 200%"
+                >keyboard_alt</mat-icon
+              >
+            </button>
+          </div>
+        </div>
+        <div
+          fxFlex="50"
+          fxLayout="row"
+          fxLayoutAlign="center center"
+          fxLayoutGap="40px"
+          style="width: 100%"
+        >
+          <div fxFlex="33">
+            <button
+              mat-raised-button
+              [color]="selectedTipoPrecio?.id == 1 ? 'primary' : 'null'"
+              style="text-align: center"
+              (click)="cambiarTipoPrecio(1)"
+            >
+              <h1 style="margin-top: 10%; margin-bottom: 10%">Precio 1</h1>
+            </button>
+          </div>
+          <div fxFlex="33">
+            <button
+              mat-raised-button
+              [color]="selectedTipoPrecio?.id == 2 ? 'primary' : null"
+              style="text-align: center"
+              (click)="cambiarTipoPrecio(2)"
+            >
+              <h1 style="margin-top: 10%; margin-bottom: 10%">Precio 2</h1>
+            </button>
+          </div>
+          <div fxFlex="33">
+            <button
+              mat-raised-button
+              [color]="selectedTipoPrecio?.id == 3 ? 'primary' : null"
+              style="text-align: center"
+              (click)="cambiarTipoPrecio(3)"
+            >
+              <h1 style="margin-top: 10%; margin-bottom: 10%">Precio 3</h1>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div fxLayout="row">
+        <div fxFlex>
+          <mat-form-field appearance="legacy" style="width: 80%">
+            <mat-label>Ingresar texto</mat-label>
+            <input
+              #buscarInput
+              matInput
+              placeholder="Buscar Producto"
+              autocomplete="off"
+              formControlName="buscarControl"
+              oninput="(this.value == ' ') ? this.value = null : null ;this.value = this.value.toUpperCase()"
+              (keydown)="keydownEvent($event.key)"
+            />
+          </mat-form-field>
+        </div>
+      </div>
+      <div class="table-container" fxLayout="row">
+        <div fxFlex>
+          <table
+            mat-table
+            [dataSource]="dataSource"
+            multiTemplateDataRows
+            class="mat-elevation-z8"
+          >
+            <ng-container matColumnDef="id">
+              <th mat-header-cell *matHeaderCellDef>Id</th>
+              <td mat-cell *matCellDef="let producto">{{ producto.id }}</td>
+            </ng-container>
+
+            <!-- Name Column -->
+            <ng-container matColumnDef="descripcion">
+              <th mat-header-cell *matHeaderCellDef>Descripción</th>
+              <td mat-cell *matCellDef="let producto" style="text-align: start">
+                {{ producto.descripcion }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="promocion">
+              <th mat-header-cell *matHeaderCellDef>Promoción</th>
+              <td mat-cell *matCellDef="let producto" style="text-align: start">
+                {{ producto.promocion ? "Si" : "No" }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="precio1">
+              <th mat-header-cell *matHeaderCellDef>Precio 1</th>
+              <td mat-cell *matCellDef="let producto" style="text-align: start">
+                {{ getPrecio1(producto) | number: "1.0-0" }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="precio2">
+              <th mat-header-cell *matHeaderCellDef>Precio 2</th>
+              <td mat-cell *matCellDef="let producto" style="text-align: start">
+                {{ getPrecio2(producto) | number: "1.0-0" }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="precio3">
+              <th mat-header-cell *matHeaderCellDef>Precio 3</th>
+              <td mat-cell *matCellDef="let producto" style="text-align: start">
+                {{ getPrecio3(producto) | number: "1.0-0" }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="existencia">
+              <th mat-header-cell *matHeaderCellDef>Existencia</th>
+              <td mat-cell *matCellDef="let producto" style="text-align: start">
+                {{ getExistencia(producto) | number: "1.0-2" }}
+              </td>
+            </ng-container>
+
+            <mat-divider></mat-divider>
+
+            <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+            <ng-container matColumnDef="expandedDetail">
+              <td
+                mat-cell
+                *matCellDef="let producto"
+                [attr.colspan]="displayedColumns.length"
+              >
+                <div
+                  class="example-producto-detail"
+                  [@detailExpand]="
+                    producto == expandedProducto ? 'expanded' : 'collapsed'
+                  "
+                >
+                  <div
+                    fxLayout="column"
+                    style="padding: 10px"
+                    style="width: 100%"
+                  >
+                    <div fxFlex fxLayout="row">
+                      <div fxFlex="30">
+                        <app-imagebase64
+                          [producto]="producto"
+                          width="200px"
+                          height="200px"
+                          objectFit="cover"
+                        ></app-imagebase64>
+                      </div>
+                      <div
+                        fxFlex="70"
+                        fxLayout="column"
+                        fxLayoutAlign="space-around start"
+                      >
+                        <div fxFlex>
+                          Unidad en caja: {{ producto.unidadPorCaja }}
+                        </div>
+                        <div fxFlex>
+                          Garantia en envase:
+                          {{ producto.garantia ? "Si" : "No" }}
+                        </div>
+                        <div fxFlex>
+                          Controlar vencimiento:
+                          {{ producto.vencimiento ? "Si" : "No" }}
+                        </div>
+                        <div fxFlex>
+                          Observacion: {{ producto.observacion }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr
+              #tableRows
+              mat-row
+              *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+              tabindex="999"
+              [ngClass]="{ highlight: selectedRowIndex == i }"
+              (click)="
+                expandedProducto = expandedProducto === row ? null : row;
+                highlight(row, i)
+              "
+              (keydown.arrowdown)="arrowDownEvent()"
+              (keydown.arrowup)="arrowUpEvent()"
+              (keydown.enter)="selectRowEvent(expandedProducto === dataSource[selectedRowIndex])"
+            ></tr>
+            <tr
+              mat-row
+              *matRowDef="let row; columns: ['expandedDetail']"
+              class="example-detail-row"
+            ></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- [ngClass]="{'highlight': selectedRowIndex == i}"
+          class="example-producto-row"
+          [class.example-expanded-row]="expandedproducto === producto"
+          (click)="highlight(row, i); expandedproducto = expandedproducto === producto ? null : producto"
+          tabindex="999"
+          (keydown.arrowdown)="arrowDownEvent()"
+          (keydown.arrowup)="arrowUpEvent()"
+          (keydown.enter)="selectRowEvent()" -->
+
+<!-- class="example-producto-row"
+      [class.example-expanded-row]="expandedProducto === producto" -->

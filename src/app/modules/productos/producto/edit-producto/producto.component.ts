@@ -1,0 +1,1164 @@
+import { Component, ElementRef, Input, OnInit, ViewChild } from "@angular/core";
+import { FormGroup, Validators, FormControl } from "@angular/forms";
+import { MatDialog } from "@angular/material/dialog";
+import { MatTableDataSource } from "@angular/material/table";
+import { DomSanitizer } from "@angular/platform-browser";
+import { NgxImageCompressService } from "ngx-image-compress";
+import { Codigo } from "../../codigo/codigo.model";
+import { CrearCodigosDialogComponent } from "../../codigo/crear-codigos-dialog/crear-codigos-dialog.component";
+import { AddFamiliaDialogComponent } from "../../familia/add-familia-dialog/add-familia-dialog.component";
+import { Familia } from "../../familia/familia.model";
+import { FamiliaService } from "../../familia/familia.service";
+import { PrecioPorSucursal } from "../../precio-por-sucursal/precio-por-sucursal.model";
+import { AddSubfamiliaDialogComponent } from "../../sub-familia/add-subfamilia-dialog/add-subfamilia-dialog.component";
+import { Subfamilia } from "../../sub-familia/sub-familia.model";
+import { SubFamiliaService } from "../../sub-familia/sub-familia.service";
+import { TipoPrecio } from "../../tipo-precio/tipo-precio.model";
+import { Producto } from "../producto.model";
+import { ProductoService } from "../producto.service";
+import { TipoConservacion } from "./producto-enums";
+import { ProductoInput } from "../producto-input.model";
+import { CodigoService } from "../../codigo/codigo.service";
+import { CodigoInput } from "../../codigo/codigo-input.model";
+import { PrecioPorSucursalInput } from "../../precio-por-sucursal/precio-por-sucursal-input.model";
+import { PrecioPorSucursalService } from "../../precio-por-sucursal/precio-por-sucursal.service";
+import { MainService } from "../../../../main.service";
+import { CurrencyMask } from "../../../../commons/core/utils/numbersUtils";
+import {
+  NotificacionSnackbarService,
+  NotificacionColor,
+} from "../../../../notificacion-snackbar.service";
+import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
+import { CortarImagenDialogComponent } from "../../../../shared/cortar-imagen-dialog/cortar-imagen-dialog.component";
+import { QrCodeComponent } from "../../../../shared/qr-code/qr-code.component";
+import { MatStepper } from "@angular/material/stepper";
+import { MatInput } from "@angular/material/input";
+
+@Component({
+  selector: "app-producto",
+  templateUrl: "./producto.component.html",
+  styleUrls: ["./producto.component.css"],
+})
+export class ProductoComponent implements OnInit {
+  @Input() data;
+
+  @ViewChild("stepper", { static: false }) stepper: MatStepper;
+  @ViewChild("codigoInput", { static: false }) codigoInput: ElementRef;
+  @ViewChild("nombreInput", { static: false }) nombreInput: ElementRef;
+  @ViewChild("valorInput", { static: false }) valorInput: ElementRef;
+
+  isLinear = false;
+  tipoProductoControl: FormGroup;
+  categoriaControl: FormGroup;
+  datosGeneralesControl: FormGroup;
+  imagenesControl: FormGroup;
+  codigosControl: FormGroup;
+  preciosControl: FormGroup;
+  selectedProducto: Producto;
+  // familia
+  familiasList: Familia[] = [];
+  subfamiliasList: Subfamilia[] = [];
+  selectedFamilia: Familia = null;
+  selectedSubfamilia: Subfamilia = null;
+  filteredFamilias = [];
+
+  //datos generales
+  selectedTipoConservacion: TipoConservacion;
+  //datos generales
+
+  //codigo
+  isEditingCodigo = false;
+  codigoDataSource = new MatTableDataSource<Codigo>(null);
+  codigosList: Codigo[] = [];
+  selectedCodigo: Codigo;
+  isPrincipal = false;
+  isCaja = false;
+  isCodigoEnUso = false;
+  tipoPrecioList: TipoPrecio[] = [];
+  filteredTipoPrecioList: TipoPrecio[] = [];
+  selectedTipoPrecio: TipoPrecio;
+  selectedCodigoPrecio: Codigo;
+  currency = new CurrencyMask();
+  isEditingPrecio = false;
+  precioList: PrecioPorSucursal[];
+  precioDataSource = new MatTableDataSource<PrecioPorSucursal>(null);
+  codigoImagenQr = "";
+  isCropping = false;
+  isCodigoPrincipal = false;
+  isCodigoCaja = false;
+  precio1 = null;
+  precio2 = null;
+  precio3 = null;
+  tipoConservacionList: string[] = [];
+
+  //estados de pantalla precio
+  precioFormEnable = true;
+  btnAdicionarPrecio = true;
+  btnCancelarPrecio = true;
+  activarPrecioTable = true;
+  selectedPrecio: PrecioPorSucursal = null;
+  btnEditarPrecio = false;
+  btnGuardarPrecio = false;
+  btnNuevoPrecio = false;
+  imagenPrincipal = null;
+
+  constructor(
+    private mainService: MainService,
+    private notifiActionBar: NotificacionSnackbarService,
+    private dialogo: DialogosService,
+    private matDialog: MatDialog,
+    private sanitizer: DomSanitizer,
+    private imageCompress: NgxImageCompressService,
+    private familiaService: FamiliaService,
+    private subfamiliaService: SubFamiliaService,
+    private productoService: ProductoService,
+    private codigoService: CodigoService,
+    private precioPorSucursalService: PrecioPorSucursalService
+  ) {
+    //inicializar las subscripciones
+    familiaService.familiaBS.subscribe((res) => {
+      this.familiasList = res;
+      if (this.selectedFamilia != null) {
+        this.selectedFamilia = this.familiasList.find(
+          (f) => f.id == this.selectedFamilia.id
+        );
+        this.subfamiliasList = this.selectedFamilia.subfamilias;
+      }
+    });
+
+    this.codigoService.dataOBs.subscribe((res) => {
+      this.codigosList = res;
+      this.codigoDataSource.data = this.codigosList;
+    });
+
+    precioPorSucursalService.datosObs.subscribe((res) => {
+      this.precioList = res;
+      this.refreshPrecioTable();
+    });
+  }
+
+  ngOnInit() {
+    // inicializar arrays
+    this.precioList = [];
+
+    this.createForm();
+    this.cargarTipoPrecios();
+    this.refreshCodigoTable();
+    this.cargarTipoConservacion();
+
+    setTimeout(() => {
+      if (this.data?.tabData?.data.id != null) {
+        this.cargarProducto(this.data.tabData.data.id);
+      }
+    }, 100);
+  }
+
+  cargarProducto(id) {
+    this.productoService.getProducto(id).subscribe((res) => {
+      this.selectedProducto = res;
+      this.selectedSubfamilia = this.selectedProducto?.subfamilia;
+      this.selectedFamilia = this.selectedSubfamilia?.familia;
+      this.seleccionarFamilia(this.selectedFamilia);
+      this.seleccionarSubfamilia(this.selectedSubfamilia);
+      this.datosGeneralesControl.controls.descripcion.setValue(
+        this.selectedProducto.descripcion
+      );
+      this.datosGeneralesControl.controls.descripcionFactura.setValue(
+        this.selectedProducto.descripcionFactura
+      );
+      this.datosGeneralesControl.controls.iva.setValue(
+        `${this.selectedProducto.iva}`
+      );
+      this.datosGeneralesControl.controls.unidadPorCaja.setValue(
+        this.selectedProducto.unidadPorCaja
+      );
+      this.datosGeneralesControl.controls.poseeEmbalajePrincipal.setValue(
+        this.selectedProducto.unidadPorCaja > 0
+      );
+      this.datosGeneralesControl.controls.unidadPorCajaSecundaria.setValue(
+        this.selectedProducto.unidadPorCajaSecundaria
+      );
+      this.datosGeneralesControl.controls.poseeEmbalajeSecundaria.setValue(
+        this.selectedProducto.unidadPorCajaSecundaria > 0
+      );
+      this.datosGeneralesControl.controls.balanza.setValue(
+        this.selectedProducto.balanza
+      );
+      this.datosGeneralesControl.controls.garantia.setValue(
+        this.selectedProducto.garantia
+      );
+      this.datosGeneralesControl.controls.tiempoGarantia.setValue(
+        this.selectedProducto.tiempoGarantia
+      );
+      this.datosGeneralesControl.controls.vencimiento.setValue(
+        this.selectedProducto.vencimiento
+      );
+      this.datosGeneralesControl.controls.ingrediente.setValue(
+        this.selectedProducto.ingrediente
+      );
+      this.datosGeneralesControl.controls.stock.setValue(
+        this.selectedProducto.stock
+      );
+      this.datosGeneralesControl.controls.cambiable.setValue(
+        this.selectedProducto.cambiable
+      );
+      this.datosGeneralesControl.controls.tipoConservacion.setValue(
+        this.selectedProducto.tipoConservacion
+      );
+      this.datosGeneralesControl.controls.diasVencimiento.setValue(
+        this.selectedProducto.diasVencimiento
+      );
+      this.codigoService.onGetCodigosPorProductoId(res.id);
+      this.precioPorSucursalService.onGetPorProductoId(res.id);
+      this.loadImagenPrincipal(res?.imagenPrincipal);
+    });
+  }
+
+  cargarDatosPrueba() {
+    this.datosGeneralesControl.controls.descripcion.setValue(
+      "JABON LIQUIDO CONFORT 500 ML"
+    );
+    this.datosGeneralesControl.controls.balanza.setValue(false);
+    this.datosGeneralesControl.controls.poseeEmbalajePrincipal.setValue(true);
+    this.datosGeneralesControl.controls.poseeEmbalajeSecundaria.setValue(false);
+    this.datosGeneralesControl.controls.unidadPorCaja.setValue(10);
+    this.datosGeneralesControl.controls.stock.setValue(true);
+    this.datosGeneralesControl.controls.garantia.setValue(false);
+    this.datosGeneralesControl.controls.vencimiento.setValue(false);
+    this.datosGeneralesControl.controls.iva.setValue("10");
+    setTimeout(() => {
+      this.seleccionarFamilia(this.tiposProductos[0]);
+      setTimeout(() => {
+        this.seleccionarSubfamilia(this.categorias[0]);
+        setTimeout(() => {
+          this.stepper.next();
+          setTimeout(() => {
+            this.codigosControl.controls.codigo.setValue("555666777");
+            this.crearCodigosAlternativos();
+            this.stepper.next();
+            setTimeout(() => {
+              this.selectedTipoPrecio = this.tipoPrecioList[0];
+              this.preciosControl.controls.tipoPrecio.setValue(
+                this.selectedTipoPrecio
+              );
+              this.displayTipoPrecio(this.selectedTipoPrecio);
+              this.preciosControl.controls.precio.setValue(4000);
+              this.selectedCodigoPrecio = this.codigosList[0];
+              this.onAddPrecio("add");
+              this.selectedTipoPrecio = this.tipoPrecioList[1];
+              this.preciosControl.controls.tipoPrecio.setValue(
+                this.selectedTipoPrecio
+              );
+              this.displayTipoPrecio(this.selectedTipoPrecio);
+              this.preciosControl.controls.precio.setValue(40000);
+              this.selectedCodigoPrecio = this.codigosList.find(
+                (c) => c.caja == true
+              );
+              this.onAddPrecio("add");
+              setTimeout(() => {
+                this.generarPrecios();
+                this.stepper.next();
+              }, 500);
+            }, 500);
+          }, 500);
+        }, 500);
+      }, 500);
+    }, 300);
+  }
+
+  createForm() {
+    this.tipoProductoControl = new FormGroup({});
+    this.categoriaControl = new FormGroup({});
+    this.datosGeneralesControl = new FormGroup({
+      descripcion: new FormControl(null),
+      descripcionFactura: new FormControl(null),
+      iva: new FormControl(null),
+      poseeEmbalajePrincipal: new FormControl(null),
+      poseeEmbalajeSecundaria: new FormControl(null),
+      unidadPorCaja: new FormControl(null, [
+        Validators.min(1),
+        Validators.max(100),
+      ]),
+      unidadPorCajaSecundaria: new FormControl(null, [
+        Validators.min(2),
+        Validators.max(1000),
+      ]),
+      balanza: new FormControl(null),
+      garantia: new FormControl(null),
+      tiempoGarantia: new FormControl(null, [
+        Validators.min(1),
+        Validators.max(60),
+      ]), //en dias
+      ingrediente: new FormControl(null),
+      combo: new FormControl(null),
+      stock: new FormControl(null),
+      cambiable: new FormControl(null),
+      esAlcoholico: new FormControl(null),
+      promocion: new FormControl(null),
+      vencimiento: new FormControl(null),
+      diasVencimiento: new FormControl(null),
+      subfamilia: new FormControl(null),
+      tipoConservacion: new FormControl(null),
+      ingredientesList: new FormControl(null),
+      existenciaTotal: new FormControl(null),
+      observacion: new FormControl(null),
+      sucursales: new FormControl(null),
+      productoUltimasCompras: new FormControl(null),
+      precio1: new FormControl(null),
+      precio2: new FormControl(null),
+      precio3: new FormControl(null),
+    });
+    this.imagenesControl = new FormGroup({
+      imagenPrincipal: new FormControl(null),
+    });
+    this.codigosControl = new FormGroup({
+      codigo: new FormControl(null),
+      tipoCodigo: new FormControl(null),
+      codigoCantidad: new FormControl(null),
+      codigoActivo: new FormControl(null),
+      tipoPrecio: new FormControl(null),
+    });
+    this.preciosControl = new FormGroup({
+      codigoPrecio: new FormControl(null),
+      precio: new FormControl(null, [Validators.min(1)]),
+      sucursalPrecio: new FormControl(null),
+    });
+
+    this.preciosControl.controls.codigoPrecio.disable();
+
+    //inicializacion
+    this.datosGeneralesControl.controls.iva.setValue("10");
+    this.codigosControl.controls.tipoCodigo.setValue("principal");
+    this.codigosControl.controls.codigoCantidad.setValue("1");
+    this.codigosControl.controls.codigoActivo.setValue(true);
+
+    //listeners para los forms
+    this.codigosControl.controls.tipoCodigo.valueChanges.subscribe((res) => {
+      if (res == "caja") {
+        this.codigosControl.controls.codigoCantidad.setValue(
+          this.datosGeneralesControl.controls.unidadPorCaja.value
+        );
+      }
+    });
+
+    this.datosGeneralesControl.controls.poseeEmbalajeSecundaria.valueChanges.subscribe(
+      (res) => {
+        if (!res) {
+          this.datosGeneralesControl.controls.unidadPorCajaSecundaria.setValue(
+            null
+          );
+        }
+      }
+    );
+
+    this.datosGeneralesControl.controls.poseeEmbalajePrincipal.valueChanges.subscribe(
+      (res) => {
+        if (!res) {
+          this.datosGeneralesControl.controls.unidadPorCaja.setValue(null);
+          this.datosGeneralesControl.controls.poseeEmbalajeSecundaria.setValue(
+            false
+          );
+        }
+      }
+    );
+  }
+
+  // funciones datos generales
+  onDescripcionFacturaOut() {
+    if (
+      this.datosGeneralesControl.controls.descripcionFactura.value == null ||
+      this.datosGeneralesControl.controls.descripcionFactura.value == ""
+    ) {
+      this.datosGeneralesControl.controls.descripcionFactura.setValue(
+        this.datosGeneralesControl.controls.descripcion.value
+      );
+    }
+  }
+
+  onProductoSave() {
+    const {
+      descripcion,
+      descripcionFactura,
+      iva,
+      unidadPorCaja,
+      unidadPorCajaSecundaria,
+      balanza,
+      stock,
+      garantia,
+      tiempoGarantia,
+      cambiable,
+      ingredientes,
+      combo,
+      promocion,
+      vencimiento,
+      diasVencimiento,
+      tipoConservacion,
+      subfamiliaId,
+    } = this.datosGeneralesControl.value;
+    let productoInput = new ProductoInput();
+    productoInput = {
+      descripcion,
+      descripcionFactura,
+      iva,
+      unidadPorCaja,
+      unidadPorCajaSecundaria,
+      balanza,
+      stock,
+      garantia,
+      tiempoGarantia,
+      cambiable,
+      ingredientes,
+      combo,
+      promocion,
+      vencimiento,
+      diasVencimiento,
+      tipoConservacion,
+      subfamiliaId,
+    };
+    if (this.selectedProducto != null) {
+      productoInput.id = this.selectedProducto.id;
+      this.codigoService.onGetCodigosPorProductoId(productoInput.id);
+    }
+    productoInput.descripcion = productoInput.descripcion.toUpperCase();
+    productoInput.descripcionFactura =
+      productoInput.descripcionFactura.toUpperCase();
+    productoInput.subfamiliaId = this.selectedSubfamilia.id;
+    this.productoService.onSaveProducto(productoInput).subscribe((res) => {
+      if (res != null) {
+        this.selectedProducto = res;
+        setTimeout(() => {
+          this.codigoInput.nativeElement.focus();
+        }, 100);
+      } else {
+        this.stepper.previous();
+        setTimeout(() => {
+          this.nombreInput.nativeElement.focus();
+        }, 100);
+      }
+    });
+  }
+  // funciones datos generales
+
+  //funciones de codigos
+  onCodigoCantidadOut() {
+    if (
+      this.datosGeneralesControl.controls.unidadPorCaja.value == null ||
+      this.datosGeneralesControl.controls.unidadPorCaja.value == ""
+    ) {
+      this.datosGeneralesControl.controls.unidadPorCaja.setValue(
+        this.codigosControl.controls.codigoCantidad.value
+      );
+    }
+  }
+
+  onCodigoSave() {}
+
+  //funciones de codigos
+
+  seleccionarFamilia(tipo) {
+    this.selectedFamilia = this.familiasList.find((f) => f.id == tipo.id);
+    this.subfamiliasList = this.selectedFamilia?.subfamilias;
+    this.filtrarFamilias();
+  }
+
+  seleccionarSubfamilia(tipo) {
+    this.selectedSubfamilia = tipo;
+
+    if (this.selectedFamilia?.nombre == "BEBIDAS") {
+      this.datosGeneralesControl.controls.esAlcoholico.setValue(true);
+      this.datosGeneralesControl.controls.poseeEmbalajePrincipal.setValue(true);
+      this.datosGeneralesControl.controls.stock.setValue(true);
+      this.datosGeneralesControl.controls.vencimiento.setValue(true);
+      this.datosGeneralesControl.controls.tipoConservacion.setValue(
+        TipoConservacion.ENFRIABLE
+      );
+    }
+
+    setTimeout(() => {
+      this.nombreInput.nativeElement.focus();
+    }, 100);
+  }
+
+  filtrarFamilias() {
+    this.filteredFamilias = this.categorias.filter(
+      (c) => c.tipo == this.selectedFamilia?.id
+    );
+  }
+
+  cargarTipoConservacion() {
+    for (let key in TipoConservacion) {
+      let tipo: string = TipoConservacion[key];
+      this.tipoConservacionList.push(tipo);
+    }
+  }
+
+  buscarCodigo() {
+    this.matDialog
+      .open(CrearCodigosDialogComponent, {
+        data: {
+          codigos: this.codigosList.filter((c) => {
+            let flag = true;
+            this.precioList?.forEach((p) => {
+              if (p.codigo.codigo == c.codigo) {
+                flag = false;
+              }
+            });
+            return flag;
+          }),
+        },
+        width: "800px",
+        height: "500px",
+      })
+      .afterClosed()
+      .subscribe((res) => {
+        if (res != null) {
+          this.selectedCodigoPrecio = res;
+          this.preciosControl?.controls?.codigoPrecio.setValue(
+            `${res.codigo} - ${res.principal ? "Principal" : res.caja}`
+          );
+        }
+      });
+  }
+
+  onAddCodigo(accion) {
+    let codigo: Codigo = new Codigo();
+    let index = -1;
+    let isTipoPrecioInUse = false;
+    codigo.id = this.selectedCodigo?.id;
+    codigo.codigo = this.codigosControl.controls.codigo.value;
+    codigo.principal =
+      this.codigosControl.controls.tipoCodigo.value == "principal";
+    codigo.caja = this.codigosControl.controls.tipoCodigo.value == "caja";
+    codigo.variacion =
+      this.codigosControl.controls.tipoCodigo.value == "alternativo";
+    codigo.cantidad = +this.codigosControl.controls.codigoCantidad.value;
+    codigo.activo = this.codigosControl.controls.codigoActivo.value;
+    codigo.tipoPrecio = this.selectedTipoPrecio;
+    if (this.codigosList.length > 0) {
+      this.isPrincipal =
+        this.codigosList.find(
+          (c) => c?.principal == true && c?.id != codigo.id
+        ) != null;
+      this.isCaja =
+        this.codigosList.find((c) => c?.caja == true && c?.id != codigo.id) !=
+        null;
+      this.isCodigoEnUso =
+        this.codigosList.find(
+          (c) => c?.codigo == codigo.codigo && c?.id != codigo.id
+        ) != null;
+      isTipoPrecioInUse =
+        this.codigosList.find(
+          (c) => c?.tipoPrecio.id == this.selectedTipoPrecio?.id
+        ) != null;
+    }
+    if (this.isPrincipal && codigo.principal) {
+      this.notifiActionBar.notification$.next({
+        color: NotificacionColor.warn,
+        texto: "Ya existe un código principal",
+        duracion: 2,
+      });
+    } else if (this.isCaja && codigo.caja) {
+      this.notifiActionBar.notification$.next({
+        color: NotificacionColor.warn,
+        texto: "Ya existe un código de caja",
+        duracion: 2,
+      });
+    } else if (this.isCodigoEnUso) {
+      this.notifiActionBar.notification$.next({
+        color: NotificacionColor.warn,
+        texto: "Este código ya esta en uso",
+        duracion: 2,
+      });
+    } else if (isTipoPrecioInUse) {
+      this.notifiActionBar.notification$.next({
+        color: NotificacionColor.warn,
+        texto: "Tipo precio ya está en uso",
+        duracion: 2,
+      });
+    } else {
+      let codigoInput = new CodigoInput();
+      codigoInput.id = this.selectedCodigo?.id;
+      codigoInput.principal = codigo.principal;
+      codigoInput.activo = codigo.activo;
+      codigoInput.caja = codigo.caja;
+      codigoInput.cantidad = codigo.cantidad;
+      codigoInput.codigo = codigo.codigo;
+      codigoInput.descripcion = codigo?.descripcion?.toUpperCase();
+      codigoInput.productoId = this.selectedProducto.id;
+      codigoInput.tipoPrecioId = codigo?.tipoPrecio?.id;
+      codigoInput.variacion = codigo.variacion;
+      switch (accion) {
+        case "add":
+          this.codigoService.onSaveCodigo(codigoInput).subscribe((res) => {
+            this.codigosList.push(res);
+            this.codigoDataSource.data = this.codigosList;
+            this.selectedCodigo = res;
+          });
+          break;
+        case "save":
+          this.codigoService.onSaveCodigo(codigoInput).subscribe((res) => {
+            this.codigosList[
+              this.codigosList.findIndex((f) => f.id == res.id)
+            ] = res;
+            this.codigoDataSource.data = this.codigosList;
+            this.isEditingCodigo = false;
+          });
+
+          break;
+
+        default:
+          break;
+      }
+      this.resetCodigoControl();
+      this.refreshCodigoTable();
+      this.codigosControl.disable();
+    }
+  }
+
+  crearCodigosAlternativos() {
+    let cantPorCaja = this.datosGeneralesControl.controls.unidadPorCaja.value;
+    let principal = this.codigosList.find((c) => c?.principal === true)?.codigo;
+    let caja = this.codigosList.find((c) => c?.caja === true)?.codigo;
+    if (this.codigosControl.controls.codigo.value != null) {
+      principal = this.codigosControl.controls.codigo.value;
+      this.codigosControl.controls.codigo.setValue(principal);
+      this.codigosControl.controls.tipoCodigo.setValue("principal");
+      this.codigosControl.controls.codigoActivo.setValue(true);
+      this.onAddCodigo("add");
+      if (caja == null && cantPorCaja > 1) {
+        this.codigosControl.controls.codigo.setValue(`CAJA${principal}`);
+        this.codigosControl.controls.tipoCodigo.setValue("caja");
+        this.codigosControl.controls.codigoActivo.setValue(true);
+        this.codigosControl.controls.codigoCantidad.setValue(`${cantPorCaja}`);
+        this.onAddCodigo("add");
+      } else {
+        this.notifiActionBar.notification$.next({
+          texto: "Se necesita código de caja y la cantidad por caja.",
+          duracion: 4,
+          color: NotificacionColor.warn,
+        });
+      }
+    }
+
+    if (cantPorCaja != null && cantPorCaja > 1 && principal != null) {
+      let sufix = principal;
+      for (let index = 1; index < cantPorCaja; index++) {
+        this.codigosControl.controls.codigo.setValue(`${index}${sufix}`);
+        this.codigosControl.controls.tipoCodigo.setValue("alternativo");
+        this.codigosControl.controls.codigoActivo.setValue(true);
+        this.codigosControl.controls.codigoCantidad.setValue(`${index}`);
+        this.onAddCodigo("add");
+        this.resetCodigoControl();
+      }
+      this.refreshCodigoTable();
+    } else {
+      this.notifiActionBar.notification$.next({
+        texto: "Se necesita código de caja y la cantidad por caja.",
+        duracion: 4,
+        color: NotificacionColor.warn,
+      });
+    }
+  }
+
+  crearCodigos() {}
+
+  onSelectCodigoRow(row) {
+    if (!this.isEditingCodigo) {
+      this.codigosControl.disable();
+      this.selectedCodigo = row;
+      this.selectedTipoPrecio = this.selectedCodigo?.tipoPrecio;
+      this.codigosControl.controls.tipoPrecio.setValue(this.selectedTipoPrecio);
+      this.codigosControl.controls.codigo.setValue(row.codigo);
+      this.codigosControl.controls.codigoActivo.setValue(row.activo);
+      this.codigosControl.controls.tipoCodigo.setValue(
+        row?.principal == true
+          ? "principal"
+          : row?.caja == true
+          ? "caja"
+          : "alternativo"
+      );
+      this.codigosControl.controls.codigoCantidad.setValue(`${row.cantidad}`);
+    }
+  }
+
+  editCodigoRow() {
+    this.isEditingCodigo = true;
+    this.codigosControl.enable();
+  }
+
+  resetCodigoControl() {
+    this.codigosControl.controls.codigo.setValue("");
+    this.codigosControl.controls.tipoCodigo.setValue("principal");
+    this.codigosControl.controls.codigoCantidad.setValue("1");
+    this.codigosControl.controls.codigoActivo.setValue(true);
+    this.refreshCodigoTable();
+  }
+
+  onCancelarCodigo() {
+    this.isEditingCodigo = false;
+    this.selectedCodigo = null;
+    this.resetCodigoControl();
+    this.codigosControl.enable();
+    this.selectedTipoPrecio = null;
+  }
+
+  refreshCodigoTable() {
+    this.codigoDataSource.data = this.codigosList;
+    this.isCodigoPrincipal =
+      this.codigosList?.find((c) => c.principal == true) != null;
+    this.isCodigoCaja = this.codigosList?.find((c) => c.caja == true) != null;
+  }
+
+  onDeleteCodigo(item: Codigo) {
+    let index = this.codigosList.findIndex((c) => c?.id == item.id);
+    if (index != -1) {
+      this.dialogo
+        .confirm(
+          "Desea eliminar este código?",
+          `${item.codigo.toUpperCase()}`,
+          null,
+          null
+        )
+        .subscribe((res) => {
+          if (res) {
+            this.codigoService.onDeleteCodigo(item.id).subscribe((res) => {
+              if (res) {
+                this.codigosList.splice(index, 1);
+                this.onCancelarCodigo();
+                this.refreshCodigoTable();
+              }
+            });
+          }
+        });
+    }
+  }
+
+  onAddPrecio(accion) {
+    let precio = new PrecioPorSucursal();
+    let precioInput = new PrecioPorSucursalInput();
+    precioInput.id = this.selectedPrecio?.id;
+    precioInput.codigoId = this.selectedCodigoPrecio.id;
+    precioInput.precio = this.preciosControl.controls.precio.value;
+    precioInput.sucursalId = this.mainService.sucursalActual.id;
+    this.selectedPrecio = precio;
+    let isPrecioUsed =
+      this.precioList?.find((p) => {
+        if (p.codigo.tipoPrecio == undefined) return null;
+        return p.codigo.tipoPrecio.id === this.selectedTipoPrecio?.id;
+      }) != null;
+    let isCodigoUsed =
+      this.precioList?.find(
+        (p) => p.codigo?.codigo == this.selectedCodigo?.codigo
+      ) != null;
+    if (isPrecioUsed) {
+      this.notifiActionBar.notification$.next({
+        texto: "Tipo de precio ya esta en uso",
+        color: NotificacionColor.warn,
+        duracion: 1,
+      });
+    }
+    if (isCodigoUsed) {
+      this.notifiActionBar.notification$.next({
+        texto: "Código ya esta en uso",
+        color: NotificacionColor.warn,
+        duracion: 1,
+      });
+    }
+    if (!isPrecioUsed && !isCodigoUsed) {
+      switch (accion) {
+        case "add": //adicionar
+          this.precioPorSucursalService.onSave(precioInput).subscribe((res) => {
+            let codigoInput = new CodigoInput();
+            codigoInput.id = res.codigo.id;
+            codigoInput.tipoPrecioId = this.selectedTipoPrecio?.id;
+            this.codigoService.onSaveCodigo(codigoInput).subscribe((res2) => {
+              res.codigo = res2;
+              this.precioList.push(res);
+              this.setPrecioEstado("save", res);
+              this.refreshPrecioTable();
+            });
+          });
+          break;
+        case "save": //guardar/editar
+          this.precioPorSucursalService;
+          this.precioPorSucursalService.onSave(precioInput).subscribe((res) => {
+            this.precioList[this.precioList.findIndex((f) => f.id == res.id)] =
+              res;
+            this.setPrecioEstado("editar", res);
+            this.refreshPrecioTable();
+          });
+          break;
+
+        default:
+          break;
+      }
+      this.refreshPrecioTable();
+    }
+  }
+
+  editPrecioRow() {
+    this.setPrecioEstado("editar");
+  }
+
+  resetPrecioControl() {
+    this.preciosControl.reset();
+  }
+
+  onCancelarPrecio() {
+    this.setPrecioEstado("cancelar");
+  }
+
+  refreshPrecioTable() {
+    this.precioDataSource.data = this.precioList;
+    this.precio1 = this.precioList?.find(
+      (p) => p?.codigo?.tipoPrecio?.descripcion === "PRECIO 1"
+    );
+    this.precio2 = this.precioList?.find(
+      (p) => p?.codigo?.tipoPrecio?.descripcion === "PRECIO 2"
+    );
+    this.precio3 = this.precioList?.find(
+      (p) => p?.codigo?.tipoPrecio?.descripcion === "PRECIO 3"
+    );
+  }
+
+  onDeletePrecio(item: PrecioPorSucursal) {
+    let index = this.precioList.findIndex(
+      (c) => c?.codigo.codigo == item.codigo.codigo
+    );
+    if (index != -1) {
+      this.dialogo
+        .confirm("Desea eliminar este precio?", null, null, [
+          `Precio: ${item.precio}`,
+          `Tipo: ${
+            item.codigo?.tipoPrecio
+              ? item.codigo?.tipoPrecio?.descripcion
+              : "No asignado"
+          }`,
+          `Código; ${item.codigo.codigo.toUpperCase()}`,
+        ])
+        .subscribe((res) => {
+          if (res) {
+            this.precioPorSucursalService.onDelete(item.id).subscribe((res) => {
+              if (res) {
+                this.precioList.splice(index, 1);
+                this.onCancelarPrecio();
+                this.refreshPrecioTable();
+              }
+            });
+          }
+        });
+    }
+  }
+
+  generarPrecios() {
+    this.onCancelarPrecio();
+    let isPrincipal = this.precioList.find((e) => e.codigo.principal === true);
+    let isCaja = this.precioList.find((e) => e.codigo.caja === true);
+    if (isPrincipal != null && isCaja != null && isCaja.codigo.cantidad > 1) {
+      let precio = isPrincipal.precio;
+      for (let index = 1; index < isCaja.codigo.cantidad; index++) {
+        this.preciosControl.controls.precio.setValue(index * precio);
+        this.selectedCodigoPrecio = this.codigosList.find(
+          (c) => c.codigo == `${index}${isPrincipal.codigo.codigo}`
+        );
+        if (this.selectedCodigoPrecio != null) {
+          this.selectedTipoPrecio = null;
+          this.onAddPrecio("add");
+        }
+      }
+    } else {
+      this.notifiActionBar.notification$.next({
+        texto:
+          "Para generar precios primero necesita cargar el precio princial y el precio de caja",
+        color: NotificacionColor.warn,
+        duracion: 3,
+      });
+    }
+  }
+
+  setPrecioEstado(estado, precio?: PrecioPorSucursal) {
+    switch (estado) {
+      case "nuevo":
+        this.preciosControl.enable();
+        this.btnAdicionarPrecio = true;
+        this.btnCancelarPrecio = true;
+        this.activarPrecioTable = true;
+        this.selectedPrecio = null;
+        this.btnEditarPrecio = false;
+        this.btnGuardarPrecio = false;
+        this.btnNuevoPrecio = false;
+        this.selectedCodigoPrecio = null;
+        break;
+      case "save":
+        this.preciosControl.disable();
+        this.btnAdicionarPrecio = false;
+        this.btnCancelarPrecio = false;
+        this.activarPrecioTable = true;
+        this.selectedPrecio = precio;
+        this.selectedCodigoPrecio = precio.codigo;
+        this.btnEditarPrecio = true;
+        this.btnGuardarPrecio = false;
+        this.btnNuevoPrecio = true;
+        break;
+      case "editar":
+        this.preciosControl.enable();
+        this.btnAdicionarPrecio = false;
+        this.btnCancelarPrecio = true;
+        this.activarPrecioTable = false;
+        this.selectedPrecio = precio;
+        this.btnEditarPrecio = false;
+        this.btnGuardarPrecio = true;
+        this.btnNuevoPrecio = false;
+        this.selectedCodigo = precio?.codigo;
+        break;
+      case "cancelar":
+        this.preciosControl.reset();
+        this.preciosControl.enable();
+        this.btnAdicionarPrecio = true;
+        this.btnCancelarPrecio = true;
+        this.activarPrecioTable = true;
+        this.selectedPrecio = null;
+        this.btnEditarPrecio = false;
+        this.btnGuardarPrecio = false;
+        this.btnNuevoPrecio = false;
+        this.selectedCodigoPrecio = null;
+
+        break;
+      case "seleccionado":
+        this.selectedPrecio = precio;
+        this.selectedCodigoPrecio = precio.codigo;
+        this.preciosControl.controls.precio.setValue(precio?.precio);
+        this.preciosControl.disable();
+        this.btnAdicionarPrecio = false;
+        this.btnCancelarPrecio = false;
+        this.activarPrecioTable = true;
+        this.btnEditarPrecio = true;
+        this.btnGuardarPrecio = false;
+        this.btnNuevoPrecio = true;
+        break;
+      default:
+        break;
+    }
+  }
+
+  cargarTipoPrecios() {
+    for (let index = 1; index < 4; index++) {
+      let tipoPrecio = new TipoPrecio();
+      tipoPrecio.id = index;
+      tipoPrecio.activo = true;
+      tipoPrecio.autorizacion = false;
+      tipoPrecio.descripcion = `PRECIO ${index}`;
+      this.tipoPrecioList.push(tipoPrecio);
+    }
+    this.filteredTipoPrecioList = this.tipoPrecioList;
+  }
+
+  displayTipoPrecio(tipo?: TipoPrecio) {
+    this.selectedTipoPrecio = tipo;
+    return tipo != null ? `${tipo.id} - ${tipo.descripcion}` : "";
+  }
+
+  onSelectPrecioRow(row: PrecioPorSucursal) {
+    this.setPrecioEstado("seleccionado", row);
+  }
+
+  onPrecioFocusIn() {
+    setTimeout(() => {
+      this.valorInput.nativeElement.focus();
+    }, 100);
+  }
+
+  onCargarImagen() {}
+
+  onQrCode() {
+    let nombre = this.datosGeneralesControl.controls.descripcion.value;
+    this.codigoImagenQr = Date.now().toString();
+    this.matDialog
+      .open(QrCodeComponent, {
+        data: {
+          nombre,
+          codigo: this.codigoImagenQr,
+        },
+      })
+      .afterClosed()
+      .subscribe((res) => {
+        let objectUrl = URL.createObjectURL(res);
+        this.imagenPrincipal = this.sanitizer.bypassSecurityTrustUrl(objectUrl);
+        var reader = new FileReader();
+        reader.readAsDataURL(res);
+        reader.onloadend = () => {
+          let base64data = reader.result;
+          this.productoService.onImageSave(
+            base64data.toString(),
+            `/productos/${this.selectedProducto.id}.jpg`
+          );
+        };
+      });
+  }
+
+  // familia
+
+  addFamilia() {
+    this.matDialog
+      .open(AddFamiliaDialogComponent, {
+        width: "500px",
+      })
+      .afterClosed()
+      .subscribe((res) => {
+        if (res != null) {
+          setTimeout(() => {
+            this.selectedFamilia = res;
+            // this.seleccionarFamilia(res)
+          }, 500);
+        }
+      });
+  }
+
+  addSubfamilia() {
+    this.matDialog
+      .open(AddSubfamiliaDialogComponent, {
+        width: "500px",
+        data: {
+          familiaId: this.selectedFamilia.id,
+        },
+      })
+      .afterClosed()
+      .subscribe((res) => {
+        if (res != null) {
+          setTimeout(() => {
+            this.selectedSubfamilia = res;
+            // this.seleccionarSubfamilia(res)
+          }, 500);
+        }
+      });
+  }
+
+  onFamiliaRightClick(item, event) {
+    event.preventDefault();
+    this.matDialog
+      .open(AddFamiliaDialogComponent, {
+        data: {
+          familia: item,
+        },
+        width: "500px",
+      })
+      .afterClosed()
+      .subscribe((res) => {
+        if (res != null) {
+        }
+      });
+  }
+
+  //familia
+
+  onFinalizar() {}
+
+  //carga de imagen
+  img: any;
+
+  onFileInput(e: any) {
+    let file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.img = reader.result as string;
+      this.matDialog
+        .open(CortarImagenDialogComponent, {
+          data: {
+            imagen: e,
+          },
+          width: "500px",
+          height: "500px",
+          disableClose: false,
+        })
+        .afterClosed()
+        .subscribe((res) => {
+          if (res != null) this.imagenPrincipal = res;
+          this.productoService.onImageSave(
+            this.imagenPrincipal,
+            `/productos/${this.selectedProducto.id}.jpg`
+          );
+        });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  loadImagenPrincipal(imagen: string) {
+    this.imagenPrincipal = imagen;
+  }
+
+  tiposProductos = [
+    {
+      id: 1,
+      nombre: "General",
+      icono: "shopping_cart",
+      descripcion:
+        "Productos de limpieza, medicamentos, ropas y accesorios, electronicos, ferreteria, casa y camping.",
+    },
+    {
+      id: 2,
+      nombre: "Bebidas",
+      icono: "liquor",
+      descripcion:
+        "Cervezas, gaseosas, lacteos, jugos, aguas, energizantes, vinos, espumantes, whiskys, vodkas, cachaças, licores.",
+    },
+    {
+      id: 3,
+      nombre: "Comestibles",
+      icono: "lunch_dining",
+      descripcion:
+        "Aperitivos, panificados, carnicos, naturales, condimentos, aceites, lacteos.",
+    },
+    {
+      id: 4,
+      nombre: "Elaborados",
+      icono: "microwave",
+      descripcion:
+        "Productos que son elaborados a partir de insumos u otros productos. Ejemplo: Una pizza.",
+    },
+    {
+      id: 5,
+      nombre: "Cigarrillos",
+      icono: "smoking_rooms",
+      descripcion:
+        "Cigarrillos tradicionales, electricos, narguile, escencias, carbon para narguile.",
+    },
+  ];
+
+  categorias = [
+    {
+      id: 1,
+      tipo: 1,
+      nombre: "Productos de limpieza",
+      icono: "cleaning_services",
+    },
+    { id: 2, tipo: 1, nombre: "Medicamentos", icono: "medication" },
+    { id: 3, tipo: 1, nombre: "Ropas y Accesorios", icono: "checkroom" },
+    { id: 4, tipo: 1, nombre: "Electrónicos", icono: "laptop" },
+    { id: 5, tipo: 1, nombre: "Ferreteria", icono: "handyman" },
+    { id: 6, tipo: 1, nombre: "Casa y Camping", icono: "fireplace" },
+    { id: 7, tipo: 2, nombre: "Cervezas", icono: "sports_bar" },
+    { id: 8, tipo: 2, nombre: "Gaseosas", icono: "local_drink" },
+    { id: 9, tipo: 2, nombre: "Lacteos", icono: "coffee_maker" },
+    { id: 10, tipo: 2, nombre: "Jugos", icono: "blender" },
+    { id: 11, tipo: 2, nombre: "Aguas", icono: "water_drop" },
+    { id: 12, tipo: 2, nombre: "Energizantes", icono: "bolt" },
+    { id: 13, tipo: 2, nombre: "Vinos", icono: "wine_bar" },
+    { id: 13, tipo: 2, nombre: "Espumantes", icono: "liquor" },
+    { id: 14, tipo: 2, nombre: "Whiskys", icono: "liquor" },
+    { id: 15, tipo: 2, nombre: "Vodkas", icono: "liquor" },
+    { id: 16, tipo: 2, nombre: "Cachaça", icono: "liquor" },
+    { id: 16, tipo: 2, nombre: "Licores", icono: "liquor" },
+    { id: 17, tipo: 3, nombre: "Aperitivos", icono: "icecream" },
+    { id: 17, tipo: 3, nombre: "Panificados", icono: "bakery_dining" },
+    { id: 17, tipo: 3, nombre: "Carnicos", icono: "dinner_dining" },
+    { id: 17, tipo: 3, nombre: "Naturales", icono: "yard" },
+    { id: 17, tipo: 3, nombre: "Condimentos", icono: "grass" },
+    { id: 17, tipo: 3, nombre: "Aceites", icono: "kitchen" },
+    { id: 17, tipo: 3, nombre: "Lacteos", icono: "kitchen" },
+    { id: 18, tipo: 4, nombre: "Bebida", icono: "local_drink" },
+    { id: 19, tipo: 4, nombre: "Comida", icono: "local_pizza" },
+    { id: 19, tipo: 5, nombre: "Tradicionales", icono: "smoking_rooms" },
+    { id: 19, tipo: 5, nombre: "Eléctricos", icono: "bolt" },
+    { id: 19, tipo: 5, nombre: "Narguile", icono: "smoking_rooms" },
+  ];
+}

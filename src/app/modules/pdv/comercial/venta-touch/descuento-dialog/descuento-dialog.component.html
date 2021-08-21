@@ -1,0 +1,70 @@
+<form [formGroup]="formGroup">
+  <div fxLayout="column" fxLayoutGap="20px">
+    <div fxFlex style="width: 100%; text-align: center">
+      <h2>Descuento</h2>
+    </div>
+    <div fxFlex>
+      <mat-form-field class="example-form-field">
+        <mat-label>Valor</mat-label>
+        <input
+          #valorInput
+          matInput
+          type="text"
+          formControlName="valor"
+          style="font-size: 150%"
+          currencyMask
+          [options]="
+            data.moneda.id == 1
+              ? numberUtils.currencyOptionsGuarani
+              : numberUtils.currencyOptionsNoGuarani
+          "
+          autocomplete="off"
+          (click)="onValorInputFocus()"
+        />
+        <button
+          *ngIf="formGroup.controls.valor.value"
+          matSuffix
+          mat-icon-button
+          aria-label="Clear"
+          (click)="formGroup.controls.valor.setValue(0)"
+        >
+          <mat-icon style="font-size: 150%">close</mat-icon>
+        </button>
+      </mat-form-field>
+    </div>
+    <div fxFlex>
+      <mat-form-field class="example-form-field">
+        <mat-label>Porcentaje</mat-label>
+        <input
+          #porcentajeInput
+          matInput
+          type="text"
+          formControlName="porcentaje"
+          style="text-align: end; font-size: 150%"
+          autocomplete="off"
+          (click)="onDescuentoInputFocus()"
+        />
+        <span matSuffix style="font-size: 150%">%</span>
+        <button
+          *ngIf="formGroup.controls.porcentaje.value"
+          matSuffix
+          mat-icon-button
+          aria-label="Clear"
+          (click)="formGroup.controls.porcentaje.setValue(0)"
+        >
+          <mat-icon style="font-size: 150%">close</mat-icon>
+        </button>
+      </mat-form-field>
+    </div>
+    <div fxFlex style="width: 100%">
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="onAceptarClick()"
+        style="width: 100%"
+      >
+        Aceptar
+      </button>
+    </div>
+  </div>
+</form>

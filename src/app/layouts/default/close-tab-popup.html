@@ -1,0 +1,9 @@
+
+  <h1 mat-dialog-title>Desea cerrar la ventana?</h1>
+  <div mat-dialog-content>
+    <p>Toda información no guardada será perdida.</p>
+  </div>
+  <div mat-dialog-actions>
+    <button mat-button (click)="onNoClick()">No</button>
+    <button mat-button [mat-dialog-close]="data.res" cdkFocusInitial>Si</button>
+  </div>

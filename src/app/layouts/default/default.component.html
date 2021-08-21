@@ -1,0 +1,36 @@
+<div style="height: 100%;">
+  <app-header (toogleSideBarEvent)="tootleSideBar($event)"></app-header>
+
+<mat-drawer-container>
+  <mat-drawer mode='side' [opened]="sideBarOpen">
+    <app-side></app-side>
+  </mat-drawer>
+  <mat-drawer-content>
+
+    <mat-tab-group class="main-tab-group mt-2 "  [selectedIndex]="selectedTab" (selectedTabChange)="tabChanged($event)" style="height: 100%;">
+      <mat-tab class="mat-tab-class" *ngFor="let tab of tabs; let tabIndex = index">
+        <ng-template  mat-tab-label style="width: 100px">
+          <div fxLayout="row" style="height: 3vh;">
+            <div fxFlex="80" matTooltip={{tab.title}} style="font-size: 1em; height: 3vh;">
+              {{ tab.title.substring(0, 18) }}
+            </div>
+            <div fxFlex="20">
+              <mat-icon style="font-size: 1em; height: 3vh;" (click)="removeTab(tabIndex)">close</mat-icon>
+            </div>
+          </div>
+        </ng-template>
+        <div style="padding-top: 10px; height: 100%;">
+          <div fxLayout="row" fxLayoutAlign="center center" style="width: 100%; height: 100%">
+            <div fxFlex="100" style="overflow-y: hidden; overflow-x: hidden; height: 100%">
+              <app-tab-content [tab]="tab"></app-tab-content>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+
+  </mat-drawer-content>
+</mat-drawer-container>
+</div>
+
+<!-- <app-footer></app-footer> -->

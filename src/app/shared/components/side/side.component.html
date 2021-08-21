@@ -1,0 +1,111 @@
+<mat-nav-list>
+  <div class="profile-card">
+    <div class="header"></div>
+    <h3 style="margin-bottom: 0px">
+      {{ mainService?.usuarioActual?.persona?.nombre }}
+    </h3>
+    <div style="text-align: center; width: 100%;">
+      <mat-icon style="width: 100px; height: 100px; font-size: 100px; margin: 0px;"
+        >perm_identity</mat-icon
+      >
+    </div>
+    <img
+      *ngIf="mainService?.usuarioActual?.avatar"
+      src="https://pbs.twimg.com/profile_images/1279781591146024960/1vmGa7sa_400x400.jpg"
+      alt="Gabriel Franco"
+    />
+    <h5>{{ mainService?.usuarioActual?.email }}</h5>
+  </div>
+
+  <div
+    fxLayout="row"
+    fxLayoutAlign="center center"
+    style="padding-bottom: 10px"
+  >
+    <div fxFlex="45">
+      <mat-slide-toggle>Reportes</mat-slide-toggle>
+    </div>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <mat-accordion>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title> PDV </mat-panel-title>
+      </mat-expansion-panel-header>
+      <a mat-list-item (click)="onItemClick('pdv-venta-touch')">Venta Touch</a>
+    </mat-expansion-panel>
+  </mat-accordion>
+
+  <mat-accordion>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title> Operaciones </mat-panel-title>
+      </mat-expansion-panel-header>
+      <a mat-list-item (click)="onItemClick('list-necesidad')">Necesidad</a>
+      <a mat-list-item (click)="onItemClick('list-pedido')">Pedidos</a>
+      <a mat-list-item (click)="onItemClick('list-compra')">Compras</a>
+    </mat-expansion-panel>
+  </mat-accordion>
+
+  <mat-accordion>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title> Finanzas </mat-panel-title>
+      </mat-expansion-panel-header>
+    </mat-expansion-panel>
+  </mat-accordion>
+
+  <mat-accordion>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title> Conceptos </mat-panel-title>
+      </mat-expansion-panel-header>
+      <a mat-list-item (click)="onItemClick('list-persona')">Personas</a>
+      <a mat-list-item (click)="onItemClick('list-producto')">Productos</a>
+    </mat-expansion-panel>
+  </mat-accordion>
+
+  <mat-accordion>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title> Bancario </mat-panel-title>
+      </mat-expansion-panel-header>
+    </mat-expansion-panel>
+  </mat-accordion>
+
+  <mat-accordion>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title> R.R.H.H. </mat-panel-title>
+      </mat-expansion-panel-header>
+      <a mat-list-item (click)="onItemClick('list-usuario')">Usuarios</a>
+      <a mat-list-item (click)="onItemClick('list-funcionario')"
+        >Funcionarios</a
+      >
+    </mat-expansion-panel>
+  </mat-accordion>
+
+  <mat-accordion>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title> General </mat-panel-title>
+      </mat-expansion-panel-header>
+      <a mat-list-item (click)="onItemClick('list-paises')">Paises</a>
+      <a mat-list-item (click)="onItemClick('list-ciudades')">Ciudades</a>
+    </mat-expansion-panel>
+  </mat-accordion>
+
+  <mat-accordion>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title> Configuración </mat-panel-title>
+      </mat-expansion-panel-header>
+      <a mat-list-item (click)="onItemClick('list-paises')">Paises</a>
+      <a mat-list-item (click)="onItemClick('list-ciudades')">Ciudades</a>
+    </mat-expansion-panel>
+  </mat-accordion>
+
+  <!-- <h3 matSubheader>Pages</h3> -->
+</mat-nav-list>

@@ -1,0 +1,155 @@
+<div
+  fxLayout="column"
+  fxLayoutAlign="center start"
+  fxLayoutGap="20px"
+  (click)="setFocusToCantidad()"
+>
+  <div
+    *ngIf="productos?.length > 0"
+    fxFlex
+    fxLayout="row wrap"
+    fxLayoutAlign="start start"
+    fxLayoutGap="5px"
+    [ngStyle]="{ width: windowInfo.innerWidth * 0.7 + 'px' }"
+  >
+    <div fxFlex="19" *ngFor="let producto of productos; let i = index">
+      <mat-card
+        style="
+          padding: 0;
+          margin: 0;
+          margin-top: 5px;
+          background-color: #f44336;
+        "
+        (click)="onGridCardClick(producto.producto)"
+        [ngStyle]="{
+          width: windowInfo.innerWidth * 0.1 + 'px',
+          'overflow-y': 'hidden'
+        }"
+      >
+        <div fxLayout="column" fxLayoutGap="10px">
+          <div fxFlex>
+            <app-imagebase64
+              [producto]="producto.producto"
+              width="100%"
+              height="100%"
+              objectFit="cover"
+            ></app-imagebase64>
+          </div>
+          <div
+            fxFlex
+            style="text-align: center"
+            [ngStyle]="{ height: windowInfo.innerheight * 0.01 + 'px' }"
+          >
+            {{ producto.producto.descripcion }}
+          </div>
+        </div>
+      </mat-card>
+    </div>
+  </div>
+  <div
+    fxLayout="row"
+    fxLayoutAlign="start center"
+    fxLayoutGap="20px"
+    style="width: 100%"
+  >
+    <div
+      fxFlex="50"
+      fxLayout="row"
+      fxLayoutAlign="center center"
+      fxLayoutGap="40px"
+      style="width: 100%"
+    >
+      <div fxFlex="33">
+        <form [formGroup]="formGroup">
+          <mat-form-field>
+            <mat-label>Cantidad</mat-label>
+            <input
+              #cantidad
+              formControlName="cantidad"
+              type="number"
+              matInput
+              style="font-size: 2em; text-align: center"
+              min="1"
+              (click)="formGroup.controls.cantidad.setValue(1)"
+              autocomplete="off"
+            />
+          </mat-form-field>
+        </form>
+      </div>
+      <div *ngIf="false" fxFlex="33">
+        <button
+          mat-raised-button
+          style="height: 5em; width: 100%"
+          (click)="openTecladoNumerico()"
+          color="primary"
+        >
+          <mat-icon style="width: 50%; height: 1em; font-size: 250%"
+            >keyboard_alt</mat-icon
+          >
+        </button>
+      </div>
+    </div>
+    <div
+      fxFlex="50"
+      fxLayout="row"
+      fxLayoutAlign="center center"
+      fxLayoutGap="40px"
+      style="width: 100%"
+    >
+      <div fxFlex="33">
+        <button
+          mat-raised-button
+          [color]="tipoPrecio?.id == 1 ? 'primary' : 'null'"
+          style="text-align: center; height: 3em; width: 100%"
+          (click)="cambiarTipoPrecio(1)"
+        >
+          <h1 style="margin-top: 10%; margin-bottom: 10%; font-size: 1.5em">
+            Precio 1
+          </h1>
+        </button>
+      </div>
+      <div fxFlex="33">
+        <button
+          mat-raised-button
+          [color]="tipoPrecio?.id == 2 ? 'primary' : null"
+          style="text-align: center; height: 3em; width: 100%"
+          (click)="cambiarTipoPrecio(2)"
+        >
+          <h1 style="margin-top: 10%; font-size: 1.5em">
+            Precio 2
+          </h1>
+        </button>
+      </div>
+      <div fxFlex="33">
+        <button
+          mat-raised-button
+          [color]="tipoPrecio?.id == 3 ? 'primary' : null"
+          style="text-align: center; height: 3em; width: 100%"
+          (click)="cambiarTipoPrecio(3)"
+        >
+          <h1 style="margin-top: 10%; margin-bottom: 10%; font-size: 1.5em">
+            Precio 3
+          </h1>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div
+    fxFlex
+    fxLayout="row"
+    fxLayoutAlign="space-around start"
+    fxLayoutGap="10px"
+    style="width: 100%"
+  >
+    <div fxFlex="9" *ngFor="let i of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]">
+      <button
+        mat-raised-button
+        color="primary"
+        style="font-size: 2em; width: 2em; height: 2em"
+        (click)="setCantidad(i)"
+      >
+        {{ i }}
+      </button>
+    </div>
+  </div>
+</div>

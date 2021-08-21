@@ -1,0 +1,57 @@
+sudo docker run --name francosystem-db -v "/Users/gabfranck/workspace/franco-systems/bd/docker-volume/data:/var/lib/postgresql/data" -p 2345:5432 -e POSTGRES_USER=franco -e POSTGRES_PASSWORD=franco -d --restart=always postgres:9.5
+sudo docker run --name postgres2 -v "/Users/gabfranck/workspace/franco-systems/bd/docker-volume2/:/var/lib/postgresql/data" -p 3333:5432 -e POSTGRES_USER=franco -e POSTGRES_PASSWORD=franco postgres:9.5
+sudo docker run --name postgres3 -v "/Users/gabfranck/workspace/franco-systems/bd/docker-volume3/:/var/lib/postgresql/data" -p 3333:5432 -e POSTGRES_USER=franco -e POSTGRES_PASSWORD=franco postgres:9.5
+
+
+backup and restore: https://www.tecmint.com/backup-and-restore-postgresql-database/#:~:text=Backup%20a%20Single%20PostgreSQL%20Database&text=To%20back%20up%2C%20a%20PostgreSQL,plain%2Dtext%20SQL%20script%20file.
+
+
+apt-get update
+apt-get install sudo
+y
+apt-get install wget
+y
+apt-get install make
+y
+apt-get install nano
+y
+sudo apt-get install libdbix-safe-perl libdbd-pg-perl libboolean-perl build-essential postgresql-plperl-9.5
+wget https://github.com/bucardo/bucardo/archive/5.4.0.tar.gz
+tar xvfz 5.4.0.tar.gz
+
+
+bucardo -h localhost -U bucardo add db main db=general user=bucardo pass=bucardo host=localhost
+bucardo -h localhost -U bucardo add db bak1 db=general user=bucardo pass=bucardo host=172.17.0.4
+
+bucardo -h localhost -U bucardo add table productos.producto db=main relgroup=general_relgroup
+bucardo -h localhost -U bucardo add table productos.codigo db=main relgroup=general_relgroup
+bucardo -h localhost -U bucardo add table productos.familia db=main relgroup=general_relgroup
+bucardo -h localhost -U bucardo add table productos.subfamilia db=main relgroup=general_relgroup
+bucardo -h localhost -U bucardo add table productos.tipo_precio db=main relgroup=general_relgroup
+bucardo -h localhost -U bucardo add table productos.precio_por_sucursal db=main relgroup=general_relgroup
+bucardo -h localhost -U bucardo add table productos.costos_por_sucursal db=main relgroup=general_relgroup
+bucardo -h localhost -U bucardo add table productos.precio_por_sucursal db=main relgroup=general_relgroup
+bucardo -h localhost -U bucardo add table productos.precio_por_sucursal db=main relgroup=general_relgroup
+
+bucardo -h localhost -U bucardo add dbgroup general_relgroup main:source bak1:target
+bucardo -h localhost -U bucardo add dbgroup general_dbgroup main:source bak1:target
+
+bucardo -h localhost -U bucardo add sync general_sync dbgroup=general_dbgroup relgroup=general_relgroup conflict_strategy=bucardo_source onetimecopy=1 autokick=0
+
+sudo bucardo -h localhost -U bucardo -P bucardo start
+
+bucardo -h localhost -U bucardo kick general_sync 0
+
+bucardo -h localhost -U bucardo update sync general_sync autokick=1
+
+bucardo -h localhost -U bucardo reload config
+
+
+
+sudo bucardo -h localhost -U bucardo -P bucardo stop
+sudo bucardo -h localhost -U bucardo -P bucardo start
+bucardo -h localhost -U bucardo kick general_sync 0
+
+
+restart cron
+/etc/init.d/cron restart

@@ -1,0 +1,7 @@
+{
+  "http://localhost:4200": {
+    "target": "https://firebasestorage.googleapis.com/*",
+    "secure": true,
+    "changeOrigin": true
+  }
+}

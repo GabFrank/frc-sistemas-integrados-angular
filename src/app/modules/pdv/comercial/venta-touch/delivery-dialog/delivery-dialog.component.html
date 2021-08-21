@@ -1,0 +1,526 @@
+<form
+  [formGroup]="formGroup"
+  fxLayout="column"
+  fxLayoutGap="5px"
+  style="width: 100%; height: 100%; overflow-y: hidden"
+>
+  <div fxFlex="8" style="width: 100%; height: 100%">
+    <div
+      fxFlex="100"
+      fxLayout="row"
+      fxLayoutAlign="space-between center"
+      style="width: 100%"
+    >
+      <div fxFlex="10" style="padding-top: 10px">
+        <h3>Total:</h3>
+      </div>
+      <div fxFlex="30" FxLayout="row" fxLayoutAlign="start center">
+        <div fxFlex="20">
+          <img
+            src="/assets/flags/py/py32.png"
+            alt="br"
+            style="width: 70%; height: 70%"
+          />
+        </div>
+        <div fxFlex="80" class="valores-cambios" style="font-size: 1.8em">
+          {{ formGroup.controls.valor.value | number }}
+        </div>
+      </div>
+      <div fxFlex="30" FxLayout="row" fxLayoutAlign="start center">
+        <div fxFlex="20">
+          <img
+            src="/assets/flags/br/br32.png"
+            alt="br"
+            style="width: 70%; height: 70%"
+          />
+        </div>
+        <div fxFlex="70" class="valores-cambios" style="font-size: 1.8em">
+          {{ valorRs | number: "1.2-2" }}
+        </div>
+      </div>
+      <div fxFlex="30" FxLayout="row" fxLayoutAlign="star center">
+        <div fxFlex="20">
+          <img
+            src="/assets/flags/usa/usa32.png"
+            alt="br"
+            style="width: 70%; height: 70%"
+          />
+        </div>
+        <div fxFlex="80" class="valores-cambios" style="font-size: 2em">
+          {{ valorDs | number: "1.2-2" }}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div fxFlex="80" fxLayout="row" fxLayoutGap="10px">
+    <div fxFlex="70%">
+      <div fxLayout="column" style="height: 100%" fxLayoutGap="2px">
+        <div fxFlex="10" fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center">
+          <div fxFlex="10">
+            <mat-form-field style="width: 80%;">
+              <mat-label>País</mat-label>
+              <mat-select #paisTelefonoSelect [(value)]="selectedPaisTelefono" 
+              >
+                <mat-option value="py" (click)="onEnterEvent('paisTelefonoSelect')">PY</mat-option>
+                <mat-option value="br" (click)="onEnterEvent('paisTelefonoSelect')">BR</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div fxFlex="25">
+            <mat-form-field style="width: 100%" floatLabel="always">
+              <mat-label>Teléfono</mat-label>
+              <input
+                class="numberInput"
+                #telefonoInput
+                matInput
+                type="number"
+                formControlName="telefono"
+                autocomplete="off"
+                (keyup.enter)="onEnterEvent('telefonoInput')"
+              />
+              <span *ngIf="selectedPaisTelefono == 'py'" matPrefix>+595</span>
+              <span *ngIf="selectedPaisTelefono == 'br'" matPrefix>+55</span>
+            </mat-form-field>
+          </div>
+          <div fxFlex="5" fxLayout="row" fxLayoutAlign="center center">
+            <mat-icon fxFlex (click)="copiar('telefono')" style="cursor: pointer;">content_copy</mat-icon>
+          </div>
+          <div fxFlex="50">
+            <mat-form-field style="width: 95%">
+              <mat-label>Nombre del Cliente</mat-label>
+              <input
+                #nombreClienteInput
+                matInput
+                type="text"
+                formControlName="cliente"
+                autocomplete="off"
+                (keyup.enter)="onEnterEvent('nombreClienteInput')"
+                oninput=" this.value != null ? this.value = this.value.toUpperCase(): null"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="10">
+            <button mat-raised-button color="primary">Buscar</button>
+          </div>
+        </div>
+        <div fxFlex="10" fxLayout="row" fxLayoutGap="10px">
+          <div fxFlex="30">
+            <mat-form-field style="width: 100%">
+              <input
+                #autoBarrioInput
+                type="text"
+                placeholder="Barrio"
+                aria-label="text"
+                matInput
+                formControlName="barrio"
+                [matAutocomplete]="autoBarrio"
+                (keyup)="onBarrioSearch()"
+                (keydown)="onKeydownEvent($event.key)"
+                autocomplete="off"
+                autocapitalize="on"
+                oninput=" this.value != null ? this.value = this.value.toUpperCase(): null"
+                (keyup.enter)="onEnterEvent('autoBarrioInput')"
+              />
+              <mat-autocomplete
+                #autoBarrioTrigger
+                [displayWith]="displayBarrio.bind(this)"
+                autoActiveFirstOption
+                #autoBarrio="matAutocomplete"
+                (closed)="onBarrioAutoClosed()"
+              >
+                <mat-option
+                  *ngFor="let barrio of filteredBarrios"
+                  [value]="barrio.id"
+                  (click)="onBarrioSearch(barrio)"
+                >
+                  {{ barrio.id }} - {{ barrio.descripcion }}
+                </mat-option>
+              </mat-autocomplete>
+            </mat-form-field>
+          </div>
+          <div fxFlex="70">
+            <mat-form-field style="width: 100%">
+              <mat-label>Dirección</mat-label>
+              <input
+                #direccionInput
+                matInput
+                type="text"
+                formControlName="direccion"
+                (keyup.enter)="onEnterEvent('direccionInput')"
+                oninput=" this.value != null ? this.value = this.value.toUpperCase(): null"
+              />
+            </mat-form-field>
+          </div>
+        </div>
+        <div fxFlex="10" fxLayout="row" fxLayoutAlign="space-between start">
+          <div fxFlex="10" style="height: 100%; padding-top: 5px">
+            <h3>Precio:</h3>
+          </div>
+          <div fxFlex="20" *ngIf="precioDeliveryList != null">
+            <button
+              #precioDeliveryBtn
+              mat-raised-button
+              [color]="
+                precioDeliveryList[0]?.id == selectedPrecio.value?.id
+                  ? 'primary'
+                  : null
+              "
+              style="width: 100%"
+              (focus)="selectedPrecio.setValue(precioDeliveryList[0])"
+              (click)="onEnterEvent('precioDeliveryBtn');selectedPrecio.setValue(precioDeliveryList[0]);"
+            >
+              {{ precioDeliveryList[0]?.valor | number }}
+            </button>
+          </div>
+          <div fxFlex="20" *ngFor="let precio of filteredPrecioDeliveryList">
+            <button
+              mat-raised-button
+              [color]="
+                precio?.id == selectedPrecio.value?.id ? 'primary' : null
+              "
+              style="width: 100%"
+              (focus)="selectedPrecio.setValue(precio)"
+              (click)="onEnterEvent('precioDeliveryBtn');selectedPrecio.setValue(precio);"
+            >
+              {{ precio.valor | number }}
+            </button>
+          </div>
+        </div>
+
+        <div fxFlex="10" fxLayout="row" fxLayoutAlign="space-between start">
+          <div fxFlex="10" style="height: 100%; padding-top: 5px">
+            <h3>Pago:</h3>
+          </div>
+          <div fxFlex="20">
+            <button
+              #efectivoBtn
+              mat-raised-button
+              [color]="'Efectivo' == selectedPago ? 'primary' : null"
+              style="width: 80%"
+              (focus)="selectedPago = 'Efectivo'"
+              (click)="onEnterEvent('efectivoBtn')"
+            >
+              Efectivo
+            </button>
+          </div>
+          <div
+            fxFlex="20"
+            *ngFor="let i of ['Tarjeta', 'Transf', 'Convenio', 'Pix']"
+          >
+            <button
+              mat-raised-button
+              [color]="i == selectedPago ? 'primary' : null"
+              style="width: 80%"
+              (focus)="selectedPago = i"
+              (click)="onEnterEvent('efectivoBtn')"
+            >
+              {{ i }}
+            </button>
+          </div>
+        </div>
+
+        <div fxFlex="10" fxLayout="row" fxLayoutAlign="space-between start">
+          <div fxFlex="10" style="height: 100%; padding-top: 5px">
+            <h3>Moneda:</h3>
+          </div>
+          <div fxFlex="15">
+            <button
+              #guaraniBtn
+              mat-raised-button
+              [color]="1 == selectedMoneda?.id ? 'primary' : null"
+              style="width: 100%"
+              (focus)="selectGuarani(); selectedVueltoPara = vueltoParaGs"
+              (click)="onEnterEvent('guaraniBtn')"
+            >
+              GUARANI
+            </button>
+          </div>
+          <div fxFlex="15" *ngFor="let moneda of filteredMonedas">
+            <button
+              #monedaBtn
+              mat-raised-button
+              [color]="moneda.id == selectedMoneda?.id ? 'primary' : null"
+              style="width: 100%"
+              (focus)="selectedMoneda = moneda; selectVueltoPara(moneda)"
+              (click)="onEnterEvent(moneda.denominacion)"
+            >
+              {{ moneda.denominacion }}
+            </button>
+          </div>
+        </div>
+
+        <div
+          fxFlex="10"
+          fxLayout="row"
+          fxLayoutAlign="start start"
+          fxLayoutGap="20px"
+        >
+          <div fxFlex="15" style="height: 100%; padding-top: 5px">
+            <h3>Vuelto para:</h3>
+          </div>
+          <div fxFlex="15">
+            <button
+              #vueltoParaGsBtn
+              *ngIf="selectedMoneda?.denominacion == 'GUARANI'"
+              mat-raised-button
+              [color]="vueltoParaGs == selectedVueltoPara ? 'primary' : null"
+              style="width: 100%"
+              (focus)="selectedVueltoPara = vueltoParaGs"
+              (click)="onEnterEvent('vueltoParaGsBtn');addVueltoItem()"
+            >
+              {{ vueltoParaGs | number }}
+            </button>
+            <button
+              #vueltoParaRsBtn
+              *ngIf="selectedMoneda?.denominacion == 'REAL'"
+              mat-raised-button
+              [color]="vueltoParaRs == selectedVueltoPara ? 'primary' : null"
+              style="width: 100%"
+              (focus)="selectedVueltoPara = vueltoParaRs"
+              (click)="onEnterEvent('vueltoParaRsBtn');addVueltoItem()"
+
+            >
+              {{ vueltoParaRs | number: "1.2-2" }}
+            </button>
+            <button
+              #vueltoParaDsBtn
+              *ngIf="selectedMoneda?.denominacion == 'DOLAR'"
+              mat-raised-button
+              [color]="vueltoParaDs == selectedVueltoPara ? 'primary' : null"
+              style="width: 100%"
+              (focus)="selectedVueltoPara = vueltoParaDs"
+              (keyup.enter)="onEnterEvent('vueltoParaDsBtn');"
+              (click)="addVueltoItem()"
+
+            >
+              {{ vueltoParaDs | number: "1.2-2" }}
+            </button>
+          </div>
+          <div fxFlex="15">
+            <button
+              #vueltoParaOtro
+              mat-raised-button
+              [color]="-1 == selectedVueltoPara ? 'primary' : null"
+              style="width: 100%"
+              (focus)="selectedVueltoPara = -1"
+              (click)="onEnterEvent('vueltoParaOtro')"
+            >
+              Otro
+            </button>
+          </div>
+          <div fxFlex *ngIf="selectedVueltoPara == -1">
+            <mat-form-field style="width: 100%">
+              <mat-label>Valor</mat-label>
+              <input
+                #valorVueltoInput
+                matInput
+                type="text"
+                formControlName="valorVuelto"
+                (keyup.enter)="onEnterEvent('valorVueltoInput')"
+                currencyMask
+                [options]="
+                  selectedMoneda?.id == 1
+                    ? currencyMask.currencyOptionsGuarani
+                    : currencyMask.currencyOptionsNoGuarani
+                "
+              />
+            </mat-form-field>
+          </div>
+        </div>
+        <div
+          fxFlex="40"
+          fxLayout="row"
+          fxLayoutGap="10px"
+          style="width: 100%; height: 100%"
+        >
+          <div
+            fxFlex="20"
+            fxLayout="column"
+            fxLayoutGap="5px"
+            style="width: 100%; height: 100%"
+          >
+            <button mat-raised-button color="primary" style="height: 25%" (click)="onBilletesSelect('GUARANI')">
+              GUARANI
+            </button>
+            <button mat-raised-button color="primary" style="height: 25%" (click)="onBilletesSelect('REAL')">
+              REAL
+            </button>
+            <button mat-raised-button color="primary" style="height: 25%" (click)="onBilletesSelect('DOLAR')">
+              DOLAR
+            </button>
+            <button mat-raised-button color="primary" style="height: 25%" (click)="onBilletesSelect('otro')">
+              OTROS
+            </button>
+          </div>
+          <div fxFlex="80" style="width: 100%; height: 100%">
+            <mat-card
+              style="
+                background-color: white;
+                width: 100%;
+                height: 100%;
+                padding: 2px;
+              "
+            >
+              <table class="table" style="font-size: 1em">
+                <thead>
+                  <tr style="background-color: rgb(209, 209, 209)">
+                    <th scope="col" style="text-align: left; width: 20%; padding: 0px; padding-left: 5px;">#</th>
+                    <th scope="col" style="text-align: left;width: 20%; padding: 0px;">Moneda</th>
+                    <th scope="col" style="width: 30%; padding: 0px;">Forma de Pago</th>
+                    <th scope="col" style="text-align: center; width: 20%; padding: 0px;">
+                      Valor
+                    </th>
+                    <th scope="col" style="text-align: center; width: 10%; padding: 0px;">
+                      Eliminar
+                    </th>
+                  </tr>
+
+                  <tr *ngFor="let item of vueltoItemList; let i = index">
+                    <td style="text-align: left; width: 20%; padding: 0px; padding-left: 5px; padding-top: 2px; padding-bottom: 2px;">{{ i + 1 }}</td>
+                    <td style="text-align: left; width: 20%; padding: 0px; padding-top: 2px; padding-bottom: 2px;" (click)="onMonedaChange(i)">{{ item.moneda.denominacion | titlecase }}</td>
+                    <td style="padding: 0px; padding-top: 2px; padding-bottom: 2px; cursor: pointer;">{{ item.formaPago | titlecase }}</td>
+                    <td *ngIf="item?.moneda?.denominacion == 'GUARANI'" style="text-align: center; width: 30%; padding: 0px; padding-top: 2px; padding-bottom: 2px; cursor: pointer;" (click)="onRedondearClick(i)">
+                      {{ item.valor | number }}
+                    </td>
+                    <td *ngIf="item?.moneda?.denominacion != 'GUARANI'" style="text-align: center; width: 30%; padding: 0px; padding-top: 2px; padding-bottom: 2px; cursor: pointer;" (click)="onRedondearClick(i)">
+                      {{ item.valor | number: "1.2-2" }}
+                    </td>
+                    <td scope="col" style="text-align: center; width: 30%; padding: 0px; padding-top: 2px; padding-bottom: 2px;">
+                      <mat-icon style="color: red; cursor:pointer; padding: 0px; padding-top: 2px; padding-bottom: 2px;" (click)="deleteVueltoItem(i)">close</mat-icon>
+                    </td>
+                  </tr>
+                </thead>
+              </table>
+            </mat-card>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div fxFlex="30%" fxLayout="column">
+      <div fxFlex="5" style="text-align: center;">Deliverys Activos</div>
+      <mat-card fxFlex="55" style="height: 100%; background-color: white; padding: 2px; overflow-y: scroll;">
+        <table class="table" style="font-size: 0.8em;">
+          <thead>
+            <tr style="background-color: rgb(209, 209, 209)">
+              <th scope="col" style="text-align: left; width: 5%; padding: 0px; padding-left: 5px;">#</th>
+              <th scope="col" style="text-align: left;width: 20%; padding: 0px;">Cliente</th>
+              <th scope="col" style="width: 20%; padding: 0px;">Valor</th>
+              <th scope="col" style="width: 20%; padding: 0px; text-align: center;">Estado</th>
+            </tr>
+          </thead>
+            <tbody style="height: 100%; overflow-y: scroll;">
+              <tr *ngFor="let item of deliverysActivos; let i = index">
+                <td style="text-align: left; width: 5%; padding: 0px; padding-left: 5px; padding-top: 2px; padding-bottom: 2px;">{{ i + 1 }}</td>
+                <td style="text-align: left; width: 20%; padding: 0px; padding-top: 2px; padding-bottom: 2px; cursor: pointer;" (click)="copiar('null', item.telefono)">{{ item.telefono }}</td>
+                <td style="width: 20%; padding: 0px; padding-top: 2px; padding-bottom: 2px; cursor: pointer;">{{ item.valor | number}}</td>
+                <td [class]="item.estado" style="width: 20%; padding: 0px; padding-top: 2px; padding-bottom: 2px; cursor: pointer; text-align: center">
+                  {{ item.estado == 'EN_CAMINO' ? 'En camino' : item.estado | titlecase }}
+                </td>
+              </tr>
+            </tbody>
+        </table>
+      </mat-card>
+      <div fxLayout="row">
+        <div fxFlex="25">
+          <button></button>
+        </div>
+        <div fxFlex="25">
+          
+        </div>
+        <div fxFlex="25">
+          
+        </div>
+        <div fxFlex="25">
+          
+        </div>
+      </div>
+      <div fxFlex="5" style="text-align: center;">Deliverys Concluidos</div>
+      <mat-card fxFlex="45" style="height: 100%; background-color: white; padding: 2px;">
+        <table class="table" style="font-size: 0.8em">
+          <thead>
+            <tr style="background-color: rgb(209, 209, 209)">
+              <th scope="col" style="text-align: left; width: 5%; padding: 0px; padding-left: 5px;">#</th>
+              <th scope="col" style="text-align: left;width: 20%; padding: 0px;">Cliente</th>
+              <th scope="col" style="width: 20%; padding: 0px;">Valor</th>
+              <th scope="col" style="width: 20%; padding: 0px;">Entregador</th>
+            </tr>
+
+            <tr *ngFor="let item of ultimosDeliverys; let i = index" style="cursor: pointer;">
+              <td style="text-align: left; width: 5%; padding: 0px; padding-left: 5px; padding-top: 2px; padding-bottom: 2px;">{{ i + 1 }}</td>
+              <td style="text-align: left; width: 20%; padding: 0px; padding-top: 2px; padding-bottom: 2px; cursor: pointer" (click)="copiar('null', item.telefono)">{{ item.telefono }}</td>
+              <td style="width: 20%; padding: 0px; padding-top: 2px; padding-bottom: 2px; cursor: pointer;">{{ item.valor | number }}</td>
+              <td style="width: 20%; padding: 0px; padding-top: 2px; padding-bottom: 2px; cursor: pointer;">{{ item.entregador==null ? 'No asignado' : item?.entregador.persona.nombre | titlecase }}</td>
+            </tr>
+          </thead>
+        </table>
+      </mat-card>    </div>
+  </div>
+  <div fxFlex="10" fxLayout="row" fxLayoutGap="10px">
+    <div
+      fxFlex="75"
+      fxLayout="row"
+      fxLayoutAlign="start center"
+      style="width: 100%"
+    >
+      <div fxFlex="10" style="padding-top: 15px; height: 100%;">
+        <h3>Vuelto:</h3>
+      </div>
+      <div
+        fxFlex="30"
+        FxLayout="row"
+        fxLayoutAlign="start center"
+      >
+        <div fxFlex="20">
+          <img
+            src="/assets/flags/py/py32.png"
+            alt="br"
+            style="width: 70%; height: 70%"
+          />
+        </div>
+        <div fxFlex="80" class="valores-cambios" style="font-size: 1.8em">
+          {{ totalVueltoGs | number }}
+        </div>
+      </div>
+      <div
+        fxFlex="30"
+        FxLayout="row"
+        fxLayoutAlign="start center"
+      >
+        <div fxFlex="20">
+          <img
+            src="/assets/flags/br/br32.png"
+            alt="br"
+            style="width: 70%; height: 70%"
+          />
+        </div>
+        <div fxFlex="70" class="valores-cambios" style="font-size: 1.8em">
+          {{ totalVueltoRs| number: "1.2-2" }}
+        </div>
+      </div>
+      <div
+        fxFlex="30"
+        FxLayout="row"
+        fxLayoutAlign="star center"
+      >
+        <div fxFlex="20">
+          <img
+            src="/assets/flags/usa/usa32.png"
+            alt="br"
+            style="width: 70%; height: 70%"
+          />
+        </div>
+        <div fxFlex="80" class="valores-cambios" style="font-size: 1.8em">
+          {{ totalVueltoDs | number: "1.2-2" }}
+        </div>
+      </div>
+    </div>
+    <div fxFlex="25" fxLayout="row">
+      <div fxFlex="50">
+        <button mat-raised-button color="primary" style="height: 100%; font-size: 1.3em;">Cancelar</button>
+      </div>
+      <div fxFlex="50">
+        <button type="button" #finalizarBtn mat-raised-button color="accent" style="height: 100%; font-size: 1.3em" (click)="onFinalizarBtn()">Finalizar</button>
+      </div>
+    </div>
+  </div>
+</form>

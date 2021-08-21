@@ -1,0 +1,24 @@
+<div style="text-align: center;" *ngIf="isQrShow">
+  <ngx-qrcode
+  style="height: 100%; width: 100%;"
+    [elementType]="elementType"
+    [value]="value"
+    cssClass="bshadow"
+    errorCorrectionLevel="L"
+    scale="7"
+  >
+  </ngx-qrcode>
+  <br>
+  <div>Utilice la camara del smartphone</div>
+  <div>para capturar imagenes</div>
+  <a [href]="this.value">
+    <button mat-flat-button > Ir a página</button>
+  </a>
+  <!-- <button mat-raised-button color="accent" matTooltip="Una vez cargada la imagen, pulse aquí para que la busquemos =)" (click)="onRefresh()">Refrescar</button> -->
+</div>
+
+<div fxLayout="column" fxLayoutAlign="space-between center" *ngIf="isWaiting">
+  <h2 fxFlex="20">Aguardando...</h2>
+  <mat-spinner  fxFlex style="width: 100px; height: 100px;"></mat-spinner>
+</div>
+

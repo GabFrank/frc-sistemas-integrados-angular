@@ -1,0 +1,30 @@
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.tableFixHead          { overflow: auto; height: 100px; }
+.tableFixHead thead th { position: sticky; top: 0; z-index: 1; }
+table  { border-collapse: collapse; width: 100%; }
+
+
+.EN_CAMINO {
+  background-color: #F57C00;
+  color: white;
+}
+
+.ABIERTO {
+  background-color: #43A047;
+  color: white;
+}
+
+.CANCELADO {
+  background-color: #F44336;
+  color: white;
+}

@@ -1,0 +1,16 @@
+<div *ngIf="isRedondeo">
+    <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="space-between start" style="width: 100%;">
+        <div *ngFor="let valor of opcionesRedondeo" fxFlex="20">
+            <button *ngIf="selectedMoneda.denominacion == 'GUARANI'" mat-raised-button color="primary" (click)="selectRedondeo(valor)" style="width: 100%;">{{valor | number}}</button>
+            <button *ngIf="selectedMoneda.denominacion != 'GUARANI'" mat-raised-button color="primary" (click)="selectRedondeo(valor)" style="width: 100%;">{{valor | number: '1.2-2'}}</button>
+        </div>
+    </div>
+</div>
+
+<div *ngIf="!isRedondeo">
+    <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="space-between start" style="width: 100%; height: 100%;">
+        <div *ngFor="let moneda of monedas" fxFlex="20">
+            <button mat-raised-button [color]="selectedMoneda == moneda ? 'primary' : null" (click)="cambiarMoneda(moneda)" style="width: 100%; height: 100%;">{{moneda.denominacion | titlecase}}</button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,78 @@
+<div fxLayout="column" style="width: 100%; height: 100%; overflow-y: hidden;">
+  <div fxFlex="5%">Buscar Código</div>
+  <div fxFlex style="height: 200px; overflow-y: auto;">
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      class="mat-elevation-z8"
+      style="width: 100%"
+    >
+      <ng-container matColumnDef="nro" [sticky]="true">
+        <th mat-header-cell *matHeaderCellDef style="width: 10%">Cod.</th>
+        <td mat-cell *matCellDef="let item" style="width: 10%">
+          {{ item.id }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="codigo">
+        <th mat-header-cell *matHeaderCellDef style="width: 50%">Código</th>
+        <td mat-cell *matCellDef="let item" style="width: 50%">
+          {{ item.codigo | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="tipo" style="text-align: center">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 20%; text-align: center"
+        >
+          Tipo
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let item"
+          style="width: 20%; text-align: center"
+        >
+          {{
+            item.principal ? "Principal" : item.caja ? "Caja" : "Alternativo"
+          }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="cantidad" style="text-align: center">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 10%; text-align: center"
+        >
+          Cantidad
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let item"
+          style="width: 10%; text-align: center"
+        >
+          {{ item.cantidad }}
+        </td>
+      </ng-container>
+
+      <tr
+        mat-header-row
+        *matHeaderRowDef="
+          ['nro', 'codigo', 'tipo', 'cantidad'];
+          sticky: true
+        "
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="
+          let row;
+          columns: ['nro', 'codigo', 'tipo', 'cantidad'];
+          let i = index
+        "
+        (click)="onSelectCodigoRow(row)"
+      ></tr>
+    </table>
+  </div>
+</div>

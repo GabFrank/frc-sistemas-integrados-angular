@@ -1,0 +1,43 @@
+input {
+  text-transform: uppercase;
+}
+
+.seleccionado {
+  background-color: #43a047;
+}
+
+.noSeleccionado {
+  background-color: #f44336;
+}
+
+::ng-deep .row-sin-margin-botton {
+  margin: 0px !important;
+}
+
+.selectedCodigoPrecio {
+  width: 90%;
+  height: 100%;
+  background-color: #43a047;
+  padding: 2px;
+  color: white;
+}
+.selectedCodigoPrecioInactivo {
+  width: 90%;
+  height: 100%;
+  background-color: #f44336;
+  padding: 2px;
+  color: white;
+}
+.noSelectCodigo {
+  width: 90%;
+  height: 100%;
+  background-color: rgb(194, 194, 194);
+  padding: 2px;
+  color: black;
+}
+
+
+::ng-deep .mat-step-header[aria-labelledby="disabled_Resi"] {
+  pointer-events: none !important;
+  cursor: not-allowed;
+}

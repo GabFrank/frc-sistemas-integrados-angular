@@ -1,0 +1,6 @@
+@use '~@angular/cdk' as cdk;
+//for allowing the material select and other popups to come over bootstrap and other modals
+$root-z-index-of-modal: 1030;
+cdk.$overlay-container-z-index: $root-z-index-of-modal+1;
+cdk.$overlay-z-index: $root-z-index-of-modal+1;
+cdk.$overlay-backdrop-z-index: $root-z-index-of-modal+1;

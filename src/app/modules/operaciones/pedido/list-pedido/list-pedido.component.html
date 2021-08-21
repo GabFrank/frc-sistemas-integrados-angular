@@ -1,0 +1,398 @@
+<div fxLayout="column" fxLayoutAlign="center center" style="padding: 10px">
+  <form [formGroup]="formGroup" fxLayout="row">
+    <div fxLayout="column">
+      <div fxFlex fxLayout="row" fxLayoutGap="20px" style="height: 100px">
+        <div fxFlex>
+          <mat-form-field>
+            <mat-label>Sucursales</mat-label>
+            <mat-select
+              formControlName="sucursal"
+              [(value)]="sucursalInicialValue"
+            >
+              <mat-option value="-1">Todas</mat-option>
+              <mat-option
+                [value]="sucursal.id"
+                *ngFor="let sucursal of sucursales"
+                >{{ sucursal.nombre | titlecase }}</mat-option
+              >
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <div fxFlex>
+          <mat-form-field>
+            <mat-label>Estado</mat-label>
+            <mat-select formControlName="estado" [(value)]="estadoInicialValue">
+              <mat-option value="-1">Todos</mat-option>
+              <mat-option
+                [value]="estado.valor"
+                *ngFor="let estado of estadosOptions"
+                >{{ estado.titulo | titlecase }}</mat-option
+              >
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <div fxFlex>
+          <mat-form-field>
+            <mat-label>Rango de fechas</mat-label>
+            <mat-date-range-input
+              [formGroup]="formGroup"
+              [rangePicker]="picker"
+              (dateInput)="onDateRangeSearch()"
+            >
+              <input
+                matStartDate
+                #fromInput
+                formControlName="inicio"
+                placeholder="Inicio"
+              />
+              <input
+                matEndDate
+                #toInput
+                formControlName="fin"
+                placeholder="Fin"
+              />
+            </mat-date-range-input>
+            <mat-datepicker-toggle
+              matSuffix
+              [for]="picker"
+            ></mat-datepicker-toggle>
+            <mat-date-range-picker #picker></mat-date-range-picker>
+  
+            <mat-error
+              *ngIf="formGroup.controls.inicio.hasError('matStartDateInvalid')"
+              >Fecha inicial inválida</mat-error
+            >
+            <mat-error
+              *ngIf="formGroup.controls.fin.hasError('matEndDateInvalid')"
+              >Fecha final inválida</mat-error
+            >
+          </mat-form-field>
+        </div>
+        <div fxFlex>
+          <mat-form-field class="example-full-width">
+            <input
+              #autoProveedorInput
+              type="text"
+              placeholder="Proveedor"
+              aria-label="text"
+              matInput
+              formControlName="proveedor"
+              [matAutocomplete]="autoProveedor"
+              (keyup)="onProveedorSearch()"
+              oninput="this.value = this.value.toUpperCase()"
+              (focus)="$event.target.select()"
+            />
+            <mat-autocomplete
+              [displayWith]="displayProveedor.bind(this)"
+              autoActiveFirstOption
+              #autoProveedor="matAutocomplete"
+              (closed)="onProveedorAutoClosed()"
+            >
+              <mat-option
+                *ngFor="let proveedor of proveedores"
+                [value]="proveedor.id"
+              >
+                {{ proveedor.id }} - {{ proveedor.persona.nombre }}
+              </mat-option>
+            </mat-autocomplete>
+          </mat-form-field>
+        </div>
+        <div fxFlex>
+          <mat-form-field class="example-full-width">
+            <input
+              #autoVendedorInput
+              type="text"
+              placeholder="Vendedor"
+              aria-label="text"
+              matInput
+              formControlName="vendedor"
+              [matAutocomplete]="autoVendedor"
+              oninput="this.value = this.value.toUpperCase()"
+              (focus)="$event.target.select()"
+            />
+            <mat-autocomplete
+              #autoVendTrig
+              [displayWith]="displayVendedor.bind(this)"
+              autoActiveFirstOption
+              #autoVendedor="matAutocomplete"
+              (closed)="onVendedorAutoClosed()"
+            >
+              <mat-option
+                *ngFor="let vendedor of vendedores"
+                [value]="vendedor.id"
+                (click)="onVendedorSearch(vendedor)"
+              >
+                {{ vendedor.id }} - {{ vendedor.persona.nombre }}
+              </mat-option>
+            </mat-autocomplete>
+          </mat-form-field>
+        </div>
+      </div>
+      <div fxLayout="row" fxLayoutGap="20px">
+        <div fxFlex="70">
+          <mat-form-field appearance="legacy" style="width: 100%">
+            <mat-label>Producto</mat-label>
+            <input
+              #inputProducto
+              formControlName="producto"
+              [value]="selectedProducto?.descripcion"
+              matInput
+              placeholder="Producto"
+              autocomplete="off"
+              (input)="openDialog($event.target.value)"
+              oninput="this.value = this.value.toUpperCase()"
+              (focus)="$event.target.select()"
+            />
+            <!-- <mat-hint>Código del producto</mat-hint> -->
+          </mat-form-field>
+        </div>
+        <div fxFlex>
+          <button mat-raised-button color="primary" (click)="onNewPedido()">
+            <mat-icon>add</mat-icon>
+            <span>Nuevo Pedido</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+  </form>
+  <div fxFlex>
+    <table
+      mat-table
+      style="width: 1000px; max-height: 600px"
+      [dataSource]="dataSourcePedido"
+      multiTemplateDataRows
+    >
+      <!--- Note that these columns can be defined in any order.
+              The actual rendered columns are set as a property on the row definition" -->
+
+      <!-- Position Column -->
+      <ng-container matColumnDef="cod">
+        <th mat-header-cell *matHeaderCellDef>Código</th>
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          [ngStyle]="{ color: getFontColor(pedido.estado) }"
+        >
+          {{ pedido.id }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="proveedor">
+        <th mat-header-cell *matHeaderCellDef>Proveedor</th>
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          [ngStyle]="{ color: getFontColor(pedido.estado) }"
+        >
+          {{ pedido?.proveedor?.persona.nombre | titlecase }}
+        </td>
+      </ng-container>
+
+      <!-- Name Column -->
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          [ngStyle]="{ color: getFontColor(pedido.estado) }"
+        >
+          {{ pedido.estado | titlecase }}
+        </td>
+      </ng-container>
+
+      <!-- Weight Column -->
+      <ng-container matColumnDef="fecha">
+        <th mat-header-cell *matHeaderCellDef>Fecha</th>
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          [ngStyle]="{ color: getFontColor(pedido.estado) }"
+        >
+          {{ pedido.creadoEn | date }}
+        </td>
+      </ng-container>
+
+      <!-- Symbol Column -->
+      <ng-container matColumnDef="formaPago">
+        <th mat-header-cell *matHeaderCellDef>Forma de Pago</th>
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          [ngStyle]="{ color: getFontColor(pedido.estado) }"
+        >
+          {{ pedido.formaPago | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="moneda">
+        <th mat-header-cell *matHeaderCellDef>Moneda</th>
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          [ngStyle]="{ color: getFontColor(pedido.estado) }"
+        >
+          {{ pedido.moneda.denominacion | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="valorTotal">
+        <th mat-header-cell *matHeaderCellDef>Valor Total</th>
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          [ngStyle]="{ color: getFontColor(pedido.estado) }"
+        >
+          {{ pedido.moneda.simbolo }} {{ pedido.valorTotal | number }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="vendedor">
+        <th mat-header-cell *matHeaderCellDef>Vendedor</th>
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          [ngStyle]="{ color: getFontColor(pedido.estado) }"
+        >
+          {{ pedido.vendedor.persona.nombre | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="responsable">
+        <th mat-header-cell *matHeaderCellDef>Responsable</th>
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          [ngStyle]="{ color: getFontColor(pedido.estado) }"
+        >
+          {{ pedido.usuario.persona.nombre | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="menu">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          [ngStyle]="{ color: getFontColor(pedido.estado) }"
+          style="text-align: end;"
+        >
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            aria-label="Example icon-button with a menu"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onEditClick(pedido)">
+              <mat-icon>visibility</mat-icon>
+              <span>Ver Pedido</span>
+            </button>
+            <button mat-menu-item>
+              <mat-icon>description</mat-icon>
+              <span>Recepcionar</span>
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <ng-container *ngIf="!isTableCargando" matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          [attr.colspan]="displayedColumnsPedidos.length"
+        >
+          <div
+            class="example-pedido-detail"
+            [@detailExpand]="
+              pedido == expandedPedido ? 'expanded' : 'collapsed'
+            "
+          >
+            <ng-container *ngIf="pedido.pedidoItens">
+              <ng-container *ngFor="let pedidoItem of pedido.pedidoItens">
+                <div fxLayout="column" style="width: 100%;">
+                  <div fxLayout="row" fxLayoutGap="20px" style="width: 100%;">
+                    <div fxFlex="30" fxLayout="column">
+                      <div fxFlex>
+                        Producto:
+                      </div>
+                      <div fxFlex>
+                        {{pedidoItem?.producto?.descripcion}}
+                      </div>
+                    </div>
+                    <div fxFlex="25" fxLayout="column">
+                      <div fxFlex>
+                        P. Unitario:
+                      </div>
+                      <div fxFlex>
+                        {{pedido.moneda.simbolo}} {{pedidoItem?.precioUnitario | number:'1.0-0'}}
+                      </div>
+                    </div>
+                    <div fxFlex="25" fxLayout="column">
+                      <div fxFlex>
+                        Descuento Unit.:
+                      </div>
+                      <div fxFlex>
+                        {{pedido.moneda.simbolo}} {{pedidoItem?.descuentoUnitario ? pedidoItem.descuentoUnitario : 0   | number:'1.0-0'}}
+                      </div>
+                    </div>
+                    <div fxFlex="20" fxLayout="column">
+                      <div fxFlex>
+                        Estado:
+                      </div>
+                      <div fxFlex>
+                        {{pedidoItem.estado | titlecase}}
+                      </div>
+                    </div>
+                  </div>
+                  <mat-divider style="margin: 10px"></mat-divider>
+                  <div fxLayout="row">
+                    <table style="width: 100%;" border="1" frame="void" rules="rows">
+                      <tr>
+                        <th >Nro</th>
+                        <th >Sucursal</th>
+                        <th >Cantidad</th>
+                        <th >Deposito Entrega</th>
+                      </tr>
+                    
+                      <tr *ngFor="let itemSuc of pedidoItem.pedidoItemSucursales; let i = index">
+                        <td>{{i + 1}} </td>
+                        <td>{{itemSuc?.sucursal?.nombre}}
+                        </td>
+                        <td>{{itemSuc?.cantidad}}</td>
+                        <td>{{itemSuc?.sucursalEntrega?.nombre}}</td>
+                      </tr>
+                    </table>
+                  </div>
+                </div>
+              </ng-container>
+            </ng-container>
+            
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumnsPedidos"></tr>
+      <ng-container *ngIf="!isTableCargando">
+        <tr
+          mat-row
+          *matRowDef="let pedido; columns: displayedColumnsPedidos"
+          class="example-pedido-row"
+          [class.example-expanded-row]="expandedPedido === pedido"
+          [ngStyle]="{ 'background-color': getBackColor(pedido.estado) }"
+          (click)="expandedPedido = expandedPedido === pedido ? null : pedido;"
+        ></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: ['expandedDetail']"
+          class="example-detail-row"
+        ></tr>
+      </ng-container>
+
+      <ng-container *ngIf="isTableCargando">
+        <app-cargando-dialog></app-cargando-dialog>
+      </ng-container>
+    </table>
+  </div>
+</div>

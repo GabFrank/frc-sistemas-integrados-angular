@@ -1,0 +1,24 @@
+<div>
+    <mat-form-field style="width: 100%;">
+        <mat-label>Buscar</mat-label>
+        <input matInput type="text" [formControl]="searchControl"/>
+      </mat-form-field>
+      <div fxLayout="column">
+        <mat-grid-list
+          fxFlex="90"
+          cols="7"
+          rowHeight="2:1"
+          style="height: 400px !important; overflow-y: scroll"
+        >
+          <mat-grid-tile
+            *ngFor="let icon of filteredIconsList"
+            fxLayout="column"
+            fxLayoutAlign="center center"
+          >
+            <div fxFlex="50">
+              <mat-icon style="font-size: 2em; cursor: pointer;" (click)="selectIcon(icon)">{{ icon }}</mat-icon>
+            </div>
+          </mat-grid-tile>
+        </mat-grid-list>
+      </div>
+</div>

@@ -1,0 +1,964 @@
+<div style="height: 800px; width: 1200px">
+  <h2>PRODUCTO: {{ pedidoItem?.producto?.descripcion }}</h2>
+  <form
+    [formGroup]="formGroup"
+    (ngSubmit)="onSubmit()"
+  >
+    <div style="height: 600px;">
+      <mat-tab-group>
+        <mat-tab label="Datos de Pedido">
+          <div
+            fxFlex
+            fxLayout="row"
+            fxLayoutGap="10px"
+            style="padding-top: 20px"
+          >
+            <div fxFlex="20" style="padding-top: 15px">
+              <mat-checkbox
+                formControlName="allSucursales"
+                (change)="todasSucursalesEventChange()"
+                (keydown.enter)="
+                  formGroup
+                    .get('allSucursales')
+                    .setValue(!formGroup.get('allSucursales').value);
+                  todasSucursalesEventChange();
+                  $event.preventDefault()
+                "
+                >Todas las sucursales
+              </mat-checkbox>
+            </div>
+
+            <div fxFlex="20">
+              <mat-form-field style="width: 80%">
+                <mat-label>Sucursales</mat-label>
+                <mat-select
+                  formControlName="sucursal"
+                  multiple
+                >
+                  <mat-option
+                    *ngFor="let sucursal of sucursales"
+                    [value]="sucursal"
+                    >{{ sucursal?.nombre }}</mat-option
+                  >
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div fxFlex="15">
+              <mat-form-field style="width: 80%">
+                <input
+                  type="number"
+                  placeholder="Unidad por caja"
+                  aria-label="text"
+                  matInput
+                  [value]=""
+                  matTooltip="Cantidad de unidades que contiene una caja"
+                  formControlName="unidadPorCaja"
+                  autocomplete="off"
+                  min="0"
+                />
+              </mat-form-field>
+            </div>
+
+            <div fxFlex="15">
+              <mat-form-field style="width: 80%">
+                <input #valorPorCaja
+                  type="text"
+                  placeholder="Valor por caja"
+                  aria-label="text"
+                  matInput
+                  [mask]="currencyMask.separator" [thousandSeparator]="currencyMask.thousandSeparator" 
+                  formControlName="valorPorCaja"
+                  autocomplete="off"
+                  (change)="sumarTotales(); verificarValor()"
+                  (input)="calcularCantidades('caja')"
+                  (keydown.enter)="$event.preventDefault(); valorPorUnidadInput.nativeElement.focus()"
+                />
+                <span matPrefix>{{ data.moneda?.simbolo }}&nbsp;</span>
+              </mat-form-field>
+            </div>
+
+            <div fxFlex="15">
+              <mat-form-field style="width: 80%">
+                <input #valorPorUnidad
+                  type="text"
+                  placeholder="Valor Unitario"
+                  aria-label="number"
+                  matInput
+                  [mask]="currencyMask.separator" [thousandSeparator]="currencyMask.thousandSeparator" 
+                  formControlName="valorUnitario"
+                  autocomplete="off"
+                  (change)="sumarTotales(); verificarValor()"
+                  (input)="calcularCantidades('unidad')"
+                  (keydown.enter)="$event.preventDefault(); descuentoPorUnidadInput.nativeElement.focus()"
+                />
+                <span matPrefix>{{ data.moneda?.simbolo }}&nbsp;</span>
+              </mat-form-field>
+            </div>
+
+            <div fxFlex="15">
+              <mat-form-field style="width: 80%">
+                <input #descuentoPorUnidad
+                  type="text"
+                  placeholder="Descuento Unitario"
+                  aria-label="text"
+                  matInput
+                  formControlName="descuentoPorUnidad"
+                  autocomplete="off"
+                  mask="separator.2" 
+                  (change)="sumarTotales()"
+                />
+                <span matPrefix>{{ data.moneda?.simbolo }}&nbsp;</span>
+              </mat-form-field>
+            </div>
+          </div>
+          <div fxLayout="row" fxLayoutGap="20ppx">
+            <div fxFlex="20">
+              <mat-form-field style="width: 80%">
+                <input
+                  type="date"
+                  placeholder="Vencimiento"
+                  aria-label="text"
+                  matInput
+                  formControlName="vencimiento"
+                  autocomplete="off"
+                />
+              </mat-form-field>
+            </div>
+
+            <div fxFlex="15">
+              <mat-checkbox
+                formControlName="bonificacion"
+                style="padding-top: 15px"
+                >Bonificación?</mat-checkbox
+              >
+            </div>
+
+            <div *ngIf="formGroup.get('bonificacion')?.value" fxFlex="30">
+              <mat-form-field style="width: 100%">
+                <input
+                  type="text"
+                  placeholder="Bonificación Detalle"
+                  aria-label="text"
+                  matInput
+                  formControlName="bonificacionDetalle"
+                  autocomplete="off"
+                />
+              </mat-form-field>
+            </div>
+          </div>
+          <div style="height: 400px; overflow-x: scroll">
+            <div fxLayout="row" style="height: 30px">
+              <div
+                fxFlex
+                fxFill
+                style="background-color: background; text-align: center"
+              >
+                <h3 style="color: white; width: 1190px">
+                  Cantidad por Sucursales
+                </h3>
+              </div>
+            </div>
+            <div
+              fxLayout="row"
+              fxLayoutAlign="space-between center"
+              *ngFor="let suc of selectedSucursales"
+              style="padding-top: 10px; width: 1180px"
+            >
+              <div fxFlex="10" style="height: 30px">
+                {{ suc.nombre }}
+              </div>
+
+              <div fxFlex="10">
+                <mat-form-field style="width: 80%">
+                  <input
+                    type="number"
+                    placeholder="Cant. por Caja"
+                    aria-label="text"
+                    matInput
+                    autocomplete="off"
+                    formControlName="cantidadPorCaja{{ extraerEspacios(suc.nombre) }}"
+                    (input)="onCantidadPorSucursalChange('caja', extraerEspacios(suc.nombre))"
+                    (change)="sumarTotales()"
+                  />
+                </mat-form-field>
+              </div>
+
+              <div fxFlex="10">
+                <mat-form-field style="width: 80%">
+                  <input
+                    type="number"
+                    placeholder="Cant. por Unidad"
+                    aria-label="text"
+                    matInput
+                    autocomplete="off"
+                    formControlName="cantidadPorUnidad{{ extraerEspacios(suc.nombre) }}"
+                    (input)="onCantidadPorSucursalChange('unidad', extraerEspacios(suc.nombre))"
+                    (change)="sumarTotales()"
+                  />
+                </mat-form-field>
+              </div>
+
+              <div fxFlex="10">
+                <mat-form-field style="width: 80%">
+                  <input
+                    type="text"
+                    placeholder="Existencia"
+                    aria-label="text"
+                    matInput
+                    autocomplete="off"
+                    formControlName="existencia{{ extraerEspacios(suc.nombre) }}"
+                  />
+                </mat-form-field>
+              </div>
+
+              <div fxFlex="10">
+                <mat-form-field style="width: 80%">
+                  <input
+                    type="text"
+                    placeholder="Cant. Última Compra"
+                    aria-label="text"
+                    matInput
+                    autocomplete="off"
+                    formControlName="cantidadUltimaCompra{{ extraerEspacios(suc.nombre) }}"
+                  />
+                </mat-form-field>
+              </div>
+
+              <div fxFlex="15">
+                <mat-form-field style="width: 80%">
+                  <input
+                    type="text"
+                    placeholder="Fecha Ult. Compra"
+                    matInput
+                    aria-label="text"
+                    formControlName="fechaUltimaCompra{{ extraerEspacios(suc.nombre) }}"
+                    autocomplete="off"
+                  />
+                </mat-form-field>
+              </div>
+
+              <div fxFlex="10">
+                <mat-form-field style="width: 80%">
+                  <input
+                    type="text"
+                    placeholder="Precio Ult. Compra"
+                    matInput
+                    mask="separator.2" 
+                    aria-label="text"
+                    formControlName="precioUltimaCompra{{ extraerEspacios(suc.nombre) }}"
+                    autocomplete="off"
+                  />
+                  <span matPrefix>{{ data.moneda?.simbolo }}&nbsp;</span>
+                </mat-form-field>
+              </div>
+              <div fxFlex="10">
+                <mat-form-field style="width: 80%">
+                  <input
+                    type="text"
+                    placeholder="Precio Medio"
+                    matInput
+                    mask="separator.2" 
+                    aria-label="text"
+                    formControlName="costoMedio{{ extraerEspacios(suc.nombre) }}"
+                    autocomplete="off"
+                  />
+                  <span matPrefix>{{ data.moneda?.simbolo }}&nbsp;</span>
+                </mat-form-field>
+              </div>
+              <div fxFlex="15">
+                <mat-form-field style="width: 80%">
+                  <mat-label>Deposito Entrega</mat-label>
+                  <mat-select formControlName="sucursalEntrega{{ extraerEspacios(suc.nombre) }}">
+                    <mat-option
+                      *ngFor="let sucursal of sucursales"
+                      [value]="sucursal"
+                      >{{ sucursal?.nombre }}</mat-option
+                    >
+                  </mat-select>
+                </mat-form-field>
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+        <mat-tab label="Últimas Compras">
+          <div style="width: 1190px" fxFlex fxLayout="row">
+            <div fxFlex="100%" fxFlexAlign="center">
+              <table
+                mat-table
+                [dataSource]="pedidoItem?.producto?.productoUltimasCompras"
+                style="width: 50%; padding-top: 10px"
+              >
+                <!-- Item Column -->
+                <ng-container matColumnDef="proveedorNombre">
+                  <th mat-header-cell *matHeaderCellDef>Proveedor</th>
+                  <td
+                    mat-cell
+                    *matCellDef="let producto"
+                    style="text-align: start"
+                  >
+                    {{ producto.pedido?.proveedor?.persona?.nombre }}
+                  </td>
+                </ng-container>
+
+                <!-- Cost Column -->
+                <ng-container matColumnDef="precio">
+                  <th mat-header-cell *matHeaderCellDef>Precio</th>
+                  <td
+                    mat-cell
+                    *matCellDef="let producto"
+                    style="text-align: start"
+                  >
+                    {{data?.moneda?.simbolo}} {{ producto.precio | mask: 'separator.2' }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="cantidad">
+                  <th mat-header-cell *matHeaderCellDef>Cantidad</th>
+                  <td
+                    mat-cell
+                    *matCellDef="let producto"
+                    style="text-align: start"
+                  >
+                    {{ producto.cantidad | number }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="fecha">
+                  <th mat-header-cell *matHeaderCellDef>Fecha</th>
+                  <td
+                    mat-cell
+                    *matCellDef="let producto"
+                    style="text-align: start"
+                  >
+                    {{ producto.creadoEn | date }}
+                  </td>
+                </ng-container>
+
+                <tr
+                  mat-header-row
+                  *matHeaderRowDef="displayedColumnsUltimaCompras"
+                ></tr>
+                <tr
+                  mat-row
+                  *matRowDef="let row; columns: displayedColumnsUltimaCompras"
+                ></tr>
+              </table>
+            </div>
+          </div>
+        </mat-tab>
+        <mat-tab label="Precios">
+          <div fxLayout="row" style="width: 1190px">
+            <div fxFlex="100" fxLayout="column" style="width: 600px">
+              <div fxLayout="row">
+                <div fxFlex="20" style="padding-top: 15px">
+                  <mat-checkbox
+                    formControlName="allSucursalesPrecios"
+                    (change)="todasSucursalesPreciosEventChange()"
+                    (keydown.enter)="
+                      formGroup
+                        .get('allSucursalesPrecios')
+                        .setValue(!formGroup.get('allSucursalesPrecios').value);
+                      todasSucursalesPreciosEventChange()
+                    "
+                    >Todas las sucursales
+                  </mat-checkbox>
+                </div>
+
+                <div fxFlex="25">
+                  <mat-form-field style="width: 80%">
+                    <mat-label>Sucursales</mat-label>
+                    <mat-select
+                      formControlName="sucursalesPrecios"
+                      multiple
+                    >
+                      <mat-option
+                        *ngFor="let sucursal of sucursales"
+                        [value]="sucursal"
+                        >{{ sucursal?.nombre }}</mat-option
+                      >
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+
+                <div fxFlex="25">
+                  <mat-checkbox
+                    formControlName="programarPrecio"
+                    style="padding-top: 15px"
+                    >Programar nuevos precios?</mat-checkbox
+                  >
+                </div>
+
+                <div fxFlex="25" *ngIf="formGroup.get('programarPrecio').value">
+                  <mat-checkbox
+                    formControlName="preciosIndividuales"
+                    style="padding-top: 15px"
+                    >Precios individuales?</mat-checkbox
+                  >
+                </div>
+              </div>
+              <div
+                fxLayout="row"
+                *ngIf="formGroup.get('programarPrecio').value"
+              >
+                <div
+                  *ngIf="!formGroup.get('preciosIndividuales').value"
+                  fxFlex="15"
+                  style="padding-top: 15px"
+                >
+                  PRECIO GENERAL
+                </div>
+                <div
+                  *ngIf="!formGroup.get('preciosIndividuales').value"
+                  fxFlex="15"
+                >
+                  <mat-form-field style="width: 80%">
+                    <input
+                      type="text"
+                      placeholder="Precio 1"
+                      aria-label="number"
+                      matInput
+                      formControlName="precio1Prog"
+                      value="formControl.get('precio1).value | number: '1.0-0'"
+                      autocomplete="off"
+                      max="9999999"
+                    />
+                    <span matPrefix>{{ data.moneda?.simbolo }}&nbsp;</span>
+                  </mat-form-field>
+                </div>
+                <div
+                  *ngIf="!formGroup.get('preciosIndividuales').value"
+                  fxFlex="15"
+                >
+                  <mat-form-field style="width: 80%">
+                    <input
+                      type="text"
+                      placeholder="Precio 2"
+                      aria-label="number"
+                      matInput
+                      formControlName="precio2Prog"
+                      value="formControl.get('precio2).value | number: '1.0-0'"
+                      autocomplete="off"
+                      max="9999999"
+                    />
+                    <span matPrefix>{{ data.moneda?.simbolo }}&nbsp;</span>
+                  </mat-form-field>
+                </div>
+                <div
+                  *ngIf="!formGroup.get('preciosIndividuales').value"
+                  fxFlex="15"
+                >
+                  <mat-form-field style="width: 80%">
+                    <input
+                      type="text"
+                      placeholder="Precio 3"
+                      aria-label="number"
+                      matInput
+                      formControlName="precio3Prog"
+                      value="formControl.get('precio3).value | number: '1.0-0'"
+                      autocomplete="off"
+                      max="9999999"
+                    />
+                    <span matPrefix>{{ data.moneda?.simbolo }}&nbsp;</span>
+                  </mat-form-field>
+                </div>
+                <div
+                  *ngIf="!formGroup.get('preciosIndividuales').value"
+                  fxFlex="15"
+                >
+                  <button
+                    mat-raised-button
+                    type="button"
+                    color="primary"
+                    style="padding-right: 5px"
+                  >
+                    Otros Precios
+                  </button>
+                </div>
+
+                <div fxFlex="20">
+                  <mat-form-field>
+                    <mat-label>Momento de cambio</mat-label>
+                    <mat-select
+                      formControlName="momentoEntrega"
+                      style="border-top-width: 0px !important"
+                    >
+                      <mat-option
+                        *ngFor="
+                          let e of [
+                            'Entrega del producto',
+                            'Elegir Fecha',
+                            'Elegir fecha y hora'
+                          ]
+                        "
+                        [value]="e"
+                      >
+                        {{ e }}
+                      </mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+                <div
+                  *ngIf="
+                    formGroup.get('momentoEntrega').value == 'Elegir Fecha' ||
+                    formGroup.get('momentoEntrega').value ==
+                      'Elegir fecha y hora'
+                  "
+                  fxFlex="10%"
+                >
+                  <mat-form-field style="width: 80%">
+                    <mat-label>Fecha</mat-label>
+                    <input
+                      matInput
+                      [matDatepicker]="picker"
+                      formControlName="fechaProgramacionPrecio"
+                      [min]="today"
+                    />
+                    <mat-datepicker-toggle
+                      matSuffix
+                      [for]="picker"
+                    ></mat-datepicker-toggle>
+                    <mat-datepicker #picker></mat-datepicker>
+                  </mat-form-field>
+                </div>
+                <div
+                  *ngIf="
+                    formGroup.get('momentoEntrega').value ==
+                    'Elegir fecha y hora'
+                  "
+                  fxFlex="10%"
+                >
+                  <mat-form-field style="width: 80%">
+                    <input
+                      type="time"
+                      placeholder="Hora"
+                      aria-label="text"
+                      matInput
+                      formControlName="horaProgramacionPrecio"
+                      autocomplete="off"
+                    />
+                  </mat-form-field>
+                </div>
+              </div>
+              <div style="overflow-y: scroll">
+                <ng-container *ngFor="let suc of selectedSucursalesPrecios">
+                  <div fxLayout="row" fxLayoutAlign="space-around center">
+                    <div fxFlex="20" style="height: 25px">
+                      {{ suc.nombre }}
+                    </div>
+                    <div fxFlex="20" fxLayout="column">
+                      <div fxFlex>
+                        <mat-form-field style="width: 80%">
+                          <input
+                            type="text"
+                            placeholder="Precio 1"
+                            aria-label="number"
+                            matInput
+                            formControlName="precio1{{ extraerEspacios(suc.nombre) }}"
+                            autocomplete="off"
+                            max="9999999"
+                          />
+                          <span matPrefix
+                            >{{ data.moneda?.simbolo }}&nbsp;</span
+                          >
+                        </mat-form-field>
+                      </div>
+                      <div
+                        fxFlex
+                        *ngIf="
+                          formGroup.get('programarPrecio').value &&
+                          formGroup.get('preciosIndividuales').value
+                        "
+                      >
+                        <mat-form-field style="width: 80%">
+                          <input
+                            type="text"
+                            placeholder="Nuevo precio 1"
+                            aria-label="number"
+                            matInput
+                            formControlName="precio1Prog{{ extraerEspacios(suc.nombre) }}"
+                            autocomplete="off"
+                            max="9999999"
+                          />
+                          <span matPrefix
+                            >{{ data.moneda?.simbolo }}&nbsp;</span
+                          >
+                        </mat-form-field>
+                      </div>
+                    </div>
+                    <div fxFlex="20" fxLayout="column">
+                      <div fxFlex>
+                        <mat-form-field style="width: 80%">
+                          <input
+                            type="text"
+                            placeholder="Precio 2"
+                            aria-label="number"
+                            matInput
+                            formControlName="precio2{{ extraerEspacios(suc.nombre) }}"
+                            autocomplete="off"
+                            max="9999999"
+                          />
+                          <span matPrefix
+                            >{{ data.moneda?.simbolo }}&nbsp;</span
+                          >
+                        </mat-form-field>
+                      </div>
+                      <div
+                        fxFlex
+                        *ngIf="
+                          formGroup.get('programarPrecio').value &&
+                          formGroup.get('preciosIndividuales').value
+                        "
+                      >
+                        <mat-form-field style="width: 80%">
+                          <input
+                            type="text"
+                            placeholder="Nuevo precio 2"
+                            aria-label="number"
+                            matInput
+                            formControlName="precio2Prog{{ extraerEspacios(suc.nombre) }}"
+                            autocomplete="off"
+                            max="9999999"
+                          />
+                          <span matPrefix
+                            >{{ data.moneda?.simbolo }}&nbsp;</span
+                          >
+                        </mat-form-field>
+                      </div>
+                    </div>
+                    <div fxFlex="20" fxLayout="column">
+                      <div fxFlex>
+                        <mat-form-field style="width: 80%">
+                          <input
+                            type="text"
+                            placeholder="Precio 3"
+                            aria-label="number"
+                            matInput
+                            formControlName="precio3{{ extraerEspacios(suc.nombre) }}"
+                            autocomplete="off"
+                            max="9999999"
+                          />
+                          <span matPrefix
+                            >{{ data.moneda?.simbolo }}&nbsp;</span
+                          >
+                        </mat-form-field>
+                      </div>
+                      <div
+                        fxFlex
+                        *ngIf="
+                          formGroup.get('programarPrecio').value &&
+                          formGroup.get('preciosIndividuales').value
+                        "
+                      >
+                        <mat-form-field style="width: 80%">
+                          <input
+                            type="text"
+                            placeholder="Nuevo precio 3"
+                            aria-label="number"
+                            matInput
+                            formControlName="precio3Prog{{ extraerEspacios(suc.nombre) }}"
+                            autocomplete="off"
+                            max="9999999"
+                          />
+                          <span matPrefix
+                            >{{ data.moneda?.simbolo }}&nbsp;</span
+                          >
+                        </mat-form-field>
+                      </div>
+                    </div>
+                    <div fxFlex="20">
+                      <button
+                        mat-raised-button
+                        type="button"
+                        color="primary"
+                        style="padding-right: 5px"
+                      >
+                        Otros Precios
+                      </button>
+                    </div>
+                  </div>
+                  <mat-divider></mat-divider>
+                </ng-container>
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Códigos">
+          <div
+            class="table-container"
+            style="width: 100%"
+            fxLayout="column"
+            fxLayoutAlign="center center"
+          >
+            <table
+              mat-table
+              [dataSource]="pedidoItem?.producto?.codigos"
+              class="mat-elevation-z8"
+              style="width: 60%"
+            >
+              <!--- Note that these columns can be defined in any order.
+                  The actual rendered columns are set as a property on the row definition" -->
+
+              <!-- Position Column -->
+              <ng-container matColumnDef="codigo">
+                <th mat-header-cell *matHeaderCellDef>Cód. Barra</th>
+                <td mat-cell *matCellDef="let codigo" style="text-align: start">
+                  {{ codigo.codigo }}
+                </td>
+              </ng-container>
+
+              <!-- Name Column -->
+              <ng-container matColumnDef="cantidad">
+                <th mat-header-cell *matHeaderCellDef>Cantidad</th>
+                <td mat-cell *matCellDef="let codigo" style="text-align: start">
+                  {{ codigo.cantidad }}
+                </td>
+              </ng-container>
+
+              <!-- Weight Column -->
+              <ng-container matColumnDef="principal">
+                <th mat-header-cell *matHeaderCellDef>Principal</th>
+                <td mat-cell *matCellDef="let codigo" style="text-align: start">
+                  {{ codigo.principal ? "Si" : "No" }}
+                </td>
+              </ng-container>
+
+              <!-- Symbol Column -->
+              <ng-container matColumnDef="caja">
+                <th mat-header-cell *matHeaderCellDef>Caja</th>
+                <td mat-cell *matCellDef="let codigo" style="text-align: start">
+                  {{ codigo.caja ? "Si" : "No" }}
+                </td>
+              </ng-container>
+
+              <tr
+                mat-header-row
+                *matHeaderRowDef="displayedColumnsCodigos"
+              ></tr>
+              <tr
+                mat-row
+                *matRowDef="let row; columns: displayedColumnsCodigos"
+              ></tr>
+            </table>
+          </div>
+        </mat-tab>
+        <mat-tab label="Informaciones del producto">
+          <div fxLayout="column" style="min-width: 900px; padding-top: 20px">
+            <div fxLayout="row">
+              <div fxFlex="100">
+                <mat-form-field style="width: 100%">
+                  <input
+                    type="text"
+                    placeholder="Descripción"
+                    aria-label="text"
+                    matInput
+                    formControlName="descripcion"
+                    autocomplete="off"
+                  />
+                </mat-form-field>
+              </div>
+            </div>
+            <div fxLayout="row">
+              <div fxFlex="100">
+                <mat-form-field style="width: 100%">
+                  <input
+                    type="text"
+                    placeholder="Descripción de Factura"
+                    aria-label="text"
+                    matInput
+                    formControlName="descripcionFactura"
+                    autocomplete="off"
+                  />
+                </mat-form-field>
+              </div>
+            </div>
+            <div fxLayout="row">
+              <div fxFlex>
+                <mat-checkbox formControlName="balanza">Pesable?</mat-checkbox>
+              </div>
+              <div fxFlex>
+                <mat-checkbox formControlName="ingrediente"
+                  >Ingrediente?</mat-checkbox
+                >
+              </div>
+              <div fxFlex>
+                <mat-checkbox formControlName="isVencimiento"
+                  >Vencimiento?</mat-checkbox
+                >
+              </div>
+              <div fxFlex>
+                <mat-checkbox formControlName="stock">Stock?</mat-checkbox>
+              </div>
+            </div>
+            <div fxLayout="row" fxLayoutGap="20px">
+              <div fxFlex="20">
+                <mat-form-field style="width: 100%">
+                  <input
+                    type="number"
+                    placeholder="Unid. por Caja"
+                    aria-label="text"
+                    matInput
+                    formControlName="unidadPorCaja"
+                    autocomplete="off"
+                  />
+                </mat-form-field>
+              </div>
+              <div fxFlex="20">
+                <mat-form-field>
+                  <mat-label>IVA</mat-label>
+                  <mat-select>
+                    <mat-option *ngFor="let iva of [0, 5, 10]" [value]="iva">
+                      {{ iva }}{{ iva > 0 ? "%" : null }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+            </div>
+            <div fxLayout="row">
+              <div fxFlex="40">
+                <mat-form-field style="width: 80%">
+                  <input
+                    type="text"
+                    placeholder="Familia"
+                    aria-label="text"
+                    matInput
+                    formControlName="familia"
+                    autocomplete="off"
+                  />
+                </mat-form-field>
+              </div>
+
+              <div fxFlex="40">
+                <mat-form-field style="width: 80%">
+                  <input
+                    type="text"
+                    placeholder="Subfamilia"
+                    aria-label="text"
+                    matInput
+                    formControlName="subFamilia"
+                    autocomplete="off"
+                  />
+                </mat-form-field>
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+        <mat-tab label="test">
+          <table
+            class="table table-bordered table-responsive-md table-striped text-center"
+          >
+            <tr>
+              <th class="text-center">Person Name</th>
+              <th class="text-center">Age</th>
+              <th class="text-center">Company Name</th>
+              <th class="text-center">Country</th>
+              <th class="text-center">City</th>
+              <th class="text-center">Sort</th>
+              <th class="text-center">Remove</th>
+            </tr>
+            <tr *ngFor="let person of personList; let id = index">
+              <td>
+                <span
+                  (keyup)="changeValue(id, 'name', $event)"
+                  (blur)="updateList(id, 'name', $event)"
+                  contenteditable="true"
+                  >{{ person.name }}</span
+                >
+              </td>
+              <td>
+                <span
+                  contenteditable="true"
+                  (keyup)="changeValue(id, 'age', $event)"
+                  (blur)="updateList(id, 'age', $event)"
+                  >{{ person.age }}</span
+                >
+              </td>
+              <td>
+                <span
+                  contenteditable="true"
+                  (keyup)="changeValue(id, 'companyName', $event)"
+                  (blur)="updateList(id, 'companyName', $event)"
+                  >{{ person.companyName }}</span
+                >
+              </td>
+              <td>
+                <span
+                  contenteditable="true"
+                  (keyup)="changeValue(id, 'country', $event)"
+                  (blur)="updateList(id, 'country', $event)"
+                  >{{ person.country }}</span
+                >
+              </td>
+              <td>
+                <span
+                  contenteditable="true"
+                  (keyup)="changeValue(id, 'city', $event)"
+                  (blur)="updateList(id, 'city', $event)"
+                  >{{ person.city }}</span
+                >
+              </td>
+              <td>
+                <span class="table-up">
+                  <a class="indigo-text">
+                    <mdb-icon fas icon="long-arrow-alt-up"></mdb-icon>
+                  </a>
+                </span>
+                <span class="table-down">
+                  <a class="indigo-text">
+                    <mdb-icon fas icon="long-arrow-alt-down"></mdb-icon>
+                  </a>
+                </span>
+              </td>
+              <td>
+                <span class="table-remove">
+                  <button
+                    type="button"
+                    mdbBtn
+                    color="danger"
+                    rounded="true"
+                    size="sm"
+                    class="my-0"
+                    (click)="remove(id)"
+                  >
+                    Remove
+                  </button>
+                </span>
+              </td>
+            </tr>
+          </table>
+        </mat-tab>
+      </mat-tab-group>
+    </div>
+    <mat-divider></mat-divider>
+    <div
+      fxLayout="row"
+      fxLayoutAlign="space-between center"
+      style="font-weight: bold; height: 100px;"
+    >
+      <div fxFlex="20%">Total en cajas: {{ totalPorCaja | number }}</div>
+      <div fxFlex="20%">Total en unidades: {{ totalPorUnidad | number }}</div>
+      <div fxFlex="30%" fxLayout="column">
+        <div fxFlex>
+          Total en {{ data.moneda?.simbolo }} sin descuento:
+          {{ valorTotalSinDesc | number }}
+        </div>
+        <div *ngIf="formGroup.get('descuentoPorUnidad')?.value" fxFlex>
+          Total en {{ data.moneda?.simbolo }} con descuento:
+          {{ valorTotalConDesc | number }}
+        </div>
+      </div>
+    </div>
+    <div style="height: 100px;" fxLayout="row" fxLayoutAlign="center center" fxFlexFill>
+      <button
+        mat-button
+        type="button"
+        (click)="onCancelEvent()"
+        style="font-size: 16px"
+      >
+        Cancelar
+      </button>
+      <button mat-button type="submit" style="font-size: 16px">Aceptar</button>
+    </div>
+  </form>
+</div>

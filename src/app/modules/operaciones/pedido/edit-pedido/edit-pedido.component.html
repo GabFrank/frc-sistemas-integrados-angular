@@ -1,0 +1,480 @@
+<div
+  class="container"
+  fxLayout="column"
+  fxLayoutGap="20px"
+  style="margin: 0; margin-top: 5px"
+>
+  <form
+    class="form-container"
+    [formGroup]="formGroup"
+    fxLayout="row"
+    fxLayoutAlign="start start"
+    fxLayoutGap="20px"
+    (ngSubmit)="onSubmit()"
+    [ngStyle]="{ width: innerWidth }"
+  >
+    <div fxFlex="45">
+      <div fxLayout="column" style="width: 100%">
+        <mat-card fxFlex fxLayout="row">
+          <div fxFlex fxLayout="column" style="height: 270px">
+            <div style="text-align: center">Datos de Pedido</div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="35">
+                <mat-form-field class="example-full-width">
+                  <input
+                    #autoVendedorInput
+                    type="text"
+                    placeholder="Vendedor"
+                    aria-label="text"
+                    matInput
+                    formControlName="vendedor"
+                    [matAutocomplete]="autoVendedor"
+                    (keyup)="onVendedorSearch()"
+                    (keydown)="onKeydownEvent($event.key)"
+                  />
+                  <mat-autocomplete
+                    #autoVendTrig
+                    [displayWith]="displayVendedor.bind(this)"
+                    autoActiveFirstOption
+                    #autoVendedor="matAutocomplete"
+                    (closed)="onVendedorAutoClosed()"
+                  >
+                    <mat-option
+                      
+                      *ngFor="let vendedor of vendedores"
+                      [value]="vendedor.id"
+                      (click)="onVendedorSearch(vendedor)"
+                    >
+                      {{ vendedor.id }} - {{ vendedor.persona.nombre }}
+                    </mat-option>
+                  </mat-autocomplete>
+                </mat-form-field>
+              </div>
+              <div fxFlex="30">
+                <mat-form-field class="example-full-width">
+                  <input
+                    #autoProveedorInput
+                    type="text"
+                    placeholder="Proveedor"
+                    aria-label="text"
+                    matInput
+                    formControlName="proveedor"
+                    [matAutocomplete]="autoProveedor"
+                  />
+                  <mat-autocomplete
+                    [displayWith]="displayProveedor.bind(this)"
+                    autoActiveFirstOption
+                    #autoProveedor="matAutocomplete"
+                    (closed)="onProveedorAutoClosed()"
+                  >
+                    <mat-option
+                      *ngFor="let proveedor of proveedores"
+                      [value]="proveedor.id"
+                    >
+                      {{ proveedor.id }} - {{ proveedor.persona.nombre }}
+                    </mat-option>
+                  </mat-autocomplete>
+                </mat-form-field>
+              </div>
+              <div fxFlex="30">
+                <mat-form-field>
+                  <mat-label>Forma de Pago</mat-label>
+                  <mat-select #formaPagoSelect formControlName="formaPago" [(value)]="formaDePagoDefault">
+                    <mat-option
+                      (onSelectionChange)="onFormaDePagoSelect($event)"
+                      *ngFor="let formaPago of formaPagoOptions"
+                      [value]="formaPago.valor"
+                    >
+                      {{ formaPago.titulo }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div
+                fxFlex="10"
+                *ngIf="formGroup.get('formaPago').value === 'CHEQUE'"
+              >
+                <mat-form-field style="width: 50%">
+                  <input
+                    type="number"
+                    placeholder="Días"
+                    aria-label="text"
+                    matInput
+                    formControlName="diasCheque"
+                    autocomplete="off"
+                  />
+                </mat-form-field>
+              </div>
+            </div>
+            <div fxLayout="row">
+              <div fxFlex="35">
+                <mat-form-field>
+                  <input
+                    #autoMonedaInput
+                    type="text"
+                    placeholder="Moneda"
+                    aria-label="text"
+                    matInput
+                    formControlName="moneda"
+                    [matAutocomplete]="autoMoneda"
+                    (keyup)="onMonedaSearch()"
+                  />
+                  <mat-autocomplete
+                    [displayWith]="displayMoneda.bind(this)"
+                    autoActiveFirstOption
+                    #autoMoneda="matAutocomplete"
+                    (closed)="onMonedaAutoClosed()"
+                  >
+                    <mat-option
+                      *ngFor="let moneda of monedas"
+                      [value]="moneda.id"
+                    >
+                      {{ moneda.id }} - {{ moneda.denominacion }}
+                    </mat-option>
+                  </mat-autocomplete>
+                </mat-form-field>
+              </div>
+              <div fxFlex="30">
+                <mat-form-field style="width: 70%">
+                  <input
+                    type="date"
+                    placeholder="Fecha de Entrega"
+                    aria-label="text"
+                    matInput
+                    formControlName="fechaDeEntrega"
+                    autocomplete="off"
+                  />
+                </mat-form-field>
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="35" style="padding-top: 15px">
+                <mat-checkbox
+                  class="example-margin"
+                  formControlName="isSoloProductosProveedor"
+                  value="formGroup.get('proveedor').value!=null"
+                  (keydown.enter)="
+                    onCheckEnterEvent(); $event.stopPropagation()
+                  "
+                  >Solo productos del proveedor</mat-checkbox
+                >
+              </div>
+              <div fxFlex="50">
+                <mat-form-field appearance="legacy" style="width: 90%">
+                  <mat-label>Producto</mat-label>
+                  <input
+                    formControlName="producto"
+                    matInput
+                    placeholder="Producto"
+                    autocomplete="off"
+                    (input)="openDialog($event.target.value)"
+                    oninput="this.value = this.value.toUpperCase()"
+                  />
+                  <!-- <mat-hint>Código del producto</mat-hint> -->
+                </mat-form-field>
+              </div>
+            </div>
+            <div fxFlex fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="20px">
+              <div fxFlex="20" *ngIf="formGroup.dirty || isEditable">
+                <button type="button" mat-raised-button>Cancelar</button>
+              </div>
+              <div *ngIf="isEditable && pedidoItemList.length>0 && formGroup.dirty" fxFlex="20">
+                <button mat-raised-button color="primary" type="submit">Concluir</button>
+              </div>
+              <div *ngIf="!isEditable" fxFlex="20">
+                <button mat-raised-button color="primary" type="button" (click)="isEditable = true">Editar</button>
+              </div>
+            </div>
+          </div>
+        </mat-card>
+
+        <div fxFlex fxLayout="row" fxLayoutGap="10px"></div>
+      </div>
+      <div fxLayout="column">
+        <div fxFlex>
+          <div fxLayout="row">
+            <div fxFlex="50"></div>
+            <div fxFill fxFlex="50"></div>
+          </div>
+        </div>
+
+        <div fxFlex>
+          <div fxLayout="row">
+            <div fxFlex="50"></div>
+            <div fxFlex="50"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div fxFlex="55" fxLayout="row" fxLayoutGap="10px">
+      <mat-card fxFlex style="height: 300px; overflow-y: scroll">
+        <div style="text-align: center">Productos del Proveedor</div>
+        <div>
+          <table
+            mat-table
+            [dataSource]="productosDelProveedor"
+            style="width: 100%"
+          >
+            <!-- Item Column -->
+            <ng-container matColumnDef="id">
+              <th mat-header-cell *matHeaderCellDef>Id</th>
+              <td mat-cell *matCellDef="let producto">{{ producto.id }}</td>
+            </ng-container>
+
+            <!-- Cost Column -->
+            <ng-container matColumnDef="producto">
+              <th mat-header-cell *matHeaderCellDef>Producto</th>
+              <td mat-cell *matCellDef="let producto">
+                {{ producto.descripcion }}
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr
+              mat-row
+              tabindex="999"
+              *matRowDef="let row; columns: displayedColumns"
+              (click)="seleccionarProducto(row)"
+              (keydown.enter)="openDialogAddProductoConfirm(row)"
+            ></tr>
+          </table>
+        </div>
+      </mat-card>
+      <mat-card fxFlex="50" style="height: 300px; overflow-y: scroll">
+        <div style="text-align: center">Últimas compras</div>
+        <div style="text-align: center">
+          <h4 *ngIf="selectedProducto">
+            PRODUCTO: {{ selectedProducto.descripcion }}
+          </h4>
+          <table
+            mat-table
+            [dataSource]="selectedProducto?.productoUltimasCompras"
+            style="width: 100%"
+          >
+            <!-- Item Column -->
+            <ng-container matColumnDef="proveedorNombre">
+              <th mat-header-cell *matHeaderCellDef>Proveedor</th>
+              <td mat-cell *matCellDef="let producto">
+                {{ producto.pedido?.proveedor?.persona?.nombre }}
+              </td>
+            </ng-container>
+
+            <!-- Cost Column -->
+            <ng-container matColumnDef="precio">
+              <th mat-header-cell *matHeaderCellDef>Precio</th>
+              <td mat-cell *matCellDef="let producto">
+                {{ producto.precio | currency: "PYG" }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="cantidad">
+              <th mat-header-cell *matHeaderCellDef>Cantidad</th>
+              <td mat-cell *matCellDef="let producto">
+                {{ producto.cantidad | number }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="fecha">
+              <th mat-header-cell *matHeaderCellDef>Fecha</th>
+              <td mat-cell *matCellDef="let producto">
+                {{ producto.creadoEn | date }}
+              </td>
+            </ng-container>
+
+            <tr
+              mat-header-row
+              *matHeaderRowDef="displayedColumnsUltimaCompras"
+            ></tr>
+            <tr
+              mat-row
+              tabindex="999"
+              *matRowDef="let row; columns: displayedColumnsUltimaCompras"
+              (Keydown.enter)="onUltimaCompraEvent(row)"
+            ></tr>
+          </table>
+        </div>
+      </mat-card>
+    </div>
+  </form>
+  <div
+    fxLayout="row"
+    fxLayoutAlign="center start"
+    fxLayoutGap="20px"
+    style="height: 450px"
+    [ngStyle]="{ width: innerWidth }"
+  >
+    <mat-card fxFlex="100" style="height: 100%; overflow-x: scroll" fxFill>
+      <div fxLayout="row" style="height: 25px">
+        <div fxFlex="10%">
+          <div *ngIf="this.selection.selected.length > 0">
+            <button
+              mat-raised-button
+              color="warn"
+              (click)="deletePedidoItem(this.selection.selected)"
+              style="width: 85px;"
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
+        <div fxFlex="10%">
+          <div *ngIf="this.selection.selected.length == 1">
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="editPedidoItem(this.selection.selected[0])"
+              style="width: 85px;"
+            >
+              Editar
+            </button>
+          </div>
+        </div>
+        <div fxFlex="60%" fxFill>
+          <div style="text-align: center">Lista de pedido</div>
+        </div>
+      </div>
+      <div style="height: 380px">
+        <table
+          mat-table
+          [dataSource]="pedidoItemDataSource"
+          style="width: 100%; overflow-x: scroll"
+          multiTemplateDataRows
+        >
+          <ng-container matColumnDef="select">
+            <th mat-header-cell *matHeaderCellDef>
+              <mat-checkbox
+                (change)="$event ? masterToggle() : null"
+                [checked]="selection.hasValue() && isAllSelected()"
+                [indeterminate]="selection.hasValue() && !isAllSelected()"
+              >
+              </mat-checkbox>
+            </th>
+            <td mat-cell *matCellDef="let row">
+              <mat-checkbox
+                (click)="$event.stopPropagation()"
+                (change)="$event ? selection.toggle(row) : null"
+                [checked]="selection.isSelected(row)"
+              >
+              </mat-checkbox>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="productoDescripcion">
+            <th mat-header-cell *matHeaderCellDef>Producto</th>
+            <td mat-cell *matCellDef="let pedidoItem">
+              {{ pedidoItem?.producto.descripcion }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="cantidad">
+            <th mat-header-cell *matHeaderCellDef>Cantidad</th>
+            <td mat-cell *matCellDef="let pedidoItem">
+              {{ pedidoItem.cantidad }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="precioUnitario">
+            <th mat-header-cell *matHeaderCellDef>P. Unitario</th>
+            <td mat-cell *matCellDef="let pedidoItem">
+              {{ pedidoItem.precioUnitario | currency: "PYG" }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="descuentoUnitario">
+            <th mat-header-cell *matHeaderCellDef>D. Unitario</th>
+            <td mat-cell *matCellDef="let pedidoItem">
+              {{
+                pedidoItem.descuentoUnitario ? pedidoItem.descuentoUnitario : 0
+              }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="bonificacion">
+            <th mat-header-cell *matHeaderCellDef>Bonificación</th>
+            <td mat-cell *matCellDef="let pedidoItem">
+              {{ pedidoItem.bonificacion ? "Si" : "No" }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="estado">
+            <th mat-header-cell *matHeaderCellDef>Estado</th>
+            <td mat-cell *matCellDef="let pedidoItem">
+              {{ pedidoItem.estado }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="expandedDetail">
+            <td
+              mat-cell
+              *matCellDef="let pedidoItem"
+              [attr.colspan]="displayedColumnsPedido.length"
+            >
+              <div
+                class="example-element-detail"
+                [@detailExpand]="
+                  pedidoItem == expandedPedidoItem ? 'expanded' : 'collapsed'">
+                <div>
+                  <table>
+                    <tr>
+                      <th >Nro</th>
+                      <th >Sucursal</th>
+                      <th >Cantidad</th>
+                      <th >Deposito Entrega</th>
+                    </tr>
+                  
+                    <tr *ngFor="let itemSuc of pedidoItem.pedidoItemSucursales; let i = index">
+                      <td>{{i + 1}}</td>
+                      <td>{{itemSuc?.sucursal?.nombre}}</td>
+                      <td>{{itemSuc?.cantidad}}</td>
+                      <td>{{itemSuc?.sucursalEntrega?.nombre}}</td>
+                    </tr>
+                  </table>
+                </div>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumnsPedido"></tr>
+          <tr
+            mat-row
+            *matRowDef="let pedidoItem; columns: displayedColumnsPedido"
+            class="example-element-row"
+            [class.example-expanded-row]="expandedPedidoItem === pedidoItem"
+            (click)="
+              expandedPedidoItem =
+                expandedPedidoItem === pedidoItem ? null : pedidoItem;
+              seleccionarProducto(pedidoItem?.producto)
+            "
+          ></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: ['expandedDetail']"
+            class="example-detail-row"
+          ></tr>
+        </table>
+      </div>
+      <div>
+
+      </div>
+    </mat-card>
+    <mat-card
+      style="height: 450px"
+      fxFlex="30"
+      fxLayout="column"
+      fxLayoutAlign="center center"
+    >
+      <img
+        fxFlex
+        *ngIf="selectedProducto?.imagenPrincipal && base64Image"
+        [src]="base64Image"
+        style="height: 400px; width: 400px"
+      />
+      <img
+        fxFlex
+        *ngIf="sinImagen"
+        src="assets/sin-imagen.jpg"
+        style="height: 400px; width: 400px"
+      />
+    </mat-card>
+  </div>
+</div>

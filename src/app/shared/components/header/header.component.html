@@ -1,0 +1,54 @@
+<mat-toolbar color="primary">
+  <mat-toolbar-row style="padding-right: 0;">
+    <button mat-icon-button (click)="toogleSideBar()">
+      <mat-icon>menu</mat-icon>
+    </button>
+
+    <span>BODEGA FRANCO</span>
+
+      <ul fxLayout="row" fxLayoutGap="20px" fxLayoutAlign="center" fxLayoutAlign="end center" style="width: 100%;">
+        <li fxFlex="5">
+          <button mat-icon-button>
+            <mat-icon>settings</mat-icon>
+          </button>
+        </li>
+        <li fxFlex="5">
+          <button mat-icon-button>
+            <mat-icon>help_online</mat-icon>
+          </button>
+        </li>
+        <li fxFlex="5">
+          <button mat-button [matMenuTriggerFor]="menu">
+            <mat-icon *ngIf="mainService?.usuarioActual?.persona==null" fxFlex>person_outline</mat-icon>
+            <div style="font-size: 1.2em;" *ngIf="mainService?.usuarioActual?.persona!=null">{{mainService.usuarioActual.persona.nombre | titlecase}}</div>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onLogout()">
+              Salir
+            </button>
+            
+          </mat-menu>
+        </li>
+        
+        <mat-card>
+          <div fxLayout="column" fxLayoutAlign="center center">
+            <div fxFlex="10" style="font-size: 0.5em;">
+              Status
+            </div>
+            <div *ngIf="status == 'online'" fxFlex="10"  style="font-size: 0.6em; color: #43A047;">
+              Online
+            </div>
+
+            <div *ngIf="status == 'offline'" fxFlex="10"  style="font-size: 0.6em; color: #F44336;">
+              Offline
+            </div>
+
+            <div *ngIf="status == 'loading'" fxFlex="10"  style="font-size: 0.6em; color: #F44336;">
+              <mat-spinner diameter="25"></mat-spinner>
+            </div>
+            
+          </div>
+        </mat-card>
+      </ul>
+  </mat-toolbar-row>
+</mat-toolbar>

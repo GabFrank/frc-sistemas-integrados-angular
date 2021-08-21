@@ -1,0 +1,21 @@
+<div fxLayout="column" fxLayoutAlign="space-around center" style="height: 100%; width: 100%;">
+    <div fxFlex="85" fxLayout="column" fxLayoutAlign="center center" style="width: 350px; height: 350px">
+        <image-cropper
+        *ngIf="isCropping"
+        [imageChangedEvent]="imageChangedEvent"
+        [maintainAspectRatio]="true"
+        [aspectRatio]="4 / 4"
+        format="png"
+        (imageCropped)="imageCropped($event)"
+        (imageLoaded)="imageLoaded()"
+        (cropperReady)="cropperReady()"
+        (loadImageFailed)="loadImageFailed()"
+      ></image-cropper>
+      <img *ngIf="!isCropping" [src]="croppedImage" alt="imagen cortada" style="width: 350px; height: 350px; object-fit: contain">
+    </div>
+    <div fxFlex="15" fxLayout="row" fxLayoutAlign="space-around center" style="height: 100%; width: 100%;">
+        <button type="button" fxFlex="30" mat-raised-button color="" (click)=onCancelar()>Cancelar</button>
+        <button *ngIf="!isSend" type="button" fxFlex="30" mat-raised-button color="primary" (click)="onAceptar()">Cortar</button>
+        <button *ngIf="isSend" type="button" fxFlex="30" mat-raised-button color="accent" (click)="onSend()">Aceptar</button>
+    </div>
+</div>

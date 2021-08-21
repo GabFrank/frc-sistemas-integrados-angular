@@ -1,0 +1,48 @@
+
+.card-grid-producto {
+    background-color: '#212121 !important';
+}
+
+.valor-principal {
+    font-weight: bold;
+}
+
+.cambios{
+    margin-bottom: 0px !important;
+}
+
+th, td {
+    color: black;
+    font-size: 140%;
+}
+
+.table{
+    padding: 5px;
+    margin-top: 5px;
+    background-color: white;
+}
+
+.card-table-container{
+    width: 90%;
+    background-color: white;
+}
+
+.bottom-action-button {
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    white-space: pre-wrap !important;
+    text-align: center;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 5%;
+    padding-bottom: 0;
+}
+
+::ng-deep snack-bar-container.deliveryBackground {
+    background: #212121 !important;
+    color: white !important;    
+  }
+
+
+
+

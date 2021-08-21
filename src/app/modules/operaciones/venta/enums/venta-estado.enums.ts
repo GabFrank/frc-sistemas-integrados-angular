@@ -1,0 +1,3 @@
+export enum VentaEstado {
+    ACTIVA, CANCELADA, CONCLUIDA, EN_VERIFICACION
+}

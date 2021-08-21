@@ -1,0 +1,199 @@
+<div fxLayout="column" fxLayoutGap="20px" style="overflow-x: hidden">
+  <div fxFlex fxLayout="row" fxLayoutAlign="center start" fxLayoutGap="20px">
+    <div fxFlex="20" *ngFor="let billetes of selectedBilletes">
+      <img
+        [src]="billetes.path"
+        [alt]="billetes.valor"
+        [ngStyle]="{ height: imageHeigth }"
+        (click)="addBilleteItem(billetes.valor)"
+      />
+    </div>
+  </div>
+  <div fxFlex fxLayout="row">
+    <div fxFlex="60" fxLayout="column" fxLayoutAlign="space-around space-around" fxLayoutGap="20px" style="height: 100%;">
+      <div
+      fxFlex="33"
+        *ngIf="selectedMonedas != null"
+        fxLayout="row"
+        fxLayoutAlign="space-around start"
+        fxLayoutGap="15px"
+      >
+        <div fxFlex="19" *ngFor="let monedas of selectedMonedas">
+          <img
+            [src]="monedas.path"
+            [alt]="monedas.valor"
+            style="height: 7vw; width: 7vw;"
+            (click)="addBilleteItem(monedas.valor)"
+          />
+        </div>
+      </div>
+      <div
+      fxFlex="33"
+        fxLayout="row"
+        fxLayoutAlign="space-around center"
+        fxLayoutGap="10px"
+        style="width: 99%;"
+      >
+        <div fxFlex="15">
+          <button
+            mat-raised-button
+            color="primary"
+            style="height: 6vw; width: 6vw; font-size: 2em;"
+            (click)="calcularCantidad(1)"
+          >
+            1
+          </button>
+        </div>
+        <div fxFlex="15">
+          <button
+            mat-raised-button
+            color="primary"
+            style="height: 6vw; width: 6vw; font-size: 2em;"
+            (click)="calcularCantidad(2)"
+          >
+            2
+          </button>
+        </div>
+        <div fxFlex="15">
+          <button
+            mat-raised-button
+            color="primary"
+            style="height: 6vw; width: 6vw; font-size: 2em;"
+            (click)="calcularCantidad(3)"
+          >
+            3
+          </button>
+        </div>
+        <div fxFlex="15">
+          <button
+            mat-raised-button
+            color="primary"
+            style="height: 6vw; width: 6vw; font-size: 2em;"
+            (click)="calcularCantidad(4)"
+          >
+            4
+          </button>
+        </div>
+        <div fxFlex="15">
+          <button
+            mat-raised-button
+            color="primary"
+            style="height: 6vw; width: 6vw; font-size: 2em;"
+            (click)="calcularCantidad(5)"
+          >
+            5
+          </button>
+        </div>
+        <div fxFlex="15" fxFlexAlign="center center">
+          <mat-card
+            style="
+              background-color: white;
+              height: 6vw;
+              width: 6vw;
+              cursor: pointer;
+            "
+            (click)="clearCantidad()"
+          >
+            <div
+              style="
+                color: black;
+                text-align: center;
+                font-size: 2em;
+                padding-top: 30%;
+              "
+            >
+              {{ formGroup.controls.cantidad.value }}
+            </div>
+          </mat-card>
+        </div>
+      </div>
+      <div fxFlex="33" style="width: 100%; height: 90%;">
+        <button mat-raised-button color="accent" style="width: 99%; height: 6vh; font-size: 2em;" (click)="onAceptarClick()">Aceptar</button>
+    </div>
+    </div>
+    <div fxFlex="40" fxLayout="row">
+      <div fxFlex>
+        <mat-card
+          style="
+            background-color: white;
+            height: 30vh;
+            padding: 5px;
+            overflow-y: auto;
+          "
+        >
+          <table class="table" style="width: 100%; overflow-y: scroll; font-size: 1.5em;">
+            <thead>
+              <tr style="background-color: rgb(209, 209, 209); height: 2vh">
+                <th
+                  scope="col"
+                  style="text-align: center; width: 20%; padding: 5px"
+                >
+                  #
+                </th>
+                <th scope="col" style="width: 20%; padding: 5px">Billete</th>
+                <th
+                  scope="col"
+                  style="text-align: center; width: 20%; padding: 5px"
+                >
+                  Cantidad
+                </th>
+                <th
+                  scope="col"
+                  style="text-align: center; width: 20%; padding: 5px"
+                >
+                  Total
+                </th>
+                <th
+                  scope="col"
+                  style="text-align: center; width: 20%; padding: 5px"
+                ></th>
+              </tr>
+            </thead>
+            <tbody >
+              <tr
+                *ngFor="let item of billeteItemList; let i = index"
+                style="padding-bottom: 3px !important;"
+              >
+                <td style="padding-bottom: 3px;text-align: center; ; padding-top: 3px;">
+                  {{ i + 1 }}
+                </td>
+                <td style="padding-bottom: 3px;text-align: center; ; padding-top: 3px;">
+                  {{ item.valor | number: numberFormat }}
+                </td>
+                <td style="padding-bottom: 3px;text-align: center; ; padding-top: 3px;">
+                  {{ item.cantidad }}
+                </td>
+                <td style="padding-bottom: 3px;text-align: center; ; padding-top: 3px;">
+                  {{ item.cantidad * item.valor | number: numberFormat }}
+                </td>
+                <td style="padding-bottom: 3px;text-align: center; ; padding-top: 3px;">
+                  <mat-icon style="color: red; height: 20px; cursor: pointer;" (click)="onDeleteItem(item, i)"
+                    >clear</mat-icon
+                  >
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </mat-card>
+        <mat-divider style="height: 1%;"></mat-divider>
+        <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px" style="width: 100%;">
+            <div fxFlex style="width: 100%;">
+                <mat-card style="background-color: white; text-align: start; color: black; padding: 0px; width: 100%;">
+                    <div style="padding: 5px; font-size: 1.5em;">
+                        Total: {{ formGroup.controls.total.value | number : numberFormat}}
+                    </div>
+                </mat-card>
+            </div>
+            <div fxFlex style="width: 100%;">
+                <mat-card style="background-color: white; text-align: start; color: black; padding: 0px; width: 100%;">
+                    <div style="padding: 5px; font-size: 1.5em;">
+                        Saldo: {{formGroup.controls.saldo.value / data.moneda.cambio - formGroup.controls.total.value  | number : numberFormat}}
+                    </div>
+                </mat-card>
+            </div>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>

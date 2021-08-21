@@ -1,0 +1,37 @@
+<div *ngIf="!isDataLoaded">
+  <mat-spinner></mat-spinner>
+</div>
+<div *ngIf="isDataLoaded">
+  <h2>{{persona.nombre.toUpperCase()}}</h2>
+  <div fxLayout="column" fxFlexAlign="start center">
+    <div fxLayout="row">
+      <div fxFlex="30">
+        <div fxLayout="column" fxFlexAlign="start center">
+          <div fxLayout="row">
+            <div  fxFlex>
+                <h2>Apodo</h2>
+            </div>
+          </div>
+          <div fxLayout="row">
+            <div  fxFlex>
+                {{persona.apodo.toLocaleUpperCase()}}
+            </div>
+          </div>
+        </div>
+        <div fxLayout="column" fxFlexAlign="start center">
+          <div fxLayout="row">
+            <div  fxFlex>
+                <h2>Documento</h2>
+            </div>
+          </div>
+          <div fxLayout="row">
+            <div  fxFlex>
+                {{persona.documento.toLocaleUpperCase()}}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

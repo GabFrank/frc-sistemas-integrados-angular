@@ -1,0 +1,36 @@
+
+
+tr:focus{
+      outline: none;
+  }
+
+  table {
+    width: 100%;
+  }
+  
+  tr.example-detail-row {
+    height: 0;
+  }
+
+  
+  .example-producto-row td {
+    border-bottom-width: 0;
+  }
+  
+  .example-producto-detail {
+    overflow: hidden;
+    display: flex;
+  }
+
+  .mat-cell,
+.mat-header-cell {
+  word-wrap: initial;
+  display: table-cell;
+  padding: 0px 10px;
+  line-break: unset;
+  /* width: 100%; */
+  white-space: nowrap;
+  overflow: hidden;
+  vertical-align: middle;
+} 
+  

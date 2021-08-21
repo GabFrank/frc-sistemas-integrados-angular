@@ -1,0 +1,789 @@
+<form
+  [formGroup]="formGroup"
+  style="overflow-x: hidden; overflow-y: hidden; height: 100%; width: 100%"
+>
+  <div
+    fxLayout="column"
+    fxLayoutAlign="space-between space-between"
+    style="width: 100%; height: 100%"
+    (click)="setFocusToValorInput()"
+  >
+    <div
+      class="cambios"
+      fxFlex="5"
+      fxLayout="row"
+      fxLayoutAlign="center center"
+    >
+      <hr fxFlex="40" style="background-color: grey" />
+      <div style="font-size: 180%">Total</div>
+      <hr fxFlex="40" style="background-color: grey" />
+    </div>
+    <div
+      class="cambios"
+      fxFlex="10"
+      fxLayout="row"
+      fxLayoutAlign="space-between center"
+      style="margin-bottom: 0px !important"
+    >
+      <div
+        fxFlex="33"
+        FxLayout="row"
+        fxLayoutAlign="center center"
+        (click)="setMoneda('GUARANI')"
+        style="cursor: pointer"
+      >
+        <div fxFlex="20">
+          <img
+            src="/assets/flags/py/py32.png"
+            alt="br"
+            style="width: 70%; height: 70%"
+          />
+        </div>
+        <div
+          fxFlex="80"
+          class="totales-cambios"
+          [ngStyle]="{ 'font-size': '2.5em' }"
+        >
+          {{ formGroup.controls.valorTotal.value | number: "1.0-0" }}
+        </div>
+      </div>
+      <div
+        fxFlex="33"
+        FxLayout="row"
+        fxLayoutAlign="center center"
+        (click)="setMoneda('REAL')"
+        style="cursor: pointer"
+      >
+        <div fxFlex="20">
+          <img
+            src="/assets/flags/br/br32.png"
+            alt="br"
+            style="width: 70%; height: 70%"
+          />
+        </div>
+        <div
+          fxFlex="80"
+          class="totales-cambios"
+          [ngStyle]="{ 'font-size': '2.5em' }"
+        >
+          {{ formGroup.controls.valorTotal.value / cambioRs | number: "1.2-2" }}
+        </div>
+      </div>
+      <div
+        fxFlex="33"
+        FxLayout="row"
+        fxLayoutAlign="center center"
+        (click)="setMoneda('DOLAR')"
+        style="cursor: pointer"
+      >
+        <div fxFlex="20">
+          <img
+            src="/assets/flags/usa/usa32.png"
+            alt="br"
+            style="width: 70%; height: 70%"
+          />
+        </div>
+        <div
+          fxFlex="80"
+          class="totales-cambios"
+          [ngStyle]="{ 'font-size': '2.5em' }"
+        >
+          {{ formGroup.controls.valorTotal.value / cambioDs | number: "1.2-2" }}
+        </div>
+      </div>
+    </div>
+    <div
+      fxFlex="45"
+      fxFlexAlign="row"
+      style="width: 100%"
+      fxLayoutGap="20px"
+      style="padding-top: 20px"
+    >
+      <div fxFlex="50" fxLayout="column" fxLayoutGap="20px" style="width: 100%">
+        <div fxFlex fxLayout="row" style="width: 100%">
+          <mat-card
+            style="background-color: white; padding: 5px"
+            [ngStyle]="{
+              height: '25vh',
+              width: '100%',
+              'overflow-y': 'scroll'
+            }"
+          >
+            <table class="table" style="font-size: 1em">
+              <thead>
+                <tr style="background-color: rgb(209, 209, 209); height: 2vh">
+                  <th
+                    scope="col"
+                    style="text-align: center; width: 10%; padding: 2px"
+                  >
+                    #
+                  </th>
+                  <th scope="col" style="width: 20%; padding: 5px">Moneda</th>
+                  <th
+                    scope="col"
+                    style="text-align: center; width: 20%; padding: 5px"
+                  >
+                    Forma Pago
+                  </th>
+                  <th
+                    scope="col"
+                    style="text-align: center; width: 30%; padding: 5px"
+                  >
+                    Cantidad
+                  </th>
+                  <th
+                    scope="col"
+                    style="text-align: center; width: 10%; padding: 5px"
+                  ></th>
+                  <th
+                    scope="col"
+                    style="text-align: center; width: 10%; padding: 5px"
+                  ></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of pagoItemList; let i = index">
+                  <td
+                    style="
+                      padding-bottom: 5px;
+                      padding-top: 5px;
+                      text-align: center;
+                    "
+                  >
+                    {{ i + 1 }}
+                  </td>
+                  <td style="padding-bottom: 0; padding-top: 5px">
+                    {{ item.moneda?.denominacion | titlecase }}
+                  </td>
+                  <td
+                    style="
+                      padding-bottom: 5px;
+                      padding-top: 5px;
+                      text-align: center;
+                    "
+                  >
+                    {{ item.formaPago?.titulo }}
+                  </td>
+                  <td
+                    *ngIf="item.moneda?.id == 1"
+                    style="
+                      padding-bottom: 5px;
+                      padding-top: 5px;
+                      text-align: center;
+                    "
+                  >
+                    {{ item.valor | number: "1.0-0" }}
+                  </td>
+                  <td
+                    *ngIf="item.moneda?.id != 1"
+                    style="
+                      padding-bottom: 5px;
+                      padding-top: 5px;
+                      text-align: center;
+                    "
+                  >
+                    {{ item.valor / item.moneda.cambio | number: "1.2-2" }}
+                  </td>
+                  <td
+                    *ngIf="item.vuelto"
+                    style="
+                      padding-bottom: 5px;
+                      padding-top: 5px;
+                      text-align: center;
+                    "
+                  >
+                    Vuelto
+                  </td>
+                  <td
+                    *ngIf="item.descuento"
+                    style="
+                      padding-bottom: 5px;
+                      padding-top: 5px;
+                      text-align: center;
+                    "
+                  >
+                    Descuento
+                  </td>
+                  <td
+                    *ngIf="item.aumento"
+                    style="
+                      padding-bottom: 5px;
+                      padding-top: 5px;
+                      text-align: center;
+                    "
+                  >
+                    Aumento
+                  </td>
+                  <td
+                    *ngIf="!item.descuento && !item.vuelto && !item.aumento"
+                    style="
+                      padding-bottom: 5px;
+                      padding-top: 5px;
+                      text-align: center;
+                    "
+                  >
+                    Pago
+                  </td>
+                  <td
+                    style="
+                      padding-bottom: 5px;
+                      padding-top: 5px;
+                      text-align: center;
+                    "
+                  >
+                    <mat-icon style="color: red" (click)="onDeleteItem(item, i)"
+                      >clear</mat-icon
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </mat-card>
+        </div>
+      </div>
+      <div fxFlex="50" fxLayout="column" fxLayoutGap="10px" style="width: 100%">
+        <div
+          fxFlex="5"
+          fxLayout="row"
+          fxLayoutAlign="center center"
+          style="height: 1vh"
+        >
+          <hr fxFlex="40" style="background-color: grey" />
+          <div style="font-size: 100%">Monedas</div>
+          <hr fxFlex="40" style="background-color: grey" />
+        </div>
+        <div
+          fxFlex
+          fxLayout="row"
+          style="height: 8vh"
+          fxLayoutGap="10px"
+          fxLayoutAlign="space-around start"
+        >
+          <div fxFlex="20">
+            <button
+              type="button"
+              mat-raised-button
+              [color]="
+                selectedMoneda?.denominacion == 'GUARANI' ? 'primary' : 'null'
+              "
+              style="width: 100%; height: 8vh"
+              (click)="setMoneda('GUARANI')"
+            >
+              Guarani
+            </button>
+          </div>
+          <div fxFlex="20">
+            <button
+              type="button"
+              mat-raised-button
+              [color]="
+                selectedMoneda?.denominacion == 'REAL' ? 'primary' : 'null'
+              "
+              style="width: 100%; height: 8vh"
+              (click)="setMoneda('REAL')"
+            >
+              Real
+            </button>
+          </div>
+          <div fxFlex="20">
+            <button
+              type="button"
+              mat-raised-button
+              [color]="
+                selectedMoneda?.denominacion == 'DOLAR' ? 'primary' : 'null'
+              "
+              style="width: 100%; height: 8vh"
+              (click)="setMoneda('DOLAR')"
+            >
+              Dolar
+            </button>
+          </div>
+          <div fxFlex="20">
+            <button
+              type="button"
+              mat-raised-button
+              [color]="selectedMoneda?.denominacion == '' ? 'primary' : 'null'"
+              style="width: 100%; height: 8vh"
+              (click)="onOtrasMonedasClick()"
+            >
+              Otros
+            </button>
+          </div>
+        </div>
+        <div
+          fxFlex="5"
+          fxLayout="row"
+          fxLayoutAlign="center center"
+          style="height: 1vh"
+        >
+          <hr fxFlex="30" style="background-color: grey" />
+          <div style="font-size: 100%">Forma de Pago</div>
+          <hr fxFlex="30" style="background-color: grey" />
+        </div>
+        <div
+          fxFlex
+          fxLayout="row"
+          style="height: 8vh"
+          fxLayoutGap="10px"
+          fxLayoutAlign="space-around start"
+        >
+          <div fxFlex="20">
+            <button
+              type="button"
+              mat-raised-button
+              [color]="
+                selectedFormaPago?.titulo == 'Efectivo' ? 'primary' : 'null'
+              "
+              style="width: 100%; height: 8vh"
+              (click)="setFormaPago('Efectivo')"
+            >
+              Efectivo
+            </button>
+          </div>
+          <div fxFlex="20">
+            <button
+              type="button"
+              mat-raised-button
+              [color]="
+                selectedFormaPago?.titulo == 'Tarjeta' ? 'primary' : 'null'
+              "
+              style="width: 100%; height: 8vh"
+              (click)="setFormaPago('Tarjeta')"
+            >
+              Tarjeta
+            </button>
+          </div>
+          <div fxFlex="20">
+            <button
+              type="button"
+              mat-raised-button
+              [color]="
+                selectedFormaPago?.titulo == 'Convenio' ? 'primary' : 'null'
+              "
+              color="primary"
+              style="width: 100%; height: 8vh"
+              (click)="setFormaPago('Convenio')"
+            >
+              Convenio
+            </button>
+          </div>
+          <div fxFlex="20">
+            <button
+              type="button"
+              [color]="
+                selectedFormaPago?.titulo == 'Transferencia'
+                  ? 'primary'
+                  : 'null'
+              "
+              mat-raised-button
+              color="primary"
+              style="width: 100%; height: 8vh"
+              (click)="setFormaPago('Transferencia')"
+            >
+              Transf
+            </button>
+          </div>
+          <div fxFlex="20">
+            <button
+              [color]="selectedFormaPago?.titulo == '' ? 'primary' : 'null'"
+              type="button"
+              mat-raised-button
+              color="primary"
+              style="width: 100%; height: 8vh"
+              (click)="onOtrasFormaPagoClick()"
+            >
+              Otros
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div fxFlex="20" fxLayout="row" fxLayoutGap="20px" style="padding-top: 3vh;">
+      <div
+        fxFlex="20%"
+        style="color: black; font-size: 100%; text-align: center"
+      >
+        <mat-form-field style="width: 100%">
+          <input
+            #autoFormaPagoInput
+            type="text"
+            placeholder="Forma de Pago"
+            aria-label="text"
+            matInput
+            formControlName="formaPago"
+            [matAutocomplete]="autoFormaPago"
+            (keyup)="onFormaPagoSearch()"
+            style="color: white; font-size: 1em"
+          />
+          <mat-autocomplete
+            [displayWith]="displayFormaPago.bind(this)"
+            autoActiveFirstOption
+            #autoFormaPago="matAutocomplete"
+            (closed)="onFormaPagoAutoClosed()"
+          >
+            <mat-option
+              *ngFor="let formaPago of formaPagoList"
+              [value]="formaPago.id"
+              style="color: white"
+            >
+              <div style="color: white; font-size: 1em">
+                {{ formaPago.id }} - {{ formaPago.titulo }}
+              </div>
+            </mat-option>
+          </mat-autocomplete>
+        </mat-form-field>
+      </div>
+      <div
+        fxFlex="20%"
+        style="color: black; font-size: 100%; text-align: center"
+      >
+        <mat-form-field style="width: 100%">
+          <input
+            #autoMonedaInput
+            type="text"
+            placeholder="Moneda"
+            aria-label="text"
+            matInput
+            formControlName="moneda"
+            [matAutocomplete]="autoMoneda"
+            (keyup)="onMonedaSearch()"
+            style="color: white; font-size: 1em"
+          />
+          <mat-autocomplete
+            [displayWith]="displayMoneda.bind(this)"
+            autoActiveFirstOption
+            #autoMoneda="matAutocomplete"
+            (closed)="onMonedaAutoClosed()"
+          >
+            <mat-option
+              *ngFor="let moneda of monedas"
+              [value]="moneda.id"
+              style="font-size: 1em"
+            >
+              {{ moneda.id }} - {{ moneda.denominacion }}
+            </mat-option>
+          </mat-autocomplete>
+        </mat-form-field>
+      </div>
+      <div fxFlex="20%" fxLayout="column" style="width: 100%">
+        <div
+          fxFlex="50"
+          style="
+            color: black;
+            font-size: 100%;
+            text-align: center;
+            height: 100%;
+          "
+          fxLayoutAlign="start center"
+        >
+          <mat-form-field
+            class="example-form-field"
+            style="width: 100%; height: 100%"
+          >
+            <mat-label>Valor</mat-label>
+            <input
+              #valorInput
+              matInput
+              type="text"
+              formControlName="valor"
+              style="color: white; font-size: 1.3em"
+              currencyMask
+              [options]="
+                selectedMoneda?.id == 1
+                  ? currencyOptionsGuarani
+                  : currencyOptionsNoGuarani
+              "
+              autocomplete="off"
+            />
+            <button
+              type="button"
+              *ngIf="formGroup.controls.valor.value"
+              matSuffix
+              mat-icon-button
+              aria-label="Clear"
+              (click)="formGroup.get('valor').setValue(null)"
+            >
+              <mat-icon style="color: white; font-size: 1.5em">close</mat-icon>
+            </button>
+          </mat-form-field>
+        </div>
+      </div>
+      <div fxFlex="20%">
+        <button
+          type="button"
+          mat-raised-button
+          color="primary"
+          style="width: 90%; height: 90%"
+          (click)="openTecladoNumerico()"
+        >
+          <mat-icon>keyboard_alt</mat-icon>
+        </button>
+      </div>
+      <div fxFlex="20%">
+        <button
+          type="button"
+          mat-raised-button
+          color="accent"
+          style="width: 90%; height: 90%"
+          (click)="addPagoItem()"
+        >
+          <mat-icon>done</mat-icon>
+        </button>
+      </div>
+    </div>
+    <div
+      class="cambios"
+      fxFlex="10"
+      fxLayout="row"
+      fxLayoutAlign="center center"
+    >
+      <hr fxFlex="40" style="background-color: grey" />
+      <div style="font-size: 180%">Saldo</div>
+      <hr fxFlex="40" style="background-color: grey" />
+    </div>
+    <div
+      class="cambios"
+      fxFlex="10"
+      fxLayout="row"
+      fxLayoutAlign="space-between center"
+      style="margin-bottom: 0px !important"
+    >
+      <div
+        fxFlex="33"
+        FxLayout="row"
+        fxLayoutAlign="center center"
+        (click)="setMoneda('GUARANI')"
+        style="cursor: pointer"
+      >
+        <div fxFlex="20">
+          <img
+            src="/assets/flags/py/py32.png"
+            alt="br"
+            style="width: 70%; height: 70%"
+          />
+        </div>
+        <div
+          fxFlex="80"
+          class="totales-cambios"
+          [ngStyle]="{ 'font-size': '2.5em' }"
+        >
+          {{ formGroup.controls.saldo.value | number: "1.0-0" }}
+        </div>
+      </div>
+      <div
+        fxFlex="33"
+        FxLayout="row"
+        fxLayoutAlign="center center"
+        (click)="setMoneda('REAL')"
+        style="cursor: pointer"
+      >
+        <div fxFlex="20">
+          <img
+            src="/assets/flags/br/br32.png"
+            alt="br"
+            style="width: 70%; height: 70%"
+          />
+        </div>
+        <div
+          fxFlex="80"
+          class="totales-cambios"
+          [ngStyle]="{ 'font-size': '2.5em' }"
+        >
+          {{ formGroup.controls.saldo.value / cambioRs | number: "1.2-2" }}
+        </div>
+      </div>
+      <div
+        fxFlex="33"
+        FxLayout="row"
+        fxLayoutAlign="center center"
+        (click)="setMoneda('DOLAR')"
+        style="cursor: pointer"
+      >
+        <div fxFlex="20">
+          <img
+            src="/assets/flags/usa/usa32.png"
+            alt="br"
+            style="width: 70%; height: 70%"
+          />
+        </div>
+        <div
+          fxFlex="80"
+          class="totales-cambios"
+          [ngStyle]="{ 'font-size': '2.5em' }"
+        >
+          {{ formGroup.controls.saldo.value / cambioDs | number: "1.2-2" }}
+        </div>
+      </div>
+    </div>
+    <div fxFlex fxLayout="row" fxLayoutGap="20px" style="padding-top: 20px">
+      <div fxFlex="10">
+        <button
+          #btnFinalizar
+          type="button"
+          class="bottom-action-button"
+          mat-raised-button
+          color="accent"
+          style="width: 100%"
+          [disabled]="!(formGroup.controls.saldo.value == 0)"
+          (click)="onFinalizar()"
+        >
+          <div fxLayout="column" fxFlexAlign="center center">
+            <div fxFlex style="height: 5vh">
+              <mat-icon style="font-size: 5vh; width: 100%; height: 5vh">
+                price_check
+              </mat-icon>
+            </div>
+            <div fxFlex style="text-align: center">Finalizar</div>
+          </div>
+        </button>
+      </div>
+      <div fxFlex="15">
+        <button
+          #btnFinalizar
+          type="button"
+          class="bottom-action-button"
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 9vh"
+          [disabled]="
+            valorParcialPagado == 0 || formGroup.controls.saldo.value == 0
+          "
+          (click)="onFinalizar()"
+        >
+          <div fxLayout="column" fxFlexAlign="center center">
+            <div fxFlex style="height: 5vh">
+              <mat-icon style="font-size: 5vh; width: 100%; height: 5vh">
+                money_off_csred
+              </mat-icon>
+            </div>
+            <div fxFlex style="text-align: center">Cobro Parcial</div>
+          </div>
+        </button>
+      </div>
+      <div *ngIf="formGroup.controls.saldo.value < 0" fxFlex="15">
+        <button
+          #btnAumento
+          type="button"
+          class="bottom-action-button"
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 9vh"
+          [disabled]="formGroup.controls.saldo.value < 0 && (formGroup.controls.saldo.value < (data.valor * -0.2))"
+          (click)="onAumento()"
+        >
+          <div fxLayout="column" fxFlexAlign="center center">
+            <div fxFlex style="height: 5vh">
+              <mat-icon style="font-size: 5vh; width: 100%; height: 5vh">
+                arrow_upward
+              </mat-icon>
+            </div>
+            <div fxFlex style="text-align: center">Aumento</div>
+          </div>
+        </button>
+      </div>
+      <div *ngIf="formGroup.controls.saldo.value >= 0" fxFlex="15">
+        <button
+          #btnDescuento
+          type="button"
+          class="bottom-action-button"
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 9vh"
+          [disabled]="formGroup.controls.saldo.value > 0 && (formGroup.controls.saldo.value > (data.valor * 0.2)) || formGroup.controls.saldo.value == 0"
+          (click)="onDescuento()"
+        >
+          <div fxLayout="column" fxFlexAlign="center center">
+            <div fxFlex style="height: 5vh">
+              <mat-icon style="font-size: 5vh; width: 100%; height: 5vh">
+                arrow_downward
+              </mat-icon>
+            </div>
+            <div fxFlex style="text-align: center">Descuento</div>
+          </div>
+        </button>
+      </div>
+
+      <div fxFlex="15">
+        <button
+          #btnTicket
+          type="button"
+          class="bottom-action-button"
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 9vh"
+          [disabled]="valorParcialPagado == 0"
+          (click)="onTicket()"
+        >
+          <div fxLayout="column" fxFlexAlign="center center">
+            <div fxFlex style="height: 5vh">
+              <mat-icon style="font-size: 5vh; width: 100%; height: 5vh">
+                confirmation_number
+              </mat-icon>
+            </div>
+            <div fxFlex style="text-align: center">Ticket</div>
+          </div>
+        </button>
+      </div>
+      <div fxFlex="15">
+        <button
+          #btnFactura
+          type="button"
+          class="bottom-action-button"
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 9vh"
+          (click)="onFactura()"
+        >
+          <div fxLayout="column" fxFlexAlign="center center">
+            <div fxFlex style="height: 5vh">
+              <mat-icon style="font-size: 5vh; width: 100%; height: 5vh">
+                receipt
+              </mat-icon>
+            </div>
+            <div fxFlex style="text-align: center">Factura</div>
+          </div>
+        </button>
+      </div>
+      <div fxFlex="15">
+        <button
+          #btnPresupuesto
+          type="button"
+          class="bottom-action-button"
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 9vh"
+          (click)="onPresupuesto()"
+        >
+          <div fxLayout="column" fxFlexAlign="center center">
+            <div fxFlex style="height: 5vh">
+              <mat-icon style="font-size: 5vh; width: 100%; height: 5vh">
+                list_alt
+              </mat-icon>
+            </div>
+            <div fxFlex style="text-align: center">Presupuesto</div>
+          </div>
+        </button>
+      </div>
+      <div fxFlex="15">
+        <button
+          #btnCancelar
+          type="button"
+          class="bottom-action-button"
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 9vh"
+          (click)="dialogRef.close(null)"
+        >
+          <div fxLayout="column" fxFlexAlign="center center">
+            <div fxFlex style="height: 5vh">
+              <mat-icon style="font-size: 5vh; width: 100%; height: 5vh">
+                close
+              </mat-icon>
+            </div>
+            <div fxFlex style="text-align: center">Cancelar</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+</form>

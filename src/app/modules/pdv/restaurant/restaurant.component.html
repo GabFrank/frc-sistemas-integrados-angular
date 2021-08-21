@@ -1,0 +1,135 @@
+<div id="pdv-restaurant">
+
+  <div fxLayout="row">
+
+    <div id="detalles" fxFlex="50">
+      <form [formGroup]="formGroup" (ngSubmit)="onSubmit()">
+
+        <div fxLayout="column">
+
+          <div fxLayout="row" fxFlexAlign="start center">
+            <div fxFlex="15" id="checkbox">
+              <mat-checkbox id="mesa" color="primary" formControlName="mesa" (change)="onTipoVentaChange('mesa')">Mesa
+              </mat-checkbox>
+            </div>
+
+            <div fxFlex="15" id="checkbox">
+              <mat-checkbox id="delivery" color="primary" formControlName="delivery"
+                (change)="onTipoVentaChange('delivery')">Delivery</mat-checkbox>
+            </div>
+
+            <div fxFlex="15" id="checkbox">
+              <mat-checkbox id="retirarEnLocal" color="primary" formControlName="retirarEnLocal"
+                (change)="onTipoVentaChange('retirarEnLocal')">Buscar</mat-checkbox>
+            </div>
+
+            <div *ngIf="formGroup.get('delivery').value || formGroup.get('retirarEnLocal').value" fxFlex="15"
+              id="checkbox">
+              <mat-checkbox id="agendado" color="primary" formControlName="agendado">Agendar</mat-checkbox>
+            </div>
+
+            <div fxFlex *ngIf="formGroup.get('agendado').value">
+              <mat-form-field class="form-element" style="width: 100%; padding-top: 0px !important;">
+                <input matInput type="datetime-local" placeholder="Hora" formControlName="horaAgend" autocomplete="off">
+              </mat-form-field>
+            </div>
+
+          </div>
+
+          <br>
+
+          <mat-divider></mat-divider>
+
+          <div fxFlex>
+            <div fxFlex="30" *ngIf="!formGroup.get('mesa').value">
+              <mat-form-field style="width: 90%;">
+                <input #autoBuscarClienteInput type="text" placeholder="Buscar Cliente" aria-label="text" matInput
+                  formControlName="buscarCliente" [matAutocomplete]="autoBuscarCliente" (keyup)="onClienteSearch()">
+                <mat-autocomplete [displayWith]="displayCliente.bind(this)" autoActiveFirstOption
+                  #autoBuscarCliente="matAutocomplete">
+                  <mat-option *ngFor="let contacto of contactos" [value]="contacto.id">
+                    {{contacto.persona.nombre}} - {{ contacto.telefono}}
+                  </mat-option>
+                </mat-autocomplete>
+                <mat-error *ngIf="clienteNotFound">
+                  <h6>Cliente no encontrado</h6>
+                </mat-error>
+              </mat-form-field>
+            </div>
+
+            <div fxFlex="25" *ngIf="!formGroup.get('mesa').value">
+              <mat-form-field style="width: 90%;">
+                <input #autoTelefonoInput type="text" placeholder="Teléfono" aria-label="text" matInput
+                  formControlName="telefono">
+              </mat-form-field>
+            </div>
+
+          </div>
+
+
+
+          <!-- <div fxFlex>
+            <div fxLayout="row" fxLayoutGap="15px">
+              <div fxFlex="10" *ngIf="formGroup.get('mesa').value">
+                <mat-form-field class="form-element" style="width: 80%;">
+                  <input matInput placeholder="Mesa" formControlName="comanda" autocomplete="off">
+                </mat-form-field>
+              </div>
+
+              <div fxFlex="25" *ngIf="!formGroup.get('mesa').value">
+                <mat-form-field style="width: 90%;">
+                  <input #autoClienteInput type="text" placeholder="Cliente" aria-label="text" matInput formControlName="cliente"
+                    [matAutocomplete]="autoCliente" (keyup)="onClienteSearch()">
+                  <mat-autocomplete [displayWith]="displayCliente.bind(this)" autoActiveFirstOption
+                    #autoCliente="matAutocomplete">
+                    <mat-option *ngFor="let cliente of clientes" [value]="cliente.id">
+                      {{cliente.nombre}}
+                    </mat-option>
+                  </mat-autocomplete>
+                </mat-form-field>
+              </div>
+
+              <div fxFlex="25" *ngIf="!formGroup.get('mesa').value">
+                <mat-form-field style="width: 90%;">
+                  <input #autoTelefonoInput type="text" placeholder="Teléfono" aria-label="text" matInput formControlName="telefono"
+                    [matAutocomplete]="autoTelefono" (keyup)="onTelefonoSearch()">
+                  <mat-autocomplete [displayWith]="displayTelefono.bind(this)" autoActiveFirstOption
+                    #autoTelefono="matAutocomplete">
+                    <mat-option *ngFor="let contacto of contactos" [value]="contacto.id">
+                      {{contacto.telefono}}
+                    </mat-option>
+                  </mat-autocomplete>
+                </mat-form-field>
+              </div> -->
+
+          <!-- <div fxFlex="25" *ngIf="!formGroup.get('mesa').value">
+                <mat-form-field style="width: 90%;">
+                  <input #autoPrecioDeliveryInput type="text" placeholder="Teléfono" aria-label="text" matInput formControlName="precioDelivery"
+                    [matAutocomplete]="autoPrecioDelivery" (keyup)="onPrecioDeliverySearch()">
+                  <mat-autocomplete [displayWith]="displayPrecioDelivery.bind(this)" autoActiveFirstOption
+                    #autoPrecioDelivery="matAutocomplete">
+                    <mat-option *ngFor="let precio of deliveryPrecios" [value]="precio.id">
+                      {{precio.precio}}
+                    </mat-option>
+                  </mat-autocomplete>
+                </mat-form-field>
+              </div> -->
+          <!-- </div> -->
+          <!-- </div> -->
+
+        </div>
+
+
+
+      </form>
+
+    </div>
+
+    <div id="mesas" fxFlex="50">
+
+    </div>
+
+  </div>
+
+</div>
+

@@ -1,0 +1,37 @@
+<form *ngIf="!showBienvenida" [formGroup]="formGroup" style="width: 100%; height: 100%;">
+    <div fxLayout="column" fxLayoutAlign="center center" style="width: 100%; font-size: 1.2em;">
+        <div fxFlex fxLayout="row">
+            <h1>Bienvenido</h1>
+        </div>
+        <div fxFlex fxLayout="row" >
+            <h5>Ingrese sus credenciales para tener acceso al sistema.</h5>
+        </div>
+        <div fxFlex fxLayout="row" style="width:100%">
+            <mat-form-field fxFlex style="width:100%">
+              <mat-label>Usuario</mat-label>
+              <!-- <input matInput type="text" formControlName="nickname"/> -->
+              <input matInput type="text" formControlName="nickname"/>
+            </mat-form-field>
+        </div>
+        <div fxFlex fxLayout="row" style="width:100%">
+            <mat-form-field fxFlex style="width:100%">
+              <mat-label>Contraseña</mat-label>
+              <!-- <input matInput type="password" formControlName="password"/> -->
+              <input matInput type="password" formControlName="password"/>
+            </mat-form-field>
+        </div>
+        <div fxFlex fxLayout="row" style="width: 100%;" fxLayoutAlign="center center" fxLayoutGap="10px">
+            <button [disabled]="!formGroup.valid" type="submit" style="width: 90%;" color="primary" mat-raised-button (click)="onEntrar()">Entrar</button>
+            <button type="button" style="width: 90%;" color="" mat-raised-button (click)="onCancelar()">Cancelar</button>
+        </div>
+        <br>
+        <div fxFlex fxLayout="row" fxLayoutGap="10ppx">
+            <h4 style="color: red;">{{errorMessage}}</h4>
+        </div>
+    </div>
+</form>
+
+<div *ngIf="showBienvenida" fxLayout="column" fxLayoutAlign="center center" style="width: 100%; height: 100%;">
+    <h2>Bienvenido</h2>
+    <h1>{{mainService?.usuarioActual?.persona?.nombre}}</h1>
+</div>

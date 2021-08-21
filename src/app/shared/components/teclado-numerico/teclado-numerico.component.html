@@ -1,0 +1,193 @@
+<form [formGroup]="formGroup">
+  <div fxLayout="column" style="width: 30em" fxLayoutGap="10px">
+    <div fxFlex="10" style="width: 100%; height: 100%">
+      <mat-card style="width: 100%; height: 100%; background-color: white">
+        <input
+          matInput
+          #cantidadInput
+          formControlName="cantidad"
+          currencyMask
+          [options]="
+            !data.financial
+              ? currencyOptionsGuarani
+              : currencyOptionsNoGuarani"
+          style="font-size: 250%; text-align: center; color: black"
+        />
+      </mat-card>
+    </div>
+    <div fxFlex="10" fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="25">
+        <button
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 4em"
+          (click)="setCantidad('1')"
+        >
+          <div style="font-size: 200%; text-align: center">1</div>
+        </button>
+      </div>
+      <div fxFlex="25">
+        <button
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 4em"
+          (click)="setCantidad('2')"
+        >
+          <div style="font-size: 200%; text-align: center">2</div>
+        </button>
+      </div>
+      <div fxFlex="25">
+        <button
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 4em"
+          (click)="setCantidad('3')"
+        >
+          <div style="font-size: 200%; text-align: center">3</div>
+        </button>
+      </div>
+      <div fxFlex="25">
+        <button
+          mat-raised-button
+          style="width: 100%; height: 4em; color: #ffa000"
+          (click)="setCantidad('borrar')"
+        >
+          <mat-icon style="width: 100%; height: 1em; font-size: 250%"
+            >keyboard_backspace</mat-icon
+          >
+        </button>
+      </div>
+    </div>
+    <div fxFlex="10" fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="25">
+        <button
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 4em"
+          (click)="setCantidad('4')"
+        >
+          <div style="font-size: 200%; text-align: center">4</div>
+        </button>
+      </div>
+      <div fxFlex="25">
+        <button
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 4em"
+          (click)="setCantidad('5')"
+        >
+          <div style="font-size: 200%; text-align: center">5</div>
+        </button>
+      </div>
+      <div fxFlex="25">
+        <button
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 4em"
+          (click)="setCantidad('6')"
+        >
+          <div style="font-size: 200%; text-align: center">6</div>
+        </button>
+      </div>
+      <div fxFlex="25">
+        <button
+          #doneBtn
+          mat-raised-button
+          style="width: 100%; height: 4em; color: #00796b"
+          (click)="setCantidad('done')"
+        >
+          <mat-icon style="width: 100%; height: 1em; font-size: 250%"
+            >done</mat-icon
+          >
+        </button>
+      </div>
+    </div>
+    <div fxFlex="10" fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="25">
+        <button
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 4em"
+          (click)="setCantidad('7')"
+        >
+          <div style="font-size: 200%; text-align: center">7</div>
+        </button>
+      </div>
+      <div fxFlex="25">
+        <button
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 4em"
+          (click)="setCantidad('8')"
+        >
+          <div style="font-size: 200%; text-align: center">8</div>
+        </button>
+      </div>
+      <div fxFlex="25">
+        <button
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 4em"
+          (click)="setCantidad('9')"
+        >
+          <div style="font-size: 200%; text-align: center">9</div>
+        </button>
+      </div>
+      <div fxFlex="25">
+        <button
+          mat-raised-button
+          style="width: 100%; height: 4em"
+          (click)="setCantidad('clear')"
+        >
+          <mat-icon
+            style="width: 100%; height: 1em; font-size: 250%; color: #f44336"
+            >clear</mat-icon
+          >
+        </button>
+      </div>
+    </div>
+    <div fxFlex="10" fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="25">
+        <button
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 4em"
+          (click)="setCantidad('*')"
+        >
+          <div style="font-size: 200%; text-align: center">*</div>
+        </button>
+      </div>
+      <div fxFlex="25">
+        <button
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 4em"
+          (click)="setCantidad('0')"
+        >
+          <div style="font-size: 200%; text-align: center">0</div>
+        </button>
+      </div>
+      <div fxFlex="25">
+        <button
+          mat-raised-button
+          color="primary"
+          style="width: 100%; height: 4em"
+          (click)="setCantidad('.')"
+          [disabled]="!data.financial"
+        >
+          <div style="font-size: 200%; text-align: center">,</div>
+        </button>
+      </div>
+      <div fxFlex="25" style="width: 100%; height: 4em; color: #ffa000">
+        <!-- <button
+        mat-raised-button
+        style="width: 100%; height: 4em; color: #FFA000;"
+      >
+          <mat-icon style="width: 100%; height: 1em; font-size: 250%;"
+            >keyboard_backspace</mat-icon
+          >
+      </button> -->
+      </div>
+    </div>
+  </div>
+</form>

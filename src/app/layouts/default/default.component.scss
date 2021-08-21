@@ -1,0 +1,42 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+mat-drawer {
+  width: 250px;
+}
+
+mat-drawer-container {
+  height: 100%;
+}
+
+mat-drawer-content {
+  padding: 20px;
+  padding-top: 0px;
+  overflow: hidden !important;
+}
+
+#closeIcon {
+  font-size: 20;
+}
+
+:host ::ng-deep .mat-tab-header {
+  background-color: white;
+  position: fixed !important;
+  z-index:100000;
+  width: 90%;
+}
+
+.mat-tab-labels {
+  height: 3vh;
+  margin-bottom: 1vh;
+}
+
+div .mat-tab-body-wrapper {
+  height: 100%;
+}
+
