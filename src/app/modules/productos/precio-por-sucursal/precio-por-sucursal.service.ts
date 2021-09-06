@@ -27,7 +27,7 @@ export class PrecioPorSucursalService {
     private precioPorSucursalPorProductoId: PrecioPorSucursalPorProductoIdGQL,
     private notificacionSnackBar: NotificacionSnackbarService,
     private deletePrecioPorSucursal: DeletePrecioPorSucursalGQL,
-    private mainService: MainService
+    public mainService: MainService
   ) {}
 
   onGetPorProductoId(id: number) {

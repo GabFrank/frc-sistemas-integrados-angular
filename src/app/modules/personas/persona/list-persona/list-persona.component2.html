@@ -5,7 +5,7 @@
   <div fxLayout="row" style="padding: 10px;" fxLayoutAlign="start center">
     <div fxFlex="50">
       <mat-form-field class="form-element" style="width: 50%;">
-        <input matInput #searchInput="matInput" placeholder="Buscar" name="buscar" (input)="onSearchChange($event.target.value)">
+        <input matInput #searchInput="matInput" placeholder="Buscar" name="buscar" (input)="onSearchChange($event)">
       </mat-form-field>
       <section>
         <mat-checkbox class="example-margin" #mostrarTodosCheckbox="matCheckbox" [checked]="false" (change)="onMostrarTodosChange(mostrarTodosCheckbox)">Mostrar todos</mat-checkbox>

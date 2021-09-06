@@ -22,7 +22,7 @@ export class SubFamiliaService {
     private saveSubfamilia: SaveSubfamiliaGQL,
     private deleteSubfamilia: DeleteSubfamiliaGQL,
     private countSubfamilia: CountSubfamiliaGQL,
-    private mainService: MainService,
+    public mainService: MainService,
     private familiaService: FamiliaService
     ) {
     this.onGetSubfamilias()

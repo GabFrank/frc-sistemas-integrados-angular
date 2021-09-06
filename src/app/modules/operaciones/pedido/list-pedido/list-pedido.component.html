@@ -80,7 +80,6 @@
               [matAutocomplete]="autoProveedor"
               (keyup)="onProveedorSearch()"
               oninput="this.value = this.value.toUpperCase()"
-              (focus)="$event.target.select()"
             />
             <mat-autocomplete
               [displayWith]="displayProveedor.bind(this)"
@@ -108,7 +107,6 @@
               formControlName="vendedor"
               [matAutocomplete]="autoVendedor"
               oninput="this.value = this.value.toUpperCase()"
-              (focus)="$event.target.select()"
             />
             <mat-autocomplete
               #autoVendTrig
@@ -120,7 +118,6 @@
               <mat-option
                 *ngFor="let vendedor of vendedores"
                 [value]="vendedor.id"
-                (click)="onVendedorSearch(vendedor)"
               >
                 {{ vendedor.id }} - {{ vendedor.persona.nombre }}
               </mat-option>
@@ -139,9 +136,8 @@
               matInput
               placeholder="Producto"
               autocomplete="off"
-              (input)="openDialog($event.target.value)"
+              (input)="openDialog($event)"
               oninput="this.value = this.value.toUpperCase()"
-              (focus)="$event.target.select()"
             />
             <!-- <mat-hint>Código del producto</mat-hint> -->
           </mat-form-field>
@@ -390,9 +386,9 @@
         ></tr>
       </ng-container>
 
-      <ng-container *ngIf="isTableCargando">
+      <!-- <ng-container *ngIf="isTableCargando">
         <app-cargando-dialog></app-cargando-dialog>
-      </ng-container>
+      </ng-container> -->
     </table>
   </div>
 </div>

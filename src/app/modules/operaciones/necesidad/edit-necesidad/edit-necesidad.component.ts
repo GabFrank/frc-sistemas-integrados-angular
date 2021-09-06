@@ -168,9 +168,9 @@ export class EditNecesidadComponent implements OnInit {
 
   }
 
-  openDialog(text: String): void {
+  openDialog(e: Event): void {
     const dialogRef = this.dialog.open(SearchProductoDialogComponent, {
-      data: {texto: text}
+      data: {texto: (e.target as HTMLInputElement).value}
     });
 
     dialogRef.afterClosed().subscribe(result => {

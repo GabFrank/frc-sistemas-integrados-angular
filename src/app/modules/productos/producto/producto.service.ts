@@ -19,7 +19,7 @@ export class ProductoService{
   datosSub = new BehaviorSubject<Producto[]>(null);
 
   constructor(
-    private mainService: MainService,
+    public mainService: MainService,
     private productoPorProveedor: ProductoPorProveedorGQL,
     private saveProducto: SaveProductoGQL,
     private productoPorId: ProductoPorIdGQL,

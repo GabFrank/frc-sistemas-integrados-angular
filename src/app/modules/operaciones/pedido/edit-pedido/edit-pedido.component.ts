@@ -54,6 +54,7 @@ import { PedidoItem, PedidoItemInput } from './pedido-item.model';
 import { Pedido, PedidoFormModel, PedidoInput } from './pedido.model';
 import { savePedidoItemSucursal } from '../pedido-itens/pedido-item-sucursal/graphql/graphql-query';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { MatOptionSelectionChange } from '@angular/material/core';
 
 export interface Transaction {
   item: string;
@@ -176,7 +177,7 @@ export class EditPedidoComponent implements OnInit {
     private domSanitizer: DomSanitizer,
     private getProductoInfoCompleta: ProductoInfoCompletaByIdGQL,
     private notificationSnackBar: NotificacionSnackbarService,
-    private mainService: MainService,
+    public mainService: MainService,
     private pedidoService: PedidoService,
     private pedidoItemService: PedidoItemService,
     private apollo : Apollo
@@ -414,13 +415,13 @@ export class EditPedidoComponent implements OnInit {
 
   resetForm() {}
 
-  onFormaDePagoSelect(e: MatSelectChange) {}
+  onFormaDePagoSelect(e: MatOptionSelectionChange) {}
 
-  openDialog(text: String): void {
+  openDialog(e: Event): void {
     let isProveedor = this.formGroup.get('isSoloProductosProveedor').value;
     const dialogRef = this.dialog.open(SearchProductoDialogComponent, {
       data: {
-        texto: text,
+        texto: (e.target as HTMLInputElement).value,
         query:
           this.formGroup.get('isSoloProductosProveedor').value &&
           this.formGroup.get('proveedor').value

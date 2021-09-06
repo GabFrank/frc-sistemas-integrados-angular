@@ -54,7 +54,7 @@ export class SearchProductoDialogComponent implements OnInit{
   constructor(
     public service: ProductoService,
     public dialogRef: MatDialogRef<SearchProductoDialogComponent>,
-    private mainService: MainService,
+    public mainService: MainService,
     @Inject(MAT_DIALOG_DATA) public data: DialogData) {
       this.sucursalActual = mainService.sucursalActual;
     }

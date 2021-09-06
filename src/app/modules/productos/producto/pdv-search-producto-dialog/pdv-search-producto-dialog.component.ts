@@ -60,7 +60,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit{
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: PdvSearchProductoData,
     public dialogRef: MatDialogRef<PdvSearchProductoDialogComponent>,
-    private mainService: MainService,
+    public mainService: MainService,
     private matDialog: MatDialog,
     private getProducto: ProductoForPdvGQL,
     ) {
@@ -166,19 +166,19 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit{
     return typeof val === 'number'; 
   }
 
-  getPrecio1(producto: Producto): Number {
+  getPrecio1(producto: Producto): number {
     return producto?.precio1?.preciosPorSucursal?.find(pps => pps.sucursal.id == this.sucursalActual.id).precio;
   }
 
-  getPrecio2(producto: Producto): Number {
+  getPrecio2(producto: Producto): number {
     return producto?.precio2?.preciosPorSucursal?.find(pps => pps.sucursal.id == this.sucursalActual.id).precio;
   }
 
-  getPrecio3(producto: Producto): Number {
+  getPrecio3(producto: Producto): number {
     return producto?.precio3?.preciosPorSucursal?.find(pps => pps.sucursal.id == this.sucursalActual.id).precio;
   }
 
-  getExistencia(producto: Producto): Number {
+  getExistencia(producto: Producto): number {
     return producto?.sucursales?.find(s => s.sucursal.id == this.sucursalActual.id).existencia
   }
 

@@ -16,7 +16,7 @@ export class HeaderComponent implements OnInit {
 
   @Output() toogleSideBarEvent: EventEmitter<any> = new EventEmitter();
 
-  constructor(private mainService: MainService, private matDialog: MatDialog, private cargandoDialogService: CargandoDialogService) {
+  constructor(public mainService: MainService, private matDialog: MatDialog, private cargandoDialogService: CargandoDialogService) {
     // mainService.statusSub.subscribe(res => {
     //   console.log(res)
     //   this.status = res;

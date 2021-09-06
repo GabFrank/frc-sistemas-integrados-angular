@@ -131,7 +131,7 @@
                 <mat-option
                   *ngFor="let barrio of filteredBarrios"
                   [value]="barrio.id"
-                  (click)="onBarrioSearch(barrio)"
+                  (click)="onBarrioSearch()"
                 >
                   {{ barrio.id }} - {{ barrio.descripcion }}
                 </mat-option>
@@ -412,7 +412,7 @@
               <tr *ngFor="let item of deliverysActivos; let i = index">
                 <td style="text-align: left; width: 5%; padding: 0px; padding-left: 5px; padding-top: 2px; padding-bottom: 2px;">{{ i + 1 }}</td>
                 <td style="text-align: left; width: 20%; padding: 0px; padding-top: 2px; padding-bottom: 2px; cursor: pointer;" (click)="copiar('null', item.telefono)">{{ item.telefono }}</td>
-                <td style="width: 20%; padding: 0px; padding-top: 2px; padding-bottom: 2px; cursor: pointer;">{{ item.valor | number}}</td>
+                <td style="width: 20%; padding: 0px; padding-top: 2px; padding-bottom: 2px; cursor: pointer;">{{ item?.venta?.valorTotal | number}}</td>
                 <td [class]="item.estado" style="width: 20%; padding: 0px; padding-top: 2px; padding-bottom: 2px; cursor: pointer; text-align: center">
                   {{ item.estado == 'EN_CAMINO' ? 'En camino' : item.estado | titlecase }}
                 </td>
@@ -448,7 +448,7 @@
             <tr *ngFor="let item of ultimosDeliverys; let i = index" style="cursor: pointer;">
               <td style="text-align: left; width: 5%; padding: 0px; padding-left: 5px; padding-top: 2px; padding-bottom: 2px;">{{ i + 1 }}</td>
               <td style="text-align: left; width: 20%; padding: 0px; padding-top: 2px; padding-bottom: 2px; cursor: pointer" (click)="copiar('null', item.telefono)">{{ item.telefono }}</td>
-              <td style="width: 20%; padding: 0px; padding-top: 2px; padding-bottom: 2px; cursor: pointer;">{{ item.valor | number }}</td>
+              <td style="width: 20%; padding: 0px; padding-top: 2px; padding-bottom: 2px; cursor: pointer;">{{ item?.venta?.valorTotal | number }}</td>
               <td style="width: 20%; padding: 0px; padding-top: 2px; padding-bottom: 2px; cursor: pointer;">{{ item.entregador==null ? 'No asignado' : item?.entregador.persona.nombre | titlecase }}</td>
             </tr>
           </thead>

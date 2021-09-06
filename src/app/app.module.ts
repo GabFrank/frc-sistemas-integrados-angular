@@ -23,7 +23,6 @@ import {HttpLink} from 'apollo-angular/http';
 import {WebSocketLink} from '@apollo/client/link/ws';
 import {getMainDefinition, Observable} from '@apollo/client/utilities';
 import { onError } from '@apollo/client/link/error';
-import { ConnectionService } from 'ngx-connection-service';
 import { RouterModule } from '@angular/router';
 import { environment } from '../environments/environment';
 import { AngularFireModule } from '@angular/fire';
@@ -31,6 +30,8 @@ import { AngularFirestoreModule } from '@angular/fire/firestore';
 import { AngularFireStorageModule } from '@angular/fire/storage';
 import { BehaviorSubject } from 'rxjs';
 import { setContext } from '@apollo/client/link/context';
+import { StorageMap } from '@ngx-pwa/local-storage';
+import { AppConfig } from './app-config';
 
 export const errorObs = new BehaviorSubject<any>(null);
 
@@ -53,8 +54,9 @@ registerLocaleData(localePY)
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
 export function appInit(appConfigService: MainService) {
-  return () => appConfigService.load();
+    return appConfigService.load();
 }
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -81,8 +83,14 @@ export function appInit(appConfigService: MainService) {
   providers: [
     {
       provide: APOLLO_OPTIONS,
-      useFactory(httpLink: HttpLink): ApolloClientOptions<any> {
-
+      useFactory(httpLink: HttpLink, storage: StorageMap): ApolloClientOptions<any> {
+        let serverId = null;
+        let serverPort = null;
+        storage.get('conf').subscribe((conf)=>{
+          serverId = (conf as AppConfig).serverId;
+          serverPort = (conf as AppConfig).serverPort;
+          console.log(serverId, serverPort)
+        })
         const basic = setContext((operation, context) => ({
           headers: {
             Accept: 'charset=utf-8'
@@ -113,10 +121,6 @@ export function appInit(appConfigService: MainService) {
             reconnect: true,
           },
         });
-
-        
-
-        
 
         // using the ability to split links, you can send data to each link
         // depending on what kind of operation is being sent
@@ -150,9 +154,8 @@ export function appInit(appConfigService: MainService) {
 })
 export class AppModule { 
 
-  
-
   constructor(
   ){
   }
+
 }

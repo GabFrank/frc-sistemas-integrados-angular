@@ -21,7 +21,7 @@ export class FamiliaService {
     private saveFamilia: SaveFamiliaGQL,
     private deleteFamilia: DeleteFamiliaGQL,
     private countFamilia: CountFamiliaGQL,
-    private mainService: MainService
+    public mainService: MainService
     ) {
     this.onGetFamilias()
   }

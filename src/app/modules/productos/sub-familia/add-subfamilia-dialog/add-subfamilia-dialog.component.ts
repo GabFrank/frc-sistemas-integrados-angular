@@ -40,7 +40,7 @@ export class AddSubfamiliaDialogComponent implements OnInit {
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AddSubfamiliaData,
-    private mainService: MainService,
+    public mainService: MainService,
     private subfamiliaService: SubFamiliaService,
     private dialogRef: MatDialogRef<AddSubfamiliaDialogComponent>,
     private matDialog: MatDialog,

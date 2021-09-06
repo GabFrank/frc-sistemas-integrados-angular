@@ -1,13 +1,12 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from "@angular/common/http";
 import { Injectable } from "@angular/core";
-import { MatDialog, MatDialogRef } from "@angular/material/dialog";
-import { catchError, tap } from "rxjs/operators";
+import { MatDialog } from "@angular/material/dialog";
+import { StorageMap } from "@ngx-pwa/local-storage";
 import { Observable } from "zen-observable-ts";
-import { MainService } from "../../main.service";
-import { CargandoDialogComponent } from "../../shared/components/cargando-dialog/cargando-dialog.component";
-import { CargandoDialogService } from "../../shared/components/cargando-dialog/cargando-dialog.service";
-import { Usuario } from "../personas/usuarios/usuario.model";
-import { UsuarioService } from "../personas/usuarios/usuario.service";
+import { MainService } from "./main.service";
+import { Usuario } from "./modules/personas/usuarios/usuario.model";
+import { UsuarioService } from "./modules/personas/usuarios/usuario.service";
+
 
 export interface LoginResponse {
   usuario?: Usuario;
@@ -29,8 +28,11 @@ export class LoginService {
     private http: HttpClient,
     private usuarioService: UsuarioService,
     public mainService: MainService,
-    private matDialog: MatDialog
-  ) {}
+    private matDialog: MatDialog,
+    private localStorage = StorageMap
+  ) {
+
+  }
 
   login(nickname, password): Observable<LoginResponse> {
     return new Observable((obs) => {

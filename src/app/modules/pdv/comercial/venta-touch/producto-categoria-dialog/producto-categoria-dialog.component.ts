@@ -43,7 +43,7 @@ export class ProductoCategoriaDialogComponent implements OnInit {
               public dialogRef: MatDialogRef<ProductoCategoriaDialogComponent>,
               public windowInfo : WindowInfoService,
               public matDialog: MatDialog,
-              private mainService: MainService
+              public mainService: MainService
               ) { 
     this.productos = data?.productos;
     this.tipoPrecio = data?.tipoPrecio;

@@ -103,7 +103,7 @@ export class ProductoComponent implements OnInit {
   imagenPrincipal = null;
 
   constructor(
-    private mainService: MainService,
+    public mainService: MainService,
     private notifiActionBar: NotificacionSnackbarService,
     private dialogo: DialogosService,
     private matDialog: MatDialog,
@@ -456,14 +456,15 @@ export class ProductoComponent implements OnInit {
   //funciones de codigos
 
   seleccionarFamilia(tipo) {
-    this.selectedFamilia = this.familiasList.find((f) => f.id == tipo.id);
+    setTimeout(() => {
+      this.selectedFamilia = this.familiasList?.find((f) => f.id == tipo.id);
     this.subfamiliasList = this.selectedFamilia?.subfamilias;
     this.filtrarFamilias();
+    }, 500);
   }
 
   seleccionarSubfamilia(tipo) {
     this.selectedSubfamilia = tipo;
-
     if (this.selectedFamilia?.nombre == "BEBIDAS") {
       this.datosGeneralesControl.controls.esAlcoholico.setValue(true);
       this.datosGeneralesControl.controls.poseeEmbalajePrincipal.setValue(true);
@@ -534,7 +535,7 @@ export class ProductoComponent implements OnInit {
     codigo.cantidad = +this.codigosControl.controls.codigoCantidad.value;
     codigo.activo = this.codigosControl.controls.codigoActivo.value;
     codigo.tipoPrecio = this.selectedTipoPrecio;
-    if (this.codigosList.length > 0) {
+    if (this.codigosList?.length > 0) {
       this.isPrincipal =
         this.codigosList.find(
           (c) => c?.principal == true && c?.id != codigo.id
@@ -584,6 +585,7 @@ export class ProductoComponent implements OnInit {
       codigoInput.cantidad = codigo.cantidad;
       codigoInput.codigo = codigo.codigo;
       codigoInput.descripcion = codigo?.descripcion?.toUpperCase();
+      console.log('agregando producto id al codigo: ',this.selectedProducto.id)
       codigoInput.productoId = this.selectedProducto.id;
       codigoInput.tipoPrecioId = codigo?.tipoPrecio?.id;
       codigoInput.variacion = codigo.variacion;
@@ -738,7 +740,9 @@ export class ProductoComponent implements OnInit {
     let precioInput = new PrecioPorSucursalInput();
     precioInput.id = this.selectedPrecio?.id;
     precioInput.codigoId = this.selectedCodigoPrecio.id;
-    precioInput.precio = this.preciosControl.controls.precio.value;
+    if(this.selectedCodigoPrecio!=null){
+      precioInput.precio = this.preciosControl.controls.precio.value / this.selectedCodigoPrecio.cantidad;
+    }
     precioInput.sucursalId = this.mainService.sucursalActual.id;
     this.selectedPrecio = precio;
     let isPrecioUsed =
@@ -768,15 +772,15 @@ export class ProductoComponent implements OnInit {
       switch (accion) {
         case "add": //adicionar
           this.precioPorSucursalService.onSave(precioInput).subscribe((res) => {
-            let codigoInput = new CodigoInput();
-            codigoInput.id = res.codigo.id;
-            codigoInput.tipoPrecioId = this.selectedTipoPrecio?.id;
-            this.codigoService.onSaveCodigo(codigoInput).subscribe((res2) => {
-              res.codigo = res2;
+            // let codigoInput = new CodigoInput();
+            // codigoInput.id = res.codigo.id;
+            // codigoInput.tipoPrecioId = this.selectedTipoPrecio?.id;
+            // this.codigoService.onSaveCodigo(codigoInput).subscribe((res2) => {
+            //   res.codigo = res2;
               this.precioList.push(res);
               this.setPrecioEstado("save", res);
               this.refreshPrecioTable();
-            });
+            // });
           });
           break;
         case "save": //guardar/editar

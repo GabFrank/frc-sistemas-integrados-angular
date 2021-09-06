@@ -167,7 +167,7 @@
                     matInput
                     placeholder="Producto"
                     autocomplete="off"
-                    (input)="openDialog($event.target.value)"
+                    (input)="openDialog($event)"
                     oninput="this.value = this.value.toUpperCase()"
                   />
                   <!-- <mat-hint>Código del producto</mat-hint> -->
@@ -322,7 +322,7 @@
             <button
               mat-raised-button
               color="primary"
-              (click)="editPedidoItem(this.selection.selected[0])"
+              (click)="editPedidoItem()"
               style="width: 85px;"
             >
               Editar

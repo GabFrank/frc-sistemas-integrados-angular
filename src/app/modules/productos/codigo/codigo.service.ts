@@ -16,7 +16,7 @@ export class CodigoService {
   dataOBs = new BehaviorSubject<Codigo[]>(null)
 
   constructor(
-    private mainService: MainService,
+    public mainService: MainService,
     private saveCodigo: SaveCodigoGQL,
     private getCodigosPorProductoId: CodigosPorProductoIdGQL,
     private deleteCodigo: DeleteCodigoGQL,
@@ -24,13 +24,16 @@ export class CodigoService {
   ) { }
 
   onGetCodigosPorProductoId(id){
+    console.log("haciendo fetch", id)
     this.getCodigosPorProductoId.fetch({
       id
     },
     {
-      fetchPolicy: 'no-cache'
+      fetchPolicy: 'no-cache',
+      errorPolicy: 'all'
     }).subscribe(res => {
-      if(!res.error){
+      if(res.data.data!=null){
+        console.log(res)
         this.dataOBs.next(res.data.data)
       }
     })
@@ -39,6 +42,7 @@ export class CodigoService {
   onSaveCodigo(input: CodigoInput): Observable<any> {
     input.usuarioId = this.mainService?.usuarioActual?.id;
     input.id==null ? input.activo = true : null;
+    console.log('guardado codigo: ', input)
     return new Observable((obs) => {
       this.saveCodigo
         .mutate({

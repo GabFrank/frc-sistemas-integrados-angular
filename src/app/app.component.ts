@@ -26,7 +26,7 @@ export class AppComponent implements OnInit {
     private notificationService: NotificacionSnackbarService,
     private snackBar: MatSnackBar,
     private matDialog: MatDialog,
-    private mainService: MainService
+    public mainService: MainService
   ) {
     this.innerHeight = windowInfo.innerHeight + "px";
     notificationService.notification$.subscribe((res) => {

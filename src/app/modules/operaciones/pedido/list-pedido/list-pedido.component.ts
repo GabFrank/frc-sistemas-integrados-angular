@@ -367,7 +367,7 @@ export class ListPedidoComponent implements OnInit {
     }
   }
 
-  openDialog(text: String): void {
+  openDialog(e: Event): void {
     let isProveedor = this.getProveedor()!=null;
     const dialogRef = this.dialog.open(SearchProductoDialogComponent, {
       data: {

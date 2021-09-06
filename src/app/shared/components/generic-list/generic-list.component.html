@@ -5,7 +5,7 @@
   <div fxLayout="row" style="padding: 10px;" fxLayoutAlign="start center">
     <div fxFlex="50">
       <mat-form-field class="form-element" style="width: 50%;">
-        <input matInput #searchInput="matInput" placeholder="Buscar" name="buscar" (input)="onSearchChange($event.target.value)" [disabled]="matCheckBox.checked" autocomplete="off" oninput="this.value = this.value.toUpperCase()">
+        <input matInput #searchInput="matInput" placeholder="Buscar" name="buscar" (input)="onSearchChange($event)" [disabled]="matCheckBox.checked" autocomplete="off" oninput="this.value = this.value.toUpperCase()">
       </mat-form-field>
       <div fxLayout="row">
         <div fxFlex="30">

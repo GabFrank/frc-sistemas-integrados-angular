@@ -103,13 +103,16 @@ export class GenericListComponent implements OnInit, OnDestroy {
     this.service.onDelete(e, this.service.deleteTitle, this.service.deleteQuery);
   }
 
-  onSearchChange(text: string): void {
+  onSearchChange(e: Event, text?): void {
     console.log(this.matCheckBox.checked)
+    if(e != null){
+      (e.target as HTMLInputElement).value
+    }
     if (this.matCheckBox.checked){
       const data = this.service.onAllEntitiesQuery(this.service.allEntitiesQuery);
       // text = '%';
     } else {
-      const data = this.service.onSearch(text, this.service.searchQuery, this.sort);
+      const data = this.service.onSearch((e.target as HTMLInputElement).value, this.service.searchQuery, this.sort);
     }
   }
 
@@ -126,14 +129,16 @@ export class GenericListComponent implements OnInit, OnDestroy {
   }
 
   onMostrarTodosChange(): void{
+    let e = '';
     if (this.matCheckBox.checked){
+      e = '%';
       this.range.get('start').setValue(null);
       this.range.get('end').setValue(null);
-      this.onSearchChange('%');
       this.searchInput.value = '';
     } else {
-      this.onSearchChange('');
+      e = '';
     }
+    this.onSearchChange(null, e);
   }
 
   ngOnDestroy(): void{

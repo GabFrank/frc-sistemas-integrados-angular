@@ -45,7 +45,7 @@ export class AddFamiliaDialogComponent implements OnInit {
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AddFamiliaData,
-    private mainService: MainService,
+    public mainService: MainService,
     private familiaService: FamiliaService,
     private dialogRef: MatDialogRef<AddFamiliaDialogComponent>,
     private matDialog: MatDialog,

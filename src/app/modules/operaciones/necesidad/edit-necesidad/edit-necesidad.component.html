@@ -41,7 +41,7 @@
               <div fxFlex="40">
                 <mat-form-field appearance="legacy" style="width: 90%;">
                   <mat-label>Producto</mat-label>
-                  <input formControlName="producto" matInput placeholder="Producto" autocomplete="not" (input)="openDialog($event.target.value)" oninput="this.value = this.value.toUpperCase()">
+                  <input formControlName="producto" matInput placeholder="Producto" autocomplete="not" (input)="openDialog($event)" oninput="this.value = this.value.toUpperCase()">
                   <!-- <mat-hint>Código del producto</mat-hint> -->
                 </mat-form-field>
               </div>

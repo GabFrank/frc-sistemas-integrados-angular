@@ -81,7 +81,7 @@ export class MainService {
     });
   }
 
-  load() {
+  load() : Promise<boolean>{
     let res;
     this.getSucursalById
       .fetch({
@@ -91,8 +91,10 @@ export class MainService {
         if (data.errors == null) {
           this.sucursalActual = data.data.data;
           res = true;
+          return res;
         } else {
           res = false;
+          return res;
         }
       });
     this.getMonedas.fetch().subscribe((res) => {
@@ -100,5 +102,6 @@ export class MainService {
         this.monedas = res.data.data;
       }
     });
+    return res;
   }
 }
