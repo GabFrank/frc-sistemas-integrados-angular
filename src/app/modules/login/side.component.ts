@@ -1,18 +1,19 @@
 import { Component, OnInit } from '@angular/core';
-import { Tab } from '../../../layouts/tab/tab.model';
-import { TabService } from '../../../layouts/tab/tab.service';
-import { MainService } from '../../../main.service';
-import { ListCiudadComponent } from '../../../modules/general/ciudad/list-ciudad/list-ciudad.component';
-import { ListPaisComponent } from '../../../modules/general/pais/list-pais/list-pais.component';
-import { ListCompraComponent } from '../../../modules/operaciones/compra/list-compra/list-compra.component';
-import { ListNecesidadComponent } from '../../../modules/operaciones/necesidad/list-necesidad/list-necesidad.component';
-import { ListPedidoComponent } from '../../../modules/operaciones/pedido/list-pedido/list-pedido.component';
-import { VentaTouchComponent } from '../../../modules/pdv/comercial/venta-touch/venta-touch.component';
-import { RestaurantComponent } from '../../../modules/pdv/restaurant/restaurant.component';
-import { ListFuncioarioComponent } from '../../../modules/personas/funcionarios/list-funcioario/list-funcioario.component';
-import { ListPersonaComponent } from '../../../modules/personas/persona/list-persona/list-persona.component';
-import { ListUsuarioComponent } from '../../../modules/personas/usuarios/list-usuario/list-usuario.component';
-import { ListProductoComponent } from '../../../modules/productos/producto/list-producto/list-producto.component';
+import { Tab } from '../../layouts/tab/tab.model';
+import { TabService } from '../../layouts/tab/tab.service';
+import { MainService } from '../../main.service';
+import { ListCiudadComponent } from '../general/ciudad/list-ciudad/list-ciudad.component';
+import { ListPaisComponent } from '../general/pais/list-pais/list-pais.component';
+import { ListCompraComponent } from '../operaciones/compra/list-compra/list-compra.component';
+import { ListNecesidadComponent } from '../operaciones/necesidad/list-necesidad/list-necesidad.component';
+import { ListPedidoComponent } from '../operaciones/pedido/list-pedido/list-pedido.component';
+import { VentaTouchComponent } from '../pdv/comercial/venta-touch/venta-touch.component';
+import { RestaurantComponent } from '../pdv/restaurant/restaurant.component';
+import { ListFuncioarioComponent } from '../personas/funcionarios/list-funcioario/list-funcioario.component';
+import { ListPersonaComponent } from '../personas/persona/list-persona/list-persona.component';
+import { ListUsuarioComponent } from '../personas/usuarios/list-usuario/list-usuario.component';
+import { ListProductoComponent } from '../productos/producto/list-producto/list-producto.component';
+
 
 @Component({
   selector: 'app-side',

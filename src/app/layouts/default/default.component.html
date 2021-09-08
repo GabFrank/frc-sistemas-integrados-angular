@@ -7,7 +7,7 @@
   </mat-drawer>
   <mat-drawer-content>
 
-    <mat-tab-group class="main-tab-group mt-2 "  [selectedIndex]="selectedTab" (selectedTabChange)="tabChanged($event)" style="height: 100%;">
+    <mat-tab-group class="main-tab-group mt-2 "  [selectedIndex]="selectedTab" (selectedTabChange)="tabChanged($event)" style="height: 100%;" (mouseover)="onSideBarFocus()">
       <mat-tab class="mat-tab-class" *ngFor="let tab of tabs; let tabIndex = index">
         <ng-template  mat-tab-label style="width: 100px">
           <div fxLayout="row" style="height: 3vh;">

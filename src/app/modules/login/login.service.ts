@@ -39,7 +39,7 @@ export class LoginService {
         password: password,
       };
       let httpResponse = this.http
-        .post("http://localhost:8081/login", httpBody, this.httpOptions)
+        .post("http://192.168.1.185:8081/login", httpBody, this.httpOptions)
         .subscribe((res) => {
           if (res["token"] != null) {
             localStorage.setItem("token", res["token"]);

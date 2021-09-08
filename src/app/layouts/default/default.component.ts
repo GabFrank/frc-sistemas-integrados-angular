@@ -4,6 +4,8 @@ import { Tab } from '../tab/tab.model';
 import { MatDialog } from '@angular/material/dialog';
 import { CloseTabPopupComponent } from './close-tab-popup.component';
 import { WindowInfoService } from '../../shared/services/window-info.service';
+import { Observable } from 'rxjs/internal/Observable';
+import { fromEvent } from 'rxjs';
 
 @Component({
   selector: 'app-default',
@@ -31,6 +33,13 @@ export class DefaultComponent implements OnInit {
     public dialog: MatDialog,
     public windowInfo: WindowInfoService
     ) {
+
+      fromEvent(document.body, 'mousemove').subscribe(e => {
+        let event = e as MouseEvent;
+        if(event.pageX < 10){
+          this.sideBarOpen = true;
+        }
+      })
   }
 
   ngOnInit(): void {
@@ -67,6 +76,12 @@ export class DefaultComponent implements OnInit {
     });
   }
 
-
+  onSideBarFocus(){
+    if(this.sideBarOpen){
+      setTimeout(() => {
+        this.sideBarOpen = false;
+      }, 1000);
+    }
+  }
 
 }
