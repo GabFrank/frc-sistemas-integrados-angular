@@ -34,7 +34,8 @@ function createWindow(): BrowserWindow {
   if (serve) {
     win.webContents.openDevTools();
     require('electron-reload')(__dirname, {
-      electron: require(path.join(__dirname, '/../node_modules/electron'))
+      electron: require(path.join(__dirname, '/../node_modules/electron')),
+      
     });
     win.loadURL('http://localhost:4200');
   } else {
@@ -86,6 +87,11 @@ try {
     if (win === null) {
       createWindow();
     }
+  });
+
+  win.webContents.on('did-fail-load', () => { 
+    console.log('on browser reload it did-fail-load and reloaded the app'); 
+    win.loadURL(`file://${__dirname}/dist/index.html`); 
   });
 
 } catch (e) {

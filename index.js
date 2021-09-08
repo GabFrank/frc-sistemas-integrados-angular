@@ -45,4 +45,9 @@ app.on('activate', () => {
   if (win === null) {
     createWindow()
   }
+
+  win.webContents.on('did-fail-load', () => { 
+    console.log('on browser reload it did-fail-load and reloaded the app'); 
+    win.loadURL(`file://${__dirname}/dist//index.html`); 
+  });
 })

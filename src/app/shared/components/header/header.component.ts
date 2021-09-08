@@ -1,6 +1,8 @@
 import { Component, OnInit, Output, EventEmitter } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
+import { Router } from "@angular/router";
 import { Observable } from "rxjs";
+import { TabService } from "../../../layouts/tab/tab.service";
 import { MainService } from "../../../main.service";
 import { LoginComponent } from "../../../modules/login/login.component";
 import { CargandoDialogService } from "../cargando-dialog/cargando-dialog.service";
@@ -16,7 +18,13 @@ export class HeaderComponent implements OnInit {
 
   @Output() toogleSideBarEvent: EventEmitter<any> = new EventEmitter();
 
-  constructor(public mainService: MainService, private matDialog: MatDialog, private cargandoDialogService: CargandoDialogService) {
+  constructor(
+    public mainService: MainService,
+    private matDialog: MatDialog,
+    private cargandoDialogService: CargandoDialogService,
+    private router: Router,
+    private tabService: TabService
+  ) {
     // mainService.statusSub.subscribe(res => {
     //   console.log(res)
     //   this.status = res;
@@ -33,20 +41,21 @@ export class HeaderComponent implements OnInit {
   }
 
   onLogout() {
-    this.cargandoDialogService.openDialog()
+    this.cargandoDialogService.openDialog();
     localStorage.removeItem("token");
     localStorage.removeItem("usuarioId");
     this.mainService.usuarioActual = null;
     this.mainService.logged = false;
     setTimeout(() => {
-      window.location.reload()
-      this.cargandoDialogService.closeDialog()
-      // this.matDialog.open(LoginComponent, {
-      //   width: "500px",
-      //   height: "500px",
-      //   disableClose: true,
-      // });
+      // window.location.reload();
+      this.router.navigate([this.router.url])
+      this.cargandoDialogService.closeDialog();
+      this.tabService.removeAllTabs();
+      this.matDialog.open(LoginComponent, {
+        width: "500px",
+        height: "500px",
+        disableClose: true,
+      });
     }, 1000);
-    
   }
 }

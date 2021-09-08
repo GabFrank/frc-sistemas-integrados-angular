@@ -139,6 +139,7 @@ export class ProductoComponent implements OnInit {
 
   ngOnInit() {
     // inicializar arrays
+    this.codigosList = [];
     this.precioList = [];
 
     this.createForm();

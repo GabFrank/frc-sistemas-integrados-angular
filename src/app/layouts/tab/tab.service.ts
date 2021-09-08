@@ -97,4 +97,9 @@ export class TabService {
     }
     this.tabSub.next(this.tabs);
   }
+
+  public removeAllTabs(): void {
+    this.tabs = [];
+    this.tabSub.next(this.tabs);
+  }
 }

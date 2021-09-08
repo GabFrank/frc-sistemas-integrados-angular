@@ -11,7 +11,7 @@ import { HttpClientModule, HttpHeaders } from '@angular/common/http';
 import { ModulesModule } from './modules/modules.module';
 import { DetailPopupComponent } from './layouts/detail-popup/detail-popup.component';
 import localePY from '@angular/common/locales/es-PY';
-import { registerLocaleData } from '@angular/common';
+import { HashLocationStrategy, LocationStrategy, registerLocaleData } from '@angular/common';
 import { MAT_DATE_LOCALE } from '@angular/material/core';
 import { FormatNumberPipe } from './pipes/format-number.pipe';
 import { IConfig, NgxMaskModule } from 'ngx-mask';
@@ -30,12 +30,10 @@ import { AngularFirestoreModule } from '@angular/fire/firestore';
 import { AngularFireStorageModule } from '@angular/fire/storage';
 import { BehaviorSubject } from 'rxjs';
 import { setContext } from '@apollo/client/link/context';
-import { StorageMap } from '@ngx-pwa/local-storage';
-import { AppConfig } from './app-config';
 
 export const errorObs = new BehaviorSubject<any>(null);
 
-const uri = 'http://localhost:8081/graphql';
+const uri = 'http://192.168.1.185:8081/graphql';
 
 // error handling
 const errorLink = onError(({ graphQLErrors, networkError }) => {
@@ -54,9 +52,8 @@ registerLocaleData(localePY)
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
 export function appInit(appConfigService: MainService) {
-    return appConfigService.load();
+  return () => appConfigService.load();
 }
-
 @NgModule({
   declarations: [
     AppComponent,
@@ -83,18 +80,12 @@ export function appInit(appConfigService: MainService) {
   providers: [
     {
       provide: APOLLO_OPTIONS,
-      useFactory(httpLink: HttpLink, storage: StorageMap): ApolloClientOptions<any> {
-        let serverId = null;
-        let serverPort = null;
-        storage.get('conf').subscribe((conf)=>{
-          serverId = (conf as AppConfig).serverId;
-          serverPort = (conf as AppConfig).serverPort;
-          console.log(serverId, serverPort)
-        })
+      useFactory(httpLink: HttpLink): ApolloClientOptions<any> {
+
         const basic = setContext((operation, context) => ({
-          headers: {
-            Accept: 'charset=utf-8'
-          }
+          // headers: {
+          //   Accept: 'charset=utf-8'
+          // }
         }));
 
         const auth = setContext((operation, context) => {
@@ -116,11 +107,15 @@ export function appInit(appConfigService: MainService) {
 
         // Create a WebSocket link:
         const ws = new WebSocketLink({
-          uri: `ws://localhost:8081/subscriptions`,
+          uri: `ws://192.168.1.185:8081/subscriptions`,
           options: {
             reconnect: true,
           },
         });
+
+        
+
+        
 
         // using the ability to split links, you can send data to each link
         // depending on what kind of operation is being sent
@@ -144,6 +139,9 @@ export function appInit(appConfigService: MainService) {
         };
       },
       deps: [HttpLink],
+    },
+    { provide: LocationStrategy,
+      useClass: HashLocationStrategy
     },
     { provide: LOCALE_ID, useValue: 'es-PY' } ,
     { provide: MAT_DATE_LOCALE, useValue: 'es-PY' },
