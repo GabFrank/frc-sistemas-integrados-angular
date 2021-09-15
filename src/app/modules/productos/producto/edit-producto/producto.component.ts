@@ -583,11 +583,9 @@ export class ProductoComponent implements OnInit {
         null;
       this.isCodigoEnUso =
         this.codigosList.find((c) => {
-          console.log(c.codigo, codigo.codigo);
-          console.log(c.tipoPrecio, codigo.tipoPrecio);
           if (
             c?.codigo == codigo.codigo &&
-            c?.tipoPrecio.id == codigo?.tipoPrecio.id
+            c?.tipoPrecio.id == codigo?.tipoPrecio.id && codigo.id == null
           ) {
             return c;
           } else {
@@ -596,7 +594,7 @@ export class ProductoComponent implements OnInit {
         }) != null;
       isTipoPrecioInUse =
         this.codigosList.find(
-          (c) => c?.tipoPrecio.id == this.selectedTipoPrecio?.id
+          (c) => (c?.tipoPrecio.id == this.selectedTipoPrecio?.id && c.id != codigo.id)
         ) != null;
     }
     if (codigo.tipoPrecio == null) {
