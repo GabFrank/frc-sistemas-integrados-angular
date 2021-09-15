@@ -24,7 +24,7 @@
           </mat-form-field>
         </div>
         <div fxFlex="10%">
-            <button mat-raised-button color="primary" (click)="openProductos('new')">Nuevo</button>
+            <button type="button" mat-raised-button color="primary" (click)="openProductos('new')">Nuevo</button>
         </div>
       </div>
       <table
@@ -190,7 +190,7 @@
         </div>
       </div>
       <div fxFlex="15%" style="text-align: center;">
-          <button [disabled]="selectedProducto.id==null" mat-raised-button color="primary" style="width: 25%;" (click)="openProductos('edit')">Editar</button>
+          <button type="button" [disabled]="selectedProducto.id==null" mat-raised-button color="primary" style="width: 25%;" (click)="openProductos('edit')">Editar</button>
       </div>
     </div>
   </div>

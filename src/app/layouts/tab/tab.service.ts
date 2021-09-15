@@ -32,7 +32,7 @@ export class TabService {
 
   constructor() {
     this.tabs = [
-      new Tab(ProductoComponent, 'Nuevo Producto', null, null)
+      new Tab(ListProductoComponent, 'Productos', null, null)
     ];
     this.tabSub.next(this.tabs);
   }

@@ -1,5 +1,5 @@
 import { trigger, state, style, transition, animate } from "@angular/animations";
-import { Component, OnInit } from "@angular/core";
+import { Component, HostListener, OnInit } from "@angular/core";
 import { FormControl } from "@angular/forms";
 import { MatTableDataSource } from "@angular/material/table";
 import { environment } from "../../../../../environments/environment";
@@ -76,13 +76,13 @@ export class ListProductoComponent implements OnInit {
           descripcion: p.descripcion,
           precio1: p?.precio1?.preciosPorSucursal.find(
             (p) => p.sucursal?.id == environment.sucursalId
-          )?.precio,
+          )?.precio * p?.precio1?.cantidad,
           precio2: p?.precio2?.preciosPorSucursal.find(
             (p) => p.sucursal?.id == environment.sucursalId
-          )?.precio,
+          )?.precio * p?.precio2?.cantidad,
           precio3: p?.precio3?.preciosPorSucursal.find(
             (p) => p.sucursal?.id == environment.sucursalId
-          )?.precio,
+          )?.precio * p?.precio3?.cantidad,
         };
         pdsList.push(pds);
       });
@@ -125,6 +125,25 @@ export class ListProductoComponent implements OnInit {
         break;
       case 'edit':
         this.tabService.addTab(new Tab(ProductoComponent, this.selectedProducto.descripcion, {data: this.selectedProducto}, ListProductoComponent))
+        break;
+    
+      default:
+        break;
+    }
+  }
+
+  @HostListener("window:keyup", ["$event"])
+  keyEvent(event: KeyboardEvent) {
+    let key = event.key;
+    let isNumber = (+key).toString() === key;
+
+    switch (key) {
+      case 'Enter':
+        if(this.selectedProducto!=null){
+          this.openProductos('edit')
+        } else {
+          // this.openProductos('new')
+        }
         break;
     
       default:

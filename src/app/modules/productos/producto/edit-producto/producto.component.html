@@ -139,11 +139,23 @@
         fxLayoutAlign="start start"
         style="width: 100%"
       >
-        <div fxFlex="50" style="text-align: start; color: #f57c00">
+        <div fxFlex="100" style="text-align: start; color: #f57c00">
           Precio 1:
         </div>
-        <div *ngIf="precio1 != null" fxFlex="50" style="text-align: right">
-          {{ precio1.precio | number }}
+      </div>
+      <div
+        fxFlex="5"
+        fxLayout="row"
+        fxLayoutAlign="start start"
+        style="width: 100%"
+      >
+        <div fxFlex="50" style="text-align: start; color: white">
+          <div *ngIf="precio1 != null"  style="text-align: right">
+            Unid: {{ precio1.precio | number: '1.0-0' }}
+          </div>
+        </div>
+        <div *ngIf="precio1 != null && precio1?.codigo.cantidad > 1" fxFlex="50" style="text-align: right">
+          Caja: {{ precio1.precio * precio1.codigo.cantidad | number: '1.0-0' }}
         </div>
       </div>
       <div
@@ -155,10 +167,22 @@
         <div fxFlex="50" style="text-align: start; color: #f57c00">
           Precio 2:
         </div>
-        <div *ngIf="precio2 != null" fxFlex="50" style="text-align: right">
-          {{ precio2.precio | number }}
+      </div>
+      <div
+      fxFlex="5"
+      fxLayout="row"
+      fxLayoutAlign="start start"
+      style="width: 100%"
+    >
+      <div fxFlex="50" style="text-align: start; color: white">
+        <div *ngIf="precio2 != null"style="text-align: right">
+          Unid: {{ precio2.precio | number: '1.0-0' }}
         </div>
       </div>
+      <div *ngIf="precio2 != null && precio2?.codigo.cantidad > 1" fxFlex="50" style="text-align: right">
+        Caja: {{ precio2.precio * precio2.codigo.cantidad | number: '1.0-0' }}
+      </div>
+    </div>
       <div
         fxFlex="5"
         fxLayout="row"
@@ -168,10 +192,22 @@
         <div fxFlex="50" style="text-align: start; color: #f57c00">
           Precio 3:
         </div>
-        <div *ngIf="precio3 != null" fxFlex="50" style="text-align: right">
-          {{ precio3.precio | number }}
+      </div>
+      <div
+      fxFlex="5"
+      fxLayout="row"
+      fxLayoutAlign="start start"
+      style="width: 100%"
+    >
+      <div fxFlex="50" style="text-align: start; color: white">
+        <div *ngIf="precio3 != null" style="text-align: right">
+          Unid: {{ precio3.precio | number: '1.0-0' }}
         </div>
       </div>
+      <div *ngIf="precio3 != null && precio3?.codigo.cantidad > 1" fxFlex="50" style="text-align: right">
+        Caja: {{ precio3.precio * precio3.codigo.cantidad | number: '1.0-0' }}
+      </div>
+    </div>
       <div
         fxFlex="30"
         fxLayout="column"
