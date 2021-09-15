@@ -1,9 +1,11 @@
+import { trigger, state, style, transition, animate } from "@angular/animations";
 import { Component, OnInit } from "@angular/core";
 import { FormControl } from "@angular/forms";
 import { MatTableDataSource } from "@angular/material/table";
 import { environment } from "../../../../../environments/environment";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabService } from "../../../../layouts/tab/tab.service";
+import { transitionRightToLeftAnimation } from "../../../../shared/components/panel-laterial-invisible/panel-right-animation";
 import { Codigo } from "../../codigo/codigo.model";
 import { PrecioPorSucursal } from "../../precio-por-sucursal/precio-por-sucursal.model";
 import { ProductoComponent } from "../edit-producto/producto.component";
@@ -22,6 +24,18 @@ interface ProductoDatasource {
   selector: "app-list-producto",
   templateUrl: "./list-producto.component.html",
   styleUrls: ["./list-producto.component.css"],
+  animations: [
+    trigger('slideInOut', [
+      state('in', style({
+        transform: 'translate3d(0,0,0)'
+      })),
+      state('out', style({
+        transform: 'translate3d(100%, 0, 0)'
+      })),
+      transition('in => out', animate('400ms ease-in-out')),
+      transition('out => in', animate('400ms ease-in-out'))
+    ])
+  ]
 })
 export class ListProductoComponent implements OnInit {
   // la fuente de datos de la tabla
@@ -32,6 +46,8 @@ export class ListProductoComponent implements OnInit {
 
   //producto seleccionado
   selectedProducto = new Producto()
+
+  menuState:string = 'out';
 
   displayedColumnsId: string[] = [
     "id",
@@ -55,7 +71,6 @@ export class ListProductoComponent implements OnInit {
     this.service.datosSub.subscribe((res) => {
       let pdsList: ProductoDatasource[] = [];
       res?.forEach((p) => {
-        console.log(p);
         let pds: ProductoDatasource = {
           id: p.id,
           descripcion: p.descripcion,
@@ -71,7 +86,6 @@ export class ListProductoComponent implements OnInit {
         };
         pdsList.push(pds);
       });
-      console.log(pdsList);
       this.dataSource.data = pdsList;
     });
 
@@ -88,11 +102,18 @@ export class ListProductoComponent implements OnInit {
   }
 
   onRowClick(row){
-    console.log('hola')
     this.service.getProducto(row.id).subscribe(res => {
       if(res!=null){
-        this.selectedProducto = res;
-        console.log(this.selectedProducto)
+        if(this.menuState === 'in'){
+          this.menuState = 'out';
+          setTimeout(() => {
+            this.menuState = 'in';
+            this.selectedProducto = res;
+          }, 500);
+        } else {
+          this.selectedProducto = res;
+          this.menuState = 'in';
+        }     
       }
     })
   }

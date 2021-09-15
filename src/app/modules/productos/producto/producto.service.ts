@@ -101,7 +101,6 @@ export class ProductoService{
         image,
         filename
       }).subscribe(res => {
-        console.log(res)
         if(res.errors==null){
           // obs.next(res.data)
           this.notificacionSnack.notification$.next({

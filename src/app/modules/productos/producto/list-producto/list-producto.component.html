@@ -1,7 +1,7 @@
 <div style="width: 100%; height: 100%">
   <div fxLayout="row" style="width: 100%; height: 100%" fxLayoutGap="10px">
     <div
-      fxFlex="59%"
+      fxFlex="100%"
       fxLayout="column"
       fxLayoutAlign="start"
       style="height: 100%"
@@ -128,14 +128,12 @@
       </table>
     </div>
 
-    <div fxFlex="1">
-      <mat-divider [vertical]="true" style="height: 100%"></mat-divider>
-    </div>
     <div
-      fxFlex="40%"
+    
       fxLayout="column"
       fxLayoutAlign="start"
-      style="height: 100%"
+      style="height: 100%; width: 50%;"
+      [@slideInOut]="menuState"
     >
       <div style="width: 100%; text-align: center">
         <h2>Información del producto</h2>

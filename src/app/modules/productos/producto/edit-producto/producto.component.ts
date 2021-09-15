@@ -1,4 +1,11 @@
-import { Component, ElementRef, Input, OnInit, ViewChild } from "@angular/core";
+import {
+  Component,
+  ElementRef,
+  HostListener,
+  Input,
+  OnInit,
+  ViewChild,
+} from "@angular/core";
 import { FormGroup, Validators, FormControl } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
@@ -33,6 +40,8 @@ import { CortarImagenDialogComponent } from "../../../../shared/cortar-imagen-di
 import { QrCodeComponent } from "../../../../shared/qr-code/qr-code.component";
 import { MatStepper } from "@angular/material/stepper";
 import { MatInput } from "@angular/material/input";
+import { dialog } from "electron";
+import { CargandoDialogComponent } from "../../../../shared/components/cargando-dialog/cargando-dialog.component";
 
 @Component({
   selector: "app-producto",
@@ -46,6 +55,8 @@ export class ProductoComponent implements OnInit {
   @ViewChild("codigoInput", { static: false }) codigoInput: ElementRef;
   @ViewChild("nombreInput", { static: false }) nombreInput: ElementRef;
   @ViewChild("valorInput", { static: false }) valorInput: ElementRef;
+  @ViewChild("codigoCantidad", { static: false })
+  codigoCantidadInput: ElementRef;
 
   isLinear = false;
   tipoProductoControl: FormGroup;
@@ -138,6 +149,8 @@ export class ProductoComponent implements OnInit {
   }
 
   ngOnInit() {
+    let ref = this.matDialog.open(CargandoDialogComponent);
+
     // inicializar arrays
     this.codigosList = [];
     this.precioList = [];
@@ -152,6 +165,10 @@ export class ProductoComponent implements OnInit {
         this.cargarProducto(this.data.tabData.data.id);
       }
     }, 100);
+
+    setTimeout(() => {
+      ref.close();
+    }, 1000);
   }
 
   cargarProducto(id) {
@@ -228,9 +245,9 @@ export class ProductoComponent implements OnInit {
     this.datosGeneralesControl.controls.vencimiento.setValue(false);
     this.datosGeneralesControl.controls.iva.setValue("10");
     setTimeout(() => {
-      this.seleccionarFamilia(this.tiposProductos[0]);
+      this.seleccionarFamilia(this.familiasList[0]);
       setTimeout(() => {
-        this.seleccionarSubfamilia(this.categorias[0]);
+        this.seleccionarSubfamilia(this.familiasList[0]);
         setTimeout(() => {
           this.stepper.next();
           setTimeout(() => {
@@ -271,7 +288,7 @@ export class ProductoComponent implements OnInit {
     this.tipoProductoControl = new FormGroup({});
     this.categoriaControl = new FormGroup({});
     this.datosGeneralesControl = new FormGroup({
-      descripcion: new FormControl(null),
+      descripcion: new FormControl(null, Validators.required),
       descripcionFactura: new FormControl(null),
       iva: new FormControl(null),
       poseeEmbalajePrincipal: new FormControl(null),
@@ -377,71 +394,84 @@ export class ProductoComponent implements OnInit {
   }
 
   onProductoSave() {
-    const {
-      descripcion,
-      descripcionFactura,
-      iva,
-      unidadPorCaja,
-      unidadPorCajaSecundaria,
-      balanza,
-      stock,
-      garantia,
-      tiempoGarantia,
-      cambiable,
-      ingredientes,
-      combo,
-      promocion,
-      vencimiento,
-      diasVencimiento,
-      tipoConservacion,
-      subfamiliaId,
-    } = this.datosGeneralesControl.value;
-    let productoInput = new ProductoInput();
-    productoInput = {
-      descripcion,
-      descripcionFactura,
-      iva,
-      unidadPorCaja,
-      unidadPorCajaSecundaria,
-      balanza,
-      stock,
-      garantia,
-      tiempoGarantia,
-      cambiable,
-      ingredientes,
-      combo,
-      promocion,
-      vencimiento,
-      diasVencimiento,
-      tipoConservacion,
-      subfamiliaId,
-    };
-    if (this.selectedProducto != null) {
-      productoInput.id = this.selectedProducto.id;
-      this.codigoService.onGetCodigosPorProductoId(productoInput.id);
-    }
-    productoInput.descripcion = productoInput.descripcion.toUpperCase();
-    productoInput.descripcionFactura =
-      productoInput.descripcionFactura.toUpperCase();
-    productoInput.subfamiliaId = this.selectedSubfamilia.id;
-    this.productoService.onSaveProducto(productoInput).subscribe((res) => {
-      if (res != null) {
-        this.selectedProducto = res;
-        setTimeout(() => {
-          this.codigoInput.nativeElement.focus();
-        }, 100);
-      } else {
-        this.stepper.previous();
-        setTimeout(() => {
-          this.nombreInput.nativeElement.focus();
-        }, 100);
+    if (this.selectedProducto != null && !this.datosGeneralesControl.dirty) {
+      //nada
+    } else {
+      const {
+        descripcion,
+        descripcionFactura,
+        iva,
+        unidadPorCaja,
+        unidadPorCajaSecundaria,
+        balanza,
+        stock,
+        garantia,
+        tiempoGarantia,
+        cambiable,
+        ingredientes,
+        combo,
+        promocion,
+        vencimiento,
+        diasVencimiento,
+        tipoConservacion,
+        subfamiliaId,
+      } = this.datosGeneralesControl.value;
+      let productoInput = new ProductoInput();
+      productoInput = {
+        descripcion,
+        descripcionFactura,
+        iva,
+        unidadPorCaja,
+        unidadPorCajaSecundaria,
+        balanza,
+        stock,
+        garantia,
+        tiempoGarantia,
+        cambiable,
+        ingredientes,
+        combo,
+        promocion,
+        vencimiento,
+        diasVencimiento,
+        tipoConservacion,
+        subfamiliaId,
+      };
+      if (this.selectedProducto != null) {
+        productoInput.id = this.selectedProducto.id;
+        this.codigoService.onGetCodigosPorProductoId(productoInput.id);
       }
-    });
+      productoInput.descripcion = productoInput.descripcion.toUpperCase();
+      productoInput.descripcionFactura =
+        productoInput.descripcionFactura.toUpperCase();
+      productoInput.subfamiliaId = this.selectedSubfamilia.id;
+      this.productoService.onSaveProducto(productoInput).subscribe((res) => {
+        if (res != null) {
+          this.selectedProducto = res;
+          setTimeout(() => {
+            this.codigoInput.nativeElement.focus();
+          }, 100);
+        } else {
+          this.stepper.previous();
+          setTimeout(() => {
+            this.nombreInput.nativeElement.focus();
+          }, 100);
+        }
+      });
+    }
   }
   // funciones datos generales
 
   //funciones de codigos
   onCodigoCantidadOut() {
+    if (+this.codigosControl.controls.codigoCantidad.value > 100) {
+      this.dialogo
+        .confirm("Atencion!!", "Estás seguro que la cantidad es mayor a 100?")
+        .subscribe((res) => {
+          if (!res) {
+            this.codigoCantidadInput.nativeElement.select();
+          }
+        });
+    }
     if (
       this.datosGeneralesControl.controls.unidadPorCaja.value == null ||
       this.datosGeneralesControl.controls.unidadPorCaja.value == ""
@@ -459,8 +489,11 @@ export class ProductoComponent implements OnInit {
   seleccionarFamilia(tipo) {
     setTimeout(() => {
       this.selectedFamilia = this.familiasList?.find((f) => f.id == tipo.id);
-    this.subfamiliasList = this.selectedFamilia?.subfamilias;
-    this.filtrarFamilias();
+      this.subfamiliasList = this.selectedFamilia?.subfamilias;
+      this.filtrarFamilias();
+      setTimeout(() => {
+        this.stepper.next();
+      }, 500);
     }, 500);
   }
 
@@ -479,11 +512,15 @@ export class ProductoComponent implements OnInit {
     setTimeout(() => {
       this.nombreInput.nativeElement.focus();
     }, 100);
+
+    setTimeout(() => {
+      this.stepper.next();
+    }, 500);
   }
 
   filtrarFamilias() {
-    this.filteredFamilias = this.categorias.filter(
-      (c) => c.tipo == this.selectedFamilia?.id
+    this.filteredFamilias = this.familiasList.filter(
+      (c) => c.id == this.selectedFamilia?.id
     );
   }
 
@@ -501,7 +538,7 @@ export class ProductoComponent implements OnInit {
           codigos: this.codigosList.filter((c) => {
             let flag = true;
             this.precioList?.forEach((p) => {
-              if (p.codigo.codigo == c.codigo) {
+              if (p.codigo.id == c.id) {
                 flag = false;
               }
             });
@@ -545,15 +582,30 @@ export class ProductoComponent implements OnInit {
         this.codigosList.find((c) => c?.caja == true && c?.id != codigo.id) !=
         null;
       this.isCodigoEnUso =
-        this.codigosList.find(
-          (c) => c?.codigo == codigo.codigo && c?.id != codigo.id
-        ) != null;
+        this.codigosList.find((c) => {
+          console.log(c.codigo, codigo.codigo);
+          console.log(c.tipoPrecio, codigo.tipoPrecio);
+          if (
+            c?.codigo == codigo.codigo &&
+            c?.tipoPrecio.id == codigo?.tipoPrecio.id
+          ) {
+            return c;
+          } else {
+            return null;
+          }
+        }) != null;
       isTipoPrecioInUse =
         this.codigosList.find(
           (c) => c?.tipoPrecio.id == this.selectedTipoPrecio?.id
         ) != null;
     }
-    if (this.isPrincipal && codigo.principal) {
+    if (codigo.tipoPrecio == null) {
+      this.notifiActionBar.notification$.next({
+        color: NotificacionColor.warn,
+        texto: "El campo Tipo Precio es obligatorio!!",
+        duracion: 2,
+      });
+    } else if (this.isPrincipal && codigo.principal) {
       this.notifiActionBar.notification$.next({
         color: NotificacionColor.warn,
         texto: "Ya existe un código principal",
@@ -586,7 +638,10 @@ export class ProductoComponent implements OnInit {
       codigoInput.cantidad = codigo.cantidad;
       codigoInput.codigo = codigo.codigo;
       codigoInput.descripcion = codigo?.descripcion?.toUpperCase();
-      console.log('agregando producto id al codigo: ',this.selectedProducto.id)
+      console.log(
+        "agregando producto id al codigo: ",
+        this.selectedProducto.id
+      );
       codigoInput.productoId = this.selectedProducto.id;
       codigoInput.tipoPrecioId = codigo?.tipoPrecio?.id;
       codigoInput.variacion = codigo.variacion;
@@ -741,8 +796,10 @@ export class ProductoComponent implements OnInit {
     let precioInput = new PrecioPorSucursalInput();
     precioInput.id = this.selectedPrecio?.id;
     precioInput.codigoId = this.selectedCodigoPrecio.id;
-    if(this.selectedCodigoPrecio!=null){
-      precioInput.precio = this.preciosControl.controls.precio.value / this.selectedCodigoPrecio.cantidad;
+    if (this.selectedCodigoPrecio != null) {
+      precioInput.precio =
+        this.preciosControl.controls.precio.value /
+        this.selectedCodigoPrecio.cantidad;
     }
     precioInput.sucursalId = this.mainService.sucursalActual.id;
     this.selectedPrecio = precio;
@@ -753,7 +810,7 @@ export class ProductoComponent implements OnInit {
       }) != null;
     let isCodigoUsed =
       this.precioList?.find(
-        (p) => p.codigo?.codigo == this.selectedCodigo?.codigo
+        (p) => p.codigo?.id == this.selectedCodigo?.id
       ) != null;
     if (isPrecioUsed) {
       this.notifiActionBar.notification$.next({
@@ -778,9 +835,9 @@ export class ProductoComponent implements OnInit {
             // codigoInput.tipoPrecioId = this.selectedTipoPrecio?.id;
             // this.codigoService.onSaveCodigo(codigoInput).subscribe((res2) => {
             //   res.codigo = res2;
-              this.precioList.push(res);
-              this.setPrecioEstado("save", res);
-              this.refreshPrecioTable();
+            this.precioList.push(res);
+            this.setPrecioEstado("save", res);
+            this.refreshPrecioTable();
             // });
           });
           break;
@@ -1091,79 +1148,71 @@ export class ProductoComponent implements OnInit {
     this.imagenPrincipal = imagen;
   }
 
-  tiposProductos = [
-    {
-      id: 1,
-      nombre: "General",
-      icono: "shopping_cart",
-      descripcion:
-        "Productos de limpieza, medicamentos, ropas y accesorios, electronicos, ferreteria, casa y camping.",
-    },
-    {
-      id: 2,
-      nombre: "Bebidas",
-      icono: "liquor",
-      descripcion:
-        "Cervezas, gaseosas, lacteos, jugos, aguas, energizantes, vinos, espumantes, whiskys, vodkas, cachaças, licores.",
-    },
-    {
-      id: 3,
-      nombre: "Comestibles",
-      icono: "lunch_dining",
-      descripcion:
-        "Aperitivos, panificados, carnicos, naturales, condimentos, aceites, lacteos.",
-    },
-    {
-      id: 4,
-      nombre: "Elaborados",
-      icono: "microwave",
-      descripcion:
-        "Productos que son elaborados a partir de insumos u otros productos. Ejemplo: Una pizza.",
-    },
-    {
-      id: 5,
-      nombre: "Cigarrillos",
-      icono: "smoking_rooms",
-      descripcion:
-        "Cigarrillos tradicionales, electricos, narguile, escencias, carbon para narguile.",
-    },
-  ];
+  @HostListener("window:keyup", ["$event"])
+  keyEvent(event: KeyboardEvent) {
+    let key = event.key;
+    let isNumber = (+key).toString() === key;
 
-  categorias = [
-    {
-      id: 1,
-      tipo: 1,
-      nombre: "Productos de limpieza",
-      icono: "cleaning_services",
-    },
-    { id: 2, tipo: 1, nombre: "Medicamentos", icono: "medication" },
-    { id: 3, tipo: 1, nombre: "Ropas y Accesorios", icono: "checkroom" },
-    { id: 4, tipo: 1, nombre: "Electrónicos", icono: "laptop" },
-    { id: 5, tipo: 1, nombre: "Ferreteria", icono: "handyman" },
-    { id: 6, tipo: 1, nombre: "Casa y Camping", icono: "fireplace" },
-    { id: 7, tipo: 2, nombre: "Cervezas", icono: "sports_bar" },
-    { id: 8, tipo: 2, nombre: "Gaseosas", icono: "local_drink" },
-    { id: 9, tipo: 2, nombre: "Lacteos", icono: "coffee_maker" },
-    { id: 10, tipo: 2, nombre: "Jugos", icono: "blender" },
-    { id: 11, tipo: 2, nombre: "Aguas", icono: "water_drop" },
-    { id: 12, tipo: 2, nombre: "Energizantes", icono: "bolt" },
-    { id: 13, tipo: 2, nombre: "Vinos", icono: "wine_bar" },
-    { id: 13, tipo: 2, nombre: "Espumantes", icono: "liquor" },
-    { id: 14, tipo: 2, nombre: "Whiskys", icono: "liquor" },
-    { id: 15, tipo: 2, nombre: "Vodkas", icono: "liquor" },
-    { id: 16, tipo: 2, nombre: "Cachaça", icono: "liquor" },
-    { id: 16, tipo: 2, nombre: "Licores", icono: "liquor" },
-    { id: 17, tipo: 3, nombre: "Aperitivos", icono: "icecream" },
-    { id: 17, tipo: 3, nombre: "Panificados", icono: "bakery_dining" },
-    { id: 17, tipo: 3, nombre: "Carnicos", icono: "dinner_dining" },
-    { id: 17, tipo: 3, nombre: "Naturales", icono: "yard" },
-    { id: 17, tipo: 3, nombre: "Condimentos", icono: "grass" },
-    { id: 17, tipo: 3, nombre: "Aceites", icono: "kitchen" },
-    { id: 17, tipo: 3, nombre: "Lacteos", icono: "kitchen" },
-    { id: 18, tipo: 4, nombre: "Bebida", icono: "local_drink" },
-    { id: 19, tipo: 4, nombre: "Comida", icono: "local_pizza" },
-    { id: 19, tipo: 5, nombre: "Tradicionales", icono: "smoking_rooms" },
-    { id: 19, tipo: 5, nombre: "Eléctricos", icono: "bolt" },
-    { id: 19, tipo: 5, nombre: "Narguile", icono: "smoking_rooms" },
-  ];
+    switch (this.stepper.selectedIndex) {
+      case 0:
+        if (isNumber) {
+          if (this.familiasList.length >= +key) {
+            this.seleccionarFamilia(this.familiasList[+key - 1]);
+          }
+        } else {
+          if (key == "Enter") {
+            if (this.selectedFamilia != null) {
+              this.stepper.next();
+            }
+          }
+        }
+        break;
+      case 1:
+        if (isNumber) {
+          if (this.subfamiliasList.length >= +key) {
+            this.seleccionarSubfamilia(this.subfamiliasList[+key - 1]);
+          }
+        } else {
+          if (key == "Enter") {
+            if (this.selectedSubfamilia != null) {
+              this.stepper.next();
+            }
+          }
+        }
+        break;
+      case 2:
+        if (key == "Enter") {
+          if (this.datosGeneralesControl.valid) {
+            this.onProductoSave();
+            this.stepper.next();
+          }
+        }
+        break;
+      case 3:
+        if (key == "Enter") {
+          if (this.codigosList?.length > 0) {
+            this.stepper.next();
+          }
+        }
+        break;
+      case 3:
+        if (key == "Enter") {
+          if (this.codigosList?.length > 0) {
+            this.stepper.next();
+          }
+        }
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  onValorInputEnterPress(){
+    if(this.selectedCodigoPrecio!=null){
+      this.onAddPrecio('add')
+    } else {
+      this.buscarCodigo()
+    }
+  }
 }

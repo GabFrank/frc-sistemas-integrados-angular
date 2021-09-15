@@ -1,11 +1,9 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from "@angular/common/http";
 import { Injectable } from "@angular/core";
-import { MatDialog, MatDialogRef } from "@angular/material/dialog";
-import { catchError, tap } from "rxjs/operators";
+import { MatDialog } from "@angular/material/dialog";
 import { Observable } from "zen-observable-ts";
+import { environment, serverAdress } from "../../../environments/environment";
 import { MainService } from "../../main.service";
-import { CargandoDialogComponent } from "../../shared/components/cargando-dialog/cargando-dialog.component";
-import { CargandoDialogService } from "../../shared/components/cargando-dialog/cargando-dialog.service";
 import { Usuario } from "../personas/usuarios/usuario.model";
 import { UsuarioService } from "../personas/usuarios/usuario.service";
 
@@ -29,7 +27,6 @@ export class LoginService {
     private http: HttpClient,
     private usuarioService: UsuarioService,
     public mainService: MainService,
-    private matDialog: MatDialog
   ) {}
 
   login(nickname, password): Observable<LoginResponse> {
@@ -39,7 +36,7 @@ export class LoginService {
         password: password,
       };
       let httpResponse = this.http
-        .post("http://192.168.1.185:8081/login", httpBody, this.httpOptions)
+        .post(`http://${serverAdress.serverIp}:${serverAdress.serverPort}/login`, httpBody, this.httpOptions)
         .subscribe((res) => {
           if (res["token"] != null) {
             localStorage.setItem("token", res["token"]);
@@ -57,7 +54,6 @@ export class LoginService {
                       }
                       obs.next(response);
                     } else {
-                      console.log(res);
                     }
                   });
               }

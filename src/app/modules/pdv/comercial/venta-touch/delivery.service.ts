@@ -23,7 +23,6 @@ export class DeliveryService {
       .fetch(null, { fetchPolicy: 'no-cache' })
       .subscribe((res) => {
         if (!res.errors) {
-          console.log(res);
           this.ultimosDeliverys = res.data.data;
           this.ultimosDeliverysSub.next(this.ultimosDeliverys);
         }
@@ -48,7 +47,6 @@ export class DeliveryService {
     this.deliverySub = getDeliverySub.subscribe()
 
     this.deliverySub.subscribe((res) => {
-      console.log(res)
       let delivery = res.data.deliverys;
       let index = this.deliverysActivos.findIndex(d => d.id == delivery.id);
       if(index!=-1){

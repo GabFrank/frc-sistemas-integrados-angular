@@ -24,7 +24,7 @@ import {WebSocketLink} from '@apollo/client/link/ws';
 import {getMainDefinition, Observable} from '@apollo/client/utilities';
 import { onError } from '@apollo/client/link/error';
 import { RouterModule } from '@angular/router';
-import { environment } from '../environments/environment';
+import { environment, serverAdress } from '../environments/environment';
 import { AngularFireModule } from '@angular/fire';
 import { AngularFirestoreModule } from '@angular/fire/firestore';
 import { AngularFireStorageModule } from '@angular/fire/storage';
@@ -33,7 +33,7 @@ import { setContext } from '@apollo/client/link/context';
 
 export const errorObs = new BehaviorSubject<any>(null);
 
-const uri = 'http://192.168.1.185:8081/graphql';
+const uri = `http://${serverAdress.serverIp}:${serverAdress.serverPort}`;
 
 // error handling
 const errorLink = onError(({ graphQLErrors, networkError }) => {
@@ -90,7 +90,6 @@ export function appInit(appConfigService: MainService) {
 
         const auth = setContext((operation, context) => {
           const token = localStorage.getItem('token');
-          console.log(token)
           if (token === null) {
             return {};
           } else {
@@ -103,11 +102,11 @@ export function appInit(appConfigService: MainService) {
         });
 
         // Create an http link:
-        const http = ApolloLink.from([basic, auth, httpLink.create({ uri })]);
+        const http = ApolloLink.from([basic, auth, httpLink.create({ uri: `http://${serverAdress.serverIp}:${serverAdress.serverPort}/graphql` })]);
 
         // Create a WebSocket link:
         const ws = new WebSocketLink({
-          uri: `ws://192.168.1.185:8081/subscriptions`,
+          uri: `ws://${serverAdress.serverIp}:${serverAdress.serverPort}/subscriptions`,
           options: {
             reconnect: true,
           },

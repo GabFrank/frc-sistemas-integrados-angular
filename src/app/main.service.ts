@@ -50,7 +50,6 @@ export class MainService {
       let isToken = localStorage.getItem("token");
       if (isToken != null) {
         this.getUsuario().subscribe(res => {
-          console.log(res)
           if(res){
             obs.next(true);
           } else {

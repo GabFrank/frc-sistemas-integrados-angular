@@ -24,6 +24,7 @@ import { ImageCropperModule } from 'ngx-image-cropper';
 import { NgxImageCompressService } from 'ngx-image-compress';
 import { CortarImagenDialogComponent } from './cortar-imagen-dialog/cortar-imagen-dialog.component';
 import { SelectIconDialogComponent } from './select-icon-dialog/select-icon-dialog.component';
+import { PanelLaterialInvisibleComponent } from './components/panel-laterial-invisible/panel-laterial-invisible.component';
 
 
 @NgModule({
@@ -42,6 +43,7 @@ import { SelectIconDialogComponent } from './select-icon-dialog/select-icon-dial
     CapturarImagenComponent,
     CortarImagenDialogComponent,
     SelectIconDialogComponent,
+    PanelLaterialInvisibleComponent,
     ],
   imports: [
     CommonModule,

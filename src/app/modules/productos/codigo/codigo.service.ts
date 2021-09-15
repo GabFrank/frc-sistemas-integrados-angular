@@ -40,6 +40,9 @@ export class CodigoService {
   }
 
   onSaveCodigo(input: CodigoInput): Observable<any> {
+    // if(input.tipoPrecioId!=null){
+    //   input.codigo = `${input.codigo}${input.tipoPrecioId}`;
+    // }
     input.usuarioId = this.mainService?.usuarioActual?.id;
     input.id==null ? input.activo = true : null;
     console.log('guardado codigo: ', input)
@@ -72,9 +75,10 @@ export class CodigoService {
       this.deleteCodigo
         .mutate({
           id
-        })
+        },
+        {errorPolicy: 'all'})
         .subscribe((res) => {
-          if (!res.errors) {
+          if (res.errors==null) {
             this.notificacionBar.notification$.next({
               texto: 'Código eliminado con éxito',
               duracion: 2,

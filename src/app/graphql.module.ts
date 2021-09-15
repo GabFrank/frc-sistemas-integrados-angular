@@ -14,7 +14,6 @@ export function createApollo(httpLink: HttpLink): ApolloClientOptions<any> {
     }
   }));
   const auth = new ApolloLink((operation: any, forward: any) => {
-    console.log(localStorage.getItem("token"))
     operation.setContext({
       headers: new HttpHeaders().set(
         "Authorization",
