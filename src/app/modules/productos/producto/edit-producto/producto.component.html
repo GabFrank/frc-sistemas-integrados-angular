@@ -150,12 +150,16 @@
         style="width: 100%"
       >
         <div fxFlex="50" style="text-align: start; color: white">
-          <div *ngIf="precio1 != null"  style="text-align: right">
-            Unid: {{ precio1.precio | number: '1.0-0' }}
+          <div *ngIf="precio1 != null" style="text-align: right">
+            Unid: {{ precio1.precio | number: "1.0-0" }}
           </div>
         </div>
-        <div *ngIf="precio1 != null && precio1?.codigo.cantidad > 1" fxFlex="50" style="text-align: right">
-          Caja: {{ precio1.precio * precio1.codigo.cantidad | number: '1.0-0' }}
+        <div
+          *ngIf="precio1 != null && precio1?.codigo.cantidad > 1"
+          fxFlex="50"
+          style="text-align: right"
+        >
+          Caja: {{ precio1.precio * precio1.codigo.cantidad | number: "1.0-0" }}
         </div>
       </div>
       <div
@@ -169,20 +173,24 @@
         </div>
       </div>
       <div
-      fxFlex="5"
-      fxLayout="row"
-      fxLayoutAlign="start start"
-      style="width: 100%"
-    >
-      <div fxFlex="50" style="text-align: start; color: white">
-        <div *ngIf="precio2 != null"style="text-align: right">
-          Unid: {{ precio2.precio | number: '1.0-0' }}
+        fxFlex="5"
+        fxLayout="row"
+        fxLayoutAlign="start start"
+        style="width: 100%"
+      >
+        <div fxFlex="50" style="text-align: start; color: white">
+          <div *ngIf="precio2 != null" style="text-align: right">
+            Unid: {{ precio2.precio | number: "1.0-0" }}
+          </div>
+        </div>
+        <div
+          *ngIf="precio2 != null && precio2?.codigo.cantidad > 1"
+          fxFlex="50"
+          style="text-align: right"
+        >
+          Caja: {{ precio2.precio * precio2.codigo.cantidad | number: "1.0-0" }}
         </div>
       </div>
-      <div *ngIf="precio2 != null && precio2?.codigo.cantidad > 1" fxFlex="50" style="text-align: right">
-        Caja: {{ precio2.precio * precio2.codigo.cantidad | number: '1.0-0' }}
-      </div>
-    </div>
       <div
         fxFlex="5"
         fxLayout="row"
@@ -194,20 +202,24 @@
         </div>
       </div>
       <div
-      fxFlex="5"
-      fxLayout="row"
-      fxLayoutAlign="start start"
-      style="width: 100%"
-    >
-      <div fxFlex="50" style="text-align: start; color: white">
-        <div *ngIf="precio3 != null" style="text-align: right">
-          Unid: {{ precio3.precio | number: '1.0-0' }}
+        fxFlex="5"
+        fxLayout="row"
+        fxLayoutAlign="start start"
+        style="width: 100%"
+      >
+        <div fxFlex="50" style="text-align: start; color: white">
+          <div *ngIf="precio3 != null" style="text-align: right">
+            Unid: {{ precio3.precio | number: "1.0-0" }}
+          </div>
+        </div>
+        <div
+          *ngIf="precio3 != null && precio3?.codigo.cantidad > 1"
+          fxFlex="50"
+          style="text-align: right"
+        >
+          Caja: {{ precio3.precio * precio3.codigo.cantidad | number: "1.0-0" }}
         </div>
       </div>
-      <div *ngIf="precio3 != null && precio3?.codigo.cantidad > 1" fxFlex="50" style="text-align: right">
-        Caja: {{ precio3.precio * precio3.codigo.cantidad | number: '1.0-0' }}
-      </div>
-    </div>
       <div
         fxFlex="30"
         fxLayout="column"
@@ -264,7 +276,9 @@
                 fxLayout="column"
                 fxLayoutAlign="space-around"
               >
-                <h3 fxFlex="20" style="height: 20px">{{ item.nombre }} - ({{i+1}})</h3>
+                <h3 fxFlex="20" style="height: 20px">
+                  {{ item.nombre }} - ({{ i + 1 }})
+                </h3>
                 <div fxFlex="30" fxLayout="row" fxLayoutAlign="center center">
                   <div fxFlex style="text-align: center">
                     <mat-icon
@@ -340,8 +354,7 @@
     <mat-step
       [stepControl]="categoriaControl"
       [aria-labelledby]="selectedFamilia == null ? 'disabled_Resi' : null"
-      [completed]="selectedProducto?.id!=null"
-
+      [completed]="selectedProducto?.id != null"
     >
       <form [formGroup]="categoriaControl">
         <ng-template matStepLabel>Subfamilia</ng-template>
@@ -362,7 +375,7 @@
                 (click)="seleccionarSubfamilia(item)"
                 matStepperNext
               >
-                <h3 style="height: 35px">{{ item.nombre }} - ({{i+1}})</h3>
+                <h3 style="height: 35px">{{ item.nombre }} - ({{ i + 1 }})</h3>
                 <div fxLayout="row" fxLayoutAlign="center center">
                   <div fxFlex style="text-align: center">
                     <mat-icon
@@ -432,8 +445,7 @@
       [stepControl]="datosGeneralesControl"
       [editable]="true"
       [aria-labelledby]="selectedSubfamilia == null ? 'disabled_Resi' : null"
-      [completed]="selectedProducto?.id!=null"
-
+      [completed]="selectedProducto?.id != null"
     >
       <form [formGroup]="datosGeneralesControl">
         <ng-template matStepLabel>Datos generales</ng-template>
@@ -764,8 +776,7 @@
     <mat-step
       [stepControl]="codigosControl"
       [editable]="true"
-      [completed]="selectedProducto?.id!=null"
-
+      [completed]="selectedProducto?.id != null"
     >
       <form [formGroup]="codigosControl">
         <ng-template matStepLabel>Códigos</ng-template>
@@ -855,12 +866,23 @@
                 <div fxFlex="10" style="color: white">Tipo Precio:</div>
                 <div fxFlex="20">
                   <mat-form-field style="width: 100%">
-                    <input
+                    <mat-select [formControl]="tipoPrecio" name="tipoPrecio">
+                      <mat-option>Ninguno</mat-option>
+                      <mat-option
+                        *ngFor="let tipo of tipoPrecioList"
+                        [value]="tipo.id"
+                      >
+                        {{ tipo.descripcion }}
+                      </mat-option>
+                    </mat-select>
+                    <!-- <input
+                      #tipoPrecioInput
                       type="text"
                       matInput
                       formControlName="tipoPrecio"
                       [matAutocomplete]="autoTipoPrecio"
                       style="text-align: right"
+                      (focus)="onTipoPrecioFocus()"
                     />
                     <mat-autocomplete
                       #autoTipoPrecio="matAutocomplete"
@@ -873,7 +895,7 @@
                       >
                         {{ tipo.id }} - {{ tipo.descripcion }}
                       </mat-option>
-                    </mat-autocomplete>
+                    </mat-autocomplete> -->
                   </mat-form-field>
                 </div>
                 <div fxFlex="5%"></div>
@@ -909,10 +931,6 @@
                   type="button"
                   mat-raised-button
                   color="accent"
-                  [disabled]="
-                    codigosControl.controls.codigo.value == null ||
-                    codigosControl.controls.codigo.value == ''
-                  "
                   (click)="onAddCodigo('add'); $event.preventDefault()"
                   style="width: 90%"
                 >
@@ -982,9 +1000,7 @@
               style="width: 100%"
             >
               <ng-container matColumnDef="nro" [sticky]="true">
-                <th mat-header-cell *matHeaderCellDef style="width: 5%">
-                  Id.
-                </th>
+                <th mat-header-cell *matHeaderCellDef style="width: 5%">Id.</th>
                 <td mat-cell *matCellDef="let item" style="width: 5%">
                   {{ item.id }}
                 </td>
@@ -1091,7 +1107,15 @@
               <tr
                 mat-header-row
                 *matHeaderRowDef="
-                  ['nro', 'codigo', 'tipoPrecio', 'tipo', 'activo', 'cantidad', 'eliminar'];
+                  [
+                    'nro',
+                    'codigo',
+                    'tipoPrecio',
+                    'tipo',
+                    'activo',
+                    'cantidad',
+                    'eliminar'
+                  ];
                   sticky: true
                 "
               ></tr>
@@ -1140,7 +1164,7 @@
     <mat-step
       [stepControl]="preciosControl"
       [editable]="true"
-      [completed]="selectedProducto?.id!=null"
+      [completed]="selectedProducto?.id != null"
     >
       <form [formGroup]="preciosControl">
         <ng-template matStepLabel>Precios</ng-template>
@@ -1156,12 +1180,8 @@
             fxLayoutGap="20px"
             style="height: 100%"
           >
-            <div fxFlex="90" fxLayout="column" style="width: 100%;">
-              <div
-                fxFlex="50"
-                fxLayout="row"
-                fxLayoutAlign="start center"
-              >
+            <div fxFlex="90" fxLayout="column" style="width: 100%">
+              <div fxFlex="50" fxLayout="row" fxLayoutAlign="start center">
                 <div fxFlex="10" style="color: #f57c00">Valor:</div>
                 <mat-form-field fxFlex="30" style="width: 90%">
                   <input
@@ -1179,11 +1199,12 @@
 
                 <div fxFlex="10%"></div>
                 <button
-                mat-raised-button color="primary"
-                fxFlex="25"
-                (click)="buscarCodigo()"
-              >
-                Buscar Código
+                  mat-raised-button
+                  color="primary"
+                  fxFlex="25"
+                  (click)="buscarCodigo()"
+                >
+                  Buscar Código
                 </button>
                 <!-- <div fxFlex="25%">
                   <button mat-raised-button (click)="generarPrecios()">
@@ -1196,7 +1217,12 @@
                 fxLayout="row"
                 fxLayoutAlign="start center"
                 fxLayoutGap="20px"
-                style="border-style: solid; border-width: 1px; border-radius: 10px; padding-left: 5px;"
+                style="
+                  border-style: solid;
+                  border-width: 1px;
+                  border-radius: 10px;
+                  padding-left: 5px;
+                "
               >
                 <div fxFlex="10" style="color: #f57c00">Código:</div>
                 <div fxFlex="20" style="text-align: right">
@@ -1388,7 +1414,10 @@
                 </td>
               </ng-container>
 
-              <ng-container matColumnDef="precioUnitario" style="text-align: center">
+              <ng-container
+                matColumnDef="precioUnitario"
+                style="text-align: center"
+              >
                 <th
                   mat-header-cell
                   *matHeaderCellDef
@@ -1397,11 +1426,14 @@
                   Precio Unit.
                 </th>
                 <td mat-cell *matCellDef="let item" style="text-align: center">
-                  {{ item?.precio | number: '1.0-0'}}
+                  {{ item?.precio | number: "1.0-0" }}
                 </td>
               </ng-container>
 
-              <ng-container matColumnDef="precioCaja" style="text-align: center">
+              <ng-container
+                matColumnDef="precioCaja"
+                style="text-align: center"
+              >
                 <th
                   mat-header-cell
                   *matHeaderCellDef
@@ -1410,7 +1442,7 @@
                   Precio Caja.
                 </th>
                 <td mat-cell *matCellDef="let item" style="text-align: center">
-                  {{ item?.precio * item?.codigo?.cantidad | number: '1.0-0'}}
+                  {{ item?.precio * item?.codigo?.cantidad | number: "1.0-0" }}
                 </td>
               </ng-container>
 
@@ -1462,7 +1494,7 @@
                     'cantidad',
                     'tipoPrecio',
                     'precioUnitario',
-                    'precioCaja',                    
+                    'precioCaja',
                     'eliminar'
                   ];
                   let i = index
@@ -1491,7 +1523,10 @@
         </div>
       </form>
     </mat-step>
-    <mat-step [stepControl]="imagenesControl" [editable]="true" [completed]="selectedProducto?.id!=null"
+    <mat-step
+      [stepControl]="imagenesControl"
+      [editable]="true"
+      [completed]="selectedProducto?.id != null"
     >
       <form [formGroup]="imagenesControl">
         <ng-template matStepLabel>Imagenes</ng-template>

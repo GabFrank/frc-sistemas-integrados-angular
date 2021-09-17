@@ -82,7 +82,7 @@ import {ClipboardModule} from '@angular/cdk/clipboard';
     MatDatepickerModule,
     NgxMaterialTimepickerModule,
     ClipboardModule,
-    MatStepperModule
+    MatStepperModule,
   ]
 })
 export class MaterialModule { }

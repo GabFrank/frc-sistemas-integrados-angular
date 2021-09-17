@@ -42,6 +42,9 @@ import { MatStepper } from "@angular/material/stepper";
 import { MatInput } from "@angular/material/input";
 import { dialog } from "electron";
 import { CargandoDialogComponent } from "../../../../shared/components/cargando-dialog/cargando-dialog.component";
+import { TabService } from "../../../../layouts/tab/tab.service";
+import { Tab } from "../../../../layouts/tab/tab.model";
+import { ListCompraComponent } from "../../../operaciones/compra/list-compra/list-compra.component";
 
 @Component({
   selector: "app-producto",
@@ -57,6 +60,7 @@ export class ProductoComponent implements OnInit {
   @ViewChild("valorInput", { static: false }) valorInput: ElementRef;
   @ViewChild("codigoCantidad", { static: false })
   codigoCantidadInput: ElementRef;
+  @ViewChild("tipoPrecioInput", { static: false }) tipoPrecioInput: ElementRef;
 
   isLinear = false;
   tipoProductoControl: FormGroup;
@@ -124,7 +128,8 @@ export class ProductoComponent implements OnInit {
     private subfamiliaService: SubFamiliaService,
     private productoService: ProductoService,
     private codigoService: CodigoService,
-    private precioPorSucursalService: PrecioPorSucursalService
+    private precioPorSucursalService: PrecioPorSucursalService,
+    private tabService: TabService
   ) {
     //inicializar las subscripciones
     familiaService.familiaBS.subscribe((res) => {
@@ -573,6 +578,7 @@ export class ProductoComponent implements OnInit {
     codigo.cantidad = +this.codigosControl.controls.codigoCantidad.value;
     codigo.activo = this.codigosControl.controls.codigoActivo.value;
     codigo.tipoPrecio = this.selectedTipoPrecio;
+
     if (this.codigosList?.length > 0) {
       this.isPrincipal =
         this.codigosList.find(
@@ -585,7 +591,8 @@ export class ProductoComponent implements OnInit {
         this.codigosList.find((c) => {
           if (
             c?.codigo == codigo.codigo &&
-            c?.tipoPrecio.id == codigo?.tipoPrecio.id && codigo.id == null
+            c?.tipoPrecio.id == codigo?.tipoPrecio.id &&
+            codigo.id == null
           ) {
             return c;
           } else {
@@ -594,13 +601,14 @@ export class ProductoComponent implements OnInit {
         }) != null;
       isTipoPrecioInUse =
         this.codigosList.find(
-          (c) => (c?.tipoPrecio.id == this.selectedTipoPrecio?.id && c.id != codigo.id)
+          (c) =>
+            c?.tipoPrecio.id == this.selectedTipoPrecio?.id && c.id != codigo.id
         ) != null;
     }
-    if (codigo.tipoPrecio == null) {
+    if (codigo.principal && (codigo.codigo == null || codigo.codigo == "")) {
       this.notifiActionBar.notification$.next({
         color: NotificacionColor.warn,
-        texto: "El campo Tipo Precio es obligatorio!!",
+        texto: "El código principal no puede estar vacío!!",
         duracion: 2,
       });
     } else if (this.isPrincipal && codigo.principal) {
@@ -807,9 +815,8 @@ export class ProductoComponent implements OnInit {
         return p.codigo.tipoPrecio.id === this.selectedTipoPrecio?.id;
       }) != null;
     let isCodigoUsed =
-      this.precioList?.find(
-        (p) => p.codigo?.id == this.selectedCodigo?.id
-      ) != null;
+      this.precioList?.find((p) => p.codigo?.id == this.selectedCodigo?.id) !=
+      null;
     if (isPrecioUsed) {
       this.notifiActionBar.notification$.next({
         texto: "Tipo de precio ya esta en uso",
@@ -1111,7 +1118,13 @@ export class ProductoComponent implements OnInit {
 
   //familia
 
-  onFinalizar() {}
+  onFinalizar() {
+    console.log(this.data);
+    this.tabService.removeTab(this.data.id - 1);
+    this.tabService.addTab(
+      new Tab(ProductoComponent, "Nuevo Producto", null, ListCompraComponent)
+    );
+  }
 
   //carga de imagen
   img: any;
@@ -1200,17 +1213,30 @@ export class ProductoComponent implements OnInit {
           }
         }
         break;
+      case 4:
+        if (key == "Enter") {
+          if (this.precioList?.length > 0) {
+            this.stepper.next();
+          }
+        }
+        break;
+      case 5:
+        if (key == "Enter") {
+          this.onFinalizar()
+        }
+        break;
 
       default:
         break;
     }
   }
 
-  onValorInputEnterPress(){
-    if(this.selectedCodigoPrecio!=null){
-      this.onAddPrecio('add')
+  onValorInputEnterPress() {
+    if (this.selectedCodigoPrecio != null) {
+      this.onAddPrecio("add");
     } else {
-      this.buscarCodigo()
+      this.buscarCodigo();
     }
   }
+
 }
