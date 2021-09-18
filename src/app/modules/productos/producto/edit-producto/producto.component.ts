@@ -45,6 +45,7 @@ import { CargandoDialogComponent } from "../../../../shared/components/cargando-
 import { TabService } from "../../../../layouts/tab/tab.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { ListCompraComponent } from "../../../operaciones/compra/list-compra/list-compra.component";
+import { Clipboard } from "@angular/cdk/clipboard";
 
 @Component({
   selector: "app-producto",
@@ -129,7 +130,8 @@ export class ProductoComponent implements OnInit {
     private productoService: ProductoService,
     private codigoService: CodigoService,
     private precioPorSucursalService: PrecioPorSucursalService,
-    private tabService: TabService
+    private tabService: TabService,
+    private copyToClipService: Clipboard
   ) {
     //inicializar las subscripciones
     familiaService.familiaBS.subscribe((res) => {
@@ -577,22 +579,23 @@ export class ProductoComponent implements OnInit {
       this.codigosControl.controls.tipoCodigo.value == "alternativo";
     codigo.cantidad = +this.codigosControl.controls.codigoCantidad.value;
     codigo.activo = this.codigosControl.controls.codigoActivo.value;
-    codigo.tipoPrecio = this.selectedTipoPrecio;
+    codigo.tipoPrecio =
+      this.tipoPrecioList[this.codigosControl.controls.tipoPrecio.value];
 
     if (this.codigosList?.length > 0) {
       this.isPrincipal =
         this.codigosList.find(
-          (c) => c?.principal == true && c?.id != codigo.id
+          (c) => c?.principal == true && c?.id != codigo?.id
         ) != null;
       this.isCaja =
-        this.codigosList.find((c) => c?.caja == true && c?.id != codigo.id) !=
+        this.codigosList.find((c) => c?.caja == true && c?.id != codigo?.id) !=
         null;
       this.isCodigoEnUso =
         this.codigosList.find((c) => {
           if (
             c?.codigo == codigo.codigo &&
-            c?.tipoPrecio.id == codigo?.tipoPrecio.id &&
-            codigo.id == null
+            c?.tipoPrecio?.id == codigo?.tipoPrecio?.id &&
+            codigo?.id == null
           ) {
             return c;
           } else {
@@ -600,10 +603,15 @@ export class ProductoComponent implements OnInit {
           }
         }) != null;
       isTipoPrecioInUse =
-        this.codigosList.find(
-          (c) =>
-            c?.tipoPrecio.id == this.selectedTipoPrecio?.id && c.id != codigo.id
-        ) != null;
+        this.codigosList.find((c) => {
+          if (
+            c?.tipoPrecio?.id == codigo.tipoPrecio?.id
+            &&
+            c?.id != codigo?.id
+          ) {
+            return c;
+          }
+        }) != null;
     }
     if (codigo.principal && (codigo.codigo == null || codigo.codigo == "")) {
       this.notifiActionBar.notification$.next({
@@ -629,7 +637,7 @@ export class ProductoComponent implements OnInit {
         texto: "Este código ya esta en uso",
         duracion: 2,
       });
-    } else if (isTipoPrecioInUse) {
+    } else if (isTipoPrecioInUse && codigo.tipoPrecio != null) {
       this.notifiActionBar.notification$.next({
         color: NotificacionColor.warn,
         texto: "Tipo precio ya está en uso",
@@ -646,9 +654,9 @@ export class ProductoComponent implements OnInit {
       codigoInput.descripcion = codigo?.descripcion?.toUpperCase();
       console.log(
         "agregando producto id al codigo: ",
-        this.selectedProducto.id
+        this.selectedProducto?.id
       );
-      codigoInput.productoId = this.selectedProducto.id;
+      codigoInput.productoId = this.selectedProducto?.id;
       codigoInput.tipoPrecioId = codigo?.tipoPrecio?.id;
       codigoInput.variacion = codigo.variacion;
       switch (accion) {
@@ -662,7 +670,7 @@ export class ProductoComponent implements OnInit {
         case "save":
           this.codigoService.onSaveCodigo(codigoInput).subscribe((res) => {
             this.codigosList[
-              this.codigosList.findIndex((f) => f.id == res.id)
+              this.codigosList.findIndex((f) => f?.id == res?.id)
             ] = res;
             this.codigoDataSource.data = this.codigosList;
             this.isEditingCodigo = false;
@@ -731,7 +739,13 @@ export class ProductoComponent implements OnInit {
       this.codigosControl.disable();
       this.selectedCodigo = row;
       this.selectedTipoPrecio = this.selectedCodigo?.tipoPrecio;
-      this.codigosControl.controls.tipoPrecio.setValue(this.selectedTipoPrecio);
+      console.log(this.selectedTipoPrecio);
+      this.codigosControl.controls.tipoPrecio.setValue(
+        this.tipoPrecioList.findIndex(
+          (tp) => tp?.id == this.selectedTipoPrecio?.id
+        )
+      );
+      console.log(this.codigosControl.controls.tipoPrecio.value);
       this.codigosControl.controls.codigo.setValue(row.codigo);
       this.codigosControl.controls.codigoActivo.setValue(row.activo);
       this.codigosControl.controls.tipoCodigo.setValue(
@@ -755,6 +769,7 @@ export class ProductoComponent implements OnInit {
     this.codigosControl.controls.tipoCodigo.setValue("principal");
     this.codigosControl.controls.codigoCantidad.setValue("1");
     this.codigosControl.controls.codigoActivo.setValue(true);
+    this.codigosControl.controls.tipoPrecio.setValue(null);
     this.refreshCodigoTable();
   }
 
@@ -811,7 +826,7 @@ export class ProductoComponent implements OnInit {
     this.selectedPrecio = precio;
     let isPrecioUsed =
       this.precioList?.find((p) => {
-        if (p.codigo.tipoPrecio == undefined) return null;
+        if (p.codigo.tipoPrecio == undefined) return false;
         return p.codigo.tipoPrecio.id === this.selectedTipoPrecio?.id;
       }) != null;
     let isCodigoUsed =
@@ -1032,7 +1047,7 @@ export class ProductoComponent implements OnInit {
   onPrecioFocusIn() {
     setTimeout(() => {
       this.valorInput.nativeElement.focus();
-    }, 100);
+    }, 500);
   }
 
   onCargarImagen() {}
@@ -1222,7 +1237,7 @@ export class ProductoComponent implements OnInit {
         break;
       case 5:
         if (key == "Enter") {
-          this.onFinalizar()
+          this.onFinalizar();
         }
         break;
 
@@ -1239,4 +1254,12 @@ export class ProductoComponent implements OnInit {
     }
   }
 
+  copyToClip(text) {
+    this.copyToClipService.copy(text);
+    this.notifiActionBar.notification$.next({
+      texto: "Copiado",
+      color: NotificacionColor.success,
+      duracion: 1,
+    });
+  }
 }

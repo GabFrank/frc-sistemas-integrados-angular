@@ -866,11 +866,11 @@
                 <div fxFlex="10" style="color: white">Tipo Precio:</div>
                 <div fxFlex="20">
                   <mat-form-field style="width: 100%">
-                    <mat-select [formControl]="tipoPrecio" name="tipoPrecio">
+                    <mat-select formControlName="tipoPrecio" name="tipoPrecio">
                       <mat-option>Ninguno</mat-option>
                       <mat-option
-                        *ngFor="let tipo of tipoPrecioList"
-                        [value]="tipo.id"
+                        *ngFor="let tipo of tipoPrecioList; let i = index"
+                        [value]="i"
                       >
                         {{ tipo.descripcion }}
                       </mat-option>
@@ -1010,7 +1010,7 @@
                 <th mat-header-cell *matHeaderCellDef style="width: 20%">
                   Código
                 </th>
-                <td mat-cell *matCellDef="let item" style="width: 20%">
+                <td mat-cell *matCellDef="let item" style="width: 20%" (click)="copyToClip(item.codigo); $event.stopPropagation()">
                   {{ item.codigo | uppercase }}
                 </td>
               </ng-container>
