@@ -643,6 +643,12 @@ export class ProductoComponent implements OnInit {
         texto: "Tipo precio ya está en uso",
         duracion: 2,
       });
+    } else if (isTipoPrecioInUse && codigo.tipoPrecio != null) {
+      this.notifiActionBar.notification$.next({
+        color: NotificacionColor.warn,
+        texto: "Tipo precio ya está en uso",
+        duracion: 2,
+      });
     } else {
       let codigoInput = new CodigoInput();
       codigoInput.id = this.selectedCodigo?.id;
@@ -905,7 +911,7 @@ export class ProductoComponent implements OnInit {
 
   onDeletePrecio(item: PrecioPorSucursal) {
     let index = this.precioList.findIndex(
-      (c) => c?.codigo.codigo == item.codigo.codigo
+      (c) => c?.id == item.id
     );
     if (index != -1) {
       this.dialogo
@@ -1154,8 +1160,8 @@ export class ProductoComponent implements OnInit {
           data: {
             imagen: e,
           },
-          width: "500px",
-          height: "500px",
+          width: "80%",
+          height: "80%",
           disableClose: false,
         })
         .afterClosed()
