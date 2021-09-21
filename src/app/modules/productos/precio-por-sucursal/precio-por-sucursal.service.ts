@@ -31,7 +31,7 @@ export class PrecioPorSucursalService {
   ) {}
 
   onGetPorProductoId(id: number) {
-    this.precioPorSucursalPorProductoId
+    return this.precioPorSucursalPorProductoId
       .fetch(
         {
           id,
@@ -40,11 +40,6 @@ export class PrecioPorSucursalService {
           fetchPolicy: "no-cache",
         }
       )
-      .subscribe((res) => {
-        if (!res.errors) {
-          this.datosObs.next(res.data.data);
-        }
-      });
   }
 
   onSave(input: PrecioPorSucursalInput): Observable<any> {

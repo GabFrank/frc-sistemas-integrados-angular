@@ -23,19 +23,14 @@ export class CodigoService {
     private notificacionBar: NotificacionSnackbarService
   ) { }
 
-  onGetCodigosPorProductoId(id){
+  onGetCodigosPorProductoId(id): Observable<any> {
     console.log("haciendo fetch", id)
-    this.getCodigosPorProductoId.fetch({
+    return this.getCodigosPorProductoId.fetch({
       id
     },
     {
       fetchPolicy: 'no-cache',
       errorPolicy: 'all'
-    }).subscribe(res => {
-      if(res.data.data!=null){
-        console.log(res)
-        this.dataOBs.next(res.data.data)
-      }
     })
   }
 

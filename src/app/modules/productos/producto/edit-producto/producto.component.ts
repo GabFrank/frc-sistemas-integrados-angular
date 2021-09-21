@@ -144,15 +144,15 @@ export class ProductoComponent implements OnInit {
       }
     });
 
-    this.codigoService.dataOBs.subscribe((res) => {
-      this.codigosList = res;
-      this.codigoDataSource.data = this.codigosList;
-    });
+    // this.codigoService.dataOBs.subscribe((res) => {
+    //   this.codigosList = res;
+    //   this.codigoDataSource.data = this.codigosList;
+    // });
 
-    precioPorSucursalService.datosObs.subscribe((res) => {
-      this.precioList = res;
-      this.refreshPrecioTable();
-    });
+    // precioPorSucursalService.datosObs.subscribe((res) => {
+    //   this.precioList = res;
+    //   this.refreshPrecioTable();
+    // });
   }
 
   ngOnInit() {
@@ -233,8 +233,14 @@ export class ProductoComponent implements OnInit {
       this.datosGeneralesControl.controls.diasVencimiento.setValue(
         this.selectedProducto.diasVencimiento
       );
-      this.codigoService.onGetCodigosPorProductoId(res.id);
-      this.precioPorSucursalService.onGetPorProductoId(res.id);
+      this.codigoService.onGetCodigosPorProductoId(res.id).subscribe(res => {
+        this.codigosList = res.data.data;
+        this.codigoDataSource.data = this.codigosList;
+      });
+      this.precioPorSucursalService.onGetPorProductoId(res.id).subscribe(res => {
+        this.precioList = res.data.data;
+        this.precioDataSource.data = this.precioList;
+      });
       this.loadImagenPrincipal(res?.imagenPrincipal);
     });
   }
@@ -1160,8 +1166,8 @@ export class ProductoComponent implements OnInit {
           data: {
             imagen: e,
           },
-          width: "80%",
-          height: "80%",
+          width: "50%",
+          height: "50%",
           disableClose: false,
         })
         .afterClosed()
