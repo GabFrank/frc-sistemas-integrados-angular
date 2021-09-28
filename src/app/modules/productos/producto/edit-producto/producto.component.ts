@@ -134,15 +134,7 @@ export class ProductoComponent implements OnInit {
     private copyToClipService: Clipboard
   ) {
     //inicializar las subscripciones
-    familiaService.familiaBS.subscribe((res) => {
-      this.familiasList = res;
-      if (this.selectedFamilia != null) {
-        this.selectedFamilia = this.familiasList.find(
-          (f) => f.id == this.selectedFamilia.id
-        );
-        this.subfamiliasList = this.selectedFamilia.subfamilias;
-      }
-    });
+    
 
     // this.codigoService.dataOBs.subscribe((res) => {
     //   this.codigosList = res;
@@ -158,6 +150,16 @@ export class ProductoComponent implements OnInit {
   ngOnInit() {
     let ref = this.matDialog.open(CargandoDialogComponent);
 
+    this.familiaService.familiaBS.subscribe((res) => {
+      this.familiasList = res;
+      if (this.selectedFamilia != null) {
+        this.selectedFamilia = this.familiasList.find(
+          (f) => f.id == this.selectedFamilia.id
+        );
+        this.subfamiliasList = this.selectedFamilia.subfamilias;
+      }
+    });
+
     // inicializar arrays
     this.codigosList = [];
     this.precioList = [];
@@ -169,22 +171,23 @@ export class ProductoComponent implements OnInit {
 
     setTimeout(() => {
       if (this.data?.tabData?.data.id != null) {
-        this.cargarProducto(this.data.tabData.data.id);
+        this.cargarProducto(this.data.tabData.data.id, ref);
       }
     }, 100);
-
-    setTimeout(() => {
-      ref.close();
-    }, 1000);
   }
 
-  cargarProducto(id) {
+  cargarProducto(id, ref) {
     this.productoService.getProducto(id).subscribe((res) => {
+      console.log(res)
       this.selectedProducto = res;
       this.selectedSubfamilia = this.selectedProducto?.subfamilia;
       this.selectedFamilia = this.selectedSubfamilia?.familia;
-      this.seleccionarFamilia(this.selectedFamilia);
-      this.seleccionarSubfamilia(this.selectedSubfamilia);
+      setTimeout(() => {
+        this.seleccionarFamilia(this.selectedFamilia);
+        setTimeout(() => {
+          this.seleccionarSubfamilia(this.selectedSubfamilia);
+        }, 500);
+      }, 500);
       this.datosGeneralesControl.controls.descripcion.setValue(
         this.selectedProducto.descripcion
       );
@@ -233,15 +236,18 @@ export class ProductoComponent implements OnInit {
       this.datosGeneralesControl.controls.diasVencimiento.setValue(
         this.selectedProducto.diasVencimiento
       );
-      this.codigoService.onGetCodigosPorProductoId(res.id).subscribe(res => {
+      this.codigoService.onGetCodigosPorProductoId(res.id).subscribe((res) => {
         this.codigosList = res.data.data;
         this.codigoDataSource.data = this.codigosList;
       });
-      this.precioPorSucursalService.onGetPorProductoId(res.id).subscribe(res => {
-        this.precioList = res.data.data;
-        this.precioDataSource.data = this.precioList;
-      });
+      this.precioPorSucursalService
+        .onGetPorProductoId(res.id)
+        .subscribe((res) => {
+          this.precioList = res.data.data;
+          this.precioDataSource.data = this.precioList;
+        });
       this.loadImagenPrincipal(res?.imagenPrincipal);
+      ref.close();
     });
   }
 
@@ -344,10 +350,12 @@ export class ProductoComponent implements OnInit {
     });
     this.codigosControl = new FormGroup({
       codigo: new FormControl(null),
+      codigoDescripcion: new FormControl(null),
       tipoCodigo: new FormControl(null),
       codigoCantidad: new FormControl(null),
       codigoActivo: new FormControl(null),
       tipoPrecio: new FormControl(null),
+      codigoPrecio: new FormControl(null, Validators.required),
     });
     this.preciosControl = new FormGroup({
       codigoPrecio: new FormControl(null),
@@ -500,13 +508,11 @@ export class ProductoComponent implements OnInit {
   //funciones de codigos
 
   seleccionarFamilia(tipo) {
+    this.selectedFamilia = this.familiasList?.find((f) => f.id == tipo.id);
+    this.subfamiliasList = this.selectedFamilia?.subfamilias;
     setTimeout(() => {
-      this.selectedFamilia = this.familiasList?.find((f) => f.id == tipo.id);
-      this.subfamiliasList = this.selectedFamilia?.subfamilias;
-      this.filtrarFamilias();
-      setTimeout(() => {
-        this.stepper.next();
-      }, 500);
+      // this.filtrarFamilias();
+      this.stepper.next();
     }, 500);
   }
 
@@ -529,10 +535,11 @@ export class ProductoComponent implements OnInit {
     setTimeout(() => {
       this.stepper.next();
     }, 500);
+
   }
 
   filtrarFamilias() {
-    this.filteredFamilias = this.familiasList.filter(
+    this.filteredFamilias = this.familiasList?.filter(
       (c) => c.id == this.selectedFamilia?.id
     );
   }
@@ -587,7 +594,7 @@ export class ProductoComponent implements OnInit {
     codigo.activo = this.codigosControl.controls.codigoActivo.value;
     codigo.tipoPrecio =
       this.tipoPrecioList[this.codigosControl.controls.tipoPrecio.value];
-
+    codigo.precio = this.codigosControl.controls.codigoPrecio.value;
     if (this.codigosList?.length > 0) {
       this.isPrincipal =
         this.codigosList.find(
@@ -611,15 +618,23 @@ export class ProductoComponent implements OnInit {
       isTipoPrecioInUse =
         this.codigosList.find((c) => {
           if (
-            c?.tipoPrecio?.id == codigo.tipoPrecio?.id
-            &&
+            c?.tipoPrecio?.id == codigo.tipoPrecio?.id &&
             c?.id != codigo?.id
           ) {
             return c;
           }
         }) != null;
     }
-    if (codigo.principal && (codigo.codigo == null || codigo.codigo == "")) {
+    if (codigo.precio == null) {
+      this.notifiActionBar.notification$.next({
+        color: NotificacionColor.warn,
+        texto: "El precio es un campo obligatorio!!",
+        duracion: 2,
+      });
+    } else if (
+      codigo.principal &&
+      (codigo.codigo == null || codigo.codigo == "")
+    ) {
       this.notifiActionBar.notification$.next({
         color: NotificacionColor.warn,
         texto: "El código principal no puede estar vacío!!",
@@ -656,6 +671,7 @@ export class ProductoComponent implements OnInit {
         duracion: 2,
       });
     } else {
+      let ref = this.matDialog.open(CargandoDialogComponent);
       let codigoInput = new CodigoInput();
       codigoInput.id = this.selectedCodigo?.id;
       codigoInput.principal = codigo.principal;
@@ -677,6 +693,7 @@ export class ProductoComponent implements OnInit {
             this.codigosList.push(res);
             this.codigoDataSource.data = this.codigosList;
             this.selectedCodigo = res;
+            ref.close();
           });
           break;
         case "save":
@@ -686,6 +703,7 @@ export class ProductoComponent implements OnInit {
             ] = res;
             this.codigoDataSource.data = this.codigosList;
             this.isEditingCodigo = false;
+            ref.close();
           });
 
           break;
@@ -801,6 +819,7 @@ export class ProductoComponent implements OnInit {
   }
 
   onDeleteCodigo(item: Codigo) {
+    let ref = this.matDialog.open(CargandoDialogComponent);
     let index = this.codigosList.findIndex((c) => c?.id == item.id);
     if (index != -1) {
       this.dialogo
@@ -817,14 +836,18 @@ export class ProductoComponent implements OnInit {
                 this.codigosList.splice(index, 1);
                 this.onCancelarCodigo();
                 this.refreshCodigoTable();
+                ref.close();
               }
             });
           }
         });
+    } else {
+      ref.close();
     }
   }
 
   onAddPrecio(accion) {
+    let ref = this.matDialog.open(CargandoDialogComponent);
     let precio = new PrecioPorSucursal();
     let precioInput = new PrecioPorSucursalInput();
     precioInput.id = this.selectedPrecio?.id;
@@ -870,6 +893,7 @@ export class ProductoComponent implements OnInit {
             this.precioList.push(res);
             this.setPrecioEstado("save", res);
             this.refreshPrecioTable();
+            ref.close();
             // });
           });
           break;
@@ -880,6 +904,7 @@ export class ProductoComponent implements OnInit {
               res;
             this.setPrecioEstado("editar", res);
             this.refreshPrecioTable();
+            ref.close();
           });
           break;
 
@@ -916,9 +941,8 @@ export class ProductoComponent implements OnInit {
   }
 
   onDeletePrecio(item: PrecioPorSucursal) {
-    let index = this.precioList.findIndex(
-      (c) => c?.id == item.id
-    );
+    let ref = this.matDialog.open(CargandoDialogComponent);
+    let index = this.precioList.findIndex((c) => c?.id == item.id);
     if (index != -1) {
       this.dialogo
         .confirm("Desea eliminar este precio?", null, null, [
@@ -937,10 +961,13 @@ export class ProductoComponent implements OnInit {
                 this.precioList.splice(index, 1);
                 this.onCancelarPrecio();
                 this.refreshPrecioTable();
+                ref.close();
               }
             });
           }
         });
+    } else {
+      ref.close();
     }
   }
 

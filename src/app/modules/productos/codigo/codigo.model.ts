@@ -18,4 +18,5 @@ export class Codigo {
     preciosPorSucursal: PrecioPorSucursal[];
     activo: boolean;
     creadoEn: Date;
+    precio: number;
 }

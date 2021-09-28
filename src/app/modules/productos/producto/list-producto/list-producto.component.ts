@@ -15,12 +15,14 @@ import {
   ViewChild,
 } from "@angular/core";
 import { FormControl } from "@angular/forms";
+import { MatDialog } from "@angular/material/dialog";
 import { MatPaginator } from "@angular/material/paginator";
 import { MatTableDataSource } from "@angular/material/table";
 import { Product } from "electron/main";
 import { environment } from "../../../../../environments/environment";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabService } from "../../../../layouts/tab/tab.service";
+import { CargandoDialogComponent } from "../../../../shared/components/cargando-dialog/cargando-dialog.component";
 import { transitionRightToLeftAnimation } from "../../../../shared/components/panel-laterial-invisible/panel-right-animation";
 import { Codigo } from "../../codigo/codigo.model";
 import { PrecioPorSucursal } from "../../precio-por-sucursal/precio-por-sucursal.model";
@@ -97,7 +99,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   constructor(
     public service: ProductoService,
-    private tabService: TabService
+    private tabService: TabService,
+    private matDialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -159,18 +162,23 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   }
 
   onRowClick(row) {
+    let ref = this.matDialog.open(CargandoDialogComponent)
     this.service.getProducto(row.id).subscribe((res) => {
       if (res != null) {
         if (this.menuState === "in") {
           this.menuState = "out";
+          ref.close()
           setTimeout(() => {
             this.menuState = "in";
             this.selectedProducto = res;
           }, 500);
         } else {
+          ref.close()
           this.selectedProducto = res;
           this.menuState = "in";
         }
+      } else {
+        ref.close()
       }
     });
   }

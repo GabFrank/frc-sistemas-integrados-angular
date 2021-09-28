@@ -259,30 +259,30 @@ export const productoSearchPdv = gql`
       observacion
       cambiable
       imagenPrincipal
-      codigos {
-        codigo
-        cantidad
-        principal
-        caja
-        referenciaCodigo {
-          id
-        }
-        tipoPrecio {
-          id
-        }
-        preciosPorSucursal {
-          sucursal {
-            id
-          }
-          precio
-        }
-      }
-      sucursales {
-        sucursal {
-          id
-        }
-        existencia
-      }
+      # codigos {
+      #   codigo
+      #   cantidad
+      #   principal
+      #   caja
+      #   referenciaCodigo {
+      #     id
+      #   }
+      #   tipoPrecio {
+      #     id
+      #   }
+      #   preciosPorSucursal {
+      #     sucursal {
+      #       id
+      #     }
+      #     precio
+      #   }
+      # }
+      # sucursales {
+      #   sucursal {
+      #     id
+      #   }
+      #   existencia
+      # }
       precio1 {
         id
         codigo
