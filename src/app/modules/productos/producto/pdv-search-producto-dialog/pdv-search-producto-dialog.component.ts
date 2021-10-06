@@ -166,18 +166,6 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit{
     return typeof val === 'number'; 
   }
 
-  getPrecio1(producto: Producto): number {
-    return producto?.precio1?.preciosPorSucursal?.find(pps => pps.sucursal.id == this.sucursalActual.id).precio;
-  }
-
-  getPrecio2(producto: Producto): number {
-    return producto?.precio2?.preciosPorSucursal?.find(pps => pps.sucursal.id == this.sucursalActual.id).precio;
-  }
-
-  getPrecio3(producto: Producto): number {
-    return producto?.precio3?.preciosPorSucursal?.find(pps => pps.sucursal.id == this.sucursalActual.id).precio;
-  }
-
   getExistencia(producto: Producto): number {
     return producto?.sucursales?.find(s => s.sucursal.id == this.sucursalActual.id).existencia
   }

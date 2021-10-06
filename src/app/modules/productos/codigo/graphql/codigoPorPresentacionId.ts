@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
 import { Codigo } from '../codigo.model';
-import { codigoPorCodigo, codigoPorProductoId } from './graphql-query';
+import { codigoPorCodigo, codigosPorPresentacionId } from './graphql-query';
 
 
 export interface Response {
@@ -12,8 +12,8 @@ export interface Response {
 @Injectable({
   providedIn: 'root',
 })
-export class CodigosPorProductoIdGQL extends Query<Response> {
-  document = codigoPorProductoId;
+export class CodigosPorPresentacionIdGQL extends Query<Response> {
+  document = codigosPorPresentacionId;
 }
 
 

@@ -17,7 +17,7 @@ export const productosQuery = gql`
       promocion
       vencimiento
       diasVencimiento
-      imagenPrincipal
+      
       tipoConservacion
       subfamilia {
         id
@@ -43,7 +43,7 @@ export const productoInfoCompletaQuery = gql`
       promocion
       vencimiento
       diasVencimiento
-      imagenPrincipal
+      
       tipoConservacion
       codigos {
         id
@@ -133,7 +133,7 @@ export const productosExistenciaCostoQuery = gql`
       promocion
       vencimiento
       diasVencimiento
-      imagenPrincipal
+      
       tipoConservacion
       subfamilia {
         id
@@ -196,7 +196,7 @@ export const productosExistenciaCostoSearch = gql`
       promocion
       vencimiento
       diasVencimiento
-      imagenPrincipal
+      
       tipoConservacion
       subfamilia {
         id
@@ -252,69 +252,32 @@ export const productoSearchPdv = gql`
     data: productoSearch(texto: $texto) {
       id
       descripcion
-      unidadPorCaja
       garantia
       vencimiento
       diasVencimiento
       observacion
       cambiable
-      imagenPrincipal
-      # codigos {
-      #   codigo
-      #   cantidad
-      #   principal
-      #   caja
-      #   referenciaCodigo {
-      #     id
-      #   }
-      #   tipoPrecio {
-      #     id
-      #   }
-      #   preciosPorSucursal {
-      #     sucursal {
-      #       id
-      #     }
-      #     precio
-      #   }
-      # }
-      # sucursales {
-      #   sucursal {
-      #     id
-      #   }
-      #   existencia
-      # }
-      precio1 {
+      
+      presentaciones {
         id
-        codigo
-        cantidad
-        preciosPorSucursal {
-          sucursal {
-            id
-          }
-          precio
+        principal
+        codigos {
+          id
+          codigo
+          principal
+          activo
         }
-      }
-      precio2 {
-        id
-        codigo
-        cantidad
-        preciosPorSucursal {
-          sucursal {
-            id
-          }
+        precios {
+          id
           precio
-        }
-      }
-      precio3 {
-        id
-        codigo
-        cantidad
-        preciosPorSucursal {
-          sucursal {
+          tipoPrecio {
             id
+            descripcion
           }
-          precio
+          principal
+          activo
         }
+
       }
     }
   }
@@ -337,7 +300,7 @@ export const productosSearch = gql`
       promocion
       vencimiento
       diasVencimiento
-      imagenPrincipal
+      
       tipoConservacion
       subfamilia {
         id
@@ -405,7 +368,7 @@ export const productoExistenciaCostoPorProveedor = gql`
       vencimiento
       diasVencimiento
       cambiable
-      imagenPrincipal
+      
       tipoConservacion
       codigos {
         id
@@ -489,7 +452,7 @@ export const productoPorCodigoQuery = gql`
       promocion
       vencimiento
       diasVencimiento
-      imagenPrincipal
+      
       tipoConservacion
       codigos {
         id
@@ -583,7 +546,7 @@ export const productoPorProveedor = gql`
       promocion
       vencimiento
       diasVencimiento
-      imagenPrincipal
+      
       tipoConservacion
       subfamilia {
         id
@@ -616,7 +579,7 @@ export const productoQuery = gql`
       promocion
       vencimiento
       diasVencimiento
-      imagenPrincipal
+      
       tipoConservacion
       subfamilia {
         id
@@ -677,7 +640,7 @@ export const saveProducto = gql`
       promocion
       vencimiento
       diasVencimiento
-      imagenPrincipal
+      
       tipoConservacion
       subfamilia {
         id

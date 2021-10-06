@@ -14,6 +14,11 @@ import { AddSubfamiliaDialogComponent } from './sub-familia/add-subfamilia-dialo
 import { PrecioPorSucursalComponent } from './precio-por-sucursal/precio-por-sucursal.component';
 import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
+import { TipoPresentacionComponent } from './tipo-presentacion/tipo-presentacion.component';
+import { PresentacionComponent } from './presentacion/presentacion.component';
+import { AdicionarPresentacionComponent } from './presentacion/adicionar-presentacion/adicionar-presentacion.component';
+import { AdicionarCodigoDialogComponent } from './codigo/adicionar-codigo-dialog/adicionar-codigo-dialog.component';
+import { AdicionarPrecioDialogComponent } from './precio-por-sucursal/adicionar-precio-dialog/adicionar-precio-dialog.component';
 
 
 
@@ -29,6 +34,11 @@ import { SharedModule } from '../../shared/shared.module';
     AddFamiliaDialogComponent,
     AddSubfamiliaDialogComponent,
     PrecioPorSucursalComponent,
+    TipoPresentacionComponent,
+    PresentacionComponent,
+    AdicionarPresentacionComponent,
+    AdicionarCodigoDialogComponent,
+    AdicionarPrecioDialogComponent,
   ],
   imports: [
     CommonModule,

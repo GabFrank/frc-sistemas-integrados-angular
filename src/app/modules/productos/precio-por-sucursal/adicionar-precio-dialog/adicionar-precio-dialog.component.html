@@ -1,0 +1,84 @@
+<div>
+  <form [formGroup]="formGroup">
+    <div fxLayout="column" fxLayoutAlign="start">
+      <div fxFlex style="width: 100%; text-align: center">
+        <h3 *ngIf="selectedPrecioPorSucursal?.id != null">Editar Precio</h3>
+        <h3 *ngIf="selectedPrecioPorSucursal?.id == null">Nuevo Precio</h3>
+      </div>
+      <div fxFlex fxLayout="row" fxLayoutGap="20px">
+        <div fxFlex="50%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Precio</mat-label>
+            <input
+              #precioInput
+              type="text"
+              matInput
+              formControlName="precio"
+              autocomplete="off"
+              oninput="this.value == ' ' ? this.value = '': null"
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="50%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Tipo Precio</mat-label>
+            <mat-select #tipoPrecioSelect formControlName="tipoPrecio">
+              <mat-option
+                [value]="null"
+              >
+              </mat-option>
+              <mat-option
+                *ngFor="let tipoPrecio of tipoPrecioList"
+                [value]="tipoPrecio.id"
+              >
+                {{ tipoPrecio?.descripcion }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+      <div fxFlex fxLayout="row">
+        <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center">
+          <mat-label fxFlex="30">Principal</mat-label>
+          <mat-slide-toggle fxFlex formControlName="principal">
+            {{ principalControl.value == true ? "Si" : "No" }}</mat-slide-toggle
+          >
+        </div>
+        <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center">
+          <mat-label fxFlex="30">Activo</mat-label>
+          <mat-slide-toggle fxFlex formControlName="activo">{{
+            activoControl.value == true ? "Si" : "No"
+          }}</mat-slide-toggle>
+        </div>
+      </div>
+      <br />
+      <div fxFlex fxLayout="row">
+        <div fxFlex="50%" style="text-align: center">
+          <button
+            style="width: 70%"
+            mat-raised-button
+            [color]="isEditting ? 'accent' : 'primary'"
+            [disabled]="isEditting ? !formGroup.valid : false"
+            (click)="
+              isEditting ? onSave() : (isEditting = true);
+              formGroup.enable();
+              precioInput.focus()
+            "
+          >
+            {{ isEditting ? "Guardar" : "Editar" }}
+          </button>
+        </div>
+        <div fxFlex="50%" style="text-align: center">
+          <button
+            style="width: 70%"
+            mat-raised-button
+            color="primary"
+            (click)="onCancelar()"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

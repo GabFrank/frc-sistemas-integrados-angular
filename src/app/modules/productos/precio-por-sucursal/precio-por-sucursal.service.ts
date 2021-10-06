@@ -7,9 +7,7 @@ import {
   NotificacionSnackbarService,
 } from "../../../notificacion-snackbar.service";
 import { DeletePrecioPorSucursalGQL } from "./graphql/deletePrecioPorSucursal";
-import { PrecioPorSucursalPorCodigoIdGQL } from "./graphql/precioPorSucursalPorCodigoId";
-import { PrecioPorSucursalPorProductoIdGQL } from "./graphql/precioPorSucursalPorProductoId";
-import { PrecioPorSucursalPorSucursalIdGQL } from "./graphql/precioPorSucursalPorSucursalId";
+import { PrecioPorSucursalPorPresentacionIdGQL } from "./graphql/precioPorSucursalPorPresentacionId";
 import { savePrecioPorSucursalGQL } from "./graphql/savePrecioPorSucursal";
 import { PrecioPorSucursalInput } from "./precio-por-sucursal-input.model";
 import { PrecioPorSucursal } from "./precio-por-sucursal.model";
@@ -22,35 +20,25 @@ export class PrecioPorSucursalService {
 
   constructor(
     private savePrecioPorSucursal: savePrecioPorSucursalGQL,
-    private precioPorSucursalPorSucursalId: PrecioPorSucursalPorSucursalIdGQL,
-    private precioPorSucursalPorCodigoId: PrecioPorSucursalPorCodigoIdGQL,
-    private precioPorSucursalPorProductoId: PrecioPorSucursalPorProductoIdGQL,
     private notificacionSnackBar: NotificacionSnackbarService,
     private deletePrecioPorSucursal: DeletePrecioPorSucursalGQL,
+    private getPrecioPorSucursalPorPresentacion: PrecioPorSucursalPorPresentacionIdGQL,
     public mainService: MainService
   ) {}
 
-  onGetPorProductoId(id: number) {
-    return this.precioPorSucursalPorProductoId
-      .fetch(
-        {
-          id,
-        },
-        {
-          fetchPolicy: "no-cache",
-        }
-      )
-  }
-
   onSave(input: PrecioPorSucursalInput): Observable<any> {
+    console.log(input)
     input.usuarioId = this.mainService?.usuarioActual?.id;
     return new Observable((obs) => {
       this.savePrecioPorSucursal
         .mutate({
           entity: input,
+        },
+        {
+          errorPolicy: 'all'
         })
         .subscribe((res) => {
-          if (!res.errors) {
+          if (res.errors==null) {
             obs.next(res.data.data);
             this.notificacionSnackBar.notification$.next({
               texto: "Precio guardado con éxito",
@@ -68,11 +56,13 @@ export class PrecioPorSucursalService {
     });
   }
 
-  onDelete(id: number): Observable<boolean> {
+  onDelete(precio: PrecioPorSucursal): Observable<boolean> {
     return new Observable((obs) => {
       this.deletePrecioPorSucursal
         .mutate({
-          id,
+          id: precio.id
+        }, {
+          errorPolicy: 'all'
         })
         .subscribe((res) => {
           if (!res.errors) {
@@ -92,5 +82,14 @@ export class PrecioPorSucursalService {
           }
         });
     });
+  }
+
+  onGetPrecioPorSurursalPorPresentacionId(id: number){
+    return this.getPrecioPorSucursalPorPresentacion.fetch({
+      id
+    }, {
+      fetchPolicy: 'no-cache',
+      errorPolicy: 'all'
+    })
   }
 }

@@ -3,6 +3,7 @@ import { Pedido } from '../../operaciones/pedido/edit-pedido/pedido.model';
 import { Proveedor } from '../../personas/proveedor/proveedor.model';
 import { Usuario } from '../../personas/usuarios/usuario.model';
 import { Codigo } from '../codigo/codigo.model';
+import { Presentacion } from '../presentacion/presentacion.model';
 import { Subfamilia } from '../sub-familia/sub-familia.model';
 
 export class Producto {
@@ -32,6 +33,7 @@ export class Producto {
   precio1?: Codigo;
   precio2?: Codigo;
   precio3?: Codigo;
+  presentaciones: Presentacion[]
 }
 
 export class ExistenciaCostoPorSucursal {

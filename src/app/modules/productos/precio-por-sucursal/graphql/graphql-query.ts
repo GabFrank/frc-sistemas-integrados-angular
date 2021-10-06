@@ -4,90 +4,31 @@ export const preciosPorSucursalQuery = gql`
   query {
     data: preciosPorSucursal {
       id
-      codigo {
+      presentacion {
         id
-        codigo
-        cantidad
-        caja
-        variacion
-        principal
-        activo
-        tipoPrecio {
-          id
-          descripcion
-          activo
-        }
+      }
+      sucursal {
+        id
+      }
+      tipoPrecio {
+        id
       }
       precio
     }
   }
 `;
 
-export const preciosPorSucursalPorCodigoId = gql`
+export const precioPorSucursalPorPresentacionId = gql`
   query ($id: Int) {
-    data: precioPorSupreciosPorSucursalPorCodigoIdcursalSearch(id: $id) {
+    data: precioPorSucursalPorPresentacionId(id: $id) {
       id
-      codigo {
+      tipoPrecio {
         id
-        codigo
-        cantidad
-        caja
-        variacion
-        principal
-        activo
-        tipoPrecio {
-          id
-          descripcion
-          activo
-        }
+        descripcion
       }
       precio
-    }
-  }
-`;
-
-export const preciosPorSucursalPorSucursalId = gql`
-  query ($id: ID!) {
-    data: preciosPorSucursalPorSucursalId(id: $id) {
-      id
-      codigo {
-        id
-        codigo
-        cantidad
-        caja
-        variacion
-        principal
-        activo
-        tipoPrecio {
-          id
-          descripcion
-          activo
-        }
-      }
-      precio
-    }
-  }
-`;
-
-export const precioPorSucursalPorProductoId = gql`
-  query ($id: Int) {
-    data: precioPorSucursalPorProductoId(id: $id) {
-      id
-      codigo {
-        id
-        codigo
-        cantidad
-        caja
-        variacion
-        principal
-        activo
-        tipoPrecio {
-          id
-          descripcion
-          activo
-        }
-      }
-      precio
+      principal
+      activo
     }
   }
 `;
@@ -96,19 +37,14 @@ export const savePrecioPorSucursal = gql`
   mutation savePrecioPorSucursal($entity: PrecioPorSucursalInput!) {
     data: savePrecioPorSucursal(precioPorSucursal: $entity) {
       id
-      codigo {
+      presentacion {
         id
-        codigo
-        cantidad
-        caja
-        variacion
-        principal
-        activo
-        tipoPrecio {
-          id
-          descripcion
-          activo
-        }
+      }
+      sucursal {
+        id
+      }
+      tipoPrecio {
+        id
       }
       precio
     }

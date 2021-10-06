@@ -1,15 +1,12 @@
+import { Usuario } from "../../personas/usuarios/usuario.model";
+import { Presentacion } from "../presentacion/presentacion.model";
 
 export class CodigoInput {
-    id: Number
-    codigo: String;
-    productoId: number;
-    cantidad: number;
-    principal: boolean;
-    descripcion: String;
-    caja: boolean;
-    tipoPrecioId: number;
-    usuarioId: number;
-    variacion: boolean
-    referenciaCodigoId: number;
+    id: number
+    codigo: string;
+    principal: boolean
     activo: boolean;
+    presentacionId: number;
+    usuarioId: number
+    creadoEn: Date;
 }

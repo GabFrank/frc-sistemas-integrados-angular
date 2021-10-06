@@ -457,109 +457,109 @@ export class VentaTouchComponent implements OnInit {
 
     if (texto == null) {
       texto = producto.codigos.find((c) => {
-        if (c.principal && c.caja != true) {
-          return c;
-        }
+        // if (c.principal && c.caja != true) {
+        //   return c;
+        // }
       }).codigo;
     }
 
-    if (this.selectedTipoPrecio.id != 1) {
-      codigo = producto.codigos.find(
-        (c) => c?.tipoPrecio?.id == this.selectedTipoPrecio.id
-      );
-      let item: Item = {
-        cantidad: cantidadIngresada * codigo.cantidad,
-        precio: codigo.preciosPorSucursal.find(
-          (pps) => pps.sucursal.id == this.mainService.sucursalActual.id
-        ).precio,
-        producto,
-        caja: codigo.caja,
-        unidadPorCaja: codigo.cantidad,
-        tipoPrecio: codigo?.tipoPrecio,
-      };
-      this.addItem(item, index);
-    } else {
-      if (cantidadIngresada >= unidadPorCaja) {
-        cantidadPorCaja = Math.floor(cantidadIngresada / unidadPorCaja);
-        unidadSobrantes = cantidadIngresada - cantidadPorCaja * unidadPorCaja;
-        cantidadIngresada = 0;
-      }
-      if (cantidadPorCaja > 0) {
-        codigo = producto.codigos.find((c) => {
-          if (c.caja && c.principal) {
-            return c;
-          }
-        });
-        let item: Item = {
-          cantidad: cantidadPorCaja * codigo.cantidad,
-          precio: codigo.preciosPorSucursal.find(
-            (pps) => pps.sucursal.id == this.mainService.sucursalActual.id
-          ).precio,
-          caja: true,
-          producto,
-          unidadPorCaja: codigo.cantidad,
-          tipoPrecio: codigo?.tipoPrecio,
-        };
-        this.addItem(item, index);
-      }
-      if (unidadSobrantes > 0) {
-        codigo = producto.codigos.find(
-          (c) => c.codigo == unidadSobrantes + texto
-        );
-        if (codigo == null) {
-          codigo = producto.codigos.find((c) => {
-            if (c.principal && c.caja != true) {
-              return c;
-            }
-          });
-        }
-        let item: Item = {
-          cantidad: unidadSobrantes,
-          producto,
-          precio: codigo.preciosPorSucursal.find(
-            (pps) => pps.sucursal.id == this.mainService.sucursalActual.id
-          ).precio,
-          caja: false,
-          tipoPrecio: codigo?.tipoPrecio,
-        };
-        this.addItem(item, index);
-      } else {
-        if (cantidadIngresada > 0) {
-          codigo = producto.codigos.find((c) => {
-            if (c.codigo == cantidadIngresada + texto) {
-              cantidadIngresada = 1;
-              return c;
-            }
-          });
-          codigo == null
-            ? (codigo = producto.codigos.find((c) => c.codigo == texto))
-            : null;
-          if (codigo == null) {
-            codigo = producto.codigos.find((c) => {
-              if (c.principal && c.caja != true) {
-                return c;
-              }
-            });
-          }
-          if (codigo.referenciaCodigo != null) {
-            codigo = producto.codigos.find(
-              (c) => c.id == codigo.referenciaCodigo.id
-            );
-          }
-          let item: Item = {
-            cantidad: cantidadIngresada * codigo.cantidad,
-            producto,
-            precio: codigo.preciosPorSucursal.find(
-              (pps) => pps.sucursal.id == this.mainService.sucursalActual.id
-            ).precio,
-            caja: codigo.caja,
-            unidadPorCaja: producto.unidadPorCaja,
-            tipoPrecio: codigo?.tipoPrecio,
-          };
-          this.addItem(item, index);
-        }
-      }
-    }
+    // if (this.selectedTipoPrecio.id != 1) {
+    //   codigo = producto.codigos.find(
+    //     (c) => c?.tipoPrecio?.id == this.selectedTipoPrecio.id
+    //   );
+    //   let item: Item = {
+    //     cantidad: cantidadIngresada * codigo.cantidad,
+    //     precio: codigo.preciosPorSucursal.find(
+    //       (pps) => pps.sucursal.id == this.mainService.sucursalActual.id
+    //     ).precio,
+    //     producto,
+    //     caja: codigo.caja,
+    //     unidadPorCaja: codigo.cantidad,
+    //     tipoPrecio: codigo?.tipoPrecio,
+    //   };
+    //   this.addItem(item, index);
+    // } else {
+    //   if (cantidadIngresada >= unidadPorCaja) {
+    //     cantidadPorCaja = Math.floor(cantidadIngresada / unidadPorCaja);
+    //     unidadSobrantes = cantidadIngresada - cantidadPorCaja * unidadPorCaja;
+    //     cantidadIngresada = 0;
+    //   }
+    //   if (cantidadPorCaja > 0) {
+    //     codigo = producto.codigos.find((c) => {
+    //       if (c.caja && c.principal) {
+    //         return c;
+    //       }
+    //     });
+    //     let item: Item = {
+    //       cantidad: cantidadPorCaja * codigo.cantidad,
+    //       precio: codigo.preciosPorSucursal.find(
+    //         (pps) => pps.sucursal.id == this.mainService.sucursalActual.id
+    //       ).precio,
+    //       caja: true,
+    //       producto,
+    //       unidadPorCaja: codigo.cantidad,
+    //       tipoPrecio: codigo?.tipoPrecio,
+    //     };
+    //     this.addItem(item, index);
+    //   }
+    //   if (unidadSobrantes > 0) {
+    //     codigo = producto.codigos.find(
+    //       (c) => c.codigo == unidadSobrantes + texto
+    //     );
+    //     if (codigo == null) {
+    //       codigo = producto.codigos.find((c) => {
+    //         if (c.principal && c.caja != true) {
+    //           return c;
+    //         }
+    //       });
+    //     }
+    //     let item: Item = {
+    //       cantidad: unidadSobrantes,
+    //       producto,
+    //       precio: codigo.preciosPorSucursal.find(
+    //         (pps) => pps.sucursal.id == this.mainService.sucursalActual.id
+    //       ).precio,
+    //       caja: false,
+    //       tipoPrecio: codigo?.tipoPrecio,
+    //     };
+    //     this.addItem(item, index);
+    //   } else {
+    //     if (cantidadIngresada > 0) {
+    //       codigo = producto.codigos.find((c) => {
+    //         if (c.codigo == cantidadIngresada + texto) {
+    //           cantidadIngresada = 1;
+    //           return c;
+    //         }
+    //       });
+    //       codigo == null
+    //         ? (codigo = producto.codigos.find((c) => c.codigo == texto))
+    //         : null;
+    //       if (codigo == null) {
+    //         codigo = producto.codigos.find((c) => {
+    //           if (c.principal && c.caja != true) {
+    //             return c;
+    //           }
+    //         });
+    //       }
+    //       if (codigo.referenciaCodigo != null) {
+    //         codigo = producto.codigos.find(
+    //           (c) => c.id == codigo.referenciaCodigo.id
+    //         );
+    //       }
+    //       let item: Item = {
+    //         cantidad: cantidadIngresada * codigo.cantidad,
+    //         producto,
+    //         precio: codigo.preciosPorSucursal.find(
+    //           (pps) => pps.sucursal.id == this.mainService.sucursalActual.id
+    //         ).precio,
+    //         caja: codigo.caja,
+    //         unidadPorCaja: producto.unidadPorCaja,
+    //         tipoPrecio: codigo?.tipoPrecio,
+    //       };
+    //       this.addItem(item, index);
+    //     }
+    //   }
+    // }
   }
 
   setFocusToCodigoInput() {

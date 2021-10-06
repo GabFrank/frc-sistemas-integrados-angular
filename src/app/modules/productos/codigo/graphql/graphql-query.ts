@@ -1,27 +1,11 @@
-import gql from 'graphql-tag';
+import gql from "graphql-tag";
 
 export const codigosQuery = gql`
   {
     id
-    codigo
     activo
-    tipoPrecio {
-      id
-      descripcion
-      activo
-      autorizacion
-    }
-    producto {
-      id
-    }
-    cantidad
-    caja
-    preciosPorSucursal {
-      sucursal {
-        id
-      }
-      precio
-    }
+    principal
+    codigo
   }
 `;
 
@@ -33,56 +17,20 @@ export const codigoPorCodigo = gql`
   query ($texto: String) {
     data: codigoPorCodigo(texto: $texto) {
       id
-      codigo
       activo
-      tipoPrecio {
-        id
-        descripcion
-        activo
-        autorizacion
-      }
-      producto {
-        id
-        descripcion
-        balanza
-        garantia
-        combo
-        promocion
-        imagenPrincipal
-      }
-      cantidad
-      caja
-      preciosPorSucursal {
-        sucursal {
-          id
-        }
-        precio
-      }
+      principal
+      codigo
     }
   }
 `;
 
-export const codigoPorProductoId = gql`
+export const codigosPorPresentacionId = gql`
   query ($id: Int) {
-    data: codigoPorProductoId(id: $id) {
+    data: codigosPorPresentacionId(id: $id) {
       id
       activo
-      producto {
-        id
-      }
-      codigo
-      caja
-      cantidad
       principal
-      variacion
-      tipoPrecio {
-        id
-        descripcion
-      }
-      referenciaCodigo {
-        id
-        codigo
-      }
+      codigo
     }
   }
 `;
@@ -92,24 +40,8 @@ export const codigoQuery = gql`
     data: codigo(id: $id) {
       id
       activo
+      principal
       codigo
-      tipoPrecio {
-        id
-        descripcion
-        activo
-        autorizacion
-      }
-      producto {
-        id
-      }
-      cantidad
-      caja
-      preciosPorSucursal {
-        sucursal {
-          id
-        }
-        precio
-      }
     }
   }
 `;
@@ -119,21 +51,10 @@ export const saveCodigo = gql`
     data: saveCodigo(codigo: $entity) {
       id
       activo
-      producto {
-        id
-      }
-      codigo
-      caja
-      cantidad
       principal
-      variacion
-      tipoPrecio {
+      codigo
+      presentacion {
         id
-        descripcion
-      }
-      referenciaCodigo {
-        id
-        codigo
       }
     }
   }

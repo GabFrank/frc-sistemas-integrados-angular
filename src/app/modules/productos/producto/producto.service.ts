@@ -30,14 +30,22 @@ export class ProductoService{
   }
 
   onSearch(texto, query?, sort?, proveedorId?) {
+    console.log(texto)
     if(proveedorId!=null){
       this.productoPorProveedor
       .fetch({
         id: proveedorId,
         texto,
+      }, {
+        fetchPolicy: 'no-cache',
+        errorPolicy: 'all'
       })
       .subscribe((res) => {
-        this.datosSub.next(res.data.productos);
+        if(res.errors==null){
+          this.datosSub.next(res.data.productos);
+        } else {
+          
+        }
       });
     } else {
       this.productoSearch.fetch({
@@ -46,7 +54,11 @@ export class ProductoService{
         fetchPolicy: 'no-cache',
         errorPolicy: 'all'
       }).subscribe(res => {
-        this.datosSub.next(res.data.data)
+        if(res.errors == null){
+          this.datosSub.next(res.data.data)
+        } else {
+          
+        }
       })
     }
     

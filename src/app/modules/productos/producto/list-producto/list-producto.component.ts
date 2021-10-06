@@ -109,25 +109,9 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       let pdsList: ProductoDatasource[] = [];
       this.isSearching = false;
       res?.forEach((p) => {
-        let pds: ProductoDatasource = {
-          id: p.id,
-          descripcion: p.descripcion,
-          precio1:
-            p?.precio1?.preciosPorSucursal.find(
-              (p) => p.sucursal?.id == environment.sucursalId
-            )?.precio * p?.precio1?.cantidad,
-          precio2:
-            p?.precio2?.preciosPorSucursal.find(
-              (p) => p.sucursal?.id == environment.sucursalId
-            )?.precio * p?.precio2?.cantidad,
-          precio3:
-            p?.precio3?.preciosPorSucursal.find(
-              (p) => p.sucursal?.id == environment.sucursalId
-            )?.precio * p?.precio3?.cantidad,
-        };
-        pdsList.push(pds);
       });
       this.dataSource.data = pdsList;
+      console.log(this.dataSource.data)
     });
 
     //listener para el campo buscar

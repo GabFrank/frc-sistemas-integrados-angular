@@ -5,7 +5,7 @@ import { codigoPorCodigo } from './graphql-query';
 
 
 export interface Response {
-  data: Codigo;
+  data: Codigo[];
 }
 
 

@@ -1,0 +1,93 @@
+<div>
+  <form [formGroup]="formGroup">
+    <div fxLayout="column" fxLayoutAlign="start">
+      <div fxFlex style="width: 100%; text-align: center">
+        <h3 *ngIf="selectedPresentacion?.id != null">Editar Presentación</h3>
+        <h3 *ngIf="selectedPresentacion?.id == null">Nueva Presentación</h3>
+      </div>
+      <div fxFlex>
+        <mat-form-field style="width: 100%">
+          <mat-label>Descripción</mat-label>
+          <input
+            #descripcionInput
+            type="text"
+            matInput
+            formControlName="descripcion"
+            placeholder="EJ.: CAJA X 6 NATURAL"
+            autocomplete="off"
+            oninput="this.value == ' ' ? this.value = '': null"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex fxLayout="row">
+        <div fxFlex="50%">
+          <mat-form-field style="width: 90%">
+            <mat-label>Cantidad</mat-label>
+            <input
+              #cantidadInput
+              type="number"
+              matInput
+              formControlName="cantidad"
+              autocomplete="off"
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="50">
+          <mat-form-field style="width: 100%">
+            <mat-label>Tipo</mat-label>
+            <mat-select
+              #tipoPresentacionSelect
+              formControlName="tipoPresentacion"
+            >
+              <mat-option
+                (onSelectionChange)="onTipoPresentacionSelect($event)"
+                *ngFor="let tipoPresentacion of tipoPresentacionList"
+                [value]="tipoPresentacion"
+              >
+                {{ tipoPresentacion?.descripcion }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+      <div fxFlex fxLayout="row">
+        <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center">
+          <mat-label fxFlex="30">Principal</mat-label>
+          <mat-slide-toggle fxFlex formControlName="principal">
+            {{ principalControl.value == true ? "Si" : "No" }}</mat-slide-toggle
+          >
+        </div>
+        <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center">
+          <mat-label fxFlex="30">Activo</mat-label>
+          <mat-slide-toggle fxFlex formControlName="activo">{{
+            activoControl.value == true ? "Si" : "No"
+          }}</mat-slide-toggle>
+        </div>
+      </div>
+      <br />
+      <div fxFlex fxLayout="row">
+        <div fxFlex="50%" style="text-align: center">
+          <button
+            style="width: 70%"
+            mat-raised-button
+            color="accent"
+            [disabled]="formGroup.valid"
+            (click)="onSave()"
+          >
+            Guardar
+          </button>
+        </div>
+        <div fxFlex="50%" style="text-align: center">
+          <button
+            style="width: 70%"
+            mat-raised-button
+            color="primary"
+            (click)="onCancelar()"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,29 @@
+<div fxLayout="column" fxLayoutAlign="start center">
+  <div fxLlex>
+    <img
+      [src]="img"
+      alt="imagen"
+      style="width: 800px; height: 800px; object-fit: contain"
+    />
+  </div>
+  <br>  
+  <div fxFlex fxLayout="row" style="width: 100%;" fxLayoutAlign="space-around">
+    <div fxFlex="50%" style="text-align: center;">
+      <button mat-raised-button color="primary" (click)="onCancelar()" style="width: 50%;">
+        Cerrar
+      </button>
+    </div>
+    <div fxFlex="50%" style="text-align: center;">
+      <button mat-raised-button color="accent" (click)="fileInput.click()" style="width: 50%;">
+        Cambiar
+      </button>
+      <input
+        #fileInput
+        type="file"
+        accept="image/*"
+        (change)="onFileInput($event, data.entity?.id)"
+        style="display: none"
+      />
+    </div>
+  </div>
+</div>

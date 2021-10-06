@@ -1,95 +1,137 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { MainService } from '../../../main.service';
-import { NotificacionColor, NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
-import { CodigoInput } from './codigo-input.model';
-import { Codigo } from './codigo.model';
-import { CodigosPorProductoIdGQL } from './graphql/codigoPorProductoId';
-import { DeleteCodigoGQL } from './graphql/deleteCodigo';
-import { SaveCodigoGQL } from './graphql/saveCodigo';
+import { Injectable } from "@angular/core";
+import { MatDialog } from "@angular/material/dialog";
+import { BehaviorSubject, Observable } from "rxjs";
+import { MainService } from "../../../main.service";
+import {
+  NotificacionColor,
+  NotificacionSnackbarService,
+} from "../../../notificacion-snackbar.service";
+import { DialogosService } from "../../../shared/components/dialogos/dialogos.service";
+import { CodigoInput } from "./codigo-input.model";
+import { Codigo } from "./codigo.model";
+import { CodigoPorCodigoGQL } from "./graphql/codigoPorCodigo";
+import { CodigosPorPresentacionIdGQL } from "./graphql/codigoPorPresentacionId";
+import { DeleteCodigoGQL } from "./graphql/deleteCodigo";
+import { SaveCodigoGQL } from "./graphql/saveCodigo";
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: "root",
 })
 export class CodigoService {
-
-  dataOBs = new BehaviorSubject<Codigo[]>(null)
+  dataOBs = new BehaviorSubject<Codigo[]>(null);
 
   constructor(
     public mainService: MainService,
     private saveCodigo: SaveCodigoGQL,
-    private getCodigosPorProductoId: CodigosPorProductoIdGQL,
+    private getCodigosPorPresentacionId: CodigosPorPresentacionIdGQL,
     private deleteCodigo: DeleteCodigoGQL,
-    private notificacionBar: NotificacionSnackbarService
-  ) { }
+    private notificacionBar: NotificacionSnackbarService,
+    private getCodigoPorCodigo: CodigoPorCodigoGQL,
+    private dialogoService: DialogosService
+  ) {}
 
-  onGetCodigosPorProductoId(id): Observable<any> {
-    console.log("haciendo fetch", id)
-    return this.getCodigosPorProductoId.fetch({
-      id
-    },
-    {
-      fetchPolicy: 'no-cache',
-      errorPolicy: 'all'
-    })
+  onGetCodigosPorPresentacionId(id) {
+    console.log("haciendo fetch", id);
+    return this.getCodigosPorPresentacionId.fetch(
+      {
+        id,
+      },
+      {
+        fetchPolicy: "no-cache",
+        errorPolicy: "all",
+      }
+    );
   }
 
   onSaveCodigo(input: CodigoInput): Observable<any> {
-    // if(input.tipoPrecioId!=null){
-    //   input.codigo = `${input.codigo}${input.tipoPrecioId}`;
-    // }
     input.usuarioId = this.mainService?.usuarioActual?.id;
-    input.id==null ? input.activo = true : null;
-    console.log('guardado codigo: ', input)
+    input.id == null ? (input.activo = true) : null;
     return new Observable((obs) => {
       this.saveCodigo
-        .mutate({
-          entity: input,
-        })
+        .mutate(
+          {
+            entity: input,
+          },
+          {
+            errorPolicy: "all",
+          }
+        )
         .subscribe((res) => {
-          if (!res.errors) {
+          console.log(res);
+          if (res.errors == null) {
             this.notificacionBar.notification$.next({
-              texto: 'Código guardado con éxito',
+              texto: "Código guardado con éxito",
               duracion: 2,
-              color: NotificacionColor.success
-            })
+              color: NotificacionColor.success,
+            });
             obs.next(res.data.data);
           } else {
+            let texto = "Ups! Ocurrió algun problema al guardar";
+            if (
+              res.errors[0].message.includes("codigo_un_presentacion_principal")
+            ) {
+              texto = "Ya existe un código principal!!";
+            }
             this.notificacionBar.notification$.next({
-              texto: 'Ups! Ocurrió algun problema al guardar',
+              texto,
               duracion: 2,
-              color: NotificacionColor.danger
-            })
+              color: NotificacionColor.danger,
+            });
           }
         });
     });
   }
 
-  onDeleteCodigo(id: number): Observable<any> {
+  onDeleteCodigo(codigo: Codigo): Observable<any> {
     return new Observable((obs) => {
-      this.deleteCodigo
-        .mutate({
-          id
-        },
-        {errorPolicy: 'all'})
-        .subscribe((res) => {
-          if (res.errors==null) {
-            this.notificacionBar.notification$.next({
-              texto: 'Código eliminado con éxito',
-              duracion: 2,
-              color: NotificacionColor.success
-            })
-            obs.next(true);
+      this.dialogoService
+        .confirm(
+          "Atención!!",
+          "Realemente desea eliminar el código",
+          `${codigo.codigo}`
+        )
+        .subscribe((res1) => {
+          if (res1) {
+            this.deleteCodigo
+              .mutate(
+                {
+                  id: codigo.id,
+                },
+                { errorPolicy: "all" }
+              )
+              .subscribe((res) => {
+                if (res.errors == null) {
+                  this.notificacionBar.notification$.next({
+                    texto: "Código eliminado con éxito",
+                    duracion: 2,
+                    color: NotificacionColor.success,
+                  });
+                  obs.next(true);
+                } else {
+                  {
+                    this.notificacionBar.notification$.next({
+                      texto: "Ups! Ocurrió algun problema al eliminar",
+                      duracion: 2,
+                      color: NotificacionColor.danger,
+                    });
+                  }
+                }
+              });
           } else {
-            {
-              this.notificacionBar.notification$.next({
-                texto: 'Ups! Ocurrió algun problema al eliminar',
-                duracion: 2,
-                color: NotificacionColor.danger
-              })
-            }
           }
         });
     });
+  }
+
+  onGetCodigoPorCodigo(texto: string) {
+    return this.getCodigoPorCodigo.fetch(
+      {
+        texto,
+      },
+      {
+        fetchPolicy: "no-cache",
+        errorPolicy: "all",
+      }
+    );
   }
 }

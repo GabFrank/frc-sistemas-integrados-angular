@@ -25,6 +25,7 @@ import { NgxImageCompressService } from 'ngx-image-compress';
 import { CortarImagenDialogComponent } from './cortar-imagen-dialog/cortar-imagen-dialog.component';
 import { SelectIconDialogComponent } from './select-icon-dialog/select-icon-dialog.component';
 import { PanelLaterialInvisibleComponent } from './components/panel-laterial-invisible/panel-laterial-invisible.component';
+import { VizualizarImagenDialogComponent } from './images/vizualizar-imagen-dialog/vizualizar-imagen-dialog.component';
 
 
 @NgModule({
@@ -44,6 +45,7 @@ import { PanelLaterialInvisibleComponent } from './components/panel-laterial-inv
     CortarImagenDialogComponent,
     SelectIconDialogComponent,
     PanelLaterialInvisibleComponent,
+    VizualizarImagenDialogComponent,
     ],
   imports: [
     CommonModule,
