@@ -3,7 +3,7 @@ import gql from "graphql-tag";
 export const presentacionQuery = gql`
   query ($id: ID!) {
     data: presentacion(id: $id) {
-      id
+      id 
       descripcion
       activo
       principal

@@ -178,7 +178,7 @@
                       overflow-y: scroll;
                     "
                   >
-                    {{ item.descripcion }}
+                    {{ item.descripcion | uppercase}}
                   </p>
                 </mat-card-content>
               </mat-card>
@@ -614,7 +614,7 @@
             <ng-container matColumnDef="descripcion">
               <th mat-header-cell *matHeaderCellDef>Descripción</th>
               <td mat-cell *matCellDef="let element">
-                {{ element.descripcion }}
+                {{ element.descripcion | uppercase}}
               </td>
             </ng-container>
 
@@ -650,7 +650,7 @@
                 Tipo
               </th>
               <td mat-cell *matCellDef="let element" style="text-align: center">
-                {{ element?.tipoPresentacion?.descripcion }}
+                {{ element?.tipoPresentacion?.descripcion | uppercase}}
               </td>
             </ng-container>
 
@@ -692,7 +692,7 @@
                     <mat-icon style="color: green">edit</mat-icon>
                     <span>Editar</span>
                   </button>
-                  <button mat-menu-item>
+                  <button mat-menu-item (click)="onDeletePresentacion(element)">
                     <mat-icon style="color: red">clear</mat-icon>
                     <span>Eliminar</span>
                   </button>
@@ -840,7 +840,7 @@
                         <ng-container matColumnDef="tipoPrecio">
                           <th mat-header-cell *matHeaderCellDef>Tipo Precio</th>
                           <td mat-cell *matCellDef="let element">
-                            {{ element?.tipoPrecio.descripcion }}
+                            {{ element?.tipoPrecio.descripcion | uppercase}}
                           </td>
                         </ng-container>
 
@@ -861,8 +861,8 @@
 
                         <ng-container matColumnDef="eliminar">
                           <th mat-header-cell *matHeaderCellDef></th>
-                          <td mat-cell *matCellDef="let element">
-                            <mat-icon style="color: red;">clear</mat-icon>
+                          <td mat-cell *matCellDef="let element; let precioIndex = index">
+                            <mat-icon style="color: red; cursor: pointer;" (click)="onDeletePrecio(element, precioIndex); $event.stopPropagation()">clear</mat-icon>
                           </td>
                         </ng-container>
 

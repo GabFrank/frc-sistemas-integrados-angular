@@ -77,9 +77,9 @@ export class SearchProductoDialogComponent implements OnInit{
 
   onBuscarChange(): void {
     if(this.data.proveedorId!=null){
-      this.service.onSearch(this.formGroup.get('buscarControl').value, this.data.query, this.sort, this.data.proveedorId);
+      // this.service.onSearch(this.formGroup.get('buscarControl').value, this.data.query, this.sort, this.data.proveedorId);
     } else {
-      this.service.onSearch(this.formGroup.get('buscarControl').value, this.data.query, this.sort, null);
+      // this.service.onSearch(this.formGroup.get('buscarControl').value, this.data.query, this.sort, null);
     }
   }
 

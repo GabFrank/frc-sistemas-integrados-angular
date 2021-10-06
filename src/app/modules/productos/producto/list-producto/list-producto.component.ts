@@ -82,6 +82,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   onSearchTimer;
 
+  imagenPrincipal = null;
+
   displayedColumnsId: string[] = [
     "id",
     "descripcion",
@@ -105,14 +107,6 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     // subscripcion a los datos de productos
-    this.service.datosSub.subscribe((res) => {
-      let pdsList: ProductoDatasource[] = [];
-      this.isSearching = false;
-      res?.forEach((p) => {
-      });
-      this.dataSource.data = pdsList;
-      console.log(this.dataSource.data)
-    });
 
     //listener para el campo buscar
     this.buscarField.valueChanges.subscribe((res) => {
@@ -140,7 +134,13 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       this.isSearching = false;
     } else {
       this.onSearchTimer = setTimeout(() => {
-        this.service.onSearch(text);
+        this.service.onSearch(text).subscribe(res => {
+          if(res.errors==null){
+            console.log(res.data.data)
+            this.dataSource.data = res.data.data;
+            this.isSearching = false;
+          }
+        });
       }, 1000);
     }
   }
@@ -148,6 +148,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   onRowClick(row) {
     let ref = this.matDialog.open(CargandoDialogComponent)
     this.service.getProducto(row.id).subscribe((res) => {
+      console.log(res)
       if (res != null) {
         if (this.menuState === "in") {
           this.menuState = "out";
@@ -155,6 +156,14 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
           setTimeout(() => {
             this.menuState = "in";
             this.selectedProducto = res;
+            this.selectedProducto.presentaciones?.forEach(p => {
+              console.log(p)
+              if(p.principal == true){
+                this.imagenPrincipal = p.imagenPrincipal
+                console.log(this.imagenPrincipal)
+
+              }
+            });
           }, 500);
         } else {
           ref.close()

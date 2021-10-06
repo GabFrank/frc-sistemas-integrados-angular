@@ -257,7 +257,6 @@ export const productoSearchPdv = gql`
       diasVencimiento
       observacion
       cambiable
-      
       presentaciones {
         id
         principal
@@ -267,6 +266,7 @@ export const productoSearchPdv = gql`
           principal
           activo
         }
+        imagenPrincipal
         precios {
           id
           precio
@@ -565,36 +565,40 @@ export const productoQuery = gql`
     data: producto(id: $id) {
       id
       descripcion
-      descripcionFactura
-      iva
-      unidadPorCaja
-      unidadPorCajaSecundaria
-      balanza
       garantia
-      tiempoGarantia
-      ingrediente
-      combo
-      cambiable
-      stock
-      promocion
       vencimiento
       diasVencimiento
-      
-      tipoConservacion
+      observacion
+      cambiable
       subfamilia {
         id
         descripcion
-        nombre
         familia {
           id
           descripcion
-          nombre
         }
-        subfamiliaList {
+      }
+      presentaciones {
+        id
+        principal
+        codigos {
           id
-          nombre
-          descripcion
+          codigo
+          principal
+          activo
         }
+        imagenPrincipal
+        precios {
+          id
+          precio
+          tipoPrecio {
+            id
+            descripcion
+          }
+          principal
+          activo
+        }
+
       }
     }
   }

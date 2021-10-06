@@ -162,13 +162,13 @@
           style="width: 250px; height: 250px; background-color: black"
         >
           <img
-            *ngIf="selectedProducto?.imagenPrincipal != null"
-            [src]="selectedProducto?.imagenPrincipal"
+            *ngIf="imagenPrincipal != null"
+            [src]="imagenPrincipal"
             style="width: 250px; height: 250px"
             alt="imgPrincipal"
           />
           <img
-            *ngIf="selectedProducto?.imagenPrincipal == null"
+            *ngIf="imagenPrincipal == null"
             src="assets/no-image.png"
             style="width: 250px; height: 250px"
             alt="imgPrincipal"

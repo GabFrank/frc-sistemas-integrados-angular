@@ -2,6 +2,7 @@ import { Injectable } from "@angular/core";
 import { BehaviorSubject, Observable } from "rxjs";
 import { MainService } from "../../../main.service";
 import { NotificacionColor, NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
+import { DialogosService } from "../../../shared/components/dialogos/dialogos.service";
 import { FamiliaService } from "../familia/familia.service";
 import { SaveImagenProductoGQL } from "../producto/graphql/saveImagenProducto";
 import { AllPresentacionesQueryGQL } from "./graphql/allPresentacionesQuery";
@@ -27,7 +28,8 @@ export class PresentacionService {
     private getPresentacionesPorProductoId: PresentacionPorProductoIdGQL,
     public mainService: MainService,
     private saveImage: SaveImagenProductoGQL,
-    private notificacionSnack: NotificacionSnackbarService
+    private notificacionSnack: NotificacionSnackbarService,
+    private dialogoService: DialogosService
   ) {}
 
   onGetPresentacionesPorProductoId(id){
@@ -54,10 +56,31 @@ export class PresentacionService {
         errorPolicy: 'all'
       });
   }
-  onDeletePresentacion(id: number) {
-    return this.deletePresentacion.mutate({
-      id,
-    });
+  onDeletePresentacion(presentacion: Presentacion) : Observable<any>{
+    return new Observable(obs => {
+      this.dialogoService.confirm('Atención!!', 'Realmente deseas eliminar esta presentación?', 'Todos los códigos y precios también serán eliminados.', [`Descripción: ${presentacion.descripcion}`, `Cantidad: ${presentacion.cantidad}`]).subscribe(res => {
+        if(res){
+          this.deletePresentacion.mutate({
+            id: presentacion.id,
+          }, {
+            fetchPolicy: 'no-cache',
+            errorPolicy: 'all'
+          }).subscribe(res => {
+            if(res.errors == null){
+              obs.next(res.data)
+            } else {
+              if(res.errors[0].message.includes('violates foreign key')){
+                // this.notificacionSnack.notification$.next({
+                //   texto: 'No puedes eliminar una presentación que contenga'
+                // })
+              }
+            }
+          })
+        }
+      })
+    })
+     
+    
   }
 
   onImageSave(image: string, filename: string): Observable<any>{

@@ -283,7 +283,7 @@ export class ProductoComponent implements OnInit {
 
       this.getPresentacionPorProductoId(res.id)
       
-      // this.loadImagenPrincipal(res?.imagenPrincipal);
+      this.loadImagenPrincipal();
       ref.close();
       setTimeout(() => {
         this.stepper.next();
@@ -493,7 +493,6 @@ export class ProductoComponent implements OnInit {
       });
   }
 
-  //"Validation error of type FieldUndefined: Field 'imagenPrincipal' in type 'Producto' is undefined @ 'saveProducto/imagenPrincipal'"
   // familia
 
   addFamilia() {
@@ -600,8 +599,12 @@ export class ProductoComponent implements OnInit {
     reader.readAsDataURL(file);
   }
 
-  loadImagenPrincipal(imagen: string) {
-    this.imagenPrincipal = imagen;
+  loadImagenPrincipal() {
+    this.selectedProducto?.presentaciones?.forEach(p => {
+      if(p.principal == true){
+        this.imagenPrincipal = p?.imagenPrincipal;
+      }
+    })
   }
 
   @HostListener("window:keyup", ["$event"])
@@ -778,6 +781,14 @@ export class ProductoComponent implements OnInit {
           this.presentacionesDataSource.data[presentacionIndex] = res;
         }
       });
+  }
+
+  onDeletePresentacion(presentacion: Presentacion){
+    this.presentacionService.onDeletePresentacion(presentacion).subscribe(res => {
+      if(res){
+        this.getPresentacionPorProductoId(this.selectedProducto.id)
+      }
+    })
   }
 
   //fin funciones de presentacion
