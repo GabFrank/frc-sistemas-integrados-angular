@@ -7,10 +7,11 @@ import { Producto } from '../../../../../modules/productos/producto/producto.mod
 import { TipoPrecio } from '../../../../../modules/productos/tipo-precio/tipo-precio.model';
 import { TecladoNumericoComponent } from '../../../../../shared/components/teclado-numerico/teclado-numerico.component';
 import { WindowInfoService } from '../../../../../shared/services/window-info.service';
+import { Presentacion } from '../../../../productos/presentacion/presentacion.model';
 import { PdvGruposProductos } from '../pdv-grupos-productos/pdv-grupos-productos.model';
 
 export class ProductoCategoriaDialogData {
-  productos: PdvGruposProductos[]
+  presentaciones: Presentacion[]
   cantidad?: number;
   texto?;
   tipoPrecio?: TipoPrecio;
@@ -32,7 +33,7 @@ export class ProductoCategoriaDialogComponent implements OnInit {
 
   @ViewChild('cantidad', {static: false}) cantidadInput: ElementRef;
 
-  productos : PdvGruposProductos[] = []
+  presentaciones : Presentacion[] = []
   tipoPrecio: TipoPrecio;
   tiposPrecios : TipoPrecio[];
   cantidad = 1;
@@ -45,10 +46,12 @@ export class ProductoCategoriaDialogComponent implements OnInit {
               public matDialog: MatDialog,
               public mainService: MainService
               ) { 
-    this.productos = data?.productos;
+    this.presentaciones = data?.presentaciones;
     this.tipoPrecio = data?.tipoPrecio;
     this.cantidad = +data?.cantidad;
     this.tiposPrecios = data?.tiposPrecios;
+
+    console.log(this.presentaciones)
   }
 
   ngOnInit(): void {

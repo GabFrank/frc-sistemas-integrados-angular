@@ -7,7 +7,7 @@ export class PdvGrupo {
     descripcion;
     activo;
     pdvCategoria: PdvCategoria;
-    pdvGruposCategorias: PdvGruposProductos[];
+    pdvGruposProductos: PdvGruposProductos[];
     creadoEn: Date;
     usuario: Usuario;
 }

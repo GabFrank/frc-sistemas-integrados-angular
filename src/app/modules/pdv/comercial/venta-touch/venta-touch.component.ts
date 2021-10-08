@@ -42,13 +42,14 @@ import { WindowInfoService } from '../../../../shared/services/window-info.servi
 import { DeliveryDialogComponent } from './delivery-dialog/delivery-dialog.component';
 import { EditItemDialogComponent } from './edit-item-dialog/edit-item-dialog.component';
 import { PagoTouchComponent } from './pago-touch/pago-touch.component';
-import { PdvCategoriaFullInfoGQL } from './pdv-categoria/graphql/getCategoriaFullInfo';
 import { PdvCategoria } from './pdv-categoria/pdv-categoria.model';
+import { PdvCategoriaService } from './pdv-categoria/pdv-categoria.service';
 import { PdvGruposProductos } from './pdv-grupos-productos/pdv-grupos-productos.model';
 import {
   ProductoCategoriaDialogComponent,
   ProductoCategoriaResponseData,
 } from './producto-categoria-dialog/producto-categoria-dialog.component';
+import { SelectProductosDialogComponent } from './select-productos-dialog/select-productos-dialog.component';
 
 export interface Item {
   producto: Producto;
@@ -82,6 +83,7 @@ export class VentaTouchComponent implements OnInit {
   @ViewChild('codigoInput', { static: false })
   codigoInput: ElementRef;
 
+  isCargandoPDV = true;
   displayedColumns = ['numero', 'descripcion', 'cantidad', 'precio', 'total'];
   dataSource = new MatTableDataSource<Item>();
   winHeigth;
@@ -91,8 +93,8 @@ export class VentaTouchComponent implements OnInit {
   cambioDs = 0;
   cambioArg = 0;
   formGroup: FormGroup;
-  selectedCategoria: PdvCategoria;
-  categorias: PdvCategoria[] = [];
+  selectedPdvCategoria: PdvCategoria;
+  pdvCategorias: PdvCategoria[] = [];
   ultimoAdicionado: Item[] = [];
   tiposPrecios: TipoPrecio[] = [];
   selectedTipoPrecio: TipoPrecio;
@@ -108,7 +110,7 @@ export class VentaTouchComponent implements OnInit {
     public mainService: MainService,
     public getProductoByCodigo: ProductoPorCodigoGQL,
     private notificacionSnackbar: NotificacionSnackbarService,
-    private getCategorias: PdvCategoriaFullInfoGQL,
+    private pdvCategoriaService: PdvCategoriaService,
     private getTiposPrecios: AllTiposPreciosGQL,
     private beepService: BeepService,
     private tabService: TabService,
@@ -126,11 +128,10 @@ export class VentaTouchComponent implements OnInit {
   }
 
   ngOnInit(): void {
+
     this.dataSource.data = this.itemList;
-    this.calcularTotales();
-    this.createForm();
-    this.buscarCategorias();
-    this.buscarTiposPrecios();
+    this.createForm() 
+    this.buscarPdvCategoria() 
     this.setPrecios();
 
     setTimeout(() => {
@@ -142,14 +143,12 @@ export class VentaTouchComponent implements OnInit {
         this.setFocusToCodigoInput();
       }
     });
-
-    this.totalGs = 80000;
-
+    
   }
 
   setPrecios() {
-    this.getMonedas.fetch().subscribe((res) => {
-      if (!res.errors) {
+    this.getMonedas.fetch(null, {errorPolicy: 'all'}).subscribe((res) => {
+      if (res.errors==null) {
         this.monedas = res.data.data;
         this.cambioRs = this.monedas.find(
           (m) => m.denominacion == 'REAL'
@@ -160,23 +159,27 @@ export class VentaTouchComponent implements OnInit {
         this.cambioArg = this.monedas.find(
           (m) => m.denominacion == 'PESO ARG'
         )?.cambio;
+        return true;
       }
     });
   }
 
-  createForm() {
+  createForm() : boolean{
     this.formGroup = new FormGroup({
       cantidad: new FormControl(null),
       codigo: new FormControl(null),
     });
     this.formGroup.get('cantidad').setValue(1);
+    return true;
   }
 
-  buscarCategorias() {
-    this.getCategorias.fetch().subscribe((res) => {
-      if (!res.errors) {
-        this.categorias = res.data.data;
-        this.selectedCategoria = this.categorias[1];
+  buscarPdvCategoria(){
+    this.pdvCategoriaService.onGetCategorias().subscribe((res) => {
+      if (res.errors==null) {
+        this.pdvCategorias = res.data.data;
+        this.selectedPdvCategoria = this.pdvCategorias[0];
+        this.isCargandoPDV = false;
+        console.log(this.pdvCategorias)
       } else {
         this.notificacionSnackbar.notification$.next({
           texto: 'No fue posible cargar categorias',
@@ -203,20 +206,21 @@ export class VentaTouchComponent implements OnInit {
   }
 
   onGridCardClick(productos: PdvGruposProductos[]) {
+    let productoList : Producto[] = []
+    productos.forEach(p => {
+      productoList.push(p.producto)
+    })
     if (this.formGroup.get('codigo').value != null) {
       this.formGroup
         .get('cantidad')
         .setValue(this.formGroup.get('codigo').value);
     }
     this.formGroup.get('codigo').setValue(null);
-    if (productos.length > 0) {
+    if (productoList.length > 0) {
       this.isDialogOpen = true;
-      let ref = this.dialog.open(ProductoCategoriaDialogComponent, {
+      let ref = this.dialog.open(SelectProductosDialogComponent, {
         data: {
-          productos,
-          tipoPrecio: this.selectedTipoPrecio,
-          cantidad: this.formGroup.get('cantidad').value,
-          tiposPrecios: this.tiposPrecios,
+          productos : productoList
         },
       });
       ref.afterClosed().subscribe((res: ProductoCategoriaResponseData) => {

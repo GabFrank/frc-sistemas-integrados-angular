@@ -1,16 +1,16 @@
-import { Component, Input, OnInit } from '@angular/core';
-import { DomSanitizer } from '@angular/platform-browser';
-import { Producto } from '../../../modules/productos/producto/producto.model';
+import { Component, Input, OnInit } from "@angular/core";
+import { DomSanitizer } from "@angular/platform-browser";
+import { Presentacion } from "../../../modules/productos/presentacion/presentacion.model";
+import { Producto } from "../../../modules/productos/producto/producto.model";
 
 @Component({
-  selector: 'app-imagebase64',
-  templateUrl: './imagebase64.component.html',
-  styleUrls: ['./imagebase64.component.css']
+  selector: "app-imagebase64",
+  templateUrl: "./imagebase64.component.html",
+  styleUrls: ["./imagebase64.component.css"],
 })
 export class Imagebase64Component implements OnInit {
-
   @Input()
-  producto: Producto;
+  presentaciones: Presentacion[];
 
   @Input()
   width;
@@ -23,20 +23,23 @@ export class Imagebase64Component implements OnInit {
 
   base64Image;
   sinImagen;
+  imagenPrincipal = null;
 
-  constructor(    
-    private domSanitizer: DomSanitizer,
-    ) { }
+  constructor(private domSanitizer: DomSanitizer) {}
 
   ngOnInit(): void {
-    this.cargarImagen()
+    this.cargarImagen();
   }
 
   cargarImagen() {
-    this.sinImagen = this.producto?.imagenPrincipal ? false : true;
-    this.base64Image = this.domSanitizer.bypassSecurityTrustResourceUrl(
-      `data:image/png;base64 , ${this.producto.imagenPrincipal}`
-    );
+    this.presentaciones?.find((p) => {
+      if (p.principal == true) {
+        this.imagenPrincipal = p?.imagenPrincipal
+        // this.sinImagen = imagenPrincipal ? false : true;
+        // this.base64Image = this.domSanitizer.bypassSecurityTrustResourceUrl(
+        //   `${imagenPrincipal}`
+        // );
+      }
+    });
   }
-
 }

@@ -1,55 +1,58 @@
-import gql from 'graphql-tag';
+import gql from "graphql-tag";
 
-export const pdvCategoriasQuery = gql
-  `query{
-   data : pdvCategorias {
-    id
-    descripcion
-    activo
-    grupos {
+export const pdvCategoriasQuery = gql`
+  query {
+    data: pdvCategorias {
       id
       descripcion
       activo
-      pdvGruposProductos{
+      grupos {
         id
-        producto{
+        descripcion
+        activo
+        pdvGruposProductos {
           id
-          descripcion
-          imagenPrincipal
-          balanza
-          garantia
-          combo
-          promocion
-          unidadPorCaja
-          codigos{
+          producto {
             id
-            caja
-            codigo
-            cantidad
-            principal
-            tipoPrecio{
+            descripcion
+            balanza
+            garantia
+            combo
+            promocion
+            presentaciones {
               id
               descripcion
-              autorizacion
+              principal
               activo
-            }
-            preciosPorSucursal{
-              sucursal{
+              codigos {
                 id
+                codigo
+                principal
+                activo
               }
-              precio
+              precios {
+                id
+                precio
+                principal
+                activo
+                tipoPrecio {
+                  id
+                  descripcion
+                }
+              }
+              imagenPrincipal
             }
           }
+          activo
         }
-        activo
       }
     }
   }
-  }`
+`;
 
-export const pdvCategoriaSearch = gql
-  `query($texto: String){
-    data : pdvCategoriaSearch(texto: $texto){
+export const pdvCategoriaSearch = gql`
+  query ($texto: String) {
+    data: pdvCategoriaSearch(texto: $texto) {
       id
       descripcion
       activo
@@ -57,9 +60,9 @@ export const pdvCategoriaSearch = gql
         id
         descripcion
         activo
-        pdvGruposProductos{
+        pdvGruposProductos {
           id
-          producto{
+          producto {
             id
             descripcion
             imagenPrincipal
@@ -67,20 +70,20 @@ export const pdvCategoriaSearch = gql
             garantia
             combo
             promocion
-            codigos{
+            codigos {
               id
               caja
               codigo
               cantidad
               principal
-              tipoPrecio{
+              tipoPrecio {
                 id
                 descripcion
                 autorizacion
                 activo
               }
-              preciosPorSucursal{
-                sucursal{
+              preciosPorSucursal {
+                sucursal {
                   id
                 }
                 precio
@@ -91,11 +94,12 @@ export const pdvCategoriaSearch = gql
         }
       }
     }
-  }`
+  }
+`;
 
-export const pdvCategoriaQuery = gql
-  `query($id: ID!){
-    data: pdvCategoria(id: $id){
+export const pdvCategoriaQuery = gql`
+  query ($id: ID!) {
+    data: pdvCategoria(id: $id) {
       id
       descripcion
       activo
@@ -103,52 +107,56 @@ export const pdvCategoriaQuery = gql
         id
         descripcion
         activo
-        pdvGruposProductos{
+        pdvGruposProductos {
           id
-          producto{
+          producto {
             id
             descripcion
-            imagenPrincipal
             balanza
             garantia
             combo
             promocion
-            codigos{
+            presentacion {
               id
-              caja
-              codigo
-              cantidad
+              descripcion
               principal
-              tipoPrecio{
+              activo
+              codigos {
                 id
-                descripcion
-                autorizacion
+                codigos
+                principal
                 activo
               }
-              preciosPorSucursal{
-                sucursal{
-                  id
-                }
+              precios {
+                id
                 precio
+                principal
+                activo
+                tipoPrecio {
+                  id
+                  descripcion
+                }
               }
+              imagenPrincipal
             }
           }
           activo
         }
       }
     }
-  }`
+  }
+`;
 
-export const savePdvCategoria = gql
-  `mutation savePdvCategoria($entity:PdvCategoriaInput!){
-      data: savePdvCategoria(pdvCategoria:$entity){
-        id
-      }
-    }`
+export const savePdvCategoria = gql`
+  mutation savePdvCategoria($entity: PdvCategoriaInput!) {
+    data: savePdvCategoria(pdvCategoria: $entity) {
+      id
+    }
+  }
+`;
 
-export const deletePdvCategoriaQuery = gql
-  ` mutation deletePdvCategoria($id: ID!){
+export const deletePdvCategoriaQuery = gql`
+  mutation deletePdvCategoria($id: ID!) {
     deletePdvCategoria(id: $id)
-}`
-
-
+  }
+`;

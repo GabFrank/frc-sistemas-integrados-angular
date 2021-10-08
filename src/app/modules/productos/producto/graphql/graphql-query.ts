@@ -257,28 +257,6 @@ export const productoSearchPdv = gql`
       diasVencimiento
       observacion
       cambiable
-      presentaciones {
-        id
-        principal
-        codigos {
-          id
-          codigo
-          principal
-          activo
-        }
-        imagenPrincipal
-        precios {
-          id
-          precio
-          tipoPrecio {
-            id
-            descripcion
-          }
-          principal
-          activo
-        }
-
-      }
     }
   }
 `;
@@ -570,6 +548,7 @@ export const productoQuery = gql`
       diasVencimiento
       observacion
       cambiable
+      imagenPrincipal
       subfamilia {
         id
         descripcion

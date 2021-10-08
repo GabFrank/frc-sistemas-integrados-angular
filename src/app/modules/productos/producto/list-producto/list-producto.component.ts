@@ -66,7 +66,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   @ViewChild('buscarInput', {static: true}) buscarInput: ElementRef;
 
   // la fuente de datos de la tabla
-  dataSource = new MatTableDataSource(null);
+  dataSource = new MatTableDataSource();
 
   //controladores
   buscarField = new FormControl("");
@@ -151,24 +151,21 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       console.log(res)
       if (res != null) {
         if (this.menuState === "in") {
+          this.selectedProducto = res;
           this.menuState = "out";
-          ref.close()
           setTimeout(() => {
             this.menuState = "in";
-            this.selectedProducto = res;
-            this.selectedProducto.presentaciones?.forEach(p => {
-              console.log(p)
-              if(p.principal == true){
-                this.imagenPrincipal = p.imagenPrincipal
-                console.log(this.imagenPrincipal)
-
-              }
-            });
+            this.imagenPrincipal = res.imagenPrincipal;
+            ref.close()
           }, 500);
         } else {
-          ref.close()
-          this.selectedProducto = res;
           this.menuState = "in";
+          setTimeout(() => {
+            this.imagenPrincipal = res.imagenPrincipal;
+            this.selectedProducto = res;
+            ref.close()
+          }, 500);
+
         }
       } else {
         ref.close()

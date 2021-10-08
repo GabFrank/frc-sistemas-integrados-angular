@@ -164,9 +164,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  *ngFor="let item of itemList; let i = index"
-                >
+                <tr *ngFor="let item of itemList; let i = index">
                   <td
                     style="
                       padding-bottom: 5px;
@@ -221,7 +219,7 @@
                       padding-bottom: 5px;
                       padding-top: 5px;
                       text-align: center;
-                      cursor: pointer
+                      cursor: pointer;
                     "
                     (click)="editItem(item)"
                   >
@@ -244,7 +242,6 @@
                       padding-bottom: 5px;
                       padding-top: 5px;
                       text-align: center;
-                      
                     "
                   >
                     {{ item?.cantidad * item?.precio | number: "1.0-0" }}
@@ -297,7 +294,7 @@
               </mat-form-field>
             </div>
             <button
-            type="button"
+              type="button"
               fxFlex
               fxLayout="row"
               fxLayoutAlign="center center"
@@ -410,7 +407,7 @@
           </div>
           <div fxFlex>
             <button
-            type="button"
+              type="button"
               class="bottom-action-button"
               mat-raised-button
               color="accent"
@@ -458,22 +455,18 @@
           fxLayoutAlign="space-around"
         >
           <div
-            fxFlex="10"
             fxLayout="row"
             fxLayoutAlign="start start"
             fxLayoutGap="5px"
           >
-            <div
-              fxFlex="19"
-              *ngFor="let categoria of categorias; let i = index"
-            >
+            <div fxFlex="19" *ngFor="let pdvCategoria of pdvCategorias; let i = index">
               <mat-card
                 style="padding: 0; margin: 0; margin-top: 5px"
                 [ngStyle]="{
                   height: windowInfo.innerHeight * 0.05 + 'px',
                   'background-color': '#F44336'
                 }"
-                (click)="selectedCategoria = categoria"
+                (click)="selectedPdvCategoria = pdvCategoria"
               >
                 <div
                   fxLayout="row"
@@ -488,19 +481,18 @@
                         padding-bottom: 0;
                       "
                     >
-                      {{ categoria?.descripcion }}
+                      {{ pdvCategoria?.descripcion }}
                     </h4>
                   </div>
                 </div>
               </mat-card>
             </div>
           </div>
-          <div fxFlex="7" style="width: 100%">
-            <div style="text-align: center">
-              <h2 style="margin-bottom: 0">
-                {{ selectedCategoria?.descripcion }}
-              </h2>
-            </div>
+
+          <div style="text-align: center">
+            <h2 style="margin-bottom: 0">
+              {{ selectedPdvCategoria?.descripcion }}
+            </h2>
           </div>
           <div
             fxFlex="56"
@@ -511,7 +503,10 @@
           >
             <div
               fxFlex="19"
-              *ngFor="let grupo of selectedCategoria?.grupos; let i = index"
+              *ngFor="
+                let grupo of selectedPdvCategoria?.grupos;
+                let i = index
+              "
             >
               <mat-card
                 style="padding: 0; margin: 0; margin-top: 5px"
@@ -520,7 +515,7 @@
                   height: windowInfo.innerHeight * 0.1 + 'px',
                   'background-color': '#F44336'
                 }"
-                (click)="onGridCardClick(grupo?.pdvGruposCategorias)"
+                (click)="onGridCardClick(grupo?.pdvGruposProductos)"
               >
                 <div
                   fxLayout="row"
@@ -553,7 +548,7 @@
           >
             <div fxFlex>
               <button
-              type="button"
+                type="button"
                 class="bottom-action-button"
                 mat-raised-button
                 color="primary"

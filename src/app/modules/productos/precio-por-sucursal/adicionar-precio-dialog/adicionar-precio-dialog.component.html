@@ -24,10 +24,6 @@
             <mat-label>Tipo Precio</mat-label>
             <mat-select #tipoPrecioSelect formControlName="tipoPrecio">
               <mat-option
-                [value]="null"
-              >
-              </mat-option>
-              <mat-option
                 *ngFor="let tipoPrecio of tipoPrecioList"
                 [value]="tipoPrecio.id"
               >

@@ -125,7 +125,7 @@
         <tr
           mat-row
           *matRowDef="let row; columns: displayedColumns; let i = index"
-          (click)="onRowClick(row); highlight(row, i)"
+          (click)="highlight(row, i)"
           [ngClass]="{ highlight: selectedRowIndex == i }"
           (keyup.arrowdown)="arrowDownEvent()"
           (keyup.arrowup)="arrowUpEvent()"
@@ -143,7 +143,6 @@
     </div>
 
     <div
-    
       fxLayout="column"
       fxLayoutAlign="start"
       style="height: 100%; width: 50%;"
@@ -176,33 +175,15 @@
         </div>
       </div>
       <br />
-      <div fxFlex="50%" fxLayout="column">
+      <div fxFlex fxLayout="column">
         <div fxFlex="10" fxLayout="row">
           <div fxFlex="20%">Nombre:</div>
           <div fxFlex="80%">
             {{ selectedProducto?.descripcion }}
           </div>
         </div>
-        <div fxFlex="10" fxLayout="row">
-          <div fxFlex="20%">Factura:</div>
-          <div fxFlex="80%">
-            {{ selectedProducto?.descripcionFactura }}
-          </div>
-        </div>
-        <div fxFlex="10" fxLayout="row">
-          <div fxFlex="20%">Posee caja:</div>
-          <div fxFlex="10%">
-            {{ selectedProducto?.unidadPorCaja > 1 ? "Si" : "No" }}
-          </div>
-          <div fxFlex="10%"></div>
-          <div fxFlex="20%" *ngIf="selectedProducto?.unidadPorCaja > 1">
-            Cantidad:
-          </div>
-          <div fxFlex="10%">
-            {{ selectedProducto?.unidadPorCaja }}
-          </div>
-        </div>
       </div>
+      <br>
       <div fxFlex="15%" style="text-align: center;">
           <button type="button" [disabled]="selectedProducto.id==null" mat-raised-button color="primary" style="width: 25%;" (click)="openProductos('edit')">Editar</button>
       </div>
