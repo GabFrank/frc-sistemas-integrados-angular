@@ -2,7 +2,6 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/firestore';
 import { AngularFireStorage } from '@angular/fire/storage';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { NgxQrcodeElementTypes, NgxQrcodeErrorCorrectionLevels } from '@techiediaries/ngx-qrcode';
 
 export interface QrCodeDialogData {
   nombre: any;
@@ -16,8 +15,6 @@ export interface QrCodeDialogData {
 })
 export class QrCodeComponent implements OnInit {
 
-  elementType = NgxQrcodeElementTypes.URL;
-  correctionLevel = NgxQrcodeErrorCorrectionLevels.HIGH;
   value = '';
   isQrShow = true;
   isImageLoaded = false;

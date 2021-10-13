@@ -20,7 +20,12 @@
           margin-top: 5px;
           background-color: #f44336;
         "
-        (click)="onGridCardClick(presentacion)"
+        [class.selectedCard]="selectedPresentacion?.id == presentacion.id"
+        (click)="
+          mostrarTipoPrecios
+            ? onDesplegarTipoPrecio(presentacion)
+            : onGridCardClick(presentacion)
+        "
         [ngStyle]="{
           width: windowInfo.innerWidth * 0.1 + 'px',
           'overflow-y': 'hidden'
@@ -29,17 +34,22 @@
         <div fxLayout="column" fxLayoutGap="10px">
           <div>
             <img
-              [src]="presentacion?.imagenPrincipal"
-              style="width: 100%; height: 100%;object-fit: cover;"
-            >
+              [src]="
+                presentacion?.imagenPrincipal != null
+                  ? presentacion?.imagenPrincipal
+                  : '/assets/no-image.png'
+              "
+              style="width: 100%; height: 100%; object-fit: cover"
+            />
           </div>
           <div style="text-align: center">
-            {{ presentacion?.descripcion }}
+            {{ presentacion?.descripcion | uppercase }}
           </div>
         </div>
       </mat-card>
     </div>
   </div>
+
   <div
     fxLayout="row"
     fxLayoutAlign="start center"
@@ -63,9 +73,17 @@
         </mat-form-field>
       </form>
     </div>
-    <div fxFlex="77%">
-      
+    <div fxFlex="33%">
+      <button
+        style="height: 100%; font-size: 1.5em"
+        mat-raised-button
+        [color]="mostrarTipoPrecios ? 'accent' : 'primary'"
+        (click)="mostrarTipoPrecios = !mostrarTipoPrecios"
+      >
+        Ver tipo de precios
+      </button>
     </div>
+    <div fxFlex="77%"></div>
   </div>
   <div
     fxFlex
@@ -83,6 +101,47 @@
       >
         {{ i }}
       </button>
+    </div>
+    <div fxFlex="9">
+      <button
+        mat-raised-button
+        color="primary"
+        style="font-size: 2em; width: 2em; height: 2em"
+        (click)="formGroup.controls.cantidad.setValue(1)"
+      >
+        <mat-icon>clear</mat-icon>
+      </button>
+    </div>
+  </div>
+  <div
+    *ngIf="desplegarTipoPrecio"
+    fxLayout="row"
+    fxLayoutAlign="start center"
+    fxLayoutGap="20px"
+    style="width: 100%"
+  >
+    <div
+      fxFlex="19"
+      *ngFor="let precio of selectedPresentacion?.precios; let i = index"
+    >
+      <mat-card
+        style="
+          padding-top: 10px;
+          margin: 0;
+          margin-top: 5px;
+          background-color: #f44336;
+        "
+        (click)="selectedPrecio = precio; onGridCardClick(selectedPresentacion)"
+      >
+        <div fxLayout="column" fxLayoutGap="10px">
+          <div style="text-align: center; font-size: 1.5em">
+            {{ precio?.tipoPrecio?.descripcion | uppercase }}
+          </div>
+          <div style="text-align: center">
+            {{ precio?.precio | number: "1.0-0" }}
+          </div>
+        </div>
+      </mat-card>
     </div>
   </div>
 </div>

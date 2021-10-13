@@ -1,12 +1,11 @@
 <div fxLayout="column" fxLayoutAlign="center start" fxLayoutGap="20px">
   <div
-    *ngIf="productos?.length > 0"
     fxFlex
     fxLayout="row wrap"
     fxLayoutAlign="start start"
     fxLayoutGap="5px"
   >
-    <div fxFlex="15" *ngFor="let presentacion of producto?.presentaciones; let i = index">
+    <div fxFlex="15" *ngFor="let producto of data.productos; let i = index">
       <mat-card
         style="
           padding: 0;
@@ -19,15 +18,16 @@
         <div fxLayout="column" fxLayoutGap="10px">
           <div>
             <img
-              [src]="producto?.presentaciones"
+              [src]="producto?.imagenPrincipal"
               style="width: 100%; height: 100%;object-fit: cover;"
             >
           </div>
           <div style="text-align: center; font-weight: bold;">
-            {{ producto.descripcion }}
+            {{ producto.descripcion | uppercase }}
           </div>
         </div>
       </mat-card>
     </div>
   </div>
 </div>
+

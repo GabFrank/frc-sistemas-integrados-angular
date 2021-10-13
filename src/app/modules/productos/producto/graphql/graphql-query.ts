@@ -17,7 +17,7 @@ export const productosQuery = gql`
       promocion
       vencimiento
       diasVencimiento
-      
+
       tipoConservacion
       subfamilia {
         id
@@ -43,7 +43,7 @@ export const productoInfoCompletaQuery = gql`
       promocion
       vencimiento
       diasVencimiento
-      
+
       tipoConservacion
       codigos {
         id
@@ -133,7 +133,7 @@ export const productosExistenciaCostoQuery = gql`
       promocion
       vencimiento
       diasVencimiento
-      
+
       tipoConservacion
       subfamilia {
         id
@@ -196,7 +196,7 @@ export const productosExistenciaCostoSearch = gql`
       promocion
       vencimiento
       diasVencimiento
-      
+
       tipoConservacion
       subfamilia {
         id
@@ -278,7 +278,7 @@ export const productosSearch = gql`
       promocion
       vencimiento
       diasVencimiento
-      
+
       tipoConservacion
       subfamilia {
         id
@@ -346,7 +346,7 @@ export const productoExistenciaCostoPorProveedor = gql`
       vencimiento
       diasVencimiento
       cambiable
-      
+
       tipoConservacion
       codigos {
         id
@@ -430,7 +430,7 @@ export const productoPorCodigoQuery = gql`
       promocion
       vencimiento
       diasVencimiento
-      
+
       tipoConservacion
       codigos {
         id
@@ -524,7 +524,7 @@ export const productoPorProveedor = gql`
       promocion
       vencimiento
       diasVencimiento
-      
+
       tipoConservacion
       subfamilia {
         id
@@ -577,7 +577,6 @@ export const productoQuery = gql`
           principal
           activo
         }
-
       }
     }
   }
@@ -623,7 +622,7 @@ export const saveProducto = gql`
       promocion
       vencimiento
       diasVencimiento
-      
+
       tipoConservacion
       subfamilia {
         id
@@ -653,5 +652,13 @@ export const deleteProductoQuery = gql`
 export const saveImagenProductoQuery = gql`
   mutation saveImagenProducto($image: String!, $filename: String!) {
     saveImagenProducto(image: $image, filename: $filename)
+  }
+`;
+
+export const printProductoPorId = gql`
+  query ($id: ID!) {
+    data: printProducto(id: $id) {
+      id
+    }
   }
 `;

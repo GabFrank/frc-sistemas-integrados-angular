@@ -1,17 +1,29 @@
-import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core';
-import { FormControl, FormGroup } from '@angular/forms';
-import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { CurrencyMask } from '../../../../../commons/core/utils/numbersUtils';
-import { MainService } from '../../../../../main.service';
-import { Producto } from '../../../../../modules/productos/producto/producto.model';
-import { TipoPrecio } from '../../../../../modules/productos/tipo-precio/tipo-precio.model';
-import { TecladoNumericoComponent } from '../../../../../shared/components/teclado-numerico/teclado-numerico.component';
-import { WindowInfoService } from '../../../../../shared/services/window-info.service';
-import { Presentacion } from '../../../../productos/presentacion/presentacion.model';
-import { PdvGruposProductos } from '../pdv-grupos-productos/pdv-grupos-productos.model';
+import {
+  Component,
+  ElementRef,
+  Inject,
+  OnInit,
+  ViewChild,
+} from "@angular/core";
+import { FormControl, FormGroup } from "@angular/forms";
+import {
+  MatDialog,
+  MatDialogRef,
+  MAT_DIALOG_DATA,
+} from "@angular/material/dialog";
+import { CurrencyMask } from "../../../../../commons/core/utils/numbersUtils";
+import { MainService } from "../../../../../main.service";
+import { Producto } from "../../../../../modules/productos/producto/producto.model";
+import { TipoPrecio } from "../../../../../modules/productos/tipo-precio/tipo-precio.model";
+import { TecladoNumericoComponent } from "../../../../../shared/components/teclado-numerico/teclado-numerico.component";
+import { WindowInfoService } from "../../../../../shared/services/window-info.service";
+import { PrecioDelivery } from "../../../../operaciones/delivery/precio-delivery.model";
+import { PrecioPorSucursal } from "../../../../productos/precio-por-sucursal/precio-por-sucursal.model";
+import { Presentacion } from "../../../../productos/presentacion/presentacion.model";
+import { PdvGruposProductos } from "../pdv-grupos-productos/pdv-grupos-productos.model";
 
 export class ProductoCategoriaDialogData {
-  presentaciones: Presentacion[]
+  presentaciones: Presentacion[];
   cantidad?: number;
   texto?;
   tipoPrecio?: TipoPrecio;
@@ -19,108 +31,144 @@ export class ProductoCategoriaDialogData {
 }
 
 export class ProductoCategoriaResponseData {
-  producto: Producto;
+  presentacion: Presentacion;
+  precio: PrecioPorSucursal;
   cantidad: number;
   tipoPrecio: TipoPrecio;
 }
 
 @Component({
-  selector: 'app-producto-categoria-dialog',
-  templateUrl: './producto-categoria-dialog.component.html',
-  styleUrls: ['./producto-categoria-dialog.component.css']
+  selector: "app-producto-categoria-dialog",
+  templateUrl: "./producto-categoria-dialog.component.html",
+  styleUrls: ["./producto-categoria-dialog.component.css"],
 })
 export class ProductoCategoriaDialogComponent implements OnInit {
+  @ViewChild("cantidad", { static: false }) cantidadInput: ElementRef;
 
-  @ViewChild('cantidad', {static: false}) cantidadInput: ElementRef;
-
-  presentaciones : Presentacion[] = []
+  presentaciones: Presentacion[] = [];
   tipoPrecio: TipoPrecio;
-  tiposPrecios : TipoPrecio[];
+  tiposPrecios: TipoPrecio[];
   cantidad = 1;
-  formGroup : FormGroup;
-  currency = new CurrencyMask;
+  formGroup: FormGroup;
+  currency = new CurrencyMask();
+  mostrarTipoPrecios = false;
+  desplegarTipoPrecio = false;
+  selectedPresentacion: Presentacion;
+  selectedPrecio: PrecioPorSucursal;
 
-  constructor(@Inject(MAT_DIALOG_DATA) public data: ProductoCategoriaDialogData,
-              public dialogRef: MatDialogRef<ProductoCategoriaDialogComponent>,
-              public windowInfo : WindowInfoService,
-              public matDialog: MatDialog,
-              public mainService: MainService
-              ) { 
+  constructor(
+    @Inject(MAT_DIALOG_DATA) public data: ProductoCategoriaDialogData,
+    public dialogRef: MatDialogRef<ProductoCategoriaDialogComponent>,
+    public windowInfo: WindowInfoService,
+    public matDialog: MatDialog,
+    public mainService: MainService
+  ) {
     this.presentaciones = data?.presentaciones;
     this.tipoPrecio = data?.tipoPrecio;
     this.cantidad = +data?.cantidad;
     this.tiposPrecios = data?.tiposPrecios;
 
-    console.log(this.presentaciones)
+    console.log(this.presentaciones);
   }
 
   ngOnInit(): void {
-    this.createForm()
-    this.setFocusToCantidad()
+    this.createForm();
+    this.setFocusToCantidad();
 
-    this.formGroup.controls.cantidad.valueChanges.subscribe(res => {
-      if(res == 0 || res == null){
-        this.formGroup.controls.cantidad.setValue(1)
-        this.setFocusToCantidad()
+    this.formGroup.controls.cantidad.valueChanges.subscribe((res) => {
+      if (res == 0 || res == null) {
+        this.formGroup.controls.cantidad.setValue(1);
+        this.setFocusToCantidad();
       }
-    })
-  }
-
-  createForm(){
-    this.formGroup = new FormGroup({
-      cantidad: new FormControl(null)
-    })
-    if(this.data.cantidad>0){
-      this.formGroup.get('cantidad').setValue(this.data.cantidad);
-    } else {
-      this.formGroup.get('cantidad').setValue(1);
-    }
-  }
-
-  cambiarTipoPrecio(tipo){
-    this.tipoPrecio = this.tiposPrecios.find(tp => tp.id == tipo);
-    this.setFocusToCantidad()
-  }
-
-  openTecladoNumerico(){
-    let dialog = this.matDialog.open(TecladoNumericoComponent, {
-      data: {
-        numero: this.cantidad
-      }
-    })
-    dialog.afterClosed().subscribe((res)=>{
-      if(res>0){
-        this.formGroup.get('cantidad').setValue(res);
-      }
-      this.setFocusToCantidad()
     });
   }
 
-  onGridCardClick(producto: Producto){
-    let response : ProductoCategoriaResponseData = null;
-    if(producto!=null){
-        response = {
-          producto,
-          cantidad : this.formGroup.get('cantidad').value,
-          tipoPrecio : this.tipoPrecio
-        }
+  createForm() {
+    this.formGroup = new FormGroup({
+      cantidad: new FormControl(null),
+    });
+    if (this.data.cantidad > 0) {
+      this.formGroup.get("cantidad").setValue(this.data.cantidad);
+    } else {
+      this.formGroup.get("cantidad").setValue(1);
+    }
+  }
+
+  cambiarTipoPrecio(tipo) {
+    this.tipoPrecio = this.tiposPrecios.find((tp) => tp.id == tipo);
+    this.setFocusToCantidad();
+  }
+
+  openTecladoNumerico() {
+    let dialog = this.matDialog.open(TecladoNumericoComponent, {
+      data: {
+        numero: this.cantidad,
+      },
+    });
+    dialog.afterClosed().subscribe((res) => {
+      if (res > 0) {
+        this.formGroup.get("cantidad").setValue(res);
       }
+      this.setFocusToCantidad();
+    });
+  }
+
+  onGridCardClick(presentacion?: Presentacion) {
+    this.selectedPresentacion = presentacion;
+    let response: ProductoCategoriaResponseData = null;
+    this.selectedPrecio = this.selectedPresentacion?.precios.find(
+      (p) => p.principal == true
+    );
+    if (this.selectedPrecio == null) {
+      this.desplegarTipoPrecio = true;
+    }
+    if(this.selectedPresentacion!=null && this.selectedPrecio!=null){
+      response = {
+        presentacion: this.selectedPresentacion,
+        precio: this.selectedPrecio,
+        cantidad: this.formGroup.get("cantidad").value,
+        tipoPrecio: this.tipoPrecio,
+      };
       this.dialogRef.close(response);
     }
+    
+  }
 
-  setFocusToCantidad(){
+  setFocusToCantidad() {
     setTimeout(() => {
-    this.cantidadInput.nativeElement.focus()
-    this.cantidadInput.nativeElement.select()
+      this.cantidadInput.nativeElement.focus();
+      this.cantidadInput.nativeElement.select();
     }, 0);
   }
 
-  setCantidad(i){
-    let cantidad = this.formGroup.controls.cantidad.value
-    if(cantidad == 1){
-      this.formGroup.controls.cantidad.setValue(i)
+  setCantidad(i) {
+    let cantidad = this.formGroup.controls.cantidad.value;
+    if (cantidad == 1) {
+      this.formGroup.controls.cantidad.setValue(i);
     } else {
-      this.formGroup.controls.cantidad.setValue(cantidad + i)
+      this.formGroup.controls.cantidad.setValue(cantidad + i);
     }
+  }
+
+  onDesplegarTipoPrecio(presentacion: Presentacion) {
+    this.selectedPresentacion = presentacion;
+    switch (presentacion?.precios?.length) {
+      case 0:
+        this.desplegarTipoPrecio = false;
+        break;
+      case 1:
+        this.selectedPrecio = presentacion.precios[0];
+        break;
+      default:
+        this.desplegarTipoPrecio = true;
+        break;
+    }
+
+    if (presentacion?.precios.length > 0) {
+      this.desplegarTipoPrecio = true;
+    } else {
+      this.desplegarTipoPrecio = false;
+    }
+    this.selectedPresentacion = presentacion;
   }
 }

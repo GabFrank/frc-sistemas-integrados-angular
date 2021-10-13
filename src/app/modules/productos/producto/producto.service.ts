@@ -14,6 +14,8 @@ import {
 import { GenericListService } from "../../../shared/components/generic-list/generic-list.service";
 import { ProductoForPdvGQL } from "./graphql/productoSearchForPdv";
 import { ProductoInfoCompletaByIdGQL } from "./graphql/productoInfoCompletaPorId";
+import { PrintProductoPorIdGQL } from "./graphql/printProducto";
+import { printProductoPorId } from "./graphql/graphql-query";
 
 @Injectable({
   providedIn: "root",
@@ -28,7 +30,8 @@ export class ProductoService {
     private productoPorId: ProductoPorIdGQL,
     private saveImage: SaveImagenProductoGQL,
     private productoSearch: ProductoForPdvGQL,
-    private notificacionSnack: NotificacionSnackbarService
+    private notificacionSnack: NotificacionSnackbarService,
+    private printProductoPorId: PrintProductoPorIdGQL
   ) {}
 
   onSearch(texto) {
@@ -117,5 +120,20 @@ export class ProductoService {
         }
       });
     // })
+  }
+
+  onPrintProductoPorId(id) {
+    console.log("entro al onPrint", id);
+    this.printProductoPorId.fetch(
+      {
+        id,
+      },
+      {
+        errorPolicy: "all",
+        fetchPolicy: 'no-cache'
+      }
+    ).subscribe(res => {
+      console.log(res)
+    })
   }
 }

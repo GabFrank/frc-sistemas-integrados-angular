@@ -5,6 +5,7 @@ import { EventEmitter } from '@angular/core';
 import { ProductoComponent } from '../../modules/productos/producto/edit-producto/producto.component';
 import { ListProductoComponent } from '../../modules/productos/producto/list-producto/list-producto.component';
 import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
+import { PrintDesignComponent } from '../../modules/print/print-design/print-design.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -33,7 +34,7 @@ export class TabService {
 
   constructor() {
     this.tabs = [
-      new Tab(ListProductoComponent, 'Productos', null, null)
+      new Tab(VentaTouchComponent, 'Venta', null, null)
     ];
     this.tabSub.next(this.tabs);
   }

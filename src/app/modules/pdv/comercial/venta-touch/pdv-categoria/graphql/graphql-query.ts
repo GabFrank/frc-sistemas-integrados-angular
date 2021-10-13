@@ -19,6 +19,7 @@ export const pdvCategoriasQuery = gql`
             garantia
             combo
             promocion
+            imagenPrincipal
             presentaciones {
               id
               descripcion
@@ -41,6 +42,10 @@ export const pdvCategoriasQuery = gql`
                 }
               }
               imagenPrincipal
+              tipoPresentacion{
+                id
+                descripcion
+              }
             }
           }
           activo

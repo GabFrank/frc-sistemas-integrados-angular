@@ -49,7 +49,7 @@ import {
   ProductoCategoriaDialogComponent,
   ProductoCategoriaResponseData,
 } from './producto-categoria-dialog/producto-categoria-dialog.component';
-import { SelectProductosDialogComponent } from './select-productos-dialog/select-productos-dialog.component';
+import { SelectProductosDialogComponent, SelectProductosResponseData } from './select-productos-dialog/select-productos-dialog.component';
 
 export interface Item {
   producto: Producto;
@@ -205,40 +205,18 @@ export class VentaTouchComponent implements OnInit {
     });
   }
 
-  onGridCardClick(productos: PdvGruposProductos[]) {
-    let productoList : Producto[] = []
-    productos.forEach(p => {
-      productoList.push(p.producto)
+  onGridCardClick(pdvGruposProductos: PdvGruposProductos[]) {
+    let productos: Producto[] = []
+    pdvGruposProductos.forEach(e => {
+      productos.push(e.producto)
     })
-    if (this.formGroup.get('codigo').value != null) {
-      this.formGroup
-        .get('cantidad')
-        .setValue(this.formGroup.get('codigo').value);
-    }
-    this.formGroup.get('codigo').setValue(null);
-    if (productoList.length > 0) {
-      this.isDialogOpen = true;
-      let ref = this.dialog.open(SelectProductosDialogComponent, {
-        data: {
-          productos : productoList
-        },
-      });
-      ref.afterClosed().subscribe((res: ProductoCategoriaResponseData) => {
-        if (res) {
-          this.selectedTipoPrecio = res.tipoPrecio;
-          this.formGroup.get('cantidad').setValue(res.cantidad);
-          this.crearItem(res.producto);
-        }
-        this.setFocusToCodigoInput();
-        this.isDialogOpen = false;
-      });
-    } else {
-      this.notificacionSnackbar.notification$.next({
-        texto: 'No hay productos en este grupo',
-        color: NotificacionColor.warn,
-        duracion: 3,
-      });
-    }
+    this.dialog.open(SelectProductosDialogComponent, {
+      data: {
+        productos 
+      }
+    }).afterClosed().subscribe(res => {
+      console.log(res)
+    })
   }
 
   calcularTotales() {

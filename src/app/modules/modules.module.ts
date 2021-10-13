@@ -10,11 +10,14 @@ import { GeneralModule } from './general/general.module';
 import { FuncionariosModule } from './personas/funcionarios/funcionarios.module';
 import { MDBBootstrapModule } from 'angular-bootstrap-md';
 import { LoginModule } from './login/login.module';
+import { PrintDesignComponent } from './print/print-design/print-design.component';
+import { PrintModule } from './print/print.module';
 
 
 
 @NgModule({
-  declarations: [],
+  declarations: [
+  ],
   imports: [
     CommonModule,
     DashboardModule,
@@ -26,6 +29,7 @@ import { LoginModule } from './login/login.module';
     GeneralModule,
     FuncionariosModule,
     LoginModule,
+    PrintModule,
     MDBBootstrapModule.forRoot()
   ],
   providers: [

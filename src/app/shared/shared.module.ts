@@ -17,8 +17,6 @@ import { TecladoNumericoComponent } from './components/teclado-numerico/teclado-
 import { Imagebase64Component } from './components/imagebase64/imagebase64.component';
 import { NgxCurrencyModule } from 'ngx-currency';
 import { QrCodeComponent } from './qr-code/qr-code.component';
-import { NgxQRCodeModule } from '@techiediaries/ngx-qrcode';
-import { MatDialogModule } from '@angular/material/dialog';
 import { CapturarImagenComponent } from './capturar-imagen/capturar-imagen.component';
 import { ImageCropperModule } from 'ngx-image-cropper';
 import { NgxImageCompressService } from 'ngx-image-compress';
@@ -55,7 +53,6 @@ import { VizualizarImagenDialogComponent } from './images/vizualizar-imagen-dial
     ReactiveFormsModule,
     FormsModule,
     NgxCurrencyModule,
-    NgxQRCodeModule,
     ImageCropperModule
     ],
   exports: [
@@ -68,7 +65,6 @@ import { VizualizarImagenDialogComponent } from './images/vizualizar-imagen-dial
     DialogosComponent,
     Imagebase64Component,
     NgxCurrencyModule,
-    NgxQRCodeModule,
   ],
   providers: [NgxImageCompressService]
 })

@@ -20,6 +20,7 @@ import { MatPaginator } from "@angular/material/paginator";
 import { MatTableDataSource } from "@angular/material/table";
 import { Product } from "electron/main";
 import { environment } from "../../../../../environments/environment";
+import { PrintService } from "../../../print/print.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabService } from "../../../../layouts/tab/tab.service";
 import { CargandoDialogComponent } from "../../../../shared/components/cargando-dialog/cargando-dialog.component";
@@ -102,7 +103,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   constructor(
     public service: ProductoService,
     private tabService: TabService,
-    private matDialog: MatDialog
+    private matDialog: MatDialog,
+    private printService: PrintService
   ) {}
 
   ngOnInit(): void {
@@ -263,5 +265,10 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
      // this.expandedProducto = nextrow;
     }
    this.highlight(nextrow, this.selectedRowIndex);
+ }
+
+ printProducto(){
+   console.log("imprimiendo...")
+   this.service.onPrintProductoPorId(this.selectedProducto.id)
  }
 }

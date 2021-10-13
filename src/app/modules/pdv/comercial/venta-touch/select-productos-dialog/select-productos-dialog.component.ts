@@ -1,10 +1,16 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dialog';
 import { Producto } from '../../../../productos/producto/producto.model';
-import { ProductoCategoriaDialogComponent } from '../producto-categoria-dialog/producto-categoria-dialog.component';
+import { ProductoCategoriaDialogComponent, ProductoCategoriaResponseData } from '../producto-categoria-dialog/producto-categoria-dialog.component';
+import { SelectBilletesResponseData } from '../seleccionar-billetes-touch/seleccionar-billetes-touch.component';
 
 export class SelectProductosData {
   productos: Producto[]
+}
+
+export class SelectProductosResponseData {
+  producto: Producto;
+  data: ProductoCategoriaResponseData
 }
 
 @Component({
@@ -14,7 +20,7 @@ export class SelectProductosData {
 })
 export class SelectProductosDialogComponent implements OnInit {
 
-  productos: Producto[]
+  productos: Producto[] = []
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: SelectProductosData,
@@ -37,6 +43,17 @@ export class SelectProductosDialogComponent implements OnInit {
     this.matDialog.open(ProductoCategoriaDialogComponent, {
       data: {
         presentaciones: producto?.presentaciones
+      },
+    }).afterClosed().subscribe(res => {
+      console.log(res)
+      let respuesta: SelectProductosResponseData = new SelectProductosResponseData;
+      let productoCategoriaResponse : ProductoCategoriaResponseData = res;
+      if(productoCategoriaResponse?.presentacion!=null && productoCategoriaResponse.precio!=null){
+        respuesta.producto = producto;
+        respuesta.data = productoCategoriaResponse;
+        this.dialogRef.close(respuesta)
+      } else {
+        this.dialogRef.close()
       }
     })
   }
