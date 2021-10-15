@@ -4,6 +4,9 @@
   fxLayoutGap="20px"
   (click)="setFocusToCantidad()"
 >
+  <div style="width: 100%; text-align: center;">
+    <h2>{{data.producto.descripcion}}</h2>
+  </div>
   <div
     *ngIf="presentaciones?.length > 0"
     fxFlex

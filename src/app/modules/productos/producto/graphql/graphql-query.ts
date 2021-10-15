@@ -418,41 +418,12 @@ export const productoPorCodigoQuery = gql`
     data: productoPorCodigo(texto: $texto) {
       id
       descripcion
-      descripcionFactura
-      iva
-      unidadPorCaja
-      balanza
       garantia
-      ingrediente
-      combo
-      cambiable
-      stock
-      promocion
       vencimiento
       diasVencimiento
-
-      tipoConservacion
-      codigos {
-        id
-        codigo
-        cantidad
-        principal
-        caja
-        tipoPrecio {
-          id
-          descripcion
-        }
-        preciosPorSucursal {
-          sucursal {
-            id
-          }
-          precio
-        }
-        referenciaCodigo {
-          id
-          codigo
-        }
-      }
+      observacion
+      cambiable
+      imagenPrincipal
       subfamilia {
         id
         descripcion
@@ -461,46 +432,25 @@ export const productoPorCodigoQuery = gql`
           descripcion
         }
       }
-      existenciaTotal
-      sucursales {
-        moneda {
+      presentaciones {
+        id
+        principal
+        codigos {
           id
-          denominacion
-          simbolo
+          codigo
+          principal
+          activo
         }
-        fechaUltimaCompra
-        sucursal {
-          nombre
-          deposito
-          depositoPredeterminado
-        }
-        existencia
-        precioUltimaCompra
-        cantidadUltimaCompra
-        costoMedio
-        pedido {
+        imagenPrincipal
+        precios {
           id
-          proveedor {
-            persona {
-              nombre
-            }
+          precio
+          tipoPrecio {
+            id
+            descripcion
           }
-        }
-        cantMinima
-        cantMaxima
-        cantMedia
-      }
-      productoUltimasCompras {
-        cantidad
-        precio
-        creadoEn
-        pedido {
-          id
-          proveedor {
-            persona {
-              nombre
-            }
-          }
+          principal
+          activo
         }
       }
     }

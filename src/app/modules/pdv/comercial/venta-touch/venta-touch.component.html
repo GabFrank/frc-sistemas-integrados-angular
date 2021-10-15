@@ -178,52 +178,13 @@
                     {{ item?.producto?.descripcion }}
                   </td>
                   <td
-                    *ngIf="item?.caja"
                     style="
                       padding-bottom: 5px;
                       padding-top: 5px;
                       text-align: center;
                     "
                   >
-                    Caja({{ item.unidadPorCaja }})
-                  </td>
-                  <td
-                    *ngIf="!item?.caja"
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                    "
-                  >
-                    Unid
-                  </td>
-                  <td
-                    *ngIf="item.caja"
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                      cursor: pointer;
-                    "
-                    (click)="editItem(item)"
-                  >
-                    {{
-                      item?.cantidad /
-                        (item?.unidadPorCaja ? item.unidadPorCaja : 1)
-                        | number: "1.0-0"
-                    }}
-                  </td>
-                  <td
-                    *ngIf="!item.caja"
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                      cursor: pointer;
-                    "
-                    (click)="editItem(item)"
-                  >
-                    {{ item?.cantidad | number: "1.0-0" }}
+                    {{item.presentacion?.tipoPresentacion?.descripcion}}({{ item.presentacion?.cantidad}})
                   </td>
                   <td
                     style="
@@ -233,7 +194,7 @@
                     "
                   >
                     {{
-                      item?.precio * (item?.caja ? item.unidadPorCaja : 1)
+                      item.cantidad
                         | number: "1.0-0"
                     }}
                   </td>
@@ -244,7 +205,19 @@
                       text-align: center;
                     "
                   >
-                    {{ item?.cantidad * item?.precio | number: "1.0-0" }}
+                    {{
+                      item.precio.precio
+                        | number: "1.0-0"
+                    }}
+                  </td>
+                  <td
+                    style="
+                      padding-bottom: 5px;
+                      padding-top: 5px;
+                      text-align: center;
+                    "
+                  >
+                    {{ item.cantidad * item.precio.precio | number: "1.0-0" }}
                   </td>
                 </tr>
               </tbody>
@@ -515,7 +488,7 @@
                   height: windowInfo.innerHeight * 0.1 + 'px',
                   'background-color': '#F44336'
                 }"
-                (click)="onGridCardClick(grupo?.pdvGruposProductos)"
+                (click)="onGridCardClick(grupo?.pdvGruposProductos,grupo?.descripcion)"
               >
                 <div
                   fxLayout="row"

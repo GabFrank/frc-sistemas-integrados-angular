@@ -5,6 +5,7 @@ import { ProductoCategoriaDialogComponent, ProductoCategoriaResponseData } from 
 import { SelectBilletesResponseData } from '../seleccionar-billetes-touch/seleccionar-billetes-touch.component';
 
 export class SelectProductosData {
+  descripcion: string;
   productos: Producto[]
 }
 
@@ -42,7 +43,8 @@ export class SelectProductosDialogComponent implements OnInit {
   onProductoClick(producto: Producto){
     this.matDialog.open(ProductoCategoriaDialogComponent, {
       data: {
-        presentaciones: producto?.presentaciones
+        presentaciones: producto?.presentaciones,
+        producto
       },
     }).afterClosed().subscribe(res => {
       console.log(res)

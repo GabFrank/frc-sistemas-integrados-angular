@@ -23,6 +23,7 @@ import { Presentacion } from "../../../../productos/presentacion/presentacion.mo
 import { PdvGruposProductos } from "../pdv-grupos-productos/pdv-grupos-productos.model";
 
 export class ProductoCategoriaDialogData {
+  producto: Producto;
   presentaciones: Presentacion[];
   cantidad?: number;
   texto?;
@@ -116,11 +117,12 @@ export class ProductoCategoriaDialogComponent implements OnInit {
   onGridCardClick(presentacion?: Presentacion) {
     this.selectedPresentacion = presentacion;
     let response: ProductoCategoriaResponseData = null;
-    this.selectedPrecio = this.selectedPresentacion?.precios.find(
-      (p) => p.principal == true
-    );
+    
     if (this.selectedPrecio == null) {
-      this.desplegarTipoPrecio = true;
+      this.selectedPrecio = this.selectedPresentacion?.precios.find(
+        (p) => p.principal == true
+      );
+      this.selectedPrecio == null ? this.desplegarTipoPrecio = true: null;
     }
     if(this.selectedPresentacion!=null && this.selectedPrecio!=null){
       response = {
@@ -163,12 +165,5 @@ export class ProductoCategoriaDialogComponent implements OnInit {
         this.desplegarTipoPrecio = true;
         break;
     }
-
-    if (presentacion?.precios.length > 0) {
-      this.desplegarTipoPrecio = true;
-    } else {
-      this.desplegarTipoPrecio = false;
-    }
-    this.selectedPresentacion = presentacion;
   }
 }

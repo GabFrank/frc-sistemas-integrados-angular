@@ -25,6 +25,7 @@ export const pdvCategoriasQuery = gql`
               descripcion
               principal
               activo
+              cantidad
               codigos {
                 id
                 codigo
