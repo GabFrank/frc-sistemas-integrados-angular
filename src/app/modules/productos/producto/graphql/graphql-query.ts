@@ -31,87 +31,7 @@ export const productoInfoCompletaQuery = gql`
     data: producto(id: $id) {
       id
       descripcion
-      descripcionFactura
-      iva
-      unidadPorCaja
-      balanza
-      cambiable
-      garantia
-      ingrediente
-      combo
-      stock
-      promocion
-      vencimiento
-      diasVencimiento
-
-      tipoConservacion
-      codigos {
-        id
-        codigo
-        cantidad
-        principal
-        caja
-        referenciaCodigo {
-          id
-          codigo
-        }
-      }
-      subfamilia {
-        id
-        descripcion
-        nombre
-        familia {
-          id
-          descripcion
-          nombre
-        }
-        subfamilias {
-          id
-          nombre
-        }
-      }
-      existenciaTotal
-      sucursales {
-        moneda {
-          id
-          denominacion
-          simbolo
-        }
-        fechaUltimaCompra
-        sucursal {
-          nombre
-          deposito
-          depositoPredeterminado
-        }
-        existencia
-        precioUltimaCompra
-        cantidadUltimaCompra
-        costoMedio
-        pedido {
-          id
-          proveedor {
-            persona {
-              nombre
-            }
-          }
-        }
-        cantMinima
-        cantMaxima
-        cantMedia
-      }
-      productoUltimasCompras {
-        cantidad
-        precio
-        creadoEn
-        pedido {
-          id
-          proveedor {
-            persona {
-              nombre
-            }
-          }
-        }
-      }
+      
     }
   }
 `;
@@ -121,60 +41,7 @@ export const productosExistenciaCostoQuery = gql`
     data: productos {
       id
       descripcion
-      descripcionFactura
-      iva
-      unidadPorCaja
-      balanza
-      cambiable
-      garantia
-      ingrediente
-      combo
-      stock
-      promocion
-      vencimiento
-      diasVencimiento
-
-      tipoConservacion
-      subfamilia {
-        id
-      }
-      existenciaTotal
-      sucursales {
-        moneda {
-          id
-          denominacion
-          simbolo
-        }
-        fechaUltimaCompra
-        sucursal {
-          nombre
-          deposito
-          depositoPredeterminado
-        }
-        existencia
-        precioUltimaCompra
-        cantidadUltimaCompra
-        costoMedio
-        pedido {
-          proveedor {
-            persona {
-              nombre
-            }
-          }
-        }
-      }
-      productoUltimasCompras {
-        cantidad
-        precioUltimaCompra: precio
-        creadoEn
-        pedido {
-          proveedor {
-            persona {
-              nombre
-            }
-          }
-        }
-      }
+      
     }
   }
 `;
@@ -183,80 +50,47 @@ export const productosExistenciaCostoSearch = gql`
   query ($texto: String) {
     data: productoSearch(texto: $texto) {
       id
-      descripcion
-      descripcionFactura
-      iva
-      unidadPorCaja
-      balanza
-      garantia
-      cambiable
-      ingrediente
-      combo
-      stock
-      promocion
-      vencimiento
-      diasVencimiento
-
-      tipoConservacion
-      subfamilia {
-        id
-        descripcion
-        familia {
-          id
-          descripcion
-        }
-      }
-      existenciaTotal
-      sucursales {
-        fechaUltimaCompra
-        sucursal {
-          nombre
-          deposito
-          depositoPredeterminado
-        }
-        moneda {
-          id
-          denominacion
-          simbolo
-        }
-        existencia
-        precioUltimaCompra
-        cantidadUltimaCompra
-        costoMedio
-        pedido {
-          proveedor {
-            persona {
-              nombre
-            }
-          }
-        }
-      }
-      productoUltimasCompras {
-        cantidad
-        precio
-        creadoEn
-        pedido {
-          proveedor {
-            persona {
-              nombre
-            }
-          }
-        }
-      }
+      
     }
   }
 `;
 
 export const productoSearchPdv = gql`
-  query ($texto: String) {
-    data: productoSearch(texto: $texto) {
+  query ($texto: String, $offset: Int) {
+    data: productoSearch(texto: $texto, offset: $offset) {
       id
       descripcion
       garantia
       vencimiento
       diasVencimiento
       observacion
-      cambiable
+      # cambiable
+      # presentaciones {
+      #   id
+      #   principal
+      #   codigos {
+      #     id
+      #     codigo
+      #     principal
+      #     activo
+      #   }
+      #   tipoPresentacion {
+      #     id
+      #     descripcion
+      #   }
+      #   cantidad
+      #   imagenPrincipal
+      #   precios {
+      #     id
+      #     precio
+      #     tipoPrecio {
+      #       id
+      #       descripcion
+      #     }
+      #     principal
+      #     activo
+      #   }
+      # }
     }
   }
 `;
@@ -334,81 +168,6 @@ export const productoExistenciaCostoPorProveedor = gql`
     data: productoPorProveedorId(id: $id, texto: $texto) {
       id
       descripcion
-      descripcionFactura
-      iva
-      unidadPorCaja
-      balanza
-      garantia
-      ingrediente
-      combo
-      stock
-      promocion
-      vencimiento
-      diasVencimiento
-      cambiable
-
-      tipoConservacion
-      codigos {
-        id
-        codigo
-        cantidad
-        principal
-        caja
-        referenciaCodigo {
-          id
-          codigo
-        }
-      }
-      subfamilia {
-        id
-        descripcion
-        familia {
-          id
-          descripcion
-        }
-      }
-      existenciaTotal
-      sucursales {
-        moneda {
-          id
-          denominacion
-          simbolo
-        }
-        fechaUltimaCompra
-        sucursal {
-          nombre
-          deposito
-          depositoPredeterminado
-        }
-        existencia
-        precioUltimaCompra
-        cantidadUltimaCompra
-        costoMedio
-        pedido {
-          id
-          proveedor {
-            persona {
-              nombre
-            }
-          }
-        }
-        cantMinima
-        cantMaxima
-        cantMedia
-      }
-      productoUltimasCompras {
-        cantidad
-        precio
-        creadoEn
-        pedido {
-          id
-          proveedor {
-            persona {
-              nombre
-            }
-          }
-        }
-      }
     }
   }
 `;
@@ -441,6 +200,11 @@ export const productoPorCodigoQuery = gql`
           principal
           activo
         }
+        tipoPresentacion {
+          id
+          descripcion
+        }
+        cantidad
         imagenPrincipal
         precios {
           id
@@ -509,12 +273,18 @@ export const productoQuery = gql`
       }
       presentaciones {
         id
+        descripcion
         principal
+        cantidad
         codigos {
           id
           codigo
           principal
           activo
+        }
+        tipoPresentacion {
+          id
+          descripcion
         }
         imagenPrincipal
         precios {

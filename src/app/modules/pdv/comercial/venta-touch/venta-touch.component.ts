@@ -6,51 +6,55 @@ import {
   OnInit,
   ViewChild,
   ViewEncapsulation,
-} from '@angular/core';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { MatDialog } from '@angular/material/dialog';
-import { MatTableDataSource } from '@angular/material/table';
-import { Tab } from '../../../../layouts/tab/tab.model';
-import { TabService } from '../../../../layouts/tab/tab.service';
-import { MainService } from '../../../../main.service';
-import { MonedasGetAllGQL } from '../../../../modules/financiero/moneda/graphql/monedasGetAll';
-import { Moneda } from '../../../../modules/financiero/moneda/moneda.model';
-import { Delivery } from '../../../../modules/operaciones/delivery/delivery.model';
-import { DeliveryEstado } from '../../../../modules/operaciones/delivery/enums';
-import { DeliveryInput } from '../../../../modules/operaciones/delivery/graphql/delivery-input.model';
-import { SaveDeliveryGQL } from '../../../../modules/operaciones/delivery/graphql/saveDelivery';
-import { SaveVueltoGQL } from '../../../../modules/operaciones/vuelto/graphql/saveVuelto';
-import { VueltoInput } from '../../../../modules/operaciones/vuelto/vuelto-input.model';
-import { SaveVueltoItemGQL } from '../../../../modules/operaciones/vuelto/vuelto-item/graphql/saveVueltoItem';
-import { VueltoItemInput } from '../../../../modules/operaciones/vuelto/vuelto-item/vuelto-item-input.model';
-import { Codigo } from '../../../../modules/productos/codigo/codigo.model';
-import { ProductoPorCodigoGQL } from '../../../../modules/productos/producto/graphql/productoPorCodigo';
+} from "@angular/core";
+import { FormControl, FormGroup, Validators } from "@angular/forms";
+import { MatDialog } from "@angular/material/dialog";
+import { MatTableDataSource } from "@angular/material/table";
+import { Tab } from "../../../../layouts/tab/tab.model";
+import { TabService } from "../../../../layouts/tab/tab.service";
+import { MainService } from "../../../../main.service";
+import { MonedasGetAllGQL } from "../../../../modules/financiero/moneda/graphql/monedasGetAll";
+import { Moneda } from "../../../../modules/financiero/moneda/moneda.model";
+import { Delivery } from "../../../../modules/operaciones/delivery/delivery.model";
+import { DeliveryEstado } from "../../../../modules/operaciones/delivery/enums";
+import { DeliveryInput } from "../../../../modules/operaciones/delivery/graphql/delivery-input.model";
+import { SaveDeliveryGQL } from "../../../../modules/operaciones/delivery/graphql/saveDelivery";
+import { SaveVueltoGQL } from "../../../../modules/operaciones/vuelto/graphql/saveVuelto";
+import { VueltoInput } from "../../../../modules/operaciones/vuelto/vuelto-input.model";
+import { SaveVueltoItemGQL } from "../../../../modules/operaciones/vuelto/vuelto-item/graphql/saveVueltoItem";
+import { VueltoItemInput } from "../../../../modules/operaciones/vuelto/vuelto-item/vuelto-item-input.model";
+import { Codigo } from "../../../../modules/productos/codigo/codigo.model";
+import { ProductoPorCodigoGQL } from "../../../../modules/productos/producto/graphql/productoPorCodigo";
 import {
   PdvSearchProductoData,
   PdvSearchProductoDialogComponent,
   PdvSearchProductoResponseData,
-} from '../../../../modules/productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component';
-import { Producto } from '../../../../modules/productos/producto/producto.model';
-import { AllTiposPreciosGQL } from '../../../../modules/productos/tipo-precio/graphql/allTiposPrecios';
-import { TipoPrecio } from '../../../../modules/productos/tipo-precio/tipo-precio.model';
+} from "../../../../modules/productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
+import { Producto } from "../../../../modules/productos/producto/producto.model";
+import { AllTiposPreciosGQL } from "../../../../modules/productos/tipo-precio/graphql/allTiposPrecios";
+import { TipoPrecio } from "../../../../modules/productos/tipo-precio/tipo-precio.model";
 import {
   NotificacionColor,
   NotificacionSnackbarService,
-} from '../../../../notificacion-snackbar.service';
-import { BeepService } from '../../../../shared/beep/beep.service';
-import { WindowInfoService } from '../../../../shared/services/window-info.service';
-import { VentaItem } from '../../../operaciones/venta/venta-item.model';
-import { DeliveryDialogComponent } from './delivery-dialog/delivery-dialog.component';
-import { EditItemDialogComponent } from './edit-item-dialog/edit-item-dialog.component';
-import { PagoTouchComponent } from './pago-touch/pago-touch.component';
-import { PdvCategoria } from './pdv-categoria/pdv-categoria.model';
-import { PdvCategoriaService } from './pdv-categoria/pdv-categoria.service';
-import { PdvGruposProductos } from './pdv-grupos-productos/pdv-grupos-productos.model';
+} from "../../../../notificacion-snackbar.service";
+import { BeepService } from "../../../../shared/beep/beep.service";
+import { WindowInfoService } from "../../../../shared/services/window-info.service";
+import { VentaItem } from "../../../operaciones/venta/venta-item.model";
+import { ProductoService } from "../../../productos/producto/producto.service";
+import { DeliveryDialogComponent } from "./delivery-dialog/delivery-dialog.component";
+import { EditItemDialogComponent } from "./edit-item-dialog/edit-item-dialog.component";
+import { PagoTouchComponent } from "./pago-touch/pago-touch.component";
+import { PdvCategoria } from "./pdv-categoria/pdv-categoria.model";
+import { PdvCategoriaService } from "./pdv-categoria/pdv-categoria.service";
+import { PdvGruposProductos } from "./pdv-grupos-productos/pdv-grupos-productos.model";
 import {
   ProductoCategoriaDialogComponent,
   ProductoCategoriaResponseData,
-} from './producto-categoria-dialog/producto-categoria-dialog.component';
-import { SelectProductosDialogComponent, SelectProductosResponseData } from './select-productos-dialog/select-productos-dialog.component';
+} from "./producto-categoria-dialog/producto-categoria-dialog.component";
+import {
+  SelectProductosDialogComponent,
+  SelectProductosResponseData,
+} from "./select-productos-dialog/select-productos-dialog.component";
 
 export interface Item {
   producto: Producto;
@@ -64,8 +68,8 @@ export interface Item {
 }
 
 export enum TipoMedida {
-  unidad = 'Unid.',
-  caja = 'Caja',
+  unidad = "Unid.",
+  caja = "Caja",
 }
 
 export interface PdvTouchData {
@@ -74,18 +78,18 @@ export interface PdvTouchData {
 }
 
 @Component({
-  selector: 'app-venta-touch',
-  templateUrl: './venta-touch.component.html',
-  styleUrls: ['./venta-touch.component.css'],
+  selector: "app-venta-touch",
+  templateUrl: "./venta-touch.component.html",
+  styleUrls: ["./venta-touch.component.css"],
 })
 export class VentaTouchComponent implements OnInit {
   @Input() data: Tab;
 
-  @ViewChild('codigoInput', { static: false })
+  @ViewChild("codigoInput", { static: false })
   codigoInput: ElementRef;
 
   isCargandoPDV = true;
-  displayedColumns = ['numero', 'descripcion', 'cantidad', 'precio', 'total'];
+  displayedColumns = ["numero", "descripcion", "cantidad", "precio", "total"];
   dataSource = new MatTableDataSource<VentaItem>();
   winHeigth;
   winWidth;
@@ -104,7 +108,7 @@ export class VentaTouchComponent implements OnInit {
   isAudio = true;
   isAuxiliar = false;
   monedas: Moneda[] = [];
-  
+  mostrarTipoPrecios = false;
 
   constructor(
     private dialog: MatDialog,
@@ -119,10 +123,11 @@ export class VentaTouchComponent implements OnInit {
     private getMonedas: MonedasGetAllGQL,
     private saveDelivery: SaveDeliveryGQL,
     private saveVuelto: SaveVueltoGQL,
-    private saveVueltoItem: SaveVueltoItemGQL
+    private saveVueltoItem: SaveVueltoItemGQL,
+    private productoService: ProductoService
   ) {
-    this.winHeigth = windowInfo.innerHeight + 'px';
-    this.winWidth = windowInfo.innerWidth + 'px';
+    this.winHeigth = windowInfo.innerHeight + "px";
+    this.winWidth = windowInfo.innerWidth + "px";
     this.isDialogOpen = false;
     setTimeout(() => {
       this.codigoInput.nativeElement.focus();
@@ -130,10 +135,9 @@ export class VentaTouchComponent implements OnInit {
   }
 
   ngOnInit(): void {
-
     this.dataSource.data = this.itemList;
-    this.createForm() 
-    this.buscarPdvCategoria() 
+    this.createForm();
+    this.buscarPdvCategoria();
     this.setPrecios();
 
     setTimeout(() => {
@@ -145,45 +149,44 @@ export class VentaTouchComponent implements OnInit {
         this.setFocusToCodigoInput();
       }
     });
-    
   }
 
   setPrecios() {
-    this.getMonedas.fetch(null, {errorPolicy: 'all'}).subscribe((res) => {
-      if (res.errors==null) {
+    this.getMonedas.fetch(null, { errorPolicy: "all" }).subscribe((res) => {
+      if (res.errors == null) {
         this.monedas = res.data.data;
         this.cambioRs = this.monedas.find(
-          (m) => m.denominacion == 'REAL'
+          (m) => m.denominacion == "REAL"
         )?.cambio;
         this.cambioDs = this.monedas.find(
-          (m) => m.denominacion == 'DOLAR'
+          (m) => m.denominacion == "DOLAR"
         )?.cambio;
         this.cambioArg = this.monedas.find(
-          (m) => m.denominacion == 'PESO ARG'
+          (m) => m.denominacion == "PESO ARG"
         )?.cambio;
         return true;
       }
     });
   }
 
-  createForm() : boolean{
+  createForm(): boolean {
     this.formGroup = new FormGroup({
       cantidad: new FormControl(null),
       codigo: new FormControl(null),
     });
-    this.formGroup.get('cantidad').setValue(1);
+    this.formGroup.get("cantidad").setValue(1);
     return true;
   }
 
-  buscarPdvCategoria(){
+  buscarPdvCategoria() {
     this.pdvCategoriaService.onGetCategorias().subscribe((res) => {
-      if (res.errors==null) {
+      if (res.errors == null) {
         this.pdvCategorias = res.data.data;
         this.selectedPdvCategoria = this.pdvCategorias[0];
         this.isCargandoPDV = false;
       } else {
         this.notificacionSnackbar.notification$.next({
-          texto: 'No fue posible cargar categorias',
+          texto: "No fue posible cargar categorias",
           color: NotificacionColor.warn,
           duracion: 3,
         });
@@ -198,7 +201,7 @@ export class VentaTouchComponent implements OnInit {
         this.selectedTipoPrecio = this.tiposPrecios[0];
       } else {
         this.notificacionSnackbar.notification$.next({
-          texto: 'No fue posible cargar tipos de precios',
+          texto: "No fue posible cargar tipos de precios",
           color: NotificacionColor.warn,
           duracion: 3,
         });
@@ -207,26 +210,29 @@ export class VentaTouchComponent implements OnInit {
   }
 
   onGridCardClick(pdvGruposProductos: PdvGruposProductos[], descripcion) {
-    let productos: Producto[] = []
-    pdvGruposProductos.forEach(e => {
-      productos.push(e.producto)
-    })
-    this.dialog.open(SelectProductosDialogComponent, {
-      data: {
-        productos,
-        descripcion
-      }
-    }).afterClosed().subscribe(res => {
-      let respuesta: SelectProductosResponseData = res;
-      if(res!=null){
-        let item: VentaItem = new VentaItem();
-        item.presentacion = respuesta.data.presentacion
-        item.precio = respuesta.data.precio;
-        item.producto = respuesta.producto;
-        item.cantidad = respuesta.data.cantidad;
-        this.addItem(item)
-      }
-    })
+    let productos: Producto[] = [];
+    pdvGruposProductos.forEach((e) => {
+      productos.push(e.producto);
+    });
+    this.dialog
+      .open(SelectProductosDialogComponent, {
+        data: {
+          productos,
+          descripcion,
+        },
+      })
+      .afterClosed()
+      .subscribe((res) => {
+        let respuesta: SelectProductosResponseData = res;
+        if (res != null) {
+          let item: VentaItem = new VentaItem();
+          item.presentacion = respuesta.data.presentacion;
+          item.precio = respuesta.data.precio;
+          item.producto = respuesta.producto;
+          item.cantidad = respuesta.data.cantidad;
+          this.addItem(item);
+        }
+      });
   }
 
   calcularTotales() {
@@ -237,22 +243,21 @@ export class VentaTouchComponent implements OnInit {
   }
 
   onCodigoKeyUpEvent(key) {
-    let texto: String = this.formGroup.get('codigo').value;
+    let texto: String = this.formGroup.get("codigo").value;
     switch (key) {
-      case ' ':
-      case '*':
-      case '+':
-      case '-':
-      case 'Tab':
-        if (texto != null && texto != ' ' && +texto > 0) {
+      case " ":
+      case "*":
+      case "+":
+      case "-":
+      case "Tab":
+        if (texto != null && texto != " " && +texto > 0) {
           this.formGroup
-            .get('cantidad')
-            .setValue(+this.formGroup.get('codigo').value);
-          this.formGroup.get('codigo').setValue(null);
+            .get("cantidad")
+            .setValue(+this.formGroup.get("codigo").value);
+          this.formGroup.get("codigo").setValue(null);
         }
         break;
-      case 'Enter':
-        
+      case "Enter":
         break;
 
       default:
@@ -261,49 +266,59 @@ export class VentaTouchComponent implements OnInit {
   }
 
   addItem(item: VentaItem, index?) {
-    console.log(item.cantidad)
     let cantidad = item.cantidad;
-    let item2 = new VentaItem;
-    let presentacionCaja = item.producto.presentaciones.find(p => p.cantidad <= cantidad && p.tipoPresentacion.id == 2);
-    if(presentacionCaja!=null){
-      Object.assign(item2, item)
+    let item2 = new VentaItem();
+    if (item.presentacion == null) {
+      item.presentacion = item.producto.presentaciones.find(
+        (p) => p.principal == true
+      );
+    }
+    if (item.precio == null) {
+      item.precio = item.presentacion.precios.find(
+        (p) => p.principal == true
+      );
+    }
+    let presentacionCaja = item.producto.presentaciones.find(
+      (p) => p.cantidad <= cantidad && p.tipoPresentacion.id == 2
+    );
+    if (presentacionCaja != null) {
+      Object.assign(item2, item);
       item2.presentacion = presentacionCaja;
-      item2.precio = item2.presentacion.precios.find(precio => precio?.principal == true)
-      console.log(item, item2)
-      if(item2.precio!=null){
-        console.log(cantidad, '/', item2.presentacion.cantidad)
-        let factor = Math.floor(cantidad / item2.presentacion.cantidad)
+      item2.precio = item2.presentacion.precios.find(
+        (precio) => precio?.principal == true
+      );
+      if (item2.precio != null) {
+        let factor = Math.floor(cantidad / item2.presentacion.cantidad);
         let cantAux = item2.presentacion.cantidad * factor;
         item2.cantidad = factor;
-        console.log('cantidad de caja', factor)
-        console.log('cantidad a restar de las unidades', cantAux)
         cantidad -= cantAux;
-        console.log('cantidad final para unidades', cantidad)
         item.cantidad = cantidad;
-        console.log('cantidad final de caja', item2.cantidad)
-        this.addItem(item2)
+        this.addItem(item2);
       }
     } else {
     }
 
-
-    if(this.itemList.length>0 && index==null){
-      index = this.itemList.findIndex(i => i.presentacion.id == item.presentacion.id && i.precio.precio == item.precio.precio);
+    if (this.itemList.length > 0 && index == null) {
+      index = this.itemList.findIndex(
+        (i) =>
+          i.presentacion.id == item.presentacion.id &&
+          i.precio.precio == item.precio.precio
+      );
     }
-    if(index!=-1 && index!=null){
-      console.log("encontro un index", index)
+    if (index != -1 && index != null) {
+      console.log("encontro un index", index);
       this.itemList[index].cantidad += cantidad;
     } else {
-      console.log("es nuevo")
-      this.itemList.push(item)
+      console.log("es nuevo");
+      this.itemList.push(item);
     }
     this.calcularTotales();
     item.cantidad = cantidad;
     this.ultimoAdicionado.push(item);
     // this.ultimoAdicionado[this.ultimoAdicionado.length - 1].index =
     //   itemIndex > -1 ? itemIndex : this.itemList.length - 1;
-    this.formGroup.get('codigo').setValue('');
-    this.formGroup.get('cantidad').setValue(1);
+    this.formGroup.get("codigo").setValue("");
+    this.formGroup.get("cantidad").setValue(1);
     this.setFocusToCodigoInput();
     this.selectedTipoPrecio = this.tiposPrecios[0];
   }
@@ -377,8 +392,8 @@ export class VentaTouchComponent implements OnInit {
   buscarProductoDialog() {
     this.isDialogOpen = true;
     let data: PdvSearchProductoData = {
-      cantidad: this.formGroup.get('cantidad').value,
-      texto: this.formGroup.get('codigo').value,
+      cantidad: this.formGroup.get("cantidad").value,
+      texto: this.formGroup.get("codigo").value,
       selectedTipoPrecio: this.selectedTipoPrecio,
       tiposPrecios: this.tiposPrecios,
     };
@@ -387,34 +402,38 @@ export class VentaTouchComponent implements OnInit {
       autoFocus: false,
       restoreFocus: true,
     });
-    this.formGroup.get('codigo').setValue(null);
+    this.formGroup.get("codigo").setValue(null);
     ref.afterClosed().subscribe((res) => {
       if (res != null) {
         let response: PdvSearchProductoResponseData = res;
-        this.selectedTipoPrecio = response.tipoPrecio;
-        this.formGroup.get('cantidad').setValue(response.cantidad);
-        this.crearItem(response.producto);
+        this.formGroup.get("cantidad").setValue(response.cantidad);
+        let item = new VentaItem();
+        item.cantidad = this.formGroup.controls.cantidad.value;
+        item.producto = response.producto;
+        item.presentacion = response.presentacion;
+        item.precio = response.precio;
+        this.addItem(item);
       }
       this.isDialogOpen = false;
       this.setFocusToCodigoInput();
     });
   }
 
-  @HostListener('document:keydown', ['$event']) onKeydownHandler(
+  @HostListener("document:keydown", ["$event"]) onKeydownHandler(
     event: KeyboardEvent
   ) {
     switch (event.key) {
-      case 'Escape':
+      case "Escape":
         break;
-      case 'Enter':
-        let codigo = this.formGroup.get('codigo').value;
-        if (codigo != null && codigo != '') {
+      case "Enter":
+        let codigo = this.formGroup.get("codigo").value;
+        if (codigo != null && codigo != "") {
           this.buscarPorCodigo(codigo);
         } else if (!this.isDialogOpen) {
           this.onPagoClick();
         }
         break;
-      case 'F9':
+      case "F9":
         this.buscarProductoDialog();
         break;
       default:
@@ -424,22 +443,22 @@ export class VentaTouchComponent implements OnInit {
 
   buscarPorCodigo(texto: string) {
     let producto: Producto;
-    if (texto == null || texto == ' ' || texto == '') return null;
+    if (texto == null || texto == " " || texto == "") return null;
     this.getProductoByCodigo
       .fetch({
         texto,
       })
       .subscribe((res) => {
-        if (res.errors==null) {
+        if (res.errors == null) {
           producto = res.data.data;
           if (producto != null) {
             this.isAudio ? this.beepService.beep() : null;
-            console.log(producto)
+            console.log(producto);
             this.crearItem(producto, texto);
-            this.formGroup.get('codigo').setValue(null);
+            this.formGroup.get("codigo").setValue(null);
           } else {
-            this.buscarProductoDialog()
-            // this.isAudio ? this.beepService.boop() : null;
+            this.isAudio ? this.beepService.boop() : null;
+            this.buscarProductoDialog();
             // this.notificacionSnackbar.notification$.next({
             //   texto: 'Producto no encontrado',
             //   color: NotificacionColor.warn,
@@ -451,123 +470,22 @@ export class VentaTouchComponent implements OnInit {
   }
 
   crearItem(producto: Producto, texto?, index?) {
-    let items: Item[] = [];
-    let unidadPorCaja = producto.unidadPorCaja;
-    let cantidadIngresada: number = this.formGroup.get('cantidad').value;
-    let cantidadPorCaja: number;
-    let unidadSobrantes = 0;
-    let codigo: Codigo;
-    let codigoPorUnidad: Codigo;
-    let isOnlyCajas = false;
-    let isCaja = false;
-    let isPromocion = false;
-    let isGarantia = false;
-
-    if (texto == null) {
-      texto = producto.codigos.find((c) => {
-        // if (c.principal && c.caja != true) {
-        //   return c;
-        // }
-      }).codigo;
-    }
-
-    // if (this.selectedTipoPrecio.id != 1) {
-    //   codigo = producto.codigos.find(
-    //     (c) => c?.tipoPrecio?.id == this.selectedTipoPrecio.id
-    //   );
-    //   let item: Item = {
-    //     cantidad: cantidadIngresada * codigo.cantidad,
-    //     precio: codigo.preciosPorSucursal.find(
-    //       (pps) => pps.sucursal.id == this.mainService.sucursalActual.id
-    //     ).precio,
-    //     producto,
-    //     caja: codigo.caja,
-    //     unidadPorCaja: codigo.cantidad,
-    //     tipoPrecio: codigo?.tipoPrecio,
-    //   };
-    //   this.addItem(item, index);
-    // } else {
-    //   if (cantidadIngresada >= unidadPorCaja) {
-    //     cantidadPorCaja = Math.floor(cantidadIngresada / unidadPorCaja);
-    //     unidadSobrantes = cantidadIngresada - cantidadPorCaja * unidadPorCaja;
-    //     cantidadIngresada = 0;
-    //   }
-    //   if (cantidadPorCaja > 0) {
-    //     codigo = producto.codigos.find((c) => {
-    //       if (c.caja && c.principal) {
-    //         return c;
-    //       }
-    //     });
-    //     let item: Item = {
-    //       cantidad: cantidadPorCaja * codigo.cantidad,
-    //       precio: codigo.preciosPorSucursal.find(
-    //         (pps) => pps.sucursal.id == this.mainService.sucursalActual.id
-    //       ).precio,
-    //       caja: true,
-    //       producto,
-    //       unidadPorCaja: codigo.cantidad,
-    //       tipoPrecio: codigo?.tipoPrecio,
-    //     };
-    //     this.addItem(item, index);
-    //   }
-    //   if (unidadSobrantes > 0) {
-    //     codigo = producto.codigos.find(
-    //       (c) => c.codigo == unidadSobrantes + texto
-    //     );
-    //     if (codigo == null) {
-    //       codigo = producto.codigos.find((c) => {
-    //         if (c.principal && c.caja != true) {
-    //           return c;
-    //         }
-    //       });
-    //     }
-    //     let item: Item = {
-    //       cantidad: unidadSobrantes,
-    //       producto,
-    //       precio: codigo.preciosPorSucursal.find(
-    //         (pps) => pps.sucursal.id == this.mainService.sucursalActual.id
-    //       ).precio,
-    //       caja: false,
-    //       tipoPrecio: codigo?.tipoPrecio,
-    //     };
-    //     this.addItem(item, index);
-    //   } else {
-    //     if (cantidadIngresada > 0) {
-    //       codigo = producto.codigos.find((c) => {
-    //         if (c.codigo == cantidadIngresada + texto) {
-    //           cantidadIngresada = 1;
-    //           return c;
-    //         }
-    //       });
-    //       codigo == null
-    //         ? (codigo = producto.codigos.find((c) => c.codigo == texto))
-    //         : null;
-    //       if (codigo == null) {
-    //         codigo = producto.codigos.find((c) => {
-    //           if (c.principal && c.caja != true) {
-    //             return c;
-    //           }
-    //         });
-    //       }
-    //       if (codigo.referenciaCodigo != null) {
-    //         codigo = producto.codigos.find(
-    //           (c) => c.id == codigo.referenciaCodigo.id
-    //         );
-    //       }
-    //       let item: Item = {
-    //         cantidad: cantidadIngresada * codigo.cantidad,
-    //         producto,
-    //         precio: codigo.preciosPorSucursal.find(
-    //           (pps) => pps.sucursal.id == this.mainService.sucursalActual.id
-    //         ).precio,
-    //         caja: codigo.caja,
-    //         unidadPorCaja: producto.unidadPorCaja,
-    //         tipoPrecio: codigo?.tipoPrecio,
-    //       };
-    //       this.addItem(item, index);
-    //     }
-    //   }
-    // }
+    let item: VentaItem = new VentaItem();
+    this.productoService.onGetProductoPorId(producto.id).subscribe((res) => {
+      if (res.errors == null) {
+        producto = res.data.data;
+        console.log(producto);
+        item.cantidad = this.formGroup.controls.cantidad.value;
+        item.producto = producto;
+        item.presentacion = producto?.presentaciones.find(
+          (p) => p.principal == true
+        );
+        item.precio = item?.presentacion?.precios.find(
+          (p) => p.principal == true
+        );
+        this.addItem(item);
+      }
+    });
   }
 
   setFocusToCodigoInput() {
@@ -584,10 +502,10 @@ export class VentaTouchComponent implements OnInit {
 
   pdvAuxiliarClick() {
     let auxIndex = this.tabService.tabs.findIndex(
-      (t) => t.title == 'Venta Auxiliar'
+      (t) => t.title == "Venta Auxiliar"
     );
     let pdvIndex = this.tabService.tabs.findIndex(
-      (t) => t.title == 'Venta Touch'
+      (t) => t.title == "Venta Touch"
     );
 
     if (!this.isAuxiliar) {
@@ -596,12 +514,12 @@ export class VentaTouchComponent implements OnInit {
       }
       let data: PdvTouchData = {
         auxiliar: true,
-        titulo: 'Venta Auxiliar',
+        titulo: "Venta Auxiliar",
       };
       return this.tabService.addTab(
         new Tab(
           VentaTouchComponent,
-          'Venta Auxiliar',
+          "Venta Auxiliar",
           { data: data },
           VentaTouchComponent
         )
@@ -613,32 +531,31 @@ export class VentaTouchComponent implements OnInit {
 
   onPagoClick() {
     this.isDialogOpen = true;
-    if(this.itemList?.length > 0){
+    if (this.itemList?.length > 0) {
       let ref = this.dialog
-      .open(PagoTouchComponent, {
-        autoFocus: false,
-        restoreFocus: true,
-        data: {
-          valor: this.totalGs,
-        },
-        width: '100vw',
-        height: '80vh',
-      })
-      .afterClosed()
-      .subscribe((res) => {
-        if (res) {
-          this.resetForm();
-        }
-        this.isDialogOpen = false;
-      });
+        .open(PagoTouchComponent, {
+          autoFocus: false,
+          restoreFocus: true,
+          data: {
+            valor: this.totalGs,
+          },
+          width: "100vw",
+          height: "80vh",
+        })
+        .afterClosed()
+        .subscribe((res) => {
+          if (res) {
+            this.resetForm();
+          }
+          this.isDialogOpen = false;
+        });
     }
-    
   }
 
   resetForm() {
     this.itemList = [];
     this.formGroup.controls.cantidad.setValue(1);
-    this.formGroup.controls.codigo.setValue('');
+    this.formGroup.controls.codigo.setValue("");
     this.selectedTipoPrecio = this.tiposPrecios[0];
   }
 
@@ -646,7 +563,7 @@ export class VentaTouchComponent implements OnInit {
     //guardar la compra, si la compra se guardo con exito, imprimir ticket y resetForm()
     this.notificacionSnackbar.notification$.next({
       color: NotificacionColor.success,
-      texto: 'Compra guardada con éxito',
+      texto: "Compra guardada con éxito",
       duracion: 2,
     });
     this.resetForm();
@@ -662,15 +579,15 @@ export class VentaTouchComponent implements OnInit {
         },
         autoFocus: false,
         restoreFocus: true,
-        width: '80vw',
-        height: '90vh',
-        panelClass: ['deliveryBackground'],
+        width: "80vw",
+        height: "90vh",
+        panelClass: ["deliveryBackground"],
       })
       .afterClosed()
       .subscribe((resDialog) => {
         if (resDialog != null) {
           let vueltoId;
-          let vueltoList: VueltoItemInput[] = resDialog['vueltoList'];
+          let vueltoList: VueltoItemInput[] = resDialog["vueltoList"];
           if (vueltoList.length > 0) {
             let vueltoInput: VueltoInput = {
               id: null,
@@ -682,7 +599,7 @@ export class VentaTouchComponent implements OnInit {
               })
               .subscribe((resVuelto) => {
                 if (resVuelto != null) {
-                  vueltoId = resVuelto.data['saveVuelto']['id'];
+                  vueltoId = resVuelto.data["saveVuelto"]["id"];
                   vueltoList.forEach((v) => {
                     let aux: VueltoItemInput = {
                       monedaId: v.monedaId,
@@ -694,19 +611,20 @@ export class VentaTouchComponent implements OnInit {
                         entity: aux,
                       })
                       .subscribe((resVueltoItem) => {
-                        let deliveryInput : DeliveryInput = {
+                        let deliveryInput: DeliveryInput = {
                           estado: DeliveryEstado.ABIERTO,
-                          precioId: resDialog['deliveryInput']['precioId'],
-                          telefono: resDialog['deliveryInput']['telefono'],
-                          valor: resDialog['deliveryInput']['valor'],
-                          direccion: resDialog['deliveryInput']['direccion'],
-                          barrioId: resDialog['deliveryInput']['barrioId'],
-                          vueltoId: resVuelto.data['saveVuelto']['id'],
-                          entregadorId: resDialog['deliveryInput']['entregadorId'],
-                          usuarioId: resDialog['deliveryInput']['usuarioId'],
-                          vehiculoId: resDialog['deliveryInput']['vehiculoId'],
-                          ventaId: resDialog['deliveryInput']['ventaId']
-                         };
+                          precioId: resDialog["deliveryInput"]["precioId"],
+                          telefono: resDialog["deliveryInput"]["telefono"],
+                          valor: resDialog["deliveryInput"]["valor"],
+                          direccion: resDialog["deliveryInput"]["direccion"],
+                          barrioId: resDialog["deliveryInput"]["barrioId"],
+                          vueltoId: resVuelto.data["saveVuelto"]["id"],
+                          entregadorId:
+                            resDialog["deliveryInput"]["entregadorId"],
+                          usuarioId: resDialog["deliveryInput"]["usuarioId"],
+                          vehiculoId: resDialog["deliveryInput"]["vehiculoId"],
+                          ventaId: resDialog["deliveryInput"]["ventaId"],
+                        };
                         this.saveDelivery
                           .mutate({
                             entity: deliveryInput,

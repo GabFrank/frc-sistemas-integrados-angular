@@ -50,6 +50,8 @@ export class SearchProductoDialogComponent implements OnInit{
   NumberUtils;
   sucursalActual : Sucursal;
   sucursalActualIndex: number;
+  isSearching = false;
+  onSearchTimer;
 
   constructor(
     public service: ProductoService,

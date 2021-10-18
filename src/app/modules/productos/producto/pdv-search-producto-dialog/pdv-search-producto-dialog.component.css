@@ -20,6 +20,11 @@ tr:focus{
   .example-producto-detail {
     overflow: hidden;
     display: flex;
+    background-color: none !important;
+  }
+
+  .example-producto-detail:hover {
+    background-color: none;
   }
 
   .mat-cell,
@@ -41,5 +46,18 @@ input::-webkit-inner-spin-button {
 }
 
 .highlight{
-  background: #42A948; /* green */
+  background: #42A948;
+}
+
+
+.selectedCard {
+  background-color: #43A047 !important;
+}
+
+.expanded:hover {
+  background-color: rgb(51, 51, 51) !important;
+}
+
+.tableRows:hover {
+  background-color: rgb(51, 51, 51) !important;
 }

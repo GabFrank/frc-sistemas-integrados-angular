@@ -27,8 +27,6 @@ export class ProductoCategoriaDialogData {
   presentaciones: Presentacion[];
   cantidad?: number;
   texto?;
-  tipoPrecio?: TipoPrecio;
-  tiposPrecios: TipoPrecio[];
 }
 
 export class ProductoCategoriaResponseData {
@@ -65,11 +63,7 @@ export class ProductoCategoriaDialogComponent implements OnInit {
     public mainService: MainService
   ) {
     this.presentaciones = data?.presentaciones;
-    this.tipoPrecio = data?.tipoPrecio;
     this.cantidad = +data?.cantidad;
-    this.tiposPrecios = data?.tiposPrecios;
-
-    console.log(this.presentaciones);
   }
 
   ngOnInit(): void {

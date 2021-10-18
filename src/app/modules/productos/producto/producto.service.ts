@@ -31,19 +31,34 @@ export class ProductoService {
     private saveImage: SaveImagenProductoGQL,
     private productoSearch: ProductoForPdvGQL,
     private notificacionSnack: NotificacionSnackbarService,
-    private printProductoPorId: PrintProductoPorIdGQL
+    private printProductoPorId: PrintProductoPorIdGQL,
+    private searchForPdv: ProductoForPdvGQL
   ) {}
 
-  onSearch(texto) {
+  onSearch(texto, offset?) {
+    console.log('buscando ', texto, 'offest ' , offset)
     return this.productoSearch.fetch(
       {
         texto,
+        offset
       },
       {
         fetchPolicy: "no-cache",
         errorPolicy: "all",
       }
     );
+  }
+
+  onSearchParaPdv(){
+
+  }
+
+  onGetProductoPorId(id){
+    return this.productoPorId.fetch({
+      id
+    },{
+      errorPolicy: 'all'
+    })
   }
 
   onSaveProducto(input: ProductoInput): Observable<any> {
