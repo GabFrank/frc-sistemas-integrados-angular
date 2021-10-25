@@ -36,6 +36,7 @@ import { NgModule } from '@angular/core';
 import { MatNativeDateModule } from '@angular/material/core';
 import { NgxMaterialTimepickerModule } from 'ngx-material-timepicker';
 import {ClipboardModule} from '@angular/cdk/clipboard';
+import { MatKeyboardModule } from 'angular-onscreen-material-keyboard';
 
 
 @NgModule({
@@ -83,6 +84,7 @@ import {ClipboardModule} from '@angular/cdk/clipboard';
     NgxMaterialTimepickerModule,
     ClipboardModule,
     MatStepperModule,
+    MatKeyboardModule
   ]
 })
 export class MaterialModule { }

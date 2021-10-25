@@ -1,0 +1,46 @@
+<div fxLayout="column" style="width: 100%;">
+    <div>
+        <h2>{{data.producto.descripcion | uppercase}}</h2>
+    </div>
+    <div>
+        <h3>{{data.presentacion.descripcion | uppercase}}</h3>
+    </div>
+  <div
+    fxFlex
+    fxLayout="row"
+    fxLayoutAlign="start center"
+    fxLayoutGap="20px"
+    style="width: 100%"
+  >
+    <div
+      fxFlex="19"
+      *ngFor="let precio of presentacion?.precios; let i = index"
+    >
+      <mat-card
+        style="
+          padding-top: 10px;
+          margin: 0;
+          margin-top: 5px;
+          background-color: #f44336;
+        "
+        [class.tableRows]="selectedPrecioRowIndex != i"
+        [class.highlight]="selectedPrecioRowIndex == i"
+        (click)="
+          selectedPrecio = precio;
+          onPrecioClick(precio)
+        "
+        (keydown)="keyBoardEvent($event.key, selectedPrecioRowIndex)"
+
+      >
+        <div fxLayout="column" fxLayoutGap="10px">
+          <div style="text-align: center; font-size: 1.5em">
+            {{ precio?.tipoPrecio?.descripcion | uppercase }}
+          </div>
+          <div style="text-align: center">
+            {{ precio?.precio | number: "1.0-0" }}
+          </div>
+        </div>
+      </mat-card>
+    </div>
+  </div>
+</div>

@@ -7,57 +7,57 @@
 <div fxFlex style="width: 100%; font-size: 200%; text-align: center;">
     {{item.producto.descripcion}}
 </div>
-  <div fxFlex fxLayout="row" fxLayoutGap="10px" style="width: 100%" fxLayoutAlign="center start">
-    <div fxFlex>
+  <div fxFlex fxLayout="row" fxLayoutGap="10px" style="width: 100%; height: 100%;" fxLayoutAlign="start center">
+    <div fxFlex="12">
       <button
         mat-raised-button
         color="primary"
         style="width: 100%; height: 4em"
         (click)="calcularCantidad(-1)"
       >
-        <mat-icon style="width: 100%; height: 1em; font-size: 250%"
+        <mat-icon style="width: 100%; height: 1em; font-size: 2.5em"
           >arrow_back_ios</mat-icon
         >
       </button>
     </div>
-    <div fxFlex>
-      <mat-card style="background-color: white; width: 100%; height: 100%">
-        <div style="font-size: 300%; color: black; text-align: center">
+    <div fxFlex="12">
+      <mat-card style="background-color: white; width: 100%; height: 4em">
+        <div style="font-size: 2.5em; height: 1em; color: black; text-align: center">
           {{ formGroup.controls.cantidad.value }}
         </div>
       </mat-card>
     </div>
-    <div fxFlex>
+    <div fxFlex="12">
       <button
         mat-raised-button
         color="primary"
         style="width: 100%; height: 4em"
         (click)="calcularCantidad(1)"
       >
-        <mat-icon style="width: 100%; height: 1em; font-size: 250%"
+        <mat-icon style="width: 100%;height: 1em; font-size: 2.5em"
           >arrow_forward_ios</mat-icon
         >
       </button>
     </div>
-    <div fxFlex>
+    <div fxFlex="12">
       <button
         mat-raised-button
-        style="width: 80%; height: 4em"
         (click)="openTecladoNumerico()"
+        style="width: 100%; height: 4em"
         color="primary"
       >
-        <mat-icon style="width: 50%; height: 1em; font-size: 250%"
+        <mat-icon style="width: 100%;height: 1em; font-size: 2.5em"
           >keyboard_alt
         </mat-icon>
       </button>
     </div>
-    <div fxFlex>
-        <button mat-raised-button style="width: 100%; height: 2em; font-size: 200%; color: #00796B;" (click)="onGuardar()">
+    <div fxFlex="24">
+        <button mat-raised-button color="accent" style="width: 100%; height: 2em; font-size: 2em;" (click)="onGuardar()">
           Guardar
         </button>
       </div>
-    <div fxFlex>
-      <button mat-raised-button style="width: 100%; height: 2em; font-size: 200%; color: #F44336;" (click)="onEliminar()">
+    <div fxFlex="24">
+      <button mat-raised-button color="primary" style="width: 100%; height: 2em; font-size: 200%" (click)="onEliminar()">
         Eliminar
       </button>
     </div>

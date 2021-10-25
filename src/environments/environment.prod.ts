@@ -15,11 +15,11 @@ export const environment = {
     messagingSenderId: "389460380308",
     appId: "1:389460380308:web:53701896405855d9f64281"
   },
-  serverIp: '192.168.1.71',
+  serverIp: '192.168.1.16',
   serverPort: 8081
 };
 
 export const serverAdress = {
-  serverIp: '192.168.1.71',
+  serverIp: '192.168.1.16',
   serverPort: '8081'
 }

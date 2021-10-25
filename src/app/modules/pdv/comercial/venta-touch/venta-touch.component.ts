@@ -38,12 +38,14 @@ import {
   NotificacionSnackbarService,
 } from "../../../../notificacion-snackbar.service";
 import { BeepService } from "../../../../shared/beep/beep.service";
+import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { WindowInfoService } from "../../../../shared/services/window-info.service";
 import { VentaItem } from "../../../operaciones/venta/venta-item.model";
 import { ProductoService } from "../../../productos/producto/producto.service";
 import { DeliveryDialogComponent } from "./delivery-dialog/delivery-dialog.component";
 import { EditItemDialogComponent } from "./edit-item-dialog/edit-item-dialog.component";
 import { PagoTouchComponent } from "./pago-touch/pago-touch.component";
+import { AddCategoriaDialogComponent } from "./pdv-categoria/add-categoria-dialog/add-categoria-dialog.component";
 import { PdvCategoria } from "./pdv-categoria/pdv-categoria.model";
 import { PdvCategoriaService } from "./pdv-categoria/pdv-categoria.service";
 import { PdvGruposProductos } from "./pdv-grupos-productos/pdv-grupos-productos.model";
@@ -124,7 +126,8 @@ export class VentaTouchComponent implements OnInit {
     private saveDelivery: SaveDeliveryGQL,
     private saveVuelto: SaveVueltoGQL,
     private saveVueltoItem: SaveVueltoItemGQL,
-    private productoService: ProductoService
+    private productoService: ProductoService,
+    private confirmDialogService: DialogosService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -274,9 +277,7 @@ export class VentaTouchComponent implements OnInit {
       );
     }
     if (item.precio == null) {
-      item.precio = item.presentacion.precios.find(
-        (p) => p.principal == true
-      );
+      item.precio = item.presentacion.precios.find((p) => p.principal == true);
     }
     let presentacionCaja = item.producto.presentaciones.find(
       (p) => p.cantidad <= cantidad && p.tipoPresentacion.id == 2
@@ -323,38 +324,27 @@ export class VentaTouchComponent implements OnInit {
     this.selectedTipoPrecio = this.tiposPrecios[0];
   }
 
-  removeItem(item: VentaItem) {
-    // let ultAd = this.ultimoAdicionado[this.ultimoAdicionado.length - 1];
-    // if (this.itemList.length > 0) {
-    //   if (item != null) {
-    //     let index = this.itemList.findIndex((il) => {
-    //       if (il.presentacion.id == item.presentacion.id) {
-    //         this.ultimoAdicionado.splice(
-    //           this.ultimoAdicionado.findIndex((ul) => ul.numero == il.numero),
-    //           1
-    //         );
-    //         return il;
-    //       }
-    //     });
-    //     this.itemList.splice(index, 1);
-    //   } else {
-    //     let deleteIndex = this.itemList.findIndex(
-    //       (il) => il.numero === ultAd.numero
-    //     );
-    //     if (this.itemList[deleteIndex].cantidad > ultAd.cantidad) {
-    //       this.itemList[deleteIndex].cantidad =
-    //         +this.itemList[deleteIndex].cantidad - ultAd.cantidad;
-    //     } else {
-    //       this.itemList.splice(deleteIndex, 1);
-    //     }
-    //     this.ultimoAdicionado.pop();
-    //   }
-    // }
-    // this.setFocusToCodigoInput();
-    // this.calcularTotales();
+  removeItem(item: VentaItem, index?) {
+    if (item == null && index == null) {
+      this.isDialogOpen = true;
+      this.confirmDialogService
+        .confirm("Atención!!", "Realmente desea eliminar la lista de itens?")
+        .subscribe((res) => {
+          if (res) {
+            this.itemList = [];
+            this.setFocusToCodigoInput();
+            this.calcularTotales();
+          }
+          this.isDialogOpen = false;
+        });
+    } else {
+      this.itemList.splice(index, 1);
+      this.setFocusToCodigoInput();
+      this.calcularTotales();
+    }
   }
 
-  editItem(item: VentaItem) {
+  editItem(item: VentaItem, index) {
     this.isDialogOpen = true;
     let ref = this.dialog.open(EditItemDialogComponent, {
       data: {
@@ -365,22 +355,13 @@ export class VentaTouchComponent implements OnInit {
       if (res != null) {
         switch (res) {
           case -1:
-            this.removeItem(item);
+          case 0:
+            this.removeItem(item, index);
             break;
           default:
-            // let index = this.itemList.findIndex(
-            //   (il) => il.numero == item.numero
-            // );
-            // this.removeItem(item);
-            // if (item.caja) {
-            //   this.formGroup.get('cantidad').setValue(res / item.unidadPorCaja);
-            // } else {
-            //   this.formGroup.get('cantidad').setValue(res);
-            // }
-            // if (item.tipoPrecio != null) {
-            //   this.selectedTipoPrecio = item.tipoPrecio;
-            // }
-            // this.crearItem(item.producto, null, index);
+            this.removeItem(item, index);
+            item.cantidad = res;
+            this.addItem(item);
             break;
         }
       }
@@ -643,5 +624,20 @@ export class VentaTouchComponent implements OnInit {
           }
         }
       });
+  }
+
+  addPdvCategoria(){
+    this.isDialogOpen = true;
+    this.dialog.open(AddCategoriaDialogComponent, {
+      restoreFocus : true
+    }).afterClosed().subscribe(res => {
+      if(res!=null){
+        this.pdvCategorias.push(res)
+      }
+    })
+  }
+
+  addPdvProductoCategoria(){
+
   }
 }

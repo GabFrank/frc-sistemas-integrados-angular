@@ -18,6 +18,6 @@ export const environment = {
 };
 
 export const serverAdress = {
-  serverIp: '192.168.1.71',
+  serverIp: '192.168.1.16',
   serverPort: '8081'
 }

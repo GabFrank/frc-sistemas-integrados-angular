@@ -1,0 +1,17 @@
+<div fxLayout="column">
+    <div style="width: 100%; text-align: center">
+      <h2>Crear nueva Categoria</h2>
+    </div>
+    <div fxFlex fxLayout="row">
+      <mat-form-field fxFlex>
+        <mat-label>Descripción</mat-label>
+        <textarea matInput type="text" [formControl]="descripcionControl" autocomplete="off"></textarea>
+      </mat-form-field>
+    </div>
+    <br>
+    <div fxFlex fxLayout="row" fxLayoutGap="20px" fxLayoutAlign="space-around center">
+      <button fxFlex="30" mat-raised-button (click)="onCancelar()" color="primary">Cancelar</button>
+      <button [disabled]="!descripcionControl.valid" fxFlex="30" mat-raised-button (click)="onGuardar()" color="accent">Guardar</button>
+  </div>
+</div>
+  

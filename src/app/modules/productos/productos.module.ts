@@ -19,6 +19,7 @@ import { PresentacionComponent } from './presentacion/presentacion.component';
 import { AdicionarPresentacionComponent } from './presentacion/adicionar-presentacion/adicionar-presentacion.component';
 import { AdicionarCodigoDialogComponent } from './codigo/adicionar-codigo-dialog/adicionar-codigo-dialog.component';
 import { AdicionarPrecioDialogComponent } from './precio-por-sucursal/adicionar-precio-dialog/adicionar-precio-dialog.component';
+import { SelectPrecioDialogComponent } from './precio-por-sucursal/select-precio-dialog/select-precio-dialog.component';
 
 
 
@@ -39,6 +40,7 @@ import { AdicionarPrecioDialogComponent } from './precio-por-sucursal/adicionar-
     AdicionarPresentacionComponent,
     AdicionarCodigoDialogComponent,
     AdicionarPrecioDialogComponent,
+    SelectPrecioDialogComponent,
   ],
   imports: [
     CommonModule,

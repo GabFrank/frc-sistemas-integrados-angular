@@ -161,10 +161,14 @@
                   <th scope="col" style="text-align: center; width: 10%">
                     Total
                   </th>
+                  <th scope="col" style="text-align: center; width: 5%"></th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let item of itemList; let i = index">
+                <tr
+                  *ngFor="let item of itemList; let i = index"
+                  (click)="editItem(item, index)"
+                >
                   <td
                     style="
                       padding-bottom: 5px;
@@ -184,7 +188,9 @@
                       text-align: center;
                     "
                   >
-                    {{item.presentacion?.tipoPresentacion?.descripcion}}({{ item.presentacion?.cantidad}})
+                    {{ item.presentacion?.tipoPresentacion?.descripcion }}({{
+                      item.presentacion?.cantidad
+                    }})
                   </td>
                   <td
                     style="
@@ -193,10 +199,7 @@
                       text-align: center;
                     "
                   >
-                    {{
-                      item.cantidad
-                        | number: "1.0-0"
-                    }}
+                    {{ item.cantidad | number: "1.0-0" }}
                   </td>
                   <td
                     style="
@@ -205,10 +208,7 @@
                       text-align: center;
                     "
                   >
-                    {{
-                      item.precio.precio
-                        | number: "1.0-0"
-                    }}
+                    {{ item.precio.precio | number: "1.0-0" }}
                   </td>
                   <td
                     style="
@@ -218,6 +218,19 @@
                     "
                   >
                     {{ item.cantidad * item.precio.precio | number: "1.0-0" }}
+                  </td>
+                  <td
+                    style="
+                      padding-bottom: 5px;
+                      padding-top: 5px;
+                      text-align: center;
+                    "
+                  >
+                    <mat-icon
+                      style="color: red; font-size: 1.5em; cursor: pointer"
+                      (click)="removeItem(item, i)"
+                      >clear</mat-icon
+                    >
                   </td>
                 </tr>
               </tbody>
@@ -253,6 +266,8 @@
             </div>
             <div fxFlex="65" style="width: 100%; height: 100%">
               <mat-form-field style="width: 100%" floatLabel="never">
+                <!-- [matKeyboard]="'Azərbaycanca'"
+                darkTheme="true" -->
                 <input
                   #codigoInput
                   matInput
@@ -290,66 +305,13 @@
             <button
               class="bottom-action-button"
               mat-raised-button
-              [color]="selectedTipoPrecio?.id == 1 ? 'primary' : 'null'"
-              [ngStyle]="{
-                width: '100%',
-                height: windowInfo.innerHeight * 0.09 + 'px'
-              }"
-              (click)="cambiarTipoPrecio(1)"
-            >
-              <div fxLayout="column" fxFlexAlign="center center">
-                <div fxFlex style="text-align: center">
-                  <h2>1</h2>
-                </div>
-              </div>
-            </button>
-          </div>
-          <div fxFlex>
-            <button
-              class="bottom-action-button"
-              mat-raised-button
-              [color]="selectedTipoPrecio?.id == 2 ? 'primary' : 'null'"
-              [ngStyle]="{
-                width: '100%',
-                height: windowInfo.innerHeight * 0.09 + 'px'
-              }"
-              (click)="cambiarTipoPrecio(2)"
-            >
-              <div fxLayout="column" fxFlexAlign="center center">
-                <div fxFlex style="text-align: center">
-                  <h2>2</h2>
-                </div>
-              </div>
-            </button>
-          </div>
-          <div fxFlex>
-            <button
-              class="bottom-action-button"
-              mat-raised-button
-              [color]="selectedTipoPrecio?.id == 3 ? 'primary' : 'null'"
-              [ngStyle]="{
-                width: '100%',
-                height: windowInfo.innerHeight * 0.09 + 'px'
-              }"
-              (click)="cambiarTipoPrecio(3)"
-            >
-              <div fxLayout="column" fxFlexAlign="center center">
-                <div fxFlex style="text-align: center">
-                  <h2>3</h2>
-                </div>
-              </div>
-            </button>
-          </div>
-          <div fxFlex>
-            <button
-              class="bottom-action-button"
-              mat-raised-button
               color="primary"
               [ngStyle]="{
                 width: '100%',
                 height: windowInfo.innerHeight * 0.09 + 'px'
               }"
               (click)="removeItem(null)"
+              [disabled]="itemList.length == 0"
             >
               <div fxLayout="column" fxFlexAlign="center center">
                 <div
@@ -373,7 +335,7 @@
                     'font-size': windowInfo.innerWidth * 0.01 + 'px'
                   }"
                 >
-                  Eliminar
+                  Eliminar Todo
                 </div>
               </div>
             </button>
@@ -427,12 +389,11 @@
           style="width: 100%; height: 100%"
           fxLayoutAlign="space-around"
         >
-          <div
-            fxLayout="row"
-            fxLayoutAlign="start start"
-            fxLayoutGap="5px"
-          >
-            <div fxFlex="19" *ngFor="let pdvCategoria of pdvCategorias; let i = index">
+          <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="5px">
+            <div
+              fxFlex="19"
+              *ngFor="let pdvCategoria of pdvCategorias; let i = index"
+            >
               <mat-card
                 style="padding: 0; margin: 0; margin-top: 5px"
                 [ngStyle]="{
@@ -460,6 +421,28 @@
                 </div>
               </mat-card>
             </div>
+            <div fxFlex="10">
+              <mat-card
+                style="padding: 0; margin: 0; margin-top: 5px"
+                [ngStyle]="{
+                  height: windowInfo.innerHeight * 0.05 + 'px',
+                  'background-color': '#F44336'
+                }"
+                (click)="addPdvCategoria()"
+              >
+                <div
+                  fxLayout="row"
+                  fxLayoutAlign="center center"
+                  style="width: 100%; height: 100%"
+                >
+                  <div fxFlex="100" style="text-align: center">
+                    <mat-icon style="font-size: 2em; cursor: pointer"
+                      >add</mat-icon
+                    >
+                  </div>
+                </div>
+              </mat-card>
+            </div>
           </div>
 
           <div style="text-align: center">
@@ -476,10 +459,7 @@
           >
             <div
               fxFlex="19"
-              *ngFor="
-                let grupo of selectedPdvCategoria?.grupos;
-                let i = index
-              "
+              *ngFor="let grupo of selectedPdvCategoria?.grupos; let i = index"
             >
               <mat-card
                 style="padding: 0; margin: 0; margin-top: 5px"
@@ -488,7 +468,9 @@
                   height: windowInfo.innerHeight * 0.1 + 'px',
                   'background-color': '#F44336'
                 }"
-                (click)="onGridCardClick(grupo?.pdvGruposProductos,grupo?.descripcion)"
+                (click)="
+                  onGridCardClick(grupo?.pdvGruposProductos, grupo?.descripcion)
+                "
               >
                 <div
                   fxLayout="row"
@@ -505,6 +487,30 @@
                     >
                       {{ grupo.descripcion }}
                     </h3>
+                  </div>
+                </div>
+              </mat-card>
+            </div>
+            <div fxFlex="19">
+              <mat-card
+                style="padding: 0; margin: 0; margin-top: 5px"
+                [ngStyle]="{
+                  width: windowInfo.innerWidth * 0.08 + 'px',
+                  height: windowInfo.innerHeight * 0.1 + 'px',
+                  'background-color': '#F44336'
+                }"
+                (click)="addPdvProductoCategoria()"
+              >
+                <div
+                  fxLayout="row"
+                  fxLayoutAlign="center center"
+                  style="width: 100%; height: 100%"
+                >
+                  <div
+                    fxFlex="100"
+                    style="text-align: center; width: 2.5em; height: 2.5em"
+                  >
+                    <mat-icon style="font-size: 2.5em">add</mat-icon>
                   </div>
                 </div>
               </mat-card>
@@ -529,44 +535,37 @@
                   width: '100%',
                   height: windowInfo.innerHeight * 0.09 + 'px'
                 }"
+                [disabled]="itemList.length == 0"
                 (click)="onTicketClick()"
               >
-                <div fxLayout="column" fxFlexAlign="center center">
+                <div
+                  fxLayout="column"
+                  fxLayoutAlign="center center"
+                  style="height: 100%"
+                >
                   <div
-                    fxFlex
-                    [ngStyle]="{
-                      height: windowInfo.innerWidth * 0.015 + 'px'
-                    }"
+                    fxFlex="30"
+                    fxLayout="row"
+                    fxFlexAlign="center center"
+                    style="height: 1em"
                   >
-                    <mat-icon
-                      [ngStyle]="{
-                        'font-size': windowInfo.innerWidth * 0.02 + 'px',
-                        width: windowInfo.innerWidth * 0.02 + 'px'
-                      }"
-                      >flash_on</mat-icon
-                    >
-                    <mat-icon
-                      [ngStyle]="{
-                        'font-size': windowInfo.innerWidth * 0.02 + 'px',
-                        width: windowInfo.innerWidth * 0.02 + 'px'
-                      }"
-                      >receipt</mat-icon
-                    >
+                    <div fxFlex style="height: 1em">
+                      <mat-icon style="font-size: 2em">flash_on</mat-icon>
+                      <mat-icon style="font-size: 2em">receipt</mat-icon>
+                    </div>
                   </div>
                   <div
-                    fxFlex
-                    style="text-align: center"
-                    [ngStyle]="{
-                      'font-size': windowInfo.innerWidth * 0.01 + 'px'
-                    }"
+                    fxFlex="30"
+                    style="text-align: center; height: 1em; font-size: 1em"
                   >
-                    Ticket
+                    Cobro Rápido
                   </div>
                 </div>
               </button>
             </div>
             <div fxFlex>
               <button
+                type="button"
                 class="bottom-action-button"
                 mat-raised-button
                 color="primary"
@@ -577,27 +576,26 @@
                 [disabled]="itemList.length == 0 && false"
                 (click)="onDeliveryClick()"
               >
-                <div fxLayout="column" fxFlexAlign="center center">
+                <div
+                  fxLayout="column"
+                  fxLayoutAlign="center center"
+                  style="height: 100%"
+                >
                   <div
-                    fxFlex
-                    [ngStyle]="{
-                      height: windowInfo.innerWidth * 0.015 + 'px'
-                    }"
+                    fxFlex="30"
+                    fxLayout="row"
+                    fxFlexAlign="center center"
+                    style="height: 1em"
                   >
-                    <mat-icon
-                      [ngStyle]="{
-                        'font-size': windowInfo.innerWidth * 0.02 + 'px',
-                        width: windowInfo.innerWidth * 0.02 + 'px'
-                      }"
-                      >delivery_dining</mat-icon
-                    >
+                    <div fxFlex style="height: 1em">
+                      <mat-icon style="font-size: 2em"
+                        >delivery_dining</mat-icon
+                      >
+                    </div>
                   </div>
                   <div
-                    fxFlex
-                    style="text-align: center"
-                    [ngStyle]="{
-                      'font-size': windowInfo.innerWidth * 0.01 + 'px'
-                    }"
+                    fxFlex="30"
+                    style="text-align: center; height: 1em; font-size: 1em"
                   >
                     Delivery
                   </div>
@@ -606,6 +604,7 @@
             </div>
             <div fxFlex>
               <button
+                type="button"
                 class="bottom-action-button"
                 mat-raised-button
                 color="primary"
@@ -614,35 +613,33 @@
                   height: windowInfo.innerHeight * 0.09 + 'px'
                 }"
               >
-                <div fxLayout="column" fxFlexAlign="center center">
+                <div
+                  fxLayout="column"
+                  fxLayoutAlign="center center"
+                  style="height: 100%"
+                >
                   <div
-                    fxFlex
-                    [ngStyle]="{
-                      height: windowInfo.innerWidth * 0.015 + 'px'
-                    }"
+                    fxFlex="30"
+                    fxLayout="row"
+                    fxFlexAlign="center center"
+                    style="height: 1em"
                   >
-                    <mat-icon
-                      [ngStyle]="{
-                        'font-size': windowInfo.innerWidth * 0.02 + 'px',
-                        width: windowInfo.innerWidth * 0.02 + 'px'
-                      }"
-                      >liquor</mat-icon
-                    >
+                    <div fxFlex style="height: 1em">
+                      <mat-icon style="font-size: 2em">liquor</mat-icon>
+                    </div>
                   </div>
                   <div
-                    fxFlex
-                    style="text-align: center"
-                    [ngStyle]="{
-                      'font-size': windowInfo.innerWidth * 0.01 + 'px'
-                    }"
+                    fxFlex="30"
+                    style="text-align: center; height: 1em; font-size: 1em"
                   >
-                    Garantia
+                    Garantía
                   </div>
                 </div>
               </button>
             </div>
             <div fxFlex>
               <button
+                type="button"
                 class="bottom-action-button"
                 mat-raised-button
                 color="primary"
@@ -651,36 +648,36 @@
                   height: windowInfo.innerHeight * 0.09 + 'px'
                 }"
               >
-                <div fxLayout="column" fxFlexAlign="center center">
+                <div
+                  fxLayout="column"
+                  fxLayoutAlign="center center"
+                  style="height: 100%"
+                >
                   <div
-                    fxFlex
-                    [ngStyle]="{
-                      height: windowInfo.innerWidth * 0.015 + 'px'
-                    }"
+                    fxFlex="30"
+                    fxLayout="row"
+                    fxFlexAlign="center center"
+                    style="height: 1em"
                   >
-                    <mat-icon
-                      [ngStyle]="{
-                        'font-size': windowInfo.innerWidth * 0.02 + 'px',
-                        width: windowInfo.innerWidth * 0.02 + 'px'
-                      }"
-                      >desktop_windows</mat-icon
-                    >
+                    <div fxFlex style="height: 1em">
+                      <mat-icon style="font-size: 2em"
+                        >desktop_windows</mat-icon
+                      >
+                    </div>
                   </div>
                   <div
-                    fxFlex
-                    style="text-align: center"
-                    [ngStyle]="{
-                      'font-size': windowInfo.innerWidth * 0.01 + 'px'
-                    }"
-                    (click)="pdvAuxiliarClick()"
+                    fxFlex="30"
+                    style="text-align: center; height: 1em; font-size: 1em"
                   >
                     {{ !isAuxiliar ? "PDV 2" : "PDV 1" }}
                   </div>
                 </div>
               </button>
             </div>
+
             <div fxFlex>
               <button
+                type="button"
                 class="bottom-action-button"
                 mat-raised-button
                 color="primary"
@@ -689,32 +686,30 @@
                   height: windowInfo.innerHeight * 0.09 + 'px'
                 }"
               >
-                <div fxLayout="column" fxFlexAlign="center center">
+                <div
+                  fxLayout="column"
+                  fxLayoutAlign="center center"
+                  style="height: 100%"
+                >
                   <div
-                    fxFlex
-                    [ngStyle]="{
-                      height: windowInfo.innerWidth * 0.015 + 'px'
-                    }"
+                    fxFlex="30"
+                    fxLayout="row"
+                    fxFlexAlign="center center"
+                    style="height: 1em"
                   >
-                    <mat-icon
-                      [ngStyle]="{
-                        'font-size': windowInfo.innerWidth * 0.02 + 'px',
-                        width: windowInfo.innerWidth * 0.02 + 'px'
-                      }"
-                      >handyman</mat-icon
-                    >
+                    <div fxFlex style="height: 1em">
+                      <mat-icon style="font-size: 2em">handyman</mat-icon>
+                    </div>
                   </div>
                   <div
-                    fxFlex
-                    style="text-align: center"
-                    [ngStyle]="{
-                      'font-size': windowInfo.innerWidth * 0.01 + 'px'
-                    }"
+                    fxFlex="30"
+                    style="text-align: center; height: 1em; font-size: 1em"
                   >
                     Utilitarios
                   </div>
                 </div>
               </button>
+              <!--  -->
             </div>
           </div>
         </mat-card>

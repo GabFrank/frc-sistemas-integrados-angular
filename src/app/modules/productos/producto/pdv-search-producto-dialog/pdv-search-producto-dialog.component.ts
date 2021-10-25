@@ -33,7 +33,11 @@ import { MatTableDataSource } from "@angular/material/table";
 import { off } from "process";
 import { Presentacion } from "../../presentacion/presentacion.model";
 import { PrecioPorSucursal } from "../../precio-por-sucursal/precio-por-sucursal.model";
-import { ProductoCategoriaDialogComponent, ProductoCategoriaDialogData } from "../../../pdv/comercial/venta-touch/producto-categoria-dialog/producto-categoria-dialog.component";
+import {
+  ProductoCategoriaDialogComponent,
+  ProductoCategoriaDialogData,
+} from "../../../pdv/comercial/venta-touch/producto-categoria-dialog/producto-categoria-dialog.component";
+import { SelectPrecioDialogComponent } from "../../precio-por-sucursal/select-precio-dialog/select-precio-dialog.component";
 
 export interface PdvSearchProductoData {
   texto: any;
@@ -68,13 +72,18 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   @ViewChild(MatSort, { static: true }) sort: MatSort;
   @ViewChild("tableRows", { static: false, read: ElementRef })
   tableElement: ElementRef<HTMLElement>;
+  @ViewChild("presentacionCard", { static: false, read: ElementRef })
+  presentacionCardElement: ElementRef<HTMLElement>;
   @ViewChild("buscarInput", { static: false }) buscarInput: ElementRef;
 
   selectedRowIndex = -1;
+  selectedPresentacionRowIndex = -1;
+  selectedPrecioRowIndex = -1;
   selectedRow: any;
   formGroup: FormGroup;
   dataSource: MatTableDataSource<Producto>;
   productos: Producto[];
+  selectedPrecio: PrecioPorSucursal;
   displayedColumns: string[] = [
     "id",
     "descripcion",
@@ -103,11 +112,9 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     public mainService: MainService,
     private matDialog: MatDialog,
     private getProducto: ProductoForPdvGQL,
-    private productoService: ProductoService
+    private productoService: ProductoService,
+    private _el: ElementRef
   ) {
-    this.sucursalActual = mainService.sucursalActual;
-    this.selectedTipoPrecio = data?.selectedTipoPrecio;
-    this.tiposPrecios = data?.tiposPrecios;
   }
 
   ngOnInit(): void {
@@ -119,7 +126,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   ngAfterViewInit(): void {
     setTimeout(() => {
       this.buscarInput.nativeElement.focus();
-    }, 100);
+    }, 300);
     this.dataSource = new MatTableDataSource<Producto>([]);
   }
 
@@ -130,7 +137,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     });
 
     this.formGroup.get("buscarControl").valueChanges.subscribe((value) => {
-      this.onSearchProducto(value);
+      if(value!=null) this.onSearchProducto(value);
+
     });
 
     this.formGroup.get("buscarControl").setValue(this.data?.texto);
@@ -144,7 +152,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     }
     if (text == "" || text == null || text == " ") {
       console.log("text is ", text);
-      this.dataSource.data = [];
+      this.dataSource != undefined ? this.dataSource.data = []: null;
       this.isSearching = false;
     } else {
       this.onSearchTimer = setTimeout(() => {
@@ -165,11 +173,27 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     }
   }
 
-  highlight(row: any, i?) {
-    this.selectedRow = row;
-    this.selectedRowIndex = i;
-    this.expandedProducto = row;
-    this.getProductoDetail(row, i);
+  highlight(index: number) {
+    console.log(index);
+    if (index >= 0 && index <= this.dataSource.data.length - 1) {
+      this.selectedRowIndex = index;
+      this.expandedProducto = this.dataSource.data[index];
+      this.getProductoDetail(this.expandedProducto, index);
+    }
+  }
+
+  highlightPresentacion(index: number) {
+    if (
+      index < 0 
+    ){
+      this.selectedPresentacionRowIndex++;
+    } else if(index > this.dataSource.data[this.selectedRowIndex]?.presentaciones?.length - 1){
+      this.selectedPresentacionRowIndex--;
+    } else {
+      this.selectedPresentacionRowIndex = index;
+      this.selectedPresentacion =
+        this.dataSource?.data[this.selectedRowIndex]?.presentaciones[index];
+    }
   }
 
   getProductoDetail(producto: Producto, index) {
@@ -177,34 +201,48 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       this.productoService.getProducto(producto.id).subscribe((res) => {
         console.log(res);
         this.dataSource.data[index].presentaciones = res.presentaciones;
+        this.highlightPresentacion(0);
       });
     }
   }
 
-  arrowUpEvent() {
-    if (this.selectedRowIndex > 0) {
-      this.selectedRowIndex++;      
-      var nextrow = this.dataSource.data[this.selectedRowIndex];
-    }
-    this.highlight(nextrow, this.selectedRowIndex);
-  }
-
-  arrowDownEvent() {
-    console.log(this.selectedRowIndex, this.dataSource.data.length - 1)
-    if (this.selectedRowIndex < this.dataSource.data?.length - 1) {
-      this.selectedRowIndex++;
-      var nextrow = this.dataSource.data[this.selectedRowIndex];
-      console.log(this.selectedRowIndex, nextrow)
-      // this.expandedProducto = nextrow;
-    }
-    this.highlight(nextrow, this.selectedRowIndex);
-  }
-
-  selectRowEvent(isRow) {
-    if (isRow) {
-      this.selectedRow = this.dataSource.data[this.selectedRowIndex];
-    } else {
-      this.expandedProducto = this.dataSource.data[this.selectedRowIndex];
+  tableKeyDownEvent(key, index) {
+    switch (key) {
+      case "ArrowDown":
+        this.highlight(index + 1);
+        this.highlightPresentacion(0);
+        break;
+      case "ArrowUp":
+        this.highlight(index - 1);
+        this.highlightPresentacion(0);
+        break;
+      case "Enter":
+        this.onPresentacionClick(this.dataSource.data[index]?.presentaciones[this.selectedPresentacionRowIndex], this.dataSource.data[index], null);
+        break;
+      case "ArrowRight":
+        if (this.selectedPresentacionRowIndex == -1) {
+          this.highlightPresentacion(0);
+        } else {
+          this.selectedPresentacionRowIndex++;
+          this.highlightPresentacion(this.selectedPresentacionRowIndex);
+        }
+        break;
+      case "ArrowLeft":
+        if (this.selectedPresentacionRowIndex == -1) {
+          this.highlightPresentacion(0);
+        } else {
+          this.selectedPresentacionRowIndex--;
+          this.highlightPresentacion(this.selectedPresentacionRowIndex);
+        }
+        break;
+      default:
+        if(!isNaN(+key)){
+          console.log('precio con id ', key)
+          let precio = this.selectedPresentacion.precios.find(p => p.tipoPrecio.id == key)
+          console.log(precio)
+          this.onPresentacionClick(this.selectedPresentacion, this.dataSource.data[this.selectedRowIndex], precio)
+        } 
+        break;
     }
   }
 
@@ -220,7 +258,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   keydownEvent(e) {
     if (e == "ArrowDown" || e == "Enter" || e == "Tab") {
       if (this.dataSource.data?.length > 0) {
-        this.highlight(this.dataSource.data[0], 0);
+        this.highlight(0);
         this.setFocustEvent();
       }
     }
@@ -253,23 +291,25 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     });
   }
 
-  // @HostListener("document:keydown", ["$event"]) onKeydownHandler(
-  //   event: KeyboardEvent
-  // ) {
-  //   switch (event.key) {
-  //     case "Escape":
-  //       break;
-  //     case "Enter":
-  //       this.keydownEvent(event.key);
-  //       break;
-  //     default:
-  //     case "ArrowDown":
-  //       break;
-  //     case "ArrowUp":
-  //       break;
-  //       break;
-  //   }
-  // }
+  @HostListener("document:keydown", ["$event"]) onKeydownHandler(
+    event: KeyboardEvent
+  ) {
+    switch (event.key) {
+      case "Escape":
+        break;
+      case "Enter":
+        break;
+      default:
+      case "ArrowDown":
+        break;
+      case "ArrowUp":
+        break;
+      case "F1":
+        this.mostrarTipoPrecios = true;
+        break;
+        break;
+    }
+  }
 
   cargarMasDatos() {
     this.onSearchProducto(
@@ -278,19 +318,58 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     );
   }
 
-  onPresentacionClick(presentacion?: Presentacion, producto?: Producto, precio?: PrecioPorSucursal){
-    let response : PdvSearchProductoResponseData = {
+  onPresentacionClick(
+    presentacion?: Presentacion,
+    producto?: Producto,
+    precio?: PrecioPorSucursal,
+  ) {
+    // if (this.mostrarTipoPrecios) {
+    //   this.matDialog
+    //     .open(SelectPrecioDialogComponent, {
+    //       data: {
+    //         producto,
+    //         presentacion,
+    //       },
+    //       autoFocus: false,
+    //       restoreFocus: true,
+    //     })
+    //     .afterClosed()
+    //     .subscribe((res) => {
+    //       if (res != null) {
+    //         precio = res;
+    //       }
+
+          
+    //     });
+    // }
+    let response: PdvSearchProductoResponseData = {
       producto,
       presentacion,
-      cantidad: this.data.cantidad,
-      precio
+      cantidad: this.formGroup.controls.cantidad.value,
+      precio,
+    };
+    this.dialogRef.close(response);
+  }
+
+  onMostrarTipoPrecios(presentacion: Presentacion) {
+    this.desplegarTipoPrecios = true;
+    this.selectedPresentacion = presentacion;
+  }
+
+  presentacionArrowRightEvent(index) {
+    this.highlightPresentacion(index + 1);
+  }
+
+  presentacionArrowLeftEvent(index) {
+    this.highlightPresentacion(index - 1);
+  }
+
+  setCantidad(i) {
+    let cantidad = this.formGroup.controls.cantidad.value;
+    if (cantidad == 1) {
+      this.formGroup.controls.cantidad.setValue(i);
+    } else {
+      this.formGroup.controls.cantidad.setValue(cantidad + i);
     }
-    this.dialogRef.close(response)
   }
-
-  onMostrarTipoPrecios(presentacion: Presentacion){
-    this.desplegarTipoPrecios = true
-    this.selectedPresentacion = presentacion
-  }
-
 }
