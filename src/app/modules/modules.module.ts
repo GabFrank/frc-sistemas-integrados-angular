@@ -12,11 +12,22 @@ import { MDBBootstrapModule } from 'angular-bootstrap-md';
 import { LoginModule } from './login/login.module';
 import { PrintDesignComponent } from './print/print-design/print-design.component';
 import { PrintModule } from './print/print.module';
+import { CambioComponent } from './financiero/cambio/cambio.component';
+import { MonedaComponent } from './financiero/moneda/moneda.component';
+import { BancoComponent } from './financiero/banco/banco.component';
+import { CuentaBancariaComponent } from './financiero/cuenta-bancaria/cuenta-bancaria.component';
+import { FormaPagoComponent } from './financiero/forma-pago/forma-pago.component';
 
 
 
 @NgModule({
   declarations: [
+  
+    CambioComponent,
+       MonedaComponent,
+       BancoComponent,
+       CuentaBancariaComponent,
+       FormaPagoComponent
   ],
   imports: [
     CommonModule,

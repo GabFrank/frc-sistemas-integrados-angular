@@ -25,6 +25,8 @@ import { NotificacionColor, NotificacionSnackbarService } from '../../../../../n
 import { DialogosComponent } from '../../../../../shared/components/dialogos/dialogos.component';
 import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
 import { TecladoNumericoComponent } from '../../../../../shared/components/teclado-numerico/teclado-numerico.component';
+import { FormaPago } from '../../../../financiero/forma-pago/forma-pago.model';
+import { FormaPagoService } from '../../../../financiero/forma-pago/forma-pago.service';
 import { DescuentoDialogComponent } from '../descuento-dialog/descuento-dialog.component';
 import {
   SeleccionarBilletesTouchComponent,
@@ -32,12 +34,6 @@ import {
 } from '../seleccionar-billetes-touch/seleccionar-billetes-touch.component';
 import { TarjetaDialogComponent } from '../tarjeta-dialog/tarjeta-dialog.component';
 import { VueltoDialogComponent } from '../vuelto-dialog/vuelto-dialog.component';
-
-export interface FormaPago {
-  id;
-  titulo;
-  monedaSugerida?;
-}
 
 export interface PagoItem {
   index?;
@@ -88,6 +84,7 @@ export class PagoTouchComponent implements OnInit {
   isVuelto = false;
   isDescuento = false;
   isAumento = false;
+  formaPagoList: FormaPago[]
 
   currencyOptionsGuarani = {
     allowNegative: true,
@@ -126,11 +123,17 @@ export class PagoTouchComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: PagoData,
     public dialogRef: MatDialogRef<PagoTouchComponent>,
     private dialog: DialogosService,
-    private notificacionSnackbar: NotificacionSnackbarService
+    private notificacionSnackbar: NotificacionSnackbarService,
+    private formaPagoService: FormaPagoService
   ) {}
 
   ngOnInit(): void {
+
+    //inicializando arrays
+    this.formaPagoList = []
+    //
     this.setPrecios();
+    this.getFormaPagos();
     this.createForm();
     setTimeout(() => {
       this.valorInput.nativeElement.focus();
@@ -164,7 +167,13 @@ export class PagoTouchComponent implements OnInit {
     this.formGroup.get('valorTotal').setValue(this.data.valor);
     this.formGroup.get('valor').setValue(this.data.valor);
     this.formGroup.get('saldo').setValue(this.data.valor);
-    this.formGroup.get('formaPago').setValue(1);
+  }
+
+  getFormaPagos(){
+    this.formaPagoService.onGetAllFormaPago().subscribe(res => {
+        this.formaPagoList = res;
+        this.selectedFormaPago = this.formaPagoList[0]
+    })
   }
 
   setPrecios() {
@@ -241,7 +250,7 @@ export class PagoTouchComponent implements OnInit {
   onFormaPagoSearch() {
     let texto = this.formGroup.get('formaPago').value;
     let filteredFormaPago = this.formaPagoList.filter((m) => {
-      if (m.id == +texto || m.titulo.match(/.*i.*/)) {
+      if (m.id == +texto || m.descripcion.match(/.*i.*/)) {
         return m;
       }
     });
@@ -259,11 +268,11 @@ export class PagoTouchComponent implements OnInit {
       ? this.formaPagoList?.find((_) => _.id === value)
       : undefined;
     this.selectedFormaPago = res;
-    if (this.selectedFormaPago.monedaSugerida != null) {
-      this.onMonedaSearch(this.selectedFormaPago.monedaSugerida);
+    if (this.selectedFormaPago?.cuentaBancaria?.moneda != null) {
+      this.onMonedaSearch(this.selectedFormaPago?.cuentaBancaria?.moneda);
     }
     this.setFocusToValorInput();
-    return res ? res.id + ' - ' + res.titulo : undefined;
+    return res ? res.id + ' - ' + res.descripcion : undefined;
   }
 
   onFormaPagoAutoClosed() {
@@ -297,24 +306,25 @@ export class PagoTouchComponent implements OnInit {
   }
 
   setFormaPago(formaPago) {
-    if(formaPago == 'Tarjeta') {
-      this.matDialog.open(TarjetaDialogComponent, {
-        autoFocus: false,
-        restoreFocus: true
-      }).afterClosed().subscribe((res)=>{
-        if(res!=null){
-          console.log(res)
-          formaPago = res;
-        } else {
-          formaPago = 'Efectivo';
-        }
-        this.selectedFormaPago = this.formaPagoList.find(
-          (fp) => fp.titulo == formaPago
-        );
-        this.formGroup.controls.formaPago.setValue(this.selectedFormaPago.id);
-        this.setFocusToValorInput();
-      })
-    }
+    this.selectedFormaPago = formaPago;
+    // if(formaPago == 'Tarjeta') {
+    //   this.matDialog.open(TarjetaDialogComponent, {
+    //     autoFocus: false,
+    //     restoreFocus: true
+    //   }).afterClosed().subscribe((res)=>{
+    //     if(res!=null){
+    //       console.log(res)
+    //       formaPago = res;
+    //     } else {
+    //       formaPago = 'Efectivo';
+    //     }
+    //     this.selectedFormaPago = this.formaPagoList.find(
+    //       (fp) => fp.descripcion == formaPago
+    //     );
+    //     this.formGroup.controls.formaPago.setValue(this.selectedFormaPago.id);
+    //     this.setFocusToValorInput();
+    //   })
+    // }
     
   }
 
@@ -433,41 +443,5 @@ export class PagoTouchComponent implements OnInit {
 
   }
 
-  formaPagoList: FormaPago[] = [
-    {
-      id: 1,
-      titulo: 'Efectivo',
-      monedaSugerida: null,
-    },
-    {
-      id: 2,
-      titulo: 'Débito',
-      monedaSugerida: 1,
-    },
-    {
-      id: 3,
-      titulo: 'Crédito',
-      monedaSugerida: 1,
-    },
-    {
-      id: 4,
-      titulo: 'Convenio',
-      monedaSugerida: 1,
-    },
-    {
-      id: 5,
-      titulo: 'Cheque',
-      monedaSugerida: 1,
-    },
-    {
-      id: 6,
-      titulo: 'Pix',
-      monedaSugerida: 2,
-    },
-    {
-      id: 7,
-      titulo: 'Transferencia',
-      monedaSugerida: 1,
-    },
-  ];
+  
 }

@@ -326,61 +326,23 @@
           style="height: 8vh"
           fxLayoutGap="10px"
           fxLayoutAlign="space-around start"
+          *ngIf="formaPagoList.length > 0"
         >
-          <div fxFlex="20">
+          <div
+            
+            fxFlex="19"
+            *ngFor="let formaPago of formaPagoList"
+          >
             <button
               type="button"
               mat-raised-button
               [color]="
-                selectedFormaPago?.titulo == 'Efectivo' ? 'primary' : 'null'
+                selectedFormaPago?.id == formaPago.id ? 'primary' : 'null'
               "
               style="width: 100%; height: 8vh"
-              (click)="setFormaPago('Efectivo')"
+              (click)="setFormaPago(formaPago)"
             >
-              Efectivo
-            </button>
-          </div>
-          <div fxFlex="20">
-            <button
-              type="button"
-              mat-raised-button
-              [color]="
-                selectedFormaPago?.titulo == 'Tarjeta' ? 'primary' : 'null'
-              "
-              style="width: 100%; height: 8vh"
-              (click)="setFormaPago('Tarjeta')"
-            >
-              Tarjeta
-            </button>
-          </div>
-          <div fxFlex="20">
-            <button
-              type="button"
-              mat-raised-button
-              [color]="
-                selectedFormaPago?.titulo == 'Convenio' ? 'primary' : 'null'
-              "
-              color="primary"
-              style="width: 100%; height: 8vh"
-              (click)="setFormaPago('Convenio')"
-            >
-              Convenio
-            </button>
-          </div>
-          <div fxFlex="20">
-            <button
-              type="button"
-              [color]="
-                selectedFormaPago?.titulo == 'Transferencia'
-                  ? 'primary'
-                  : 'null'
-              "
-              mat-raised-button
-              color="primary"
-              style="width: 100%; height: 8vh"
-              (click)="setFormaPago('Transferencia')"
-            >
-              Transf
+              {{ formaPago?.descripcion | titlecase }}
             </button>
           </div>
           <div fxFlex="20">
@@ -398,7 +360,7 @@
         </div>
       </div>
     </div>
-    <div fxFlex="20" fxLayout="row" fxLayoutGap="20px" style="padding-top: 3vh;">
+    <div fxFlex="20" fxLayout="row" fxLayoutGap="20px" style="padding-top: 3vh">
       <div
         fxFlex="20%"
         style="color: black; font-size: 100%; text-align: center"
@@ -668,7 +630,10 @@
           mat-raised-button
           color="primary"
           style="width: 100%; height: 9vh"
-          [disabled]="formGroup.controls.saldo.value < 0 && (formGroup.controls.saldo.value < (data.valor * -0.2))"
+          [disabled]="
+            formGroup.controls.saldo.value < 0 &&
+            formGroup.controls.saldo.value < data.valor * -0.2
+          "
           (click)="onAumento()"
         >
           <div fxLayout="column" fxFlexAlign="center center">
@@ -689,7 +654,11 @@
           mat-raised-button
           color="primary"
           style="width: 100%; height: 9vh"
-          [disabled]="formGroup.controls.saldo.value > 0 && (formGroup.controls.saldo.value > (data.valor * 0.2)) || formGroup.controls.saldo.value == 0"
+          [disabled]="
+            (formGroup.controls.saldo.value > 0 &&
+              formGroup.controls.saldo.value > data.valor * 0.2) ||
+            formGroup.controls.saldo.value == 0
+          "
           (click)="onDescuento()"
         >
           <div fxLayout="column" fxFlexAlign="center center">

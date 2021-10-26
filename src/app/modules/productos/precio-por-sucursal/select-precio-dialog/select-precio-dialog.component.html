@@ -1,9 +1,9 @@
 <div fxLayout="column" style="width: 100%;">
     <div>
-        <h2>{{data.producto.descripcion | uppercase}}</h2>
+        <h2>{{data?.producto?.descripcion | uppercase}}</h2>
     </div>
     <div>
-        <h3>{{data.presentacion.descripcion | uppercase}}</h3>
+        <h3>{{data?.presentacion?.descripcion | uppercase}}</h3>
     </div>
   <div
     fxFlex
@@ -14,7 +14,7 @@
   >
     <div
       fxFlex="19"
-      *ngFor="let precio of presentacion?.precios; let i = index"
+      *ngFor="let precio of data?.presentacion?.precios; let i = index"
     >
       <mat-card
         style="

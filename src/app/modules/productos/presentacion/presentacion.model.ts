@@ -6,14 +6,14 @@ import { TipoPresentacion } from "../tipo-presentacion/tipo-presentacion.model"
 
 export class Presentacion {
     id:number
-    descripcion: String
+    descripcion: string
     activo: Boolean
     principal: Boolean
     producto: Producto
     tipoPresentacion: TipoPresentacion
     cantidad: number
     creadoEn: Date
-    imagenPrincipal: String
+    imagenPrincipal: string
     usuario: Usuario
     codigos: Codigo[];
     precios: PrecioPorSucursal[];

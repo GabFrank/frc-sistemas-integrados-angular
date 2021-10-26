@@ -10,6 +10,7 @@ import {
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
+import { isInt } from "../../../../commons/core/utils/numbersUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabService } from "../../../../layouts/tab/tab.service";
 import { MainService } from "../../../../main.service";
@@ -270,6 +271,11 @@ export class VentaTouchComponent implements OnInit {
 
   addItem(item: VentaItem, index?) {
     let cantidad = item.cantidad;
+    if(item.producto.balanza != true){
+      if(!isInt(cantidad)){
+        cantidad = Math.round(cantidad)
+      }
+    }
     let item2 = new VentaItem();
     if (item.presentacion == null) {
       item.presentacion = item.producto.presentaciones.find(
