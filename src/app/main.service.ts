@@ -4,6 +4,7 @@ import { DialogRole, MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { ConnectionService } from "ngx-connection-service";
 import { BehaviorSubject } from "rxjs";
 import { Observable } from "zen-observable-ts";
+import { ipAddress } from "../environments/conectionConfig";
 import { environment } from "../environments/environment";
 import { SucursalByIdGQL } from "./modules/empresarial/sucursal/graphql/sucursalById";
 import { Sucursal } from "./modules/empresarial/sucursal/sucursal.model";
@@ -31,6 +32,8 @@ export class MainService {
   hasInternetAccess: boolean;
   ipLocal = "";
   logged = false;
+  serverIpAddres = ipAddress;
+  // isUserLoggerSub = new BehaviorSubject<boolean>(false);
 
   constructor(
     private getSucursalById: SucursalByIdGQL,
@@ -42,6 +45,7 @@ export class MainService {
     this.http.get("http://api.ipify.org/?format=json").subscribe((res: any) => {
       this.ipLocal = res.ip;
     });
+    localStorage.setItem('serverIpAddress', this.serverIpAddres)
   }
 
   isAuthenticated(): Observable<boolean> {
@@ -102,5 +106,11 @@ export class MainService {
       }
     });
     return res;
+  }
+
+  changeServerIpAddress(text){
+    localStorage.setItem('serverIpAddress', text)
+    this.serverIpAddres = localStorage.getItem('serverIpAddress')
+    
   }
 }

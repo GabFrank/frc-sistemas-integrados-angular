@@ -6,6 +6,7 @@ import { CloseTabPopupComponent } from './close-tab-popup.component';
 import { WindowInfoService } from '../../shared/services/window-info.service';
 import { Observable } from 'rxjs/internal/Observable';
 import { fromEvent } from 'rxjs';
+import { MainService } from '../../main.service';
 
 @Component({
   selector: 'app-default',
@@ -31,7 +32,8 @@ export class DefaultComponent implements OnInit {
   constructor(
     private tabService: TabService,
     public dialog: MatDialog,
-    public windowInfo: WindowInfoService
+    public windowInfo: WindowInfoService,
+    private mainService: MainService
     ) {
 
       fromEvent(document.body, 'mousemove').subscribe(e => {
@@ -43,10 +45,15 @@ export class DefaultComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.tabService.tabSub.subscribe(tabs => {
-      this.tabs = tabs;
-      this.selectedTab = tabs.findIndex(tab => tab.active);
-    });
+    this.mainService.isAuthenticated().subscribe(res => {
+      if(res){
+        this.tabService.tabSub.subscribe(tabs => {
+          this.tabs = tabs;
+          this.selectedTab = tabs.findIndex(tab => tab.active);
+        });
+      }
+    })
+    
   }
 
   tabChanged(event): void {

@@ -10,7 +10,7 @@ let win: BrowserWindow = null;
 const args = process.argv.slice(1),
   serve = args.some(val => val === '--serve');
 
-function createWindow(): BrowserWindow {
+export function createWindow(): BrowserWindow {
 
   const electronScreen = screen;
   const size = electronScreen.getPrimaryDisplay().workAreaSize;
@@ -89,12 +89,22 @@ try {
     }
   });
 
-  win.webContents.on('did-fail-load', () => { 
-    console.log('on browser reload it did-fail-load and reloaded the app'); 
-    win.loadURL(`file://${__dirname}/dist/index.html`); 
+  win.webContents.on('did-fail-load', () => {
+    console.log('did-fail-load');
+    win.loadURL(url.format({
+       pathname: path.join(__dirname, 'dist/index.html'),
+       protocol: 'file:',
+       slashes: true
+    }));
+    // REDIRECT TO FIRST WEBPAGE AGAIN
   });
 
 } catch (e) {
   // Catch Error
   // throw e;
+}
+
+export function relaunchElectron() {
+    this.app.relaunch({ args: process.argv.slice(1).concat(['--relaunch']) })
+    this.app.exit(0)
 }

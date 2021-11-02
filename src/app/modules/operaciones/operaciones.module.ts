@@ -13,6 +13,9 @@ import { EditNecesidadComponent } from './necesidad/edit-necesidad/edit-necesida
 import { PedidoItensDialogComponent } from './pedido/pedido-itens/pedido-itens-dialog/pedido-itens-dialog.component';
 import { MAT_DATE_LOCALE } from '@angular/material/core';
 import { IConfig, NgxMaskModule } from 'ngx-mask';
+import { ListMovimientoStockComponent } from './movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
+import { EntradaSalidaComponent } from './entrada-salida/entrada-salida.component';
+import { EntradaDialogComponent } from './entrada/entrada-dialog/entrada-dialog.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -25,6 +28,9 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     ListNecesidadComponent,
     EditNecesidadComponent,
     PedidoItensDialogComponent,
+    ListMovimientoStockComponent,
+    EntradaSalidaComponent,
+    EntradaDialogComponent,
   ],
   imports: [
     CommonModule,

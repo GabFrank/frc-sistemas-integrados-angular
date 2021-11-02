@@ -1,3 +1,5 @@
+import { ipAddress } from "./conectionConfig";
+
 export const APP_CONFIG = {
   production: false,
   environment: 'DEV'
@@ -18,6 +20,6 @@ export const environment = {
 };
 
 export const serverAdress = {
-  serverIp: '192.168.1.16',
+  serverIp: localStorage.getItem('serverIpAddress') != null ? localStorage.getItem('serverIpAddress') : ipAddress,
   serverPort: '8081'
 }

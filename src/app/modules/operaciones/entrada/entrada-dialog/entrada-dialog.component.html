@@ -1,0 +1,136 @@
+<div fxLayout="column" style="width: 100%">
+  <div fxFlex style="width: 100%; text-align: center">
+    <div *ngIf="data?.entrada == null"><h2>Nueva Etrada</h2></div>
+    <div *ngIf="data?.entrada != null"><h2>Editar Entrada</h2></div>
+  </div>
+
+  <div fxFlex="20">
+    <mat-card
+      style="background-color: rgb(32, 32, 32); width: 100%; height: 100%"
+    >
+      <div fxLayout="row" fxLayoutGap="10px">
+        <div fxFlex="90%">
+          <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="20px">
+            <div fxFlex="35%">
+              <mat-form-field style="width: 100%">
+                <mat-label>Responsable</mat-label>
+                <input
+                  #responsableInput
+                  type="text"
+                  matInput
+                  [formControl]="usuarioInputControl"
+                  oninput="this.value == ' ' ? this.value = '': null"
+                  [matAutocomplete]="auto"
+                  (keyup.enter)="setFocusToTipoEntrada()"
+                />
+                <mat-autocomplete
+                  #auto="matAutocomplete"
+                  (optionSelected)="onResponsableSelect($event)"
+                  (closed)="onResponsableAutocompleteClose()"
+                >
+                  <mat-option
+                    *ngFor="let usuario of usuarioList"
+                    [value]="usuario.id"
+                  >
+                    {{ usuario.id }} -
+                    {{ usuario?.persona?.nombre | titlecase }}
+                  </mat-option>
+                </mat-autocomplete>
+              </mat-form-field>
+            </div>
+            <div fxFlex="30%">
+              <mat-form-field style="width: 100%">
+                <mat-label>Concepto</mat-label>
+                <mat-select
+                  #tipoEntradaSelect
+                  [formControl]="tipoEntradaControl"
+                  (selectionChange)="onSelectTipoEntrada($event)"
+                >
+                  <mat-option>Otros</mat-option>
+                  <mat-option
+                    *ngFor="let tipoEntrada of tipoEntradasList; let i = index"
+                    [value]="i"
+                  >
+                    {{ tipoEntrada | titlecase }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+            <div fxFlex="35%" *ngIf="selectedTipoEntrada == 'SUCURSAL'">
+                <mat-form-field style="width: 100%">
+                    <mat-label>Sucursal</mat-label>
+                    <mat-select
+                      [formControl]="sucursalControl"
+                      (selectionChange)="onSelectSucursal($event)"
+                    >
+                      <mat-option
+                        *ngFor="let sucursal of sucursalList; let i = index"
+                        [value]="sucursal.id"
+                      >
+                        {{sucursal?.id}} - {{ sucursal?.nombre | titlecase }}
+                      </mat-option>
+                    </mat-select>
+                  </mat-form-field>
+              </div>
+          </div>
+        </div>
+        <div fxFlex="10%" fxLayout="column" fxLayoutGap="10px">
+            <div fxFlex>
+                <button mat-raised-button color="primary" style="width: 100%;" (click)="addProducto()">
+                    <mat-icon>add</mat-icon>Producto
+                </button>
+            </div>
+            <div fxFlex>
+                <button mat-raised-button color="primary" style="width: 100%;">Cancelar</button>
+            </div>
+        </div>
+      </div>
+    </mat-card>
+  </div>
+  <div fxFlex="80%" style="width: 100%;">
+    <table mat-table [dataSource]="dataSource" matSort>
+
+        <!-- Position Column -->
+        <ng-container matColumnDef="id" style="width: 50%;">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> id </th>
+          <td mat-cell *matCellDef="let element"> {{element.id}} </td>
+        </ng-container>
+    
+        <!-- Name Column -->
+        <ng-container matColumnDef="producto">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> Producto </th>
+          <td mat-cell *matCellDef="let element"> {{element?.producto | titlecase}} </td>
+        </ng-container>
+    
+        <!-- Weight Column -->
+        <ng-container matColumnDef="codigo">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> Código </th>
+          <td mat-cell *matCellDef="let element"> {{element?.presentacion?.codigoPrincipal}} </td>
+        </ng-container>
+    
+        <!-- Symbol Column -->
+        <ng-container matColumnDef="presentacion">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header> Presentación </th>
+          <td mat-cell *matCellDef="let element"> {{element?.presentacion?.descripcion | titlecase}} </td>
+        </ng-container>
+
+        <ng-container matColumnDef="cantidad">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Cantidad </th>
+            <td mat-cell *matCellDef="let element"> {{element?.cantidad | number: '1.0-2'}} </td>
+          </ng-container>
+    
+        <!-- Acciones -->
+    
+        <ng-container matColumnDef="accion">
+          <th mat-header-cell *matHeaderCellDef> Acción </th>
+          <td mat-cell *matCellDef="let element" class="action-link">
+            <button mat-button color="primary" (click)="onEdit(element)">Edit</button>
+            <button mat-button (click)="onDelete(element)">Delete</button>
+          </td>
+        </ng-container>
+    
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+  </div>
+</div>

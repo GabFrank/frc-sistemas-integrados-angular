@@ -127,7 +127,7 @@ export function appInit(appConfigService: MainService) {
               definition.kind === 'OperationDefinition' && definition.operation === 'subscription'
             );
           },
-          ws,
+          http,
           http,
         ));
 

@@ -11,17 +11,26 @@ import {
   NotificacionColor,
   NotificacionSnackbarService,
 } from "../../../notificacion-snackbar.service";
-import { GenericListService } from "../../../shared/components/generic-list/generic-list.service";
 import { ProductoForPdvGQL } from "./graphql/productoSearchForPdv";
-import { ProductoInfoCompletaByIdGQL } from "./graphql/productoInfoCompletaPorId";
 import { PrintProductoPorIdGQL } from "./graphql/printProducto";
-import { printProductoPorId } from "./graphql/graphql-query";
+import { AllProductosGQL } from "./graphql/allProductos";
+
+export class CustomResponse {
+  errors: string[]
+  data: CustomData;
+}
+
+export class CustomData {
+  data: any;
+}
 
 @Injectable({
   providedIn: "root",
 })
 export class ProductoService {
-  datosSub = new BehaviorSubject<Producto[]>(null);
+  productosSub = new BehaviorSubject<Producto[]>(null);
+  buscandoProductos = false;
+  productosList : Producto[]
 
   constructor(
     public mainService: MainService,
@@ -32,8 +41,18 @@ export class ProductoService {
     private productoSearch: ProductoForPdvGQL,
     private notificacionSnack: NotificacionSnackbarService,
     private printProductoPorId: PrintProductoPorIdGQL,
-    private searchForPdv: ProductoForPdvGQL
-  ) {}
+    private searchForPdv: ProductoForPdvGQL,
+    private getAllProductos: AllProductosGQL
+  ) {
+    this.productosList = []
+    getAllProductos.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
+      if(res.errors==null){
+        console.log('Lista de productos cargada')
+        this.productosList = res.data.data
+        console.log(this.productosList)
+      }
+    })
+  }
 
   onSearch(texto, offset?) {
     console.log('buscando ', texto, 'offest ' , offset)
@@ -49,6 +68,16 @@ export class ProductoService {
     );
   }
 
+  onSearchLocal(texto: string){
+      return Promise.all(this.productosList.filter(p => {
+        let regex = new RegExp('.*' + texto.replace(' ', '.*')); 
+        if(regex.test(p.descripcion) || p.descripcion.replace(' ', '').includes(texto.replace(' ', ''))){
+          console.log(p.descripcion)
+          return p;
+        }
+      }))
+  }
+
   onSearchParaPdv(){
 
   }
@@ -62,6 +91,7 @@ export class ProductoService {
   }
 
   onSaveProducto(input: ProductoInput): Observable<any> {
+    let isNew = input?.id == null;
     return new Observable((obs) => {
       input.usuarioId = this.mainService?.usuarioActual?.id;
       this.saveProducto
@@ -75,6 +105,14 @@ export class ProductoService {
           console.log(res.errors);
           if (res.errors == null) {
             obs.next(res.data.data);
+            if(isNew){
+              this.productosList.push(res.data.data)
+            } else {
+              let index = this.productosList.findIndex(p => p.id = input.id);
+              if(index!=-1){
+                this.productosList[index] = res.data.data;
+              }
+            }
             this.notificacionSnack.notification$.next({
               texto: "Producto guardado con éxito",
               color: NotificacionColor.success,
@@ -113,6 +151,7 @@ export class ProductoService {
 
   onImageSave(image: string, filename: string) {
     // return new Observable((obs) => {
+    console.log('saving image')
     this.saveImage
       .mutate({
         image,

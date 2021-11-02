@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.relaunchElectron = exports.createWindow = void 0;
 var electron_1 = require("electron");
 var path = require("path");
 var fs = require("fs");
@@ -54,6 +55,7 @@ function createWindow() {
     });
     return win;
 }
+exports.createWindow = createWindow;
 try {
     // This method will be called when Electron has finished
     // initialization and is ready to create browser windows.
@@ -76,12 +78,22 @@ try {
         }
     });
     win.webContents.on('did-fail-load', function () {
-        console.log('on browser reload it did-fail-load and reloaded the app');
-        win.loadURL("file://" + __dirname + "/dist/index.html");
+        console.log('did-fail-load');
+        win.loadURL(url.format({
+            pathname: path.join(__dirname, 'dist/index.html'),
+            protocol: 'file:',
+            slashes: true
+        }));
+        // REDIRECT TO FIRST WEBPAGE AGAIN
     });
 }
 catch (e) {
     // Catch Error
     // throw e;
 }
+function relaunchElectron() {
+    this.app.relaunch({ args: process.argv.slice(1).concat(['--relaunch']) });
+    this.app.exit(0);
+}
+exports.relaunchElectron = relaunchElectron;
 //# sourceMappingURL=main.js.map

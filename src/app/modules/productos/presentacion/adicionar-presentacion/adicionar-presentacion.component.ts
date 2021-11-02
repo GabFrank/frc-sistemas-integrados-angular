@@ -91,7 +91,7 @@ export class AdicionarPresentacionComponent implements OnInit {
     this.presentacionInput.descripcion = this.descripcionControl.value;
     this.presentacionInput.productoId = this.selectedProducto.id;
     this.presentacionInput.tipoPresentacionId =
-      this.tipoPresentacionControl.value.id;
+      this.tipoPresentacionControl.value;
     this.presentacionInput.cantidad = this.cantidadControl.value;
     this.presentacionInput.activo = this.activoControl.value;
     this.presentacionInput.principal = this.principalControl.value;
@@ -112,6 +112,7 @@ export class AdicionarPresentacionComponent implements OnInit {
             duracion: 2
           })
           setTimeout(() => {
+            console.log(res.data.data)
             this.matDialogRef.close(res.data.data);
           }, 500);
         }
@@ -129,7 +130,7 @@ export class AdicionarPresentacionComponent implements OnInit {
     this.activoControl.setValue(this.selectedPresentacion.activo);
     this.cantidadControl.setValue(this.selectedPresentacion.cantidad);
     this.selectedTipoPresentacion = this.selectedPresentacion.tipoPresentacion;
-    this.tipoPresentacionControl.setValue(this.selectedTipoPresentacion);
+    this.tipoPresentacionControl.setValue(this.selectedTipoPresentacion.id);
   }
 
   //tipo presentacion

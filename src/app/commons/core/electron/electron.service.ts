@@ -7,6 +7,7 @@ import * as remote from '@electron/remote';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
 
+
 @Injectable({
   providedIn: 'root'
 })
@@ -16,6 +17,7 @@ export class ElectronService {
   remote: typeof remote;
   childProcess: typeof childProcess;
   fs: typeof fs;
+  app: any;
 
   get isElectron(): boolean {
     return !!(window && window.process && window.process.type);
@@ -35,5 +37,9 @@ export class ElectronService {
       // If you want to use remote object in renderer process, please set enableRemoteModule to true in main.ts
       this.remote = window.require('@electron/remote');
     }
+  }
+
+  relaunch(){
+    window.location.reload()
   }
 }

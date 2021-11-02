@@ -2,10 +2,9 @@ import { Injectable } from '@angular/core';
 import { Tab } from './tab.model';
 import { BehaviorSubject } from 'rxjs';
 import { EventEmitter } from '@angular/core';
-import { ProductoComponent } from '../../modules/productos/producto/edit-producto/producto.component';
 import { ListProductoComponent } from '../../modules/productos/producto/list-producto/list-producto.component';
-import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
-import { PrintDesignComponent } from '../../modules/print/print-design/print-design.component';
+import { ListMovimientoStockComponent } from '../../modules/operaciones/movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
+import { EntradaSalidaComponent } from '../../modules/operaciones/entrada-salida/entrada-salida.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -34,7 +33,7 @@ export class TabService {
 
   constructor() {
     this.tabs = [
-      new Tab(VentaTouchComponent, 'Venta', null, null)
+      new Tab(EntradaSalidaComponent, 'Entrada/Salida', null, null)
     ];
     this.tabSub.next(this.tabs);
   }

@@ -84,12 +84,13 @@ export class PresentacionService {
   }
 
   onImageSave(image: string, filename: string): Observable<any>{
+    console.log('guardando imagen', image!=null, filename)
     // return new Observable((obs) => {
       return new Observable<any>(obs => {
         this.saveImage.mutate({
           image,
           filename
-        }).subscribe(res => {
+        }, {fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
           if(res.errors==null){
             // obs.next(res.data)
             this.notificacionSnack.notification$.next({

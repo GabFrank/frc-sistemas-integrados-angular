@@ -42,16 +42,10 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.overlay.getContainerElement().classList.add("darkMode");
-    // this.mainService.isAuthenticated().subscribe((res) => {
-      // console.log(res)
-        // if(!res){
-          this.matDialog
-          .open(LoginComponent, {
-            width: "500px",
-            height: "500px",
-            disableClose: true,
-          });
-    //     }
-    // });
+    this.matDialog.open(LoginComponent, {
+      width: "500px",
+      height: "500px",
+      disableClose: false,
+    });
   }
 }

@@ -5,22 +5,45 @@ export const productosQuery = gql`
     data: productos {
       id
       descripcion
-      descripcionFactura
-      iva
-      unidadPorCaja
-      balanza
-      cambiable
       garantia
-      ingrediente
-      combo
-      stock
-      promocion
       vencimiento
       diasVencimiento
-
-      tipoConservacion
+      observacion
+      cambiable
+      imagenPrincipal
       subfamilia {
         id
+        descripcion
+        familia {
+          id
+          descripcion
+        }
+      }
+      presentaciones {
+        id
+        principal
+        codigos {
+          id
+          codigo
+          principal
+          activo
+        }
+        tipoPresentacion {
+          id
+          descripcion
+        }
+        cantidad
+        imagenPrincipal
+        precios {
+          id
+          precio
+          tipoPrecio {
+            id
+            descripcion
+          }
+          principal
+          activo
+        }
       }
     }
   }
@@ -257,12 +280,15 @@ export const productoQuery = gql`
     data: producto(id: $id) {
       id
       descripcion
+      descripcionFactura
       garantia
       vencimiento
       diasVencimiento
       observacion
       cambiable
       imagenPrincipal
+      iva
+      stock
       subfamilia {
         id
         descripcion

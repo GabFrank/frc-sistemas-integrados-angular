@@ -10,6 +10,6 @@ export interface Response {
 @Injectable({
   providedIn: 'root',
 })
-export class SucursalesGQL extends Query<Response> {
+export class SucursalesGQL extends Query<Sucursal[]> {
   document = sucursalesQuery;
 }

@@ -5,7 +5,6 @@ import {
   transition,
   animate,
 } from "@angular/animations";
-import { SelectionModel } from "@angular/cdk/collections";
 import {
   AfterViewInit,
   Component,
@@ -18,15 +17,10 @@ import { FormControl } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { MatPaginator } from "@angular/material/paginator";
 import { MatTableDataSource } from "@angular/material/table";
-import { Product } from "electron/main";
-import { environment } from "../../../../../environments/environment";
 import { PrintService } from "../../../print/print.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabService } from "../../../../layouts/tab/tab.service";
 import { CargandoDialogComponent } from "../../../../shared/components/cargando-dialog/cargando-dialog.component";
-import { transitionRightToLeftAnimation } from "../../../../shared/components/panel-laterial-invisible/panel-right-animation";
-import { Codigo } from "../../codigo/codigo.model";
-import { PrecioPorSucursal } from "../../precio-por-sucursal/precio-por-sucursal.model";
 import { ProductoComponent } from "../edit-producto/producto.component";
 import { Producto } from "../producto.model";
 import { ProductoService } from "../producto.service";
@@ -136,13 +130,17 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       this.isSearching = false;
     } else {
       this.onSearchTimer = setTimeout(() => {
-        this.service.onSearch(text).subscribe(res => {
-          if(res.errors==null){
-            console.log(res.data.data)
-            this.dataSource.data = res.data.data;
-            this.isSearching = false;
-          }
-        });
+        // this.service.onSearchLocal(text).subscribe(res => {
+        //   if(res!=null){
+        //     this.dataSource.data = res;
+        //     this.isSearching = false;
+        //   }
+        // });
+        this.service.onSearchLocal(text).then(res => {
+          console.log(res)
+          this.dataSource.data = res;
+          this.isSearching = false;
+        })
       }, 1000);
     }
   }

@@ -233,10 +233,10 @@ export class ProductoComponent implements OnInit {
         }, 500);
       }, 500);
       this.datosGeneralesControl.controls.descripcion.setValue(
-        this.selectedProducto.descripcion
+        this.selectedProducto?.descripcion
       );
       this.datosGeneralesControl.controls.descripcionFactura.setValue(
-        this.selectedProducto.descripcionFactura
+        this.selectedProducto?.descripcionFactura
       );
       this.datosGeneralesControl.controls.iva.setValue(
         `${this.selectedProducto.iva}`
@@ -297,7 +297,7 @@ export class ProductoComponent implements OnInit {
     this.datosGeneralesControl = new FormGroup({
       descripcion: new FormControl(null, Validators.required),
       descripcionFactura: new FormControl(null),
-      iva: new FormControl(null),
+      iva: new FormControl('10'),
       balanza: new FormControl(null),
       garantia: new FormControl(null),
       tiempoGarantia: new FormControl(null, [
@@ -306,7 +306,7 @@ export class ProductoComponent implements OnInit {
       ]), //en dias
       ingrediente: new FormControl(null),
       combo: new FormControl(null),
-      stock: new FormControl(null),
+      stock: new FormControl(true),
       cambiable: new FormControl(null),
       esAlcoholico: new FormControl(null),
       promocion: new FormControl(null),
@@ -357,7 +357,7 @@ export class ProductoComponent implements OnInit {
       this.datosGeneralesControl.controls.descripcionFactura.value == ""
     ) {
       this.datosGeneralesControl.controls.descripcionFactura.setValue(
-        this.datosGeneralesControl.controls.descripcion.value
+        this.datosGeneralesControl.controls?.descripcion.value
       );
     }
   }
@@ -367,6 +367,7 @@ export class ProductoComponent implements OnInit {
       //nada
     } else {
       const {
+        id,
         descripcion,
         descripcionFactura,
         iva,
@@ -387,6 +388,7 @@ export class ProductoComponent implements OnInit {
       } = this.datosGeneralesControl.value;
       let productoInput = new ProductoInput();
       productoInput = {
+        id,
         descripcion,
         descripcionFactura,
         iva,
@@ -405,9 +407,13 @@ export class ProductoComponent implements OnInit {
         tipoConservacion,
         subfamiliaId,
       };
-      productoInput.descripcion = productoInput.descripcion.toUpperCase();
+      if(this.selectedProducto!=null){
+        productoInput.id = this.selectedProducto.id
+      }
+      productoInput.descripcion = productoInput?.descripcion.toUpperCase();
+      if(productoInput?.descripcionFactura==null) productoInput.descripcionFactura = productoInput.descripcion;
       productoInput.descripcionFactura =
-        productoInput.descripcionFactura.toUpperCase();
+        productoInput?.descripcionFactura.toUpperCase();
       productoInput.subfamiliaId = this.selectedSubfamilia.id;
       this.productoService.onSaveProducto(productoInput).subscribe((res) => {
         if (res != null) {
@@ -620,9 +626,9 @@ export class ProductoComponent implements OnInit {
           }
         } else {
           if (key == "Enter") {
-            if (this.selectedFamilia != null) {
-              this.stepper.next();
-            }
+            // if (this.selectedFamilia != null) {
+            //   this.stepper.next();
+            // }
           }
         }
         break;
@@ -633,18 +639,18 @@ export class ProductoComponent implements OnInit {
           }
         } else {
           if (key == "Enter") {
-            if (this.selectedSubfamilia != null) {
-              this.stepper.next();
-            }
+            // if (this.selectedSubfamilia != null) {
+            //   this.stepper.next();
+            // }
           }
         }
         break;
       case 2:
         if (key == "Enter") {
-          if (this.datosGeneralesControl.valid) {
-            this.onProductoSave();
-            this.stepper.next();
-          }
+          // if (this.datosGeneralesControl.valid) {
+          //   this.onProductoSave();
+          //   this.stepper.next();
+          // }
         }
         break;
       case 3:
@@ -660,9 +666,9 @@ export class ProductoComponent implements OnInit {
         }
         break;
       case 5:
-        if (key == "Enter") {
-          this.onFinalizar();
-        }
+        // if (key == "Enter") {
+        //   this.onFinalizar();
+        // }
         break;
 
       default:
@@ -714,7 +720,7 @@ export class ProductoComponent implements OnInit {
       .subscribe((res) => {
         let presentacion = new Presentacion();
         presentacion = res as Presentacion;
-        if (presentacion.id != null) {
+        if (presentacion?.id != null) {
           this.presentacionesList.push(presentacion);
           this.presentacionesDataSource.data = this.presentacionesList;
         }
@@ -771,6 +777,8 @@ export class ProductoComponent implements OnInit {
       .open(VizualizarImagenDialogComponent, {
         data,
         disableClose: true,
+        height: '80%',
+        width: '80%'
       })
       .afterClosed()
       .subscribe((res) => {
@@ -896,6 +904,8 @@ export class ProductoComponent implements OnInit {
       }
     })
   }
+
+  //"could not execute statement; SQL [n/a]; constraint [presentacion_producto_fk]; nested exception is org.hibernate.exception.ConstraintViolationException: could not execute statement"
 
   //change detector refresh
   refresh() {

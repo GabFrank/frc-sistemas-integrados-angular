@@ -43,6 +43,15 @@
       <mat-expansion-panel-header>
         <mat-panel-title> Operaciones </mat-panel-title>
       </mat-expansion-panel-header>
+      <mat-accordion>
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title> Stock </mat-panel-title>
+          </mat-expansion-panel-header>
+          <a mat-list-item (click)="onItemClick('list-entrada-salida')">Entrada/Salida</a>
+          <a mat-list-item (click)="onItemClick('list-movimiento')">Movimientos</a>
+        </mat-expansion-panel>
+      </mat-accordion>
       <a mat-list-item (click)="onItemClick('list-necesidad')">Necesidad</a>
       <a mat-list-item (click)="onItemClick('list-pedido')">Pedidos</a>
       <a mat-list-item (click)="onItemClick('list-compra')">Compras</a>

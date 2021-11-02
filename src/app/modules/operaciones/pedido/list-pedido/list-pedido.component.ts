@@ -155,7 +155,7 @@ export class ListPedidoComponent implements OnInit {
     this.estadoInicialValue = this.estadosOptions[0].valor;
     this.setEstado(this.estadosOptions[0].valor);
     this.getSucursales.fetch().subscribe((data) => {
-      this.sucursales = !data.errors ? data.data.data : null;
+      this.sucursales = !data.errors ? data.data : null;
     });
     this.formGroup.valueChanges.subscribe((data) => {
       this.buscarPedidos();

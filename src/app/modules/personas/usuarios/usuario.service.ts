@@ -15,6 +15,8 @@ import { UsuarioPorIdGQL } from "./graphql/usuarioPorId";
 import { Observable } from "zen-observable-ts";
 import { Usuario } from "./usuario.model";
 import { GraphQLError } from "graphql";
+import { UsuarioSearchGQL } from "./graphql/usuarioSearch";
+import { NotificacionColor, NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
 
 @Injectable({
   providedIn: "root",
@@ -24,7 +26,9 @@ export class UsuarioService extends GenericListService {
     apollo: Apollo,
     tabService: TabService,
     dialogoService: DialogosService,
-    private getUsuario: UsuarioPorIdGQL
+    private getUsuario: UsuarioPorIdGQL,
+    private searchUsuario: UsuarioSearchGQL,
+    private notificacionBar: NotificacionSnackbarService
   ) {
     super(apollo, tabService, dialogoService);
     this.entityQuery = usuarioQuery;
@@ -53,5 +57,28 @@ export class UsuarioService extends GenericListService {
         }
       })
     })
+  }
+
+  onSeachUsuario(texto:string): Observable<Usuario[]>{
+    if(texto!=null || texto!= ''){
+      return new Observable(obs => {
+        this.searchUsuario.fetch({
+          texto: texto.toUpperCase()
+        }, {
+          fetchPolicy: 'no-cache',
+          errorPolicy: 'all'
+        }).subscribe(res => {
+          if(res.errors==null){
+            obs.next(res.data)
+          } else {
+            this.notificacionBar.notification$.next({
+              texto: 'Ups! algo salio mal: '+ res.errors[0].message,
+              color: NotificacionColor.danger,
+              duracion: 3
+            })
+          }
+        })
+      })
+    }
   }
 }

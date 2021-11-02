@@ -42,7 +42,7 @@
               <mat-option
                 (onSelectionChange)="onTipoPresentacionSelect($event)"
                 *ngFor="let tipoPresentacion of tipoPresentacionList"
-                [value]="tipoPresentacion"
+                [value]="tipoPresentacion.id"
               >
                 {{ tipoPresentacion?.descripcion }}
               </mat-option>

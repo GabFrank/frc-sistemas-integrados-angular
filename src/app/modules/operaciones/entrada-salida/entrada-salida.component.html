@@ -1,0 +1,237 @@
+<div style="width: 100%">
+  <div fxLayout="column" style="width: 100%">
+    <div fxFlex="20%" fxLayout="column" style="width: 100%">
+      <div fxFlex="10%" style="text-align: center">
+        <h2>Entrada/Salida</h2>
+      </div>
+      <div fxFlex="90%">
+        <mat-card style="background-color: rgb(34, 34, 34)"> </mat-card>
+      </div>
+    </div>
+    <br />
+    <div fxFlex="80%" fxLayout="row" fxLayoutGap="3%">
+      <div class="table" fxFlex="50">
+        <div fxLayout="row" style="width: 100%;">
+          <div fxFlex="20%">
+            
+          </div>
+          <div fxFlex="60" style="width: 100%; text-align: center; color: white">
+            <h3>Entradas</h3>
+          </div> 
+          <div fxFlex="20%" style="text-align: end;">
+            <button mat-raised-button color="primary" (click)="onAddEntrada()">Adicionar</button>
+          </div>
+        </div>
+        <table
+          mat-table
+          [dataSource]="entradaDataSource"
+          multiTemplateDataRows
+          style="width: 100%"
+        >
+          <ng-container matColumnDef="id" style="width: 5%">
+            <th mat-header-cell *matHeaderCellDef>Id</th>
+            <td mat-cell *matCellDef="let entrada">{{ entrada.id }}</td>
+          </ng-container>
+
+          <!-- Name Column -->
+          <ng-container matColumnDef="responsableCarga">
+            <th mat-header-cell *matHeaderCellDef>Responsable</th>
+            <td mat-cell *matCellDef="let entrada" style="text-align: start">
+              {{ entrada?.responsableCarga?.persona?.nombre | titlecase }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="tipo">
+            <th mat-header-cell *matHeaderCellDef>Tipo</th>
+            <td mat-cell *matCellDef="let entrada" style="text-align: start">
+              {{ entrada?.tipoEntrada | titlecase }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="fecha">
+            <th mat-header-cell *matHeaderCellDef>Fecha</th>
+            <td mat-cell *matCellDef="let entrada" style="text-align: start">
+              {{ entrada?.creadoEn }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="usuario">
+            <th mat-header-cell *matHeaderCellDef>Usuario</th>
+            <td mat-cell *matCellDef="let entrada" style="text-align: start">
+              {{ entrada?.usuario?.persona?.nombre | titlecase}}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef>...</th>
+            <td mat-cell *matCellDef="let entrada" style="text-align: start">
+              <button mat-icon-button [matMenuTriggerFor]="menu">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item (click)="onEditEntrada(entrada)">Ir a Entrada</button>
+              </mat-menu>
+            </td>
+          </ng-container>
+
+          <mat-divider></mat-divider>
+
+          <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+          <ng-container matColumnDef="expandedDetail">
+            <td
+              mat-cell
+              *matCellDef="let entrada"
+              [attr.colspan]="entradaDisplayedColumns.length"
+              class="expanded"
+            >
+              <div
+                class="example-entrada-detail"
+                [@detailExpand]="
+                  entrada == expandedEntrada ? 'expanded' : 'collapsed'
+                "
+                style="text-align: center"
+                fxLayout="column"
+                fxLayoutAlign="start start"
+              >
+              <div style="width: 100%;" >
+                <br>
+                <table style="width: 100%;">
+                  <tr>
+                    <th style="width: 5%;">#</th>
+                    <th style="width: 40%; text-align: center;">Producto</th>
+                    <th style="width: 25%; text-align: center; text-overflow: ellipsis;">Presentación</th>
+                    <th style="width: 5%; text-align: center; text-overflow: ellipsis;">Cantidad</th>
+                    <th style="width: 25%; text-align: center; text-overflow: ellipsis;">Obs</th>
+                  </tr>
+                  <tr *ngFor="let entradaItem of entrada?.entradaItemList; let i = index">
+                    <td style="width: 5%;">{{i+1}}</td>
+                    <td [matTooltip]="entradaItem?.producto?.descripcion?.toUpperCase()" style="width: 40%; text-align: center; text-overflow: ellipsis;">
+                      <a class="productoLink" style="cursor: pointer;" (click)="onProductoLink(entradaItem?.producto)">
+                        {{entradaItem?.producto?.descripcion | titlecase}}
+                      </a>
+                    </td>
+                    <td [matTooltip]="entradaItem?.presentacion?.descripcion?.toUpperCase()" style="width: 25%; text-align: center; text-overflow: ellipsis;">{{entradaItem?.presentacion?.descripcion | titlecase}}</td>
+                    <td style="width: 5%; text-align: center; text-overflow: ellipsis;">{{entradaItem?.cantidad | number:'1.0-2'}}</td>
+                    <td [matTooltip]="entradaItem?.observacion?.toUpperCase()" style="width: 25%; text-align: center; text-overflow: ellipsis;">{{entradaItem?.observacion != null ? entradaItem?.observacion : 'Ninguna' | titlecase}}</td>
+                  </tr>
+                </table>
+                <br>
+              </div>
+            </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="entradaDisplayedColumns"></tr>
+          <tr
+            mat-row
+            *matRowDef="
+              let row;
+              columns: entradaDisplayedColumns;
+              let i = dataIndex"
+              [class.example-expanded-row]="expandedEntrada?.id === row?.id"
+              (click)="onEntradaRowClick(row)"
+          ></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: ['expandedDetail']"
+            class="example-detail-row"
+          ></tr>
+        </table>
+      </div>
+      <div class="table" fxFlex="50">
+        <div style="width: 100%; text-align: center; color: white">
+          <h3>Salidas</h3>
+        </div>
+        <table
+          mat-table
+          [dataSource]="entradaDataSource"
+          multiTemplateDataRows
+          style="width: 100%"
+        >
+          <ng-container matColumnDef="id" style="width: 5%">
+            <th mat-header-cell *matHeaderCellDef>Id</th>
+            <td mat-cell *matCellDef="let entrada">{{ entrada.id }}</td>
+          </ng-container>
+
+          <!-- Name Column -->
+          <ng-container matColumnDef="responsableCarga">
+            <th mat-header-cell *matHeaderCellDef>Responsable</th>
+            <td mat-cell *matCellDef="let entrada" style="text-align: start">
+              {{ entrada?.responsableCarga?.persona?.nombre | uppercase }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="tipo">
+            <th mat-header-cell *matHeaderCellDef>Tipo</th>
+            <td mat-cell *matCellDef="let entrada" style="text-align: start">
+              {{ entrada?.tipoEntrada | titlecase }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="fecha">
+            <th mat-header-cell *matHeaderCellDef>Fecha</th>
+            <td mat-cell *matCellDef="let entrada" style="text-align: start">
+              {{ entrada?.creadoEn }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="usuario">
+            <th mat-header-cell *matHeaderCellDef>Usuario</th>
+            <td mat-cell *matCellDef="let entrada" style="text-align: start">
+              {{ entrada?.usuario?.persona?.nombre }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef></th>
+            <td mat-cell *matCellDef="let salida" style="text-align: start">
+              <button mat-icon-button [matMenuTriggerFor]="menu">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item>Ir a Salida</button>
+              </mat-menu>
+            </td>
+          </ng-container>
+
+          <mat-divider></mat-divider>
+
+          <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+          <ng-container matColumnDef="expandedDetail">
+            <td
+              mat-cell
+              *matCellDef="let entrada"
+              [attr.colspan]="entradaDisplayedColumns.length"
+              class="expanded"
+            >
+              <div
+                class="example-entrada-detail"
+                [@detailExpand]="
+                  entrada == expandedSalida ? 'expanded' : 'collapsed'
+                "
+                style="text-align: center"
+                fxLayout="column"
+                fxLayoutAlign="start start"
+              ></div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="entradaDisplayedColumns"></tr>
+          <tr
+            mat-row
+            *matRowDef="
+              let row;
+              columns: entradaDisplayedColumns;
+              let i = dataIndex
+            "
+          ></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: ['expandedDetail']"
+            class="example-detail-row"
+          ></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

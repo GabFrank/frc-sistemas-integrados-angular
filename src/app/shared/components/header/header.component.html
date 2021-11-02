@@ -1,54 +1,118 @@
 <mat-toolbar color="primary">
-  <mat-toolbar-row style="padding-right: 0;">
+  <mat-toolbar-row style="padding-right: 0">
     <button mat-icon-button (click)="toogleSideBar()">
       <mat-icon>menu</mat-icon>
     </button>
 
     <span>BODEGA FRANCO</span>
 
-      <ul fxLayout="row" fxLayoutGap="20px" fxLayoutAlign="center" fxLayoutAlign="end center" style="width: 100%;">
-        <li fxFlex="5">
-          <button mat-icon-button>
-            <mat-icon>settings</mat-icon>
-          </button>
-        </li>
-        <li fxFlex="5">
-          <button mat-icon-button>
-            <mat-icon>help_online</mat-icon>
-          </button>
-        </li>
-        <li fxFlex="5">
-          <button mat-button [matMenuTriggerFor]="menu">
-            <mat-icon *ngIf="mainService?.usuarioActual?.persona==null" fxFlex>person_outline</mat-icon>
-            <div style="font-size: 1.2em;" *ngIf="mainService?.usuarioActual?.persona!=null">{{mainService.usuarioActual.persona.nombre | titlecase}}</div>
-          </button>
-          <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="onLogout()">
-              Salir
-            </button>
-            
-          </mat-menu>
-        </li>
-        
-        <mat-card>
-          <div fxLayout="column" fxLayoutAlign="center center">
-            <div fxFlex="10" style="font-size: 0.5em;">
-              Status
+    <ul
+      fxLayout="row"
+      fxLayoutGap="20px"
+      fxLayoutAlign="end center"
+      style="width: 100%"
+    >
+      <li fxFlex="5">
+        <button mat-icon-button [matMenuTriggerFor]="menuServerIp">
+          <mat-icon>settings</mat-icon>
+        </button>
+        <mat-menu #menuServerIp="matMenu">
+          <div style="padding: 5px;">
+            <div *ngIf="!editServerIp" style="color: white; text-align: center">
+              <h4>Server Ip</h4>
+              {{ mainService?.serverIpAddres }}
             </div>
-            <div *ngIf="status == 'online'" fxFlex="10"  style="font-size: 0.6em; color: #43A047;">
-              Online
+            <div *ngIf="editServerIp">
+              <mat-form-field fxFlex style="width: 100%">
+                <mat-label>Nuevo Ip</mat-label>
+                <!-- <input matInput type="text" formControlName="nickname"/> -->
+                <input
+                  matInput
+                  type="text"
+                  [formControl]="serverIpControl"
+                  (click)="$event.stopPropagation()"
+                  style="color: white"
+                />
+              </mat-form-field>
+            </div>
+            <div style="text-align: center">
+              <button
+                *ngIf="!editServerIp"
+                mat-raised-button
+                color="primary"
+                (click)="editServerIp = true; $event.stopPropagation()"
+              >
+                Editar
+              </button>
             </div>
 
-            <div *ngIf="status == 'offline'" fxFlex="10"  style="font-size: 0.6em; color: #F44336;">
-              Offline
+            <div style="text-align: center">
+              <button
+                *ngIf="editServerIp"
+                mat-raised-button
+                color="success"
+                (click)="
+                  mainService.changeServerIpAddress(serverIpControl.value);
+                  editServerIp = false;
+                  $event.stopPropagation()
+                "
+              >
+                Guardar
+              </button>
             </div>
-
-            <div *ngIf="status == 'loading'" fxFlex="10"  style="font-size: 0.6em; color: #F44336;">
-              <mat-spinner diameter="25"></mat-spinner>
-            </div>
-            
           </div>
-        </mat-card>
-      </ul>
+        </mat-menu>
+      </li>
+      <li fxFlex="5">
+        <button mat-icon-button>
+          <mat-icon>help_online</mat-icon>
+        </button>
+      </li>
+      <li fxFlex="5">
+        <button mat-button [matMenuTriggerFor]="menu">
+          <mat-icon *ngIf="mainService?.usuarioActual?.persona == null" fxFlex
+            >person_outline</mat-icon
+          >
+          <div
+            style="font-size: 1.2em"
+            *ngIf="mainService?.usuarioActual?.persona != null"
+          >
+            {{ mainService.usuarioActual.persona.nombre | titlecase }}
+          </div>
+        </button>
+        <mat-menu #menu="matMenu">
+          <button mat-menu-item (click)="onLogout()">Salir</button>
+        </mat-menu>
+      </li>
+
+      <mat-card>
+        <div fxLayout="column" fxLayoutAlign="center center">
+          <div fxFlex="10" style="font-size: 0.5em">Status</div>
+          <div
+            *ngIf="status == 'online'"
+            fxFlex="10"
+            style="font-size: 0.6em; color: #43a047"
+          >
+            Online
+          </div>
+
+          <div
+            *ngIf="status == 'offline'"
+            fxFlex="10"
+            style="font-size: 0.6em; color: #f44336"
+          >
+            Offline
+          </div>
+
+          <div
+            *ngIf="status == 'loading'"
+            fxFlex="10"
+            style="font-size: 0.6em; color: #f44336"
+          >
+            <mat-spinner diameter="25"></mat-spinner>
+          </div>
+        </div>
+      </mat-card>
+    </ul>
   </mat-toolbar-row>
 </mat-toolbar>

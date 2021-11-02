@@ -69,11 +69,11 @@ export class SearchProductoDialogComponent implements OnInit{
     );
     this.formGroup.get('buscarControl').value = this.data.texto;
 
-    this.service.datosSub.subscribe(datos => {
-      this.dataSource = datos as [Producto];
-      this.selectedRowIndex = null;
-      this.dataSource?.length>0 ? this.sucursalActualIndex = this.dataSource[0].sucursales.findIndex((pis)=>pis.sucursal.nombre == this.sucursalActual.nombre) : null;
-    });
+    // this.service.datosSub.subscribe(datos => {
+    //   this.dataSource = datos as [Producto];
+    //   this.selectedRowIndex = null;
+    //   this.dataSource?.length>0 ? this.sucursalActualIndex = this.dataSource[0].sucursales.findIndex((pis)=>pis.sucursal.nombre == this.sucursalActual.nombre) : null;
+    // });
     this.onBuscarChange();
   }
 

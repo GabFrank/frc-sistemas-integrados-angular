@@ -39,7 +39,7 @@ export class FormaPagoService {
         
           obs.next(res.data.data)
         } else {
-          
+          //"Validation error of type FieldUndefined: Field 'formasPagos' in type 'Query' is undefined @ 'formasPagos'"
         }
       })
     });

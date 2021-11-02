@@ -107,7 +107,7 @@ export class EditNecesidadComponent implements OnInit {
       if(data.errors){
         console.log("error al obtener sucursales");
       } else {
-        this.sucursales = data.data.data;
+        this.sucursales = data.data;
         setTimeout(() => {
           this.isSucursalesDataReady = true;
         }, 100);

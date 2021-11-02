@@ -1,6 +1,7 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Presentacion } from '../../../modules/productos/presentacion/presentacion.model';
+import { PresentacionService } from '../../../modules/productos/presentacion/presentacion.service';
 import { CortarImagenDialogComponent } from '../../cortar-imagen-dialog/cortar-imagen-dialog.component';
 import { ImagesService } from '../images.service';
 
@@ -22,7 +23,7 @@ export class VizualizarImagenDialogComponent implements OnInit {
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: VizualizarImagenData,
     private matDialogRef: MatDialogRef<VizualizarImagenDialogComponent>,
-    private imageService: ImagesService,
+    private presentacionService: PresentacionService,
     private matDialog: MatDialog,
   ) { }
 
@@ -54,10 +55,14 @@ export class VizualizarImagenDialogComponent implements OnInit {
         .afterClosed()
         .subscribe((res) => {
           if (res != null) this.img = res;
-          this.data.service.onImageSave(
+          this.presentacionService.onImageSave(
             res,
             `${this.data.url}/${id}.jpg`
-          );
+          ).subscribe(res2 => {
+            if(res2!=null){
+              this.img = res2;
+            }
+          });
         });
     };
     reader.readAsDataURL(file);

@@ -134,7 +134,7 @@ export class PedidoItensDialogComponent implements OnInit, AfterViewInit {
     this.selectedSucursalesPrecios = [];
     this.sucursalGQL.fetch().subscribe((data) => {
       if (!data.errors) {
-        this.sucursales = data.data.data;
+        this.sucursales = data.data;
         
         this.sucursales.forEach((e) => {
           this.formGroup.addControl(

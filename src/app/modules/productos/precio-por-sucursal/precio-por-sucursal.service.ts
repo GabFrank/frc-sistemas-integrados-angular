@@ -64,9 +64,9 @@ export class PrecioPorSucursalService {
     return new Observable((obs) => {
       this.dialogoService
         .confirm("Atención!!", "Realmente desea elminar este precio?", null, [
-          `Precio: ${precio.precio}`,
-          `Tipo Precio: ${precio.tipoPrecio.descripcion}`,
-          `Principal: ${precio.principal}`,
+          `Precio: ${precio?.precio}`,
+          `Tipo Precio: ${precio?.tipoPrecio?.descripcion}`,
+          `Principal: ${precio?.principal}`,
         ])
         .subscribe((res) => {
           if (res) {
