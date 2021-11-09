@@ -2,25 +2,29 @@ import gql from "graphql-tag";
 
 export const salidaItemsQuery = gql`
   {
-    data: salidaItemItems {
+    data: salidaItems {
       id
-      responsableCarga {
+      salida {
         id
-        persona {
-          id
-          nombre
-        }
       }
-      sucursal {
+      producto {
         id
-        nombre
+        descripcion
       }
-      tipoSalidaItem
+      presentacion {
+        id
+        descripcion
+        codigoPrincipal
+        precioPrincipal
+      }
       observacion
+      cantidad
       creadoEn
       usuario {
         id
-        nombre
+        persona {
+          nombre
+        }
       }
     }
   }
@@ -30,23 +34,27 @@ export const salidaItemQuery = gql`
   query ($id: ID!) {
     data: salidaItem(id: $id) {
       id
-      responsableCarga {
+      salida {
         id
-        persona {
-          id
-          nombre
-        }
       }
-      sucursal {
+      producto {
         id
-        nombre
+        descripcion
       }
-      tipoSalidaItem
+      presentacion {
+        id
+        descripcion
+        codigoPrincipal
+        precioPrincipal
+      }
       observacion
+      cantidad
       creadoEn
       usuario {
         id
-        nombre
+        persona {
+          nombre
+        }
       }
     }
   }
@@ -56,23 +64,33 @@ export const saveSalidaItem = gql`
   mutation saveSalidaItem($entity: SalidaItemInput!) {
     data: saveSalidaItem(salidaItem: $entity) {
       id
-      responsableCarga {
+      salida {
         id
-        persona {
+      }
+      producto {
+        id
+        descripcion
+      }
+      presentacion {
+        id
+        descripcion
+        codigoPrincipal{
           id
-          nombre
+          codigo
+        }
+        precioPrincipal{
+          id
+          precio
         }
       }
-      sucursal {
-        id
-        nombre
-      }
-      tipoSalidaItem
       observacion
+      cantidad
       creadoEn
       usuario {
         id
-        nombre
+        persona {
+          nombre
+        }
       }
     }
   }

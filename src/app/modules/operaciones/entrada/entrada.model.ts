@@ -11,6 +11,7 @@ export class Entrada {
   creadoEn: Date;
   usuario: Usuario;
   entradaItemList: EntradaItem[]
+  activo: boolean;
 
   toInput(): EntradaInput {
     let input = new EntradaInput();
@@ -20,6 +21,7 @@ export class Entrada {
     input.tipoEntrada = this.tipoEntrada;
     input.usuarioId = this.usuario?.id;
     input.observacion = this.observacion;
+    input.activo = this.activo;
     return input;
   }
 }
@@ -37,5 +39,6 @@ export class EntradaInput {
   tipoEntrada: TipoEntrada;
   observacion: String;
   creadoEn: Date;
+  activo: boolean;
   usuarioId: number;
 }

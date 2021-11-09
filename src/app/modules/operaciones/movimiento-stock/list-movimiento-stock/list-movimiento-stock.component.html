@@ -45,10 +45,21 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="usuario">
-          <th mat-header-cell *matHeaderCellDef>Usuario</th>
-          <td mat-cell *matCellDef="let movimiento" style="text-align: start">
-            {{ movimiento?.usuario?.persona?.nombre | titlecase }}
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center;">...</th>
+          <td mat-cell *matCellDef="let movimiento" style="text-align: center; width: 5%">
+            <button
+              mat-icon-button
+              [matMenuTriggerFor]="menu"
+              (click)="$event.stopPropagation()"
+            >
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menu="matMenu">
+              <button mat-menu-item (click)="onReferenciaClick(movimiento)">
+                Ir a {{movimiento?.tipoMovimiento | titlecase}}
+              </button>
+            </mat-menu>
           </td>
         </ng-container>
 

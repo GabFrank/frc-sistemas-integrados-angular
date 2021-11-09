@@ -10,6 +10,7 @@
         fxLayoutAlign="space-around start"
         fxLayoutGap="10px"
         style="width: 100%"
+        *ngIf="data?.mostrarOpciones == false"
       >
         <div fxFlex="10%">
           <mat-form-field style="width: 80%">
@@ -63,7 +64,7 @@
             />
           </mat-form-field>
         </div>
-        <div fxFlex="20">
+        <div fxFlex="20" *ngIf="data?.mostrarOpciones == false">
           <button
             mat-raised-button
             [color]="mostrarTipoPrecios ? 'accent' : 'primary'"
@@ -94,44 +95,13 @@
               </td>
             </ng-container>
 
-            <ng-container matColumnDef="promocion">
-              <th mat-header-cell *matHeaderCellDef>Promoción</th>
-              <td mat-cell *matCellDef="let producto" style="text-align: start">
-                {{ producto.promocion ? "Si" : "No" }}
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="precio1">
-              <th mat-header-cell *matHeaderCellDef>Precio 1</th>
-              <td
-                mat-cell
-                *matCellDef="let producto"
-                style="text-align: start"
-              ></td>
-            </ng-container>
-
-            <ng-container matColumnDef="precio2">
-              <th mat-header-cell *matHeaderCellDef>Precio 2</th>
-              <td
-                mat-cell
-                *matCellDef="let producto"
-                style="text-align: start"
-              ></td>
-            </ng-container>
-
-            <ng-container matColumnDef="precio3">
-              <th mat-header-cell *matHeaderCellDef>Precio 3</th>
-              <td
-                mat-cell
-                *matCellDef="let producto"
-                style="text-align: start"
-              ></td>
-            </ng-container>
-
-            <ng-container matColumnDef="existencia">
-              <th mat-header-cell *matHeaderCellDef>Existencia</th>
-              <td mat-cell *matCellDef="let producto" style="text-align: start">
-                {{ getExistencia(producto) | number: "1.0-2" }}
+            <ng-container *ngIf="data.mostrarStock == true" matColumnDef="existencia">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center">Existencia</th>
+              <td mat-cell *matCellDef="let producto; let id = index" style="text-align: center">
+                <button *ngIf="producto?.stockPorProducto == null" mat-flat-button (click)="mostrarStock(producto); $event.stopPropagation()">Ver</button>
+                <div *ngIf="producto?.stockPorProducto != null">
+                  {{producto?.stockPorProducto | number:'1.0-2'}}
+                </div>
               </td>
             </ng-container>
 
@@ -263,7 +233,7 @@
                           >
                             <div style="text-align: center; font-size: 1.5em">
                               {{ precio?.tipoPrecio?.descripcion | uppercase }}
-                               ({{ precio?.tipoPrecio?.id }})
+                              ({{ precio?.tipoPrecio?.id }})
                             </div>
                             <div style="text-align: center">
                               <h3>{{ precio?.precio | number: "1.0-0" }}</h3>

@@ -100,3 +100,9 @@ export const deleteMovimientoQuery = gql`
     deleteMovimiento(id: $id)
   }
 `;
+
+export const stockPorProductoQuery = gql`
+  query ($id: ID!) {
+    data: stockPorProducto(id: $id)
+  }
+`;

@@ -19,6 +19,8 @@ export class SalidaItem {
     input.productoId = this.producto?.id;
     input.presentacionId = this.presentacion?.id;
     input.salidaId = this.salida?.id;
+    input.cantidad = this.cantidad;
+    input.creadoEn = this.creadoEn;
     input.usuarioId = this.usuario?.id;
     input.observacion = this.observacion;
     return input;
@@ -38,5 +40,6 @@ export class SalidaItemInput {
   presentacionId: number;
   observacion: string;
   cantidad: number;
+  creadoEn: Date;
   usuarioId: number;
 }

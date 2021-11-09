@@ -1,0 +1,295 @@
+<div fxLayout="column" style="width: 100%" fxLayoutGap="10px">
+    <div fxFlex="20">
+      <mat-card
+        style="background-color: rgb(32, 32, 32); width: 100%; height: 100%"
+      >
+        <div style="width: 100%; text-align: center">
+          <h3>Datos de Salida</h3>
+        </div>
+        <div fxLayout="row" fxLayoutGap="10px">
+          <div fxFlex="90%">
+            <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="20px">
+              <div fxFlex="10">
+                <mat-form-field style="width: 100%">
+                  <mat-label>Id</mat-label>
+                  <input
+                    matInput
+                    type="text"
+                    [formControl]="idControl"
+                    disabled
+                  />
+                </mat-form-field>
+              </div>
+              <div fxFlex="20">
+                <mat-form-field style="width: 100%">
+                  <mat-label>Fecha</mat-label>
+                  <input
+                    matInput
+                    type="text"
+                    [formControl]="creadoEnControl"
+                    disabled
+                  />
+                </mat-form-field>
+              </div>
+              <div fxFlex="20">
+                
+              </div>
+              <div *ngIf="selectedSalida?.id != null" fxFlex="30%" fxLayout="row" fxLayoutAlign="center center">
+                <div fxFlex="30%">
+                  Estado:
+                </div>
+                <div fxFlex="70%" style="color: red;" [class.estado]="selectedSalida?.activo == true">
+                  {{selectedSalida?.activo == true ? 'Finalizado' : 'No finalizado'}}
+                </div>
+              </div>
+            </div>
+            <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="20px">
+              <div fxFlex="35%">
+                <mat-form-field style="width: 100%">
+                  <mat-label>Responsable</mat-label>
+                  <input
+                    #responsableInput
+                    type="text"
+                    matInput
+                    [formControl]="usuarioInputControl"
+                    oninput="this.value == ' ' ? this.value = '': null"
+                    [matAutocomplete]="auto"
+                    (keyup.enter)="setFocusToTipoSalida()"
+                  />
+                  <mat-autocomplete
+                    #auto="matAutocomplete"
+                    (optionSelected)="onResponsableSelect($event.option.value)"
+                    (closed)="onResponsableAutocompleteClose()"
+                  >
+                    <mat-option
+                      *ngFor="let usuario of usuarioList"
+                      [value]="usuario"
+                    >
+                      {{ usuario.id }} -
+                      {{ usuario?.persona?.nombre | titlecase }}
+                    </mat-option>
+                  </mat-autocomplete>
+                </mat-form-field>
+              </div>
+              <div fxFlex="30%">
+                <mat-form-field style="width: 100%">
+                  <mat-label>Concepto</mat-label>
+                  <mat-select
+                    #tipoSalidaSelect
+                    [formControl]="tipoSalidaControl"
+                    (selectionChange)="onSelectTipoSalida($event.value)"
+                  >
+                    <mat-option>Otros</mat-option>
+                    <mat-option
+                      *ngFor="let tipoSalida of tipoSalidasList; let i = index"
+                      [value]="tipoSalida"
+                    >
+                      {{ tipoSalida | titlecase }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div fxFlex="35%" *ngIf="selectedTipoSalida == 'SUCURSAL'">
+                <mat-form-field style="width: 100%">
+                  <mat-label>Sucursal</mat-label>
+                  <mat-select
+                    [formControl]="sucursalControl"
+                    (selectionChange)="onSelectSucursal($event.value)"
+                  >
+                    <mat-option
+                      *ngFor="let sucursal of sucursalList; let i = index"
+                      [value]="sucursal.id"
+                    >
+                      {{ sucursal?.id }} - {{ sucursal?.nombre | titlecase }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+            </div>
+          </div>
+          <div fxFlex="10%" fxLayout="column" fxLayoutGap="10px">
+            <div fxFlex>
+              <button
+                *ngIf="isEditar"
+                mat-raised-button
+                color="accent"
+                style="width: 100%"
+                (click)="onSaveSalida()"
+              >
+                Guardar
+              </button>
+              <button
+                *ngIf="!isEditar"
+                mat-raised-button
+                color="primary"
+                style="width: 100%"
+                (click)="onEditar()"
+                [disabled]="selectedSalida?.activo == true"
+              >
+                Editar
+              </button>
+            </div>
+            <div fxFlex>
+              <button
+                mat-raised-button
+                color="primary"
+                style="width: 100%"
+                (click)="onCancelar()"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </mat-card>
+    </div>
+    <form *ngIf="selectedSalida?.id!=null" fxFlex="10%" [formGroup]="itemFormGroup" style="width: 100%">
+      <mat-card
+        style="background-color: rgb(32, 32, 32); width: 100%; height: 100%"
+      >
+        <div style="width: 100%; text-align: center">
+          <h3>Datos de Producto</h3>
+        </div>
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="20px">
+          <div fxFlex="3%">
+            <mat-form-field style="width: 100%">
+              <mat-label>Id</mat-label>
+              <input
+                matInput
+                type="text"
+                [formControl]="productoIdControl"
+                oninput="this.value == ' ' ? this.value = '': null"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="30%">
+            <mat-form-field style="width: 100%">
+              <mat-label>Producto</mat-label>
+              <input
+                matInput
+                #productoInput
+                type="text"
+                formControlName="producto"
+                oninput="this.value == ' ' ? this.value = '': null"
+                (keyup.enter)="searchProducto()"
+                (keydown.tab)="onFocusToCantidad(); $event.stopPropagation()"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="5%">
+            <button mat-raised-button color="primary" (click)="searchProducto()">
+              <mat-icon>search</mat-icon>
+            </button>
+          </div>
+          <div fxFlex="30%">
+            <mat-form-field style="width: 100%">
+              <mat-label>Presentación</mat-label>
+              <input
+                matInput
+                type="text"
+                formControlName="presentacion"
+                oninput="this.value == ' ' ? this.value = '': null"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="20%">
+            <mat-form-field style="width: 100%">
+              <mat-label>Cantidad</mat-label>
+              <input
+                #cantidadInput
+                matInput
+                type="number"
+                formControlName="cantidad"
+                oninput="this.value == ' ' ? this.value = '': null"
+                (keyup.enter)="onItemSave()"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="10%" fxLayout="column" fxLayoutGap="10px">
+            <div fxFlex>
+              <button
+                *ngIf="isItemEditar"
+                mat-raised-button
+                color="accent"
+                style="width: 100%"
+                [disabled]="itemFormGroup.invalid"
+                (click)="onItemSave()"
+              >
+                Guardar
+              </button>
+              <button
+                *ngIf="!isItemEditar"
+                mat-raised-button
+                color="primary"
+                style="width: 100%"
+                (click)="onEditItem()"
+                [disabled]="selectedSalida?.activo == true"
+              >
+                Editar
+              </button>
+            </div>
+            <div fxFlex>
+              <button
+                mat-raised-button
+                color="primary"
+                style="width: 100%"
+                [disabled]="selectedSalida?.activo == true || selectedSalidaItem == null"
+                (click)="onDelete()"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      </mat-card>
+    </form>
+    <div fxFlex="65%" style="width: 100%">
+      <table mat-table [dataSource]="itemDataSource" matSort>
+        <!-- Position Column -->
+        <ng-container matColumnDef="id" style="width: 50%">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>id</th>
+          <td mat-cell *matCellDef="let element">{{ element.id }}</td>
+        </ng-container>
+  
+        <!-- Name Column -->
+        <ng-container matColumnDef="producto">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Producto</th>
+          <td mat-cell *matCellDef="let element">
+            {{ element?.producto?.descripcion | uppercase }}
+          </td>
+        </ng-container>
+  
+        <!-- Weight Column -->
+        <ng-container matColumnDef="codigo">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Código</th>
+          <td mat-cell *matCellDef="let element">
+            {{ element?.presentacion?.codigoPrincipal?.codigo }}
+          </td>
+        </ng-container>
+  
+        <!-- Symbol Column -->
+        <ng-container matColumnDef="presentacion">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Presentación</th>
+          <td mat-cell *matCellDef="let element">
+            {{ element?.presentacion?.descripcion | uppercase }}
+          </td>
+        </ng-container>
+  
+        <ng-container matColumnDef="cantidad">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Cantidad</th>
+          <td mat-cell *matCellDef="let element">
+            {{ element?.cantidad | number: "1.0-2" }}
+          </td>
+        </ng-container>
+  
+        <!-- Acciones -->
+  
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns" (click)="onSelectSalidaItem(row)"></tr>
+      </table>
+    </div>
+    <div fxFlex="10" *ngIf="selectedSalida?.activo != true" fxFlex="5%" fxLayout="row" fxLayoutAlign="end center">
+      <button mat-raised-button color="accent" (click)="onFinalizarSalida()">Finalizar</button>
+    </div>
+  </div>
+  

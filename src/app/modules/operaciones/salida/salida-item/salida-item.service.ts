@@ -1,36 +1,36 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { NotificacionSnackbarService, NotificacionColor } from '../../../../notificacion-snackbar.service';
-import { EntradaItem, EntradaItemInput } from './entrada-item.model';
-import { DeleteEntradaItemGQL } from './graphql/deleteEntradaItem';
-import { GetAllEntradaItemsGQL } from './graphql/getAllEntradasItem';
-import { SaveEntradaItemGQL } from './graphql/saveEntradaItem';
+import { SalidaItem, SalidaItemInput } from './salida-item.model';
+import { DeleteSalidaItemGQL } from './graphql/deleteSalidaItem';
+import { GetAllSalidaItemsGQL } from './graphql/getAllSalidasItem';
+import { SaveSalidaItemGQL } from './graphql/saveSalidaItem';
 
 
 @Injectable({
   providedIn: 'root'
 })
-export class EntradaItemService {
+export class SalidaItemService {
 
   constructor(
-    private saveEntradaItem: SaveEntradaItemGQL,
-    private deleteEntradaItem: DeleteEntradaItemGQL,
-    private getAllEntradaItems: GetAllEntradaItemsGQL,
+    private saveSalidaItem: SaveSalidaItemGQL,
+    private deleteSalidaItem: DeleteSalidaItemGQL,
+    private getAllSalidaItems: GetAllSalidaItemsGQL,
     private notificacionService: NotificacionSnackbarService
   ) { }
 
-  onSaveEntradaItem(input: EntradaItemInput): Observable<EntradaItem>{
+  onSaveSalidaItem(input: SalidaItemInput): Observable<SalidaItem>{
     return new Observable(obs => {
-      this.saveEntradaItem.mutate({
+      this.saveSalidaItem.mutate({
         entity: input
       }, {
         fetchPolicy: 'no-cache',
         errorPolicy: 'all'
       }).subscribe(res => {
         if(res.errors==null){
-          obs.next(res.data)
+          obs.next(res.data['data'])
           this.notificacionService.notification$.next({
-            texto: `Guardado con éxito`,
+            texto: `Guardado con éxito!!`,
             color: NotificacionColor.success,
             duracion: 2
           })
@@ -45,25 +45,19 @@ export class EntradaItemService {
     })
   }
 
-  onDeleteEntradaItem(id: number){
+  onDeleteSalidaItem(id: number){
     return new Observable(obs => {
-      this.deleteEntradaItem.mutate({
+      this.deleteSalidaItem.mutate({
         id
       }, {
         fetchPolicy: 'no-cache',
         errorPolicy: 'all'
       }).subscribe(res => {
         if(res.errors==null){
-          obs.next(true)
-          this.notificacionService.notification$.next({
-            texto: `Eliminado con éxito`,
-            color: NotificacionColor.success,
-            duracion: 2
-          })
+          obs.next(res.data)
         } else {
-          obs.next(false)
           this.notificacionService.notification$.next({
-            texto: `Ups, ocurrio algun error: ${res.errors[0].message}`,
+            texto: `Ups, ocurrio algun error: ${res.errors[0]}`,
             color: NotificacionColor.danger,
             duracion: 3
           })
@@ -72,9 +66,9 @@ export class EntradaItemService {
     })
   }
 
-  onGetAllEntradaItems(){
+  onGetAllSalidaItems(){
     return new Observable(obs => {
-      this.getAllEntradaItems.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'})
+      this.getAllSalidaItems.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'})
       .subscribe(res => {
         if(res.errors==null){
           obs.next(res.data)

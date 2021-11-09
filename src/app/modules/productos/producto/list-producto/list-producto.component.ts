@@ -136,8 +136,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         //     this.isSearching = false;
         //   }
         // });
-        this.service.onSearchLocal(text).then(res => {
-          console.log(res)
+        this.service.onSearch(text, this.dataSource.data.length).subscribe(res => {
           this.dataSource.data = res;
           this.isSearching = false;
         })

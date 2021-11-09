@@ -45,27 +45,35 @@ export class ProductoService {
     private getAllProductos: AllProductosGQL
   ) {
     this.productosList = []
-    getAllProductos.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
-      if(res.errors==null){
-        console.log('Lista de productos cargada')
-        this.productosList = res.data.data
-        console.log(this.productosList)
-      }
-    })
+    // getAllProductos.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
+    //   if(res.errors==null){
+    //     console.log('Lista de productos cargada')
+    //     this.productosList = res.data.data
+    //     console.log(this.productosList)
+    //   }
+    // })
   }
 
-  onSearch(texto, offset?) {
+  onSearch(texto, offset?): Observable<Producto[]>{
     console.log('buscando ', texto, 'offest ' , offset)
-    return this.productoSearch.fetch(
-      {
-        texto,
-        offset
-      },
-      {
-        fetchPolicy: "no-cache",
-        errorPolicy: "all",
-      }
-    );
+    return new Observable(obs => {
+      this.productoSearch.fetch(
+        {
+          texto,
+          offset
+        },
+        {
+          fetchPolicy: "no-cache",
+          errorPolicy: "all",
+        }
+      ).subscribe(res => {
+        if(res.errors == null){
+          obs.next(res.data.data)
+        } else {
+
+        }
+      })
+    })
   }
 
   onSearchLocal(texto: string){

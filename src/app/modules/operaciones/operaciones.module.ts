@@ -16,6 +16,7 @@ import { IConfig, NgxMaskModule } from 'ngx-mask';
 import { ListMovimientoStockComponent } from './movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
 import { EntradaSalidaComponent } from './entrada-salida/entrada-salida.component';
 import { EntradaDialogComponent } from './entrada/entrada-dialog/entrada-dialog.component';
+import { SalidaDialogComponent } from './salida/salida-dialog/salida-dialog.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -31,6 +32,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     ListMovimientoStockComponent,
     EntradaSalidaComponent,
     EntradaDialogComponent,
+    SalidaDialogComponent,
   ],
   imports: [
     CommonModule,

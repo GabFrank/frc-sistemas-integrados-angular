@@ -3,6 +3,10 @@ import { Query } from 'apollo-angular';
 import { Usuario } from '../usuario.model';
 import { usuarioQuery, usuariosSearch } from './graphql-query';
 
+class Response {
+  data: Usuario[]
+}
+
 @Injectable({
   providedIn: 'root',
 })

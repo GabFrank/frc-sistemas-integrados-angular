@@ -30,10 +30,8 @@ export class Producto {
   codigos?: [Codigo]
   sucursales?: [ExistenciaCostoPorSucursal]
   productoUltimasCompras?: [ExistenciaCostoPorSucursal]
-  precio1?: Codigo;
-  precio2?: Codigo;
-  precio3?: Codigo;
   presentaciones: Presentacion[]
+  stockPorProducto?: number;
 }
 
 export class ExistenciaCostoPorSucursal {

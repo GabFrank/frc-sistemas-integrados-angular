@@ -25,6 +25,20 @@ tr.example-detail-row {
   background-color: none;
 }
 
+.example-salida-row td {
+  border-bottom-width: 0;
+}
+
+.example-salida-detail {
+  overflow: hidden;
+  display: flex;
+  background-color: none !important;
+}
+
+.example-salida-detail:hover {
+  background-color: none;
+}
+
 .mat-cell,
 .mat-header-cell {
 word-wrap: initial;
@@ -62,4 +76,12 @@ background-color: rgb(51, 51, 51) !important;
 
 .productoLink:hover {
   color: #42A948 !important;
+}
+
+.estado {
+  color: #42A948 !important;
+}
+
+.centerText {
+  text-align: center;
 }

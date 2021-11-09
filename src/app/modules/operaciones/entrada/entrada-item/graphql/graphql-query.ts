@@ -2,25 +2,29 @@ import gql from "graphql-tag";
 
 export const entradaItemsQuery = gql`
   {
-    data: entradaItemItems {
+    data: entradaItems {
       id
-      responsableCarga {
+      entrada {
         id
-        persona {
-          id
-          nombre
-        }
       }
-      sucursal {
+      producto {
         id
-        nombre
+        descripcion
       }
-      tipoEntradaItem
+      presentacion {
+        id
+        descripcion
+        codigoPrincipal
+        precioPrincipal
+      }
       observacion
+      cantidad
       creadoEn
       usuario {
         id
-        nombre
+        persona {
+          nombre
+        }
       }
     }
   }
@@ -30,23 +34,27 @@ export const entradaItemQuery = gql`
   query ($id: ID!) {
     data: entradaItem(id: $id) {
       id
-      responsableCarga {
+      entrada {
         id
-        persona {
-          id
-          nombre
-        }
       }
-      sucursal {
+      producto {
         id
-        nombre
+        descripcion
       }
-      tipoEntradaItem
+      presentacion {
+        id
+        descripcion
+        codigoPrincipal
+        precioPrincipal
+      }
       observacion
+      cantidad
       creadoEn
       usuario {
         id
-        nombre
+        persona {
+          nombre
+        }
       }
     }
   }
@@ -56,23 +64,33 @@ export const saveEntradaItem = gql`
   mutation saveEntradaItem($entity: EntradaItemInput!) {
     data: saveEntradaItem(entradaItem: $entity) {
       id
-      responsableCarga {
+      entrada {
         id
-        persona {
+      }
+      producto {
+        id
+        descripcion
+      }
+      presentacion {
+        id
+        descripcion
+        codigoPrincipal{
           id
-          nombre
+          codigo
+        }
+        precioPrincipal{
+          id
+          precio
         }
       }
-      sucursal {
-        id
-        nombre
-      }
-      tipoEntradaItem
       observacion
+      cantidad
       creadoEn
       usuario {
         id
-        nombre
+        persona {
+          nombre
+        }
       }
     }
   }

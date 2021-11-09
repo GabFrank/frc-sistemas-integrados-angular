@@ -20,6 +20,7 @@ export class EntradaItem {
     input.presentacionId = this.presentacion?.id;
     input.entradaId = this.entrada?.id;
     input.usuarioId = this.usuario?.id;
+    input.cantidad = this.cantidad;
     input.observacion = this.observacion;
     return input;
   }

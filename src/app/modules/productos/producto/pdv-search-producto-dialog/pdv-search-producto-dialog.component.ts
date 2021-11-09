@@ -38,12 +38,15 @@ import {
   ProductoCategoriaDialogData,
 } from "../../../pdv/comercial/venta-touch/producto-categoria-dialog/producto-categoria-dialog.component";
 import { SelectPrecioDialogComponent } from "../../precio-por-sucursal/select-precio-dialog/select-precio-dialog.component";
+import { MovimientoStockService } from "../../../operaciones/movimiento-stock/movimiento-stock.service";
 
 export interface PdvSearchProductoData {
   texto: any;
   cantidad: number;
   tiposPrecios?: TipoPrecio[];
   selectedTipoPrecio?: TipoPrecio;
+  mostrarOpciones?: boolean;
+  mostrarStock?: boolean;
 }
 
 export interface PdvSearchProductoResponseData {
@@ -87,11 +90,6 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = [
     "id",
     "descripcion",
-    "promocion",
-    "precio1",
-    "precio2",
-    "precio3",
-    "existencia",
   ];
   expandedProducto: Producto | null;
   NumberUtils;
@@ -113,8 +111,16 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     private matDialog: MatDialog,
     private getProducto: ProductoForPdvGQL,
     private productoService: ProductoService,
-    private _el: ElementRef
+    private _el: ElementRef,
+    private stockService: MovimientoStockService
   ) {
+    if(data.mostrarStock == true){
+      this.displayedColumns = [
+        "id",
+        "descripcion",
+        "existencia",
+      ]
+    }
   }
 
   ngOnInit(): void {
@@ -157,17 +163,15 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     } else {
       this.onSearchTimer = setTimeout(() => {
         this.productoService.onSearch(text, offset).subscribe((res) => {
-          if (res.errors == null) {
             if (offset == null) {
               console.log("offset es nulo");
-              this.dataSource.data = res.data.data;
+              this.dataSource.data = res;
             } else {
               console.log("offset es: ", offset);
-              const arr = [...this.dataSource.data.concat(res.data.data)];
+              const arr = [...this.dataSource.data.concat(res)];
               this.dataSource.data = arr;
             }
             this.isSearching = false;
-          }
         });
       }, 1000);
     }
@@ -323,31 +327,20 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     producto?: Producto,
     precio?: PrecioPorSucursal,
   ) {
-    // if (this.mostrarTipoPrecios) {
-    //   this.matDialog
-    //     .open(SelectPrecioDialogComponent, {
-    //       data: {
-    //         producto,
-    //         presentacion,
-    //       },
-    //       autoFocus: false,
-    //       restoreFocus: true,
-    //     })
-    //     .afterClosed()
-    //     .subscribe((res) => {
-    //       if (res != null) {
-    //         precio = res;
-    //       }
-
-          
-    //     });
-    // }
+ 
     let response: PdvSearchProductoResponseData = {
       producto,
       presentacion,
       cantidad: this.formGroup.controls.cantidad.value,
       precio,
     };
+
+    this.stockService.onGetStockPorProducto(producto.id).subscribe(res => {
+      if(res!=null){
+        console.log(res)
+        response.producto.stockPorProducto = res;
+      }
+    })
     this.dialogRef.close(response);
   }
 
@@ -371,5 +364,15 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     } else {
       this.formGroup.controls.cantidad.setValue(cantidad + i);
     }
+  }
+
+  mostrarStock(producto: Producto, index){
+    this.stockService.onGetStockPorProducto(producto.id).subscribe(res => {
+      if(res!=null){
+        console.log(res)
+        producto.stockPorProducto = res;
+        this.dataSource[index] = producto;
+      }
+    })
   }
 }

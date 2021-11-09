@@ -1,63 +1,41 @@
-import {
-  Component,
-  ElementRef,
-  Inject,
-  OnInit,
-  ViewChild,
-} from "@angular/core";
-import {
-  FormControl,
-  FormControlName,
-  FormGroup,
-  Validators,
-} from "@angular/forms";
-import {
-  MatDialog,
-  MatDialogRef,
-  MAT_DIALOG_DATA,
-} from "@angular/material/dialog";
-import { MatSelect } from "@angular/material/select";
-import { MatTableDataSource } from "@angular/material/table";
-import {
-  NotificacionColor,
-  NotificacionSnackbarService,
-} from "../../../../notificacion-snackbar.service";
-import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
-import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
-import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
-import { Usuario } from "../../../personas/usuarios/usuario.model";
-import { UsuarioService } from "../../../personas/usuarios/usuario.service";
-import { Presentacion } from "../../../productos/presentacion/presentacion.model";
-import {
-  PdvSearchProductoDialogComponent,
-  PdvSearchProductoResponseData,
-} from "../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
-import { Producto } from "../../../productos/producto/producto.model";
-import { EntradaItem } from "../entrada-item/entrada-item.model";
-import { EntradaItemService } from "../entrada-item/entrada-item.service";
-import { Entrada, EntradaInput, TipoEntrada } from "../entrada.model";
-import { EntradaService } from "../entrada.service";
-
-export interface EntradaDialogData {
+import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dialog';
+import { MatSelect } from '@angular/material/select';
+import { MatTableDataSource } from '@angular/material/table';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
+import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
+import { Usuario } from '../../../personas/usuarios/usuario.model';
+import { UsuarioService } from '../../../personas/usuarios/usuario.service';
+import { Presentacion } from '../../../productos/presentacion/presentacion.model';
+import { PdvSearchProductoDialogComponent, PdvSearchProductoResponseData } from '../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component';
+import { Producto } from '../../../productos/producto/producto.model';
+import { SalidaItem } from '../salida-item/salida-item.model';
+import { SalidaItemService } from '../salida-item/salida-item.service';
+import { Salida, TipoSalida, SalidaInput } from '../salida.model';
+import { SalidaService } from '../salida.service';
+export interface SalidaDialogData {
   id?: number;
-  entrada?: Entrada;
+  salida?: Salida;
 }
 
 @Component({
-  selector: "app-entrada-dialog",
-  templateUrl: "./entrada-dialog.component.html",
-  styleUrls: ["./entrada-dialog.component.scss"],
+  selector: "app-salida-dialog",
+  templateUrl: "./salida-dialog.component.html",
+  styleUrls: ["./salida-dialog.component.scss"],
 })
-export class EntradaDialogComponent implements OnInit {
+export class SalidaDialogComponent implements OnInit {
   @ViewChild("responsableInput", { static: false }) responsableInput: ElementRef;
   @ViewChild("productoInput", { static: false }) productoInput: ElementRef;
   @ViewChild("cantidadInput", { static: false }) cantidadInput: ElementRef;
-  @ViewChild("tipoEntradaSelect", { static: true })
-  tipoEntradaSelect: MatSelect;
+  @ViewChild("tipoSalidaSelect", { static: true })
+  tipoSalidaSelect: MatSelect;
 
-  selectedEntrada: Entrada;
+  selectedSalida: Salida;
   responsableCargaControl = new FormControl();
-  tipoEntradaControl = new FormControl();
+  tipoSalidaControl = new FormControl();
   sucursalControl = new FormControl();
   idControl = new FormControl();
   creadoEnControl = new FormControl();
@@ -67,12 +45,12 @@ export class EntradaDialogComponent implements OnInit {
   usuarioList: Usuario[];
   timer = null;
   selectedResponsable: Usuario;
-  tipoEntradasList: any[];
-  selectedTipoEntrada: TipoEntrada;
+  tipoSalidasList: any[];
+  selectedTipoSalida: TipoSalida;
   sucursalList: Sucursal[];
   filteredSucursalList: Sucursal[];
   selectedSucursal: Sucursal;
-  itemDataSource = new MatTableDataSource<EntradaItem>(null);
+  itemDataSource = new MatTableDataSource<SalidaItem>(null);
   displayedColumns = [
     "id",
     "producto",
@@ -83,7 +61,7 @@ export class EntradaDialogComponent implements OnInit {
   isEditar = true;
   isItemEditar = true;
 
-  //entradaitem
+  //salidaitem
   productoIdControl = new FormControl();
   productoControl = new FormControl(null, Validators.required);
   presentacionControl = new FormControl(null, Validators.required);
@@ -92,26 +70,26 @@ export class EntradaDialogComponent implements OnInit {
   itemFormGroup: FormGroup;
   selectedProducto: Producto;
   selectedPresentacion: Presentacion;
-  selectedEntradaItem: EntradaItem;
+  selectedSalidaItem: SalidaItem;
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: EntradaDialogData,
-    private matDialogRef: MatDialogRef<EntradaDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: SalidaDialogData,
+    private matDialogRef: MatDialogRef<SalidaDialogComponent>,
     private usuarioService: UsuarioService,
     private sucursalService: SucursalService,
-    private entradaService: EntradaService,
+    private salidaService: SalidaService,
     private notificicacionBar: NotificacionSnackbarService,
     private matDialog: MatDialog,
-    private entradaItemService: EntradaItemService,
+    private salidaItemService: SalidaItemService,
     private dialogoService: DialogosService
   ) {
-    if (data.entrada != null) this.selectedEntrada = data.entrada;
+    if (data.salida != null) this.selectedSalida = data.salida;
   }
 
   ngOnInit(): void {
     //inicializar arrays
     this.usuarioList = [];
-    this.tipoEntradasList = [];
+    this.tipoSalidasList = [];
     this.sucursalList = [];
     this.itemDataSource.data = []
 
@@ -141,15 +119,15 @@ export class EntradaDialogComponent implements OnInit {
       }
     });
 
-    if (this.data?.entrada != null) this.cargarDatos();
-    if (this.data?.id!=null) this.buscarEntrada(this.data.id)
+    if (this.data?.salida != null) this.cargarDatos();
+    if (this.data?.id!=null) this.buscarSalida(this.data.id)
 
   }
 
   createForm() {
     this.formGroup = new FormGroup({});
     this.formGroup.addControl("responsableCarga", this.responsableCargaControl);
-    this.formGroup.addControl("tipoEntrada", this.tipoEntradaControl);
+    this.formGroup.addControl("tipoSalida", this.tipoSalidaControl);
     this.formGroup.addControl("sucursal", this.sucursalControl);
     this.formGroup.addControl("observacion", this.observacionControl);
     this.formGroup.addControl("observacion", this.observacionControl);
@@ -167,8 +145,8 @@ export class EntradaDialogComponent implements OnInit {
     this.itemFormGroup.addControl("productoId", this.productoIdControl);
     this.presentacionControl.disable();
     this.productoIdControl.disable();
-    this.tipoEntradasList = Object.values(TipoEntrada);
-    this.onSelectTipoEntrada(TipoEntrada.COMPRA);
+    this.tipoSalidasList = Object.values(TipoSalida);
+    this.onSelectTipoSalida(TipoSalida.SUCURSAL);
   }
 
   buscarSucursales() {
@@ -183,11 +161,11 @@ export class EntradaDialogComponent implements OnInit {
     });
   }
 
-  buscarEntrada(id){
-    this.entradaService.onGetEntrada(id).subscribe(res => {
+  buscarSalida(id){
+    this.salidaService.onGetSalida(id).subscribe(res => {
       console.log(res)
       if(res!=null){
-        this.selectedEntrada = res;
+        this.selectedSalida = res;
         this.cargarDatos()
       } 
     })
@@ -195,14 +173,14 @@ export class EntradaDialogComponent implements OnInit {
 
   cargarDatos() {
     this.isEditar = false;
-    this.idControl.setValue(this.selectedEntrada.id);
-    this.creadoEnControl.setValue(this.selectedEntrada.creadoEn);
-    this.onResponsableSelect(this.selectedEntrada?.responsableCarga);
-    this.onSelectTipoEntrada(this.selectedEntrada?.tipoEntrada);
-    this.onSelectSucursal(this.selectedEntrada?.sucursal);
+    this.idControl.setValue(this.selectedSalida.id);
+    this.creadoEnControl.setValue(this.selectedSalida.creadoEn);
+    this.onResponsableSelect(this.selectedSalida?.responsableCarga);
+    this.onSelectTipoSalida(this.selectedSalida?.tipoSalida);
+    this.onSelectSucursal(this.selectedSalida?.sucursal);
     this.formGroup.disable();
-    if(this.selectedEntrada.entradaItemList!=null){
-      this.itemDataSource.data = this.selectedEntrada.entradaItemList;
+    if(this.selectedSalida.salidaItemList!=null){
+      this.itemDataSource.data = this.selectedSalida.salidaItemList;
     }
     setTimeout(() => {
       this.setFocusToProductoInput();
@@ -237,35 +215,35 @@ export class EntradaDialogComponent implements OnInit {
     }, 0);
   }
 
-  onSelectTipoEntrada(e) {
+  onSelectTipoSalida(e) {
     console.log(e);
-    this.selectedTipoEntrada = e as TipoEntrada;
-    this.tipoEntradaControl.setValue(this.selectedTipoEntrada);
-    if (this.selectedTipoEntrada != TipoEntrada.SUCURSAL) {
+    this.selectedTipoSalida = e as TipoSalida;
+    this.tipoSalidaControl.setValue(this.selectedTipoSalida);
+    if (this.selectedTipoSalida != TipoSalida.SUCURSAL) {
       this.onSelectSucursal(null);
     }
   }
 
-  setFocusToTipoEntrada() {
+  setFocusToTipoSalida() {
     setTimeout(() => {
-      this.tipoEntradaSelect._elementRef.nativeElement.focus();
+      this.tipoSalidaSelect._elementRef.nativeElement.focus();
     }, 0);
   }
 
-  onEdit(e: EntradaItem) {}
+  onEdit(e: SalidaItem) {}
 
   onDelete() {
-    this.dialogoService.confirm('Atención!!', 'Realmente desea eliminar este item?', null, [`Producto: ${this.selectedEntradaItem.producto?.descripcion.toUpperCase()}`, `Presentación: ${this.selectedEntradaItem.presentacion?.descripcion.toUpperCase()}`, `Cantidad: ${this.selectedEntradaItem.cantidad}`]).subscribe(res => {
+    this.dialogoService.confirm('Atención!!', 'Realmente desea eliminar este item?', null, [`Producto: ${this.selectedSalidaItem.producto.descripcion.toUpperCase()}`, `Presentación: ${this.selectedSalidaItem.presentacion.descripcion.toUpperCase()}`, `Cantidad: ${this.selectedSalidaItem.cantidad}`]).subscribe(res => {
       if(res){
-        this.entradaItemService.onDeleteEntradaItem(this.selectedEntradaItem.id).subscribe(res2 => {
+        this.salidaItemService.onDeleteSalidaItem(this.selectedSalidaItem.id).subscribe(res2 => {
           if(res2){
             let auxArray = this.itemDataSource.data;
-            let index = auxArray.findIndex(i => i.id == this.selectedEntradaItem.id)
+            let index = auxArray.findIndex(i => i.id == this.selectedSalidaItem.id)
             if(index> -1){
               auxArray.splice(index, 1);
               this.itemDataSource.data = auxArray;
             }
-            this.isItemEditar = true;
+            this.onEditItem()
             this.itemFormGroup.reset()
           }
         })
@@ -273,26 +251,27 @@ export class EntradaDialogComponent implements OnInit {
     })
   }
 
-  onSaveEntrada() {
-    console.log(this.selectedEntrada);
+  onSaveSalida() {
+    console.log(this.selectedSalida);
     console.log(this.selectedResponsable);
     console.log(this.selectedSucursal);
-    console.log(this.selectedTipoEntrada);
-    let entrada = new EntradaInput();
-    entrada.id = this.selectedEntrada?.id;
-    entrada.responsableCargaId = this.selectedResponsable?.id;
-    entrada.tipoEntrada = this.selectedTipoEntrada;
-    entrada.sucursalId = this.selectedSucursal?.id;
-    entrada.creadoEn = this.selectedEntrada?.creadoEn;
-    console.log(entrada);
-    this.entradaService.onSaveEntrada(entrada).subscribe((res) => {
+    console.log(this.selectedTipoSalida);
+    let salida = new SalidaInput();
+    salida.id = this.selectedSalida?.id;
+    salida.responsableCargaId = this.selectedResponsable?.id;
+    salida.tipoSalida = this.selectedTipoSalida;
+    salida.sucursalId = this.selectedSucursal?.id;
+    salida.creadoEn = this.selectedSalida?.creadoEn;
+    salida.activo = this.selectedSalida?.activo;
+    console.log(salida);
+    this.salidaService.onSaveSalida(salida).subscribe((res) => {
       console.log(res);
-      this.selectedEntrada = res["data"] as Entrada;
-      console.log(this.selectedEntrada);
+      this.selectedSalida = res["data"] as Salida;
+      console.log(this.selectedSalida);
       this.isEditar = false;
       this.cargarDatos();
       this.usuarioInputControl.disable();
-      this.tipoEntradaControl.disable();
+      this.tipoSalidaControl.disable();
       this.sucursalControl.disable();
     });
   }
@@ -302,13 +281,14 @@ export class EntradaDialogComponent implements OnInit {
   onEditar() {
     this.isEditar = true;
     this.usuarioInputControl.enable();
-    this.tipoEntradaControl.enable();
+    this.tipoSalidaControl.enable();
     this.sucursalControl.enable();
   }
 
   onCancelar() {
     console.log("hola");
-    this.matDialogRef.close(this.selectedEntrada);
+    this.selectedSalida.salidaItemList = this.itemDataSource.data;
+    this.matDialogRef.close(this.selectedSalida);
   }
 
   searchProducto() {
@@ -329,6 +309,7 @@ export class EntradaDialogComponent implements OnInit {
           respuesta = res;
           this.onSelectProducto(respuesta.producto);
           this.onSelectPresentacion(respuesta.presentacion);
+          
         }
       });
   }
@@ -358,38 +339,65 @@ export class EntradaDialogComponent implements OnInit {
   }
 
   onItemSave(){
-    let auxArray: EntradaItem[] = []
     if(this.itemFormGroup.valid){
-      let isNew = this.selectedEntradaItem?.id == null;
-      let item = new EntradaItem();
-      item.id = this.selectedEntradaItem?.id;
-      item.entrada = this.selectedEntrada;
+      let isNew = this.selectedSalidaItem?.id == null;
+      let item = new SalidaItem();
+      let auxArray: SalidaItem[] = []
+      item.id = this.selectedSalidaItem?.id;
+      item.salida = this.selectedSalida;
       item.producto = this.selectedProducto;
       item.presentacion = this.selectedPresentacion;
       item.cantidad = this.cantidadControl.value;
-      item.usuario = this.selectedEntradaItem?.usuario;
-      item.creadoEn = this.selectedEntradaItem?.creadoEn;
-      this.entradaItemService.onSaveEntradaItem(item.toInput()).subscribe(res => {
-        if(res!=null){
-          this.selectedEntradaItem = res['data'];
-          if(!isNew){
-            let index = this.itemDataSource.data.findIndex(s => s.id == this.selectedEntradaItem.id)
-            auxArray = this.itemDataSource.data;
-            auxArray[index] = this.selectedEntradaItem;
-            this.itemDataSource.data = auxArray;
-          } else {
-            auxArray = this.itemDataSource.data;
-            auxArray.push(this.selectedEntradaItem);
-            this.itemDataSource.data = auxArray;
+      item.usuario = this.selectedSalidaItem?.usuario;
+      item.creadoEn = this.selectedSalidaItem?.creadoEn;
+      console.log(item.cantidad * item.presentacion.cantidad > item?.producto?.stockPorProducto)
+      if((item.cantidad * item.presentacion.cantidad) > item?.producto?.stockPorProducto){
+        this.dialogoService.confirm('Atención!!', 'El stock actual del producto es inferior a la intención de salida', 'Desea continuar?', [`Actual: ${item.producto.stockPorProducto}`, `Cantidad a dar salida: ${item.cantidad}`]).subscribe(res => {
+          if(res){
+            this.salidaItemService.onSaveSalidaItem(item.toInput()).subscribe(res => {
+              if(res!=null){
+                this.selectedSalidaItem = res;
+                if(!isNew){
+                  let index = this.itemDataSource.data.findIndex(s => s.id == this.selectedSalidaItem.id)
+                  auxArray = this.itemDataSource.data;
+                  auxArray[index] = this.selectedSalidaItem;
+                  this.itemDataSource.data = auxArray;
+                } else {
+                  auxArray = this.itemDataSource.data;
+                  auxArray.push(this.selectedSalidaItem)
+                  this.itemDataSource.data = auxArray;
+                }
+              }
+              this.itemFormGroup.reset()
+              this.onEditItem()
+            });
           }
-        }
-        this.itemFormGroup.reset()
-      })
+        })
+      } else {
+        this.salidaItemService.onSaveSalidaItem(item.toInput()).subscribe(res => {
+          if(res!=null){
+            this.selectedSalidaItem = res;
+            if(!isNew){
+              let index = this.itemDataSource.data.findIndex(s => s.id == this.selectedSalidaItem.id)
+              auxArray = this.itemDataSource.data;
+              auxArray[index] = this.selectedSalidaItem;
+              this.itemDataSource.data = auxArray;
+            } else {
+              auxArray = this.itemDataSource.data;
+              auxArray.push(this.selectedSalidaItem)
+              this.itemDataSource.data = auxArray;
+            }
+          }
+          this.itemFormGroup.reset()
+          this.onEditItem()
+        });
+      }
+      
     }
   }
 
-  onSelectEntradaItem(item: EntradaItem){
-    this.selectedEntradaItem = item;
+  onSelectSalidaItem(item: SalidaItem){
+    this.selectedSalidaItem = item;
     this.onSelectProducto(item.producto);
     this.onSelectPresentacion(item.presentacion);
     this.cantidadControl.setValue(item.cantidad)
@@ -405,10 +413,10 @@ export class EntradaDialogComponent implements OnInit {
     this.setFocusToProductoInput()
   }
 
-  onFinalizarEntrada(){
-    if(this.selectedEntrada?.id != null){
-      this.entradaService.onFinalizarEntrega(this.selectedEntrada.id).subscribe(res => {
-        this.selectedEntrada.activo = res as boolean;
+  onFinalizarSalida(){
+    if(this.selectedSalida?.id != null){
+      this.salidaService.onFinalizarEntrega(this.selectedSalida.id).subscribe(res => {
+        this.selectedSalida.activo = res as boolean;
       })
     }
   }

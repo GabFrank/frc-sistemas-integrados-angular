@@ -1,5 +1,6 @@
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { Component, OnInit } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { MovimientoStock } from '../movimiento-stock.model';
 import { MovimientoStockService } from '../movimiento-stock.service';
@@ -23,10 +24,11 @@ export class ListMovimientoStockComponent implements OnInit {
 
   movimientosDataSource = new MatTableDataSource<MovimientoStock>(null);
   expandedMovimiento: MovimientoStock;
-  displayedColumns = ['id', 'producto', 'cantidad', 'tipo', 'estado', 'usuario']
+  displayedColumns = ['id', 'producto', 'cantidad', 'tipo', 'estado', 'acciones']
 
   constructor(
-    private service: MovimientoStockService
+    private service: MovimientoStockService,
+    private matDialog : MatDialog
   ) { }
 
   ngOnInit(): void {
@@ -42,6 +44,17 @@ export class ListMovimientoStockComponent implements OnInit {
       }
     })
 
+  }
+
+  onReferenciaClick(movimiento: MovimientoStock){
+    console.log(movimiento)
+    this.matDialog.open(this.service.getTipoMovimientoComponent(movimiento.tipoMovimiento), {
+      data: {
+        id: movimiento.referencia
+      },
+      width: '80%',
+      height: '80%',
+    })
   }
 
 }
