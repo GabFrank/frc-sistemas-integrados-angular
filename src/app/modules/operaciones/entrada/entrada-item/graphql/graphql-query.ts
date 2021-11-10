@@ -101,3 +101,5 @@ export const deleteEntradaItemQuery = gql`
     deleteEntradaItem(id: $id)
   }
 `;
+
+

@@ -29,14 +29,14 @@ export class SideComponent implements OnInit {
   onItemClick(tab: string): void {
     switch (tab) {
       case "list-persona":
-        this.tabService.addTab(
-          new Tab(ListPersonaComponent, "Personas", null, null)
-        );
+        // this.tabService.addTab(
+        //   new Tab(ListPersonaComponent, "Personas", null, null)
+        // );
         break;
       case "list-usuario":
-        this.tabService.addTab(
-          new Tab(ListUsuarioComponent, "Usuarios", null, null)
-        );
+        // this.tabService.addTab(
+        //   new Tab(ListUsuarioComponent, "Usuarios", null, null)
+        // );
         break;
       case "list-producto":
         this.tabService.addTab(
@@ -44,44 +44,44 @@ export class SideComponent implements OnInit {
         );
         break;
       case "list-compra":
-        this.tabService.addTab(
-          new Tab(ListCompraComponent, "Compras", null, null)
-        );
+        // this.tabService.addTab(
+        //   new Tab(ListCompraComponent, "Compras", null, null)
+        // );
         break;
       case "list-pedido":
-        this.tabService.addTab(
-          new Tab(ListPedidoComponent, "Pedidos", null, null)
-        );
+        // this.tabService.addTab(
+        //   new Tab(ListPedidoComponent, "Pedidos", null, null)
+        // );
         break;
       case "pdv-restaurant":
-        this.tabService.addTab(
-          new Tab(RestaurantComponent, "Venta Restaurant", null, null)
-        );
+        // this.tabService.addTab(
+        //   new Tab(RestaurantComponent, "Venta Restaurant", null, null)
+        // );
         break;
       case "list-funcionario":
-        this.tabService.addTab(
-          new Tab(ListFuncioarioComponent, "Funcionarios", null, null)
-        );
+        // this.tabService.addTab(
+        //   new Tab(ListFuncioarioComponent, "Funcionarios", null, null)
+        // );
         break;
       case "list-paises":
-        this.tabService.addTab(
-          new Tab(ListPaisComponent, "Países", null, null)
-        );
+        // this.tabService.addTab(
+        //   new Tab(ListPaisComponent, "Países", null, null)
+        // );
         break;
       case "list-ciudades":
-        this.tabService.addTab(
-          new Tab(ListCiudadComponent, "Ciudades", null, null)
-        );
+        // this.tabService.addTab(
+        //   new Tab(ListCiudadComponent, "Ciudades", null, null)
+        // );
         break;
       case "list-necesidad":
-        this.tabService.addTab(
-          new Tab(ListNecesidadComponent, "Necesidades", null, null)
-        );
+        // this.tabService.addTab(
+        //   new Tab(ListNecesidadComponent, "Necesidades", null, null)
+        // );
         break;
       case "pdv-venta-touch":
-        this.tabService.addTab(
-          new Tab(VentaTouchComponent, "Venta Touch", null, null)
-        );
+        // this.tabService.addTab(
+        //   new Tab(VentaTouchComponent, "Venta Touch", null, null)
+        // );
         break;
       case "list-movimiento":
         this.tabService.addTab(

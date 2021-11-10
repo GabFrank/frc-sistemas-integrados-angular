@@ -4,6 +4,7 @@ import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dial
 import { MatSelect } from '@angular/material/select';
 import { MatTableDataSource } from '@angular/material/table';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
@@ -81,12 +82,14 @@ export class SalidaDialogComponent implements OnInit {
     private notificicacionBar: NotificacionSnackbarService,
     private matDialog: MatDialog,
     private salidaItemService: SalidaItemService,
-    private dialogoService: DialogosService
+    private dialogoService: DialogosService,
+    private cargandoService: CargandoDialogService
   ) {
     if (data.salida != null) this.selectedSalida = data.salida;
   }
 
   ngOnInit(): void {
+    this.cargandoService.openDialog()
     //inicializar arrays
     this.usuarioList = [];
     this.tipoSalidasList = [];
@@ -121,6 +124,8 @@ export class SalidaDialogComponent implements OnInit {
 
     if (this.data?.salida != null) this.cargarDatos();
     if (this.data?.id!=null) this.buscarSalida(this.data.id)
+
+    this.cargandoService.closeDialog()
 
   }
 
@@ -233,6 +238,8 @@ export class SalidaDialogComponent implements OnInit {
   onEdit(e: SalidaItem) {}
 
   onDelete() {
+    this.cargandoService.openDialog()
+
     this.dialogoService.confirm('Atención!!', 'Realmente desea eliminar este item?', null, [`Producto: ${this.selectedSalidaItem.producto.descripcion.toUpperCase()}`, `Presentación: ${this.selectedSalidaItem.presentacion.descripcion.toUpperCase()}`, `Cantidad: ${this.selectedSalidaItem.cantidad}`]).subscribe(res => {
       if(res){
         this.salidaItemService.onDeleteSalidaItem(this.selectedSalidaItem.id).subscribe(res2 => {
@@ -244,14 +251,17 @@ export class SalidaDialogComponent implements OnInit {
               this.itemDataSource.data = auxArray;
             }
             this.onEditItem()
-            this.itemFormGroup.reset()
           }
+          this.cargandoService.closeDialog()
+
         })
       }
     })
   }
 
   onSaveSalida() {
+    this.cargandoService.openDialog()
+
     console.log(this.selectedSalida);
     console.log(this.selectedResponsable);
     console.log(this.selectedSucursal);
@@ -273,6 +283,8 @@ export class SalidaDialogComponent implements OnInit {
       this.usuarioInputControl.disable();
       this.tipoSalidaControl.disable();
       this.sucursalControl.disable();
+      this.cargandoService.closeDialog()
+
     });
   }
 
@@ -309,7 +321,8 @@ export class SalidaDialogComponent implements OnInit {
           respuesta = res;
           this.onSelectProducto(respuesta.producto);
           this.onSelectPresentacion(respuesta.presentacion);
-          
+          this.cargandoService.closeDialog()
+          this.onFocusToCantidad()
         }
       });
   }
@@ -318,7 +331,10 @@ export class SalidaDialogComponent implements OnInit {
     this.selectedProducto = producto;
     this.productoControl.setValue(this.selectedProducto.descripcion);
     this.productoIdControl.setValue(this.selectedProducto.id);
-    this.productoInput.nativeElement.select();
+  }
+
+  onProductoFocus(){
+    this.productoControl.value != null ? this.productoInput.nativeElement.select() : null;
   }
 
   onSelectPresentacion(presentacion) {
@@ -339,6 +355,8 @@ export class SalidaDialogComponent implements OnInit {
   }
 
   onItemSave(){
+    this.cargandoService.openDialog()
+
     if(this.itemFormGroup.valid){
       let isNew = this.selectedSalidaItem?.id == null;
       let item = new SalidaItem();
@@ -390,6 +408,8 @@ export class SalidaDialogComponent implements OnInit {
           }
           this.itemFormGroup.reset()
           this.onEditItem()
+          this.cargandoService.closeDialog()
+
         });
       }
       
@@ -414,9 +434,12 @@ export class SalidaDialogComponent implements OnInit {
   }
 
   onFinalizarSalida(){
+    this.cargandoService.openDialog()
+
     if(this.selectedSalida?.id != null){
       this.salidaService.onFinalizarEntrega(this.selectedSalida.id).subscribe(res => {
         this.selectedSalida.activo = res as boolean;
+        this.cargandoService.closeDialog()
       })
     }
   }

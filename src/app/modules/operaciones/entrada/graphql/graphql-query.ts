@@ -163,3 +163,9 @@ export const finalizarEntrada = gql`
     finalizarEntrada(id: $id)
   }
 `;
+
+export const imprimirEntrada = gql`
+  query imprimirEntrada($id: ID!) {
+    imprimirEntrada(id: $id)
+  }
+`;

@@ -4,13 +4,15 @@ import {
   NotificacionColor,
   NotificacionSnackbarService,
 } from "../../../notificacion-snackbar.service";
+import { CargandoDialogService } from "../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { Entrada, EntradaInput } from "./entrada.model";
 import { DeleteEntradaGQL } from "./graphql/deleteEntrada";
 import { FinalizarEntradaGQL } from "./graphql/finalizarEntrada";
 import { GetAllEntradasGQL } from "./graphql/getAllEntradas";
 import { GetEntradaGQL } from "./graphql/getEntrada";
 import { GetEntradaPorFechaGQL } from "./graphql/getEntradasPorFecha";
-import { saveEntrada } from "./graphql/graphql-query";
+import { imprimirEntrada, saveEntrada } from "./graphql/graphql-query";
+import { ImprimirEntradaGQL } from "./graphql/imprimirEntrada";
 import { SaveEntradaGQL } from "./graphql/saveEntrada";
 
 @Injectable({
@@ -24,7 +26,9 @@ export class EntradaService {
     private getEntradasPorFecha: GetEntradaPorFechaGQL,
     private notificacionService: NotificacionSnackbarService,
     private getEntrada: GetEntradaGQL,
-    private finalizarEntrega: FinalizarEntradaGQL
+    private finalizarEntrega: FinalizarEntradaGQL,
+    private imprimirEntrada: ImprimirEntradaGQL,
+    private cargandoDialog: CargandoDialogService
   ) {}
 
   onSaveEntrada(input: EntradaInput) {
@@ -178,6 +182,19 @@ export class EntradaService {
           });
         }
       });
+    })
+  }
+
+  onImprimirEntrada(id){
+    return new Observable(obs => {
+      this.imprimirEntrada.fetch({id}, {fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
+        if(res.errors==null){
+          obs.next(true)
+        } else {
+          obs.next(false)
+          console.log(res.errors[0].message)
+        }
+      })
     })
   }
 }

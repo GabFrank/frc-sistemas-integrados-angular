@@ -24,6 +24,8 @@ import { CortarImagenDialogComponent } from './cortar-imagen-dialog/cortar-image
 import { SelectIconDialogComponent } from './select-icon-dialog/select-icon-dialog.component';
 import { PanelLaterialInvisibleComponent } from './components/panel-laterial-invisible/panel-laterial-invisible.component';
 import { VizualizarImagenDialogComponent } from './images/vizualizar-imagen-dialog/vizualizar-imagen-dialog.component';
+import { ReportTestComponent } from './report-test/report-test.component';
+import { NgxPanZoomModule } from 'ngx-panzoom';
 
 
 @NgModule({
@@ -44,6 +46,7 @@ import { VizualizarImagenDialogComponent } from './images/vizualizar-imagen-dial
     SelectIconDialogComponent,
     PanelLaterialInvisibleComponent,
     VizualizarImagenDialogComponent,
+    ReportTestComponent,
     ],
   imports: [
     CommonModule,
@@ -53,7 +56,8 @@ import { VizualizarImagenDialogComponent } from './images/vizualizar-imagen-dial
     ReactiveFormsModule,
     FormsModule,
     NgxCurrencyModule,
-    ImageCropperModule
+    ImageCropperModule,
+    NgxPanZoomModule
     ],
   exports: [
     HeaderComponent,
@@ -65,6 +69,7 @@ import { VizualizarImagenDialogComponent } from './images/vizualizar-imagen-dial
     DialogosComponent,
     Imagebase64Component,
     NgxCurrencyModule,
+    NgxPanZoomModule
   ],
   providers: [NgxImageCompressService]
 })

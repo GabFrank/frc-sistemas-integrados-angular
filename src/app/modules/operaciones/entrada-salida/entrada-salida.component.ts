@@ -264,4 +264,12 @@ export class EntradaSalidaComponent implements OnInit {
       }
     })
   }
+
+  onImprimirEntrada(id){
+    this.entradaService.onImprimirEntrada(id).subscribe(res => {
+      console.log(res)
+    });
+  }
+
+  
 }

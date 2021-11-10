@@ -118,6 +118,9 @@
                 <button *ngIf="entrada?.activo != true" mat-menu-item (click)="deleteEntrada(entrada, entradaId)">
                   Eliminar entrada
                 </button>
+                <button *ngIf="entrada?.entradaItemList.length > 0" mat-menu-item (click)="onImprimirEntrada(entrada.id)">
+                  Imprimir entrada
+                </button>
               </mat-menu>
             </td>
           </ng-container>

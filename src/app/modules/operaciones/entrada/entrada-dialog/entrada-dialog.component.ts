@@ -22,6 +22,8 @@ import {
   NotificacionColor,
   NotificacionSnackbarService,
 } from "../../../../notificacion-snackbar.service";
+import { CargandoDialogComponent } from "../../../../shared/components/cargando-dialog/cargando-dialog.component";
+import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
@@ -37,6 +39,9 @@ import { EntradaItem } from "../entrada-item/entrada-item.model";
 import { EntradaItemService } from "../entrada-item/entrada-item.service";
 import { Entrada, EntradaInput, TipoEntrada } from "../entrada.model";
 import { EntradaService } from "../entrada.service";
+
+import { jsPDF } from 'jspdf'
+import html2canvas from 'html2canvas';
 
 export interface EntradaDialogData {
   id?: number;
@@ -54,6 +59,9 @@ export class EntradaDialogComponent implements OnInit {
   @ViewChild("cantidadInput", { static: false }) cantidadInput: ElementRef;
   @ViewChild("tipoEntradaSelect", { static: true })
   tipoEntradaSelect: MatSelect;
+
+  @ViewChild('pdfTable')
+  pdfTable!: ElementRef;
 
   selectedEntrada: Entrada;
   responsableCargaControl = new FormControl();
@@ -82,6 +90,7 @@ export class EntradaDialogComponent implements OnInit {
 
   isEditar = true;
   isItemEditar = true;
+  cargandoDialogRef: MatDialogRef<CargandoDialogComponent>;
 
   //entradaitem
   productoIdControl = new FormControl();
@@ -103,13 +112,15 @@ export class EntradaDialogComponent implements OnInit {
     private notificicacionBar: NotificacionSnackbarService,
     private matDialog: MatDialog,
     private entradaItemService: EntradaItemService,
-    private dialogoService: DialogosService
+    private dialogoService: DialogosService,
+    private cargandoService: CargandoDialogService
   ) {
     if (data.entrada != null) this.selectedEntrada = data.entrada;
   }
 
   ngOnInit(): void {
     //inicializar arrays
+    this.cargandoService.openDialog()
     this.usuarioList = [];
     this.tipoEntradasList = [];
     this.sucursalList = [];
@@ -143,6 +154,8 @@ export class EntradaDialogComponent implements OnInit {
 
     if (this.data?.entrada != null) this.cargarDatos();
     if (this.data?.id!=null) this.buscarEntrada(this.data.id)
+
+    this.cargandoService.closeDialog()
 
   }
 
@@ -255,6 +268,7 @@ export class EntradaDialogComponent implements OnInit {
   onEdit(e: EntradaItem) {}
 
   onDelete() {
+    this.cargandoService.openDialog()
     this.dialogoService.confirm('Atención!!', 'Realmente desea eliminar este item?', null, [`Producto: ${this.selectedEntradaItem.producto?.descripcion.toUpperCase()}`, `Presentación: ${this.selectedEntradaItem.presentacion?.descripcion.toUpperCase()}`, `Cantidad: ${this.selectedEntradaItem.cantidad}`]).subscribe(res => {
       if(res){
         this.entradaItemService.onDeleteEntradaItem(this.selectedEntradaItem.id).subscribe(res2 => {
@@ -265,8 +279,9 @@ export class EntradaDialogComponent implements OnInit {
               auxArray.splice(index, 1);
               this.itemDataSource.data = auxArray;
             }
-            this.isItemEditar = true;
+            this.onEditItem()
             this.itemFormGroup.reset()
+            this.cargandoService.closeDialog()
           }
         })
       }
@@ -274,6 +289,7 @@ export class EntradaDialogComponent implements OnInit {
   }
 
   onSaveEntrada() {
+    this.cargandoService.openDialog()
     console.log(this.selectedEntrada);
     console.log(this.selectedResponsable);
     console.log(this.selectedSucursal);
@@ -294,6 +310,7 @@ export class EntradaDialogComponent implements OnInit {
       this.usuarioInputControl.disable();
       this.tipoEntradaControl.disable();
       this.sucursalControl.disable();
+      this.cargandoService.closeDialog()
     });
   }
 
@@ -329,6 +346,7 @@ export class EntradaDialogComponent implements OnInit {
           respuesta = res;
           this.onSelectProducto(respuesta.producto);
           this.onSelectPresentacion(respuesta.presentacion);
+          this.onFocusToCantidad()
         }
       });
   }
@@ -337,7 +355,10 @@ export class EntradaDialogComponent implements OnInit {
     this.selectedProducto = producto;
     this.productoControl.setValue(this.selectedProducto.descripcion);
     this.productoIdControl.setValue(this.selectedProducto.id);
-    this.productoInput.nativeElement.select();
+  }
+
+  onProductoFocus(){
+    this.productoControl.value != null ? this.productoInput.nativeElement.select() : null;
   }
 
   onSelectPresentacion(presentacion) {
@@ -358,6 +379,7 @@ export class EntradaDialogComponent implements OnInit {
   }
 
   onItemSave(){
+    this.cargandoService.openDialog()
     let auxArray: EntradaItem[] = []
     if(this.itemFormGroup.valid){
       let isNew = this.selectedEntradaItem?.id == null;
@@ -382,8 +404,10 @@ export class EntradaDialogComponent implements OnInit {
             auxArray.push(this.selectedEntradaItem);
             this.itemDataSource.data = auxArray;
           }
+          this.onItemCancelar()
+          this.cargandoService.closeDialog()
         }
-        this.itemFormGroup.reset()
+        
       })
     }
   }
@@ -406,10 +430,35 @@ export class EntradaDialogComponent implements OnInit {
   }
 
   onFinalizarEntrada(){
+    this.cargandoService.openDialog()
     if(this.selectedEntrada?.id != null){
       this.entradaService.onFinalizarEntrega(this.selectedEntrada.id).subscribe(res => {
         this.selectedEntrada.activo = res as boolean;
+        this.cargandoService.closeDialog()
       })
     }
+  }
+
+  onItemCancelar(){
+    this.selectedEntradaItem = null;
+    this.itemFormGroup.reset();
+    this.onEditItem()
+  }
+
+
+  public downloadAsPDF() {
+    let data = this.pdfTable.nativeElement;
+    html2canvas(data as any).then(canvas => {
+      var imgWidth = 210;
+      var pageHeight = 295;
+      var imgHeight = canvas.height * imgWidth / canvas.width;
+      var heightLeft = imgHeight;
+      const contentDataURL = canvas.toDataURL('image/png');
+      let pdfData = new jsPDF('p', 'mm', 'a4');
+      var position = 0;
+      pdfData.setPage(1)
+      pdfData.addImage(contentDataURL, 'PNG', 0, 0, 200, 290)
+      pdfData.save(`MyPdf.pdf`);
+  });
   }
 }
