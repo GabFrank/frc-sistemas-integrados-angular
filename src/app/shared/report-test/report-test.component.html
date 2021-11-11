@@ -1,4 +1,8 @@
-<!-- <div fxLayout="column" fxLayoutAlign="center center" [style.height.px]="windowInfo.innerHeight*0.85">
+<div
+  fxLayout="column"
+  fxLayoutAlign="center center"
+  [style.height.px]="windowInfo.innerHeight * 0.85"
+>
   <div fxFlex="5" fxLayout="row">
     <div fxFlex>
       <button mat-raised-button (click)="downloadAsPDF()">imprimir</button>
@@ -10,20 +14,27 @@
       <button mat-raised-button (click)="zoomOut()">-</button>
     </div>
     <div fxFlex>
-        <button mat-raised-button (click)="paginaSiguiente()">Siguiente</button>
-      </div>
-      <div fxFlex>
-        <button mat-raised-button (click)="paginaAnterior()">Anterior</button>
-      </div>
+      <button mat-raised-button (click)="paginaSiguiente()">Siguiente</button>
+    </div>
+    <div fxFlex>
+      <button mat-raised-button (click)="paginaAnterior()">Anterior</button>
+    </div>
   </div>
-  <div id="container" #container fxFlex style="overflow-y: scroll;">
+  <div
+    fxFlex
+    style="overflow-y: scroll"
+    *ngFor="let pagina of paginas; let i = index"
+    attr.id="pdf{{i}}"
+    [style.display]="pagina != paginas[counter] ? 'none': inline-block"
+  >
     <div
-      style="background-color: white; color: black;"
+      style="background-color: white; color: black"
       [style.width.mm]="widthContainer"
       [style.height.mm]="heightContainer"
+      [style.display]=""
       fxLayout="column"
     >
-      <div fxFlex="20%" [style.fontSize.em]="fontSize">{{pagina[index]}}</div>
+      <div fxFlex="20%" [style.fontSize.em]="fontSize">{{ pagina }}</div>
       <div
         fxFlex="20%"
         style="width: 100%; height: 100%; background-color: blue"
@@ -35,4 +46,4 @@
       <div fxFlex="20%">footer</div>
     </div>
   </div>
-</div> -->
+</div>

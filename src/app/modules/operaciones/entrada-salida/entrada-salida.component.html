@@ -7,37 +7,134 @@
       <div fxFlex="90%">
         <mat-card style="background-color: rgb(34, 34, 34)">
           <div fxLayout="row">
-            <div fxFlex="10%">
-              <mat-form-field>
-                <mat-label>Rango de fechas</mat-label>
-                <mat-date-range-input [rangePicker]="picker">
-                  <input
-                    matStartDate
-                    placeholder="Inicio"
-                    [formControl]="entradaInicioControl"
-                  />
-                  <input
-                    matEndDate
-                    placeholder="Fin"
-                    [formControl]="entradaFinControl"
-                  />
-                </mat-date-range-input>
-                <mat-datepicker-toggle
-                  matSuffix
-                  [for]="picker"
-                ></mat-datepicker-toggle>
-                <mat-date-range-picker #picker></mat-date-range-picker>
-              </mat-form-field>
+            <div fxFlex="90%" fxLayout="column">
+              <div
+                fxFlex="50%"
+                fxLayout="row"
+                fxLayoutAlign="start center"
+                fxLayoutGap="10px"
+              >
+                <div fxFlex="35%">
+                  <mat-form-field>
+                    <mat-label>Rango de fechas</mat-label>
+                    <mat-date-range-input [rangePicker]="picker">
+                      <input
+                        matStartDate
+                        placeholder="Inicio"
+                        [formControl]="entradaInicioControl"
+                      />
+                      <input
+                        matEndDate
+                        placeholder="Fin"
+                        [formControl]="entradaFinControl"
+                      />
+                    </mat-date-range-input>
+                    <mat-datepicker-toggle
+                      matSuffix
+                      [for]="picker"
+                    ></mat-datepicker-toggle>
+                    <mat-date-range-picker #picker></mat-date-range-picker>
+                  </mat-form-field>
+                </div>
+              </div>
+              <div
+                fxFlex="50%"
+                fxLayout="row"
+                fxLayoutGap="10px"
+                fxLayoutAlign="start center"
+              >
+                <div fxFlex="3%">
+                  <mat-form-field style="width: 100%">
+                    <mat-label>Id</mat-label>
+                    <input
+                      matInput
+                      type="text"
+                      [formControl]="productoIdControl"
+                    />
+                  </mat-form-field>
+                </div>
+                <div fxFlex="30%">
+                  <mat-form-field style="width: 100%">
+                    <mat-label>Producto</mat-label>
+                    <input
+                      matInput
+                      type="text"
+                      [formControl]="productoDescripcionControl"
+                      #productoInput
+                      oninput="this.value == ' ' ? this.value = '': null"
+                      (keyup.enter)="searchProducto()"
+                    />
+                  </mat-form-field>
+                </div>
+                <div fxFlex="5%">
+                  <button
+                    type="button"
+                    mat-raised-button
+                    color="primary"
+                    (click)="searchProducto()"
+                  >
+                    <mat-icon>search</mat-icon>
+                  </button>
+                </div>
+                <div fxFlex="5%">
+                </div>
+                <div fxFlex="15%">
+                  <mat-checkbox
+                    class="example-margin"
+                    [checked]="estadoControl.value"
+                    [indeterminate]="estadoControl.value == null"
+                    (change)="onEstadoChange($event.checked)"
+                  >
+                    Estado:
+                    {{
+                      estadoControl.value == true
+                        ? "Finalizado"
+                        : estadoControl.value == false
+                        ? "No finalizado"
+                        : "Todos"
+                    }}
+                  </mat-checkbox>
+                </div>
+                <div fxFlex="30%">
+                  <mat-form-field style="width: 100%">
+                    <mat-label>Sucursal</mat-label>
+                    <mat-select
+                      [formControl]="sucursalControl"
+                      (selectionChange)="onSelectSucursal($event.value)"
+                    >
+                      <mat-option [value]="null"> Todas </mat-option>
+                      <mat-option
+                        *ngFor="let sucursal of sucursalList; let i = index"
+                        [value]="sucursal.id"
+                      >
+                        {{ sucursal?.id }} - {{ sucursal?.nombre | titlecase }}
+                      </mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              </div>
             </div>
-            <div fxFlex="90%">
-              
-            </div>
+
             <div fxFlex="10%" fxLayout="column" fxLayoutGap="20px">
               <div fxFlex>
-                <button style="width: 100%;" mat-raised-button color="primary" (click)="onFiltrar()">Filtrar</button>
+                <button
+                  style="width: 100%"
+                  mat-raised-button
+                  color="primary"
+                  (click)="onFiltrar()"
+                >
+                  Filtrar
+                </button>
               </div>
               <div fxFlex>
-                <button style="width: 100%;" mat-raised-button color="primary" (click)="onCancelarFiltro()">Cancelar</button>
+                <button
+                  style="width: 100%"
+                  mat-raised-button
+                  color="primary"
+                  (click)="onCancelarFiltro()"
+                >
+                  Cancelar
+                </button>
               </div>
             </div>
           </div>
@@ -61,208 +158,269 @@
             </button>
           </div>
         </div>
-        <table
-          mat-table
-          [dataSource]="entradaDataSource"
-          multiTemplateDataRows
-          style="width: 100%"
-        >
-          <ng-container matColumnDef="id" style="width: 5%">
-            <th class="centerText"  mat-header-cell *matHeaderCellDef style="width: 5%">Id</th>
-            <td class="centerText"  mat-cell *matCellDef="let entrada" style="width: 5%">{{ entrada.id }}</td>
-          </ng-container>
-
-          <!-- Name Column -->
-          <ng-container matColumnDef="responsableCarga">
-            <th style="text-align: start"  mat-header-cell *matHeaderCellDef>Responsable</th>
-            <td mat-cell *matCellDef="let entrada" style="text-align: start">
-              {{ entrada?.responsableCarga?.persona?.nombre | uppercase }}
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="tipo">
-            <th class="centerText"  mat-header-cell *matHeaderCellDef>Tipo</th>
-            <td class="centerText"  mat-cell *matCellDef="let entrada">
-              {{entrada?.sucursal!=null ? 'Sucursal: '+entrada?.sucursal?.nombre : entrada?.tipoEntrada | titlecase}}
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="fecha">
-            <th class="centerText"  mat-header-cell *matHeaderCellDef>Fecha</th>
-            <td class="centerText"  mat-cell *matCellDef="let entrada">
-              {{ entrada?.creadoEn }}
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="estado">
-            <th class="centerText"  mat-header-cell *matHeaderCellDef>Estado</th>
-            <td class="centerText"  mat-cell *matCellDef="let element" [class.estado]="element?.activo == true" style="color: red">
-              {{ element?.activo == true ? 'Finalizado' : 'No finalizado' }}
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="acciones">
-            <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center;"></th>
-            <td mat-cell *matCellDef="let entrada; let entradaId = index" style="text-align: center; width: 5%">
-              <button
-                mat-icon-button
-                [matMenuTriggerFor]="menu"
-                (click)="$event.stopPropagation()"
+        <div [style.height.px]="tableHeight" style="overflow-y: auto">
+          <table
+            mat-table
+            [dataSource]="entradaDataSource"
+            multiTemplateDataRows
+            style="width: 100%"
+            matSort
+          >
+            <ng-container matColumnDef="id" style="width: 5%">
+              <th
+                class="centerText"
+                mat-header-cell
+                *matHeaderCellDef
+                style="width: 5%"
+                mat-sort-header
               >
-                <mat-icon>more_vert</mat-icon>
-              </button>
-              <mat-menu #menu="matMenu">
-                <button mat-menu-item (click)="onEditEntrada(entrada, entradaId)">
-                  Ir a Entrada
-                </button>
-                <button *ngIf="entrada?.activo != true" mat-menu-item (click)="deleteEntrada(entrada, entradaId)">
-                  Eliminar entrada
-                </button>
-                <button *ngIf="entrada?.entradaItemList.length > 0" mat-menu-item (click)="onImprimirEntrada(entrada.id)">
-                  Imprimir entrada
-                </button>
-              </mat-menu>
-            </td>
-          </ng-container>
-
-          <mat-divider></mat-divider>
-
-          <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
-          <ng-container matColumnDef="expandedDetail">
-            <td
-              mat-cell
-              *matCellDef="let entrada"
-              [attr.colspan]="entradaDisplayedColumns.length"
-              class="expanded"
-            >
-              <div
-                class="example-entrada-detail"
-                [@detailExpand]="
-                  entrada == expandedEntrada ? 'expanded' : 'collapsed'
-                "
-                style="text-align: center"
-                fxLayout="column"
-                fxLayoutAlign="start start"
+                Id
+              </th>
+              <td
+                class="centerText"
+                mat-cell
+                *matCellDef="let entrada"
+                style="width: 5%"
               >
-                <div style="width: 100%">
-                  <br />
-                  <table style="width: 100%">
-                    <tr>
-                      <th style="width: 5%">#</th>
-                      <th style="width: 40%; text-align: start">Producto</th>
-                      <th
-                        style="
-                          width: 25%;
-                          text-align: center;
-                          text-overflow: ellipsis;
-                        "
-                      >
-                        Presentación
-                      </th>
-                      <th
-                        style="
-                          width: 5%;
-                          text-align: center;
-                          text-overflow: ellipsis;
-                        "
-                      >
-                        Cantidad
-                      </th>
-                      <th
-                        style="
-                          width: 25%;
-                          text-align: center;
-                          text-overflow: ellipsis;
-                        "
-                      >
-                        Obs
-                      </th>
-                    </tr>
-                    <tr
-                      *ngFor="
-                        let entradaItem of entrada?.entradaItemList;
-                        let i = index
-                      "
-                    >
-                      <td style="width: 5%">{{ i + 1 }}</td>
-                      <td
-                        [matTooltip]="
-                          entradaItem?.producto?.descripcion?.toUpperCase()
-                        "
-                        style="
-                          width: 40%;
-                          text-align: start;
-                          text-overflow: ellipsis;
-                        "
-                      >
-                        <a
-                          class="productoLink"
-                          style="cursor: pointer"
-                          (click)="onProductoLink(entradaItem?.producto)"
+                {{ entrada.id }}
+              </td>
+            </ng-container>
+
+            <!-- Name Column -->
+            <ng-container matColumnDef="responsableCarga">
+              <th style="text-align: start" mat-header-cell *matHeaderCellDef>
+                Responsable
+              </th>
+              <td mat-cell *matCellDef="let entrada" style="text-align: start">
+                {{ entrada?.responsableCarga?.persona?.nombre | uppercase }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="tipo">
+              <th class="centerText" mat-header-cell *matHeaderCellDef>Tipo</th>
+              <td class="centerText" mat-cell *matCellDef="let entrada">
+                {{
+                  entrada?.sucursal != null
+                    ? "Sucursal: " + entrada?.sucursal?.nombre
+                    : (entrada?.tipoEntrada | titlecase)
+                }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="fecha">
+              <th class="centerText" mat-header-cell *matHeaderCellDef>
+                Fecha
+              </th>
+              <td class="centerText" mat-cell *matCellDef="let entrada">
+                {{ entrada?.creadoEn }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="estado">
+              <th class="centerText" mat-header-cell *matHeaderCellDef>
+                Estado
+              </th>
+              <td
+                class="centerText"
+                mat-cell
+                *matCellDef="let element"
+                [class.estado]="element?.activo == true"
+                style="color: red"
+              >
+                {{ element?.activo == true ? "Finalizado" : "No finalizado" }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="acciones">
+              <th
+                mat-header-cell
+                *matHeaderCellDef
+                style="width: 5%; text-align: center"
+              ></th>
+              <td
+                mat-cell
+                *matCellDef="let entrada; let entradaId = index"
+                style="text-align: center; width: 5%"
+              >
+                <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="menu"
+                  (click)="$event.stopPropagation()"
+                >
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu">
+                  <button
+                    mat-menu-item
+                    (click)="onEditEntrada(entrada, entradaId)"
+                  >
+                    Ir a Entrada
+                  </button>
+                  <button
+                    *ngIf="entrada?.activo != true"
+                    mat-menu-item
+                    (click)="deleteEntrada(entrada, entradaId)"
+                  >
+                    Eliminar entrada
+                  </button>
+                  <button
+                    *ngIf="
+                      entrada?.entradaItemList != null &&
+                      entrada?.entradaItemList.length > 0
+                    "
+                    mat-menu-item
+                    (click)="onImprimirEntrada(entrada.id)"
+                  >
+                    Imprimir entrada
+                  </button>
+                </mat-menu>
+              </td>
+            </ng-container>
+
+            <mat-divider></mat-divider>
+
+            <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+            <ng-container matColumnDef="expandedDetail">
+              <td
+                mat-cell
+                *matCellDef="let entrada"
+                [attr.colspan]="entradaDisplayedColumns.length"
+                class="expanded"
+              >
+                <div
+                  class="example-entrada-detail"
+                  [@detailExpand]="
+                    entrada == expandedEntrada ? 'expanded' : 'collapsed'
+                  "
+                  style="text-align: center"
+                  fxLayout="column"
+                  fxLayoutAlign="start start"
+                >
+                  <div style="width: 100%">
+                    <br />
+                    <table style="width: 100%">
+                      <tr>
+                        <th style="width: 5%">#</th>
+                        <th style="width: 40%; text-align: start">Producto</th>
+                        <th
+                          style="
+                            width: 25%;
+                            text-align: center;
+                            text-overflow: ellipsis;
+                          "
                         >
-                          {{ entradaItem?.producto?.descripcion | uppercase }}
-                        </a>
-                      </td>
-                      <td
-                        [matTooltip]="
-                          entradaItem?.presentacion?.descripcion?.toUpperCase()
-                        "
-                        style="
-                          width: 25%;
-                          text-align: center;
-                          text-overflow: ellipsis;
-                        "
-                      >
-                        {{ entradaItem?.presentacion?.descripcion | uppercase }}
-                      </td>
-                      <td
-                        style="
-                          width: 5%;
-                          text-align: center;
-                          text-overflow: ellipsis;
-                        "
-                      >
-                        {{ entradaItem?.cantidad | number: "1.0-2" }}
-                      </td>
-                      <td
-                        [matTooltip]="entradaItem?.observacion?.toUpperCase()"
-                        style="
-                          width: 25%;
-                          text-align: center;
-                          text-overflow: ellipsis;
+                          Presentación
+                        </th>
+                        <th
+                          style="
+                            width: 5%;
+                            text-align: center;
+                            text-overflow: ellipsis;
+                          "
+                        >
+                          Cantidad
+                        </th>
+                        <th
+                          style="
+                            width: 25%;
+                            text-align: center;
+                            text-overflow: ellipsis;
+                          "
+                        >
+                          Obs
+                        </th>
+                      </tr>
+                      <tr
+                        *ngFor="
+                          let entradaItem of entrada?.entradaItemList;
+                          let i = index
                         "
                       >
-                        {{
-                          entradaItem?.observacion != null
-                            ? entradaItem?.observacion
-                            : ("Ninguna" | titlecase)
-                        }}
-                      </td>
-                    </tr>
-                  </table>
-                  <br />
+                        <td style="width: 5%">{{ i + 1 }}</td>
+                        <td
+                          [matTooltip]="
+                            entradaItem?.producto?.descripcion?.toUpperCase()
+                          "
+                          style="
+                            width: 40%;
+                            text-align: start;
+                            text-overflow: ellipsis;
+                          "
+                        >
+                          <a
+                            class="productoLink"
+                            style="cursor: pointer"
+                            (click)="onProductoLink(entradaItem?.producto)"
+                          >
+                            {{ entradaItem?.producto?.descripcion | uppercase }}
+                          </a>
+                        </td>
+                        <td
+                          [matTooltip]="
+                            entradaItem?.presentacion?.descripcion?.toUpperCase()
+                          "
+                          style="
+                            width: 25%;
+                            text-align: center;
+                            text-overflow: ellipsis;
+                          "
+                        >
+                          {{
+                            entradaItem?.presentacion?.descripcion | uppercase
+                          }}
+                        </td>
+                        <td
+                          style="
+                            width: 5%;
+                            text-align: center;
+                            text-overflow: ellipsis;
+                          "
+                        >
+                          {{ entradaItem?.cantidad | number: "1.0-2" }}
+                        </td>
+                        <td
+                          [matTooltip]="entradaItem?.observacion?.toUpperCase()"
+                          style="
+                            width: 25%;
+                            text-align: center;
+                            text-overflow: ellipsis;
+                          "
+                        >
+                          {{
+                            entradaItem?.observacion != null
+                              ? entradaItem?.observacion
+                              : ("Ninguna" | titlecase)
+                          }}
+                        </td>
+                      </tr>
+                    </table>
+                    <br />
+                  </div>
                 </div>
-              </div>
-            </td>
-          </ng-container>
+              </td>
+            </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="entradaDisplayedColumns"></tr>
-          <tr
-            mat-row
-            *matRowDef="
-              let row;
-              columns: entradaDisplayedColumns;
-              let i = dataIndex
-            "
-            [class.example-expanded-row]="expandedEntrada?.id === row?.id"
-            (click)="onEntradaRowClick(row)"
-          ></tr>
-          <tr
-            mat-row
-            *matRowDef="let row; columns: ['expandedDetail']"
-            class="example-detail-row"
-          ></tr>
-        </table>
+            <tr
+              mat-header-row
+              *matHeaderRowDef="entradaDisplayedColumns; sticky: true"
+            ></tr>
+            <tr
+              mat-row
+              *matRowDef="
+                let row;
+                columns: entradaDisplayedColumns;
+                let i = dataIndex
+              "
+              [class.example-expanded-row]="expandedEntrada?.id === row?.id"
+              (click)="onEntradaRowClick(row)"
+            ></tr>
+            <tr
+              mat-row
+              *matRowDef="let row; columns: ['expandedDetail']"
+              class="example-detail-row"
+            ></tr>
+          </table>
+        </div>
       </div>
       <div class="table" fxFlex="50">
         <div fxLayout="row" style="width: 100%">
@@ -279,204 +437,242 @@
             </button>
           </div>
         </div>
-        <table
-          mat-table
-          [dataSource]="salidaDataSource"
-          multiTemplateDataRows
-          style="width: 100%"
-        >
-          <ng-container matColumnDef="id" style="width: 5%">
-            <th class="centerText"  mat-header-cell *matHeaderCellDef>Id</th>
-            <td class="centerText"  mat-cell *matCellDef="let salida">{{ salida.id }}</td>
-          </ng-container>
+        <div [style.height.px]="tableHeight" style="overflow-y: auto">
+          <table
+            mat-table
+            [dataSource]="salidaDataSource"
+            multiTemplateDataRows
+            style="width: 100%"
+          >
+            <ng-container matColumnDef="id" style="width: 5%">
+              <th class="centerText" mat-header-cell *matHeaderCellDef>Id</th>
+              <td class="centerText" mat-cell *matCellDef="let salida">
+                {{ salida.id }}
+              </td>
+            </ng-container>
 
-          <!-- Name Column -->
-          <ng-container matColumnDef="responsableCarga">
-            <th mat-header-cell *matHeaderCellDef style="text-align: start">Responsable</th>
-            <td mat-cell *matCellDef="let salida" style="text-align: start">
-              {{ salida?.responsableCarga?.persona?.nombre | uppercase }}
-            </td>
-          </ng-container>
+            <!-- Name Column -->
+            <ng-container matColumnDef="responsableCarga">
+              <th mat-header-cell *matHeaderCellDef style="text-align: start">
+                Responsable
+              </th>
+              <td mat-cell *matCellDef="let salida" style="text-align: start">
+                {{ salida?.responsableCarga?.persona?.nombre | uppercase }}
+              </td>
+            </ng-container>
 
-          <ng-container matColumnDef="tipo">
-            <th class="centerText"  mat-header-cell *matHeaderCellDef>Tipo</th>
-            <td class="centerText"  mat-cell *matCellDef="let salida">
-              {{salida?.sucursal!=null ? 'Sucursal: '+salida?.sucursal?.nombre : salida?.tipoSalida | titlecase}}
-            </td>
-          </ng-container>
+            <ng-container matColumnDef="tipo">
+              <th class="centerText" mat-header-cell *matHeaderCellDef>Tipo</th>
+              <td class="centerText" mat-cell *matCellDef="let salida">
+                {{
+                  salida?.sucursal != null
+                    ? "Sucursal: " + salida?.sucursal?.nombre
+                    : (salida?.tipoSalida | titlecase)
+                }}
+              </td>
+            </ng-container>
 
-          <ng-container matColumnDef="fecha">
-            <th class="centerText"  mat-header-cell *matHeaderCellDef>Fecha</th>
-            <td class="centerText"  mat-cell *matCellDef="let salida">
-              {{ salida?.creadoEn }}
-            </td>
-          </ng-container>
+            <ng-container matColumnDef="fecha">
+              <th class="centerText" mat-header-cell *matHeaderCellDef>
+                Fecha
+              </th>
+              <td class="centerText" mat-cell *matCellDef="let salida">
+                {{ salida?.creadoEn }}
+              </td>
+            </ng-container>
 
-          <ng-container matColumnDef="estado">
-            <th class="centerText" mat-header-cell *matHeaderCellDef>Estado</th>
-            <td class="centerText"  mat-cell *matCellDef="let element" [class.estado]="element?.activo == true" style="color: red">
-              {{ element?.activo == true ? 'Finalizado' : 'No finalizado'}}
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="acciones">
-            <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%"></th>
-            <td mat-cell *matCellDef="let salida; let entradaId = index" style="text-align: center; width: 5%">
-              <button
-                mat-icon-button
-                [matMenuTriggerFor]="menu"
-                (click)="$event.stopPropagation()"
+            <ng-container matColumnDef="estado">
+              <th class="centerText" mat-header-cell *matHeaderCellDef>
+                Estado
+              </th>
+              <td
+                class="centerText"
+                mat-cell
+                *matCellDef="let element"
+                [class.estado]="element?.activo == true"
+                style="color: red"
               >
-                <mat-icon>more_vert</mat-icon>
-              </button>
-              <mat-menu #menu="matMenu">
-                <button mat-menu-item (click)="onEditSalida(salida)">Ir a Salida</button>
-                <button *ngIf="salida?.activo != true" mat-menu-item (click)="deleteSalida(salida, entradaId)">
-                  Eliminar Salida
+                {{ element?.activo == true ? "Finalizado" : "No finalizado" }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="acciones">
+              <th
+                mat-header-cell
+                *matHeaderCellDef
+                style="text-align: center; width: 5%"
+              ></th>
+              <td
+                mat-cell
+                *matCellDef="let salida; let entradaId = index"
+                style="text-align: center; width: 5%"
+              >
+                <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="menu"
+                  (click)="$event.stopPropagation()"
+                >
+                  <mat-icon>more_vert</mat-icon>
                 </button>
-              </mat-menu>
-              
-            </td>
-          </ng-container>
+                <mat-menu #menu="matMenu">
+                  <button mat-menu-item (click)="onEditSalida(salida)">
+                    Ir a Salida
+                  </button>
+                  <button
+                    *ngIf="salida?.activo != true"
+                    mat-menu-item
+                    (click)="deleteSalida(salida, entradaId)"
+                  >
+                    Eliminar Salida
+                  </button>
+                </mat-menu>
+              </td>
+            </ng-container>
 
-          <mat-divider></mat-divider>
+            <mat-divider></mat-divider>
 
-          <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
-          <ng-container matColumnDef="expandedDetail">
-            <td
-              mat-cell
-              *matCellDef="let salida"
-              [attr.colspan]="salidaDisplayedColumns.length"
-              class="expanded"
-            >
-              <div
-                class="example-salida-detail"
-                [@detailExpand]="
-                  salida == expandedSalida ? 'expanded' : 'collapsed'
-                "
-                style="text-align: center"
-                fxLayout="column"
-                fxLayoutAlign="start start"
+            <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+            <ng-container matColumnDef="expandedDetail">
+              <td
+                mat-cell
+                *matCellDef="let salida"
+                [attr.colspan]="salidaDisplayedColumns.length"
+                class="expanded"
               >
-                <div style="width: 100%">
-                  <br />
-                  <table style="width: 100%">
-                    <tr>
-                      <th style="width: 5%">#</th>
-                      <th style="width: 40%; text-align: start">Producto</th>
-                      <th
-                        style="
-                          width: 25%;
-                          text-align: center;
-                          text-overflow: ellipsis;
-                        "
-                      >
-                        Presentación
-                      </th>
-                      <th
-                        style="
-                          width: 5%;
-                          text-align: center;
-                          text-overflow: ellipsis;
-                        "
-                      >
-                        Cantidad
-                      </th>
-                      <th
-                        style="
-                          width: 25%;
-                          text-align: center;
-                          text-overflow: ellipsis;
-                        "
-                      >
-                        Obs
-                      </th>
-                    </tr>
-                    <tr
-                      *ngFor="
-                        let salidaItem of salida?.salidaItemList;
-                        let i = index
-                      "
-                    >
-                      <td style="width: 5%">{{ i + 1 }}</td>
-                      <td
-                        [matTooltip]="
-                          salidaItem?.producto?.descripcion?.toUpperCase()
-                        "
-                        style="
-                          width: 40%;
-                          text-align: start;
-                          text-overflow: ellipsis;
-                        "
-                      >
-                        <a
-                          class="productoLink"
-                          style="cursor: pointer"
-                          (click)="onProductoLink(salidaItem?.producto)"
+                <div
+                  class="example-salida-detail"
+                  [@detailExpand]="
+                    salida == expandedSalida ? 'expanded' : 'collapsed'
+                  "
+                  style="text-align: center"
+                  fxLayout="column"
+                  fxLayoutAlign="start start"
+                >
+                  <div style="width: 100%">
+                    <br />
+                    <table style="width: 100%">
+                      <tr>
+                        <th style="width: 5%">#</th>
+                        <th style="width: 40%; text-align: start">Producto</th>
+                        <th
+                          style="
+                            width: 25%;
+                            text-align: center;
+                            text-overflow: ellipsis;
+                          "
                         >
-                          {{ salidaItem?.producto?.descripcion | uppercase }}
-                        </a>
-                      </td>
-                      <td
-                        [matTooltip]="
-                          salidaItem?.presentacion?.descripcion?.toUpperCase()
-                        "
-                        style="
-                          width: 25%;
-                          text-align: center;
-                          text-overflow: ellipsis;
-                        "
-                      >
-                        {{ salidaItem?.presentacion?.descripcion | uppercase }}
-                      </td>
-                      <td
-                        style="
-                          width: 5%;
-                          text-align: center;
-                          text-overflow: ellipsis;
-                        "
-                      >
-                        {{ salidaItem?.cantidad | number: "1.0-2" }}
-                      </td>
-                      <td
-                        [matTooltip]="salidaItem?.observacion?.toUpperCase()"
-                        style="
-                          width: 25%;
-                          text-align: center;
-                          text-overflow: ellipsis;
+                          Presentación
+                        </th>
+                        <th
+                          style="
+                            width: 5%;
+                            text-align: center;
+                            text-overflow: ellipsis;
+                          "
+                        >
+                          Cantidad
+                        </th>
+                        <th
+                          style="
+                            width: 25%;
+                            text-align: center;
+                            text-overflow: ellipsis;
+                          "
+                        >
+                          Obs
+                        </th>
+                      </tr>
+                      <tr
+                        *ngFor="
+                          let salidaItem of salida?.salidaItemList;
+                          let i = index
                         "
                       >
-                        {{
-                          salidaItem?.observacion != null
-                            ? salidaItem?.observacion
-                            : ("Ninguna" | titlecase)
-                        }}
-                      </td>
-                    </tr>
-                  </table>
-                  <br />
+                        <td style="width: 5%">{{ i + 1 }}</td>
+                        <td
+                          [matTooltip]="
+                            salidaItem?.producto?.descripcion?.toUpperCase()
+                          "
+                          style="
+                            width: 40%;
+                            text-align: start;
+                            text-overflow: ellipsis;
+                          "
+                        >
+                          <a
+                            class="productoLink"
+                            style="cursor: pointer"
+                            (click)="onProductoLink(salidaItem?.producto)"
+                          >
+                            {{ salidaItem?.producto?.descripcion | uppercase }}
+                          </a>
+                        </td>
+                        <td
+                          [matTooltip]="
+                            salidaItem?.presentacion?.descripcion?.toUpperCase()
+                          "
+                          style="
+                            width: 25%;
+                            text-align: center;
+                            text-overflow: ellipsis;
+                          "
+                        >
+                          {{
+                            salidaItem?.presentacion?.descripcion | uppercase
+                          }}
+                        </td>
+                        <td
+                          style="
+                            width: 5%;
+                            text-align: center;
+                            text-overflow: ellipsis;
+                          "
+                        >
+                          {{ salidaItem?.cantidad | number: "1.0-2" }}
+                        </td>
+                        <td
+                          [matTooltip]="salidaItem?.observacion?.toUpperCase()"
+                          style="
+                            width: 25%;
+                            text-align: center;
+                            text-overflow: ellipsis;
+                          "
+                        >
+                          {{
+                            salidaItem?.observacion != null
+                              ? salidaItem?.observacion
+                              : ("Ninguna" | titlecase)
+                          }}
+                        </td>
+                      </tr>
+                    </table>
+                    <br />
+                  </div>
                 </div>
-              </div>
-            </td>
-          </ng-container>
+              </td>
+            </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="salidaDisplayedColumns"></tr>
-          <tr
-            mat-row
-            *matRowDef="
-              let row;
-              columns: salidaDisplayedColumns;
-              let i = dataIndex
-            "
-            [class.example-expanded-row]="expandedSalida?.id === row?.id"
-            (click)="onSalidaRowClick(row)"
-          ></tr>
-          <tr
-            mat-row
-            *matRowDef="let row; columns: ['expandedDetail']"
-            class="example-detail-row"
-          ></tr>
-        </table>
+            <tr
+              mat-header-row
+              *matHeaderRowDef="salidaDisplayedColumns; sticky: true"
+            ></tr>
+            <tr
+              mat-row
+              *matRowDef="
+                let row;
+                columns: salidaDisplayedColumns;
+                let i = dataIndex
+              "
+              [class.example-expanded-row]="expandedSalida?.id === row?.id"
+              (click)="onSalidaRowClick(row)"
+            ></tr>
+            <tr
+              mat-row
+              *matRowDef="let row; columns: ['expandedDetail']"
+              class="example-detail-row"
+            ></tr>
+          </table>
+        </div>
       </div>
     </div>
   </div>

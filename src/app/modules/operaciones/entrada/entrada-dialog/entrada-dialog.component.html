@@ -195,10 +195,11 @@
             <input
               matInput
               #productoInput
-              type="text"
-              formControlName="producto"
               oninput="this.value == ' ' ? this.value = '': null"
               (keyup.enter)="searchProducto()"
+              type="text"
+              formControlName="producto"
+              
               (keydown.tab)="onFocusToCantidad(); $event.stopPropagation()"
               (focus)="onProductoFocus()"
             />
@@ -294,7 +295,7 @@
       </div>
     </mat-card>
   </form>
-  <div fxFlex="65%" style="width: 400px; height: 600px;" id="pdfTable" #pdfTable>
+  <div fxFlex="65%" id="pdfTable" #pdfTable>
     <table mat-table [dataSource]="itemDataSource" matSort>
       <!-- Position Column -->
       <ng-container matColumnDef="id" style="width: 50%">

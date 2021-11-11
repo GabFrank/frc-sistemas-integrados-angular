@@ -14,7 +14,11 @@ import { updateDataSource } from "../../../commons/core/utils/numbersUtils";
 import { Tab } from "../../../layouts/tab/tab.model";
 import { TabService } from "../../../layouts/tab/tab.service";
 import { DialogosService } from "../../../shared/components/dialogos/dialogos.service";
+import { WindowInfoService } from "../../../shared/services/window-info.service";
+import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
+import { SucursalService } from "../../empresarial/sucursal/sucursal.service";
 import { ProductoComponent } from "../../productos/producto/edit-producto/producto.component";
+import { PdvSearchProductoDialogComponent, PdvSearchProductoResponseData } from "../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
 import { Producto } from "../../productos/producto/producto.model";
 import { EntradaDialogComponent } from "../entrada/entrada-dialog/entrada-dialog.component";
 import { Entrada } from "../entrada/entrada.model";
@@ -41,12 +45,20 @@ import { SalidaService } from "../salida/salida.service";
 export class EntradaSalidaComponent implements OnInit {
   entradaDataSource = new MatTableDataSource<Entrada>(null);
   salidaDataSource = new MatTableDataSource<Salida>(null);
+  productoIdControl = new FormControl();
+  productoDescripcionControl = new FormControl();
+  estadoControl = new FormControl()
+  sucursalControl = new FormControl()
   entradaInicioControl = new FormControl();
   entradaFinControl = new FormControl();
   salidaInicioControl = new FormControl();
   salidaFinControl = new FormControl();
   expandedSalida: Salida;
   expandedEntrada: Entrada;
+  sucursalList: Sucursal[];
+  selectedProducto: Producto;
+  selectedSucursal: Sucursal;
+  tableHeight;
 
   entradaDisplayedColumns = [
     "id",
@@ -70,16 +82,42 @@ export class EntradaSalidaComponent implements OnInit {
     private salidaService: SalidaService,
     private tabService: TabService,
     private matDialog: MatDialog,
-    private dialogoService: DialogosService
-  ) {}
+    private dialogoService: DialogosService,
+    private sucursalService: SucursalService,
+    private windowInfoService: WindowInfoService
+  ) {
+    this.tableHeight = windowInfoService.innerHeight * 0.6;
+  }
 
   ngOnInit(): void {
+
+    this.sucursalList = []
+
+
     this.resetFilters();
     this.onGetEntradas();
     this.onGetSalidas();
+    this.buscarSucursales();
+    this.createForm();
     // this.entradaService.onGetEntrada(3).subscribe(res => {
     //   this.onAddEntrada(res)
     // })
+  }
+
+  createForm(){
+    this.productoIdControl.disable()
+  }
+
+  buscarSucursales() {
+    this.sucursalService.onGetAllSucursales().subscribe((res) => {
+      this.sucursalList = res.sort((a, b) => {
+        if (a.nombre < b.nombre) {
+          return -1;
+        } else {
+          return 1;
+        }
+      });
+    });
   }
 
   onGetEntradas() {
@@ -87,6 +125,7 @@ export class EntradaSalidaComponent implements OnInit {
       this.entradaInicioControl.value == null ||
       this.entradaInicioControl.value > new Date()
     ) {
+      console.log('reseteando por entrada null o mayor a actual')
       this.resetFilters();
     }
     if (
@@ -101,22 +140,23 @@ export class EntradaSalidaComponent implements OnInit {
       )
       .subscribe((res) => {
         this.entradaDataSource.data = res["data"];
+        this.aplicarFiltrosEntrada(this.entradaDataSource.data)
         console.log(this.entradaDataSource.data);
       });
   }
 
   onGetSalidas() {
     if (
-      this.salidaInicioControl.value == null ||
-      this.salidaInicioControl.value > new Date()
+      this.entradaInicioControl.value == null ||
+      this.entradaInicioControl.value > new Date()
     ) {
       this.resetFilters();
     }
     if (
-      this.salidaFinControl.value == null ||
-      this.salidaFinControl.value > new Date()
+      this.entradaFinControl.value == null ||
+      this.entradaFinControl.value > new Date()
     )
-      this.salidaFinControl.setValue(new Date());
+      this.entradaFinControl.setValue(new Date());
     this.salidaService
       .onGetSalidasPorFecha(
         this.entradaInicioControl.value,
@@ -124,6 +164,7 @@ export class EntradaSalidaComponent implements OnInit {
       )
       .subscribe((res) => {
         this.salidaDataSource.data = res["data"];
+        this.aplicarFiltrosSalida(this.salidaDataSource.data)
         console.log(this.salidaDataSource.data);
       });
   }
@@ -184,6 +225,7 @@ export class EntradaSalidaComponent implements OnInit {
 
   onFiltrar() {
     this.onGetEntradas();
+    this.onGetSalidas()
   }
 
   onCancelarFiltro() {
@@ -194,9 +236,17 @@ export class EntradaSalidaComponent implements OnInit {
     let hoy: Date = new Date();
     let ayer: Date = new Date();
     ayer.setDate(ayer.getDate() - 1);
+    ayer.setHours(0);
+    ayer.setMinutes(0);
+    ayer.setSeconds(0);
+  
     console.log(hoy, ayer);
     this.entradaInicioControl.setValue(ayer);
     this.entradaFinControl.setValue(hoy);
+    this.estadoControl.setValue(null);
+    this.sucursalControl.setValue(null);
+    this.productoIdControl.setValue(null);
+    this.productoDescripcionControl.setValue(null);
   }
 
   onAddSalida(salida: Salida) {
@@ -271,5 +321,79 @@ export class EntradaSalidaComponent implements OnInit {
     });
   }
 
-  
+  onSelectSucursal(e){
+
+  }
+
+  searchProducto() {
+    let texto: string = this.productoDescripcionControl.value;
+    this.matDialog
+      .open(PdvSearchProductoDialogComponent, {
+        data: {
+          texto: texto != null ? texto.toUpperCase() : "",
+          mostrarStock: true
+        },
+        width: "100%",
+        height: "100%",
+      })
+      .afterClosed()
+      .subscribe((res) => {
+        let respuesta: PdvSearchProductoResponseData;
+        if (res != null) {
+          respuesta = res;
+          this.onSelectProducto(respuesta.producto);
+        }
+      });
+  }
+
+  onSelectProducto(producto){
+    this.selectedProducto = producto;
+    this.productoIdControl.setValue(this.selectedProducto.id)
+    this.productoDescripcionControl.setValue(this.selectedProducto.descripcion)
+  }
+
+  aplicarFiltrosEntrada(entradaList: Entrada[]){
+    if(this.productoIdControl.value!=null){
+      entradaList = entradaList.filter(e => {
+        return (e.entradaItemList.find(ei => ei.producto.id == this.productoIdControl.value) != null)
+      })
+    }
+    if(this.estadoControl.value!=null){
+      entradaList = entradaList.filter(e => e.activo == this.estadoControl.value)
+    }
+    if(this.sucursalControl.value!=null){
+      console.log(this.sucursalControl.value)
+      entradaList = entradaList.filter(e => e.sucursal != null && e.sucursal?.id == this.sucursalControl.value)
+    }
+    this.entradaDataSource.data = entradaList;
+  }
+
+  aplicarFiltrosSalida(salidaList: Salida[]){
+    if(this.productoIdControl.value!=null){
+      salidaList = salidaList.filter(e => {
+        return (e.salidaItemList.find(ei => ei.producto.id == this.productoIdControl.value) != null)
+      })
+    }
+    if(this.estadoControl.value!=null){
+      salidaList = salidaList.filter(e => e.activo == this.estadoControl.value)
+    }
+    if(this.sucursalControl.value!=null){
+      console.log(this.sucursalControl.value)
+      console.log(salidaList)
+      salidaList = salidaList.filter(e => e.sucursal != null && e.sucursal?.id == this.sucursalControl.value)
+    }
+    this.salidaDataSource.data = salidaList;
+  }
+
+  onEstadoChange(e){
+    if(this.estadoControl.value == null){
+      this.estadoControl.setValue(true)
+    } else if(this.estadoControl.value == true){
+      this.estadoControl.setValue(false)
+    } else {
+      this.estadoControl.setValue(null)
+    }
+  }
 }
+
+// none => true => false => none

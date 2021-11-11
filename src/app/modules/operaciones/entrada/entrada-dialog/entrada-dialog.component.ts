@@ -300,6 +300,7 @@ export class EntradaDialogComponent implements OnInit {
     entrada.tipoEntrada = this.selectedTipoEntrada;
     entrada.sucursalId = this.selectedSucursal?.id;
     entrada.creadoEn = this.selectedEntrada?.creadoEn;
+    entrada.activo = (this.selectedEntrada.activo == true)
     console.log(entrada);
     this.entradaService.onSaveEntrada(entrada).subscribe((res) => {
       console.log(res);
