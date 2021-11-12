@@ -34,8 +34,9 @@ export class TabService {
 
   constructor() {
     this.tabs = [
-      new Tab(EntradaSalidaComponent, 'Entrada/Salida', null, null),
-      new Tab(ReportTestComponent, 'Reporte', null, null)
+      new Tab(ListMovimientoStockComponent, 'Movimientos', null, null),
+      // new Tab(EntradaSalidaComponent, 'Entrada/Salida', null, null),
+      // new Tab(ReportTestComponent, 'Reporte', null, null)
     ];
     this.tabSub.next(this.tabs);
   }

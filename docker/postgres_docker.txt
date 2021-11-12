@@ -1,0 +1,22 @@
+sudo docker run --name francosystem-db -v "/Users/gabfranck/workspace/franco-systems/bd/docker-volume/data:/var/lib/postgresql/data" -p 2345:5432 -e POSTGRES_USER=franco -e POSTGRES_PASSWORD=franco -d --restart=always postgres:9.5
+sudo docker run --name postgres2 -v "/Users/gabfranck/workspace/franco-systems/bd/docker-volume2/:/var/lib/postgresql/data" -p 3333:5432 -e POSTGRES_USER=franco -e POSTGRES_PASSWORD=franco postgres:9.5
+sudo docker run --name postgres3 -v "/Users/gabfranck/workspace/franco-systems/bd/docker-volume3/:/var/lib/postgresql/data" -p 3333:5432 -e POSTGRES_USER=franco -e POSTGRES_PASSWORD=franco postgres:9.5
+
+
+backup and restore: https://www.tecmint.com/backup-and-restore-postgresql-database/#:~:text=Backup%20a%20Single%20PostgreSQL%20Database&text=To%20back%20up%2C%20a%20PostgreSQL,plain%2Dtext%20SQL%20script%20file.
+
+
+restart cron
+/etc/init.d/cron restart
+
+-- comando para hacer backup de base de datos
+pg_dump -U franco -W general > general_deposito_v2.sql
+-- comando para copiar archivos en docker
+docker cp filial1:/general_deposito_v2.sql /Users/gabfranck/Desktop
+
+
+comando para logear en psql
+psql -d general -U franco
+
+--crear imagen de un docker file
+docker build . -t [image-name]

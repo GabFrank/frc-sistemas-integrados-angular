@@ -2,6 +2,7 @@ import { Component, ComponentRef, Injectable, Type } from '@angular/core';
 import { Observable } from 'rxjs';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
 import { EntradaDialogComponent } from '../entrada/entrada-dialog/entrada-dialog.component';
+import { SalidaDialogComponent } from '../salida/salida-dialog/salida-dialog.component';
 import { GetMovimientosPorFechaGQL } from './graphql/getMovimientosPorFecha';
 import { GetStockPorProductoGQL } from './graphql/getStockPorProducto';
 import { TipoMovimiento } from './movimiento-stock.enums';
@@ -50,7 +51,10 @@ export class MovimientoStockService {
       case TipoMovimiento.ENTRADA:
         return EntradaDialogComponent;
         break;
-    
+        case TipoMovimiento.SALIDA:
+          return SalidaDialogComponent;
+          break;
+      
       default:
         break;
     }
