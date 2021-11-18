@@ -1,3 +1,4 @@
+import { Ciudad } from '../../general/ciudad/ciudad.model';
 import { Usuario } from '../usuarios/usuario.model';
 
 export interface Persona  {
@@ -9,10 +10,13 @@ export interface Persona  {
   email: string;
   sexo: string;
   direccion: string;
-  ciudad: number;
+  ciudad: Ciudad;
   telefono: string;
   socialMedia: string;
   imagenes: string;
   creadoEn: Date;
   usuario: Usuario;
+  isFuncionario: boolean
+  isCliente: boolean
+  isProveedor: boolean
 }

@@ -49,12 +49,14 @@ export class LoginComponent implements OnInit {
         .subscribe((res) => {
           this.cargandoDialogService.closeDialog();
           if (res.usuario != null) {
+            this.mainService.authenticationSub.next(true)
             this.showBienvenida = true;
             this.errorMessage = null;
             setTimeout(() => {
               this.dialogRef.close();
             }, 2000);
           } else if(res.error != null) {
+            this.mainService.authenticationSub.next(false)
             this.errorMessage = res.error.message;
           }
         });

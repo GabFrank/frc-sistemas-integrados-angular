@@ -11,5 +11,5 @@ RUN apt-get update
 
 RUN apt-get install sudo
 
-ADD general.sql /docker-entrypoint-initdb.d/
+ADD general_deposito_v2.sql /docker-entrypoint-initdb.d/
 

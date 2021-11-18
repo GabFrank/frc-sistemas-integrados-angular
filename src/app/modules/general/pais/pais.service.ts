@@ -10,22 +10,6 @@ import { PaisComponent } from './pais/pais.component';
 @Injectable({
   providedIn: 'root'
 })
-export class PaisService extends GenericListService {
+export class PaisService {
 
-  constructor(
-    apollo: Apollo,
-    tabService: TabService,
-    dialogoService: DialogosService
-    ){
-    super(apollo, tabService, dialogoService);
-    this.entityQuery = paisQuery;
-    this.deleteQuery = deletePaisQuery;
-    this.searchQuery = paisesSearch;
-    this.saveQuery = savePais;
-    this.editTitle = 'nombre';
-    this.deleteTitle = 'nombre';
-    this.newTitle = 'Nuevo Pais';
-    this.component = PaisComponent;
-    this.parentComponent = ListPaisComponent;
-  }
 }

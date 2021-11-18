@@ -19,15 +19,15 @@ export class PersonaDetalleDialogoComponent implements OnInit{
   ) {
   }
   ngOnInit(): void {
-    this.service.findById(this.data.el[this.data.item].id, this.service.entityQuery).subscribe((data)=>{
-      if(data.errors){
-      } else {
-        this.persona = data.data.data;
-        setTimeout(() => {
-          this.isDataLoaded = true;
-        }, 1000);
-      }
-    });
+    // this.service.findById(this.data.el[this.data.item].id, this.service.entityQuery).subscribe((data)=>{
+    //   if(data.errors){
+    //   } else {
+    //     this.persona = data.data.data;
+    //     setTimeout(() => {
+    //       this.isDataLoaded = true;
+    //     }, 1000);
+    //   }
+    // });
   }
 
 }

@@ -15,5 +15,6 @@ export class Funcionario  {
   diarista: boolean
   supervisadoPor: Funcionario
   creadoEn: Date;
+  activo: boolean;
   usuario: Usuario;
 }

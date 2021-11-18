@@ -1,26 +1,77 @@
-import { Component, OnInit } from '@angular/core';
+import { animate, state, style, transition, trigger } from '@angular/animations';
+import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatTableDataSource } from '@angular/material/table';
+import { WindowInfoService } from '../../../../shared/services/window-info.service';
 import { PersonaDetalleDialogoComponent } from '../../persona/persona-detalle-dialogo/persona-detalle-dialogo.component';
 import { PersonaService } from '../../persona/persona.service';
+import { AdicionarFuncionarioDialogComponent } from '../adicionar-funcionario-dialog/adicionar-funcionario-dialog.component';
+import { Funcionario } from '../funcionario.model';
 import { FuncionarioService } from '../funcionario.service';
+
+
 
 @Component({
   selector: 'app-list-funcioario',
   templateUrl: './list-funcioario.component.html',
-  styleUrls: ['./list-funcioario.component.css']
+  styleUrls: ['./list-funcioario.component.css'],
+  animations: [
+    trigger("detailExpand", [
+      state("collapsed", style({ height: "0px", minHeight: "0" })),
+      state("expanded", style({ height: "*" })),
+      transition(
+        "expanded <=> collapsed",
+        animate("225ms cubic-bezier(0.4, 0.0, 0.2, 1)")
+      ),
+    ]),
+  ],
 })
 export class ListFuncioarioComponent implements OnInit {
 
-  displayedColumnsId: string[] = ['id', 'nombrePersona', 'nombreSucursal', 'nombreCargo', 'nombreSupervisor', 'sueldo', 'telefono'];
-  displayedColumns: string[] = ['Id', 'Nombre', 'Sucursal', 'Cargo', 'Supervisor' , 'Sueldo', 'Teléfono'];
-  displayedLinks: any[] = [ null, {service: PersonaService, item: 'persona', dialogComponent: PersonaDetalleDialogoComponent}, null, null, null, null, null]
+  headerHeight;
+  tableHeight;
+  containerHeight;
+  dataSource = new MatTableDataSource<Funcionario>(null);
+  expandedFuncionario: Funcionario;
+  displayedColumns: string[] = ['id', 'nombre', 'sucursal', 'cargo', 'supervisadoPor', 'telefono', 'nickname', 'acciones'];
   constructor(
-    public service: FuncionarioService
-  ) { }
+    public service: FuncionarioService,
+    public windowInfoService: WindowInfoService,
+    private matDialog: MatDialog
+  ) {
+    this.headerHeight = windowInfoService.innerTabHeight * 0.2;
+    this.tableHeight = windowInfoService.innerTabHeight * 0.8;
+    this.containerHeight = windowInfoService.innerTabHeight;
+    console.log(this.headerHeight, this.tableHeight, this.containerHeight)
+   }
 
   ngOnInit(): void {
+    console.log(this.windowInfoService.innerHeight*0.9)
+    this.service.onGetAllFuncionarios().subscribe(res => {
+      console.log(res)
+      this.dataSource.data = res;
+    })
+
+    setTimeout(() => {
+      this.onAddFuncionario()
+    }, 1000);
   }
 
   rowSelectedEvent(e){
+  }
+
+  onFiltrar(){
+
+  }
+
+  onAddFuncionario(funcionario?: Funcionario){
+    this.matDialog.open(AdicionarFuncionarioDialogComponent, {
+      data: {},
+      disableClose: true,
+      width: '40%',
+      autoFocus: true,
+      restoreFocus: true
+    })
   }
 
 }

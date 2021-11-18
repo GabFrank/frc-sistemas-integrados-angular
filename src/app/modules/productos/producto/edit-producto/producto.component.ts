@@ -3,12 +3,13 @@ import {
   Component,
   ElementRef,
   HostListener,
+  Inject,
   Input,
   OnInit,
   ViewChild,
 } from "@angular/core";
 import { FormGroup, Validators, FormControl } from "@angular/forms";
-import { MatDialog } from "@angular/material/dialog";
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { MatTable, MatTableDataSource } from "@angular/material/table";
 import { DomSanitizer } from "@angular/platform-browser";
 import { NgxImageCompressService } from "ngx-image-compress";
@@ -71,6 +72,12 @@ import {
   AdicionarCodigoDialogComponent,
 } from "../../codigo/adicionar-codigo-dialog/adicionar-codigo-dialog.component";
 import { AdicionarPrecioDialogComponent, AdicionarPrecioPorSucursalData } from "../../precio-por-sucursal/adicionar-precio-dialog/adicionar-precio-dialog.component";
+
+export class ProductoDialogData {
+  producto: Producto;
+  isDialog = true;
+}
+
 
 @Component({
   selector: "app-producto",
@@ -160,6 +167,7 @@ export class ProductoComponent implements OnInit {
   precio2 = null;
   precio3 = null;
   tipoConservacionList: string[] = [];
+  isDialog = false;
 
   //estados de pantalla precio
   precioFormEnable = true;
@@ -173,6 +181,8 @@ export class ProductoComponent implements OnInit {
   imagenPrincipal = null;
 
   constructor(
+    @Inject(MAT_DIALOG_DATA) public dialogData: ProductoDialogData,
+    private matDialogRef: MatDialogRef<ProductoComponent>,
     public mainService: MainService,
     private notifiActionBar: NotificacionSnackbarService,
     private dialogo: DialogosService,
@@ -188,7 +198,11 @@ export class ProductoComponent implements OnInit {
     private copyToClipService: Clipboard,
     private presentacionService: PresentacionService,
     private changeDetectorRefs: ChangeDetectorRef
-  ) {}
+  ) {
+    if(dialogData!=null){
+      this.isDialog = dialogData.isDialog;
+    }
+  }
 
   ngOnInit() {
     let ref = this.matDialog.open(CargandoDialogComponent);
@@ -214,10 +228,12 @@ export class ProductoComponent implements OnInit {
     setTimeout(() => {
       if (this.data?.tabData?.data.id != null) {
         this.cargarProducto(this.data.tabData.data.id, ref);
+      } else if(this.dialogData?.producto !=null) {
+        this.cargarProducto(this.dialogData.producto.id, ref);
       } else {
         ref.close()
       }
-    }, 100);
+    }, 200);
   }
 
   cargarProducto(id, ref) {
@@ -555,11 +571,15 @@ export class ProductoComponent implements OnInit {
   //familia
 
   onFinalizar() {
-    console.log(this.data);
-    this.tabService.removeTab(this.data.id - 1);
-    this.tabService.addTab(
-      new Tab(ProductoComponent, "Nuevo Producto", null, ListCompraComponent)
-    );
+    if(this.isDialog){
+      this.matDialogRef.close(this.selectedProducto)
+    } else {
+      this.tabService.removeTab(this.data.id - 1);
+      this.tabService.addTab(
+        new Tab(ProductoComponent, "Nuevo Producto", null, ListCompraComponent)
+      );
+    }
+    
   }
 
   //carga de imagen

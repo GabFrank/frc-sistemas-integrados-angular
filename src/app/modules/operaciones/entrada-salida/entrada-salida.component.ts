@@ -190,7 +190,7 @@ export class EntradaSalidaComponent implements OnInit {
     );
   }
 
-  onAddEntrada(entrada) {
+  onAddEntrada(entrada?: Entrada) {
     this.matDialog.open(EntradaDialogComponent, {
       data: { entrada },
       height: "90%",
@@ -249,7 +249,7 @@ export class EntradaSalidaComponent implements OnInit {
     this.productoDescripcionControl.setValue(null);
   }
 
-  onAddSalida(salida: Salida) {
+  onAddSalida(salida?: Salida) {
     let auxArray: Salida[] = [];
     this.matDialog
       .open(SalidaDialogComponent, {

@@ -11,23 +11,6 @@ import { pedidoItemQuery, deletePedidoItemQuery, pedidoItensSearch, savePedidoIt
 @Injectable({
   providedIn: 'root'
 })
-export class PedidoItemService extends GenericListService {
+export class PedidoItemService {
 
-  constructor(
-    apollo: Apollo,
-    tabService: TabService,
-    dialogoService: DialogosService
-    ){
-    super(apollo, tabService, dialogoService);
-    this.entityQuery = pedidoItemQuery;
-    this.deleteQuery = deletePedidoItemQuery;
-    this.searchQuery = pedidoItensSearch;
-    this.saveQuery = savePedidoItem;
-    this.preTitle = 'PedidoItem';
-    this.editTitle = 'id';
-    this.deleteTitle = 'id';
-    this.newTitle = 'Nuevo PedidoItem';
-    this.component = EditPedidoComponent;
-    this.parentComponent = ListPedidoComponent;
-  }
 }

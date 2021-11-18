@@ -25,7 +25,7 @@
     style="overflow-y: scroll"
     *ngFor="let pagina of paginas; let i = index"
     attr.id="pdf{{i}}"
-    [style.display]="pagina != paginas[counter] ? 'none': inline-block"
+    [style.display]="pagina != paginas[counter] ? 'none': 'inline-block'"
   >
     <div
       style="background-color: white; color: black"

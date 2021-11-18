@@ -10,22 +10,7 @@ import { CiudadComponent } from '../ciudad/ciudad/ciudad.component';
 @Injectable({
   providedIn: 'root'
 })
-export class CiudadService extends GenericListService {
+export class CiudadService {
 
-  constructor(
-    apollo: Apollo,
-    tabService: TabService,
-    dialogoService: DialogosService
-    ){
-    super(apollo, tabService, dialogoService);
-    this.entityQuery = ciudadQuery;
-    this.deleteQuery = deleteCiudadQuery;
-    this.searchQuery = ciudadesSearch;
-    this.saveQuery = saveCiudad;
-    this.editTitle = 'nombre';
-    this.deleteTitle = 'nombre';
-    this.newTitle = 'Nueva Ciudad';
-    this.component = CiudadComponent;
-    this.parentComponent = ListCiudadComponent;
-  }
+  
 }

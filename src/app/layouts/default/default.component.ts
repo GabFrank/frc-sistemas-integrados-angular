@@ -45,7 +45,8 @@ export class DefaultComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.mainService.isAuthenticated().subscribe(res => {
+    this.mainService.authenticationSub.subscribe(res => {
+      console.log(res)
       if(res){
         this.tabService.tabSub.subscribe(tabs => {
           this.tabs = tabs;

@@ -73,6 +73,9 @@
             Mostrar opciones (F1)
           </button>
         </div>
+        <div fxFlex="20%">
+          <button mat-raised-button color="primary" (click)="abrirProductoDialog()">+ Producto</button>
+        </div>
       </div>
       <div class="table-container" fxLayout="row">
         <div fxFlex>
@@ -102,6 +105,27 @@
                 <div *ngIf="producto?.stockPorProducto != null">
                   {{producto?.stockPorProducto | number:'1.0-2'}}
                 </div>
+              </td>
+            </ng-container>
+
+            <ng-container *ngIf="data.mostrarStock == true" matColumnDef="acciones">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center">...</th>
+              <td mat-cell *matCellDef="let producto; let id = index" style="text-align: center">
+                <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="menu"
+                  (click)="$event.stopPropagation()"
+                >
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu">
+                  <button
+                    mat-menu-item
+                    (click)="abrirProductoDialog(producto)"
+                  >
+                    Editar Producto
+                  </button>
+                </mat-menu>
               </td>
             </ng-container>
 

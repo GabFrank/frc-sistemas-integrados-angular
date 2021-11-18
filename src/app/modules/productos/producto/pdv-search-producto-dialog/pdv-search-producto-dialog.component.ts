@@ -39,6 +39,7 @@ import {
 } from "../../../pdv/comercial/venta-touch/producto-categoria-dialog/producto-categoria-dialog.component";
 import { SelectPrecioDialogComponent } from "../../precio-por-sucursal/select-precio-dialog/select-precio-dialog.component";
 import { MovimientoStockService } from "../../../operaciones/movimiento-stock/movimiento-stock.service";
+import { ProductoComponent } from "../edit-producto/producto.component";
 
 export interface PdvSearchProductoData {
   texto: any;
@@ -90,6 +91,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = [
     "id",
     "descripcion",
+    "acciones"
   ];
   expandedProducto: Producto | null;
   NumberUtils;
@@ -119,6 +121,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         "id",
         "descripcion",
         "existencia",
+        "acciones"
       ]
     }
   }
@@ -366,12 +369,26 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     }
   }
 
-  mostrarStock(producto: Producto, index){
+  mostrarStock(producto: Producto, index?){
     this.stockService.onGetStockPorProducto(producto.id).subscribe(res => {
       if(res!=null){
         console.log(res)
         producto.stockPorProducto = res;
         this.dataSource[index] = producto;
+      }
+    })
+  }
+
+  abrirProductoDialog(producto?: Producto){
+    this.matDialog.open(ProductoComponent, {
+      data: {
+        isDialog: true,
+        producto: producto
+      }
+    }).afterClosed().subscribe(res => {
+      if(res!=null){
+        this.dataSource.data = []
+        this.onSearchProducto(res.descripcion, 0);
       }
     })
   }

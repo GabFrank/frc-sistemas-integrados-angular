@@ -10,23 +10,6 @@ import { EditPedidoComponent } from './edit-pedido/edit-pedido.component';
 @Injectable({
   providedIn: 'root'
 })
-export class PedidoService extends GenericListService {
+export class PedidoService {
 
-  constructor(
-    apollo: Apollo,
-    tabService: TabService,
-    dialogoService: DialogosService
-    ){
-    super(apollo, tabService, dialogoService);
-    this.entityQuery = pedidoQuery;
-    this.deleteQuery = deletePedidoQuery;
-    this.searchQuery = pedidosSearch;
-    this.saveQuery = savePedido;
-    this.preTitle = 'Pedido';
-    this.editTitle = 'id';
-    this.deleteTitle = 'id';
-    this.newTitle = 'Nuevo Pedido';
-    this.component = EditPedidoComponent;
-    this.parentComponent = ListPedidoComponent;
-  }
 }

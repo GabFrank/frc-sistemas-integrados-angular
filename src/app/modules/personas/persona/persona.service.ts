@@ -1,31 +1,83 @@
-import { Injectable, Type } from '@angular/core';
-import { GenericListService } from '../../../shared/components/generic-list/generic-list.service';
-import { PersonaComponent } from './persona/persona.component';
-import { TabService } from '../../../layouts/tab/tab.service';
-import { DialogosService } from '../../../shared/components/dialogos/dialogos.service';
-import { Apollo } from 'apollo-angular';
-import { personaQuery, deletePersonaQuery, personasSearch, savePersona } from './graphql/graphql-query';
-import { ListPersonaComponent } from './list-persona/list-persona.component';
+import { Injectable, Type } from "@angular/core";
+import { PersonaSearchGQL } from "./graphql/personaSearch";
+import { Observable } from "rxjs";
+import { Persona } from "./persona.model";
+import {
+  NotificacionColor,
+  NotificacionSnackbarService,
+} from "../../../notificacion-snackbar.service";
+import { SavePersonaGQL } from "./graphql/savePersona";
+import { MainService } from "../../../main.service";
+import { PersonaInput } from "./persona/persona-input.model";
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: "root",
 })
-export class PersonaService extends GenericListService {
-
+export class PersonaService {
   constructor(
-    apollo: Apollo,
-    tabService: TabService,
-    dialogoService: DialogosService
-    ){
-    super(apollo, tabService, dialogoService);
-    this.entityQuery = personaQuery;
-    this.deleteQuery = deletePersonaQuery;
-    this.searchQuery = personasSearch;
-    this.saveQuery = savePersona;
-    this.editTitle = 'nombre';
-    this.deleteTitle = 'nombre';
-    this.newTitle = 'Nueva Persona';
-    this.component = PersonaComponent;
-    this.parentComponent = ListPersonaComponent;
+    private searchPersona: PersonaSearchGQL,
+    private notificacionBar: NotificacionSnackbarService,
+    private savePersonna: SavePersonaGQL,
+    private mainService: MainService
+  ) {}
+
+  onSearch(texto): Observable<Persona[]> {
+    console.log("buscando ", texto);
+    return new Observable((obs) => {
+      this.searchPersona
+        .fetch(
+          {
+            texto,
+          },
+          {
+            fetchPolicy: "no-cache",
+            errorPolicy: "all",
+          }
+        )
+        .subscribe((res) => {
+          if (res.errors == null) {
+            obs.next(res.data.data);
+          } else {
+            this.notificacionBar.notification$.next({
+              texto: `Ups! Algo salió mal. ${res.errors[0].message}`,
+              color: NotificacionColor.danger,
+              duracion: 4,
+            });
+          }
+        });
+    });
+  }
+
+  onSavePersona(input: PersonaInput): Observable<any> {
+    return new Observable((obs) => {
+      if(input.usuarioId == null){
+        input.usuarioId = this.mainService?.usuarioActual?.id;
+      }
+      this.savePersonna
+        .mutate(
+          {
+            entity: input,
+          },
+          { errorPolicy: "all" }
+        )
+        .subscribe((res) => {
+          console.log(res.errors);
+          if (res.errors == null) {
+            obs.next(res.data.data);
+            this.notificacionBar.notification$.next({
+              texto: "Producto guardado con éxito",
+              color: NotificacionColor.success,
+              duracion: 2,
+            });
+          } else {
+            obs.next(null);
+            this.notificacionBar.notification$.next({
+              texto: `Ups! Algo salió mal. ${res.errors[0].message}`,
+              color: NotificacionColor.danger,
+              duracion: 4,
+            });
+          }
+        });
+    });
   }
 }

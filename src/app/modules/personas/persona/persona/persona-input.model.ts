@@ -9,9 +9,10 @@ export class PersonaInput {
   sexo: string;
   direccion: string;
   email: string;
-  ciudad: Ciudad;
+  ciudadId: number;
   telefono: string;
   socialMedia: string;
   imagenes: string;
+  creadoEn: Date;
   usuarioId: number;
 }

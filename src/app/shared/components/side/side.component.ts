@@ -29,14 +29,14 @@ export class SideComponent implements OnInit {
   onItemClick(tab: string): void {
     switch (tab) {
       case "list-persona":
-        // this.tabService.addTab(
-        //   new Tab(ListPersonaComponent, "Personas", null, null)
-        // );
+        this.tabService.addTab(
+          new Tab(ListPersonaComponent, "Personas", null, null)
+        );
         break;
       case "list-usuario":
-        // this.tabService.addTab(
-        //   new Tab(ListUsuarioComponent, "Usuarios", null, null)
-        // );
+        this.tabService.addTab(
+          new Tab(ListUsuarioComponent, "Usuarios", null, null)
+        );
         break;
       case "list-producto":
         this.tabService.addTab(
@@ -59,9 +59,9 @@ export class SideComponent implements OnInit {
         // );
         break;
       case "list-funcionario":
-        // this.tabService.addTab(
-        //   new Tab(ListFuncioarioComponent, "Funcionarios", null, null)
-        // );
+        this.tabService.addTab(
+          new Tab(ListFuncioarioComponent, "Funcionarios", null, null)
+        );
         break;
       case "list-paises":
         // this.tabService.addTab(

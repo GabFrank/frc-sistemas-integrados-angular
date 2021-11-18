@@ -10,22 +10,6 @@ import { ListCompraComponent } from './list-compra/list-compra.component';
 @Injectable({
   providedIn: 'root'
 })
-export class CompraService extends GenericListService {
+export class CompraService {
 
-  constructor(
-    apollo: Apollo,
-    tabService: TabService,
-    dialogoService: DialogosService
-    ){
-    super(apollo, tabService, dialogoService);
-    this.entityQuery = compraQuery;
-    this.deleteQuery = deleteCompraQuery;
-    this.searchQuery = comprasSearch;
-    this.saveQuery = saveCompra;
-    this.editTitle = 'descripcion';
-    this.deleteTitle = 'descripcion';
-    this.newTitle = 'Nuevo Compra';
-    this.component = EditCompraComponent;
-    this.parentComponent = ListCompraComponent;
-  }
 }

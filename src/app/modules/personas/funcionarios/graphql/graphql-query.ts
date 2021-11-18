@@ -2,19 +2,32 @@ import gql from 'graphql-tag';
 
 export const funcionariosQuery = gql
   `{
-    funcionarios {
+    data : funcionarios {
       id
       credito
-      nombrePersona
       persona {
         id
+        nombre
+        telefono
       }
-      nombreCargo
+      cargo {
+        id
+        nombre
+      }
       sueldo
       fechaIngreso
-      nombreSupervisor
+      supervisadoPor{
+        id
+        persona {
+          id
+          nombre
+        }
+      }
       diarista
-      nombreSucursal
+      sucursal {
+        id
+        nombre
+      }
       creadoEn
     }
   }`
@@ -24,16 +37,29 @@ export const funcionariosSearch = gql
     data : funcionariosSearch(texto: $texto){
       id
       credito
-      nombrePersona
       persona {
         id
+        nombre
+        telefono
       }
-      nombreCargo
+      cargo {
+        id
+        nombre
+      }
       sueldo
       fechaIngreso
-      nombreSupervisor
+      supervisadoPor{
+        id
+        persona {
+          id
+          nombre
+        }
+      }
       diarista
-      nombreSucursal
+      sucursal {
+        id
+        nombre
+      }
       creadoEn
     }
   }`
@@ -43,13 +69,29 @@ export const funcionarioQuery = gql
     data : funcionario(id: $id){
       id
       credito
-      nombrePersona
-      nombreCargo
+      persona {
+        id
+        nombre
+        telefono
+      }
+      cargo {
+        id
+        nombre
+      }
       sueldo
       fechaIngreso
-      nombreSupervisor
+      supervisadoPor{
+        id
+        persona {
+          id
+          nombre
+        }
+      }
       diarista
-      nombreSucursal
+      sucursal {
+        id
+        nombre
+      }
       creadoEn
     }
   }`
@@ -58,15 +100,31 @@ export const saveFuncionario = gql
   `mutation saveFuncionario($entity:FuncionarioInput!){
       data: saveFuncionario(funcionario:$entity){
         id
-        credito
-        nombrePersona
-        nombreCargo
-        sueldo
-        fechaIngreso
-        nombreSupervisor
-        diarista
-        nombreSucursal
-        creadoEn
+      credito
+      persona {
+        id
+        nombre
+        telefono
+      }
+      cargo {
+        id
+        nombre
+      }
+      sueldo
+      fechaIngreso
+      supervisadoPor{
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      diarista
+      sucursal {
+        id
+        nombre
+      }
+      creadoEn
       }
     }`
 

@@ -28,6 +28,7 @@ export class MainService {
   ciudadId: 1;
   status;
   statusSub: BehaviorSubject<string> = new BehaviorSubject<string>("online");
+  authenticationSub: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(null);
   hasNetworkConnection: boolean;
   hasInternetAccess: boolean;
   ipLocal = "";
@@ -56,8 +57,10 @@ export class MainService {
         this.getUsuario().subscribe(res => {
           if(res){
             obs.next(true);
+            this.authenticationSub.next(res)
           } else {
             obs.next(false)
+            this.authenticationSub.next(res)
           }
         })
       } else {

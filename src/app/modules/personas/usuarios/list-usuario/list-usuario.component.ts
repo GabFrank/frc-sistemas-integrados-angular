@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { UsuarioService } from '../usuario.service';
+import { MatTableDataSource } from '@angular/material/table';
+import { Usuario } from '../usuario.model';
 
 @Component({
   selector: 'app-list-usuario',
@@ -8,14 +9,23 @@ import { UsuarioService } from '../usuario.service';
 })
 export class ListUsuarioComponent implements OnInit {
 
-  displayedColumnsId: string[] = ['id', 'nombre', 'nickname', 'creadoEn'];
-  displayedColumns: string[] = ['Id', 'Nombre', 'Nickname', 'Creación'];
-
+  usuarioDataSource = new MatTableDataSource<Usuario>(null);
+  selectedUsuario: Usuario;
+  displayedColumns: string[] = ['id', 'nombre', 'nickname', 'telefono', 'estado', 'creadoEn', 'creadoPor', 'acciones'];
+  expandedUsuario: Usuario;
+  tableHeight;
   constructor(
-    public service: UsuarioService
   ) { }
 
   ngOnInit(): void {
+  }
+
+  onFiltrar(){
+
+  }
+  
+  onCancelarFiltro(){
+
   }
 
 }

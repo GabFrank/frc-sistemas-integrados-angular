@@ -15,25 +15,13 @@ import { Sucursal } from './sucursal.model';
 @Injectable({
   providedIn: 'root'
 })
-export class SucursalService extends GenericListService{
+export class SucursalService{
 
   constructor(
-    apollo: Apollo,
-    tabService: TabService,
-    dialogoService: DialogosService,
     private getAllSucursales : SucursalesGQL,
     private notificacionBar : NotificacionSnackbarService
     ){
-    super(apollo, tabService, dialogoService);
-    this.entityQuery = sucursalQuery;
-    this.deleteQuery = deleteSucursalQuery;
-    this.searchQuery = productosSearch;
-    this.saveQuery = saveSucursal;
-    this.editTitle = 'nombre';
-    this.deleteTitle = 'nombre';
-    this.newTitle = 'Nueva Sucursal';
-    this.component = EditSucursalComponent;
-    this.parentComponent = ListSucursalComponent;
+
   }
 
   onGetAllSucursales(): Observable<Sucursal[]>{

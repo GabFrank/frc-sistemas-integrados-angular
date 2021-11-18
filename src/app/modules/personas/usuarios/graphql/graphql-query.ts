@@ -4,13 +4,18 @@ export const usuariosQuery = gql`
   {
     usuario {
       id
-      email
       nickname
       persona {
         id
         nombre
       }
+      password
       creadoEn
+      usuario {
+        persona {
+          nombre
+        }
+      }
     }
   }
 `;
@@ -19,13 +24,18 @@ export const usuariosSearch = gql`
   query ($texto: String) {
     data: usuarioSearch(texto: $texto) {
       id
-      email
       nickname
       persona {
         id
         nombre
       }
+      password
       creadoEn
+      usuario {
+        persona {
+          nombre
+        }
+      }
     }
   }
 `;
@@ -34,20 +44,58 @@ export const usuarioQuery = gql`
   query ($id: ID!) {
     data: usuario(id: $id) {
       id
-      email
       nickname
       persona {
         id
         nombre
+      }
+      password
+      creadoEn
+      usuario {
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
+export const usuarioPorPersonaIdQuery = gql`
+  query ($id: ID!) {
+    data: usuarioPorPersonaId(id: $id) {
+      id
+      nickname
+      persona {
+        id
+        nombre
+      }
+      password
+      creadoEn
+      usuario {
+        persona {
+          nombre
+        }
       }
     }
   }
 `;
 
 export const saveUsuario = gql`
-  mutation saveUsuario($usuario: UsuarioInput!) {
-    data: saveUsuario(usuario: $usuario) {
+  mutation saveUsuario($entity: UsuarioInput!) {
+    data: saveUsuario(usuario: $entity) {
       id
+      nickname
+      persona {
+        id
+        nombre
+      }
+      password
+      creadoEn
+      usuario {
+        persona {
+          nombre
+        }
+      }
     }
   }
 `;
@@ -57,3 +105,5 @@ export const deleteUsuarioQuery = gql`
     deleteUsuario(id: $id)
   }
 `;
+
+// usuarioPorPersonaId

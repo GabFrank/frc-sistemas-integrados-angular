@@ -300,7 +300,7 @@ export class EntradaDialogComponent implements OnInit {
     entrada.tipoEntrada = this.selectedTipoEntrada;
     entrada.sucursalId = this.selectedSucursal?.id;
     entrada.creadoEn = this.selectedEntrada?.creadoEn;
-    entrada.activo = (this.selectedEntrada.activo == true)
+    entrada.activo = (this.selectedEntrada?.activo == true)
     console.log(entrada);
     this.entradaService.onSaveEntrada(entrada).subscribe((res) => {
       console.log(res);
@@ -326,6 +326,7 @@ export class EntradaDialogComponent implements OnInit {
 
   onCancelar() {
     console.log("hola");
+    this.selectedEntrada.entradaItemList = this.itemDataSource.data;
     this.matDialogRef.close(this.selectedEntrada);
   }
 

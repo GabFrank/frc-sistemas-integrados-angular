@@ -2,5 +2,7 @@ export class UsuarioInput {
   id: number;
   personaId: number;
   nickname: string;
-  creadoPorId: number;
+  password: string;
+  creadoEn: Date;
+  usuarioId: number;
 }

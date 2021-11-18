@@ -1,0 +1,99 @@
+<div class="container">
+  <div fxLayout="column" fxFlexAlign="start center" style="width: 100%">
+    <div fxFlex style="width: 100%; text-align: center">
+      <h3 *ngIf="selectedPersona == null">Nuevo Usuario</h3>
+      <h3 *ngIf="selectedPersona != null">
+        {{ selectedUsuario?.persona.nombre | titlecase }}
+      </h3>
+    </div>
+    <div fxFlex>
+      <mat-form-field style="width: 90%" class="form-element">
+        <mat-label>Nickname</mat-label>
+        <input
+          type="text"
+          matInput
+          placeholder="Nickname"
+          [formControl]="nicknameControl"
+        />
+      </mat-form-field>
+      <mat-error *ngIf="nicknameControl.invalid && nicknameControl.touched">
+        <h6>Este campo es obligatorio.</h6>
+      </mat-error>
+    </div>
+
+    <div fxFlex fxLayout="row" fxLayoutAlign="start center">
+      <div fxFlex="50%">
+        <mat-form-field
+          style="width: 90%"
+          class="form-element"
+        >
+          <input
+            [type]="!hidePassword ? 'text' : 'password'"
+            matInput
+            placeholder="Password"
+            [formControl]="passwordControl"
+          />
+        </mat-form-field>
+        <mat-error *ngIf="passwordControl.invalid && passwordControl.touched">
+          <h6>Este campo es obligatorio.</h6>
+        </mat-error>
+      </div>
+      <div fxFlex="10%">
+        <mat-icon *ngIf="!hidePassword" (click)="hidePassword = true" style="cursor: pointer;"
+          >password</mat-icon
+        >
+        <mat-icon *ngIf="hidePassword" (click)="hidePassword = false" style="cursor: pointer;"
+          >visibility</mat-icon
+        >
+      </div>
+    </div>
+
+    <br />
+
+    <div
+      fxFlex
+      fxLayout="row"
+      fxLayoutAlign="center center"
+      fxLayoutGap="20px"
+      style="width: 100%"
+    >
+      <div fxFlex="30">
+        <button
+          style="width: 100%"
+          mat-raised-button
+          color="primary"
+          type="button"
+          (click)="onCancel()"
+        >
+          Cancelar
+        </button>
+      </div>
+      <div fxFlex="30">
+        <button
+          *ngIf="isEditing"
+          style="width: 100%"
+          mat-raised-button
+          color="accent"
+          [disabled]="!(nicknameControl.valid && passwordControl.valid)"
+          type="button"
+          (click)="onSave()"
+        >
+          Guardar
+        </button>
+      </div>
+      <div fxFlex="30">
+        <button
+          *ngIf="!isEditing"
+          style="width: 100%"
+          mat-raised-button
+          color="accent"
+          [disabled]="!(nicknameControl.valid && passwordControl.valid)"
+          type="button"
+          (click)="onSave()"
+        >
+          Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

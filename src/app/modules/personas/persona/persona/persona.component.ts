@@ -49,8 +49,7 @@ export class PersonaComponent implements OnInit {
 
   ngOnInit(): void {
     this.createForm();
-    if (this.data.tabData != undefined) {
-      this.formGroup.patchValue(this.data.tabData);
+    if (this.data?.tabData != undefined) {
     }
   }
 
@@ -98,7 +97,7 @@ export class PersonaComponent implements OnInit {
       this.personaInput.id = this.data.tabData.id;
     }
     this.personaInput.usuarioId = environment.usuario;
-    this.service.onSave(this.personaInput, this.data);
+    // this.service.onSave(this.personaInput, this.data);
   }
 
 }

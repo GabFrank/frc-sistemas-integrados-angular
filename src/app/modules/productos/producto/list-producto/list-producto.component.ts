@@ -207,11 +207,11 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     console.log(key);
     switch (key) {
       case "Enter":
-        if (this.selectedProducto != null) {
-          this.openProductos("edit");
-        } else {
-          // this.openProductos('new')
-        }
+        // if (this.selectedProducto != null) {
+        //   this.openProductos("edit");
+        // } else {
+        //   // this.openProductos('new')
+        // }
         break;
       case "ArrowRight":
         if (this.paginator.pageIndex < this.paginator.length) {

@@ -3,7 +3,7 @@
   style="height: 90%; width: 100%; overflow-y: hidden"
   fxLayoutGap="10px"
 >
-  <div fxFlex="20">
+  <div fxFlex="20" *ngIf="!isDialog">
     <mat-card
       fxLayout="column"
       fxLayoutGap="10px"
@@ -588,6 +588,7 @@
               mat-raised-button
               color="primary"
               (click)="onAdicionarPresentacion()"
+              type="button"
             >
               Adicionar
             </button>
@@ -810,6 +811,7 @@
                           color="primary"
                           aria-label="adicionar codigo"
                           (click)="selectedCodigo = null; onAddCodigo()"
+                          type="button"
                         >
                           <mat-icon>add</mat-icon>
                         </button>
@@ -883,7 +885,7 @@
                           color="primary"
                           aria-label="adicionar codigo"
                           (click)="selectedPrecio = null; onAddPrecio()"
-
+                          type="button"
                         >
                           <mat-icon>add</mat-icon>
                         </button>
@@ -924,7 +926,7 @@
                       </div>
                       <br>
                       <div>
-                        <button mat-raised-button color="primary" (click)="
+                        <button type="button" mat-raised-button color="primary" (click)="
                         element?.imagenPrincipal == null
                           ? fileInput.click()
                           : onImageClick(element)
@@ -1025,6 +1027,7 @@
                 fxFlex="30"
                 color="primary"
                 (click)="fileInput.click()"
+                type="button"
               >
                 Cargar
                 <input
@@ -1052,6 +1055,7 @@
             style="width: 100px; margin-right: 10px"
             mat-raised-button
             (click)="onFinalizar()"
+            type="button"
           >
             Finalizar
           </button>

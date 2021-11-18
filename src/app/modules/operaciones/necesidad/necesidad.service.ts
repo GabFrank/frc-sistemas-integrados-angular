@@ -10,26 +10,6 @@ import { ListNecesidadComponent } from './list-necesidad/list-necesidad.componen
 @Injectable({
   providedIn: 'root'
 })
-export class NecesidadService extends GenericListService {
+export class NecesidadService {
 
-  constructor(
-    apollo: Apollo,
-    tabService: TabService,
-    dialogoService: DialogosService
-    ){
-    super(apollo, tabService, dialogoService);
-    this.entityQuery = necesidadQuery;
-    this.deleteQuery = deleteNecesidadQuery;
-    this.searchQuery = necesidadesSearch;
-    this.allEntitiesQuery = necesidadesQuery;
-    this.dataRangeQuery = necesidadesPorFechaQuery;
-    this.saveQuery = saveNecesidad;
-    this.preTitle = 'Necesidad';
-    this.editTitle = 'id';
-    this.deleteTitle = 'id';
-    this.newTitle = 'Nueva Necesidad';
-    this.component = EditNecesidadComponent;
-    this.parentComponent = ListNecesidadComponent;
-    this.isDateSort = true;
-  }
 }

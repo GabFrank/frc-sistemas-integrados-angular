@@ -1,64 +1,111 @@
-import gql from 'graphql-tag';
+import gql from "graphql-tag";
 
-export const personasQuery = gql
-  `{
+export const personasQuery = gql`
+  {
     personas {
       id
       nombre
       apodo
-      nascimiento
+      nacimiento
+      sexo
+      direccion
+      documento
+      telefono
+      socialMedia
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      isFuncionario
+      isCliente
+      isProveedor
+    }
+  }
+`;
+
+export const personasSearch = gql`
+  query ($texto: String) {
+    data: personaSearch(texto: $texto) {
+      id
+      nombre
+      apodo
+      nacimiento
+      documento
       sexo
       direccion
       telefono
       socialMedia
-    }
-  }`;
-
-export const personasSearch = gql
-  `query($texto: String){
-    data : personaSearch(texto: $texto){
+      creadoEn
+      usuario {
         id
-        nombre
-        apodo
-        nacimiento
-        sexo
-        direccion
-        telefono
-        socialMedia
-    }
-  }`
-
-export const personaQuery = gql
-  `query($id: ID!){
-    data : persona(id: $id){
-        id
-        nombre
-        apodo
-        nacimiento
-        sexo
-        direccion
-        telefono
-        socialMedia
-        documento
-    }
-  }`
-
-export const savePersona = gql
-  `mutation savePersona($entity:PersonaInput!){
-      data: savePersona(persona:$entity){
-        id
-        nombre
-        apodo
-        nacimiento
-        sexo
-        direccion
-        telefono
-        socialMedia
-        documento
+        persona {
+          nombre
+        }
       }
-    }`
+      isFuncionario
+      isCliente
+      isProveedor
+    }
+  }
+`;
 
-export const deletePersonaQuery = gql
-  ` mutation deletePersona($id: ID!){
-      deletePersona(id: $id)
-    }`
+export const personaQuery = gql`
+  query ($id: ID!) {
+    data: persona(id: $id) {
+      id
+      nombre
+      apodo
+      nacimiento
+      documento
+      sexo
+      direccion
+      telefono
+      socialMedia
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      isFuncionario
+      isCliente
+      isProveedor
+    }
+  }
+`;
+
+export const savePersona = gql`
+  mutation savePersona($entity: PersonaInput!) {
+    data: savePersona(persona: $entity) {
+      id
+      nombre
+      apodo
+      nacimiento
+      documento
+      sexo
+      direccion
+      telefono
+      socialMedia
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      isFuncionario
+      isCliente
+      isProveedor
+    }
+  }
+`;
+
+export const deletePersonaQuery = gql`
+  mutation deletePersona($id: ID!) {
+    deletePersona(id: $id)
+  }
+`;

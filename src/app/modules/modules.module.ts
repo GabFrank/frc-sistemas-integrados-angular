@@ -22,12 +22,11 @@ import { FormaPagoComponent } from './financiero/forma-pago/forma-pago.component
 
 @NgModule({
   declarations: [
-  
     CambioComponent,
-       MonedaComponent,
-       BancoComponent,
-       CuentaBancariaComponent,
-       FormaPagoComponent
+    MonedaComponent,
+    BancoComponent,
+    CuentaBancariaComponent,
+    FormaPagoComponent,
   ],
   imports: [
     CommonModule,

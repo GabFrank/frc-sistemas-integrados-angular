@@ -6,6 +6,9 @@ import { ListProductoComponent } from '../../modules/productos/producto/list-pro
 import { ListMovimientoStockComponent } from '../../modules/operaciones/movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
 import { EntradaSalidaComponent } from '../../modules/operaciones/entrada-salida/entrada-salida.component';
 import { ReportTestComponent } from '../../shared/report-test/report-test.component';
+import { UsuarioComponent } from '../../modules/personas/usuarios/usuario.component';
+import { ListUsuarioComponent } from '../../modules/personas/usuarios/list-usuario/list-usuario.component';
+import { ListFuncioarioComponent } from '../../modules/personas/funcionarios/list-funcioario/list-funcioario.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -34,9 +37,9 @@ export class TabService {
 
   constructor() {
     this.tabs = [
-      new Tab(ListMovimientoStockComponent, 'Movimientos', null, null),
+      // new Tab(ListMovimientoStockComponent, 'Movimientos', null, null),
       // new Tab(EntradaSalidaComponent, 'Entrada/Salida', null, null),
-      // new Tab(ReportTestComponent, 'Reporte', null, null)
+      // new Tab(ListFuncioarioComponent, 'Funcionarios', null, null)
     ];
     this.tabSub.next(this.tabs);
   }

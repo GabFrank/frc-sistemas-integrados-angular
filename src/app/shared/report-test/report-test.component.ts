@@ -22,7 +22,7 @@ export class ReportTestComponent implements OnInit {
   @ViewChild("container")
   container!: ElementRef;
 
-  constructor(private windowInfo: WindowInfoService) {}
+  constructor(public windowInfo: WindowInfoService) {}
 
   ngOnInit(): void {
     this.selectedPagina = this.paginas[this.index];

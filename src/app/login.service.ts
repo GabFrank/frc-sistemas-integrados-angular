@@ -53,7 +53,9 @@ export class LoginService {
                   .onGetUsuario(res["usuarioId"])
                   .subscribe((res) => {
                     if (res?.id != null) {
+                      console.log('..autenticando')
                       this.mainService.usuarioActual = res;
+                      this.mainService.authenticationSub.next(true)
                       let response: LoginResponse = {
                         usuario : res,
                         error: null
@@ -70,6 +72,7 @@ export class LoginService {
             usuario : null,
             error: error
           }
+          this.mainService.authenticationSub.next(false)
           console.log(error)
           obs.next(error)
         });

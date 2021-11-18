@@ -6,11 +6,12 @@ import { SharedModule } from '../../../shared/shared.module';
 import { FlexLayoutModule } from '@angular/flex-layout';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MaterialModule } from '../../../commons/core/material.module';
+import { AdicionarUsuarioDialogComponent } from './adicionar-usuario-dialog/adicionar-usuario-dialog.component';
 
 
 
 @NgModule({
-  declarations: [UsuarioComponent, ListUsuarioComponent],
+  declarations: [UsuarioComponent, ListUsuarioComponent, AdicionarUsuarioDialogComponent],
   imports: [
     CommonModule,
     FlexLayoutModule,

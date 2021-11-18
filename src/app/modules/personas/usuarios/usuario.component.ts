@@ -58,10 +58,10 @@ export class UsuarioComponent implements OnInit {
       // )
       .subscribe(v => {
         if (v.toString().length > 0){
-          this.personaService.searchByText(v.toString() , personasSearch).valueChanges.subscribe(
-            ({ data }) => {
-              this.personas = data.data;
-            });
+          // this.personaService.searchByText(v.toString() , personasSearch).valueChanges.subscribe(
+          //   ({ data }) => {
+          //     this.personas = data.data;
+          //   });
         } else {
             this.personas = [];
         }
