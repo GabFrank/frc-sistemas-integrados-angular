@@ -1,0 +1,19 @@
+<div fxLayout="column" fxLayoutAlign="start center" style="width: 100%;">
+  <div fxLayout="row wrap">
+    <div fxFlex="24" *ngFor="let item of itemList" [style.width.px]="cardWidth" style="padding-bottom: 20px;">
+      <mat-card style="background-color: #f44336;" [style.width.px]="cardWidth">
+        <mat-card-header>
+          <mat-card-title>{{item.titulo}}</mat-card-title>
+        </mat-card-header>
+        <div>
+          <mat-icon>{{ item.icon }}</mat-icon>
+        </div>
+        <mat-card-content>
+          <p>
+            {{ item.descripcion }}
+          </p>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div>

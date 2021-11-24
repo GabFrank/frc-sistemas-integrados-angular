@@ -326,7 +326,7 @@ export class EntradaDialogComponent implements OnInit {
 
   onCancelar() {
     console.log("hola");
-    this.selectedEntrada.entradaItemList = this.itemDataSource.data;
+    if(this.selectedEntrada!=null) this.selectedEntrada.entradaItemList = this.itemDataSource.data;
     this.matDialogRef.close(this.selectedEntrada);
   }
 

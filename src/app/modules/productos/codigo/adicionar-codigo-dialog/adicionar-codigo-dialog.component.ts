@@ -2,6 +2,7 @@ import { Component, Inject, OnInit } from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { NotificacionColor, NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { Presentacion } from "../../presentacion/presentacion.model";
 import { CodigoInput } from "../codigo-input.model";
 import { Codigo } from "../codigo.model";
@@ -30,7 +31,8 @@ export class AdicionarCodigoDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: AdicionarCodigoData,
     private matDialogRef: MatDialogRef<AdicionarCodigoDialogComponent>,
     private codigoService: CodigoService,
-    private notificacionSnackBar: NotificacionSnackbarService
+    private notificacionSnackBar: NotificacionSnackbarService,
+    private cargandoDialog: CargandoDialogService
   ) {}
 
   ngOnInit(): void {
@@ -67,6 +69,7 @@ export class AdicionarCodigoDialogComponent implements OnInit {
   }
 
   onSave() {
+    this.cargandoDialog.openDialog()
     this.codigoInput.codigo = this.codigoControl.value;
     this.codigoInput.activo = this.activoControl.value;
     this.codigoInput.principal = this.principalControl.value;
@@ -77,6 +80,7 @@ export class AdicionarCodigoDialogComponent implements OnInit {
       .onGetCodigoPorCodigo(this.codigoInput.codigo)
       .subscribe((res) => {
         console.log(res)
+        this.cargandoDialog.closeDialog()
         if (res.errors == null) {
           switch (res.data.data.length) {
             case 0:

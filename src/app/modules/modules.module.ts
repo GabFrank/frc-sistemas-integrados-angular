@@ -10,23 +10,13 @@ import { GeneralModule } from './general/general.module';
 import { FuncionariosModule } from './personas/funcionarios/funcionarios.module';
 import { MDBBootstrapModule } from 'angular-bootstrap-md';
 import { LoginModule } from './login/login.module';
-import { PrintDesignComponent } from './print/print-design/print-design.component';
 import { PrintModule } from './print/print.module';
-import { CambioComponent } from './financiero/cambio/cambio.component';
-import { MonedaComponent } from './financiero/moneda/moneda.component';
-import { BancoComponent } from './financiero/banco/banco.component';
-import { CuentaBancariaComponent } from './financiero/cuenta-bancaria/cuenta-bancaria.component';
-import { FormaPagoComponent } from './financiero/forma-pago/forma-pago.component';
+import { FinancieroModule } from './financiero/financiero.module';
 
 
 
 @NgModule({
   declarations: [
-    CambioComponent,
-    MonedaComponent,
-    BancoComponent,
-    CuentaBancariaComponent,
-    FormaPagoComponent,
   ],
   imports: [
     CommonModule,
@@ -40,6 +30,7 @@ import { FormaPagoComponent } from './financiero/forma-pago/forma-pago.component
     FuncionariosModule,
     LoginModule,
     PrintModule,
+    FinancieroModule,
     MDBBootstrapModule.forRoot()
   ],
   providers: [

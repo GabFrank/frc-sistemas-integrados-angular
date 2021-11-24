@@ -9,6 +9,8 @@ import { ReportTestComponent } from '../../shared/report-test/report-test.compon
 import { UsuarioComponent } from '../../modules/personas/usuarios/usuario.component';
 import { ListUsuarioComponent } from '../../modules/personas/usuarios/list-usuario/list-usuario.component';
 import { ListFuncioarioComponent } from '../../modules/personas/funcionarios/list-funcioario/list-funcioario.component';
+import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
+import { FinancieroDashboardComponent } from '../../modules/financiero/financiero-dashboard/financiero-dashboard.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -39,7 +41,7 @@ export class TabService {
     this.tabs = [
       // new Tab(ListMovimientoStockComponent, 'Movimientos', null, null),
       // new Tab(EntradaSalidaComponent, 'Entrada/Salida', null, null),
-      // new Tab(ListFuncioarioComponent, 'Funcionarios', null, null)
+      new Tab(FinancieroDashboardComponent, 'Financiero', null, null)
     ];
     this.tabSub.next(this.tabs);
   }

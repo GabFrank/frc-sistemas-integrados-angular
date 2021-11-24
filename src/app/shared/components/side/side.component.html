@@ -52,6 +52,15 @@
           <a mat-list-item (click)="onItemClick('list-movimiento')">Movimientos</a>
         </mat-expansion-panel>
       </mat-accordion>
+      <mat-accordion>
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title> Venta </mat-panel-title>
+          </mat-expansion-panel-header>
+          <a mat-list-item (click)="onItemClick('list-caja')">Cajas</a>
+          <!-- <a mat-list-item (click)="onItemClick('list-movimiento')">Movimientos</a> -->
+        </mat-expansion-panel>
+      </mat-accordion>
       <a mat-list-item (click)="onItemClick('list-necesidad')">Necesidad</a>
       <a mat-list-item (click)="onItemClick('list-pedido')">Pedidos</a>
       <a mat-list-item (click)="onItemClick('list-compra')">Compras</a>
@@ -63,6 +72,7 @@
       <mat-expansion-panel-header>
         <mat-panel-title> Finanzas </mat-panel-title>
       </mat-expansion-panel-header>
+      <a mat-list-item (click)="onItemClick('finanzas-dashboard')">Dashboard</a>
     </mat-expansion-panel>
   </mat-accordion>
 

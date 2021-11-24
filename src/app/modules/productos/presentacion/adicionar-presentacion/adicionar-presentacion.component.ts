@@ -3,6 +3,7 @@ import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { Product } from "electron/main";
 import { NotificacionColor, NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { ProductoComponent } from "../../producto/edit-producto/producto.component";
 import { Producto } from "../../producto/producto.model";
 import { DialogData } from "../../producto/search-producto-dialog/search-producto-dialog.component";
@@ -30,20 +31,21 @@ export class AdicionarPresentacionComponent implements OnInit {
   tipoPresentacionList: TipoPresentacion[];
   //form group and form controls
   formGroup: FormGroup;
-  descripcionControl = new FormControl(null);
+  descripcionControl = new FormControl(null, Validators.required);
   cantidadControl = new FormControl(null, Validators.required);
-  activoControl = new FormControl(null, Validators.required);
-  principalControl = new FormControl(null, Validators.required);
-  productoControl = new FormControl(null, Validators.required);
+  activoControl = new FormControl(true);
+  principalControl = new FormControl(false);
+  productoControl = new FormControl(null);
   tipoPresentacionControl = new FormControl(null, Validators.required);
-  imagenPrincipalControl = new FormControl(null, Validators.required);
+  imagenPrincipalControl = new FormControl(null);
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarPresentacionData,
     private matDialogRef: MatDialogRef<AdicionarPresentacionComponent>,
     private presentacionService: PresentacionService,
     private tipoPresentacionService: TipoPresentacionService,
-    private notificacionSnackBar: NotificacionSnackbarService
+    private notificacionSnackBar: NotificacionSnackbarService,
+    private cargandoDialog: CargandoDialogService
   ) {}
 
   ngOnInit(): void {
@@ -82,7 +84,8 @@ export class AdicionarPresentacionComponent implements OnInit {
   }
 
   onSave() {
-    if (this.selectedPresentacion?.id != null) {
+    this.cargandoDialog.openDialog()
+    if (this.selectedPresentacion != null) {
       this.presentacionInput.id = this.selectedPresentacion.id;
     }
     if(this.descripcionControl.value == ''){
@@ -98,6 +101,7 @@ export class AdicionarPresentacionComponent implements OnInit {
     this.presentacionService
       .onSavePresentacion(this.presentacionInput)
       .subscribe((res) => {
+        this.cargandoDialog.closeDialog()
         if(res?.errors?.length>0){
           console.log(res)
           this.notificacionSnackBar.notification$.next({
@@ -116,6 +120,7 @@ export class AdicionarPresentacionComponent implements OnInit {
             this.matDialogRef.close(res.data.data);
           }, 500);
         }
+
       });
   }
 
@@ -124,6 +129,7 @@ export class AdicionarPresentacionComponent implements OnInit {
   }
 
   cargarPresentacion() {
+    this.cargandoDialog.openDialog()
     console.log(this.selectedPresentacion);
     this.descripcionControl.setValue(this.selectedPresentacion.descripcion);
     this.principalControl.setValue(this.selectedPresentacion.principal);
@@ -131,10 +137,12 @@ export class AdicionarPresentacionComponent implements OnInit {
     this.cantidadControl.setValue(this.selectedPresentacion.cantidad);
     this.selectedTipoPresentacion = this.selectedPresentacion.tipoPresentacion;
     this.tipoPresentacionControl.setValue(this.selectedTipoPresentacion.id);
+    this.cargandoDialog.closeDialog()
   }
 
   //tipo presentacion
   createTipoPresentacionSelect() {
+    this.cargandoDialog.openDialog()
     this.tipoPresentacionService.onGetPresentaciones().subscribe((res) => {
       console.log(res);
       this.tipoPresentacionList = res.data.data.sort((a, b) => {
@@ -144,6 +152,7 @@ export class AdicionarPresentacionComponent implements OnInit {
           return -1;
         }
       });
+      this.cargandoDialog.closeDialog()
     });
   }
 

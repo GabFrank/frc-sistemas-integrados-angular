@@ -1,8 +1,8 @@
 <div class="container">
   <div fxLayout="column" fxFlexAlign="start center" style="width: 100%">
     <div fxFlex style="width: 100%; text-align: center">
-      <h3 *ngIf="selectedPersona == null">Nuevo Usuario</h3>
-      <h3 *ngIf="selectedPersona != null">
+      <h3 *ngIf="selectedUsuario == null">Nuevo Usuario</h3>
+      <h3 *ngIf="selectedUsuario != null">
         {{ selectedUsuario?.persona.nombre | titlecase }}
       </h3>
     </div>

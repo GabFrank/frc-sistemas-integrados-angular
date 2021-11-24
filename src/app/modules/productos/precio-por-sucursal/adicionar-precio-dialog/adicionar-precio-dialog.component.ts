@@ -2,6 +2,7 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { Presentacion } from '../../presentacion/presentacion.model';
 import { TipoPrecio } from '../../tipo-precio/tipo-precio.model';
 import { TipoPrecioService } from '../../tipo-precio/tipo-precio.service';
@@ -35,7 +36,8 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     private matDialogRef: MatDialogRef<AdicionarPrecioDialogComponent>,
     private precioService: PrecioPorSucursalService,
     private notificacionSnackBar: NotificacionSnackbarService,
-    private tipoPrecioService: TipoPrecioService
+    private tipoPrecioService: TipoPrecioService,
+    private cargandoDialog: CargandoDialogService
   ) {}
 
   ngOnInit(): void {
@@ -90,6 +92,7 @@ export class AdicionarPrecioDialogComponent implements OnInit {
   }
 
   onSave() {
+    this.cargandoDialog.openDialog()
     this.precioInput.precio = this.precioControl.value;
     this.precioInput.activo = this.activoControl.value;
     this.precioInput.principal = this.principalControl.value;
@@ -97,6 +100,7 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     this.precioInput.tipoPrecioId = this.tipoPrecioControl.value;
     //primero buscar si ya existe el codigo a guardar
     this.precioService.onSave(this.precioInput).subscribe(res => {
+      this.cargandoDialog.closeDialog()
       if(res!=null){
         this.matDialogRef.close(res)
       }

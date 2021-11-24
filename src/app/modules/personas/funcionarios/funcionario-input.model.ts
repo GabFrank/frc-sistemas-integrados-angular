@@ -1,5 +1,5 @@
 
-export interface FuncionarioInput  {
+export class FuncionarioInput  {
   id: number;
   personaId: number;
   cargoId: number;
@@ -12,4 +12,5 @@ export interface FuncionarioInput  {
   supervisadoPorId: number
   creadoEn: Date;
   usuarioId: number;
+  activo: boolean;
 }

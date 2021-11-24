@@ -2,6 +2,8 @@ import { Component, OnInit } from "@angular/core";
 import { Tab } from "../../../layouts/tab/tab.model";
 import { TabService } from "../../../layouts/tab/tab.service";
 import { MainService } from "../../../main.service";
+import { FinancieroDashboardComponent } from "../../../modules/financiero/financiero-dashboard/financiero-dashboard.component";
+import { ListCajaComponent } from "../../../modules/financiero/pdv/caja/list-caja/list-caja.component";
 import { ListCiudadComponent } from "../../../modules/general/ciudad/list-ciudad/list-ciudad.component";
 import { ListPaisComponent } from "../../../modules/general/pais/list-pais/list-pais.component";
 import { ListCompraComponent } from "../../../modules/operaciones/compra/list-compra/list-compra.component";
@@ -79,9 +81,9 @@ export class SideComponent implements OnInit {
         // );
         break;
       case "pdv-venta-touch":
-        // this.tabService.addTab(
-        //   new Tab(VentaTouchComponent, "Venta Touch", null, null)
-        // );
+        this.tabService.addTab(
+          new Tab(VentaTouchComponent, "Venta Touch", null, null)
+        );
         break;
       case "list-movimiento":
         this.tabService.addTab(
@@ -93,6 +95,16 @@ export class SideComponent implements OnInit {
         new Tab(EntradaSalidaComponent, "Entrada/Salida", null, null)
         );
         break;
+      case "list-caja":
+        this.tabService.addTab(
+          new Tab(ListCajaComponent, "Cajas", null, null)
+          );
+          break;
+      case "finanzas-dashboard":
+        this.tabService.addTab(
+          new Tab(FinancieroDashboardComponent, "Financiero", null, null)
+          );
+          break;
       default:
         break;
     }

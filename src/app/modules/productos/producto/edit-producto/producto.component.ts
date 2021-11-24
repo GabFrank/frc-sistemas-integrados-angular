@@ -9,7 +9,11 @@ import {
   ViewChild,
 } from "@angular/core";
 import { FormGroup, Validators, FormControl } from "@angular/forms";
-import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
+import {
+  MatDialog,
+  MatDialogRef,
+  MAT_DIALOG_DATA,
+} from "@angular/material/dialog";
 import { MatTable, MatTableDataSource } from "@angular/material/table";
 import { DomSanitizer } from "@angular/platform-browser";
 import { NgxImageCompressService } from "ngx-image-compress";
@@ -71,13 +75,16 @@ import {
   AdicionarCodigoData,
   AdicionarCodigoDialogComponent,
 } from "../../codigo/adicionar-codigo-dialog/adicionar-codigo-dialog.component";
-import { AdicionarPrecioDialogComponent, AdicionarPrecioPorSucursalData } from "../../precio-por-sucursal/adicionar-precio-dialog/adicionar-precio-dialog.component";
+import {
+  AdicionarPrecioDialogComponent,
+  AdicionarPrecioPorSucursalData,
+} from "../../precio-por-sucursal/adicionar-precio-dialog/adicionar-precio-dialog.component";
+import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 
 export class ProductoDialogData {
   producto: Producto;
   isDialog = true;
 }
-
 
 @Component({
   selector: "app-producto",
@@ -136,7 +143,13 @@ export class ProductoComponent implements OnInit {
     "accion",
   ];
   codigoColumnsToDisplay = ["id", "codigo", "principal", "activo", "eliminar"];
-  precioColumnsToDisplay = ["id", "tipoPrecio", "precio", "principal", "eliminar"];
+  precioColumnsToDisplay = [
+    "id",
+    "tipoPrecio",
+    "precio",
+    "principal",
+    "eliminar",
+  ];
   selectedPresentacionCodigoDataSource = new MatTableDataSource(null);
   selectedPresentacionPrecioDataSource = new MatTableDataSource(null);
   //datos generales
@@ -197,15 +210,16 @@ export class ProductoComponent implements OnInit {
     private tabService: TabService,
     private copyToClipService: Clipboard,
     private presentacionService: PresentacionService,
-    private changeDetectorRefs: ChangeDetectorRef
+    private changeDetectorRefs: ChangeDetectorRef,
+    private cargandoDialog: CargandoDialogService
   ) {
-    if(dialogData!=null){
+    if (dialogData != null) {
       this.isDialog = dialogData.isDialog;
     }
   }
 
   ngOnInit() {
-    let ref = this.matDialog.open(CargandoDialogComponent);
+    this.cargandoDialog.openDialog();
 
     this.familiaService.familiaBS.subscribe((res) => {
       this.familiasList = res;
@@ -227,16 +241,16 @@ export class ProductoComponent implements OnInit {
 
     setTimeout(() => {
       if (this.data?.tabData?.data.id != null) {
-        this.cargarProducto(this.data.tabData.data.id, ref);
-      } else if(this.dialogData?.producto !=null) {
-        this.cargarProducto(this.dialogData.producto.id, ref);
+        this.cargarProducto(this.data.tabData.data.id);
+      } else if (this.dialogData?.producto != null) {
+        this.cargarProducto(this.dialogData.producto.id);
       } else {
-        ref.close()
+        this.cargandoDialog.closeDialog();
       }
     }, 200);
   }
 
-  cargarProducto(id, ref) {
+  cargarProducto(id) {
     this.productoService.getProducto(id).subscribe((res) => {
       console.log(res);
       this.selectedProducto = res;
@@ -297,10 +311,10 @@ export class ProductoComponent implements OnInit {
 
       console.log("buscando presentaciones del producto", res.id);
 
-      this.getPresentacionPorProductoId(res.id)
-      
+      this.getPresentacionPorProductoId(res.id);
+
       this.loadImagenPrincipal();
-      ref.close();
+      this.cargandoDialog.closeDialog();
       setTimeout(() => {
         this.stepper.next();
       }, 1000);
@@ -313,7 +327,7 @@ export class ProductoComponent implements OnInit {
     this.datosGeneralesControl = new FormGroup({
       descripcion: new FormControl(null, Validators.required),
       descripcionFactura: new FormControl(null),
-      iva: new FormControl('10'),
+      iva: new FormControl("10"),
       balanza: new FormControl(null),
       garantia: new FormControl(null),
       tiempoGarantia: new FormControl(null, [
@@ -423,11 +437,12 @@ export class ProductoComponent implements OnInit {
         tipoConservacion,
         subfamiliaId,
       };
-      if(this.selectedProducto!=null){
-        productoInput.id = this.selectedProducto.id
+      if (this.selectedProducto != null) {
+        productoInput.id = this.selectedProducto.id;
       }
       productoInput.descripcion = productoInput?.descripcion.toUpperCase();
-      if(productoInput?.descripcionFactura==null) productoInput.descripcionFactura = productoInput.descripcion;
+      if (productoInput?.descripcionFactura == null)
+        productoInput.descripcionFactura = productoInput.descripcion;
       productoInput.descripcionFactura =
         productoInput?.descripcionFactura.toUpperCase();
       productoInput.subfamiliaId = this.selectedSubfamilia.id;
@@ -448,15 +463,18 @@ export class ProductoComponent implements OnInit {
   //funciones de codigos
 
   seleccionarFamilia(tipo) {
+    this.cargandoDialog.openDialog();
     this.selectedFamilia = this.familiasList?.find((f) => f.id == tipo.id);
     this.subfamiliasList = this.selectedFamilia?.subfamilias;
     setTimeout(() => {
       // this.filtrarFamilias();
       this.stepper.next();
+      this.cargandoDialog.closeDialog();
     }, 500);
   }
 
   seleccionarSubfamilia(tipo) {
+    this.cargandoDialog.openDialog();
     this.selectedSubfamilia = tipo;
     if (this.selectedFamilia?.nombre == "BEBIDAS") {
       this.datosGeneralesControl.controls.esAlcoholico.setValue(true);
@@ -473,6 +491,7 @@ export class ProductoComponent implements OnInit {
 
     setTimeout(() => {
       this.stepper.next();
+      this.cargandoDialog.closeDialog();
     }, 500);
   }
 
@@ -571,15 +590,14 @@ export class ProductoComponent implements OnInit {
   //familia
 
   onFinalizar() {
-    if(this.isDialog){
-      this.matDialogRef.close(this.selectedProducto)
+    if (this.isDialog) {
+      this.matDialogRef.close(this.selectedProducto);
     } else {
       this.tabService.removeTab(this.data.id - 1);
       this.tabService.addTab(
         new Tab(ProductoComponent, "Nuevo Producto", null, ListCompraComponent)
       );
     }
-    
   }
 
   //carga de imagen
@@ -626,11 +644,11 @@ export class ProductoComponent implements OnInit {
   }
 
   loadImagenPrincipal() {
-    this.selectedProducto?.presentaciones?.forEach(p => {
-      if(p.principal == true){
+    this.selectedProducto?.presentaciones?.forEach((p) => {
+      if (p.principal == true) {
         this.imagenPrincipal = p?.imagenPrincipal;
       }
-    })
+    });
   }
 
   @HostListener("window:keyup", ["$event"])
@@ -715,16 +733,18 @@ export class ProductoComponent implements OnInit {
   @ViewChild("codigoTable") codigoTable: MatTable<Codigo>;
   @ViewChild("precioTable") precioTable: MatTable<PrecioPorSucursalService>;
 
-  getPresentacionPorProductoId(id){
+  getPresentacionPorProductoId(id) {
+    this.cargandoDialog.openDialog()
     this.isPresentacionLoading = true;
     this.presentacionService
-        .onGetPresentacionesPorProductoId(id)
-        .subscribe((data) => {
-          console.log(data);
-          this.presentacionesList = data.data.data;
-          this.presentacionesDataSource.data = [...this.presentacionesList];
-          this.isPresentacionLoading = false;
-        });
+      .onGetPresentacionesPorProductoId(id)
+      .subscribe((data) => {
+        console.log(data);
+        this.presentacionesList = data.data.data;
+        this.presentacionesDataSource.data = [...this.presentacionesList];
+        this.isPresentacionLoading = false;
+        this.cargandoDialog.closeDialog()
+      });
   }
 
   onAdicionarPresentacion() {
@@ -778,12 +798,15 @@ export class ProductoComponent implements OnInit {
         .subscribe((res) => {
           console.log(res);
           this.selectedPresentacionCodigoDataSource.data = res.data.data;
-        });
-      this.precioPorSucursalService
-        .onGetPrecioPorSurursalPorPresentacionId(this.selectedPresentacion.id)
-        .subscribe((res) => {
-          console.log(res);
-          this.selectedPresentacionPrecioDataSource.data = res.data.data;
+
+          this.precioPorSucursalService
+            .onGetPrecioPorSurursalPorPresentacionId(
+              this.selectedPresentacion.id
+            )
+            .subscribe((res2) => {
+              console.log(res2);
+              this.selectedPresentacionPrecioDataSource.data = res2.data.data;
+            });
         });
     }
   }
@@ -797,8 +820,8 @@ export class ProductoComponent implements OnInit {
       .open(VizualizarImagenDialogComponent, {
         data,
         disableClose: true,
-        height: '80%',
-        width: '80%'
+        height: "80%",
+        width: "80%",
       })
       .afterClosed()
       .subscribe((res) => {
@@ -811,12 +834,15 @@ export class ProductoComponent implements OnInit {
       });
   }
 
-  onDeletePresentacion(presentacion: Presentacion){
-    this.presentacionService.onDeletePresentacion(presentacion).subscribe(res => {
-      if(res){
-        this.getPresentacionPorProductoId(this.selectedProducto.id)
-      }
-    })
+  onDeletePresentacion(presentacion: Presentacion) {
+    this.cargandoDialog.openDialog()
+    this.presentacionService
+      .onDeletePresentacion(presentacion)
+      .subscribe((res) => {
+        if (res) {
+          this.getPresentacionPorProductoId(this.selectedProducto.id);
+        }
+      });
   }
 
   //fin funciones de presentacion
@@ -835,7 +861,7 @@ export class ProductoComponent implements OnInit {
       .afterClosed()
       .subscribe((res) => {
         if (res != null) {
-          this.getPresentacionPorProductoId(this.selectedProducto.id)
+          this.getPresentacionPorProductoId(this.selectedProducto.id);
 
           // let presentacionId = res.presentacion.id;
           // if (presentacionId != null) {
@@ -862,17 +888,19 @@ export class ProductoComponent implements OnInit {
       });
   }
 
-  onEditCodigo(codigo: Codigo){
+  onEditCodigo(codigo: Codigo) {
     this.selectedCodigo = codigo;
-    this.onAddCodigo()
+    this.onAddCodigo();
   }
 
-  onDeleteCodigo(codigo: Codigo, codigoIndex){
-    this.codigoService.onDeleteCodigo(codigo).subscribe(res => {
-      if(res){
-        this.getPresentacionPorProductoId(this.selectedProducto.id)
+  onDeleteCodigo(codigo: Codigo, codigoIndex) {
+    this.cargandoDialog.openDialog()
+    this.codigoService.onDeleteCodigo(codigo).subscribe((res) => {
+      this.cargandoDialog.closeDialog()
+      if (res) {
+        this.getPresentacionPorProductoId(this.selectedProducto.id);
       }
-    })
+    });
   }
 
   onAddPrecio() {
@@ -888,7 +916,7 @@ export class ProductoComponent implements OnInit {
       .afterClosed()
       .subscribe((res) => {
         if (res != null) {
-          this.getPresentacionPorProductoId(this.selectedProducto.id)
+          this.getPresentacionPorProductoId(this.selectedProducto.id);
           // let presentacionId = res.presentacion.id;
           // if (presentacionId != null) {
           //   let presentacionIndex =
@@ -911,18 +939,20 @@ export class ProductoComponent implements OnInit {
       });
   }
 
-  onEditPrecio(precio: PrecioPorSucursal){
-    console.log(precio)
+  onEditPrecio(precio: PrecioPorSucursal) {
+    console.log(precio);
     this.selectedPrecio = precio;
-    this.onAddPrecio()
+    this.onAddPrecio();
   }
 
-  onDeletePrecio(precio: PrecioPorSucursal, precioIndex){
-    this.precioPorSucursalService.onDelete(precio).subscribe(res => {
-      if(res){
-        this.getPresentacionPorProductoId(this.selectedProducto.id)
+  onDeletePrecio(precio: PrecioPorSucursal, precioIndex) {
+    this.cargandoDialog.openDialog()
+    this.precioPorSucursalService.onDelete(precio).subscribe((res) => {
+      this.cargandoDialog.closeDialog()
+      if (res) {
+        this.getPresentacionPorProductoId(this.selectedProducto.id);
       }
-    })
+    });
   }
 
   //"could not execute statement; SQL [n/a]; constraint [presentacion_producto_fk]; nested exception is org.hibernate.exception.ConstraintViolationException: could not execute statement"

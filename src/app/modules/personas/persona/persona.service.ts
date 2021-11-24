@@ -9,6 +9,7 @@ import {
 import { SavePersonaGQL } from "./graphql/savePersona";
 import { MainService } from "../../../main.service";
 import { PersonaInput } from "./persona/persona-input.model";
+import { PersonaPorIdGQL } from "./graphql/personaPorId";
 
 @Injectable({
   providedIn: "root",
@@ -18,7 +19,8 @@ export class PersonaService {
     private searchPersona: PersonaSearchGQL,
     private notificacionBar: NotificacionSnackbarService,
     private savePersonna: SavePersonaGQL,
-    private mainService: MainService
+    private mainService: MainService,
+    private getPersona: PersonaPorIdGQL
   ) {}
 
   onSearch(texto): Observable<Persona[]> {
@@ -50,7 +52,7 @@ export class PersonaService {
 
   onSavePersona(input: PersonaInput): Observable<any> {
     return new Observable((obs) => {
-      if(input.usuarioId == null){
+      if (input.usuarioId == null) {
         input.usuarioId = this.mainService?.usuarioActual?.id;
       }
       this.savePersonna
@@ -76,6 +78,33 @@ export class PersonaService {
               color: NotificacionColor.danger,
               duracion: 4,
             });
+          }
+        });
+    });
+  }
+
+  onGetPersona(id): Observable<Persona> {
+    return new Observable((obs) => {
+      this.getPersona
+        .fetch(
+          {
+            id,
+          },
+          {
+            fetchPolicy: "no-cache",
+            errorPolicy: "all",
+          }
+        )
+        .subscribe((res) => {
+          if (res.errors == null) {
+            obs.next(res.data.data);
+          } else {
+            this.notificacionBar.notification$.next({
+              texto: `Ups! Algo salió mal. ${res.errors[0].message}`,
+              color: NotificacionColor.danger,
+              duracion: 4,
+            });
+            obs.next(null);
           }
         });
     });

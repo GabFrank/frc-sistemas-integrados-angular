@@ -94,11 +94,7 @@
               Cargo: {{ selectedCargo?.nombre }}
             </mat-panel-title>
           </mat-expansion-panel-header>
-          <div
-            fxLayout="column"
-            fxFlex="90%"
-            fxLayoutGap="10px"
-          >
+          <div fxLayout="column" fxFlex="90%" fxLayoutGap="10px">
             <div fxFlex fxLayout="row">
               <div fxFlex="10">Id: {{ selectedCargo?.id }}</div>
               <div fxFlex="5%"></div>
@@ -141,11 +137,7 @@
               Sucursal: {{ selectedSucursal?.nombre }}
             </mat-panel-title>
           </mat-expansion-panel-header>
-          <div
-            fxLayout="column"
-            fxFlex="90%"
-            fxLayoutGap="10px"
-          >
+          <div fxLayout="column" fxFlex="90%" fxLayoutGap="10px">
             <div fxFlex fxLayout="row">
               <div fxFlex="10">Id: {{ selectedSucursal?.id }}</div>
               <div fxFlex="5%"></div>
@@ -177,7 +169,7 @@
 
       <br />
 
-      <mat-accordion *ngIf="selectedPersona!=null">
+      <mat-accordion *ngIf="selectedPersona != null">
         <mat-expansion-panel style="background-color: rgb(32, 32, 32)">
           <mat-expansion-panel-header style="background-color: rgb(32, 32, 32)">
             <mat-panel-title style="background-color: rgb(32, 32, 32)">
@@ -195,7 +187,7 @@
             </div>
           </div>
           <div fxLayout="column" fxFlex="10%" fxLayoutGap="5px">
-            <div fxFlex *ngIf="selectedUsuario==null">
+            <div fxFlex *ngIf="selectedUsuario == null">
               <button
                 type="button"
                 mat-raised-button
@@ -205,7 +197,7 @@
                 <mat-icon>add_circle_outline</mat-icon>
               </button>
             </div>
-            <div fxFlex *ngIf="selectedUsuario!=null">
+            <div fxFlex *ngIf="selectedUsuario != null">
               <button
                 type="button"
                 mat-raised-button
@@ -223,18 +215,122 @@
       </mat-accordion>
 
       <br />
-      <mat-accordion *ngIf="selectedUsuario!=null">
+      <mat-accordion *ngIf="selectedUsuario != null">
         <mat-expansion-panel style="background-color: rgb(32, 32, 32)">
           <mat-expansion-panel-header style="background-color: rgb(32, 32, 32)">
             <mat-panel-title style="background-color: rgb(32, 32, 32)">
-              <div fxLayout="column">
-                
-              </div>
+              Datos generales
             </mat-panel-title>
           </mat-expansion-panel-header>
           <div fxLayout="column" style="width: 100%">
-            <div fxFlex fxLayout="row">
-              <div fxFlex></div>
+            <div fxFlex fxLayout="row" style="width: 100%">
+              <div fxFlex="50">
+                <mat-form-field style="width: 90%">
+                  <mat-label>Fecha Ingreso</mat-label>
+                  <input
+                    matInput
+                    [matDatepicker]="picker"
+                    [formControl]="fechaIngresoControl"
+                    [max]="today"
+                  />
+                  <mat-datepicker-toggle
+                    matSuffix
+                    [for]="picker"
+                  ></mat-datepicker-toggle>
+                  <mat-datepicker #picker></mat-datepicker>
+                </mat-form-field>
+              </div>
+              <div fxFlex="50%">
+                <mat-form-field style="width: 90%">
+                  <mat-label>Cargo</mat-label>
+                  <mat-select [formControl]="cargoControl" name="cargo">
+                    <mat-option>Ninguno</mat-option>
+                    <mat-option
+                      *ngFor="let cargo of cargoList"
+                      [value]="cargo.id"
+                    >
+                      {{ cargo?.id }} - {{ cargo?.nombre  | titlecase}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+            </div>
+            <div fxLayout="row" fxFlex="100%">
+              <div fxFlex="50%">
+                <mat-form-field style="width: 90%">
+                  <mat-label>Sueldo</mat-label>
+                  <input type="number" matInput [formControl]="sueldoControl" />
+                </mat-form-field>
+              </div>
+              <div fxFlex="50%">
+                <mat-form-field style="width: 90%">
+                  <mat-label>Crédito</mat-label>
+                  <input
+                    type="number"
+                    matInput
+                    [formControl]="creditoControl"
+                  />
+                </mat-form-field>
+              </div>
+            </div>
+            <div fxLayout="row" fxFlex="100%">
+              <div fxFlex="30%">
+                <section>
+                  <p>
+                    <mat-checkbox [formControl]="fasePruebaControl"
+                      >Fase de prueba</mat-checkbox
+                    >
+                  </p>
+                </section>
+              </div>
+              <div fxFlex="30%">
+                <section>
+                  <p>
+                    <mat-checkbox [formControl]="diaristaControl"
+                      >Diarista</mat-checkbox
+                    >
+                  </p>
+                </section>
+              </div>
+              <div fxFlex="30%">
+                <section>
+                  <p>
+                    <mat-checkbox [formControl]="activoControl"
+                      >Activo</mat-checkbox
+                    >
+                  </p>
+                </section>
+              </div>
+            </div>
+            <div fxLayout="row" fxFlex="50%">
+              <div fxFlex="50%">
+                <mat-form-field style="width: 90%">
+                  <mat-label>Sucursal</mat-label>
+                  <mat-select [formControl]="sucursalControl" name="sucursal">
+                    <mat-option>Ninguna</mat-option>
+                    <mat-option
+                      *ngFor="let sucursal of sucursalList"
+                      [value]="sucursal.id"
+                    >
+                      {{ sucursal?.id }} - {{ sucursal?.nombre |  titlecase}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+              <div fxFlex="50%">
+                <mat-form-field style="width: 90%">
+                  <mat-label>Supervisado Por</mat-label>
+                  <mat-select [formControl]="supervisadoPorControl" name="supervisadoPor">
+                    <mat-option>Ninguno</mat-option>
+                    <mat-option
+                      *ngFor="let funcionario of funcionarioList"
+                      [value]="funcionario.id"
+                    >
+                      {{ funcionario?.id }} - {{ funcionario?.persona?.nombre | titlecase}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
             </div>
           </div>
         </mat-expansion-panel>
@@ -242,6 +338,7 @@
     </div>
     <!-- <div fxLayout="column" fxFlex="50%"></div> -->
   </div>
+  <br>
   <div
     fxFlex="5"
     fxLayout="row"
@@ -264,7 +361,7 @@
         mat-raised-button
         color="accent"
         (click)="onGuardar()"
-        [disabled]="selectedPersona == null"
+        [disabled]="selectedPersona == null && selectedUsuario == null"
       >
         Guardar
       </button>

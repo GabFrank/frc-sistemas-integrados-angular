@@ -79,7 +79,12 @@ try {
             app.relaunch();
             app.exit();
           }},
-  
+          {label: 'Open Dev Tools', click() {
+            win.webContents.openDevTools()
+          }},
+          {label: 'Close Dev Tools', click() {
+            win.webContents.closeDevTools()
+          }},
           {label: 'Salir', click() {
             app.quit();
           }}

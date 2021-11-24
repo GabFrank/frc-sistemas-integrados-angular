@@ -71,7 +71,7 @@
             style="width: 70%"
             mat-raised-button
             color="accent"
-            [disabled]="formGroup.valid"
+            [disabled]="!formGroup.valid"
             (click)="onSave()"
             type="button"
           >

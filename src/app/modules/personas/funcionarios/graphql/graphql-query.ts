@@ -1,10 +1,17 @@
-import gql from 'graphql-tag';
+import gql from "graphql-tag";
 
-export const funcionariosQuery = gql
-  `{
-    data : funcionarios {
+export const funcionariosQuery = gql`
+  {
+    data: funcionarios {
       id
       credito
+      diarista
+      sueldo
+      fechaIngreso
+      creadoEn
+      fasePrueba
+      activo
+      nickname
       persona {
         id
         nombre
@@ -14,29 +21,33 @@ export const funcionariosQuery = gql
         id
         nombre
       }
-      sueldo
-      fechaIngreso
-      supervisadoPor{
+      supervisadoPor {
         id
         persona {
           id
           nombre
         }
       }
-      diarista
       sucursal {
         id
         nombre
       }
-      creadoEn
     }
-  }`
+  }
+`;
 
-export const funcionariosSearch = gql
-  `query($texto: String){
-    data : funcionariosSearch(texto: $texto){
+export const funcionariosSearch = gql`
+  query ($texto: String) {
+    data: funcionariosSearch(texto: $texto) {
       id
       credito
+      diarista
+      sueldo
+      fechaIngreso
+      creadoEn
+      fasePrueba
+      activo
+      nickname
       persona {
         id
         nombre
@@ -46,29 +57,33 @@ export const funcionariosSearch = gql
         id
         nombre
       }
-      sueldo
-      fechaIngreso
-      supervisadoPor{
+      supervisadoPor {
         id
         persona {
           id
           nombre
         }
       }
-      diarista
       sucursal {
         id
         nombre
       }
-      creadoEn
     }
-  }`
+  }
+`;
 
-export const funcionarioQuery = gql
-  `query($id: ID!){
-    data : funcionario(id: $id){
+export const funcionarioQuery = gql`
+  query ($id: ID!) {
+    data: funcionario(id: $id) {
       id
       credito
+      diarista
+      sueldo
+      fechaIngreso
+      creadoEn
+      fasePrueba
+      activo
+      nickname
       persona {
         id
         nombre
@@ -78,29 +93,33 @@ export const funcionarioQuery = gql
         id
         nombre
       }
-      sueldo
-      fechaIngreso
-      supervisadoPor{
+      supervisadoPor {
         id
         persona {
           id
           nombre
         }
       }
-      diarista
       sucursal {
         id
         nombre
       }
-      creadoEn
     }
-  }`
+  }
+`;
 
-export const saveFuncionario = gql
-  `mutation saveFuncionario($entity:FuncionarioInput!){
-      data: saveFuncionario(funcionario:$entity){
-        id
+export const saveFuncionario = gql`
+  mutation saveFuncionario($entity: FuncionarioInput!) {
+    data: saveFuncionario(funcionario: $entity) {
+      id
       credito
+      diarista
+      sueldo
+      fechaIngreso
+      creadoEn
+      fasePrueba
+      activo
+      nickname
       persona {
         id
         nombre
@@ -110,25 +129,23 @@ export const saveFuncionario = gql
         id
         nombre
       }
-      sueldo
-      fechaIngreso
-      supervisadoPor{
+      supervisadoPor {
         id
         persona {
           id
           nombre
         }
       }
-      diarista
       sucursal {
         id
         nombre
       }
-      creadoEn
-      }
-    }`
+    }
+  }
+`;
 
-export const deleteFuncionarioQuery = gql
-  ` mutation deleteFuncionario($id: ID!){
-      deleteFuncionario(id: $id)
-    }`
+export const deleteFuncionarioQuery = gql`
+  mutation deleteFuncionario($id: ID!) {
+    deleteFuncionario(id: $id)
+  }
+`;

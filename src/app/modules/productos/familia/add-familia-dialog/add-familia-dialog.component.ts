@@ -111,7 +111,7 @@ export class AddFamiliaDialogComponent implements OnInit {
 
   onSave() {
     this.familiaInput = new FamiliaInput();
-    if(this.data.familia!=null){
+    if(this.data?.familia!=null){
       this.familiaInput.id = this.data.familia.id;
       this.familiaInput.posicion = this.posicionControl.value;
     } else {

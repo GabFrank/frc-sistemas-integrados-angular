@@ -68,6 +68,12 @@ try {
                             electron_1.app.relaunch();
                             electron_1.app.exit();
                         } },
+                    { label: 'Open Dev Tools', click: function () {
+                            win.webContents.openDevTools();
+                        } },
+                    { label: 'Close Dev Tools', click: function () {
+                            win.webContents.closeDevTools();
+                        } },
                     { label: 'Salir', click: function () {
                             electron_1.app.quit();
                         } }

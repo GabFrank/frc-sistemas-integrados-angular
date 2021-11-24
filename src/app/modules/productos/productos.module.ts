@@ -20,6 +20,7 @@ import { AdicionarPresentacionComponent } from './presentacion/adicionar-present
 import { AdicionarCodigoDialogComponent } from './codigo/adicionar-codigo-dialog/adicionar-codigo-dialog.component';
 import { AdicionarPrecioDialogComponent } from './precio-por-sucursal/adicionar-precio-dialog/adicionar-precio-dialog.component';
 import { SelectPrecioDialogComponent } from './precio-por-sucursal/select-precio-dialog/select-precio-dialog.component';
+import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 
 
@@ -49,6 +50,10 @@ import { SelectPrecioDialogComponent } from './precio-por-sucursal/select-precio
     FormsModule,
     MaterialModule,
     SharedModule
-  ]
+  ],
+  providers: [
+    { provide: MAT_DIALOG_DATA, useValue: {} },
+    { provide: MatDialogRef, useValue: {} }
+]
 })
 export class ProductoModule { }

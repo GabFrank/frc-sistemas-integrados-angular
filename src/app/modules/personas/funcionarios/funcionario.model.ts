@@ -17,4 +17,5 @@ export class Funcionario  {
   creadoEn: Date;
   activo: boolean;
   usuario: Usuario;
+  nickname: string;
 }

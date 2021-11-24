@@ -2,6 +2,7 @@ import { animate, state, style, transition, trigger } from '@angular/animations'
 import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
+import { updateDataSource } from '../../../../commons/core/utils/numbersUtils';
 import { WindowInfoService } from '../../../../shared/services/window-info.service';
 import { PersonaDetalleDialogoComponent } from '../../persona/persona-detalle-dialogo/persona-detalle-dialogo.component';
 import { PersonaService } from '../../persona/persona.service';
@@ -64,13 +65,23 @@ export class ListFuncioarioComponent implements OnInit {
 
   }
 
-  onAddFuncionario(funcionario?: Funcionario){
+  onAddFuncionario(funcionario?: Funcionario, index?){
     this.matDialog.open(AdicionarFuncionarioDialogComponent, {
-      data: {},
+      data: {
+        funcionario
+      },
       disableClose: true,
       width: '40%',
       autoFocus: true,
       restoreFocus: true
+    }).afterClosed().subscribe(res => {
+      if(res!=null){
+        if(funcionario==null){
+          this.dataSource.data = updateDataSource(this.dataSource.data, res);
+        } else {
+          this.dataSource.data = updateDataSource(this.dataSource.data, res, index);
+        }
+      }
     })
   }
 
