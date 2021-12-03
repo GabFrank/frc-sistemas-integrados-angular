@@ -68,6 +68,7 @@ export class ProductoService {
         }
       ).subscribe(res => {
         if(res.errors == null){
+          console.log(res.data.data)
           obs.next(res.data.data)
         } else {
 

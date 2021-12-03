@@ -1,0 +1,205 @@
+<app-generic-list titulo="Gastos" (adicionar)="onAdd()" (filtrar)="onFilter()">
+    <div filtros>
+        
+    </div>
+    <div table fxLayout="row" style="width: 100%;" fxLayoutGap="20px">
+        <div fxFlex="50%">
+            <div style="width: 100%; text-align: center; padding: 10px">Tipo</div>
+            <table
+            mat-table
+            [dataSource]="clasificacionDataSource"
+            multiTemplateDataRows
+            class="mat-elevation-z8"
+            style="width: 100%;"
+          >
+            <ng-container matColumnDef="id" style="width: 5%;">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%;">Id</th>
+              <td mat-cell *matCellDef="let gasto" style="text-align: center;  width: 5%;">{{ gasto.id }}</td>
+            </ng-container>
+    
+            <!-- Name Column -->
+            <ng-container matColumnDef="descripcion">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center;  width: 20%;">Descripción</th>
+              <td mat-cell *matCellDef="let gasto" style="text-align: center;  width: 20%;">
+                {{ gasto?.descripcion | uppercase }}
+              </td>
+            </ng-container>
+    
+            <ng-container matColumnDef="autorizacion">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center;  width: 20%;">Autorización</th>
+              <td mat-cell *matCellDef="let gasto" style="text-align: center;  width: 20%;">
+                {{ gasto?.autorizacion == true ? 'Si' : 'No' }}
+              </td>
+            </ng-container>
+    
+            <ng-container matColumnDef="cargo">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center;  width: 15%;">Cargo</th>
+              <td mat-cell *matCellDef="let gasto" style="text-align: center;  width: 15%;">
+                {{ gasto?.cargo?.nombre | uppercase }}
+              </td>
+            </ng-container>
+    
+            <ng-container matColumnDef="activo">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center;  width: 20%;">Estado</th>
+              <td mat-cell *matCellDef="let gasto" style="text-align: center;  width: 20%;">
+                {{ gasto?.activo == true ? 'Activo' : 'Inactivo' }}
+              </td>
+            </ng-container>
+    
+            <ng-container matColumnDef="acciones">
+              <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center;">...</th>
+              <td mat-cell *matCellDef="let gasto;let i = dataIndex" style="text-align: center; width: 5%">
+                <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="menu"
+                  (click)="$event.stopPropagation()"
+                >
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu">
+                  <button mat-menu-item (click)="onAdd(gasto, i, true)">
+                    Editar
+                  </button>
+                </mat-menu>
+              </td>
+            </ng-container>
+    
+            <mat-divider></mat-divider>
+    
+            <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+            <ng-container matColumnDef="expandedDetail">
+              <td
+                mat-cell
+                *matCellDef="let gasto"
+                [attr.colspan]="displayedClasificacionGastoColumns.length"
+                class="expanded"
+              >
+                <div
+                  class="example-gasto-detail"
+                  [@detailExpand]="
+                    gasto == expandedMaletin ? 'expanded' : 'collapsed'
+                  "
+                  style="text-align: center"
+                  fxLayout="column"
+                  fxLayoutAlign="start start"
+                ></div>
+              </td>
+            </ng-container>
+    
+            <tr mat-header-row *matHeaderRowDef="displayedClasificacionGastoColumns; sticky: true"></tr>
+            <tr
+              mat-row
+              *matRowDef="let row; columns: displayedClasificacionGastoColumns; let i = dataIndex"
+            ></tr>
+            <tr
+              mat-row
+              *matRowDef="let row; columns: ['expandedDetail']"
+              class="example-detail-row"
+            ></tr>
+          </table>
+        </div>
+        <div fxFlex="50%">
+            <div style="width: 100%; text-align: center; padding: 10px">Sub Tipo</div>
+            <table
+            mat-table
+            [dataSource]="dataSource"
+            multiTemplateDataRows
+            class="mat-elevation-z8"
+            style="width: 100%;"
+          >
+          <ng-container matColumnDef="id" style="width: 5%;">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%;">Id</th>
+            <td mat-cell *matCellDef="let gasto" style="text-align: center;  width: 5%;">{{ gasto.id }}</td>
+          </ng-container>
+  
+          <!-- Name Column -->
+          <ng-container matColumnDef="descripcion">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;  width: 20%;">Descripción</th>
+            <td mat-cell *matCellDef="let gasto" style="text-align: center;  width: 20%;">
+              {{ gasto?.clasificacionGasto?.descripcion | uppercase }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="clasificacion">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;  width: 20%;">Clasificación</th>
+            <td mat-cell *matCellDef="let gasto" style="text-align: center;  width: 20%;">
+              {{ gasto?.autorizacion == true ? 'Si' : 'No' }}
+            </td>
+          </ng-container>
+  
+          <ng-container matColumnDef="autorizacion">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;  width: 20%;">Autorización</th>
+            <td mat-cell *matCellDef="let gasto" style="text-align: center;  width: 20%;">
+              {{ gasto?.autorizacion == true ? 'Si' : 'No' }}
+            </td>
+          </ng-container>
+  
+          <ng-container matColumnDef="cargo">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;  width: 15%;">Cargo</th>
+            <td mat-cell *matCellDef="let gasto" style="text-align: center;  width: 15%;">
+              {{ gasto?.cargo?.nombre | uppercase }}
+            </td>
+          </ng-container>
+  
+          <ng-container matColumnDef="activo">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;  width: 20%;">Estado</th>
+            <td mat-cell *matCellDef="let gasto" style="text-align: center;  width: 20%;">
+              {{ gasto?.activo == true ? 'Activo' : 'Inactivo' }}
+            </td>
+          </ng-container>
+    
+            <ng-container matColumnDef="acciones">
+              <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center;">...</th>
+              <td mat-cell *matCellDef="let gasto;let i = dataIndex" style="text-align: center; width: 5%">
+                <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="menu"
+                  (click)="$event.stopPropagation()"
+                >
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu">
+                  <button mat-menu-item (click)="onAdd(gasto, i, false)">
+                    Editar
+                  </button>
+                </mat-menu>
+              </td>
+            </ng-container>
+    
+            <mat-divider></mat-divider>
+    
+            <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+            <ng-container matColumnDef="expandedDetail">
+              <td
+                mat-cell
+                *matCellDef="let gasto"
+                [attr.colspan]="displayedGastoColumns.length"
+                class="expanded"
+              >
+                <div
+                  class="example-gasto-detail"
+                  [@detailExpand]="
+                    gasto == expandedMaletin ? 'expanded' : 'collapsed'
+                  "
+                  style="text-align: center"
+                  fxLayout="column"
+                  fxLayoutAlign="start start"
+                ></div>
+              </td>
+            </ng-container>
+    
+            <tr mat-header-row *matHeaderRowDef="displayedGastoColumns; sticky: true"></tr>
+            <tr
+              mat-row
+              *matRowDef="let row; columns: displayedGastoColumns; let i = dataIndex"
+            ></tr>
+            <tr
+              mat-row
+              *matRowDef="let row; columns: ['expandedDetail']"
+              class="example-detail-row"
+            ></tr>
+          </table>
+        </div>
+        
+    </div>
+</app-generic-list>

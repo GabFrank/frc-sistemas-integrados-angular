@@ -1,7 +1,7 @@
 <div fxLayout="column" fxLayoutAlign="start center" style="width: 100%;">
   <div fxLayout="row wrap">
     <div fxFlex="24" *ngFor="let item of itemList" [style.width.px]="cardWidth" style="padding-bottom: 20px;">
-      <mat-card style="background-color: #f44336;" [style.width.px]="cardWidth">
+      <mat-card style="background-color: #f44336; cursor: pointer;" [style.width.px]="cardWidth" (click)="openComponent(item)">
         <mat-card-header>
           <mat-card-title>{{item.titulo}}</mat-card-title>
         </mat-card-header>

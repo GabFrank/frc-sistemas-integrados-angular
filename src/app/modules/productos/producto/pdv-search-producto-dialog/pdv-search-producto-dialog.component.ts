@@ -91,6 +91,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = [
     "id",
     "descripcion",
+    "codigo",
     "acciones"
   ];
   expandedProducto: Producto | null;
@@ -120,6 +121,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       this.displayedColumns = [
         "id",
         "descripcion",
+        "codigo",
         "existencia",
         "acciones"
       ]
@@ -212,7 +214,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       });
     }
   }
-
+  
   tableKeyDownEvent(key, index) {
     switch (key) {
       case "ArrowDown":
@@ -370,6 +372,16 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   }
 
   mostrarStock(producto: Producto, index?){
+    this.stockService.onGetStockPorProducto(producto.id).subscribe(res => {
+      if(res!=null){
+        console.log(res)
+        producto.stockPorProducto = res;
+        this.dataSource[index] = producto;
+      }
+    })
+  }
+
+  mostrarCodigoPrincipal(producto: Producto, index?){
     this.stockService.onGetStockPorProducto(producto.id).subscribe(res => {
       if(res!=null){
         console.log(res)

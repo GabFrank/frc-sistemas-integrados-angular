@@ -52,10 +52,6 @@ export class ListFuncioarioComponent implements OnInit {
       console.log(res)
       this.dataSource.data = res;
     })
-
-    setTimeout(() => {
-      this.onAddFuncionario()
-    }, 1000);
   }
 
   rowSelectedEvent(e){

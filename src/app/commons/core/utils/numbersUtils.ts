@@ -51,3 +51,30 @@ export function updateDataSource(arr, value, index?){
   }
   return aux;
 }
+
+export function stringToInteger(texto: string){
+  let lenght = texto.length;
+  let factor = Math.floor((lenght-1)/3);
+  let auxIndex = lenght;
+  for (let index = factor; index > 0; index--) {
+      auxIndex -= 3;
+     texto = texto.slice(0, auxIndex) + "." + texto.slice(auxIndex);
+  }
+  return texto;
+}
+
+export function stringToDecimal(texto: string){
+  if(texto == '0'){
+    return '0,00'
+  } else {
+    texto = texto.replace('.', ',')
+    let dotIndex = texto.indexOf(',');
+    if(texto[dotIndex+2]==null){
+      texto = texto+'0';
+    } 
+    texto = stringToInteger(texto.slice(0, texto.length - 3)) + texto.slice(texto.length - 3, texto.length)
+  
+    return texto;
+  }
+  
+}

@@ -20,10 +20,10 @@ export class MovimientoStockService {
   ) { }
 
   onGetMovimientosPorFecha(inicio: Date, fin: Date): Observable<MovimientoStock[]>{
-    let inicioString = inicio.getFullYear() + "-" + inicio.getMonth() + "-" + inicio.getDay() + " 00:00:00"
-    let finString = fin.getFullYear() + "-" + fin.getMonth() + "-" + fin.getDay() + " 00:00:00"
-    console.log('inicio', inicioString)
-    console.log('fin', finString)
+    // let inicioString = inicio.getFullYear() + "-" + inicio.getMonth() + "-" + inicio.getDay() + " 00:00:00"
+    // let finString = fin.getFullYear() + "-" + fin.getMonth() + "-" + fin.getDay() + " 00:00:00"
+    // console.log('inicio', inicioString)
+    // console.log('fin', finString)
     return new Observable(obs => {
       this.getMovimientosPorFecha.fetch({
         inicio,

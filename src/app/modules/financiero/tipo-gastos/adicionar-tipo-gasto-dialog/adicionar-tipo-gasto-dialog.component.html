@@ -1,0 +1,149 @@
+<div>
+  <div>
+    <div fxLayout="column" fxLayoutAlign="start">
+      <div fxFlex style="width: 100%" fxLayout="row">
+        <div fxFlex="10%"></div>
+        <div fxFlex="80" style="width: 100%; text-align: center">
+          <h3 *ngIf="selectedTipoGasto?.id != null">Editar TipoGasto</h3>
+          <h3 *ngIf="selectedTipoGasto?.id == null">Nuevo TipoGasto</h3>
+        </div>
+        <div fxFlex="10%">
+            <mat-icon style="cursor: pointer;" matTooltip="Eliminar" (click)="onDelete()">delete</mat-icon>
+        </div>
+      </div>
+      <div
+        fxFlex
+        *ngIf="selectedParent != null"
+        style="width: 100%; text-align: center"
+      >
+        Clasificación: {{ selectedParent.descripcion | uppercase }}
+      </div>
+      <br />
+      <div fxFlex fxLayout="row" fxLayoutAlign="start center">
+        <div fxFlex="10%">
+          <mat-form-field style="width: 90%">
+            <mat-label>Id</mat-label>
+            <input
+              type="text"
+              matInput
+              [formControl]="idControl"
+              autocomplete="off"
+              oninput="this.value == ' ' ? this.value = '': null"
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="70%">
+          <mat-form-field style="width: 90%">
+            <mat-label>Descripción</mat-label>
+            <input
+              type="text"
+              matInput
+              [formControl]="descripcionControl"
+              placeholder="GASTOS CONTABLES"
+              autocomplete="off"
+              oninput="this.value == ' ' ? this.value = '': null"
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="20%">
+          <section>
+            <mat-slide-toggle
+              [color]="primary"
+              [checked]="activoControl.value"
+              [formControl]="activoControl"
+            >
+              {{ activoControl.value ? "Activo" : "Inactivo" }}
+            </mat-slide-toggle>
+          </section>
+        </div>
+      </div>
+      <div fxFlex fxLayout="row" fxLayoutAlign="start center">
+        <div fxFlex="50%">
+          <section>
+            <mat-slide-toggle
+              [color]="primary"
+              [checked]="autorizacionControl.value"
+              [formControl]="autorizacionControl"
+            >
+              {{
+                autorizacionControl.value
+                  ? "Con Autorización"
+                  : "Sin Autorización"
+              }}
+            </mat-slide-toggle>
+          </section>
+        </div>
+        <div fxFlex="50">
+          <mat-form-field style="width: 90%">
+            <mat-label>Cargo</mat-label>
+            <mat-select [formControl]="cargoControl">
+              <mat-optgroup
+                *ngFor="let cargo of listCargo"
+                [label]="cargo.nombre"
+              >
+                <div *ngIf="cargo.subcargoList != null">
+                  <mat-option
+                    *ngFor="let subcargo of cargo.subcargoList"
+                    [value]="subcargo.nombre"
+                  >
+                    {{ subcargo.nombre }}
+                  </mat-option>
+                </div>
+              </mat-optgroup>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+      <div fxFlex fxLayout="row" fxLayoutAlign="start center">
+        <div fxFlex="50%">
+          <mat-form-field style="width: 90%">
+            <mat-label>Creado En</mat-label>
+            <input
+              type="text"
+              matInput
+              [formControl]="creadoEnControl"
+              autocomplete="off"
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="50">
+          <mat-form-field style="width: 90%">
+            <mat-label>Creado Por</mat-label>
+            <input
+              type="text"
+              matInput
+              [formControl]="usuarioControl"
+              autocomplete="off"
+            />
+          </mat-form-field>
+        </div>
+      </div>
+      <br />
+      <div fxFlex fxLayout="row">
+        <div fxFlex="50%" style="text-align: center">
+          <button
+            style="width: 70%"
+            mat-raised-button
+            color="accent"
+            [disabled]="!descripcionControl.valid"
+            (click)="onSave()"
+            type="button"
+          >
+            Guardar
+          </button>
+        </div>
+        <div fxFlex="50%" style="text-align: center">
+          <button
+            style="width: 70%"
+            mat-raised-button
+            color="primary"
+            (click)="onCancel()"
+            type="button"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

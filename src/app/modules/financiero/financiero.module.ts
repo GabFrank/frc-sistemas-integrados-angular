@@ -13,6 +13,14 @@ import { FlexLayoutModule } from "@angular/flex-layout";
 import { ReactiveFormsModule, FormsModule } from "@angular/forms";
 import { MaterialModule } from "../../commons/core/material.module";
 import { SharedModule } from "../../shared/shared.module";
+import { ListMaletinComponent } from './maletin/list-maletin/list-maletin.component';
+import { AdicionarMaletinDialogComponent } from './maletin/adicionar-maletin-dialog/adicionar-maletin-dialog.component';
+import { ListGastosComponent } from './gastos/list-gastos/list-gastos.component';
+import { ListTipoGastosComponent } from './tipo-gastos/list-tipo-gastos/list-tipo-gastos.component';
+import { AdicionarTipoGastoDialogComponent } from './tipo-gastos/adicionar-tipo-gasto-dialog/adicionar-tipo-gasto-dialog.component';
+import { AdicionarCajaDialogComponent } from './pdv/caja/adicionar-caja-dialog/adicionar-caja-dialog.component';
+import { SinMaletinDialogComponent } from './pdv/sin-maletin-dialog/sin-maletin-dialog.component';
+import { AdicionarConteoDialogComponent } from './conteo/adicionar-conteo-dialog/adicionar-conteo-dialog.component';
 
 @NgModule({
   declarations: [
@@ -24,6 +32,14 @@ import { SharedModule } from "../../shared/shared.module";
     MaletinComponent,
     MonedaComponent,
     ListCajaComponent,
+    ListMaletinComponent,
+    AdicionarMaletinDialogComponent,
+    ListGastosComponent,
+    ListTipoGastosComponent,
+    AdicionarTipoGastoDialogComponent,
+    AdicionarCajaDialogComponent,
+    SinMaletinDialogComponent,
+    AdicionarConteoDialogComponent,
   ],
   imports: [
     CommonModule,

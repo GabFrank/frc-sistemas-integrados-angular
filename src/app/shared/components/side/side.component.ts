@@ -3,6 +3,7 @@ import { Tab } from "../../../layouts/tab/tab.model";
 import { TabService } from "../../../layouts/tab/tab.service";
 import { MainService } from "../../../main.service";
 import { FinancieroDashboardComponent } from "../../../modules/financiero/financiero-dashboard/financiero-dashboard.component";
+import { ListGastosComponent } from "../../../modules/financiero/gastos/list-gastos/list-gastos.component";
 import { ListCajaComponent } from "../../../modules/financiero/pdv/caja/list-caja/list-caja.component";
 import { ListCiudadComponent } from "../../../modules/general/ciudad/list-ciudad/list-ciudad.component";
 import { ListPaisComponent } from "../../../modules/general/pais/list-pais/list-pais.component";
@@ -91,20 +92,23 @@ export class SideComponent implements OnInit {
         );
         break;
       case "list-entrada-salida":
-      this.tabService.addTab(
-        new Tab(EntradaSalidaComponent, "Entrada/Salida", null, null)
+        this.tabService.addTab(
+          new Tab(EntradaSalidaComponent, "Entrada/Salida", null, null)
         );
         break;
       case "list-caja":
-        this.tabService.addTab(
-          new Tab(ListCajaComponent, "Cajas", null, null)
-          );
-          break;
+        this.tabService.addTab(new Tab(ListCajaComponent, "Cajas", null, null));
+        break;
       case "finanzas-dashboard":
         this.tabService.addTab(
           new Tab(FinancieroDashboardComponent, "Financiero", null, null)
-          );
-          break;
+        );
+        break;
+      case "list-gastos":
+        this.tabService.addTab(
+          new Tab(ListGastosComponent, "Gastos", null, null)
+        );
+        break;
       default:
         break;
     }

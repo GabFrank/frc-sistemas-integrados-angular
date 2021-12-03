@@ -87,6 +87,7 @@ export const productoSearchPdv = gql`
       vencimiento
       diasVencimiento
       observacion
+      codigoPrincipal
       # cambiable
       # presentaciones {
       #   id
@@ -322,6 +323,9 @@ export const productoQuery = gql`
           }
           principal
           activo
+        }
+        codigoPrincipal {
+          codigo
         }
       }
     }

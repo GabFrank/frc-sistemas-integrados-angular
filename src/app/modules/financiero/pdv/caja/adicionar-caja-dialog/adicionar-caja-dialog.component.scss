@@ -1,0 +1,21 @@
+input {
+  text-transform: uppercase;
+}
+
+::ng-deep .mat-horizontal-stepper-header {
+  pointer-events: none !important;
+}
+
+.verificarMaletin:hover {
+  color: #43a047;
+}
+
+.verificarMaletin {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+mat-stepper,
+mat-step {
+  height: 100%;
+}

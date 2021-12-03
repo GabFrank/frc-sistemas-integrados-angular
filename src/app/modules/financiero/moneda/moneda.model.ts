@@ -1,6 +1,7 @@
 import { Pais } from "../../general/pais/pais.model";
 import { Usuario } from "../../personas/usuarios/usuario.model";
 import { Cambio } from "../cambio/cambio.model";
+import { MonedaBillete } from "./moneda-billetes/moneda-billetes.model";
 import { MonedaInput } from "./moneda-input.model";
 
 export class Moneda {
@@ -11,6 +12,7 @@ export class Moneda {
   creadoEn: Date;
   usuario: Usuario;
   cambio: number;
+  monedaBilleteList: MonedaBillete[]
 
   toInput(): MonedaInput {
     let input = new MonedaInput();

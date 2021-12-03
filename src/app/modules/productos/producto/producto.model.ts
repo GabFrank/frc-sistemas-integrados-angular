@@ -32,6 +32,7 @@ export class Producto {
   productoUltimasCompras?: [ExistenciaCostoPorSucursal]
   presentaciones: Presentacion[]
   stockPorProducto?: number;
+  codigoPrincipal?: string
 }
 
 export class ExistenciaCostoPorSucursal {

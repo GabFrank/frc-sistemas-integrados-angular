@@ -8,5 +8,6 @@ export class Cargo {
   supervisadoPor: Cargo;
   sueldoBase: number;
   creadoEn: Date;
+  subcargoList: Cargo[]
   usuario: Usuario;
 }

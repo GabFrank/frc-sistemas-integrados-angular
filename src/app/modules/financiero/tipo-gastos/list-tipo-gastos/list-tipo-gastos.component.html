@@ -1,0 +1,136 @@
+<div fxLayout="column" style="width: 100%" [style.height.px]="containerHeight">
+  <div fxFlex="5" style="width: 100%; text-align: center">
+    <h3>Tipo Gastos</h3>
+  </div>
+  <div fxFlex fxLayout="row" fxLayoutGap="20px">
+    <div fxFlex="70%">
+      <mat-card
+        style="background-color: rgb(32, 32, 32)"
+        [style.height.px]="treeHeight"
+      >
+        <button
+          mat-icon-button
+          matTooltip="Adicionar gasto"
+          (click)="addNewItem(node)"
+        >
+          <mat-icon>add</mat-icon>
+        </button>
+        <mat-tree
+          [dataSource]="dataSource"
+          [treeControl]="treeControl"
+          style="background-color: rgb(32, 32, 32)"
+        >
+          <!-- This is the tree node template for leaf nodes -->
+          <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding>
+            <!-- use a disabled button to provide padding for tree leaf -->
+            <button mat-icon-button disabled></button>
+            <div
+              style="cursor: pointer"
+              [class.selectedNode]="selectedNode == node"
+              (click)="onSelectNode(node)"
+            >
+              {{ node.id }} - {{ node.name }}
+            </div>
+            <!-- <button
+              mat-icon-button
+              matTooltip="Adicionar gasto"
+              (click)="addNewItem(node)"
+            >
+              <mat-icon>add</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              matTooltip="Adicionar gasto"
+              (click)="editItem(node)"
+            >
+              <mat-icon>edit</mat-icon>
+            </button> -->
+          </mat-tree-node>
+          <!-- This is the tree node template for expandable nodes -->
+          <mat-tree-node
+            *matTreeNodeDef="let node; when: hasChild"
+            matTreeNodePadding
+          >
+            <button
+              mat-icon-button
+              matTreeNodeToggle
+              [attr.aria-label]="'Toggle ' + node.name"
+              (click)="onSelectNode(node)"
+            >
+              <mat-icon class="mat-icon-rtl-mirror">
+                {{
+                  treeControl.isExpanded(node) ? "expand_more" : "chevron_right"
+                }}
+              </mat-icon>
+            </button>
+            <div
+              style="cursor: pointer"
+              matTreeNodeToggle
+              [attr.aria-label]="'Toggle ' + node.name"
+              (click)="onSelectNode(node)"
+              [class.selectedNode]="selectedNode == node"
+            >
+              {{ node.id }} - {{ node.name }}
+            </div>
+            <!-- <button
+              mat-icon-button
+              matTooltip="Adicionar gasto"
+              (click)="addNewItem(node)"
+            >
+              <mat-icon>add</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              matTooltip="Adicionar gasto"
+              (click)="editItem(node)"
+            >
+              <mat-icon>edit</mat-icon>
+            </button> -->
+          </mat-tree-node>
+        </mat-tree>
+      </mat-card>
+    </div>
+    <div fxFlex="30%">
+      <mat-card
+        style="background-color: rgb(32, 32, 32)"
+        [style.height.px]="treeHeight"
+      >
+        <div
+          fxLayout="column"
+          style="width: 100%"
+          *ngIf="selectedTipoGasto != null"
+          fxLayoutGap="10px"
+        >
+          <div fxFlex style="width: 100%; text-align: center">
+            <h3>{{ selectedTipoGasto?.descripcion | uppercase }}</h3>
+          </div>
+          <div fxFlex *ngIf="selectedTipoGasto?.clasificacionGasto != null">
+            Clasificación:
+            {{ selectedTipoGasto?.clasificacionGasto.descripcion | uppercase }}
+          </div>
+          <div fxFlex>
+            Estado:
+            {{ selectedTipoGasto?.activo == true ? "Activo" : "Inactivo" }}
+          </div>
+          <div fxFlex>
+            Requiere autorización:
+            {{ selectedTipoGasto?.autorizacion == true ? "Si" : "No" }}
+          </div>
+          <div fxFlex *ngIf="selectedTipoGasto?.autorizacion == true">
+            Cargo: {{ selectedTipoGasto?.cargo?.nombre | uppercase }}
+          </div>
+          <br>
+          <br>
+          <div fxFlex fxLayout="row" fxLayoutGap="20px" fxLayoutAlign="center center">
+            <div fxFlex="30%">
+              <button type="button" style="width: 100%;" mat-raised-button color="primary" (click)="addNewItem()">+ Subtipo</button>
+            </div>
+            <div fxFlex="30%">
+              <button type="button" style="width: 100%;" mat-raised-button color="primary" (click)="editItem()">Editar</button>
+            </div>
+          </div>
+        </div>        
+      </mat-card>
+    </div>
+  </div>
+</div>
