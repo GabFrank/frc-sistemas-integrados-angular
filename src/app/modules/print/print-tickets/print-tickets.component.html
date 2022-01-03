@@ -1,0 +1,121 @@
+<div fxLayout="row">
+  <div fxFlex="50%">
+    <div
+      #ticket
+      fxLayout="column"
+      fxLayoutGap="10px"
+      fxLayoutAlign="space-around center"
+      style="width: 75mm; height: 500px; background-color: white; color: black"
+    >
+    <div fxFlex="5" style="font-size: 2em;">
+      FIESTA
+    </div>
+    <div fxFlex="5" style="font-size: 2em; font-weight: bold;">
+      NOCHE BUENA
+    </div>
+    <div fxFlex="5" style="font-size: 1em; font-weight: bold;">
+      Club Nacional
+    </div>
+      <div fxFlex="5%">
+        <h1>ENTRADAS ANTICIPADAS</h1>
+      </div>
+      <div fxFlex="5%" style="font-weight: bold; font-size: 2.5em;">
+        40.000 GS
+      </div>
+      <div fxFlex="20">
+        <ngx-barcode
+          width="200"
+          height="50"
+          bc-value="diamante500"
+          [bc-display-value]="false"
+        ></ngx-barcode>
+      </div>
+      <div fxFlex="10">
+        <h2>TICKETEA.COM</h2>
+      </div>
+    </div>
+
+    <br />
+
+    <div fxLayout="column">
+      <div fxFlex>
+        <mat-form-field>
+          <mat-label>Cantidad</mat-label>
+          <input
+            type="number"
+            matInput
+            style="text-align: center"
+            [formControl]="cantidadControl"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex>
+        <mat-form-field>
+          <mat-label>Vale Cantidad</mat-label>
+          <input matInput type="number" [formControl]="valeControl" />
+        </mat-form-field>
+      </div>
+      <div fxFlex>
+        <mat-form-field style="width: 100%">
+          <mat-label>Producto</mat-label>
+          <input matInput type="text" [formControl]="nombreControl" />
+        </mat-form-field>
+      </div>
+      <div fxFlex>
+        <button mat-raised-button color="primary" (click)="onImprimir()">
+          Imprimir
+        </button>
+      </div>
+    </div>
+
+    <div id="download">
+      <img #canvas />
+      <a #downloadLink></a>
+    </div>
+  </div>
+  <div fxFlex="50%">
+    <div fxLayout="column">
+      <div
+        #ticket2
+        fxLayout="column"
+        fxLayoutGap="10px"
+        fxLayoutAlign="space-around center"
+        style="
+          width: 58mm;
+          height: 250px;
+          background-color: white;
+          color: black;
+        "
+      >
+        <div fxFlex="5" style="font-size: 2em;">
+          FIESTA
+        </div>
+        <div fxFlex="5" style="font-size: 2em; font-weight: bold;">
+          NOCHE BUENA
+        </div>
+        <div fxFlex="5">
+          <h1 style="font-weight: bold">VALE 1</h1>
+        </div>
+        <div fxFlex="15%" style="font-size: 2em; font-weight: bold">
+          AGUA TONICA
+        </div>
+        <div fxFlex="10">
+          <h2>TICKETEA.COM</h2>
+        </div>
+      </div>
+    </div>
+
+    <div fxFlex>
+        <button mat-raised-button color="primary" (click)="onImprimir2()">
+          Imprimir
+        </button>
+      </div>
+
+    <br />
+
+    <div id="download">
+      <img #canvas2 />
+      <a #downloadLink2></a>
+    </div>
+  </div>
+</div>

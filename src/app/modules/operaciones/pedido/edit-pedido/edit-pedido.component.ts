@@ -49,12 +49,13 @@ import { PedidoItemService } from '../pedido-itens/pedido-item.service';
 import { PedidoItemSucursalInput } from '../pedido-itens/pedido-item-sucursal/pedido-item-sucursal.model';
 import { PedidoItensDialogComponent } from '../pedido-itens/pedido-itens-dialog/pedido-itens-dialog.component';
 import { PedidoService } from '../pedido.service';
-import { FormaPago, PedidoEstado } from './pedido-enums';
+import { PedidoEstado } from './pedido-enums';
 import { PedidoItem, PedidoItemInput } from './pedido-item.model';
 import { Pedido, PedidoFormModel, PedidoInput } from './pedido.model';
 import { savePedidoItemSucursal } from '../pedido-itens/pedido-item-sucursal/graphql/graphql-query';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { MatOptionSelectionChange } from '@angular/material/core';
+import { FormaPago } from '../../../financiero/forma-pago/forma-pago.model';
 
 export interface Transaction {
   item: string;
@@ -143,26 +144,26 @@ export class EditPedidoComponent implements OnInit {
     this.initialSelection
   );
 
-  formaPagoOptions: Record<string, string>[] = [
-    {
-      titulo: 'Efectivo',
-      valor: FormaPago.EFECTIVO,
-    },
-    {
-      titulo: 'Cheque',
-      valor: FormaPago.CHEQUE,
-    },
-    {
-      titulo: 'Crédito',
-      valor: FormaPago.CREDITO,
-    },
-    {
-      titulo: 'Transferencia',
-      valor: FormaPago.TRANSFERENCIA,
-    },
-  ];
+  // formaPagoOptions: Record<string, string>[] = [
+  //   {
+  //     titulo: 'Efectivo',
+  //     valor: FormaPago.EFECTIVO,
+  //   },
+  //   {
+  //     titulo: 'Cheque',
+  //     valor: FormaPago.CHEQUE,
+  //   },
+  //   {
+  //     titulo: 'Crédito',
+  //     valor: FormaPago.CREDITO,
+  //   },
+  //   {
+  //     titulo: 'Transferencia',
+  //     valor: FormaPago.TRANSFERENCIA,
+  //   },
+  // ];
 
-  formaDePagoDefault = this.formaPagoOptions[0];
+  // formaDePagoDefault = this.formaPagoOptions[0];
 
   constructor(
     private vendedorSearchByPersona: VendedoresSearchByPersonaGQL,
@@ -237,7 +238,7 @@ export class EditPedidoComponent implements OnInit {
     });
 
     this.formGroup.get('isSoloProductosProveedor').setValue(false);
-    this.formGroup.get('formaPago').setValue(this.formaDePagoDefault.valor)
+    // this.formGroup.get('formaPago').setValue(this.formaDePagoDefault.valor)
   }
 
   activarAutoguardadoDialog(){
@@ -697,11 +698,11 @@ export class EditPedidoComponent implements OnInit {
     venList.push(this.pedido.vendedor)
     this.addVendedores(venList)
     this.addProveedores(proList);
-    let formaPagoIndex = this.formaPagoOptions.findIndex((fp) => {
-      return fp.valor === this.pedido.formaPago.toString()
-    });
-    this.formaDePagoDefault = this.formaPagoOptions[formaPagoIndex]
-    this.formGroup.get('formaPago').setValue(this.formaDePagoDefault.valor)
+    // let formaPagoIndex = this.formaPagoOptions.findIndex((fp) => {
+    //   return fp.valor === this.pedido.formaPago.toString()
+    // });
+    // this.formaDePagoDefault = this.formaPagoOptions[formaPagoIndex]
+    // this.formGroup.get('formaPago').setValue(this.formaDePagoDefault.valor)
     this.formGroup.get('isSoloProductosProveedor').setValue(true)
     this.formGroup.get('moneda').setValue(this.pedido?.moneda.id);
     this.formGroup.get('fechaDeEntrega').setValue(this.pedido?.fechaDeEntrega)

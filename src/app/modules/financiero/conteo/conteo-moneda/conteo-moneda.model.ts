@@ -10,6 +10,18 @@ export class ConteoMoneda {
     observacion: string
     creadoEn: Date
     usuario: Usuario
+
+    public toInput(): ConteoMonedaInput{
+        let input = new ConteoMonedaInput()
+        input.id = this.id;
+        input.observacion = this.observacion;
+        input.usuarioId = this.usuario?.id;
+        input.cantidad = this.cantidad;
+        input.creadoEn = this.creadoEn;
+        input.conteoId = this.conteo?.id;
+        input.monedaBilletesId = this.monedaBilletes?.id;
+        return input;
+    }
 }
 
 export class ConteoMonedaInput {

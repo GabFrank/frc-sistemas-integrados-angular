@@ -1,15 +1,15 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
 import { Funcionario } from '../funcionario.model';
-import { funcionarioQuery } from './graphql-query';
+import { funcionarioQuery, funcionariosSearch } from './graphql-query';
 
 export interface Response {
-  data: Funcionario;
+  data: Funcionario[];
 }
 
 @Injectable({
   providedIn: 'root',
 })
-export class FuncionarioByIdGQL extends Query<Response> {
-  document = funcionarioQuery;
+export class FuncionarioSearchGQL extends Query<Response> {
+  document = funcionariosSearch;
 }

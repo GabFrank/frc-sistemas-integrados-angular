@@ -2,10 +2,11 @@ import { HttpClient } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { DialogRole, MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { ConnectionService } from "ngx-connection-service";
-import { BehaviorSubject } from "rxjs";
+import { BehaviorSubject, Subscription } from "rxjs";
 import { Observable } from "zen-observable-ts";
 import { ipAddress } from "../environments/conectionConfig";
 import { environment } from "../environments/environment";
+import { connectionStatusSub } from "./app.module";
 import { SucursalByIdGQL } from "./modules/empresarial/sucursal/graphql/sucursalById";
 import { Sucursal } from "./modules/empresarial/sucursal/sucursal.model";
 import { monedasSearch } from "./modules/financiero/moneda/graphql/graphql-query";
@@ -27,13 +28,14 @@ export class MainService {
   monedas: Moneda[] = [];
   ciudadId: 1;
   status;
-  statusSub: BehaviorSubject<string> = new BehaviorSubject<string>("online");
+  statusSub: Subscription;
   authenticationSub: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(null);
   hasNetworkConnection: boolean;
   hasInternetAccess: boolean;
   ipLocal = "";
   logged = false;
   serverIpAddres = ipAddress;
+
   // isUserLoggerSub = new BehaviorSubject<boolean>(false);
 
   constructor(
@@ -47,6 +49,8 @@ export class MainService {
       this.ipLocal = res.ip;
     });
     localStorage.setItem('serverIpAddress', this.serverIpAddres)
+
+    
   }
 
   isAuthenticated(): Observable<boolean> {

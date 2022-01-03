@@ -5,12 +5,15 @@ import { FlexLayoutModule } from '@angular/flex-layout';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
+import { PrintTicketsComponent } from './print-tickets/print-tickets.component';
+import { NgxBarcodeModule } from 'ngx-barcode';
 
 
 
 @NgModule({
   declarations: [
-    PrintDesignComponent
+    PrintDesignComponent,
+    PrintTicketsComponent
   ],
   imports: [
     CommonModule,
@@ -18,7 +21,8 @@ import { SharedModule } from '../../shared/shared.module';
     ReactiveFormsModule,
     FormsModule,
     MaterialModule,
-    SharedModule
+    SharedModule,
+    NgxBarcodeModule
   ],
   exports: [
     PrintDesignComponent

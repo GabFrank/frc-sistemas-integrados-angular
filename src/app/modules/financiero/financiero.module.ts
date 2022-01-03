@@ -21,6 +21,9 @@ import { AdicionarTipoGastoDialogComponent } from './tipo-gastos/adicionar-tipo-
 import { AdicionarCajaDialogComponent } from './pdv/caja/adicionar-caja-dialog/adicionar-caja-dialog.component';
 import { SinMaletinDialogComponent } from './pdv/sin-maletin-dialog/sin-maletin-dialog.component';
 import { AdicionarConteoDialogComponent } from './conteo/adicionar-conteo-dialog/adicionar-conteo-dialog.component';
+import { AdicionarRetiroDialogComponent } from './retiro/adicionar-retiro-dialog/adicionar-retiro-dialog.component';
+import { ListRetiroComponent } from './retiro/list-retiro/list-retiro.component';
+import { AdicionarGastoDialogComponent } from './gastos/adicionar-gasto-dialog/adicionar-gasto-dialog.component';
 
 @NgModule({
   declarations: [
@@ -40,6 +43,9 @@ import { AdicionarConteoDialogComponent } from './conteo/adicionar-conteo-dialog
     AdicionarCajaDialogComponent,
     SinMaletinDialogComponent,
     AdicionarConteoDialogComponent,
+    AdicionarRetiroDialogComponent,
+    ListRetiroComponent,
+    AdicionarGastoDialogComponent,
   ],
   imports: [
     CommonModule,

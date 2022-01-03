@@ -1,10 +1,3 @@
-export enum FormaPago {
-  EFECTIVO = 'EFECTIVO',
-  TRANSFERENCIA = 'TRANSFERENCIA',
-  CHEQUE = 'CHEQUE',
-  CREDITO = 'CREDITO'
-}
-
 export enum PedidoEstado {
   ABIERTO = 'ABIERTO',
   ACTIVO = 'ACTIVO',

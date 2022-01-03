@@ -2,8 +2,9 @@ import { Moneda } from '../../../../modules/financiero/moneda/moneda.model';
 import { Proveedor } from '../../../../modules/personas/proveedor/proveedor.model';
 import { Usuario } from '../../../../modules/personas/usuarios/usuario.model';
 import { PedidoItem } from '../../../../modules/operaciones/pedido/edit-pedido/pedido-item.model';
-import { FormaPago, PedidoEstado } from './pedido-enums';
 import { Vendedor } from '../../../../modules/personas/vendedor/graphql/vendedorSearchByPersona';
+import { FormaPago } from '../../../financiero/forma-pago/forma-pago.model';
+import { PedidoEstado } from './pedido-enums';
 
 export class Pedido {
   id: number;

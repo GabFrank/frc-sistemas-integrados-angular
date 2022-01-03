@@ -1,5 +1,7 @@
 import { Injectable } from "@angular/core";
-import { Observable } from "rxjs";
+import { Form } from "@angular/forms";
+import { BehaviorSubject, Observable } from "rxjs";
+import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { FormaPago } from "./forma-pago.model";
 import { FormaPagoGetAllGQL } from "./graphql/allFormaPago";
 import { FormaPagoByIdGQL } from "./graphql/formaPagoById";
@@ -8,10 +10,19 @@ import { FormaPagoByIdGQL } from "./graphql/formaPagoById";
   providedIn: "root",
 })
 export class FormaPagoService {
+  formaPagoSub = new BehaviorSubject<FormaPago[]>(null);
+  formaPagoList: FormaPago[] = []
+
   constructor(
     private getFormaPago: FormaPagoByIdGQL,
-    private getAllFormaPago: FormaPagoGetAllGQL
-  ) {}
+    private getAllFormaPago: FormaPagoGetAllGQL,
+    private genericService: GenericCrudService
+  ) {
+    this.onGetAllFormaPago().subscribe(res => {
+      this.formaPagoList = res;
+      this.formaPagoSub.next(res);
+    })
+  }
 
   onGetFormaPago(id) {
     return this.getFormaPago.fetch(
@@ -25,23 +36,7 @@ export class FormaPagoService {
     );
   }
 
-  onGetAllFormaPago(): Observable<FormaPago[] | null> {
-    return new Observable((obs) => {
-      this.getAllFormaPago.fetch(
-        {},
-        {
-          fetchPolicy: "no-cache",
-          errorPolicy: "all",
-        }
-      ).subscribe(res => {
-        console.log(res)
-        if(res.errors==null){
-        
-          obs.next(res.data.data)
-        } else {
-          //"Validation error of type FieldUndefined: Field 'formasPagos' in type 'Query' is undefined @ 'formasPagos'"
-        }
-      })
-    });
+  onGetAllFormaPago(): Observable<any> {
+    return this.genericService.onGetAll(this.getAllFormaPago);
   }
 }

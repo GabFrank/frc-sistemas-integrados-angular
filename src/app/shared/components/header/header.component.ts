@@ -1,9 +1,10 @@
-import { Component, OnInit, Output, EventEmitter } from "@angular/core";
+import { Component, OnInit, Output, EventEmitter, OnDestroy } from "@angular/core";
 import { FormControl } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { Router } from "@angular/router";
-import { Observable } from "rxjs";
+import { Observable, Subscription } from "rxjs";
 import { relaunchElectron } from "../../../../../app/main";
+import { connectionStatusSub } from "../../../app.module";
 import { ElectronService } from "../../../commons/core/electron/electron.service";
 import { TabService } from "../../../layouts/tab/tab.service";
 import { MainService } from "../../../main.service";
@@ -15,12 +16,13 @@ import { CargandoDialogService } from "../cargando-dialog/cargando-dialog.servic
   templateUrl: "./header.component.html",
   styleUrls: ["./header.component.scss"],
 })
-export class HeaderComponent implements OnInit {
-  status = "online";
+export class HeaderComponent implements OnInit, OnDestroy {
+  status = false;
   statusObs: Observable<any>;
   serverIpAddress = ''
   editServerIp = false;
   serverIpControl = new FormControl()
+  statusSub: Subscription;
 
   @Output() toogleSideBarEvent: EventEmitter<any> = new EventEmitter();
 
@@ -39,7 +41,10 @@ export class HeaderComponent implements OnInit {
   }
 
   ngOnInit(): void {
-
+    this.statusSub = connectionStatusSub.subscribe(res => {
+      console.log(res)
+      this.status = res;
+    });
   }
 
   toogleSideBar() {
@@ -71,6 +76,13 @@ export class HeaderComponent implements OnInit {
       // });
       
     }, 1000);
+  }
+
+  ngOnDestroy(): void {
+    //Called once, before the instance is destroyed.
+    //Add 'implements OnDestroy' to the class.
+    this.statusSub.unsubscribe()
+
   }
 
 }

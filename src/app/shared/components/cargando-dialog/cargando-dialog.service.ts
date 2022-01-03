@@ -10,10 +10,11 @@ export class CargandoDialogService {
 
   constructor(private matDialog: MatDialog) {}
 
-  openDialog() {
+  openDialog(disable?: boolean) {
+    if(disable==null) disable = false;
     if (this.dialogRef == null) {
       this.dialogRef = this.matDialog.open(CargandoDialogComponent, {
-        disableClose: false,
+        disableClose: disable,
       });
     }
   }

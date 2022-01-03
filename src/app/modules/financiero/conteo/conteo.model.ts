@@ -7,6 +7,9 @@ export class Conteo {
     creadoEn: Date
     usuario: Usuario
     conteoMonedaList: ConteoMoneda[]
+    totalGs: number;
+    totalRs; number;
+    totalDs: number;
 
     public toInput(): ConteoInput{
         let conteoInput = new ConteoInput()
@@ -14,6 +17,9 @@ export class Conteo {
         conteoInput.observacion = this.observacion;
         conteoInput.usuarioId = this.usuario?.id;
         conteoInput.creadoEn = this.creadoEn;
+        conteoInput.totalGs = this.totalGs;
+        conteoInput.totalRs = this.totalRs;
+        conteoInput.totalDs = this.totalDs;
         return conteoInput;
     }
 }
@@ -23,4 +29,7 @@ export class ConteoInput {
     observacion: String
     creadoEn: Date
     usuarioId: number
+    totalGs: number;
+    totalRs; number;
+    totalDs: number;
 }

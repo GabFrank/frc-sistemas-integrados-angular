@@ -1,0 +1,208 @@
+<div fxLayout="row" style="width: 100%; height: 100%;">
+  <mat-card
+    fxFlex="30%"
+    fxLayout="column"
+    fxLayoutGap="10px"
+    style="background-color: rgb(32, 32, 32); height: 100%"
+  >
+    <div fxFlex="70%" fxLayout="column" fxLayoutAlign="start" style="width: 100%;">
+      <div fxFlex="10">
+        <button
+          style="width: 100%"
+          [color]="stepper.selectedIndex == 0 ? 'accent' : ''"
+          (click)="goTo('nuevo-gasto')"
+          mat-raised-button
+        >
+          Nuevo Gasto
+        </button>
+      </div>
+      <div fxFlex="10">
+        <button
+          style="width: 100%"
+          [color]="stepper.selectedIndex == 1 ? 'accent' : ''"
+          mat-raised-button
+          (click)="goTo('lista-gastos')"
+        >
+          Lista de Gastos
+        </button>
+      </div>
+      <br />
+    </div>
+    <div fxFlex="30%" fxLayout="column" fxLayoutAlign="end">
+      <div fxFlex="10">
+        <button
+          style="width: 100%"
+          color="primary"
+          mat-raised-button
+          (click)="goTo('salir')"
+        >
+          Salir
+        </button>
+      </div>
+    </div>
+  </mat-card>
+  <div fxFlex="70%" fxLayout="column">
+    <div fxFlex="90">
+      <mat-stepper linear #stepper>
+        <mat-step>
+          <ng-template matStepLabel>Nuevo Gasto</ng-template>
+          <div fxLayout="column" style="width: 400px">
+            <div fxFlex>
+              <mat-form-field style="width: 100%">
+                <mat-label>Responsable</mat-label>
+                <input
+                  #responsableInput
+                  type="text"
+                  matInput
+                  [formControl]="responsableControl"
+                  oninput="this.value == ' ' ? this.value = '': null"
+                  [matAutocomplete]="autoResponsable"
+                />
+                <mat-autocomplete
+                  #autoResponsable="matAutocomplete"
+                  (optionSelected)="onResponsableSelect($event.option.value)"
+                  (closed)="onResponsableAutocompleteClose()"
+                >
+                  <mat-option
+                    *ngFor="let funcionario of responsableList"
+                    [value]="funcionario"
+                  >
+                    {{ funcionario.id }} -
+                    {{ funcionario?.persona?.nombre | uppercase }}
+                  </mat-option>
+                </mat-autocomplete>
+              </mat-form-field>
+            </div>
+            <div fxFlex>
+              <mat-form-field style="width: 100%">
+                <mat-label>Tipo</mat-label>
+                <input
+                  #tipoGastoInput
+                  type="text"
+                  matInput
+                  [formControl]="tipoGastoControl"
+                  oninput="this.value == ' ' ? this.value = '': null"
+                  [matAutocomplete]="autoTipoGasto"
+                />
+                <mat-autocomplete
+                  #autoTipoGasto="matAutocomplete"
+                  (optionSelected)="onTipoGastoSelect($event.option.value)"
+                  (closed)="onTipoGastoAutocompleteClose()"
+                >
+                  <mat-option
+                    *ngFor="let tipoGasto of tipoGastoList"
+                    [value]="tipoGasto"
+                  >
+                    {{ tipoGasto.id }} -
+                    {{ tipoGasto?.descripcion | uppercase }}
+                  </mat-option>
+                </mat-autocomplete>
+              </mat-form-field>
+            </div>
+            <div fxFlex *ngIf="selectedTipoGasto?.autorizacion == true">
+              <mat-form-field style="width: 100%">
+                <mat-label>Autorizado Por</mat-label>
+                <input
+                  #autorizadoPorInput
+                  type="text"
+                  matInput
+                  [formControl]="autorizadoPorControl"
+                  oninput="this.value == ' ' ? this.value = '': null"
+                  [matAutocomplete]="autoAutorizadoPor"
+                />
+                <mat-autocomplete
+                  #autoAutorizadoPor="matAutocomplete"
+                  (optionSelected)="onAutorizadoPorSelect($event.option.value)"
+                  (closed)="onAutorizadoPorAutocompleteClose()"
+                >
+                  <mat-option
+                    *ngFor="let autorizadoPor of autorizadoPorList"
+                    [value]="autorizadoPor"
+                  >
+                    {{ autorizadoPor.id }} -
+                    {{ autorizadoPor?.persona?.nombre | uppercase }}
+                  </mat-option>
+                </mat-autocomplete>
+              </mat-form-field>
+            </div>
+            <div #retiro fxFlex fxLayout="row" style="width: 100%">
+              <mat-form-field style="width: 100%">
+                <mat-label>Observación</mat-label>
+                <input
+                  type="text"
+                  matInput
+                  [formControl]="observacionControl"
+                />
+              </mat-form-field>
+            </div>
+            <div fxFlex>
+              <mat-form-field style="width: 100%">
+                <mat-label>Guaranies G$</mat-label>
+                <input
+                  type="text"
+                  matInput
+                  [formControl]="guaraniControl"
+                  currencyMask
+                  [options]="currencyMask.currencyOptionsGuarani"
+                />
+              </mat-form-field>
+            </div>
+            <div fxFlex>
+              <mat-form-field style="width: 100%">
+                <mat-label>Reales R$</mat-label>
+                <input
+                  type="text"
+                  matInput
+                  [formControl]="realControl"
+                  currencyMask
+                  [options]="currencyMask.currencyOptionsNoGuarani"
+                />
+              </mat-form-field>
+            </div>
+            <div fxFlex>
+              <mat-form-field style="width: 100%">
+                <mat-label>Dolares D$</mat-label>
+                <input
+                  type="text"
+                  matInput
+                  [formControl]="dolarControl"
+                  currencyMask
+                  [options]="currencyMask.currencyOptionsNoGuarani"
+                />
+              </mat-form-field>
+            </div>
+            <div
+              fxFlex
+              *ngIf="
+                selectedResponsable != null &&
+                selectedTipoGasto != null &&
+                autorizado == true &&
+                verficarValores()
+              "
+            >
+              <button
+                style="width: 100%; height: 100%; font-size: 1.2em"
+                mat-raised-button
+                color="accent"
+                (click)="onGuardar()"
+              >
+                Guardar
+              </button>
+            </div>
+            <br />
+            <div fxFlex>
+              <button
+                style="width: 100%; height: 100%; font-size: 1.2em"
+                mat-raised-button
+                color="primary"
+                (click)="onCancelar()"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </mat-step>
+      </mat-stepper>
+    </div>
+  </div>
+</div>

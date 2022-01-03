@@ -90,7 +90,7 @@ export const rootTipoGastoQuery = gql`
 
 export const tipoGastosSearch = gql`
   query ($texto: String) {
-    tipoGastos: tipoGastosSearch(texto: $texto) {
+    data: tipoGastosSearch(texto: $texto) {
       id
       isClasificacion
       clasificacionGasto {
@@ -118,6 +118,7 @@ export const tipoGastosSearch = gql`
     }
   }
 `;
+
 
 export const tipoGastoQuery = gql`
   query ($id: ID!) {

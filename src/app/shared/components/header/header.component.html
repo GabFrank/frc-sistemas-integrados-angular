@@ -89,7 +89,7 @@
         <div fxLayout="column" fxLayoutAlign="center center">
           <div fxFlex="10" style="font-size: 0.5em">Status</div>
           <div
-            *ngIf="status == 'online'"
+            *ngIf="status == true"
             fxFlex="10"
             style="font-size: 0.6em; color: #43a047"
           >
@@ -97,7 +97,7 @@
           </div>
 
           <div
-            *ngIf="status == 'offline'"
+            *ngIf="status == false"
             fxFlex="10"
             style="font-size: 0.6em; color: #f44336"
           >
@@ -105,7 +105,7 @@
           </div>
 
           <div
-            *ngIf="status == 'loading'"
+            *ngIf="status == null"
             fxFlex="10"
             style="font-size: 0.6em; color: #f44336"
           >

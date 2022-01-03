@@ -3,10 +3,11 @@ import { Observable } from 'rxjs';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { AllTipoGastosGQL } from './graphql/AllTipoGastos';
 import { DeleteTipoGastoGQL } from './graphql/deleleTipoGasto';
-import { saveTipoGasto } from './graphql/graphql-query';
+import { saveTipoGasto, tipoGastosSearch } from './graphql/graphql-query';
 import { RootTipoGastosGQL } from './graphql/rootTipoGasto';
 import { SaveTipoGastoGQL } from './graphql/saveTipoGasto';
 import { TipoGastoPorIdGQL } from './graphql/tipoGastoPorId';
+import { TipoGastoSearchGQL } from './graphql/tipoGastosSearch';
 import { TipoGasto } from './list-tipo-gastos/tipo-gasto.model';
 
 @Injectable({
@@ -20,7 +21,8 @@ export class TipoGastoService {
     private getRootTipoGasto: RootTipoGastosGQL,
     private onSaveTipoGasto: SaveTipoGastoGQL,
     private tipoGastoPorId: TipoGastoPorIdGQL,
-    private deleteTipoGasto: DeleteTipoGastoGQL
+    private deleteTipoGasto: DeleteTipoGastoGQL,
+    private tipoGastoSearch: TipoGastoSearchGQL
   ) { }
 
   onGetAll(): Observable<any> {
@@ -41,5 +43,9 @@ export class TipoGastoService {
 
   onDelete(id): Observable<any>{
     return this.genericService.onDelete(this.deleteTipoGasto, id);
+  }
+
+  onSearch(texto): Observable<any>{
+    return this.genericService.onGetByTexto(this.tipoGastoSearch, texto);
   }
 }

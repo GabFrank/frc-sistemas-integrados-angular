@@ -1,0 +1,80 @@
+<div fxLayout="column" style="width: 400px">
+  <div fxFlex style="width: 100%; text-align: center">
+    <h1>Nuevo Retiro</h1>
+  </div>
+  <div #retiro fxFlex fxLayout="row" style="width: 100%">
+    <mat-form-field style="width: 100%">
+        <mat-label>Responsable</mat-label>
+        <input
+          #responsableInput
+          type="text"
+          matInput
+          [formControl]="responsableControl"
+          oninput="this.value == ' ' ? this.value = '': null"
+          [matAutocomplete]="auto"
+        />
+        <mat-autocomplete
+          #auto="matAutocomplete"
+          (optionSelected)="onResponsableSelect($event.option.value)"
+          (closed)="onResponsableAutocompleteClose()"
+        >
+          <mat-option
+            *ngFor="let funcionario of funcionarioList"
+            [value]="funcionario"
+          >
+            {{ funcionario.id }} -
+            {{ funcionario?.persona?.nombre | uppercase }}
+          </mat-option>
+        </mat-autocomplete>
+      </mat-form-field>
+  </div>
+  <div #retiro fxFlex fxLayout="row" style="width: 100%">
+    <mat-form-field style="width: 100%">
+      <mat-label>Observación</mat-label>
+      <input type="text" matInput [formControl]="observacionControl" />
+    </mat-form-field>
+  </div>
+  <div fxFlex>
+    <mat-form-field style="width: 100%">
+      <mat-label>Guaranies G$</mat-label>
+      <input
+        type="text"
+        matInput
+        [formControl]="guaraniControl"
+        currencyMask
+        [options]="currencyMask.currencyOptionsGuarani"
+      />
+    </mat-form-field>
+  </div>
+  <div fxFlex>
+    <mat-form-field style="width: 100%">
+      <mat-label>Reales R$</mat-label>
+      <input
+        type="text"
+        matInput
+        [formControl]="realControl"
+        currencyMask
+        [options]="currencyMask.currencyOptionsNoGuarani"
+      />
+    </mat-form-field>
+  </div>
+  <div fxFlex>
+    <mat-form-field style="width: 100%">
+      <mat-label>Dolares D$</mat-label>
+      <input
+        type="text"
+        matInput
+        [formControl]="dolarControl"
+        currencyMask
+        [options]="currencyMask.currencyOptionsNoGuarani"
+      />
+    </mat-form-field>
+  </div>
+  <div fxFlex *ngIf="selectedResponsable!=null && verficarValores()">
+      <button style="width: 100%; height: 100%; font-size: 1.2em;" mat-raised-button color="accent" (click)="onGuardar()">Guardar</button>
+  </div>
+  <br>
+  <div fxFlex>
+    <button style="width: 100%; height: 100%; font-size: 1.2em;" mat-raised-button color="primary" (click)="onCancelar()">Cancelar</button>
+</div>
+</div>

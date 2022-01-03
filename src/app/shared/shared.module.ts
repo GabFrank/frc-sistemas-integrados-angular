@@ -26,6 +26,7 @@ import { PanelLaterialInvisibleComponent } from './components/panel-laterial-inv
 import { VizualizarImagenDialogComponent } from './images/vizualizar-imagen-dialog/vizualizar-imagen-dialog.component';
 import { ReportTestComponent } from './report-test/report-test.component';
 import { NgxPanZoomModule } from 'ngx-panzoom';
+import { InnerDialogComponent } from './inner-dialog/inner-dialog.component';
 
 
 @NgModule({
@@ -47,6 +48,7 @@ import { NgxPanZoomModule } from 'ngx-panzoom';
     PanelLaterialInvisibleComponent,
     VizualizarImagenDialogComponent,
     ReportTestComponent,
+    InnerDialogComponent,
     ],
   imports: [
     CommonModule,
@@ -69,7 +71,8 @@ import { NgxPanZoomModule } from 'ngx-panzoom';
     DialogosComponent,
     Imagebase64Component,
     NgxCurrencyModule,
-    NgxPanZoomModule
+    NgxPanZoomModule,
+    InnerDialogComponent
   ],
   providers: [NgxImageCompressService]
 })

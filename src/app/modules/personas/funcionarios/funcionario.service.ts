@@ -1,36 +1,53 @@
-import { Injectable, Type } from '@angular/core';
-import { AllFuncionariosGQL } from './graphql/allFuncionarios';
-import { FuncionarioInput } from './funcionario-input.model';
-import { Observable } from 'rxjs';
-import { Funcionario } from './funcionario.model';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
-import { SaveFuncionarioGQL } from './graphql/saveFuncionario';
-import { NotificacionColor, NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
+import { Injectable, Type } from "@angular/core";
+import { AllFuncionariosGQL } from "./graphql/allFuncionarios";
+import { FuncionarioInput } from "./funcionario-input.model";
+import { Observable } from "rxjs";
+import { Funcionario } from "./funcionario.model";
+import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { SaveFuncionarioGQL } from "./graphql/saveFuncionario";
+import {
+  NotificacionColor,
+  NotificacionSnackbarService,
+} from "../../../notificacion-snackbar.service";
+import { FuncionarioSearchGQL } from "./graphql/funcionarioSearch";
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: "root",
 })
 export class FuncionarioService {
-
   constructor(
     private genericCrud: GenericCrudService,
     private getAllFuncionarios: AllFuncionariosGQL,
     private saveFuncionario: SaveFuncionarioGQL,
-    private notificacionBar: NotificacionSnackbarService
-  ){}
+    private notificacionBar: NotificacionSnackbarService,
+    private searchFuncionario: FuncionarioSearchGQL
+  ) {}
 
-  onGetAllFuncionarios(): Observable<Funcionario[]>{
+  onGetAllFuncionarios(): Observable<Funcionario[]> {
     return this.genericCrud.onGetAll(this.getAllFuncionarios);
   }
 
-  onGetFuncionarioById(id){
+  onGetFuncionarioById(id) {}
 
+  onFuncionarioSearch(texto: string): Observable<any> {
+    return new Observable(obs => {
+      this.searchFuncionario
+      .fetch({ texto }, { fetchPolicy: "no-cache", errorPolicy: "all" })
+      .subscribe((res) => {
+        if(res.errors==null){
+          obs.next(res.data.data)
+        } else {
+          console.log(res)
+          obs.next(null)
+        }
+      });
+    })
   }
 
-  onSaveFuncionario(input: FuncionarioInput): Observable<Funcionario>{
-    console.log(input)
+  onSaveFuncionario(input: FuncionarioInput): Observable<Funcionario> {
+    console.log(input);
     return new Observable((obs) => {
-      if(input.id == null && input.usuarioId == null){
+      if (input.id == null && input.usuarioId == null) {
         input.usuarioId = +localStorage.getItem("usuarioId");
       }
       this.saveFuncionario
@@ -61,7 +78,5 @@ export class FuncionarioService {
     });
   }
 
-  onDeleteFuncionario(id){
-
-  }
+  onDeleteFuncionario(id) {}
 }

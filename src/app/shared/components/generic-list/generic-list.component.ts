@@ -70,6 +70,10 @@ export class GenericListComponent implements OnInit {
     this.filtrar.emit()
   }
 
+  onFiltrar(){
+    
+  }
+
   onResetFiltro(){
     this.resetFiltro.emit()
   }

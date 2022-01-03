@@ -4,29 +4,23 @@
 >
   <div
     fxLayout="column"
-    fxLayoutAlign="space-between space-between"
     style="width: 100%; height: 100%"
     (click)="setFocusToValorInput()"
   >
-    <div
-      class="cambios"
-      fxFlex="5"
-      fxLayout="row"
-      fxLayoutAlign="center center"
-    >
+    <div class="cambios" fxFlex fxLayout="row" fxLayoutAlign="center center">
       <hr fxFlex="40" style="background-color: grey" />
-      <div style="font-size: 180%">Total</div>
+      <div style="font-size: 1.2em">Total</div>
       <hr fxFlex="40" style="background-color: grey" />
     </div>
     <div
       class="cambios"
-      fxFlex="10"
+      fxFlex
       fxLayout="row"
       fxLayoutAlign="space-between center"
       style="margin-bottom: 0px !important"
     >
       <div
-        fxFlex="33"
+        fxFlex
         FxLayout="row"
         fxLayoutAlign="center center"
         (click)="setMoneda('GUARANI')"
@@ -36,13 +30,13 @@
           <img
             src="assets/flags/py/py32.png"
             alt="br"
-            style="width: 70%; height: 70%"
+            style="width: 50%; height: 50%"
           />
         </div>
         <div
           fxFlex="80"
           class="totales-cambios"
-          [ngStyle]="{ 'font-size': '2.5em' }"
+          [ngStyle]="{ 'font-size': '1.5em' }"
         >
           {{ formGroup.controls.valorTotal.value | number: "1.0-0" }}
         </div>
@@ -58,13 +52,13 @@
           <img
             src="assets/flags/br/br32.png"
             alt="br"
-            style="width: 70%; height: 70%"
+            style="width: 50%; height: 50%"
           />
         </div>
         <div
           fxFlex="80"
           class="totales-cambios"
-          [ngStyle]="{ 'font-size': '2.5em' }"
+          [ngStyle]="{ 'font-size': '1.5em' }"
         >
           {{ formGroup.controls.valorTotal.value / cambioRs | number: "1.2-2" }}
         </div>
@@ -80,20 +74,20 @@
           <img
             src="assets/flags/usa/usa32.png"
             alt="br"
-            style="width: 70%; height: 70%"
+            style="width: 50%; height: 50%"
           />
         </div>
         <div
           fxFlex="80"
           class="totales-cambios"
-          [ngStyle]="{ 'font-size': '2.5em' }"
+          [ngStyle]="{ 'font-size': '1.5em' }"
         >
           {{ formGroup.controls.valorTotal.value / cambioDs | number: "1.2-2" }}
         </div>
       </div>
     </div>
     <div
-      fxFlex="45"
+      fxFlex="50"
       fxFlexAlign="row"
       style="width: 100%"
       fxLayoutGap="20px"
@@ -102,12 +96,13 @@
       <div fxFlex="50" fxLayout="column" fxLayoutGap="20px" style="width: 100%">
         <div fxFlex fxLayout="row" style="width: 100%">
           <mat-card
-            style="background-color: white; padding: 5px"
-            [ngStyle]="{
-              height: '25vh',
-              width: '100%',
-              'overflow-y': 'scroll'
-            }"
+            style="
+              background-color: white;
+              padding: 5px;
+              height: 100%;
+              width: 100%;
+              overflow-y: scroll;
+            "
           >
             <table class="table" style="font-size: 1em">
               <thead>
@@ -172,7 +167,7 @@
                       text-align: center;
                     "
                   >
-                    {{ item.valor | number: "1.0-0" }}
+                    {{ item.valor  | number: "1.0-0" }}
                   </td>
                   <td
                     *ngIf="item.moneda?.id != 1"
@@ -182,10 +177,10 @@
                       text-align: center;
                     "
                   >
-                    {{ item.valor / item.moneda.cambio | number: "1.2-2" }}
+                    {{ item.valor | number: "1.2-2" }}
                   </td>
                   <td
-                    *ngIf="item.vuelto"
+                    *ngIf="item.vuelto && !item.aumento"
                     style="
                       padding-bottom: 5px;
                       padding-top: 5px;
@@ -255,7 +250,7 @@
         <div
           fxFlex
           fxLayout="row"
-          style="height: 8vh"
+          style="height: 6em"
           fxLayoutGap="10px"
           fxLayoutAlign="space-around start"
         >
@@ -266,10 +261,11 @@
               [color]="
                 selectedMoneda?.denominacion == 'GUARANI' ? 'primary' : 'null'
               "
-              style="width: 100%; height: 8vh"
+              style="width: 100%; height: 6em"
               (click)="setMoneda('GUARANI')"
             >
               Guarani
+              (F1)
             </button>
           </div>
           <div fxFlex="20">
@@ -279,10 +275,11 @@
               [color]="
                 selectedMoneda?.denominacion == 'REAL' ? 'primary' : 'null'
               "
-              style="width: 100%; height: 8vh"
+              style="width: 100%; height: 6em"
               (click)="setMoneda('REAL')"
             >
               Real
+              (F2)
             </button>
           </div>
           <div fxFlex="20">
@@ -292,10 +289,11 @@
               [color]="
                 selectedMoneda?.denominacion == 'DOLAR' ? 'primary' : 'null'
               "
-              style="width: 100%; height: 8vh"
+              style="width: 100%; height: 6em"
               (click)="setMoneda('DOLAR')"
             >
               Dolar
+              (F3)
             </button>
           </div>
           <div fxFlex="20">
@@ -303,7 +301,7 @@
               type="button"
               mat-raised-button
               [color]="selectedMoneda?.denominacion == '' ? 'primary' : 'null'"
-              style="width: 100%; height: 8vh"
+              style="width: 100%; height: 6em"
               (click)="onOtrasMonedasClick()"
             >
               Otros
@@ -323,23 +321,23 @@
         <div
           fxFlex
           fxLayout="row"
-          style="height: 8vh"
+          style="height: 6em"
           fxLayoutGap="10px"
           fxLayoutAlign="space-around start"
           *ngIf="formaPagoList.length > 0"
         >
-          <div
-            
-            fxFlex="19"
-            *ngFor="let formaPago of formaPagoList"
-          >
+          <div fxFlex="19" *ngFor="let formaPago of formaPagoList">
             <button
+              [disabled]="
+                formaPago.descripcion.toUpperCase() == 'CONVENIO' ||
+                formaPago.descripcion.toUpperCase() == 'TRANSFERENCIA'
+              "
               type="button"
               mat-raised-button
               [color]="
                 selectedFormaPago?.id == formaPago.id ? 'primary' : 'null'
               "
-              style="width: 100%; height: 8vh"
+              style="width: 100%; height: 6em"
               (click)="setFormaPago(formaPago)"
             >
               {{ formaPago?.descripcion | titlecase }}
@@ -347,11 +345,13 @@
           </div>
           <div fxFlex="20">
             <button
-              [color]="selectedFormaPago?.descripcion == '' ? 'primary' : 'null'"
+              [color]="
+                selectedFormaPago?.descripcion == '' ? 'primary' : 'null'
+              "
               type="button"
               mat-raised-button
               color="primary"
-              style="width: 100%; height: 8vh"
+              style="width: 100%; height: 6em"
               (click)="onOtrasFormaPagoClick()"
             >
               Otros
@@ -360,7 +360,7 @@
         </div>
       </div>
     </div>
-    <div fxFlex="20" fxLayout="row" fxLayoutGap="20px" style="padding-top: 3vh">
+    <div fxFlex fxLayout="row" fxLayoutGap="20px" style="padding-top: 3vh">
       <div
         fxFlex="20%"
         style="color: black; font-size: 100%; text-align: center"
@@ -378,14 +378,13 @@
             style="color: white; font-size: 1em"
           />
           <mat-autocomplete
-            [displayWith]="displayFormaPago.bind(this)"
             autoActiveFirstOption
             #autoFormaPago="matAutocomplete"
             (closed)="onFormaPagoAutoClosed()"
           >
             <mat-option
               *ngFor="let formaPago of formaPagoList"
-              [value]="formaPago.id"
+              [value]="formaPago"
               style="color: white"
             >
               <div style="color: white; font-size: 1em">
@@ -475,7 +474,7 @@
           type="button"
           mat-raised-button
           color="primary"
-          style="width: 90%; height: 90%"
+          style="width: 90%; height: 3em"
           (click)="openTecladoNumerico()"
         >
           <mat-icon>keyboard_alt</mat-icon>
@@ -485,27 +484,22 @@
         <button
           type="button"
           mat-raised-button
-          color="accent"
-          style="width: 90%; height: 90%"
+          color="primary"
+          style="width: 90%; height: 3em"
           (click)="addPagoItem()"
         >
           <mat-icon>done</mat-icon>
         </button>
       </div>
     </div>
-    <div
-      class="cambios"
-      fxFlex="10"
-      fxLayout="row"
-      fxLayoutAlign="center center"
-    >
+    <div class="cambios" fxFlex fxLayout="row" fxLayoutAlign="center center">
       <hr fxFlex="40" style="background-color: grey" />
-      <div style="font-size: 180%">Saldo</div>
+      <div style="font-size: 1.2em">Saldo</div>
       <hr fxFlex="40" style="background-color: grey" />
     </div>
     <div
       class="cambios"
-      fxFlex="10"
+      fxFlex
       fxLayout="row"
       fxLayoutAlign="space-between center"
       style="margin-bottom: 0px !important"
@@ -521,13 +515,13 @@
           <img
             src="assets/flags/py/py32.png"
             alt="br"
-            style="width: 70%; height: 70%"
+            style="width: 50%; height: 50%"
           />
         </div>
         <div
           fxFlex="80"
           class="totales-cambios"
-          [ngStyle]="{ 'font-size': '2.5em' }"
+          [ngStyle]="{ 'font-size': '1.5em' }"
         >
           {{ formGroup.controls.saldo.value | number: "1.0-0" }}
         </div>
@@ -543,13 +537,13 @@
           <img
             src="assets/flags/br/br32.png"
             alt="br"
-            style="width: 70%; height: 70%"
+            style="width: 50%; height: 50%"
           />
         </div>
         <div
           fxFlex="80"
           class="totales-cambios"
-          [ngStyle]="{ 'font-size': '2.5em' }"
+          [ngStyle]="{ 'font-size': '1.5em' }"
         >
           {{ formGroup.controls.saldo.value / cambioRs | number: "1.2-2" }}
         </div>
@@ -565,19 +559,25 @@
           <img
             src="assets/flags/usa/usa32.png"
             alt="br"
-            style="width: 70%; height: 70%"
+            style="width: 50%; height: 50%"
           />
         </div>
         <div
           fxFlex="80"
           class="totales-cambios"
-          [ngStyle]="{ 'font-size': '2.5em' }"
+          [ngStyle]="{ 'font-size': '1.5em' }"
         >
           {{ formGroup.controls.saldo.value / cambioDs | number: "1.2-2" }}
         </div>
       </div>
     </div>
-    <div fxFlex fxLayout="row" fxLayoutGap="20px" style="padding-top: 20px">
+    <div
+      fxFlex
+      fxLayout="row"
+      fxLayoutAlign="space-between start"
+      fxLayoutGap="20px"
+      style="padding-top: 20px"
+    >
       <div fxFlex="10">
         <button
           #btnFinalizar
@@ -585,13 +585,13 @@
           class="bottom-action-button"
           mat-raised-button
           color="accent"
-          style="width: 100%"
+          style="width: 100%; height: 6em"
           [disabled]="!(formGroup.controls.saldo.value == 0)"
           (click)="onFinalizar()"
         >
           <div fxLayout="column" fxFlexAlign="center center">
-            <div fxFlex style="height: 5vh">
-              <mat-icon style="font-size: 5vh; width: 100%; height: 5vh">
+            <div fxFlex style="height: 2em">
+              <mat-icon style="font-size: 2em; width: 100%; height: 2em">
                 price_check
               </mat-icon>
             </div>
@@ -599,22 +599,22 @@
           </div>
         </button>
       </div>
-      <div fxFlex="15">
+      <div fxFlex="10">
         <button
           #btnFinalizar
           type="button"
           class="bottom-action-button"
           mat-raised-button
           color="primary"
-          style="width: 100%; height: 9vh"
+          style="width: 100%; height: 6em"
           [disabled]="
             valorParcialPagado == 0 || formGroup.controls.saldo.value == 0
           "
           (click)="onFinalizar()"
         >
           <div fxLayout="column" fxFlexAlign="center center">
-            <div fxFlex style="height: 5vh">
-              <mat-icon style="font-size: 5vh; width: 100%; height: 5vh">
+            <div fxFlex style="height: 2em">
+              <mat-icon style="font-size: 2em; width: 100%; height: 2em">
                 money_off_csred
               </mat-icon>
             </div>
@@ -622,14 +622,14 @@
           </div>
         </button>
       </div>
-      <div *ngIf="formGroup.controls.saldo.value < 0" fxFlex="15">
+      <div *ngIf="formGroup.controls.saldo.value < 0" fxFlex="10">
         <button
           #btnAumento
           type="button"
           class="bottom-action-button"
           mat-raised-button
           color="primary"
-          style="width: 100%; height: 9vh"
+          style="width: 100%; height: 6em"
           [disabled]="
             formGroup.controls.saldo.value < 0 &&
             formGroup.controls.saldo.value < data.valor * -0.2
@@ -637,8 +637,8 @@
           (click)="onAumento()"
         >
           <div fxLayout="column" fxFlexAlign="center center">
-            <div fxFlex style="height: 5vh">
-              <mat-icon style="font-size: 5vh; width: 100%; height: 5vh">
+            <div fxFlex style="height: 2em">
+              <mat-icon style="font-size: 2em; width: 100%; height: 2em">
                 arrow_upward
               </mat-icon>
             </div>
@@ -646,14 +646,14 @@
           </div>
         </button>
       </div>
-      <div *ngIf="formGroup.controls.saldo.value >= 0" fxFlex="15">
+      <div *ngIf="formGroup.controls.saldo.value >= 0" fxFlex="10">
         <button
           #btnDescuento
           type="button"
           class="bottom-action-button"
           mat-raised-button
           color="primary"
-          style="width: 100%; height: 9vh"
+          style="width: 100%; height: 6em"
           [disabled]="
             (formGroup.controls.saldo.value > 0 &&
               formGroup.controls.saldo.value > data.valor * 0.2) ||
@@ -662,8 +662,8 @@
           (click)="onDescuento()"
         >
           <div fxLayout="column" fxFlexAlign="center center">
-            <div fxFlex style="height: 5vh">
-              <mat-icon style="font-size: 5vh; width: 100%; height: 5vh">
+            <div fxFlex style="height: 2em">
+              <mat-icon style="font-size: 2em; width: 100%; height: 2em">
                 arrow_downward
               </mat-icon>
             </div>
@@ -672,20 +672,20 @@
         </button>
       </div>
 
-      <div fxFlex="15">
+      <div fxFlex="10">
         <button
           #btnTicket
           type="button"
           class="bottom-action-button"
           mat-raised-button
           color="primary"
-          style="width: 100%; height: 9vh"
+          style="width: 100%; height: 6em"
           [disabled]="valorParcialPagado == 0"
           (click)="onTicket()"
         >
           <div fxLayout="column" fxFlexAlign="center center">
-            <div fxFlex style="height: 5vh">
-              <mat-icon style="font-size: 5vh; width: 100%; height: 5vh">
+            <div fxFlex style="height: 2em">
+              <mat-icon style="font-size: 2em; width: 100%; height: 2em">
                 confirmation_number
               </mat-icon>
             </div>
@@ -693,19 +693,20 @@
           </div>
         </button>
       </div>
-      <div fxFlex="15">
+      <div fxFlex="10">
         <button
+          [disabled]="true"
           #btnFactura
           type="button"
           class="bottom-action-button"
           mat-raised-button
           color="primary"
-          style="width: 100%; height: 9vh"
+          style="width: 100%; height: 6em"
           (click)="onFactura()"
         >
           <div fxLayout="column" fxFlexAlign="center center">
-            <div fxFlex style="height: 5vh">
-              <mat-icon style="font-size: 5vh; width: 100%; height: 5vh">
+            <div fxFlex style="height: 2em">
+              <mat-icon style="font-size: 2em; width: 100%; height: 2em">
                 receipt
               </mat-icon>
             </div>
@@ -713,19 +714,20 @@
           </div>
         </button>
       </div>
-      <div fxFlex="15">
+      <div fxFlex="10">
         <button
+          [disabled]="true"
           #btnPresupuesto
           type="button"
           class="bottom-action-button"
           mat-raised-button
           color="primary"
-          style="width: 100%; height: 9vh"
+          style="width: 100%; height: 6em"
           (click)="onPresupuesto()"
         >
           <div fxLayout="column" fxFlexAlign="center center">
-            <div fxFlex style="height: 5vh">
-              <mat-icon style="font-size: 5vh; width: 100%; height: 5vh">
+            <div fxFlex style="height: 2em">
+              <mat-icon style="font-size: 2em; width: 100%; height: 2em">
                 list_alt
               </mat-icon>
             </div>
@@ -733,19 +735,19 @@
           </div>
         </button>
       </div>
-      <div fxFlex="15">
+      <div fxFlex="10">
         <button
           #btnCancelar
           type="button"
           class="bottom-action-button"
           mat-raised-button
           color="primary"
-          style="width: 100%; height: 9vh"
+          style="width: 100%; height: 6em"
           (click)="dialogRef.close(null)"
         >
           <div fxLayout="column" fxFlexAlign="center center">
-            <div fxFlex style="height: 5vh">
-              <mat-icon style="font-size: 5vh; width: 100%; height: 5vh">
+            <div fxFlex style="height: 1em">
+              <mat-icon style="font-size: 1em; width: 100%; height: 1em">
                 close
               </mat-icon>
             </div>

@@ -1,6 +1,8 @@
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { NotificacionColor, NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
+import { PdvCaja } from "../pdv/caja/caja.model";
 import { ConteoMonedaInput } from "./conteo-moneda/conteo-moneda.model";
 import { ConteoMonedaService } from "./conteo-moneda/conteo-moneda.service";
 import { Conteo } from "./conteo.model";
@@ -15,29 +17,36 @@ export class ConteoService {
     private genericService: GenericCrudService,
     private onSaveConteo: SaveConteoGQL,
     private deleteConteo: DeleteConteoGQL,
-    private conteoMonedaService: ConteoMonedaService
+    private conteoMonedaService: ConteoMonedaService,
+    private notificacionSnackBar: NotificacionSnackbarService
   ) {}
 
-  onSave(conteo: Conteo): Observable<any> {
+  onSave(conteo: Conteo, caja: PdvCaja, apertura: boolean): Observable<any> {
+    let conteoMonedaInputList: ConteoMonedaInput[] = []
+    conteo.conteoMonedaList.forEach(c => conteoMonedaInputList.push(c.toInput()))
     return new Observable((obs) => {
-      console.log(conteo.toInput())
-      this.onSaveInput(conteo.toInput()).subscribe(async (res) => {
-        if (res != null) {
-          let savedConteo: Conteo = res;
-          savedConteo.conteoMonedaList = []
-          for await (const c of conteo.conteoMonedaList) {
-            let conteoMoneda = new ConteoMonedaInput();
-            conteoMoneda.cantidad = c.cantidad;
-            conteoMoneda.conteoId = savedConteo.id;
-            conteoMoneda.monedaBilletesId = c.monedaBilletes?.id;
-            conteoMoneda.observacion = c.observacion;
-            this.conteoMonedaService.onSave(conteoMoneda).subscribe((res1) => {
-              savedConteo.conteoMonedaList.push(res1)
-            });
-          }
-          obs.next(savedConteo)
+      this.onSaveConteo.mutate({
+        conteo: conteo.toInput(),
+        conteoMonedaInputList,  
+        cajaId: caja.id,
+        apertura
+      }, {fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
+        if(res.errors==null){
+          obs.next(res.data['data'])
+          this.notificacionSnackBar.notification$.next({
+            texto: apertura == true ? 'Abierto con éxito!!' : 'Cerrado con éxito',
+            color: NotificacionColor.success,
+            duracion: 3
+          })
+        } else {
+          this.notificacionSnackBar.notification$.next({
+            texto: 'Ups! Algo salió mal en operacion: ' + res.errors[0].message + res,
+            color: NotificacionColor.danger,
+            duracion: 5
+          })
+          obs.next(null);
         }
-      });
+      })
     });
   }
 

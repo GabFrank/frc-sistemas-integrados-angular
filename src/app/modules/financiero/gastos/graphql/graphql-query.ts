@@ -40,10 +40,7 @@ export const gastosQuery = gql`
           cambio
         }
         cantidad
-      }
-      valorGs
-      valorRs
-      valorDs
+      } 
     }
   }
 `;
@@ -89,10 +86,7 @@ export const gastosPorFecha = gql`
         }
         
         cantidad
-      }
-      valorGs
-      valorRs
-      valorDs
+      } 
     }
   }
 `;
@@ -187,16 +181,16 @@ export const gastoQuery = gql`
         
         cantidad
       }
-      valorGs
-      valorRs
-      valorDs
+      
+      
+      
     }
   }
 `;
 
 export const saveGasto = gql`
-  mutation saveGasto($entity: GastoInput!) {
-    data: saveGasto(gasto: $entity) {
+  mutation saveGasto($entity:GastoInput!, $detalleList: [GastoDetalleInput]) {
+    data: saveGasto(entity: $entity, detalleList: $detalleList) {
       id
       responsable {
         id
@@ -235,9 +229,6 @@ export const saveGasto = gql`
         }
         cantidad
       }
-      valorGs
-      valorRs
-      valorDs
     }
   }
 `;

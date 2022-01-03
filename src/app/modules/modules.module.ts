@@ -17,7 +17,7 @@ import { FinancieroModule } from './financiero/financiero.module';
 
 @NgModule({
   declarations: [
-  ],
+    ],
   imports: [
     CommonModule,
     DashboardModule,

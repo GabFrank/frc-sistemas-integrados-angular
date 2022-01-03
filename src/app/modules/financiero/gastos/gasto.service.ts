@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { Gasto } from './gastos.model';
 import { DeleteGastoGQL } from './graphql/deleleGasto';
 import { GastoPorIdGQL } from './graphql/gastoPorId';
 import { GastosPorFechaGQL } from './graphql/gastosPorFecha';
@@ -14,7 +15,7 @@ export class GastoService {
   constructor(
     private genericService: GenericCrudService,
     private gastosPorFecha: GastosPorFechaGQL,
-    private onSaveGasto: SaveGastoGQL,
+    private saveGasto: SaveGastoGQL,
     private gastoPorId: GastoPorIdGQL,
     private deleteGasto: DeleteGastoGQL
   ) { }
@@ -23,12 +24,12 @@ export class GastoService {
   //   return this.genericService.onGetAll(this.getAllGastos);
   // }
 
-  onGetByDate(inicio?: Date, fin?: Date): Observable<any>{
-    return this.genericService.onGetByFecha(this.gastosPorFecha, inicio, fin);
+  onSave(gasto: Gasto){
+    return this.genericService.onSaveConDetalle(this.saveGasto, gasto.toInput(), gasto.toDetalleInputList())
   }
 
-  onSave(input): Observable<any> {
-    return this.genericService.onSave(this.onSaveGasto, input);
+  onGetByDate(inicio?: Date, fin?: Date): Observable<any>{
+    return this.genericService.onGetByFecha(this.gastosPorFecha, inicio, fin);
   }
 
   onGetById(id): Observable<any>{

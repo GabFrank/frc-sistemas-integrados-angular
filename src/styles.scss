@@ -1,6 +1,7 @@
 @use '~@angular/material' as mat;
 @import url('https://unpkg.com/bootstrap@3.3.7/dist/css/bootstrap.min.css');
 
+@import '~material-design-icons-iconfont/dist/material-design-icons.css';
 
 @include mat.core();
 

@@ -1,6 +1,8 @@
 import { Component, OnInit } from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatDialogRef } from "@angular/material/dialog";
+import { Subscription } from "rxjs";
+import { connectionStatusSub } from "../../app.module";
 import { MainService } from "../../main.service";
 import { CargandoDialogService } from "../../shared/components/cargando-dialog/cargando-dialog.service";
 import { LoginResponse, LoginService } from "./login.service";
@@ -17,6 +19,8 @@ export class LoginComponent implements OnInit {
   showBienvenida = false;
   errorMessage : string;
 
+  statusSub: Subscription;
+
   constructor(
     private loginService: LoginService,
     private dialogRef: MatDialogRef<LoginComponent>,
@@ -27,6 +31,12 @@ export class LoginComponent implements OnInit {
   ngOnInit(): void {
     this.createForm();
     this.verficarAuth();
+
+    this.statusSub = connectionStatusSub.subscribe(res => {
+      if(res){
+        this.verficarAuth();
+      }
+    })
   }
 
   createForm() {

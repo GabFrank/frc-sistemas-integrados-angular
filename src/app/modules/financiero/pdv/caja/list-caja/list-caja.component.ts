@@ -31,7 +31,7 @@ import { CajaService } from "../caja.service";
 export class ListCajaComponent implements OnInit {
   dataSource = new MatTableDataSource<PdvCaja>(null);
   selectedPdvCaja: PdvCaja;
-  expandedPdvCaja: PdvCaja;
+  expandedCaja: PdvCaja;
 
   displayedColumns = [
     'id',

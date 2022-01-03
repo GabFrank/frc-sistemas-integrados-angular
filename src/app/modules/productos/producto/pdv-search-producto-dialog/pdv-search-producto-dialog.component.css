@@ -61,3 +61,7 @@ input::-webkit-inner-spin-button {
 .tableRows:hover {
   background-color: rgb(51, 51, 51) !important;
 }
+
+th {
+  height: 80% !important;
+}

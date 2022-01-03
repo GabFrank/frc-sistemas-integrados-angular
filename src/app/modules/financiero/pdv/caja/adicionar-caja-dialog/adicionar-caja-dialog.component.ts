@@ -1,6 +1,4 @@
 import {
-  AfterViewChecked,
-  AfterViewInit,
   Component,
   ElementRef,
   HostListener,
@@ -16,7 +14,7 @@ import {
   MatDialog,
 } from "@angular/material/dialog";
 import { MatStepper } from "@angular/material/stepper";
-import { BehaviorSubject, Observable, Subject, Subscription } from "rxjs";
+import { Subject } from "rxjs";
 import {
   stringToDecimal,
   stringToInteger,
@@ -31,22 +29,21 @@ import { AdicionarConteoResponse } from "../../../conteo/adicionar-conteo-dialog
 import { ConteoMoneda } from "../../../conteo/conteo-moneda/conteo-moneda.model";
 import { Conteo } from "../../../conteo/conteo.model";
 import { ConteoService } from "../../../conteo/conteo.service";
-import {
-  AdicionarMaletinData,
-  AdicionarMaletinDialogComponent,
-} from "../../../maletin/adicionar-maletin-dialog/adicionar-maletin-dialog.component";
+import { AdicionarMaletinDialogComponent } from "../../../maletin/adicionar-maletin-dialog/adicionar-maletin-dialog.component";
 import { Maletin } from "../../../maletin/maletin.model";
 import { MaletinService } from "../../../maletin/maletin.service";
-import { MonedaBillete } from "../../../moneda/moneda-billetes/moneda-billetes.model";
-import { Moneda } from "../../../moneda/moneda.model";
 import { MonedaService } from "../../../moneda/moneda.service";
-import { SinMaletinDialogComponent } from "../../sin-maletin-dialog/sin-maletin-dialog.component";
-import { PdvCaja, PdvCajaEstado, PdvCajaInput } from "../caja.model";
+import { PdvCaja, PdvCajaInput } from "../caja.model";
 import { CajaService } from "../caja.service";
-import { cajasPorFecha } from "../graphql/graphql-query";
 
 export class AdicionarCajaData {
   caja?: PdvCaja;
+}
+
+export interface AdicionarCajaResponse {
+  caja?: PdvCaja;
+  conteoApertura?: Conteo;
+  conteoCierre?: Conteo;
 }
 
 @Component({
@@ -54,7 +51,7 @@ export class AdicionarCajaData {
   templateUrl: "./adicionar-caja-dialog.component.html",
   styleUrls: ["./adicionar-caja-dialog.component.scss"],
 })
-export class AdicionarCajaDialogComponent implements OnInit, AfterViewChecked {
+export class AdicionarCajaDialogComponent implements OnInit {
   @ViewChild("stepper", { static: false }) stepper: MatStepper;
   @ViewChild("codigoMaletinInput", { static: false })
   codigoMaletinInput: ElementRef;
@@ -95,6 +92,11 @@ export class AdicionarCajaDialogComponent implements OnInit, AfterViewChecked {
   totalGsAper = 0;
   totalRsaper = 0;
   totalDsAper = 0;
+  totalGsCierre = 0;
+  totalRsCierre = 0;
+  totalDsCierre = 0;
+
+  conteoInicial = true;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarCajaData,
@@ -111,25 +113,26 @@ export class AdicionarCajaDialogComponent implements OnInit, AfterViewChecked {
     // this.cargarMonedas();
   }
 
-  ngAfterViewChecked(): void {}
-
   ngOnInit(): void {
+    this.cargandoDialog.openDialog()
     this.idControl.disable();
     this.creadoEnControl.disable();
     this.usuarioControl.disable();
-    if (this.data.caja != null) {
+    if (this.data?.caja != null) {
       this.cajaService.onGetById(this.data.caja.id).subscribe((res) => {
-        console.log(res);
         if (res != null) {
           this.selectedCaja = res;
           this.cargarDatos();
         }
       });
+    } else {
+      this.cargandoDialog.closeDialog()
+      this.conteoInicial = false;
     }
-
     setTimeout(() => {
       this.codigoMaletinInput.nativeElement.focus();
-    }, 500);
+      
+    }, 1000);
   }
 
   // cargarMonedas() {
@@ -186,31 +189,18 @@ export class AdicionarCajaDialogComponent implements OnInit, AfterViewChecked {
     this.activoControl.setValue(this.selectedCaja.activo);
     this.creadoEnControl.setValue(this.selectedCaja.creadoEn);
     this.usuarioControl.setValue(this.selectedCaja.usuario.persona.nombre);
-  }
-
-  onSave() {
-    let input = new PdvCajaInput();
-    if (this.selectedCaja != null) {
-      input.id = this.selectedCaja.id;
-      input.creadoEn = this.selectedCaja.creadoEn;
-      input.usuarioId = this.selectedCaja.usuario.id;
-      input.fechaApertura = this.selectedCaja.fechaApertura;
-      input.fechaCierre = this.selectedCaja.fechaCierre;
-      input.conteoAperturaId = this.selectedCaja?.conteoApertura?.id;
-      input.conteoCierreId = this.selectedCaja?.conteoCierre?.id;
-    }
-    input.observacion = this.observacionControl.value;
-    input.activo = this.activoControl.value;
-    input.estado = this.estadoControl.value;
-    this.cajaService.onSave(input).subscribe((res) => {
-      if (res != null) {
-        this.matDialogRef.close(res);
-      }
-    });
+    this.siguienteSubject.next(1);
+    this.siguienteCierreSubject.next(1);
+    this.cargandoDialog.closeDialog()
   }
 
   onCancel() {
-    this.matDialogRef.close();
+    let res: AdicionarCajaResponse = {
+      caja: this.selectedCaja,
+      conteoApertura: this.selectedConteoApertura,
+      conteoCierre: this.selectedConteoCierre,
+    };
+    this.matDialogRef.close(res);
   }
 
   verificarMaletin() {
@@ -281,10 +271,8 @@ export class AdicionarCajaDialogComponent implements OnInit, AfterViewChecked {
   }
 
   onSiguiente() {
-    console.log(this.stepper.selectedIndex);
     switch (this.stepper.selectedIndex) {
       case 0:
-        console.log("next step conteo");
         this.stepper.next();
         this.cargandoDialog.openDialog();
         setTimeout(() => {
@@ -307,8 +295,13 @@ export class AdicionarCajaDialogComponent implements OnInit, AfterViewChecked {
   }
 
   getConteoMoneda(response: AdicionarConteoResponse) {
+    this.conteoInicial = false;
+    this.totalGsAper = +response.totalGs;
+    this.totalRsaper = +response.totalRs;
+    this.totalDsAper = +response.totalDs;
+    console.log(this.conteoInicial)
     this.cargandoDialog.closeDialog();
-    if (response.conteoMonedaList.length < 1) {
+    if (response.conteoMonedaList.length < 1 && !this.conteoInicial) {
       this.dialogBox
         .confirm(
           "Atención!!",
@@ -316,9 +309,10 @@ export class AdicionarCajaDialogComponent implements OnInit, AfterViewChecked {
         )
         .subscribe((res) => {
           if (res) {
+            this.abrirCaja(response.conteoMonedaList);
           }
         });
-    } else {
+    } else if(!this.conteoInicial){
       this.dialogBox
         .confirm("Atención!!", "Confirmar datos de apertura de caja", null, [
           `Guaranies:     ${stringToInteger(response.totalGs)}`,
@@ -334,20 +328,26 @@ export class AdicionarCajaDialogComponent implements OnInit, AfterViewChecked {
   }
 
   getConteoMonedaCierre(response: AdicionarConteoResponse) {
+    this.totalGsCierre = +response.totalGs;
+    this.totalRsCierre = +response.totalRs;
+    this.totalDsCierre = +response.totalDs;
+
+    if(this.selectedConteoApertura )
+
     this.cargandoDialog.closeDialog();
-    if (response.conteoMonedaList.length < 1) {
+    if (response.conteoMonedaList.length < 1 && !this.conteoInicial) {
       this.dialogBox
         .confirm(
           "Atención!!",
-          "Realmente desea abrir caja sin adicionar monedas?"
+          "Realmente desea cerrar caja sin adicionar monedas?"
         )
         .subscribe((res) => {
           if (res) {
           }
         });
-    } else {
+    } else if(!this.conteoInicial) {
       this.dialogBox
-        .confirm("Atención!!", "Confirmar datos de apertura de caja", null, [
+        .confirm("Atención!!", "Confirmar datos de cierre de caja", null, [
           `Guaranies:     ${stringToInteger(response.totalGs)}`,
           `Reales:        ${stringToDecimal(response.totalRs)}`,
           `Dolares:       ${stringToDecimal(response.totalDs)}`,
@@ -365,52 +365,65 @@ export class AdicionarCajaDialogComponent implements OnInit, AfterViewChecked {
   }
 
   abrirCaja(conteoMonedaList: ConteoMoneda[]) {
-    this.cargandoDialog.openDialog();
-    let conteo = new Conteo();
-    conteo.conteoMonedaList = conteoMonedaList;
-    this.conteoService.onSave(conteo).subscribe((res) => {
-      if (res != null) {
-        let caja = new PdvCajaInput();
-        caja.activo = true;
-        caja.conteoAperturaId = res.id;
-        caja.estado = PdvCajaEstado["En proceso"];
-        caja.fechaApertura = res.creadoEn;
-        caja.maletinId = this.selectedMaletin.id;
-        caja.observacion = this.observacionControl.value;
-        this.cajaService.onSave(caja).subscribe((res1) => {
-          console.log(res1);
-          if (res1 != null) {
-            this.cargandoDialog.closeDialog();
-            this.selectedCaja = res1;
-          }
-        });
-      }
-    });
+    this.guardarConteo(conteoMonedaList, true);
   }
 
   cerrarCaja(conteoMonedaList: ConteoMoneda[]) {
+    this.guardarConteo(conteoMonedaList, false);
+  }
+
+  guardarConteo(conteoMonedaList: ConteoMoneda[], apertura: boolean) {
     this.cargandoDialog.openDialog();
     let conteo = new Conteo();
+    if (apertura) {
+      conteo.totalGs = this.totalGsAper;
+      conteo.totalRs = this.totalRsaper;
+      conteo.totalDs = this.totalDsAper;
+    } else {
+      conteo.totalGs = this.totalGsCierre;
+      conteo.totalRs = this.totalRsCierre;
+      conteo.totalDs = this.totalDsCierre;
+    }
     conteo.conteoMonedaList = conteoMonedaList;
-    this.conteoService.onSave(conteo).subscribe((res) => {
-      if (res != null) {
-        let caja = new PdvCajaInput();
-        caja.id = this.selectedCaja.id;
-        caja.activo = false;
-        caja.conteoAperturaId = this.selectedConteoApertura.id;
-        caja.conteoCierreId = res.id;
-        caja.estado = PdvCajaEstado.Concluido;
-        caja.fechaApertura = this.selectedConteoApertura.creadoEn;
-        caja.fechaCierre = res.creadoEn;
-        caja.maletinId = this.selectedMaletin.id;
-        caja.observacion = this.observacionControl.value;
-        this.cajaService.onSave(caja).subscribe((res1) => {
-          console.log(res1);
-          if (res1 != null) {
-            this.cargandoDialog.closeDialog();
-            this.selectedCaja = res1;
-          }
-        });
+    let caja = new PdvCajaInput();
+    if (this.selectedCaja != null) {
+      caja.id = this.selectedCaja.id;
+      caja.creadoEn = this.selectedCaja.creadoEn;
+      caja.usuarioId = this.selectedCaja?.usuario?.id;
+      caja.fechaApertura = this.selectedCaja.fechaApertura;
+      caja.fechaCierre = this.selectedCaja.fechaCierre;
+      caja.conteoAperturaId = this.selectedCaja?.conteoApertura?.id;
+      caja.conteoCierreId = this.selectedCaja?.conteoCierre?.id;
+      caja.maletinId = this.selectedCaja?.maletin?.id;
+      caja.observacion = this.selectedCaja?.observacion;
+    } else {
+      caja.maletinId = this.selectedMaletin.id;
+    }
+    caja.activo = true;
+    caja.observacion = this.observacionControl.value;
+    this.cajaService.onSave(caja).subscribe((cajaRes) => {
+      console.log(cajaRes)
+      if (cajaRes != null) {
+        this.cargandoDialog.closeDialog();
+        this.selectedCaja = cajaRes;
+        this.conteoService
+          .onSave(conteo, this.selectedCaja, apertura)
+          .subscribe((res) => {
+            if (res != null) {
+              if (apertura) {
+                this.selectedCaja.conteoApertura = res;
+                this.selectedConteoApertura = res;
+                this.conteoAperturaSubject.next(this.selectedConteoApertura);
+              } else {
+                this.selectedCaja.conteoCierre = res;
+                this.selectedConteoCierre = res;
+                this.conteoCierreSubject.next(this.selectedConteoCierre);
+              }
+            } else {
+              console.log("eliminar caja entonces");
+              this.cajaService.onDelete(this.selectedCaja.id, false);
+            }
+          });
       }
     });
   }
@@ -446,17 +459,23 @@ export class AdicionarCajaDialogComponent implements OnInit, AfterViewChecked {
         break;
       case "apertura":
         this.stepper.selectedIndex = 1;
-        this.focusToAPerturaSub.next()
+        this.focusToAPerturaSub.next();
         break;
       case "cierre":
         this.stepper.selectedIndex = 1;
         this.stepper.selectedIndex = 2;
-        this.focusToCierreSub.next()
+        this.focusToCierreSub.next();
         break;
       case "imprimir":
+        if(this.selectedCaja!=null) this.cajaService.onImprimirBalance(this.selectedCaja?.id)
         break;
       case "salir":
-        this.matDialogRef.close(this.selectedCaja);
+        let res: AdicionarCajaResponse = {
+          caja: this.selectedCaja,
+          conteoApertura: this.selectedConteoApertura,
+          conteoCierre: this.selectedConteoCierre,
+        };
+        this.matDialogRef.close(res);
         break;
       default:
         break;

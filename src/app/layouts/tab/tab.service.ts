@@ -14,6 +14,7 @@ import { FinancieroDashboardComponent } from '../../modules/financiero/financier
 import { ListGastosComponent } from '../../modules/financiero/gastos/list-gastos/list-gastos.component';
 import { ListTipoGastosComponent } from '../../modules/financiero/tipo-gastos/list-tipo-gastos/list-tipo-gastos.component';
 import { ListCajaComponent } from '../../modules/financiero/pdv/caja/list-caja/list-caja.component';
+import { PrintTicketsComponent } from '../../modules/print/print-tickets/print-tickets.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -44,14 +45,21 @@ export class TabService {
     this.tabs = [
       // new Tab(ListMovimientoStockComponent, 'Movimientos', null, null),
       // new Tab(EntradaSalidaComponent, 'Entrada/Salida', null, null),
-      new Tab(ListCajaComponent, 'Cajas', null, null)
+      // new Tab(PrintTicketsComponent, 'Farra', null, null),
+        new Tab(VentaTouchComponent, 'Venta', null, null),
     ];
     this.tabSub.next(this.tabs);
   }
 
+  // Horario especial
+
   tabChanged(index): void{
     this.tabChangedEvent.emit(index)
     this.setTabActive(index);
+  }
+
+  currentTab():Tab{
+    return this.tabs[this.currentIndex];
   }
 
   setTabActive(index): void {

@@ -1,0 +1,38 @@
+<div style="width: 100%; height: 100%" fxLayout="column" fxLayoutGap="20px">
+  <div fxFlex="10" style="text-align: center">
+    <h3>No hay ninguna caja abierta a nombre de</h3>
+    {{ mainService.usuarioActual.persona.nombre | uppercase }}
+  </div>
+  <div fxFlex="45%">
+    <button
+      type="button"
+      style="width: 100%; height: 70px; font-size: 1.5em"
+      mat-flat-button
+      color="accent"
+      (click)="abrirCaja()"
+    >
+      Abrir caja
+    </button>
+  </div>
+  <div fxFlex="45%">
+    <button
+      type="button"
+      style="width: 100%; height: 70px; font-size: 1.5em"
+      mat-flat-button
+      color="primary"
+      (click)="ventaCredito()"
+    >
+      Solo venta a crédito
+    </button>
+  </div>
+  <div fxFlex="20%" style="text-align: center;">
+    <button
+      type="button"
+      mat-flat-button
+      color="primary"
+      (click)="onSalir()"
+    >
+      Salir
+    </button>
+  </div>
+</div>

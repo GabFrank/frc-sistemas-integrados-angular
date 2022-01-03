@@ -2,8 +2,10 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { GenericCrudService } from '../../../../generics/generic-crud.service';
 import { CajaPorIdGQL } from './graphql/cajaPorId';
+import { CajaPorUsuarioIdAndAbiertoGQL } from './graphql/cajaPorUsuarioIdAndAbierto';
 import { CajasPorFechaGQL } from './graphql/cajasPorFecha';
 import { DeleteCajaGQL } from './graphql/deleleCaja';
+import { ImprimirBalanceGQL } from './graphql/imprimirBalance';
 import { SaveCajaGQL } from './graphql/saveCaja';
 
 @Injectable({
@@ -16,7 +18,9 @@ export class CajaService {
     private cajasPorFecha: CajasPorFechaGQL,
     private onSaveCaja: SaveCajaGQL,
     private cajaPorId: CajaPorIdGQL,
-    private deleteCaja: DeleteCajaGQL
+    private deleteCaja: DeleteCajaGQL,
+    private cajaPorUsuarioIdAndAbierto: CajaPorUsuarioIdAndAbiertoGQL,
+    private imprimirBalance: ImprimirBalanceGQL
   ) { }
 
   // onGetAll(): Observable<any> {
@@ -36,6 +40,25 @@ export class CajaService {
     return this.genericService.onGetById(this.cajaPorId, id);
   }
 
-  onDelete(id): Observable<any>{
-    return this.genericService.onDelete(this.deleteCaja, id);
-  }}
+  onGetByUsuarioIdAndAbierto(id): Observable<any>{
+    return this.genericService.onGetById(this.cajaPorUsuarioIdAndAbierto, id);
+  }
+
+  onDelete(id, showDialog?: boolean): Observable<any>{
+    console.log('Borrando: '+id)
+    return this.genericService.onDelete(this.deleteCaja, id, showDialog);
+  }
+
+  onImprimirBalance(id){
+    return this.imprimirBalance.fetch(
+      {
+        id
+      }, {
+        fetchPolicy: 'no-cache',
+        errorPolicy: 'all'
+      }
+    ).subscribe(res => {
+      console.log(res)
+    })
+  }
+}

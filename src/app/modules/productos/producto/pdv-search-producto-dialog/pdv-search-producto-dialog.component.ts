@@ -42,8 +42,8 @@ import { MovimientoStockService } from "../../../operaciones/movimiento-stock/mo
 import { ProductoComponent } from "../edit-producto/producto.component";
 
 export interface PdvSearchProductoData {
-  texto: any;
-  cantidad: number;
+  texto?: any;
+  cantidad?: number;
   tiposPrecios?: TipoPrecio[];
   selectedTipoPrecio?: TipoPrecio;
   mostrarOpciones?: boolean;
@@ -92,7 +92,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     "id",
     "descripcion",
     "codigo",
-    "acciones"
+    // "acciones"
   ];
   expandedProducto: Producto | null;
   NumberUtils;
@@ -117,13 +117,13 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     private _el: ElementRef,
     private stockService: MovimientoStockService
   ) {
-    if(data.mostrarStock == true){
+    if(data?.mostrarStock == true){
       this.displayedColumns = [
         "id",
         "descripcion",
         "codigo",
         "existencia",
-        "acciones"
+        // "acciones"
       ]
     }
   }

@@ -33,6 +33,7 @@ export class Producto {
   presentaciones: Presentacion[]
   stockPorProducto?: number;
   codigoPrincipal?: string
+  // costosPorSucursal: CostoPorSu
 }
 
 export class ExistenciaCostoPorSucursal {

@@ -18,11 +18,13 @@ import { DeliveryDialogComponent } from './comercial/venta-touch/delivery-dialog
 import { RedondeoDialogComponent } from './comercial/venta-touch/redondeo-dialog/redondeo-dialog.component';
 import { SelectProductosDialogComponent } from './comercial/venta-touch/select-productos-dialog/select-productos-dialog.component';
 import { AddCategoriaDialogComponent } from './comercial/venta-touch/pdv-categoria/add-categoria-dialog/add-categoria-dialog.component';
+import { SeleccionarCajaDialogComponent } from './comercial/venta-touch/seleccionar-caja-dialog/seleccionar-caja-dialog.component';
+import { UtilitariosDialogComponent } from './comercial/venta-touch/utilitarios-dialog/utilitarios-dialog.component';
 
 
 
 @NgModule({
-  declarations: [RestaurantComponent, VentaTouchComponent, ProductoCategoriaDialogComponent, EditItemDialogComponent, PagoTouchComponent, VueltoDialogComponent, SeleccionarBilletesTouchComponent, DescuentoDialogComponent, TarjetaDialogComponent, DeliveryDialogComponent, RedondeoDialogComponent, SelectProductosDialogComponent, AddCategoriaDialogComponent],
+  declarations: [RestaurantComponent, VentaTouchComponent, ProductoCategoriaDialogComponent, EditItemDialogComponent, PagoTouchComponent, VueltoDialogComponent, SeleccionarBilletesTouchComponent, DescuentoDialogComponent, TarjetaDialogComponent, DeliveryDialogComponent, RedondeoDialogComponent, SelectProductosDialogComponent, AddCategoriaDialogComponent, SeleccionarCajaDialogComponent, UtilitariosDialogComponent],
   imports: [
     CommonModule,
     FlexLayoutModule,

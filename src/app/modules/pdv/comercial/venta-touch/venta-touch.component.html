@@ -1,718 +1,533 @@
-<div class="pdv-container" style="height: 100%">
-  <div fxLayout="column" style="height: 100%">
-    <div
-      fxFlex
-      fxFlexFill
-      fxLayout="row"
-      fxLayoutAlign="space-around"
-      fxLayoutGap="5px"
-      style="height: 100%"
-    >
-      <mat-card
-        fxFlex="55"
-        fxLayout="column"
-        fxLayoutGap="10px"
-        fxLayoutAlign="space-around"
-        style="width: 100%; height: 98%"
+<div style="width: 100%; height: 100%">
+  <div class="pdv-container" style="height: 100%">
+    <div fxLayout="column" style="height: 100%">
+      <div
+        fxFlex
+        fxFlexFill
+        fxLayout="row"
+        fxLayoutAlign="start"
+        fxLayoutGap="5px"
+        style="height: 100%"
       >
-        <div fxFlex="6" fxLayout="row" fxLayoutAlign="center center">
-          <div fxFlex="20"></div>
-          <!-- <div fxFlex="20" style="width: 100%;" fxFlexAlign="end">
-                  
-                </div> -->
-          <img src="assets/flags/py/py64.png" alt="br" style="width: 4vw" />
-          <div
-            fxFlex
-            class="valor-principal"
-            style="padding-left: 2%; text-align: end; padding-right: 15%"
-          >
-            <div style="font-size: 3em">{{ totalGs | number }} Gs.</div>
-          </div>
-        </div>
-        <div fxFlex="1">
-          <mat-divider style="height: 1vh"></mat-divider>
-        </div>
-        <div
-          class="cambios"
-          fxFlex="5"
-          fxLayout="row"
-          fxLayoutAlign="space-between center"
-          style="margin-bottom: 0px !important"
-        >
-          <div fxFlex="30" FxLayout="row" fxLayoutAlign="center center">
-            <div fxFlex="30">
-              <img
-                src="assets/flags/br/br32.png"
-                alt="br"
-                style="width: 60%; height: 60%"
-              />
-            </div>
-            <div
-              fxFlex="70"
-              class="totales-cambios"
-              [ngStyle]="{ 'font-size': '2em' }"
-            >
-              {{ totalGs / cambioRs | number: "1.2-2" }}
-            </div>
-          </div>
-          <div fxFlex="30" FxLayout="row" fxLayoutAlign="center center">
-            <div fxFlex="30">
-              <img
-                src="assets/flags/usa/usa32.png"
-                alt="br"
-                style="width: 60%; height: 60%"
-              />
-            </div>
-            <div
-              fxFlex="70"
-              class="totales-cambios"
-              [ngStyle]="{ 'font-size': '2em' }"
-            >
-              {{ totalGs / cambioDs | number: "1.2-2" }}
-            </div>
-          </div>
-          <div fxFlex="30" FxLayout="row" fxLayoutAlign="center center">
-            <div fxFlex="30">
-              <img
-                src="assets/flags/arg/arg32.png"
-                alt="br"
-                style="width: 60%; height: 60%"
-              />
-            </div>
-            <div
-              fxFlex="70"
-              class="totales-cambios"
-              [ngStyle]="{ 'font-size': '1.8em' }"
-            >
-              {{ totalGs / cambioArg | number: "1.2-2" }}
-            </div>
-          </div>
-        </div>
-        <div fxFlex="5" fxLayout="row" fxLayoutAlign="center center">
-          <hr fxFlex="40" style="background-color: grey" />
-          Cambio del día
-          <hr fxFlex="40" style="background-color: grey" />
-        </div>
-        <div
-          class="cambios"
-          fxFlex="5"
-          fxLayout="row"
-          fxLayoutAlign="space-between center"
-        >
-          <div fxFlex="30" FxLayout="row" fxLayoutAlign="start center">
-            <div fxFlex="20">
-              <img
-                src="assets/flags/br/br32.png"
-                alt="br"
-                style="width: 70%; height: 70%"
-              />
-            </div>
-            <div fxFlex="80" class="valores-cambios" style="font-size: 1.8em">
-              {{ cambioRs | number }} Gs.
-            </div>
-          </div>
-          <div fxFlex="30" FxLayout="row" fxLayoutAlign="start center">
-            <div fxFlex="20">
-              <img
-                src="assets/flags/usa/usa32.png"
-                alt="br"
-                style="width: 70%; height: 70%"
-              />
-            </div>
-            <div fxFlex="70" class="valores-cambios" style="font-size: 1.8em">
-              {{ cambioDs | number }} Gs.
-            </div>
-          </div>
-          <div fxFlex="30" FxLayout="row" fxLayoutAlign="star center">
-            <div fxFlex="20">
-              <img
-                src="assets/flags/arg/arg32.png"
-                alt="br"
-                style="width: 70%; height: 70%"
-              />
-            </div>
-            <div fxFlex="80" class="valores-cambios" style="font-size: 2em">
-              {{ cambioArg | number }} Gs.
-            </div>
-          </div>
-        </div>
-        <div fxFlex="45" fxLayout="row">
-          <mat-card
-            style="background-color: white; padding: 5px; margin-top: 5px"
-            [ngStyle]="{
-              width: '100%',
-              'overflow-y': 'scroll'
-            }"
-          >
-            <table class="table" style="font-size: 1em">
-              <thead>
-                <tr style="background-color: rgb(209, 209, 209)">
-                  <th scope="col" style="text-align: center; width: 5%">#</th>
-                  <th scope="col" style="width: 55%">Descripción</th>
-                  <th scope="col" style="text-align: center; width: 10%">
-                    Tipo
-                  </th>
-                  <th scope="col" style="text-align: center; width: 10%">
-                    Cant
-                  </th>
-                  <th scope="col" style="text-align: center; width: 10%">
-                    Precio
-                  </th>
-                  <th scope="col" style="text-align: center; width: 10%">
-                    Total
-                  </th>
-                  <th scope="col" style="text-align: center; width: 5%"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  *ngFor="let item of itemList; let i = index"
-                  (click)="editItem(item, i)"
-                >
-                  <td
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                    "
-                  >
-                    {{ i + 1 }}
-                  </td>
-                  <td style="padding-bottom: 0; padding-top: 5px; width: 100%">
-                    {{ item?.producto?.descripcion }}
-                  </td>
-                  <td
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                    "
-                  >
-                    {{ item.presentacion?.tipoPresentacion?.descripcion }}({{
-                      item.presentacion?.cantidad
-                    }})
-                  </td>
-                  <td
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                    "
-                  >
-                    {{ item.cantidad | number: "1.0-0" }}
-                  </td>
-                  <td
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                    "
-                  >
-                    {{ item.precio.precio | number: "1.0-0" }}
-                  </td>
-                  <td
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                    "
-                  >
-                    {{ item.cantidad * item.precio.precio | number: "1.0-0" }}
-                  </td>
-                  <td
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                    "
-                  >
-                    <mat-icon
-                      style="color: red; font-size: 1.5em; cursor: pointer"
-                      (click)="removeItem(item, i)"
-                      >clear</mat-icon
-                    >
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </mat-card>
-        </div>
-        <form
-          [formGroup]="formGroup"
-          fxFlex="6"
-          fxLayout="column"
-          fxLayoutAlign="space-around start"
-          fxLayoutGap="10px"
-          style="width: 100%"
-        >
-          <div
-            fxLayout="row"
-            fxLayoutGap="10px"
-            fxLayoutAlign="start center"
-            style="width: 100%"
-          >
-            <div fxFlex="15" style="width: 100%; height: 100%">
-              <mat-form-field style="width: 100%; text-align: center">
-                <input
-                  #cantidadInput
-                  matInput
-                  type="text"
-                  formControlName="cantidad"
-                  autocomplete="off"
-                  (focusout)="setFocusToCodigoInput()"
-                  style="color: white; font-size: 2em"
-                />
-              </mat-form-field>
-            </div>
-            <div fxFlex="65" style="width: 100%; height: 100%">
-              <mat-form-field style="width: 100%" floatLabel="never">
-                <!-- [matKeyboard]="'Azərbaycanca'"
-                darkTheme="true" -->
-                <input
-                  #codigoInput
-                  matInput
-                  type="text"
-                  formControlName="codigo"
-                  (keydown)="onCodigoKeyUpEvent($event.key)"
-                  autocomplete="off"
-                  (blur)="setFocusToCodigoInput()"
-                  oninput="this.value != ' ' ? this.value = this.value.toUpperCase() : this.value = null"
-                  style="color: white; font-size: 2em"
-                />
-              </mat-form-field>
-            </div>
-            <button
-              type="button"
-              fxFlex
-              fxLayout="row"
-              fxLayoutAlign="center center"
-              mat-raised-button
-              color="primary"
-              style="height: 3em"
-              (click)="buscarProductoDialog()"
-            >
-              <mat-icon fxFlex style="font-size: 2em">search</mat-icon>
-            </button>
-          </div>
-        </form>
-        <div
-          fxFlex="15"
-          fxLayout="row"
-          fxLayoutAlign="start start"
-          fxLayoutGap="10px"
-        >
-          <div fxFlex>
-            <button
-              class="bottom-action-button"
-              mat-raised-button
-              color="primary"
-              [ngStyle]="{
-                width: '100%',
-                height: windowInfo.innerHeight * 0.09 + 'px'
-              }"
-              (click)="removeItem(null)"
-              [disabled]="itemList.length == 0"
-            >
-              <div fxLayout="column" fxFlexAlign="center center">
-                <div
-                  fxFlex
-                  [ngStyle]="{
-                    height: windowInfo.innerWidth * 0.015 + 'px'
-                  }"
-                >
-                  <mat-icon
-                    [ngStyle]="{
-                      'font-size': windowInfo.innerWidth * 0.02 + 'px',
-                      width: windowInfo.innerWidth * 0.02 + 'px'
-                    }"
-                    >delete</mat-icon
-                  >
-                </div>
-                <div
-                  fxFlex
-                  style="text-align: center"
-                  [ngStyle]="{
-                    'font-size': windowInfo.innerWidth * 0.01 + 'px'
-                  }"
-                >
-                  Eliminar Todo
-                </div>
-              </div>
-            </button>
-          </div>
-          <div fxFlex>
-            <button
-              type="button"
-              class="bottom-action-button"
-              mat-raised-button
-              color="accent"
-              [ngStyle]="{
-                width: '100%',
-                height: windowInfo.innerHeight * 0.09 + 'px'
-              }"
-              (click)="onPagoClick()"
-              [disabled]="itemList.length == 0"
-            >
-              <div fxLayout="column" fxFlexAlign="center center">
-                <div
-                  fxFlex
-                  [ngStyle]="{
-                    height: windowInfo.innerWidth * 0.015 + 'px'
-                  }"
-                >
-                  <mat-icon
-                    [ngStyle]="{
-                      'font-size': windowInfo.innerWidth * 0.02 + 'px',
-                      width: windowInfo.innerWidth * 0.02 + 'px'
-                    }"
-                    >payments</mat-icon
-                  >
-                </div>
-                <div
-                  fxFlex
-                  style="text-align: center"
-                  [ngStyle]="{
-                    'font-size': windowInfo.innerWidth * 0.01 + 'px'
-                  }"
-                >
-                  Pago
-                </div>
-              </div>
-            </button>
-          </div>
-        </div>
-      </mat-card>
-      <div fxFlex="45">
         <mat-card
+          fxFlex="55"
           fxLayout="column"
-          fxLayoutGap="10px"
-          style="width: 100%; height: 100%"
-          fxLayoutAlign="space-around"
+          fxLayoutGap="5px"
+          style="width: 100%; height: 98%"
         >
-          <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="5px">
+          <div fxFlex="5" fxLayout="row" fxLayoutAlign="center center">
+            <div fxFlex="20"></div>
+            <!-- <div fxFlex="20" style="width: 100%;" fxFlexAlign="end">
+                    
+                  </div> -->
+            <img src="assets/flags/py/py64.png" alt="br" style="width: 3vw" />
             <div
-              fxFlex="19"
-              *ngFor="let pdvCategoria of pdvCategorias; let i = index"
+              fxFlex
+              class="valor-principal"
+              style="padding-left: 2%; text-align: end; padding-right: 15%"
             >
-              <mat-card
-                style="padding: 0; margin: 0; margin-top: 5px"
-                [ngStyle]="{
-                  height: windowInfo.innerHeight * 0.05 + 'px',
-                  'background-color': '#F44336'
-                }"
-                (click)="selectedPdvCategoria = pdvCategoria"
-              >
-                <div
-                  fxLayout="row"
-                  fxLayoutAlign="center center"
-                  style="width: 100%; height: 100%"
-                >
-                  <div fxFlex="100" style="text-align: center">
-                    <h4
-                      style="
-                        align-items: center;
-                        padding-top: 10%;
-                        padding-bottom: 0;
-                      "
-                    >
-                      {{ pdvCategoria?.descripcion }}
-                    </h4>
-                  </div>
-                </div>
-              </mat-card>
-            </div>
-            <div fxFlex="10">
-              <mat-card
-                style="padding: 0; margin: 0; margin-top: 5px"
-                [ngStyle]="{
-                  height: windowInfo.innerHeight * 0.05 + 'px',
-                  'background-color': '#F44336'
-                }"
-                (click)="addPdvCategoria()"
-              >
-                <div
-                  fxLayout="row"
-                  fxLayoutAlign="center center"
-                  style="width: 100%; height: 100%"
-                >
-                  <div fxFlex="100" style="text-align: center">
-                    <mat-icon style="font-size: 2em; cursor: pointer"
-                      >add</mat-icon
-                    >
-                  </div>
-                </div>
-              </mat-card>
-            </div>
-          </div>
-
-          <div style="text-align: center">
-            <h2 style="margin-bottom: 0">
-              {{ selectedPdvCategoria?.descripcion }}
-            </h2>
-          </div>
-          <div
-            fxFlex="56"
-            fxLayout="row wrap"
-            fxLayoutAlign="start start"
-            fxLayoutGap="5px"
-            style="height: 100%"
-          >
-            <div
-              fxFlex="19"
-              *ngFor="let grupo of selectedPdvCategoria?.grupos; let i = index"
-            >
-              <mat-card
-                style="padding: 0; margin: 0; margin-top: 5px"
-                [ngStyle]="{
-                  width: windowInfo.innerWidth * 0.08 + 'px',
-                  height: windowInfo.innerHeight * 0.1 + 'px',
-                  'background-color': '#F44336'
-                }"
-                (click)="
-                  onGridCardClick(grupo?.pdvGruposProductos, grupo?.descripcion)
-                "
-              >
-                <div
-                  fxLayout="row"
-                  fxLayoutAlign="center center"
-                  style="width: 100%; height: 100%"
-                >
-                  <div fxFlex="100" style="text-align: center">
-                    <h3
-                      style="
-                        align-items: center;
-                        padding-top: 10%;
-                        padding-bottom: 0;
-                      "
-                    >
-                      {{ grupo.descripcion }}
-                    </h3>
-                  </div>
-                </div>
-              </mat-card>
-            </div>
-            <div fxFlex="19">
-              <mat-card
-                style="padding: 0; margin: 0; margin-top: 5px"
-                [ngStyle]="{
-                  width: windowInfo.innerWidth * 0.08 + 'px',
-                  height: windowInfo.innerHeight * 0.1 + 'px',
-                  'background-color': '#F44336'
-                }"
-                (click)="addPdvProductoCategoria()"
-              >
-                <div
-                  fxLayout="row"
-                  fxLayoutAlign="center center"
-                  style="width: 100%; height: 100%"
-                >
-                  <div
-                    fxFlex="100"
-                    style="text-align: center; width: 2.5em; height: 2.5em"
-                  >
-                    <mat-icon style="font-size: 2.5em">add</mat-icon>
-                  </div>
-                </div>
-              </mat-card>
+              <div style="font-size: 2em">{{ totalGs | number }} Gs.</div>
             </div>
           </div>
           <div fxFlex="1">
-            <mat-divider></mat-divider>
+            <mat-divider style="height: 1vh"></mat-divider>
           </div>
           <div
-            fxFlex="17"
+            class="cambios"
+            fxFlex="4"
+            fxLayout="row"
+            fxLayoutAlign="space-between center"
+            style="margin-bottom: 0px !important"
+          >
+            <div fxFlex="30" FxLayout="row" fxLayoutAlign="center center">
+              <div fxFlex="30">
+                <img
+                  src="assets/flags/br/br32.png"
+                  alt="br"
+                  style="width: 50%; height: 50%"
+                />
+              </div>
+              <div
+                fxFlex="70"
+                class="totales-cambios"
+                [ngStyle]="{ 'font-size': '1.5em' }"
+              >
+                {{ totalGs / cambioRs | number: "1.2-2" }}
+              </div>
+            </div>
+            <div fxFlex="30" FxLayout="row" fxLayoutAlign="center center">
+              <div fxFlex="30">
+                <img
+                  src="assets/flags/usa/usa32.png"
+                  alt="br"
+                  style="width: 50%; height: 50%"
+                />
+              </div>
+              <div
+                fxFlex="70"
+                class="totales-cambios"
+                [ngStyle]="{ 'font-size': '1.5em' }"
+              >
+                {{ totalGs / cambioDs | number: "1.2-2" }}
+              </div>
+            </div>
+            <div fxFlex="30" FxLayout="row" fxLayoutAlign="center center">
+              <div fxFlex="30">
+                <img
+                  src="assets/flags/arg/arg32.png"
+                  alt="br"
+                  style="width: 50%; height: 50%"
+                />
+              </div>
+              <div
+                fxFlex="70"
+                class="totales-cambios"
+                [ngStyle]="{ 'font-size': '1.3em' }"
+              >
+                {{ totalGs / cambioArg | number: "1.2-2" }}
+              </div>
+            </div>
+          </div>
+          <div fxFlex="4" fxLayout="row" fxLayoutAlign="center center">
+            <hr fxFlex="40" style="background-color: grey" />
+            Cambio del día
+            <hr fxFlex="40" style="background-color: grey" />
+          </div>
+          <div
+            class="cambios"
+            fxFlex="5"
+            fxLayout="row"
+            fxLayoutAlign="space-between center"
+          >
+            <div fxFlex="30" FxLayout="row" fxLayoutAlign="start center">
+              <div fxFlex="20">
+                <img
+                  src="assets/flags/br/br32.png"
+                  alt="br"
+                  style="width: 50%; height: 50%"
+                />
+              </div>
+              <div fxFlex="80" class="valores-cambios" style="font-size: 1.2em">
+                {{ cambioRs | number }} Gs.
+              </div>
+            </div>
+            <div fxFlex="30" FxLayout="row" fxLayoutAlign="start center">
+              <div fxFlex="20">
+                <img
+                  src="assets/flags/usa/usa32.png"
+                  alt="br"
+                  style="width: 50%; height: 50%"
+                />
+              </div>
+              <div fxFlex="70" class="valores-cambios" style="font-size: 1.2em">
+                {{ cambioDs | number }} Gs.
+              </div>
+            </div>
+            <div fxFlex="30" FxLayout="row" fxLayoutAlign="star center">
+              <div fxFlex="20">
+                <img
+                  src="assets/flags/arg/arg32.png"
+                  alt="br"
+                  style="width: 50%; height: 50%"
+                />
+              </div>
+              <div fxFlex="80" class="valores-cambios" style="font-size: 1.2em">
+                {{ cambioArg | number }} Gs.
+              </div>
+            </div>
+          </div>
+          <div fxFlex="60" fxLayout="row">
+            <mat-card
+              style="background-color: white; padding: 5px; margin-top: 5px"
+              [ngStyle]="{
+                width: '100%',
+                'overflow-y': 'scroll'
+              }"
+            >
+              <table class="table">
+                <thead>
+                  <tr style="background-color: rgb(209, 209, 209)">
+                    <th scope="col" style="text-align: center; width: 5%">#</th>
+                    <th scope="col" style="width: 55%">Descripción</th>
+                    <th scope="col" style="text-align: center; width: 10%">
+                      Tipo
+                    </th>
+                    <th scope="col" style="text-align: center; width: 10%">
+                      Cant
+                    </th>
+                    <th scope="col" style="text-align: center; width: 10%">
+                      Precio
+                    </th>
+                    <th scope="col" style="text-align: center; width: 10%">
+                      Total
+                    </th>
+                    <th scope="col" style="text-align: center; width: 5%"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    *ngFor="let item of itemList; let i = index"
+                    (click)="editItem(item, i)"
+                  >
+                    <td
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                      "
+                    >
+                      {{ i + 1 }}
+                    </td>
+                    <td
+                      style="padding-bottom: 0; padding-top: 5px; width: 100%"
+                    >
+                      {{ item?.producto?.descripcion }}
+                    </td>
+                    <td
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                      "
+                    >
+                      {{ item.presentacion?.tipoPresentacion?.descripcion }}({{
+                        item.presentacion?.cantidad
+                      }})
+                    </td>
+                    <td
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                      "
+                    >
+                      {{ item.cantidad | number: "1.0-0" }}
+                    </td>
+                    <td
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                      "
+                    >
+                      {{ item.precioVenta.precio | number: "1.0-0" }}
+                    </td>
+                    <td
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                      "
+                    >
+                      {{
+                        item.cantidad * item.precioVenta.precio
+                          | number: "1.0-0"
+                      }}
+                    </td>
+                    <td
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                      "
+                    >
+                      <mat-icon
+                        style="color: red; font-size: 1.5em; cursor: pointer"
+                        (click)="removeItem(item, i)"
+                        >clear</mat-icon
+                      >
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </mat-card>
+          </div>
+          <form
+            [formGroup]="formGroup"
+            fxFlex="5"
+            fxLayout="column"
+            fxLayoutAlign="space-around start"
+            fxLayoutGap="10px"
+            style="width: 100%"
+          >
+            <div
+              fxLayout="row"
+              fxLayoutGap="10px"
+              fxLayoutAlign="start center"
+              style="width: 100%"
+            >
+              <div fxFlex="15" style="width: 100%; height: 100%">
+                <mat-form-field style="width: 100%; text-align: center">
+                  <input
+                    #cantidadInput
+                    matInput
+                    type="text"
+                    formControlName="cantidad"
+                    autocomplete="off"
+                    (focusout)="setFocusToCodigoInput()"
+                    style="color: white; font-size: 1.8em"
+                  />
+                </mat-form-field>
+              </div>
+              <div fxFlex="65" style="width: 100%; height: 100%">
+                <mat-form-field style="width: 100%" floatLabel="never">
+                  <!-- [matKeyboard]="'Azərbaycanca'"
+                  darkTheme="true" -->
+                  <input
+                    #codigoInput
+                    matInput
+                    type="text"
+                    formControlName="codigo"
+                    (keydown)="onCodigoKeyUpEvent($event.key)"
+                    autocomplete="off"
+                    (blur)="setFocusToCodigoInput()"
+                    oninput="this.value != ' ' ? this.value = this.value.toUpperCase() : this.value = null"
+                    style="color: white; font-size: 1.8em"
+                  />
+                </mat-form-field>
+              </div>
+              <button
+                type="button"
+                fxFlex
+                fxLayout="row"
+                fxLayoutAlign="center center"
+                mat-raised-button
+                color="primary"
+                style="height: 2em"
+                (click)="buscarProductoDialog()"
+              >
+                <mat-icon fxFlex style="font-size: 2em">search</mat-icon>
+              </button>
+            </div>
+          </form>
+          <div
+            fxFlex="15"
             fxLayout="row"
             fxLayoutAlign="start start"
-            fxLayoutGap="20px"
+            fxLayoutGap="10px"
           >
             <div fxFlex>
               <button
-                type="button"
-                class="bottom-action-button"
                 mat-raised-button
                 color="primary"
-                [ngStyle]="{
-                  width: '100%',
-                  height: windowInfo.innerHeight * 0.09 + 'px'
-                }"
+                style="width: 100%; height: 6em"
+                (click)="removeItem(null)"
                 [disabled]="itemList.length == 0"
-                (click)="onTicketClick()"
               >
-                <div
-                  fxLayout="column"
-                  fxLayoutAlign="center center"
-                  style="height: 100%"
-                >
-                  <div
-                    fxFlex="30"
-                    fxLayout="row"
-                    fxFlexAlign="center center"
-                    style="height: 1em"
-                  >
-                    <div fxFlex style="height: 1em">
-                      <mat-icon style="font-size: 2em">flash_on</mat-icon>
-                      <mat-icon style="font-size: 2em">receipt</mat-icon>
-                    </div>
-                  </div>
-                  <div
-                    fxFlex="30"
-                    style="text-align: center; height: 1em; font-size: 1em"
-                  >
-                    Cobro Rápido
-                  </div>
-                </div>
+                Eliminar Todo
               </button>
             </div>
             <div fxFlex>
               <button
                 type="button"
-                class="bottom-action-button"
                 mat-raised-button
-                color="primary"
-                [ngStyle]="{
-                  width: '100%',
-                  height: windowInfo.innerHeight * 0.09 + 'px'
-                }"
-                [disabled]="itemList.length == 0 && false"
-                (click)="onDeliveryClick()"
+                color="accent"
+                style="width: 100%; height: 6em"
+                (click)="onPagoClick()"
+                [disabled]="itemList.length == 0"
               >
-                <div
-                  fxLayout="column"
-                  fxLayoutAlign="center center"
-                  style="height: 100%"
-                >
-                  <div
-                    fxFlex="30"
-                    fxLayout="row"
-                    fxFlexAlign="center center"
-                    style="height: 1em"
-                  >
-                    <div fxFlex style="height: 1em">
-                      <mat-icon style="font-size: 2em"
-                        >delivery_dining</mat-icon
-                      >
-                    </div>
-                  </div>
-                  <div
-                    fxFlex="30"
-                    style="text-align: center; height: 1em; font-size: 1em"
-                  >
-                    Delivery
-                  </div>
-                </div>
+                Pago
               </button>
-            </div>
-            <div fxFlex>
-              <button
-                type="button"
-                class="bottom-action-button"
-                mat-raised-button
-                color="primary"
-                [ngStyle]="{
-                  width: '100%',
-                  height: windowInfo.innerHeight * 0.09 + 'px'
-                }"
-              >
-                <div
-                  fxLayout="column"
-                  fxLayoutAlign="center center"
-                  style="height: 100%"
-                >
-                  <div
-                    fxFlex="30"
-                    fxLayout="row"
-                    fxFlexAlign="center center"
-                    style="height: 1em"
-                  >
-                    <div fxFlex style="height: 1em">
-                      <mat-icon style="font-size: 2em">liquor</mat-icon>
-                    </div>
-                  </div>
-                  <div
-                    fxFlex="30"
-                    style="text-align: center; height: 1em; font-size: 1em"
-                  >
-                    Garantía
-                  </div>
-                </div>
-              </button>
-            </div>
-            <div fxFlex>
-              <button
-                type="button"
-                class="bottom-action-button"
-                mat-raised-button
-                color="primary"
-                [ngStyle]="{
-                  width: '100%',
-                  height: windowInfo.innerHeight * 0.09 + 'px'
-                }"
-              >
-                <div
-                  fxLayout="column"
-                  fxLayoutAlign="center center"
-                  style="height: 100%"
-                >
-                  <div
-                    fxFlex="30"
-                    fxLayout="row"
-                    fxFlexAlign="center center"
-                    style="height: 1em"
-                  >
-                    <div fxFlex style="height: 1em">
-                      <mat-icon style="font-size: 2em"
-                        >desktop_windows</mat-icon
-                      >
-                    </div>
-                  </div>
-                  <div
-                    fxFlex="30"
-                    style="text-align: center; height: 1em; font-size: 1em"
-                  >
-                    {{ !isAuxiliar ? "PDV 2" : "PDV 1" }}
-                  </div>
-                </div>
-              </button>
-            </div>
-
-            <div fxFlex>
-              <button
-                type="button"
-                class="bottom-action-button"
-                mat-raised-button
-                color="primary"
-                [ngStyle]="{
-                  width: '100%',
-                  height: windowInfo.innerHeight * 0.09 + 'px'
-                }"
-              >
-                <div
-                  fxLayout="column"
-                  fxLayoutAlign="center center"
-                  style="height: 100%"
-                >
-                  <div
-                    fxFlex="30"
-                    fxLayout="row"
-                    fxFlexAlign="center center"
-                    style="height: 1em"
-                  >
-                    <div fxFlex style="height: 1em">
-                      <mat-icon style="font-size: 2em">handyman</mat-icon>
-                    </div>
-                  </div>
-                  <div
-                    fxFlex="30"
-                    style="text-align: center; height: 1em; font-size: 1em"
-                  >
-                    Utilitarios
-                  </div>
-                </div>
-              </button>
-              <!--  -->
             </div>
           </div>
         </mat-card>
+        <div fxFlex="45">
+          <mat-card
+            fxFlex="100"
+            fxLayout="column"
+            fxLayoutGap="5px"
+            style="width: 100%; height: 100%"
+          >
+            <div
+              #categorias
+              fxFlex="4"
+              fxLayout="row"
+              fxLayoutAlign="start center"
+              fxLayoutGap="5px"
+            >
+              <div
+                fxFlex="16"
+                *ngFor="let pdvCategoria of pdvCategorias; let i = index"
+              >
+                <button
+                  mat-raised-button
+                  color="primary"
+                  (click)="selectedPdvCategoria = pdvCategoria"
+                >
+                  {{ pdvCategoria?.descripcion }}
+                </button>
+              </div>
+              <div fxFlex="10">
+                <button
+                  mat-raised-button
+                  color="primary"
+                  (click)="addPdvCategoria()"
+                >
+                  <mat-icon style="font-size: 1.2em; cursor: pointer"
+                    >add</mat-icon
+                  >
+                </button>
+              </div>
+            </div>
+
+            <div fxFlex="3" style="text-align: center">
+              <h4 style="margin-bottom: 0">
+                {{ selectedPdvCategoria?.descripcion }}
+              </h4>
+            </div>
+            <div
+              fxFlex="75"
+              fxLayout="row wrap"
+              fxLayoutAlign="start start"
+              fxLayoutGap="5px"
+              style="height: 100%"
+            >
+              <div
+                fxFlex="19"
+                *ngFor="
+                  let grupo of selectedPdvCategoria?.grupos;
+                  let i = index
+                "
+              >
+                <mat-card
+                  style="padding: 0; margin: 0; margin-top: 5px"
+                  [ngStyle]="{
+                    width: windowInfo.innerWidth * 0.08 + 'px',
+                    height: windowInfo.innerHeight * 0.1 + 'px',
+                    'background-color': '#F44336'
+                  }"
+                  (click)="
+                    onGridCardClick(
+                      grupo?.pdvGruposProductos,
+                      grupo?.descripcion
+                    )
+                  "
+                >
+                  <div
+                    fxLayout="row"
+                    fxLayoutAlign="center center"
+                    style="width: 100%; height: 100%"
+                  >
+                    <div fxFlex="100" style="text-align: center">
+                      <h3
+                        style="
+                          align-items: center;
+                          padding-top: 10%;
+                          padding-bottom: 0;
+                        "
+                      >
+                        {{ grupo.descripcion }}
+                      </h3>
+                    </div>
+                  </div>
+                </mat-card>
+              </div>
+              <div fxFlex="19">
+                <mat-card
+                  style="padding: 0; margin: 0; margin-top: 5px"
+                  [ngStyle]="{
+                    width: windowInfo.innerWidth * 0.08 + 'px',
+                    height: windowInfo.innerHeight * 0.1 + 'px',
+                    'background-color': '#F44336'
+                  }"
+                  (click)="addPdvProductoCategoria()"
+                >
+                  <div
+                    fxLayout="row"
+                    fxLayoutAlign="center center"
+                    style="width: 100%; height: 100%"
+                  >
+                    <div
+                      fxFlex="100"
+                      style="text-align: center; width: 2em; height: 2em"
+                    >
+                      <mat-icon style="font-size: 2em">add</mat-icon>
+                    </div>
+                  </div>
+                </mat-card>
+              </div>
+            </div>
+            <div fxFlex="1">
+              <mat-divider></mat-divider>
+            </div>
+            <div
+              fxFlex="17"
+              fxLayout="row"
+              fxLayoutAlign="start start"
+              fxLayoutGap="20px"
+            >
+              <div fxFlex>
+                <button
+                  type="button"
+                  mat-raised-button
+                  color="primary"
+                  style="width: 100%; height: 6em"
+                  [disabled]="itemList.length == 0"
+                  (click)="onTicketClick()"
+                >
+                  Cobro Rápido
+                </button>
+              </div>
+              <div fxFlex>
+                <button
+                  type="button"
+                  mat-raised-button
+                  color="primary"
+                  style="width: 100%; height: 6em"
+                  [disabled]="itemList.length == 0 && false"
+                  (click)="onDeliveryClick()"
+                >
+                  Delivery
+                </button>
+              </div>
+              <div fxFlex>
+                <button
+                  disabled="true"
+                  type="button"
+                  mat-raised-button
+                  color="primary"
+                  style="width: 100%; height: 6em"
+                ></button>
+              </div>
+              <div fxFlex>
+                <button
+                  type="button"
+                  mat-raised-button
+                  color="primary"
+                  style="width: 100%; height: 6em"
+                  (click)="pdvAuxiliarClick() "
+                >
+                  <!-- <div
+                      fxFlex="30"
+                      fxLayout="row"
+                      fxFlexAlign="center center"
+                      style="height: 1em"
+                    >
+                      <div fxFlex style="height: 1em">
+                        <mat-icon style="font-size: 2em"
+                          >desktop_windows</mat-icon
+                        >
+                      </div>
+                    </div> -->
+                  {{ !isAuxiliar ? "PDV 2" : "PDV 1" }}
+                </button>
+              </div>
+
+              <div fxFlex>
+                <button
+                  type="button"
+                  mat-raised-button
+                  color="primary"
+                  style="width: 100%; height: 6em"
+                  (click)="openUtilitarios()"
+                >
+                  Utilitarios
+                </button>
+                <!--  -->
+              </div>
+            </div>
+          </mat-card>
+        </div>
       </div>
     </div>
   </div>

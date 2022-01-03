@@ -1,10 +1,14 @@
 import { OverlayContainer } from "@angular/cdk/overlay";
-import { Component, OnInit } from "@angular/core";
+import { Component, OnDestroy, OnInit } from "@angular/core";
 import { MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { MatSnackBar } from "@angular/material/snack-bar";
+import { Subscription } from "rxjs";
+import { last } from "rxjs/operators";
+import { connectionStatusSub } from "./app.module";
 import { MainService } from "./main.service";
 import { LoginComponent } from "./modules/login/login.component";
 import {
+  NotificacionColor,
   NotificacionSnackbarData,
   NotificacionSnackbarService,
 } from "./notificacion-snackbar.service";
@@ -15,10 +19,15 @@ import { WindowInfoService } from "./shared/services/window-info.service";
   templateUrl: "./app.component.html",
   styleUrls: ["./app.component.scss"],
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   title = "franco-dev-systems";
   innerWidth;
   innerHeight;
+  lastStatus = false;
+  timer = null;
+  snackBarRef: any;
+
+  statusSub: Subscription;
 
   constructor(
     private overlay: OverlayContainer,
@@ -31,12 +40,17 @@ export class AppComponent implements OnInit {
     this.innerHeight = windowInfo.innerHeight + "px";
     notificationService.notification$.subscribe((res) => {
       let duracion = res.duracion != null ? res.duracion : 3;
-      snackBar.open(res.texto, null, {
-        horizontalPosition: "center",
-        duration: res.duracion * 1000,
-        verticalPosition: "top",
-        panelClass: [res.color],
-      });
+      if(this.snackBarRef==null){
+        this.snackBarRef = snackBar.open(res.texto, null, {
+          horizontalPosition: "center",
+          duration: res.duracion * 1000,
+          verticalPosition: "top",
+          panelClass: [res.color],
+        });
+      }
+      setTimeout(() => {
+        this.snackBarRef = null;
+      }, res.duracion * 1000);
     });
   }
 
@@ -47,5 +61,31 @@ export class AppComponent implements OnInit {
       height: "500px",
       disableClose: false,
     });
+
+    this.statusSub = connectionStatusSub.subscribe((res) => {
+      if (res == true) {
+        this.notificationService.notification$.next({
+          texto: "Servidor Online!!",
+          color: NotificacionColor.success,
+          duracion: 6,
+        });
+        clearInterval(this.timer);
+      } else if(res == false) {
+        console.log("entro al false")
+        this.timer = setInterval(() => {
+          this.notificationService.notification$.next({
+            texto: "Servidor Offline!!",
+            color: NotificacionColor.danger,
+            duracion: 1,
+          });
+        }, 3000);
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    //Called once, before the instance is destroyed.
+    //Add 'implements OnDestroy' to the class.
+    this.statusSub.unsubscribe();
   }
 }

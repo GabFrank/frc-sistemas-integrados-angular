@@ -127,8 +127,18 @@ export const conteosQuery = gql`
 // `;
 
 export const saveConteo = gql`
-  mutation saveConteo($entity: ConteoInput!) {
-    data: saveConteo(conteo: $entity) {
+  mutation saveConteo(
+    $conteo: ConteoInput!
+    $conteoMonedaInputList: [ConteoMonedaInput]
+    $cajaId: Int
+    $apertura: Boolean
+  ) {
+    data: saveConteo(
+      conteo: $conteo
+      conteoMonedaInputList: $conteoMonedaInputList
+      cajaId: $cajaId
+      apertura: $apertura
+    ) {
       id
       observacion
       creadoEn
