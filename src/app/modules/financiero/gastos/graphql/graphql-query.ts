@@ -32,15 +32,14 @@ export const gastosQuery = gql`
           nombre
         }
       }
-      gastoDetalleList {
-        id
-        moneda {
-          id
-          denominacion
-          cambio
-        }
-        cantidad
-      } 
+      retiroGs
+      retiroRs
+      retiroDs
+      vueltoGs
+      vueltoRs
+      vueltoDs
+      activo
+      finalizado
     }
   }
 `;
@@ -77,16 +76,14 @@ export const gastosPorFecha = gql`
           nombre
         }
       }
-      gastoDetalleList {
-        id
-        moneda {
-          id
-          denominacion
-          cambio
-        }
-        
-        cantidad
-      } 
+      retiroGs
+      retiroRs
+      retiroDs
+      vueltoGs
+      vueltoRs
+      vueltoDs
+      activo
+      finalizado
     }
   }
 `;
@@ -171,26 +168,21 @@ export const gastoQuery = gql`
           nombre
         }
       }
-      gastoDetalleList {
-        id
-        moneda {
-          id
-          denominacion
-          cambio
-        }
-        
-        cantidad
-      }
-      
-      
-      
+      retiroGs
+      retiroRs
+      retiroDs
+      vueltoGs
+      vueltoRs
+      vueltoDs
+      activo
+      finalizado
     }
   }
 `;
 
 export const saveGasto = gql`
-  mutation saveGasto($entity:GastoInput!, $detalleList: [GastoDetalleInput]) {
-    data: saveGasto(entity: $entity, detalleList: $detalleList) {
+  mutation saveGasto($entity: GastoInput!) {
+    data: saveGasto(entity: $entity) {
       id
       responsable {
         id
@@ -220,15 +212,14 @@ export const saveGasto = gql`
           nombre
         }
       }
-      gastoDetalleList {
-        id
-        moneda {
-          id
-          denominacion
-          cambio
-        }
-        cantidad
-      }
+      retiroGs
+      retiroRs
+      retiroDs
+      vueltoGs
+      vueltoRs
+      vueltoDs
+      activo
+      finalizado
     }
   }
 `;
@@ -236,5 +227,51 @@ export const saveGasto = gql`
 export const deleteGastoQuery = gql`
   mutation deleteGasto($id: ID!) {
     deleteGasto(id: $id)
+  }
+`;
+
+//gastosPorCajaId
+
+export const gastosPorCajaIdQuery = gql`
+  query ($id: ID!) {
+    data: gastosPorCajaId(id: $id) {
+      id
+      responsable {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      tipoGasto {
+        id
+        descripcion
+        autorizacion
+      }
+      autorizadoPor {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      observacion
+      creadoEn
+      usuario {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      retiroGs
+      retiroRs
+      retiroDs
+      vueltoGs
+      vueltoRs
+      vueltoDs
+      activo
+      finalizado
+    }
   }
 `;

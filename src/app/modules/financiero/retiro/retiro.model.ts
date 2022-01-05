@@ -13,6 +13,9 @@ export class Retiro {
   creadoEn: Date;
   usuario: Usuario;
   retiroDetalleList: RetiroDetalle[];
+  retiroGs: number;
+  retiroRs: number;
+  retiroDs: number;
 
   toInput(): RetiroInput {
     let input = new RetiroInput();
@@ -24,6 +27,9 @@ export class Retiro {
     input.estado = this.estado;
     input.observacion = this.observacion;
     input.creadoEn = this.creadoEn;
+    input.retiroGs = this.retiroGs;
+    input.retiroRs = this.retiroRs;
+    input.retiroDs = this.retiroDs;
     return input;
   }
   toDetalleInput(): RetiroDetalleInput[] {
@@ -44,6 +50,9 @@ export class RetiroInput {
   usuarioId: number;
   cajaSalidaId: number;
   cajaEntradaId: number;
+  retiroGs: number;
+  retiroRs: number;
+  retiroDs: number;
 }
 
 export enum EstadoRetiro {

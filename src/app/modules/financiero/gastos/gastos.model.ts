@@ -12,11 +12,16 @@ export class Gasto {
     autorizadoPor: Funcionario
     observacion: string
     gastoDetalleList: GastoDetalle[]
+    activo: boolean;
+    finalizado: boolean;
     creadoEn: Date
     usuario: Usuario
-    valorGs: number;
-    valorRs: number;
-    valorDs: number;
+    retiroGs: number;
+    retiroRs: number;
+    retiroDs: number;
+    vueltoGs: number;
+    vueltoRs: number;
+    vueltoDs: number;
 
     toInput(): GastoInput {
         let input = new GastoInput;
@@ -28,9 +33,14 @@ export class Gasto {
         input.observacion = this.observacion;
         input.creadoEn = this.creadoEn;
         input.usuarioId = this.usuario?.id;
-        input.valorGs = this.valorGs;
-        input.valorRs = this.valorRs;
-        input.valorDs = this.valorDs;
+        input.retiroGs = this.retiroGs;
+        input.retiroRs = this.retiroRs;
+        input.retiroDs = this.retiroDs;
+        input.vueltoGs = this.vueltoGs
+        input.vueltoRs = this.vueltoRs
+        input.vueltoDs = this.vueltoDs
+        input.activo = this.activo;
+        input.finalizado = this.finalizado;
         return input;
     }
 
@@ -52,7 +62,12 @@ export class GastoInput {
     observacion: string
     creadoEn: Date
     usuarioId: number
-    valorGs: number;
-    valorRs: number;
-    valorDs: number;
+    retiroGs: number;
+    retiroRs: number;
+    retiroDs: number;
+    vueltoGs: number;
+    vueltoRs: number;
+    vueltoDs: number;
+    activo: boolean;
+    finalizado: boolean;
 }

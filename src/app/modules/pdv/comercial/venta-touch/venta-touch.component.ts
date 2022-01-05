@@ -507,8 +507,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   @HostListener("document:keyup", ["$event"]) onKeydownHandler(
     event: KeyboardEvent
   ) {
-    console.log(this.data)
-    if(this.data.active == true){
+    console.log(this.data);
+    if (this.data.active == true) {
       switch (event.key) {
         case "Escape":
           break;
@@ -840,7 +840,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         data: {
           caja: this.selectedCaja,
         },
-        width: "50%",
+        width: "70%",
         disableClose: false,
         restoreFocus: true,
         autoFocus: true,
@@ -849,12 +849,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       .subscribe((res) => {
         console.log(res);
 
-        if (res["conteoApertura"] != null) {
+        if (res != null) {
+          if (res.conteoCierre != null) {
+            this.selectedCaja = null;
+            this.openSelectCajaDialog();
+          }
         }
-        if (res["conteoCierre"] != null) {
-          this.selectedCaja = null;
-          this.openSelectCajaDialog();
-        }
+
         this.isDialogOpen = false;
       });
   }

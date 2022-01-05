@@ -19,6 +19,9 @@ export class RetiroService {
   ) {}
 
   onSave(retiro: Retiro): Observable<any> {
+    retiro.retiroGs = retiro.retiroDetalleList.find(r => r.moneda.denominacion == 'GUARANI')?.cantidad;
+    retiro.retiroRs = retiro.retiroDetalleList.find(r => r.moneda.denominacion == 'REAL')?.cantidad;
+    retiro.retiroDs = retiro.retiroDetalleList.find(r => r.moneda.denominacion == 'DOLAR')?.cantidad;
     retiro.usuario = this.mainService.usuarioActual;
     return new Observable((obs) => {
       return this.saveRetiro

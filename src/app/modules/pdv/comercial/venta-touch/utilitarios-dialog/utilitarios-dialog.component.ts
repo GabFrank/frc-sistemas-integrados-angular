@@ -64,8 +64,8 @@ export class UtilitariosDialogComponent implements OnInit {
       data: {
         caja: this.selectedCaja
       },
-      width: '50%',
-      height: '50%',
+      width: '70%',
+      height: '70%',
       disableClose: true,
       autoFocus: true,
       restoreFocus: true    

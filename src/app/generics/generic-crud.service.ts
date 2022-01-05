@@ -37,7 +37,7 @@ export class GenericCrudService {
     });
   }
 
-  onGetById(gql: Query, id: number): Observable<any> {
+  onGetById<T>(gql: Query, id: number): Observable<T> {
     return new Observable((obs) => {
       gql
         .fetch({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" })
@@ -74,7 +74,7 @@ export class GenericCrudService {
     });
   }
 
-  onSave(gql: Mutation, input): Observable<any> {
+  onSave<T>(gql: Mutation, input): Observable<T> {
     if (input.usuarioId == null) {
       input.usuarioId = +localStorage.getItem("usuarioId");
     }
@@ -87,6 +87,11 @@ export class GenericCrudService {
         .subscribe((res) => {
           if (res.errors == null) {
             obs.next(res.data["data"]);
+            this.notificacionSnackBar.notification$.next({
+              texto: "Guardado con éxito",
+              duracion: 2,
+              color: NotificacionColor.success,
+            });
           } else {
             this.notificacionSnackBar.notification$.next({
               texto:
