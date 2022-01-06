@@ -35,16 +35,15 @@ export const vendedoresQuery = gql
         }
       credito
       tipoCredito
-      chequeDias
+      
       }
     }
   }`
 
 export const vendedoresSearchByPersona = gql
   `query($texto: String){
-    vendedores : vendedoresSearchByPersona(texto: $texto){
+    data : vendedoresSearchByPersona(texto: $texto){
       id
-      nombrePersona
       persona {
         id
         nombre
@@ -59,23 +58,10 @@ export const vendedoresSearchByPersona = gql
           id
           descripcion
           imagenPrincipal
-          productoUltimasCompras{
-            cantidad
-            precio
-            creadoEn
-            pedido{
-              id
-              proveedor{
-                persona{
-                  nombre
-                }
-              }
-            }
-          }
         }
       credito
       tipoCredito
-      chequeDias
+      
       }
     }
   }`
@@ -115,7 +101,7 @@ export const vendedoresSearchByProveedor = gql
         }
       credito
       tipoCredito
-      chequeDias
+      
       }
     }
   }`
@@ -154,7 +140,7 @@ export const vendedorQuery = gql
         }
       credito
       tipoCredito
-      chequeDias
+      
       }
     }
   }`

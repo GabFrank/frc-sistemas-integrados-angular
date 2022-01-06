@@ -21,6 +21,7 @@ import { AdicionarCodigoDialogComponent } from './codigo/adicionar-codigo-dialog
 import { AdicionarPrecioDialogComponent } from './precio-por-sucursal/adicionar-precio-dialog/adicionar-precio-dialog.component';
 import { SelectPrecioDialogComponent } from './precio-por-sucursal/select-precio-dialog/select-precio-dialog.component';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { SeleccionarPresentacionDialogComponent } from './presentacion/seleccionar-presentacion-dialog/seleccionar-presentacion-dialog.component';
 
 
 
@@ -42,6 +43,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
     AdicionarCodigoDialogComponent,
     AdicionarPrecioDialogComponent,
     SelectPrecioDialogComponent,
+    SeleccionarPresentacionDialogComponent,
   ],
   imports: [
     CommonModule,

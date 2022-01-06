@@ -1,23 +1,29 @@
 <mat-toolbar color="primary">
-  <mat-toolbar-row style="padding-right: 0">
-    <button mat-icon-button (click)="toogleSideBar()">
-      <mat-icon>menu</mat-icon>
-    </button>
-
-    <span>BODEGA FRANCO</span>
+  <mat-toolbar-row
+    style="padding-right: 0"
+    fxLayout="row"
+    fxLayoutAlign="space-between center"
+  >
+    <div fxFlex="15" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="20px">
+      <button fxFlex mat-icon-button (click)="toogleSideBar()">
+        <mat-icon>menu</mat-icon>
+      </button>
+      <span fxFlex>BODEGA FRANCO</span>
+    </div>
 
     <ul
+      fxFlex="20"
       fxLayout="row"
       fxLayoutGap="20px"
       fxLayoutAlign="end center"
       style="width: 100%"
     >
-      <li fxFlex="5">
+      <li fxFlex>
         <button mat-icon-button [matMenuTriggerFor]="menuServerIp">
           <mat-icon>settings</mat-icon>
         </button>
         <mat-menu #menuServerIp="matMenu">
-          <div style="padding: 5px;">
+          <div style="padding: 5px">
             <div *ngIf="!editServerIp" style="color: white; text-align: center">
               <h4>Server Ip</h4>
               {{ mainService?.serverIpAddres }}
@@ -63,18 +69,18 @@
           </div>
         </mat-menu>
       </li>
-      <li fxFlex="5">
+      <li>
         <button mat-icon-button>
           <mat-icon>help_online</mat-icon>
         </button>
       </li>
-      <li fxFlex="5">
-        <button mat-button [matMenuTriggerFor]="menu">
+      <li fxFlex>
+        <button fxFlex="25" mat-button [matMenuTriggerFor]="menu">
           <mat-icon *ngIf="mainService?.usuarioActual?.persona == null" fxFlex
             >person_outline</mat-icon
           >
           <div
-            style="font-size: 1.2em"
+            style="font-size: 1.2em; text-overflow: ellipsis"
             *ngIf="mainService?.usuarioActual?.persona != null"
           >
             {{ mainService.usuarioActual.persona.nombre | titlecase }}

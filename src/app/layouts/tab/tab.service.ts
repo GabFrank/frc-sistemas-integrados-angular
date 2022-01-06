@@ -15,6 +15,9 @@ import { ListGastosComponent } from '../../modules/financiero/gastos/list-gastos
 import { ListTipoGastosComponent } from '../../modules/financiero/tipo-gastos/list-tipo-gastos/list-tipo-gastos.component';
 import { ListCajaComponent } from '../../modules/financiero/pdv/caja/list-caja/list-caja.component';
 import { PrintTicketsComponent } from '../../modules/print/print-tickets/print-tickets.component';
+import { ListCompraComponent } from '../../modules/operaciones/compra/list-compra/list-compra.component';
+import { EditCompraComponent } from '../../modules/operaciones/compra/edit-compra/edit-compra.component';
+import { EditPedidoComponent } from '../../modules/operaciones/pedido/edit-pedido/edit-pedido.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -46,7 +49,8 @@ export class TabService {
       // new Tab(ListMovimientoStockComponent, 'Movimientos', null, null),
       // new Tab(EntradaSalidaComponent, 'Entrada/Salida', null, null),
       // new Tab(PrintTicketsComponent, 'Farra', null, null),
-        new Tab(VentaTouchComponent, 'Venta', null, null),
+      new Tab(EditPedidoComponent, 'Pedido', null, null),
+
     ];
     this.tabSub.next(this.tabs);
   }

@@ -5,3 +5,7 @@ input {
 th {
     height: 80%;
 }
+
+::ng-deep .mat-horizontal-stepper-header{
+    pointer-events: none !important;
+}

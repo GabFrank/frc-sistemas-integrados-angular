@@ -1,0 +1,233 @@
+<div fxLayout="column" fxLayoutGap="10px" style="width: 100%; height: 100%">
+  <mat-card
+    fxFlex="30"
+    fxLayout="column"
+    style="background-color: rgb(32, 32, 32); height: 100%; width: 100%"
+  >
+    <div fxFlex style="width: 100%; text-align: center">
+      Información del producto
+    </div>
+    <div fxFlex fxLayout="row" style="width: 100%; height: 100%">
+      <div fxFlex="80%" fxLayout="column">
+        <div fxFlex fxLayout="row" fxLayoutAlign="start center">
+          <div fxFlex="10">Producto:</div>
+          <div #codigoProducto fxFlex="10">
+            <mat-form-field style="width: 90%">
+              <mat-label>Código</mat-label>
+              <input
+                type="text"
+                matInput
+                [formControl]="productoIdControl"
+                (keydown)="onCodigoKeyup($event.key)"
+              />
+            </mat-form-field>
+          </div>
+          <div #descripcionProducto fxFlex="80">
+            <mat-form-field style="width: 99%">
+              <mat-label>Descripción</mat-label>
+              <input
+                #productoInput
+                type="text"
+                matInput
+                [formControl]="productoControl"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="10" fxFlexAlign="center">
+            <mat-icon color="primary">search</mat-icon>
+          </div>
+        </div>
+        <div fxFlex fxLayout="row" fxLayoutAlign="start center">
+          <div fxFlex="30">
+            Cantidad por caja: {{ selectedPresentacion?.cantidad }}
+          </div>
+          <div fxFlex="30">
+            Existencia Actual:
+            {{ existencia | number: "1.0-2" }}
+          </div>
+
+          <div fxFlex="30">
+            Costo medio: {{ selectedProducto?.costoMedio | number: "1.0-0" }}
+          </div>
+        </div>
+        <div fxFlex fxLayout="row">
+          <div fxFlex="30">
+            <mat-form-field>
+              <mat-label>Cantidad</mat-label>
+              <input matInput type="number" [formControl]="cantidadControl" />
+            </mat-form-field>
+          </div>
+          <div fxFlex="30">
+            <mat-form-field>
+              <mat-label>Precio</mat-label>
+              <input matInput type="number" [formControl]="precioControl" />
+            </mat-form-field>
+          </div>
+          <div fxFlex="30">
+            <mat-form-field>
+              <mat-label>Descuento</mat-label>
+              <input matInput type="number" [formControl]="descuentoControl" />
+            </mat-form-field>
+          </div>
+        </div>
+      </div>
+      <div
+        fxFlex="20%"
+        style="width: 100%; height: 100%; text-align: center;"
+        fxLayout="row"
+        fxLayoutAlign="center center"
+      >
+        <div fxFlex style="padding: 0px; width: 150px; height: 150px">
+          <div
+            fxLayout="column"
+            fxLayoutAlign="start space-around"
+            fxLayoutGap="5px"
+          >
+            <div>
+              <img
+                [src]="
+                selectedPresentacion?.imagenPrincipal != null
+                    ? selectedPresentacion.imagenPrincipal
+                    : '/assets/no-image.png'
+                "
+                style="width: 150px; height: 150px; object-fit: contain"
+              />
+            </div>
+            <div *ngIf="selectedPresentacion != null" style="text-align: center; font-weight: bold">
+              <div>Cantidad: {{ selectedPresentacion.cantidad | number: "1.0-2" }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      fxFlex
+      fxLayout="row"
+      style="width: 100%"
+      fxLayoutAlign="center center"
+    >
+      <div fxFlex="20%">
+        <button style="width: 90%" mat-raised-button color="primary">
+          Cancelar
+        </button>
+      </div>
+      <div fxFlex="20%">
+        <button
+          style="width: 90%"
+          [disabled]="formGroup.invalid"
+          mat-raised-button
+          color="accent"
+        >
+          Guardar
+        </button>
+      </div>
+    </div>
+  </mat-card>
+  <div
+    fxFlex
+    fxLayout="row"
+    fxLayoutGap="10px"
+    style="width: 100%; height: 100%"
+  >
+    <mat-card
+      fxLayout="column"
+      style="width: 100%; height: 100%; background-color: rgb(32, 32, 32)"
+    >
+      <div fxFlex="5" style="width: 100%; text-align: center">
+        Histórico de compras
+      </div>
+      <table mat-table [dataSource]="historicoComprasDataSource" matSort>
+        <!-- Position Column -->
+        <ng-container matColumnDef="id" style="width: 50%">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Id</th>
+          <td mat-cell *matCellDef="let compraItem">{{ compraItem.id }}</td>
+        </ng-container>
+
+        <!-- Name Column -->
+        <ng-container matColumnDef="proveedor">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Proveedor</th>
+          <td mat-cell *matCellDef="let compraItem">
+            {{ compraItem.compra?.proveedor?.persona?.nombre | uppercase }}
+          </td>
+        </ng-container>
+
+        <!-- Weight Column -->
+        <ng-container matColumnDef="precio">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Precio</th>
+          <td mat-cell *matCellDef="let compraItem">{{ compraItem.precio }}</td>
+        </ng-container>
+
+        <!-- Symbol Column -->
+        <ng-container matColumnDef="cantidad">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Cantidad</th>
+          <td mat-cell *matCellDef="let compraItem">
+            {{ compraItem.cantidad }}
+          </td>
+        </ng-container>
+
+        <!-- Acciones -->
+
+        <ng-container matColumnDef="accion">
+          <th mat-header-cell *matHeaderCellDef>...</th>
+          <td mat-cell *matCellDef="let compraItem" class="action-link">
+            <button mat-button color="primary" (click)="onEdit(compraItem)">
+              Abrir
+            </button>
+          </td>
+        </ng-container>
+
+        <tr
+          mat-header-row
+          *matHeaderRowDef="historicoComprasdisplayedColumns"
+        ></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: historicoComprasdisplayedColumns"
+        ></tr>
+      </table>
+    </mat-card>
+    <mat-card
+      fxLayout="column"
+      style="width: 100%; height: 100%; background-color: rgb(32, 32, 32)"
+    >
+      <div fxFlex="5" style="width: 100%; text-align: center">
+        Lista de precios
+      </div>
+      <table mat-table [dataSource]="preciosDataSource" matSort>
+        <!-- Position Column -->
+        <ng-container matColumnDef="id" style="width: 50%">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Id</th>
+          <td mat-cell *matCellDef="let precio">{{ precio.id }}</td>
+        </ng-container>
+
+        <!-- Name Column -->
+        <ng-container matColumnDef="presentacion">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>
+            Cant por caja
+          </th>
+          <td mat-cell *matCellDef="let precio">
+            {{ precio?.presentacion?.cantidad | uppercase }}
+          </td>
+        </ng-container>
+
+        <!-- Weight Column -->
+        <ng-container matColumnDef="precio">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Precio</th>
+          <td mat-cell *matCellDef="let precio">{{ precio.precio }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="accion">
+          <th mat-header-cell *matHeaderCellDef>...</th>
+          <td mat-cell *matCellDef="let precio" class="action-link">
+            <button mat-button color="primary" (click)="onEdit(precio)">
+              Abrir
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="preciosdisplayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: preciosdisplayedColumns"></tr>
+      </table>
+    </mat-card>
+  </div>
+</div>

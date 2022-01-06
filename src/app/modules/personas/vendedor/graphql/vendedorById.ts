@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
+import { Vendedor } from '../vendedor.model';
 import { vendedoresSearchByPersona, vendedorQuery } from './graphql-query';
-import { Vendedor } from './vendedorSearchByPersona';
 
 export interface Response {
-  vendedor: Vendedor;
+  data: Vendedor;
 }
 
 @Injectable({

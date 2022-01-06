@@ -1,10 +1,10 @@
 
 export function orderByIdAsc<T>(arr: T[]): T[]{
-    return arr.sort((a,b) => {
+    return arr.sort((a,b) => {  
         if(a['id'] > b['id']){
-            return -1;
-        } else {
             return 1;
+        } else {
+            return -1;
         }
     })
 }

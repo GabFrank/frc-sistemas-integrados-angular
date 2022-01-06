@@ -1,7 +1,7 @@
 import { Producto } from '../../productos/producto/producto.model';
 import { Persona } from '../persona/persona.model';
 import { Usuario } from '../usuarios/usuario.model';
-import { Vendedor } from '../vendedor/graphql/vendedorSearchByPersona';
+import { Vendedor } from '../vendedor/vendedor.model';
 
 export interface Proveedor {
   id: number;

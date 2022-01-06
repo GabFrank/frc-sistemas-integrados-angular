@@ -1,3 +1,14 @@
+::ng-deep .mat-horizontal-stepper-header{
+  pointer-events: none !important;
+}
+::ng-deep .mat-horizontal-content-container, .mat-horizontal-stepper-content  {
+  height: 100% !important;
+}
+
+::ng-deep .mat-horizontal-stepper-content  {
+  height: 100% !important;
+}
+
 input {
   text-transform: uppercase;
 }
@@ -10,51 +21,7 @@ tr.example-detail-row {
   height: 0;
 }
 
-
-.example-producto-row td {
-  border-bottom-width: 0;
+th {
+  height: 85%;
 }
-
-.example-producto-detail {
-  overflow: hidden;
-  display: flex;
-}
-
-.container {
-  min-height: 600px;
-}
-
-.mat-cell,
-.mat-header-cell {
-  word-wrap: initial;
-  display: table-cell;
-  padding: 0px 10px;
-  line-break: unset;
-  /* width: 100%; */
-  white-space: nowrap;
-  overflow: hidden;
-  vertical-align: middle;
-}
-// @media only screen and (min-width: 1600px) { 
-//   .form-container {
-//     width: 1600px;
-//   }
-// }
-// @media only screen and (min-width: 1400px) { 
-//   .form-container {
-//     width: 1400px;
-//   }
-// }
-// @media only screen and (min-width: 1300px) { 
-//   .form-container {
-//     width: 1300px;
-//   }
-// }
-// @media only screen and (min-width: 768px) { 
-//   /* Here are some changes*/
-// }
-
-// @media only screen and (min-width: 768px) { 
-//   /* Here are some changes*/
-// }
 

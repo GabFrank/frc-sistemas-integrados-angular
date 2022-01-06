@@ -21,7 +21,6 @@ import { ProveedoresSearchByPersonaGQL } from '../../../../modules/personas/prov
 import { Proveedor } from '../../../../modules/personas/proveedor/proveedor.model';
 import { VendedorByIdGQL } from '../../../../modules/personas/vendedor/graphql/vendedorById';
 import {
-  Vendedor,
   VendedoresSearchByPersonaGQL,
 } from '../../../../modules/personas/vendedor/graphql/vendedorSearchByPersona';
 import { productoExistenciaCostoPorProveedor, productosExistenciaCostoSearch } from '../../../../modules/productos/producto/graphql/graphql-query';
@@ -31,6 +30,7 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
 import { CargandoDialogComponent } from '../../../../shared/components/cargando-dialog/cargando-dialog.component';
 import { DialogosComponent } from '../../../../shared/components/dialogos/dialogos.component';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { Vendedor } from '../../../personas/vendedor/vendedor.model';
 import { EditPedidoComponent } from '../edit-pedido/edit-pedido.component';
 import { PedidoEstado, PedidoItemEstado } from '../edit-pedido/pedido-enums';
 import { Pedido } from '../edit-pedido/pedido.model';
@@ -205,7 +205,7 @@ export class ListPedidoComponent implements OnInit {
         )
         .subscribe((data) => {
           this.formGroup.get('proveedor').reset();
-          this.vendedores = data.data.vendedores;
+          this.vendedores = data.data.data;
           if (this.vendedores.length == 1) {
             this.timer = setTimeout(() => {
               this.openCargandoDialog();

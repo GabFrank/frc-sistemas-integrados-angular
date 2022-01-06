@@ -17,6 +17,7 @@ import { ListMovimientoStockComponent } from './movimiento-stock/list-movimiento
 import { EntradaSalidaComponent } from './entrada-salida/entrada-salida.component';
 import { EntradaDialogComponent } from './entrada/entrada-dialog/entrada-dialog.component';
 import { SalidaDialogComponent } from './salida/salida-dialog/salida-dialog.component';
+import { AdicionarItemDialogComponent } from './pedido/adicionar-item-dialog/adicionar-item-dialog.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -33,6 +34,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     EntradaSalidaComponent,
     EntradaDialogComponent,
     SalidaDialogComponent,
+    AdicionarItemDialogComponent,
   ],
   imports: [
     CommonModule,

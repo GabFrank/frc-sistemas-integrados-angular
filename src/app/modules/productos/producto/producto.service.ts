@@ -14,6 +14,7 @@ import {
 import { ProductoForPdvGQL } from "./graphql/productoSearchForPdv";
 import { PrintProductoPorIdGQL } from "./graphql/printProducto";
 import { AllProductosGQL } from "./graphql/allProductos";
+import { GenericCrudService } from "../../../generics/generic-crud.service";
 
 export class CustomResponse {
   errors: string[]
@@ -42,7 +43,8 @@ export class ProductoService {
     private notificacionSnack: NotificacionSnackbarService,
     private printProductoPorId: PrintProductoPorIdGQL,
     private searchForPdv: ProductoForPdvGQL,
-    private getAllProductos: AllProductosGQL
+    private getAllProductos: AllProductosGQL,
+    private genericService: GenericCrudService
   ) {
     this.productosList = []
     // getAllProductos.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
@@ -140,22 +142,7 @@ export class ProductoService {
   }
 
   getProducto(id): Observable<Producto> {
-    return new Observable((obs) => {
-      this.productoPorId
-        .fetch(
-          {
-            id,
-          },
-          {
-            fetchPolicy: "no-cache",
-          }
-        )
-        .subscribe((res) => {
-          if (!res.error) {
-            obs.next(res.data.data);
-          }
-        });
-    });
+    return this.genericService.onGetById(this.productoPorId, id);
   }
 
   onImageSave(image: string, filename: string) {

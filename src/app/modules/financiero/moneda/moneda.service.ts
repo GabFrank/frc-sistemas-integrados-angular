@@ -22,7 +22,7 @@ export class MonedaService {
     })
   }
 
-  onGetAll(): Observable<any>{
+  onGetAll(): Observable<Moneda[]>{
     return this.genericService.onGetAll(this.getAllMonedas);
   }
 }

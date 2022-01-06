@@ -2,54 +2,38 @@ import { Moneda } from '../../../../modules/financiero/moneda/moneda.model';
 import { Proveedor } from '../../../../modules/personas/proveedor/proveedor.model';
 import { Usuario } from '../../../../modules/personas/usuarios/usuario.model';
 import { PedidoItem } from '../../../../modules/operaciones/pedido/edit-pedido/pedido-item.model';
-import { Vendedor } from '../../../../modules/personas/vendedor/graphql/vendedorSearchByPersona';
 import { FormaPago } from '../../../financiero/forma-pago/forma-pago.model';
 import { PedidoEstado } from './pedido-enums';
+import { Vendedor } from '../../../personas/vendedor/vendedor.model';
 
 export class Pedido {
   id: number;
   proveedor: Proveedor;
   vendedor: Vendedor;
-  nombreProveedor: string;
   fechaDeEntrega: Date;
   formaPago: FormaPago;
   estado: PedidoEstado;
   moneda: Moneda;
-  diasCheque: number;
+  plazoCredito: number;
   creadoEn: Date;
   usuario: Usuario;
-  nombreUsuario: string;
   descuento: number;
   pedidoItens: PedidoItem[];
   valorTotal: number;
 }
 
-export class PedidoFormModel {
-  id: number
-  vendedor: Vendedor;
-  proveedor: Proveedor;
-  fechaDeEntrega: Date;
-  formaPago: FormaPago;
-  estado: PedidoEstado;
-  moneda: number;
-  diasCheque: number;
-  descuento: number;
-  pedidoItens: PedidoItem[];
-  valorTotal: number;
-  usuario: number;
-  isSoloProductosProveedor: boolean;
-}
 
 export class PedidoInput {
-  id: number
-  vendedorId: number;
+  id: number;
   proveedorId: number;
+  vendedorId: number;
   fechaDeEntrega: Date;
-  formaPago: FormaPago;
+  formaPagoId: number;
   estado: PedidoEstado;
   monedaId: number;
-  diasCheque: number;
+  plazoCredito: number;
+  creadoEn: Date;
+  usuarioId: number;
   descuento: number;
   valorTotal: number;
-  usuarioId: number;
 }
