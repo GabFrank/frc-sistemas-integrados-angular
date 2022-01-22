@@ -1,0 +1,206 @@
+<div fxLayout="column" style="width: 100%; height: 100%">
+  <div fxFlex="5" style="width: 100%; text-align: center">
+    Nota de recepción
+  </div>
+  <div fxFlex="10">
+    <div fxLayout="row" style="width: 100%">
+      <div fxFlex="33%">
+        <mat-form-field style="width: 90%">
+          <mat-label>Tipo de documento</mat-label>
+          <mat-select
+            #tipoMatSelect
+            [formControl]="documentoControl"
+            name="documento"
+            (keyup.enter)="onTipoEnter(); $event.stopPropagation()"
+            (selectionChange)="tipoMatSelectChange($event)"
+            (openedChange)="onTipoMatSelectOpened($event)"
+          >
+            <mat-option
+              *ngFor="let documento of documentoList"
+              [value]="documento.id"
+            >
+              {{ documento.id }} -
+              {{ documento.descripcion | uppercase }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="33%">
+        <mat-form-field style="width: 95%">
+          <mat-label>Número de nota</mat-label>
+          <input
+            #numeroInput
+            matInput
+            type="number"
+            [formControl]="numeroControl"
+            (keyup.enter)="onNumeroEnter()"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="33%">
+        <mat-form-field style="width: 95%">
+          <mat-label>Timbrado</mat-label>
+          <input
+            #timbradoInput
+            matInput
+            type="number"
+            [formControl]="timbradoControl"
+            (keyup.enter)="onTimpradoEnter()"
+          />
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+  <mat-card
+    fxLayout="column"
+    fxLayoutGap="10px"
+    fxFlex="0"
+    fxFlexFill
+    style="background-color: rgb(32, 32, 32); height: 100%"
+  >
+    <div
+      fxFlex="5"
+      fxLayout="row"
+      fxLayoutAlign="end center"
+      fxLayoutGap="15px"
+    >
+      <div fxFlex="5" *ngIf="selectedNotaRecepcion != null">
+        <mat-icon color="primary" style="cursor: pointer">delete</mat-icon>
+      </div>
+      <div fxFlex="5" *ngIf="selectedNotaRecepcion != null && !isEditar">
+        <mat-icon
+          color="primary"
+          (click)="onEditar()"
+          style="cursor: pointer"
+          >edit</mat-icon
+        >
+      </div>
+      <div fxFlex="15">
+        <button
+          style="width: 90%"
+          color="primary"
+          mat-raised-button
+          (click)="onSelectItens()"
+          [disabled]="formGroup.invalid"
+        >
+          Seleccionar itens
+        </button>
+      </div>
+      <div fxFlex="15">
+        <button
+          style="width: 90%"
+          color="primary"
+          mat-raised-button
+          (click)="onVolver()"
+        >
+          Volver
+        </button>
+      </div>
+    </div>
+    <div fxFlex style="width: 100%;">
+      <table
+      style="width: 100%"
+      mat-table
+      [dataSource]="dataSource"
+      class="mat-elevation-z8"
+    >
+      <!--- Note that these columns can be defined in any order.
+                      The actual rendered columns are set as a property on the row definition" -->
+
+      <!-- Name Column -->
+      <ng-container matColumnDef="producto">
+        <th mat-header-cell *matHeaderCellDef>Producto</th>
+        <td mat-cell *matCellDef="let pedidoItem">
+          {{ pedidoItem.producto.descripcion | uppercase }}
+        </td>
+      </ng-container>
+
+      <!-- Weight Column -->
+      <ng-container matColumnDef="presentacion">
+        <th mat-header-cell *matHeaderCellDef>Presentación</th>
+        <td mat-cell *matCellDef="let pedidoItem">
+          {{ pedidoItem.presentacion.cantidad }}
+        </td>
+      </ng-container>
+
+      <!-- Symbol Column -->
+      <ng-container matColumnDef="cantidad">
+        <th mat-header-cell *matHeaderCellDef>Cantidad por presentación</th>
+        <td mat-cell *matCellDef="let pedidoItem">
+          {{
+            pedidoItem.compraItem.cantidad /
+              pedidoItem.presentacion?.cantidad | number: "1.0-2"
+          }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="cantidadPorUnidad">
+        <th mat-header-cell *matHeaderCellDef>Cantidad por unidad</th>
+        <td mat-cell *matCellDef="let pedidoItem">
+          {{
+            pedidoItem.compraItem.cantidad | number: "1.0-2"
+          }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="precioUnitario">
+        <th mat-header-cell *matHeaderCellDef>Precio unitario</th>
+        <td mat-cell *matCellDef="let pedidoItem">
+          {{ pedidoItem.compraItem.precioUnitario | number: "1.0-2" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="descuentoUnitario">
+        <th mat-header-cell *matHeaderCellDef>Descuento</th>
+        <td mat-cell *matCellDef="let pedidoItem">
+          {{
+            (pedidoItem.compraItem.descuentoUnitario /
+              pedidoItem.presentacion?.cantidad) *
+              pedidoItem.compraItem.cantidad | number: "1.0-2"
+          }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="valorTotal">
+        <th mat-header-cell *matHeaderCellDef>Total</th>
+        <td mat-cell *matCellDef="let pedidoItem">
+          {{ pedidoItem.compraItem.cantidad * (pedidoItem.compraItem.precioUnitario - pedidoItem.compraItem.descuentoUnitario) | number: "1.0-0" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Modificado</th>
+        <td mat-cell *matCellDef="let pedidoItem">
+          {{ pedidoItem.compraItem.estado == 'MODIFICADO' ? 'SI' : 'NO'}}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>...</th>
+        <td mat-cell *matCellDef="let pedidoItem; let i = index">
+          <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="menu"
+                  (click)="$event.stopPropagation()"
+                >
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu">
+                  <button mat-menu-item (click)="onModificar(pedidoItem, i)">
+                    Modificar
+                  </button>
+                </mat-menu>
+        </td>
+      </ng-container>
+
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns"
+        [style.background-color]="row.compraItem.estado == 'SIN_MODIFICACION' ? 'black' : '#f57c00'"
+      ></tr>
+    </table>
+    </div>
+  </mat-card>
+</div>

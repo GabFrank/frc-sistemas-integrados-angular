@@ -20,6 +20,10 @@ export const compraItensQuery = gql
         id
         descripcion
       }
+      presentacion {
+        cantidad
+        imagenPrincipal
+      }
     }
   }`
 
@@ -37,11 +41,20 @@ export const compraItemPorProductoId = gql
       estado
       compra{
         id
-        valorTotal
+        estado
+        proveedor{
+          persona{
+            nombre
+          }
+        }
       }
       producto{
         id
         descripcion
+      }
+      presentacion {
+        cantidad
+        imagenPrincipal
       }
     }
   }`
@@ -53,32 +66,40 @@ export const compraItemQuery = gql
       cantidad
       precioUnitario
       descuentoUnitario
-      valorTotal
       bonificacion
       observacion
+      vencimiento
       lote
       estado
-      compra{
+      compra {
         id
-        valorTotal
+      }
+      pedidoItem {
+        id
       }
       producto{
         id
         descripcion
       }
+      presentacion {
+        cantidad
+        imagenPrincipal
+      }
     }
   }`
 
-export const saveCompra = gql
-  `mutation saveCompra($entity:CompraInput!){
-      data: saveCompra(compraItem:$entity){
+  export const saveCompraItem = gql
+  `mutation saveCompraItem($entity:CompraItemInput!){
+      data: saveCompraItem(compraItem:$entity){
         id
+        cantidad
+        verificado
       }
     }`
 
-export const deleteCompraQuery = gql
-  ` mutation deleteCompra($id: ID!){
-      deleteCompra(id: $id)
+export const deleteCompraItemQuery = gql
+  ` mutation deleteCompraItem($id: ID!){
+      deleteCompraItem(id: $id)
   }`
 
 

@@ -2,8 +2,16 @@ th {
     height: 85%;
 }
 
+td {
+    height: 95%;
+}
+
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
 -webkit-appearance: none;
 margin: 0;
+}
+
+input {
+    text-transform: uppercase;
 }

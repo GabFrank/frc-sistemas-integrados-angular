@@ -18,6 +18,7 @@ import { PrintTicketsComponent } from '../../modules/print/print-tickets/print-t
 import { ListCompraComponent } from '../../modules/operaciones/compra/list-compra/list-compra.component';
 import { EditCompraComponent } from '../../modules/operaciones/compra/edit-compra/edit-compra.component';
 import { EditPedidoComponent } from '../../modules/operaciones/pedido/edit-pedido/edit-pedido.component';
+import { ListPedidoComponent } from '../../modules/operaciones/pedido/list-pedido/list-pedido.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -49,7 +50,7 @@ export class TabService {
       // new Tab(ListMovimientoStockComponent, 'Movimientos', null, null),
       // new Tab(EntradaSalidaComponent, 'Entrada/Salida', null, null),
       // new Tab(PrintTicketsComponent, 'Farra', null, null),
-      new Tab(EditPedidoComponent, 'Pedido', null, null),
+      // new Tab(ListPedidoComponent, 'Pedidos', null, null),
 
     ];
     this.tabSub.next(this.tabs);

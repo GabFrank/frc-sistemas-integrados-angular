@@ -85,6 +85,7 @@
     "ngx-mask": "^11.1.5",
     "ngx-material-timepicker": "^5.5.3",
     "ngx-panzoom": "^13.0.0",
+    "ngx-print-element": "^2.0.7",
     "rxjs": "~6.6.0",
     "subscriptions-transport-ws": "^0.9.19",
     "tslib": "^2.1.0",

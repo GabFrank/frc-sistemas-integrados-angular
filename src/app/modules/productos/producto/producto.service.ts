@@ -15,6 +15,7 @@ import { ProductoForPdvGQL } from "./graphql/productoSearchForPdv";
 import { PrintProductoPorIdGQL } from "./graphql/printProducto";
 import { AllProductosGQL } from "./graphql/allProductos";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { ProductoParaPedidoGQL } from "./graphql/productoParaPedido";
 
 export class CustomResponse {
   errors: string[]
@@ -44,7 +45,8 @@ export class ProductoService {
     private printProductoPorId: PrintProductoPorIdGQL,
     private searchForPdv: ProductoForPdvGQL,
     private getAllProductos: AllProductosGQL,
-    private genericService: GenericCrudService
+    private genericService: GenericCrudService,
+    private getProductoParaPedido: ProductoParaPedidoGQL
   ) {
     this.productosList = []
     // getAllProductos.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
@@ -185,5 +187,9 @@ export class ProductoService {
     ).subscribe(res => {
       console.log(res)
     })
+  }
+
+  onGetProductoParaPedido(id): Observable<Producto>{
+    return this.genericService.onGetById(this.getProductoParaPedido, id);
   }
 }

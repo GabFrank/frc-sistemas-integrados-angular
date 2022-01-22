@@ -1,12 +1,12 @@
-import gql from 'graphql-tag';
+import gql from "graphql-tag";
 
-export const pedidoItensQuery = gql
-  `{
+export const pedidoItensQuery = gql`
+  {
     id
-    pedido{
+    pedido {
       id
     }
-    producto{
+    producto {
       id
     }
     precioUnitario
@@ -17,29 +17,30 @@ export const pedidoItensQuery = gql
     estado
     vencimiento
     creadoEn
-    usuario{
+    usuario {
       id
     }
-    pedidoItemSucursales{
+    pedidoItemSucursales {
       id
-      sucursal{
-      id
+      sucursal {
+        id
       }
       cantidad
-      sucursalEntrega{
+      sucursalEntrega {
         id
       }
     }
-  }`
+  }
+`;
 
-export const pedidoItensSearch = gql
-  `query($texto: String){
-    data : pedidoSearch(texto: $texto){
+export const pedidoItensSearch = gql`
+  query ($texto: String) {
+    data: pedidoSearch(texto: $texto) {
       id
-      pedido{
+      pedido {
         id
       }
-      producto{
+      producto {
         id
       }
       precioUnitario
@@ -50,27 +51,53 @@ export const pedidoItensSearch = gql
       estado
       vencimiento
       creadoEn
-      usuario{
+      usuario {
         id
       }
-      pedidoItemSucursales{
+      pedidoItemSucursales {
         id
-        sucursal{
-        id
+        sucursal {
+          id
         }
         cantidad
-        sucursalEntrega{
+        sucursalEntrega {
           id
         }
       }
     }
-  }`
+  }
+`;
 
-export const pedidoItemQuery = gql
-  `query($id: ID!){
-    data : pedidoItem(id: $id){
+export const pedidoItemQuery = gql`
+  query ($id: ID!) {
+    data: pedidoItem(id: $id) {
       id
-      producto{
+      producto {
+        id
+        descripcion
+      }
+      presentacion {
+        id
+        cantidad
+      }
+      precioUnitario
+      descuentoUnitario
+      bonificacion
+      bonificacionDetalle
+      estado
+      vencimiento
+      creadoEn
+      cantidad
+      valorTotal
+    }
+  }
+`;
+
+export const pedidoItemPorPedidoIdQuery = gql`
+  query ($id: Int!) {
+    data: pedidoItensPorPedido(id: $id) {
+      id
+      producto {
         id
         descripcion
       }
@@ -81,28 +108,33 @@ export const pedidoItemQuery = gql
       estado
       vencimiento
       creadoEn
-      pedidoItemSucursales{
+      pedidoItemSucursales {
         id
-        sucursal{
+        sucursal {
           id
           nombre
         }
-        sucursalEntrega{
+        sucursalEntrega {
           id
           nombre
         }
         cantidad
       }
     }
-  }`
+  }
+`;
 
-  export const pedidoItemPorPedidoIdQuery = gql
-  `query($id: Int!){
-    data : pedidoItensPorPedido(id: $id){
+export const savePedidoItem = gql`
+  mutation savePedidoItem($entity: PedidoItemInput!) {
+    data: savePedidoItem(pedidoItem: $entity) {
       id
-      producto{
+      producto {
         id
         descripcion
+      }
+      presentacion {
+        id
+        cantidad
       }
       precioUnitario
       descuentoUnitario
@@ -111,33 +143,14 @@ export const pedidoItemQuery = gql
       estado
       vencimiento
       creadoEn
-      pedidoItemSucursales{
-        id
-        sucursal{
-          id
-          nombre
-        }
-        sucursalEntrega{
-          id
-          nombre
-        }
-        cantidad
-      }
+      cantidad
+      valorTotal
     }
-  }`
+  }
+`;
 
-export const savePedidoItem = gql
-  `mutation savePedidoItem($entity:PedidoItemInput!){
-      data: savePedidoItem(pedidoItem:$entity){
-        id
-      }
-    }`
-
-export const deletePedidoItemQuery = gql
-  ` mutation deletePedidoItem($id: ID!){
-      deletePedidoItem(id: $id){
-        id
-      }
-  }`
-
-
+export const deletePedidoItemQuery = gql`
+  mutation deletePedidoItem($id: ID!) {
+    deletePedidoItem(id: $id)
+  }
+`;

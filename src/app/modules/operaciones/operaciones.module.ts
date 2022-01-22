@@ -10,7 +10,6 @@ import { EditCompraComponent } from './compra/edit-compra/edit-compra.component'
 import { ListPedidoComponent } from './pedido/list-pedido/list-pedido.component';
 import { ListNecesidadComponent } from './necesidad/list-necesidad/list-necesidad.component';
 import { EditNecesidadComponent } from './necesidad/edit-necesidad/edit-necesidad.component';
-import { PedidoItensDialogComponent } from './pedido/pedido-itens/pedido-itens-dialog/pedido-itens-dialog.component';
 import { MAT_DATE_LOCALE } from '@angular/material/core';
 import { IConfig, NgxMaskModule } from 'ngx-mask';
 import { ListMovimientoStockComponent } from './movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
@@ -18,6 +17,10 @@ import { EntradaSalidaComponent } from './entrada-salida/entrada-salida.componen
 import { EntradaDialogComponent } from './entrada/entrada-dialog/entrada-dialog.component';
 import { SalidaDialogComponent } from './salida/salida-dialog/salida-dialog.component';
 import { AdicionarItemDialogComponent } from './pedido/adicionar-item-dialog/adicionar-item-dialog.component';
+import { AdicionarNotaRecepcionDialogComponent } from './pedido/nota-recepcion/adicionar-nota-recepcion-dialog/adicionar-nota-recepcion-dialog.component';
+import { AdicionarNotaRecepcionItemDialogComponent } from './pedido/nota-recepcion/adicionar-nota-recepcion-item-dialog/adicionar-nota-recepcion-item-dialog.component';
+import { SeleccionarNotaRecepcionDialogComponent } from './pedido/nota-recepcion/seleccionar-nota-recepcion-dialog/seleccionar-nota-recepcion-dialog.component';
+import { AdicionarDetalleCompraItemDialogComponent } from './compra/adicionar-detalle-compra-item-dialog/adicionar-detalle-compra-item-dialog.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -29,12 +32,15 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     EditCompraComponent,
     ListNecesidadComponent,
     EditNecesidadComponent,
-    PedidoItensDialogComponent,
     ListMovimientoStockComponent,
     EntradaSalidaComponent,
     EntradaDialogComponent,
     SalidaDialogComponent,
     AdicionarItemDialogComponent,
+    AdicionarNotaRecepcionDialogComponent,
+    AdicionarNotaRecepcionItemDialogComponent,
+    SeleccionarNotaRecepcionDialogComponent,
+    AdicionarDetalleCompraItemDialogComponent,
   ],
   imports: [
     CommonModule,

@@ -14,9 +14,6 @@ export const comprasQuery = gql
         id
       }
       estado
-      tipoPago
-      nroNota
-      tipoPago
       valorTotal
       compraItens{
         id
@@ -38,9 +35,6 @@ export const comprasSearch = gql
         id
       }
       estado
-      tipoPago
-      nroNota
-      tipoPago
       valorTotal
       compraItens{
         id
@@ -99,5 +93,38 @@ export const deleteCompraQuery = gql
   ` mutation deleteCompra($id: ID!){
       deleteCompra(id: $id)
   }`
+
+  export const comprasPorProductoQuery = gql
+  `query($id: ID!){
+    data : comprasPorProducto(id: $id){
+      id
+      proveedor{
+        id
+        persona{
+          nombre
+        }
+      }
+      pedido{
+        id
+      }
+      estado
+      tipoPago
+      nroNota
+      tipoPago
+      valorTotal
+      compraItens{
+        id
+        producto{
+          descripcion
+        }
+        cantidad
+        precioUnitario
+        descuentoUnitario
+        valorTotal
+        bonificacion
+      }
+    }
+  }`
+
 
 

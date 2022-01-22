@@ -20,6 +20,7 @@ import { SelectProductosDialogComponent } from './comercial/venta-touch/select-p
 import { AddCategoriaDialogComponent } from './comercial/venta-touch/pdv-categoria/add-categoria-dialog/add-categoria-dialog.component';
 import { SeleccionarCajaDialogComponent } from './comercial/venta-touch/seleccionar-caja-dialog/seleccionar-caja-dialog.component';
 import { UtilitariosDialogComponent } from './comercial/venta-touch/utilitarios-dialog/utilitarios-dialog.component';
+import { NgxPrintElementModule } from 'ngx-print-element';
 
 
 
@@ -32,7 +33,7 @@ import { UtilitariosDialogComponent } from './comercial/venta-touch/utilitarios-
     FormsModule,
     MaterialModule,
     SharedModule,
-    
+    NgxPrintElementModule
   ]
 })
 export class PdvModule { }

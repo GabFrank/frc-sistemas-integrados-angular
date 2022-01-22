@@ -200,8 +200,11 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       this.selectedPresentacionRowIndex--;
     } else {
       this.selectedPresentacionRowIndex = index;
-      this.selectedPresentacion =
+      if(this.dataSource.data!=null){
+        this.selectedPresentacion =
         this.dataSource?.data[this.selectedRowIndex]?.presentaciones[index];
+      }
+      
     }
   }
 

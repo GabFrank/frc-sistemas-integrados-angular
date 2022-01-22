@@ -52,9 +52,9 @@ export class SideComponent implements OnInit {
         // );
         break;
       case "list-pedido":
-        // this.tabService.addTab(
-        //   new Tab(ListPedidoComponent, "Pedidos", null, null)
-        // );
+        this.tabService.addTab(
+          new Tab(ListPedidoComponent, "Pedidos", null, null)
+        );
         break;
       case "pdv-restaurant":
         // this.tabService.addTab(

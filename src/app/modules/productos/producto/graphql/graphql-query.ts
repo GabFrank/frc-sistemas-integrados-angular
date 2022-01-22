@@ -49,16 +49,6 @@ export const productosQuery = gql`
   }
 `;
 
-export const productoInfoCompletaQuery = gql`
-  query ($id: ID!) {
-    data: producto(id: $id) {
-      id
-      descripcion
-      
-    }
-  }
-`;
-
 export const productosExistenciaCostoQuery = gql`
   {
     data: productos {
@@ -155,9 +145,9 @@ export const productoStock = gql`
     data: productoPorSucursalStock(proId: $proId, sucId: $sucId)
   }
 `;
-export const productoStockCostoPorSucursal = gql`
+export const productoStockCostoPorProducto = gql`
   query ($proId: ID!, $sucId: ID!) {
-    data: costosPorSucursalLastPorProductoId(proId: $proId, sucId: $sucId) {
+    data: costoPorProductolLastPorProductoId(proId: $proId) {
       sucursal {
         id
         nombre
@@ -409,6 +399,69 @@ export const printProductoPorId = gql`
   query ($id: ID!) {
     data: printProducto(id: $id) {
       id
+    }
+  }
+`;
+
+export const productoParaPedidoQuery = gql`
+  query ($id: ID!) {
+    data: producto(id: $id) {
+      id
+      descripcion
+      descripcionFactura
+      garantia
+      vencimiento
+      diasVencimiento
+      observacion
+      cambiable
+      imagenPrincipal
+      iva
+      stock
+      presentaciones {
+        id
+        descripcion
+        principal
+        cantidad
+        codigos {
+          id
+          codigo
+          principal
+          activo
+        }
+        tipoPresentacion {
+          id
+          descripcion
+        }
+        imagenPrincipal
+        precios {
+          id
+          precio
+          tipoPrecio {
+            id
+            descripcion
+          }
+          principal
+          activo
+        }
+        codigoPrincipal {
+          codigo
+        }
+      }
+      costo {
+        id
+        movimientoStock {
+          id
+        }
+        ultimoPrecioCompra
+        ultimoPrecioVenta
+        costoMedio
+        moneda { 
+          id
+          denominacion
+          cambio
+        }
+        existencia
+      }
     }
   }
 `;

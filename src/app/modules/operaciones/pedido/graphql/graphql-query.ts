@@ -1,24 +1,27 @@
-import gql from 'graphql-tag';
+import gql from "graphql-tag";
 
-export const pedidosQuery = gql
-  `{
+export const pedidosQuery = gql`
+  {
     pedido {
       id
-      proveedor{
-        persona{
+      proveedor {
+        persona {
           nombre
         }
       }
       nombreProveedor
-      formaPago
+      formaPago {
+        id
+        descripcion
+      }
       estado
-      moneda{
+      moneda {
         denominacion
       }
-      diasCheque
+      plazoCredito
       creadoEn
-      usuario{
-        persona{
+      usuario {
+        persona {
           nombre
         }
       }
@@ -26,27 +29,64 @@ export const pedidosQuery = gql
       descuento
       valorTotal
     }
-  }`
+  }
+`;
 
-export const pedidosSearch = gql
-  `query($texto: String){
-    data : pedidoSearch(texto: $texto){
+export const pedidosResumidoQuery = gql`
+  {
+    data: pedidos {
       id
-      proveedor{
-        persona{
+      proveedor {
+        id
+        persona {
+          nombre
+        }
+      }
+      formaPago {
+        id
+        descripcion
+      }
+      estado
+      moneda {
+        id
+        denominacion
+      }
+      plazoCredito
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      descuento
+      valorTotal
+    }
+  }
+`;
+
+export const pedidosSearch = gql`
+  query ($texto: String) {
+    data: pedidoSearch(texto: $texto) {
+      id
+      proveedor {
+        persona {
           nombre
         }
       }
       nombreProveedor
-      formaPago
+      formaPago {
+        id
+        descripcion
+      }
       estado
-      moneda{
+      moneda {
         denominacion
       }
-      diasCheque
+      plazoCredito
       creadoEn
-      usuario{
-        persona{
+      usuario {
+        persona {
           nombre
         }
       }
@@ -54,27 +94,28 @@ export const pedidosSearch = gql
       descuento
       valorTotal
     }
-  }`
+  }
+`;
 
-export const pedidoQuery = gql
-  `query($id: ID!){
-    data : pedido(id: $id){
+export const pedidoQuery = gql`
+  query ($id: ID!) {
+    data: pedido(id: $id) {
       id
-      proveedor{
-        persona{
+      proveedor {
+        persona {
           nombre
         }
       }
       nombreProveedor
       formaPago
       estado
-      moneda{
+      moneda {
         denominacion
       }
-      diasCheque
+      plazoCredito
       creadoEn
-      usuario{
-        persona{
+      usuario {
+        persona {
           nombre
         }
       }
@@ -82,58 +123,82 @@ export const pedidoQuery = gql
       descuento
       valorTotal
     }
-  }`
+  }
+`;
 
-export const savePedido = gql
-  `mutation savePedido($entity:PedidoInput!){
-      data: savePedido(pedido:$entity){
-        id
-      }
-    }`
-
-export const deletePedidoQuery = gql
-  ` mutation deletePedido($id: ID!){
-      deletePedido(id: $id)
-  }`
-
-  export const filterPedidosQuery = gql
-  ` query filterPedidos($estado: PedidoEstado, $sucursalId: Int, $inicio: String, $fin: String, $proveedorId: Int, $vendedorId: Int, $formaPago: FormaPago, $productoId: Int){
-    data : filterPedidos(estado: $estado, sucursalId: $sucursalId, inicio:$inicio, fin:$fin, proveedorId:$proveedorId, vendedorId:$vendedorId, formaPago:$formaPago, productoId:$productoId){
+export const savePedido = gql`
+  mutation savePedido($entity: PedidoInput!) {
+    data: savePedido(pedido: $entity) {
       id
-      proveedor{
+    }
+  }
+`;
+
+export const deletePedidoQuery = gql`
+  mutation deletePedido($id: ID!) {
+    deletePedido(id: $id)
+  }
+`;
+
+export const filterPedidosQuery = gql`
+  query filterPedidos(
+    $estado: PedidoEstado
+    $sucursalId: Int
+    $inicio: String
+    $fin: String
+    $proveedorId: Int
+    $vendedorId: Int
+    $formaPago: FormaPago
+    $productoId: Int
+  ) {
+    data: filterPedidos(
+      estado: $estado
+      sucursalId: $sucursalId
+      inicio: $inicio
+      fin: $fin
+      proveedorId: $proveedorId
+      vendedorId: $vendedorId
+      formaPago: $formaPago
+      productoId: $productoId
+    ) {
+      id
+      proveedor {
         id
-        persona{
+        persona {
           nombre
         }
       }
-      vendedor{
+      vendedor {
         id
-        persona{
+        persona {
           nombre
         }
       }
       nombreProveedor
-      formaPago
+      formaPago {
+        id
+        descripcion
+      }
       estado
-      moneda{
+      moneda {
         id
         denominacion
         simbolo
       }
-      diasCheque
+      plazoCredito
       creadoEn
-      usuario{
+      usuario {
         id
-        persona{
+        persona {
           nombre
         }
       }
       nombreUsuario
-      descuento 
-      valorTotal 
-      pedidoItens{
+      descuento
+      valorTotal
+      pedidoItens {
         id
-        producto{
+        producto {
           id
           descripcion
         }
@@ -144,50 +209,79 @@ export const deletePedidoQuery = gql
         estado
         vencimiento
         creadoEn
-        pedidoItemSucursales{
+        pedidoItemSucursales {
           id
-          sucursal{
+          sucursal {
             id
             nombre
           }
-          sucursalEntrega{
+          sucursalEntrega {
             id
             nombre
           }
           cantidad
         }
-      }  
+      }
     }
-  }`
+  }
+`;
 
-  export const pedidoInfoCompletaQuery = gql
-  `query($id: ID!){
-    data : pedido(id: $id){
+export const pedidoInfoCompletaQuery = gql`
+  query ($id: ID!) {
+    data: pedido(id: $id) {
       id
-      proveedor{
-        persona{
+      compra {
+        id
+        estado
+      }
+      proveedor {
+        id
+        persona {
           nombre
         }
       }
-      formaPago
+      vendedor {
+        id
+        persona {
+          nombre
+        }
+      }
+      formaPago {
+        id
+        descripcion
+      }
       estado
-      moneda{
+      moneda {
+        id
         denominacion
       }
-      diasCheque
+      plazoCredito
       creadoEn
-      usuario{
-        persona{
+      usuario {
+        id
+        persona {
           nombre
         }
       }
       descuento
       valorTotal
-      pedidoItens{
+      pedidoItens {
         id
-        producto{
+        producto {
           id
           descripcion
+          presentaciones {
+            id
+            cantidad
+            imagenPrincipal
+          }
+        }
+        notaRecepcion {
+          id
+        }
+        presentacion {
+          id
+          cantidad
         }
         precioUnitario
         descuentoUnitario
@@ -196,20 +290,73 @@ export const deletePedidoQuery = gql
         estado
         vencimiento
         creadoEn
-        pedidoItemSucursales{
+        cantidad
+        valorTotal
+      }
+    }
+  }
+`;
+
+// pedidoItemPorPedidoIdSobrante
+export const pedidoItemPorPedidoIdSobranteQuery = gql`
+  query ($id: ID!) {
+    data: pedidoItemPorPedidoIdSobrante(id: $id) {
+      id
+      producto {
+        id
+        descripcion
+        presentaciones {
           id
-          sucursal{
-            id
-            nombre
-          }
-          sucursalEntrega{
-            id
-            nombre
-          }
           cantidad
         }
       }
+      presentacion {
+        id
+        cantidad
+      }
+      compraItem {
+        id
+        cantidad
+        verificado
+        lote
+        vencimiento
+        presentacion {
+          id
+          cantidad
+        }
+        producto {
+          id
+        }
+        pedidoItem {
+          id
+        }
+        precioUnitario
+        descuentoUnitario
+        estado
+      }
+      precioUnitario
+      descuentoUnitario
+      bonificacion
+      bonificacionDetalle
+      estado
+      vencimiento
+      creadoEn
+      cantidad
+      valorTotal
     }
-  }`
+  }
+`;
 
-
+export const updateNotaRecepcionQuery = gql`
+  mutation updateNotaRecepcion($pedidoItemId: ID!, $notaRecepcionId: ID) {
+    data: updateNotaRecepcion(
+      pedidoItemId: $pedidoItemId
+      notaRecepcionId: $notaRecepcionId
+    ) {
+      id
+      notaRecepcion {
+        id
+      }
+    }
+  }
+`;

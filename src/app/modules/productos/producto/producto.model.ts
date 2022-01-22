@@ -1,4 +1,5 @@
 import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
+import { CostoPorProducto } from '../../operaciones/costo-por-producto/costo-por-producto.model';
 import { Pedido } from '../../operaciones/pedido/edit-pedido/pedido.model';
 import { Proveedor } from '../../personas/proveedor/proveedor.model';
 import { Usuario } from '../../personas/usuarios/usuario.model';
@@ -33,7 +34,7 @@ export class Producto {
   presentaciones: Presentacion[]
   stockPorProducto?: number;
   codigoPrincipal?: string
-  // costosPorSucursal: CostoPorSu
+  costo: CostoPorProducto
 }
 
 export class ExistenciaCostoPorSucursal {

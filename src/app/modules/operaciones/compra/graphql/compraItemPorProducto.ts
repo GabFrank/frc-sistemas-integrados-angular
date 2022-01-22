@@ -10,6 +10,6 @@ export interface Response {
 @Injectable({
   providedIn: 'root',
 })
-export class CompraItemByIdGQL extends Query<Response> {
+export class CompraItemByProductoIdGQL extends Query<Response> {
   document = compraItemPorProductoId;
 }

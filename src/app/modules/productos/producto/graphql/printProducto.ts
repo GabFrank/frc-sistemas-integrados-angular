@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
 import { Producto } from '../producto.model';
-import { printProductoPorId, productoInfoCompletaQuery, productoPorProveedor, productoQuery, productoUltimasComprasQuery } from './graphql-query';
+import { printProductoPorId, productoPorProveedor, productoQuery, productoUltimasComprasQuery } from './graphql-query';
 
 export interface Response {
   data: Producto;

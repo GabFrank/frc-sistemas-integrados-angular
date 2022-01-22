@@ -11,6 +11,6 @@ export interface Response {
 @Injectable({
   providedIn: 'root',
 })
-export class FilterPedidosGQL extends Query<Response> {
+export class PedidoInfoCompletaGQL extends Query<Response> {
   document = pedidoInfoCompletaQuery;
 }

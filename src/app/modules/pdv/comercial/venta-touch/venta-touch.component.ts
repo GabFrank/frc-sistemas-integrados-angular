@@ -78,6 +78,7 @@ import {
 } from "./select-productos-dialog/select-productos-dialog.component";
 import { UtilitariosDialogComponent } from "./utilitarios-dialog/utilitarios-dialog.component";
 import { VentaTouchService } from "./venta-touch.service";
+import { NgxPrintElementService } from 'ngx-print-element';
 
 export interface Item {
   producto: Producto;
@@ -160,7 +161,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     private matDialog: MatDialog,
     private cajaService: CajaService,
     private formaPagoService: FormaPagoService,
-    private cargandoService: CargandoDialogService
+    private cargandoService: CargandoDialogService,
+    public printService: NgxPrintElementService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -168,6 +170,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       this.codigoInput.nativeElement.focus();
     }, 0);
+
+    printService.print('print');
   }
 
   ngOnInit(): void {
@@ -198,6 +202,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
           this.selectedCaja = res;
         }
       });
+
   }
 
   getFormaPagos() {

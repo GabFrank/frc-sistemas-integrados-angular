@@ -1,12 +1,12 @@
 ::ng-deep .mat-horizontal-stepper-header{
   pointer-events: none !important;
 }
-::ng-deep .mat-horizontal-content-container, .mat-horizontal-stepper-content  {
-  height: 100% !important;
+.mat-horizontal-content-container{
+  // height: 100vh;
 }
-
-::ng-deep .mat-horizontal-stepper-content  {
-  height: 100% !important;
+.mat-horizontal-stepper-content{
+  // height: 100vh;
+  display: flex;
 }
 
 input {
@@ -21,7 +21,37 @@ tr.example-detail-row {
   height: 0;
 }
 
+.example-element-row td {
+  border-bottom-width: 0;
+}
+
+.example-expanded-row {
+  background-color: #43a047;
+  font-weight: bold;
+}
+
+.example-element-detail {
+  background-color: rgb(32, 32, 32);
+  overflow: hidden;
+  display: flex;
+}
+
 th {
   height: 85%;
+}
+
+td {
+  height: 95%;
+}
+
+::ng-deep .mat-form-field-disabled .mat-form-field-underline {
+  background-image: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 1) 0,
+    rgba(0, 0, 0, 0.42) 33%,
+    #c2c7cc 0
+  ) !important;
+  background-size: 1px 100% !important;
+  background-repeat: repeat-x !important;
 }
 

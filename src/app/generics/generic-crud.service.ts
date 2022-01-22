@@ -45,6 +45,7 @@ export class GenericCrudService {
           if (res.errors == null) {
             obs.next(res.data["data"]);
           } else {
+            console.log(res.errors)
             this.notificacionSnackBar.notification$.next({
               texto: "Ups! Algo salió mal: " + res.errors[0].message,
               color: NotificacionColor.danger,
@@ -64,6 +65,7 @@ export class GenericCrudService {
           if (res.errors == null) {
             obs.next(res.data["data"]);
           } else {
+            console.log(res.errors)
             this.notificacionSnackBar.notification$.next({
               texto: "Ups! Algo salió mal: " + res.errors[0].message,
               color: NotificacionColor.danger,
@@ -93,6 +95,7 @@ export class GenericCrudService {
               color: NotificacionColor.success,
             });
           } else {
+            console.log(res.errors)
             this.notificacionSnackBar.notification$.next({
               texto:
                 "Ups! Algo salió mal en operacion: " +
@@ -132,6 +135,7 @@ export class GenericCrudService {
               obs.next(true);
             } else {
               {
+                console.log(res.errors)
                 this.notificacionSnackBar.notification$.next({
                   texto:
                     "Ups! Ocurrió algun problema al eliminar: " +
@@ -147,8 +151,7 @@ export class GenericCrudService {
         this.dialogoService
           .confirm(
             "Atención!!",
-            "Realemente desea eliminar el" + titulo,
-            `data`
+            "Realemente desea eliminar este " + titulo
           )
           .subscribe((res1) => {
             if (res1) {
