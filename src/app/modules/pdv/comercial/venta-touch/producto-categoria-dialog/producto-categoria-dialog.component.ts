@@ -152,9 +152,10 @@ export class ProductoCategoriaDialogComponent implements OnInit {
       case 0:
         this.desplegarTipoPrecio = false;
         break;
-      case 1:
-        this.selectedPrecio = presentacion.precios[0];
-        break;
+      // case 1:
+      //   this.selectedPrecio = presentacion.precios[0];
+
+      //   break;
       default:
         this.desplegarTipoPrecio = true;
         break;

@@ -4,6 +4,7 @@ import { AdicionarGastoDialogComponent } from '../../../../financiero/gastos/adi
 import { AdicionarCajaDialogComponent } from '../../../../financiero/pdv/caja/adicionar-caja-dialog/adicionar-caja-dialog.component';
 import { PdvCaja } from '../../../../financiero/pdv/caja/caja.model';
 import { AdicionarRetiroData, AdicionarRetiroDialogComponent } from '../../../../financiero/retiro/adicionar-retiro-dialog/adicionar-retiro-dialog.component';
+import { UltimasVentasDialogComponent } from '../../../../operaciones/venta/ultimas-ventas-dialog/ultimas-ventas-dialog.component';
 import { VentaTouchService } from '../venta-touch.service';
 export class UtilitariosDialogData {
   caja: PdvCaja
@@ -36,7 +37,7 @@ export class UtilitariosDialogComponent implements OnInit {
         caja: this.selectedCaja
       },
       width: '90%',
-      height: '80%',
+      height: '95vh',
       disableClose: true,
       autoFocus: true,
       restoreFocus: true    
@@ -67,6 +68,22 @@ export class UtilitariosDialogComponent implements OnInit {
       width: '70%',
       height: '70%',
       disableClose: true,
+      autoFocus: true,
+      restoreFocus: true    
+    }).afterClosed().subscribe(res => {
+      this.dialogRef.close()
+    })
+  }
+
+  cancelacionVenta(){
+    this.matDialog.open(UltimasVentasDialogComponent, {
+      data: {
+        caja: this.selectedCaja,
+        cancelacion: true
+      },
+      width: '70%',
+      height: '70%',
+      disableClose: false,
       autoFocus: true,
       restoreFocus: true    
     }).afterClosed().subscribe(res => {

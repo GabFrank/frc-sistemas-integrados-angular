@@ -4,8 +4,8 @@
   fxLayoutGap="20px"
   (click)="setFocusToCantidad()"
 >
-  <div style="width: 100%; text-align: center;">
-    <h2>{{data.producto.descripcion}}</h2>
+  <div style="width: 100%; text-align: center">
+    <h2>{{ data.producto.descripcion }}</h2>
   </div>
   <div
     *ngIf="presentaciones?.length > 0"
@@ -13,9 +13,9 @@
     fxLayout="row wrap"
     fxLayoutAlign="start start"
     fxLayoutGap="5px"
-    [ngStyle]="{ width: windowInfo.innerWidth * 0.7 + 'px' }"
+    style="width: 100%"
   >
-    <div fxFlex="19" *ngFor="let presentacion of presentaciones; let i = index">
+    <div fxFlex="13" *ngFor="let presentacion of presentaciones; let i = index">
       <mat-card
         style="
           padding: 0;
@@ -24,17 +24,19 @@
           background-color: #f44336;
         "
         [class.selectedCard]="selectedPresentacion?.id == presentacion.id"
-        (click)="
-          mostrarTipoPrecios
-            ? onDesplegarTipoPrecio(presentacion)
-            : onGridCardClick(presentacion)
-        "
-        [ngStyle]="{
-          width: windowInfo.innerWidth * 0.1 + 'px',
-          'overflow-y': 'hidden'
-        }"
+        (click)="onGridCardClick(presentacion)"
       >
         <div fxLayout="column" fxLayoutGap="10px">
+          <div
+            style="
+              text-align: center;
+              font-size: 1.2em;
+              font-weight: bold;
+              margin: 0px;
+            "
+          >
+            {{ presentacion?.precioPrincipal?.precio | number: "1.0-2" }}
+          </div>
           <div>
             <img
               [src]="
@@ -45,11 +47,36 @@
               style="width: 100%; height: 100%; object-fit: cover"
             />
           </div>
-          <div style="text-align: center">
-            {{ selectedPresentacion?.descripcion | uppercase }}
+          <div style="text-align: center; font-size: 1.2em; font-weight: bold">
+            {{ presentacion?.cantidad }}
           </div>
         </div>
       </mat-card>
+      <div style="height: 5px"></div>
+      <div *ngIf="mostrarTipoPrecios == true">
+        <mat-card
+          *ngFor="let precio of presentacion?.precios"
+          fxLayout="column"
+          style="
+            width: 100%;
+            background-color: #f44336;
+            text-align: center;
+            margin: 0px;
+            padding: 0px;
+            margin-bottom: 5px;
+          "
+          (click)="
+            selectedPrecio = precio; onGridCardClick(presentacion)
+          "
+        >
+          <div fxFlex>
+            {{ precio?.tipoPrecio?.descripcion?.substring(0, 4) | uppercase }}
+          </div>
+          <div fxFlex>
+            {{ precio?.precio | number: "1.0-2" }}
+          </div>
+        </mat-card>
+      </div>
     </div>
   </div>
 

@@ -58,7 +58,7 @@ interface ProductoDatasource {
 })
 export class ListProductoComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator: MatPaginator;
-  @ViewChild('buscarInput', {static: true}) buscarInput: ElementRef;
+  @ViewChild("buscarInput", { static: true }) buscarInput: ElementRef;
 
   // la fuente de datos de la tabla
   dataSource = new MatTableDataSource();
@@ -83,15 +83,11 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     "id",
     "descripcion",
     "precio1",
-    "precio2",
-    "precio3",
   ];
   displayedColumns: string[] = [
     "id",
     "descripcion",
     "precio1",
-    "precio2",
-    "precio3",
   ];
 
   constructor(
@@ -105,12 +101,16 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     // subscripcion a los datos de productos
 
     //listener para el campo buscar
-    this.buscarField.valueChanges.subscribe((res) => {
-      this.onSearchChange(res);
+    // this.buscarField.valueChanges.subscribe((res) => {
+    //   this.onSearchChange(res);
+    // });
+
+    this.buscarField.valueChanges.subscribe((value) => {
+      if (value != null) this.onSearchProducto(value);
     });
 
     setTimeout(() => {
-      this.buscarInput.nativeElement.focus()
+      this.buscarInput.nativeElement.focus();
     }, 100);
   }
 
@@ -120,34 +120,36 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   createForm() {}
 
-  onSearchChange(text: string) {
+  onSearchProducto(text: string, offset?: number) {
     this.isSearching = true;
     if (this.onSearchTimer != null) {
       clearTimeout(this.onSearchTimer);
     }
     if (text == "" || text == null || text == " ") {
-      this.dataSource.data = [];
+      console.log("text is ", text);
+      this.dataSource != undefined ? (this.dataSource.data = []) : null;
       this.isSearching = false;
     } else {
       this.onSearchTimer = setTimeout(() => {
-        // this.service.onSearchLocal(text).subscribe(res => {
-        //   if(res!=null){
-        //     this.dataSource.data = res;
-        //     this.isSearching = false;
-        //   }
-        // });
-        this.service.onSearch(text, this.dataSource.data.length).subscribe(res => {
-          this.dataSource.data = res;
+        this.service.onSearch(text, offset).subscribe((res) => {
+          if (offset == null) {
+            console.log("offset es nulo");
+            this.dataSource.data = res;
+          } else {
+            console.log("offset es: ", offset);
+            const arr = [...this.dataSource.data.concat(res)];
+            this.dataSource.data = arr;
+          }
           this.isSearching = false;
-        })
+        });
       }, 1000);
     }
   }
 
   onRowClick(row) {
-    let ref = this.matDialog.open(CargandoDialogComponent)
+    let ref = this.matDialog.open(CargandoDialogComponent);
     this.service.getProducto(row.id).subscribe((res) => {
-      console.log(res)
+      console.log(res);
       if (res != null) {
         if (this.menuState === "in") {
           this.selectedProducto = res;
@@ -155,19 +157,18 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
           setTimeout(() => {
             this.menuState = "in";
             this.imagenPrincipal = res.imagenPrincipal;
-            ref.close()
+            ref.close();
           }, 500);
         } else {
           this.menuState = "in";
           setTimeout(() => {
             this.imagenPrincipal = res.imagenPrincipal;
             this.selectedProducto = res;
-            ref.close()
+            ref.close();
           }, 500);
-
         }
       } else {
-        ref.close()
+        ref.close();
       }
     });
   }
@@ -224,8 +225,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         }
         break;
       case "ArrowDown":
-        if (this.selectedRowIndex ==null && this.dataSource.data.length > 0) {
-          this.highlight(this.dataSource.data[0], 0)
+        if (this.selectedRowIndex == null && this.dataSource.data.length > 0) {
+          this.highlight(this.dataSource.data[0], 0);
         }
         break;
       default:
@@ -233,39 +234,47 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     }
   }
 
-  highlight(row: any, i?){
-    this.onRowClick(row)
+  highlight(row: any, i?) {
+    this.onRowClick(row);
     this.selectedRowIndex = i;
   }
 
-  arrowUpEvent(){
-    console.log(this.selectedRowIndex, this.paginator.pageSize)
-    if(this.selectedRowIndex>0){
+  arrowUpEvent() {
+    console.log(this.selectedRowIndex, this.paginator.pageSize);
+    if (this.selectedRowIndex > 0) {
       // if(this.selectedRowIndex-1 == this.paginator.pageSize){
       //   this.paginator.nextPage()
       // }
-     this.selectedRowIndex--;
-     var nextrow = this.dataSource.data[this.selectedRowIndex];
-     // this.expandedProducto = nextrow;
+      this.selectedRowIndex--;
+      var nextrow = this.dataSource.data[this.selectedRowIndex];
+      // this.expandedProducto = nextrow;
     }
-   this.highlight(nextrow, this.selectedRowIndex);
- }
+    this.highlight(nextrow, this.selectedRowIndex);
+  }
 
- arrowDownEvent(){
-   console.log(this.selectedRowIndex, this.paginator.pageSize, this.dataSource?.data.length - 1)
-   if(this.selectedRowIndex < this.dataSource?.data.length - 1){
-     if(this.selectedRowIndex+1 == this.paginator.pageSize){
-       this.paginator.nextPage()
-     }
-     this.selectedRowIndex++;
-     var nextrow = this.dataSource.data[this.selectedRowIndex];
-     // this.expandedProducto = nextrow;
+  arrowDownEvent() {
+    console.log(
+      this.selectedRowIndex,
+      this.paginator.pageSize,
+      this.dataSource?.data.length - 1
+    );
+    if (this.selectedRowIndex < this.dataSource?.data.length - 1) {
+      if (this.selectedRowIndex + 1 == this.paginator.pageSize) {
+        this.paginator.nextPage();
+      }
+      this.selectedRowIndex++;
+      var nextrow = this.dataSource.data[this.selectedRowIndex];
+      // this.expandedProducto = nextrow;
     }
-   this.highlight(nextrow, this.selectedRowIndex);
- }
+    this.highlight(nextrow, this.selectedRowIndex);
+  }
 
- printProducto(){
-   console.log("imprimiendo...")
-   this.service.onPrintProductoPorId(this.selectedProducto.id)
- }
+  printProducto() {
+    console.log("imprimiendo...");
+    this.service.onPrintProductoPorId(this.selectedProducto.id);
+  }
+
+  cargarMasDatos() {
+    this.onSearchProducto(this.buscarField.value, this.dataSource.data.length);
+  }
 }

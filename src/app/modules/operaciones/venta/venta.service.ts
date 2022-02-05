@@ -5,7 +5,11 @@ import { MainService } from '../../../main.service';
 import { CobroDetalle, CobroDetalleInput } from './cobro/cobro-detalle.model';
 import { Cobro, CobroInput } from './cobro/cobro.model';
 import { VentaEstado } from './enums/venta-estado.enums';
+import { CancelarVentaGQL } from './graphql/cancelarVenta';
+import { ReimprimirVentaGQL } from './graphql/reimprimirVenta';
 import { SaveVentaGQL } from './graphql/saveVenta';
+import { VentaPorIdGQL } from './graphql/ventaPorId';
+import { VentaPorCajaIdGQL } from './graphql/ventasPorCajaId';
 import { VentaItem, VentaItemInput } from './venta-item.model';
 import { saveVentaItemList, ventaItemListPorVentaIdQuery } from './venta-item/graphql/graphql-query';
 import { SaveVentaItemListGQL } from './venta-item/graphql/saveVentaItemList';
@@ -20,7 +24,11 @@ export class VentaService {
     private genericService: GenericCrudService,
     private saveVenta: SaveVentaGQL,
     private saveVentaItemList: SaveVentaItemListGQL,
-    private mainService: MainService
+    private mainService: MainService,
+    private cancelarVenta: CancelarVentaGQL,
+    private reimprimirVenta: ReimprimirVentaGQL,
+    private ventasPorCajaId: VentaPorCajaIdGQL,
+    private ventaPorId: VentaPorIdGQL
   ) { }
 
   // $venta:VentaInput!, $venteItemList: [VentaItemInput], $cobro: CobroInput, $cobroDetalleList: [CobroDetalleInput]
@@ -54,5 +62,72 @@ export class VentaService {
         obs.next(res.data['data'])
       })
     })
+  }
+
+  onReimprimirVenta(id): Observable<boolean>{
+    return new Observable(obs => {
+      this.reimprimirVenta.mutate(
+        {
+          id
+        },
+        {
+          fetchPolicy: "no-cache",
+          errorPolicy: "all",
+        }
+      ).subscribe(res => {
+        if(res.errors == null){
+          console.log(res.data.data)
+          obs.next(res.data.data)
+        } else {
+          obs.next(null)
+        }
+      })
+    })  }
+
+  onCancelarVenta(id): Observable<boolean>{
+    return new Observable(obs => {
+      this.cancelarVenta.mutate(
+        {
+          id
+        },
+        {
+          fetchPolicy: "no-cache",
+          errorPolicy: "all",
+        }
+      ).subscribe(res => {
+        if(res.errors == null){
+          console.log(res.data)
+          obs.next(res.data.data)
+        } else {
+          obs.next(null)
+        }
+      })
+    })
+  }
+
+  onSearch(id, offset?): Observable<Venta[]>{
+    return new Observable(obs => {
+      this.ventasPorCajaId.fetch(
+        {
+          id,
+          offset
+        },
+        {
+          fetchPolicy: "no-cache",
+          errorPolicy: "all",
+        }
+      ).subscribe(res => {
+        if(res.errors == null){
+          console.log(res.data.data)
+          obs.next(res.data.data)
+        } else {
+          obs.next(null)
+        }
+      })
+    })
+  }
+
+  onGetPorId(id): Observable<Venta>{
+    return this.genericService.onGetById(this.ventaPorId, id);
   }
 }

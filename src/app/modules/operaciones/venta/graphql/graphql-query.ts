@@ -7,7 +7,10 @@ export const ventasQuery = gql`
       cliente {
         id
       }
-      formaPago
+      formaPago{
+        id
+        descripcion
+      }
       estado
       creadoEn
       usuario {
@@ -20,7 +23,7 @@ export const ventasQuery = gql`
         }
         cantidad
         precioCosto
-        precioVenta
+        precioVenta{precio}
         valorDescuento
         unidadMedida
         creadoEn
@@ -45,7 +48,10 @@ export const ventaQuery = gql`
       cliente {
         id
       }
-      formaPago
+      formaPago{
+        id
+        descripcion
+      }
       estado
       creadoEn
       usuario {
@@ -58,7 +64,7 @@ export const ventaQuery = gql`
         }
         cantidad
         precioCosto
-        precioVenta
+        precioVenta{precio}
         valorDescuento
         unidadMedida
         creadoEn
@@ -87,3 +93,61 @@ export const deleteVentaQuery = gql`
     deleteVenta(id: $id)
   }
 `;
+
+export const cancelarVentaQuery = gql`
+  mutation cancelarVenta($id: ID!) {
+    data: cancelarVenta(id: $id)
+  }
+`;
+
+export const reimprimirVentaQuery = gql`
+  mutation reimprimirVenta($id: ID!) {
+    data: reimprimirVenta(id: $id)
+  }
+`;
+
+//ventasPorCajaId
+
+export const ventasPorCajaIdQuery = gql`
+  query ($id: ID!, $offset: Int) {
+    data: ventasPorCajaId(id: $id, offset: $offset) {
+      id
+      cliente {
+        id
+      }
+      formaPago{
+        id
+        descripcion
+      }
+      estado
+      creadoEn
+      usuario {
+        id
+      }
+      ventaItemList {
+        id
+        producto {
+          id
+        }
+        cantidad
+        precioCosto
+        precioVenta{precio}
+        valorDescuento
+        unidadMedida
+        creadoEn
+        usuario {
+          id
+        }
+        valorTotal
+      }
+      valorDescuento
+      valorTotal
+      totalGs
+      totalRs
+      totalDs
+    }
+  }
+`;
+
+
+

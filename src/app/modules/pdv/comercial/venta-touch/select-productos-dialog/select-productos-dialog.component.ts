@@ -46,6 +46,7 @@ export class SelectProductosDialogComponent implements OnInit {
         presentaciones: producto?.presentaciones,
         producto
       },
+      width: '90%'
     }).afterClosed().subscribe(res => {
       console.log(res)
       let respuesta: SelectProductosResponseData = new SelectProductosResponseData;

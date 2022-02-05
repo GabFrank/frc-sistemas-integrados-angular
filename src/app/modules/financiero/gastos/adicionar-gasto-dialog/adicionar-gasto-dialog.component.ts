@@ -348,6 +348,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     if (newGasto != null && newGasto.finalizado != true) {
       newGasto.finalizado = true;
       this.gastoService.onSave(newGasto).subscribe((res) => {
+        this.cargandoDialog.closeDialog()
         console.log(res)
         if (res != null) {
           this.gastoList = replaceObject<Gasto>(this.gastoList, res);

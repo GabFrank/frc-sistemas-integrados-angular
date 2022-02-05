@@ -21,6 +21,8 @@ import { AdicionarNotaRecepcionDialogComponent } from './pedido/nota-recepcion/a
 import { AdicionarNotaRecepcionItemDialogComponent } from './pedido/nota-recepcion/adicionar-nota-recepcion-item-dialog/adicionar-nota-recepcion-item-dialog.component';
 import { SeleccionarNotaRecepcionDialogComponent } from './pedido/nota-recepcion/seleccionar-nota-recepcion-dialog/seleccionar-nota-recepcion-dialog.component';
 import { AdicionarDetalleCompraItemDialogComponent } from './compra/adicionar-detalle-compra-item-dialog/adicionar-detalle-compra-item-dialog.component';
+import { AdicionarProgramarPrecioDialogComponent } from './precio/programar-precio/adicionar-programar-precio-dialog/adicionar-programar-precio-dialog.component';
+import { UltimasVentasDialogComponent } from './venta/ultimas-ventas-dialog/ultimas-ventas-dialog.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -41,6 +43,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     AdicionarNotaRecepcionItemDialogComponent,
     SeleccionarNotaRecepcionDialogComponent,
     AdicionarDetalleCompraItemDialogComponent,
+    AdicionarProgramarPrecioDialogComponent,
+    UltimasVentasDialogComponent,
   ],
   imports: [
     CommonModule,

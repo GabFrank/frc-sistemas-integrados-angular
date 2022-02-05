@@ -1,5 +1,5 @@
 <div style="width: 100%; height: 100%">
-  <div fxLayout="row" style="width: 100%; height: 100%" fxLayoutGap="10px">
+  <div fxLayout="row" style="width: 100%; height: 100%; text-align: center;" fxLayoutGap="10px">
     <div
       fxFlex="100%"
       fxLayout="column"
@@ -15,8 +15,10 @@
         fxLayoutAlign="space-between center"
         fxLayoutGap="10px"
       >
-        <div fxFlex="20">Buscar productos</div>
-        <div fxFlex="70">
+      <div fxFlex="5%">
+        
+      </div>
+        <div fxFlex="75">
           <mat-form-field class="form-element" style="width: 100%">
             <input
               #buscarInput
@@ -29,7 +31,7 @@
             />
           </mat-form-field>
         </div>
-        <div fxFlex="10%">
+        <div fxFlex="20%">
           <button
             type="button"
             mat-raised-button
@@ -40,7 +42,7 @@
           </button>
         </div>
       </div>
-      <div fxFlex="80" style="overflow-y: scroll">
+      <div fxFlex="70" style="overflow-y: scroll">
         <table
           *ngIf="!isSearching"
           mat-table
@@ -56,14 +58,14 @@
             <th
               mat-header-cell
               *matHeaderCellDef
-              style="padding-left: 10px; width: 10%"
+              style="text-align: center; width: 10%"
             >
               ID
             </th>
             <td
               mat-cell
               *matCellDef="let element"
-              style="padding-left: 10px; width: 10%"
+              style="text-align: center; width: 10%"
             >
               {{ element.id }}
             </td>
@@ -71,10 +73,10 @@
 
           <!-- Name Column -->
           <ng-container matColumnDef="descripcion">
-            <th mat-header-cell *matHeaderCellDef style="width: 50%">
+            <th mat-header-cell *matHeaderCellDef style="width: 50%; text-align: left;">
               Descripción
             </th>
-            <td mat-cell *matCellDef="let element" style="width: 50%">
+            <td mat-cell *matCellDef="let element" style="width: 50%; text-align: left;">
               {{ element.descripcion }}
             </td>
           </ng-container>
@@ -86,14 +88,14 @@
               *matHeaderCellDef
               style="width: 13%; text-align: center"
             >
-              Precio 1
+              Cod. Principal
             </th>
             <td
               mat-cell
               *matCellDef="let element"
               style="width: 13%; text-align: center"
             >
-              {{ element.precio1 | number: "1.0-0" }}
+              {{ element.codigoPrincipal | uppercase}}
             </td>
           </ng-container>
 
@@ -104,14 +106,14 @@
               *matHeaderCellDef
               style="width: 13%; text-align: center"
             >
-              Precio 2
+              Precio Principal
             </th>
             <td
               mat-cell
               *matCellDef="let element"
               style="width: 13%; text-align: center"
             >
-              {{ element.precio2 | number: "1.0-0" }}
+              {{ element?.precioPrincipal | number: "1.0-0" }}
             </td>
           </ng-container>
 
@@ -122,7 +124,7 @@
               *matHeaderCellDef
               style="padding-right: 10px; width: 13%; text-align: center"
             >
-              Precio 3
+              P. Natural
             </th>
             <td
               mat-cell
@@ -151,17 +153,20 @@
           <mat-progress-spinner color="primary" mode="indeterminate">
           </mat-progress-spinner>
         </mat-card>
-        <mat-paginator
-          [pageSizeOptions]="[10, 5]"
-          aria-label="Select page of users"
-        ></mat-paginator>
+        <br />
+        <div style="text-align: center">
+          <button mat-fab color="primary" (click)="cargarMasDatos()">
+            <mat-icon>add</mat-icon>
+          </button>
+        </div>
       </div>
     </div>
 
-    <div
+    <mat-card
+      style="background-color: rgb(32, 32, 32) !important;"
       fxLayout="column"
       fxLayoutAlign="start"
-      style="height: 100%; width: 50%"
+      style="height: 50%; width: 50%"
       [@slideInOut]="menuState"
     >
       <div style="width: 100%; text-align: center">
@@ -200,7 +205,7 @@
         </div>
       </div>
       <br />
-      <div fxFlex="15%" style="text-align: center">
+      <div fxFlex style="text-align: center">
         <button
           type="button"
           [disabled]="selectedProducto.id == null"
@@ -212,6 +217,6 @@
           Editar
         </button>
       </div>
-    </div>
+    </mat-card>
   </div>
 </div>

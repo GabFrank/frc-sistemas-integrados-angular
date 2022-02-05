@@ -105,6 +105,7 @@ try {
         }));
         // REDIRECT TO FIRST WEBPAGE AGAIN
     });
+    win.webContents.print({ silent: true });
 }
 catch (e) {
     // Catch Error

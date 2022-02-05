@@ -301,7 +301,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
     this.totalDsAper = +response.totalDs;
     console.log(this.conteoInicial)
     this.cargandoDialog.closeDialog();
-    if (response.conteoMonedaList.length < 1 && !this.conteoInicial) {
+    if (response.conteoMonedaList.length < 1 && this.selectedConteoApertura==null) {
       this.dialogBox
         .confirm(
           "Atención!!",
@@ -312,7 +312,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
             this.abrirCaja(response.conteoMonedaList);
           }
         });
-    } else if(!this.conteoInicial){
+    } else if(this.selectedConteoApertura==null){
       this.dialogBox
         .confirm("Atención!!", "Confirmar datos de apertura de caja", null, [
           `Guaranies:     ${stringToInteger(response.totalGs)}`,
@@ -332,20 +332,9 @@ export class AdicionarCajaDialogComponent implements OnInit {
     this.totalRsCierre = +response.totalRs;
     this.totalDsCierre = +response.totalDs;
 
-    if(this.selectedConteoApertura )
 
     this.cargandoDialog.closeDialog();
-    if (response.conteoMonedaList.length < 1 && !this.conteoInicial) {
-      this.dialogBox
-        .confirm(
-          "Atención!!",
-          "Realmente desea cerrar caja sin adicionar monedas?"
-        )
-        .subscribe((res) => {
-          if (res) {
-          }
-        });
-    } else if(!this.conteoInicial) {
+    if(response.conteoMonedaList.length > 1 && this.selectedConteoCierre==null) {
       this.dialogBox
         .confirm("Atención!!", "Confirmar datos de cierre de caja", null, [
           `Guaranies:     ${stringToInteger(response.totalGs)}`,

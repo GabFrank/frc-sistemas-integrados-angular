@@ -92,14 +92,6 @@ try {
       ])
     );
     setTimeout(createWindow, 400)
-
-    win.loadURL(`/Users/gabfranck/workspace/franco-systems/frontend-angular/franco-dev-system-electron/src/prueba.txt`);
-    win.webContents.on('did-finish-load', () => {
-      const options = { silent: true, margins: { marginType: 'none' }, deviceName: 'TICKET58', pageSize: { height: 50000, width: 96000 } };
-      win.webContents.print({silent: true, margins: {marginType: 'none'}, deviceName: 'TICKET58', pageSize: { height: 100, width: 100 }});
-      // close window after print order.
-      win = null;
-    });
   });
 
   // Quit when all windows are closed.

@@ -45,20 +45,20 @@ export class SeleccionarBilletesTouchComponent implements OnInit {
       case 'GUARANI':
         this.selectedBilletes = this.guaraniBilletes.sort((a,b) => this.filtrar(a,b));
         this.selectedMonedas = this.guaraniMonedas.sort((a,b) => this.filtrar(a,b));
-        this.imageHeigth = '25vw'
+        this.imageHeigth = '15vw'
         this.numberFormat = '1.0-0'
 
         break;
       case 'REAL':
         this.selectedBilletes = this.realBilletes.sort((a,b) => this.filtrar(a,b));
         this.selectedMonedas = this.realMonedas.sort((a,b) => this.filtrar(a,b));
-        this.imageHeigth = '20vw'
+        this.imageHeigth = '15vw'
         this.numberFormat = '1.2-2'
         break;
       case 'DOLAR':
         this.selectedBilletes = this.dolarBilletes.sort((a,b) => this.filtrar(a,b));
         this.selectedMonedas = null;
-        this.imageHeigth = '25vw'
+        this.imageHeigth = '15vw'
         this.numberFormat = '1.2-2'
 
         break;
@@ -136,7 +136,11 @@ export class SeleccionarBilletesTouchComponent implements OnInit {
       billetesList : this.billeteItemList,
       isVuelto: this.data.isVuelto
     }
-    this.dialogRef.close(response)
+    if(response.valor != 0){
+      this.dialogRef.close(response)
+    } else {
+      this.dialogRef.close(null)
+    }
   }
 
   @HostListener('document:keydown', ['$event']) onKeydownHandler(
@@ -157,128 +161,128 @@ export class SeleccionarBilletesTouchComponent implements OnInit {
 
   guaraniMonedas = [
     {
-      path: '/assets/monedas/guaranies/50gs.png',
+      path: 'assets/monedas/guaranies/50gs.png',
       valor: 50,
     },
     {
-      path: '/assets/monedas/guaranies/100gs.png',
+      path: 'assets/monedas/guaranies/100gs.png',
       valor: 100
     },
     {
-      path: '/assets/monedas/guaranies/500gs.png',
+      path: 'assets/monedas/guaranies/500gs.png',
       valor: 500
     },
     {
-      path: '/assets/monedas/guaranies/1000gs.png',
+      path: 'assets/monedas/guaranies/1000gs.png',
       valor: 1000
     },
   ]
 
   guaraniBilletes = [
     {
-      path: '/assets/monedas/guaranies/2000gs.jpeg',
+      path: 'assets/monedas/guaranies/2000gs.jpeg',
       valor: 2000
     },
     {
-      path: '/assets/monedas/guaranies/5000gs.jpeg',
+      path: 'assets/monedas/guaranies/5000gs.jpeg',
       valor: 5000
     },
     {
-      path: '/assets/monedas/guaranies/10000gs.jpeg',
+      path: 'assets/monedas/guaranies/10000gs.jpeg',
       valor: 10000
     },
     {
-      path: '/assets/monedas/guaranies/20000gs.jpeg',
+      path: 'assets/monedas/guaranies/20000gs.jpeg',
       valor: 20000
     },
     {
-      path: '/assets/monedas/guaranies/50000gs.jpeg',
+      path: 'assets/monedas/guaranies/50000gs.jpeg',
       valor: 50000
     },
     {
-      path: '/assets/monedas/guaranies/100000gs.jpeg',
+      path: 'assets/monedas/guaranies/100000gs.jpeg',
       valor: 100000
     },
   ]
 
   realMonedas = [
     {
-      path: '/assets/monedas/reales/005rs.png',
+      path: 'assets/monedas/reales/005rs.png',
       valor: 0.05
     },
     {
-      path: '/assets/monedas/reales/010rs.png',
+      path: 'assets/monedas/reales/010rs.png',
       valor: 0.10
     },
     {
-      path: '/assets/monedas/reales/025rs.png',
+      path: 'assets/monedas/reales/025rs.png',
       valor: 0.25
     },
     {
-      path: '/assets/monedas/reales/05rs.png',
+      path: 'assets/monedas/reales/05rs.png',
       valor: 0.50
     },
     {
-      path: '/assets/monedas/reales/1rs.png',
+      path: 'assets/monedas/reales/1rs.png',
       valor: 1
     },
   ]
 
   realBilletes = [
     {
-      path: '/assets/monedas/reales/2rs.jpeg',
+      path: 'assets/monedas/reales/2rs.jpeg',
       valor: 2
     },
     {
-      path: '/assets/monedas/reales/5rs.jpeg',
+      path: 'assets/monedas/reales/5rs.jpeg',
       valor: 5
     },
     {
-      path: '/assets/monedas/reales/10rs.jpeg',
+      path: 'assets/monedas/reales/10rs.jpeg',
       valor: 10
     },
     {
-      path: '/assets/monedas/reales/20rs.jpeg',
+      path: 'assets/monedas/reales/20rs.jpeg',
       valor: 20
     },
     {
-      path: '/assets/monedas/reales/50rs.jpeg',
+      path: 'assets/monedas/reales/50rs.jpeg',
       valor: 50
     },
     {
-      path: '/assets/monedas/reales/100rs.jpeg',
+      path: 'assets/monedas/reales/100rs.jpeg',
       valor: 100
     },
 
     {
-      path: '/assets/monedas/reales/200rs.jpeg',
+      path: 'assets/monedas/reales/200rs.jpeg',
       valor: 200
     },
   ]
 
   dolarBilletes = [
     {
-      path: '/assets/monedas/dolares/1us.jpeg',
+      path: 'assets/monedas/dolares/1us.jpeg',
       valor: 1
     },
     {
-      path: '/assets/monedas/dolares/5us.jpeg',
+      path: 'assets/monedas/dolares/5us.jpeg',
       valor: 5
     },
     {
-      path: '/assets/monedas/dolares/10us.jpeg',
+      path: 'assets/monedas/dolares/10us.jpeg',
       valor: 10
     },
     {
-      path: '/assets/monedas/dolares/20us.jpeg',
+      path: 'assets/monedas/dolares/20us.jpeg',
       valor: 20
     },
     {
-      path: '/assets/monedas/dolares/50us.jpeg',
+      path: 'assets/monedas/dolares/50us.jpeg',
       valor: 50
     },
     {
-      path: '/assets/monedas/dolares/100us.jpeg',
+      path: 'assets/monedas/dolares/100us.jpeg',
       valor: 100
     }
   ]

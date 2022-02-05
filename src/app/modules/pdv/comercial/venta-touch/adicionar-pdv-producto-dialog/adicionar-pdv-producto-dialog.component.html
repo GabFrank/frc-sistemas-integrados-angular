@@ -1,0 +1,100 @@
+<div fxLayout="column" style="width: 100%" fxLayoutGap="10px">
+  <div
+    fxFlex="10"
+    fxLayout="row"
+    style="width: 100%"
+    fxLayoutGap="10px"
+    fxLayoutAlign="space-between center"
+  >
+    <div fxFlex="50%">
+      <mat-form-field style="width: 100%">
+        <mat-label>Descripción</mat-label>
+        <input type="text" matInput [formControl]="descripcionControl" />
+      </mat-form-field>
+    </div>
+    <div fxFlex style="text-align: center">
+      <mat-form-field style="width: 50%">
+        <mat-label>Posición</mat-label>
+        <input type="number" matInput [formControl]="posicionControl" />
+      </mat-form-field>
+    </div>
+    <div fxFlex style="text-align: center">
+      <section>
+        <mat-slide-toggle
+          color="primary"
+          [checked]="activoControl.value"
+          [formControl]="activoControl"
+        >
+          {{ activoControl.value ? "Activo" : "Inactivo" }}
+        </mat-slide-toggle>
+      </section>
+    </div>
+  </div>
+  <div fxFlex="1%">
+    <mat-divider></mat-divider>
+  </div>
+  <div fxLayout="row" fxLayoutAlign="space-between center" style="width: 100%">
+    <div fxFlex="75">
+      Producto: {{ selectedGrupoProducto?.producto?.descripcion | uppercase }}
+    </div>
+    <div fxFlex="10" fxFlexAlign="end">
+      <button
+        mat-raised-button
+        matTooltip="Eliminar producto de la lista"
+        *ngIf="selectedGrupoProducto != null"
+        (click)="onDeleteGrupoProducto()"
+      >
+        Eliminar
+      </button>
+    </div>
+    <div fxFlex="10" fxFlexAlign="end">
+      <button
+        matTooltip="Adicionar un nuevo producto a la lista"
+        mat-raised-button
+        color="primary"
+      >
+        Adicionar
+      </button>
+    </div>
+  </div>
+  <div fxFlex="1%">
+    <mat-divider></mat-divider>
+  </div>
+  <div fxFlex="70" fxLayout="column" style="width: 100%; overflow-y: scroll">
+    <div
+      fxFlex="10"
+      fxLayout="row wrap"
+      style="padding-bottom: 5px"
+      fxLayoutGap="5px"
+    >
+      <mat-card
+        fxFlex="16"
+        *ngFor="let grupoProducto of data?.pdvGrupo?.pdvGruposProductos"
+        fxLayout="column"
+        fxLayoutAlign="start space-around"
+        fxLayoutGap="5px"
+        [class.selected]="grupoProducto == selectedGrupoProducto"
+        class="producto-row"
+        style="padding: 0px"
+        [matTooltip]="grupoProducto?.producto?.descripcion?.toUpperCase()"
+        (click)="onSelectProducto(grupoProducto)"
+      >
+        <div>
+          <img
+            [src]="
+              grupoProducto?.producto.imagenPrincipal != null
+                ? grupoProducto?.producto.imagenPrincipal
+                : '/assets/no-image.png'
+            "
+            style="width: 100%; height: 90%; object-fit: contain"
+          />
+        </div>
+        <div
+          style="text-align: center; font-weight: bold; text-overflow: ellipsis"
+        >
+          {{ grupoProducto?.producto.descripcion | uppercase }}
+        </div>
+      </mat-card>
+    </div>
+  </div>
+</div>

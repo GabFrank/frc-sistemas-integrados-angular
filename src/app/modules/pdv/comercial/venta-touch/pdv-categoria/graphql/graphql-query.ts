@@ -26,6 +26,9 @@ export const pdvCategoriasQuery = gql`
               principal
               activo
               cantidad
+              precioPrincipal{
+                precio  
+              }
               codigos {
                 id
                 codigo

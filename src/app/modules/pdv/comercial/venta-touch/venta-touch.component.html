@@ -190,9 +190,12 @@
                         text-align: center;
                       "
                     >
-                      {{ item.presentacion?.tipoPresentacion?.descripcion }}({{
-                        item.presentacion?.cantidad
-                      }})
+                      {{
+                        item.precioVenta?.tipoPrecio?.descripcion?.substring(
+                          0,
+                          4
+                        )
+                      }}({{ item.presentacion?.cantidad }})
                     </td>
                     <td
                       style="
@@ -339,34 +342,54 @@
             style="width: 100%; height: 100%"
           >
             <div
-              #categorias
               fxFlex="4"
               fxLayout="row"
+              style="width: 100%"
               fxLayoutAlign="start center"
-              fxLayoutGap="5px"
             >
-              <div
-                fxFlex="16"
-                *ngFor="let pdvCategoria of pdvCategorias; let i = index"
-              >
-                <button
-                  mat-raised-button
-                  color="primary"
-                  (click)="selectedPdvCategoria = pdvCategoria"
+              <div fxFlex="90%" style="width: 100%">
+                <div
+                  #categorias
+                  fxLayout="row"
+                  fxLayoutAlign="start center"
+                  fxLayoutGap="5px"
+                  style="width: 100%"
                 >
-                  {{ pdvCategoria?.descripcion }}
-                </button>
-              </div>
-              <div fxFlex="10">
-                <button
-                  mat-raised-button
-                  color="primary"
-                  (click)="addPdvCategoria()"
-                >
-                  <mat-icon style="font-size: 1.2em; cursor: pointer"
-                    >add</mat-icon
+                  <div
+                    fxFlex="20"
+                    *ngFor="let pdvCategoria of pdvCategorias; let i = index"
                   >
+                    <button
+                      mat-raised-button
+                      color="primary"
+                      (click)="selectedPdvCategoria = pdvCategoria"
+                      style="width: 100%"
+                    >
+                      {{ pdvCategoria?.descripcion }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div fxFlex="10%">
+                <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="menu"
+                  (click)="$event.stopPropagation()"
+                >
+                  <mat-icon>more_vert</mat-icon>
                 </button>
+                <mat-menu #menu="matMenu">
+                  <button mat-menu-item (click)="buscarPdvCategoria()">
+                    Actualizar
+                  </button>
+                  <button mat-menu-item (click)="addPdvProducto()">
+                    Agregar Producto
+                  </button>
+                  <button mat-menu-item (click)="addPdvCategoria()">
+                    Agregar Categoria
+                  </button>
+                </mat-menu>
+                
               </div>
             </div>
 
@@ -383,46 +406,41 @@
               style="height: 100%"
             >
               <div
-                fxFlex="19"
+                fxFlex="15"
                 *ngFor="
                   let grupo of selectedPdvCategoria?.grupos;
                   let i = index
                 "
               >
                 <mat-card
-                  style="padding: 0; margin: 0; margin-top: 5px"
-                  [ngStyle]="{
-                    width: windowInfo.innerWidth * 0.08 + 'px',
-                    height: windowInfo.innerHeight * 0.1 + 'px',
-                    'background-color': '#F44336'
-                  }"
+                  style="
+                    padding: 0;
+                    margin: 0;
+                    margin-top: 5px;
+                    height: 100px;
+                    background-color: #f44336;
+                  "
                   (click)="
                     onGridCardClick(
                       grupo?.pdvGruposProductos,
                       grupo?.descripcion
                     )
                   "
+                  (contextmenu)="addPdvProducto(grupo); $event.stopPropagation()"
                 >
                   <div
                     fxLayout="row"
                     fxLayoutAlign="center center"
                     style="width: 100%; height: 100%"
+                    (contextmenu)="addPdvProducto(grupo); $event.stopPropagation()"
                   >
                     <div fxFlex="100" style="text-align: center">
-                      <h3
-                        style="
-                          align-items: center;
-                          padding-top: 10%;
-                          padding-bottom: 0;
-                        "
-                      >
-                        {{ grupo.descripcion }}
-                      </h3>
+                      {{ grupo.descripcion }}
                     </div>
                   </div>
                 </mat-card>
               </div>
-              <div fxFlex="19">
+              <!-- <div fxFlex="19">
                 <mat-card
                   style="padding: 0; margin: 0; margin-top: 5px"
                   [ngStyle]="{
@@ -445,7 +463,7 @@
                     </div>
                   </div>
                 </mat-card>
-              </div>
+              </div> -->
             </div>
             <div fxFlex="1">
               <mat-divider></mat-divider>
@@ -495,7 +513,7 @@
                   mat-raised-button
                   color="primary"
                   style="width: 100%; height: 6em"
-                  (click)="pdvAuxiliarClick() "
+                  (click)="pdvAuxiliarClick()"
                 >
                   <!-- <div
                       fxFlex="30"
@@ -519,7 +537,7 @@
                   mat-raised-button
                   color="primary"
                   style="width: 100%; height: 6em"
-                  (click)="openUtilitarios();"
+                  (click)="openUtilitarios()"
                 >
                   Utilitarios
                 </button>
@@ -532,4 +550,3 @@
     </div>
   </div>
 </div>
-

@@ -78,7 +78,9 @@ import {
 } from "./select-productos-dialog/select-productos-dialog.component";
 import { UtilitariosDialogComponent } from "./utilitarios-dialog/utilitarios-dialog.component";
 import { VentaTouchService } from "./venta-touch.service";
-import { NgxPrintElementService } from 'ngx-print-element';
+import { NgxPrintElementService } from "ngx-print-element";
+import { AdicionarPdvProductoDialogComponent } from "./adicionar-pdv-producto-dialog/adicionar-pdv-producto-dialog.component";
+import { PdvGrupo } from "./pdv-grupo/pdv-grupo.model";
 
 export interface Item {
   producto: Producto;
@@ -171,7 +173,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       this.codigoInput.nativeElement.focus();
     }, 0);
 
-    printService.print('print');
+    printService.print("print");
   }
 
   ngOnInit(): void {
@@ -202,7 +204,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
           this.selectedCaja = res;
         }
       });
-
   }
 
   getFormaPagos() {
@@ -279,10 +280,17 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   buscarPdvCategoria() {
+    console.log("hola");
+    this.cargandoService.openDialog(false, "Cargando favoritos");
     this.pdvCategoriaService.onGetCategorias().subscribe((res) => {
+      this.cargandoService.openDialog(false, "Cargando Otros");
+      setTimeout(() => {
+        this.cargandoService.closeDialog();
+        this.cargandoService.closeDialog();
+      }, 2000);
       if (res.errors == null) {
         this.pdvCategorias = res.data.data;
-        this.selectedPdvCategoria = this.pdvCategorias[1];
+        this.selectedPdvCategoria = this.pdvCategorias[0];
         this.isCargandoPDV = false;
       } else {
         this.notificacionSnackbar.notification$.next({
@@ -564,21 +572,23 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
 
   crearItem(producto: Producto, texto?, index?) {
     let item: VentaItem = new VentaItem();
-    this.productoService.onGetProductoPorId(producto.id).subscribe((res) => {
-      if (res.errors == null) {
-        producto = res.data.data;
-        console.log(producto);
-        item.cantidad = this.formGroup.controls.cantidad.value;
-        item.producto = producto;
-        item.presentacion = producto?.presentaciones.find(
-          (p) => p.principal == true
-        );
-        item.precioVenta = item?.presentacion?.precios.find(
-          (p) => p.principal == true
-        );
-        this.addItem(item);
-      }
-    });
+    item.cantidad = this.formGroup.controls.cantidad.value;
+    item.producto = producto;
+    item.presentacion = producto?.presentaciones.find(
+      (p) => p.principal == true
+    );
+    item.precioVenta = item?.presentacion?.precios.find(
+      (p) => p.principal == true
+    );
+    if(item.presentacion == null || item.precioVenta == null){
+      this.notificacionSnackbar.notification$.next({
+        texto: 'El producto no tiene precio',
+        duracion: 2,
+        color: NotificacionColor.warn
+      })
+    } else {
+      this.addItem(item);
+    }
   }
 
   setFocusToCodigoInput() {
@@ -717,7 +727,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       if (res == true) {
         this.notificacionSnackbar.notification$.next({
           color: NotificacionColor.success,
-          texto: "Compra guardada con éxito",
+          texto: "Venta guardada con éxito",
           duracion: 2,
         });
         this.resetForm();
@@ -821,17 +831,24 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       });
   }
 
-  addPdvProductoCategoria() {
-    // this.isDialogOpen = true;
-    // this.dialog.open(PdvSearchProductoDialogComponent, {
-    //   width: '80%',
-    //   height: '80%',
-    //   autoFocus: true,
-    //   restoreFocus: true
-    // }).afterClosed().subscribe(res => {
-    //   this.isDialogOpen = false;
-    //   console.log(res)
-    // })
+  addPdvProducto(pdvGrupo?: PdvGrupo) {
+    this.isDialogOpen = true;
+    this.dialog
+      .open(AdicionarPdvProductoDialogComponent, {
+        restoreFocus: true,
+        data: {
+          pdvCategoria: this.selectedPdvCategoria,
+          pdvGrupo,
+        },
+        width: "70%",
+        height: "60%",
+      })
+      .afterClosed()
+      .subscribe((res) => {
+        if (res != null) {
+          this.pdvCategorias.push(res);
+        }
+      });
   }
 
   ngOnDestroy(): void {

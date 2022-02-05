@@ -170,7 +170,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
     });
     this.formaPagoSub = this.formaPagoService.formaPagoSub.subscribe((res) => {
       this.formaPagoList = res;
-      if (this.formaPagoList.length > 0) {
+      if (this.formaPagoList?.length > 0) {
         console.log(this.formaPagoList);
         this.setFormaPago(this.formaPagoList[0]);
       }
@@ -221,32 +221,35 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
   @HostListener("document:keyup", ["$event"]) onKeydownHandler(
     event: KeyboardEvent
   ) {
-    switch (event.key) {
-      case "F1":
-        this.setMoneda("GUARANI", false);
-        break;
-      case "F2":
-        this.setMoneda("REAL", false);
-        break;
-      case "F3":
-        this.setMoneda("DOLAR", false);
-        break;
-      case "Escape":
-        break;
-      case "Enter":
-        if (!this.isDialogOpen) {
-          if (this.formGroup.controls.saldo.value == 0) {
-            this.onFinalizar();
-          } else {
-            this.addPagoItem();
+    if(!this.isDialogOpen){
+      switch (event.key) {
+        case "F1":
+          this.setMoneda("GUARANI", false);
+          break;
+        case "F2":
+          this.setMoneda("REAL", false);
+          break;
+        case "F3":
+          this.setMoneda("DOLAR", false);
+          break;
+        case "Escape":
+          break;
+        case "Enter":
+          if (!this.isDialogOpen) {
+            if (this.formGroup.controls.saldo.value == 0) {
+              this.onFinalizar();
+            } else {
+              this.addPagoItem();
+            }
           }
-        }
-        break;
-      case "F9":
-        break;
-      default:
-        break;
+          break;
+        case "F9":
+          break;
+        default:
+          break;
+      }
     }
+    
   }
 
   onMonedaSearch(a?): void {
@@ -315,6 +318,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
             valor:
               this.data.valor - this.valorParcialPagado,
           },
+          width: '60%'
         })
         .afterClosed()
         .subscribe((res: SelectBilletesResponseData) => {
@@ -379,7 +383,6 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
     let valor = this.formGroup.get("valor").value;
     let saldo = this.formGroup.get("saldo").value;
     if(this.isDescuento || this.isAumento){
-      console.log("hola")
       valor = (this.data.valor - this.valorParcialPagado);
       this.selectedMoneda = this.monedas.find(m => m.denominacion == 'GUARANI');
     }

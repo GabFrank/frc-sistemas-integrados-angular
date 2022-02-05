@@ -1,4 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Inject, Input, OnInit } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { CargandoDialogService } from './cargando-dialog.service';
+
+class Data {
+  texto: string
+}
 
 @Component({
   selector: 'app-cargando-dialog',
@@ -7,9 +13,20 @@ import { Component, OnInit } from '@angular/core';
 })
 export class CargandoDialogComponent implements OnInit {
 
-  constructor() { }
+  itemList: string[];
+
+  constructor(
+    private cargandoDialoService: CargandoDialogService
+  ) { 
+    this.itemList = []
+  }
 
   ngOnInit(): void {
+    this.cargandoDialoService.cargandoTextSub.subscribe(res =>{
+      if(res!=null){
+        this.itemList.push(res)
+      }
+    })
   }
 
 }
