@@ -81,6 +81,7 @@ import { VentaTouchService } from "./venta-touch.service";
 import { NgxPrintElementService } from "ngx-print-element";
 import { AdicionarPdvProductoDialogComponent } from "./adicionar-pdv-producto-dialog/adicionar-pdv-producto-dialog.component";
 import { PdvGrupo } from "./pdv-grupo/pdv-grupo.model";
+import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 
 export interface Item {
   producto: Producto;
@@ -197,7 +198,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     this.ventaSub = this.cajaService
       .onGetByUsuarioIdAndAbierto(this.mainService.usuarioActual.id)
       .subscribe((res) => {
-        console.log(res);
         if (res == null) {
           this.openSelectCajaDialog();
         } else {
@@ -225,14 +225,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       }
     );
     this.selectCajaDialog.afterClosed().subscribe((res) => {
-      console.log(res);
       this.isDialogOpen = false;
       let response: AdicionarCajaResponse = res;
       if (res == "salir") {
         this.tabService.removeTab(this.tabService.currentIndex);
       } else if (response?.caja != null) {
         this.selectedCaja = response?.caja;
-        console.log(res);
         if (response?.conteoApertura != null) {
         }
         if (response?.conteoCierre != null) {
@@ -280,7 +278,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   buscarPdvCategoria() {
-    console.log("hola");
     this.cargandoService.openDialog(false, "Cargando favoritos");
     this.pdvCategoriaService.onGetCategorias().subscribe((res) => {
       this.cargandoService.openDialog(false, "Cargando Otros");
@@ -377,7 +374,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     let cantidad = item.cantidad;
     if (item.producto.balanza != true) {
       if (!isInt(cantidad)) {
-        cantidad = Math.round(cantidad);
+        cantidad = 1;
       }
     }
     let item2 = new VentaItem();
@@ -391,9 +388,16 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         (p) => p.principal == true
       );
     }
-    let presentacionCaja = item.producto.presentaciones.find((p) => {
-      if (p.cantidad <= cantidad && p.cantidad > 1) {
-        return p;
+    let presentacionCaja: Presentacion;
+    item.producto.presentaciones.forEach((p) => {
+      console.log(p.cantidad, cantidad, item?.presentacion?.cantidad);
+      if (
+        p.cantidad <= (cantidad * item.presentacion.cantidad) &&
+        p.cantidad > 1 &&
+        p.id != item?.presentacion?.id &&
+        p.cantidad > item?.presentacion.cantidad
+      ) {
+        presentacionCaja = p;
       }
     });
     if (presentacionCaja != null) {
@@ -403,17 +407,17 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         (precio) => precio?.principal == true
       );
       if (item2.precioVenta != null) {
-        let factor = Math.floor(cantidad / item2.presentacion.cantidad);
+        let factor = Math.floor(cantidad * item.presentacion.cantidad / item2.presentacion.cantidad);
         let cantAux = item2.presentacion.cantidad * factor;
         item2.cantidad = factor;
-        cantidad -= cantAux;
+        cantidad -= cantAux / item.presentacion.cantidad;
         item.cantidad = cantidad;
         this.addItem(item2);
       }
-    } else {
     }
 
     if (this.itemList.length > 0 && index == null) {
+      console.log('entro aca')
       index = this.itemList.findIndex(
         (i) =>
           i.presentacion.id == item.presentacion.id &&
@@ -421,11 +425,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       );
     }
     if (index != -1 && index != null) {
-      console.log("encontro un index", index);
       this.itemList[index].cantidad += cantidad;
+      console.log('entro alla')
     } else {
-      console.log("es nuevo");
-      if (item.cantidad > 0) this.itemList.push(item);
+      if (item.cantidad > 0) {
+        console.log(item)
+        this.itemList.push(item);
+      }
     }
     this.calcularTotales();
     item.cantidad = cantidad;
@@ -520,7 +526,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   @HostListener("document:keyup", ["$event"]) onKeydownHandler(
     event: KeyboardEvent
   ) {
-    console.log(this.data);
     if (this.data.active == true) {
       switch (event.key) {
         case "Escape":
@@ -546,15 +551,17 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     let producto: Producto;
     if (texto == null || texto == " " || texto == "") return null;
     this.getProductoByCodigo
-      .fetch({
-        texto,
-      })
+      .fetch(
+        {
+          texto,
+        },
+        { fetchPolicy: "no-cache", errorPolicy: "all" }
+      )
       .subscribe((res) => {
         if (res.errors == null) {
           producto = res.data.data;
           if (producto != null) {
             this.isAudio ? this.beepService.beep() : null;
-            console.log(producto);
             this.crearItem(producto, texto);
             this.formGroup.get("codigo").setValue(null);
           } else {
@@ -572,20 +579,34 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
 
   crearItem(producto: Producto, texto?, index?) {
     let item: VentaItem = new VentaItem();
+    let selectedCodigo: Codigo;
+    let selectedPresentacion: Presentacion;
     item.cantidad = this.formGroup.controls.cantidad.value;
     item.producto = producto;
-    item.presentacion = producto?.presentaciones.find(
-      (p) => p.principal == true
-    );
+    if (texto != null) {
+      item.presentacion = producto?.presentaciones.find((p) => {
+        p.codigos.find((c) => {
+          if (c.codigo == texto) {
+            selectedCodigo = c;
+            selectedPresentacion = p;
+          }
+        });
+      });
+      item.presentacion = selectedPresentacion;
+    } else {
+      item.presentacion = producto?.presentaciones.find(
+        (p) => p.principal == true
+      );
+    }
     item.precioVenta = item?.presentacion?.precios.find(
       (p) => p.principal == true
     );
-    if(item.presentacion == null || item.precioVenta == null){
+    if (item.presentacion == null || item.precioVenta == null) {
       this.notificacionSnackbar.notification$.next({
-        texto: 'El producto no tiene precio',
+        texto: "El producto no tiene precio",
         duracion: 2,
-        color: NotificacionColor.warn
-      })
+        color: NotificacionColor.warn,
+      });
     } else {
       this.addItem(item);
     }
@@ -646,6 +667,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         .afterClosed()
         .subscribe((res) => {
           if (res != null) {
+            this.cargandoService.openDialog();
             let response: PagoResponseData = res;
             let venta = new Venta();
             venta.totalGs = this.totalGs;
@@ -657,7 +679,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
             cobro.totalGs = this.totalGs;
             cobro.cobroDetalleList = [];
             // cobroDetalle.
-            console.log(venta, cobro);
             if (response.pagoItemList != null) {
               response.pagoItemList.forEach((p) => {
                 let cobroDetalle = new CobroDetalle();
@@ -692,7 +713,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   onTicketClick() {
     this.cargandoService.openDialog(true);
     //guardar la compra, si la compra se guardo con exito, imprimir ticket y resetForm()
-    console.log(this.selectedCaja);
     let venta = new Venta();
     venta.formaPago = this.formaPagoService.formaPagoList.find(
       (f) => f.descripcion == "EFECTIVO"
@@ -717,11 +737,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     cobroDetalle.valor = this.totalGs;
     cobro.cobroDetalleList = [cobroDetalle];
     // cobroDetalle.
-    console.log(venta, cobro);
     this.onSaveVenta(venta, cobro);
   }
 
   onSaveVenta(venta, cobro) {
+    this.cargandoService.openDialog();
     this.ventaTouchServive.onSaveVenta(venta, cobro).subscribe((res) => {
       this.cargandoService.closeDialog();
       if (res == true) {
@@ -869,8 +889,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       })
       .afterClosed()
       .subscribe((res) => {
-        console.log(res);
-
         if (res != null) {
           if (res.conteoCierre != null) {
             this.selectedCaja = null;

@@ -46,6 +46,9 @@ export class GenericListComponent implements OnInit {
   @Output()
   resetFiltro = new EventEmitter<any>(null);
 
+  @Input()
+  isAdicionar: boolean;
+
   headerHeight;
   tableHeight;
   containerHeight;

@@ -29,7 +29,7 @@
         </div>
         <br />
         <div fxFlex="8" *ngFor="let i of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]">
-          <button
+          <button type="button"
             mat-raised-button
             color="primary"
             style="font-size: 1.3em; width: 2em; height: 2em"
@@ -39,7 +39,7 @@
           </button>
         </div>
         <div fxFlex="9">
-          <button
+          <button type="button"
             mat-raised-button
             color="primary"
             style="font-size: 1.5em; width: 1.5em; height: 1.5em"
@@ -65,7 +65,7 @@
           </mat-form-field>
         </div>
         <div fxFlex="20" *ngIf="data?.mostrarOpciones == false">
-          <button
+          <button type="button"
             mat-raised-button
             [color]="mostrarTipoPrecios ? 'accent' : 'primary'"
             (click)="mostrarTipoPrecios = true"
@@ -74,7 +74,7 @@
           </button>
         </div>
         <div fxFlex="20%">
-          <button
+          <button type="button"
             mat-raised-button
             color="primary"
             (click)="abrirProductoDialog()"
@@ -123,7 +123,7 @@
                 *matCellDef="let producto; let id = index"
                 style="text-align: center"
               >
-                <button
+                <button type="button"
                   *ngIf="producto?.stockPorProducto == null"
                   mat-flat-button
                   (click)="mostrarStock(producto); $event.stopPropagation()"
@@ -148,7 +148,7 @@
                 *matCellDef="let producto; let id = index"
                 style="text-align: center"
               >
-                <button
+                <button type="button"
                   mat-icon-button
                   [matMenuTriggerFor]="menu"
                   (click)="$event.stopPropagation()"
@@ -156,7 +156,7 @@
                   <mat-icon>more_vert</mat-icon>
                 </button>
                 <mat-menu #menu="matMenu">
-                  <button mat-menu-item (click)="abrirProductoDialog(producto)">
+                  <button type="button" mat-menu-item (click)="abrirProductoDialog(producto)">
                     Editar Producto
                   </button>
                 </mat-menu>
@@ -334,7 +334,7 @@
           </table>
           <br />
           <div style="text-align: center">
-            <button mat-fab color="primary" (click)="cargarMasDatos()">
+            <button type="button" type="button" mat-fab color="primary" (click)="cargarMasDatos()">
               <mat-icon>add</mat-icon>
             </button>
           </div>

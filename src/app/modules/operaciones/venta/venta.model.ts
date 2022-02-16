@@ -2,6 +2,7 @@ import { FormaPago } from "../../financiero/forma-pago/forma-pago.model";
 import { PdvCaja } from "../../financiero/pdv/caja/caja.model";
 import { Cliente } from "../../personas/clientes/cliente.model";
 import { Usuario } from "../../personas/usuarios/usuario.model";
+import { Cobro } from "./cobro/cobro.model";
 import { TipoVenta } from "./enums/tipo-venta.enums";
 import { VentaEstado } from "./enums/venta-estado.enums";
 import { VentaItem } from "./venta-item.model";
@@ -20,6 +21,7 @@ export class Venta {
     totalGs: number;
     totalRs: number;
     totalDs: number;
+    cobro: Cobro
 
     public toInput(): VentaInput {
         let input = new VentaInput()

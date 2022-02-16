@@ -382,11 +382,14 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
   addPagoItem() {
     let valor = this.formGroup.get("valor").value;
     let saldo = this.formGroup.get("saldo").value;
-    if(this.isDescuento || this.isAumento){
+    if(this.isDescuento){
       valor = (this.data.valor - this.valorParcialPagado);
       this.selectedMoneda = this.monedas.find(m => m.denominacion == 'GUARANI');
     }
     if (valor < 0) this.isVuelto = true;
+    if(this.selectedFormaPago.descripcion=='TARJETA' && (!this.isVuelto && !this.isDescuento && !this.isAumento)){
+      this.selectedFormaPago = this.formaPagoList.find(f => f.descripcion == 'EFECTIVO');
+    }
     if (this.formGroup.valid && saldo != 0) {
       let item: PagoItem = {
         formaPago: this.selectedFormaPago,
@@ -457,7 +460,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
 
   onAumento() {
     let valor =
-      this.formGroup.controls.valor.value * this.selectedMoneda.cambio;
+      this.formGroup.controls.valor.value;
     if (valor < this.data.valor * 0.5 && valor < 0) {
       this.isAumento = true;
       this.isVuelto = false;

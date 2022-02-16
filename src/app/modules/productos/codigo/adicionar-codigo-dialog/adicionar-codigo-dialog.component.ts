@@ -37,7 +37,9 @@ export class AdicionarCodigoDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.createForm();
-
+    if(this.data?.presentacion?.producto?.balanza==true){
+      this.codigoControl.setValue('20')
+    }
     if (this.data?.codigo?.id != null) {
       this.cargarDato();
       this.formGroup.disable()
@@ -63,7 +65,7 @@ export class AdicionarCodigoDialogComponent implements OnInit {
     this.codigoControl.setValue(this.selectedCodigo.codigo);
     this.principalControl.setValue(this.selectedCodigo.principal);
     this.activoControl.setValue(this.selectedCodigo.activo);
-
+    
     //cargar input
     this.codigoInput.id = this.selectedCodigo.id;
   }

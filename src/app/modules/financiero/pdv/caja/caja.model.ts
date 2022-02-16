@@ -16,6 +16,7 @@ export class PdvCaja {
     usuario: Usuario
     conteoApertura: Conteo
     conteoCierre: Conteo
+    balance: CajaBalance
 }
 
 export class PdvCajaInput {
@@ -41,4 +42,27 @@ export  enum PdvCajaEstado {
     'En verificacion'='EN_VERIFICACION',
     'Verificado y concluido sin problema'='VERIFICADO_CONCLUIDO_SIN_PROBLEMA',
     'Verificado y concluido con problema'='VERIFICADO_CONCLUIDO_CON_PROBLEMA'
+}
+
+export class CajaBalance {
+    cajaId: number;
+    totalVentaGs: number;
+    totalVentaRs: number;
+    totalVentaDs: number;
+    totalTarjeta: number;
+    totalRetiroGs: number;
+    totalRetiroRs: number;
+    totalRetiroDs: number;
+    totalGastoGs: number;
+    totalGastoRs: number;
+    totalGastoDs: number;
+    totalDescuento: number;
+    totalAumento: number;
+    totalCanceladas: number;
+    totalAperGs: number;
+    totalAperRs: number;
+    totalAperDs: number;
+    totalCierreGs: number;
+    totalCierreRs: number;
+    totalCierreDs: number;
 }

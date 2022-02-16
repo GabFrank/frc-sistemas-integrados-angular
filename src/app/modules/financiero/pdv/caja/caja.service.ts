@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { GenericCrudService } from '../../../../generics/generic-crud.service';
+import { PdvCaja } from './caja.model';
 import { CajaPorIdGQL } from './graphql/cajaPorId';
 import { CajaPorUsuarioIdAndAbiertoGQL } from './graphql/cajaPorUsuarioIdAndAbierto';
 import { CajasPorFechaGQL } from './graphql/cajasPorFecha';
@@ -27,7 +28,7 @@ export class CajaService {
   //   return this.genericService.onGetAll(this.getAllCajas);
   // }
 
-  onGetByDate(inicio?: Date, fin?: Date): Observable<any>{
+  onGetByDate(inicio?: Date, fin?: Date): Observable<PdvCaja[]>{
     return this.genericService.onGetByFecha(this.cajasPorFecha, inicio, fin);
   }
 

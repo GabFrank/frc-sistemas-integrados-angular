@@ -277,4 +277,10 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   cargarMasDatos() {
     this.onSearchProducto(this.buscarField.value, this.dataSource.data.length);
   }
+
+  onExportProductos(){
+    this.service.onExportarReporte(this.buscarField.value).subscribe(res => {
+      console.log(res)
+    })
+  }
 }

@@ -91,6 +91,22 @@ export class UtilitariosDialogComponent implements OnInit {
     })
   }
 
+  reimpresionVenta(){
+    this.matDialog.open(UltimasVentasDialogComponent, {
+      data: {
+        caja: this.selectedCaja,
+        cancelacion: false
+      },
+      width: '70%',
+      height: '70%',
+      disableClose: false,
+      autoFocus: true,
+      restoreFocus: true    
+    }).afterClosed().subscribe(res => {
+      this.dialogRef.close()
+    })
+  }
+
 }
 
 

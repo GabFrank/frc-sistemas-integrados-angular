@@ -265,7 +265,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
 
   createMonedaBilletes() {
     this.conteoMonedaList = [];
-    this.guaraniList.forEach((e) => {
+    this.guaraniList?.forEach((e) => {
       let conteoMoneda = new ConteoMoneda();
       let cantidad = this.gsFormGroup.get(`gs${e.valor}`)?.value;
       if (cantidad != null) {
@@ -274,7 +274,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
         this.conteoMonedaList.push(conteoMoneda);
       }
     });
-    this.realList.forEach((e) => {
+    this.realList?.forEach((e) => {
       let conteoMoneda = new ConteoMoneda();
       let cantidad = this.rsFormGroup.get(
         `rs${e.valor}`.replace(".", "")
@@ -285,7 +285,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
         this.conteoMonedaList.push(conteoMoneda);
       }
     });
-    this.dolarList.forEach((e) => {
+    this.dolarList?.forEach((e) => {
       let conteoMoneda = new ConteoMoneda();
       let cantidad = this.dsFormGroup.get(
         `ds${e.valor}`.replace(".", "")

@@ -44,8 +44,10 @@ export class CodigoService {
   }
 
   onSaveCodigo(input: CodigoInput): Observable<any> {
-    input.usuarioId = this.mainService?.usuarioActual?.id;
+    if(input.usuarioId==null) input.usuarioId = this.mainService?.usuarioActual?.id;
     input.id == null ? (input.activo = true) : null;
+    if(input.principal==false) input.principal = null;
+    console.log(input)
     return new Observable((obs) => {
       this.saveCodigo
         .mutate(
@@ -68,7 +70,7 @@ export class CodigoService {
           } else {
             let texto = "Ups! Ocurrió algun problema al guardar";
             if (
-              res.errors[0].message.includes("codigo_un_presentacion_principal")
+              res?.errors[0]?.message?.includes("codigo_un_presentacion_principal")
             ) {
               texto = "Ya existe un código principal!!";
             }

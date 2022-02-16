@@ -1,218 +1,373 @@
-<app-generic-list titulo="Cajas" (adicionar)="onAdd()" (filtrar)="onFilter()">
-    <div filtros></div>
-    <div table style="width: 100%" fxLayoutGap="20px">
-      <table
-        mat-table
-        [dataSource]="dataSource"
-        multiTemplateDataRows
-        class="mat-elevation-z8"
-        style="width: 100%"
-      >
-        <ng-container matColumnDef="id" style="width: 5%">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="text-align: center; width: 5%"
-          >
-            Id
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let caja"
-            style="text-align: center; width: 5%"
-          >
-            {{ caja.id }}
-          </td>
-        </ng-container>
-  
-        <!-- Name Column -->
-        <ng-container matColumnDef="activo">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="text-align: center; width: 15%"
-          >
-            Estado
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let caja"
-            style="text-align: center; width: 15%"
-          >
-            {{ caja?.activo == true ? 'Abierto':'Cerrado' }}
-          </td>
-        </ng-container>
-  
-        <ng-container matColumnDef="estado">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="text-align: center; width: 15%"
-          >
-            Situación
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let caja"
-            style="text-align: center; width: 15%"
-          >
-            {{ caja?.estado }}
-          </td>
-        </ng-container>
-  
-        <ng-container matColumnDef="fechaApertura">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="text-align: center; width: 15%"
-          >
-            Fecha de apertura
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let caja"
-            style="text-align: center; width: 15%"
-          >
-            {{ caja?.fechaApertura }}
-          </td>
-        </ng-container>
-  
-        <ng-container matColumnDef="fechaCierre">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="text-align: center; width: 15%"
-          >
-            Fecha de cierre
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let caja"
-            style="text-align: center; width: 15%"
-          >
-            {{ caja?.fechaCierre }}
-          </td>
-        </ng-container>
-  
-        <ng-container matColumnDef="observacion">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="text-align: center; width: 15%"
-          >
-            Observación
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let caja"
-            style="text-align: center; width: 15%"
-          >
-            {{ caja?.observacion | uppercase }}
-          </td>
-        </ng-container>
-  
-        <ng-container matColumnDef="maletin">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="text-align: center; width: 15%"
-          >
-            Maletin
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let caja"
-            style="text-align: center; width: 15%"
-          >
-            {{ caja?.maletin?.descripcion | uppercase }}
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="usuario">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="text-align: center; width: 15%"
-          >
-            Responsable
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let caja"
-            style="text-align: center; width: 15%"
-          >
-            {{ caja?.usuario?.persona?.nombre | uppercase }}
-          </td>
-        </ng-container>
-  
-        <ng-container matColumnDef="acciones">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="width: 5%; text-align: center"
-          >
-            ...
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let caja; let i = dataIndex"
-            style="text-align: center; width: 5%"
-          >
-            <button
-              mat-icon-button
-              [matMenuTriggerFor]="menu"
-              (click)="$event.stopPropagation()"
+<app-generic-list
+  titulo="Cajas"
+  (adicionar)="onAdd()"
+  (filtrar)="onFilter()"
+  style="height: 95%"
+>
+  <div filtros fxLayout="column" style="width: 100%; height: 100%">
+    <div
+      fxFlex
+      fxLayout="row"
+      style="width: 100%"
+      fxLayoutAlign="start center"
+      fxLayoutGap="10px"
+    >
+      <div fxFlex="5%" style="width: 100%">Caja:</div>
+      <div fxFlex="5">
+        <mat-form-field style="width: 60%">
+          <input
+            type="number"
+            matInput
+            [formControl]="codigoControl"
+            (keyup.enter)="onCondigoEnter()"
+            style="font-size: 1.2em !important"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="30%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Situación</mat-label>
+          <mat-select [formControl]="estadoControl" multiple>
+            <mat-select-trigger style="font-size: 1.2em">
+              <span *ngFor="let estado of estadoControl.value; let i = index"
+                >{{ estado }}
+                <span *ngIf="estadoControl.value?.length - 1 > i">, </span>
+              </span>
+            </mat-select-trigger>
+            <mat-option
+              style="font-size: 1.2em"
+              *ngFor="let estado of estadoList"
+              [value]="estado"
+              >{{ estado }}</mat-option
             >
-              <mat-icon>more_vert</mat-icon>
-            </button>
-            <mat-menu #menu="matMenu">
-              <button mat-menu-item (click)="onAdd(caja, i)">
-                Ir a Caja
-              </button>
-            </mat-menu>
-          </td>
-        </ng-container>
-  
-        <mat-divider></mat-divider>
-  
-        <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
-        <ng-container matColumnDef="expandedDetail">
-          <td
-            mat-cell
-            *matCellDef="let caja"
-            [attr.colspan]="displayedColumns.length"
-            class="expanded"
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="8%"></div>
+      <div fxFlex="25%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Rango de fecha</mat-label>
+          <mat-date-range-input
+            [formGroup]="fechaFormGroup"
+            [rangePicker]="picker"
+            style="font-size: 1.2em; width: 100%"
           >
-            <div
-              class="example-caja-detail"
-              [@detailExpand]="
-                caja == expandedCaja ? 'expanded' : 'collapsed'
-              "
-              style="text-align: center"
-              fxLayout="column"
-              fxLayoutAlign="start start"
-            ></div>
-          </td>
-        </ng-container>
-  
-        <tr
-          mat-header-row
-          *matHeaderRowDef="displayedColumns; sticky: true"
-        ></tr>
-        <tr
-          mat-row
-          *matRowDef="
-            let row;
-            columns: displayedColumns;
-            let i = dataIndex
-          "
-        ></tr>
-        <tr
-          mat-row
-          *matRowDef="let row; columns: ['expandedDetail']"
-          class="example-detail-row"
-        ></tr>
-      </table>
+            <input
+              matStartDate
+              formControlName="inicio"
+              placeholder="Inicio"
+              [max]="today"
+            />
+            <input
+              matEndDate
+              formControlName="fin"
+              placeholder="Fin"
+              [max]="fechaInicioControl.value"
+            />
+          </mat-date-range-input>
+          <mat-datepicker-toggle
+            matSuffix
+            [for]="picker"
+          ></mat-datepicker-toggle>
+          <mat-date-range-picker #picker></mat-date-range-picker>
+
+          <mat-error
+            *ngIf="
+              fechaFormGroup.controls.inicio.hasError('matStartDateInvalid')
+            "
+            >Fecha inicial inválida</mat-error
+          >
+          <mat-error
+            *ngIf="fechaFormGroup.controls.fin.hasError('matEndDateInvalid')"
+            >Fecha final inválida</mat-error
+          >
+        </mat-form-field>
+      </div>
+      <div fxFlex="30%" fxAlignItem="center">
+        <mat-checkbox [indeterminate]="activoControl.value == null" [formControl]="activoControl" (change)="onChange()">
+          {{
+            activoControl.value == null
+              ? "TODAS"
+              : activoControl.value == true
+              ? "Abiertas"
+              : "Cerradas"
+          }}
+        </mat-checkbox>
+      </div>
     </div>
-  </app-generic-list>
-  
+    <div
+      fxFlex
+      fxLayout="row"
+      style="width: 100%"
+      fxLayoutAlign="start center"
+      fxLayoutGap="10px"
+    >
+      <div fxFlex="5%" style="width: 100%">Producto:</div>
+      <div fxFlex="5%">
+        <mat-form-field style="width: 60%">
+          <input type="number" matInput [formControl]="codigoProductoControl" />
+        </mat-form-field>
+      </div>
+      <div fxFlex="30%">
+        <mat-form-field style="width: 100%">
+          <input
+            type="text"
+            matInput
+            [formControl]="productoControl"
+            (keyup.enter)="onProductoEnter()"
+            style="font-size: 1.2em !important"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="8%">
+        <button
+          mat-raised-button
+          style="width: 70%"
+          color="primary"
+          (click)="onProductoSearch()"
+        >
+          <mat-icon>search</mat-icon>
+        </button>
+      </div>
+    </div>
+    <div
+      fxFlex
+      fxLayout="row"
+      style="width: 100%"
+      fxLayoutAlign="start center"
+      fxLayoutGap="10px"
+    >
+      <div fxFlex="5%" style="width: 100%">Cajero:</div>
+      <div fxFlex="5%">
+        <mat-form-field style="width: 60%">
+          <input type="number" matInput [formControl]="codigoCajeroControl" />
+        </mat-form-field>
+      </div>
+      <div fxFlex="30%">
+        <mat-form-field style="width: 100%">
+          <input
+            type="text"
+            matInput
+            [formControl]="cajeroControl"
+            (keyup.enter)="onCajeroEnter()"
+            style="font-size: 1.2em !important"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="8%">
+        <button
+          mat-raised-button
+          style="width: 70%"
+          color="primary"
+          (click)="onCajeroSearch()"
+        >
+          <mat-icon>search</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div table style="width: 100%" fxLayoutGap="20px">
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      multiTemplateDataRows
+      class="mat-elevation-z8"
+      style="width: 100%"
+    >
+      <ng-container matColumnDef="id" style="width: 5%">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 5%"
+        >
+          Id
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let caja"
+          style="text-align: center; width: 5%"
+        >
+          {{ caja.id }}
+        </td>
+      </ng-container>
+
+      <!-- Name Column -->
+      <ng-container matColumnDef="activo">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 15%"
+        >
+          Estado
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let caja"
+          style="text-align: center; width: 15%"
+        >
+          {{ caja?.activo == true ? "Abierto" : "Cerrado" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="estado">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 15%"
+        >
+          Situación
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let caja"
+          style="text-align: center; width: 15%"
+        >
+          {{ caja?.estado }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="fechaApertura">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 15%"
+        >
+          Fecha de apertura
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let caja"
+          style="text-align: center; width: 15%"
+        >
+          {{ caja?.fechaApertura }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="fechaCierre">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 15%"
+        >
+          Fecha de cierre
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let caja"
+          style="text-align: center; width: 15%"
+        >
+          {{ caja?.fechaCierre }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="observacion">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 15%"
+        >
+          Observación
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let caja"
+          style="text-align: center; width: 15%"
+        >
+          {{ caja?.observacion | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="maletin">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 15%"
+        >
+          Maletin
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let caja"
+          style="text-align: center; width: 15%"
+        >
+          {{ caja?.maletin?.descripcion | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="usuario">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 15%"
+        >
+          Responsable
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let caja"
+          style="text-align: center; width: 15%"
+        >
+          {{ caja?.usuario?.persona?.nombre | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 5%; text-align: center"
+        >
+          ...
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let caja; let i = dataIndex"
+          style="text-align: center; width: 5%"
+        >
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onAdd(caja, i)">Ir a Caja</button>
+            <button mat-menu-item (click)="irVentas(caja)">Ir a Ventas</button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <mat-divider></mat-divider>
+
+      <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+      <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let caja"
+          [attr.colspan]="displayedColumns.length"
+          class="expanded"
+        >
+          <div
+            class="example-caja-detail"
+            [@detailExpand]="caja == expandedCaja ? 'expanded' : 'collapsed'"
+            style="text-align: center"
+            fxLayout="column"
+            fxLayoutAlign="start start"
+          ></div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: ['expandedDetail']"
+        class="example-detail-row"
+      ></tr>
+    </table>
+  </div>
+</app-generic-list>

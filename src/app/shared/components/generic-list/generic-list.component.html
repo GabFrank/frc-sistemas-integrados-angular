@@ -1,28 +1,58 @@
-<div fxLayout="column" style="width: 100%;" [style.height.px]="containerHeight">
+<div fxLayout="column" style="width: 100%" [style.height.px]="containerHeight">
   <div fxLayout="column" fxFlex="20">
-      <div fxFlex="15%" style="width: 100%; text-align: center;">
-          <h3>{{titulo}}</h3>
-      </div>
-      <mat-card fxLayout="row" fxFlex="85%" style="width: 100%; background-color: rgb(32, 32, 32);">
-          <div fxFlex="90%"> 
-              <ng-content select="[filtros]"></ng-content>
-          </div>
-          <div fxFlex="10%" fxLayout="column" fxLayoutAlign="start space-between" style="height: 100%;">
-              <div fxFlex="33" >
-                  <button mat-raised-button color="primary" (click)="onFiltrar()" style="width: 100%;">Filtrar</button>
-              </div>
-              <div fxFlex="33">
-                  <button mat-raised-button color="primary" (click)="onResetFiltro()" style="width: 100%;">Limpiar Filtro</button>
-              </div>
-              <div fxFlex="33">
-                  <button mat-raised-button color="primary" (click)="onAdd()" style="width: 100%;">+ Adicionar</button>
-              </div>
-          </div>
-      </mat-card>
-  </div>
-  <div fxFlex="80" >
-      <div [style.height.px]="tableHeight" style="overflow-y: auto">
-        <ng-content select="[table]"></ng-content>
-      </div>
+    <div fxFlex="15%" style="width: 100%; text-align: center">
+      <h3>{{ titulo }}</h3>
     </div>
+    <mat-card
+      fxLayout="row"
+      fxFlex="85%"
+      style="width: 100%; background-color: rgb(32, 32, 32)"
+    >
+      <div fxFlex="90%">
+        <ng-content select="[filtros]"></ng-content>
+      </div>
+      <div
+        fxFlex="10%"
+        fxLayout="column"
+        fxLayoutAlign="start space-between"
+        style="height: 100%"
+      >
+        <div fxFlex="33">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="onFiltrar()"
+            style="width: 100%"
+          >
+            Filtrar
+          </button>
+        </div>
+        <div fxFlex="33">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="onResetFiltro()"
+            style="width: 100%"
+          >
+            Limpiar Filtro
+          </button>
+        </div>
+        <div fxFlex="33" *ngIf="isAdicionar">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="onAdd()"
+            style="width: 100%"
+          >
+            + Adicionar
+          </button>
+        </div>
+      </div>
+    </mat-card>
+  </div>
+  <div fxFlex="80">
+    <div [style.height.px]="tableHeight" style="overflow-y: auto">
+      <ng-content select="[table]"></ng-content>
+    </div>
+  </div>
 </div>

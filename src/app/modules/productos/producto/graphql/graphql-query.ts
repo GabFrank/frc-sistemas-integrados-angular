@@ -465,3 +465,9 @@ export const productoParaPedidoQuery = gql`
     }
   }
 `;
+
+export const exportarReporteQuery = gql`
+  query ($texto: String) {
+    data: exportarReporte(texto: $texto)
+  }
+`;

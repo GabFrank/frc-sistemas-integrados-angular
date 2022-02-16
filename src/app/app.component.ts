@@ -1,10 +1,11 @@
 import { OverlayContainer } from "@angular/cdk/overlay";
-import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from "@angular/core";
 import { MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { Subscription } from "rxjs";
 import { last } from "rxjs/operators";
 import { connectionStatusSub } from "./app.module";
+import { GenericCrudService } from "./generics/generic-crud.service";
 import { MainService } from "./main.service";
 import { LoginComponent } from "./modules/login/login.component";
 import {
@@ -20,6 +21,9 @@ import { WindowInfoService } from "./shared/services/window-info.service";
   styleUrls: ["./app.component.scss"],
 })
 export class AppComponent implements OnInit, OnDestroy {
+
+  @ViewChild('container', {static: true}) container: ElementRef<any>;
+
   title = "franco-dev-systems";
   innerWidth;
   innerHeight;
@@ -35,7 +39,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private notificationService: NotificacionSnackbarService,
     private snackBar: MatSnackBar,
     private matDialog: MatDialog,
-    public mainService: MainService
+    public mainService: MainService,
+    public genericService: GenericCrudService
   ) {
     this.innerHeight = windowInfo.innerHeight + "px";
     notificationService.notification$.subscribe((res) => {

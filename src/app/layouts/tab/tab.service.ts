@@ -50,6 +50,7 @@ export class TabService {
       // new Tab(ListMovimientoStockComponent, 'Movimientos', null, null),
       // new Tab(EntradaSalidaComponent, 'Entrada/Salida', null, null),
       // new Tab(PrintTicketsComponent, 'Farra', null, null),
+      // new Tab(ListCajaComponent, 'Cajas', null, null),
       // new Tab(VentaTouchComponent, 'Venta', null, null),
 
     ];

@@ -7,7 +7,7 @@ export const ventasQuery = gql`
       cliente {
         id
       }
-      formaPago{
+      formaPago {
         id
         descripcion
       }
@@ -23,7 +23,9 @@ export const ventasQuery = gql`
         }
         cantidad
         precioCosto
-        precioVenta{precio}
+        precioVenta {
+          precio
+        }
         valorDescuento
         unidadMedida
         creadoEn
@@ -48,7 +50,7 @@ export const ventaQuery = gql`
       cliente {
         id
       }
-      formaPago{
+      formaPago {
         id
         descripcion
       }
@@ -61,10 +63,19 @@ export const ventaQuery = gql`
         id
         producto {
           id
+          descripcion
+        }
+        presentacion {
+          cantidad
         }
         cantidad
         precioCosto
-        precioVenta{precio}
+        precioVenta {
+          precio
+          tipoPrecio {
+            descripcion
+          }
+        }
         valorDescuento
         unidadMedida
         creadoEn
@@ -78,13 +89,41 @@ export const ventaQuery = gql`
       totalGs
       totalRs
       totalDs
+      cobro {
+        id
+        cobroDetalleList{
+          id
+          moneda {
+            denominacion
+          }
+          valor
+          cambio
+          formaPago {
+            descripcion
+          }
+          descuento
+          aumento
+          vuelto
+          pago
+        }
+      }
     }
   }
 `;
 
 export const saveVenta = gql`
-  mutation saveVenta($ventaInput:VentaInput!, $ventaItemList: [VentaItemInput], $cobro: CobroInput, $cobroDetalleList: [CobroDetalleInput]) {
-    data: saveVenta(ventaInput:$ventaInput, ventaItemList: $ventaItemList, cobro: $cobro, cobroDetalleList: $cobroDetalleList)
+  mutation saveVenta(
+    $ventaInput: VentaInput!
+    $ventaItemList: [VentaItemInput]
+    $cobro: CobroInput
+    $cobroDetalleList: [CobroDetalleInput]
+  ) {
+    data: saveVenta(
+      ventaInput: $ventaInput
+      ventaItemList: $ventaItemList
+      cobro: $cobro
+      cobroDetalleList: $cobroDetalleList
+    )
   }
 `;
 
@@ -115,7 +154,7 @@ export const ventasPorCajaIdQuery = gql`
       cliente {
         id
       }
-      formaPago{
+      formaPago {
         id
         descripcion
       }
@@ -123,22 +162,6 @@ export const ventasPorCajaIdQuery = gql`
       creadoEn
       usuario {
         id
-      }
-      ventaItemList {
-        id
-        producto {
-          id
-        }
-        cantidad
-        precioCosto
-        precioVenta{precio}
-        valorDescuento
-        unidadMedida
-        creadoEn
-        usuario {
-          id
-        }
-        valorTotal
       }
       valorDescuento
       valorTotal
@@ -148,6 +171,3 @@ export const ventasPorCajaIdQuery = gql`
     }
   }
 `;
-
-
-

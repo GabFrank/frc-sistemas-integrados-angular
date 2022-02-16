@@ -156,6 +156,27 @@ export const cajaQuery = gql`
           cantidad
         }
       }
+      balance {
+        totalVentaGs
+        totalVentaRs
+        totalVentaDs
+        totalTarjeta
+        totalRetiroGs
+        totalRetiroRs
+        totalRetiroDs
+        totalGastoGs
+        totalGastoRs
+        totalGastoDs
+        totalAperGs
+        totalAperRs
+        totalAperDs
+        totalCierreGs
+        totalCierreRs
+        totalCierreDs
+        totalDescuento
+        totalAumento
+        totalCanceladas
+      }
     }
   }
 `;
@@ -288,7 +309,7 @@ export const deleteCajaQuery = gql`
 
 export const imprimirBalanceQuery = gql`
   query imprimirBalance($id: ID!) {
-    imprimirBalance(id: $id){
+    imprimirBalance(id: $id) {
       id
     }
   }

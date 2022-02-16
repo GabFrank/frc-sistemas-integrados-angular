@@ -13,3 +13,5 @@ export interface Response {
 export class CajaPorIdGQL extends Query<Response> {
   document = cajaQuery;
 }
+
+

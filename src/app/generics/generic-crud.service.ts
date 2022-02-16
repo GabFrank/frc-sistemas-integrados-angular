@@ -12,6 +12,9 @@ import { DialogosService } from "../shared/components/dialogos/dialogos.service"
   providedIn: "root",
 })
 export class GenericCrudService {
+
+  isLoading = false;
+
   constructor(
     private notificacionSnackBar: NotificacionSnackbarService,
     private dialogoService: DialogosService,
@@ -20,10 +23,12 @@ export class GenericCrudService {
   ) {}
 
   onGetAll(gql: Query): Observable<any> {
+    this.isLoading = true;
     return new Observable((obs) => {
       gql
         .fetch({}, { fetchPolicy: "no-cache", errorPolicy: "all" })
         .subscribe((res) => {
+          this.isLoading = false
           if (res.errors == null) {
             obs.next(res.data["data"]);
           } else {
@@ -38,10 +43,12 @@ export class GenericCrudService {
   }
 
   onGetById<T>(gql: Query, id: number): Observable<T> {
+    this.isLoading = true;
     return new Observable((obs) => {
       gql
         .fetch({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" })
         .subscribe((res) => {
+          this.isLoading = false;
           if (res.errors == null) {
             obs.next(res.data["data"]);
           } else {
@@ -57,11 +64,13 @@ export class GenericCrudService {
   }
 
   onGetByTexto(gql: Query, texto: string): Observable<any> {
+    this.isLoading = true;
     return new Observable((obs) => {
       gql
         .fetch({ texto }, { fetchPolicy: "no-cache", errorPolicy: "all" })
         .subscribe((res) => {
           console.log(res)
+          this.isLoading = false;
           if (res.errors == null) {
             obs.next(res.data["data"]);
           } else {
@@ -77,6 +86,7 @@ export class GenericCrudService {
   }
 
   onSave<T>(gql: Mutation, input): Observable<T> {
+    this.isLoading = true;
     if (input.usuarioId == null) {
       input.usuarioId = +localStorage.getItem("usuarioId");
     }
@@ -87,6 +97,7 @@ export class GenericCrudService {
           { fetchPolicy: "no-cache", errorPolicy: "all" }
         )
         .subscribe((res) => {
+          this.isLoading = false;
           if (res.errors == null) {
             obs.next(res.data["data"]);
             this.notificacionSnackBar.notification$.next({

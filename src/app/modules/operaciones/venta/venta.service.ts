@@ -106,6 +106,8 @@ export class VentaService {
   }
 
   onSearch(id, offset?): Observable<Venta[]>{
+    this.genericService.isLoading = true;
+    if(offset==null) offset = 0;
     return new Observable(obs => {
       this.ventasPorCajaId.fetch(
         {
@@ -117,6 +119,7 @@ export class VentaService {
           errorPolicy: "all",
         }
       ).subscribe(res => {
+        this.genericService.isLoading = false;
         if(res.errors == null){
           console.log(res.data.data)
           obs.next(res.data.data)

@@ -343,12 +343,11 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       precio,
     };
 
-    this.stockService.onGetStockPorProducto(producto.id).subscribe(res => {
-      if(res!=null){
-        console.log(res)
-        response.producto.stockPorProducto = res;
-      }
-    })
+    // this.stockService.onGetStockPorProducto(producto.id).subscribe(res => {
+    //   if(res!=null){
+    //     response.producto.stockPorProducto = res;
+    //   }
+    // })
     this.dialogRef.close(response);
   }
 
