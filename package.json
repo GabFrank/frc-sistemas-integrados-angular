@@ -1,11 +1,11 @@
 {
-  "name": "angular-electron",
-  "version": "10.1.0",
-  "description": "Angular 12 with Electron (Typescript + SASS + Hot Reload)",
-  "homepage": "https://github.com/maximegris/angular-electron",
+  "name": "frc-sys",
+  "version": "0.0.1",
+  "description": "Sistema de control integral para comercios",
+  "homepage": "https://github.com/GabFrank",
   "author": {
-    "name": "Maxime GRIS",
-    "email": "maxime.gris@gmail.com"
+    "name": "Gabriel Franco",
+    "email": "francogabrielpy@outlook.com"
   },
   "keywords": [
     "angular",
@@ -80,6 +80,7 @@
     "ngx-barcode": "^0.3.0",
     "ngx-connection-service": "^7.0.3",
     "ngx-currency": "^2.5.2",
+    "ngx-extended-pdf-viewer": "^12.0.0-alpha.0",
     "ngx-image-compress": "^11.0.3",
     "ngx-image-cropper": "^4.0.1",
     "ngx-mask": "^11.1.5",

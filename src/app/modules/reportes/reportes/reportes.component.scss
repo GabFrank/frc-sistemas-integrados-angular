@@ -1,0 +1,13 @@
+.selected {
+    background-color: #43a047;
+}
+
+mat-list-item:hover {
+    background-color: #43a047;
+}
+
+:host::ng-deep .mat-list-item-content {
+    width: 100%;
+}
+
+

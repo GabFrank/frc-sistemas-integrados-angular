@@ -1,0 +1,43 @@
+<div fxLayout="row" style="width: 100%; height: 100%">
+  <div fxFlex="20%" style="width: 100%; height: 100%">
+    <mat-list role="list">
+      <mat-label style="width: 100%;text-align: center;">Ultimos reportes</mat-label>
+      <mat-list-item
+        *ngFor="let reporte of reporteList; let i = index"
+        role="listitem"
+        (click)="onSelectReporte(reporte, i)"
+        fxLayout="row"
+        style="width: 100%; cursor: pointer;"
+        fxLayoutAlign="space-between center"
+        [class.selected] = "reporte == selectedReporte"
+      >
+        <div fxFlex="100">
+          {{ reporte.nombre | uppercase }}
+        </div>
+        <div fxFlex>
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onClose(i)">Cerrar</button>
+            <button mat-menu-item (click)="openInBrowser(reporte)">Abrir en navegador</button>
+          </mat-menu>
+        </div>
+      </mat-list-item>
+    </mat-list>
+  </div>
+  <div fxFlex="80%" style="width: 100%; height: 100%">
+    <ngx-extended-pdf-viewer
+      [base64Src]="selectedReporte?.pdf"
+      useBrowserLocale="true"
+      height="100%"
+      [filenameForDownload]="selectedReporte?.nombre"
+      [textLayer]="true"
+      [(page)]="currentPage"
+    ></ngx-extended-pdf-viewer>
+  </div>
+</div>

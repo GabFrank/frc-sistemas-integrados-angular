@@ -123,6 +123,11 @@ try {
 
   win.webContents.print({silent: true});
 
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    require('electron').shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
 
 } catch (e) {
   // Catch Error

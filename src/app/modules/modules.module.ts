@@ -12,12 +12,13 @@ import { MDBBootstrapModule } from 'angular-bootstrap-md';
 import { LoginModule } from './login/login.module';
 import { PrintModule } from './print/print.module';
 import { FinancieroModule } from './financiero/financiero.module';
+import { ReportesModule } from './reportes/reportes/reportes.module';
 
 
 
 @NgModule({
   declarations: [
-    ],
+      ],
   imports: [
     CommonModule,
     DashboardModule,
@@ -31,6 +32,7 @@ import { FinancieroModule } from './financiero/financiero.module';
     LoginModule,
     PrintModule,
     FinancieroModule,
+    ReportesModule,
     MDBBootstrapModule.forRoot()
   ],
   providers: [

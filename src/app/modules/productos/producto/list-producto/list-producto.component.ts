@@ -19,11 +19,16 @@ import { MatPaginator } from "@angular/material/paginator";
 import { MatTableDataSource } from "@angular/material/table";
 import { PrintService } from "../../../print/print.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
-import { TabService } from "../../../../layouts/tab/tab.service";
+import { TabData, TabService } from "../../../../layouts/tab/tab.service";
 import { CargandoDialogComponent } from "../../../../shared/components/cargando-dialog/cargando-dialog.component";
 import { ProductoComponent } from "../edit-producto/producto.component";
 import { Producto } from "../producto.model";
 import { ProductoService } from "../producto.service";
+import { MainService } from "../../../../main.service";
+import { GenericCrudService } from "../../../../generics/generic-crud.service";
+import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
+import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
+import { ReporteService } from "../../../reportes/reporte.service";
 
 interface ProductoDatasource {
   id: number;
@@ -94,7 +99,10 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     public service: ProductoService,
     private tabService: TabService,
     private matDialog: MatDialog,
-    private printService: PrintService
+    private printService: PrintService,
+    private genericService: GenericCrudService,
+    private cargandoDialog: CargandoDialogService,
+    private reporteService: ReporteService
   ) {}
 
   ngOnInit(): void {
@@ -279,8 +287,11 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   }
 
   onExportProductos(){
+    this.cargandoDialog.openDialog(false, "Generando Reporte...")
     this.service.onExportarReporte(this.buscarField.value).subscribe(res => {
-      console.log(res)
+      this.cargandoDialog.closeDialog()
+      this.reporteService.onAdd('Producto-'+new Date().toLocaleTimeString(), res);
+      this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListProductoComponent))
     })
   }
 }
