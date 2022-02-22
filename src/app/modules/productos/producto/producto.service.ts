@@ -17,9 +17,11 @@ import { AllProductosGQL } from "./graphql/allProductos";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { ProductoParaPedidoGQL } from "./graphql/productoParaPedido";
 import { ExportarProductoGQL } from "./graphql/exportarReporte";
+import { FindByPdvGrupoProductoIdGQL } from "./graphql/findByPdvGrupoProductoId";
+import { EnvaseSearchGQL } from "./graphql/envaseSearch";
 
 export class CustomResponse {
-  errors: string[]
+  errors: string[];
   data: CustomData;
 }
 
@@ -33,7 +35,7 @@ export class CustomData {
 export class ProductoService {
   productosSub = new BehaviorSubject<Producto[]>(null);
   buscandoProductos = false;
-  productosList : Producto[]
+  productosList: Producto[];
 
   constructor(
     public mainService: MainService,
@@ -42,15 +44,17 @@ export class ProductoService {
     private productoPorId: ProductoPorIdGQL,
     private saveImage: SaveImagenProductoGQL,
     private productoSearch: ProductoForPdvGQL,
+    private envaseSearch: EnvaseSearchGQL,
     private notificacionSnack: NotificacionSnackbarService,
     private printProductoPorId: PrintProductoPorIdGQL,
     private searchForPdv: ProductoForPdvGQL,
     private getAllProductos: AllProductosGQL,
     private genericService: GenericCrudService,
     private getProductoParaPedido: ProductoParaPedidoGQL,
-    private exportarReporte: ExportarProductoGQL
+    private exportarReporte: ExportarProductoGQL,
+    private findByPdvGrupoProductoId: FindByPdvGrupoProductoIdGQL
   ) {
-    this.productosList = []
+    this.productosList = [];
     // getAllProductos.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
     //   if(res.errors==null){
     //     console.log('Lista de productos cargada')
@@ -60,49 +64,74 @@ export class ProductoService {
     // })
   }
 
-  onSearch(texto, offset?): Observable<Producto[]>{
-    console.log('buscando ', texto, 'offest ' , offset)
-    return new Observable(obs => {
-      this.productoSearch.fetch(
-        {
-          texto,
-          offset
-        },
-        {
-          fetchPolicy: "no-cache",
-          errorPolicy: "all",
-        }
-      ).subscribe(res => {
-        if(res.errors == null){
-          console.log(res.data.data)
-          obs.next(res.data.data)
-        } else {
-
-        }
-      })
-    })
+  onSearch(texto, offset?): Observable<Producto[]> {
+    console.log("buscando ", texto, "offest ", offset);
+    return new Observable((obs) => {
+      this.productoSearch
+        .fetch(
+          {
+            texto,
+            offset,
+          },
+          {
+            fetchPolicy: "no-cache",
+            errorPolicy: "all",
+          }
+        )
+        .subscribe((res) => {
+          if (res.errors == null) {
+            console.log(res.data.data);
+            obs.next(res.data.data);
+          } else {
+          }
+        });
+    });
   }
 
-  onSearchLocal(texto: string){
-      return Promise.all(this.productosList.filter(p => {
-        let regex = new RegExp('.*' + texto.replace(' ', '.*')); 
-        if(regex.test(p.descripcion) || p.descripcion.replace(' ', '').includes(texto.replace(' ', ''))){
-          console.log(p.descripcion)
+  onEnvaseSearch(texto, offset?, isEnvase?: boolean): Observable<Producto[]> {
+    console.log("buscando ", texto, "offest ", offset);
+    return new Observable((obs) => {
+      this.envaseSearch
+        .fetch(
+          {
+            texto,
+            offset,
+            isEnvase,
+          },
+          {
+            fetchPolicy: "no-cache",
+            errorPolicy: "all",
+          }
+        )
+        .subscribe((res) => {
+          if (res.errors == null) {
+            console.log(res.data.data);
+            obs.next(res.data.data);
+          } else {
+          }
+        });
+    });
+  }
+
+  onSearchLocal(texto: string) {
+    return Promise.all(
+      this.productosList.filter((p) => {
+        let regex = new RegExp(".*" + texto.replace(" ", ".*"));
+        if (
+          regex.test(p.descripcion) ||
+          p.descripcion.replace(" ", "").includes(texto.replace(" ", ""))
+        ) {
+          console.log(p.descripcion);
           return p;
         }
-      }))
+      })
+    );
   }
 
-  onSearchParaPdv(){
+  onSearchParaPdv() {}
 
-  }
-
-  onGetProductoPorId(id){
-    return this.productoPorId.fetch({
-      id
-    },{
-      errorPolicy: 'all'
-    })
+  onGetProductoPorId(id): Observable<Producto> {
+    return this.genericService.onGetById(this.productoPorId, id)
   }
 
   onSaveProducto(input: ProductoInput): Observable<any> {
@@ -120,11 +149,13 @@ export class ProductoService {
           console.log(res.errors);
           if (res.errors == null) {
             obs.next(res.data.data);
-            if(isNew){
-              this.productosList.push(res.data.data)
+            if (isNew) {
+              this.productosList.push(res.data.data);
             } else {
-              let index = this.productosList.findIndex(p => p.id = input.id);
-              if(index!=-1){
+              let index = this.productosList.findIndex(
+                (p) => (p.id = input.id)
+              );
+              if (index != -1) {
                 this.productosList[index] = res.data.data;
               }
             }
@@ -151,7 +182,7 @@ export class ProductoService {
 
   onImageSave(image: string, filename: string) {
     // return new Observable((obs) => {
-    console.log('saving image')
+    console.log("saving image");
     this.saveImage
       .mutate({
         image,
@@ -178,33 +209,40 @@ export class ProductoService {
 
   onPrintProductoPorId(id) {
     console.log("entro al onPrint", id);
-    this.printProductoPorId.fetch(
-      {
-        id,
-      },
-      {
-        errorPolicy: "all",
-        fetchPolicy: 'no-cache'
-      }
-    ).subscribe(res => {
-      console.log(res)
-    })
+    this.printProductoPorId
+      .fetch(
+        {
+          id,
+        },
+        {
+          errorPolicy: "all",
+          fetchPolicy: "no-cache",
+        }
+      )
+      .subscribe((res) => {
+        console.log(res);
+      });
   }
 
-  onGetProductoParaPedido(id): Observable<Producto>{
+  onGetProductoParaPedido(id): Observable<Producto> {
     return this.genericService.onGetById(this.getProductoParaPedido, id);
   }
 
+  onExportarReporte(texto: string): Observable<string> {
+    return new Observable((obs) => {
+      this.exportarReporte
+        .fetch({ texto }, { fetchPolicy: "no-cache", errorPolicy: "all" })
+        .subscribe((res) => {
+          if (res.errors == null) {
+            obs.next(res.data.data);
+          } else {
+            obs.next("Problema");
+          }
+        });
+    });
+  }
 
-  onExportarReporte(texto: string): Observable<string>{
-    return new Observable(obs => {
-       this.exportarReporte.fetch({texto}, {fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
-         if(res.errors==null){
-           obs.next(res.data.data)
-         } else {
-           obs.next("Problema")
-         }
-       })
-    })
+  onFindByPdvGrupoProductoId(id): Observable<Producto[]> {
+    return this.genericService.onGetById(this.findByPdvGrupoProductoId, id);
   }
 }

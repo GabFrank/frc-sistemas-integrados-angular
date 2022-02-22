@@ -12,46 +12,6 @@ export const pdvCategoriasQuery = gql`
         activo
         pdvGruposProductos {
           id
-          producto {
-            id
-            descripcion
-            balanza
-            garantia
-            combo
-            promocion
-            imagenPrincipal
-            presentaciones {
-              id
-              descripcion
-              principal
-              activo
-              cantidad
-              precioPrincipal{
-                precio  
-              }
-              codigos {
-                id
-                codigo
-                principal
-                activo
-              }
-              precios {
-                id
-                precio
-                principal
-                activo
-                tipoPrecio {
-                  id
-                  descripcion
-                }
-              }
-              imagenPrincipal
-              tipoPresentacion{
-                id
-                descripcion
-              }
-            }
-          }
           activo
         }
       }
@@ -167,5 +127,49 @@ export const savePdvCategoria = gql`
 export const deletePdvCategoriaQuery = gql`
   mutation deletePdvCategoria($id: ID!) {
     deletePdvCategoria(id: $id)
+  }
+`;
+
+
+export const pdvGruposProductosPorGrupoIdQuery = gql`
+  query ($id: ID!) {
+    data: pdvGruposProductosPorGrupoId(id: $id) {
+      id
+      producto {
+        id
+        descripcion
+        balanza
+        garantia
+        combo
+        promocion
+        presentaciones {
+          id
+          descripcion
+          principal
+          activo
+          cantidad
+          codigos {
+            id
+            codigo
+            principal
+            activo
+          }
+          precios {
+            id
+            precio
+            principal
+            activo
+            tipoPrecio {
+              id
+              descripcion
+            }
+          }
+          imagenPrincipal
+        }
+        imagenPrincipal
+      }
+      
+      activo
+    }
   }
 `;

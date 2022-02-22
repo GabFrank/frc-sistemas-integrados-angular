@@ -1,0 +1,36 @@
+<div fxLayout="column" fxLayoutGap="20px">
+  <div fxFlex style="width: 100%; text-align: center">
+    Cobrar envase?
+  </div>
+  <div fxFlex fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+    <div fxFlex="50%" style="width: 100%; text-align: center">Cantidad faltante:</div>
+    <div fxFlex="50%" style="width: 100%; text-align: center">
+      <mat-form-field style="width: 50%; font-size: 1.2em">
+        <input type="number" matInput [formControl]="cantidadControl" (keyup.enter)="onCancelar()"/>
+      </mat-form-field>
+    </div>
+  </div>
+  <div fxFlex fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="center center">
+    <div fxFlex="50%" style="text-align: center">
+      <button
+        mat-raised-button
+        color="primary"
+        style="width: 70px; height: 70px"
+        (click)="onAceptar()"
+      >
+        No
+      </button>
+    </div>
+    <div fxFlex="50%" style="text-align: center">
+      <button
+        mat-raised-button
+        color="accent"
+        style="width: 70px; height: 70px"
+        (click)="onCancelar()"
+
+      >
+        Si
+      </button>
+    </div>
+  </div>
+</div>

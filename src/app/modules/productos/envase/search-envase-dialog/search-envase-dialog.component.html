@@ -1,0 +1,119 @@
+<div fxLayout="column" style="width: 100%; height: 100%">
+  <div fxFlex style="width: 100%; text-align: center;">
+    Buscar envases
+  </div>
+  <div fxFlex fxLayout="row" style="width: 100%;">
+    <div fxFlex="75">
+      <mat-form-field class="form-element" style="width: 100%">
+        <input
+          #buscarInput
+          matInput
+          placeholder="Buscar"
+          name="buscarField"
+          [formControl]="buscarField"
+          autocomplete="off"
+        />
+      </mat-form-field>
+    </div>
+    <div fxFlex="20%">
+      <button
+        type="button"
+        mat-raised-button
+        color="primary"
+        (click)="openProductos('new')"
+      >
+        Nuevo
+      </button>
+    </div>
+  </div>
+  <div fxFlex="70" style="overflow-y: scroll">
+    <table
+      *ngIf="!isSearching"
+      mat-table
+      class="mat-elevation-z8"
+      [dataSource]="dataSource"
+      style="padding-left: 5px; padding-right: 5px; width: 100%"
+    >
+      <!--- Note that these columns can be defined in any order.
+              The actual rendered columns are set as a property on the row definition" -->
+
+      <!-- Position Column -->
+      <ng-container matColumnDef="id">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 10%"
+        >
+          ID
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let element"
+          style="text-align: center; width: 10%"
+        >
+          {{ element.id }}
+        </td>
+      </ng-container>
+
+      <!-- Name Column -->
+      <ng-container matColumnDef="descripcion">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 50%; text-align: left"
+        >
+          Descripción
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let element"
+          style="width: 50%; text-align: left"
+        >
+          {{ element.descripcion }}
+        </td>
+      </ng-container>
+
+      <!-- Symbol Column -->
+      <ng-container matColumnDef="precioPrincipal">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 13%; text-align: center"
+        >
+          Precio Principal
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let element"
+          style="width: 13%; text-align: center"
+        >
+          {{ element?.precioPrincipal | number: "1.0-0" }}
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns; let i = index"
+        (click)="highlight(row, i)"
+        [ngClass]="{ highlight: selectedRowIndex == i }"
+        (keyup.arrowdown)="arrowDownEvent()"
+        (keyup.arrowup)="arrowUpEvent()"
+        tabindex="0"
+      ></tr>
+    </table>
+    <mat-card
+      *ngIf="isSearching"
+      style="display: flex; justify-content: center; align-items: center"
+    >
+      <mat-progress-spinner color="primary" mode="indeterminate">
+      </mat-progress-spinner>
+    </mat-card>
+    <br />
+    <div style="text-align: center">
+      <button mat-fab color="primary" (click)="cargarMasDatos()">
+        <mat-icon>add</mat-icon>
+      </button>
+    </div>
+  </div>
+</div>

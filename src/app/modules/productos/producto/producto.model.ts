@@ -35,6 +35,8 @@ export class Producto {
   stockPorProducto?: number;
   codigoPrincipal?: string
   costo: CostoPorProducto
+  isEnvase: boolean;
+  envase: Producto
 }
 
 export class ExistenciaCostoPorSucursal {

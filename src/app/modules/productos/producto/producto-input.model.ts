@@ -19,4 +19,6 @@ export class ProductoInput {
   imagenes?: string;
   tipoConservacion: string;
   subfamiliaId: number;
+  isEnvase: boolean;
+  envaseId: number;
 }

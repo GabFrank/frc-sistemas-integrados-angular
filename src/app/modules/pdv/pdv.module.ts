@@ -22,6 +22,7 @@ import { SeleccionarCajaDialogComponent } from "./comercial/venta-touch/seleccio
 import { UtilitariosDialogComponent } from "./comercial/venta-touch/utilitarios-dialog/utilitarios-dialog.component";
 import { NgxPrintElementModule } from "ngx-print-element";
 import { AdicionarPdvProductoDialogComponent } from "./comercial/venta-touch/adicionar-pdv-producto-dialog/adicionar-pdv-producto-dialog.component";
+import { SeleccionarEnvaseDialogComponent } from './comercial/venta-touch/seleccionar-envase-dialog/seleccionar-envase-dialog.component';
 
 @NgModule({
   declarations: [
@@ -41,6 +42,7 @@ import { AdicionarPdvProductoDialogComponent } from "./comercial/venta-touch/adi
     AdicionarPdvProductoDialogComponent,
     SeleccionarCajaDialogComponent,
     UtilitariosDialogComponent,
+    SeleccionarEnvaseDialogComponent,
   ],
   imports: [
     CommonModule,

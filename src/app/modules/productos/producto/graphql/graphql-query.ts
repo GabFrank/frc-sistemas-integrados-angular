@@ -69,8 +69,8 @@ export const productosExistenciaCostoSearch = gql`
 `;
 
 export const productoSearchPdv = gql`
-  query ($texto: String, $offset: Int) {
-    data: productoSearch(texto: $texto, offset: $offset) {
+  query ($texto: String, $offset: Int, $isEnvase: Boolean) {
+    data: productoSearch(texto: $texto, offset: $offset, isEnvase: $isEnvase) {
       id
       descripcion
       garantia
@@ -78,6 +78,10 @@ export const productoSearchPdv = gql`
       diasVencimiento
       observacion
       codigoPrincipal
+      envase {
+        id
+        descripcion
+      }
       # cambiable
       # presentaciones {
       #   id
@@ -105,6 +109,16 @@ export const productoSearchPdv = gql`
       #     activo
       #   }
       # }
+    }
+  }
+`;
+
+export const envaseSearchPdv = gql`
+  query ($texto: String, $offset: Int, $isEnvase: Boolean) {
+    data: productoSearch(texto: $texto, offset: $offset, isEnvase: $isEnvase) {
+      id
+      descripcion
+      precioPrincipal
     }
   }
 `;
@@ -197,6 +211,11 @@ export const productoPorCodigoQuery = gql`
       observacion
       cambiable
       imagenPrincipal
+      isEnvase
+      envase {
+        id
+        descripcion
+      }
       subfamilia {
         id
         descripcion
@@ -280,6 +299,11 @@ export const productoQuery = gql`
       imagenPrincipal
       iva
       stock
+      isEnvase
+      envase {
+        id
+        descripcion
+      }
       subfamilia {
         id
         descripcion
@@ -469,5 +493,59 @@ export const productoParaPedidoQuery = gql`
 export const exportarReporteQuery = gql`
   query ($texto: String) {
     data: exportarReporte(texto: $texto)
+  }
+`;
+
+export const findByPdvGrupoProductoQuery = gql`
+  query ($id: ID!) {
+    data: findByPdvGrupoProductoId(id: $id) {
+      id
+      descripcion
+      descripcionFactura
+      garantia
+      vencimiento
+      diasVencimiento
+      observacion
+      cambiable
+      imagenPrincipal
+      iva
+      stock
+      isEnvase
+      envase {
+        id
+        descripcion
+        precioPrincipal
+      }
+      presentaciones {
+        id
+        descripcion
+        principal
+        cantidad
+        codigos {
+          id
+          codigo
+          principal
+          activo
+        }
+        tipoPresentacion {
+          id
+          descripcion
+        }
+        imagenPrincipal
+        precios {
+          id
+          precio
+          tipoPrecio {
+            id
+            descripcion
+          }
+          principal
+          activo
+        }
+        codigoPrincipal {
+          codigo
+        }
+      }
+    }
   }
 `;

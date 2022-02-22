@@ -19,6 +19,7 @@ import { ListCompraComponent } from '../../modules/operaciones/compra/list-compr
 import { EditCompraComponent } from '../../modules/operaciones/compra/edit-compra/edit-compra.component';
 import { EditPedidoComponent } from '../../modules/operaciones/pedido/edit-pedido/edit-pedido.component';
 import { ListPedidoComponent } from '../../modules/operaciones/pedido/list-pedido/list-pedido.component';
+import { ProductoComponent } from '../../modules/productos/producto/edit-producto/producto.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -50,8 +51,8 @@ export class TabService {
       // new Tab(ListMovimientoStockComponent, 'Movimientos', null, null),
       // new Tab(EntradaSalidaComponent, 'Entrada/Salida', null, null),
       // new Tab(PrintTicketsComponent, 'Farra', null, null),
-      // new Tab(ListCajaComponent, 'Cajas', null, null),
-      // new Tab(VentaTouchComponent, 'Venta', null, null),
+      // new Tab(ListProductoComponent, 'Productos', null, null),
+      new Tab(VentaTouchComponent, 'Venta', null, null),
 
     ];
     this.tabSub.next(this.tabs);

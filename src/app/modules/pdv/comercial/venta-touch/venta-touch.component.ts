@@ -82,6 +82,7 @@ import { NgxPrintElementService } from "ngx-print-element";
 import { AdicionarPdvProductoDialogComponent } from "./adicionar-pdv-producto-dialog/adicionar-pdv-producto-dialog.component";
 import { PdvGrupo } from "./pdv-grupo/pdv-grupo.model";
 import { Presentacion } from "../../../productos/presentacion/presentacion.model";
+import { SeleccionarEnvaseDialogComponent } from "./seleccionar-envase-dialog/seleccionar-envase-dialog.component";
 
 export interface Item {
   producto: Producto;
@@ -141,7 +142,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   mostrarTipoPrecios = false;
   ventaSub: Subscription;
   selectCajaDialog: MatDialogRef<SeleccionarCajaDialogComponent>;
-
+  dialogReference;
   formaPagoList: FormaPago[];
 
   constructor(
@@ -173,8 +174,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       this.codigoInput.nativeElement.focus();
     }, 0);
-
-    printService.print("print");
   }
 
   ngOnInit(): void {
@@ -287,6 +286,21 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       }, 2000);
       if (res.errors == null) {
         this.pdvCategorias = res.data.data;
+        this.pdvCategorias.forEach((cat) => {
+          cat.grupos.forEach((gr) => {
+            if (gr.activo == true) {
+              this.pdvCategoriaService
+                .onGetGrupoProductosPorGrupoId(gr.id)
+                .subscribe((res) => {
+                  if (res != null) {
+                    console.log("cargando: " + gr.descripcion);
+                    gr.pdvGruposProductos = res;
+                  }
+                });
+            }
+          });
+          console.log("carga completa");
+        });
         this.selectedPdvCategoria = this.pdvCategorias[0];
         this.isCargandoPDV = false;
       } else {
@@ -319,7 +333,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     pdvGruposProductos.forEach((e) => {
       productos.push(e.producto);
     });
-    this.dialog
+    this.dialogReference = this.dialog
       .open(SelectProductosDialogComponent, {
         data: {
           productos,
@@ -337,6 +351,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
           item.cantidad = respuesta.data.cantidad;
           this.addItem(item);
         }
+        this.dialogReference = undefined;
       });
   }
 
@@ -392,7 +407,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     item.producto.presentaciones.forEach((p) => {
       console.log(p.cantidad, cantidad, item?.presentacion?.cantidad);
       if (
-        p.cantidad <= (cantidad * item.presentacion.cantidad) &&
+        p.cantidad <= cantidad * item.presentacion.cantidad &&
         p.cantidad > 1 &&
         p.id != item?.presentacion?.id &&
         p.cantidad > item?.presentacion.cantidad
@@ -407,7 +422,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         (precio) => precio?.principal == true
       );
       if (item2.precioVenta != null) {
-        let factor = Math.floor(cantidad * item.presentacion.cantidad / item2.presentacion.cantidad);
+        let factor = Math.floor(
+          (cantidad * item.presentacion.cantidad) / item2.presentacion.cantidad
+        );
         let cantAux = item2.presentacion.cantidad * factor;
         item2.cantidad = factor;
         cantidad -= cantAux / item.presentacion.cantidad;
@@ -417,7 +434,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     }
 
     if (this.itemList.length > 0 && index == null) {
-      console.log('entro aca')
+      console.log("entro aca");
       index = this.itemList.findIndex(
         (i) =>
           i.presentacion.id == item.presentacion.id &&
@@ -426,10 +443,27 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     }
     if (index != -1 && index != null) {
       this.itemList[index].cantidad += cantidad;
-      console.log('entro alla')
+      console.log("entro alla");
     } else {
       if (item.cantidad > 0) {
-        console.log(item)
+        if (item.producto?.envase != null) {
+          this.dialogReference = this.dialog
+            .open(SeleccionarEnvaseDialogComponent, {
+              data: {
+                envase: item.producto.envase,
+                cantidad: item.cantidad * item.presentacion.cantidad,
+              },
+              disableClose: true,
+            })
+            .afterClosed()
+            .subscribe((res) => {
+              console.log(this.dialogReference);
+              this.dialogReference = undefined;
+              if (res != null) {
+                this.addItem(res);
+              }
+            });
+        }
         this.itemList.push(item);
       }
     }
@@ -440,14 +474,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     //   itemIndex > -1 ? itemIndex : this.itemList.length - 1;
     this.formGroup.get("codigo").setValue("");
     this.formGroup.get("cantidad").setValue(1);
-    this.setFocusToCodigoInput();
+    this.dialogReference != undefined ? null : this.setFocusToCodigoInput();
     this.selectedTipoPrecio = this.tiposPrecios[0];
   }
 
   removeItem(item: VentaItem, index?) {
     if (item == null && index == null) {
-      this.isDialogOpen = true;
-      this.confirmDialogService
+      this.dialogReference = this.confirmDialogService
         .confirm("Atención!!", "Realmente desea eliminar la lista de itens?")
         .subscribe((res) => {
           if (res) {
@@ -455,7 +488,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
             this.setFocusToCodigoInput();
             this.calcularTotales();
           }
-          this.isDialogOpen = false;
+          this.dialogReference = undefined;
         });
     } else {
       this.itemList.splice(index, 1);
@@ -465,13 +498,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   editItem(item: VentaItem, index) {
-    this.isDialogOpen = true;
-    let ref = this.dialog.open(EditItemDialogComponent, {
+    let dialogReference = this.dialog.open(EditItemDialogComponent, {
       data: {
         item,
       },
     });
-    ref.afterClosed().subscribe((res) => {
+    dialogReference.afterClosed().subscribe((res) => {
       if (res != null) {
         switch (res) {
           case -1:
@@ -485,13 +517,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
             break;
         }
       }
-      this.isDialogOpen = false;
+      this.dialogReference = undefined;
       this.setFocusToCodigoInput();
     });
   }
 
   buscarProductoDialog() {
-    this.isDialogOpen = true;
     let data: PdvSearchProductoData = {
       cantidad: this.formGroup.get("cantidad").value,
       texto: this.formGroup.get("codigo").value,
@@ -500,15 +531,16 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       mostrarStock: true,
       mostrarOpciones: true,
     };
-    let ref = this.dialog.open(PdvSearchProductoDialogComponent, {
+    this.dialogReference = this.dialog.open(PdvSearchProductoDialogComponent, {
       height: "98%",
       data,
       autoFocus: false,
       restoreFocus: true,
     });
-    this.formGroup.get("codigo").setValue(null);
-    ref.afterClosed().subscribe((res) => {
+    this.formGroup.get("codigo").setValue("");
+    this.dialogReference.afterClosed().subscribe((res) => {
       if (res != null) {
+        this.isDialogOpen = false;
         let response: PdvSearchProductoResponseData = res;
         this.formGroup.get("cantidad").setValue(response.cantidad);
         let item = new VentaItem();
@@ -518,15 +550,14 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         item.precioVenta = response.precio;
         this.addItem(item);
       }
-      this.isDialogOpen = false;
-      this.setFocusToCodigoInput();
+      this.dialogReference = undefined;
     });
   }
 
   @HostListener("document:keyup", ["$event"]) onKeydownHandler(
     event: KeyboardEvent
   ) {
-    if (this.data.active == true) {
+    if (this.data.active == true && this.dialogReference == undefined) {
       switch (event.key) {
         case "Escape":
           break;
@@ -534,8 +565,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
           let codigo = this.formGroup.get("codigo").value;
           if (codigo != null && codigo != "") {
             this.buscarPorCodigo(codigo);
-          } else if (!this.isDialogOpen) {
-            this.onPagoClick();
+          } else if (this.dialogReference == undefined) {
+            console.log(this.dialogReference)
+            // this.onPagoClick();
           }
           break;
         case "F9":
@@ -613,7 +645,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   setFocusToCodigoInput() {
-    if (this.codigoInput != null && !this.isDialogOpen) {
+    console.log("dando focus a input");
+    if (this.codigoInput != null && this.matDialog["_parentDialog"] == null) {
       setTimeout(() => {
         this.codigoInput.nativeElement.focus();
       }, 10);
@@ -654,7 +687,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   onPagoClick() {
     this.isDialogOpen = true;
     if (this.itemList?.length > 0) {
-      let ref = this.dialog
+      this.dialogReference = this.dialog
         .open(PagoTouchComponent, {
           autoFocus: true,
           restoreFocus: true,
@@ -696,6 +729,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
               });
             }
             this.onSaveVenta(venta, cobro);
+            this.dialogReference = undefined;
           }
           this.isDialogOpen = false;
         });
@@ -763,7 +797,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
 
   onDeliveryClick() {
     this.isDialogOpen = true;
-    this.dialog
+    this.dialogReference = this.dialog
       .open(DeliveryDialogComponent, {
         data: {
           valor: this.totalGs,
@@ -777,6 +811,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       })
       .afterClosed()
       .subscribe((resDialog) => {
+        this.isDialogOpen = false;
         if (resDialog != null) {
           let vueltoId;
           let vueltoList: VueltoItemInput[] = resDialog["vueltoList"];
@@ -834,12 +869,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
               });
           }
         }
+        this.dialogReference = undefined;
       });
   }
 
   addPdvCategoria() {
     this.isDialogOpen = true;
-    this.dialog
+    this.dialogReference = this.dialog
       .open(AddCategoriaDialogComponent, {
         restoreFocus: true,
       })
@@ -848,12 +884,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         if (res != null) {
           this.pdvCategorias.push(res);
         }
+        this.dialogReference = undefined;
       });
   }
 
   addPdvProducto(pdvGrupo?: PdvGrupo) {
     this.isDialogOpen = true;
-    this.dialog
+    this.dialogReference = this.dialog
       .open(AdicionarPdvProductoDialogComponent, {
         restoreFocus: true,
         data: {
@@ -868,6 +905,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         if (res != null) {
           this.pdvCategorias.push(res);
         }
+        this.dialogReference = undefined;
       });
   }
 
@@ -877,7 +915,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
 
   openUtilitarios() {
     this.isDialogOpen = true;
-    this.dialog
+    this.dialogReference = this.dialog
       .open(UtilitariosDialogComponent, {
         data: {
           caja: this.selectedCaja,
@@ -895,8 +933,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
             this.openSelectCajaDialog();
           }
         }
-
-        this.isDialogOpen = false;
+        this.dialogReference = undefined;
       });
   }
 }

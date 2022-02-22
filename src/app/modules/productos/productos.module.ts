@@ -22,6 +22,8 @@ import { AdicionarPrecioDialogComponent } from './precio-por-sucursal/adicionar-
 import { SelectPrecioDialogComponent } from './precio-por-sucursal/select-precio-dialog/select-precio-dialog.component';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { SeleccionarPresentacionDialogComponent } from './presentacion/seleccionar-presentacion-dialog/seleccionar-presentacion-dialog.component';
+import { SearchEnvaseDialogComponent } from './envase/search-envase-dialog/search-envase-dialog.component';
+import { AddEnvaseDialogComponent } from './envase/add-envase-dialog/add-envase-dialog.component';
 
 
 
@@ -44,6 +46,8 @@ import { SeleccionarPresentacionDialogComponent } from './presentacion/seleccion
     AdicionarPrecioDialogComponent,
     SelectPrecioDialogComponent,
     SeleccionarPresentacionDialogComponent,
+    SearchEnvaseDialogComponent,
+    AddEnvaseDialogComponent,
   ],
   imports: [
     CommonModule,

@@ -1,7 +1,10 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { GenericCrudService } from '../../../../../generics/generic-crud.service';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
+import { PdvGruposProductos } from '../pdv-grupos-productos/pdv-grupos-productos.model';
 import { PdvCategoriaFullInfoGQL } from './graphql/getCategoriaFullInfo';
+import { GruposProductosPorGrupoIdGQL } from './graphql/getGrupoProductos';
 import { SavePdvCategoriaGQL } from './graphql/saveCategoria';
 import { PdvCategoriaInput } from './pdv-categoria-input.model';
 
@@ -14,7 +17,9 @@ export class PdvCategoriaService {
   constructor(
     private getCategorias: PdvCategoriaFullInfoGQL,
     private saveCategoria: SavePdvCategoriaGQL,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private genericService: GenericCrudService,
+    private getGruposProductosPorGrupoId: GruposProductosPorGrupoIdGQL
   ) { }
 
   onGetCategorias(){
@@ -46,5 +51,9 @@ export class PdvCategoriaService {
         }
       })
     })
+  }
+
+  onGetGrupoProductosPorGrupoId(id): Observable<PdvGruposProductos[]>{
+    return this.genericService.onGetById(this.getGruposProductosPorGrupoId, id)
   }
 }

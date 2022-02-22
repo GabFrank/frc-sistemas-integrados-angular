@@ -178,7 +178,7 @@
                       overflow-y: scroll;
                     "
                   >
-                    {{ item?.descripcion | uppercase}}
+                    {{ item?.descripcion | uppercase }}
                   </p>
                 </mat-card-content>
               </mat-card>
@@ -460,6 +460,53 @@
                 />
               </mat-form-field>
             </div>
+            <div fxFlex="10" fxLayout="row" *ngIf="selectedFamilia?.id != 2">
+              <div fxFlex="30" matTooltip="El producto tiene precio por kilo.">
+                Es Envase?
+              </div>
+              <div fxFlex="15">
+                <mat-slide-toggle formControlName="isEnvase">{{
+                  datosGeneralesControl.controls.isEnvase.value == true
+                    ? "Si"
+                    : "No"
+                }}</mat-slide-toggle>
+              </div>
+            </div>
+            <div fxFlex="10" fxLayout="row" fxLayoutAlign="start center">
+              <div
+                fxFlex="30"
+                matTooltip="El producto tiene fecha de vencimiento."
+              >
+                Posee Envase?
+              </div>
+              <div fxFlex="10">
+                <mat-slide-toggle formControlName="poseeEnvase">{{
+                  datosGeneralesControl.controls.poseeEnvase.value == true ? "Si" : "No"
+                }}</mat-slide-toggle>
+              </div>
+              <div fxFlex="20" *ngIf="datosGeneralesControl.controls.poseeEnvase.value == true">Envase:</div>
+              <div fxFlex="30" *ngIf="datosGeneralesControl.controls.poseeEnvase.value == true">
+                <mat-form-field style="width: 95%">
+                  <input
+                    placeholder="Descripción"
+                    type="text"
+                    matInput
+                    formControlName="envase"
+                  />
+                </mat-form-field>
+              </div>
+
+              <div fxFlex="10%" *ngIf="datosGeneralesControl.controls.poseeEnvase.value == true">
+                <button
+                  mat-raised-button
+                  color="primary"
+                  (click)="onSearchEnvase()"
+                  matTooltip="Buscar envase"
+                >
+                  <mat-icon>search</mat-icon>
+                </button>
+              </div>
+            </div>
             <div fxFlex="10" fxLayout="row" fxLayoutAlign="start center">
               <div
                 fxFlex="30"
@@ -599,7 +646,7 @@
             <mat-spinner></mat-spinner>
           </div>
           <table
-          fxFlex="90"
+            fxFlex="90"
             mat-table
             #presentacionTable
             [dataSource]="presentacionesDataSource"
@@ -615,7 +662,7 @@
             <ng-container matColumnDef="descripcion">
               <th mat-header-cell *matHeaderCellDef>Descripción</th>
               <td mat-cell *matCellDef="let element">
-                {{ element?.descripcion | uppercase}}
+                {{ element?.descripcion | uppercase }}
               </td>
             </ng-container>
 
@@ -651,7 +698,7 @@
                 Tipo
               </th>
               <td mat-cell *matCellDef="let element" style="text-align: center">
-                {{ element?.tipoPresentacion?.descripcion | uppercase}}
+                {{ element?.tipoPresentacion?.descripcion | uppercase }}
               </td>
             </ng-container>
 
@@ -689,7 +736,10 @@
                   <mat-icon>more_vert</mat-icon>
                 </button>
                 <mat-menu #menu="matMenu" xPosition="before">
-                  <button mat-menu-item (click)="onPresentacionRowClick(element)">
+                  <button
+                    mat-menu-item
+                    (click)="onPresentacionRowClick(element)"
+                  >
                     <mat-icon style="color: green">edit</mat-icon>
                     <span>Editar</span>
                   </button>
@@ -738,7 +788,7 @@
                 >
                   <div
                     fxLayout="row"
-                    style="width: 100%; padding-bottom: 20px;"
+                    style="width: 100%; padding-bottom: 20px"
                     fxLayoutGap="20px"
                   >
                     <mat-card fxFlex="40%">
@@ -750,7 +800,7 @@
                         #codigoTable
                         [dataSource]="element?.codigos"
                         class="mat-elevation-z8"
-                        style="background-color: rgb(43, 43, 43);"
+                        style="background-color: rgb(43, 43, 43)"
                       >
                         <!--- Note that these columns can be defined in any order.
                             The actual rendered columns are set as a property on the row definition" -->
@@ -786,11 +836,25 @@
                           </td>
                         </ng-container>
 
-
                         <ng-container matColumnDef="eliminar">
-                          <th mat-header-cell *matHeaderCellDef style="width: 5%;"></th>
-                          <td mat-cell *matCellDef="let element; let codigoIndex = index" style="width: 5%;">
-                            <mat-icon style="color: red; cursor: pointer;" (click)="onDeleteCodigo(element, codigoIndex); $event.stopPropagation()">clear</mat-icon>
+                          <th
+                            mat-header-cell
+                            *matHeaderCellDef
+                            style="width: 5%"
+                          ></th>
+                          <td
+                            mat-cell
+                            *matCellDef="let element; let codigoIndex = index"
+                            style="width: 5%"
+                          >
+                            <mat-icon
+                              style="color: red; cursor: pointer"
+                              (click)="
+                                onDeleteCodigo(element, codigoIndex);
+                                $event.stopPropagation()
+                              "
+                              >clear</mat-icon
+                            >
                           </td>
                         </ng-container>
 
@@ -842,7 +906,7 @@
                         <ng-container matColumnDef="tipoPrecio">
                           <th mat-header-cell *matHeaderCellDef>Tipo Precio</th>
                           <td mat-cell *matCellDef="let element">
-                            {{ element?.tipoPrecio?.descripcion | uppercase}}
+                            {{ element?.tipoPrecio?.descripcion | uppercase }}
                           </td>
                         </ng-container>
 
@@ -863,8 +927,18 @@
 
                         <ng-container matColumnDef="eliminar">
                           <th mat-header-cell *matHeaderCellDef></th>
-                          <td mat-cell *matCellDef="let element; let precioIndex = index">
-                            <mat-icon style="color: red; cursor: pointer;" (click)="onDeletePrecio(element, precioIndex); $event.stopPropagation()">clear</mat-icon>
+                          <td
+                            mat-cell
+                            *matCellDef="let element; let precioIndex = index"
+                          >
+                            <mat-icon
+                              style="color: red; cursor: pointer"
+                              (click)="
+                                onDeletePrecio(element, precioIndex);
+                                $event.stopPropagation()
+                              "
+                              >clear</mat-icon
+                            >
                           </td>
                         </ng-container>
 
@@ -891,9 +965,7 @@
                         </button>
                       </div>
                     </mat-card>
-                    <mat-card
-                      
-                    >
+                    <mat-card>
                       <div style="text-align: center">
                         <h4>Imagen</h4>
                       </div>
@@ -924,14 +996,23 @@
                           "
                         />
                       </div>
-                      <br>
+                      <br />
                       <div>
-                        <button type="button" mat-raised-button color="primary" (click)="
-                        element?.imagenPrincipal == null
-                          ? fileInput.click()
-                          : onImageClick(element)
-                      ">
-                          {{element?.imagenPrincipal ? 'Cambiar Imagen' : 'Cargar Imagen'}}
+                        <button
+                          type="button"
+                          mat-raised-button
+                          color="primary"
+                          (click)="
+                            element?.imagenPrincipal == null
+                              ? fileInput.click()
+                              : onImageClick(element)
+                          "
+                        >
+                          {{
+                            element?.imagenPrincipal
+                              ? "Cambiar Imagen"
+                              : "Cargar Imagen"
+                          }}
                         </button>
                       </div>
                     </mat-card>
@@ -951,7 +1032,8 @@
               [class.example-expanded-row]="expandedPresentacion === element"
               [class.selectedRow]="expandedPresentacion === element"
               (click)="
-                expandedPresentacion = expandedPresentacion === element ? null : element;
+                expandedPresentacion =
+                  expandedPresentacion === element ? null : element;
                 onPresentacionSelect(expandedPresentacion)
               "
             ></tr>

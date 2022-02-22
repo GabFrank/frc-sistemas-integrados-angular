@@ -106,6 +106,11 @@ try {
         // REDIRECT TO FIRST WEBPAGE AGAIN
     });
     win.webContents.print({ silent: true });
+    win.webContents.setWindowOpenHandler(function (_a) {
+        var url = _a.url;
+        require('electron').shell.openExternal(url);
+        return { action: 'deny' };
+    });
 }
 catch (e) {
     // Catch Error

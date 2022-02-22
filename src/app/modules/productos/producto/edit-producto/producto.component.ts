@@ -5,6 +5,7 @@ import {
   HostListener,
   Inject,
   Input,
+  OnDestroy,
   OnInit,
   ViewChild,
 } from "@angular/core";
@@ -80,6 +81,8 @@ import {
   AdicionarPrecioPorSucursalData,
 } from "../../precio-por-sucursal/adicionar-precio-dialog/adicionar-precio-dialog.component";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
+import { SearchEnvaseDialogComponent } from "../../envase/search-envase-dialog/search-envase-dialog.component";
+import { Subscription } from "rxjs";
 
 export class ProductoDialogData {
   producto: Producto;
@@ -101,7 +104,7 @@ export class ProductoDialogData {
     ]),
   ],
 })
-export class ProductoComponent implements OnInit {
+export class ProductoComponent implements OnInit, OnDestroy {
   @Input() data;
 
   @ViewChild("stepper", { static: false }) stepper: MatStepper;
@@ -192,6 +195,8 @@ export class ProductoComponent implements OnInit {
   btnGuardarPrecio = false;
   btnNuevoPrecio = false;
   imagenPrincipal = null;
+  selectedEnvase : Producto;
+  isEnvaseSub: Subscription;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public dialogData: ProductoDialogData,
@@ -248,6 +253,17 @@ export class ProductoComponent implements OnInit {
         this.cargandoDialog.closeDialog();
       }
     }, 200);
+
+    this.isEnvaseSub = this.datosGeneralesControl.controls.isEnvase.valueChanges.subscribe(res => {
+      if(res==true){
+        this.datosGeneralesControl.controls.balanza.setValue(false)
+        this.datosGeneralesControl.controls.garantia.setValue(false)
+        this.datosGeneralesControl.controls.ingrediente.setValue(false)
+        this.datosGeneralesControl.controls.esAlcoholico.setValue(false)
+        this.datosGeneralesControl.controls.promocion.setValue(false)
+        this.datosGeneralesControl.controls.vencimiento.setValue(false)                                 
+      }
+    })
   }
 
   cargarProducto(id) {
@@ -298,6 +314,10 @@ export class ProductoComponent implements OnInit {
       this.datosGeneralesControl.controls.diasVencimiento.setValue(
         this.selectedProducto.diasVencimiento
       );
+      if(this.selectedProducto?.envase!=null){
+        this.onSelectEnvase(this.selectedProducto.envase)
+      }
+      
       // this.codigoService.onGettipoPresentacionsPorProductoId(res.id).subscribe((res) => {
       //   this.codigosList = res.data.data;
       //   this.codigoDataSource.data = this.codigosList;
@@ -352,7 +372,12 @@ export class ProductoComponent implements OnInit {
       precio1: new FormControl(null),
       precio2: new FormControl(null),
       precio3: new FormControl(null),
+      isEnvase: new FormControl(null),
+      poseeEnvase: new FormControl(null),
+      envase: new FormControl(null)
     });
+    this.datosGeneralesControl.controls.envase.disable()
+
     this.imagenesControl = new FormGroup({
       imagenPrincipal: new FormControl(null),
     });
@@ -392,7 +417,16 @@ export class ProductoComponent implements OnInit {
     }
   }
 
+  onSelectEnvase(envase: Producto){
+    this.datosGeneralesControl.controls.envase.setValue(
+      envase.descripcion
+    );
+    this.selectedEnvase = envase
+    this.datosGeneralesControl.controls.poseeEnvase.setValue(true);
+  }
+
   onProductoSave() {
+    console.log(!this.datosGeneralesControl.dirty)
     if (this.selectedProducto != null && !this.datosGeneralesControl.dirty) {
       //nada
     } else {
@@ -415,6 +449,8 @@ export class ProductoComponent implements OnInit {
         diasVencimiento,
         tipoConservacion,
         subfamiliaId,
+        isEnvase,
+        envaseId
       } = this.datosGeneralesControl.value;
       let productoInput = new ProductoInput();
       productoInput = {
@@ -436,6 +472,8 @@ export class ProductoComponent implements OnInit {
         diasVencimiento,
         tipoConservacion,
         subfamiliaId,
+        isEnvase,
+        envaseId
       };
       if (this.selectedProducto != null) {
         productoInput.id = this.selectedProducto.id;
@@ -446,6 +484,7 @@ export class ProductoComponent implements OnInit {
       productoInput.descripcionFactura =
         productoInput?.descripcionFactura.toUpperCase();
       productoInput.subfamiliaId = this.selectedSubfamilia.id;
+      productoInput.envaseId = this.selectedEnvase?.id
       this.productoService.onSaveProducto(productoInput).subscribe((res) => {
         if (res != null) {
           this.selectedProducto = res;
@@ -960,5 +999,22 @@ export class ProductoComponent implements OnInit {
   //change detector refresh
   refresh() {
     this.changeDetectorRefs.detectChanges();
+  }
+
+  onSearchEnvase(){ 
+    this.matDialog.open(SearchEnvaseDialogComponent, {
+      data: {
+        producto: this.selectedProducto
+      },
+      width: '70%',
+    }).afterClosed().subscribe(res => {
+      if(res!=null){
+        this.onSelectEnvase(res);
+      }
+    })
+  }
+
+  ngOnDestroy(): void {
+      this.isEnvaseSub.unsubscribe()
   }
 }
