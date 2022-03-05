@@ -387,7 +387,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
       this.selectedMoneda = this.monedas.find(m => m.denominacion == 'GUARANI');
     }
     if (valor < 0) this.isVuelto = true;
-    if(this.selectedFormaPago.descripcion=='TARJETA' && (!this.isVuelto && !this.isDescuento && !this.isAumento)){
+    if(this.selectedFormaPago.descripcion=='TARJETA' && (this.isVuelto || this.isDescuento || this.isAumento)){
       this.selectedFormaPago = this.formaPagoList.find(f => f.descripcion == 'EFECTIVO');
     }
     if (this.formGroup.valid && saldo != 0) {

@@ -24,6 +24,7 @@ import { AdicionarDetalleCompraItemDialogComponent } from './compra/adicionar-de
 import { AdicionarProgramarPrecioDialogComponent } from './precio/programar-precio/adicionar-programar-precio-dialog/adicionar-programar-precio-dialog.component';
 import { UltimasVentasDialogComponent } from './venta/ultimas-ventas-dialog/ultimas-ventas-dialog.component';
 import { ListVentaComponent } from './venta/list-venta/list-venta.component';
+import { VentaPorPeriodoComponent } from './venta/reportes/venta-por-periodo/venta-por-periodo.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -47,6 +48,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     AdicionarProgramarPrecioDialogComponent,
     UltimasVentasDialogComponent,
     ListVentaComponent,
+    VentaPorPeriodoComponent,
   ],
   imports: [
     CommonModule,

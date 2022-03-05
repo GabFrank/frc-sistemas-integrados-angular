@@ -5,6 +5,7 @@ import { AdicionarCajaDialogComponent } from '../../../../financiero/pdv/caja/ad
 import { PdvCaja } from '../../../../financiero/pdv/caja/caja.model';
 import { AdicionarRetiroData, AdicionarRetiroDialogComponent } from '../../../../financiero/retiro/adicionar-retiro-dialog/adicionar-retiro-dialog.component';
 import { UltimasVentasDialogComponent } from '../../../../operaciones/venta/ultimas-ventas-dialog/ultimas-ventas-dialog.component';
+import { GarantiaDevolucionDialogComponent } from '../../../venta-touch/garantia-devolucion-dialog/garantia-devolucion-dialog.component';
 import { VentaTouchService } from '../venta-touch.service';
 export class UtilitariosDialogData {
   caja: PdvCaja
@@ -104,6 +105,12 @@ export class UtilitariosDialogComponent implements OnInit {
       restoreFocus: true    
     }).afterClosed().subscribe(res => {
       this.dialogRef.close()
+    })
+  }
+
+  garantia(){
+    this.matDialog.open(GarantiaDevolucionDialogComponent, {
+      data: {},
     })
   }
 

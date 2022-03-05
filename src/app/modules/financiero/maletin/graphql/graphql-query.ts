@@ -90,6 +90,23 @@ export const maletinPorDescripcionQuery = gql`
   }
 `;
 
+export const searchMaletinQuery = gql`
+  query ($texto: String) {
+    data: searchMaletin(texto: $texto) {
+      id
+      descripcion
+      activo
+      abierto
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;
 export const saveMaletin = gql`
   mutation saveMaletin($entity: MaletinInput!) {
     data: saveMaletin(maletin: $entity) {

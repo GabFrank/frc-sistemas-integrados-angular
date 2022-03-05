@@ -64,6 +64,7 @@ export const ventaQuery = gql`
         producto {
           id
           descripcion
+          isEnvase
         }
         presentacion {
           cantidad
@@ -168,6 +169,18 @@ export const ventasPorCajaIdQuery = gql`
       totalGs
       totalRs
       totalDs
+    }
+  }
+`;
+
+export const ventaPorPeriodoQuery = gql`
+  query ($inicio: String, $fin: String) {
+    data: ventaPorPeriodo(inicio: $inicio, fin: $fin) {
+      valorGs
+      valorRs
+      valorDs
+      valorTotalGs
+      creadoEn
     }
   }
 `;

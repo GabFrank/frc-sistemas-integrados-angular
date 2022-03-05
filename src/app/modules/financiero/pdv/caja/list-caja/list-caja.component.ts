@@ -6,16 +6,23 @@ import {
   trigger,
 } from "@angular/animations";
 import { Component, OnInit } from "@angular/core";
-import { FormControl, FormGroup } from "@angular/forms";
+import { FormControl, FormControlName, FormGroup, Validators } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
+import { updateDataSource } from "../../../../../commons/core/utils/numbersUtils";
 import { Tab } from "../../../../../layouts/tab/tab.model";
 import { TabData, TabService } from "../../../../../layouts/tab/tab.service";
 import { CargandoDialogService } from "../../../../../shared/components/cargando-dialog/cargando-dialog.service";
+import { SearchListDialogComponent, SearchListtDialogData } from "../../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { ListVentaComponent } from "../../../../operaciones/venta/list-venta/list-venta.component";
+import { VentaService } from "../../../../operaciones/venta/venta.service";
 import { Funcionario } from "../../../../personas/funcionarios/funcionario.model";
 import { PdvSearchProductoDialogComponent } from "../../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
 import { Producto } from "../../../../productos/producto/producto.model";
+import { maletinPorDescripcionQuery } from "../../../maletin/graphql/graphql-query";
+import { MaletinPorDescripcionGQL } from "../../../maletin/graphql/maletinPorDescripcion";
+import { SearchMaletinGQL } from "../../../maletin/graphql/searchMaletin";
+import { Maletin } from "../../../maletin/maletin.model";
 import { AdicionarCajaDialogComponent } from "../adicionar-caja-dialog/adicionar-caja-dialog.component";
 import { PdvCaja, PdvCajaEstado } from "../caja.model";
 import { CajaService } from "../caja.service";
@@ -36,10 +43,11 @@ import { CajaService } from "../caja.service";
   ],
 })
 export class ListCajaComponent implements OnInit {
-  dataSource = new MatTableDataSource<PdvCaja>(null);
+  dataSource = new MatTableDataSource<PdvCaja>([]);
   selectedPdvCaja: PdvCaja;
   expandedCaja: PdvCaja;
   selectedProducto: Producto;
+  selectedMaletin: Maletin;
   selectedCajero: Funcionario;
   lastValue = null;
   estadoList = [
@@ -64,7 +72,7 @@ export class ListCajaComponent implements OnInit {
   ];
 
   fechaFormGroup: FormGroup;
-  codigoControl = new FormControl();
+  codigoControl = new FormControl(null, Validators.required);
   fechaInicioControl = new FormControl();
   fechaFinalControl = new FormControl();
   estadoControl = new FormControl();
@@ -72,34 +80,42 @@ export class ListCajaComponent implements OnInit {
   responsableControl = new FormControl();
   codigoProductoControl = new FormControl();
   productoControl = new FormControl();
-  activoControl = new FormControl()
+  activoControl = new FormControl();
+  codigoMaletinControl = new FormControl()
 
   codigoCajeroControl = new FormControl();
   cajeroControl = new FormControl();
-  today = new Date()
+  today = new Date();
 
   constructor(
     private cajaService: CajaService,
     private matDialog: MatDialog,
     private cargandoDialog: CargandoDialogService,
-    private tabService: TabService
+    private tabService: TabService,
+    private ventaService: VentaService,
+    private searchMaletin: SearchMaletinGQL
   ) {}
 
   ngOnInit(): void {
-    this.cajaService.onGetByDate(null, null).subscribe((res) => {
-      if (res != null) {
-        this.dataSource.data = res;
-        console.log(res);
-        // if(this.dataSource.data.length > 0) this.irVentas(this.dataSource.data[this.dataSource.data.length-2])
-      }
-    });
+    let hoy = new Date()
+    let aux = new Date()
+    aux.setDate(hoy.getDate()-2)
+
+    this.fechaInicioControl.setValue(aux)
+    this.fechaFinalControl.setValue(hoy)
+
+    this.onFilter()
 
     console.log(PdvCajaEstado["En proceso"]);
 
     this.fechaFormGroup = new FormGroup({
       inicio: this.fechaInicioControl,
-      fin: this.fechaFinalControl
-    })
+      fin: this.fechaFinalControl,
+    });
+
+    
+
+    this.onBuscar()
   }
 
   onAdd(caja?: PdvCaja, index?) {
@@ -115,7 +131,28 @@ export class ListCajaComponent implements OnInit {
     });
   }
 
-  onFilter() {}
+  onFilter() {
+    if(this.codigoControl.valid){
+      console.log('filtrando')
+      this.fechaInicioControl.setValue(null)
+      this.fechaFinalControl.setValue(null)
+      this.cajaService.onGetById(this.codigoControl.value).subscribe(res => {
+        if(res!=null){
+          console.log(res)
+          this.dataSource.data = []
+          this.dataSource.data = updateDataSource(this.dataSource.data, res);
+        } 
+      })
+    } else {
+      this.cajaService.onGetByDate(this.fechaInicioControl.value, this.fechaFinalControl.value).subscribe((res) => {
+        if (res != null) {
+          this.dataSource.data = res;
+          console.log(res);
+        }
+      });
+    }
+    
+  }
 
   onResetFilter() {}
 
@@ -157,26 +194,54 @@ export class ListCajaComponent implements OnInit {
     this.codigoProductoControl.setValue(producto.id);
   }
 
-
-  onChange(){
-    if(this.activoControl.value == true && this.lastValue == false){
-      this.activoControl.setValue(null)
-    } 
+  onChange() {
+    if (this.activoControl.value == true && this.lastValue == false) {
+      this.activoControl.setValue(null);
+    }
     this.lastValue = this.activoControl.value;
-    console.log(this.activoControl.value)
+    console.log(this.activoControl.value);
   }
 
-  onProductoEnter(){
-  
+  onProductoEnter() {}
+
+  onCajeroEnter() {}
+
+  onBuscar(){
+    this.ventaService
+      .onGetVentasPorPeriodo("2022-03-01T00:00:00", "2022-03-03T00:00:00")
+      .subscribe((res) => {
+        console.log(res);
+      });
   }
 
-  onCajeroEnter(){
+  onMaletinSearch(){
+    let data: SearchListtDialogData = {
+      titulo: 'Buscar caja',
+      tableData: [{id:'id', nombre: 'Id', width: '5%'}, {id: 'descripcion', nombre: 'Descripción', width: '50%'}, {id: 'abierto', nombre: 'Abierto', width: '22%'}],
+      query:this.searchMaletin,
+      inicialSearch: true
+    }
+    this.matDialog.open(SearchListDialogComponent, {
+      data: data,
+      height: '80vh',
+      width: '70vw'
+    }).afterClosed().subscribe(res => {
+      if(res!=null){
+        this.onSelectMaletin(res);
+      }
+    })
+  }
+
+  onSelectMaletin(maletin: Maletin){
+    this.codigoMaletinControl.setValue(maletin.id)
+    this.maletinControl.setValue(maletin.descripcion)
+    this.selectedMaletin = maletin;
+  }
+
+  cargarMasDatos(){
     
   }
 }
-
-
-
 
 // true => false => null
 // null => true => false

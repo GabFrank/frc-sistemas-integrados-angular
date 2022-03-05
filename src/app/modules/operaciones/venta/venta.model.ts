@@ -51,3 +51,11 @@ export class VentaInput {
     totalRs: number;
     totalDs: number;
 }
+
+export class VentaPorPeriodo {
+    valorGs: number;
+    valorRs: number;
+    valorDs: number;
+    valorTotalGs: number;
+    creadoEn: Date;
+}

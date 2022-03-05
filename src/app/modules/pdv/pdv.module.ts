@@ -23,6 +23,9 @@ import { UtilitariosDialogComponent } from "./comercial/venta-touch/utilitarios-
 import { NgxPrintElementModule } from "ngx-print-element";
 import { AdicionarPdvProductoDialogComponent } from "./comercial/venta-touch/adicionar-pdv-producto-dialog/adicionar-pdv-producto-dialog.component";
 import { SeleccionarEnvaseDialogComponent } from './comercial/venta-touch/seleccionar-envase-dialog/seleccionar-envase-dialog.component';
+import { GarantiaDevolucionDialogComponent } from './venta-touch/garantia-devolucion-dialog/garantia-devolucion-dialog.component';
+import { GarantiaDialogComponent } from './venta-touch/garantia-devolucion/garantia-dialog/garantia-dialog.component';
+import { DevolucionDialogComponent } from './venta-touch/garantia-devolucion/devolucion-dialog/devolucion-dialog.component';
 
 @NgModule({
   declarations: [
@@ -43,6 +46,9 @@ import { SeleccionarEnvaseDialogComponent } from './comercial/venta-touch/selecc
     SeleccionarCajaDialogComponent,
     UtilitariosDialogComponent,
     SeleccionarEnvaseDialogComponent,
+    GarantiaDevolucionDialogComponent,
+    GarantiaDialogComponent,
+    DevolucionDialogComponent,
   ],
   imports: [
     CommonModule,

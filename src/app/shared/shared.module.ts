@@ -27,6 +27,7 @@ import { VizualizarImagenDialogComponent } from './images/vizualizar-imagen-dial
 import { ReportTestComponent } from './report-test/report-test.component';
 import { NgxPanZoomModule } from 'ngx-panzoom';
 import { InnerDialogComponent } from './inner-dialog/inner-dialog.component';
+import { SearchListDialogComponent } from './components/search-list-dialog/search-list-dialog.component';
 
 
 @NgModule({
@@ -49,6 +50,7 @@ import { InnerDialogComponent } from './inner-dialog/inner-dialog.component';
     VizualizarImagenDialogComponent,
     ReportTestComponent,
     InnerDialogComponent,
+    SearchListDialogComponent,
     ],
   imports: [
     CommonModule,

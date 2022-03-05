@@ -102,10 +102,10 @@
       fxLayoutAlign="start center"
       fxLayoutGap="10px"
     >
-      <div fxFlex="5%" style="width: 100%">Producto:</div>
+      <div fxFlex="5%" style="width: 100%">Maletin:</div>
       <div fxFlex="5%">
         <mat-form-field style="width: 60%">
-          <input type="number" matInput [formControl]="codigoProductoControl" />
+          <input type="number" matInput [formControl]="codigoMaletinControl" />
         </mat-form-field>
       </div>
       <div fxFlex="30%">
@@ -113,21 +113,21 @@
           <input
             type="text"
             matInput
-            [formControl]="productoControl"
-            (keyup.enter)="onProductoEnter()"
+            [formControl]="maletinControl"
+            (keyup.enter)="onMaletinSearch()"
             style="font-size: 1.2em !important"
           />
         </mat-form-field>
       </div>
       <div fxFlex="8%">
-        <button
-          mat-raised-button
-          style="width: 70%"
+        <!-- <button
+          mat-flat-button
+          style="width: 70%; height: 70%;"
           color="primary"
           (click)="onProductoSearch()"
-        >
-          <mat-icon>search</mat-icon>
-        </button>
+        > -->
+          <mat-icon (click)="onMaletinSearch()" style="cursor: pointer;">search</mat-icon>
+        <!-- </button> -->
       </div>
     </div>
     <div
@@ -155,14 +155,14 @@
         </mat-form-field>
       </div>
       <div fxFlex="8%">
-        <button
+        <!-- <button
           mat-raised-button
           style="width: 70%"
           color="primary"
           (click)="onCajeroSearch()"
-        >
-          <mat-icon>search</mat-icon>
-        </button>
+        > -->
+        <mat-icon (click)="onProductoSearch()" style="cursor: pointer;">search</mat-icon>
+        <!-- </button> -->
       </div>
     </div>
   </div>
@@ -369,5 +369,11 @@
         class="example-detail-row"
       ></tr>
     </table>
+    <br>
+    <div [hidden]="dataSource.data.length == 0" style="text-align: center">
+      <button type="button" type="button" mat-fab color="primary" (click)="cargarMasDatos()">
+        <mat-icon>add</mat-icon>
+      </button>
+    </div>
   </div>
 </app-generic-list>

@@ -52,4 +52,14 @@
       de ticket
     </button>
   </div>
+  <div fxFlex="15" *ngIf="selectedCaja != null">
+    <button
+      mat-raised-button
+      color="primary"
+      style="width: 100%; height: 100px; text-align: center; padding: 10px;"
+      (click)="garantia()"
+    >
+      Garantía y Devolución
+    </button>
+  </div>
 </div>

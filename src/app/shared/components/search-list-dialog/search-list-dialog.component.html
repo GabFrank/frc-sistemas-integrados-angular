@@ -1,0 +1,62 @@
+<div fxLayout="column" style="width: 100%; height: 100%">
+  <div fxFlex="10" style="width: 100%; text-align: center">
+    {{data.titulo}}
+  </div>
+  <div fxFlex="10%" fxLayout="row" style="width: 100%" fxLayoutGap="10px">
+    <div fxFlex="80%" style="width: 100%">
+      <mat-form-field style="width: 100%">
+        <mat-label>Buscar</mat-label>
+        <input
+          type="text"
+          matInput
+          [formControl]="buscarControl"
+          (keyup.enter)="onBuscar()"
+        />
+      </mat-form-field>
+    </div>
+    <div fxFlex="20%">
+        <button mat-raised-button color="primary" style="width: 100%;" (click)="onBuscar()">Buscar</button>
+    </div>
+  </div>
+  <div fxFlex="70">
+    <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%;">
+      <ng-container *ngFor="let item of data?.tableData">
+        <ng-container [matColumnDef]="item.id">
+          <th [style.width]="item?.width" mat-header-cell *matHeaderCellDef>
+            {{ item.nombre }}
+          </th>
+          <td [style.width]="item?.width" mat-cell *matCellDef="let element">
+            {{ element[item.id] }}
+          </td>
+        </ng-container>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns"
+        (click)="onRowSelect(row)"
+        [class.selected]="selectedItem == row"
+      ></tr>
+    </table>
+  </div>
+  <div fxFlex="10" style="width: 100%; text-align: center">
+    <button
+      mat-raised-button
+      (click)="onCancelar()"
+      color="primary"
+      style="width: 200px;"
+    >
+      Cancelar
+    </button>
+    <button
+      mat-raised-button
+      (click)="onAceptar()"
+      color="accent"
+      [disabled]="selectedItem == null"
+      style="width: 200px; padding-left: 20px;"
+    >
+      Aceptar
+    </button>
+  </div>
+</div>

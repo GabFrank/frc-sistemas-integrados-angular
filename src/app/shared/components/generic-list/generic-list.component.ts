@@ -74,7 +74,7 @@ export class GenericListComponent implements OnInit {
   }
 
   onFiltrar(){
-    
+    this.filtrar.emit()
   }
 
   onResetFiltro(){

@@ -42,7 +42,7 @@ export class GenericCrudService {
     });
   }
 
-  onGetById<T>(gql: Query, id: number): Observable<T> {
+  onGetById<T>(gql: any, id: number): Observable<T> {
     this.isLoading = true;
     return new Observable((obs) => {
       gql
@@ -51,6 +51,13 @@ export class GenericCrudService {
           this.isLoading = false;
           if (res.errors == null) {
             obs.next(res.data["data"]);
+            if(res.data["data"]==null){
+              this.notificacionSnackBar.notification$.next({
+                texto: "Item no encontrado",
+                color: NotificacionColor.warn,
+                duracion: 2,
+              });
+            }
           } else {
             console.log(res.errors)
             this.notificacionSnackBar.notification$.next({
@@ -201,7 +208,7 @@ export class GenericCrudService {
     });
   }
 
-  onGetByFecha(gql: Query, inicio: Date, fin: Date): Observable<any> {
+  onGetByFecha(gql: any, inicio: Date, fin: Date): Observable<any> {
     let hoy = new Date();
     let ayer = new Date(hoy.getDay() - 1);
     ayer.setHours(0);

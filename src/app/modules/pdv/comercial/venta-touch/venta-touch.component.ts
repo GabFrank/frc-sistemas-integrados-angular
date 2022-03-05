@@ -223,7 +223,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         disableClose: true,
       }
     );
+    this.dialogReference = this.selectCajaDialog;
     this.selectCajaDialog.afterClosed().subscribe((res) => {
+      this.selectCajaDialog = null
       this.isDialogOpen = false;
       let response: AdicionarCajaResponse = res;
       if (res == "salir") {
@@ -782,7 +784,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         this.notificacionSnackbar.notification$.next({
           color: NotificacionColor.success,
           texto: "Venta guardada con éxito",
-          duracion: 2,
+          duracion: 2,  
         });
         this.resetForm();
       } else {

@@ -416,7 +416,7 @@
                     fxLayout="row"
                     style="width: 100%; background-color: rgb(52, 52, 52)"
                   >
-                    <div fxFlex="5%">Id</div>
+                    <div fxFlex="5%">#</div>
                     <div fxFlex="35%">Descripción</div>
                     <div fxFlex="10%">Presentación</div>
                     <div fxFlex="10%">Cantidad</div>
@@ -427,13 +427,13 @@
                     <mat-divider style="height: 100%"></mat-divider>
                   </div>
                   <div
-                    *ngFor="let ventaItem of venta?.ventaItemList"
+                    *ngFor="let ventaItem of venta?.ventaItemList; let i = index"
                     fxLayout="column"
                     fxFlex
                     style="width: 100%; padding-bottom: 5px; padding-top: 5px"
                   >
                     <div fxFlex fxLayout="row">
-                      <div fxFlex="5%">{{ ventaItem?.producto?.id }}</div>
+                      <div fxFlex="5%"> </div>
                       <div fxFlex="35%">
                         {{ ventaItem?.producto?.descripcion | uppercase }}
                       </div>
@@ -483,7 +483,7 @@
                     fxLayout="row"
                     style="width: 100%; background-color: rgb(52, 52, 52)"
                   >
-                    <div fxFlex="5%">Id</div>
+                    <div fxFlex="5%"></div>
                     <div fxFlex="25%">Operación</div>
                     <div fxFlex="20%">Forma de Pago</div>
                     <div fxFlex="10%">Moneda</div>
@@ -500,7 +500,7 @@
                     style="width: 100%; padding-bottom: 5px; padding-top: 5px"
                   >
                     <div fxFlex fxLayout="row">
-                      <div fxFlex="5%">{{ cobroDetalle?.id }}</div>
+                      <div fxFlex="5%"> </div>
                       <div fxFlex="25%">
                         {{
                           cobroDetalle?.pago

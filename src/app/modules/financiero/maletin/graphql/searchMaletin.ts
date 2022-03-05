@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
 import { Maletin } from '../maletin.model';
-import { maletinPorDescripcionQuery } from './graphql-query';
+import { searchMaletinQuery } from './graphql-query';
 
 export interface Response {
   data: Maletin;
@@ -10,6 +10,6 @@ export interface Response {
 @Injectable({
   providedIn: 'root',
 })
-export class MaletinPorDescripcionGQL extends Query<Response> {
-  document = maletinPorDescripcionQuery;
+export class SearchMaletinGQL extends Query<Response> {
+  document = searchMaletinQuery;
 }
