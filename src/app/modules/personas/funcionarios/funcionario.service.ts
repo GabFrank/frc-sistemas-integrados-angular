@@ -11,6 +11,9 @@ import {
 } from "../../../notificacion-snackbar.service";
 import { FuncionarioSearchGQL } from "./graphql/funcionarioSearch";
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
@@ -32,7 +35,7 @@ export class FuncionarioService {
   onFuncionarioSearch(texto: string): Observable<any> {
     return new Observable(obs => {
       this.searchFuncionario
-      .fetch({ texto }, { fetchPolicy: "no-cache", errorPolicy: "all" })
+      .fetch({ texto }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if(res.errors==null){
           obs.next(res.data.data)
@@ -56,7 +59,7 @@ export class FuncionarioService {
             entity: input,
           },
           { errorPolicy: "all" }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           console.log(res.errors);
           if (res.errors == null) {

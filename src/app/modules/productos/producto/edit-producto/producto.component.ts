@@ -89,6 +89,9 @@ export class ProductoDialogData {
   isDialog = true;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-producto",
   templateUrl: "./producto.component.html",
@@ -226,7 +229,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.cargandoDialog.openDialog();
 
-    this.familiaService.familiaBS.subscribe((res) => {
+    this.familiaService.familiaBS.pipe(untilDestroyed(this)).subscribe((res) => {
       this.familiasList = res;
       if (this.selectedFamilia != null) {
         this.selectedFamilia = this.familiasList.find(
@@ -254,7 +257,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
       }
     }, 200);
 
-    this.isEnvaseSub = this.datosGeneralesControl.controls.isEnvase.valueChanges.subscribe(res => {
+    this.isEnvaseSub = this.datosGeneralesControl.controls.isEnvase.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
       if(res==true){
         this.datosGeneralesControl.controls.balanza.setValue(false)
         this.datosGeneralesControl.controls.garantia.setValue(false)
@@ -267,7 +270,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   cargarProducto(id) {
-    this.productoService.getProducto(id).subscribe((res) => {
+    this.productoService.getProducto(id).pipe(untilDestroyed(this)).subscribe((res) => {
       console.log(res);
       this.selectedProducto = res;
       this.selectedSubfamilia = this.selectedProducto?.subfamilia;
@@ -485,7 +488,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         productoInput?.descripcionFactura.toUpperCase();
       productoInput.subfamiliaId = this.selectedSubfamilia.id;
       productoInput.envaseId = this.selectedEnvase?.id
-      this.productoService.onSaveProducto(productoInput).subscribe((res) => {
+      this.productoService.onSaveProducto(productoInput).pipe(untilDestroyed(this)).subscribe((res) => {
         if (res != null) {
           this.selectedProducto = res;
         } else {
@@ -557,7 +560,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
           codigo: this.codigoImagenQr,
         },
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         let objectUrl = URL.createObjectURL(res);
         this.imagenPrincipal = this.sanitizer.bypassSecurityTrustUrl(objectUrl);
@@ -580,7 +583,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
       .open(AddFamiliaDialogComponent, {
         width: "500px",
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           setTimeout(() => {
@@ -599,7 +602,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
           familiaId: this.selectedFamilia.id,
         },
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           setTimeout(() => {
@@ -619,7 +622,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         },
         width: "500px",
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
         }
@@ -656,14 +659,14 @@ export class ProductoComponent implements OnInit, OnDestroy {
           height: "50%",
           disableClose: false,
         })
-        .afterClosed()
+        .afterClosed().pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
             this.presentacionService
               .onImageSave(
                 res,
                 `/productos/presentaciones/${this.selectedPresentacion.id}.jpg`
-              )
+              ).pipe(untilDestroyed(this))
               .subscribe((res2) => {
                 if (res2 != null) {
                   console.log(res2);
@@ -776,7 +779,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
     this.cargandoDialog.openDialog()
     this.isPresentacionLoading = true;
     this.presentacionService
-      .onGetPresentacionesPorProductoId(id)
+      .onGetPresentacionesPorProductoId(id).pipe(untilDestroyed(this))
       .subscribe((data) => {
         console.log(data);
         this.presentacionesList = data.data.data;
@@ -795,7 +798,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         width: "50%",
         disableClose: true,
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         let presentacion = new Presentacion();
         presentacion = res as Presentacion;
@@ -817,7 +820,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         width: "50%",
         disableClose: true,
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         console.log(res);
         if (res?.id != null) {
@@ -833,7 +836,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
     this.selectedPresentacion = row;
     if (row != null) {
       this.codigoService
-        .onGetCodigosPorPresentacionId(this.selectedPresentacion.id)
+        .onGetCodigosPorPresentacionId(this.selectedPresentacion.id).pipe(untilDestroyed(this))
         .subscribe((res) => {
           console.log(res);
           this.selectedPresentacionCodigoDataSource.data = res.data.data;
@@ -841,7 +844,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
           this.precioPorSucursalService
             .onGetPrecioPorSurursalPorPresentacionId(
               this.selectedPresentacion.id
-            )
+            ).pipe(untilDestroyed(this))
             .subscribe((res2) => {
               console.log(res2);
               this.selectedPresentacionPrecioDataSource.data = res2.data.data;
@@ -862,7 +865,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         height: "80%",
         width: "80%",
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           let presentacionIndex = this.presentacionesDataSource.data.findIndex(
@@ -876,7 +879,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
   onDeletePresentacion(presentacion: Presentacion) {
     this.cargandoDialog.openDialog()
     this.presentacionService
-      .onDeletePresentacion(presentacion)
+      .onDeletePresentacion(presentacion).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res) {
           this.getPresentacionPorProductoId(this.selectedProducto.id);
@@ -897,7 +900,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         width: "50%",
         disableClose: true,
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.getPresentacionPorProductoId(this.selectedProducto.id);
@@ -934,7 +937,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
   onDeleteCodigo(codigo: Codigo, codigoIndex) {
     this.cargandoDialog.openDialog()
-    this.codigoService.onDeleteCodigo(codigo).subscribe((res) => {
+    this.codigoService.onDeleteCodigo(codigo).pipe(untilDestroyed(this)).subscribe((res) => {
       this.cargandoDialog.closeDialog()
       if (res) {
         this.getPresentacionPorProductoId(this.selectedProducto.id);
@@ -952,7 +955,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         width: "50%",
         disableClose: true,
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.getPresentacionPorProductoId(this.selectedProducto.id);
@@ -986,7 +989,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
   onDeletePrecio(precio: PrecioPorSucursal, precioIndex) {
     this.cargandoDialog.openDialog()
-    this.precioPorSucursalService.onDelete(precio).subscribe((res) => {
+    this.precioPorSucursalService.onDelete(precio).pipe(untilDestroyed(this)).subscribe((res) => {
       this.cargandoDialog.closeDialog()
       if (res) {
         this.getPresentacionPorProductoId(this.selectedProducto.id);
@@ -1007,7 +1010,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         producto: this.selectedProducto
       },
       width: '70%',
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         this.onSelectEnvase(res);
       }

@@ -16,6 +16,9 @@ import { Venta, VentaInput } from "./venta.model";
 import { VentaPorPeriodoGQL } from "./graphql/ventaPorPeriodo";
 import { NotificacionColor, NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
@@ -63,7 +66,7 @@ export class VentaService {
             errorPolicy: "all",
             fetchPolicy: "no-cache",
           }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           console.log(res);
           obs.next(res.data["data"]);
@@ -82,7 +85,7 @@ export class VentaService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
           }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             console.log(res.data.data);
@@ -105,7 +108,7 @@ export class VentaService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
           }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             console.log(res.data);
@@ -131,7 +134,7 @@ export class VentaService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
           }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.genericService.isLoading = false;
           if (res.errors == null) {
@@ -153,7 +156,7 @@ export class VentaService {
       this.ventaPorPeriodo.fetch({inicio, fin},{
         fetchPolicy: "no-cache",
         errorPolicy: "all",
-      }).subscribe(res => {
+      }).pipe(untilDestroyed(this)).subscribe(res => {
         if(res.errors==null){
           obs.next(res.data.data)
         } else {

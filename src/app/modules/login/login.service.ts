@@ -1,7 +1,6 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
-import { Observable } from "zen-observable-ts";
 import { environment, serverAdress } from "../../../environments/environment";
 import { MainService } from "../../main.service";
 import { Usuario } from "../personas/usuarios/usuario.model";
@@ -12,6 +11,10 @@ export interface LoginResponse {
   error?: HttpErrorResponse;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { Observable } from "rxjs";
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
@@ -37,6 +40,7 @@ export class LoginService {
       };
       let httpResponse = this.http
         .post(`http://${serverAdress.serverIp}:${serverAdress.serverPort}/login`, httpBody, this.httpOptions)
+        .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res["token"] != null) {
             localStorage.setItem("token", res["token"]);
@@ -44,8 +48,9 @@ export class LoginService {
               if (res["usuarioId"] != null) {
                 localStorage.setItem("usuarioId", res["usuarioId"]);
                 this.usuarioService
-                  .onGetUsuario(res["usuarioId"])
+                  .onGetUsuario(res["usuarioId"]).pipe(untilDestroyed(this))
                   .subscribe((res) => {
+                    console.log('usuario encontrado: ',res)
                     if (res?.id != null) {
                       this.mainService.usuarioActual = res;
                       let response: LoginResponse = {
@@ -55,7 +60,7 @@ export class LoginService {
                       obs.next(response);
                     } else {
                     }
-                  });
+                  })
               }
             }, 500);
           }

@@ -14,6 +14,9 @@ export class VueltoDialogData {
   moneda: Moneda;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-vuelto-dialog',
   templateUrl: './vuelto-dialog.component.html',
@@ -37,7 +40,7 @@ export class VueltoDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.getMoneda.fetch().subscribe((res) => {
+    this.getMoneda.fetch().pipe(untilDestroyed(this)).subscribe((res) => {
       if (!res.errors) {
         this.monedas = res.data.data;
       }

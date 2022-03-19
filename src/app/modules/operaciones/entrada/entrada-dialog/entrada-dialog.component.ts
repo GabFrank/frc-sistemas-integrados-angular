@@ -48,6 +48,9 @@ export interface EntradaDialogData {
   entrada?: Entrada;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-entrada-dialog",
   templateUrl: "./entrada-dialog.component.html",
@@ -130,7 +133,7 @@ export class EntradaDialogComponent implements OnInit {
     this.buscarSucursales();
 
     //listeners de los controls
-    this.usuarioInputControl.valueChanges.subscribe((res) => {
+    this.usuarioInputControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
       if (this.timer != null) {
         clearTimeout(this.timer);
       }
@@ -145,7 +148,7 @@ export class EntradaDialogComponent implements OnInit {
               this.onResponsableAutocompleteClose();
               this.onResponsableSelect(null);
             }
-          });
+          })
         }, 500);
       } else {
         this.usuarioList = [];
@@ -185,7 +188,7 @@ export class EntradaDialogComponent implements OnInit {
   }
 
   buscarSucursales() {
-    this.sucursalService.onGetAllSucursales().subscribe((res) => {
+    this.sucursalService.onGetAllSucursales().pipe(untilDestroyed(this)).subscribe((res) => {
       this.sucursalList = res.sort((a, b) => {
         if (a.nombre < b.nombre) {
           return -1;
@@ -197,7 +200,7 @@ export class EntradaDialogComponent implements OnInit {
   }
 
   buscarEntrada(id){
-    this.entradaService.onGetEntrada(id).subscribe(res => {
+    this.entradaService.onGetEntrada(id).pipe(untilDestroyed(this)).subscribe(res => {
       console.log(res)
       if(res!=null){
         this.selectedEntrada = res;
@@ -271,7 +274,7 @@ export class EntradaDialogComponent implements OnInit {
     this.cargandoService.openDialog()
     this.dialogoService.confirm('Atención!!', 'Realmente desea eliminar este item?', null, [`Producto: ${this.selectedEntradaItem.producto?.descripcion.toUpperCase()}`, `Presentación: ${this.selectedEntradaItem.presentacion?.descripcion.toUpperCase()}`, `Cantidad: ${this.selectedEntradaItem.cantidad}`]).subscribe(res => {
       if(res){
-        this.entradaItemService.onDeleteEntradaItem(this.selectedEntradaItem.id).subscribe(res2 => {
+        this.entradaItemService.onDeleteEntradaItem(this.selectedEntradaItem.id).pipe(untilDestroyed(this)).subscribe(res2 => {
           if(res2){
             let auxArray = this.itemDataSource.data;
             let index = auxArray.findIndex(i => i.id == this.selectedEntradaItem.id)
@@ -302,7 +305,7 @@ export class EntradaDialogComponent implements OnInit {
     entrada.creadoEn = this.selectedEntrada?.creadoEn;
     entrada.activo = (this.selectedEntrada?.activo == true)
     console.log(entrada);
-    this.entradaService.onSaveEntrada(entrada).subscribe((res) => {
+    this.entradaService.onSaveEntrada(entrada).pipe(untilDestroyed(this)).subscribe((res) => {
       console.log(res);
       this.selectedEntrada = res["data"] as Entrada;
       console.log(this.selectedEntrada);
@@ -341,7 +344,7 @@ export class EntradaDialogComponent implements OnInit {
         width: "100%",
         height: "100%",
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         let respuesta: PdvSearchProductoResponseData;
         if (res != null) {
@@ -393,7 +396,7 @@ export class EntradaDialogComponent implements OnInit {
       item.cantidad = this.cantidadControl.value;
       item.usuario = this.selectedEntradaItem?.usuario;
       item.creadoEn = this.selectedEntradaItem?.creadoEn;
-      this.entradaItemService.onSaveEntradaItem(item.toInput()).subscribe(res => {
+      this.entradaItemService.onSaveEntradaItem(item.toInput()).pipe(untilDestroyed(this)).subscribe(res => {
         if(res!=null){
           this.selectedEntradaItem = res['data'];
           if(!isNew){
@@ -434,7 +437,7 @@ export class EntradaDialogComponent implements OnInit {
   onFinalizarEntrada(){
     this.cargandoService.openDialog()
     if(this.selectedEntrada?.id != null){
-      this.entradaService.onFinalizarEntrega(this.selectedEntrada.id).subscribe(res => {
+      this.entradaService.onFinalizarEntrega(this.selectedEntrada.id).pipe(untilDestroyed(this)).subscribe(res => {
         this.selectedEntrada.activo = res as boolean;
         this.cargandoService.closeDialog()
       })

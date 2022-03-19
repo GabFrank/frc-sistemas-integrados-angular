@@ -6,6 +6,9 @@ import { FormaPago } from "./forma-pago.model";
 import { FormaPagoGetAllGQL } from "./graphql/allFormaPago";
 import { FormaPagoByIdGQL } from "./graphql/formaPagoById";
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
@@ -18,7 +21,7 @@ export class FormaPagoService {
     private getAllFormaPago: FormaPagoGetAllGQL,
     private genericService: GenericCrudService
   ) {
-    this.onGetAllFormaPago().subscribe(res => {
+    this.onGetAllFormaPago().pipe(untilDestroyed(this)).subscribe(res => {
       this.formaPagoList = res;
       this.formaPagoSub.next(res);
     })

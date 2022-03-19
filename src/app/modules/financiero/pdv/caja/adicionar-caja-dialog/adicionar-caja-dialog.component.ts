@@ -46,6 +46,9 @@ export interface AdicionarCajaResponse {
   conteoCierre?: Conteo;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-adicionar-caja-dialog",
   templateUrl: "./adicionar-caja-dialog.component.html",
@@ -119,7 +122,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
     this.creadoEnControl.disable();
     this.usuarioControl.disable();
     if (this.data?.caja != null) {
-      this.cajaService.onGetById(this.data.caja.id).subscribe((res) => {
+      this.cajaService.onGetById(this.data.caja.id).pipe(untilDestroyed(this)).subscribe((res) => {
         if (res != null) {
           this.selectedCaja = res;
           this.cargarDatos();
@@ -162,7 +165,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
   cargarDatos() {
     if (this.selectedCaja?.maletin != null)
       this.maletinService
-        .onGetPorId(this.selectedCaja?.maletin?.id)
+        .onGetPorId(this.selectedCaja?.maletin?.id).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
             this.selectedMaletin = res;
@@ -206,7 +209,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
   verificarMaletin() {
     this.cargandoDialog.openDialog();
     this.maletinService
-      .onGetPorDescripcion(this.descripcionMaletinControl.value)
+      .onGetPorDescripcion(this.descripcionMaletinControl.value).pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.cargandoDialog.closeDialog();
         if (res != null) {
@@ -244,7 +247,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
         autoFocus: true,
         restoreFocus: true,
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.notificacionBar.notification$.next({
@@ -306,7 +309,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
         .confirm(
           "Atención!!",
           "Realmente desea abrir caja sin adicionar monedas?"
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res) {
             this.abrirCaja(response.conteoMonedaList);
@@ -318,7 +321,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
           `Guaranies:     ${stringToInteger(response.totalGs)}`,
           `Reales:        ${stringToDecimal(response.totalRs)}`,
           `Dolares:       ${stringToDecimal(response.totalDs)}`,
-        ])
+        ]).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res) {
             this.abrirCaja(response.conteoMonedaList);
@@ -340,7 +343,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
           `Guaranies:     ${stringToInteger(response.totalGs)}`,
           `Reales:        ${stringToDecimal(response.totalRs)}`,
           `Dolares:       ${stringToDecimal(response.totalDs)}`,
-        ])
+        ]).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res) {
             this.cerrarCaja(response.conteoMonedaList);
@@ -390,13 +393,13 @@ export class AdicionarCajaDialogComponent implements OnInit {
     }
     caja.activo = true;
     caja.observacion = this.observacionControl.value;
-    this.cajaService.onSave(caja).subscribe((cajaRes) => {
+    this.cajaService.onSave(caja).pipe(untilDestroyed(this)).subscribe((cajaRes) => {
       console.log(cajaRes)
       if (cajaRes != null) {
         this.cargandoDialog.closeDialog();
         this.selectedCaja = cajaRes;
         this.conteoService
-          .onSave(conteo, this.selectedCaja, apertura)
+          .onSave(conteo, this.selectedCaja, apertura).pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (res != null) {
               if (apertura) {
@@ -448,12 +451,12 @@ export class AdicionarCajaDialogComponent implements OnInit {
         break;
       case "apertura":
         this.stepper.selectedIndex = 1;
-        this.focusToAPerturaSub.next();
+        this.focusToAPerturaSub.next(null);
         break;
       case "cierre":
         this.stepper.selectedIndex = 1;
         this.stepper.selectedIndex = 2;
-        this.focusToCierreSub.next();
+        this.focusToCierreSub.next(null);
         break;
       case "imprimir":
         if(this.selectedCaja!=null) this.cajaService.onImprimirBalance(this.selectedCaja?.id)

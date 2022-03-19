@@ -1,4 +1,4 @@
-import { ipAddress } from "./conectionConfig";
+import { ipAddress, port } from "./conectionConfig";
 
 export const APP_CONFIG = {
   production: true,
@@ -18,7 +18,7 @@ export const environment = {
     appId: "1:389460380308:web:53701896405855d9f64281"
   },
   serverIp: ipAddress,
-  serverPort: 8081
+  serverPort: port
 };
 
 export const serverAdress = {

@@ -1,14 +1,16 @@
 import { Injectable } from '@angular/core';
 import { AllFamiliasGQL } from './graphql/allFamilias';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { Familia } from './familia.model';
 import { FamiliaInput } from './graphql/familia-input.model';
 import { SaveFamiliaGQL } from './graphql/saveFamilia';
 import { DeleteFamiliaGQL } from './graphql/deleteFamilia';
-import { Observable } from '@apollo/client/utilities';
 import { CountFamiliaGQL } from './graphql/countFamilia';
 import { MainService } from '../../../main.service';
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: 'root',
 })
@@ -27,7 +29,7 @@ export class FamiliaService {
   }
 
   onGetFamilias(){
-    this.getFamilias.fetch(null, {fetchPolicy: 'no-cache'}).subscribe(res => {
+    this.getFamilias.fetch(null, {fetchPolicy: 'no-cache'}).pipe(untilDestroyed(this)).subscribe(res => {
       if(!res.error){
         this.familias = res.data.data;
         this.familiaBS.next(this.familias.sort((a,b)=>{
@@ -48,7 +50,7 @@ export class FamiliaService {
     return new Observable((obs)=>{
       this.saveFamilia.mutate({
         entity: familiaInput
-      }).subscribe(res => {
+      }).pipe(untilDestroyed(this)).subscribe(res => {
         if(!res.errors){
           this.onGetFamilias()
           obs.next(res.data)
@@ -63,7 +65,7 @@ export class FamiliaService {
   onDeleteFamilia(id: number){
     return this.deleteFamilia.mutate({
       id
-    }).subscribe(res => {
+    }).pipe(untilDestroyed(this)).subscribe(res => {
       if(!res.errors){
         this.onGetFamilias()
       }
@@ -72,7 +74,7 @@ export class FamiliaService {
 
   onCountFamilia(): Observable<number> {
     return new Observable((obs)=>{
-      this.countFamilia.fetch().subscribe(res => {
+      this.countFamilia.fetch().pipe(untilDestroyed(this)).subscribe(res => {
         if(!res.error){
           return obs.next(res.data.countFamilia)
         }

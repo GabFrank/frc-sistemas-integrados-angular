@@ -17,6 +17,9 @@ import { CobroDetalle } from "../cobro/cobro-detalle.model";
 import { Venta } from "../venta.model";
 import { VentaService } from "../venta.service";
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-list-venta",
   templateUrl: "./list-venta.component.html",
@@ -52,7 +55,7 @@ export class ListVentaComponent implements OnInit {
   ngOnInit(): void {
     if (this.data != null) {
       this.cajaService
-        .onGetById(this.data["tabData"]["data"].id)
+        .onGetById(this.data["tabData"]["data"].id).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
             this.selectedCaja = res;
@@ -66,7 +69,7 @@ export class ListVentaComponent implements OnInit {
   onGetVentas() {
     this.cargandoService.openDialog()
     this.isCargando = true;
-    this.ventaService.onSearch(this.selectedCaja.id, this.ventaDataSource.data.length).subscribe((res) => {
+    this.ventaService.onSearch(this.selectedCaja.id, this.ventaDataSource.data.length).pipe(untilDestroyed(this)).subscribe((res) => {
       this.cargandoService.closeDialog()
       this.isCargando = false;
       if (res != null) {
@@ -78,7 +81,7 @@ export class ListVentaComponent implements OnInit {
   onClickRow(venta: Venta, index) {
     if (venta.ventaItemList == null) {
       this.loading = true;
-      this.ventaService.onGetPorId(venta.id).subscribe((res) => {
+      this.ventaService.onGetPorId(venta.id).pipe(untilDestroyed(this)).subscribe((res) => {
         this.loading = false;
         if (res != null) {
           console.log(res);

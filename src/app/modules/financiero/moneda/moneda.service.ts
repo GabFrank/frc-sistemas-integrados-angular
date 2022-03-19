@@ -4,6 +4,9 @@ import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { MonedasGetAllGQL } from './graphql/monedasGetAll';
 import { Moneda } from './moneda.model';
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: 'root'
 })
@@ -15,7 +18,7 @@ export class MonedaService {
     private getAllMonedas: MonedasGetAllGQL,
     private genericService: GenericCrudService
   ) { 
-    this.onGetAll().subscribe(res => {
+    this.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         this.monedaList = res;
       }

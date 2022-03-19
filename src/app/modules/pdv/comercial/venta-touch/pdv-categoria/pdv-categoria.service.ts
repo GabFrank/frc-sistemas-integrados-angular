@@ -8,7 +8,9 @@ import { GruposProductosPorGrupoIdGQL } from './graphql/getGrupoProductos';
 import { SavePdvCategoriaGQL } from './graphql/saveCategoria';
 import { PdvCategoriaInput } from './pdv-categoria-input.model';
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: 'root'
 })
@@ -33,7 +35,7 @@ export class PdvCategoriaService {
       }, {
         fetchPolicy: 'no-cache',
         errorPolicy: 'all'
-      }).subscribe(res => {
+      }).pipe(untilDestroyed(this)).subscribe(res => {
         if(res.errors != null){
           this.notificacionService.notification$.next({
             texto: 'Ups! Algo salió mal',

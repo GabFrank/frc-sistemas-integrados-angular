@@ -49,6 +49,9 @@ export class AdicionarPedidoItemDialog {
   pedidoItem: PedidoItem;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-adicionar-item-dialog",
   templateUrl: "./adicionar-item-dialog.component.html",
@@ -137,7 +140,7 @@ export class AdicionarItemDialogComponent implements OnInit {
 
   cargarPedidoItem(pedidoItem: PedidoItem) {
     this.isEditar = false;
-    this.pedidoService.onGetPedidoItem(pedidoItem.id).subscribe((res) => {
+    this.pedidoService.onGetPedidoItem(pedidoItem.id).pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         this.selectedPedidoItem = new PedidoItem();
         Object.assign(this.selectedPedidoItem, res);
@@ -153,7 +156,7 @@ export class AdicionarItemDialogComponent implements OnInit {
         );
         this.descuentoControl.setValue(pedidoItem.descuentoUnitario * pedidoItem.presentacion.cantidad);
         this.productoService
-          .getProducto(pedidoItem.producto.id)
+          .getProducto(pedidoItem.producto.id).pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (res != null) {
               this.onSelectProducto(res);
@@ -168,7 +171,7 @@ export class AdicionarItemDialogComponent implements OnInit {
 
   onSearchProductoById(id) {
     this.cargandoDialog.openDialog();
-    this.productoService.getProducto(id).subscribe((res) => {
+    this.productoService.getProducto(id).pipe(untilDestroyed(this)).subscribe((res) => {
       this.cargandoDialog.closeDialog();
       if (res?.id != null) {
         this.onSelectProducto(res);
@@ -180,7 +183,7 @@ export class AdicionarItemDialogComponent implements OnInit {
             width: "60%",
             disableClose: false,
           })
-          .afterClosed()
+          .afterClosed().pipe(untilDestroyed(this))
           .subscribe((res2) => {
             if (res2 != null) {
               this.selectedPresentacion = res2;
@@ -225,7 +228,7 @@ export class AdicionarItemDialogComponent implements OnInit {
   getExistencia() {
     if (this.selectedProducto != null) {
       this.stockService
-        .onGetStockPorProducto(this.selectedProducto.id)
+        .onGetStockPorProducto(this.selectedProducto.id).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
             this.existencia = res;
@@ -245,7 +248,7 @@ export class AdicionarItemDialogComponent implements OnInit {
         },
         height: "80%",
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           let response: PdvSearchProductoResponseData = res;
@@ -271,7 +274,7 @@ export class AdicionarItemDialogComponent implements OnInit {
   getHistorico() {
     let listaCompras: CompraItem[] = [];
     this.compraService
-      .getItemPorProductoId(this.selectedProducto.id)
+      .getItemPorProductoId(this.selectedProducto.id).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.historicoComprasDataSource.data = res.filter(e => e.compra?.estado == CompraEstado.ACTIVO);
@@ -295,7 +298,7 @@ export class AdicionarItemDialogComponent implements OnInit {
   onGetCosto() {
     if (this.selectedProducto != null) {
       this.productoService
-        .onGetProductoParaPedido(this.selectedProducto.id)
+        .onGetProductoParaPedido(this.selectedProducto.id).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
             this.selectedProducto.costo = res.costo;
@@ -385,7 +388,7 @@ export class AdicionarItemDialogComponent implements OnInit {
           `Precio por presentación: ${stringToInteger(
             precioPresentacion.toFixed(0).toString()
           )}`,
-        ])
+        ]).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res) {
             let pedidoItem: PedidoItem = new PedidoItem();

@@ -4,6 +4,10 @@ import { MatTableDataSource } from '@angular/material/table';
 import { GastoService } from '../gasto.service';
 import { Gasto } from '../gastos.model';
 
+
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-gastos',
   templateUrl: './list-gastos.component.html',
@@ -32,7 +36,7 @@ export class ListGastosComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.gastoService.onGetByDate(null, null).subscribe(res => {
+    this.gastoService.onGetByDate(null, null).pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         this.dataSource.data = res;
       }

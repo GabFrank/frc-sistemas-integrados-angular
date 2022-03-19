@@ -46,7 +46,7 @@ export class ConteoService {
           })
           obs.next(null);
         }
-      })
+      }).unsubscribe()
     });
   }
 

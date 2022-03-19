@@ -27,6 +27,9 @@ import { SalidaDialogComponent } from "../salida/salida-dialog/salida-dialog.com
 import { Salida } from "../salida/salida.model";
 import { SalidaService } from "../salida/salida.service";
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-entrada-salida",
   templateUrl: "./entrada-salida.component.html",
@@ -109,7 +112,7 @@ export class EntradaSalidaComponent implements OnInit {
   }
 
   buscarSucursales() {
-    this.sucursalService.onGetAllSucursales().subscribe((res) => {
+    this.sucursalService.onGetAllSucursales().pipe(untilDestroyed(this)).subscribe((res) => {
       this.sucursalList = res.sort((a, b) => {
         if (a.nombre < b.nombre) {
           return -1;
@@ -137,7 +140,7 @@ export class EntradaSalidaComponent implements OnInit {
       .onGetEntradasPorFecha(
         this.entradaInicioControl.value,
         this.entradaFinControl.value
-      )
+      ).pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.entradaDataSource.data = res["data"];
         this.aplicarFiltrosEntrada(this.entradaDataSource.data)
@@ -161,7 +164,7 @@ export class EntradaSalidaComponent implements OnInit {
       .onGetSalidasPorFecha(
         this.entradaInicioControl.value,
         this.entradaFinControl.value
-      )
+      ).pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.salidaDataSource.data = res["data"];
         this.aplicarFiltrosSalida(this.salidaDataSource.data)
@@ -196,7 +199,7 @@ export class EntradaSalidaComponent implements OnInit {
       height: "90%",
       width: "80%",
       disableClose: true,
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         let aux = this.entradaDataSource.data;
         aux.push(res)
@@ -214,7 +217,7 @@ export class EntradaSalidaComponent implements OnInit {
       height: "90%",
       width: "80%",
       disableClose: true,
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         let aux = this.entradaDataSource.data;
         aux[index] = res;
@@ -258,7 +261,7 @@ export class EntradaSalidaComponent implements OnInit {
         width: "80%",
         disableClose: true,
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         console.log(res);
         if (res != null) {
@@ -275,7 +278,7 @@ export class EntradaSalidaComponent implements OnInit {
       height: "90%",
       width: "80%",
       disableClose: true,
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         let index = this.salidaDataSource.data.findIndex(s => s.id == res.id)
         if(index > -1){
@@ -287,9 +290,9 @@ export class EntradaSalidaComponent implements OnInit {
 
   deleteEntrada(entrada:Entrada, i){
     console.log(i)
-    this.dialogoService.confirm('Atención!!', 'Realmente desea eliminar esta entrada?').subscribe(response => {
+    this.dialogoService.confirm('Atención!!', 'Realmente desea eliminar esta entrada?').pipe(untilDestroyed(this)).subscribe(response => {
       if(response){
-        this.entradaService.onDeleteEntrada(entrada.id).subscribe(res => {
+        this.entradaService.onDeleteEntrada(entrada.id).pipe(untilDestroyed(this)).subscribe(res => {
           if(res){
             let aux = this.entradaDataSource.data;
             aux.splice(i, 1);
@@ -302,9 +305,9 @@ export class EntradaSalidaComponent implements OnInit {
 
   deleteSalida(salida:Salida, i){
     console.log(i)
-    this.dialogoService.confirm('Atención!!', 'Realmente desea eliminar esta salida?').subscribe(response => {
+    this.dialogoService.confirm('Atención!!', 'Realmente desea eliminar esta salida?').pipe(untilDestroyed(this)).subscribe(response => {
       if(response){
-        this.salidaService.onDeleteSalida(salida.id).subscribe(res => {
+        this.salidaService.onDeleteSalida(salida.id).pipe(untilDestroyed(this)).subscribe(res => {
           if(res){
             let aux = this.salidaDataSource.data;
             aux.splice(i, 1);
@@ -316,7 +319,7 @@ export class EntradaSalidaComponent implements OnInit {
   }
 
   onImprimirEntrada(id){
-    this.entradaService.onImprimirEntrada(id).subscribe(res => {
+    this.entradaService.onImprimirEntrada(id).pipe(untilDestroyed(this)).subscribe(res => {
       console.log(res)
     });
   }
@@ -336,7 +339,7 @@ export class EntradaSalidaComponent implements OnInit {
         width: "100%",
         height: "100%",
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         let respuesta: PdvSearchProductoResponseData;
         if (res != null) {

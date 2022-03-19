@@ -1,14 +1,20 @@
 import { Injectable } from "@angular/core";
 import { UsuarioPorIdGQL } from "./graphql/usuarioPorId";
-import { Observable } from "zen-observable-ts";
 import { Usuario } from "./usuario.model";
 import { UsuarioSearchGQL } from "./graphql/usuarioSearch";
-import { NotificacionColor, NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
+import {
+  NotificacionColor,
+  NotificacionSnackbarService,
+} from "../../../notificacion-snackbar.service";
 import { UsuarioInput } from "./usuario-input.model";
 import { MainService } from "../../../main.service";
 import { SaveUsuarioGQL } from "./graphql/saveUsuario";
 import { UsuarioPorPersonaIdGQL } from "./graphql/usuarioPorPersonnaId";
 
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { Observable } from "rxjs";
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
@@ -18,72 +24,90 @@ export class UsuarioService {
     private getUsuarioPorPersonaId: UsuarioPorPersonaIdGQL,
     private saveUsuario: SaveUsuarioGQL,
     private searchUsuario: UsuarioSearchGQL,
-    private notificacionBar: NotificacionSnackbarService,
-    // private mainService: MainService
-  ) {
-  }
+    private notificacionBar: NotificacionSnackbarService
+  ) // private mainService: MainService
+  {}
 
-  onGetUsuario(id: number): Observable<any>{
-    return new Observable((obs)=>{
-      this.getUsuario.fetch({
-        id
-      }, {
-        fetchPolicy: 'no-cache',
-        errorPolicy: 'all'
-      }).subscribe(res => {
-        if(res?.errors==null){
-          obs.next(res?.data.data);
-        } else {
-          obs.next(res.errors)
-        }
-      })
-    })
-  }
-
-  onGetUsuarioPorPersonaId(id: number): Observable<any>{
-    return new Observable((obs)=>{
-      this.getUsuarioPorPersonaId.fetch({
-        id
-      }, {
-        fetchPolicy: 'no-cache',
-        errorPolicy: 'all'
-      }).subscribe(res => {
-        if(res?.errors==null){
-          obs.next(res?.data.data);
-        } else {
-          obs.next(res.errors)
-        }
-      })
-    })
-  }
-
-  onSeachUsuario(texto:string): Observable<Usuario[]>{
-    if(texto!=null || texto!= ''){
-      return new Observable(obs => {
-        this.searchUsuario.fetch({
-          texto: texto.toUpperCase()
-        }, {
-          fetchPolicy: 'no-cache',
-          errorPolicy: 'all'
-        }).subscribe(res => {
-          if(res.errors==null){
-            obs.next(res.data)
-          } else {
-            this.notificacionBar.notification$.next({
-              texto: 'Ups! algo salio mal: '+ res.errors[0].message,
-              color: NotificacionColor.danger,
-              duracion: 3
-            })
+  onGetUsuario(id: number): Observable<any> {
+    console.log("usuario.service.ts onGetUsuario");
+    return new Observable((obs) => {
+      this.getUsuario
+        .fetch(
+          {
+            id,
+          },
+          {
+            fetchPolicy: "no-cache",
+            errorPolicy: "all",
           }
-        })
-      })
+        ).pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          console.log(res);
+          if (res?.errors == null) {
+            obs.next(res?.data.data);
+          } else {
+            obs.next(res.errors);
+          }
+        });
+    });
+  }
+
+  onGetUsuarioPorPersonaId(id: number): Observable<any> {
+    console.log(id + " buscando usu");
+    return new Observable((obs) => {
+      this.getUsuarioPorPersonaId
+        .fetch(
+          {
+            id,
+          },
+          {
+            fetchPolicy: "no-cache",
+            errorPolicy: "all",
+          }
+        ).pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          if (res?.errors == null) {
+            obs.next(res?.data.data);
+          } else {
+            obs.next(res.errors);
+          }
+        });
+    });
+  }
+
+  onSeachUsuario(texto: string): Observable<Usuario[]> {
+    if (texto != null || texto != "") {
+      return new Observable((obs) => {
+        this.searchUsuario
+          .fetch(
+            {
+              texto: texto.toUpperCase(),
+            },
+            {
+              fetchPolicy: "no-cache",
+              errorPolicy: "all",
+            }
+          )
+          .pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            if (res.errors == null) {
+              obs.next(res.data);
+            } else {
+              this.notificacionBar.notification$.next({
+                texto: "Ups! algo salio mal: " + res.errors[0].message,
+                color: NotificacionColor.danger,
+                duracion: 3,
+              });
+            }
+          });
+      });
     }
   }
 
   onSaveUsuario(input: UsuarioInput): Observable<any> {
-    console.log(input)
+    console.log(input);
     return new Observable((obs) => {
-      if(input.usuarioId == null){
+      if (input.usuarioId == null) {
         input.usuarioId = +localStorage.getItem("usuarioId");
       }
       this.saveUsuario
@@ -93,6 +117,7 @@ export class UsuarioService {
           },
           { errorPolicy: "all" }
         )
+        .pipe(untilDestroyed(this))
         .subscribe((res) => {
           console.log(res.errors);
           if (res.errors == null) {

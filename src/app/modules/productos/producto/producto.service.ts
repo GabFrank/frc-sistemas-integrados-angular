@@ -29,6 +29,9 @@ export class CustomData {
   data: any;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
@@ -77,7 +80,7 @@ export class ProductoService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
           }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             console.log(res.data.data);
@@ -102,7 +105,7 @@ export class ProductoService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
           }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             console.log(res.data.data);
@@ -144,7 +147,7 @@ export class ProductoService {
             entity: input,
           },
           { errorPolicy: "all" }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           console.log(res.errors);
           if (res.errors == null) {
@@ -187,7 +190,7 @@ export class ProductoService {
       .mutate({
         image,
         filename,
-      })
+      }).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res.errors == null) {
           // obs.next(res.data)
@@ -218,7 +221,7 @@ export class ProductoService {
           errorPolicy: "all",
           fetchPolicy: "no-cache",
         }
-      )
+      ).pipe(untilDestroyed(this))
       .subscribe((res) => {
         console.log(res);
       });
@@ -231,7 +234,7 @@ export class ProductoService {
   onExportarReporte(texto: string): Observable<string> {
     return new Observable((obs) => {
       this.exportarReporte
-        .fetch({ texto }, { fetchPolicy: "no-cache", errorPolicy: "all" })
+        .fetch({ texto }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             obs.next(res.data.data);

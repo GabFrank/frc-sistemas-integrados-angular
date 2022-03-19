@@ -11,6 +11,9 @@ export class VizualizarImagenData {
   url: string;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-vizualizar-imagen-dialog',
   templateUrl: './vizualizar-imagen-dialog.component.html',
@@ -52,13 +55,13 @@ export class VizualizarImagenDialogComponent implements OnInit {
           height: "50%",
           disableClose: false,
         })
-        .afterClosed()
+        .afterClosed().pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) this.img = res;
           this.presentacionService.onImageSave(
             res,
             `${this.data.url}/${id}.jpg`
-          ).subscribe(res2 => {
+          ).pipe(untilDestroyed(this)).subscribe(res2 => {
             if(res2!=null){
               this.img = res2;
             }

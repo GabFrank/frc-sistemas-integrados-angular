@@ -8,6 +8,9 @@ export interface QrCodeDialogData {
   codigo: any;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-qr-code',
   templateUrl: './qr-code.component.html',
@@ -39,7 +42,7 @@ export class QrCodeComponent implements OnInit {
 
   onRefresh(){
     // let ref = this.storage.ref(`productos/${this.data.codigo}`).getDownloadURL().subscribe(res => {
-      let ref = this.storage.ref(`productos/${this.data.codigo}`).getDownloadURL().subscribe(res => {
+      let ref = this.storage.ref(`productos/${this.data.codigo}`).getDownloadURL().pipe(untilDestroyed(this)).subscribe(res => {
         this.isWaiting = true;
         this.isQrShow = false;
         if(res!=null){

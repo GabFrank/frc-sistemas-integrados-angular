@@ -1,4 +1,4 @@
-import { ipAddress } from "./conectionConfig";
+import { ipAddress, port } from "./conectionConfig";
 
 export const APP_CONFIG = {
   production: false,
@@ -21,5 +21,5 @@ export const environment = {
 
 export const serverAdress = {
   serverIp: localStorage.getItem('serverIpAddress') != null ? localStorage.getItem('serverIpAddress') : ipAddress,
-  serverPort: '8081'
+  serverPort: port
 }

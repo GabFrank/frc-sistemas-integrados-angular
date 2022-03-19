@@ -8,6 +8,9 @@ import {
 import { SaveRetiroGQL } from "./graphql/saveRetiro";
 import { Retiro } from "./retiro.model";
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
@@ -34,7 +37,7 @@ export class RetiroService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
           }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             this.notificacionBar.notification$.next({

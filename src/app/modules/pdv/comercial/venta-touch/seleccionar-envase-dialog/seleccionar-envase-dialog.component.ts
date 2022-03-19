@@ -10,6 +10,9 @@ class Data {
   cantidad: number;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-seleccionar-envase-dialog",
   templateUrl: "./seleccionar-envase-dialog.component.html",
@@ -28,7 +31,7 @@ export class SeleccionarEnvaseDialogComponent implements OnInit {
       this.cantidadControl.setValue(data.cantidad);
     }
     if (data.envase != null) {
-      productoService.onGetProductoPorId(data.envase.id).subscribe((res) => {
+      productoService.onGetProductoPorId(data.envase.id).pipe(untilDestroyed(this)).subscribe((res) => {
         if (res != null) {
           this.selectedEnvase = res;
         }

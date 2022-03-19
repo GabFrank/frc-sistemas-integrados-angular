@@ -27,6 +27,9 @@ import { AdicionarCajaDialogComponent } from "../adicionar-caja-dialog/adicionar
 import { PdvCaja, PdvCajaEstado } from "../caja.model";
 import { CajaService } from "../caja.service";
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-list-caja",
   templateUrl: "./list-caja.component.html",
@@ -136,7 +139,7 @@ export class ListCajaComponent implements OnInit {
       console.log('filtrando')
       this.fechaInicioControl.setValue(null)
       this.fechaFinalControl.setValue(null)
-      this.cajaService.onGetById(this.codigoControl.value).subscribe(res => {
+      this.cajaService.onGetById(this.codigoControl.value).pipe(untilDestroyed(this)).subscribe(res => {
         if(res!=null){
           console.log(res)
           this.dataSource.data = []
@@ -144,7 +147,7 @@ export class ListCajaComponent implements OnInit {
         } 
       })
     } else {
-      this.cajaService.onGetByDate(this.fechaInicioControl.value, this.fechaFinalControl.value).subscribe((res) => {
+      this.cajaService.onGetByDate(this.fechaInicioControl.value, this.fechaFinalControl.value).pipe(untilDestroyed(this)).subscribe((res) => {
         if (res != null) {
           this.dataSource.data = res;
           console.log(res);
@@ -178,7 +181,7 @@ export class ListCajaComponent implements OnInit {
           texto: this.productoControl.value,
         },
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.onSelectProducto(res?.producto);
@@ -208,7 +211,7 @@ export class ListCajaComponent implements OnInit {
 
   onBuscar(){
     this.ventaService
-      .onGetVentasPorPeriodo("2022-03-01T00:00:00", "2022-03-03T00:00:00")
+      .onGetVentasPorPeriodo("2022-03-01T00:00:00", "2022-03-03T00:00:00").pipe(untilDestroyed(this))
       .subscribe((res) => {
         console.log(res);
       });
@@ -225,7 +228,7 @@ export class ListCajaComponent implements OnInit {
       data: data,
       height: '80vh',
       width: '70vw'
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         this.onSelectMaletin(res);
       }

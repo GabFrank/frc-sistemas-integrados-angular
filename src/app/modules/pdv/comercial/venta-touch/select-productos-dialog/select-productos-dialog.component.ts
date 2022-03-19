@@ -14,6 +14,9 @@ export class SelectProductosResponseData {
   data: ProductoCategoriaResponseData
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-select-productos-dialog',
   templateUrl: './select-productos-dialog.component.html',
@@ -47,7 +50,7 @@ export class SelectProductosDialogComponent implements OnInit {
         producto
       },
       width: '90%'
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       console.log(res)
       let respuesta: SelectProductosResponseData = new SelectProductosResponseData;
       let productoCategoriaResponse : ProductoCategoriaResponseData = res;

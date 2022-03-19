@@ -60,6 +60,9 @@ export interface PagoResponseData {
   pagoItemList: PagoItem[];
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-pago-touch",
   templateUrl: "./pago-touch.component.html",
@@ -155,7 +158,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
       this.cargandoDialog.closeDialog();
     }, 500);
 
-    this.formGroup.controls.moneda.valueChanges.subscribe((res) => {
+    this.formGroup.controls.moneda.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
       let aux = this.formGroup.controls.valor.value;
       if (this.selectedMoneda != null) {
         setTimeout(() => {
@@ -168,7 +171,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
         }, 0);
       }
     });
-    this.formaPagoSub = this.formaPagoService.formaPagoSub.subscribe((res) => {
+    this.formaPagoSub = this.formaPagoService.formaPagoSub.pipe(untilDestroyed(this)).subscribe((res) => {
       this.formaPagoList = res;
       if (this.formaPagoList?.length > 0) {
         console.log(this.formaPagoList);
@@ -192,14 +195,14 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
   }
 
   getFormaPagos() {
-    this.formaPagoService.onGetAllFormaPago().subscribe((res) => {
+    this.formaPagoService.onGetAllFormaPago().pipe(untilDestroyed(this)).subscribe((res) => {
       this.formaPagoList = res;
       this.selectedFormaPago = this.formaPagoList[0];
     });
   }
 
   setPrecios() {
-    this.getMonedas.fetch().subscribe((res) => {
+    this.getMonedas.fetch().pipe(untilDestroyed(this)).subscribe((res) => {
       if (!res.errors) {
         this.monedas = res.data.data;
         this.cambioRs = this.monedas.find(
@@ -320,7 +323,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
           },
           width: '60%'
         })
-        .afterClosed()
+        .afterClosed().pipe(untilDestroyed(this))
         .subscribe((res: SelectBilletesResponseData) => {
           if (res != null) {
             this.formGroup.controls.valor.setValue(res.valor);
@@ -372,7 +375,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
         financial: this.selectedMoneda.id != 1,
       },
     });
-    ref.afterClosed().subscribe((res) => {
+    ref.afterClosed().pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         this.formGroup.get("valor").setValue(res);
       }

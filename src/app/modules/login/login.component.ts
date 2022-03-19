@@ -7,6 +7,9 @@ import { MainService } from "../../main.service";
 import { CargandoDialogService } from "../../shared/components/cargando-dialog/cargando-dialog.service";
 import { LoginResponse, LoginService } from "./login.service";
 
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+
+@UntilDestroy()
 @Component({
   selector: "app-login",
   templateUrl: "./login.component.html",
@@ -15,9 +18,12 @@ import { LoginResponse, LoginService } from "./login.service";
 export class LoginComponent implements OnInit {
   formGroup: FormGroup;
   nicknameControl = new FormControl(null, Validators.required);
-  passwordControl = new FormControl(null, [Validators.required, Validators.min(2)]);
+  passwordControl = new FormControl(null, [
+    Validators.required,
+    Validators.min(2),
+  ]);
   showBienvenida = false;
-  errorMessage : string;
+  errorMessage: string;
 
   statusSub: Subscription;
 
@@ -32,23 +38,22 @@ export class LoginComponent implements OnInit {
     this.createForm();
     this.verficarAuth();
 
-    this.statusSub = connectionStatusSub.subscribe(res => {
-      if(res){
-        this.verficarAuth();
-      }
-    })
+    this.statusSub = connectionStatusSub
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) {
+          this.verficarAuth();
+        }
+      });
   }
 
   createForm() {
-    this.formGroup = new FormGroup(
-      {
+    this.formGroup = new FormGroup({
       // nickname: new FormControl(null, Validators.required),
       // password: new FormControl(null, Validators.required),
-    }
-    );
-    this.formGroup.addControl('nickname', this.nicknameControl);
-    this.formGroup.addControl('password', this.passwordControl)
-
+    });
+    this.formGroup.addControl("nickname", this.nicknameControl);
+    this.formGroup.addControl("password", this.passwordControl);
   }
 
   onEntrar() {
@@ -59,14 +64,14 @@ export class LoginComponent implements OnInit {
         .subscribe((res) => {
           this.cargandoDialogService.closeDialog();
           if (res.usuario != null) {
-            this.mainService.authenticationSub.next(true)
+            this.mainService.authenticationSub.next(true);
             this.showBienvenida = true;
             this.errorMessage = null;
             setTimeout(() => {
               this.dialogRef.close();
             }, 2000);
-          } else if(res.error != null) {
-            this.mainService.authenticationSub.next(false)
+          } else if (res.error != null) {
+            this.mainService.authenticationSub.next(false);
             this.errorMessage = res.error.message;
           }
         });
@@ -80,14 +85,22 @@ export class LoginComponent implements OnInit {
   onNewUser() {}
 
   verficarAuth() {
-    this.mainService.isAuthenticated().subscribe((res) => {
-      if (res) {
-        console.log("Autenticado");
-        this.showBienvenida = true;
-        setTimeout(() => {
-          this.dialogRef.close();
-        }, 2000);
-      }
-    });
+    console.log("verificandooooo");
+    this.mainService
+      .isAuthenticated()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) {
+          console.log("Autenticado");
+          this.showBienvenida = true;
+          setTimeout(() => {
+            this.dialogRef.close();
+          }, 2000);
+        }
+      });
+  }
+
+  onConfigurarServidor(){
+    this.dialogRef.close(false)
   }
 }

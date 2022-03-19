@@ -13,6 +13,9 @@ import { savePresentacionGQL } from "./graphql/savePresentacion";
 import { Presentacion } from "./presentacion.model";
 import { PresentacionInput } from "./presentacion.model-input";
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
@@ -58,14 +61,14 @@ export class PresentacionService {
   }
   onDeletePresentacion(presentacion: Presentacion) : Observable<any>{
     return new Observable(obs => {
-      this.dialogoService.confirm('Atención!!', 'Realmente deseas eliminar esta presentación?', 'Todos los códigos y precios también serán eliminados.', [`Descripción: ${presentacion.descripcion}`, `Cantidad: ${presentacion.cantidad}`]).subscribe(res => {
+      this.dialogoService.confirm('Atención!!', 'Realmente deseas eliminar esta presentación?', 'Todos los códigos y precios también serán eliminados.', [`Descripción: ${presentacion.descripcion}`, `Cantidad: ${presentacion.cantidad}`]).pipe(untilDestroyed(this)).subscribe(res => {
         if(res){
           this.deletePresentacion.mutate({
             id: presentacion.id,
           }, {
             fetchPolicy: 'no-cache',
             errorPolicy: 'all'
-          }).subscribe(res => {
+          }).pipe(untilDestroyed(this)).subscribe(res => {
             if(res.errors == null){
               obs.next(res.data)
             } else {
@@ -90,7 +93,7 @@ export class PresentacionService {
         this.saveImage.mutate({
           image,
           filename
-        }, {fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
+        }, {fetchPolicy: 'no-cache', errorPolicy: 'all'}).pipe(untilDestroyed(this)).subscribe(res => {
           if(res.errors==null){
             // obs.next(res.data)
             this.notificacionSnack.notification$.next({

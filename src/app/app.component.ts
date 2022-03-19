@@ -1,5 +1,11 @@
 import { OverlayContainer } from "@angular/cdk/overlay";
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from "@angular/core";
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+} from "@angular/core";
 import { MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { Subscription } from "rxjs";
@@ -14,15 +20,17 @@ import {
   NotificacionSnackbarService,
 } from "./notificacion-snackbar.service";
 import { WindowInfoService } from "./shared/services/window-info.service";
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { ConfigurarServidorDialogComponent } from "./modules/configuracion/configurar-servidor-dialog/configurar-servidor-dialog.component";
 
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-root",
   templateUrl: "./app.component.html",
   styleUrls: ["./app.component.scss"],
 })
 export class AppComponent implements OnInit, OnDestroy {
-
-  @ViewChild('container', {static: true}) container: ElementRef<any>;
+  @ViewChild("container", { static: true }) container: ElementRef<any>;
 
   title = "franco-dev-systems";
   innerWidth;
@@ -30,8 +38,6 @@ export class AppComponent implements OnInit, OnDestroy {
   lastStatus = false;
   timer = null;
   snackBarRef: any;
-
-  statusSub: Subscription;
 
   constructor(
     private overlay: OverlayContainer,
@@ -43,20 +49,22 @@ export class AppComponent implements OnInit, OnDestroy {
     public genericService: GenericCrudService
   ) {
     this.innerHeight = windowInfo.innerHeight + "px";
-    notificationService.notification$.subscribe((res) => {
-      let duracion = res.duracion != null ? res.duracion : 3;
-      if(this.snackBarRef==null){
-        this.snackBarRef = snackBar.open(res.texto, null, {
-          horizontalPosition: "center",
-          duration: res.duracion * 1000,
-          verticalPosition: "top",
-          panelClass: [res.color],
-        });
-      }
-      setTimeout(() => {
-        this.snackBarRef = null;
-      }, res.duracion * 1000);
-    });
+    notificationService.notification$
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        let duracion = res.duracion != null ? res.duracion : 3;
+        if (this.snackBarRef == null) {
+          this.snackBarRef = snackBar.open(res.texto, null, {
+            horizontalPosition: "center",
+            duration: res.duracion * 1000,
+            verticalPosition: "top",
+            panelClass: [res.color],
+          });
+        }
+        setTimeout(() => {
+          this.snackBarRef = null;
+        }, res.duracion * 1000);
+      });
   }
 
   ngOnInit(): void {
@@ -64,10 +72,26 @@ export class AppComponent implements OnInit, OnDestroy {
     this.matDialog.open(LoginComponent, {
       width: "500px",
       height: "500px",
-      disableClose: false,
+      disableClose: true,
+    }).afterClosed().subscribe(res => {
+      if(!res){
+        this.matDialog.open(ConfigurarServidorDialogComponent, {
+          width: "80%",
+          height: "500px",
+          disableClose: true
+        }).afterClosed().subscribe(res => {
+          if(res){
+
+          } else {
+            this.ngOnInit()
+          }
+        })
+      }
     });
 
-    this.statusSub = connectionStatusSub.subscribe((res) => {
+    connectionStatusSub
+    .pipe(untilDestroyed(this))
+    .subscribe((res) => {
       if (res == true) {
         this.notificationService.notification$.next({
           texto: "Servidor Online!!",
@@ -75,8 +99,8 @@ export class AppComponent implements OnInit, OnDestroy {
           duracion: 6,
         });
         clearInterval(this.timer);
-      } else if(res == false) {
-        console.log("entro al false")
+      } else if (res == false) {
+        console.log("entro al false");
         this.timer = setInterval(() => {
           this.notificationService.notification$.next({
             texto: "Servidor Offline!!",
@@ -91,6 +115,5 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     //Called once, before the instance is destroyed.
     //Add 'implements OnDestroy' to the class.
-    this.statusSub.unsubscribe();
   }
 }

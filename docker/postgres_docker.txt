@@ -10,7 +10,7 @@ restart cron
 /etc/init.d/cron restart
 
 -- comando para hacer backup de base de datos
-pg_dump -U franco -W general > generalv3.sql
+pg_dump -U franco -W general > central.sql
 -- comando para copiar archivos en docker
 docker cp filial1:/generalv3.sql /Users/gabfranck/Desktop
 

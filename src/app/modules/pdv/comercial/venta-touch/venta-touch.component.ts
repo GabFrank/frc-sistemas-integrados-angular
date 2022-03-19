@@ -11,7 +11,7 @@ import {
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
-import { Subscription } from "rxjs";
+import { interval, Subscription } from "rxjs";
 import { isInt } from "../../../../commons/core/utils/numbersUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabService } from "../../../../layouts/tab/tab.service";
@@ -105,6 +105,10 @@ export interface PdvTouchData {
   titulo: String;
 }
 
+
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-venta-touch",
   templateUrl: "./venta-touch.component.html",
@@ -188,14 +192,14 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       this.isAuxiliar = this.data?.tabData?.data?.auxiliar;
     }, 0);
 
-    this.tabService.tabChangedEvent.subscribe((res) => {
+    this.tabService.tabChangedEvent.pipe(untilDestroyed(this)).subscribe((res) => {
       if (this.data.active == true) {
         this.setFocusToCodigoInput();
       }
     });
 
-    this.ventaSub = this.cajaService
-      .onGetByUsuarioIdAndAbierto(this.mainService.usuarioActual.id)
+    this.cajaService
+      .onGetByUsuarioIdAndAbierto(this.mainService.usuarioActual.id).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res == null) {
           this.openSelectCajaDialog();
@@ -203,6 +207,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
           this.selectedCaja = res;
         }
       });
+    console.log(this.ventaSub)
+
+    interval(1000).pipe(untilDestroyed(this)).subscribe(res => {
+      console.log(res)
+    })
   }
 
   getFormaPagos() {
@@ -224,7 +233,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       }
     );
     this.dialogReference = this.selectCajaDialog;
-    this.selectCajaDialog.afterClosed().subscribe((res) => {
+    this.selectCajaDialog.afterClosed().pipe(untilDestroyed(this)).subscribe((res) => {
       this.selectCajaDialog = null
       this.isDialogOpen = false;
       let response: AdicionarCajaResponse = res;
@@ -252,7 +261,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   setPrecios() {
-    this.getMonedas.fetch(null, { errorPolicy: "all" }).subscribe((res) => {
+    this.getMonedas.fetch(null, { errorPolicy: "all" }).pipe(untilDestroyed(this)).subscribe((res) => {
       if (res.errors == null) {
         this.monedas = res.data.data;
         this.cambioRs = this.monedas.find(
@@ -280,7 +289,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
 
   buscarPdvCategoria() {
     this.cargandoService.openDialog(false, "Cargando favoritos");
-    this.pdvCategoriaService.onGetCategorias().subscribe((res) => {
+    this.pdvCategoriaService.onGetCategorias().pipe(untilDestroyed(this)).subscribe((res) => {
       this.cargandoService.openDialog(false, "Cargando Otros");
       setTimeout(() => {
         this.cargandoService.closeDialog();
@@ -292,7 +301,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
           cat.grupos.forEach((gr) => {
             if (gr.activo == true) {
               this.pdvCategoriaService
-                .onGetGrupoProductosPorGrupoId(gr.id)
+                .onGetGrupoProductosPorGrupoId(gr.id).pipe(untilDestroyed(this))
                 .subscribe((res) => {
                   if (res != null) {
                     console.log("cargando: " + gr.descripcion);
@@ -316,7 +325,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   buscarTiposPrecios() {
-    this.getTiposPrecios.fetch().subscribe((res) => {
+    this.getTiposPrecios.fetch().pipe(untilDestroyed(this)).subscribe((res) => {
       if (!res.errors) {
         this.tiposPrecios = res.data.data;
         this.selectedTipoPrecio = this.tiposPrecios[0];
@@ -342,7 +351,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
           descripcion,
         },
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         let respuesta: SelectProductosResponseData = res;
         if (res != null) {
@@ -457,7 +466,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
               },
               disableClose: true,
             })
-            .afterClosed()
+            .afterClosed().pipe(untilDestroyed(this))
             .subscribe((res) => {
               console.log(this.dialogReference);
               this.dialogReference = undefined;
@@ -483,7 +492,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   removeItem(item: VentaItem, index?) {
     if (item == null && index == null) {
       this.dialogReference = this.confirmDialogService
-        .confirm("Atención!!", "Realmente desea eliminar la lista de itens?")
+        .confirm("Atención!!", "Realmente desea eliminar la lista de itens?").pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res) {
             this.itemList = [];
@@ -505,7 +514,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         item,
       },
     });
-    dialogReference.afterClosed().subscribe((res) => {
+    dialogReference.afterClosed().pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         switch (res) {
           case -1:
@@ -540,7 +549,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       restoreFocus: true,
     });
     this.formGroup.get("codigo").setValue("");
-    this.dialogReference.afterClosed().subscribe((res) => {
+    this.dialogReference.afterClosed().pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         this.isDialogOpen = false;
         let response: PdvSearchProductoResponseData = res;
@@ -590,7 +599,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
           texto,
         },
         { fetchPolicy: "no-cache", errorPolicy: "all" }
-      )
+      ).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res.errors == null) {
           producto = res.data.data;
@@ -699,7 +708,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
           width: "80vw",
           height: "80vh",
         })
-        .afterClosed()
+        .afterClosed().pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
             this.cargandoService.openDialog();
@@ -778,7 +787,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
 
   onSaveVenta(venta, cobro) {
     this.cargandoService.openDialog();
-    this.ventaTouchServive.onSaveVenta(venta, cobro).subscribe((res) => {
+    this.ventaTouchServive.onSaveVenta(venta, cobro).pipe(untilDestroyed(this)).subscribe((res) => {
       this.cargandoService.closeDialog();
       if (res == true) {
         this.notificacionSnackbar.notification$.next({
@@ -811,7 +820,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         height: "90vh",
         panelClass: ["deliveryBackground"],
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((resDialog) => {
         this.isDialogOpen = false;
         if (resDialog != null) {
@@ -825,7 +834,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
             this.saveVuelto
               .mutate({
                 entity: vueltoInput,
-              })
+              }).pipe(untilDestroyed(this))
               .subscribe((resVuelto) => {
                 if (resVuelto != null) {
                   vueltoId = resVuelto.data["saveVuelto"]["id"];
@@ -838,7 +847,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
                     this.saveVueltoItem
                       .mutate({
                         entity: aux,
-                      })
+                      }).pipe(untilDestroyed(this))
                       .subscribe((resVueltoItem) => {
                         let deliveryInput: DeliveryInput = {
                           estado: DeliveryEstado.ABIERTO,
@@ -857,7 +866,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
                         this.saveDelivery
                           .mutate({
                             entity: deliveryInput,
-                          })
+                          }).pipe(untilDestroyed(this))
                           .subscribe((resDelivery) => {
                             let savedDelivery = new Delivery();
                             savedDelivery = resDelivery.data;
@@ -881,7 +890,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       .open(AddCategoriaDialogComponent, {
         restoreFocus: true,
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.pdvCategorias.push(res);
@@ -902,7 +911,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         width: "70%",
         height: "60%",
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.pdvCategorias.push(res);
@@ -912,7 +921,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.ventaSub.unsubscribe();
   }
 
   openUtilitarios() {
@@ -927,7 +935,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         restoreFocus: true,
         autoFocus: true,
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           if (res.conteoCierre != null) {

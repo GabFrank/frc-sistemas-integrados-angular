@@ -21,6 +21,9 @@ class AdicionarDetalleCompraItemDialogData {
   modificarPrecio?: boolean
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-adicionar-detalle-compra-item-dialog",
   templateUrl: "./adicionar-detalle-compra-item-dialog.component.html",
@@ -90,7 +93,7 @@ export class AdicionarDetalleCompraItemDialogComponent implements OnInit {
       this.selectedCompraItem.estado = CompraItemEstado.SIN_MODIFICACIONN
     }
     this.selectedCompraItem.verificado = false;
-    this.compraService.onSaveCompraItem(this.selectedCompraItem.toInput()).subscribe(res => {
+    this.compraService.onSaveCompraItem(this.selectedCompraItem.toInput()).pipe(untilDestroyed(this)).subscribe(res => {
       this.cargandoDialog.closeDialog()
       if(res!=null){
         this.matDialogRef.close(this.selectedCompraItem)

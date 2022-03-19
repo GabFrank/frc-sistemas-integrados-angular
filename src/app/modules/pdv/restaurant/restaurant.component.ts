@@ -10,6 +10,9 @@ import { ClientesSearchByPersonaGQL } from '../../personas/clientes/graphql/clie
 import { ClientesSearchByPersonaIdGQL } from '../../personas/clientes/graphql/clienteSearchByPersonaId';
 import { ClientesSearchByTelefonoGQL } from '../../personas/clientes/graphql/clienteSearchByTelefono';
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-restaurant',
   templateUrl: './restaurant.component.html',
@@ -49,7 +52,7 @@ export class RestaurantComponent implements OnInit {
     this.formGroup.get('mesa').setValue(true);
     this.formGroup.get('retirarEnLocal').setValue(false);
     this.formGroup.get('horaAgend').setValue(this.dateNow);
-    this.precioDeliveryByPrecio.fetch().subscribe(data=>{
+    this.precioDeliveryByPrecio.fetch().pipe(untilDestroyed(this)).subscribe(data=>{
       this.deliveryPrecios = data.data.deliveryPrecios;
       this.formGroup.get('precioDelivery').setValue(this.deliveryPrecios[1].id);
     });
@@ -121,7 +124,7 @@ export class RestaurantComponent implements OnInit {
         {
           fetchPolicy: 'no-cache'
         }
-      ).subscribe(data=>{
+      ).pipe(untilDestroyed(this)).subscribe(data=>{
         this.contactos = data.data.contactos;
         if(this.contactos.length == 1){
           this.selectedContacto = this.contactos[0];
@@ -133,7 +136,7 @@ export class RestaurantComponent implements OnInit {
               {
                 fetchPolicy: 'no-cache'
               }
-            ).subscribe(data=>{
+            ).pipe(untilDestroyed(this)).subscribe(data=>{
               this.selectedCliente = data.data.cliente;
               if(this.selectedCliente!=null){
                 this.buscarCliente.setValue(this.contactos[0].id);

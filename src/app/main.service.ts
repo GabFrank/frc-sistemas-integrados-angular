@@ -1,25 +1,23 @@
 import { HttpClient } from "@angular/common/http";
-import { Injectable } from "@angular/core";
-import { DialogRole, MatDialog, MatDialogRef } from "@angular/material/dialog";
-import { ConnectionService } from "ngx-connection-service";
-import { BehaviorSubject, Subscription } from "rxjs";
-import { Observable } from "zen-observable-ts";
+import { Injectable, OnDestroy } from "@angular/core";
+import { MatDialog } from "@angular/material/dialog";
+import { BehaviorSubject, Observable, Subscription, takeUntil } from "rxjs";
 import { ipAddress } from "../environments/conectionConfig";
 import { environment } from "../environments/environment";
-import { connectionStatusSub } from "./app.module";
 import { SucursalByIdGQL } from "./modules/empresarial/sucursal/graphql/sucursalById";
 import { Sucursal } from "./modules/empresarial/sucursal/sucursal.model";
-import { monedasSearch } from "./modules/financiero/moneda/graphql/graphql-query";
 import { MonedasGetAllGQL } from "./modules/financiero/moneda/graphql/monedasGetAll";
 import { Moneda } from "./modules/financiero/moneda/moneda.model";
-import { LoginComponent } from "./modules/login/login.component";
 import { Usuario } from "./modules/personas/usuarios/usuario.model";
 import { UsuarioService } from "./modules/personas/usuarios/usuario.service";
 
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+
+@UntilDestroy()
 @Injectable({
   providedIn: "root",
 })
-export class MainService {
+export class MainService implements OnDestroy {
   sucursalActual: Sucursal;
   usuarioActual: Usuario;
   fechaHoraInicioSesion: Date;
@@ -29,12 +27,15 @@ export class MainService {
   ciudadId: 1;
   status;
   statusSub: Subscription;
-  authenticationSub: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(null);
+  authenticationSub: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(
+    null
+  );
   hasNetworkConnection: boolean;
   hasInternetAccess: boolean;
   ipLocal = "";
   logged = false;
   serverIpAddres = ipAddress;
+  authSub;
 
   // isUserLoggerSub = new BehaviorSubject<boolean>(false);
 
@@ -45,28 +46,33 @@ export class MainService {
     private matDialog: MatDialog,
     private http: HttpClient
   ) {
-    this.http.get("http://api.ipify.org/?format=json").subscribe((res: any) => {
-      this.ipLocal = res.ip;
-    });
-    localStorage.setItem('serverIpAddress', this.serverIpAddres)
-
-    
+    this.http
+      .get("http://api.ipify.org/?format=json")
+      .subscribe((res: any) => {
+        this.ipLocal = res.ip;
+      })
+    localStorage.setItem("serverIpAddress", this.serverIpAddres);
   }
 
   isAuthenticated(): Observable<boolean> {
-    console.log('Verificando autenticacion...')
+    console.log("Verificando autenticacion...");
     return new Observable((obs) => {
       let isToken = localStorage.getItem("token");
+      console.log(isToken)
       if (isToken != null) {
-        this.getUsuario().subscribe(res => {
-          if(res){
+        this.getUsuario()
+        .pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          console.log('respuesta: ', res)
+          if (res) {
+            console.log('usuario encontrado')
             obs.next(true);
-            this.authenticationSub.next(res)
+            this.authenticationSub.next(res);
           } else {
-            obs.next(false)
-            this.authenticationSub.next(res)
+            obs.next(false);
+            this.authenticationSub.next(res);
           }
-        })
+        });
       } else {
         obs.next(false);
       }
@@ -74,29 +80,36 @@ export class MainService {
   }
 
   getUsuario(): Observable<boolean> {
+    console.log('entrando al getUsuario')
     return new Observable((obs) => {
       let id = localStorage.getItem("usuarioId");
+      console.log(id)
       if (id != null) {
-        this.usuarioService.onGetUsuario(+id).subscribe(res=>{
-          if(res!=null){
-            this.usuarioActual = res;
-            obs.next(true)
-          } else {
-            obs.next(false)
-          }
-        })
+        this.usuarioService
+          .onGetUsuario(+id)
+          .pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            if (res != null) {
+              console.log(res)
+              this.usuarioActual = res;
+              obs.next(true);
+            } else {
+              obs.next(false);
+            }
+          })
       } else {
-        obs.next(false)
+        obs.next(false);
       }
     });
   }
 
-  load() : Promise<boolean>{
+  load(): Promise<boolean> {
     let res;
     this.getSucursalById
       .fetch({
         id: environment.sucursalId,
       })
+      .pipe(untilDestroyed(this))
       .subscribe((data) => {
         if (data.errors == null) {
           this.sucursalActual = data.data.data;
@@ -107,17 +120,21 @@ export class MainService {
           return res;
         }
       });
-    this.getMonedas.fetch().subscribe((res) => {
-      if (res.errors == null) {
-        this.monedas = res.data.data;
-      }
-    });
+    this.getMonedas
+      .fetch()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res.errors == null) {
+          this.monedas = res.data.data;
+        }
+      });
     return res;
   }
 
-  changeServerIpAddress(text){
-    localStorage.setItem('serverIpAddress', text)
-    this.serverIpAddres = localStorage.getItem('serverIpAddress')
-    
+  changeServerIpAddress(text) {
+    localStorage.setItem("serverIpAddress", text);
+    this.serverIpAddres = localStorage.getItem("serverIpAddress");
   }
+
+  ngOnDestroy(): void {}
 }

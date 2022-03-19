@@ -61,6 +61,9 @@ export interface Transaction {
   cost: number;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-edit-pedido",
   templateUrl: "./edit-pedido.component.html",
@@ -203,7 +206,7 @@ export class EditPedidoComponent implements OnInit {
     this.formaPagoList = [];
     this.monedaList = [];
 
-    this.formaPagoService.onGetAllFormaPago().subscribe((res) => {
+    this.formaPagoService.onGetAllFormaPago().pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         this.formaPagoList = res;
         if (this.formaPagoList.length > 0) {
@@ -214,7 +217,7 @@ export class EditPedidoComponent implements OnInit {
       }
     });
 
-    this.monedaService.onGetAll().subscribe((res) => {
+    this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         this.monedaList = res;
         if (this.monedaList.length > 0) {
@@ -225,14 +228,14 @@ export class EditPedidoComponent implements OnInit {
       }
     });
 
-    this.proveedorSub = this.proveedorControl.valueChanges.subscribe((res) => {
+    this.proveedorSub = this.proveedorControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
       if (res == "") this.selectedProveedor = null;
       if (this.proveedorTimer != null) {
         clearTimeout(this.proveedorTimer);
       }
       if (res != null && res.length != 0) {
         this.proveedorTimer = setTimeout(() => {
-          this.proveedorService.onSearch(res).subscribe((response) => {
+          this.proveedorService.onSearch(res).pipe(untilDestroyed(this)).subscribe((response) => {
             this.proveedorList = response;
             if (this.proveedorList.length == 1) {
               this.onProveedorSelect(this.proveedorList[0]);
@@ -248,14 +251,14 @@ export class EditPedidoComponent implements OnInit {
       }
     });
 
-    this.vendedorSub = this.vendedorControl.valueChanges.subscribe((res) => {
+    this.vendedorSub = this.vendedorControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
       if (res == "") this.selectedVendedor = null;
       if (this.vendedorTimer != null) {
         clearTimeout(this.vendedorTimer);
       }
       if (res != null && res.length != 0) {
         this.vendedorTimer = setTimeout(() => {
-          this.vendedorService.onSearch(res).subscribe((response) => {
+          this.vendedorService.onSearch(res).pipe(untilDestroyed(this)).subscribe((response) => {
             this.vendedorList = response;
             if (this.vendedorList.length == 1) {
               this.onVendedorSelect(this.vendedorList[0]);
@@ -285,7 +288,7 @@ export class EditPedidoComponent implements OnInit {
   cargarPedido(id) {
     this.cargandoDialog.openDialog();
     this.dataSource.data = [];
-    this.pedidoService.onGetPedidoInfoCompleta(id).subscribe((res) => {
+    this.pedidoService.onGetPedidoInfoCompleta(id).pipe(untilDestroyed(this)).subscribe((res) => {
       this.isEditar = true;
       if (res != null) {
         console.log(res);
@@ -304,7 +307,7 @@ export class EditPedidoComponent implements OnInit {
         this.detalleForm.disable();
         console.log(res);
         this.notaRecepcionService
-          .onGetNotaRecepcionPorPedidoId(this.selectedPedido.id)
+          .onGetNotaRecepcionPorPedidoId(this.selectedPedido.id).pipe(untilDestroyed(this))
           .subscribe((res2) => {
             console.log(res2);
             if (res != null) {
@@ -404,7 +407,7 @@ export class EditPedidoComponent implements OnInit {
 
   onAdicionar() {
     if (this.selectedPedido == null) {
-      this.onGuardar().subscribe((res) => {
+      this.onGuardar().pipe(untilDestroyed(this)).subscribe((res) => {
         if (res) {
           this.matDialog
             .open(AdicionarItemDialogComponent, {
@@ -415,7 +418,7 @@ export class EditPedidoComponent implements OnInit {
               height: "70%",
               disableClose: false,
             })
-            .afterClosed()
+            .afterClosed().pipe(untilDestroyed(this))
             .subscribe((res) => {
               if (res != null) {
                 this.updateItem(res);
@@ -433,7 +436,7 @@ export class EditPedidoComponent implements OnInit {
           height: "70%",
           disableClose: false,
         })
-        .afterClosed()
+        .afterClosed().pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
             this.updateItem(res);
@@ -452,7 +455,7 @@ export class EditPedidoComponent implements OnInit {
     if (pedidoItem?.id != null) {
       index = this.dataSource.data.findIndex((e) => e.id == pedidoItem.id);
     }
-    this.pedidoService.onSaveItem(pedidoItem.toInput()).subscribe((res) => {
+    this.pedidoService.onSaveItem(pedidoItem.toInput()).pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         pedidoItem.id = res.id;
         pedidoItem.compraItem = res.compraItem;
@@ -488,7 +491,7 @@ export class EditPedidoComponent implements OnInit {
       pedido.vendedor = this.selectedVendedor;
       pedido.pedidoItens = this.dataSource.data;
       pedido.estado = PedidoEstado.ABIERTO;
-      this.pedidoService.onSave(pedido.toInput()).subscribe((res) => {
+      this.pedidoService.onSave(pedido.toInput()).pipe(untilDestroyed(this)).subscribe((res) => {
         if (res != null) {
           pedido.id = res.id;
           this.selectedPedido = pedido;
@@ -514,19 +517,19 @@ export class EditPedidoComponent implements OnInit {
       case "recepcion-nota":
         if (this.selectedPedido.estado == PedidoEstado.ABIERTO && this.dataSource.data.length > 0) {
           this.dialogoService
-            .confirm("Iniciar recepción de nota?", null)
+            .confirm("Iniciar recepción de nota?", null).pipe(untilDestroyed(this))
             .subscribe((res) => {
               if (res) {
                 this.selectedPedido.estado = PedidoEstado.EN_RECEPCION_NOTA;
                 this.pedidoService
-                  .onSave(this.selectedPedido.toInput())
+                  .onSave(this.selectedPedido.toInput()).pipe(untilDestroyed(this))
                   .subscribe((res) => {
                     let compra = new Compra();
                     compra.estado = CompraEstado.PRE_COMPRA;
                     compra.pedido = this.selectedPedido;
                     compra.proveedor = this.selectedPedido.proveedor;
                     this.compraService
-                      .onSaveCompra(compra.toInput())
+                      .onSaveCompra(compra.toInput()).pipe(untilDestroyed(this))
                       .subscribe((res2) => {
                         console.log(res2);
                         if (res2 != null) {
@@ -552,12 +555,12 @@ export class EditPedidoComponent implements OnInit {
         if (this.selectedPedido.estado == PedidoEstado.EN_RECEPCION_NOTA) {
           this.cargandoDialog.openDialog();
           this.dialogoService
-            .confirm("Iniciar recepción de mercaderia?", null)
+            .confirm("Iniciar recepción de mercaderia?", null).pipe(untilDestroyed(this))
             .subscribe((res) => {
               if (res) {
                 this.selectedPedido.estado =
                   PedidoEstado.EN_RECEPCION_MERCADERIA;
-                this.pedidoService.onSave(this.selectedPedido.toInput()).subscribe(res2 => {
+                this.pedidoService.onSave(this.selectedPedido.toInput()).pipe(untilDestroyed(this)).subscribe(res2 => {
                   if(res2!==null){
                     this.cargandoDialog.closeDialog();
                     this.stepper.selectedIndex = 2;
@@ -596,7 +599,7 @@ export class EditPedidoComponent implements OnInit {
           height: "70%",
           disableClose: false,
         })
-        .afterClosed()
+        .afterClosed().pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
             this.updateItem(res);
@@ -607,7 +610,7 @@ export class EditPedidoComponent implements OnInit {
 
   deleteItem(pedidoItem: PedidoItem) {
     let index = this.dataSource.data.findIndex((i) => i == pedidoItem);
-    this.pedidoService.onDeletePedidoItem(pedidoItem.id).subscribe((res) => {
+    this.pedidoService.onDeletePedidoItem(pedidoItem.id).pipe(untilDestroyed(this)).subscribe((res) => {
       if (res == true) {
         if (index != -1) {
           let arr: PedidoItem[] = this.dataSource.data;
@@ -673,7 +676,7 @@ export class EditPedidoComponent implements OnInit {
         width: "100%",
         height: "70%",
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.cargarPedido(this.selectedPedido.id);
@@ -693,7 +696,7 @@ export class EditPedidoComponent implements OnInit {
           height: "70%",
           disableClose: true,
         })
-        .afterClosed()
+        .afterClosed().pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
             this.cargarPedido(this.selectedPedido.id);
@@ -725,7 +728,7 @@ export class EditPedidoComponent implements OnInit {
     Object.assign(compraItem, item.compraItem);
     compraItem.verificado = true; 
     this.compraService
-      .onSaveCompraItem(compraItem.toInput())
+      .onSaveCompraItem(compraItem.toInput()).pipe(untilDestroyed(this))
       .subscribe((res) => {
         console.log(res);
         this.cargandoDialog.closeDialog();
@@ -769,7 +772,7 @@ export class EditPedidoComponent implements OnInit {
         width: "100%",
         disableClose: true,
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           if (res != null) {

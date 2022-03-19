@@ -25,6 +25,9 @@ class NecesidadProducto {
   frio: boolean
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-edit-necesidad',
   templateUrl: './edit-necesidad.component.html',
@@ -103,7 +106,7 @@ export class EditNecesidadComponent implements OnInit {
   }
 
   getSucursales(){
-    this.allSucursales.fetch().subscribe((data)=>{
+    this.allSucursales.fetch().pipe(untilDestroyed(this)).subscribe((data)=>{
       if(data.errors){
         console.log("error al obtener sucursales");
       } else {
@@ -126,7 +129,7 @@ export class EditNecesidadComponent implements OnInit {
         {
           fetchPolicy: 'no-cache'
         }
-      ).subscribe((data) => {
+      ).pipe(untilDestroyed(this)).subscribe((data) => {
         const sucursal: Sucursal = data.data.data;
         this.selectedSucursal = sucursal;
         this.sucursales.push(sucursal);
@@ -141,7 +144,7 @@ export class EditNecesidadComponent implements OnInit {
           {
             fetchPolicy: 'no-cache'
           }
-        ).subscribe((data) => {
+        ).pipe(untilDestroyed(this)).subscribe((data) => {
           this.sucursales = data.data.data;
           if (this.sucursales.length == 1) {
             setTimeout(() => {
@@ -173,7 +176,7 @@ export class EditNecesidadComponent implements OnInit {
       data: {texto: (e.target as HTMLInputElement).value}
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(result => {
       this.selectedProducto = result as Producto;
       if(this.selectedProducto!=null){
         this.formGroup.get('codigoProducto').setValue(this.selectedProducto.id);
@@ -187,7 +190,7 @@ export class EditNecesidadComponent implements OnInit {
     if(!this.formGroup.valid)
     return   
     if(e == 'ArrowDown' || e == 'Enter'){
-      this.dialogService.confirm('Desea adicionar este producto?', `DESCRIPCION: ${this.selectedProducto.descripcion}`, `CANTIDAD: ${this.formGroup.get('cantidadProducto').value}`).subscribe((result)=>{
+      this.dialogService.confirm('Desea adicionar este producto?', `DESCRIPCION: ${this.selectedProducto.descripcion}`, `CANTIDAD: ${this.formGroup.get('cantidadProducto').value}`).pipe(untilDestroyed(this)).subscribe((result)=>{
         if(result){
           let necesidadProducto : NecesidadProducto = new NecesidadProducto();
           necesidadProducto.id = this.productosList.length + 1;
@@ -219,7 +222,7 @@ export class EditNecesidadComponent implements OnInit {
         {
           fetchPolicy: 'no-cache'
         }
-      ).subscribe((data)=>{
+      ).pipe(untilDestroyed(this)).subscribe((data)=>{
         if(data.errors){
         } else {
         this.selectedProducto = data.data.data;

@@ -14,6 +14,9 @@ interface RedondeoDialogResponseData {
   valor: number;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-redondeo-dialog',
   templateUrl: './redondeo-dialog.component.html',
@@ -41,7 +44,7 @@ export class RedondeoDialogComponent implements OnInit {
   ngOnInit(): void {
     this.createRedondeos()
 
-    this.getMonedas.fetch().subscribe(res => {
+    this.getMonedas.fetch().pipe(untilDestroyed(this)).subscribe(res => {
       if(!res.errors){
         this.monedas = res.data.data;
       }

@@ -14,6 +14,9 @@ import { CodigosPorPresentacionIdGQL } from "./graphql/codigoPorPresentacionId";
 import { DeleteCodigoGQL } from "./graphql/deleteCodigo";
 import { SaveCodigoGQL } from "./graphql/saveCodigo";
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
@@ -57,7 +60,7 @@ export class CodigoService {
           {
             errorPolicy: "all",
           }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           console.log(res);
           if (res.errors == null) {
@@ -91,7 +94,7 @@ export class CodigoService {
           "Atención!!",
           "Realemente desea eliminar el código",
           `${codigo.codigo}`
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res1) => {
           if (res1) {
             this.deleteCodigo
@@ -100,7 +103,7 @@ export class CodigoService {
                   id: codigo.id,
                 },
                 { errorPolicy: "all" }
-              )
+              ).pipe(untilDestroyed(this))
               .subscribe((res) => {
                 if (res.errors == null) {
                   this.notificacionBar.notification$.next({

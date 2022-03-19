@@ -11,7 +11,9 @@ import { Funcionario } from '../funcionario.model';
 import { FuncionarioService } from '../funcionario.service';
 
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-funcioario',
   templateUrl: './list-funcioario.component.html',
@@ -48,7 +50,7 @@ export class ListFuncioarioComponent implements OnInit {
 
   ngOnInit(): void {
     console.log(this.windowInfoService.innerHeight*0.9)
-    this.service.onGetAllFuncionarios().subscribe(res => {
+    this.service.onGetAllFuncionarios().pipe(untilDestroyed(this)).subscribe(res => {
       console.log(res)
       this.dataSource.data = res;
     })
@@ -70,7 +72,7 @@ export class ListFuncioarioComponent implements OnInit {
       width: '40%',
       autoFocus: true,
       restoreFocus: true
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         if(funcionario==null){
           this.dataSource.data = updateDataSource(this.dataSource.data, res);

@@ -36,6 +36,9 @@ export class ProductoCategoriaResponseData {
   tipoPrecio: TipoPrecio;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-producto-categoria-dialog",
   templateUrl: "./producto-categoria-dialog.component.html",
@@ -70,7 +73,7 @@ export class ProductoCategoriaDialogComponent implements OnInit {
     this.createForm();
     this.setFocusToCantidad();
 
-    this.formGroup.controls.cantidad.valueChanges.subscribe((res) => {
+    this.formGroup.controls.cantidad.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
       if (res == 0 || res == null) {
         this.formGroup.controls.cantidad.setValue(1);
         this.setFocusToCantidad();
@@ -100,7 +103,7 @@ export class ProductoCategoriaDialogComponent implements OnInit {
         numero: this.cantidad,
       },
     });
-    dialog.afterClosed().subscribe((res) => {
+    dialog.afterClosed().pipe(untilDestroyed(this)).subscribe((res) => {
       if (res > 0) {
         this.formGroup.get("cantidad").setValue(res);
       }

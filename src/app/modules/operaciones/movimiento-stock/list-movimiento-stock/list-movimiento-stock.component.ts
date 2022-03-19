@@ -9,6 +9,9 @@ import { Producto } from '../../../productos/producto/producto.model';
 import { MovimientoStock } from '../movimiento-stock.model';
 import { MovimientoStockService } from '../movimiento-stock.service';
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-movimiento-stock',
   templateUrl: './list-movimiento-stock.component.html',
@@ -67,7 +70,7 @@ export class ListMovimientoStockComponent implements OnInit {
       .onGetMovimientosPorFecha(
         this.inicioControl.value,
         this.finControl.value
-      )
+      ).pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.movimientosDataSource.data = res["data"];
         this.aplicarFiltros(this.movimientosDataSource.data)
@@ -123,7 +126,7 @@ export class ListMovimientoStockComponent implements OnInit {
         width: "100%",
         height: "100%",
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         let respuesta: PdvSearchProductoResponseData;
         if (res != null) {

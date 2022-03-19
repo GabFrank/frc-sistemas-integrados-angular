@@ -19,6 +19,10 @@ import { FuncionarioService } from '../funcionario.service';
 export class AdicionarFuncionarioDialogData {
   funcionario: Funcionario;
 }
+
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-adicionar-funcionario-dialog',
   templateUrl: './adicionar-funcionario-dialog.component.html',
@@ -65,12 +69,12 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
   ) { 
     if(data?.funcionario != null){
       this.selectedFuncionario = data.funcionario;
-      personaService.onGetPersona(this.selectedFuncionario.persona.id).subscribe(res => {
+      personaService.onGetPersona(this.selectedFuncionario.persona.id).pipe(untilDestroyed(this)).subscribe(res => {
         if(res!=null){
           this.selectedPersona = res;
         }
       })
-      usuarioService.onGetUsuarioPorPersonaId(this.selectedFuncionario.persona.id).subscribe(res => {
+      usuarioService.onGetUsuarioPorPersonaId(this.selectedFuncionario.persona.id).pipe(untilDestroyed(this)).subscribe(res => {
         if(res!=null){
           this.selectedUsuario = res;
         }
@@ -109,7 +113,7 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
       restoreFocus: true,
       height: '90%',
       width: '100%'
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         if(res.isFuncionario){
           this.notificacionBar.notification$.next( {
@@ -119,7 +123,7 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
           })
         } else {
           this.selectedPersona = res;
-          this.usuarioService.onGetUsuarioPorPersonaId(this.selectedPersona.id).subscribe(res => {
+          this.usuarioService.onGetUsuarioPorPersonaId(this.selectedPersona.id).pipe(untilDestroyed(this)).subscribe(res => {
             if(res!=null){
               this.selectedUsuario = res;
               console.log(res)
@@ -138,10 +142,10 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
       autoFocus: true,
       restoreFocus: true,
       width: '50%'
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         this.selectedPersona = res;
-        this.usuarioService.onGetUsuarioPorPersonaId(this.selectedPersona.id).subscribe(res => {
+        this.usuarioService.onGetUsuarioPorPersonaId(this.selectedPersona.id).pipe(untilDestroyed(this)).subscribe(res => {
           if(res!=null){
             this.selectedUsuario = res;
             console.log(res)
@@ -164,7 +168,7 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
       autoFocus: true,
       restoreFocus: true,
       width: '30%'
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         this.selectedUsuario = res;
       }
@@ -208,7 +212,7 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
     input.fasePrueba = this.fasePruebaControl.value;
     input.activo = this.activoControl.value;
     input.supervisadoPorId = this.selectedResponsable?.id;
-    input.personaId != null ? this.funcionarioService.onSaveFuncionario(input).subscribe(res => {
+    input.personaId != null ? this.funcionarioService.onSaveFuncionario(input).pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         this.selectedFuncionario = res;
         this.matDialogRef.close(this.selectedFuncionario)

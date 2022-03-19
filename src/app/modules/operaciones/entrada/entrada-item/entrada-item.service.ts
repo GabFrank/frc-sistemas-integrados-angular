@@ -6,7 +6,9 @@ import { DeleteEntradaItemGQL } from './graphql/deleteEntradaItem';
 import { GetAllEntradaItemsGQL } from './graphql/getAllEntradasItem';
 import { SaveEntradaItemGQL } from './graphql/saveEntradaItem';
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: 'root'
 })
@@ -26,7 +28,7 @@ export class EntradaItemService {
       }, {
         fetchPolicy: 'no-cache',
         errorPolicy: 'all'
-      }).subscribe(res => {
+      }).pipe(untilDestroyed(this)).subscribe(res => {
         if(res.errors==null){
           obs.next(res.data)
           this.notificacionService.notification$.next({
@@ -52,7 +54,7 @@ export class EntradaItemService {
       }, {
         fetchPolicy: 'no-cache',
         errorPolicy: 'all'
-      }).subscribe(res => {
+      }).pipe(untilDestroyed(this)).subscribe(res => {
         if(res.errors==null){
           obs.next(true)
           this.notificacionService.notification$.next({
@@ -74,7 +76,7 @@ export class EntradaItemService {
 
   onGetAllEntradaItems(){
     return new Observable(obs => {
-      this.getAllEntradaItems.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'})
+      this.getAllEntradaItems.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'}).pipe(untilDestroyed(this))
       .subscribe(res => {
         if(res.errors==null){
           obs.next(res.data)

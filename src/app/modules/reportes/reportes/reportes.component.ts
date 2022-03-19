@@ -3,6 +3,9 @@ import { pdfDefaultOptions } from "ngx-extended-pdf-viewer";
 import { Subscription } from "rxjs";
 import { ReporteData, ReporteService } from "../reporte.service";
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-reportes",
   templateUrl: "./reportes.component.html",
@@ -20,7 +23,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.reporteList = [];
-    this.reporteSub = this.reporteService.sub.subscribe((res) => {
+    this.reporteSub = this.reporteService.sub.pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         this.reporteList = res;
         this.onSelectReporte(

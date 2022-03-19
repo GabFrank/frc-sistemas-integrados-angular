@@ -25,6 +25,9 @@ import { PedidoItemPorIdGQL } from "./nota-recepcion/graphql/pedidoItemPorId";
 import { UpdateNotaRecepcionIdGQL } from "./graphql/updateNotaRecepcionId";
 import { NotificacionColor, NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
@@ -88,7 +91,7 @@ export class PedidoService {
           notaRecepcionId,
         },
         { fetchPolicy: "no-cache", errorPolicy: "all" }
-      ).subscribe(res => {
+      ).pipe(untilDestroyed(this)).subscribe(res => {
         if (res.errors == null) {
           obs.next(res.data["data"]);
         } else {

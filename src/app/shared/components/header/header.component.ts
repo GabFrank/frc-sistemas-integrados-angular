@@ -1,4 +1,10 @@
-import { Component, OnInit, Output, EventEmitter, OnDestroy } from "@angular/core";
+import {
+  Component,
+  OnInit,
+  Output,
+  EventEmitter,
+  OnDestroy,
+} from "@angular/core";
 import { FormControl } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { Router } from "@angular/router";
@@ -11,6 +17,9 @@ import { MainService } from "../../../main.service";
 import { LoginComponent } from "../../../modules/login/login.component";
 import { CargandoDialogService } from "../cargando-dialog/cargando-dialog.service";
 
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-header",
   templateUrl: "./header.component.html",
@@ -19,9 +28,9 @@ import { CargandoDialogService } from "../cargando-dialog/cargando-dialog.servic
 export class HeaderComponent implements OnInit, OnDestroy {
   status = false;
   statusObs: Observable<any>;
-  serverIpAddress = ''
+  serverIpAddress = "";
   editServerIp = false;
-  serverIpControl = new FormControl()
+  serverIpControl = new FormControl();
   statusSub: Subscription;
 
   @Output() toogleSideBarEvent: EventEmitter<any> = new EventEmitter();
@@ -41,21 +50,26 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.statusSub = connectionStatusSub.subscribe(res => {
-      console.log(res)
-      this.status = res;
-    });
+    this.statusSub = connectionStatusSub
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        console.log(res);
+        this.status = res;
+      });
   }
 
   toogleSideBar() {
-    this.mainService.isAuthenticated().subscribe(res => {
-      if(res){
-        this.toogleSideBarEvent.emit();
-        setTimeout(() => {
-          window.dispatchEvent(new Event("resize"));
-        }, 300);
-      }
-    })
+    this.mainService
+      .isAuthenticated()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) {
+          this.toogleSideBarEvent.emit();
+          setTimeout(() => {
+            window.dispatchEvent(new Event("resize"));
+          }, 300);
+        }
+      });
   }
 
   onLogout() {
@@ -74,15 +88,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
       //   height: "500px",
       //   disableClose: false
       // });
-      
     }, 1000);
   }
 
   ngOnDestroy(): void {
     //Called once, before the instance is destroyed.
     //Add 'implements OnDestroy' to the class.
-    this.statusSub.unsubscribe()
-
+    this.statusSub.unsubscribe();
   }
-
 }

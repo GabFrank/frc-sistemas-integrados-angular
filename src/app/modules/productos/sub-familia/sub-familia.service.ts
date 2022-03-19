@@ -9,6 +9,9 @@ import { SaveSubfamiliaGQL } from './graphql/saveSubfamilia';
 import { SubfamiliaInput } from './graphql/subfamilia-input.model';
 import { Subfamilia } from './sub-familia.model';
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: 'root'
 })
@@ -29,7 +32,7 @@ export class SubFamiliaService {
   }
 
   onGetSubfamilias(){
-    this.getSubfamilias.fetch(null, {fetchPolicy: 'no-cache'}).subscribe(res => {
+    this.getSubfamilias.fetch(null, {fetchPolicy: 'no-cache'}).pipe(untilDestroyed(this)).subscribe(res => {
       if(!res.error){
         this.subfamilias = res.data.data;
         this.subfamiliaBS.next(this.subfamilias.sort((a,b)=>{
@@ -49,7 +52,7 @@ export class SubFamiliaService {
     return new Observable((obs)=>{
       this.saveSubfamilia.mutate({
         entity: subfamiliaInput
-      }).subscribe(res => {
+      }).pipe(untilDestroyed(this)).subscribe(res => {
         if(!res.errors){
           this.onGetSubfamilias()
           obs.next(res.data)
@@ -65,7 +68,7 @@ export class SubFamiliaService {
   onDeleteSubfamilia(id: number){
     return this.deleteSubfamilia.mutate({
       id
-    }).subscribe(res => {
+    }).pipe(untilDestroyed(this)).subscribe(res => {
       if(!res.errors){
         this.onGetSubfamilias()
         this.familiaService.onGetFamilias()
@@ -75,7 +78,7 @@ export class SubFamiliaService {
 
   onCountSubfamilia(): Observable<number> {
     return new Observable((obs)=>{
-      this.countSubfamilia.fetch().subscribe(res => {
+      this.countSubfamilia.fetch().pipe(untilDestroyed(this)).subscribe(res => {
         if(!res.error){
           return obs.next(res.data.countSubfamilia)
         }

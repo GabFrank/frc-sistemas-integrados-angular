@@ -54,6 +54,9 @@ interface VueltoItem {
   formaPago: string;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-delivery-dialog',
   templateUrl: './delivery-dialog.component.html',
@@ -219,7 +222,7 @@ export class DeliveryDialogComponent implements OnInit, AfterContentChecked {
       this.telefonoInput.nativeElement.focus();
     }, 0);
 
-    this.selectedPrecio.valueChanges.subscribe((res) => {
+    this.selectedPrecio.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         let valorDelivery = res.valor;
         let valorTotal = this.data.valor;
@@ -249,7 +252,7 @@ export class DeliveryDialogComponent implements OnInit, AfterContentChecked {
     this.formGroup.controls.cliente.setValue('SIN NOMBRE');
     this.formGroup.controls.valor.setValue(this.data.valor);
 
-    this.formGroup.controls.valor.valueChanges.subscribe((res) => {
+    this.formGroup.controls.valor.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
       this.setCambios();
       this.setVueltoPara();
     });
@@ -258,7 +261,7 @@ export class DeliveryDialogComponent implements OnInit, AfterContentChecked {
   }
 
   setCambios() {
-    this.getMonedas.fetch().subscribe((res) => {
+    this.getMonedas.fetch().pipe(untilDestroyed(this)).subscribe((res) => {
       if (!res.errors) {
         this.monedas = res.data.data;
         this.filteredMonedas = this.monedas.filter(
@@ -286,7 +289,7 @@ export class DeliveryDialogComponent implements OnInit, AfterContentChecked {
     this.getBarriosPorCiudadId
       .fetch({
         id: 1,
-      })
+      }).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (!res.errors) {
           this.barrios = res.data.data;
@@ -295,7 +298,7 @@ export class DeliveryDialogComponent implements OnInit, AfterContentChecked {
   }
 
   getPreciosDel() {
-    this.getPreciosDelivery.fetch().subscribe((res) => {
+    this.getPreciosDelivery.fetch().pipe(untilDestroyed(this)).subscribe((res) => {
       if (!res.errors) {
         this.precioDeliveryList = res.data.data;
         this.filteredPrecioDeliveryList = this.precioDeliveryList.filter(
@@ -321,11 +324,11 @@ export class DeliveryDialogComponent implements OnInit, AfterContentChecked {
     //       this.deliverysUltimos10 = res.data.data;
     //     }
     //   });
-    this.deliveryService.deliverysActivosSub.subscribe(res=>{
+    this.deliveryService.deliverysActivosSub.pipe(untilDestroyed(this)).subscribe(res=>{
       this.deliverysActivos = res;
     })
 
-    this.deliveryService.ultimosDeliverysSub.subscribe(res=>{
+    this.deliveryService.ultimosDeliverysSub.pipe(untilDestroyed(this)).subscribe(res=>{
       this.ultimosDeliverys = res;
     })
   }
@@ -531,7 +534,7 @@ export class DeliveryDialogComponent implements OnInit, AfterContentChecked {
             valor: 0,
           },
         })
-        .afterClosed()
+        .afterClosed().pipe(untilDestroyed(this))
         .subscribe((res: SelectBilletesResponseData) => {
           if (res != null) {
             this.selectedMoneda = res.moneda;
@@ -552,7 +555,7 @@ export class DeliveryDialogComponent implements OnInit, AfterContentChecked {
         },
         width: '50vw',
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.vueltoItemList[index].valor = res.valor;
@@ -571,7 +574,7 @@ export class DeliveryDialogComponent implements OnInit, AfterContentChecked {
         },
         width: '50vw',
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           let valorActual =

@@ -4,6 +4,10 @@ import { DisplayedLinkData } from '../../../../shared/components/generic-list/ge
 import { Persona } from '../persona.model';
 import { PersonaService } from '../persona.service';
 
+
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-persona-detalle-dialogo',
   templateUrl: './persona-detalle-dialogo.component.html',

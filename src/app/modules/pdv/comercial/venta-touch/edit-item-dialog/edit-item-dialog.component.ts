@@ -8,6 +8,9 @@ export class EditItemData {
   item: Item;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-edit-item-dialog',
   templateUrl: './edit-item-dialog.component.html',
@@ -54,7 +57,7 @@ export class EditItemDialogComponent implements OnInit {
         numero: this.formGroup.get('cantidad').value
       }
     })
-    this.dialog.afterClosed().subscribe((res)=>{
+    this.dialog.afterClosed().pipe(untilDestroyed(this)).subscribe((res)=>{
       if(res>0){
         this.formGroup.get('cantidad').setValue(res);
       }

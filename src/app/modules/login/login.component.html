@@ -28,6 +28,9 @@
         <div fxFlex fxLayout="row" fxLayoutGap="10ppx">
             <h4 style="color: red;">{{errorMessage}}</h4>
         </div>
+        <div *ngIf="errorMessage == 'Servidor no configurado'" fxFlex fxLayout="row" fxLayoutGap="10ppx">
+            <button mat-raised-button (click)="onConfigurarServidor()">Configurar servidor</button>
+        </div>
     </div>
 </form>
 

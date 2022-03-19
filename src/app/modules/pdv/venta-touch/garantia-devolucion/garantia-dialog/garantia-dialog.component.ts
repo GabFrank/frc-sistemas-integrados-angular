@@ -7,6 +7,9 @@ import { VentaItem } from '../../../../operaciones/venta/venta-item.model';
 import { Venta } from '../../../../operaciones/venta/venta.model';
 import { VentaService } from '../../../../operaciones/venta/venta.service';
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-garantia-dialog',
   templateUrl: './garantia-dialog.component.html',
@@ -35,7 +38,7 @@ export class GarantiaDialogComponent implements OnInit {
 
   onBuscarCodigo(){
     this.cargandoService.openDialog(false, "Buscando venta")
-    this.ventaService.onGetPorId(this.ventaIdControl.value).subscribe(res => {
+    this.ventaService.onGetPorId(this.ventaIdControl.value).pipe(untilDestroyed(this)).subscribe(res => {
       this.cargandoService.closeDialog()
       if(res!=null){
         this.ventaItemList = res.ventaItemList.filter(i => i.producto.isEnvase == true)

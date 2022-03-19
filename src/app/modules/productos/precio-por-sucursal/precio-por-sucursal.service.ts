@@ -1,6 +1,5 @@
 import { Injectable } from "@angular/core";
-import { Observable } from "@apollo/client/utilities";
-import { BehaviorSubject } from "rxjs";
+import { BehaviorSubject, Observable } from "rxjs";
 import { MainService } from "../../../main.service";
 import {
   NotificacionColor,
@@ -13,6 +12,9 @@ import { savePrecioPorSucursalGQL } from "./graphql/savePrecioPorSucursal";
 import { PrecioPorSucursalInput } from "./precio-por-sucursal-input.model";
 import { PrecioPorSucursal } from "./precio-por-sucursal.model";
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
@@ -40,7 +42,7 @@ export class PrecioPorSucursalService {
           {
             errorPolicy: "all",
           }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             obs.next(res.data.data);
@@ -67,7 +69,7 @@ export class PrecioPorSucursalService {
           `Precio: ${precio?.precio}`,
           `Tipo Precio: ${precio?.tipoPrecio?.descripcion}`,
           `Principal: ${precio?.principal}`,
-        ])
+        ]).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res) {
             this.deletePrecioPorSucursal
@@ -79,7 +81,7 @@ export class PrecioPorSucursalService {
                   errorPolicy: "all",
                   fetchPolicy: 'no-cache'
                 }
-              )
+              ).pipe(untilDestroyed(this))
               .subscribe((res) => {
                 if (!res.errors) {
                   obs.next(true);

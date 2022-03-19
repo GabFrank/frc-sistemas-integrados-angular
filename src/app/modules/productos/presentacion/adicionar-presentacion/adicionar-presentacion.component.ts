@@ -18,6 +18,9 @@ export class AdicionarPresentacionData {
   producto: Producto;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-adicionar-presentacion",
   templateUrl: "./adicionar-presentacion.component.html",
@@ -99,7 +102,7 @@ export class AdicionarPresentacionComponent implements OnInit {
     this.presentacionInput.activo = this.activoControl.value;
     this.presentacionInput.principal = this.principalControl.value;
     this.presentacionService
-      .onSavePresentacion(this.presentacionInput)
+      .onSavePresentacion(this.presentacionInput).pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.cargandoDialog.closeDialog()
         if(res?.errors?.length>0){
@@ -143,7 +146,7 @@ export class AdicionarPresentacionComponent implements OnInit {
   //tipo presentacion
   createTipoPresentacionSelect() {
     this.cargandoDialog.openDialog()
-    this.tipoPresentacionService.onGetPresentaciones().subscribe((res) => {
+    this.tipoPresentacionService.onGetPresentaciones().pipe(untilDestroyed(this)).subscribe((res) => {
       console.log(res);
       this.tipoPresentacionList = res.data.data.sort((a, b) => {
         if (a.id > b.id) {

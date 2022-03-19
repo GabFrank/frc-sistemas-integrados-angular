@@ -8,6 +8,9 @@ import { GetStockPorProductoGQL } from './graphql/getStockPorProducto';
 import { TipoMovimiento } from './movimiento-stock.enums';
 import { MovimientoStock } from './movimiento-stock.model';
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: 'root'
 })
@@ -31,7 +34,7 @@ export class MovimientoStockService {
       }, {
         fetchPolicy: 'no-cache',
         errorPolicy: 'all'
-      }).subscribe(res => {
+      }).pipe(untilDestroyed(this)).subscribe(res => {
         if(res.errors==null){
           obs.next(res.data)
         } else {
@@ -62,7 +65,7 @@ export class MovimientoStockService {
 
   onGetStockPorProducto(id): Observable<number>{
     return new Observable(obs => {
-      this.getStockPorProducto.fetch({id}, {fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
+      this.getStockPorProducto.fetch({id}, {fetchPolicy: 'no-cache', errorPolicy: 'all'}).pipe(untilDestroyed(this)).subscribe(res => {
         if(res.errors == null){
           obs.next(res.data['data'])
         } else {

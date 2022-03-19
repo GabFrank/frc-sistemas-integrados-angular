@@ -8,6 +8,9 @@ export class AdicionarMaletinData {
   maletin?: Maletin;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-adicionar-maletin-dialog",
   templateUrl: "./adicionar-maletin-dialog.component.html",

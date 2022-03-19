@@ -10,6 +10,10 @@ import { VentaTouchService } from '../venta-touch.service';
 export class UtilitariosDialogData {
   caja: PdvCaja
 }
+
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-utilitarios-dialog',
   templateUrl: './utilitarios-dialog.component.html',
@@ -42,7 +46,7 @@ export class UtilitariosDialogComponent implements OnInit {
       disableClose: true,
       autoFocus: true,
       restoreFocus: true    
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       this.dialogRef.close(res)
     })
   }
@@ -56,7 +60,7 @@ export class UtilitariosDialogComponent implements OnInit {
       disableClose: true,
       autoFocus: true,
       restoreFocus: true    
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       this.dialogRef.close()
     })
   }
@@ -71,7 +75,7 @@ export class UtilitariosDialogComponent implements OnInit {
       disableClose: true,
       autoFocus: true,
       restoreFocus: true    
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       this.dialogRef.close()
     })
   }
@@ -87,7 +91,7 @@ export class UtilitariosDialogComponent implements OnInit {
       disableClose: false,
       autoFocus: true,
       restoreFocus: true    
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       this.dialogRef.close()
     })
   }
@@ -103,7 +107,7 @@ export class UtilitariosDialogComponent implements OnInit {
       disableClose: false,
       autoFocus: true,
       restoreFocus: true    
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       this.dialogRef.close()
     })
   }

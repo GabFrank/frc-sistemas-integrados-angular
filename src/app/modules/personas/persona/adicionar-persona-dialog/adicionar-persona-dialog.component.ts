@@ -11,6 +11,9 @@ export class AdicionarPersonaData {
   persona?: Persona;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-adicionar-persona-dialog',
   templateUrl: './adicionar-persona-dialog.component.html',
@@ -70,7 +73,7 @@ export class AdicionarPersonaDialogComponent implements OnInit {
     let minDate = new Date()
     minDate.setFullYear(this.maxDate.getFullYear()-18)
     if(newDate > minDate){
-      this.dialogoService.confirm('Atención!!', `Realmente esta persona tiene ${this.maxDate.getFullYear() - newDate.getFullYear()} años?`).subscribe(res => {
+      this.dialogoService.confirm('Atención!!', `Realmente esta persona tiene ${this.maxDate.getFullYear() - newDate.getFullYear()} años?`).pipe(untilDestroyed(this)).subscribe(res => {
         if(!res){
           this.nacimientoControl.setValue(null)
         }
@@ -96,7 +99,7 @@ export class AdicionarPersonaDialogComponent implements OnInit {
     input.direccion = this.direccionControl.value;
     input.sexo = this.sexoControl.value;
 
-    this.personaService.onSavePersona(input).subscribe(res => {
+    this.personaService.onSavePersona(input).pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         this.selectedPersona = res;
         this.matDialogRef.close(this.selectedPersona)

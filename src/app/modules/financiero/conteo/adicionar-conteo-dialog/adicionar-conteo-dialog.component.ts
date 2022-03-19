@@ -31,6 +31,9 @@ export interface AdicionarConteoResponse {
   totalDs: string;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-adicionar-conteo-dialog",
   templateUrl: "./adicionar-conteo-dialog.component.html",
@@ -91,7 +94,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
     this.createForm();
     this.conteoMonedaList = [];
 
-    this.eventSub = this.events.subscribe((res) => {
+    this.eventSub = this.events.pipe(untilDestroyed(this)).subscribe((res) => {
       console.log("conteo res: ", res);
       switch (res) {
         case 0:
@@ -109,14 +112,14 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.conteoSub = this.conteo.subscribe((res) => {
+    this.conteoSub = this.conteo.pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         this.selectedConteo = res;
         this.cargarDatos();
       }
     });
 
-    this.focusSub = this.focus.subscribe((res) => {
+    this.focusSub = this.focus.pipe(untilDestroyed(this)).subscribe((res) => {
       console.log('set focus to input')
       setTimeout(() => {
         this.gs500Input.nativeElement.focus()
@@ -196,7 +199,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
   }
 
   cargarMonedas() {
-    this.monedaService.onGetAll().subscribe((res) => {
+    this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         let monedaList: Moneda[] = res;
         monedaList.forEach((m) => {
@@ -308,8 +311,5 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.eventSub.unsubscribe();
-    this.conteoSub.unsubscribe();
-    this.focusSub.unsubscribe();
   }
 }

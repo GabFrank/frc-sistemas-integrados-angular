@@ -38,6 +38,9 @@ interface ProductoDatasource {
   precio3: number;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-list-producto",
   templateUrl: "./list-producto.component.html",
@@ -113,7 +116,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     //   this.onSearchChange(res);
     // });
 
-    this.buscarField.valueChanges.subscribe((value) => {
+    this.buscarField.valueChanges.pipe(untilDestroyed(this)).subscribe((value) => {
       if (value != null) this.onSearchProducto(value);
     });
 
@@ -139,7 +142,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       this.isSearching = false;
     } else {
       this.onSearchTimer = setTimeout(() => {
-        this.service.onSearch(text, offset).subscribe((res) => {
+        this.service.onSearch(text, offset).pipe(untilDestroyed(this)).subscribe((res) => {
           if (offset == null) {
             console.log("offset es nulo");
             this.dataSource.data = res;
@@ -156,7 +159,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   onRowClick(row) {
     let ref = this.matDialog.open(CargandoDialogComponent);
-    this.service.getProducto(row.id).subscribe((res) => {
+    this.service.getProducto(row.id).pipe(untilDestroyed(this)).subscribe((res) => {
       console.log(res);
       if (res != null) {
         if (this.menuState === "in") {
@@ -288,7 +291,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   onExportProductos(){
     this.cargandoDialog.openDialog(false, "Generando Reporte...")
-    this.service.onExportarReporte(this.buscarField.value).subscribe(res => {
+    this.service.onExportarReporte(this.buscarField.value).pipe(untilDestroyed(this)).subscribe(res => {
       this.cargandoDialog.closeDialog()
       this.reporteService.onAdd('Producto-'+new Date().toLocaleTimeString(), res);
       this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListProductoComponent))

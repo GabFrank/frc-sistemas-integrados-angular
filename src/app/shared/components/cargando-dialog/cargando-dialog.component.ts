@@ -6,6 +6,9 @@ class Data {
   texto: string
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-cargando-dialog',
   templateUrl: './cargando-dialog.component.html',
@@ -22,7 +25,7 @@ export class CargandoDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.cargandoDialoService.cargandoTextSub.subscribe(res =>{
+    this.cargandoDialoService.cargandoTextSub.pipe(untilDestroyed(this)).subscribe(res =>{
       if(res!=null){
         this.itemList.push(res)
       }

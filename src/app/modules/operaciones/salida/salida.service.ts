@@ -10,6 +10,9 @@ import { FinalizarSalidaGQL } from './graphql/finalizarSalida';
 import { GetSalidaPorFechaGQL } from './graphql/getEntradasPorFecha';
 import { GetSalidaGQL } from './graphql/getSalida';
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: 'root'
 })
@@ -37,7 +40,7 @@ export class SalidaService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
           }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             this.notificacionService.notification$.next({
@@ -68,7 +71,7 @@ export class SalidaService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
           }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             this.notificacionService.notification$.next({
@@ -92,7 +95,7 @@ export class SalidaService {
   onGetSalida(id): Observable<Salida> {
     return new Observable((obs) => {
       this.getSalida
-        .fetch({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" })
+        .fetch({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             obs.next(res.data['data']);
@@ -110,7 +113,7 @@ export class SalidaService {
   onGetAllSalidas() {
     return new Observable((obs) => {
       this.getAllSalidas
-        .fetch({}, { fetchPolicy: "no-cache", errorPolicy: "all" })
+        .fetch({}, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             obs.next(res.data);
@@ -138,7 +141,7 @@ export class SalidaService {
               fetchPolicy: "no-cache",
               errorPolicy: "all",
             }
-          )
+          ).pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (res.errors == null) {
               obs.next(res.data);
@@ -158,7 +161,7 @@ export class SalidaService {
   onFinalizarEntrega(id) {
     return new Observable(obs => {
       this.finalizarEntrega
-      .mutate({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" })
+      .mutate({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res.errors == null) {
           obs.next(true)

@@ -8,6 +8,10 @@ import { AdicionarMaletinDialogComponent } from '../adicionar-maletin-dialog/adi
 import { Maletin } from '../maletin.model';
 import { MaletinService } from '../maletin.service';
 
+
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-list-maletin',
   templateUrl: './list-maletin.component.html',
@@ -50,7 +54,7 @@ export class ListMaletinComponent implements OnInit {
         console.log(res)
         this.dataSource.data = res;
       }
-    })
+    }).unsubscribe()
   }
 
   rowSelectedEvent(e){
@@ -69,7 +73,7 @@ export class ListMaletinComponent implements OnInit {
       width: '50%',
       autoFocus: true,
       restoreFocus: true
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         if(maletin==null){
           this.dataSource.data = updateDataSource(this.dataSource.data, res);

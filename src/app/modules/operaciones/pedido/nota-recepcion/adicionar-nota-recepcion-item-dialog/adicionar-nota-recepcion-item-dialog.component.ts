@@ -19,6 +19,9 @@ export class SelectedItem {
   selected = false;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-adicionar-nota-recepcion-item-dialog",
   templateUrl: "./adicionar-nota-recepcion-item-dialog.component.html",
@@ -78,7 +81,7 @@ export class AdicionarNotaRecepcionItemDialogComponent implements OnInit {
   //sobrantes son los itens del pedido que aun no fueron vinculados a una nota
   getSobrantes() {
     this.pedidoService
-      .onGetPedidoItemSobrantes(this.selectedNotaRecepcion.pedido.id)
+      .onGetPedidoItemSobrantes(this.selectedNotaRecepcion.pedido.id).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           res.forEach((e) => {
@@ -124,10 +127,10 @@ export class AdicionarNotaRecepcionItemDialogComponent implements OnInit {
       }
     });
 
-    this.onAddItens(addItems).subscribe(res => {
+    this.onAddItens(addItems).pipe(untilDestroyed(this)).subscribe(res => {
       console.log('adding items')
       if(res){
-        this.onRemoveItens(removeItems).subscribe(res => {
+        this.onRemoveItens(removeItems).pipe(untilDestroyed(this)).subscribe(res => {
           console.log('remov items')
           this.matDialogRef.close(addItems)
         })
@@ -143,7 +146,7 @@ export class AdicionarNotaRecepcionItemDialogComponent implements OnInit {
         addItems.forEach((i) => {
           if (i?.notaRecepcion == null) {
             this.pedidoService
-              .onUpdateNotaRecepcionId(i.id, this.selectedNotaRecepcion.id)
+              .onUpdateNotaRecepcionId(i.id, this.selectedNotaRecepcion.id).pipe(untilDestroyed(this))
               .subscribe((res) => {
                 console.log(res)
                 count++;
@@ -172,7 +175,7 @@ export class AdicionarNotaRecepcionItemDialogComponent implements OnInit {
         removeItems.forEach((i) => {
           if (i?.notaRecepcion != null) {
             this.pedidoService
-              .onUpdateNotaRecepcionId(i.id, null)
+              .onUpdateNotaRecepcionId(i.id, null).pipe(untilDestroyed(this))
               .subscribe((res) => {
                 console.log(res)
                 count++;

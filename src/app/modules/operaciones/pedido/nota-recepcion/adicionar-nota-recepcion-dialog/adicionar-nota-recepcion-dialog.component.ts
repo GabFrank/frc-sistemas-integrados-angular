@@ -47,6 +47,9 @@ export class AdicionarNotaRecepcionData {
   notaRecepcion: NotaRecepcion;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-adicionar-nota-recepcion-dialog",
   templateUrl: "./adicionar-nota-recepcion-dialog.component.html",
@@ -107,7 +110,7 @@ export class AdicionarNotaRecepcionDialogComponent implements OnInit {
     });
 
     this.documentoList = [];
-    this.documentoService.onGetDocumentos().subscribe((res) => {
+    this.documentoService.onGetDocumentos().pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         this.documentoList = res;
         this.onSelectDocumento(this.documentoList[0]);
@@ -148,7 +151,7 @@ export class AdicionarNotaRecepcionDialogComponent implements OnInit {
 
   onSelectItens() {
     if (this.selectedNotaRecepcion == null) {
-      this.onGuardarNota().subscribe((res) => {
+      this.onGuardarNota().pipe(untilDestroyed(this)).subscribe((res) => {
         if (res) {
           this.openAddNotaItemDialog();
         } else {
@@ -168,7 +171,7 @@ export class AdicionarNotaRecepcionDialogComponent implements OnInit {
         width: "90%",
         height: "70%",
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.selectedNotaRecepcion.pedidoItemList = res;
@@ -186,7 +189,7 @@ export class AdicionarNotaRecepcionDialogComponent implements OnInit {
       this.timbradoInput.nativeElement.focus();
     } else if (this.selectedDocumento.descripcion == "COMUN") {
       this.dialogoService
-        .confirm("Desea crear un número fictício?", null, null)
+        .confirm("Desea crear un número fictício?", null, null).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res) {
             this.numeroControl.setValue(
@@ -228,7 +231,7 @@ export class AdicionarNotaRecepcionDialogComponent implements OnInit {
       nota.documento = this.selectedDocumento;
       nota.timbrado = this.timbradoControl.value;
       this.notaRecepcionService
-        .onSaveNotaRecepcion(nota.toInput())
+        .onSaveNotaRecepcion(nota.toInput()).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
             nota.id = res.id;
@@ -259,14 +262,14 @@ export class AdicionarNotaRecepcionDialogComponent implements OnInit {
         item.precioUnitario == 0 ||
         item.precioUnitario.toFixed(0) == item.descuentoUnitario.toFixed(0);
       this.compraService
-        .onSaveCompraItem(compraItem.toInput())
+        .onSaveCompraItem(compraItem.toInput()).pipe(untilDestroyed(this))
         .subscribe((res) => {
           console.log(res);
           this.cargandoDialogo.closeDialog();
           if (res != null) {
             compraItem.id = res.id;
             item.compraItem = compraItem;
-            this.openCompraItemDialog(item.compraItem, item).subscribe((res2) => {
+            this.openCompraItemDialog(item.compraItem, item).pipe(untilDestroyed(this)).subscribe((res2) => {
               if (res2 != null) {
                 item.compraItem = res2;
                 this.dataSource.data = updateDataSource(
@@ -279,7 +282,7 @@ export class AdicionarNotaRecepcionDialogComponent implements OnInit {
           }
         });
     } else {
-      this.openCompraItemDialog(item.compraItem, item).subscribe((res2) => {
+      this.openCompraItemDialog(item.compraItem, item).pipe(untilDestroyed(this)).subscribe((res2) => {
         if (res2 != null) {
           item.compraItem = res2;
           this.dataSource.data = updateDataSource(

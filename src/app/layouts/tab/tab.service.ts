@@ -72,6 +72,7 @@ constructor() {
     //buscar si tiene parent
     const parentComponent = this.tabs[index].parentComponent ?? null;
     // remover tab
+    this.tabs[index] = null
     this.tabs.splice(index, 1);
     // si se esta cerrando el tab actual
     if (this.currentIndex == index) {

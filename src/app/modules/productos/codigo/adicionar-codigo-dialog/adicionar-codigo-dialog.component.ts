@@ -13,6 +13,9 @@ export class AdicionarCodigoData {
   presentacion: Presentacion;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-adicionar-codigo-dialog",
   templateUrl: "./adicionar-codigo-dialog.component.html",
@@ -79,7 +82,7 @@ export class AdicionarCodigoDialogComponent implements OnInit {
     //primero buscar si ya existe el codigo a guardar
     let isCodigoInUse = false;
     this.codigoService
-      .onGetCodigoPorCodigo(this.codigoInput.codigo)
+      .onGetCodigoPorCodigo(this.codigoInput.codigo).pipe(untilDestroyed(this))
       .subscribe((res) => {
         console.log(res)
         this.cargandoDialog.closeDialog()
@@ -108,7 +111,7 @@ export class AdicionarCodigoDialogComponent implements OnInit {
               color: NotificacionColor.danger
             })
           } else {
-            this.codigoService.onSaveCodigo(this.codigoInput).subscribe(res2 => {
+            this.codigoService.onSaveCodigo(this.codigoInput).pipe(untilDestroyed(this)).subscribe(res2 => {
               console.log(res2)
               if(res2!=null){
                 this.matDialogRef.close(res2)

@@ -17,6 +17,10 @@ class UltimasVentasDialogData {
   cancelacion?: boolean;
   reimpresion: boolean;
 }
+
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-ultimas-ventas-dialog",
   templateUrl: "./ultimas-ventas-dialog.component.html",
@@ -56,7 +60,7 @@ export class UltimasVentasDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.ventaService
-      .onSearch(this.data.caja.id, this.dataSource.data.length)
+      .onSearch(this.data.caja.id, this.dataSource.data.length).pipe(untilDestroyed(this))
       .subscribe((res) => {
         console.log(res);
         if (res != null) {
@@ -67,7 +71,7 @@ export class UltimasVentasDialogComponent implements OnInit {
 
   buscarVentas() {
     this.ventaService
-      .onSearch(this.data.caja.id, this.dataSource.data.length)
+      .onSearch(this.data.caja.id, this.dataSource.data.length).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.dataSource.data = res;
@@ -80,7 +84,7 @@ export class UltimasVentasDialogComponent implements OnInit {
     if (this.codigoVentaControl.value != null) {
       this.cargandoService.openDialog();
       this.ventaService
-        .onGetPorId(this.codigoVentaControl.value)
+        .onGetPorId(this.codigoVentaControl.value).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.cargandoService.closeDialog();
           if (res != null) {
@@ -107,10 +111,10 @@ export class UltimasVentasDialogComponent implements OnInit {
         null,
         null,
         null
-      )
+      ).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res) {
-          this.ventaService.onCancelarVenta(id).subscribe((res) => {
+          this.ventaService.onCancelarVenta(id).pipe(untilDestroyed(this)).subscribe((res) => {
             setTimeout(() => {
               this.cargandoService.closeDialog();
             }, 1000);
@@ -126,7 +130,7 @@ export class UltimasVentasDialogComponent implements OnInit {
 
   reimpresionVenta(id) {
     this.cargandoService.openDialog();
-    this.ventaService.onReimprimirVenta(id).subscribe((res) => {
+    this.ventaService.onReimprimirVenta(id).pipe(untilDestroyed(this)).subscribe((res) => {
       this.cargandoService.closeDialog();
       if (res != null) {
         console.log("exito");

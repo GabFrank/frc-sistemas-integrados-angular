@@ -16,6 +16,9 @@ import { EditPedidoComponent } from "../edit-pedido/edit-pedido.component";
 import { Pedido } from "../edit-pedido/pedido.model";
 import { PedidoService } from "../pedido.service";
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-list-pedido",
   templateUrl: "./list-pedido.component.html",
@@ -57,7 +60,7 @@ export class ListPedidoComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.onGetAll()
 
-    this.actualizarSub = this.pedidoService.actualizarSub.subscribe(res => {
+    this.actualizarSub = this.pedidoService.actualizarSub.pipe(untilDestroyed(this)).subscribe(res => {
       if(res){
         this.onGetAll()
       }
@@ -65,7 +68,7 @@ export class ListPedidoComponent implements OnInit, OnDestroy {
   }
 
   onGetAll(){
-    this.pedidoService.onGetAll().subscribe((res) => {
+    this.pedidoService.onGetAll().pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         this.dataSource.data = res;
         // this.openPedido(this.dataSource.data[0])

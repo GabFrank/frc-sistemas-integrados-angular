@@ -18,8 +18,12 @@ export class SearchListtDialogData {
   multiple? = false;
   search? = true;
   inicialSearch? = false;
+  inicialData?: any;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-search-list-dialog",
   templateUrl: "./search-list-dialog.component.html",
@@ -40,6 +44,9 @@ export class SearchListDialogComponent implements OnInit {
     data?.tableData.forEach(e => {
       this.displayedColumns.push(e.id)
     })
+    if(data?.inicialData!=null){
+      this.dataSource.data = data.inicialData;
+    }
   }
 
   ngOnInit(): void {
@@ -54,13 +61,13 @@ export class SearchListDialogComponent implements OnInit {
 
   onSearch() {
     this.genericCrudService
-      .onGetByTexto(this.data.query, this.buscarControl.value)
+      .onGetByTexto(this.data.query, this.buscarControl.value).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.dataSource.data = res;
         }
       });
-  }
+  } 
 
   onRowSelect(row){
     if(row==this.selectedItem) this.matDialogRef.close(row)

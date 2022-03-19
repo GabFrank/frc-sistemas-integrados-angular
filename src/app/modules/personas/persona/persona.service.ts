@@ -11,6 +11,9 @@ import { MainService } from "../../../main.service";
 import { PersonaInput } from "./persona/persona-input.model";
 import { PersonaPorIdGQL } from "./graphql/personaPorId";
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
@@ -35,7 +38,7 @@ export class PersonaService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
           }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             obs.next(res.data.data);
@@ -61,7 +64,7 @@ export class PersonaService {
             entity: input,
           },
           { errorPolicy: "all" }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           console.log(res.errors);
           if (res.errors == null) {
@@ -94,7 +97,7 @@ export class PersonaService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
           }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             obs.next(res.data.data);

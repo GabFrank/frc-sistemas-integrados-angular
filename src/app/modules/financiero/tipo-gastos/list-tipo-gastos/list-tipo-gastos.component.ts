@@ -21,6 +21,9 @@ interface ExampleFlatNode {
   parent?: TipoGasto;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-list-tipo-gastos",
   templateUrl: "./list-tipo-gastos.component.html",
@@ -66,7 +69,7 @@ export class ListTipoGastosComponent implements OnInit {
 
   cargarTipoGastos(update?: boolean, tipoGasto?: TipoGasto) {
     this.cargandoService.openDialog();
-    this.tipoGastoService.onGetRoot().subscribe((res) => {
+    this.tipoGastoService.onGetRoot().pipe(untilDestroyed(this)).subscribe((res) => {
       this.cargandoService.closeDialog();
       if (res != null) {
         this.dataSource.data = res;
@@ -115,7 +118,7 @@ export class ListTipoGastosComponent implements OnInit {
   }
 
   getTipoGastoDetail(node: ExampleFlatNode) {
-    this.tipoGastoService.onGetById(node.id).subscribe((res) => {
+    this.tipoGastoService.onGetById(node.id).pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         this.selectedTipoGasto = res;
       }
@@ -138,7 +141,7 @@ export class ListTipoGastosComponent implements OnInit {
         restoreFocus: true,
         autoFocus: true,
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           if (node == undefined) {
@@ -153,7 +156,7 @@ export class ListTipoGastosComponent implements OnInit {
   editItem() {
     let node = this.selectedNode;
     this.cargandoService.openDialog();
-    this.tipoGastoService.onGetById(node.id).subscribe((res) => {
+    this.tipoGastoService.onGetById(node.id).pipe(untilDestroyed(this)).subscribe((res) => {
       this.cargandoService.closeDialog();
       if (res != null) {
         this.matDialog
@@ -167,7 +170,7 @@ export class ListTipoGastosComponent implements OnInit {
             restoreFocus: true,
             autoFocus: true,
           })
-          .afterClosed()
+          .afterClosed().pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (res != null) {
               if(res == 'delete'){

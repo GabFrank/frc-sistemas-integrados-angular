@@ -11,6 +11,9 @@ export class AdicionarUsuarioDialogData {
   isEditar = false;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-adicionar-usuario-dialog',
   templateUrl: './adicionar-usuario-dialog.component.html',
@@ -49,7 +52,7 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
     input.personaId = this.data.personaId;
     input.nickname = this.nicknameControl.value;
     input.password = this.passwordControl.value;
-    this.usuarioService.onSaveUsuario(input).subscribe(res => {
+    this.usuarioService.onSaveUsuario(input).pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         this.selectedUsuario = res;
         this.matDialogRef.close(this.selectedUsuario)

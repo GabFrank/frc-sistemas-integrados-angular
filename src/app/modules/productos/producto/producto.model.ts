@@ -9,6 +9,7 @@ import { Subfamilia } from '../sub-familia/sub-familia.model';
 
 export class Producto {
   id: number;
+  idCentral: number;
   descripcion: string;
   descripcionFactura?: string;
   iva?: number;

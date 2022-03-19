@@ -9,6 +9,10 @@ import { PersonaService } from "../persona.service";
 export class BuscarPersonaData {
   persona?: Persona;
 }
+
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-buscar-persona-dialog",
   templateUrl: "./buscar-persona-dialog.component.html",
@@ -50,7 +54,7 @@ export class BuscarPersonaDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.buscarControl.valueChanges.subscribe((value) => {
+    this.buscarControl.valueChanges.pipe(untilDestroyed(this)).subscribe((value) => {
       if (value != null) this.onSearchPersona(value);
     });
   }
@@ -68,7 +72,7 @@ export class BuscarPersonaDialogComponent implements OnInit {
       this.isSearching = false;
     } else {
       this.onSearchTimer = setTimeout(() => {
-        this.personaService.onSearch(text).subscribe((res) => {
+        this.personaService.onSearch(text).pipe(untilDestroyed(this)).subscribe((res) => {
           this.dataSource.data = res;
           this.isSearching = false;
         });

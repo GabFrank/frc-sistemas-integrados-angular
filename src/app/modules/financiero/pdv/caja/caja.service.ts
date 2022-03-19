@@ -9,6 +9,9 @@ import { DeleteCajaGQL } from "./graphql/deleleCaja";
 import { ImprimirBalanceGQL } from "./graphql/imprimirBalance";
 import { SaveCajaGQL } from "./graphql/saveCaja";
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
@@ -68,7 +71,7 @@ export class CajaService {
           fetchPolicy: "no-cache",
           errorPolicy: "all",
         }
-      )
+      ).pipe(untilDestroyed(this))
       .subscribe((res) => {
         console.log(res);
       });

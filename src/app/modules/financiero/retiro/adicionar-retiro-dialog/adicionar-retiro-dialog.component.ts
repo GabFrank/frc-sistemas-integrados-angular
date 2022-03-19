@@ -17,6 +17,9 @@ export class AdicionarRetiroData {
   caja: PdvCaja;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-adicionar-retiro-dialog',
   templateUrl: './adicionar-retiro-dialog.component.html',
@@ -58,13 +61,13 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy {
     this.retiroDetalleList = []
     this.funcionarioList = []
 
-    this.funcionarioSub = this.responsableControl.valueChanges.subscribe(res => {
+    this.responsableControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
       if (this.timer != null) {
         clearTimeout(this.timer);
       }
       if (res != null && res.length != 0) {
         this.timer = setTimeout(() => {
-          this.funcionarioService.onFuncionarioSearch(res).subscribe((response) => {
+          this.funcionarioService.onFuncionarioSearch(res).pipe(untilDestroyed(this)).subscribe((response) => {
             console.log(response)
             this.funcionarioList = response;
             if (this.funcionarioList.length == 1) {
@@ -102,7 +105,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy {
         `Guaranies: ${stringToInteger(this.guaraniControl.value.toString())}`,
         `Reales: ${stringToDecimal(this.realControl.value.toString())}`,
         `Dolares: ${stringToDecimal(this.dolarControl.value.toString())}`,
-      ]).subscribe(res => {
+      ]).pipe(untilDestroyed(this)).subscribe(res => {
         if(res){
           let retiro = new Retiro()
           retiro.cajaSalida = this.selectedCajaSalida;
@@ -125,7 +128,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy {
           ]
           retiro.retiroDetalleList = retiroDetalleList;
           console.log(retiro)
-          this.retiroService.onSave(retiro).subscribe(retiroResponse => {
+          this.retiroService.onSave(retiro).pipe(untilDestroyed(this)).subscribe(retiroResponse => {
             this.cargandoDialog.closeDialog()
             if(retiroResponse!=null){
               this.dialogRef.close(true)
@@ -157,7 +160,6 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.funcionarioSub.unsubscribe()
   }
 
 }

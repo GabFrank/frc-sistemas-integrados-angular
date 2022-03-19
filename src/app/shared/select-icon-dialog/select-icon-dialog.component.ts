@@ -3,6 +3,9 @@ import { FormControl } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
 import { icons } from '../../commons/core/icons';
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-select-icon-dialog',
   templateUrl: './select-icon-dialog.component.html',
@@ -20,7 +23,7 @@ export class SelectIconDialogComponent implements OnInit {
   ngOnInit(): void {
     this.filteredIconsList = this.iconsList;
 
-    this.searchControl.valueChanges.subscribe(res => {
+    this.searchControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
       this.searchIcon(res);
     })
   }

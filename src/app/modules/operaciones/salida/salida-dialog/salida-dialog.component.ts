@@ -22,6 +22,9 @@ export interface SalidaDialogData {
   salida?: Salida;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-salida-dialog",
   templateUrl: "./salida-dialog.component.html",
@@ -100,13 +103,13 @@ export class SalidaDialogComponent implements OnInit {
     this.buscarSucursales();
 
     //listeners de los controls
-    this.usuarioInputControl.valueChanges.subscribe((res) => {
+    this.usuarioInputControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
       if (this.timer != null) {
         clearTimeout(this.timer);
       }
       if (res != null && res.length != 0) {
         this.timer = setTimeout(() => {
-          this.usuarioService.onSeachUsuario(res).subscribe((response) => {
+          this.usuarioService.onSeachUsuario(res).pipe(untilDestroyed(this)).subscribe((response) => {
             this.usuarioList = response["data"];
             if (this.usuarioList.length == 1) {
               this.onResponsableSelect(this.usuarioList[0]);
@@ -115,7 +118,7 @@ export class SalidaDialogComponent implements OnInit {
               this.onResponsableAutocompleteClose();
               this.onResponsableSelect(null);
             }
-          });
+          })
         }, 500);
       } else {
         this.usuarioList = [];
@@ -155,7 +158,7 @@ export class SalidaDialogComponent implements OnInit {
   }
 
   buscarSucursales() {
-    this.sucursalService.onGetAllSucursales().subscribe((res) => {
+    this.sucursalService.onGetAllSucursales().pipe(untilDestroyed(this)).subscribe((res) => {
       this.sucursalList = res.sort((a, b) => {
         if (a.nombre < b.nombre) {
           return -1;
@@ -167,7 +170,7 @@ export class SalidaDialogComponent implements OnInit {
   }
 
   buscarSalida(id){
-    this.salidaService.onGetSalida(id).subscribe(res => {
+    this.salidaService.onGetSalida(id).pipe(untilDestroyed(this)).subscribe(res => {
       console.log(res)
       if(res!=null){
         this.selectedSalida = res;
@@ -242,7 +245,7 @@ export class SalidaDialogComponent implements OnInit {
 
     this.dialogoService.confirm('Atención!!', 'Realmente desea eliminar este item?', null, [`Producto: ${this.selectedSalidaItem.producto.descripcion.toUpperCase()}`, `Presentación: ${this.selectedSalidaItem.presentacion.descripcion.toUpperCase()}`, `Cantidad: ${this.selectedSalidaItem.cantidad}`]).subscribe(res => {
       if(res){
-        this.salidaItemService.onDeleteSalidaItem(this.selectedSalidaItem.id).subscribe(res2 => {
+        this.salidaItemService.onDeleteSalidaItem(this.selectedSalidaItem.id).pipe(untilDestroyed(this)).subscribe(res2 => {
           if(res2){
             let auxArray = this.itemDataSource.data;
             let index = auxArray.findIndex(i => i.id == this.selectedSalidaItem.id)
@@ -274,7 +277,7 @@ export class SalidaDialogComponent implements OnInit {
     salida.creadoEn = this.selectedSalida?.creadoEn;
     salida.activo = this.selectedSalida?.activo;
     console.log(salida);
-    this.salidaService.onSaveSalida(salida).subscribe((res) => {
+    this.salidaService.onSaveSalida(salida).pipe(untilDestroyed(this)).subscribe((res) => {
       console.log(res);
       this.selectedSalida = res["data"] as Salida;
       console.log(this.selectedSalida);
@@ -314,7 +317,7 @@ export class SalidaDialogComponent implements OnInit {
         width: "100%",
         height: "100%",
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         let respuesta: PdvSearchProductoResponseData;
         if (res != null) {
@@ -372,7 +375,7 @@ export class SalidaDialogComponent implements OnInit {
       if((item.cantidad * item.presentacion.cantidad) > item?.producto?.stockPorProducto){
         this.dialogoService.confirm('Atención!!', 'El stock actual del producto es inferior a la intención de salida', 'Desea continuar?', [`Actual: ${item.producto.stockPorProducto}`, `Cantidad a dar salida: ${item.cantidad}`]).subscribe(res => {
           if(res){
-            this.salidaItemService.onSaveSalidaItem(item.toInput()).subscribe(res => {
+            this.salidaItemService.onSaveSalidaItem(item.toInput()).pipe(untilDestroyed(this)).subscribe(res => {
               if(res!=null){
                 this.selectedSalidaItem = res;
                 if(!isNew){
@@ -392,7 +395,7 @@ export class SalidaDialogComponent implements OnInit {
           }
         })
       } else {
-        this.salidaItemService.onSaveSalidaItem(item.toInput()).subscribe(res => {
+        this.salidaItemService.onSaveSalidaItem(item.toInput()).pipe(untilDestroyed(this)).subscribe(res => {
           if(res!=null){
             this.selectedSalidaItem = res;
             if(!isNew){
@@ -437,7 +440,7 @@ export class SalidaDialogComponent implements OnInit {
     this.cargandoService.openDialog()
 
     if(this.selectedSalida?.id != null){
-      this.salidaService.onFinalizarEntrega(this.selectedSalida.id).subscribe(res => {
+      this.salidaService.onFinalizarEntrega(this.selectedSalida.id).pipe(untilDestroyed(this)).subscribe(res => {
         this.selectedSalida.activo = res as boolean;
         this.cargandoService.closeDialog()
       })

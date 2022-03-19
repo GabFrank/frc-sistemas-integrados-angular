@@ -8,6 +8,9 @@ import { Observable } from "rxjs/internal/Observable";
 import { fromEvent } from "rxjs";
 import { MainService } from "../../main.service";
 
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+
+@UntilDestroy()
 @Component({
   selector: "app-default",
   templateUrl: "./default.component.html",
@@ -33,19 +36,23 @@ export class DefaultComponent implements OnInit {
     public windowInfo: WindowInfoService,
     private mainService: MainService
   ) {
-    fromEvent(document.body, "mousemove").subscribe((e) => {
-      let event = e as MouseEvent;
-      if (event.pageX < 10) {
-        this.sideBarOpen = true;
-      }
-    });
+    fromEvent(document.body, "mousemove")
+      .pipe(untilDestroyed(this))
+      .subscribe((e) => {
+        let event = e as MouseEvent;
+        if (event.pageX < 10) {
+          this.sideBarOpen = true;
+        }
+      });
   }
 
   ngOnInit(): void {
     this.mainService.authenticationSub.subscribe((res) => {
       console.log(res);
       if (res) {
-        this.tabService.tabSub.subscribe((tabs) => {
+        this.tabService.tabSub
+        .pipe(untilDestroyed(this))
+        .subscribe((tabs) => {
           this.tabs = tabs;
           this.selectedTab = tabs.findIndex((tab) => tab.active);
         });
@@ -73,11 +80,14 @@ export class DefaultComponent implements OnInit {
       data: { res: this.res },
     });
 
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        this.tabService.removeTab(index);
-      }
-    });
+    dialogRef
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((result) => {
+        if (result) {
+          this.tabService.removeTab(index);
+        }
+      });
   }
 
   onSideBarFocus() {

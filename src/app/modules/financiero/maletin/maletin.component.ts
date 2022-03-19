@@ -4,6 +4,9 @@ import { WindowInfoService } from '../../../shared/services/window-info.service'
 import { Maletin } from './maletin.model';
 import { MaletinService } from './maletin.service';
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-maletin',
   templateUrl: './maletin.component.html',
@@ -30,7 +33,7 @@ export class MaletinComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.maletinService.onGetAll().subscribe(res => {
+    this.maletinService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         console.log(res)
         this.maletinDataSource.data = res;

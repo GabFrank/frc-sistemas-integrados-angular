@@ -8,6 +8,9 @@ import {
 } from "../notificacion-snackbar.service";
 import { DialogosService } from "../shared/components/dialogos/dialogos.service";
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
@@ -26,7 +29,7 @@ export class GenericCrudService {
     this.isLoading = true;
     return new Observable((obs) => {
       gql
-        .fetch({}, { fetchPolicy: "no-cache", errorPolicy: "all" })
+        .fetch({}, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.isLoading = false
           if (res.errors == null) {
@@ -46,7 +49,7 @@ export class GenericCrudService {
     this.isLoading = true;
     return new Observable((obs) => {
       gql
-        .fetch({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" })
+        .fetch({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.isLoading = false;
           if (res.errors == null) {
@@ -74,7 +77,7 @@ export class GenericCrudService {
     this.isLoading = true;
     return new Observable((obs) => {
       gql
-        .fetch({ texto }, { fetchPolicy: "no-cache", errorPolicy: "all" })
+        .fetch({ texto }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           console.log(res)
           this.isLoading = false;
@@ -102,7 +105,7 @@ export class GenericCrudService {
         .mutate(
           { entity: input },
           { fetchPolicy: "no-cache", errorPolicy: "all" }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.isLoading = false;
           if (res.errors == null) {
@@ -142,7 +145,7 @@ export class GenericCrudService {
               id,
             },
             { errorPolicy: "all" }
-          )
+          ).pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (res.errors == null) {
               this.notificacionSnackBar.notification$.next({
@@ -170,7 +173,7 @@ export class GenericCrudService {
           .confirm(
             "Atención!!",
             "Realemente desea eliminar este " + titulo
-          )
+          ).pipe(untilDestroyed(this))
           .subscribe((res1) => {
             if (res1) {
               gql
@@ -233,7 +236,7 @@ export class GenericCrudService {
     }
     return new Observable((obs) => {
       gql
-        .fetch({ inicio, fin }, { fetchPolicy: "no-cache", errorPolicy: "all" })
+        .fetch({ inicio, fin }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             obs.next(res.data["data"]);
@@ -262,7 +265,7 @@ export class GenericCrudService {
               fetchPolicy: "no-cache",
               errorPolicy: "all",
             }
-          )
+          ).pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (res.errors == null) {
               this.notificacionBar.notification$.next({

@@ -6,7 +6,9 @@ import { DeleteSalidaItemGQL } from './graphql/deleteSalidaItem';
 import { GetAllSalidaItemsGQL } from './graphql/getAllSalidasItem';
 import { SaveSalidaItemGQL } from './graphql/saveSalidaItem';
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: 'root'
 })
@@ -26,7 +28,7 @@ export class SalidaItemService {
       }, {
         fetchPolicy: 'no-cache',
         errorPolicy: 'all'
-      }).subscribe(res => {
+      }).pipe(untilDestroyed(this)).subscribe(res => {
         if(res.errors==null){
           obs.next(res.data['data'])
           this.notificacionService.notification$.next({
@@ -52,7 +54,7 @@ export class SalidaItemService {
       }, {
         fetchPolicy: 'no-cache',
         errorPolicy: 'all'
-      }).subscribe(res => {
+      }).pipe(untilDestroyed(this)).subscribe(res => {
         if(res.errors==null){
           obs.next(res.data)
         } else {
@@ -68,7 +70,7 @@ export class SalidaItemService {
 
   onGetAllSalidaItems(){
     return new Observable(obs => {
-      this.getAllSalidaItems.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'})
+      this.getAllSalidaItems.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'}).pipe(untilDestroyed(this))
       .subscribe(res => {
         if(res.errors==null){
           obs.next(res.data)

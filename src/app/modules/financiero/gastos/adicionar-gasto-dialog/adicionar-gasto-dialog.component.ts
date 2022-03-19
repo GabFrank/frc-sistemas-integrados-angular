@@ -35,6 +35,10 @@ import { Gasto } from "../gastos.model";
 export class AdicionarGastoData {
   caja: PdvCaja;
 }
+
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-adicionar-gasto-dialog",
   templateUrl: "./adicionar-gasto-dialog.component.html",
@@ -102,7 +106,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     this.cargandoDialog.openDialog()
     if (data?.caja != null) {
       this.selectedCaja = data.caja;
-      gastoService.onGetByCajaId(this.selectedCaja.id).subscribe((res) => {
+      gastoService.onGetByCajaId(this.selectedCaja.id).pipe(untilDestroyed(this)).subscribe((res) => {
         console.log(<Gasto[]>res);
         this.cargandoDialog.closeDialog()
         if (res != null) {
@@ -118,7 +122,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     this.autorizadoPorList = [];
     this.tipoGastoList = [];
 
-    this.responsableSub = this.responsableControl.valueChanges.subscribe(
+    this.responsableSub = this.responsableControl.valueChanges.pipe(untilDestroyed(this)).subscribe(
       (res) => {
         if (res == "") this.selectedResponsable = null;
         if (this.responsableTimer != null) {
@@ -127,7 +131,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
         if (res != null && res.length != 0) {
           this.responsableTimer = setTimeout(() => {
             this.funcionarioService
-              .onFuncionarioSearch(res)
+              .onFuncionarioSearch(res).pipe(untilDestroyed(this))
               .subscribe((response) => {
                 console.log(response);
                 this.responsableList = response;
@@ -146,7 +150,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       }
     );
 
-    this.autorizadoPorSub = this.autorizadoPorControl.valueChanges.subscribe(
+    this.autorizadoPorSub = this.autorizadoPorControl.valueChanges.pipe(untilDestroyed(this)).subscribe(
       (res) => {
         if (res == "") this.selectedAutorizadoPor = null;
         if (this.autorizadoPorTimer != null) {
@@ -155,7 +159,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
         if (res != null && res.length != 0) {
           this.autorizadoPorTimer = setTimeout(() => {
             this.funcionarioService
-              .onFuncionarioSearch(res)
+              .onFuncionarioSearch(res).pipe(untilDestroyed(this))
               .subscribe((response) => {
                 console.log(response);
                 this.autorizadoPorList = response;
@@ -174,14 +178,14 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       }
     );
 
-    this.tipoGastoSub = this.tipoGastoControl.valueChanges.subscribe((res) => {
+    this.tipoGastoSub = this.tipoGastoControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
       if (res == "") this.selectedTipoGasto = null;
       if (this.tipoGastoTimer != null) {
         clearTimeout(this.tipoGastoTimer);
       }
       if (res != null && res.length != 0) {
         this.tipoGastoTimer = setTimeout(() => {
-          this.tipoGastoService.onSearch(res).subscribe((response) => {
+          this.tipoGastoService.onSearch(res).pipe(untilDestroyed(this)).subscribe((response) => {
             console.log(response);
             this.tipoGastoList = response;
             if (this.tipoGastoList.length == 1) {
@@ -272,7 +276,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
           `Guaranies: ${stringToInteger(this.guaraniControl.value.toString())}`,
           `Reales: ${stringToDecimal(this.realControl.value.toString())}`,
           `Dolares: ${stringToDecimal(this.dolarControl.value.toString())}`,
-        ])
+        ]).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res) {
             let gasto = new Gasto();
@@ -296,7 +300,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
             } else {
               gasto.finalizado = false;
             }
-            this.gastoService.onSave(gasto).subscribe((gastoResponse) => {
+            this.gastoService.onSave(gasto).pipe(untilDestroyed(this)).subscribe((gastoResponse) => {
               this.cargandoDialog.closeDialog();
               if (gastoResponse != null) {
                 this.gastoList.push(gastoResponse as Gasto);
@@ -347,7 +351,7 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     Object.assign(newGasto, gasto);
     if (newGasto != null && newGasto.finalizado != true) {
       newGasto.finalizado = true;
-      this.gastoService.onSave(newGasto).subscribe((res) => {
+      this.gastoService.onSave(newGasto).pipe(untilDestroyed(this)).subscribe((res) => {
         this.cargandoDialog.closeDialog()
         console.log(res)
         if (res != null) {

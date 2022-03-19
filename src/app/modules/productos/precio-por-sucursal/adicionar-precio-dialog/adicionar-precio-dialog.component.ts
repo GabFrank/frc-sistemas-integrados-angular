@@ -15,6 +15,9 @@ export class AdicionarPrecioPorSucursalData {
   presentacion: Presentacion;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-adicionar-precio-dialog',
   templateUrl: './adicionar-precio-dialog.component.html',
@@ -57,7 +60,7 @@ export class AdicionarPrecioDialogComponent implements OnInit {
   }
 
   loadTipoPrecios(){
-    this.tipoPrecioService.onGetAllTipoPrecios().subscribe(res => {
+    this.tipoPrecioService.onGetAllTipoPrecios().pipe(untilDestroyed(this)).subscribe(res => {
       if(res.errors==null){
         this.tipoPrecioList = res.data.data;
       }
@@ -99,7 +102,7 @@ export class AdicionarPrecioDialogComponent implements OnInit {
     this.precioInput.presentacionId = this.data.presentacion.id;
     this.precioInput.tipoPrecioId = this.tipoPrecioControl.value;
     //primero buscar si ya existe el codigo a guardar
-    this.precioService.onSave(this.precioInput).subscribe(res => {
+    this.precioService.onSave(this.precioInput).pipe(untilDestroyed(this)).subscribe(res => {
       this.cargandoDialog.closeDialog()
       if(res!=null){
         this.matDialogRef.close(res)

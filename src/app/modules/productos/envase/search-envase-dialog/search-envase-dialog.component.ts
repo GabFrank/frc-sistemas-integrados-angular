@@ -17,6 +17,9 @@ class Data {
   producto: Producto;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-search-envase-dialog",
   templateUrl: "./search-envase-dialog.component.html",
@@ -42,7 +45,7 @@ export class SearchEnvaseDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.buscarField.valueChanges.subscribe((value) => {
+    this.buscarField.valueChanges.pipe(untilDestroyed(this)).subscribe((value) => {
       if (value != null) this.onSearchProducto(value);
     });
 
@@ -57,7 +60,7 @@ export class SearchEnvaseDialogComponent implements OnInit {
       clearTimeout(this.onSearchTimer);
     }
     this.onSearchTimer = setTimeout(() => {
-      this.service.onEnvaseSearch(text, offset, true).subscribe((res) => {
+      this.service.onEnvaseSearch(text, offset, true).pipe(untilDestroyed(this)).subscribe((res) => {
         if (offset == null) {
           console.log("offset es nulo");
           this.dataSource.data = res;

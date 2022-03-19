@@ -6,6 +6,9 @@ import { Cobro } from '../../../operaciones/venta/cobro/cobro.model';
 import { Venta } from '../../../operaciones/venta/venta.model';
 import { VentaService } from '../../../operaciones/venta/venta.service';
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: 'root'
 })
@@ -24,7 +27,7 @@ export class VentaTouchService {
     return new Observable(obs => {
       let usuarioId = localStorage.getItem('usuarioId');
       if(usuarioId!=null){
-        this.cajaService.onGetByUsuarioIdAndAbierto(+usuarioId).subscribe(res => {
+        this.cajaService.onGetByUsuarioIdAndAbierto(+usuarioId).pipe(untilDestroyed(this)).subscribe(res => {
           if(res!=null){
             this.selectedCaja = res;
             obs.next(res)

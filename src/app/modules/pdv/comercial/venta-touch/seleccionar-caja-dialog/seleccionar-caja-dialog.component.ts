@@ -11,6 +11,9 @@ export class SeleccionarCajaDialogData {
   pdvCaja: PdvCaja
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-seleccionar-caja-dialog',
   templateUrl: './seleccionar-caja-dialog.component.html',
@@ -29,7 +32,7 @@ export class SeleccionarCajaDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.ventaSub = this.ventaTouchService.cajaSub.subscribe(res => {
+    this.ventaSub = this.ventaTouchService.cajaSub.pipe(untilDestroyed(this)).subscribe(res => {
       console.log(res)
       if(res!=null){
         this.dialogRef.close(res)
@@ -46,7 +49,7 @@ export class SeleccionarCajaDialogComponent implements OnInit {
       disableClose: true,
       autoFocus: true,
       restoreFocus: true    
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         this.dialogRef.close(res)
       }

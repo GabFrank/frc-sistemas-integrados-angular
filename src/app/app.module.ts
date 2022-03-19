@@ -105,6 +105,7 @@ export function appInit(appConfigService: MainService) {
     AngularFirestoreModule,
     AngularFireStorageModule,
     AngularFireModule.initializeApp(environment.firebaseConfig),
+    
   ],
   providers: [
     {

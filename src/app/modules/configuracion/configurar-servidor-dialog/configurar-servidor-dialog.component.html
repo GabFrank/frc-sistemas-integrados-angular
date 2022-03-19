@@ -1,0 +1,111 @@
+<mat-stepper linear #stepper>
+  <mat-step [stepControl]="conexionGroup" editable="false">
+    <div>
+      <ng-template matStepLabel>Verificar conexión</ng-template>
+      <div
+        fxLayout="column"
+        fxLayoutAlign="start center"
+        style="height: 330px; width: 100%"
+      >
+        <div fxFlex="30%" fxLayout="row" fxLayoutAlign="center center">
+          <p fxFlex>
+            Vamos a verificar si la conexión con el servidor esta correctamente
+            configurada.
+          </p>
+        </div>
+
+        <div fxFlex="30">
+          <mat-progress-spinner
+            *ngIf="verificando"
+            [color]="color"
+            [mode]="mode"
+            [value]="value"
+          >
+          </mat-progress-spinner>
+          <mat-icon
+            *ngIf="verificado == true"
+            style="color: #43a047; font-size: 5em; width: 100%"
+            >done</mat-icon
+          >
+          <mat-icon
+            *ngIf="verificado == false"
+            style="color: #f44336; font-size: 5em; width: 100%"
+            >done</mat-icon
+          >
+        </div>
+        <div fxFlex="30" fxLayout="row" fxLayoutAlign="center center">
+          <button fxFlex mat-raised-button (click)="onVerificar()">
+            Verificar
+          </button>
+        </div>
+      </div>
+
+      <div style="width: 100%; text-align: end">
+        <button [disabled]="!verificado" mat-button matStepperNext>
+          Siguiente
+        </button>
+      </div>
+    </div>
+  </mat-step>
+  <mat-step [stepControl]="sucursalControl" editable="false">
+    <div>
+      <ng-template matStepLabel>Seleccionar sucursal</ng-template>
+      <div
+        fxLayout="column"
+        fxLayoutAlign="start center"
+        style="height: 330px; width: 100%"
+      >
+        <div fxFlex="30">
+          <p>
+            Necesitamos seleccionar la nueva sucursal. Si no aparece en la
+            lista, debemos crearla en el servidor principal.
+          </p>
+        </div>
+        <div fxFlex="10%">Sucursal:</div>
+        <div fxFlex="30%" fxLayout="row" fxLayoutAlign="start center" style="width: 40%;" fxLayoutGap="10px">
+          <div fxFlex="90%">
+            <mat-form-field style="width: 100%;">
+                <input matInput type="text" [formControl]="sucursalControl">
+            </mat-form-field>
+          </div>
+          <div fxFlex="10%">
+              <mat-icon (click)="onSearchSucursal()">search</mat-icon>
+          </div>
+        </div>
+      </div>
+      <div style="width: 100%; text-align: end">
+        <button mat-button matStepperPrevious>Atras</button>
+        <button mat-button matStepperNext>Siguiente</button>
+      </div>
+    </div>
+  </mat-step>
+  <mat-step [stepControl]="sincronizarGroup" editable="false">
+    <div>
+      <ng-template matStepLabel>Sincronizar base de datos</ng-template>
+      <div style="height: 330px; width: 100%">
+        <p>
+          Este paso limpiara nuestra base y sincronizara con el servidor
+          principal. Si existen datos previos estos serán eliminados.
+        </p>
+      </div>
+      <div style="width: 100%; text-align: end">
+        <button mat-button matStepperPrevious>Atras</button>
+        <button mat-button matStepperNext>Siguiente</button>
+      </div>
+    </div>
+  </mat-step>
+  <mat-step>
+    <ng-template matStepLabel>Finalizar</ng-template>
+    <div style="height: 330px; width: 100%">
+      <p>
+        Servidor configurado correctamente. Solicite un usuario para poder
+        acceder al sistema.
+      </p>
+    </div>
+
+    <div style="width: 100%; text-align: end">
+      <button mat-button matStepperPrevious>Atras</button>
+      <button mat-button (click)="onSalir()">Salir</button>
+    </div>
+  </mat-step>
+</mat-stepper>

@@ -13,12 +13,13 @@ import { LoginModule } from './login/login.module';
 import { PrintModule } from './print/print.module';
 import { FinancieroModule } from './financiero/financiero.module';
 import { ReportesModule } from './reportes/reportes/reportes.module';
+import { ConfiguracionModule } from './configuracion/configuracion.module';
 
 
 
 @NgModule({
   declarations: [
-      ],
+        ],
   imports: [
     CommonModule,
     DashboardModule,
@@ -33,6 +34,7 @@ import { ReportesModule } from './reportes/reportes/reportes.module';
     PrintModule,
     FinancieroModule,
     ReportesModule,
+    ConfiguracionModule,
     MDBBootstrapModule.forRoot()
   ],
   providers: [

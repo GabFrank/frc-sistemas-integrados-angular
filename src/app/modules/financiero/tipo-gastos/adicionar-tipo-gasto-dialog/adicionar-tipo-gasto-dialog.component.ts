@@ -11,6 +11,9 @@ export class AdicionarTipoGastoData {
   parent: TipoGasto;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-adicionar-tipo-gasto-dialog',
   templateUrl: './adicionar-tipo-gasto-dialog.component.html',
@@ -79,7 +82,7 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
     input.autorizacion = this.autorizacionControl.value;
     input.cargoId = this.selectedCargo?.id;
     input.activo = this.activoControl.value;
-    this.tipoGastoService.onSave(input).subscribe(res => {
+    this.tipoGastoService.onSave(input).pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         this.cargandoService.closeDialog()
         this.matDialogRef.close(res)
@@ -92,7 +95,7 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
   }
 
   onDelete(){
-    this.tipoGastoService.onDelete(this.selectedTipoGasto.id).subscribe(res => {
+    this.tipoGastoService.onDelete(this.selectedTipoGasto.id).pipe(untilDestroyed(this)).subscribe(res => {
       if(res){
         this.matDialogRef.close('delete')
       }

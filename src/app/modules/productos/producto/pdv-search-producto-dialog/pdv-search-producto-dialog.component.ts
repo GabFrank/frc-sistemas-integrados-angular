@@ -57,6 +57,9 @@ export interface PdvSearchProductoResponseData {
   cantidad?: number;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-pdv-search-producto-dialog",
   templateUrl: "./pdv-search-producto-dialog.component.html",
@@ -147,7 +150,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       cantidad: new FormControl(null),
     });
 
-    this.formGroup.get("buscarControl").valueChanges.subscribe((value) => {
+    this.formGroup.get("buscarControl").valueChanges.pipe(untilDestroyed(this)).subscribe((value) => {
       if(value!=null) this.onSearchProducto(value);
 
     });
@@ -167,7 +170,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       this.isSearching = false;
     } else {
       this.onSearchTimer = setTimeout(() => {
-        this.productoService.onSearch(text, offset).subscribe((res) => {
+        this.productoService.onSearch(text, offset).pipe(untilDestroyed(this)).subscribe((res) => {
             if (offset == null) {
               console.log("offset es nulo");
               this.dataSource.data = res;
@@ -210,7 +213,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
 
   getProductoDetail(producto: Producto, index) {
     if (producto?.presentaciones == null) {
-      this.productoService.getProducto(producto.id).subscribe((res) => {
+      this.productoService.getProducto(producto.id).pipe(untilDestroyed(this)).subscribe((res) => {
         console.log(res);
         this.dataSource.data[index].presentaciones = res.presentaciones;
         this.highlightPresentacion(0);
@@ -296,7 +299,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         numero: this.formGroup.get("cantidad").value,
       },
     });
-    dialog.afterClosed().subscribe((res) => {
+    dialog.afterClosed().pipe(untilDestroyed(this)).subscribe((res) => {
       if (res > 0) {
         this.formGroup.get("cantidad").setValue(res);
       }
@@ -374,7 +377,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   }
 
   mostrarStock(producto: Producto, index?){
-    this.stockService.onGetStockPorProducto(producto.id).subscribe(res => {
+    this.stockService.onGetStockPorProducto(producto.id).pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         console.log(res)
         producto.stockPorProducto = res;
@@ -384,7 +387,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   }
 
   mostrarCodigoPrincipal(producto: Producto, index?){
-    this.stockService.onGetStockPorProducto(producto.id).subscribe(res => {
+    this.stockService.onGetStockPorProducto(producto.id).pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         console.log(res)
         producto.stockPorProducto = res;
@@ -399,7 +402,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         isDialog: true,
         producto: producto
       }
-    }).afterClosed().subscribe(res => {
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
         this.dataSource.data = []
         this.onSearchProducto(res.descripcion, 0);

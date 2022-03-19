@@ -9,6 +9,9 @@ export class ThermalPrintData {
   img: string;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: 'root'
 })
@@ -25,7 +28,7 @@ constructor(
    }, {
      fetchPolicy: 'no-cache',
      errorPolicy: 'all'
-   }).subscribe(res => {
+   }).pipe(untilDestroyed(this)).subscribe(res => {
       console.log(res)
    })
  }
@@ -36,7 +39,7 @@ constructor(
    }, {
      fetchPolicy: 'no-cache',
      errorPolicy: 'all'
-   }).subscribe(res => {
+   }).pipe(untilDestroyed(this)).subscribe(res => {
      if(res){
        console.log(res)
      }

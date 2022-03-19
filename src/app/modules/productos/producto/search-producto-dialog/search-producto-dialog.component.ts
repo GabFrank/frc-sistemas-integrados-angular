@@ -20,6 +20,9 @@ export interface ProductoExistenciaCosto {
   
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-search-producto-dialog',
   templateUrl: './search-producto-dialog.component.html',

@@ -19,6 +19,9 @@ export interface AddFamiliaData {
   familia: Familia;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-add-familia-dialog',
   templateUrl: './add-familia-dialog.component.html',
@@ -55,7 +58,7 @@ export class AddFamiliaDialogComponent implements OnInit {
   ngOnInit(): void {
     this.createForm();
     this.loadData();
-    this.familiaService.onCountFamilia().subscribe((res) => {
+    this.familiaService.onCountFamilia().pipe(untilDestroyed(this)).subscribe((res) => {
       for (let index = 0; index < res + 1; index++) {
         this.listPos.push(index + 1);
       }
@@ -90,7 +93,7 @@ export class AddFamiliaDialogComponent implements OnInit {
         width: '600px',
         height: '500px',
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.iconoControl.setValue(res);
       });

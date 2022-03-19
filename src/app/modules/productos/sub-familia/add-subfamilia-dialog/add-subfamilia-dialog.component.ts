@@ -13,6 +13,9 @@ export interface AddSubfamiliaData {
   subfamilia: Subfamilia;
 }
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-add-subfamilia-dialog',
   templateUrl: './add-subfamilia-dialog.component.html',
@@ -50,7 +53,7 @@ export class AddSubfamiliaDialogComponent implements OnInit {
   ngOnInit(): void {
     this.createForm();
     this.loadData();
-    this.subfamiliaService.onCountSubfamilia().subscribe((res) => {
+    this.subfamiliaService.onCountSubfamilia().pipe(untilDestroyed(this)).subscribe((res) => {
       for (let index = 0; index < res + 1; index++) {
         this.listPos.push(index + 1);
       }
@@ -85,7 +88,7 @@ export class AddSubfamiliaDialogComponent implements OnInit {
         width: '600px',
         height: '500px',
       })
-      .afterClosed()
+      .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.iconoControl.setValue(res);
       });
@@ -121,7 +124,7 @@ export class AddSubfamiliaDialogComponent implements OnInit {
     this.subfamiliaInput.activo = true;
     this.subfamiliaInput.icono = this.iconoControl.value;
     console.log(this.subfamiliaInput)
-    this.subfamiliaService.onSaveSubfamilia(this.subfamiliaInput).subscribe((res) => {
+    this.subfamiliaService.onSaveSubfamilia(this.subfamiliaInput).pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         this.dialogRef.close(res);
         this.notificationBar.notification$.next({

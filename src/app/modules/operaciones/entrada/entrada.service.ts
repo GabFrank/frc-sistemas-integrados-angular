@@ -15,6 +15,9 @@ import { imprimirEntrada, saveEntrada } from "./graphql/graphql-query";
 import { ImprimirEntradaGQL } from "./graphql/imprimirEntrada";
 import { SaveEntradaGQL } from "./graphql/saveEntrada";
 
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
@@ -43,7 +46,7 @@ export class EntradaService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
           }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             this.notificacionService.notification$.next({
@@ -74,7 +77,7 @@ export class EntradaService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
           }
-        )
+        ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             this.notificacionService.notification$.next({
@@ -98,7 +101,7 @@ export class EntradaService {
   onGetEntrada(id): Observable<Entrada> {
     return new Observable((obs) => {
       this.getEntrada
-        .fetch({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" })
+        .fetch({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             obs.next(res.data['data']);
@@ -116,7 +119,7 @@ export class EntradaService {
   onGetAllEntradas() {
     return new Observable((obs) => {
       this.getAllEntradas
-        .fetch({}, { fetchPolicy: "no-cache", errorPolicy: "all" })
+        .fetch({}, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             obs.next(res.data);
@@ -144,7 +147,7 @@ export class EntradaService {
               fetchPolicy: "no-cache",
               errorPolicy: "all",
             }
-          )
+          ).pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (res.errors == null) {
               obs.next(res.data);
@@ -164,7 +167,7 @@ export class EntradaService {
   onFinalizarEntrega(id) {
     return new Observable(obs => {
       this.finalizarEntrega
-      .mutate({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" })
+      .mutate({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res.errors == null) {
           obs.next(true)
@@ -187,7 +190,7 @@ export class EntradaService {
 
   onImprimirEntrada(id){
     return new Observable(obs => {
-      this.imprimirEntrada.fetch({id}, {fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
+      this.imprimirEntrada.fetch({id}, {fetchPolicy: 'no-cache', errorPolicy: 'all'}).pipe(untilDestroyed(this)).subscribe(res => {
         if(res.errors==null){
           obs.next(true)
         } else {
