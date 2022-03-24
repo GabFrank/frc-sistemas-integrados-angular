@@ -1,65 +1,109 @@
 <div fxLayout="row wrap" style="width: 100%" fxLayoutGap="20px">
-  <div fxFlex="15" *ngIf="selectedCaja != null">
-    <button
-      mat-raised-button
-      color="primary"
-      style="width: 100%; height: 100px"
-      (click)="cerrarCaja()"
-    >
-      Cerrar Caja
-    </button>
-  </div>
-  <div fxFlex="15" *ngIf="selectedCaja != null">
-    <button
-      mat-raised-button
-      color="primary"
-      style="width: 100%; height: 100px"
-      (click)="retiro()"
-    >
-      Retiro
-    </button>
-  </div>
-  <div fxFlex="15" *ngIf="selectedCaja != null">
-    <button
-      mat-raised-button
-      color="primary"
-      style="width: 100%; height: 100px"
-      (click)="gasto()"
-    >
-      Gasto
-    </button>
-  </div>
-  <div fxFlex="15" *ngIf="selectedCaja != null">
-    <button
-      mat-raised-button
-      color="primary"
-      style="width: 100%; height: 100px; text-align: center; padding: 10px;"
-      (click)="cancelacionVenta()"
-    >
-      Cancelación
-      de venta
-    </button>
-  </div>
+  <mat-card
+    fxFlex="15"
+    fxLayout="row"
+    fxLayoutAlign="start center"
+    *ngIf="selectedCaja != null"
+    style="
+      width: 100%;
+      height: 100px;
+      padding: 5px;
+      background-color: #f44336;
+      text-align: center;
+      cursor: pointer;
+    "
+    (click)="cerrarCaja()"
+  >
+    <p fxFlex style="width: 100%; text-align: center">Cerrar Caja</p>
+  </mat-card>
 
-  <div fxFlex="15" *ngIf="selectedCaja != null">
-    <button
-      mat-raised-button
-      color="primary"
-      style="width: 100%; height: 100px; text-align: center; padding: 10px;"
-      (click)="reimpresionVenta()"
-    >
-      Reimpresión
-      de ticket
-    </button>
-  </div>
-  <div fxFlex="15" *ngIf="selectedCaja != null">
-    <button
-      mat-raised-button
-      color="primary"
-      style="width: 100%; height: 100px; text-align: center; padding: 10px;"
-      (click)="garantia()"
-    >
-      Garantía y Devolución
-    </button>
-  </div>
+  <mat-card
+    fxFlex="15"
+    fxLayout="row"
+    fxLayoutAlign="start center"
+    *ngIf="selectedCaja != null"
+    style="
+      width: 100%;
+      height: 100px;
+      padding: 5px;
+      background-color: #f44336;
+      text-align: center;
+      cursor: pointer;
+    "
+    (click)="retiro()"
+  >
+    <p fxFlex style="width: 100%; text-align: center">Retiro</p>
+  </mat-card>
+
+  <mat-card
+    fxFlex="15"
+    fxLayout="row"
+    fxLayoutAlign="start center"
+    *ngIf="selectedCaja != null"
+    style="
+      width: 100%;
+      height: 100px;
+      padding: 5px;
+      background-color: #f44336;
+      text-align: center;
+      cursor: pointer;
+    "
+    (click)="gasto()"
+  >
+    <p fxFlex style="width: 100%; text-align: center">Gasto</p>
+  </mat-card>
+
+  <mat-card
+    fxFlex="15"
+    fxLayout="row"
+    fxLayoutAlign="start center"
+    *ngIf="selectedCaja != null"
+    style="
+      width: 100%;
+      height: 100px;
+      padding: 5px;
+      background-color: #f44336;
+      text-align: center;
+      cursor: pointer;
+    "
+    (click)="cancelacionVenta()"
+  >
+    <p fxFlex style="width: 100%; text-align: center">Cancelación de venta</p>
+  </mat-card>
+
+  <mat-card
+    fxFlex="15"
+    fxLayout="row"
+    fxLayoutAlign="start center"
+    *ngIf="selectedCaja != null"
+    style="
+      width: 100%;
+      height: 100px;
+      padding: 5px;
+      background-color: #f44336;
+      text-align: center;
+      cursor: pointer;
+    "
+    (click)="reimpresionVenta()"
+  >
+    <p fxFlex style="width: 100%; text-align: center">Reimpresión de ticket</p>
+  </mat-card>
+
+  <mat-card
+    fxFlex="15"
+    fxLayout="row"
+    fxLayoutAlign="start center"
+    *ngIf="selectedCaja != null"
+    style="
+      width: 100%;
+      height: 100px;
+      padding: 5px;
+      background-color: #f44336;
+      text-align: center;
+      cursor: pointer;
+    "
+    (click)="garantia()"
+  >
+    <p fxFlex style="width: 100%; text-align: center">Garantía y Devolución</p>
+  </mat-card>
 </div>

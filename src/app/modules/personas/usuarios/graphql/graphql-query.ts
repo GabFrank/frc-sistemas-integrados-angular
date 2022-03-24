@@ -56,6 +56,7 @@ export const usuarioQuery = gql`
           nombre
         }
       }
+      roles
     }
   }
 `;
@@ -76,6 +77,7 @@ export const usuarioPorPersonaIdQuery = gql`
           nombre
         }
       }
+      roles
     }
   }
 `;

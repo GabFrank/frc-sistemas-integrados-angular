@@ -1,3 +1,8 @@
 ##Producto
 crear un producto que sea envase retornable y que se pueda vincular a otro producto
 ejemplo: Un envase de pilsen litro se vincula al producto pilsen litro y que se pueda manejar un control de stock
+
+
+## roles y grupos de acceso
+- Administracion: super usuario
+- Auditoria e inventario: 

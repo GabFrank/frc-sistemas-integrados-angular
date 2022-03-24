@@ -48,6 +48,14 @@ export const sucursalQuery = gql
     }
   }`
 
+  export const sucursalActualQuery = gql
+  `query{
+    data : sucursalActual{
+      id
+      nombre
+    }
+  }`
+
 export const saveSucursal = gql
   `mutation saveSucursal($entity:SucursalInput!){
       data: saveSucursal(sucursal:$entity){

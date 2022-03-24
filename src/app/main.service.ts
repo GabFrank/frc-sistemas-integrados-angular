@@ -12,6 +12,7 @@ import { Usuario } from "./modules/personas/usuarios/usuario.model";
 import { UsuarioService } from "./modules/personas/usuarios/usuario.service";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { SucursalService } from "./modules/empresarial/sucursal/sucursal.service";
 
 @UntilDestroy()
 @Injectable({
@@ -44,7 +45,8 @@ export class MainService implements OnDestroy {
     private getMonedas: MonedasGetAllGQL,
     private usuarioService: UsuarioService,
     private matDialog: MatDialog,
-    private http: HttpClient
+    private http: HttpClient,
+    private sucursalService: SucursalService
   ) {
     this.http
       .get("http://api.ipify.org/?format=json")
@@ -65,7 +67,7 @@ export class MainService implements OnDestroy {
         .subscribe((res) => {
           console.log('respuesta: ', res)
           if (res) {
-            console.log('usuario encontrado')
+            console.log('usuario encontrado: ', res)
             obs.next(true);
             this.authenticationSub.next(res);
           } else {
@@ -105,19 +107,11 @@ export class MainService implements OnDestroy {
 
   load(): Promise<boolean> {
     let res;
-    this.getSucursalById
-      .fetch({
-        id: environment.sucursalId,
-      })
+    this.sucursalService.onGetSucursalActual()
       .pipe(untilDestroyed(this))
-      .subscribe((data) => {
-        if (data.errors == null) {
-          this.sucursalActual = data.data.data;
-          res = true;
-          return res;
-        } else {
-          res = false;
-          return res;
+      .subscribe((res) => {
+        if(res!=null){
+          this.sucursalActual = res;
         }
       });
     this.getMonedas

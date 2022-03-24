@@ -155,7 +155,7 @@ export function appInit(appConfigService: MainService) {
                 definition.operation === "subscription"
               );
             },
-            http,
+            ws,
             http
           )
         );

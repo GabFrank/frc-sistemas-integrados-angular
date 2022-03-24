@@ -8,5 +8,6 @@ export interface Usuario  {
   nickname: string;
   creadoEn: Date;
   usuarioId: Usuario;
+  roles: string[];
   avatar: string;
 }

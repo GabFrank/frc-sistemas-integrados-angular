@@ -22,6 +22,8 @@ import {
 import { WindowInfoService } from "./shared/services/window-info.service";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { ConfigurarServidorDialogComponent } from "./modules/configuracion/configurar-servidor-dialog/configurar-servidor-dialog.component";
+import { ConfiguracionService } from "./modules/configuracion/configuracion.service";
+import { uniqueKey } from "highcharts";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -46,7 +48,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private snackBar: MatSnackBar,
     private matDialog: MatDialog,
     public mainService: MainService,
-    public genericService: GenericCrudService
+    public genericService: GenericCrudService,
+    private configService: ConfiguracionService
   ) {
     this.innerHeight = windowInfo.innerHeight + "px";
     notificationService.notification$
@@ -67,6 +70,11 @@ export class AppComponent implements OnInit, OnDestroy {
       });
   }
 
+  /**
+   * 1 - se adiciona la clase darkMode al conntainer principal, para poder aplicar el estilo dark
+   * 2 - Abrimos el dialogo de login, si la respuesta es true el dialogo desaparece
+   *    si la respuesta es false, abre el dialogo de configuracion de servidor
+   */
   ngOnInit(): void {
     this.overlay.getContainerElement().classList.add("darkMode");
     this.matDialog.open(LoginComponent, {
@@ -75,15 +83,15 @@ export class AppComponent implements OnInit, OnDestroy {
       disableClose: true,
     }).afterClosed().subscribe(res => {
       if(!res){
-        this.matDialog.open(ConfigurarServidorDialogComponent, {
-          width: "80%",
-          height: "500px",
-          disableClose: true
-        }).afterClosed().subscribe(res => {
-          if(res){
-
-          } else {
-            this.ngOnInit()
+        this.configService.isConfigured()
+        .pipe(untilDestroyed(this))
+        .subscribe(res => {
+          if(!res){
+            this.matDialog.open(ConfigurarServidorDialogComponent, {
+              width: "80%",
+              height: "500px",
+              disableClose: true
+            })
           }
         })
       }

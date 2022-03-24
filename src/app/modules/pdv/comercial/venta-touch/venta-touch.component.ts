@@ -209,9 +209,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       });
     console.log(this.ventaSub)
 
-    interval(1000).pipe(untilDestroyed(this)).subscribe(res => {
-      console.log(res)
-    })
   }
 
   getFormaPagos() {
@@ -947,3 +944,5 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       });
   }
 }
+
+

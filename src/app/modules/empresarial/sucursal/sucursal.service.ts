@@ -22,6 +22,8 @@ import { Sucursal } from "./sucursal.model";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import { serverAdress } from "../../../../environments/environment";
+import { SucursalActualGQL } from "./graphql/sucursalActual";
+import { GenericCrudService } from "../../../generics/generic-crud.service";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -38,6 +40,7 @@ export class SucursalService {
   constructor(
     private getAllSucursales: SucursalesGQL,
     private notificacionBar: NotificacionSnackbarService,
+    private getSucursalActual: SucursalActualGQL,
     private http: HttpClient
   ) {}
 
@@ -65,6 +68,30 @@ export class SucursalService {
         });
     });
   }
+
+  onGetSucursalActual(): Observable<Sucursal>{
+    return new Observable((obs) => {
+      this.getSucursalActual
+        .fetch(
+          {},
+          {
+            fetchPolicy: "no-cache",
+            errorPolicy: "all",
+          }
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          if (res.errors == null) {
+            obs.next(res.data["data"]);
+          } else {
+            this.notificacionBar.notification$.next({
+              texto: "Ups! algo salio mal: " + res.errors[0].message,
+              color: NotificacionColor.danger,
+              duracion: 3,
+            });
+          }
+        });
+    });  }
 
   getSucursalesAdmin(): Observable<any> {
     return new Observable((obs) => {

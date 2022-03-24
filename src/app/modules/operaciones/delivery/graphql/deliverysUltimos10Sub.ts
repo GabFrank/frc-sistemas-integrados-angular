@@ -1,8 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Query, Subscription } from 'apollo-angular';
+import { Subscription } from 'apollo-angular';
 import { Delivery } from '../delivery.model';
-import { DeliveryEstado } from '../enums';
-import { deliverysByEstado, deliverysQuery, deliverysSubsUltimos10Query, deliverysUltimos10Query } from './graphql-query';
+import { deliverysSubsUltimos10Query } from './graphql-query';
 
 @Injectable({
   providedIn: 'root',
