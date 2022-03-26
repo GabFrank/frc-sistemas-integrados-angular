@@ -148,6 +148,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   selectCajaDialog: MatDialogRef<SeleccionarCajaDialogComponent>;
   dialogReference;
   formaPagoList: FormaPago[];
+  disableCobroRapido = false;
 
   constructor(
     private dialog: MatDialog,
@@ -175,9 +176,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
     this.isDialogOpen = false;
-    setTimeout(() => {
-      this.codigoInput.nativeElement.focus();
-    }, 0);
+    // setTimeout(() => {
+    //   this.codigoInput.nativeElement.focus();
+    // }, 0);
   }
 
   ngOnInit(): void {
@@ -192,11 +193,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       this.isAuxiliar = this.data?.tabData?.data?.auxiliar;
     }, 0);
 
-    this.tabService.tabChangedEvent.pipe(untilDestroyed(this)).subscribe((res) => {
-      if (this.data.active == true) {
-        this.setFocusToCodigoInput();
-      }
-    });
+    // this.tabService.tabChangedEvent.pipe(untilDestroyed(this)).subscribe((res) => {
+    //   if (this.data.active == true) {
+    //     this.setFocusToCodigoInput();
+    //   }
+    // });
 
     this.cajaService
       .onGetByUsuarioIdAndAbierto(this.mainService.usuarioActual.id).pipe(untilDestroyed(this))
@@ -482,7 +483,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     //   itemIndex > -1 ? itemIndex : this.itemList.length - 1;
     this.formGroup.get("codigo").setValue("");
     this.formGroup.get("cantidad").setValue(1);
-    this.dialogReference != undefined ? null : this.setFocusToCodigoInput();
     this.selectedTipoPrecio = this.tiposPrecios[0];
   }
 
@@ -493,14 +493,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         .subscribe((res) => {
           if (res) {
             this.itemList = [];
-            this.setFocusToCodigoInput();
             this.calcularTotales();
           }
           this.dialogReference = undefined;
         });
     } else {
       this.itemList.splice(index, 1);
-      this.setFocusToCodigoInput();
       this.calcularTotales();
     }
   }
@@ -526,7 +524,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         }
       }
       this.dialogReference = undefined;
-      this.setFocusToCodigoInput();
     });
   }
 
@@ -652,14 +649,14 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     }
   }
 
-  setFocusToCodigoInput() {
-    console.log("dando focus a input");
-    if (this.codigoInput != null && this.matDialog["_parentDialog"] == null) {
-      setTimeout(() => {
-        this.codigoInput.nativeElement.focus();
-      }, 10);
-    }
-  }
+  // setFocusToCodigoInput() {
+  //   console.log("dando focus a input");
+  //   if (this.codigoInput != null && this.matDialog["_parentDialog"] == null) {
+  //     setTimeout(() => {
+  //       this.codigoInput.nativeElement.focus();
+  //     }, 10);
+  //   }
+  // }
 
   cambiarTipoPrecio(tipo) {
     this.selectedTipoPrecio = this.tiposPrecios.find((tp) => tp.id == tipo);
@@ -753,6 +750,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   onTicketClick() {
+    this.disableCobroRapido = true;
     this.cargandoService.openDialog(true);
     //guardar la compra, si la compra se guardo con exito, imprimir ticket y resetForm()
     let venta = new Venta();
@@ -780,6 +778,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     cobro.cobroDetalleList = [cobroDetalle];
     // cobroDetalle.
     this.onSaveVenta(venta, cobro);
+    this.disableCobroRapido = false;
   }
 
   onSaveVenta(venta, cobro) {
