@@ -111,7 +111,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-venta-touch",
-  templateUrl: "./venta-touch.component.html",
+  templateUrl: "./venta-touch2.component.html",
   styleUrls: ["./venta-touch.component.css"],
 })
 export class VentaTouchComponent implements OnInit, OnDestroy {

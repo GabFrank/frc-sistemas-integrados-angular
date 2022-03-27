@@ -26,6 +26,11 @@ import { SeleccionarEnvaseDialogComponent } from './comercial/venta-touch/selecc
 import { GarantiaDevolucionDialogComponent } from './venta-touch/garantia-devolucion-dialog/garantia-devolucion-dialog.component';
 import { GarantiaDialogComponent } from './venta-touch/garantia-devolucion/garantia-dialog/garantia-dialog.component';
 import { DevolucionDialogComponent } from './venta-touch/garantia-devolucion/devolucion-dialog/devolucion-dialog.component';
+import { ItemListComponent } from './layout/item-list/item-list.component';
+import { TotalesComponent } from './layout/totales/totales.component';
+import { FavoritosComponent } from './layout/favoritos/favoritos.component';
+import { BuscadorComponent } from './layout/buscador/buscador.component';
+import { BotonComponent } from './layout/boton/boton.component';
 
 @NgModule({
   declarations: [
@@ -49,6 +54,11 @@ import { DevolucionDialogComponent } from './venta-touch/garantia-devolucion/dev
     GarantiaDevolucionDialogComponent,
     GarantiaDialogComponent,
     DevolucionDialogComponent,
+    ItemListComponent,
+    TotalesComponent,
+    FavoritosComponent,
+    BuscadorComponent,
+    BotonComponent,
   ],
   imports: [
     CommonModule,

@@ -1,0 +1,58 @@
+<mat-card
+  style="
+    background-color: white;
+    padding: 5px;
+    margin-top: 5px;
+    width: 100%;
+    height: 100%;
+    overflow-y: scroll;
+  "
+>
+  <table class="table">
+    <thead>
+      <tr style="background-color: rgb(209, 209, 209)">
+        <th scope="col" style="text-align: center; width: 5%">#</th>
+        <th scope="col" style="width: 55%">Descripción</th>
+        <th scope="col" style="text-align: center; width: 10%">Tipo</th>
+        <th scope="col" style="text-align: center; width: 10%">Cant</th>
+        <th scope="col" style="text-align: center; width: 10%">Precio</th>
+        <th scope="col" style="text-align: center; width: 10%">Total</th>
+        <th scope="col" style="text-align: center; width: 5%"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr
+        *ngFor="let item of itemList; let i = index"
+        (click)="editItem(item, i)"
+      >
+        <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
+          {{ i + 1 }}
+        </td>
+        <td style="padding-bottom: 0; padding-top: 5px; width: 100%">
+          {{ item?.producto?.descripcion }}
+        </td>
+        <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
+          {{ item.precioVenta?.tipoPrecio?.descripcion?.substring(0, 4) }}({{
+            item.presentacion?.cantidad
+          }})
+        </td>
+        <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
+          {{ item.cantidad | number: "1.0-0" }}
+        </td>
+        <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
+          {{ item.precioVenta.precio | number: "1.0-0" }}
+        </td>
+        <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
+          {{ item.cantidad * item.precioVenta.precio | number: "1.0-0" }}
+        </td>
+        <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
+          <mat-icon
+            style="color: red; font-size: 1.5em; cursor: pointer"
+            (click)="removeItem(item, i)"
+            >clear</mat-icon
+          >
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</mat-card>

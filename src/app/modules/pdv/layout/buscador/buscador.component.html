@@ -1,0 +1,57 @@
+<div style="width: 100%; height: 100%">
+  <form
+    [formGroup]="formGroup"
+    fxLayout="column"
+    fxLayoutAlign="space-around start"
+    fxLayoutGap="10px"
+    style="width: 100%; height: 100%"
+  >
+    <div
+      fxLayout="row"
+      fxLayoutGap="10px"
+      fxLayoutAlign="start center"
+      style="width: 100%"
+    >
+      <div fxFlex="15" style="width: 100%; height: 100%">
+        <mat-form-field style="width: 100%; text-align: center">
+          <input
+            #cantidadInput
+            matInput
+            type="text"
+            formControlName="cantidad"
+            autocomplete="off"
+            style="color: white; font-size: 1.8em"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="65" style="width: 100%; height: 100%">
+        <mat-form-field style="width: 100%" floatLabel="never">
+          <!-- [matKeyboard]="'Azərbaycanca'"
+                  darkTheme="true" -->
+          <input
+            #codigoInput
+            matInput
+            type="text"
+            formControlName="buscador"
+            (keydown)="onCodigoKeyUpEvent($event.key)"
+            autocomplete="off"
+            oninput="this.value != ' ' ? this.value = this.value.toUpperCase() : this.value = null"
+            style="color: white; font-size: 1.8em"
+          />
+        </mat-form-field>
+      </div>
+      <button
+        type="button"
+        fxFlex
+        fxLayout="row"
+        fxLayoutAlign="center center"
+        mat-raised-button
+        color="primary"
+        style="height: 2em"
+        (click)="buscarProductoDialog()"
+      >
+        <mat-icon fxFlex style="font-size: 2em">search</mat-icon>
+      </button>
+    </div>
+  </form>
+</div>
