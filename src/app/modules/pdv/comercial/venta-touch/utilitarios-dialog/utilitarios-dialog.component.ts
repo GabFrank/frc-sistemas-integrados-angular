@@ -28,6 +28,10 @@ interface OpcionesData {
   funcion: any;
 }
 
+export interface UtilitariosResponse {
+  caja?: PdvCaja
+}
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-utilitarios-dialog",
@@ -44,8 +48,8 @@ export class UtilitariosDialogComponent implements OnInit {
     public matDialog: MatDialog,
     private mainService: MainService
   ) {
+    console.log(data)
     if (data?.caja != null) this.selectedCaja = data.caja;
-    console.log(this.selectedCaja);
   }
 
   ngOnInit(): void {
@@ -94,7 +98,7 @@ export class UtilitariosDialogComponent implements OnInit {
       .afterClosed()
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        this.dialogRef.close();
+        this.dialogRef.close(null);
       });
   }
 
@@ -113,7 +117,7 @@ export class UtilitariosDialogComponent implements OnInit {
       .afterClosed()
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        this.dialogRef.close();
+        this.dialogRef.close(null);
       });
   }
 
@@ -136,7 +140,7 @@ export class UtilitariosDialogComponent implements OnInit {
         .afterClosed()
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
-          this.dialogRef.close();
+          this.dialogRef.close(null);
         });
     }
   }
@@ -158,7 +162,7 @@ export class UtilitariosDialogComponent implements OnInit {
       .afterClosed()
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        this.dialogRef.close();
+        this.dialogRef.close(null);
       });
   }
 

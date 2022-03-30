@@ -1,3 +1,5 @@
+import { DialogosService } from './../../../../shared/components/dialogos/dialogos.service';
+import { ConteoService } from './../conteo.service';
 import {
   Component,
   ElementRef,
@@ -25,15 +27,17 @@ export class AdicionarConteoData {
 }
 
 export interface AdicionarConteoResponse {
-  conteoMonedaList: ConteoMoneda[];
+  apertura: boolean;
+  conteo: Conteo;
   totalGs: string;
   totalRs: string;
   totalDs: string;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { stringToDecimal, stringToInteger } from '../../../../commons/core/utils/numbersUtils';
 
-@UntilDestroy({ checkProperties: true })
+@UntilDestroy()
 @Component({
   selector: "app-adicionar-conteo-dialog",
   templateUrl: "./adicionar-conteo-dialog.component.html",
@@ -43,6 +47,9 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
   @Input() events: Observable<number>;
   @Input() conteo: Observable<Conteo>;
   @Input() focus: Observable<Conteo>;
+  @Input() apertura: boolean;
+  @Input() cajaId;
+  @Input() nombreBoton: string;
 
   @Output()
   onGetConteoMoneda = new EventEmitter<AdicionarConteoResponse>(null);
@@ -86,25 +93,27 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
     @Inject(MAT_DIALOG_DATA) public data: AdicionarConteoData,
     private matDialogRef: MatDialogRef<AdicionarConteoDialogComponent>,
     private cargandoDialog: CargandoDialogService,
-    private monedaService: MonedaService
-  ) {}
+    private monedaService: MonedaService,
+    private conteoService: ConteoService,
+    private dialogService: DialogosService
+  ) { }
 
   ngOnInit(): void {
+    setTimeout(() => {
+    }, 5000);
     this.cargarMonedas();
     this.createForm();
     this.conteoMonedaList = [];
 
     this.eventSub = this.events.pipe(untilDestroyed(this)).subscribe((res) => {
-      console.log("conteo res: ", res);
       switch (res) {
         case 0:
           setTimeout(() => {
-            console.log("deberia de hacer focus en gs500", this.gs500Input);
             this.gs500Input.nativeElement.focus();
           }, 200);
           break;
         case 1:
-          this.createMonedaBilletes();
+          // this.createMonedaBilletes();
           break;
 
         default:
@@ -120,16 +129,25 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
     });
 
     this.focusSub = this.focus.pipe(untilDestroyed(this)).subscribe((res) => {
-      console.log('set focus to input')
       setTimeout(() => {
         this.gs500Input.nativeElement.focus()
       }, 200);
     });
 
-    console.log("conteo dialog");
+  }
+
+  onButtonClick() {
+    this.cargandoDialog.openDialog(null, 'Guardando conteo...')
+    setTimeout(() => {
+      this.guardarConteo(this.createMonedaBilletes(), this.apertura)
+    }, 1000);
   }
 
   cargarDatos() {
+    this.gsFormGroup.disable()
+    this.rsFormGroup.disable()
+    this.dsFormGroup.disable()
+    this.cargandoDialog.openDialog(null, 'Cargando datos...')
     this.totalGs = 0;
     this.totalDs = 0;
     this.totalRs = 0;
@@ -154,12 +172,18 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
         default:
           break;
       }
-      this.gsFormGroup.disable()
-      this.rsFormGroup.disable()
-      this.dsFormGroup.disable()
-      
     });
-
+    setTimeout(() => {
+      let response: AdicionarConteoResponse = {
+        apertura: this.apertura,
+        conteo: this.selectedConteo,
+        totalGs: this.totalGs.toString(),
+        totalRs: this.totalRs.toString(),
+        totalDs: this.totalDs.toString(),
+      };
+      this.onGetConteoMoneda.emit(response);
+    }, 500);
+    this.cargandoDialog.closeDialog()
   }
 
   createForm() {
@@ -176,6 +200,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
 
     this.rsFormGroup = new FormGroup({
       rs005: new FormControl(),
+      rs01: new FormControl(),
       rs025: new FormControl(),
       rs05: new FormControl(),
       rs1: new FormControl(),
@@ -220,13 +245,11 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
               break;
           }
         });
-        console.log(res);
       }
     });
   }
 
   async sumarGs() {
-    console.log("sumando gs");
     this.totalGs = 0;
     await this.guaraniList.forEach((e) => {
       let valorMoneda = e.valor;
@@ -299,15 +322,45 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
         this.conteoMonedaList.push(conteoMoneda);
       }
     });
-    setTimeout(() => {
-      let response: AdicionarConteoResponse = {
-        conteoMonedaList: this.conteoMonedaList,
-        totalGs: this.totalGs.toString(),
-        totalRs: this.totalRs.toString(),
-        totalDs: this.totalDs.toString(),
-      };
-      this.onGetConteoMoneda.emit(response);
-    }, 500);
+    return this.conteoMonedaList;
+  }
+
+  guardarConteo(conteoMonedaList: ConteoMoneda[], apertura: boolean) {
+    let conteo = new Conteo();
+    conteo.totalGs = this.totalGs;
+    conteo.totalRs = this.totalRs;
+    conteo.totalDs = this.totalDs;
+    conteo.conteoMonedaList = conteoMonedaList;
+    let texto = "Confirmar datos de apertura de caja";
+    if(apertura) texto = "Confirmar datos de cierre de caja";
+    this.dialogService
+        .confirm("Atención!!", texto, null, [
+          `Guaranies:     ${stringToInteger(this.totalGs.toString())}`,
+          `Reales:        ${stringToDecimal(this.totalRs.toString())}`,
+          `Dolares:       ${stringToDecimal(this.totalDs.toString())}`,
+        ]).pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          if (res) {
+            this.conteoService
+            .onSave(conteo, this.cajaId, apertura)
+            .pipe(untilDestroyed(this))
+            .subscribe((res) => {
+              if (res != null) {
+                setTimeout(() => {
+                  let response: AdicionarConteoResponse = {
+                    apertura: this.apertura,
+                    conteo,
+                    totalGs: this.totalGs.toString(),
+                    totalRs: this.totalRs.toString(),
+                    totalDs: this.totalDs.toString(),
+                  };
+                  this.onGetConteoMoneda.emit(response);
+                  this.selectedConteo = conteo;
+                }, 500);
+              }
+            });          }
+        });
+    
   }
 
   ngOnDestroy(): void {

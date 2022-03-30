@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 
 @Component({
   selector: 'app-totales',
@@ -6,10 +6,10 @@ import { Component, OnInit } from '@angular/core';
   styleUrls: ['./totales.component.scss']
 })
 export class TotalesComponent implements OnInit {
-  totalGs;
-  cambioRs;
-  cambioDs;
-  cambioArg;
+  @Input() totalGs;
+  @Input() cambioRs;
+  @Input() cambioDs;
+  @Input() cambioArg;
   constructor() { }
 
   ngOnInit(): void {

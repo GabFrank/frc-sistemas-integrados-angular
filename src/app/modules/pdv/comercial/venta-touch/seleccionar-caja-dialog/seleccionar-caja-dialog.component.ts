@@ -21,7 +21,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 })
 export class SeleccionarCajaDialogComponent implements OnInit {
   ventaSub: Subscription;
-
+  selectedCaja: PdvCaja;
   constructor(
     private ventaTouchService: VentaTouchService,
     @Inject(MAT_DIALOG_DATA) public data: SeleccionarCajaDialogData,
@@ -32,6 +32,12 @@ export class SeleccionarCajaDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+
+    if(this.data.pdvCaja!=null){
+      this.selectedCaja = this.data.pdvCaja;
+      this.abrirCaja()
+    }
+
     this.ventaSub = this.ventaTouchService.cajaSub.pipe(untilDestroyed(this)).subscribe(res => {
       console.log(res)
       if(res!=null){
@@ -44,8 +50,11 @@ export class SeleccionarCajaDialogComponent implements OnInit {
 
   abrirCaja(){
     this.matDialog.open(AdicionarCajaDialogComponent, {
+      data: {
+        caja: this.selectedCaja
+      },
       width: '90%',
-      height: '80%',
+      height: '95%',
       disableClose: true,
       autoFocus: true,
       restoreFocus: true    
@@ -61,7 +70,8 @@ export class SeleccionarCajaDialogComponent implements OnInit {
   }
 
   onSalir(){
-    this.dialogRef.close('salir')
+    console.log(this.selectedCaja)
+    this.dialogRef.close(this.selectedCaja)
   }
 
 

@@ -81,6 +81,7 @@ try {
         electron_1.Menu.setApplicationMenu(electron_1.Menu.buildFromTemplate([
             {
                 role: "appMenu",
+                label: "Aplicacion",
                 submenu: [
                     {
                         label: "Reiniciar",
@@ -112,6 +113,42 @@ try {
                         click: function () {
                             electron_1.app.quit();
                         },
+                    },
+                ],
+            },
+            {
+                role: 'editMenu',
+                label: "Editar",
+                submenu: [
+                    {
+                        label: 'Cortar',
+                        accelerator: 'CmdOrCtrl+X',
+                        role: 'cut',
+                    },
+                    {
+                        label: 'Copiar',
+                        accelerator: 'CmdOrCtrl+C',
+                        role: 'copy',
+                    },
+                    {
+                        label: 'Pegar',
+                        accelerator: 'CmdOrCtrl+V',
+                        role: 'paste',
+                    },
+                    {
+                        label: 'Deshacer',
+                        accelerator: 'CmdOrCtrl+Z',
+                        role: 'undo',
+                    },
+                    {
+                        label: 'Rehacer',
+                        accelerator: 'Shift+CmdOrCtrl+Z',
+                        role: 'redo',
+                    },
+                    {
+                        label: 'Seleccionar Todo',
+                        accelerator: 'CmdOrCtrl+A',
+                        role: 'selectAll',
                     },
                 ],
             },

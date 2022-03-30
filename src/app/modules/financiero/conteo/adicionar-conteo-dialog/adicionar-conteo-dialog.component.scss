@@ -1,10 +1,18 @@
 :host ::ng-deep .mat-form-field-infix {
-    border: 0px !important;
-    padding: 0px !important;
-  }
-  
-  input::-webkit-outer-spin-button,
-  input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
+  border: 0px !important;
+  padding: 0px !important;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+mat-form-field{
+  font-size: 10px;
+}
+
+input {
+  font-size: 1.5em;
+}

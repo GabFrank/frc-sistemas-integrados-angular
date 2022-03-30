@@ -81,6 +81,8 @@ export function createWindow(): BrowserWindow {
   return win;
 }
 
+
+
 try {
   // This method will be called when Electron has finished
   // initialization and is ready to create browser windows.
@@ -91,6 +93,7 @@ try {
       Menu.buildFromTemplate([
         {
           role: "appMenu",
+          label: "Aplicacion",
           submenu: [
             {
               label: "Reiniciar",
@@ -122,6 +125,42 @@ try {
               click() {
                 app.quit();
               },
+            },
+          ],
+        },
+        {
+          role: 'editMenu',
+          label: "Editar",
+          submenu: [
+            {
+              label: 'Cortar',
+              accelerator: 'CmdOrCtrl+X',
+              role: 'cut',
+            },
+            {
+              label: 'Copiar',
+              accelerator: 'CmdOrCtrl+C',
+              role: 'copy',
+            },
+            {
+              label: 'Pegar',
+              accelerator: 'CmdOrCtrl+V',
+              role: 'paste',
+            },
+            {
+              label: 'Deshacer',
+              accelerator: 'CmdOrCtrl+Z',
+              role: 'undo',
+            },
+            {
+              label: 'Rehacer',
+              accelerator: 'Shift+CmdOrCtrl+Z',
+              role: 'redo',
+            },
+            {
+              label: 'Seleccionar Todo',
+              accelerator: 'CmdOrCtrl+A',
+              role: 'selectAll',
             },
           ],
         },

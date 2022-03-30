@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit, Output, EventEmitter } from '@angular/core';
 
 @Component({
   selector: 'app-boton',
@@ -7,9 +7,19 @@ import { Component, OnInit } from '@angular/core';
 })
 export class BotonComponent implements OnInit {
 
+  @Input()
   nombre = 'Boton'
-  disableExpression;
+
+  @Input()
+  disableExpression: boolean;
+
+  @Input()
   color = 'primary';
+
+  temporaryDisable = false;
+
+  @Output()
+  clickEvent = new EventEmitter;
 
   constructor() { }
 
@@ -17,7 +27,11 @@ export class BotonComponent implements OnInit {
   }
 
   onClick(){
-
+    this.clickEvent.emit()
+    this.temporaryDisable = true;
+    setTimeout(() => {
+      this.temporaryDisable = false;
+    }, 1000);
   }
 
 }

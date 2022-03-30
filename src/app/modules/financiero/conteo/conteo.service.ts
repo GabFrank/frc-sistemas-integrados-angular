@@ -1,3 +1,4 @@
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
@@ -9,6 +10,7 @@ import { Conteo } from "./conteo.model";
 import { DeleteConteoGQL } from "./graphql/deleleConteo";
 import { SaveConteoGQL } from "./graphql/saveConteo";
 
+@UntilDestroy()
 @Injectable({
   providedIn: "root",
 })
@@ -19,19 +21,26 @@ export class ConteoService {
     private deleteConteo: DeleteConteoGQL,
     private conteoMonedaService: ConteoMonedaService,
     private notificacionSnackBar: NotificacionSnackbarService
-  ) {}
+  ) { }
 
-  onSave(conteo: Conteo, caja: PdvCaja, apertura: boolean): Observable<any> {
+  onSave(conteo: Conteo, cajaId, apertura: boolean): Observable<any> {
+    console.log('guardando conteo moneda')
     let conteoMonedaInputList: ConteoMonedaInput[] = []
     conteo.conteoMonedaList.forEach(c => conteoMonedaInputList.push(c.toInput()))
     return new Observable((obs) => {
-      this.onSaveConteo.mutate({
+      console.log('dentro del return')
+      this.onSaveConteo.mutate(
+        {
         conteo: conteo.toInput(),
-        conteoMonedaInputList,  
-        cajaId: caja.id,
+        conteoMonedaInputList,
+        cajaId,
         apertura
-      }, {fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
-        if(res.errors==null){
+      }, 
+      { fetchPolicy: 'no-cache', errorPolicy: 'all' })
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        console.log(res)
+        if (res.errors == null) {
           obs.next(res.data['data'])
           this.notificacionSnackBar.notification$.next({
             texto: apertura == true ? 'Abierto con éxito!!' : 'Cerrado con éxito',
@@ -46,7 +55,7 @@ export class ConteoService {
           })
           obs.next(null);
         }
-      }).unsubscribe()
+      })
     });
   }
 

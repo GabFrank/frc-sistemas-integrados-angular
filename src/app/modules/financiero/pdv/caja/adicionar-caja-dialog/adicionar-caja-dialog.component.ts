@@ -48,7 +48,7 @@ export interface AdicionarCajaResponse {
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
-@UntilDestroy({ checkProperties: true })
+@UntilDestroy()
 @Component({
   selector: "app-adicionar-caja-dialog",
   templateUrl: "./adicionar-caja-dialog.component.html",
@@ -129,8 +129,6 @@ export class AdicionarCajaDialogComponent implements OnInit {
         }
       });
     } else {
-      this.cargandoDialog.closeDialog()
-      this.conteoInicial = false;
     }
     setTimeout(() => {
       this.codigoMaletinInput.nativeElement.focus();
@@ -271,6 +269,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
       this.descripcionMaletinControl.setValue(null);
     }
     this.selectedMaletin = maletin;
+    this.crearNuevaCaja();
   }
 
   onSiguiente() {
@@ -298,126 +297,30 @@ export class AdicionarCajaDialogComponent implements OnInit {
   }
 
   getConteoMoneda(response: AdicionarConteoResponse) {
-    this.conteoInicial = false;
     this.totalGsAper = +response.totalGs;
     this.totalRsaper = +response.totalRs;
     this.totalDsAper = +response.totalDs;
-    console.log(this.conteoInicial)
-    this.cargandoDialog.closeDialog();
-    if (response.conteoMonedaList.length < 1 && this.selectedConteoApertura==null) {
-      this.dialogBox
-        .confirm(
-          "Atención!!",
-          "Realmente desea abrir caja sin adicionar monedas?"
-        ).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res) {
-            this.abrirCaja(response.conteoMonedaList);
-          }
-        });
-    } else if(this.selectedConteoApertura==null){
-      this.dialogBox
-        .confirm("Atención!!", "Confirmar datos de apertura de caja", null, [
-          `Guaranies:     ${stringToInteger(response.totalGs)}`,
-          `Reales:        ${stringToDecimal(response.totalRs)}`,
-          `Dolares:       ${stringToDecimal(response.totalDs)}`,
-        ]).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res) {
-            this.abrirCaja(response.conteoMonedaList);
-          }
-        });
+    if(response.apertura){
+      this.selectedConteoApertura = response.conteo;
+    } else {
+      this.selectedConteoCierre = response.conteo;
     }
   }
 
   getConteoMonedaCierre(response: AdicionarConteoResponse) {
+    console.log(response)
     this.totalGsCierre = +response.totalGs;
     this.totalRsCierre = +response.totalRs;
     this.totalDsCierre = +response.totalDs;
-
-
-    this.cargandoDialog.closeDialog();
-    if(response.conteoMonedaList.length > 1 && this.selectedConteoCierre==null) {
-      this.dialogBox
-        .confirm("Atención!!", "Confirmar datos de cierre de caja", null, [
-          `Guaranies:     ${stringToInteger(response.totalGs)}`,
-          `Reales:        ${stringToDecimal(response.totalRs)}`,
-          `Dolares:       ${stringToDecimal(response.totalDs)}`,
-        ]).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res) {
-            this.cerrarCaja(response.conteoMonedaList);
-          }
-        });
+    if(response.apertura){
+      this.selectedConteoApertura = response.conteo;
+    } else {
+      this.selectedConteoCierre = response.conteo;
     }
   }
 
   onAnterior() {
     this.stepper.previous();
-  }
-
-  abrirCaja(conteoMonedaList: ConteoMoneda[]) {
-    this.guardarConteo(conteoMonedaList, true);
-  }
-
-  cerrarCaja(conteoMonedaList: ConteoMoneda[]) {
-    this.guardarConteo(conteoMonedaList, false);
-  }
-
-  guardarConteo(conteoMonedaList: ConteoMoneda[], apertura: boolean) {
-    this.cargandoDialog.openDialog();
-    let conteo = new Conteo();
-    if (apertura) {
-      conteo.totalGs = this.totalGsAper;
-      conteo.totalRs = this.totalRsaper;
-      conteo.totalDs = this.totalDsAper;
-    } else {
-      conteo.totalGs = this.totalGsCierre;
-      conteo.totalRs = this.totalRsCierre;
-      conteo.totalDs = this.totalDsCierre;
-    }
-    conteo.conteoMonedaList = conteoMonedaList;
-    let caja = new PdvCajaInput();
-    if (this.selectedCaja != null) {
-      caja.id = this.selectedCaja.id;
-      caja.creadoEn = this.selectedCaja.creadoEn;
-      caja.usuarioId = this.selectedCaja?.usuario?.id;
-      caja.fechaApertura = this.selectedCaja.fechaApertura;
-      caja.fechaCierre = this.selectedCaja.fechaCierre;
-      caja.conteoAperturaId = this.selectedCaja?.conteoApertura?.id;
-      caja.conteoCierreId = this.selectedCaja?.conteoCierre?.id;
-      caja.maletinId = this.selectedCaja?.maletin?.id;
-      caja.observacion = this.selectedCaja?.observacion;
-    } else {
-      caja.maletinId = this.selectedMaletin.id;
-    }
-    caja.activo = true;
-    caja.observacion = this.observacionControl.value;
-    this.cajaService.onSave(caja).pipe(untilDestroyed(this)).subscribe((cajaRes) => {
-      console.log(cajaRes)
-      if (cajaRes != null) {
-        this.cargandoDialog.closeDialog();
-        this.selectedCaja = cajaRes;
-        this.conteoService
-          .onSave(conteo, this.selectedCaja, apertura).pipe(untilDestroyed(this))
-          .subscribe((res) => {
-            if (res != null) {
-              if (apertura) {
-                this.selectedCaja.conteoApertura = res;
-                this.selectedConteoApertura = res;
-                this.conteoAperturaSubject.next(this.selectedConteoApertura);
-              } else {
-                this.selectedCaja.conteoCierre = res;
-                this.selectedConteoCierre = res;
-                this.conteoCierreSubject.next(this.selectedConteoCierre);
-              }
-            } else {
-              console.log("eliminar caja entonces");
-              this.cajaService.onDelete(this.selectedCaja.id, false);
-            }
-          });
-      }
-    });
   }
 
   @HostListener("document:keydown", ["$event"]) onKeydownHandler(
@@ -462,15 +365,29 @@ export class AdicionarCajaDialogComponent implements OnInit {
         if(this.selectedCaja!=null) this.cajaService.onImprimirBalance(this.selectedCaja?.id)
         break;
       case "salir":
-        let res: AdicionarCajaResponse = {
-          caja: this.selectedCaja,
-          conteoApertura: this.selectedConteoApertura,
-          conteoCierre: this.selectedConteoCierre,
-        };
-        this.matDialogRef.close(res);
+        this.selectedCaja.conteoApertura = this.selectedConteoApertura
+        this.selectedCaja.conteoCierre = this.selectedConteoCierre
+        this.matDialogRef.close({caja: this.selectedCaja});
         break;
       default:
         break;
     }
+  }
+
+  crearNuevaCaja(){
+    this.cargandoDialog.openDialog(true, 'Creando caja...')
+    console.log('creando caja')
+    let input = new PdvCajaInput;
+    input.maletinId = this.selectedMaletin.id;
+    input.activo = true;
+    this.cajaService.onSave(input)
+    .pipe(untilDestroyed(this))
+    .subscribe(res => {
+      this.cargandoDialog.closeDialog()
+      if(res!=null){
+        this.selectedCaja = res;
+        console.log('caja: ', res)
+      }
+    })
   }
 }

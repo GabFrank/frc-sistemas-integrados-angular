@@ -1,40 +1,86 @@
 <div fxLayout="row" style="width: 100%; height: 95%" fxLayoutGap="5px">
-  <mat-card fxFlex="50%" fxLayout="column" style="width: 100%; height: 100%">
+  <mat-card
+    fxFlex="50%"
+    fxLayout="column"
+    style="width: 100%; height: 100%"
+    [style.background-color]="isAuxiliar ? 'rgb(0, 155, 39)' : ''"
+  >
     <div fxFlex="20%">
-      <app-totales></app-totales>
+      <app-totales
+        [totalGs]="totalGs"
+        [cambioRs]="cambioRs"
+        [cambioDs]="cambioDs"
+        [cambioArg]="cambioArg"
+      ></app-totales>
     </div>
-    <div fxFlex="60%">
-      <app-item-list></app-item-list>
+    <div fxFlex="55%">
+      <app-item-list
+        [itemList]="selectedItemList"
+        (editEvent)="editItem($event)"
+        (removeEvent)="removeItem($event)"
+      ></app-item-list>
     </div>
-    <div fxFlex="5%">
-      <app-buscador></app-buscador>
+    <div fxFlex="10%">
+      <app-buscador
+        [selectedTipoPrecio]="selectedTipoPrecio"
+        [tiposPrecios]="tiposPrecios"
+        (dialogEvent)="isDialogOpen = true"
+        (addItemEvent)="addItem($event)"
+        [focusEvent]="buscadorFocusSub.asObservable()"
+        (crearItemEvent)="crearItem($event)"
+      ></app-buscador>
     </div>
     <div fxFlex="15%" fxLayout="row" fxLayoutGap="10px">
-      <div fxFlex="50%">
-        <app-boton></app-boton>
+      <div fxFlex="33%">
+        <app-boton nombre="Precios"></app-boton>
       </div>
-      <div fxFlex="50%">
-        <app-boton></app-boton>
+      <div fxFlex="33%">
+        <app-boton
+          nombre="Eliminar todo"
+          [disableExpression]="selectedItemList.length == 0"
+          (clickEvent)="removeItem({})"
+        ></app-boton>
+      </div>
+      <div fxFlex="33%">
+        <app-boton
+          nombre="Pago"
+          color="accent"
+          [disableExpression]="selectedItemList.length == 0"
+          (clickEvent)="onPagoClick()"
+        ></app-boton>
       </div>
     </div>
   </mat-card>
-  <mat-card fxFlex="50%" fxLayout="column" style="width: 100%; height: 100%">
-  <div fxFlex="85%">
-    <app-favoritos></app-favoritos>
-  </div>
-  <div fxFlex="15%" fxLayout="row" fxLayoutGap="10px">
-    <div fxFlex="25%">
-      <app-boton></app-boton>
+  <mat-card
+    fxFlex="50%"
+    fxLayout="column"
+    style="width: 100%; height: 100%;"  >
+    <div fxFlex="85%">
+      <app-favoritos (event)="onGridCardClick($event)"></app-favoritos>
     </div>
-    <div fxFlex="25%">
-      <app-boton></app-boton>
+    <div fxFlex="15%" fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="25%">
+        <app-boton
+          nombre="Cobro Rápido"
+          [disableExpression]="selectedItemList.length == 0"
+          (clickEvent)="onTicketClick()"
+        ></app-boton>
+      </div>
+      <div fxFlex="25%">
+        <app-boton nombre="Delivery"></app-boton>
+      </div>
+      <div fxFlex="25%">
+        <app-boton
+          [nombre]="!isAuxiliar ? 'PDV 1' : 'PDV 2'"
+          (clickEvent)="pdvAuxiliarClick()"
+        ></app-boton>
+      </div>
+      <div fxFlex="25%">
+        <app-boton
+          nombre="Utilitarios"
+          (clickEvent)="openUtilitarios()"
+        ></app-boton>
+      </div>
     </div>
-    <div fxFlex="25%">
-      <app-boton></app-boton>
-    </div>
-    <div fxFlex="25%">
-      <app-boton></app-boton>
-    </div>
-  </div>
-</mat-card>
+  </mat-card>
 </div>

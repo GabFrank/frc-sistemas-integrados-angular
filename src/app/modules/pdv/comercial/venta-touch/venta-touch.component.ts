@@ -1,17 +1,11 @@
 import {
   Component,
-  ElementRef,
-  HostListener,
   Input,
   OnDestroy,
   OnInit,
-  ViewChild,
-  ViewEncapsulation,
 } from "@angular/core";
-import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatDialog, MatDialogRef } from "@angular/material/dialog";
-import { MatTableDataSource } from "@angular/material/table";
-import { interval, Subscription } from "rxjs";
+import { Subject, Subscription } from "rxjs";
 import { isInt } from "../../../../commons/core/utils/numbersUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabService } from "../../../../layouts/tab/tab.service";
@@ -27,12 +21,6 @@ import { VueltoInput } from "../../../../modules/operaciones/vuelto/vuelto-input
 import { SaveVueltoItemGQL } from "../../../../modules/operaciones/vuelto/vuelto-item/graphql/saveVueltoItem";
 import { VueltoItemInput } from "../../../../modules/operaciones/vuelto/vuelto-item/vuelto-item-input.model";
 import { Codigo } from "../../../../modules/productos/codigo/codigo.model";
-import { ProductoPorCodigoGQL } from "../../../../modules/productos/producto/graphql/productoPorCodigo";
-import {
-  PdvSearchProductoData,
-  PdvSearchProductoDialogComponent,
-  PdvSearchProductoResponseData,
-} from "../../../../modules/productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
 import { Producto } from "../../../../modules/productos/producto/producto.model";
 import { AllTiposPreciosGQL } from "../../../../modules/productos/tipo-precio/graphql/allTiposPrecios";
 import { TipoPrecio } from "../../../../modules/productos/tipo-precio/tipo-precio.model";
@@ -40,11 +28,9 @@ import {
   NotificacionColor,
   NotificacionSnackbarService,
 } from "../../../../notificacion-snackbar.service";
-import { BeepService } from "../../../../shared/beep/beep.service";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { WindowInfoService } from "../../../../shared/services/window-info.service";
-import { AdicionarConteoResponse } from "../../../financiero/conteo/adicionar-conteo-dialog/adicionar-conteo-dialog.component";
 import { FormaPago } from "../../../financiero/forma-pago/forma-pago.model";
 import { FormaPagoService } from "../../../financiero/forma-pago/forma-pago.service";
 import { AdicionarCajaResponse } from "../../../financiero/pdv/caja/adicionar-caja-dialog/adicionar-caja-dialog.component";
@@ -52,25 +38,15 @@ import { PdvCaja } from "../../../financiero/pdv/caja/caja.model";
 import { CajaService } from "../../../financiero/pdv/caja/caja.service";
 import { CobroDetalle } from "../../../operaciones/venta/cobro/cobro-detalle.model";
 import { Cobro } from "../../../operaciones/venta/cobro/cobro.model";
-import { TipoVenta } from "../../../operaciones/venta/enums/tipo-venta.enums";
-import { VentaEstado } from "../../../operaciones/venta/enums/venta-estado.enums";
 import { VentaItem } from "../../../operaciones/venta/venta-item.model";
 import { Venta } from "../../../operaciones/venta/venta.model";
-import { ProductoService } from "../../../productos/producto/producto.service";
 import { DeliveryDialogComponent } from "./delivery-dialog/delivery-dialog.component";
 import { EditItemDialogComponent } from "./edit-item-dialog/edit-item-dialog.component";
 import {
   PagoResponseData,
   PagoTouchComponent,
 } from "./pago-touch/pago-touch.component";
-import { AddCategoriaDialogComponent } from "./pdv-categoria/add-categoria-dialog/add-categoria-dialog.component";
 import { PdvCategoria } from "./pdv-categoria/pdv-categoria.model";
-import { PdvCategoriaService } from "./pdv-categoria/pdv-categoria.service";
-import { PdvGruposProductos } from "./pdv-grupos-productos/pdv-grupos-productos.model";
-import {
-  ProductoCategoriaDialogComponent,
-  ProductoCategoriaResponseData,
-} from "./producto-categoria-dialog/producto-categoria-dialog.component";
 import { SeleccionarCajaDialogComponent } from "./seleccionar-caja-dialog/seleccionar-caja-dialog.component";
 import {
   SelectProductosDialogComponent,
@@ -79,7 +55,6 @@ import {
 import { UtilitariosDialogComponent } from "./utilitarios-dialog/utilitarios-dialog.component";
 import { VentaTouchService } from "./venta-touch.service";
 import { NgxPrintElementService } from "ngx-print-element";
-import { AdicionarPdvProductoDialogComponent } from "./adicionar-pdv-producto-dialog/adicionar-pdv-producto-dialog.component";
 import { PdvGrupo } from "./pdv-grupo/pdv-grupo.model";
 import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 import { SeleccionarEnvaseDialogComponent } from "./seleccionar-envase-dialog/seleccionar-envase-dialog.component";
@@ -117,14 +92,8 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 export class VentaTouchComponent implements OnInit, OnDestroy {
   @Input() data: Tab;
 
-  @ViewChild("codigoInput", { static: false })
-  codigoInput: ElementRef;
-
   selectedCaja: PdvCaja;
 
-  isCargandoPDV = true;
-  displayedColumns = ["numero", "descripcion", "cantidad", "precio", "total"];
-  dataSource = new MatTableDataSource<VentaItem>();
   winHeigth;
   winWidth;
   totalGs = 0;
@@ -132,15 +101,14 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   cambioRs = 0;
   cambioDs = 0;
   cambioArg = 0;
-  formGroup: FormGroup;
   selectedPdvCategoria: PdvCategoria;
-  pdvCategorias: PdvCategoria[] = [];
   ultimoAdicionado: VentaItem[] = [];
   tiposPrecios: TipoPrecio[] = [];
   selectedTipoPrecio: TipoPrecio;
+  selectedItemList: VentaItem[] = [];
   itemList: VentaItem[] = [];
+  itemList2: VentaItem[] = [];
   isDialogOpen;
-  isAudio = true;
   isAuxiliar = false;
   monedas: Moneda[] = [];
   mostrarTipoPrecios = false;
@@ -150,21 +118,20 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   formaPagoList: FormaPago[];
   disableCobroRapido = false;
 
+  buscadorFocusSub: Subject<void> = new Subject<void>();
+
+
   constructor(
     private dialog: MatDialog,
     public windowInfo: WindowInfoService,
     public mainService: MainService,
-    public getProductoByCodigo: ProductoPorCodigoGQL,
     private notificacionSnackbar: NotificacionSnackbarService,
-    private pdvCategoriaService: PdvCategoriaService,
     private getTiposPrecios: AllTiposPreciosGQL,
-    private beepService: BeepService,
     private tabService: TabService,
     private getMonedas: MonedasGetAllGQL,
     private saveDelivery: SaveDeliveryGQL,
     private saveVuelto: SaveVueltoGQL,
     private saveVueltoItem: SaveVueltoItemGQL,
-    private productoService: ProductoService,
     private confirmDialogService: DialogosService,
     private ventaTouchServive: VentaTouchService,
     private matDialog: MatDialog,
@@ -176,16 +143,10 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
     this.isDialogOpen = false;
-    // setTimeout(() => {
-    //   this.codigoInput.nativeElement.focus();
-    // }, 0);
   }
 
   ngOnInit(): void {
     this.formaPagoList = [];
-    this.dataSource.data = this.itemList;
-    this.createForm();
-    this.buscarPdvCategoria();
     this.setPrecios();
     this.getFormaPagos();
 
@@ -193,23 +154,30 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       this.isAuxiliar = this.data?.tabData?.data?.auxiliar;
     }, 0);
 
-    // this.tabService.tabChangedEvent.pipe(untilDestroyed(this)).subscribe((res) => {
-    //   if (this.data.active == true) {
-    //     this.setFocusToCodigoInput();
-    //   }
-    // });
-
     this.cajaService
       .onGetByUsuarioIdAndAbierto(this.mainService.usuarioActual.id).pipe(untilDestroyed(this))
       .subscribe((res) => {
-        if (res == null) {
+        console.log(res)
+        this.selectedCaja = res;
+        if (res == null || res?.conteoApertura == null) {
           this.openSelectCajaDialog();
-        } else {
-          this.selectedCaja = res;
         }
       });
-    console.log(this.ventaSub)
 
+    // this.ventaTouchServive.cajaSub
+    // .pipe(untilDestroyed(this))
+    // .subscribe(res => {
+    //   if(res==null || res?.conteoApertura==null){
+    //     this.selectedCaja = res;
+    //     this.openSelectCajaDialog()
+    //   }
+    // })
+
+    setTimeout(() => {
+      this.buscadorFocusSub.next()
+    }, 3000);
+
+    this.selectedItemList = this.itemList;
   }
 
   getFormaPagos() {
@@ -225,6 +193,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     this.selectCajaDialog = this.matDialog.open(
       SeleccionarCajaDialogComponent,
       {
+        data: { pdvCaja: this.selectedCaja },
         autoFocus: false,
         restoreFocus: true,
         disableClose: true,
@@ -276,52 +245,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     });
   }
 
-  createForm(): boolean {
-    this.formGroup = new FormGroup({
-      cantidad: new FormControl(null),
-      codigo: new FormControl(null),
-    });
-    this.formGroup.get("cantidad").setValue(1);
-    return true;
-  }
-
-  buscarPdvCategoria() {
-    this.cargandoService.openDialog(false, "Cargando favoritos");
-    this.pdvCategoriaService.onGetCategorias().pipe(untilDestroyed(this)).subscribe((res) => {
-      this.cargandoService.openDialog(false, "Cargando Otros");
-      setTimeout(() => {
-        this.cargandoService.closeDialog();
-        this.cargandoService.closeDialog();
-      }, 2000);
-      if (res.errors == null) {
-        this.pdvCategorias = res.data.data;
-        this.pdvCategorias.forEach((cat) => {
-          cat.grupos.forEach((gr) => {
-            if (gr.activo == true) {
-              this.pdvCategoriaService
-                .onGetGrupoProductosPorGrupoId(gr.id).pipe(untilDestroyed(this))
-                .subscribe((res) => {
-                  if (res != null) {
-                    console.log("cargando: " + gr.descripcion);
-                    gr.pdvGruposProductos = res;
-                  }
-                });
-            }
-          });
-          console.log("carga completa");
-        });
-        this.selectedPdvCategoria = this.pdvCategorias[0];
-        this.isCargandoPDV = false;
-      } else {
-        this.notificacionSnackbar.notification$.next({
-          texto: "No fue posible cargar categorias",
-          color: NotificacionColor.warn,
-          duracion: 3,
-        });
-      }
-    });
-  }
-
   buscarTiposPrecios() {
     this.getTiposPrecios.fetch().pipe(untilDestroyed(this)).subscribe((res) => {
       if (!res.errors) {
@@ -337,7 +260,10 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     });
   }
 
-  onGridCardClick(pdvGruposProductos: PdvGruposProductos[], descripcion) {
+  onGridCardClick(grupo: PdvGrupo) {
+    console.log(grupo)
+    let descripcion = grupo.descripcion;
+    let pdvGruposProductos = grupo.pdvGruposProductos;
     let productos: Producto[] = [];
     pdvGruposProductos.forEach((e) => {
       productos.push(e.producto);
@@ -361,37 +287,15 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
           this.addItem(item);
         }
         this.dialogReference = undefined;
+        this.buscadorFocusSub.next()
       });
   }
 
   calcularTotales() {
     this.totalGs = 0;
-    this.itemList.forEach((item) => {
+    this.selectedItemList.forEach((item) => {
       this.totalGs += Math.round(+item.cantidad * +item.precioVenta.precio);
     });
-  }
-
-  onCodigoKeyUpEvent(key) {
-    let texto: String = this.formGroup.get("codigo").value;
-    switch (key) {
-      case " ":
-      case "*":
-      case "+":
-      case "-":
-      case "Tab":
-        if (texto != null && texto != " " && +texto > 0) {
-          this.formGroup
-            .get("cantidad")
-            .setValue(+this.formGroup.get("codigo").value);
-          this.formGroup.get("codigo").setValue(null);
-        }
-        break;
-      case "Enter":
-        break;
-
-      default:
-        break;
-    }
   }
 
   addItem(item: VentaItem, index?) {
@@ -442,16 +346,16 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       }
     }
 
-    if (this.itemList.length > 0 && index == null) {
+    if (this.selectedItemList.length > 0 && index == null) {
       console.log("entro aca");
-      index = this.itemList.findIndex(
+      index = this.selectedItemList.findIndex(
         (i) =>
           i.presentacion.id == item.presentacion.id &&
           i.precioVenta.precio == item.precioVenta.precio
       );
     }
     if (index != -1 && index != null) {
-      this.itemList[index].cantidad += cantidad;
+      this.selectedItemList[index].cantidad += cantidad;
       console.log("entro alla");
     } else {
       if (item.cantidad > 0) {
@@ -473,37 +377,37 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
               }
             });
         }
-        this.itemList.push(item);
+        this.selectedItemList.push(item);
       }
     }
     this.calcularTotales();
     item.cantidad = cantidad;
     if (item.cantidad > 0) this.ultimoAdicionado.push(item);
-    // this.ultimoAdicionado[this.ultimoAdicionado.length - 1].index =
-    //   itemIndex > -1 ? itemIndex : this.itemList.length - 1;
-    this.formGroup.get("codigo").setValue("");
-    this.formGroup.get("cantidad").setValue(1);
     this.selectedTipoPrecio = this.tiposPrecios[0];
   }
 
-  removeItem(item: VentaItem, index?) {
+  removeItem(event: any) {
+    let item = event['item']
+    let index = event['i']
     if (item == null && index == null) {
       this.dialogReference = this.confirmDialogService
         .confirm("Atención!!", "Realmente desea eliminar la lista de itens?").pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res) {
-            this.itemList = [];
+            this.selectedItemList = [];
             this.calcularTotales();
           }
           this.dialogReference = undefined;
         });
     } else {
-      this.itemList.splice(index, 1);
+      this.selectedItemList.splice(index, 1);
       this.calcularTotales();
     }
   }
 
-  editItem(item: VentaItem, index) {
+  editItem(event: any) {
+    let item = event['item']
+    let index = event['i']
     let dialogReference = this.dialog.open(EditItemDialogComponent, {
       data: {
         item,
@@ -514,111 +418,28 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         switch (res) {
           case -1:
           case 0:
-            this.removeItem(item, index);
+            this.removeItem({ item, index });
             break;
           default:
-            this.removeItem(item, index);
+            this.removeItem({ item, index });
             item.cantidad = res;
             this.addItem(item);
             break;
         }
       }
       this.dialogReference = undefined;
+      this.buscadorFocusSub.next()
     });
   }
 
-  buscarProductoDialog() {
-    let data: PdvSearchProductoData = {
-      cantidad: this.formGroup.get("cantidad").value,
-      texto: this.formGroup.get("codigo").value,
-      selectedTipoPrecio: this.selectedTipoPrecio,
-      tiposPrecios: this.tiposPrecios,
-      mostrarStock: true,
-      mostrarOpciones: true,
-    };
-    this.dialogReference = this.dialog.open(PdvSearchProductoDialogComponent, {
-      height: "98%",
-      data,
-      autoFocus: false,
-      restoreFocus: true,
-    });
-    this.formGroup.get("codigo").setValue("");
-    this.dialogReference.afterClosed().pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res != null) {
-        this.isDialogOpen = false;
-        let response: PdvSearchProductoResponseData = res;
-        this.formGroup.get("cantidad").setValue(response.cantidad);
-        let item = new VentaItem();
-        item.cantidad = this.formGroup.controls.cantidad.value;
-        item.producto = response.producto;
-        item.presentacion = response.presentacion;
-        item.precioVenta = response.precio;
-        this.addItem(item);
-      }
-      this.dialogReference = undefined;
-    });
-  }
-
-  @HostListener("document:keyup", ["$event"]) onKeydownHandler(
-    event: KeyboardEvent
-  ) {
-    if (this.data.active == true && this.dialogReference == undefined) {
-      switch (event.key) {
-        case "Escape":
-          break;
-        case "Enter":
-          let codigo = this.formGroup.get("codigo").value;
-          if (codigo != null && codigo != "") {
-            this.buscarPorCodigo(codigo);
-          } else if (this.dialogReference == undefined) {
-            console.log(this.dialogReference)
-            // this.onPagoClick();
-          }
-          break;
-        case "F9":
-          this.buscarProductoDialog();
-          break;
-        default:
-          break;
-      }
-    }
-  }
-
-  buscarPorCodigo(texto: string) {
-    let producto: Producto;
-    if (texto == null || texto == " " || texto == "") return null;
-    this.getProductoByCodigo
-      .fetch(
-        {
-          texto,
-        },
-        { fetchPolicy: "no-cache", errorPolicy: "all" }
-      ).pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res.errors == null) {
-          producto = res.data.data;
-          if (producto != null) {
-            this.isAudio ? this.beepService.beep() : null;
-            this.crearItem(producto, texto);
-            this.formGroup.get("codigo").setValue(null);
-          } else {
-            this.isAudio ? this.beepService.boop() : null;
-            this.buscarProductoDialog();
-            this.notificacionSnackbar.notification$.next({
-              texto: "Producto no encontrado",
-              color: NotificacionColor.warn,
-              duracion: 2,
-            });
-          }
-        }
-      });
-  }
-
-  crearItem(producto: Producto, texto?, index?) {
+  crearItem(eventData: any, index?) {
+    let producto = eventData['producto']
+    let texto = eventData['texto']
+    let cantidad = eventData['cantidad']
     let item: VentaItem = new VentaItem();
     let selectedCodigo: Codigo;
     let selectedPresentacion: Presentacion;
-    item.cantidad = this.formGroup.controls.cantidad.value;
+    item.cantidad = cantidad;
     item.producto = producto;
     if (texto != null) {
       item.presentacion = producto?.presentaciones.find((p) => {
@@ -647,51 +468,29 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     } else {
       this.addItem(item);
     }
+    this.buscadorFocusSub.next()
   }
-
-  // setFocusToCodigoInput() {
-  //   console.log("dando focus a input");
-  //   if (this.codigoInput != null && this.matDialog["_parentDialog"] == null) {
-  //     setTimeout(() => {
-  //       this.codigoInput.nativeElement.focus();
-  //     }, 10);
-  //   }
-  // }
 
   cambiarTipoPrecio(tipo) {
     this.selectedTipoPrecio = this.tiposPrecios.find((tp) => tp.id == tipo);
   }
 
   pdvAuxiliarClick() {
-    let auxIndex = this.tabService.tabs.findIndex(
-      (t) => t.title == "Venta Auxiliar"
-    );
-    let pdvIndex = this.tabService.tabs.findIndex((t) => t.title == "Venta");
-
     if (!this.isAuxiliar) {
-      if (auxIndex != -1) {
-        return this.tabService.setTabActive(auxIndex);
-      }
-      let data: PdvTouchData = {
-        auxiliar: true,
-        titulo: "Venta Auxiliar",
-      };
-      return this.tabService.addTab(
-        new Tab(
-          VentaTouchComponent,
-          "Venta Auxiliar",
-          { data: data },
-          VentaTouchComponent
-        )
-      );
+      this.isAuxiliar = true;
+      this.selectedItemList = this.itemList2;
+      this.calcularTotales()
     } else {
-      return this.tabService.setTabActive(pdvIndex);
+      this.isAuxiliar = false;
+      this.selectedItemList = this.itemList;
+      this.calcularTotales()
     }
+    this.buscadorFocusSub.next()
   }
 
   onPagoClick() {
     this.isDialogOpen = true;
-    if (this.itemList?.length > 0) {
+    if (this.selectedItemList?.length > 0) {
       this.dialogReference = this.dialog
         .open(PagoTouchComponent, {
           autoFocus: true,
@@ -711,7 +510,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
             venta.totalGs = this.totalGs;
             venta.totalRs = this.totalGs / this.cambioRs;
             venta.totalDs = this.totalGs / this.cambioDs;
-            venta.ventaItemList = this.itemList;
+            venta.ventaItemList = this.selectedItemList;
             venta.caja = this.selectedCaja;
             let cobro = new Cobro();
             cobro.totalGs = this.totalGs;
@@ -733,25 +532,30 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
                 cobro.cobroDetalleList.push(cobroDetalle);
               });
             }
+            this.cargandoService.closeDialog();
             this.onSaveVenta(venta, cobro);
             this.dialogReference = undefined;
           }
           this.isDialogOpen = false;
+          this.buscadorFocusSub.next()
         });
     }
   }
 
   resetForm() {
-    this.itemList = [];
-    this.formGroup.controls.cantidad.setValue(1);
-    this.formGroup.controls.codigo.setValue("");
+    if (!this.isAuxiliar) {
+      this.itemList = []
+      this.selectedItemList = this.itemList;
+    } else {
+      this.itemList2 = [];
+      this.selectedItemList = this.itemList2;
+    }
     this.selectedTipoPrecio = this.tiposPrecios[0];
     this.totalGs = 0;
   }
 
   onTicketClick() {
     this.disableCobroRapido = true;
-    this.cargandoService.openDialog(true);
     //guardar la compra, si la compra se guardo con exito, imprimir ticket y resetForm()
     let venta = new Venta();
     venta.formaPago = this.formaPagoService.formaPagoList.find(
@@ -760,7 +564,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     venta.totalGs = this.totalGs;
     venta.totalRs = this.totalGs / this.cambioRs;
     venta.totalDs = this.totalGs / this.cambioDs;
-    venta.ventaItemList = this.itemList;
+    venta.ventaItemList = this.selectedItemList;
     venta.caja = this.selectedCaja;
     let cobro = new Cobro();
     cobro.totalGs = this.totalGs;
@@ -779,6 +583,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     // cobroDetalle.
     this.onSaveVenta(venta, cobro);
     this.disableCobroRapido = false;
+    this.buscadorFocusSub.next()
   }
 
   onSaveVenta(venta, cobro) {
@@ -789,7 +594,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         this.notificacionSnackbar.notification$.next({
           color: NotificacionColor.success,
           texto: "Venta guardada con éxito",
-          duracion: 2,  
+          duracion: 2,
         });
         this.resetForm();
       } else {
@@ -880,42 +685,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       });
   }
 
-  addPdvCategoria() {
-    this.isDialogOpen = true;
-    this.dialogReference = this.dialog
-      .open(AddCategoriaDialogComponent, {
-        restoreFocus: true,
-      })
-      .afterClosed().pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          this.pdvCategorias.push(res);
-        }
-        this.dialogReference = undefined;
-      });
-  }
-
-  addPdvProducto(pdvGrupo?: PdvGrupo) {
-    this.isDialogOpen = true;
-    this.dialogReference = this.dialog
-      .open(AdicionarPdvProductoDialogComponent, {
-        restoreFocus: true,
-        data: {
-          pdvCategoria: this.selectedPdvCategoria,
-          pdvGrupo,
-        },
-        width: "70%",
-        height: "60%",
-      })
-      .afterClosed().pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          this.pdvCategorias.push(res);
-        }
-        this.dialogReference = undefined;
-      });
-  }
-
   ngOnDestroy(): void {
   }
 
@@ -933,13 +702,18 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       })
       .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
-        if (res != null) {
-          if (res.conteoCierre != null) {
+        console.log(res)
+        if (res['caja'] != null) {
+          if (res['caja'].conteoApertura == null) {
+            this.selectedCaja = res['caja'];
+            this.openSelectCajaDialog();
+          } else if (res['caja'].conteoCierre != null) {
             this.selectedCaja = null;
             this.openSelectCajaDialog();
           }
         }
         this.dialogReference = undefined;
+        this.buscadorFocusSub.next()
       });
   }
 }

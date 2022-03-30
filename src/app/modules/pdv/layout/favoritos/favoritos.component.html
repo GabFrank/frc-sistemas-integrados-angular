@@ -1,5 +1,10 @@
-<div fxLayout="row" style="width: 100%; height: 100%;" fxLayoutAlign="start center">
-  <div fxFlex="90%" style="width: 100%">
+<div fxLayout="column" style="width: 100%; height: 100%">
+  <div
+    fxFlex
+    fxLayout="row"
+    style="width: 100%; height: 100%"
+    fxLayoutAlign="start center"
+  >
     <div
       #categorias
       fxLayout="row"
@@ -23,53 +28,44 @@
       </div>
     </div>
   </div>
-  <!-- <div fxFlex="10%">
-    <button
-      type="button"
-      mat-icon-button
-      [matMenuTriggerFor]="menu"
-      (click)="$event.stopPropagation()"
-    >
-      <mat-icon>more_vert</mat-icon>
-    </button>
-  </div> -->
-</div>
 
-<div fxFlex="3" style="text-align: center">
-  <h4 style="margin-bottom: 0">
-    {{ selectedPdvCategoria?.descripcion }}
-  </h4>
-</div>
-<div
-  fxFlex="75"
-  fxLayout="row wrap"
-  fxLayoutAlign="start start"
-  fxLayoutGap="5px"
-  style="height: 100%"
->
+  <div fxFlex style="text-align: center">
+    <h4 style="margin-bottom: 0">
+      {{ selectedPdvCategoria?.descripcion }}
+    </h4>
+  </div>
   <div
-    fxFlex="15"
-    *ngFor="let grupo of selectedPdvCategoria?.grupos; let i = index"
+    fxFlex="85"
+    fxLayout="row wrap"
+    fxLayoutAlign="start start"
+    fxLayoutGap="5px"
+    style="height: 100%"
   >
-    <mat-card
-      style="
-        padding: 0;
-        margin: 0;
-        margin-top: 5px;
-        height: 100px;
-        background-color: #f44336;
-      "
-      (click)="onGridCardClick(grupo?.pdvGruposProductos, grupo?.descripcion)"
+    <div
+      fxFlex="15"
+      *ngFor="let grupo of selectedPdvCategoria?.grupos; let i = index"
     >
-      <div
-        fxLayout="row"
-        fxLayoutAlign="center center"
-        style="width: 100%; height: 100%"
+      <mat-card
+        *ngIf="grupo.pdvGruposProductos[0]?.producto!=null"
+        style="
+          padding: 0;
+          margin: 0;
+          margin-top: 5px;
+          height: 100px;
+          background-color: #f44336;
+        "
+        (click)="onGridCardClick(grupo)"
       >
-        <div fxFlex="100" style="text-align: center">
-          {{ grupo.descripcion }}
+        <div
+          fxLayout="row"
+          fxLayoutAlign="center center"
+          style="width: 100%; height: 100%"
+        >
+          <div fxFlex="100" style="text-align: center">
+            {{ grupo.descripcion }}
+          </div>
         </div>
-      </div>
-    </mat-card>
+      </mat-card>
+    </div>
   </div>
 </div>

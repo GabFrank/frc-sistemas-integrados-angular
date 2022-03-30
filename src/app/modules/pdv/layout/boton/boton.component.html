@@ -4,7 +4,7 @@
     mat-raised-button
     [color]="color"
     style="width: 100%; height: 90%"
-    [disabled]="disableExpression"
+    [disabled]="disableExpression || temporaryDisable"
     (click)="onClick()"
   >
     {{ nombre }}

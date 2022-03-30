@@ -29,11 +29,12 @@
           <!-- [matKeyboard]="'Azərbaycanca'"
                   darkTheme="true" -->
           <input
-            #codigoInput
+            #buscadorInput
             matInput
             type="text"
             formControlName="buscador"
-            (keydown)="onCodigoKeyUpEvent($event.key)"
+            (keydown.tab)="onTabPress()"
+            (keydown.enter)="onEnterPress()"
             autocomplete="off"
             oninput="this.value != ' ' ? this.value = this.value.toUpperCase() : this.value = null"
             style="color: white; font-size: 1.8em"

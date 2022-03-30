@@ -157,7 +157,7 @@
       </div> -->
     </mat-card>
     <div fxFlex="70%" fxLayout="column">
-      <div fxFlex="90">
+      <div fxFlex="100">
         <mat-stepper linear #stepper>
           <!-- <mat-step>
                       <ng-template matStepLabel>Seleccionar Cajero</ng-template>
@@ -229,6 +229,9 @@
           <mat-step>
             <ng-template matStepLabel>Conteo Inicial</ng-template>
             <app-adicionar-conteo-dialog
+              [apertura]="true"
+              nombreBoton="Abrir Caja"
+              [cajaId]="selectedCaja?.id"
               [events]="siguienteSubject.asObservable()"
               [conteo]="conteoAperturaSubject.asObservable()"
               [focus]="focusToAPerturaSub.asObservable()"
@@ -238,6 +241,9 @@
           <mat-step>
             <ng-template matStepLabel>Conteo Final</ng-template>
             <app-adicionar-conteo-dialog
+              [apertura]="false"
+              nombreBoton="Cerrar Caja"
+              [cajaId]="selectedCaja?.id"
               [events]="siguienteCierreSubject.asObservable()"
               [conteo]="conteoCierreSubject.asObservable()"
               [focus]="focusToCierreSub.asObservable()"
@@ -246,7 +252,7 @@
           </mat-step>
         </mat-stepper>
       </div>
-      <div
+      <!-- <div
         fxFlex="10%"
         fxLayout="row"
         fxLayoutAlign="center center"
@@ -276,8 +282,7 @@
             Cerrar Caja (F10)
           </button>
         </div>
-      </div>
+      </div> -->
     </div>
   </div>
 </div>
-
