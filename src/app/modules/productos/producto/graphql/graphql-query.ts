@@ -342,6 +342,11 @@ export const productoQuery = gql`
           codigo
         }
       }
+      costo {
+        id
+        ultimoPrecioCompra
+        costoMedio
+      }
     }
   }
 `;

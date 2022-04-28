@@ -30,7 +30,6 @@ import { ItemListComponent } from './layout/item-list/item-list.component';
 import { TotalesComponent } from './layout/totales/totales.component';
 import { FavoritosComponent } from './layout/favoritos/favoritos.component';
 import { BuscadorComponent } from './layout/buscador/buscador.component';
-import { BotonComponent } from './layout/boton/boton.component';
 
 @NgModule({
   declarations: [
@@ -57,8 +56,7 @@ import { BotonComponent } from './layout/boton/boton.component';
     ItemListComponent,
     TotalesComponent,
     FavoritosComponent,
-    BuscadorComponent,
-    BotonComponent,
+    BuscadorComponent
   ],
   imports: [
     CommonModule,

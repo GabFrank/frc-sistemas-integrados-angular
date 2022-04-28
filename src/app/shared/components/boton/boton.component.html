@@ -1,0 +1,23 @@
+<div style="width: 100%; height: 100%">
+  <button
+    type="button"
+    mat-raised-button
+    [color]="color"
+    style="width: 100%; height: 90%"
+    [disabled]="disableExpression || temporaryDisable"
+    (click)="onClick()"
+  >
+    <div fxLayout="column" style="width: 100%; height: 100%" fxLayoutAlign="center center">
+      <div fxFlex fxLayout="row" fxLayoutAlign="center end" *ngIf="icon!=null">
+        <div fxFlex style="width: 100%; text-align: center;">
+          <mat-icon style="width: 100%; text-align: center;" [style.fontSize.em]="iconSize">{{icon}}</mat-icon>
+        </div>
+      </div>
+      <div fxFlex fxLayout="row" fxLayoutAlign="center center">
+        <div fxFlex>
+          {{ nombre }}
+        </div>
+      </div>
+    </div>
+  </button>
+</div>

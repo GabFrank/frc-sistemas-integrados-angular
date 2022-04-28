@@ -1,3 +1,4 @@
+import { TransferenciaComponent } from './../../../modules/operaciones/transferencia/transferencia.component';
 import { Component, OnInit } from "@angular/core";
 import { Tab } from "../../../layouts/tab/tab.model";
 import { TabService } from "../../../layouts/tab/tab.service";
@@ -26,6 +27,7 @@ import { ListProductoComponent } from "../../../modules/productos/producto/list-
   styleUrls: ["./side.component.scss"],
 })
 export class SideComponent implements OnInit {
+  
   constructor(public tabService: TabService, public mainService: MainService) {
 
   }
@@ -52,7 +54,7 @@ export class SideComponent implements OnInit {
           break;
         case "list-producto":
           if (
-            this.mainService.usuarioActual?.roles.includes("VISTA-PRODUCTOS")
+            this.mainService.usuarioActual?.roles.includes("VISTA-PRODUCTOS") || true
           ) {
             this.tabService.addTab(
               new Tab(ListProductoComponent, "Productos", null, null)
@@ -149,6 +151,17 @@ export class SideComponent implements OnInit {
           ) {
             this.tabService.addTab(
               new Tab(ListGastosComponent, "Gastos", null, null)
+            );
+            break;
+          }
+          case "list-transferencias":
+          if (
+            this.mainService.usuarioActual?.roles.includes(
+              "ANALISIS-FINANCIERO"
+            ) || true
+          ) {
+            this.tabService.addTab(
+              new Tab(TransferenciaComponent, "Transferencia", null, null)
             );
             break;
           }

@@ -19,7 +19,7 @@ import { ConfiguracionModule } from './configuracion/configuracion.module';
 
 @NgModule({
   declarations: [
-        ],
+    ],
   imports: [
     CommonModule,
     DashboardModule,

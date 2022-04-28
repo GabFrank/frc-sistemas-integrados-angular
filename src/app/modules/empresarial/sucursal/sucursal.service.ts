@@ -38,7 +38,7 @@ export class SucursalService {
   };
 
   constructor(
-    private getAllSucursales: SucursalesGQL,
+    public getAllSucursales: SucursalesGQL,
     private notificacionBar: NotificacionSnackbarService,
     private getSucursalActual: SucursalActualGQL,
     private http: HttpClient

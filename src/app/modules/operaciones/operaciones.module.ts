@@ -25,6 +25,11 @@ import { AdicionarProgramarPrecioDialogComponent } from './precio/programar-prec
 import { UltimasVentasDialogComponent } from './venta/ultimas-ventas-dialog/ultimas-ventas-dialog.component';
 import { ListVentaComponent } from './venta/list-venta/list-venta.component';
 import { VentaPorPeriodoComponent } from './venta/reportes/venta-por-periodo/venta-por-periodo.component';
+import { TransferenciaComponent } from './transferencia/transferencia.component';
+import { ListTransferenciaComponent } from './transferencia/list-transferencia/list-transferencia.component';
+import { EditTransferenciaComponent } from './transferencia/edit-transferencia/edit-transferencia.component';
+import { SeleccionarSucursalDialogComponent } from './transferencia/seleccionar-sucursal-dialog/seleccionar-sucursal-dialog.component';
+import { CreateItemDialogComponent } from './transferencia/create-item-dialog/create-item-dialog.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -49,6 +54,11 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     UltimasVentasDialogComponent,
     ListVentaComponent,
     VentaPorPeriodoComponent,
+    TransferenciaComponent,
+    ListTransferenciaComponent,
+    EditTransferenciaComponent,
+    SeleccionarSucursalDialogComponent,
+    CreateItemDialogComponent
   ],
   imports: [
     CommonModule,

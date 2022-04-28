@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
-import { Venta, VentaPorPeriodo } from '../venta.model';
+import { Venta } from '../venta.model';
 import { ventaPorPeriodoQuery } from './graphql-query';
 
 class Response {

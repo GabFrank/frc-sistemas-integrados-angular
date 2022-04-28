@@ -1,0 +1,135 @@
+<div fxLayout="column" style="width: 100%; height: 100%">
+  <div fxFlex="10" style="width: 100%; text-align: center; font-size: 1.5em">
+    Seleccionar origen y destino
+  </div>
+  <div
+    fxFlex="70"
+    fxLayout="row"
+    style="width: 100%; height: 100%"
+    fxLayoutGap="10px"
+  >
+    <mat-card
+      fxFlex="50%"
+      fxLayout="column"
+      style="width: 100%"
+      fxLayoutAlign="start center"
+    >
+      <div fxFlex="10" style="width: 100%; text-align: center">
+        Sucursal de origen:
+      </div>
+      <div fxFlex="10%" style="width: 100%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Buscar</mat-label>
+          <input
+            type="text"
+            matInput
+            [formControl]="buscarOrigenControl"
+            (keyup)="onOrigenFilter()"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="80" style="width: 100%; overflow-y: scroll">
+        <mat-selection-list [multiple]="false">
+          <mat-list-option
+            *ngFor="let sucursal of filteredOrigenSucursalList"
+            (click)="onOrigenChange(sucursal)"
+            [value]="selectedSucursalOrigen"
+          >
+            {{ sucursal?.id }} - {{ sucursal?.nombre | uppercase }}
+          </mat-list-option>
+        </mat-selection-list>
+      </div>
+    </mat-card>
+    <mat-card
+      fxFlex="50%"
+      fxLayout="column"
+      style="width: 100%"
+      fxLayoutAlign="start center"
+    >
+      <div fxFlex="10" style="width: 100%; text-align: center">
+        Sucursal de destino:
+      </div>
+      <div fxFlex="10%" style="width: 100%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Buscar</mat-label>
+          <input
+            type="text"
+            matInput
+            [formControl]="buscarDestinoControl"
+            (keyup)="onDestinoFilter()"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="80" style="width: 100%; overflow-y: scroll">
+        <mat-selection-list [multiple]="false">
+          <mat-list-option
+            *ngFor="let sucursal of filteredDestinoSucursalList"
+            (click)="onDestinoChange(sucursal)"
+          >
+            {{ sucursal?.nombre | uppercase }}
+          </mat-list-option>
+        </mat-selection-list>
+      </div>
+    </mat-card>
+  </div>
+  <div
+    fxFlex="10%"
+    fxLayout="row"
+    style="font-size: 1.5em"
+    fxLayoutAlign="space-around center"
+  >
+    <div
+      fxFlex="30"
+      fxLayout="row"
+      fxLayoutAlign="center center"
+      style="text-align: center"
+    >
+      {{ selectedSucursalOrigen?.id }} -
+      {{ selectedSucursalOrigen?.nombre | uppercase }}
+    </div>
+    <div fxFlex="30%" style="width: 100%">
+      <mat-icon
+        [hidden]="
+          selectedSucursalOrigen == null && selectedSucursalDestino == null
+        "
+        [@slideInOut]="iconState"
+        style="font-size: 2em; width: 100%"
+        >local_shipping</mat-icon
+      >
+    </div>
+    <div
+      fxFlex="30"
+      fxLayout="row"
+      fxLayoutAlign="center center"
+      style="text-align: center"
+    >
+      {{ selectedSucursalDestino?.id }} -
+      {{ selectedSucursalDestino?.nombre | uppercase }}
+    </div>
+  </div>
+  <div
+    fxFlex="10"
+    fxLayout="row"
+    style="width: 100%; text-align: center"
+    fxLayoutGap="10px"
+    fxLayoutAlign="center center"
+  >
+    <div fxFlex="20">
+      <app-boton
+        color="primary"
+        nombre="Cancelar"
+        (clickEvent)="onCancelar()"
+      ></app-boton>
+    </div>
+    <div fxFlex="20">
+      <app-boton
+        color="accent"
+        nombre="Confirmar"
+        (clickEvent)="onConfirmar()"
+        [disableExpression]="
+          selectedSucursalOrigen == null && selectedSucursalDestino == null
+        "
+      ></app-boton>
+    </div>
+  </div>
+</div>

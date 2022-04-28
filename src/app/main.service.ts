@@ -37,6 +37,7 @@ export class MainService implements OnDestroy {
   logged = false;
   serverIpAddres = ipAddress;
   authSub;
+  isServidor = false;
 
   // isUserLoggerSub = new BehaviorSubject<boolean>(false);
 
@@ -112,6 +113,9 @@ export class MainService implements OnDestroy {
       .subscribe((res) => {
         if(res!=null){
           this.sucursalActual = res;
+          if(this.sucursalActual?.nombre == 'SERVIDOR'){
+            this.isServidor = true;
+          }
         }
       });
     this.getMonedas

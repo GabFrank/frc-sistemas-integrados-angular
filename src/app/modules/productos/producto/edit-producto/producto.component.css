@@ -66,3 +66,12 @@ td, th {
 .selectedRow {
   background-color: #43A047;
 }
+
+.title {
+  text-align: start;
+  color: #f57c00;
+}
+
+.item {
+  text-align: start;
+}

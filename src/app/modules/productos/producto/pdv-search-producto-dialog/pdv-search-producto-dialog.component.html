@@ -29,7 +29,8 @@
         </div>
         <br />
         <div fxFlex="8" *ngFor="let i of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]">
-          <button type="button"
+          <button
+            type="button"
             mat-raised-button
             color="primary"
             style="font-size: 1.3em; width: 2em; height: 2em"
@@ -39,7 +40,8 @@
           </button>
         </div>
         <div fxFlex="9">
-          <button type="button"
+          <button
+            type="button"
             mat-raised-button
             color="primary"
             style="font-size: 1.5em; width: 1.5em; height: 1.5em"
@@ -64,8 +66,9 @@
             />
           </mat-form-field>
         </div>
-        <div fxFlex="20" *ngIf="data?.mostrarOpciones == false">
-          <button type="button"
+        <div fxFlex="20" *ngIf="data?.mostrarOpciones != false">
+          <button
+            type="button"
             mat-raised-button
             [color]="mostrarTipoPrecios ? 'accent' : 'primary'"
             (click)="mostrarTipoPrecios = true"
@@ -73,8 +76,9 @@
             Mostrar opciones (F1)
           </button>
         </div>
-        <div fxFlex="20%">
-          <button type="button"
+        <div fxFlex="20%" *ngIf="data?.mostrarOpciones != false">
+          <button
+            type="button"
             mat-raised-button
             color="primary"
             (click)="abrirProductoDialog()"
@@ -107,7 +111,7 @@
             <ng-container matColumnDef="codigo">
               <th mat-header-cell *matHeaderCellDef>Código Principal</th>
               <td mat-cell *matCellDef="let producto" style="text-align: start">
-                {{producto?.codigoPrincipal | uppercase}}
+                {{ producto?.codigoPrincipal | uppercase }}
               </td>
             </ng-container>
 
@@ -123,7 +127,8 @@
                 *matCellDef="let producto; let id = index"
                 style="text-align: center"
               >
-                <button type="button"
+                <button
+                  type="button"
                   *ngIf="producto?.stockPorProducto == null"
                   mat-flat-button
                   (click)="mostrarStock(producto); $event.stopPropagation()"
@@ -148,7 +153,8 @@
                 *matCellDef="let producto; let id = index"
                 style="text-align: center"
               >
-                <button type="button"
+                <button
+                  type="button"
                   mat-icon-button
                   [matMenuTriggerFor]="menu"
                   (click)="$event.stopPropagation()"
@@ -156,7 +162,11 @@
                   <mat-icon>more_vert</mat-icon>
                 </button>
                 <mat-menu #menu="matMenu">
-                  <button type="button" mat-menu-item (click)="abrirProductoDialog(producto)">
+                  <button
+                    type="button"
+                    mat-menu-item
+                    (click)="abrirProductoDialog(producto)"
+                  >
                     Editar Producto
                   </button>
                 </mat-menu>
@@ -199,71 +209,74 @@
                       "
                       #presentacionCard
                       fxLayout="row wrap"
-                      fxLayoutGap="10px"
+                      fxLayoutGap="20px"
                       fxLayoutAlign="start center"
+                      style="width: 100%;"
                     >
-                      <mat-card
-                        [class.selectedCard]="
-                          presentacion?.id == selectedPresentacion?.id
-                        "
-                        [class.highlight]="selectedPresentacionRowIndex == i"
-                        (keydown.arrowRight)="
-                          presentacionArrowRightEvent(
-                            selectedPresentacionRowIndex
-                          )
-                        "
-                        (keydown.arrowLeft)="
-                          presentacionArrowLeftEvent(
-                            selectedPresentacionRowIndex
-                          )
-                        "
-                        (keydown.enter)="
-                          onPresentacionClick(
-                            selectedPresentacion,
-                            producto,
-                            selectedPresentacion?.precios[0]
-                          )
-                        "
-                        style="
-                          padding: 0;
-                          margin: 0;
-                          margin-top: 5px;
-                          background-color: #f44336;
-                          width: 125px;
-                          height: 125px;
-                        "
-                        (click)="
-                          mostrarTipoPrecios
-                            ? onMostrarTipoPrecios(presentacion)
-                            : onPresentacionClick(presentacion, producto)
-                        "
-                      >
-                        <div
-                          fxLayout="column"
-                          fxLayoutAlign="start space-around"
-                          fxLayoutGap="5px"
+                      <div>
+                        <mat-card
+                          [class.selectedCard]="
+                            presentacion?.id == selectedPresentacion?.id
+                          "
+                          [class.highlight]="selectedPresentacionRowIndex == i"
+                          (keydown.arrowRight)="
+                            presentacionArrowRightEvent(
+                              selectedPresentacionRowIndex
+                            )
+                          "
+                          (keydown.arrowLeft)="
+                            presentacionArrowLeftEvent(
+                              selectedPresentacionRowIndex
+                            )
+                          "
+                          (keydown.enter)="
+                            onPresentacionClick(
+                              selectedPresentacion,
+                              producto,
+                              selectedPresentacion?.precios[0]
+                            )
+                          "
+                          style="
+                            padding: 0;
+                            margin: 0;
+                            margin-top: 5px;
+                            background-color: #f44336;
+                            width: 125px;
+                            height: 125px;
+                          "
+                          (click)="
+                            mostrarTipoPrecios
+                              ? onMostrarTipoPrecios(presentacion)
+                              : onPresentacionClick(presentacion, producto)
+                          "
                         >
-                          <div>
-                            <img
-                              [src]="
-                                presentacion?.imagenPrincipal != null
-                                  ? presentacion.imagenPrincipal
-                                  : '/assets/no-image.png'
-                              "
-                              style="
-                                width: 100%;
-                                height: 90%;
-                                object-fit: contain;
-                              "
-                            />
-                          </div>
-                          <div style="text-align: center; font-weight: bold">
+                          <div
+                            fxLayout="column"
+                            fxLayoutAlign="start space-around"
+                            fxLayoutGap="5px"
+                          >
                             <div>
-                              {{ presentacion.descripcion | uppercase }}
+                              <img
+                                [src]="
+                                  presentacion?.imagenPrincipal != null
+                                    ? presentacion.imagenPrincipal
+                                    : '/assets/no-image.png'
+                                "
+                                style="
+                                  width: 100%;
+                                  height: 100%;
+                                  object-fit: contain;
+                                "
+                              />
                             </div>
                           </div>
+                        </mat-card>
+                        <div style="text-align: center; font-weight: bold">
+                          <div>
+                            {{ presentacion.cantidad | number: "1.0-2" }}
+                          </div>
                         </div>
-                      </mat-card>
+                      </div>
 
                       <div
                         fxFlex
@@ -281,7 +294,11 @@
                             height: 100px;
                             width: 100px;
                           "
-                          [style.background-color]="selectedPresentacion == presentacion ? '#43A047' : '#f44336' "
+                          [style.background-color]="
+                            selectedPresentacion == presentacion
+                              ? '#43A047'
+                              : '#f44336'
+                          "
                           (click)="
                             selectedPrecio = precio;
                             onPresentacionClick(presentacion, producto, precio)
@@ -292,7 +309,10 @@
                             fxLayoutAlign="center center"
                             fxLayoutGap="10px"
                           >
-                            <div fxFlex style="text-align: center; font-size: 1em">
+                            <div
+                              fxFlex
+                              style="text-align: center; font-size: 1em"
+                            >
                               {{ precio?.tipoPrecio?.descripcion | uppercase }}
                               ({{ precio?.tipoPrecio?.id }})
                             </div>
@@ -301,6 +321,9 @@
                             </div>
                           </div>
                         </mat-card>
+                      </div>
+                      <div style="width: 100%; text-align: center;">
+                        <mat-divider style="width: 90%; height: 100%;"></mat-divider>
                       </div>
                     </div>
                   </div>
@@ -334,7 +357,13 @@
           </table>
           <br />
           <div style="text-align: center">
-            <button type="button" type="button" mat-fab color="primary" (click)="cargarMasDatos()">
+            <button
+              type="button"
+              type="button"
+              mat-fab
+              color="primary"
+              (click)="cargarMasDatos()"
+            >
               <mat-icon>add</mat-icon>
             </button>
           </div>

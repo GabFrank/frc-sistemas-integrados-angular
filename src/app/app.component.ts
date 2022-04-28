@@ -1,7 +1,9 @@
+import { SearchBarDialogComponent } from './shared/widgets/search-bar-dialog/search-bar-dialog.component';
 import { OverlayContainer } from "@angular/cdk/overlay";
 import {
   Component,
   ElementRef,
+  HostListener,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -40,6 +42,7 @@ export class AppComponent implements OnInit, OnDestroy {
   lastStatus = false;
   timer = null;
   snackBarRef: any;
+  keyPressed: any;
 
   constructor(
     private overlay: OverlayContainer,
@@ -76,6 +79,9 @@ export class AppComponent implements OnInit, OnDestroy {
    *    si la respuesta es false, abre el dialogo de configuracion de servidor
    */
   ngOnInit(): void {
+
+    console.log(process.env)
+
     this.overlay.getContainerElement().classList.add("darkMode");
     this.matDialog.open(LoginComponent, {
       width: "500px",
@@ -118,6 +124,39 @@ export class AppComponent implements OnInit, OnDestroy {
         }, 3000);
       }
     });
+  }
+
+  @HostListener("document:keydown", ["$event"]) onKeydownHandler(
+    event: KeyboardEvent
+  ) {
+    switch (event.key) {
+      case "Control":
+        this.keyPressed = 'Control'
+        break;
+      case " ":
+        if(this.keyPressed=='Control')
+        this.matDialog.open(SearchBarDialogComponent, {
+          data: null,
+          width: '70%'
+        })
+        break;
+      default:
+        break;
+    }
+  }
+
+  @HostListener("document:keyup", ["$event"]) onKeyupHandler(
+    event: KeyboardEvent
+  ) {
+    switch (event.key) {
+      case "Control":
+        this.keyPressed = null;
+        break;
+      case "Enter":
+        break;
+      default:
+        break;
+    }
   }
 
   ngOnDestroy(): void {

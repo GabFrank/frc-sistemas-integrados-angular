@@ -1,3 +1,4 @@
+import { SearchBarDialogComponent } from './../../widgets/search-bar-dialog/search-bar-dialog.component';
 import {
   Component,
   OnInit,
@@ -16,6 +17,7 @@ import { MainService } from "../../../main.service";
 import { CargandoDialogService } from "../cargando-dialog/cargando-dialog.service";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+// import { ApolloConfigService } from '../../../apollo-config.service';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -39,7 +41,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private cargandoDialogService: CargandoDialogService,
     private router: Router,
     private tabService: TabService,
-    private electronService: ElectronService
+    private electronService: ElectronService,
   ) {
     // mainService.statusSub.subscribe(res => {
     //   console.log(res)
@@ -93,5 +95,17 @@ export class HeaderComponent implements OnInit, OnDestroy {
     //Called once, before the instance is destroyed.
     //Add 'implements OnDestroy' to the class.
     this.statusSub.unsubscribe();
+  }
+
+  onSearch(){
+    this.matDialog.open(SearchBarDialogComponent, {
+      data: null,
+      width: '70%'
+    })
+  }
+
+  removeServer(){
+    // this.apolloService.removeClient()
+    // this.apolloService.connectClient()
   }
 }

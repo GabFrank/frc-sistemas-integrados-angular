@@ -1,0 +1,68 @@
+<!-- <div fxLayout="column" style="width: 100%; height: 100%" fxLayoutGap="10px">
+  <div fxFlex="10" style="width: 100%; text-align: center">Datos del item</div>
+  <div
+    fxFlex="20"
+    fxLayout="row"
+    style="width: 100%; height: 130px"
+    fxLayoutGap="20px"
+  >
+    <div fxFlex="20" fxLayout="column" fxLayoutGap="10px">
+      <div fxFlex style="text-align: center">
+        <img
+          [src]="
+            selectedPresentacion?.imagenPrincipal != null
+              ? selectedPresentacion.imagenPrincipal
+              : '/assets/no-image.png'
+          "
+          style="width: 100px; height: 100px; object-fit: contain"
+        />
+      </div>
+      <div fxFlex style="text-align: center; font-weight: bold">
+        <div>
+          Cant en presentación:
+          {{ selectedPresentacion?.cantidad | number: "1.0-2" }}
+        </div>
+      </div>
+    </div>
+    <div fxLayout="column" style="width: 100%">
+      <div fxFlex>
+        <mat-form-field style="width: 100%">
+          <mat-label>Cantidad</mat-label>
+          <input #cantidadInput matInput type="number" [formControl]="cantidadControl" />
+        </mat-form-field>
+      </div>
+      <div fxFlex>
+        <mat-form-field style="width: 100%">
+          <mat-label>Vencimiento</mat-label>
+          <input
+            matInput
+            [matDatepicker]="picker"
+            [formControl]="vencimientoControl"
+          />
+          <mat-datepicker-toggle
+            matSuffix
+            [for]="picker"
+          ></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+      </div>
+      <div fxFlex fxLayout="row" style="text-align: center">
+        <mat-slide-toggle fxFlex [formControl]="activoControl"
+          >Activo</mat-slide-toggle
+        >
+        <mat-slide-toggle fxFlex [formControl]="poseeVencimientoControl"
+          >Posee vencimiento</mat-slide-toggle
+        >
+      </div>
+      <br>
+      <div fxFlex style="width: 100%; text-align: center">
+        <button mat-raised-button color="primary" style="width: 150px;" (click)="onCancelar()">
+          Cancelar
+        </button>
+        <button mat-raised-button color="accent" style="width: 150px; margin-left: 10px;" (click)="onGuardar()" [disabled]="formGroup.invalid">
+          Aceptar
+        </button>
+      </div>
+    </div>
+  </div>
+</div> -->

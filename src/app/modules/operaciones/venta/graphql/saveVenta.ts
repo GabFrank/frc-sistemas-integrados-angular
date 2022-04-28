@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Mutation, Query } from 'apollo-angular';
+import { Mutation } from 'apollo-angular';
 import { Venta } from '../venta.model';
 import { saveVenta } from './graphql-query';
 

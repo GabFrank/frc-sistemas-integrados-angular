@@ -1,0 +1,253 @@
+<!-- Sucursal Origen: {{selectedSucursalOrigen?.nombre}}
+<br>
+Sucursal Destino: {{selectedSucursalDestino?.nombre}} -->
+<div
+  fxLayout="row"
+  style="width: 100%; height: 95%"
+  fxLayoutAlign="center start"
+>
+  <mat-card fxFlex="95" fxLayout="column" style="height: 100%">
+    <div fxFlex="5" style="width: 100%; text-align: center">
+      Gestión de Transferencia
+    </div>
+    <mat-card
+      fxFlex="20%"
+      fxLayout="column"
+      fxLayoutGap="10px"
+      style="background-color: rgb(32, 32, 32)"
+    >
+      <div fxFlex="33" fxLayout="row">
+        <div fxFlex="25" fxLayout="column">
+          <div class="title" fxFlex="50">Id</div>
+          <div class="item" fxFlex="50">
+            {{ selectedTransferencia?.id }}
+          </div>
+        </div>
+        <div fxFlex="25" fxLayout="column">
+          <div class="title" fxFlex="50">Responsable</div>
+          <div fxFlex="50">
+            {{ selectedTransferencia?.usuario?.persona?.nombre | uppercase }}
+          </div>
+        </div>
+        <div fxFlex="25" fxLayout="column">
+          <div class="title" fxFlex="50">Creado En</div>
+          <div fxFlex="50">
+            {{ selectedTransferencia?.creadoEn | date: "short" }}
+          </div>
+        </div>
+        <div fxFlex="25" fxLayout="column">
+          <div class="title" fxFlex="50">Estado</div>
+          <div fxFlex="50">
+            {{ selectedTransferencia?.estado }}
+          </div>
+        </div>
+      </div>
+      <div fxFlex="33" fxLayout="row">
+        <div fxFlex="25" fxLayout="column">
+          <div class="title" fxFlex="50">Suc. Origen</div>
+          <div class="item" fxFlex="50">
+            {{ selectedTransferencia?.sucursalOrigen?.id }} -
+            {{ selectedTransferencia?.sucursalOrigen?.nombre | uppercase }}
+          </div>
+        </div>
+        <div fxFlex="25" fxLayout="column">
+          <div class="title" fxFlex="50">Suc. Destino</div>
+          <div class="item" fxFlex="50">
+            {{ selectedTransferencia?.sucursalDestino?.id }} -
+            {{ selectedTransferencia?.sucursalDestino?.nombre | uppercase }}
+          </div>
+        </div>
+        <div fxFlex="25" fxLayout="column">
+          <div class="title" fxFlex="50">Tipo</div>
+          <div class="item" fxFlex="50">
+            {{ selectedTransferencia?.tipo }}
+          </div>
+        </div>
+        <div fxFlex="25" fxLayout="column">
+          <div class="title" fxFlex="50">Observación</div>
+          <div class="item" fxFlex="50">
+            {{ selectedTransferencia?.observacion }}
+          </div>
+        </div>
+      </div>
+      <div
+        fxFlex="33"
+        fxLayout="row"
+        fxLayoutGap="10px"
+        fxLayoutAlign="start center"
+      >
+        <div fxFlex="15%">
+          <mat-slide-toggle [formControl]="autosaveControl"
+            >Autoguardado</mat-slide-toggle
+          >
+        </div>
+        <div fxFlex="70%"></div>
+        <div fxFlex="15%" *ngIf="selectedTransferencia?.estado == 'ABIERTA'">
+          <button
+            style="width: 100%"
+            mat-raised-button
+            color="primary"
+            (click)="onAddItem()"
+          >
+            + Producto
+          </button>
+        </div>
+        <div fxFlex="15%" *ngIf="selectedTransferencia?.estado == 'ABIERTA'">
+          <button
+            style="width: 100%"
+            mat-raised-button
+            color="accent"
+            (click)="onFinalizar()"
+            [disabled]="dataSource.data.length == 0"
+          >
+            Finalizar
+          </button>
+        </div>
+        <div fxFlex="15%" *ngIf="selectedTransferencia?.estado == 'EN_DESTINO' && selectedTransferencia?.isOrigen">
+          <button
+            style="width: 100%"
+            mat-raised-button
+            color="accent"
+            (click)="onFinalizar()"
+            [disabled]="dataSource.data.length == 0"
+          >
+            Preparar para envio
+          </button>
+        </div>
+      </div>
+    </mat-card>
+    <div fxFlex="75">
+      <table
+        mat-table
+        [dataSource]="dataSource"
+        multiTemplateDataRows
+        class="mat-elevation-z8"
+      >
+        <ng-container matColumnDef="producto">
+          <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
+          <td mat-cell *matCellDef="let item" style="width: 30%">
+            {{ item?.presentacion?.producto?.descripcion | uppercase }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="codigo">
+          <th mat-header-cell *matHeaderCellDef>Cod. Barra</th>
+          <td mat-cell *matCellDef="let item">
+            {{ item?.presentacion?.producto?.codigoPrincipal }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="presentacion">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">
+            Presentacion
+          </th>
+          <td mat-cell *matCellDef="let item" style="text-align: center">
+            {{ item?.presentacion?.cantidad | number: "1.0-2" }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="cantidad">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">
+            Cantidad
+          </th>
+          <td mat-cell *matCellDef="let item" style="text-align: center">
+            {{ item?.cantidad | number: "1.0-2" }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="costo">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">
+            Costo medio
+          </th>
+          <td mat-cell *matCellDef="let item" style="text-align: center">
+            {{
+              item?.presentacion?.producto?.costo?.costoMedio | number: "1.0-2"
+            }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="precio">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">
+            Precio venta
+          </th>
+          <td mat-cell *matCellDef="let item" style="text-align: center">
+            {{ item?.presentacion?.precioPrincipal?.precio | number: "1.0-2" }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="vencimiento">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">
+            Vencimiento
+          </th>
+          <td mat-cell *matCellDef="let item" style="text-align: center">
+            {{ item?.vencimiento | date: "shortDate" }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="menu">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 5%; text-align: center"
+          ></th>
+          <td
+            mat-cell
+            *matCellDef="let item"
+            style="width: 5%; text-align: center"
+          >
+            <button
+              mat-icon-button
+              [matMenuTriggerFor]="menu"
+              (click)="$event.stopPropagation()"
+            >
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menu="matMenu">
+              <button mat-menu-item (click)="onEditItem(item)">Editar</button>
+              <button
+                mat-menu-item
+                (click)="onDeleteItem(item)"
+                style="color: red"
+                [disabled]="selectedTransferencia?.estado != 'ABIERTA'"
+              >
+                Eliminar
+              </button>
+            </mat-menu>
+          </td>
+        </ng-container>
+
+        <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+        <ng-container matColumnDef="expandedDetail">
+          <td
+            mat-cell
+            *matCellDef="let element"
+            [attr.colspan]="columnsToDisplay.length"
+          >
+            <div
+              class="example-element-detail"
+              [@detailExpand]="
+                element == expandedElement ? 'expanded' : 'collapsed'
+              "
+            ></div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
+        <tr
+          mat-row
+          *matRowDef="let element; columns: columnsToDisplay"
+          class="example-element-row"
+          [class.example-expanded-row]="expandedElement === element"
+          (click)="
+            expandedElement = expandedElement === element ? null : element
+          "
+        ></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: ['expandedDetail']"
+          class="example-detail-row"
+        ></tr>
+      </table>
+    </div>
+  </mat-card>
+</div>

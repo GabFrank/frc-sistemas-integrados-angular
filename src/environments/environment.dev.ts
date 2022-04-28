@@ -2,7 +2,7 @@ import { ipAddress, port } from "./conectionConfig";
 
 export const APP_CONFIG = {
   production: false,
-  environment: 'DEV'
+  environment: 'LOCAL'
 };
 
 export const environment = {
@@ -16,7 +16,8 @@ export const environment = {
     storageBucket: "franco-system.appspot.com",
     messagingSenderId: "389460380308",
     appId: "1:389460380308:web:53701896405855d9f64281"
-  }
+  },
+  
 };
 
 export const serverAdress = {

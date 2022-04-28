@@ -481,11 +481,21 @@
               </div>
               <div fxFlex="10">
                 <mat-slide-toggle formControlName="poseeEnvase">{{
-                  datosGeneralesControl.controls.poseeEnvase.value == true ? "Si" : "No"
+                  datosGeneralesControl.controls.poseeEnvase.value == true
+                    ? "Si"
+                    : "No"
                 }}</mat-slide-toggle>
               </div>
-              <div fxFlex="20" *ngIf="datosGeneralesControl.controls.poseeEnvase.value == true">Envase:</div>
-              <div fxFlex="30" *ngIf="datosGeneralesControl.controls.poseeEnvase.value == true">
+              <div
+                fxFlex="20"
+                *ngIf="datosGeneralesControl.controls.poseeEnvase.value == true"
+              >
+                Envase:
+              </div>
+              <div
+                fxFlex="30"
+                *ngIf="datosGeneralesControl.controls.poseeEnvase.value == true"
+              >
                 <mat-form-field style="width: 95%">
                   <input
                     placeholder="Descripción"
@@ -496,7 +506,10 @@
                 </mat-form-field>
               </div>
 
-              <div fxFlex="10%" *ngIf="datosGeneralesControl.controls.poseeEnvase.value == true">
+              <div
+                fxFlex="10%"
+                *ngIf="datosGeneralesControl.controls.poseeEnvase.value == true"
+              >
                 <button
                   mat-raised-button
                   color="primary"
@@ -617,8 +630,13 @@
           fxLayoutAlign="space-between start"
           style="width: 100%; height: 100%"
         >
-          <div fxFlex="90">
-            <mat-form-field style="width: 50%">
+          <div
+            fxFlex="90"
+            fxLayout="row"
+            style="width: 100%"
+            fxLayoutGap="10px"
+          >
+            <!-- <mat-form-field style="width: 50%">
               <mat-label>Buscar presentaciones</mat-label>
               <input
                 #buscarPresentacionInput
@@ -628,7 +646,27 @@
                 placeholder="Buscar"
                 autocomplete="off"
               />
-            </mat-form-field>
+            </mat-form-field> -->
+            <div fxFlex="25" fxLayout="column">
+              <div class="title" fxFlex="50">Costo medio</div>
+              <div class="item" fxFlex="50">
+                {{ selectedProducto?.costo?.costoMedio | number: "1.0-2" }}
+              </div>
+            </div>
+            <div fxFlex="25" fxLayout="column">
+              <div class="title" fxFlex="50">Última compra</div>
+              <div class="item" fxFlex="50">
+                {{
+                  selectedProducto?.costo?.ultimoPrecioCompra | number: "1.0-2"
+                }}
+              </div>
+            </div>
+            <div fxFlex="25" fxLayout="column">
+              <div class="title" fxFlex="50">Modif. en</div>
+              <div class="item" fxFlex="50">
+                {{ selectedProducto?.costo?.creadoEn | date: "short" }}
+              </div>
+            </div>
           </div>
           <div fxFlex="10">
             <button

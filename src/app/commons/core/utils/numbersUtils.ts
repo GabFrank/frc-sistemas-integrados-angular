@@ -57,13 +57,31 @@ export function isInt(n) {
   return n % 1 === 0;
 }
 
-export function updateDataSource(arr, value, index?){
+export function updateDataSource(arr, value?, index?){
   let aux: any[] = arr;
-  if(index!=null){
-    aux[index] = value
+  if(value!=null){
+    if(index!=null){
+      aux[index] = value
+    } else {
+      aux.push(value)
+    }
   } else {
-    aux.push(value)
+    arr = arr.splice(index, 1)
   }
+  
+  return aux;
+}
+
+export function updateDataSourceWithId(arr, value, id?){
+  let aux: any[] = arr;
+  if(id!=null){
+    let index = aux.find(e => e?.id == id);
+    if(index!=null){
+      aux[index] = value;
+    } else {
+      aux.push(value)
+    }
+  } 
   return aux;
 }
 

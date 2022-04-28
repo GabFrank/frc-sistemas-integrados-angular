@@ -1,19 +1,20 @@
+import { CargandoDialogService } from './../../shared/components/cargando-dialog/cargando-dialog.service';
+import { TransferenciaComponent } from './../../modules/operaciones/transferencia/transferencia.component';
 import { Injectable } from '@angular/core';
 import { Tab } from './tab.model';
 import { BehaviorSubject } from 'rxjs';
 import { EventEmitter } from '@angular/core';
-import { ListCajaComponent } from '../../modules/financiero/pdv/caja/list-caja/list-caja.component';
-import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
+import { ListTransferenciaComponent } from '../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
   'EDIT-PERSONA' = 'edit-persona'
 }
 
-export class TabData{
+export class TabData {
   id?: number
   data?: any;
-  constructor(id?, data?){
+  constructor(id?, data?) {
     this.id = id
     this.data = data
   }
@@ -24,43 +25,45 @@ export class TabData{
 })
 export class TabService {
 
-  tabs : Tab[] = []
+  tabs: Tab[] = []
   currentIndex = -1;
   tabSub = new BehaviorSubject<Tab[]>(this.tabs);
   tabChangedEvent = new EventEmitter<any>();
 
 
-constructor() {
+  constructor(
+    private cargandoService: CargandoDialogService
+  ) {
     this.tabs = [
       // new Tab(ListMovimientoStockComponent, 'Movimientos', null, null),
       // new Tab(EntradaSalidaComponent, 'Entrada/Salida', null, null),
       // new Tab(PrintTicketsComponent, 'Farra', null, null),
       // new Tab(ListProductoComponent, 'Productos', null, null),
       // new Tab(VentaTouchComponent, 'Venta', null, null),
-      // new Tab(ListCajaComponent, 'Cajas')
+      new Tab(ListTransferenciaComponent, 'Lista de Transferencia')
     ];
     this.tabSub.next(this.tabs);
   }
 
   // Horario especial
 
-  tabChanged(index): void{
+  tabChanged(index): void {
     this.tabChangedEvent.emit(index)
     this.setTabActive(index);
   }
 
-  currentTab():Tab{
+  currentTab(): Tab {
     return this.tabs[this.currentIndex];
   }
 
   setTabActive(index): void {
-    if(this.tabs.length > 0){
+    if (this.tabs.length > 0) {
       for (let i = 0; i < this.tabs.length; i++) {
         if (this.tabs[i].active === true) {
           this.tabs[i].active = false;
         }
       }
-      if(this.tabs[index]!=undefined){
+      if (this.tabs[index] != undefined) {
         this.tabs[index].active = true;
       }
       this.currentIndex = index;
@@ -83,7 +86,7 @@ constructor() {
           // buscar el index del parent
           const parent = this.tabs.findIndex(x => x.component == parentComponent);
           // si el index del parent no es -1 (osea que existe)
-          if(parent != -1){
+          if (parent != -1) {
             this.setTabActive(parent);
           } else {
             this.setTabActive(this.tabs[index]);
@@ -97,17 +100,22 @@ constructor() {
   }
 
   public addTab(tab: Tab): void {
+    this.cargandoService.openDialog()
+    
     const duplicado = this.tabs.findIndex(x => x.title == tab.title);
     if (duplicado == -1) {
       tab.id = this.tabs.length + 1;
       this.currentIndex = tab.id - 1;
       tab.active = true;
       this.tabs.push(tab);
-      this.setTabActive(tab.id-1);
+      this.setTabActive(tab.id - 1);
     } else {
       this.setTabActive(duplicado);
     }
-    this.tabSub.next(this.tabs);
+    setTimeout(() => {
+      this.cargandoService.closeDialog()
+      this.tabSub.next(this.tabs);
+    }, 500);
   }
 
   public removeAllTabs(): void {

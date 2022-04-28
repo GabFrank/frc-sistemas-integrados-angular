@@ -156,6 +156,13 @@ export class ProductoComponent implements OnInit, OnDestroy {
     "principal",
     "eliminar",
   ];
+
+  precioCostoColumnsToDisplay = [
+    "id",
+    "costoMedio",
+    "ultimoCostoCompra",
+    "eliminar",
+  ];
   selectedPresentacionCodigoDataSource = new MatTableDataSource(null);
   selectedPresentacionPrecioDataSource = new MatTableDataSource(null);
   //datos generales
@@ -227,8 +234,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.cargandoDialog.openDialog();
-
     this.familiaService.familiaBS.pipe(untilDestroyed(this)).subscribe((res) => {
       this.familiasList = res;
       if (this.selectedFamilia != null) {

@@ -1,8 +1,4 @@
-import { Usuario } from "../../personas/usuarios/usuario.model";
-import { PrecioPorSucursal } from "../precio-por-sucursal/precio-por-sucursal.model";
 import { Presentacion } from "../presentacion/presentacion.model";
-import { Producto } from "../producto/producto.model";
-import { TipoPrecio } from "../tipo-precio/tipo-precio.model";
 import { CodigoInput } from "./codigo-input.model";
 
 export class Codigo {

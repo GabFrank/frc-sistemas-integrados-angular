@@ -19,6 +19,19 @@ export const presentacionQuery = gql`
         principal
         activo
       }
+      codigoPrincipal {
+        codigo
+      }
+      precioPrincipal {
+        precio
+      }
+      producto {
+        id
+        descripcion
+        costo {
+          costoMedio
+        }
+      }
     }
   }
 `;

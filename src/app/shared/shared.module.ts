@@ -28,6 +28,8 @@ import { ReportTestComponent } from './report-test/report-test.component';
 import { NgxPanZoomModule } from 'ngx-panzoom';
 import { InnerDialogComponent } from './inner-dialog/inner-dialog.component';
 import { SearchListDialogComponent } from './components/search-list-dialog/search-list-dialog.component';
+import { BotonComponent } from './components/boton/boton.component';
+import { SearchBarDialogComponent } from './widgets/search-bar-dialog/search-bar-dialog.component';
 
 
 @NgModule({
@@ -51,6 +53,8 @@ import { SearchListDialogComponent } from './components/search-list-dialog/searc
     ReportTestComponent,
     InnerDialogComponent,
     SearchListDialogComponent,
+    BotonComponent,
+    SearchBarDialogComponent
     ],
   imports: [
     CommonModule,
@@ -61,7 +65,7 @@ import { SearchListDialogComponent } from './components/search-list-dialog/searc
     FormsModule,
     NgxCurrencyModule,
     ImageCropperModule,
-    NgxPanZoomModule
+    NgxPanZoomModule,
     ],
   exports: [
     HeaderComponent,
@@ -74,7 +78,8 @@ import { SearchListDialogComponent } from './components/search-list-dialog/searc
     Imagebase64Component,
     NgxCurrencyModule,
     NgxPanZoomModule,
-    InnerDialogComponent
+    InnerDialogComponent,
+    BotonComponent
   ],
   providers: [NgxImageCompressService]
 })

@@ -104,9 +104,7 @@ export function appInit(appConfigService: MainService) {
     NgxMaskModule.forRoot(),
     AngularFirestoreModule,
     AngularFireStorageModule,
-    AngularFireModule.initializeApp(environment.firebaseConfig),
-    
-  ],
+    AngularFireModule.initializeApp(environment.firebaseConfig)  ],
   providers: [
     {
       provide: APOLLO_OPTIONS,

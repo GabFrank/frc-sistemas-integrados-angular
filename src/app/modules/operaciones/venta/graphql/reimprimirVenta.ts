@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Mutation, Query } from 'apollo-angular';
-import { Venta } from '../venta.model';
-import { cancelarVentaQuery, reimprimirVentaQuery, saveVenta } from './graphql-query';
+import { Mutation } from 'apollo-angular';
+import { reimprimirVentaQuery } from './graphql-query';
 
 class Response {
   data: boolean

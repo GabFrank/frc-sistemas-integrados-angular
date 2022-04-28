@@ -16,7 +16,14 @@ export class BotonComponent implements OnInit {
   @Input()
   color = 'primary';
 
+  @Input()
+  icon;
+
+  @Input()
+  iconSize = 1;
+
   temporaryDisable = false;
+
 
   @Output()
   clickEvent = new EventEmitter;
