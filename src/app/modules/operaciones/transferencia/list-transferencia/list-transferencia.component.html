@@ -1,10 +1,38 @@
 <app-generic-list
-  titulo="TransferenciaS"
+  titulo="Transferencias"
   (adicionar)="onAdd()"
-  (filtrar)="onFilter()"
-  [isAdicionar]="true"
+  (filtrar)="onGetTransferencias()"
+  [isAdicionar]="mainService?.sucursalActual?.id == 0 ? true: false"
 >
-  <div filtros></div>
+  <div filtros fxLayout="column" style="width: 100%; height: 100%">
+    <div fxFlex="80%" style="height: 100%"></div>
+    <div
+      fxFlex="20%"
+      fxLayout="row"
+      style="width: 100%"
+      fxLayoutAlign="start center"
+    >
+      <div fxFlex="3%">
+        <mat-icon style="color: #43a047">circle</mat-icon>
+      </div>
+      <div fxFlex="10%">Pre Transferencia</div>
+      <div fxFlex="5%"></div>
+      <div fxFlex="3%">
+        <mat-icon style="color: #54c5f8">circle</mat-icon>
+      </div>
+      <div fxFlex="10%">En Preparacion</div>
+      <div fxFlex="5%"></div>
+      <div fxFlex="3%">
+        <mat-icon style="color: #f57c00">circle</mat-icon>
+      </div>
+      <div fxFlex="10%">En Transporte</div>
+      <div fxFlex="5%"></div>
+      <div fxFlex="3%">
+        <mat-icon style="color: #a0438c">circle</mat-icon>
+      </div>
+      <div fxFlex="10%">En Recepción</div>
+    </div>
+  </div>
   <div table style="width: 100%" fxLayoutGap="20px">
     <table
       mat-table
@@ -82,6 +110,23 @@
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="etapa">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 20%"
+        >
+          Etapa
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let transferencia"
+          style="text-align: center; width: 20%"
+        >
+          {{ transferencia?.etapa }}
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="fecha">
         <th
           mat-header-cell
@@ -130,9 +175,14 @@
           </button>
           <mat-menu #menu="matMenu">
             <button mat-menu-item (click)="onEdit(transferencia, i)">
-              {{mainService?.isServidor ? 'Editar' : 'Ver'}}
+              {{ mainService?.isServidor ? "Editar" : "Ver" }}
             </button>
-            <button *ngIf="mainService?.isServidor" mat-menu-item (click)="onDelete(transferencia, i)" style="color: red;">
+            <button
+              *ngIf="mainService?.isServidor"
+              mat-menu-item
+              (click)="onDelete(transferencia, i)"
+              style="color: red"
+            >
               Eliminar
             </button>
           </mat-menu>
@@ -150,7 +200,7 @@
           class="expanded"
         >
           <div
-            class="example-transferencia-detail"
+            class="example-element-detail"
             [@detailExpand]="
               transferencia == expandedTransferencia ? 'expanded' : 'collapsed'
             "
@@ -158,30 +208,59 @@
             fxLayout="column"
             fxLayoutAlign="start start"
           >
-            <div fxLayout="row" fxLayoutAlign="center start" style="width: 100%;">
-                <div fxLayout="column" style="width: 90%;">
-                    <br>
-                    <div *ngFor="let item of transferencia?.transferenciaItemList" fxLayout="row" style="width: 100%;">
-                        <div fxFlex="50%">
-                            {{item?.presentacion?.producto?.descripcion | uppercase}}
-                        </div>
-                        <div fxFlex="50%">
-                            {{item?.cantidad | number: '1.0-2'}}
-                        </div>
-                    </div>
-                    <br>
+            <div
+              fxLayout="row"
+              fxLayoutAlign="center start"
+              style="width: 100%"
+            >
+              <div fxLayout="column" style="width: 90%">
+                <br />
+                <div
+                  *ngFor="let item of transferencia?.transferenciaItemList"
+                  fxLayout="row"
+                  style="width: 100%"
+                >
+                  <div fxFlex="50%">
+                    {{ item?.presentacion?.producto?.descripcion | uppercase }}
+                  </div>
+                  <div fxFlex="50%">
+                    {{ item?.cantidad | number: "1.0-2" }}
+                  </div>
                 </div>
+                <br />
+              </div>
             </div>
-        </div>
+          </div>
         </td>
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
       <tr
+        class="example-element-row"
         mat-row
         *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
-        (click)="onRowClick(row,i); expandedTransferencia = expandedTransferencia === row ? null : row"
+        [class.example-expanded-row]="expandedTransferencia === row"
+        (click)="
+          onRowClick(row, i);
+          expandedTransferencia = expandedTransferencia === row ? null : row
+        "
+        [class.en-origen]="
+          row?.etapa == 'PRE_TRANSFERENCIA_CREACION' || row?.etapa == 'PRE_TRANSFERENCIA_ORIGEN'
+        "
+        [class.en-origen-preparacion]="
+          row?.etapa == 'PREPARACION_MERCADERIA' || row?.etapa == 'PREPARACION_MERCADERIA_CONCLUIDA'
+        "
+        [class.en-origen-transito]="
+          row?.etapa == 'TRANSPORTE_VERIFICACION' || row?.etapa == 'TRANSPORTE_EN_CAMINO' || row?.etapa == 'TRANSPORTE_EN_DESTINO'
+        "
+        [class.en-destino-destino]="
+          row?.etapa == 'RECEPCION_EN_VERIFICACION' || row?.etapa == 'RECEPCION_CONCLUIDA'
+        "
+        [class.en-destino-recepcion]="
+          row?.etapa == 'RECEPCION_EN_VERIFICACION' || row?.etapa == 'RECEPCION_CONCLUIDA'
+        "
       ></tr>
+      
       <tr
         mat-row
         *matRowDef="let row; columns: ['expandedDetail']"

@@ -14,9 +14,7 @@ export class TransferenciaComponent implements OnInit {
   constructor(private tabService: TabService) { }
 
   ngOnInit(): void {
-    setTimeout(() => {
-      this.onNuevaTransferencia()
-    }, 500);
+
   }
 
   onListTransferencias(){

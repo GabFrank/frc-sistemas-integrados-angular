@@ -1,19 +1,6 @@
-import { Component, OnInit, ViewChild, Input, Output, EventEmitter, OnDestroy } from '@angular/core';
-import { MatPaginator } from '@angular/material/paginator';
-import { MatInput } from '@angular/material/input';
-import { MatSort } from '@angular/material/sort';
-import { Subscription } from 'rxjs';
-import { Apollo } from 'apollo-angular';
-import { MatTableDataSource } from '@angular/material/table';
-import { MatCheckbox } from '@angular/material/checkbox';
+import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { GenericListService } from './generic-list.service';
-import { GenericListInterface } from './generic-list-interface';
-import { Observable } from 'rxjs';
 
-import { MatDialog } from '@angular/material/dialog';
-import { FormControl, FormGroup } from '@angular/forms';
-import { MatDatepicker, MatDateRangeInput, MatDateRangePicker, MatEndDate, MatStartDate } from '@angular/material/datepicker';
-import { TabService } from '../../../layouts/tab/tab.service';
 import { WindowInfoService } from '../../services/window-info.service';
 
 export interface DisplayedLinkData {

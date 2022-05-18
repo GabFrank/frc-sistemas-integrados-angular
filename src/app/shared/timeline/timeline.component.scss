@@ -1,0 +1,65 @@
+.timeline {
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
+    padding: 1rem;
+}
+
+.timeline-event {
+    display: flex;
+    position: relative;
+    min-height: 70px;
+}
+
+.timeline-event:last-child {
+    min-height: 0;
+}
+
+.timeline-content {
+    flex: 1;
+    padding: 0 1rem;
+}
+
+
+.timeline-point-track-container {
+    flex: 0;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+} 
+
+.timeline-point {
+    display: flex;
+    align-self: baseline;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    width: 2rem;
+    height: 2rem;
+    background-color: #fff;
+}
+
+.terminado {
+    border: 2px solid rgb(0, 143, 64);
+    background-color: rgb(0, 143, 64);
+}
+.timeline-track {
+    flex-grow: 1;
+    background-color: #dee2ef;
+    width: 2px;
+}
+
+.heightLight {
+    background-color: rgb(0, 143, 64);
+    box-shadow: 0 4px 8px rgb(43, 155, 93);
+}
+
+.timeline-date {
+    font-size: 14px;
+    font-style: bold;
+    padding-left: 5px;
+}
+.timeline-user {
+    font-size: 14px;
+    font-style: italic;
+    padding-left: 5px;
+}

@@ -1,3 +1,5 @@
+import { MainService } from './../../../main.service';
+import { PrepararTransferenciaGQL } from './graphql/prepararTransferencia';
 import { GetTransferenciaPorFechaGQL } from './graphql/getTransferenciaPorFecha';
 import { NotificacionSnackbarService, NotificacionColor } from './../../../notificacion-snackbar.service';
 import { DialogosService } from './../../../shared/components/dialogos/dialogos.service';
@@ -10,7 +12,7 @@ import { Observable } from 'rxjs';
 import { GetTransferenciaGQL } from './graphql/getTransferencia';
 import { GenericCrudService } from './../../../generics/generic-crud.service';
 import { Injectable } from '@angular/core';
-import { Transferencia, TransferenciaEstado, TransferenciaItem } from './transferencia.model';
+import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaInput } from './transferencia.model';
 import { DeleteTransferenciaGQL } from './graphql/deleteTransferencia';
 
 @UntilDestroy()
@@ -26,12 +28,14 @@ export class TransferenciaService {
     private saveTransferenciaItem: SaveTransferenciaItemGQL,
     private deleteTransferenciaItem: DeleteTransferenciaItemGQL,
     private finalizarTransferencia: FinalizarTransferenciaGQL,
+    private prepararTransferencia: PrepararTransferenciaGQL,
     private dialogoService: DialogosService,
     private notificacionService: NotificacionSnackbarService,
-    private getTransferenciasPorFecha: GetTransferenciaPorFechaGQL
+    private getTransferenciasPorFecha: GetTransferenciaPorFechaGQL,
+    private mainService: MainService
   ) { }
 
-  onGetTrasferenciasPorFecha(inicio, fin){
+  onGetTrasferenciasPorFecha(inicio, fin) {
     return this.genericCrudService.onGetByFecha(this.getTransferenciasPorFecha, inicio, fin);
   }
 
@@ -40,6 +44,7 @@ export class TransferenciaService {
   }
 
   onSaveTransferencia(input): Observable<Transferencia> {
+    input.usuarioPreTransferenciaId = this.mainService.usuarioActual.id;
     return this.genericCrudService.onSave(this.saveTransferencia, input);
   }
 
@@ -61,7 +66,8 @@ export class TransferenciaService {
         this.dialogoService.confirm('Realmente desea finalizar esta transferencia?', 'Una vez finalizada, la transferencia estara disponible para ser preparada').subscribe(res => {
           if (res) {
             this.finalizarTransferencia.mutate({
-              id: transferencia.id
+              id: transferencia.id,
+              usuarioId: this.mainService.usuarioActual.id
             }, { fetchPolicy: 'no-cache', errorPolicy: 'all' })
               .pipe(untilDestroyed(this))
               .subscribe(res => {
@@ -87,4 +93,55 @@ export class TransferenciaService {
       }
     })
   }
+
+  onAvanzarEtapa(transferencia: Transferencia, etapa: EtapaTransferencia): Observable<boolean> {
+    let texto = ''
+    if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN) {
+      texto = 'Estas iniciando la etapa de preparación de productos, verifique con cuidado cada item';
+    } else if (etapa == EtapaTransferencia.PREPARACION_MERCADERIA) {
+      texto = 'Estas iniciando la etapa de preparación de productos, verifique con cuidado cada item';
+    } else if (etapa == EtapaTransferencia.PREPARACION_MERCADERIA_CONCLUIDA) {
+      texto = 'Estas culminando la etapa de preparación de productos, aguardando transporte';
+    } else if (etapa == EtapaTransferencia.TRANSPORTE_VERIFICACION) {
+      texto = 'Estas iniciando la etapa de verificación de productos para su transporte';
+    } else if (etapa == EtapaTransferencia.TRANSPORTE_EN_CAMINO) {
+      texto = 'Estas iniciando la etapa de transporte de la sucursal de origen a sucursal de destino, al aceptar, se dara de baja en stock';
+    } else if (etapa == EtapaTransferencia.TRANSPORTE_EN_DESTINO) {
+      texto = 'Estas culminando la entrega de productos a la sucursal de destino, aguarde su verificación';
+    } else if (etapa == EtapaTransferencia.RECEPCION_EN_VERIFICACION) {
+      texto = 'Estas iniciando la etapa de recepción de productos, verifique con cuidado cada item';
+    } else if (etapa == EtapaTransferencia.RECEPCION_CONCLUIDA) {
+      texto = 'Estas culminando la etapa de recepción, al aceptar, las mercaderias van a ser cargadas en stock';
+    }
+    return new Observable(obs => {
+      this.dialogoService.confirm('Atención, revise los datos antes de proceder.', texto).subscribe(res => {
+        if (res) {
+          this.prepararTransferencia.mutate({
+            id: transferencia.id,
+            etapa,
+            usuarioId: this.mainService.usuarioActual.id
+          }, { fetchPolicy: 'no-cache', errorPolicy: 'all' })
+            .pipe(untilDestroyed(this))
+            .subscribe(res => {
+              if (res.errors == null) {
+                obs.next(true)
+                this.notificacionService.notification$.next({
+                  texto: 'Transferencia guardada',
+                  color: NotificacionColor.success,
+                  duracion: 3
+                })
+              } else {
+                obs.next(false)
+                this.notificacionService.notification$.next({
+                  texto: 'Atención, ocurrio un error: ' + res.errors[0],
+                  color: NotificacionColor.danger,
+                  duracion: 3
+                })
+              }
+            })
+        }
+      })
+    })
+  }
 }
+

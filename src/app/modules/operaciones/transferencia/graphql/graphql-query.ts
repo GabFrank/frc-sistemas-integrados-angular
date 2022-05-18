@@ -16,9 +16,10 @@ export const transferenciasQuery = gql`
       isDestino
       tipo
       estado
+      etapa
       observacion
       creadoEn
-      usuario {
+      usuarioPreTransferencia {
         id
         persona {
           nombre
@@ -44,10 +45,29 @@ export const transferenciaQuery = gql`
       isDestino
       tipo
       estado
+      etapa
       observacion
       creadoEn
-      usuario {
-        id
+      usuarioPreTransferencia {
+        id 
+        persona {
+          nombre
+        }
+      }
+      usuarioPreparacion {
+        id 
+        persona {
+          nombre
+        }
+      }
+      usuarioTransporte {
+        id 
+        persona {
+          nombre
+        }
+      }
+      usuarioRecepcion {
+        id 
         persona {
           nombre
         }
@@ -146,14 +166,7 @@ export const transferenciaQuery = gql`
         motivoRechazoTransporte
         motivoRechazoRecepcion
         activo
-        etapa
         poseeVencimiento
-        usuario {
-          id 
-          persona {
-            nombre
-          }
-        }
         creadoEn
       }
     }
@@ -176,10 +189,29 @@ export const saveTransferencia = gql`
       isDestino
       tipo
       estado
+      etapa
       observacion
       creadoEn
-      usuario {
-        id
+      usuarioPreTransferencia {
+        id 
+        persona {
+          nombre
+        }
+      }
+      usuarioPreparacion {
+        id 
+        persona {
+          nombre
+        }
+      }
+      usuarioTransporte {
+        id 
+        persona {
+          nombre
+        }
+      }
+      usuarioRecepcion {
+        id 
         persona {
           nombre
         }
@@ -210,10 +242,29 @@ export const transferenciaPorFechaQuery = gql`
       isDestino
       tipo
       estado
+      etapa
       observacion
       creadoEn
-      usuario {
-        id
+      usuarioPreTransferencia {
+        id 
+        persona {
+          nombre
+        }
+      }
+      usuarioPreparacion {
+        id 
+        persona {
+          nombre
+        }
+      }
+      usuarioTransporte {
+        id 
+        persona {
+          nombre
+        }
+      }
+      usuarioRecepcion {
+        id 
         persona {
           nombre
         }
@@ -223,8 +274,14 @@ export const transferenciaPorFechaQuery = gql`
 `;
 
 export const finalizarTransferencia = gql`
-  mutation finalizarTransferencia($id: ID!) {
-    finalizarTransferencia(id: $id)
+  mutation finalizarTransferencia($id: ID!, $usuarioId: ID!) {
+    finalizarTransferencia(id: $id, usuarioId: $usuarioId)
+  }
+`;
+
+export const prepararTransferencia = gql`
+  mutation avanzarEtapaTransferencia($id: ID!, $etapa: EtapaTransferencia!, $usuarioId: ID!) {
+    avanzarEtapaTransferencia(id: $id, etapa: $etapa, usuarioId: $usuarioId)
   }
 `;
 
@@ -330,7 +387,6 @@ export const saveTransferenciaItem = gql`
         motivoRechazoTransporte
         motivoRechazoRecepcion
         activo
-        etapa
         poseeVencimiento
         usuario {
           id 
@@ -445,7 +501,6 @@ export const saveTransferenciaItemDetalle = gql`
         motivoRechazoTransporte
         motivoRechazoRecepcion
         activo
-        etapa
         poseeVencimiento
         usuario {
           id 

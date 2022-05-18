@@ -30,6 +30,8 @@ import { InnerDialogComponent } from './inner-dialog/inner-dialog.component';
 import { SearchListDialogComponent } from './components/search-list-dialog/search-list-dialog.component';
 import { BotonComponent } from './components/boton/boton.component';
 import { SearchBarDialogComponent } from './widgets/search-bar-dialog/search-bar-dialog.component';
+import { NgxQRCodeModule } from '@techiediaries/ngx-qrcode';
+import { TimelineComponent } from './timeline/timeline.component';
 
 
 @NgModule({
@@ -54,7 +56,8 @@ import { SearchBarDialogComponent } from './widgets/search-bar-dialog/search-bar
     InnerDialogComponent,
     SearchListDialogComponent,
     BotonComponent,
-    SearchBarDialogComponent
+    SearchBarDialogComponent,
+    TimelineComponent
     ],
   imports: [
     CommonModule,
@@ -66,6 +69,7 @@ import { SearchBarDialogComponent } from './widgets/search-bar-dialog/search-bar
     NgxCurrencyModule,
     ImageCropperModule,
     NgxPanZoomModule,
+    NgxQRCodeModule
     ],
   exports: [
     HeaderComponent,
@@ -79,7 +83,8 @@ import { SearchBarDialogComponent } from './widgets/search-bar-dialog/search-bar
     NgxCurrencyModule,
     NgxPanZoomModule,
     InnerDialogComponent,
-    BotonComponent
+    BotonComponent,
+    TimelineComponent
   ],
   providers: [NgxImageCompressService]
 })

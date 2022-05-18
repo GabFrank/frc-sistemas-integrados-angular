@@ -12,6 +12,9 @@
     "allowJs": true,
     "target": "es5",
     "checkJs": true,
+    "types": [
+      "node"
+    ],
     "typeRoots": [
       "node_modules/@types"
     ],

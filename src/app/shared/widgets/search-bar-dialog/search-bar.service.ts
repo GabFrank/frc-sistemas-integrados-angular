@@ -1,3 +1,4 @@
+import { CambioComponent } from './../../../modules/financiero/cambio/cambio.component';
 import { ProductoComponent } from './../../../modules/productos/producto/edit-producto/producto.component';
 import { UntilDestroy } from '@ngneat/until-destroy';
 import { ProductoService } from './../../../modules/productos/producto/producto.service';
@@ -33,6 +34,7 @@ export const componenteList: SearchData[] =
   {title: 'Lista de Productos', component: ListProductoComponent},
   {title: 'Lista de Transferencias', component: ListTransferenciaComponent},
   {title: 'Nueva Transferencia', component: EditTransferenciaComponent},
+  {title: 'Cotización', component: CambioComponent},
 ]
 
 @UntilDestroy()

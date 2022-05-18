@@ -1,10 +1,9 @@
+import { ListTransferenciaComponent } from './../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
 import { CargandoDialogService } from './../../shared/components/cargando-dialog/cargando-dialog.service';
-import { TransferenciaComponent } from './../../modules/operaciones/transferencia/transferencia.component';
 import { Injectable } from '@angular/core';
 import { Tab } from './tab.model';
 import { BehaviorSubject } from 'rxjs';
 import { EventEmitter } from '@angular/core';
-import { ListTransferenciaComponent } from '../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -40,7 +39,7 @@ export class TabService {
       // new Tab(PrintTicketsComponent, 'Farra', null, null),
       // new Tab(ListProductoComponent, 'Productos', null, null),
       // new Tab(VentaTouchComponent, 'Venta', null, null),
-      new Tab(ListTransferenciaComponent, 'Lista de Transferencia')
+      new Tab(ListTransferenciaComponent, 'Lista de Transferencias', null, null)
     ];
     this.tabSub.next(this.tabs);
   }

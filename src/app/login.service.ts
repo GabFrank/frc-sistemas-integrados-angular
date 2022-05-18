@@ -66,6 +66,7 @@ export class LoginService {
                         console.log("..autenticando");
                         this.mainService.usuarioActual = res;
                         this.mainService.authenticationSub.next(true);
+                        this.mainService.load()
                         let response: LoginResponse = {
                           usuario: res,
                           error: null,

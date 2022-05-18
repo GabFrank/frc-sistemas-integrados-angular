@@ -10,7 +10,6 @@ import { EditCompraComponent } from './compra/edit-compra/edit-compra.component'
 import { ListPedidoComponent } from './pedido/list-pedido/list-pedido.component';
 import { ListNecesidadComponent } from './necesidad/list-necesidad/list-necesidad.component';
 import { EditNecesidadComponent } from './necesidad/edit-necesidad/edit-necesidad.component';
-import { MAT_DATE_LOCALE } from '@angular/material/core';
 import { IConfig, NgxMaskModule } from 'ngx-mask';
 import { ListMovimientoStockComponent } from './movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
 import { EntradaSalidaComponent } from './entrada-salida/entrada-salida.component';
@@ -30,6 +29,8 @@ import { ListTransferenciaComponent } from './transferencia/list-transferencia/l
 import { EditTransferenciaComponent } from './transferencia/edit-transferencia/edit-transferencia.component';
 import { SeleccionarSucursalDialogComponent } from './transferencia/seleccionar-sucursal-dialog/seleccionar-sucursal-dialog.component';
 import { CreateItemDialogComponent } from './transferencia/create-item-dialog/create-item-dialog.component';
+import { ModificarItemDialogComponent } from './transferencia/modificar-item-dialog/modificar-item-dialog.component';
+import { TransferenciaTimelineDialogComponent } from './transferencia/transferencia-timeline-dialog/transferencia-timeline-dialog.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -58,7 +59,9 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     ListTransferenciaComponent,
     EditTransferenciaComponent,
     SeleccionarSucursalDialogComponent,
-    CreateItemDialogComponent
+    CreateItemDialogComponent,
+    ModificarItemDialogComponent,
+    TransferenciaTimelineDialogComponent
   ],
   imports: [
     CommonModule,

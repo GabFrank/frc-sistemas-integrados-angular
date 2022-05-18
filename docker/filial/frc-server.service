@@ -1,0 +1,21 @@
+[Unit]
+Description=FRC Server
+After=syslog.target network.target
+
+[Service]
+SuccessExitStatus=143
+
+User=franco
+Group=appgroup
+
+Type=simple
+
+WorkingDirectory=/FRC/frc-server
+ExecStart=${JAVA_HOME}/bin/java -jar frc-server.jar
+ExecStop=/bin/kill -15 $MAINPID
+
+[Install]
+WantedBy=multi-user.target
+
+sudo systemctl enable frc-server.service
+Created symlink from /etc/systemd/system/multi-user.target.wants/frc-server.service to /etc/systemd/system/frc-server.service

@@ -1,7 +1,7 @@
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Presentacion } from './../../../productos/presentacion/presentacion.model';
 import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core';
-import { EtapaTransferencia, TransferenciaEstado, TransferenciaItem } from '../transferencia.model';
+import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem } from '../transferencia.model';
 import { FormControl, Validators, FormGroup } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
@@ -10,7 +10,7 @@ import { PresentacionService } from '../../../productos/presentacion/presentacio
 export interface CreateItemDialogData {
   item: TransferenciaItem;
   presentacion: Presentacion;
-  estado?: TransferenciaEstado;
+  transferencia?: Transferencia;
 }
 
 
@@ -25,7 +25,7 @@ export class CreateItemDialogComponent implements OnInit {
   @ViewChild('cantidadInput', { static: true }) cantidadInput: ElementRef;
 
   selectedItem = new TransferenciaItem;
-
+  selectedtransferencia: Transferencia;
   activoControl = new FormControl(true, Validators.required)
   poseeVencimientoControl = new FormControl(true, Validators.required)
   cantidadControl = new FormControl(1, Validators.required)
@@ -48,8 +48,9 @@ export class CreateItemDialogComponent implements OnInit {
   ngOnInit(): void {
 
     this.cargandoService.openDialog()
+    this.selectedtransferencia = this.data.transferencia;
     if (this.data.item != null) {
-      // this.cargarDatos(this.data.item)
+      this.cargarDatos(this.data.item)
     } else if (this.data.presentacion != null) {
       this.presentacionService.onGetPresentacion(this.data.presentacion?.id)
         .pipe(untilDestroyed(this))
@@ -80,7 +81,7 @@ export class CreateItemDialogComponent implements OnInit {
 
   cargarDatos(item: TransferenciaItem) {
     this.selectedItem = item;
-    if (item.etapa == EtapaTransferencia.PRE_TRANSFERENCIA) {
+    if (this.selectedtransferencia.etapa == EtapaTransferencia.PRE_TRANSFERENCIA_CREACION || this.selectedtransferencia.etapa == EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN) {
       this.activoControl.setValue(item.activo)
       this.cantidadControl.setValue(item.cantidadPreTransferencia)
       this.vencimientoControl.setValue(new Date(item.vencimientoPreTransferencia))
@@ -98,14 +99,16 @@ export class CreateItemDialogComponent implements OnInit {
     this.matDialogRef.close()
   }
   onGuardar() {
-    this.selectedItem.presentacionPreTransferencia = this.selectedPresentacion;
-    this.selectedItem.activo = this.activoControl.value;
-    this.selectedItem.cantidadPreTransferencia = this.cantidadControl.value;
-    this.selectedItem.poseeVencimiento = this.poseeVencimientoControl.value;
-    if (this.selectedItem.poseeVencimiento) {
-      this.selectedItem.vencimientoPreTransferencia = this.vencimientoControl.value;
+    if (this.selectedtransferencia.etapa == EtapaTransferencia.PRE_TRANSFERENCIA_CREACION || this.selectedtransferencia.etapa == EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN) {
+      this.selectedItem.presentacionPreTransferencia = this.selectedPresentacion;
+      this.selectedItem.activo = this.activoControl.value;
+      this.selectedItem.cantidadPreTransferencia = this.cantidadControl.value;
+      this.selectedItem.poseeVencimiento = this.poseeVencimientoControl.value;
+      if (this.selectedItem.poseeVencimiento) {
+        this.selectedItem.vencimientoPreTransferencia = this.vencimientoControl.value;
+      }
+      this.matDialogRef.close({ item: this.selectedItem })
     }
-    this.matDialogRef.close({ item: this.selectedItem })
   }
 
 }

@@ -1,0 +1,145 @@
+<div fxLayout="column" fxLayoutGap="20px" style="width: 100%">
+  <div
+    *ngIf="data?.isCantidad"
+    fxFlex
+    fxLayout="column"
+    style="width: 100%"
+    fxLayoutGap="20px"
+  >
+    <div fxFlex style="width: 100%; text-align: center">Modificar cantidad</div>
+    <div fxFlex fxLayout="row">
+      <div fxFlex="30%">Cantidad anterior:</div>
+      <div fxFlex="70%">
+        {{ selectedCantidadAnterior | number: "1.0-2" }}
+      </div>
+    </div>
+    <div fxFlex fxLayout="row">
+      <div fxFlex="30%">Presentación:</div>
+      <div fxFlex="70%">
+        {{ selectedPresentacion?.cantidad | number: "1.0-2" }}
+      </div>
+    </div>
+    <div fxFlex fxLayout="row">
+      <div fxFlex="30%">Total en unidades:</div>
+      <div fxFlex="70%">
+        {{
+          selectedCantidadAnterior * selectedPresentacion?.cantidad
+            | number: "1.0-2"
+        }}
+      </div>
+    </div>
+
+    <div fxFlex>
+      <mat-form-field style="width: 100%">
+        <mat-label>Nueva cantidad</mat-label>
+        <input type="number" matInput [formControl]="cantidadControl" />
+      </mat-form-field>
+    </div>
+    <!-- <div fxFlex fxLayout="row">
+        <div fxFlex="30">Motivo:</div>
+        <div fxFlex="70%">
+            <mat-select
+            #tipoEntradaSelect
+            [formControl]="motivoControl"
+            (selectionChange)="onSelectMotivo($event.value)"
+            >
+            <mat-option
+                *ngFor="let motivo of motivoList; let i = index"
+                [value]="motivo"
+            >
+                {{ motivo }}
+            </mat-option>
+            </mat-select>
+        </div>
+        </div> -->
+  </div>
+  <div
+    *ngIf="data?.isVencimiento"
+    fxFlex
+    fxLayout="column"
+    style="width: 100%"
+    fxLayoutGap="20px"
+  >
+    <div fxFlex fxLayout="row" style="width: 100%; text-align: center">
+      Modificar vencimiento
+    </div>
+    <div fxFlex fxLayout="row">
+      Vencimiento anterior:
+      {{ selectedVencimientoAnterior | date: "shortDate" }}
+    </div>
+
+    <div fxFlex>
+      <mat-form-field style="width: 100%">
+        <mat-label>Vencimiento</mat-label>
+        <input
+          matInput
+          [matDatepicker]="picker"
+          [formControl]="vencimientoControl"
+        />
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+    </div>
+    <!-- <div fxFlex fxLayout="row">
+      <div fxFlex="30">Motivo:</div>
+      <div fxFlex="70%">
+        <mat-select
+          #tipoEntradaSelect
+          [formControl]="motivoControl"
+          (selectionChange)="onSelectMotivo($event.value)"
+        >
+          <mat-option
+            *ngFor="let motivo of motivoList; let i = index"
+            [value]="motivo"
+          >
+            {{ motivo }}
+          </mat-option>
+        </mat-select>
+      </div>
+    </div> -->
+  </div>
+  <div
+    *ngIf="data?.isRechazar"
+    fxFlex
+    fxLayout="column"
+    style="width: 100%"
+    fxLayoutGap="20px"
+  >
+    <div fxFlex style="width: 100%; text-align: center">Rechazar item</div>
+    <div fxFlex fxLayout="row">
+      <div fxFlex="30">Motivo:</div>
+      <div fxFlex="70%">
+        <mat-select
+          #tipoEntradaSelect
+          [formControl]="motivoControl"
+        >
+          <mat-option
+            *ngFor="let motivo of motivoList; let i = index"
+            [value]="motivo"
+          >
+            {{ motivo }}
+          </mat-option>
+        </mat-select>
+      </div>
+    </div>
+  </div>
+  <div fxFlex style="width: 100%; text-align: center">
+    <button
+      mat-raised-button
+      color="primary"
+      style="width: 150px"
+      (click)="onCancelar()"
+    >
+      Cancelar
+    </button>
+    <button
+      mat-raised-button
+      color="accent"
+      style="width: 150px; margin-left: 10px"
+      (click)="onAceptar()"
+      [disabled]="!(cantidadControl.valid || vencimientoControl.valid || motivoControl.valid)"
+    >
+      Aceptar
+    </button>
+  </div>
+</div>

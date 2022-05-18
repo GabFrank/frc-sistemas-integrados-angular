@@ -72,13 +72,13 @@ export function updateDataSource(arr, value?, index?){
   return aux;
 }
 
-export function updateDataSourceWithId(arr, value, id?){
+export function updateDataSourceWithId(arr, value, id?): any[]{
   let aux: any[] = arr;
   if(id!=null){
-    let index = aux.find(e => e?.id == id);
-    if(index!=null){
+    let index = arr.findIndex(e => e.id == id);
+    if(index!=-1){
       aux[index] = value;
-    } else {
+    } else {     
       aux.push(value)
     }
   } 

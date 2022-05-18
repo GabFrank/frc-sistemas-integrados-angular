@@ -8,24 +8,20 @@ import {
   OnInit,
   ViewChild,
 } from "@angular/core";
-import { MatDialog, MatDialogRef } from "@angular/material/dialog";
+import { MatDialog } from "@angular/material/dialog";
 import { MatSnackBar } from "@angular/material/snack-bar";
-import { Subscription } from "rxjs";
-import { last } from "rxjs/operators";
 import { connectionStatusSub } from "./app.module";
 import { GenericCrudService } from "./generics/generic-crud.service";
 import { MainService } from "./main.service";
 import { LoginComponent } from "./modules/login/login.component";
 import {
   NotificacionColor,
-  NotificacionSnackbarData,
   NotificacionSnackbarService,
 } from "./notificacion-snackbar.service";
 import { WindowInfoService } from "./shared/services/window-info.service";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { ConfigurarServidorDialogComponent } from "./modules/configuracion/configurar-servidor-dialog/configurar-servidor-dialog.component";
 import { ConfiguracionService } from "./modules/configuracion/configuracion.service";
-import { uniqueKey } from "highcharts";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -79,9 +75,6 @@ export class AppComponent implements OnInit, OnDestroy {
    *    si la respuesta es false, abre el dialogo de configuracion de servidor
    */
   ngOnInit(): void {
-
-    console.log(process.env)
-
     this.overlay.getContainerElement().classList.add("darkMode");
     this.matDialog.open(LoginComponent, {
       width: "500px",

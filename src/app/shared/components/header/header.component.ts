@@ -1,3 +1,4 @@
+import { LoginService } from './../../../modules/login/login.service';
 import { SearchBarDialogComponent } from './../../widgets/search-bar-dialog/search-bar-dialog.component';
 import {
   Component,
@@ -9,7 +10,7 @@ import {
 import { FormControl } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { Router } from "@angular/router";
-import { Observable, Subscription } from "rxjs";
+import { Observable, of, Subscription } from "rxjs";
 import { connectionStatusSub } from "../../../app.module";
 import { ElectronService } from "../../../commons/core/electron/electron.service";
 import { TabService } from "../../../layouts/tab/tab.service";
@@ -17,6 +18,7 @@ import { MainService } from "../../../main.service";
 import { CargandoDialogService } from "../cargando-dialog/cargando-dialog.service";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { LoginComponent } from '../../../modules/login/login.component';
 // import { ApolloConfigService } from '../../../apollo-config.service';
 
 @UntilDestroy({ checkProperties: true })
@@ -42,6 +44,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private router: Router,
     private tabService: TabService,
     private electronService: ElectronService,
+    private loginService: LoginService
   ) {
     // mainService.statusSub.subscribe(res => {
     //   console.log(res)
@@ -78,17 +81,17 @@ export class HeaderComponent implements OnInit, OnDestroy {
     localStorage.removeItem("usuarioId");
     this.mainService.usuarioActual = null;
     this.mainService.logged = false;
-    setTimeout(() => {
-      window.location.reload();
-      // this.router.navigate([this.router.url])
-      // this.cargandoDialogService.closeDialog();
-      // this.tabService.removeAllTabs();
-      // this.matDialog.open(LoginComponent, {
-      //   width: "500px",
-      //   height: "500px",
-      //   disableClose: false
-      // });
-    }, 1000);
+    this.tabService.removeAllTabs()
+    window.location.href = '';
+    // this.matDialog.open(LoginComponent, {
+    //   width: "500px",
+    //   height: "500px",
+    //   disableClose: true,
+    // }).afterClosed().subscribe(res => {
+    //   if(!res){
+    //     console.log(res)
+    //   }
+    // });
   }
 
   ngOnDestroy(): void {

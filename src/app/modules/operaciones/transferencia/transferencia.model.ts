@@ -34,10 +34,15 @@ export enum TransferenciaItemMotivoModificacion {
 }
 
 export enum EtapaTransferencia {
-  PRE_TRANSFERENCIA = 'PRE_TRANSFERENCIA',
+  PRE_TRANSFERENCIA_CREACION = 'PRE_TRANSFERENCIA_CREACION',
+  PRE_TRANSFERENCIA_ORIGEN = 'PRE_TRANSFERENCIA_ORIGEN',
   PREPARACION_MERCADERIA = 'PREPARACION_MERCADERIA',
-  TRANSPORTE = 'TRANSPORTE',
-  RECEPCION = 'RECEPCION'
+  PREPARACION_MERCADERIA_CONCLUIDA = 'PREPARACION_MERCADERIA_CONCLUIDA',
+  TRANSPORTE_VERIFICACION = 'TRANSPORTE_VERIFICACION',
+  TRANSPORTE_EN_CAMINO = 'TRANSPORTE_EN_CAMINO',
+  TRANSPORTE_EN_DESTINO = 'TRANSPORTE_EN_DESTINO',
+  RECEPCION_EN_VERIFICACION = 'RECEPCION_EN_VERIFICACION',
+  RECEPCION_CONCLUIDA = 'RECEPCION_CONCLUIDA'
 }
 
 export class Transferencia {
@@ -45,9 +50,13 @@ export class Transferencia {
   sucursalOrigen: Sucursal;
   sucursalDestino: Sucursal;
   estado: TransferenciaEstado;
-  tipo: TipoTransferencia
+  tipo: TipoTransferencia;
+  etapa: EtapaTransferencia
   observacion: string;
-  usuario: Usuario;
+  usuarioPreTransferencia: Usuario;
+  usuarioPreparacion: Usuario;
+  usuarioTransporte: Usuario;
+  usuarioRecepcion: Usuario;
   isOrigen: boolean;
   isDestino: boolean;
   creadoEn: Date;
@@ -62,7 +71,11 @@ export class Transferencia {
     input.observacion = this.observacion;
     input.sucursalDestinoId = this.sucursalDestino?.id;
     input.sucursalOrigenId = this.sucursalOrigen?.id;
-    input.usuarioId = this.usuario?.id;
+    input.usuarioPreTransferenciaId = this.usuarioPreTransferencia?.id;
+    input.usuarioPreparacionId = this.usuarioPreparacion?.id;
+    input.usuarioTransporteId = this.usuarioTransporte?.id;
+    input.usuarioRecepcionId = this.usuarioRecepcion?.id;
+    input.etapa = this.etapa;
     return input;
   }
 }
@@ -73,8 +86,12 @@ export class TransferenciaInput {
   sucursalDestinoId: number;
   estado: TransferenciaEstado;
   tipo: TipoTransferencia
+  etapa: EtapaTransferencia
   observacion: string;
-  usuarioId: number;
+  usuarioTransporteId: number;
+  usuarioPreTransferenciaId: number;
+  usuarioPreparacionId: number;
+  usuarioRecepcionId: number;
   creadoEn: Date;
 }
 
@@ -105,7 +122,6 @@ export class TransferenciaItem {
   motivoRechazoPreparacion: TransferenciaItemMotivoRechazo
   motivoRechazoTransporte: TransferenciaItemMotivoRechazo
   motivoRechazoRecepcion: TransferenciaItemMotivoRechazo
-  etapa: EtapaTransferencia
   activo: boolean
   poseeVencimiento: boolean
   usuario: Usuario;
@@ -132,14 +148,13 @@ export class TransferenciaItem {
     input.vencimientoTransporte = dateToString(this.vencimientoTransporte);
     input.vencimientoRecepcion = dateToString(this.vencimientoRecepcion);
     input.motivoModificacionPreTransferencia = this.motivoModificacionPreTransferencia;
-    input.motivoModificacionPreparacion = this.motivoModificacionPreTransferencia;
+    input.motivoModificacionPreparacion = this.motivoModificacionPreparacion;
     input.motivoModificacionTransporte = this.motivoModificacionTransporte;
     input.motivoModificacionRecepcion = this.motivoModificacionRecepcion;
     input.motivoRechazoPreTransferencia = this.motivoRechazoPreTransferencia;
     input.motivoRechazoPreparacion = this.motivoRechazoPreparacion;
     input.motivoRechazoTransporte = this.motivoRechazoTransporte;
     input.motivoRechazoRecepcion = this.motivoRechazoRecepcion;
-    input.etapa = this.etapa;
     input.activo = this.activo;
     input.poseeVencimiento  = this.poseeVencimiento;     
     input.usuarioId = this.usuario?.id;
@@ -174,7 +189,6 @@ export class TransferenciaItemInput {
   motivoRechazoPreparacion: TransferenciaItemMotivoRechazo
   motivoRechazoTransporte: TransferenciaItemMotivoRechazo
   motivoRechazoRecepcion: TransferenciaItemMotivoRechazo
-  etapa: EtapaTransferencia
   activo: boolean
   poseeVencimiento: boolean
   usuarioId: number;

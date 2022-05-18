@@ -100,6 +100,7 @@ export class GenericCrudService {
     if (input.usuarioId == null) {
       input.usuarioId = +localStorage.getItem("usuarioId");
     }
+    console.log(input)
     return new Observable((obs) => {
       gql
         .mutate(

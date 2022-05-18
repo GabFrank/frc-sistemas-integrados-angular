@@ -10,3 +10,23 @@ tr.example-detail-row {
   overflow: hidden;
   display: flex;
 }
+
+.en-origen {
+  background-color: #43a047 !important;
+}
+
+.en-origen-preparacion {
+  background-color: #54c5f8 !important;
+}
+
+.en-origen-transito {
+  background-color: #f57c00 !important;
+}
+
+.en-destino-recepcion {
+  background-color: #a0438c !important;
+}
+
+.example-element-row:hover {
+  background-color: rgb(34, 34, 34);
+}

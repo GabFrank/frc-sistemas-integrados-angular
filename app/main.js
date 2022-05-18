@@ -86,9 +86,8 @@ try {
                     {
                         label: "Reiniciar",
                         click: function () {
-                            electron_1.app.relaunch();
-                            electron_1.app.exit();
-                        },
+                            win.loadURL(serve ? 'http://localhost:4200' : "file://" + path.join(__dirname, '../dist/index.html'));
+                        }
                     },
                     {
                         label: "Open Dev Tools",
@@ -106,6 +105,18 @@ try {
                         label: "Minimizar",
                         click: function () {
                             win.minimize();
+                        },
+                    },
+                    {
+                        label: "Zoom in",
+                        click: function () {
+                            win.webContents.setZoomFactor(win.webContents.zoomFactor + 0.2);
+                        },
+                    },
+                    {
+                        label: "Zoom out",
+                        click: function () {
+                            win.webContents.setZoomFactor(win.webContents.zoomFactor - 0.2);
                         },
                     },
                     {
@@ -172,13 +183,11 @@ try {
     });
     win.webContents.on("did-fail-load", function () {
         console.log("did-fail-load");
-        win.loadURL(url.format({
-            pathname: path.join(__dirname, "dist/index.html"),
-            protocol: "file:",
-            slashes: true,
-        }));
+        win.loadURL(serve ? 'http://localhost:4200' : "file://" + path.join(__dirname, '../dist/index.html'));
         // REDIRECT TO FIRST WEBPAGE AGAIN
     });
+    win.webContents.setZoomFactor(1);
+    win.webContents.setZoomLevel(0);
     win.webContents.print({ silent: true });
     win.webContents.setWindowOpenHandler(function (_a) {
         var url = _a.url;

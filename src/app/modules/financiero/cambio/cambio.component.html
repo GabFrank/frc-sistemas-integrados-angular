@@ -1,1 +1,100 @@
-<p>cambio works!</p>
+<app-generic-list
+  titulo="Cotización"
+>
+  <div filtros></div>
+  <div table fxLayout="row" style="width: 100%" fxLayoutGap="20px">
+    <table
+      mat-table
+      [dataSource]="dataSourceActual"
+      class="mat-elevation-z8"
+      style="width: 100%"
+    >
+      <ng-container matColumnDef="id" style="width: 5%">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 5%"
+        >
+          Id
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let cambio"
+          style="text-align: center; width: 5%"
+        >
+          {{ cambio.id }}
+        </td>
+      </ng-container>
+
+      <!-- Name Column -->
+      <ng-container matColumnDef="moneda">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 20%"
+        >
+          Moneda
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let cambio"
+          style="text-align: center; width: 20%"
+        >
+          {{ cambio?.denominacion | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="cambioEnGs">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 20%"
+        >
+          Cotización
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let cambio"
+          style="text-align: center; width: 20%"
+        >
+          {{ cambio?.cambio | number: '1.0-2'}}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="accion">
+        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center;">...</th>
+        <td mat-cell *matCellDef="let cambio; let i = index" style="width: 5%; text-align: center">
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onEditCambio(cambio, i)">Actualizar</button>
+            <!-- <button *ngIf="gasto?.finalizado == true" mat-menu-item (click)="onImprimir(gasto)">
+              Imprimir
+            </button> -->
+          </mat-menu>
+        </td>
+      </ng-container>
+
+
+      <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+
+      <tr
+        mat-header-row
+        *matHeaderRowDef="displayedColumnsActual; sticky: true"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="
+          let row;
+          columns: displayedColumnsActual;
+          let i = dataIndex
+        "
+      ></tr>
+    </table>
+  </div>
+</app-generic-list>

@@ -66,7 +66,7 @@
             *ngFor="let sucursal of filteredDestinoSucursalList"
             (click)="onDestinoChange(sucursal)"
           >
-            {{ sucursal?.nombre | uppercase }}
+          {{ sucursal?.id }} - {{ sucursal?.nombre | uppercase }}
           </mat-list-option>
         </mat-selection-list>
       </div>
@@ -127,7 +127,7 @@
         nombre="Confirmar"
         (clickEvent)="onConfirmar()"
         [disableExpression]="
-          selectedSucursalOrigen == null && selectedSucursalDestino == null
+          selectedSucursalOrigen == null || selectedSucursalDestino == null
         "
       ></app-boton>
     </div>

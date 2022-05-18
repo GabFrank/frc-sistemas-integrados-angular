@@ -1,0 +1,22 @@
+<div fxLayout="column" style="width: 500px;" fxLayoutGap="10px">
+    <div fxFlex style="width: 100%; text-align: center; font-weight: bold;">
+        Crear nueva cotización
+    </div>
+    <div fxFlex style="width: 100%;">
+        Moneda: {{selectedMoneda?.denominacion | uppercase}}
+    </div>
+    <div fxFlex style="width: 100%;">
+        Cotización actual en Gs.: {{selectedMoneda?.cambio | number: '1.0-2'}}
+    </div>
+    <div fxFlex fxLayout="row" style="width: 100%;" fxLayoutGap="10px" fxLayoutAlign="start center">
+        <div fxFlex="70%">
+            <mat-form-field style="width: 100%;">
+                <mat-label>Nueva Cotización</mat-label>
+                <input type="number" matInput [formControl]="cotizacionControl" (keyup.enter)="cotizacionControl.valid ? onGuardar() : null">
+            </mat-form-field>
+        </div>
+        <div fxFlex="30%">
+            <button color="accent" style="width: 100%;" mat-raised-button (click)="onGuardar()" [disabled]="cotizacionControl.invalid">Guardar</button>
+        </div>
+    </div>
+</div>

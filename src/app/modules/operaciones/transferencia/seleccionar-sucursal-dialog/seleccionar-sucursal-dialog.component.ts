@@ -60,7 +60,12 @@ export class SeleccionarSucursalDialogComponent implements OnInit {
       .subscribe(res => {
         if (res != null) {
           this.sucursalList = res.filter(s => s.id != 0)
-          this.filteredOrigenSucursalList = this.sucursalList;
+          if(this.mainService.sucursalActual.id!=0){
+            this.filteredOrigenSucursalList = [this.mainService.sucursalActual]
+            this.filteredDestinoSucursalList = res.filter(s => s.id != this.mainService.sucursalActual.id && s.id != 0) 
+          } else {
+            this.filteredOrigenSucursalList = this.sucursalList;
+          }
         }
         this.cargandoService.closeDialog()
       })

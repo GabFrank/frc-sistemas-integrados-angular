@@ -10,13 +10,17 @@ restart cron
 /etc/init.d/cron restart
 
 -- comando para hacer backup de base de datos
-pg_dump -U franco -W general > central.sql
+pg_dump -U franco -W general > general_filial_2.sql
+pg_dump -U franco -W central > central_servidor.sql
+-- comando para hacer restore de base de datos
+psql -U franco -W dba < dbb.sql
 -- comando para copiar archivos en docker
 docker cp filial1:/generalv3.sql /Users/gabfranck/Desktop
 
 
 comando para logear en psql
 psql -d general -U franco
+psql -d central -U franco
 
 --crear imagen de un docker file
 docker build . -t [image-name]
@@ -27,3 +31,18 @@ docker build . -t [image-name]
 2 - substituir el archivo frc-server.jar en la carpeta FRC
 3 - copiar carpeta FRC en la raiz del disco del servidor nuevo
 4 - WinSW.NET4.exe install (comando para instalar el jar en el nuevo servidor)
+
+
+-- adicionar servicio en servidor cloud
+sudo systemctl start frc-server.service
+
+-- remover servicio en servidor cloud
+# My recipe for systemd service obliteration
+sudo systemctl stop frc-server.service
+sudo systemctl disable frc-server.service
+sudo rm /etc/systemd/system/frc-server.service
+sudo rm /etc/systemd/system/frc-server.service
+sudo rm /usr/lib/systemd/system/frc-server.service 
+sudo rm /usr/lib/systemd/system/frc-server.service
+sudo systemctl daemon-reload
+sudo systemctl reset-failed

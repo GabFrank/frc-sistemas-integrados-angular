@@ -1,0 +1,28 @@
+<div class="timeline">
+    <div *ngFor="let item of data" class="timeline-event">
+        <div class="timeline-point-track-container">
+            <div class="timeline-point" [class.terminado]="item.terminado">
+
+            </div>
+            <div class="timeline-track" [class.heightLight]="item.terminado">
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+        <div class="timeline-content">
+            <span fxLayout="column">
+                <div fxFlex>
+                   <h2>{{item.texto}}</h2> 
+                </div>   
+                <div fxFlex fxLayout="row">
+                    <div fxFlex="30%">
+                        Fecha: {{item.fecha | date: 'short'}}
+                    </div>
+                    <div fxFlex="70%">
+                        Responsable: {{item.usuario?.persona?.nombre | titlecase}}
+                    </div>
+                 </div>              
+            </span>
+        </div>
+    </div>
+</div>

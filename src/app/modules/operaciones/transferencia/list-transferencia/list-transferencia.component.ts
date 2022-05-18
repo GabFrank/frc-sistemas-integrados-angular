@@ -25,6 +25,8 @@ import { EditTransferenciaComponent } from '../edit-transferencia/edit-transfere
   ],
 })
 export class ListTransferenciaComponent implements OnInit {
+  
+  titulo = 'Lista de Transferencias'
 
   dataSource = new MatTableDataSource<Transferencia>([])
 
@@ -36,6 +38,7 @@ export class ListTransferenciaComponent implements OnInit {
     'origen',
     'destino',
     'estado',
+    'etapa',
     'fecha',
     'tipo',
     'acciones']
@@ -49,9 +52,13 @@ export class ListTransferenciaComponent implements OnInit {
     ) { }
 
   ngOnInit(): void {
+    this.onGetTransferencias()
+  }
+
+  onGetTransferencias(){
     let hoy = new Date()
     let unaSemanaAtras = new Date()
-    unaSemanaAtras.setDate(hoy.getDate()-6)
+    unaSemanaAtras.setDate(hoy.getDate()-29)
     this.transferenciaService.onGetTrasferenciasPorFecha(unaSemanaAtras, hoy)
     .pipe(untilDestroyed(this))
     .subscribe(res => {
@@ -72,6 +79,7 @@ export class ListTransferenciaComponent implements OnInit {
         this.cargandoService.closeDialog()
         if(res!=null){
           this.selectedTransferencia = res;
+          console.log(res)
           this.dataSource.data = updateDataSource(this.dataSource.data, res, index)
         }
       })

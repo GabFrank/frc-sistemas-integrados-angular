@@ -1,4 +1,6 @@
+import { MatTableDataSource } from '@angular/material/table';
 import { Component, OnInit } from '@angular/core';
+import { Cambio } from '../cambio/cambio.model';
 
 @Component({
   selector: 'app-moneda',

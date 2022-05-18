@@ -22,29 +22,25 @@ export class CargandoDialogService {
   }
 
   openDialog(disable?: boolean, texto?: string) {
-      this.dialogRef = this.matDialog.open(CargandoDialogComponent, {
-        disableClose: disable,
-      });    
+      // this.dialogRef = this.matDialog.open(CargandoDialogComponent, {
+      //   disableClose: disable,
+      // });    
     // console.log('abriendo dialog')
     // this.cargandoTextSub.next(texto)
-    // this.dialogCount++;
+    this.dialogCount++;
     // if(disable==null) disable = false;
-    // if (this.dialogRef == null) {
-    //   this.dialogRef = this.matDialog.open(CargandoDialogComponent, {
-    //     disableClose: disable,
-    //   });
-    // }
+    if (this.dialogCount == 0) {
+      this.dialogRef = this.matDialog.open(CargandoDialogComponent, {
+        disableClose: disable,
+      });
+    }
   }
 
   closeDialog() {
     // console.log('cerrando dialog')
-    // this.dialogCount--;
-    // if(this.dialogCount == 0){
-    //   this.dialogRef.close()
-    // }
-    if(this.dialogRef!=null){
+    this.dialogCount--;
+    if(this.dialogCount == 0 && this.dialogRef!=null){
       this.dialogRef.close()
-      this.dialogRef = null;
     }
   }
 }

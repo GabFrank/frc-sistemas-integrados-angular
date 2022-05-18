@@ -65,6 +65,7 @@ export class LoginComponent implements OnInit {
           this.cargandoDialogService.closeDialog();
           if (res.usuario != null) {
             this.mainService.authenticationSub.next(true);
+            this.mainService.load()
             this.showBienvenida = true;
             this.errorMessage = null;
             setTimeout(() => {

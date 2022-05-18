@@ -24,6 +24,7 @@ import { AdicionarConteoDialogComponent } from './conteo/adicionar-conteo-dialog
 import { AdicionarRetiroDialogComponent } from './retiro/adicionar-retiro-dialog/adicionar-retiro-dialog.component';
 import { ListRetiroComponent } from './retiro/list-retiro/list-retiro.component';
 import { AdicionarGastoDialogComponent } from './gastos/adicionar-gasto-dialog/adicionar-gasto-dialog.component';
+import { CrearCambioDialogComponent } from './cambio/crear-cambio-dialog/crear-cambio-dialog.component';
 
 @NgModule({
   declarations: [
@@ -46,6 +47,7 @@ import { AdicionarGastoDialogComponent } from './gastos/adicionar-gasto-dialog/a
     AdicionarRetiroDialogComponent,
     ListRetiroComponent,
     AdicionarGastoDialogComponent,
+    CrearCambioDialogComponent,
   ],
   imports: [
     CommonModule,
