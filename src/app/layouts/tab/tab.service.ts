@@ -4,6 +4,7 @@ import { Injectable } from '@angular/core';
 import { Tab } from './tab.model';
 import { BehaviorSubject } from 'rxjs';
 import { EventEmitter } from '@angular/core';
+import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -38,8 +39,8 @@ export class TabService {
       // new Tab(EntradaSalidaComponent, 'Entrada/Salida', null, null),
       // new Tab(PrintTicketsComponent, 'Farra', null, null),
       // new Tab(ListProductoComponent, 'Productos', null, null),
-      // new Tab(VentaTouchComponent, 'Venta', null, null),
-      new Tab(ListTransferenciaComponent, 'Lista de Transferencias', null, null)
+      new Tab(VentaTouchComponent, 'Venta', null, null),
+      // new Tab(ListTransferenciaComponent, 'Lista de Transferencias', null, null)
     ];
     this.tabSub.next(this.tabs);
   }

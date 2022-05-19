@@ -90,7 +90,7 @@ export class SideComponent implements OnInit {
         // );
         break;
       case "pdv-venta-touch":
-        if (this.mainService.usuarioActual?.roles.includes(ROLES.VENTA_TOUCH)) {
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.VENTA_TOUCH) || true) {
           this.tabService.addTab(
             new Tab(VentaTouchComponent, "Venta Touch", null, null)
           );

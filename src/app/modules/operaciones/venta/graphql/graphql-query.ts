@@ -118,12 +118,14 @@ export const saveVenta = gql`
     $ventaItemList: [VentaItemInput]
     $cobro: CobroInput
     $cobroDetalleList: [CobroDetalleInput]
+    $ticket: Boolean
   ) {
     data: saveVenta(
       ventaInput: $ventaInput
       ventaItemList: $ventaItemList
       cobro: $cobro
       cobroDetalleList: $cobroDetalleList
+      ticket: $ticket
     )
   }
 `;

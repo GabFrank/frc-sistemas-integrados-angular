@@ -261,7 +261,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   onGridCardClick(grupo: PdvGrupo) {
-    console.log(grupo)
     let descripcion = grupo.descripcion;
     let pdvGruposProductos = grupo.pdvGruposProductos;
     let productos: Producto[] = [];
@@ -394,6 +393,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         .confirm("Atención!!", "Realmente desea eliminar la lista de itens?").pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res) {
+            if(this.isAuxiliar){
+              this.itemList2 = []
+            } else {
+              this.itemList = []
+            }
             this.selectedItemList = [];
             this.calcularTotales();
           }
@@ -406,30 +410,30 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   editItem(event: any) {
-    let item = event['item']
-    let index = event['i']
-    let dialogReference = this.dialog.open(EditItemDialogComponent, {
-      data: {
-        item,
-      },
-    });
-    dialogReference.afterClosed().pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res != null) {
-        switch (res) {
-          case -1:
-          case 0:
-            this.removeItem({ item, index });
-            break;
-          default:
-            this.removeItem({ item, index });
-            item.cantidad = res;
-            this.addItem(item);
-            break;
-        }
-      }
-      this.dialogReference = undefined;
-      this.buscadorFocusSub.next()
-    });
+    // let item = event['item']
+    // let index = event['i']
+    // let dialogReference = this.dialog.open(EditItemDialogComponent, {
+    //   data: {
+    //     item,
+    //   },
+    // });
+    // dialogReference.afterClosed().pipe(untilDestroyed(this)).subscribe((res) => {
+    //   if (res != null) {
+    //     switch (res) {
+    //       case -1:
+    //       case 0:
+    //         this.removeItem({ item, index });
+    //         break;
+    //       default:
+    //         this.removeItem({ item, index });
+    //         item.cantidad = res;
+    //         this.addItem(item);
+    //         break;
+    //     }
+    //   }
+    //   this.dialogReference = undefined;
+    //   this.buscadorFocusSub.next()
+    // });
   }
 
   crearItem(eventData: any, index?) {
@@ -533,7 +537,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
               });
             }
             this.cargandoService.closeDialog();
-            this.onSaveVenta(venta, cobro);
+            this.onSaveVenta(venta, cobro, true);
             this.dialogReference = undefined;
           }
           this.isDialogOpen = false;
@@ -554,7 +558,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     this.totalGs = 0;
   }
 
-  onTicketClick() {
+  onTicketClick(ticket?:boolean) {
     this.disableCobroRapido = true;
     //guardar la compra, si la compra se guardo con exito, imprimir ticket y resetForm()
     let venta = new Venta();
@@ -581,14 +585,14 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     cobroDetalle.valor = this.totalGs;
     cobro.cobroDetalleList = [cobroDetalle];
     // cobroDetalle.
-    this.onSaveVenta(venta, cobro);
+    this.onSaveVenta(venta, cobro, ticket);
     this.disableCobroRapido = false;
     this.buscadorFocusSub.next()
   }
 
-  onSaveVenta(venta, cobro) {
+  onSaveVenta(venta, cobro, ticket) {
     this.cargandoService.openDialog();
-    this.ventaTouchServive.onSaveVenta(venta, cobro).pipe(untilDestroyed(this)).subscribe((res) => {
+    this.ventaTouchServive.onSaveVenta(venta, cobro, ticket).pipe(untilDestroyed(this)).subscribe((res) => {
       this.cargandoService.closeDialog();
       if (res == true) {
         this.notificacionSnackbar.notification$.next({

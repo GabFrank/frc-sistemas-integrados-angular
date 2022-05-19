@@ -38,7 +38,7 @@ export class VentaService {
 
   // $venta:VentaInput!, $venteItemList: [VentaItemInput], $cobro: CobroInput, $cobroDetalleList: [CobroDetalleInput]
 
-  onSaveVenta(venta: Venta, cobro: Cobro): Observable<any> {
+  onSaveVenta(venta: Venta, cobro: Cobro, ticket): Observable<any> {
     let ventaItemInputList: VentaItemInput[] = [];
     let cobroDetalleInputList: CobroDetalleInput[] = [];
     let ventaInput: VentaInput = venta.toInput();
@@ -61,6 +61,7 @@ export class VentaService {
             ventaItemList: ventaItemInputList,
             cobro: cobroInput,
             cobroDetalleList: cobroDetalleInputList,
+            ticket
           },
           {
             errorPolicy: "all",

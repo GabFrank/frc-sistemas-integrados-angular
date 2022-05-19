@@ -5,17 +5,17 @@
   <div
     fxFlex
     fxLayout="row wrap"
-    fxLayoutAlign="start start"
-    fxLayoutGap="5px"
+    fxLayoutAlign="start space-around"
+    fxLayoutGap="10px"
   >
-    <div fxFlex="13" *ngFor="let producto of data.productos; let i = index">
+    <div fxFlex="14" *ngFor="let producto of data.productos; let i = index">
       <mat-card
         style="
           padding: 0;
           margin: 0;
           margin-top: 5px;
           background-color: #f44336;
-          width: 100%;
+          width: 150px;
           height: 100%;
         "
         (click)="onProductoClick(producto)"
@@ -23,8 +23,8 @@
         <div fxLayout="column" fxLayoutGap="10px">
           <div>
             <img
-              [src]="producto?.imagenPrincipal"
-              style="width: 100%; height: 100%;object-fit: cover;"
+              [src]="producto?.imagenPrincipal != null ? producto?.imagenPrincipal : '/assets/no-image.png'"
+              style="width: 150px; height: 100%;object-fit: cover;"
             >
           </div>
           <div style="text-align: center; font-weight: bold;">

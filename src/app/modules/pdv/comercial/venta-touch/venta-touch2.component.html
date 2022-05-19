@@ -59,23 +59,30 @@
       <app-favoritos (event)="onGridCardClick($event)"></app-favoritos>
     </div>
     <div fxFlex="15%" fxLayout="row" fxLayoutGap="10px">
-      <div fxFlex="25%">
+      <div fxFlex="20%">
         <app-boton
           nombre="Cobro Rápido"
           [disableExpression]="selectedItemList.length == 0"
           (clickEvent)="onTicketClick()"
         ></app-boton>
       </div>
-      <div fxFlex="25%">
+      <div fxFlex="20%">
+        <app-boton
+          nombre="CR + Ticket"
+          [disableExpression]="selectedItemList.length == 0"
+          (clickEvent)="onTicketClick(true)"
+        ></app-boton>
+      </div>
+      <div fxFlex="20%">
         <app-boton nombre="Delivery"></app-boton>
       </div>
-      <div fxFlex="25%">
+      <div fxFlex="20%">
         <app-boton
           [nombre]="!isAuxiliar ? 'PDV 1' : 'PDV 2'"
           (clickEvent)="pdvAuxiliarClick()"
         ></app-boton>
       </div>
-      <div fxFlex="25%">
+      <div fxFlex="20%">
         <app-boton
           nombre="Utilitarios"
           (clickEvent)="openUtilitarios()"

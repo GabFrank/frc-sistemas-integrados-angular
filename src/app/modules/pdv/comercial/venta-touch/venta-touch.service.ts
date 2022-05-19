@@ -43,7 +43,7 @@ export class VentaTouchService {
     }
   }
 
-  onSaveVenta(venta: Venta, cobro: Cobro): Observable<any>{
-    return this.ventaService.onSaveVenta(venta, cobro)
+  onSaveVenta(venta: Venta, cobro: Cobro, ticket): Observable<any>{
+    return this.ventaService.onSaveVenta(venta, cobro, ticket)
   }
 }
