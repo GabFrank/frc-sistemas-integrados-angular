@@ -137,3 +137,8 @@ input::selection {
   font-style: italic;
   padding-left: 5px;
 }
+
+.raised-button:hover {
+  color: #43a047;
+  cursor: pointer;
+}

@@ -63,7 +63,6 @@ export class LoginService {
                     .onGetUsuario(res["usuarioId"])
                     .subscribe((res) => {
                       if (res?.id != null) {
-                        console.log("..autenticando");
                         this.mainService.usuarioActual = res;
                         this.mainService.authenticationSub.next(true);
                         this.mainService.load()
@@ -85,7 +84,6 @@ export class LoginService {
               error: error,
             };
             this.mainService.authenticationSub.next(false);
-            console.log(error);
             obs.next(error);
           }
         );

@@ -1,10 +1,10 @@
 import { MatDialogRef } from '@angular/material/dialog';
-import { EtapaTransferencia } from './../transferencia.model';
-import { TimelineData } from './../../../../shared/timeline/timeline.component';
-import { TransferenciaComponent } from './../transferencia.component';
+import { EtapaTransferencia } from '../../operaciones/transferencia/transferencia.model';
+import { TimelineData } from '../../../shared/timeline/timeline.component';
+import { TransferenciaComponent } from '../../operaciones/transferencia/transferencia.component';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Component, Inject, OnInit } from '@angular/core';
-import { Transferencia } from '../transferencia.model';
+import { Transferencia } from '../../operaciones/transferencia/transferencia.model';
 
 export interface TransferenciaTimelineData {
   transferencia: Transferencia;

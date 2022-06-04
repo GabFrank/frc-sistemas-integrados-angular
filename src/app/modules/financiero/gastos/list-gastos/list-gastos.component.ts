@@ -44,7 +44,6 @@ export class ListGastosComponent implements OnInit {
   }
 
   onAdd(gasto?: Gasto, index?, isClasificacion?:boolean){
-    console.log('on add')
   }
 
   onFilter(){

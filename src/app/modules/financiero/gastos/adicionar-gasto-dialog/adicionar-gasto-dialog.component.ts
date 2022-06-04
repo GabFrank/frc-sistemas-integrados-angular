@@ -107,7 +107,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     if (data?.caja != null) {
       this.selectedCaja = data.caja;
       gastoService.onGetByCajaId(this.selectedCaja.id).pipe(untilDestroyed(this)).subscribe((res) => {
-        console.log(<Gasto[]>res);
         this.cargandoDialog.closeDialog()
         if (res != null) {
           this.gastoList = orderByIdDesc<Gasto>(res);
@@ -133,7 +132,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
             this.funcionarioService
               .onFuncionarioSearch(res).pipe(untilDestroyed(this))
               .subscribe((response) => {
-                console.log(response);
                 this.responsableList = response;
                 if (this.responsableList.length == 1) {
                   this.onResponsableSelect(this.responsableList[0]);
@@ -161,7 +159,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
             this.funcionarioService
               .onFuncionarioSearch(res).pipe(untilDestroyed(this))
               .subscribe((response) => {
-                console.log(response);
                 this.autorizadoPorList = response;
                 if (this.autorizadoPorList.length == 1) {
                   this.onAutorizadoPorSelect(this.autorizadoPorList[0]);
@@ -186,7 +183,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       if (res != null && res.length != 0) {
         this.tipoGastoTimer = setTimeout(() => {
           this.tipoGastoService.onSearch(res).pipe(untilDestroyed(this)).subscribe((response) => {
-            console.log(response);
             this.tipoGastoList = response;
             if (this.tipoGastoList.length == 1) {
               this.onTipoGastoSelect(this.tipoGastoList[0]);
@@ -211,7 +207,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   onResponsableSelect(e) {
-    console.log(e);
     if (e?.id != null) {
       this.selectedResponsable = e;
       this.responsableControl.setValue(
@@ -229,7 +224,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   onTipoGastoSelect(e) {
-    console.log(e);
     if (e?.id != null) {
       this.selectedTipoGasto = e;
       if (this.selectedTipoGasto?.autorizacion == true) {
@@ -250,7 +244,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   onAutorizadoPorSelect(e) {
-    console.log(e);
     this.autorizado = true;
     if (e?.id != null) {
       this.selectedAutorizadoPor = e;
@@ -346,14 +339,12 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
   onFinalizar(gasto: Gasto) {
     this.cargandoDialog.openDialog()
-    console.log(gasto)
     let newGasto = new Gasto();
     Object.assign(newGasto, gasto);
     if (newGasto != null && newGasto.finalizado != true) {
       newGasto.finalizado = true;
       this.gastoService.onSave(newGasto).pipe(untilDestroyed(this)).subscribe((res) => {
         this.cargandoDialog.closeDialog()
-        console.log(res)
         if (res != null) {
           this.gastoList = replaceObject<Gasto>(this.gastoList, res);
           this.dataSource.data = this.gastoList;

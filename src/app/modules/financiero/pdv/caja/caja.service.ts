@@ -44,7 +44,6 @@ export class CajaService {
   }
 
   onSave(input): Observable<any> {
-    console.log(input);
     return this.genericService.onSave(this.onSaveCaja, input);
   }
 
@@ -57,7 +56,6 @@ export class CajaService {
   }
 
   onDelete(id, showDialog?: boolean): Observable<any> {
-    console.log("Borrando: " + id);
     return this.genericService.onDelete(this.deleteCaja, id, showDialog);
   }
 
@@ -73,7 +71,6 @@ export class CajaService {
         }
       ).pipe(untilDestroyed(this))
       .subscribe((res) => {
-        console.log(res);
       });
   }
 }

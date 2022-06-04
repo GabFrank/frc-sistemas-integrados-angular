@@ -109,7 +109,6 @@ export class ListCajaComponent implements OnInit {
 
     this.onFilter()
 
-    console.log(PdvCajaEstado["En proceso"]);
 
     this.fechaFormGroup = new FormGroup({
       inicio: this.fechaInicioControl,
@@ -136,12 +135,10 @@ export class ListCajaComponent implements OnInit {
 
   onFilter() {
     if(this.codigoControl.valid){
-      console.log('filtrando')
       this.fechaInicioControl.setValue(null)
       this.fechaFinalControl.setValue(null)
       this.cajaService.onGetById(this.codigoControl.value).pipe(untilDestroyed(this)).subscribe(res => {
         if(res!=null){
-          console.log(res)
           this.dataSource.data = []
           this.dataSource.data = updateDataSource(this.dataSource.data, res);
         } 
@@ -150,7 +147,6 @@ export class ListCajaComponent implements OnInit {
       this.cajaService.onGetByDate(this.fechaInicioControl.value, this.fechaFinalControl.value).pipe(untilDestroyed(this)).subscribe((res) => {
         if (res != null) {
           this.dataSource.data = res;
-          console.log(res);
         }
       });
     }
@@ -202,7 +198,6 @@ export class ListCajaComponent implements OnInit {
       this.activoControl.setValue(null);
     }
     this.lastValue = this.activoControl.value;
-    console.log(this.activoControl.value);
   }
 
   onProductoEnter() {}
@@ -213,7 +208,6 @@ export class ListCajaComponent implements OnInit {
     this.ventaService
       .onGetVentasPorPeriodo("2022-03-01T00:00:00", "2022-03-03T00:00:00").pipe(untilDestroyed(this))
       .subscribe((res) => {
-        console.log(res);
       });
   }
 

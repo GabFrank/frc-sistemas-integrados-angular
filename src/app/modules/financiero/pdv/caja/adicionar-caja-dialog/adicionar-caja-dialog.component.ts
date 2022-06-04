@@ -132,7 +132,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
     }
     setTimeout(() => {
       this.codigoMaletinInput.nativeElement.focus();
-      
+
     }, 1000);
   }
 
@@ -300,7 +300,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
     this.totalGsAper = +response.totalGs;
     this.totalRsaper = +response.totalRs;
     this.totalDsAper = +response.totalDs;
-    if(response.apertura){
+    if (response.apertura) {
       this.selectedConteoApertura = response.conteo;
     } else {
       this.selectedConteoCierre = response.conteo;
@@ -308,11 +308,10 @@ export class AdicionarCajaDialogComponent implements OnInit {
   }
 
   getConteoMonedaCierre(response: AdicionarConteoResponse) {
-    console.log(response)
     this.totalGsCierre = +response.totalGs;
     this.totalRsCierre = +response.totalRs;
     this.totalDsCierre = +response.totalDs;
-    if(response.apertura){
+    if (response.apertura) {
       this.selectedConteoApertura = response.conteo;
     } else {
       this.selectedConteoCierre = response.conteo;
@@ -362,32 +361,32 @@ export class AdicionarCajaDialogComponent implements OnInit {
         this.focusToCierreSub.next(null);
         break;
       case "imprimir":
-        if(this.selectedCaja!=null) this.cajaService.onImprimirBalance(this.selectedCaja?.id)
+        if (this.selectedCaja != null) this.cajaService.onImprimirBalance(this.selectedCaja?.id)
         break;
       case "salir":
         this.selectedCaja.conteoApertura = this.selectedConteoApertura
         this.selectedCaja.conteoCierre = this.selectedConteoCierre
-        this.matDialogRef.close({caja: this.selectedCaja});
+        this.matDialogRef.close({ caja: this.selectedCaja });
         break;
       default:
         break;
     }
   }
 
-  crearNuevaCaja(){
+  crearNuevaCaja() {
     this.cargandoDialog.openDialog(true, 'Creando caja...')
-    console.log('creando caja')
-    let input = new PdvCajaInput;
-    input.maletinId = this.selectedMaletin.id;
-    input.activo = true;
-    this.cajaService.onSave(input)
-    .pipe(untilDestroyed(this))
-    .subscribe(res => {
-      this.cargandoDialog.closeDialog()
-      if(res!=null){
-        this.selectedCaja = res;
-        console.log('caja: ', res)
-      }
-    })
+    setTimeout(() => {
+      let input = new PdvCajaInput;
+      input.maletinId = this.selectedMaletin.id;
+      input.activo = true;
+      this.cajaService.onSave(input)
+        .pipe(untilDestroyed(this))
+        .subscribe(res => {
+          this.cargandoDialog.closeDialog()
+          if (res != null) {
+            this.selectedCaja = res;
+          }
+        })
+    }, 1000);
   }
 }

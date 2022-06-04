@@ -51,7 +51,6 @@ export class ListMaletinComponent implements OnInit {
   ngOnInit(): void {
     this.maletinService.onGetAll().subscribe(res => {
       if(res!=null){
-        console.log(res)
         this.dataSource.data = res;
       }
     }).unsubscribe()
@@ -78,7 +77,6 @@ export class ListMaletinComponent implements OnInit {
         if(maletin==null){
           this.dataSource.data = updateDataSource(this.dataSource.data, res);
         } else {
-          console.log(index)
           this.dataSource.data = updateDataSource(this.dataSource.data, res, index);
         }
       }

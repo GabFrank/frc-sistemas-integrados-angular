@@ -1,3 +1,4 @@
+import { InventarioDashboardComponent } from './../../../modules/operaciones/inventario/inventario-dashboard/inventario-dashboard.component';
 import { CambioComponent } from './../../../modules/financiero/cambio/cambio.component';
 import { TransferenciaComponent } from './../../../modules/operaciones/transferencia/transferencia.component';
 import { Component, OnInit } from "@angular/core";
@@ -99,6 +100,11 @@ export class SideComponent implements OnInit {
       case "list-movimiento":
         this.tabService.addTab(
           new Tab(ListMovimientoStockComponent, "Movimientos", null, null)
+        );
+        break;
+      case "list-inventario":
+        this.tabService.addTab(
+          new Tab(InventarioDashboardComponent, "Inventario", null, null)
         );
         break;
       case "list-entrada-salida":

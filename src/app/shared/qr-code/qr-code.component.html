@@ -1,5 +1,5 @@
 <div style="text-align: center" *ngIf="isQrShow">
-  <ngx-qrcode [value]="value" scale="6"> </ngx-qrcode>
+  <ngx-qrcode [value]="value" [scale]="6"> </ngx-qrcode>
   <br />
   <div>Utilice la camara del smartphone</div>
   <div>para capturar imagenes</div>
@@ -8,10 +8,10 @@
   </a> -->
   <!-- <button mat-raised-button color="accent" matTooltip="Una vez cargada la imagen, pulse aquí para que la busquemos =)" (click)="onRefresh()">Refrescar</button> -->
 </div>
-<div style="text-align: center;">
+<!-- <div style="text-align: center;">
   <div><h3>Código alfanumerico</h3></div>
   <div><h1>{{codigoAlfanumerico | uppercase}}</h1></div>
-</div>
+</div> -->
 
 <div style="text-align: center;">
   <button mat-raised-button (click)="onSalir()">Salir</button>

@@ -4,11 +4,19 @@
     fxLayout="row"
     fxLayoutAlign="space-between center"
   >
-    <div fxFlex="15" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="20px">
+    <div
+      fxFlex="15"
+      fxLayout="row"
+      fxLayoutAlign="start center"
+      fxLayoutGap="20px"
+    >
       <button fxFlex mat-icon-button (click)="toogleSideBar()">
-        <mat-icon style="font-size: 2em;">menu</mat-icon>
+        <mat-icon style="font-size: 2em">menu</mat-icon>
       </button>
-      <span style="padding-left: 20px;" fxFlex>BODEGA FRANCO {{mainService?.sucursalActual?.nombre | uppercase}}</span>
+      <span style="padding-left: 20px" fxFlex
+        >BODEGA FRANCO
+        {{ mainService?.sucursalActual?.nombre | uppercase }}</span
+      >
     </div>
 
     <ul
@@ -24,46 +32,13 @@
         </button>
         <mat-menu #menuServerIp="matMenu">
           <div style="padding: 5px">
-            <div *ngIf="!editServerIp" style="color: white; text-align: center">
-              <h4>Server Ip</h4>
-              {{ mainService?.serverIpAddres }}
-            </div>
-            <div *ngIf="editServerIp">
-              <mat-form-field fxFlex style="width: 100%">
-                <mat-label>Nuevo Ip</mat-label>
-                <!-- <input matInput type="text" formControlName="nickname"/> -->
-                <input
-                  matInput
-                  type="text"
-                  [formControl]="serverIpControl"
-                  (click)="$event.stopPropagation()"
-                  style="color: white"
-                />
-              </mat-form-field>
-            </div>
             <div style="text-align: center">
               <button
-                *ngIf="!editServerIp"
-                mat-raised-button
-                color="primary"
-                (click)="removeServer()"
-              >
-                Editar
-              </button>
-            </div>
-
-            <div style="text-align: center">
-              <button
-                *ngIf="editServerIp"
                 mat-raised-button
                 color="success"
-                (click)="
-                  mainService.changeServerIpAddress(serverIpControl.value);
-                  editServerIp = false;
-                  $event.stopPropagation()
-                "
+                (click)="createQrCode()"
               >
-                Guardar
+                QR de la sucursal
               </button>
             </div>
           </div>

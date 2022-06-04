@@ -5,7 +5,7 @@ import { Subscription } from "rxjs";
 import { connectionStatusSub } from "../../app.module";
 import { MainService } from "../../main.service";
 import { CargandoDialogService } from "../../shared/components/cargando-dialog/cargando-dialog.service";
-import { LoginResponse, LoginService } from "./login.service";
+import { LoginService } from "./login.service";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 
@@ -32,7 +32,7 @@ export class LoginComponent implements OnInit {
     private dialogRef: MatDialogRef<LoginComponent>,
     public mainService: MainService,
     private cargandoDialogService: CargandoDialogService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.createForm();
@@ -79,20 +79,18 @@ export class LoginComponent implements OnInit {
     }
   }
 
-  onCancelar() {}
+  onCancelar() { }
 
-  onPassOrNicknameForgot() {}
+  onPassOrNicknameForgot() { }
 
-  onNewUser() {}
+  onNewUser() { }
 
   verficarAuth() {
-    console.log("verificandooooo");
     this.mainService
       .isAuthenticated()
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res) {
-          console.log("Autenticado");
           this.showBienvenida = true;
           setTimeout(() => {
             this.dialogRef.close();
@@ -101,7 +99,7 @@ export class LoginComponent implements OnInit {
       });
   }
 
-  onConfigurarServidor(){
+  onConfigurarServidor() {
     this.dialogRef.close(false)
   }
 }

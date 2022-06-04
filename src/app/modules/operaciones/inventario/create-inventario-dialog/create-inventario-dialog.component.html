@@ -1,0 +1,44 @@
+<div fxLayout="column" fxLayoutGap="10px">
+  <div fxFlex class="titulo" style="text-align: center">
+    <h3>Nuevo inventario</h3>
+  </div>
+  <div fxFlex>Resposable: {{ responsable?.persona?.nombre | titlecase }}</div>
+  <div fxFlex class="titulo" style="text-align: center">
+    <p>Seleccione el tipo de inventario que desea crear</p>
+  </div>
+  <div fxFlex>
+    <mat-form-field style="width: 90%">
+      <mat-label>Tipo de inventario</mat-label>
+      <mat-select [formControl]="tipoInventarioControl" name="tipo">
+        <mat-option *ngFor="let tipo of tipoInventarioList" [value]="tipo">
+          {{ tipo }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+  <div fxFlex fxLayout="row" style="width: 100%" fxLayoutGap="10px">
+    <div fxFlex="50" style="width: 100%">
+      <button
+        style="width: 100%"
+        fxFlexAlign="center"
+        mat-raised-button
+        color="primary"
+        (click)="onCancel()"
+      >
+        Cancelar
+      </button>
+    </div>
+    <div fxFlex="50" style="width: 100%">
+      <button
+        style="width: 100%"
+        fxFlexAlign="center"
+        mat-raised-button
+        color="accent"
+        [disabled]="tipoInventarioControl.invalid"
+        (click)="onIniciarInventario()"
+      >
+        Iniciar inventario
+      </button>
+    </div>
+  </div>
+</div>

@@ -62,7 +62,6 @@ export class GenericCrudService {
               });
             }
           } else {
-            console.log(res.errors)
             this.notificacionSnackBar.notification$.next({
               texto: "Ups! Algo salió mal: " + res.errors[0].message,
               color: NotificacionColor.danger,
@@ -79,12 +78,10 @@ export class GenericCrudService {
       gql
         .fetch({ texto }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
         .subscribe((res) => {
-          console.log(res)
           this.isLoading = false;
           if (res.errors == null) {
             obs.next(res.data["data"]);
           } else {
-            console.log(res.errors)
             this.notificacionSnackBar.notification$.next({
               texto: "Ups! Algo salió mal: " + res.errors[0].message,
               color: NotificacionColor.danger,
@@ -98,9 +95,8 @@ export class GenericCrudService {
   onSave<T>(gql: Mutation, input): Observable<T> {
     this.isLoading = true;
     if (input.usuarioId == null) {
-      input.usuarioId = +localStorage.getItem("usuarioId");
+      input.usuarioId = this.mainService.usuarioActual.id
     }
-    console.log(input)
     return new Observable((obs) => {
       gql
         .mutate(
@@ -117,7 +113,6 @@ export class GenericCrudService {
               color: NotificacionColor.success,
             });
           } else {
-            console.log(res.errors)
             this.notificacionSnackBar.notification$.next({
               texto:
                 "Ups! Algo salió mal en operacion: " +
@@ -157,7 +152,6 @@ export class GenericCrudService {
               obs.next(true);
             } else {
               {
-                console.log(res.errors)
                 this.notificacionSnackBar.notification$.next({
                   texto:
                     "Ups! Ocurrió algun problema al eliminar: " +
@@ -281,7 +275,6 @@ export class GenericCrudService {
                 color: NotificacionColor.danger,
                 duracion: 5,
               });
-              console.log(res);
               obs.next(null);
             }
           });

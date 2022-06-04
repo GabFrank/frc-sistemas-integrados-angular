@@ -2,6 +2,9 @@ import { app, BrowserWindow, screen, Menu } from "electron";
 import * as path from "path";
 import * as fs from "fs";
 import * as url from "url";
+const {ipcMain} = require('electron');
+
+
 
 // Initialize remote module
 require("@electron/remote/main").initialize();
@@ -10,18 +13,21 @@ let win: BrowserWindow = null;
 const args = process.argv.slice(1),
   serve = args.some((val) => val === "--serve");
 
-export function createWindow(): BrowserWindow {
+export async function createWindow(): Promise<BrowserWindow> {
   const electronScreen = screen;
   const size = electronScreen.getPrimaryDisplay().workAreaSize;
+  let factor = screen.getPrimaryDisplay().scaleFactor;
+
 
   // Create the browser window.
   win = new BrowserWindow({
     fullscreen: true,
     x: 0,
     y: 0,
-    width: size.width,
-    height: size.height,
+    width: 1024 / factor,
+    height: 768 / factor,
     webPreferences: {
+      zoomFactor: 1.0 / factor,
       nodeIntegration: true,
       allowRunningInsecureContent: serve ? true : false,
       contextIsolation: false, // false if you want to run e2e test with Spectron
@@ -43,7 +49,7 @@ export function createWindow(): BrowserWindow {
     });
 
     // Create myWindow, load the rest of the app, etc...
-    app.on("ready", () => {});
+    app.on("ready", () => { });
   }
 
   if (serve) {
@@ -98,9 +104,29 @@ try {
             {
               label: "Reiniciar",
               click() {
-                win.loadURL(
-                  serve ? 'http://localhost:4200' : `file://${path.join(__dirname, '../dist/index.html')}`
-                );
+                if (serve) {
+                  win.webContents.openDevTools();
+                  require("electron-reload")(__dirname, {
+                    electron: require(path.join(__dirname, "/../node_modules/electron")),
+                  });
+                  win.loadURL("http://localhost:4200");
+                } else {
+                  // Path when running electron executable
+                  let pathIndex = "./index.html";
+
+                  if (fs.existsSync(path.join(__dirname, "../dist/index.html"))) {
+                    // Path when running electron in local folder
+                    pathIndex = "../dist/index.html";
+                  }
+
+                  win.loadURL(
+                    url.format({
+                      pathname: path.join(__dirname, pathIndex),
+                      protocol: "file:",
+                      slashes: true,
+                    })
+                  );
+                }
               }
             },
             {
@@ -124,13 +150,13 @@ try {
             {
               label: "Zoom in",
               click() {
-                win.webContents.setZoomFactor(win.webContents.zoomFactor+0.2)
+                win.webContents.setZoomLevel(win.webContents.zoomLevel + 1)
               },
             },
             {
               label: "Zoom out",
               click() {
-                win.webContents.setZoomFactor(win.webContents.zoomFactor-0.2)
+                win.webContents.setZoomLevel(win.webContents.zoomLevel - 1)
               },
             },
             {
@@ -201,9 +227,7 @@ try {
 
   win.webContents.on("did-fail-load", () => {
     console.log("did-fail-load");
-    win.loadURL(
-      serve ? 'http://localhost:4200' : `file://${path.join(__dirname, '../dist/index.html')}`
-    );
+    relaunchElectron()
     // REDIRECT TO FIRST WEBPAGE AGAIN
   });
 
@@ -222,6 +246,27 @@ try {
 }
 
 export function relaunchElectron() {
-  this.app.relaunch({ args: process.argv.slice(1).concat(["--relaunch"]) });
-  this.app.exit(0);
+  if (serve) {
+    win.webContents.openDevTools();
+    require("electron-reload")(__dirname, {
+      electron: require(path.join(__dirname, "/../node_modules/electron")),
+    });
+    win.loadURL("http://localhost:4200");
+  } else {
+    // Path when running electron executable
+    let pathIndex = "./index.html";
+
+    if (fs.existsSync(path.join(__dirname, "../dist/index.html"))) {
+      // Path when running electron in local folder
+      pathIndex = "../dist/index.html";
+    }
+
+    win.loadURL(
+      url.format({
+        pathname: path.join(__dirname, pathIndex),
+        protocol: "file:",
+        slashes: true,
+      })
+    );
+  }
 }

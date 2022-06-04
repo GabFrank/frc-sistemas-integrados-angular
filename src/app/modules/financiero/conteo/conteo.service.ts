@@ -24,11 +24,9 @@ export class ConteoService {
   ) { }
 
   onSave(conteo: Conteo, cajaId, apertura: boolean): Observable<any> {
-    console.log('guardando conteo moneda')
     let conteoMonedaInputList: ConteoMonedaInput[] = []
     conteo.conteoMonedaList.forEach(c => conteoMonedaInputList.push(c.toInput()))
     return new Observable((obs) => {
-      console.log('dentro del return')
       this.onSaveConteo.mutate(
         {
         conteo: conteo.toInput(),
@@ -39,7 +37,6 @@ export class ConteoService {
       { fetchPolicy: 'no-cache', errorPolicy: 'all' })
       .pipe(untilDestroyed(this))
       .subscribe(res => {
-        console.log(res)
         if (res.errors == null) {
           obs.next(res.data['data'])
           this.notificacionSnackBar.notification$.next({

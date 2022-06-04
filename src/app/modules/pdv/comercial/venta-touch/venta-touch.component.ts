@@ -138,7 +138,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     private cajaService: CajaService,
     private formaPagoService: FormaPagoService,
     private cargandoService: CargandoDialogService,
-    public printService: NgxPrintElementService
+    public printService: NgxPrintElementService,
+    private dialogoService: DialogosService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -146,6 +147,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.cargandoService.openDialog()
     this.formaPagoList = [];
     this.setPrecios();
     this.getFormaPagos();
@@ -157,7 +159,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     this.cajaService
       .onGetByUsuarioIdAndAbierto(this.mainService.usuarioActual.id).pipe(untilDestroyed(this))
       .subscribe((res) => {
-        console.log(res)
+        this.cargandoService.closeDialog()
         this.selectedCaja = res;
         if (res == null || res?.conteoApertura == null) {
           this.openSelectCajaDialog();
@@ -208,7 +210,14 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         this.tabService.removeTab(this.tabService.currentIndex);
       } else if (response?.caja != null) {
         this.selectedCaja = response?.caja;
-        if (response?.conteoApertura != null) {
+        if (response?.conteoApertura == null) {
+          this.dialogoService.confirm('Atención', 'Esta caja no posee conteo inicial. Desea realizar el conteo inicial?').subscribe(dialogRes => {
+            if(dialogRes){
+              this.openSelectCajaDialog()
+            } else {
+              this.tabService.removeTab(this.tabService.currentIndex)
+            }
+          })
         }
         if (response?.conteoCierre != null) {
           this.selectedCaja = null;
@@ -393,7 +402,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         .confirm("Atención!!", "Realmente desea eliminar la lista de itens?").pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res) {
-            if(this.isAuxiliar){
+            if (this.isAuxiliar) {
               this.itemList2 = []
             } else {
               this.itemList = []
@@ -558,7 +567,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     this.totalGs = 0;
   }
 
-  onTicketClick(ticket?:boolean) {
+  onTicketClick(ticket?: boolean) {
     this.disableCobroRapido = true;
     //guardar la compra, si la compra se guardo con exito, imprimir ticket y resetForm()
     let venta = new Venta();

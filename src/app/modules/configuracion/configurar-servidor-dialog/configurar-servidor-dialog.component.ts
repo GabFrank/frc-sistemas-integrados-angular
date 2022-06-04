@@ -64,7 +64,6 @@ export class ConfigurarServidorDialogComponent implements OnInit {
   onVerificar() {
     this.verificando = true;
     this.configService.onVerificarConexion().subscribe((res) => {
-      console.log(res);
       if (res != null) {
         this.verificado = res;
         this.verificando = false;
@@ -118,7 +117,6 @@ export class ConfigurarServidorDialogComponent implements OnInit {
             .isConfigured()
             .pipe(untilDestroyed(this))
             .subscribe((res) => {
-              console.log(res);
               if (res) {
                 this.sincronizado = true;
                 this.sincronizando = false;

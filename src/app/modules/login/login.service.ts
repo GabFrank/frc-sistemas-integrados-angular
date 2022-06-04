@@ -50,7 +50,6 @@ export class LoginService {
                 this.usuarioService
                   .onGetUsuario(res["usuarioId"]).pipe(untilDestroyed(this))
                   .subscribe((res) => {
-                    console.log('usuario encontrado: ',res)
                     if (res?.id != null) {
                       this.mainService.usuarioActual = res;
                       let response: LoginResponse = {
@@ -69,7 +68,6 @@ export class LoginService {
             usuario : null,
             error: error
           }
-          console.log(error)
           obs.next(error)
         });
     });

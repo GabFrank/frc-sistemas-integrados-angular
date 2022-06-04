@@ -1,4 +1,4 @@
-import { TransferenciaTimelineDialogComponent } from './../../transferencia/transferencia-timeline-dialog/transferencia-timeline-dialog.component';
+import { TransferenciaTimelineDialogComponent } from '../../../transferencias/transferencia-timeline-dialog/transferencia-timeline-dialog.component';
 import { TipoEntidad } from './../../../../generics/tipo-entidad.enum';
 import { QrCodeComponent, QrData } from './../../../../shared/qr-code/qr-code.component';
 import { CargandoDialogService } from './../../../../shared/components/cargando-dialog/cargando-dialog.service';
@@ -465,7 +465,8 @@ export class EditTransferenciaComponent implements OnInit {
     let codigo: QrData = {
       'sucursalId': this.mainService.sucursalActual.id,
       'tipoEntidad': TipoEntidad.TRANSFERENCIA,
-      'id': this.selectedTransferencia.id,
+      'idOrigen': this.selectedTransferencia.id,
+      'idCentral': this.selectedTransferencia.id,
       'componentToOpen': 'EditTransferenciaComponent'
     }
     this.matDialog.open(QrCodeComponent, {

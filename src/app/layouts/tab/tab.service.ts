@@ -1,9 +1,11 @@
-import { ListTransferenciaComponent } from './../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
+import { EditInventarioComponent } from './../../modules/operaciones/inventario/edit-inventario/edit-inventario.component';
 import { CargandoDialogService } from './../../shared/components/cargando-dialog/cargando-dialog.service';
 import { Injectable } from '@angular/core';
 import { Tab } from './tab.model';
 import { BehaviorSubject } from 'rxjs';
 import { EventEmitter } from '@angular/core';
+import { InventarioDashboardComponent } from '../../modules/operaciones/inventario/inventario-dashboard/inventario-dashboard.component';
+import { ListInventarioComponent } from '../../modules/operaciones/inventario/list-inventario/list-inventario.component';
 import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
 
 export enum TABS {
@@ -40,7 +42,7 @@ export class TabService {
       // new Tab(PrintTicketsComponent, 'Farra', null, null),
       // new Tab(ListProductoComponent, 'Productos', null, null),
       new Tab(VentaTouchComponent, 'Venta', null, null),
-      // new Tab(ListTransferenciaComponent, 'Lista de Transferencias', null, null)
+      // new Tab(ListInventarioComponent, 'Lista de inventarios', null, null)
     ];
     this.tabSub.next(this.tabs);
   }

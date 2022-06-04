@@ -9,7 +9,8 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 export interface QrData {
   sucursalId;
   tipoEntidad;
-  id;
+  idOrigen;
+  idCentral;
   componentToOpen;
 }
 
@@ -41,7 +42,8 @@ export class QrCodeComponent implements OnInit {
     public dialogRef: MatDialogRef<QrCodeComponent>, 
   ) { 
     this.value = codificarQr(data.codigo)
-    this.codigoAlfanumerico = data.codigo.tipoEntidad+'-'+data.codigo.sucursalId+'-'+data.codigo.id;
+    console.log(this.value)
+    this.codigoAlfanumerico = data.codigo.tipoEntidad+'-'+data.codigo.sucursalId+'-'+data.codigo.idOrigen;
   }
 
   ngOnInit(): void {
@@ -81,7 +83,7 @@ export class QrCodeComponent implements OnInit {
 // frc-sucursal-tipoEntidad-id-componentToOpen
 
 export function codificarQr(data: QrData): string{
-  return 'frc-'+data.sucursalId+'-'+data.tipoEntidad+'-'+data.id+'-'+data.componentToOpen;
+  return 'frc-'+data.sucursalId+'-'+data.tipoEntidad+'-'+data.idOrigen+'-'+data.idCentral+'-'+data.componentToOpen;
 }
 
 export function descodificarQr(codigo: string){
@@ -89,8 +91,9 @@ export function descodificarQr(codigo: string){
   let res: QrData = {
     sucursalId: arr[1],
     tipoEntidad: arr[2],
-    id: arr[3],
-    componentToOpen: arr[4]
+    idOrigen: arr[3],
+    idCentral: arr[4],
+    componentToOpen: arr[5]
   }
   return res;
 }

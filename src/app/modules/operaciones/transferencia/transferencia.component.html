@@ -1,6 +1,6 @@
 <div
   fxLayout="row"
-  style="width: 100%; height: 80%;"
+  style="width: 100%; height: 80%"
   fxLayoutAlign="center center"
 >
   <div fxFlex="60" fxLayout="column">
@@ -11,14 +11,28 @@
       fxLayoutGap="10px"
     >
       <div fxFlex="30%" style="height: 250px">
-        <app-boton nombre="Histórico de transferencias" icon="manage_search" [iconSize]=4 (clickEvent)="onListTransferencias()"></app-boton>
+        <app-boton
+          nombre="Histórico de transferencias"
+          icon="manage_search"
+          [iconSize]="4"
+          (clickEvent)="onListTransferencias()"
+        ></app-boton>
       </div>
       <div fxFlex="30%" style="height: 250px">
-        <app-boton nombre="Nueva Transferencia" icon="move_up" [iconSize]=4 (clickEvent)="onNuevaTransferencia()"></app-boton>
+        <app-boton
+          nombre="Nueva Transferencia"
+          icon="move_up"
+          [iconSize]="4"
+          (clickEvent)="onNuevaTransferencia()"
+        ></app-boton>
       </div>
       <div fxFlex="30%" style="height: 250px">
-        <app-boton nombre="Configurar Transferencias" icon="tune" [iconSize]=4></app-boton>
+        <app-boton
+          nombre="Configurar Transferencias"
+          icon="tune"
+          [iconSize]="4"
+        ></app-boton>
       </div>
     </div>
-</div>
+  </div>
 </div>

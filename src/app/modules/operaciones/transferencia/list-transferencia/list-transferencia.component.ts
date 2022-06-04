@@ -41,8 +41,8 @@ export class ListTransferenciaComponent implements OnInit {
     'etapa',
     'fecha',
     'tipo',
-    'acciones']
-
+    'acciones'
+  ]
 
   constructor(
     private transferenciaService: TransferenciaService, 

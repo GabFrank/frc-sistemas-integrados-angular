@@ -29,7 +29,6 @@ export class UsuarioService {
   {}
 
   onGetUsuario(id: number): Observable<any> {
-    console.log("usuario.service.ts onGetUsuario");
     return new Observable((obs) => {
       this.getUsuario
         .fetch(
@@ -42,7 +41,6 @@ export class UsuarioService {
           }
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {
-          console.log(res);
           if (res?.errors == null) {
             obs.next(res?.data.data);
           } else {
@@ -53,7 +51,6 @@ export class UsuarioService {
   }
 
   onGetUsuarioPorPersonaId(id: number): Observable<any> {
-    console.log(id + " buscando usu");
     return new Observable((obs) => {
       this.getUsuarioPorPersonaId
         .fetch(
@@ -105,7 +102,6 @@ export class UsuarioService {
   }
 
   onSaveUsuario(input: UsuarioInput): Observable<any> {
-    console.log(input);
     return new Observable((obs) => {
       if (input.usuarioId == null) {
         input.usuarioId = +localStorage.getItem("usuarioId");
@@ -119,7 +115,6 @@ export class UsuarioService {
         )
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
-          console.log(res.errors);
           if (res.errors == null) {
             obs.next(res.data.data);
             this.notificacionBar.notification$.next({

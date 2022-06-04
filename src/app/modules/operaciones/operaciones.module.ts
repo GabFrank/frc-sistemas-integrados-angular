@@ -1,3 +1,4 @@
+import { InventarioModule } from './inventario/inventario.module';
 import { LOCALE_ID, NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FlexLayoutModule } from '@angular/flex-layout';
@@ -30,7 +31,7 @@ import { EditTransferenciaComponent } from './transferencia/edit-transferencia/e
 import { SeleccionarSucursalDialogComponent } from './transferencia/seleccionar-sucursal-dialog/seleccionar-sucursal-dialog.component';
 import { CreateItemDialogComponent } from './transferencia/create-item-dialog/create-item-dialog.component';
 import { ModificarItemDialogComponent } from './transferencia/modificar-item-dialog/modificar-item-dialog.component';
-import { TransferenciaTimelineDialogComponent } from './transferencia/transferencia-timeline-dialog/transferencia-timeline-dialog.component';
+import { TransferenciaTimelineDialogComponent } from '../transferencias/transferencia-timeline-dialog/transferencia-timeline-dialog.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -61,7 +62,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     SeleccionarSucursalDialogComponent,
     CreateItemDialogComponent,
     ModificarItemDialogComponent,
-    TransferenciaTimelineDialogComponent
+    TransferenciaTimelineDialogComponent,
   ],
   imports: [
     CommonModule,
@@ -70,8 +71,9 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     FormsModule,
     MaterialModule,
     SharedModule,
+    InventarioModule,
     NgxMaskModule.forRoot(),
-
+    
   ],
   providers:[
     { provide: LOCALE_ID, useValue: 'es-PY' } ,

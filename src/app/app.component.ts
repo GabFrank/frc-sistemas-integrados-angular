@@ -107,7 +107,6 @@ export class AppComponent implements OnInit, OnDestroy {
         });
         clearInterval(this.timer);
       } else if (res == false) {
-        console.log("entro al false");
         this.timer = setInterval(() => {
           this.notificationService.notification$.next({
             texto: "Servidor Offline!!",

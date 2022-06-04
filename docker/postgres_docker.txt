@@ -10,7 +10,7 @@ restart cron
 /etc/init.d/cron restart
 
 -- comando para hacer backup de base de datos
-pg_dump -U franco -W general > general_filial_2.sql
+pg_dump -U franco -W general > bkp_katuete2.sql
 pg_dump -U franco -W central > central_servidor.sql
 -- comando para hacer restore de base de datos
 psql -U franco -W dba < dbb.sql
@@ -23,8 +23,9 @@ psql -d general -U franco
 psql -d central -U franco
 
 --crear imagen de un docker file
-docker build . -t [image-name]
-
+docker build . -t frc-server
+-- crear el connteiner
+docker run --name frc-server -v "C:\FRC\docker\pg-data:/var/lib/postgresql/data" -p 5551:5432 --restart=always -d frc-server
 
 --Pasos para instalar el servidor
 1 - ./mvnw clean package (spring boot)
@@ -34,15 +35,87 @@ docker build . -t [image-name]
 
 
 -- adicionar servicio en servidor cloud
-sudo systemctl start frc-server.service
+- crear el servicio
+sudo vi /etc/systemd/system/MyService.service
+********************************************
+[Unit]
+Description = FRC
+After=network.target frc.service
+
+[Service]
+Type = forking
+ExecStart = /usr/local/bin/frc.sh start
+ExecStop = /usr/local/bin/frc.sh stop
+ExecReload = /usr/local/bin/frc.sh reload
+
+[Install]
+WantedBy=multi-user.target
+********************************************
+- crear sh
+sudo vi /usr/local/bin/frc.sh
+********************************************
+#!/bin/sh
+SERVICE_NAME=frc
+PATH_TO_JAR=~/FRC/frc-server.jar
+PID_PATH_NAME=/tmp/frc-pid
+case $1 in
+    start)
+        echo "Starting $SERVICE_NAME ..."
+        if [ ! -f $PID_PATH_NAME ]; then
+            nohup java -jar $PATH_TO_JAR /tmp 2>> /dev/null >> /dev/null &
+                        echo $! > $PID_PATH_NAME
+            echo "$SERVICE_NAME started ..."
+        else
+            echo "$SERVICE_NAME is already running ..."
+        fi
+    ;;
+    stop)
+        if [ -f $PID_PATH_NAME ]; then
+            PID=$(cat $PID_PATH_NAME);
+            echo "$SERVICE_NAME stoping ..."
+            kill $PID;
+            echo "$SERVICE_NAME stopped ..."
+            rm $PID_PATH_NAME
+        else
+            echo "$SERVICE_NAME is not running ..."
+        fi
+    ;;
+    restart)
+        if [ -f $PID_PATH_NAME ]; then
+            PID=$(cat $PID_PATH_NAME);
+            echo "$SERVICE_NAME stopping ...";
+            kill $PID;
+            echo "$SERVICE_NAME stopped ...";
+            rm $PID_PATH_NAME
+            echo "$SERVICE_NAME starting ..."
+            nohup java -jar $PATH_TO_JAR /tmp 2>> /dev/null >> /dev/null &
+                        echo $! > $PID_PATH_NAME
+            echo "$SERVICE_NAME started ..."
+        else
+            echo "$SERVICE_NAME is not running ..."
+        fi
+    ;;
+esac
+********************************************
+- dar permiso al script
+sudo chmod +x /usr/local/bin/frc.sh
+- habilitar servicio
+sudo systemctl enable frc.service
+- iniciar servicio
+sudo systemctl start frc.service
 
 -- remover servicio en servidor cloud
 # My recipe for systemd service obliteration
-sudo systemctl stop frc-server.service
-sudo systemctl disable frc-server.service
-sudo rm /etc/systemd/system/frc-server.service
-sudo rm /etc/systemd/system/frc-server.service
-sudo rm /usr/lib/systemd/system/frc-server.service 
-sudo rm /usr/lib/systemd/system/frc-server.service
+sudo systemctl stop frc-central-server.service
+sudo systemctl disable frc-central-server.service
+sudo rm /etc/systemd/system/frc-central-server.service
+sudo rm /usr/lib/systemd/system/frc-central-server.service 
 sudo systemctl daemon-reload
 sudo systemctl reset-failed
+
+--conectar al servidor central via ssh
+ssh 150.136.137.98:opc
+
+--copiar archivos al servidor central
+scp origen:path destino:path
+

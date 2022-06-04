@@ -1,0 +1,99 @@
+<div
+  fxLayout="row"
+  style="width: 100%; height: 95%"
+  fxLayoutAlign="center start"
+>
+  <mat-card fxFlex="95" fxLayout="column" style="height: 100%">
+    <div fxFlex="5" style="width: 100%; text-align: center">
+      Gestión de Inventario
+    </div>
+    <mat-card
+      fxFlex="20%"
+      fxLayout="column"
+      fxLayoutGap="10px"
+      style="background-color: rgb(32, 32, 32)"
+    >
+      <div fxFlex="33" fxLayout="row">
+        <div fxFlex="25" fxLayout="column">
+          <div class="title" fxFlex="50">Id</div>
+          <div class="item" fxFlex="50">
+            {{ mainService?.isServidor ? selectedInventario?.idOrigen : selectedInventario?.id }}
+          </div>
+        </div>
+        <div fxFlex="25" fxLayout="column">
+          <div class="title" fxFlex="50">Responsable</div>
+          <div fxFlex="50">
+            {{ selectedInventario?.usuario?.persona?.nombre | uppercase }}
+          </div>
+        </div>
+        <div fxFlex="25" fxLayout="column">
+          <div class="title" fxFlex="50">Fecha inicio</div>
+          <div fxFlex="50">
+            {{ selectedInventario?.fechaInicio | date: "short" }}
+          </div>
+        </div>
+        <div fxFlex="25" fxLayout="column">
+          <div class="title" fxFlex="50">Fecha fin</div>
+          <div fxFlex="50">
+            {{ selectedInventario?.fechaFin | date: "short" }}
+          </div>
+        </div>
+      </div>
+      <div fxFlex="33" fxLayout="row">
+        <div fxFlex="25" fxLayout="column">
+          <div class="title" fxFlex="50">Tipo</div>
+          <div class="item" fxFlex="50">
+            {{ selectedInventario?.tipo }}
+          </div>
+        </div>
+        <div fxFlex="25" fxLayout="column">
+          <div class="title" fxFlex="50">Estado</div>
+          <div fxFlex="50">
+            {{ selectedInventario?.estado }}
+          </div>
+        </div>
+        <div fxFlex="50" fxLayout="column">
+          <div class="title" fxFlex="50">Observación</div>
+          <div fxFlex="50">
+            {{ selectedInventario?.observacion }}
+          </div>
+        </div>
+      </div>
+      <div fxFlex="33" fxLayout="row">
+        <div
+          fxFlex
+          class="raised-button"
+          fxFlex="15%"
+          style="width: 100%"
+          fxLayoutAlign="start center"
+          *ngIf="mainService?.sucursalActual?.id != 0"
+          (click)="onQrClick()"
+          matTooltip="Mostrar QR para vincular con la App"
+        >
+          <mat-icon style="font-size: 2em">qr_code</mat-icon>
+        </div>
+        <div fxFlex="25" fxLayout="column">
+         
+        </div>
+        <div fxFlex="25" fxLayout="column">
+          
+        </div>
+
+        <div fxFlex="25" fxLayout="column">
+          <button
+            fxFlexAlign="end"
+            style="width: 200px"
+            *ngIf="selectedInventario?.estado == 'ABIERTO'"
+            mat-raised-button
+            color="accent"
+            (click)="addProducto()"
+            [disabled]="sectorControl.invalid"
+          >
+            + Producto
+          </button>
+        </div>
+      </div>
+    </mat-card>
+    <div fxFlex="75"></div>
+  </mat-card>
+</div>

@@ -58,17 +58,13 @@ export class MainService implements OnDestroy {
   }
 
   isAuthenticated(): Observable<boolean> {
-    console.log("Verificando autenticacion...");
     return new Observable((obs) => {
       let isToken = localStorage.getItem("token");
-      console.log(isToken)
       if (isToken != null) {
         this.getUsuario()
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
-          console.log('respuesta: ', res)
           if (res) {
-            console.log('usuario encontrado: ', res)
             obs.next(true);
             this.authenticationSub.next(res);
           } else {
@@ -83,17 +79,14 @@ export class MainService implements OnDestroy {
   }
 
   getUsuario(): Observable<boolean> {
-    console.log('entrando al getUsuario')
     return new Observable((obs) => {
       let id = localStorage.getItem("usuarioId");
-      console.log(id)
       if (id != null) {
         this.usuarioService
           .onGetUsuario(+id)
           .pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (res != null) {
-              console.log(res)
               this.usuarioActual = res;
               obs.next(true);
             } else {

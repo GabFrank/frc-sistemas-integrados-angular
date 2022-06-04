@@ -48,7 +48,6 @@ export class DefaultComponent implements OnInit {
 
   ngOnInit(): void {
     this.mainService.authenticationSub.subscribe((res) => {
-      console.log(res);
       if (res) {
         this.tabService.tabSub
         .pipe(untilDestroyed(this))

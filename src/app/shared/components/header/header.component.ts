@@ -19,6 +19,8 @@ import { CargandoDialogService } from "../cargando-dialog/cargando-dialog.servic
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { LoginComponent } from '../../../modules/login/login.component';
+import { TipoEntidad } from '../../../generics/tipo-entidad.enum';
+import { QrData, QrCodeComponent } from '../../qr-code/qr-code.component';
 // import { ApolloConfigService } from '../../../apollo-config.service';
 
 @UntilDestroy({ checkProperties: true })
@@ -56,7 +58,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.statusSub = connectionStatusSub
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        console.log(res);
         this.status = res;
       });
   }
@@ -91,7 +92,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     //   if(!res){
     //     console.log(res)
     //   }
-    // });
+    // });lo
   }
 
   ngOnDestroy(): void {
@@ -110,5 +111,23 @@ export class HeaderComponent implements OnInit, OnDestroy {
   removeServer(){
     // this.apolloService.removeClient()
     // this.apolloService.connectClient()
+  }
+
+  createQrCode(){
+    let codigo: QrData = {
+      'sucursalId': this.mainService.sucursalActual.id,
+      'tipoEntidad': TipoEntidad.SUCURSAL,
+      'idOrigen': null,
+      'idCentral': null,
+      'componentToOpen': null
+    }
+    this.matDialog.open(QrCodeComponent, {
+      data: {
+        codigo: codigo,
+        nombre: 'Sucursal'
+      }
+    }).afterClosed().subscribe(res => {
+
+    })
   }
 }

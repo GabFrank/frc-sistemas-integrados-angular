@@ -32,14 +32,14 @@ export class SeleccionarCajaDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-
+    this.cargandoDialog.openDialog()
     if(this.data.pdvCaja!=null){
       this.selectedCaja = this.data.pdvCaja;
       this.abrirCaja()
     }
 
     this.ventaSub = this.ventaTouchService.cajaSub.pipe(untilDestroyed(this)).subscribe(res => {
-      console.log(res)
+      this.cargandoDialog.closeDialog()
       if(res!=null){
         this.dialogRef.close(res)
       } else {
@@ -49,20 +49,24 @@ export class SeleccionarCajaDialogComponent implements OnInit {
   }
 
   abrirCaja(){
-    this.matDialog.open(AdicionarCajaDialogComponent, {
-      data: {
-        caja: this.selectedCaja
-      },
-      width: '90%',
-      height: '95%',
-      disableClose: true,
-      autoFocus: true,
-      restoreFocus: true    
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      if(res!=null){
-        this.dialogRef.close(res)
-      }
-    })
+    this.cargandoDialog.openDialog()
+    setTimeout(() => {
+      this.cargandoDialog.closeDialog()
+      this.matDialog.open(AdicionarCajaDialogComponent, {
+        data: {
+          caja: this.selectedCaja
+        },
+        width: '90%',
+        height: '95%',
+        disableClose: true,
+        autoFocus: true,
+        restoreFocus: true    
+      }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+        if(res!=null){
+          this.dialogRef.close(res)
+        }
+      })
+    }, 1000);
   }
 
   ventaCredito(){

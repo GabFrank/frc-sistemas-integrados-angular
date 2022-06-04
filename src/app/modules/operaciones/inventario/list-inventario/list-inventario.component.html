@@ -1,0 +1,211 @@
+<app-generic-list
+  titulo="Inventarios"
+  (adicionar)="onAdd()"
+  (filtrar)="onGetInventarios()"
+  [isAdicionar]="mainService?.isServidor==false"
+>
+  <div filtros fxLayout="column" style="width: 100%; height: 100%"></div>
+  <div table style="width: 100%" fxLayoutGap="20px">
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      multiTemplateDataRows
+      class="mat-elevation-z8"
+      style="width: 100%"
+    >
+      <ng-container matColumnDef="id" style="width: 5%">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 5%"
+        >
+          Id
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let inventario"
+          style="text-align: center; width: 5%"
+        >
+          {{ inventario.id }}
+        </td>
+      </ng-container>
+
+      <!-- Name Column -->
+      <ng-container matColumnDef="fechaInicio">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 20%"
+        >
+          Fecha inicio
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let inventario"
+          style="text-align: center; width: 20%"
+        >
+          {{ inventario?.fechaInicio | date: "shortDate" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="fechaFin">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 20%"
+        >
+          Fecha fin
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let inventario"
+          style="text-align: center; width: 20%"
+        >
+          {{ inventario?.fechaFin | date: "shortDate" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="tipo">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 20%"
+        >
+          Tipo
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let inventario"
+          style="text-align: center; width: 20%"
+        >
+          {{ inventario?.tipo }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="estado">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 20%"
+        >
+          Estado
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let inventario"
+          style="text-align: center; width: 20%"
+        >
+          {{ inventario?.estado }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="responsable">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 15%"
+        >
+          Responsable
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let inventario"
+          style="text-align: center; width: 15%"
+        >
+          {{ inventario?.usuario?.persona?.nombre | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 5%; text-align: center"
+        >
+          ...
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let inventario; let i = dataIndex"
+          style="text-align: center; width: 5%"
+        >
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onVer(inventario)">
+              Abrir
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <mat-divider></mat-divider>
+
+      <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+      <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let inventario"
+          [attr.colspan]="displayedColumns.length"
+          class="expanded"
+        >
+          <div
+            class="example-element-detail"
+            [@detailExpand]="
+              inventario == expandedInventario ? 'expanded' : 'collapsed'
+            "
+            style="text-align: center"
+            fxLayout="column"
+            fxLayoutAlign="start start"
+          >
+            <div
+              fxLayout="row"
+              fxLayoutAlign="center start"
+              style="width: 100%"
+            >
+              <div fxLayout="column" style="width: 90%">
+                <br />
+                <div
+                  *ngFor="let item of inventario?.inventarioItemList"
+                  fxLayout="row"
+                  style="width: 100%"
+                >
+                  <div fxFlex="50%">
+                    {{ item?.presentacion?.producto?.descripcion | uppercase }}
+                  </div>
+                  <div fxFlex="50%">
+                    {{ item?.cantidad | number: "1.0-2" }}
+                  </div>
+                </div>
+                <br />
+              </div>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr
+        class="example-element-row"
+        mat-row
+        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+        [class.example-expanded-row]="expandedInventario === row"
+        (click)="
+          onRowClick(row, i);
+          expandedInventario = expandedInventario === row ? null : row
+        "
+      ></tr>
+
+      <tr
+        mat-row
+        *matRowDef="let row; columns: ['expandedDetail']"
+        class="example-detail-row"
+      ></tr>
+    </table>
+  </div>
+</app-generic-list>
