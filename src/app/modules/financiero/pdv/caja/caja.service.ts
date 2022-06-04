@@ -1,7 +1,8 @@
+import { MainService } from './../../../../main.service';
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
 import { GenericCrudService } from "../../../../generics/generic-crud.service";
-import { PdvCaja } from "./caja.model";
+import { PdvCaja, PdvCajaInput } from "./caja.model";
 import { CajaPorIdGQL } from "./graphql/cajaPorId";
 import { CajaPorUsuarioIdAndAbiertoGQL } from "./graphql/cajaPorUsuarioIdAndAbierto";
 import { CajasPorFechaGQL } from "./graphql/cajasPorFecha";
@@ -16,6 +17,9 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
   providedIn: "root",
 })
 export class CajaService {
+
+  selectedCaja: PdvCaja;
+
   constructor(
     private genericService: GenericCrudService,
     private cajasPorFecha: CajasPorFechaGQL,
@@ -23,8 +27,11 @@ export class CajaService {
     private cajaPorId: CajaPorIdGQL,
     private deleteCaja: DeleteCajaGQL,
     private cajaPorUsuarioIdAndAbierto: CajaPorUsuarioIdAndAbiertoGQL,
-    private imprimirBalance: ImprimirBalanceGQL
-  ) {}
+    private imprimirBalance: ImprimirBalanceGQL,
+    private mainService: MainService
+  ) {
+    
+  }
 
   // onGetAll(): Observable<any> {
   //   return this.genericService.onGetAll(this.getAllCajas);
@@ -43,7 +50,7 @@ export class CajaService {
     return this.genericService.onGetByFecha(this.cajasPorFecha, inicio, fin);
   }
 
-  onSave(input): Observable<any> {
+  onSave(input: PdvCajaInput): Observable<any> {
     return this.genericService.onSave(this.onSaveCaja, input);
   }
 

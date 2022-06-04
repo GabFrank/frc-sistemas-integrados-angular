@@ -4,34 +4,21 @@
     {{ mainService.usuarioActual.persona.nombre | uppercase }}
   </div>
   <div fxFlex="45%">
-    <button
-      type="button"
-      style="width: 100%; height: 70px; font-size: 1.5em"
-      mat-flat-button
+    <app-boton
+      nombre="Abrir caja"
       color="accent"
-      (click)="abrirCaja()"
-    >
-      Abrir caja
-    </button>
+      (clickEvent)="abrirCaja()"
+    ></app-boton>
   </div>
   <div fxFlex="45%">
-    <button
-      type="button"
-      style="width: 100%; height: 70px; font-size: 1.5em"
-      mat-flat-button
+    <app-boton
+      nombre="Solo venta a crédito"
       color="primary"
-      (click)="ventaCredito()"
-    >
-      Solo venta a crédito
-    </button>
+      (clickEvent)="ventaCredito()"
+    ></app-boton>
   </div>
-  <div fxFlex="20%" style="text-align: center;">
-    <button
-      type="button"
-      mat-flat-button
-      color="primary"
-      (click)="onSalir()"
-    >
+  <div fxFlex="20%" style="text-align: center">
+    <button type="button" mat-flat-button color="primary" (click)="onSalir()">
       Salir
     </button>
   </div>

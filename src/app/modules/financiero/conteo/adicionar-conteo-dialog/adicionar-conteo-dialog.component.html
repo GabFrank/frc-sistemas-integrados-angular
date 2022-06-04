@@ -481,7 +481,8 @@
     </div>
   </div>
   <div fxFlex style="width: 100%; text-align: center;">
-    <button mat-raised-button (click)="onButtonClick()" [disabled]="selectedConteo!=null" color="accent" style="width: 150px;">{{nombreBoton}}</button>
+    <!-- <button mat-raised-button (click)="onButtonClick()" [disabled]="selectedConteo!=null" color="accent" style="width: 150px;">{{nombreBoton}}</button> -->
+    <app-boton color="accent" [nombre]="nombreBoton" [disableExpression]="selectedConteo!=null" (clickEvent)="onButtonClick()"></app-boton>
   </div>
   
 </div>

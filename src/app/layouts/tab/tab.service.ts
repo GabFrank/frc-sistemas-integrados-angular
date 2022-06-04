@@ -41,7 +41,7 @@ export class TabService {
       // new Tab(EntradaSalidaComponent, 'Entrada/Salida', null, null),
       // new Tab(PrintTicketsComponent, 'Farra', null, null),
       // new Tab(ListProductoComponent, 'Productos', null, null),
-      new Tab(VentaTouchComponent, 'Venta', null, null),
+      // new Tab(VentaTouchComponent, 'Venta', null, null),
       // new Tab(ListInventarioComponent, 'Lista de inventarios', null, null)
     ];
     this.tabSub.next(this.tabs);

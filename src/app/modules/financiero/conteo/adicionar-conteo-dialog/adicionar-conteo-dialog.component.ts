@@ -1,3 +1,4 @@
+import { CajaService } from './../../pdv/caja/caja.service';
 import { DialogosService } from './../../../../shared/components/dialogos/dialogos.service';
 import { ConteoService } from './../conteo.service';
 import {
@@ -95,7 +96,8 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
     private cargandoDialog: CargandoDialogService,
     private monedaService: MonedaService,
     private conteoService: ConteoService,
-    private dialogService: DialogosService
+    private dialogService: DialogosService,
+    private cajaService: CajaService
   ) { }
 
   ngOnInit(): void {
@@ -332,16 +334,16 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
     conteo.totalDs = this.totalDs;
     conteo.conteoMonedaList = conteoMonedaList;
     let texto = "Confirmar datos de apertura de caja";
-    if(apertura) texto = "Confirmar datos de cierre de caja";
+    if (!apertura) texto = "Confirmar datos de cierre de caja";
     this.dialogService
-        .confirm("Atención!!", texto, null, [
-          `Guaranies:     ${stringToInteger(this.totalGs.toString())}`,
-          `Reales:        ${stringToDecimal(this.totalRs.toString())}`,
-          `Dolares:       ${stringToDecimal(this.totalDs.toString())}`,
-        ]).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res) {
-            this.conteoService
+      .confirm("Atención!!", texto, null, [
+        `Guaranies:     ${stringToInteger(this.totalGs.toString())}`,
+        `Reales:        ${stringToDecimal(this.totalRs.toString())}`,
+        `Dolares:       ${stringToDecimal(this.totalDs.toString())}`,
+      ]).pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) {
+          this.conteoService
             .onSave(conteo, this.cajaId, apertura)
             .pipe(untilDestroyed(this))
             .subscribe((res) => {
@@ -356,11 +358,17 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
                   };
                   this.onGetConteoMoneda.emit(response);
                   this.selectedConteo = conteo;
+                  if (apertura) {
+                    this.cajaService.selectedCaja.conteoApertura = conteo;
+                  } else {
+                    this.cajaService.selectedCaja.conteoCierre = conteo;
+                  }
                 }, 500);
               }
-            });          }
-        });
-    
+            });
+        }
+      });
+
   }
 
   ngOnDestroy(): void {

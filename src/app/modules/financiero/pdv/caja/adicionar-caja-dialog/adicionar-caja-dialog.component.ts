@@ -364,9 +364,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
         if (this.selectedCaja != null) this.cajaService.onImprimirBalance(this.selectedCaja?.id)
         break;
       case "salir":
-        this.selectedCaja.conteoApertura = this.selectedConteoApertura
-        this.selectedCaja.conteoCierre = this.selectedConteoCierre
-        this.matDialogRef.close({ caja: this.selectedCaja });
+        this.matDialogRef.close();
         break;
       default:
         break;
@@ -385,6 +383,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
           this.cargandoDialog.closeDialog()
           if (res != null) {
             this.selectedCaja = res;
+            this.cajaService.selectedCaja = this.selectedCaja;
           }
         })
     }, 1000);

@@ -156,24 +156,18 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       this.isAuxiliar = this.data?.tabData?.data?.auxiliar;
     }, 0);
 
-    this.cajaService
-      .onGetByUsuarioIdAndAbierto(this.mainService.usuarioActual.id).pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        this.cargandoService.closeDialog()
-        this.selectedCaja = res;
-        if (res == null || res?.conteoApertura == null) {
-          this.openSelectCajaDialog();
+    this.cajaService.onGetByUsuarioIdAndAbierto(this.mainService.usuarioActual.id)
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        if (res != null) {
+          this.cajaService.selectedCaja = res;
+          if (this.cajaService.selectedCaja == null || this.cajaService.selectedCaja?.conteoApertura == null) {
+            this.openSelectCajaDialog()
+          }
+        } else {
+          this.openSelectCajaDialog()
         }
-      });
-
-    // this.ventaTouchServive.cajaSub
-    // .pipe(untilDestroyed(this))
-    // .subscribe(res => {
-    //   if(res==null || res?.conteoApertura==null){
-    //     this.selectedCaja = res;
-    //     this.openSelectCajaDialog()
-    //   }
-    // })
+      })
 
     setTimeout(() => {
       this.buscadorFocusSub.next()
@@ -191,11 +185,12 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   openSelectCajaDialog() {
+    console.log(this.cajaService.selectedCaja)
     this.isDialogOpen = true;
     this.selectCajaDialog = this.matDialog.open(
       SeleccionarCajaDialogComponent,
       {
-        data: { pdvCaja: this.selectedCaja },
+        data: { pdvCaja: this.cajaService?.selectedCaja },
         autoFocus: false,
         restoreFocus: true,
         disableClose: true,
@@ -208,24 +203,40 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       let response: AdicionarCajaResponse = res;
       if (res == "salir") {
         this.tabService.removeTab(this.tabService.currentIndex);
-      } else if (response?.caja != null) {
-        this.selectedCaja = response?.caja;
-        if (response?.conteoApertura == null) {
+        // } else if (response?.caja != null) {
+        //   this.cajaService?.selectedCaja = response?.caja;
+        //   if (response?.conteoApertura == null) {
+        //     this.dialogoService.confirm('Atención', 'Esta caja no posee conteo inicial. Desea realizar el conteo inicial?').subscribe(dialogRes => {
+        //       if(dialogRes){
+        //         this.openSelectCajaDialog()
+        //       } else {
+        //         this.tabService.removeTab(this.tabService.currentIndex)
+        //       }
+        //     })
+        //   }
+        //   if (response?.conteoCierre != null) {
+        //     this.cajaService?.selectedCaja = null;
+        //     this.openSelectCajaDialog();
+        //   }
+        //   this.isDialogOpen = false;
+        // } else {
+        //   this.openSelectCajaDialog();
+        // }
+      } else {
+        if (this.cajaService.selectedCaja?.conteoApertura == null) {
           this.dialogoService.confirm('Atención', 'Esta caja no posee conteo inicial. Desea realizar el conteo inicial?').subscribe(dialogRes => {
-            if(dialogRes){
+            if (dialogRes) {
               this.openSelectCajaDialog()
             } else {
               this.tabService.removeTab(this.tabService.currentIndex)
             }
           })
         }
-        if (response?.conteoCierre != null) {
-          this.selectedCaja = null;
+        if (this.cajaService.selectedCaja?.conteoCierre != null) {
+          this.cajaService.selectedCaja = null;
           this.openSelectCajaDialog();
         }
         this.isDialogOpen = false;
-      } else {
-        this.openSelectCajaDialog();
       }
     });
   }
@@ -524,7 +535,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
             venta.totalRs = this.totalGs / this.cambioRs;
             venta.totalDs = this.totalGs / this.cambioDs;
             venta.ventaItemList = this.selectedItemList;
-            venta.caja = this.selectedCaja;
+            venta.caja = this.cajaService?.selectedCaja;
             let cobro = new Cobro();
             cobro.totalGs = this.totalGs;
             cobro.cobroDetalleList = [];
@@ -578,7 +589,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     venta.totalRs = this.totalGs / this.cambioRs;
     venta.totalDs = this.totalGs / this.cambioDs;
     venta.ventaItemList = this.selectedItemList;
-    venta.caja = this.selectedCaja;
+    venta.caja = this.cajaService?.selectedCaja;
     let cobro = new Cobro();
     cobro.totalGs = this.totalGs;
     let cobroDetalle = new CobroDetalle();
@@ -706,7 +717,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     this.dialogReference = this.dialog
       .open(UtilitariosDialogComponent, {
         data: {
-          caja: this.selectedCaja,
+          caja: this.cajaService?.selectedCaja,
         },
         width: "70%",
         disableClose: false,
@@ -716,12 +727,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         console.log(res)
-        if (res['caja'] != null) {
-          if (res['caja'].conteoApertura == null) {
-            this.selectedCaja = res['caja'];
+        if (this.cajaService?.selectedCaja != null) {
+          if (this.cajaService?.selectedCaja.conteoApertura == null) {
             this.openSelectCajaDialog();
-          } else if (res['caja'].conteoCierre != null) {
-            this.selectedCaja = null;
+          } else if (this.cajaService?.selectedCaja.conteoCierre != null) {
+            this.cajaService.selectedCaja = null;
             this.openSelectCajaDialog();
           }
         }

@@ -1,3 +1,4 @@
+import { CajaService } from './../../../../financiero/pdv/caja/caja.service';
 import { Component, Inject, OnInit } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dialog';
 import { Subscription } from 'rxjs';
@@ -28,54 +29,51 @@ export class SeleccionarCajaDialogComponent implements OnInit {
     public dialogRef: MatDialogRef<SeleccionarCajaDialogComponent>,
     public mainService: MainService,
     private matDialog: MatDialog,
-    private cargandoDialog: CargandoDialogService
+    private cargandoDialog: CargandoDialogService,
+    private cajaService: CajaService
   ) { }
 
   ngOnInit(): void {
     this.cargandoDialog.openDialog()
-    if(this.data.pdvCaja!=null){
-      this.selectedCaja = this.data.pdvCaja;
+    if (this.cajaService?.selectedCaja != null) {
       this.abrirCaja()
     }
 
     this.ventaSub = this.ventaTouchService.cajaSub.pipe(untilDestroyed(this)).subscribe(res => {
       this.cargandoDialog.closeDialog()
-      if(res!=null){
+      if (res != null) {
         this.dialogRef.close(res)
       } else {
-        
+
       }
     })
   }
 
-  abrirCaja(){
+  abrirCaja() {
     this.cargandoDialog.openDialog()
     setTimeout(() => {
       this.cargandoDialog.closeDialog()
       this.matDialog.open(AdicionarCajaDialogComponent, {
         data: {
-          caja: this.selectedCaja
+          caja: this.cajaService?.selectedCaja
         },
         width: '90%',
         height: '95%',
         disableClose: true,
         autoFocus: true,
-        restoreFocus: true    
+        restoreFocus: true
       }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-        if(res!=null){
-          this.dialogRef.close(res)
-        }
+        this.dialogRef.close(res)
       })
     }, 1000);
   }
 
-  ventaCredito(){
+  ventaCredito() {
 
   }
 
-  onSalir(){
-    console.log(this.selectedCaja)
-    this.dialogRef.close(this.selectedCaja)
+  onSalir() {
+    this.dialogRef.close('salir')
   }
 
 

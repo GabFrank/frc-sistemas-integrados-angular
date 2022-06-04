@@ -23,6 +23,8 @@ import { ListProductoComponent } from "../../../modules/productos/producto/list-
 })
 export class SideComponent implements OnInit {
 
+  isTest = false;
+
   constructor(public tabService: TabService, public mainService: MainService) {
 
   }
@@ -48,7 +50,7 @@ export class SideComponent implements OnInit {
         break;
       case "list-producto":
         if (
-          this.mainService.usuarioActual?.roles.includes("VISTA-PRODUCTOS") || true
+          this.mainService.usuarioActual?.roles.includes("VISTA-PRODUCTOS") || this.isTest
         ) {
           this.tabService.addTab(
             new Tab(ListProductoComponent, "Productos", null, null)
@@ -98,14 +100,18 @@ export class SideComponent implements OnInit {
         }
         break;
       case "list-movimiento":
+        if (this.isTest) {
         this.tabService.addTab(
           new Tab(ListMovimientoStockComponent, "Movimientos", null, null)
         );
+        }
         break;
       case "list-inventario":
+        if (this.isTest) {
         this.tabService.addTab(
           new Tab(InventarioDashboardComponent, "Inventario", null, null)
         );
+        }
         break;
       case "list-entrada-salida":
         if (
@@ -120,7 +126,7 @@ export class SideComponent implements OnInit {
         break;
       case "list-caja":
         if (
-          this.mainService.usuarioActual?.roles.includes("ANALISIS-CAJA") || true
+          this.mainService.usuarioActual?.roles.includes("ANALISIS-CAJA") || this.isTest
         ) {
           this.tabService.addTab(
             new Tab(ListCajaComponent, "Cajas", null, null)
@@ -153,7 +159,7 @@ export class SideComponent implements OnInit {
         if (
           this.mainService.usuarioActual?.roles.includes(
             "ANALISIS-FINANCIERO"
-          ) || true
+          ) || this.isTest
         ) {
           this.tabService.addTab(
             new Tab(TransferenciaComponent, "Transferencia", null, null)
@@ -164,7 +170,7 @@ export class SideComponent implements OnInit {
         if (
           this.mainService.usuarioActual?.roles.includes(
             "ANALISIS-FINANCIERO"
-          ) || true
+          ) || this.isTest
         ) {
           this.tabService.addTab(
             new Tab(CambioComponent, "Cotizaciónes", null, null)
