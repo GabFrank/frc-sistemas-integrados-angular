@@ -1,0 +1,11 @@
+-- Desktop:
+    - 1.0.0
+
+-- Mobile: 
+    - 1.0.0
+
+-- Servidor filial:
+    - 1.0.0
+
+-- Servidor central:
+    - 1.0.0

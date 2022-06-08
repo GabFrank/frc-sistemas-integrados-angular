@@ -882,14 +882,14 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onDeletePresentacion(presentacion: Presentacion) {
-    this.cargandoDialog.openDialog()
-    this.presentacionService
-      .onDeletePresentacion(presentacion).pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res) {
-          this.getPresentacionPorProductoId(this.selectedProducto.id);
-        }
-      });
+    // this.cargandoDialog.openDialog()
+    // this.presentacionService
+    //   .onDeletePresentacion(presentacion).pipe(untilDestroyed(this))
+    //   .subscribe((res) => {
+    //     if (res) {
+    //       this.getPresentacionPorProductoId(this.selectedProducto.id);
+    //     }
+    //   });
   }
 
   //fin funciones de presentacion
@@ -941,13 +941,13 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onDeleteCodigo(codigo: Codigo, codigoIndex) {
-    this.cargandoDialog.openDialog()
-    this.codigoService.onDeleteCodigo(codigo).pipe(untilDestroyed(this)).subscribe((res) => {
-      this.cargandoDialog.closeDialog()
-      if (res) {
-        this.getPresentacionPorProductoId(this.selectedProducto.id);
-      }
-    });
+    // this.cargandoDialog.openDialog()
+    // this.codigoService.onDeleteCodigo(codigo).pipe(untilDestroyed(this)).subscribe((res) => {
+    //   this.cargandoDialog.closeDialog()
+    //   if (res) {
+    //     this.getPresentacionPorProductoId(this.selectedProducto.id);
+    //   }
+    // });
   }
 
   onAddPrecio() {
@@ -993,13 +993,13 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onDeletePrecio(precio: PrecioPorSucursal, precioIndex) {
-    this.cargandoDialog.openDialog()
-    this.precioPorSucursalService.onDelete(precio).pipe(untilDestroyed(this)).subscribe((res) => {
-      this.cargandoDialog.closeDialog()
-      if (res) {
-        this.getPresentacionPorProductoId(this.selectedProducto.id);
-      }
-    });
+    // this.cargandoDialog.openDialog()
+    // this.precioPorSucursalService.onDelete(precio).pipe(untilDestroyed(this)).subscribe((res) => {
+    //   this.cargandoDialog.closeDialog()
+    //   if (res) {
+    //     this.getPresentacionPorProductoId(this.selectedProducto.id);
+    //   }
+    // });
   }
 
   //"could not execute statement; SQL [n/a]; constraint [presentacion_producto_fk]; nested exception is org.hibernate.exception.ConstraintViolationException: could not execute statement"

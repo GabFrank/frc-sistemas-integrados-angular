@@ -54,29 +54,6 @@ export class QrCodeComponent implements OnInit {
     this.dialogRef.close()
   }
 
-  // onRefresh(){
-  //   // let ref = this.storage.ref(`productos/${this.data.codigo}`).getDownloadURL().subscribe(res => {
-  //     let ref = this.storage.ref(`productos/${this.data.codigo}`).getDownloadURL().pipe(untilDestroyed(this)).subscribe(res => {
-  //       this.isWaiting = true;
-  //       this.isQrShow = false;
-  //       if(res!=null){
-  //       let xhr = new XMLHttpRequest();
-  //       xhr.responseType = 'blob';
-  //       xhr.onload = (event) => {
-  //         if(xhr.response!=null){
-  //           this.dialogRef.close(xhr.response)
-  //         } else {
-  //           this.isQrShow = true;
-  //           this.isWaiting = false;
-  //         }
-  //       }
-  //       xhr.open('GET', res);
-  //       xhr.send()
-        
-  //     }
-  //   })
-  // }
-
 }
 
 //logica de codigos qr

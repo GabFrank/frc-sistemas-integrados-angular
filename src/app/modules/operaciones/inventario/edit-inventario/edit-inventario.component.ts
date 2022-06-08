@@ -56,7 +56,7 @@ export class EditInventarioComponent implements OnInit {
     private tabService: TabService,
     private inventarioService: InventarioService,
     private sectorService: SectorService,
-    private mainService: MainService
+    public mainService: MainService
   ) {
 
   }
@@ -121,5 +121,7 @@ export class EditInventarioComponent implements OnInit {
 
     })
   }
+
+  addProducto(){}
 
 }
