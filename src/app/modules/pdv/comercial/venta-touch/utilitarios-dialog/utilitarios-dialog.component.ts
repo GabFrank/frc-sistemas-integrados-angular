@@ -123,7 +123,7 @@ export class UtilitariosDialogComponent implements OnInit {
 
   cancelacionVenta() {
     if (
-      this.mainService.usuarioActual?.roles.includes(ROLES.CANCELACION_VENTA)
+      this.mainService.usuarioActual?.roles.includes(ROLES.CANCELACION_DE_VENTA)
     ) {
       this.matDialog
         .open(UltimasVentasDialogComponent, {

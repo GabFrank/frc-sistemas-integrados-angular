@@ -32,6 +32,7 @@ import { SeleccionarSucursalDialogComponent } from './transferencia/seleccionar-
 import { CreateItemDialogComponent } from './transferencia/create-item-dialog/create-item-dialog.component';
 import { ModificarItemDialogComponent } from './transferencia/modificar-item-dialog/modificar-item-dialog.component';
 import { TransferenciaTimelineDialogComponent } from '../transferencias/transferencia-timeline-dialog/transferencia-timeline-dialog.component';
+import { EmpresarialModule } from '../empresarial/empresarial.module';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -72,6 +73,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     MaterialModule,
     SharedModule,
     InventarioModule,
+    EmpresarialModule,
     NgxMaskModule.forRoot(),
     
   ],

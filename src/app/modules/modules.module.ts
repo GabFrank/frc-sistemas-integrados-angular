@@ -2,12 +2,10 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ProductoModule } from './productos/productos.module';
-import { PersonasModule } from './personas/persona/personas.module';
-import { UsuarioModule } from './personas/usuarios/usuario.module';
+import { PersonasModule } from './personas/personas.module';
 import { OperacionesModule } from './operaciones/operaciones.module';
 import { PdvModule } from './pdv/pdv.module';
 import { GeneralModule } from './general/general.module';
-import { FuncionariosModule } from './personas/funcionarios/funcionarios.module';
 import { MDBBootstrapModule } from 'angular-bootstrap-md';
 import { LoginModule } from './login/login.module';
 import { PrintModule } from './print/print.module';
@@ -16,19 +14,17 @@ import { ReportesModule } from './reportes/reportes/reportes.module';
 import { ConfiguracionModule } from './configuracion/configuracion.module';
 
 
-
 @NgModule({
-  declarations: [  ],
+  declarations: [    
+  ],
   imports: [
     CommonModule,
     DashboardModule,
     PersonasModule,
-    UsuarioModule,
     ProductoModule,
     OperacionesModule,
     PdvModule,
     GeneralModule,
-    FuncionariosModule,
     LoginModule,
     PrintModule,
     FinancieroModule,

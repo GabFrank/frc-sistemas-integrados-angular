@@ -1,5 +1,5 @@
 import { HttpClient } from "@angular/common/http";
-import { Injectable, OnDestroy } from "@angular/core";
+import { Injectable, Injector, OnDestroy } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
 import { BehaviorSubject, Observable, Subscription, takeUntil } from "rxjs";
 import { ipAddress } from "../environments/conectionConfig";
@@ -44,10 +44,11 @@ export class MainService implements OnDestroy {
   constructor(
     private getSucursalById: SucursalByIdGQL,
     private getMonedas: MonedasGetAllGQL,
-    private usuarioService: UsuarioService,
     private matDialog: MatDialog,
     private http: HttpClient,
-    private sucursalService: SucursalService
+    private sucursalService: SucursalService,
+    private usuarioService: UsuarioService
+
   ) {
     this.http
       .get("http://api.ipify.org/?format=json")

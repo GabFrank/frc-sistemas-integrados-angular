@@ -5,7 +5,7 @@ export class PersonaInput {
   nombre: string;
   apodo: string;
   documento: string;
-  nacimiento: Date;
+  nacimiento: string;
   sexo: string;
   direccion: string;
   email: string;
@@ -15,4 +15,7 @@ export class PersonaInput {
   imagenes: string;
   creadoEn: Date;
   usuarioId: number;
+  isFuncionario: boolean
+  isCliente: boolean
+  isProveedor: boolean
 }

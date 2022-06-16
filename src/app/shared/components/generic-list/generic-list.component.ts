@@ -33,9 +33,24 @@ export class GenericListComponent implements OnInit {
   @Output()
   resetFiltro = new EventEmitter<any>(null);
 
+  @Output()
+  cargarMasDatos = new EventEmitter<any>(null);
+
   @Input()
   isAdicionar: boolean;
 
+  @Input()
+  disableAdicionar: boolean;
+
+  @Input()
+  disableFilter: boolean;
+
+  @Input()
+  data
+  
+  @Input()
+  isLastPage = false;
+  
   headerHeight;
   tableHeight;
   containerHeight;
@@ -44,7 +59,7 @@ export class GenericListComponent implements OnInit {
     public windowInfoService: WindowInfoService,
   ) { 
     this.headerHeight = windowInfoService.innerTabHeight * 0.2;
-    this.tableHeight = windowInfoService.innerTabHeight * 0.8;
+    this.tableHeight = windowInfoService.innerTabHeight * 0.75;
     this.containerHeight = windowInfoService.innerTabHeight;
   }
 
@@ -66,6 +81,10 @@ export class GenericListComponent implements OnInit {
 
   onResetFiltro(){
     this.resetFiltro.emit()
+  }
+
+  onCargarMasDatos(){
+    this.cargarMasDatos.emit()
   }
 
   

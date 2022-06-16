@@ -10,12 +10,13 @@
             <mat-label>Código</mat-label>
             <input
               #codigoInput
-              type="text"
+              [type]="isPesable ? 'number' : 'text'"
               matInput
               formControlName="codigo"
               autocomplete="off"
               oninput="this.value == ' ' ? this.value = '': null"
             />
+            <mat-error *ngIf="isPesable">El código debe de tener 5 números</mat-error>
           </mat-form-field>
         </div>
         <div fxFlex fxLayout="row">

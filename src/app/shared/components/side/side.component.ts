@@ -15,6 +15,9 @@ import { ListPersonaComponent } from "../../../modules/personas/persona/list-per
 import { ROLES } from "../../../modules/personas/roles/roles.enum";
 import { ListUsuarioComponent } from "../../../modules/personas/usuarios/list-usuario/list-usuario.component";
 import { ListProductoComponent } from "../../../modules/productos/producto/list-producto/list-producto.component";
+import { FuncionarioDashboardComponent } from '../../../modules/personas/funcionarios/funcionario-dashboard/funcionario-dashboard.component';
+import { ListFuncioarioComponent } from '../../../modules/personas/funcionarios/list-funcioario/list-funcioario.component';
+import { ListPreRegistroFuncionarioComponent } from '../../../modules/personas/funcionarios/list-pre-registro-funcionario/list-pre-registro-funcionario.component';
 
 @Component({
   selector: "app-side",
@@ -23,7 +26,7 @@ import { ListProductoComponent } from "../../../modules/productos/producto/list-
 })
 export class SideComponent implements OnInit {
 
-  isTest = false;
+  isTest = true;
 
   constructor(public tabService: TabService, public mainService: MainService) {
 
@@ -35,14 +38,14 @@ export class SideComponent implements OnInit {
   onItemClick(tab: string): void {
     switch (tab) {
       case "list-persona":
-        if (this.mainService.usuarioActual?.roles.includes("VISTA-RRHH")) {
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_PERSONAS) || this.isTest) {
           this.tabService.addTab(
             new Tab(ListPersonaComponent, "Personas", null, null)
           );
         }
         break;
       case "list-usuario":
-        if (this.mainService.usuarioActual?.roles.includes("VISTA-RRHH")) {
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_USUARIOS) || this.isTest) {
           this.tabService.addTab(
             new Tab(ListUsuarioComponent, "Usuarios", null, null)
           );
@@ -50,7 +53,7 @@ export class SideComponent implements OnInit {
         break;
       case "list-producto":
         if (
-          this.mainService.usuarioActual?.roles.includes("VISTA-PRODUCTOS") || this.isTest
+          this.mainService.usuarioActual?.roles.includes(ROLES.VER_PRODUCTOS) || this.isTest
         ) {
           this.tabService.addTab(
             new Tab(ListProductoComponent, "Productos", null, null)
@@ -72,10 +75,14 @@ export class SideComponent implements OnInit {
       //   //   new Tab(RestaurantComponent, "Venta Restaurant", null, null)
       //   // );
       //   break;
-      case "list-funcionario":
-        // this.tabService.addTab(
-        //   new Tab(ListFuncioarioComponent, "Funcionarios", null, null)
-        // );
+      case "funcionario-dashboard":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.VER_FUNCIONARIOS) || this.isTest
+        ) {
+          this.tabService.addTab(
+            new Tab(FuncionarioDashboardComponent, "Gestión de funcionarios", null, null)
+          );
+        }
         break;
       case "list-paises":
         // this.tabService.addTab(
@@ -93,24 +100,24 @@ export class SideComponent implements OnInit {
         // );
         break;
       case "pdv-venta-touch":
-        if (this.mainService.usuarioActual?.roles.includes(ROLES.VENTA_TOUCH) || true) {
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.VENTA_TOUCH) || this.isTest) {
           this.tabService.addTab(
             new Tab(VentaTouchComponent, "Venta Touch", null, null)
           );
         }
         break;
       case "list-movimiento":
-        if (this.isTest) {
-        this.tabService.addTab(
-          new Tab(ListMovimientoStockComponent, "Movimientos", null, null)
-        );
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_MOVIMIENTO_DE_STOCK) || this.isTest) {
+          this.tabService.addTab(
+            new Tab(ListMovimientoStockComponent, "Movimientos", null, null)
+          );
         }
         break;
       case "list-inventario":
-        if (this.isTest) {
-        this.tabService.addTab(
-          new Tab(InventarioDashboardComponent, "Inventario", null, null)
-        );
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_INVENTARIO) || this.isTest) {
+          this.tabService.addTab(
+            new Tab(InventarioDashboardComponent, "Inventario", null, null)
+          );
         }
         break;
       case "list-entrada-salida":
@@ -157,8 +164,7 @@ export class SideComponent implements OnInit {
         break;
       case "list-transferencias":
         if (
-          this.mainService.usuarioActual?.roles.includes(
-            "ANALISIS-FINANCIERO"
+          this.mainService.usuarioActual?.roles.includes(ROLES.VER_TRANSFERENCIA
           ) || this.isTest
         ) {
           this.tabService.addTab(
@@ -168,8 +174,7 @@ export class SideComponent implements OnInit {
         break;
       case "list-cotizacion":
         if (
-          this.mainService.usuarioActual?.roles.includes(
-            "ANALISIS-FINANCIERO"
+          this.mainService.usuarioActual?.roles.includes(ROLES.CAMBIAR_COTIZACION
           ) || this.isTest
         ) {
           this.tabService.addTab(

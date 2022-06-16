@@ -72,6 +72,7 @@ export const productoSearchPdv = gql`
   query ($texto: String, $offset: Int, $isEnvase: Boolean) {
     data: productoSearch(texto: $texto, offset: $offset, isEnvase: $isEnvase) {
       id
+      balanza
       descripcion
       garantia
       vencimiento
@@ -204,6 +205,7 @@ export const productoPorCodigoQuery = gql`
   query ($texto: String) {
     data: productoPorCodigo(texto: $texto) {
       id
+      balanza
       descripcion
       garantia
       vencimiento
@@ -292,6 +294,7 @@ export const productoQuery = gql`
       descripcion
       descripcionFactura
       garantia
+      balanza
       vencimiento
       diasVencimiento
       observacion

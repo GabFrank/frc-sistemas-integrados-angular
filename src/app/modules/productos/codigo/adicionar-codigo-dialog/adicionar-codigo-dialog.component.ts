@@ -29,6 +29,7 @@ export class AdicionarCodigoDialogComponent implements OnInit {
   activoControl = new FormControl(null);
   codigoInput = new CodigoInput;
   isEditting = false;
+  isPesable = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarCodigoData,
@@ -41,7 +42,9 @@ export class AdicionarCodigoDialogComponent implements OnInit {
   ngOnInit(): void {
     this.createForm();
     if(this.data?.presentacion?.producto?.balanza==true){
-      this.codigoControl.setValue('20')
+      this.codigoControl.setValidators([Validators.required, Validators.minLength(5), Validators.maxLength(5)])
+      this.codigoControl.updateValueAndValidity()
+      this.isPesable = true;
     }
     if (this.data?.codigo?.id != null) {
       this.cargarDato();

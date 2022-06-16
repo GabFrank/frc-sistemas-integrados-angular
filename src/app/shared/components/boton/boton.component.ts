@@ -1,5 +1,13 @@
 import { Component, Input, OnInit, Output, EventEmitter } from '@angular/core';
 
+export interface BotonData {
+  nombre: string
+  icon: string
+  iconSize: number
+  clickEvent: any
+  expression: boolean
+}
+
 @Component({
   selector: 'app-boton',
   templateUrl: './boton.component.html',

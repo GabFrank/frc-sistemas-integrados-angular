@@ -23,13 +23,13 @@ export class GenericCrudService {
     private dialogoService: DialogosService,
     private mainService: MainService,
     private notificacionBar: NotificacionSnackbarService
-  ) {}
+  ) { }
 
-  onGetAll(gql: Query): Observable<any> {
+  onGetAll(gql: Query, page?): Observable<any> {
     this.isLoading = true;
     return new Observable((obs) => {
       gql
-        .fetch({}, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
+        .fetch({ page }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.isLoading = false
           if (res.errors == null) {
@@ -54,7 +54,7 @@ export class GenericCrudService {
           this.isLoading = false;
           if (res.errors == null) {
             obs.next(res.data["data"]);
-            if(res.data["data"]==null){
+            if (res.data["data"] == null) {
               this.notificacionSnackBar.notification$.next({
                 texto: "Item no encontrado",
                 color: NotificacionColor.warn,
@@ -94,9 +94,7 @@ export class GenericCrudService {
 
   onSave<T>(gql: Mutation, input): Observable<T> {
     this.isLoading = true;
-    if (input.usuarioId == null) {
-      input.usuarioId = this.mainService.usuarioActual.id
-    }
+    input.usuarioId = this.mainService.usuarioActual.id
     return new Observable((obs) => {
       gql
         .mutate(
@@ -247,37 +245,37 @@ export class GenericCrudService {
   }
 
 
-  onSaveConDetalle(gql:Mutation, entity:any, detalleList: any[], info?:string){
-      entity.usuarioId = this.mainService?.usuarioActual?.id;
-      return new Observable((obs) => {
-         gql
-          .mutate(
-            {
-              entity,
-              detalleList,
-            },
-            {
-              fetchPolicy: "no-cache",
-              errorPolicy: "all",
-            }
-          ).pipe(untilDestroyed(this))
-          .subscribe((res) => {
-            if (res.errors == null) {
-              this.notificacionBar.notification$.next({
-                texto: "Guardado con éxito!!",
-                color: NotificacionColor.success,
-                duracion: 2,
-              });
-              obs.next(res.data['data']);
-            } else {
-              this.notificacionBar.notification$.next({
-                texto: "Ups!! Algo salio mal: " + res.errors[0].message,
-                color: NotificacionColor.danger,
-                duracion: 5,
-              });
-              obs.next(null);
-            }
-          });
-      });
+  onSaveConDetalle(gql: Mutation, entity: any, detalleList: any[], info?: string) {
+    entity.usuarioId = this.mainService?.usuarioActual?.id;
+    return new Observable((obs) => {
+      gql
+        .mutate(
+          {
+            entity,
+            detalleList,
+          },
+          {
+            fetchPolicy: "no-cache",
+            errorPolicy: "all",
+          }
+        ).pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          if (res.errors == null) {
+            this.notificacionBar.notification$.next({
+              texto: "Guardado con éxito!!",
+              color: NotificacionColor.success,
+              duracion: 2,
+            });
+            obs.next(res.data['data']);
+          } else {
+            this.notificacionBar.notification$.next({
+              texto: "Ups!! Algo salio mal: " + res.errors[0].message,
+              color: NotificacionColor.danger,
+              duracion: 5,
+            });
+            obs.next(null);
+          }
+        });
+    });
   }
 }

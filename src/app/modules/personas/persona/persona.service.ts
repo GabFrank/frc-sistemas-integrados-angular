@@ -12,6 +12,8 @@ import { PersonaInput } from "./persona/persona-input.model";
 import { PersonaPorIdGQL } from "./graphql/personaPorId";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { DeletePersonaGQL } from "./graphql/deletePersona";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -23,7 +25,9 @@ export class PersonaService {
     private notificacionBar: NotificacionSnackbarService,
     private savePersonna: SavePersonaGQL,
     private mainService: MainService,
-    private getPersona: PersonaPorIdGQL
+    private getPersona: PersonaPorIdGQL,
+    private genericService: GenericCrudService,
+    private deletePersona: DeletePersonaGQL
   ) {}
 
   onSearch(texto): Observable<Persona[]> {
@@ -54,36 +58,7 @@ export class PersonaService {
   }
 
   onSavePersona(input: PersonaInput): Observable<any> {
-    return new Observable((obs) => {
-      if (input.usuarioId == null) {
-        input.usuarioId = this.mainService?.usuarioActual?.id;
-      }
-      this.savePersonna
-        .mutate(
-          {
-            entity: input,
-          },
-          { errorPolicy: "all" }
-        ).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          console.log(res.errors);
-          if (res.errors == null) {
-            obs.next(res.data.data);
-            this.notificacionBar.notification$.next({
-              texto: "Producto guardado con éxito",
-              color: NotificacionColor.success,
-              duracion: 2,
-            });
-          } else {
-            obs.next(null);
-            this.notificacionBar.notification$.next({
-              texto: `Ups! Algo salió mal. ${res.errors[0].message}`,
-              color: NotificacionColor.danger,
-              duracion: 4,
-            });
-          }
-        });
-    });
+    return this.genericService.onSave(this.savePersonna, input)
   }
 
   onGetPersona(id): Observable<Persona> {
@@ -111,5 +86,13 @@ export class PersonaService {
           }
         });
     });
+  }
+
+  onDeletePersona(id): Observable<boolean> {
+    return this.genericService.onDelete(this.deletePersona, id)
+  }
+
+  onDeletePersonaSinDialogo(id): Observable<boolean> {
+    return this.genericService.onDelete(this.deletePersona, id, null, null, false)
   }
 }

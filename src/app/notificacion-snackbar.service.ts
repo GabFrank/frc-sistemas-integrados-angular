@@ -24,4 +24,20 @@ export class NotificacionSnackbarService {
   public notification$: Subject<NotificacionSnackbarData> = new Subject<NotificacionSnackbarData>();
 
   constructor() { }
+
+  openGuardadoConExito(){
+    this.notification$.next({
+      texto: "Guardado con éxito",
+      color: NotificacionColor.success,
+      duracion: 2,
+    });
+  }
+
+  openAlgoSalioMal(texto?){
+    this.notification$.next({
+      texto: `Ups! Algo salió mal. ${texto}`,
+      color: NotificacionColor.danger,
+      duracion: 4,
+    });
+  }
 }

@@ -47,7 +47,7 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
     if(this.selectedUsuario!=null){
       input.id = this.selectedUsuario.id;
       input.creadoEn = this.selectedUsuario.creadoEn;
-      input.usuarioId = this.selectedUsuario.usuarioId.id
+      input.usuarioId = this.selectedUsuario.usuario.id
     }
     input.personaId = this.data.personaId;
     input.nickname = this.nicknameControl.value;

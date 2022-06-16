@@ -147,7 +147,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.cargandoService.openDialog()
     this.formaPagoList = [];
     this.setPrecios();
     this.getFormaPagos();
@@ -159,6 +158,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     this.cajaService.onGetByUsuarioIdAndAbierto(this.mainService.usuarioActual.id)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
+        console.log(res)
         if (res != null) {
           this.cajaService.selectedCaja = res;
           if (this.cajaService.selectedCaja == null || this.cajaService.selectedCaja?.conteoApertura == null) {

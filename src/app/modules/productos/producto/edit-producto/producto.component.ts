@@ -896,6 +896,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
   //adicionar codigo y precio
   onAddCodigo() {
+    this.selectedPresentacion.producto = this.selectedProducto;
     let data = new AdicionarCodigoData();
     data.codigo = this.selectedCodigo;
     data.presentacion = this.selectedPresentacion;

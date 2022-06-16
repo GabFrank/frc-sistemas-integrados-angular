@@ -1,0 +1,172 @@
+<app-generic-list
+  titulo="Lista de sectores"
+  (adicionar)="onAdd()"
+  (filtrar)="onFilter()"
+  [isAdicionar]="true"
+  [disableFilter]="sucursalControl.invalid && nombreControl.invalid"
+>
+  <div filtros>
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+      <div fxFlex="30%">
+        <mat-form-field style="width: 90%">
+          <mat-label>Sucursal</mat-label>
+          <mat-select
+            [formControl]="sucursalControl"
+            name="sucursalControl"
+          >
+          <mat-option
+              [value]="null"
+            >
+              Ninguno
+            </mat-option>
+            <mat-option
+              *ngFor="let sucursal of sucursalList"
+              [value]="sucursal.id"
+            >
+              {{ sucursal?.id }} - {{ sucursal?.nombre | titlecase }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+  <div table>
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      multiTemplateDataRows
+      class="mat-elevation-z8"
+      style="width: 100%"
+    >
+      <ng-container matColumnDef="id" style="width: 5%">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; "
+        >
+          Id
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let sector"
+          style="text-align: center; "
+        >
+          {{ sector.id }}
+        </td>
+      </ng-container>
+
+      <!-- Name Column -->
+      <ng-container matColumnDef="sucursal">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center;"
+        >
+          Sucursal
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let sector"
+          style="text-align: center;"
+        >
+          {{ sector?.sucursal?.nombre | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="nombre">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center;"
+        >
+          Nombre
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let sector"
+          style="text-align: center;"
+        >
+          {{ sector?.descripcion | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="creadoEn">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center;"
+        >
+          Creado en
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let sector"
+          style="text-align: center;"
+        >
+          {{ sector?.creadoEnn | date: "short" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 5%; text-align: center"
+        >
+          ...
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let sector; let i = index"
+          style="text-align: center; width: 5%"
+        >
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onAddSector(sector, i)">
+              Editar
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <mat-divider></mat-divider>
+
+      <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+      <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let sector"
+          [attr.colspan]="displayedColumns.length"
+          class="expanded"
+        >
+          <div
+            class="example-sector-detail"
+            [@detailExpand]="
+              sector == expandedSector ? 'expanded' : 'collapsed'
+            "
+            style="text-align: center"
+            fxLayout="column"
+            fxLayoutAlign="start start"
+          ></div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: ['expandedDetail']"
+        class="example-detail-row"
+      ></tr>
+    </table>
+  </div>
+</app-generic-list>

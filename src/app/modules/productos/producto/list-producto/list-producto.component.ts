@@ -226,19 +226,19 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         // }
         break;
       case "ArrowRight":
-        if (this.paginator.pageIndex < this.paginator.length) {
-          this.paginator.nextPage();
-        }
+        // if (this.paginator.pageIndex < this.paginator.length) {
+        //   this.paginator.nextPage();
+        // }
         break;
       case "ArrowLeft":
-        if (this.paginator.pageIndex > 0) {
-          this.paginator.previousPage();
-        }
+        // if (this.paginator.pageIndex > 0) {
+        //   this.paginator.previousPage();
+        // }
         break;
       case "ArrowDown":
-        if (this.selectedRowIndex == null && this.dataSource.data.length > 0) {
-          this.highlight(this.dataSource.data[0], 0);
-        }
+        // if (this.selectedRowIndex == null && this.dataSource.data.length > 0) {
+        //   this.highlight(this.dataSource.data[0], 0);
+        // }
         break;
       default:
         break;

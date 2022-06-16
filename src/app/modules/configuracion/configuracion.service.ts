@@ -11,7 +11,7 @@ import { SincEstadoGQL } from "./graphql/sinc-estado-sub";
 })
 export class ConfiguracionService {
   constructor(private http: HttpClient,
-    private sincSub: SincEstadoGQL) {}
+    private sincSub: SincEstadoGQL) { }
 
   httpOptions = {
     headers: new HttpHeaders({
@@ -116,14 +116,14 @@ export class ConfiguracionService {
     return this.sincSub
   }
 
-      // this.deliverySub = this.getDeliverySub.subscribe((res) => {
-    //   let delivery = res.data.deliverys;
-    //   let index = this.deliverysActivos.findIndex((d) => d.id == delivery.id);
-    //   if (index != -1) {
-    //     this.deliverysActivos[index] = delivery;
-    //   } else {
-    //     this.deliverysActivos.push(delivery);
-    //     this.deliverysActivosSub.next(this.deliverysActivos);
-    //   }
-    // }); isconfigured
+  // this.deliverySub = this.getDeliverySub.subscribe((res) => {
+  //   let delivery = res.data.deliverys;
+  //   let index = this.deliverysActivos.findIndex((d) => d.id == delivery.id);
+  //   if (index != -1) {
+  //     this.deliverysActivos[index] = delivery;
+  //   } else {
+  //     this.deliverysActivos.push(delivery);
+  //     this.deliverysActivosSub.next(this.deliverysActivos);
+  //   }
+  // }); isconfigured
 }

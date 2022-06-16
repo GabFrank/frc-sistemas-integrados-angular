@@ -108,4 +108,10 @@ export const deleteUsuarioQuery = gql`
   }
 `;
 
+export const verificarUsuario = gql`
+  query ($texto: String) {
+    data: verificarUsuario(texto: $texto)
+  }
+`;
+
 // usuarioPorPersonaId

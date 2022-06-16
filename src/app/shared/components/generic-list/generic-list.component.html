@@ -1,4 +1,4 @@
-<div fxLayout="row" style="width: 100%;" fxLayoutAlign="center start">
+<div fxLayout="row" style="width: 100%" fxLayoutAlign="center start">
   <div fxLayout="column" style="width: 95%" [style.height.px]="containerHeight">
     <div fxLayout="column" fxFlex="20">
       <div fxFlex="15%" style="width: 100%; text-align: center">
@@ -24,6 +24,7 @@
               color="primary"
               (click)="onFiltrar()"
               style="width: 100%"
+              [disabled]="disableFilter"
             >
               Filtrar
             </button>
@@ -54,8 +55,22 @@
     <div fxFlex="80">
       <div [style.height.px]="tableHeight" style="overflow-y: auto">
         <ng-content select="[table]"></ng-content>
+        <div
+          style="width: 100%"
+          fxLayout="row"
+          fxLayoutAlign="center center"
+        >
+          <button
+            *ngIf="data?.length > 0"
+            mat-button
+            color="accent"
+            (click)="onCargarMasDatos()"
+            [disabled]="isLastPage"
+          >
+            CARGAR MAS
+          </button>
+        </div>
       </div>
     </div>
   </div>
-  
 </div>

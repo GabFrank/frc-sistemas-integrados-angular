@@ -68,6 +68,12 @@ export class BuscadorComponent implements OnInit {
   }
 
   buscarProductoDialog() {
+    let codigo: string = this.buscadorControl.value;
+    let prefix;
+    if(codigo!=null && codigo.length > 7){
+      prefix = codigo.substring(0, 2)
+      console.log(prefix)
+    }
     let data: PdvSearchProductoData = {
       cantidad: this.formGroup.get("cantidad").value,
       texto: this.formGroup.get("buscador").value,
@@ -83,15 +89,16 @@ export class BuscadorComponent implements OnInit {
       restoreFocus: true,
     });
     this.formGroup.get("buscador").setValue("");
+    this.formGroup.get("cantidad").setValue(1);
     this.dialogReference.afterClosed().pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         let response: PdvSearchProductoResponseData = res;
-        this.formGroup.get("cantidad").setValue(response.cantidad);
         let item = new VentaItem();
-        item.cantidad = this.formGroup.controls.cantidad.value;
+        item.cantidad = response.cantidad;
         item.producto = response.producto;
         item.presentacion = response.presentacion;
         item.precioVenta = response.precio;
+        console.log(response)
         this.addItemEvent.emit(item);
       }
       this.dialogReference = undefined;
@@ -114,7 +121,17 @@ export class BuscadorComponent implements OnInit {
 
   buscarPorCodigo(texto: string) {
     let producto: Producto;
+    let isPesable = false;
+    let peso;
+    let codigo;
     if (texto == null || texto == " " || texto == "") return null;
+    if(texto.length == 13 && texto.substring(0, 2)=='20'){
+      isPesable = true;
+      codigo = texto.substring(2,7)
+      peso = +texto.substring(7, 12) / 1000
+      texto = codigo
+      this.cantidadControl.setValue(peso)
+    }
     this.getProductoByCodigo
       .fetch(
         {
@@ -129,6 +146,7 @@ export class BuscadorComponent implements OnInit {
             this.isAudio ? this.beepService.beep() : null;
             this.crearItemEvent.emit({ producto: producto, texto: texto, cantidad: this.cantidadControl.value });
             this.buscadorControl.setValue(null);
+            this.cantidadControl.setValue(1)
           } else {
             this.isAudio ? this.beepService.boop() : null;
             this.buscarProductoDialog();

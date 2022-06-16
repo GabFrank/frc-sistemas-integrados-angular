@@ -261,6 +261,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
   seleccionarMaletin(maletin: Maletin) {
     if (maletin != null) {
       this.descripcionMaletinControl.setValue(maletin.descripcion);
+      this.selectedMaletin = maletin;
+      this.crearNuevaCaja();
       this.stepper.next();
       setTimeout(() => {
         this.siguienteSubject.next(0);
@@ -268,8 +270,6 @@ export class AdicionarCajaDialogComponent implements OnInit {
     } else {
       this.descripcionMaletinControl.setValue(null);
     }
-    this.selectedMaletin = maletin;
-    this.crearNuevaCaja();
   }
 
   onSiguiente() {

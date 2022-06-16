@@ -38,7 +38,7 @@
     </mat-expansion-panel>
   </mat-accordion>
 
-  <mat-accordion>
+  <mat-accordion *ngIf="mainService?.isServidor">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> Operaciones </mat-panel-title>
@@ -78,7 +78,7 @@
     </mat-expansion-panel>
   </mat-accordion>
 
-  <mat-accordion>
+  <mat-accordion *ngIf="mainService?.isServidor">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> Financiero </mat-panel-title>
@@ -89,7 +89,7 @@
     </mat-expansion-panel>
   </mat-accordion>
 
-  <mat-accordion>
+  <mat-accordion *ngIf="mainService?.isServidor">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> Conceptos </mat-panel-title>
@@ -101,7 +101,7 @@
     </mat-expansion-panel>
   </mat-accordion>
 
-  <mat-accordion>
+  <mat-accordion *ngIf="mainService?.isServidor">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> Bancario </mat-panel-title>
@@ -109,19 +109,19 @@
     </mat-expansion-panel>
   </mat-accordion>
 
-  <mat-accordion>
+  <mat-accordion *ngIf="mainService?.isServidor">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> R.R.H.H. </mat-panel-title>
       </mat-expansion-panel-header>
       <a mat-list-item (click)="onItemClick('list-usuario')">Usuarios</a>
-      <a mat-list-item (click)="onItemClick('list-funcionario')"
+      <a mat-list-item (click)="onItemClick('funcionario-dashboard')"
         >Funcionarios</a
       >
     </mat-expansion-panel>
   </mat-accordion>
 
-  <mat-accordion>
+  <mat-accordion *ngIf="mainService?.isServidor">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> General </mat-panel-title>
@@ -131,7 +131,7 @@
     </mat-expansion-panel>
   </mat-accordion>
 
-  <mat-accordion>
+  <mat-accordion *ngIf="mainService?.isServidor">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> Configuración </mat-panel-title>

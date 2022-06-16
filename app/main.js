@@ -69,21 +69,19 @@ function createWindow() {
                 },
             });
             gotTheLock = electron_1.app.requestSingleInstanceLock();
-            if (!gotTheLock) {
-                electron_1.app.quit();
-            }
-            else {
-                electron_1.app.on("second-instance", function (event, commandLine, workingDirectory) {
-                    // Someone tried to run a second instance, we should focus our window.
-                    if (win) {
-                        if (win.isMinimized())
-                            win.restore();
-                        win.focus();
-                    }
-                });
-                // Create myWindow, load the rest of the app, etc...
-                electron_1.app.on("ready", function () { });
-            }
+            // if (!gotTheLock) {
+            //   app.quit();
+            // } else {
+            //   app.on("second-instance", (event, commandLine, workingDirectory) => {
+            //     // Someone tried to run a second instance, we should focus our window.
+            //     if (win) {
+            //       if (win.isMinimized()) win.restore();
+            //       win.focus();
+            //     }
+            //   });
+            //   // Create myWindow, load the rest of the app, etc...
+            //   app.on("ready", () => { });
+            // }
             if (serve) {
                 win.webContents.openDevTools();
                 require("electron-reload")(__dirname, {

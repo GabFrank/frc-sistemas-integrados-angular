@@ -40,6 +40,7 @@ import { AngularFireStorageModule } from "@angular/fire/storage";
 import { BehaviorSubject } from "rxjs";
 import { setContext } from "@apollo/client/link/context";
 import { SubscriptionClient } from "subscriptions-transport-ws";
+import { NgxSpinnerModule } from "ngx-spinner";
 
 export const errorObs = new BehaviorSubject<any>(null);
 
@@ -104,6 +105,7 @@ export function appInit(appConfigService: MainService) {
     NgxMaskModule.forRoot(),
     AngularFirestoreModule,
     AngularFireStorageModule,
+    NgxSpinnerModule,
     AngularFireModule.initializeApp(environment.firebaseConfig)  ],
   providers: [
     {

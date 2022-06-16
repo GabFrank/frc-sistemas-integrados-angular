@@ -1,12 +1,19 @@
 import { EditInventarioComponent } from './../../modules/operaciones/inventario/edit-inventario/edit-inventario.component';
 import { CargandoDialogService } from './../../shared/components/cargando-dialog/cargando-dialog.service';
-import { Injectable } from '@angular/core';
+import { Injectable, OnInit } from '@angular/core';
 import { Tab } from './tab.model';
 import { BehaviorSubject } from 'rxjs';
 import { EventEmitter } from '@angular/core';
 import { InventarioDashboardComponent } from '../../modules/operaciones/inventario/inventario-dashboard/inventario-dashboard.component';
 import { ListInventarioComponent } from '../../modules/operaciones/inventario/list-inventario/list-inventario.component';
 import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
+import { FuncionarioDashboardComponent } from '../../modules/personas/funcionarios/funcionario-dashboard/funcionario-dashboard.component';
+import { ListPreRegistroFuncionarioComponent } from '../../modules/personas/funcionarios/list-pre-registro-funcionario/list-pre-registro-funcionario.component';
+import { ListSectorComponent } from '../../modules/empresarial/sector/list-sector/list-sector.component';
+import { ListFuncioarioComponent } from '../../modules/personas/funcionarios/list-funcioario/list-funcioario.component';
+import { ProductoComponent } from '../../modules/productos/producto/edit-producto/producto.component';
+import { Producto } from '../../modules/productos/producto/producto.model';
+import { ProductoService } from '../../modules/productos/producto/producto.service';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -34,18 +41,24 @@ export class TabService {
 
 
   constructor(
-    private cargandoService: CargandoDialogService
+    private cargandoService: CargandoDialogService,
+    private productoService: ProductoService
   ) {
+
     this.tabs = [
-      // new Tab(ListMovimientoStockComponent, 'Movimientos', null, null),
-      // new Tab(EntradaSalidaComponent, 'Entrada/Salida', null, null),
-      // new Tab(PrintTicketsComponent, 'Farra', null, null),
-      // new Tab(ListProductoComponent, 'Productos', null, null),
-      // new Tab(VentaTouchComponent, 'Venta', null, null),
-      // new Tab(ListInventarioComponent, 'Lista de inventarios', null, null)
+    // new Tab(ListFuncioarioComponent, 'Lista de funcionarios', null, null),
+    // new Tab(ListPreRegistroFuncionarioComponent, 'List de solicitudes', null, null),
+    new Tab(VentaTouchComponent, 'Venta', null, null),
     ];
     this.tabSub.next(this.tabs);
+
+    // this.productoService.getProducto(1152).subscribe(res => {
+    //   console.log(res)
+    //   this.addTab(new Tab(ProductoComponent, 'Nuevo Producto', { data: res }))
+    // })
+
   }
+
 
   // Horario especial
 
@@ -103,7 +116,7 @@ export class TabService {
 
   public addTab(tab: Tab): void {
     this.cargandoService.openDialog()
-    
+
     const duplicado = this.tabs.findIndex(x => x.title == tab.title);
     if (duplicado == -1) {
       tab.id = this.tabs.length + 1;

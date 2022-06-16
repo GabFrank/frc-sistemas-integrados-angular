@@ -12,6 +12,7 @@ import { FuncionarioService } from '../funcionario.service';
 
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { FuncionarioWizardComponent } from '../funcionario-wizard/funcionario-wizard.component';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -31,21 +32,18 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 })
 export class ListFuncioarioComponent implements OnInit {
 
-  headerHeight;
-  tableHeight;
-  containerHeight;
-  dataSource = new MatTableDataSource<Funcionario>(null);
+  dataSource = new MatTableDataSource<Funcionario>([]);
   expandedFuncionario: Funcionario;
   displayedColumns: string[] = ['id', 'nombre', 'sucursal', 'cargo', 'supervisadoPor', 'telefono', 'nickname', 'acciones'];
+  page = 0;
+  isLastPage = false;
+  isSearching = false;
+
   constructor(
     public service: FuncionarioService,
     public windowInfoService: WindowInfoService,
     private matDialog: MatDialog
   ) {
-    this.headerHeight = windowInfoService.innerTabHeight * 0.2;
-    this.tableHeight = windowInfoService.innerTabHeight * 0.8;
-    this.containerHeight = windowInfoService.innerTabHeight;
-    console.log(this.headerHeight, this.tableHeight, this.containerHeight)
    }
 
   ngOnInit(): void {
@@ -64,7 +62,7 @@ export class ListFuncioarioComponent implements OnInit {
   }
 
   onAddFuncionario(funcionario?: Funcionario, index?){
-    this.matDialog.open(AdicionarFuncionarioDialogComponent, {
+    this.matDialog.open(FuncionarioWizardComponent, {
       data: {
         funcionario
       },
@@ -80,6 +78,18 @@ export class ListFuncioarioComponent implements OnInit {
           this.dataSource.data = updateDataSource(this.dataSource.data, res, index);
         }
       }
+    })
+  }
+
+  cargarMasDatos(){
+    this.isSearching = true;
+    this.page++;
+    this.service.onGetAllFuncionarios(this.page)
+    .pipe(untilDestroyed(this))
+    .subscribe(res => {
+      if(res.length == 0) this.isLastPage = true;
+      this.isSearching = false;
+      this.dataSource.data = this.dataSource.data.concat(res)
     })
   }
 

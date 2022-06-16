@@ -1,8 +1,8 @@
 import gql from "graphql-tag";
 
 export const funcionariosQuery = gql`
-  {
-    data: funcionarios {
+  query ($page: Int){
+    data: funcionarios(page: $page) {
       id
       credito
       diarista

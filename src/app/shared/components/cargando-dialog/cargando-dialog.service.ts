@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { MatDialog, MatDialogRef } from "@angular/material/dialog";
-import { BehaviorSubject } from "rxjs";
+import { NgxSpinnerService } from "ngx-spinner";
+import { BehaviorSubject, Subject } from "rxjs";
 import { CargandoDialogComponent } from "./cargando-dialog.component";
 
 class DialogData {
@@ -17,30 +18,28 @@ export class CargandoDialogService {
   dialogCount = 0;
   dialogRef: MatDialogRef<any>;
 
+  public dialogSub: Subject<boolean> = new Subject<boolean>();
 
-  constructor(private matDialog: MatDialog) {
+
+
+  constructor(private matDialog: MatDialog, private spinner: NgxSpinnerService) {
   }
 
   openDialog(disable?: boolean, texto?: string) {
-      // this.dialogRef = this.matDialog.open(CargandoDialogComponent, {
-      //   disableClose: disable,
-      // });    
-    // console.log('abriendo dialog')
-    // this.cargandoTextSub.next(texto)
     this.dialogCount++;
-    // if(disable==null) disable = false;
-    if (this.dialogCount == 0) {
-      this.dialogRef = this.matDialog.open(CargandoDialogComponent, {
-        disableClose: disable,
-      });
+    console.log('abriendo: ', this.dialogCount)
+    if (this.dialogCount == 1) {
+      this.spinner.show(texto)
     }
   }
 
   closeDialog() {
-    // console.log('cerrando dialog')
     this.dialogCount--;
-    if(this.dialogCount == 0 && this.dialogRef!=null){
-      this.dialogRef.close()
+    console.log('saliendo: ', this.dialogCount)
+    if (this.dialogCount == 0) {
+      setTimeout(() => {
+        this.spinner.hide()
+      }, 500);
     }
   }
 }

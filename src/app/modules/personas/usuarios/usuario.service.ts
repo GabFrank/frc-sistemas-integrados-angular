@@ -1,4 +1,4 @@
-import { Injectable } from "@angular/core";
+import { Injectable, Injector } from "@angular/core";
 import { UsuarioPorIdGQL } from "./graphql/usuarioPorId";
 import { Usuario } from "./usuario.model";
 import { UsuarioSearchGQL } from "./graphql/usuarioSearch";
@@ -13,20 +13,31 @@ import { UsuarioPorPersonaIdGQL } from "./graphql/usuarioPorPersonnaId";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { Observable } from "rxjs";
+import { DeleteUsuarioGQL } from "./graphql/deleteUsuario";
+import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { VerificarUsuarioGQL } from "./graphql/verificarUsuario";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
 export class UsuarioService {
+
+  private genericService: GenericCrudService
+
   constructor(
     private getUsuario: UsuarioPorIdGQL,
     private getUsuarioPorPersonaId: UsuarioPorPersonaIdGQL,
     private saveUsuario: SaveUsuarioGQL,
     private searchUsuario: UsuarioSearchGQL,
-    private notificacionBar: NotificacionSnackbarService
+    private notificacionBar: NotificacionSnackbarService,
+    private deleteUsuario: DeleteUsuarioGQL,
+    private injector: Injector,
+    private verificarUsuario: VerificarUsuarioGQL
   ) // private mainService: MainService
-  {}
+  {
+    setTimeout(() => this.genericService = injector.get(GenericCrudService));
+  }
 
   onGetUsuario(id: number): Observable<any> {
     return new Observable((obs) => {
@@ -132,5 +143,17 @@ export class UsuarioService {
           }
         });
     });
+  }
+
+  onDeleteUsuario(id): Observable<boolean> {
+    return this.genericService.onDelete(this.deleteUsuario, id)
+  }
+
+  onDeleteUsuarioSinDialogo(id): Observable<boolean> {
+    return this.genericService.onDelete(this.deleteUsuario, id, null, null,)
+  }
+
+  onVerificarUsuario(texto): Observable<boolean>{
+    return this.genericService.onGetByTexto(this.verificarUsuario, texto)
   }
 }

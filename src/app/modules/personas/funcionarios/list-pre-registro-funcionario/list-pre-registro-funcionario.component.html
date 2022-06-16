@@ -1,0 +1,199 @@
+<app-generic-list
+  titulo="Lista de solicitudes"
+  (adicionar)="onAdicionarSolicitud()"
+  (filtrar)="onFiltrar()"
+  [isAdicionar]="true"
+  style="height: 95%"
+  [data]="dataSource.data"
+  (cargarMasDatos)="cargarMasDatos()"
+  [isLastPage]="isLastPage"
+>
+  <div filtros></div>
+  <div table fxLayout="column" style="overflow: hidden;">
+    <div fxFlex="90%" style="overflow: auto;">
+      <table
+        mat-table
+        [dataSource]="dataSource"
+        multiTemplateDataRows
+        class="mat-elevation-z8"
+        style="width: 100%; overflow-y: hidden"
+      >
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">
+            Id
+          </th>
+          <td mat-cell *matCellDef="let preRegistro" style="text-align: center">
+            {{ preRegistro?.id }}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="nombre">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">
+            Nombre
+          </th>
+          <td mat-cell *matCellDef="let preRegistro" style="text-align: center">
+            {{ preRegistro?.nombreCompleto | titlecase }}
+          </td>
+        </ng-container>
+
+        <!-- Name Column -->
+        <ng-container matColumnDef="apodo">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">
+            Apodo
+          </th>
+          <td mat-cell *matCellDef="let preRegistro" style="text-align: center">
+            {{ preRegistro?.apodo | titlecase }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="sucursal">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="text-align: center; width: 20%"
+          >
+            Sucursal
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let preRegistro"
+            style="text-align: center; width: 20%"
+          >
+            {{ preRegistro?.sucursal | titlecase }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="creadoEn">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="text-align: center; width: 15%"
+          >
+            Fecha creación
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let preRegistro"
+            style="text-align: center; width: 15%"
+          >
+            {{ preRegistro?.creadoEn | date: "short" }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="verificado">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="text-align: center; width: 15%"
+          >
+            Verificado
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let preRegistro"
+            style="text-align: center; width: 15%"
+          >
+            {{ preRegistro?.verificado ? "Si" : "No" }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 5%; text-align: center"
+          >
+            ...
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let preRegistro; let i = index"
+            style="text-align: center; width: 5%"
+          >
+            <button
+              mat-icon-button
+              [matMenuTriggerFor]="menu"
+              (click)="$event.stopPropagation()"
+            >
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menu="matMenu">
+              <button
+                *ngIf="preRegistro?.verificado == true"
+                mat-menu-item
+                (click)="onVerFuncionario(preRegistro, i)"
+              >
+                Ver funcionario
+              </button>
+              <button
+                *ngIf="preRegistro?.verificado == false"
+                mat-menu-item
+                (click)="onRegistrarFuncionario(preRegistro, i)"
+              >
+                Registrar funcionario
+              </button>
+              <button
+                *ngIf="preRegistro?.verificado == false"
+                mat-menu-item
+                (click)="onEliminar(preRegistro, i)"
+              >
+                Eliminar
+              </button>
+            </mat-menu>
+          </td>
+        </ng-container>
+
+        <mat-divider></mat-divider>
+
+        <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+        <ng-container matColumnDef="expandedDetail">
+          <td
+            mat-cell
+            *matCellDef="let preRegistro"
+            [attr.colspan]="displayedColumns.length"
+            class="expanded"
+          >
+            <div
+              class="example-preRegistro-detail"
+              [@detailExpand]="
+                preRegistro == expandedPreRegistro ? 'expanded' : 'collapsed'
+              "
+              style="text-align: center"
+              fxLayout="column"
+              fxLayoutAlign="start start"
+            ></div>
+          </td>
+        </ng-container>
+
+        <tr
+          mat-header-row
+          *matHeaderRowDef="displayedColumns; sticky: true"
+        ></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+        ></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: ['expandedDetail']"
+          class="example-detail-row"
+        ></tr>
+      </table>
+    </div>
+    <!-- <div
+      fxFlex="10"
+      style="width: 100%"
+      fxLayout="row"
+      fxLayoutAlign="center center"
+    >
+      <button
+        *ngIf="dataSource.data.length > 0"
+        mat-button
+        color="accent"
+        (click)="cargarMasDatos()"
+        [disabled]="isLastPage"
+      >
+        CARGAR MAS
+      </button>
+    </div> -->
+  </div>
+</app-generic-list>

@@ -10,6 +10,7 @@ import { comparatorLike } from '../../../commons/core/utils/string-utils';
 import { Producto } from '../../../modules/productos/producto/producto.model';
 import { EditTransferenciaComponent } from '../../../modules/operaciones/transferencia/edit-transferencia/edit-transferencia.component';
 import { ListTransferenciaComponent } from '../../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
+import { FuncionarioDashboardComponent } from '../../../modules/personas/funcionarios/funcionario-dashboard/funcionario-dashboard.component';
 
 export enum TIPO_SEARCH {
   COMPONENTE = 'COMPONENTE',
@@ -35,6 +36,7 @@ export const componenteList: SearchData[] =
   {title: 'Lista de Transferencias', component: ListTransferenciaComponent},
   {title: 'Nueva Transferencia', component: EditTransferenciaComponent},
   {title: 'Cotización', component: CambioComponent},
+  {title: 'Funcionarios', component: FuncionarioDashboardComponent}
 ]
 
 @UntilDestroy()

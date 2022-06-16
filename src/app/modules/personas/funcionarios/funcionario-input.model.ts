@@ -5,7 +5,7 @@ export class FuncionarioInput  {
   cargoId: number;
   sucursalId: number;
   credito: number;
-  fechaIngreso: Date;
+  fechaIngreso: string;
   sueldo: number;
   fasePrueba: boolean
   diarista: boolean

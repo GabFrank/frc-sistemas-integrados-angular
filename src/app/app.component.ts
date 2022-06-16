@@ -22,6 +22,8 @@ import { WindowInfoService } from "./shared/services/window-info.service";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { ConfigurarServidorDialogComponent } from "./modules/configuracion/configurar-servidor-dialog/configurar-servidor-dialog.component";
 import { ConfiguracionService } from "./modules/configuracion/configuracion.service";
+import { CargandoDialogService } from './shared/components/cargando-dialog/cargando-dialog.service';
+import { CargandoDialogComponent } from './shared/components/cargando-dialog/cargando-dialog.component';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -39,6 +41,8 @@ export class AppComponent implements OnInit, OnDestroy {
   timer = null;
   snackBarRef: any;
   keyPressed: any;
+  dialogRef;
+  dialogCount = 0;
 
   constructor(
     private overlay: OverlayContainer,
@@ -48,7 +52,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private matDialog: MatDialog,
     public mainService: MainService,
     public genericService: GenericCrudService,
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private cargandoService: CargandoDialogService
   ) {
     this.innerHeight = windowInfo.innerHeight + "px";
     notificationService.notification$
@@ -67,6 +72,25 @@ export class AppComponent implements OnInit, OnDestroy {
           this.snackBarRef = null;
         }, res.duracion * 1000);
       });
+
+    // cargandoService.dialogSub
+    //   .pipe(untilDestroyed(this))
+    //   .subscribe(res => {
+    //     if(res){
+    //       this.dialogCount++;
+    //       if(this.dialogCount == 1){
+    //         this.dialogRef = this.matDialog.open(CargandoDialogComponent, {
+    //           disableClose: true,
+    //         });
+    //       }
+    //     } else {
+    //       this.dialogCount--;
+    //       if(this.dialogCount == 0 && this.dialogRef!=null){
+    //         this.dialogRef.close()
+    //         this.dialogRef = null;
+    //       }
+    //     }
+    //   })
   }
 
   /**
