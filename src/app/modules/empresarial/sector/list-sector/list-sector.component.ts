@@ -39,6 +39,7 @@ export class ListSectorComponent implements OnInit {
     'creadoEn',
     'acciones',
   ]
+  expandedSector;
 
   constructor(
     private sucursalService: SucursalService,
@@ -65,6 +66,12 @@ export class ListSectorComponent implements OnInit {
           this.dataSource.data = res;
         })
     }
+  }
+
+  onAdd(){}
+
+  onAddSector(sector, i){
+
   }
 
 }

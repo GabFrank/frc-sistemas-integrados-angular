@@ -9,6 +9,7 @@ import {
 import { DialogosService } from "../shared/components/dialogos/dialogos.service";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { CargandoDialogService } from "../shared/components/cargando-dialog/cargando-dialog.service";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -22,15 +23,18 @@ export class GenericCrudService {
     private notificacionSnackBar: NotificacionSnackbarService,
     private dialogoService: DialogosService,
     private mainService: MainService,
-    private notificacionBar: NotificacionSnackbarService
+    private notificacionBar: NotificacionSnackbarService,
+    private cargandoService: CargandoDialogService
   ) { }
 
   onGetAll(gql: Query, page?): Observable<any> {
     this.isLoading = true;
+    this.cargandoService.openDialog(false, 'Buscando...')
     return new Observable((obs) => {
       gql
         .fetch({ page }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
         .subscribe((res) => {
+          this.cargandoService.closeDialog()
           this.isLoading = false
           if (res.errors == null) {
             obs.next(res.data["data"]);
@@ -47,10 +51,12 @@ export class GenericCrudService {
 
   onGetById<T>(gql: any, id: number): Observable<T> {
     this.isLoading = true;
+    this.cargandoService.openDialog(false, 'Buscando...')
     return new Observable((obs) => {
       gql
         .fetch({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
         .subscribe((res) => {
+          this.cargandoService.closeDialog()
           this.isLoading = false;
           if (res.errors == null) {
             obs.next(res.data["data"]);
@@ -74,10 +80,12 @@ export class GenericCrudService {
 
   onGetByTexto(gql: Query, texto: string): Observable<any> {
     this.isLoading = true;
+    this.cargandoService.openDialog(false, 'Buscando...')
     return new Observable((obs) => {
       gql
         .fetch({ texto }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
         .subscribe((res) => {
+          this.cargandoService.closeDialog()
           this.isLoading = false;
           if (res.errors == null) {
             obs.next(res.data["data"]);
@@ -95,6 +103,7 @@ export class GenericCrudService {
   onSave<T>(gql: Mutation, input): Observable<T> {
     this.isLoading = true;
     input.usuarioId = this.mainService.usuarioActual.id
+    this.cargandoService.openDialog(false, 'Guardando...')
     return new Observable((obs) => {
       gql
         .mutate(
@@ -103,6 +112,7 @@ export class GenericCrudService {
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.isLoading = false;
+          this.cargandoService.closeDialog()
           if (res.errors == null) {
             obs.next(res.data["data"]);
             this.notificacionSnackBar.notification$.next({
@@ -131,6 +141,7 @@ export class GenericCrudService {
     data?: any,
     showDialog?: boolean
   ): Observable<any> {
+    this.cargandoService.openDialog(false, 'Eliminando...')
     return new Observable((obs) => {
       if (showDialog == false) {
         gql
@@ -141,6 +152,7 @@ export class GenericCrudService {
             { errorPolicy: "all" }
           ).pipe(untilDestroyed(this))
           .subscribe((res) => {
+            this.cargandoService.closeDialog()
             if (res.errors == null) {
               this.notificacionSnackBar.notification$.next({
                 texto: "Eliminado con éxito",
@@ -168,6 +180,7 @@ export class GenericCrudService {
             "Realemente desea eliminar este " + titulo
           ).pipe(untilDestroyed(this))
           .subscribe((res1) => {
+            this.cargandoService.closeDialog()
             if (res1) {
               gql
                 .mutate(

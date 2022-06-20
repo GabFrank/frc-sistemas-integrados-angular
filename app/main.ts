@@ -4,6 +4,8 @@ import * as fs from "fs";
 import * as url from "url";
 const {ipcMain} = require('electron');
 
+var appVersion = require('electron').remote.app.getVersion();
+
 
 
 // Initialize remote module
@@ -17,7 +19,7 @@ export async function createWindow(): Promise<BrowserWindow> {
   const electronScreen = screen;
   const size = electronScreen.getPrimaryDisplay().workAreaSize;
   let factor = screen.getPrimaryDisplay().scaleFactor;
-
+  console.log(appVersion);
 
   // Create the browser window.
   win = new BrowserWindow({
@@ -26,6 +28,7 @@ export async function createWindow(): Promise<BrowserWindow> {
     y: 0,
     width: 1024 / factor,
     height: 768 / factor,
+    icon: `${__dirname}/icons/logo.ico`,
     webPreferences: {
       zoomFactor: 1.0 / factor,
       nodeIntegration: true,
@@ -51,6 +54,8 @@ export async function createWindow(): Promise<BrowserWindow> {
   //   // Create myWindow, load the rest of the app, etc...
   //   app.on("ready", () => { });
   // }
+
+  
 
   if (serve) {
     win.webContents.openDevTools();

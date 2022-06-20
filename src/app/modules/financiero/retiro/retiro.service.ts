@@ -9,6 +9,7 @@ import { SaveRetiroGQL } from "./graphql/saveRetiro";
 import { Retiro } from "./retiro.model";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { CargandoDialogService } from "../../../shared/components/cargando-dialog/cargando-dialog.service";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -18,10 +19,12 @@ export class RetiroService {
   constructor(
     private saveRetiro: SaveRetiroGQL,
     private notificacionBar: NotificacionSnackbarService,
-    private mainService: MainService
+    private mainService: MainService,
+    private cargandoDialog: CargandoDialogService
   ) {}
 
   onSave(retiro: Retiro): Observable<any> {
+    this.cargandoDialog.openDialog(true, 'Guardando...')
     retiro.retiroGs = retiro.retiroDetalleList.find(r => r.moneda.denominacion == 'GUARANI')?.cantidad;
     retiro.retiroRs = retiro.retiroDetalleList.find(r => r.moneda.denominacion == 'REAL')?.cantidad;
     retiro.retiroDs = retiro.retiroDetalleList.find(r => r.moneda.denominacion == 'DOLAR')?.cantidad;
@@ -39,6 +42,7 @@ export class RetiroService {
           }
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {
+          this.cargandoDialog.closeDialog()
           if (res.errors == null) {
             this.notificacionBar.notification$.next({
               texto: "Guardado con éxito!!",

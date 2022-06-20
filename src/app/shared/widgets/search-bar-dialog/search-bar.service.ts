@@ -11,6 +11,7 @@ import { Producto } from '../../../modules/productos/producto/producto.model';
 import { EditTransferenciaComponent } from '../../../modules/operaciones/transferencia/edit-transferencia/edit-transferencia.component';
 import { ListTransferenciaComponent } from '../../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
 import { FuncionarioDashboardComponent } from '../../../modules/personas/funcionarios/funcionario-dashboard/funcionario-dashboard.component';
+import { ListActualizacionComponent } from '../../../modules/configuracion/actualizacion/list-actualizacion/list-actualizacion.component';
 
 export enum TIPO_SEARCH {
   COMPONENTE = 'COMPONENTE',
@@ -23,6 +24,7 @@ export interface SearchData {
   component?: Type<any>,
   producto?: Producto,
   data?:any;
+  role?: string;
 }
 
 export class SearchDataResult {
@@ -36,7 +38,8 @@ export const componenteList: SearchData[] =
   {title: 'Lista de Transferencias', component: ListTransferenciaComponent},
   {title: 'Nueva Transferencia', component: EditTransferenciaComponent},
   {title: 'Cotización', component: CambioComponent},
-  {title: 'Funcionarios', component: FuncionarioDashboardComponent}
+  {title: 'Funcionarios', component: FuncionarioDashboardComponent},
+  {title: 'Actualizacion', component: ListActualizacionComponent}
 ]
 
 @UntilDestroy()

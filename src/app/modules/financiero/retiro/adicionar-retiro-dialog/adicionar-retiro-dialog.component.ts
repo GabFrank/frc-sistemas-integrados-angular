@@ -99,7 +99,6 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy {
 
 
   onGuardar(){
-    this.cargandoDialog.openDialog()
     if(this.selectedResponsable!=null && this.verficarValores()){
       this.dialogService.confirm('Confirmar valores de retiro', null, null, [
         `Guaranies: ${stringToInteger(this.guaraniControl.value.toString())}`,

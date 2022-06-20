@@ -60,6 +60,7 @@ function createWindow() {
                 y: 0,
                 width: 1024 / factor,
                 height: 768 / factor,
+                icon: __dirname + "/icons/logo.ico",
                 webPreferences: {
                     zoomFactor: 1.0 / factor,
                     nodeIntegration: true,

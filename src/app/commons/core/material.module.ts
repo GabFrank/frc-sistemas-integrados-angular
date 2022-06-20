@@ -38,6 +38,7 @@ import { NgxMaterialTimepickerModule } from 'ngx-material-timepicker';
 import {ClipboardModule} from '@angular/cdk/clipboard';
 import { MatKeyboardModule } from 'angular-onscreen-material-keyboard';
 import {MatTreeModule} from '@angular/material/tree';
+import { MatFileUploadModule } from 'angular-material-fileupload';
 
 
 
@@ -87,7 +88,8 @@ import {MatTreeModule} from '@angular/material/tree';
     ClipboardModule,
     MatStepperModule,
     MatKeyboardModule,
-    MatTreeModule
+    MatTreeModule,
+    MatFileUploadModule
   ]
 })
 export class MaterialModule { }

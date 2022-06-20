@@ -5,11 +5,13 @@ import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
 import { ConfigurarServidorDialogComponent } from './configurar-servidor-dialog/configurar-servidor-dialog.component';
+import { ListActualizacionComponent } from './actualizacion/list-actualizacion/list-actualizacion.component';
+import { EditActualizacionComponent } from './actualizacion/edit-actualizacion/edit-actualizacion.component';
 
 
 
 @NgModule({
-  declarations: [ConfigurarServidorDialogComponent],
+  declarations: [ConfigurarServidorDialogComponent, ListActualizacionComponent, EditActualizacionComponent],
   imports: [
     CommonModule,
     FlexLayoutModule,

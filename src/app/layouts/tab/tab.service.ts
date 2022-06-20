@@ -14,6 +14,7 @@ import { ListFuncioarioComponent } from '../../modules/personas/funcionarios/lis
 import { ProductoComponent } from '../../modules/productos/producto/edit-producto/producto.component';
 import { Producto } from '../../modules/productos/producto/producto.model';
 import { ProductoService } from '../../modules/productos/producto/producto.service';
+import { ListActualizacionComponent } from '../../modules/configuracion/actualizacion/list-actualizacion/list-actualizacion.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -48,7 +49,7 @@ export class TabService {
     this.tabs = [
     // new Tab(ListFuncioarioComponent, 'Lista de funcionarios', null, null),
     // new Tab(ListPreRegistroFuncionarioComponent, 'List de solicitudes', null, null),
-    new Tab(VentaTouchComponent, 'Venta', null, null),
+    new Tab(ListActualizacionComponent, 'Actualizaciones', null, null),
     ];
     this.tabSub.next(this.tabs);
 

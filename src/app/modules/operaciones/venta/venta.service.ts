@@ -46,7 +46,7 @@ export class VentaService {
     ventaInput.estado = VentaEstado.CONCLUIDA;
     ventaInput.usuarioId = this.mainService?.usuarioActual?.id;
     cobroInput.usuarioId = this.mainService?.usuarioActual?.id;
-    console.log(ventaInput, cobroInput);
+
     venta.ventaItemList.forEach((e) => {
       ventaItemInputList.push(e.toInput());
     });
@@ -69,7 +69,6 @@ export class VentaService {
           }
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {
-          console.log(res);
           obs.next(res.data["data"]);
         });
     });
@@ -89,7 +88,6 @@ export class VentaService {
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
-            console.log(res.data.data);
             obs.next(res.data.data);
           } else {
             obs.next(null);
@@ -112,7 +110,6 @@ export class VentaService {
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
-            console.log(res.data);
             obs.next(res.data.data);
           } else {
             obs.next(null);
@@ -139,7 +136,6 @@ export class VentaService {
         .subscribe((res) => {
           this.genericService.isLoading = false;
           if (res.errors == null) {
-            console.log(res.data.data);
             obs.next(res.data.data);
           } else {
             obs.next(null);

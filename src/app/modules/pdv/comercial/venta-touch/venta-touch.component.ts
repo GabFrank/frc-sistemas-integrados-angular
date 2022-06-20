@@ -158,7 +158,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     this.cajaService.onGetByUsuarioIdAndAbierto(this.mainService.usuarioActual.id)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
-        console.log(res)
         if (res != null) {
           this.cajaService.selectedCaja = res;
           if (this.cajaService.selectedCaja == null || this.cajaService.selectedCaja?.conteoApertura == null) {
@@ -185,7 +184,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   openSelectCajaDialog() {
-    console.log(this.cajaService.selectedCaja)
     this.isDialogOpen = true;
     this.selectCajaDialog = this.matDialog.open(
       SeleccionarCajaDialogComponent,
@@ -337,7 +335,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     }
     let presentacionCaja: Presentacion;
     item.producto.presentaciones.forEach((p) => {
-      console.log(p.cantidad, cantidad, item?.presentacion?.cantidad);
       if (
         p.cantidad <= cantidad * item.presentacion.cantidad &&
         p.cantidad > 1 &&
@@ -366,7 +363,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     }
 
     if (this.selectedItemList.length > 0 && index == null) {
-      console.log("entro aca");
       index = this.selectedItemList.findIndex(
         (i) =>
           i.presentacion.id == item.presentacion.id &&
@@ -375,7 +371,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     }
     if (index != -1 && index != null) {
       this.selectedItemList[index].cantidad += cantidad;
-      console.log("entro alla");
     } else {
       if (item.cantidad > 0) {
         if (item.producto?.envase != null) {
@@ -389,7 +384,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
             })
             .afterClosed().pipe(untilDestroyed(this))
             .subscribe((res) => {
-              console.log(this.dialogReference);
               this.dialogReference = undefined;
               if (res != null) {
                 this.addItem(res);
@@ -726,7 +720,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       })
       .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
-        console.log(res)
         if (this.cajaService?.selectedCaja != null) {
           if (this.cajaService?.selectedCaja.conteoApertura == null) {
             this.openSelectCajaDialog();

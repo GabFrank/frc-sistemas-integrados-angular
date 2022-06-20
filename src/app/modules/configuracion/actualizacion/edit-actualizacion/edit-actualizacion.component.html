@@ -1,0 +1,92 @@
+<div fxLayout="column" fxLayoutGap="10px">
+  <div fxLayout="row" fxLayoutAlign="center center" style="width: 100%;">
+    <h3 fxFlex style="width: 100%; text-align: center;">
+      {{
+        selectedActualizacion?.id != null
+          ? "Editar actualización"
+          : "Nueva actualización"
+      }}
+    </h3>
+  </div>
+  <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+    <div fxFlex="50">
+      <mat-form-field>
+        <mat-label>Versión</mat-label>
+        <input type="text" matInput [formControl]="currentVersion" />
+      </mat-form-field>
+    </div>
+    <div fxFlex="50">
+      <mat-slide-toggle fxFlex [formControl]="enabled">Activo</mat-slide-toggle>
+    </div>
+  </div>
+  <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+    <mat-form-field style="width: 90%">
+      <mat-label>Tipo</mat-label>
+      <mat-select [formControl]="tipo" name="tipo">
+        <mat-option *ngFor="let tipo of tipoActualizacionList" [value]="tipo">
+          {{ tipo }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+  <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+    <mat-form-field style="width: 90%">
+      <mat-label>Nivel</mat-label>
+      <mat-select [formControl]="nivel" name="nivel">
+        <mat-option
+          *ngFor="let nivel of nivelActualizacionList"
+          [value]="nivel"
+        >
+          {{ nivel }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+  <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+    <div fxFlex>
+      <mat-form-field style="width: 100%;">
+        <mat-label>Título</mat-label>
+        <input type="text" matInput [formControl]="title" />
+      </mat-form-field>
+    </div>
+  </div>
+  <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+    <div fxFlex>
+      <mat-form-field style="width: 100%;">
+        <mat-label>Mensaje</mat-label>
+        <textarea type="text" matInput [formControl]="msg"></textarea>
+      </mat-form-field>
+    </div>
+  </div>
+  <div fxLayout="column" fxLayoutAlign="start start">
+    <label for="singleFile">Subir archivo</label>
+    <input id="singleFile" type="file" [fileUploadInputFor]= "fileUploadQueue"/>
+    <br>
+    
+    <mat-file-upload-queue #fileUploadQueue
+        [fileAlias]="'hola'"
+        [httpUrl]="url"
+        style="width: 100%;"
+        >
+    
+        <mat-file-upload [file]="file" [id]="i" *ngFor="let file of fileUploadQueue.files; let i = index"></mat-file-upload>
+    </mat-file-upload-queue>
+  </div>
+  <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="10px">
+    <div fxFlex="30%">
+      <app-boton
+        nombre="Cancelar"
+        color="primary"
+        (clickEvent)="onCancelar()"
+      ></app-boton>
+    </div>
+    <div fxFlex="30%">
+      <app-boton
+        nombre="Guardar"
+        color="accent"
+        [disableExpression]="formGroup.invalid"
+        (clickEvent)="onGuardar()"
+      ></app-boton>
+    </div>
+  </div>
+</div>

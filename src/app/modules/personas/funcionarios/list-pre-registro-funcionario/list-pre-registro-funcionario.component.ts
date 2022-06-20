@@ -34,7 +34,8 @@ export class ListPreRegistroFuncionarioComponent implements OnInit {
   dataSource = new MatTableDataSource<PreRegistroFuncionario>([])
   page = 0;
   isLastPage = false;
-
+  expandedPreRegistro;
+  
   constructor(
     private funcionarioService: FuncionarioService,
     private matDialog: MatDialog,
@@ -57,9 +58,6 @@ export class ListPreRegistroFuncionarioComponent implements OnInit {
     this.cargarDatos()
   }
 
-  onVerFuncionario() {
-  }
-
   onRegistrarFuncionario(item, i) {
     this.matDialog.open(FuncionarioWizardComponent, {
       data: {
@@ -75,10 +73,6 @@ export class ListPreRegistroFuncionarioComponent implements OnInit {
     })
   }
 
-  onEliminar() {
-
-  }
-
   cargarMasDatos() {
     this.page++;
     this.funcionarioService.onGetAllPreRegistroFuncionarios(this.page)
@@ -88,5 +82,15 @@ export class ListPreRegistroFuncionarioComponent implements OnInit {
       this.dataSource.data = this.dataSource.data.concat(res)
     })
   }
+
+  onAdicionarSolicitud(){
+
+  }
+
+  onVerFuncionario(preRegistro, i){
+
+  }
+
+  onEliminar(preRegistro, i){}
 
 }

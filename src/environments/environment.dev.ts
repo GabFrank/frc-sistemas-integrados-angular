@@ -7,6 +7,7 @@ export const APP_CONFIG = {
 
 export const environment = {
   production: false,
+  version: '1.0.4',
   usuario : 1,
   sucursalId: 1,
   firebaseConfig : {

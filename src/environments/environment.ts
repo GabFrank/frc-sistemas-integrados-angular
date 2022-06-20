@@ -6,6 +6,7 @@ export const APP_CONFIG = {
 };
 
 export const environment = {
+  version: '1.0.5',
   production: false,
   usuario : 1,
   sucursalId: 1,
