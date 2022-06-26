@@ -18,7 +18,8 @@ export const environment = {
     messagingSenderId: "389460380308",
     appId: "1:389460380308:web:53701896405855d9f64281"
   },
-  
+  serverIp: ipAddress,
+  serverPort: port
 };
 
 export const serverAdress = {

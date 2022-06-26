@@ -7,11 +7,12 @@ import { SharedModule } from '../../shared/shared.module';
 import { ConfigurarServidorDialogComponent } from './configurar-servidor-dialog/configurar-servidor-dialog.component';
 import { ListActualizacionComponent } from './actualizacion/list-actualizacion/list-actualizacion.component';
 import { EditActualizacionComponent } from './actualizacion/edit-actualizacion/edit-actualizacion.component';
+import { UpdateWizardComponent } from './actualizacion/update-wizard/update-wizard.component';
 
 
 
 @NgModule({
-  declarations: [ConfigurarServidorDialogComponent, ListActualizacionComponent, EditActualizacionComponent],
+  declarations: [ConfigurarServidorDialogComponent, ListActualizacionComponent, EditActualizacionComponent, UpdateWizardComponent],
   imports: [
     CommonModule,
     FlexLayoutModule,

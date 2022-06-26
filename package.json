@@ -1,12 +1,5 @@
 {
   "name": "frc-sys",
-  "version": "1.0.4",
-  "description": "Sistema de control integral para comercios",
-  "homepage": "https://github.com/GabFrank",
-  "author": {
-    "name": "Gabriel Franco",
-    "email": "francogabrielpy@outlook.com"
-  },
   "keywords": [
     "angular",
     "angular 12",
@@ -37,7 +30,10 @@
     "test": "ng test --watch=false",
     "test:watch": "ng test",
     "e2e": "npm run build:prod && cross-env TS_NODE_PROJECT='e2e/tsconfig.e2e.json' mocha --timeout 300000 --require ts-node/register e2e/**/*.e2e.ts",
-    "lint": "eslint -c .eslintrc.js --ext .ts src"
+    "lint": "eslint -c .eslintrc.js --ext .ts src",
+    "release": "electron-builder --win --publish=always",
+    "build:release": "npm run build:prod && electron-builder --win --publish=always",
+    "dist": "electron-builder"
   },
   "dependencies": {
     "@angular/animations": "~12.1.1",
@@ -55,7 +51,7 @@
     "@angular/platform-browser-dynamic": "~12.1.1",
     "@angular/router": "~12.1.1",
     "@apollo/client": "^3.0.0",
-    "@electron/remote": "^1.2.1",
+    "@electron-forge/publisher-github": "^6.0.0-beta.64",
     "@fortawesome/fontawesome-free": "^5.15.3",
     "@ng-bootstrap/ng-bootstrap": "^7.0.0",
     "@ngneat/until-destroy": "^9.0.0",
@@ -71,8 +67,11 @@
     "bootstrap": "^4.5.0",
     "chart.js": "^2.9.4",
     "electron-browser-storage": "^1.0.7",
+    "electron-builder-squirrel-windows": "^23.2.0",
+    "electron-installer-squirrel-windows": "^1.3.0",
     "electron-node-config": "^1.1.0",
     "electron-packager": "^15.3.0",
+    "electron-squirrel-startup": "^1.0.0",
     "firebase": "^8.8.0",
     "git-describe": "^4.1.1",
     "graphql": "^15.3.0",
@@ -85,6 +84,7 @@
     "ngx-barcode": "^0.3.0",
     "ngx-connection-service": "^7.0.3",
     "ngx-currency": "^2.5.2",
+    "ngx-electron": "^2.2.0",
     "ngx-extended-pdf-viewer": "^12.0.0-alpha.0",
     "ngx-image-compress": "^11.0.3",
     "ngx-image-cropper": "^4.0.1",
@@ -93,6 +93,7 @@
     "ngx-panzoom": "^13.0.0",
     "ngx-print-element": "^2.0.7",
     "ngx-spinner": "^12.0.0",
+    "path": "^0.12.7",
     "rxjs": "^7.5.4",
     "subscriptions-transport-ws": "^0.9.19",
     "tslib": "^2.1.0",
@@ -110,6 +111,7 @@
     "@angular-eslint/template-parser": "12.3.1",
     "@angular/cli": "12.1.2",
     "@angular/compiler-cli": "12.1.2",
+    "@electron/remote": "1.2.0",
     "@ngx-translate/core": "13.0.0",
     "@ngx-translate/http-loader": "6.0.0",
     "@types/electron": "^1.6.10",
@@ -126,7 +128,13 @@
     "cross-env": "7.0.3",
     "electron": "13.1.7",
     "electron-builder": "22.9.1",
+    "electron-is-dev": "^2.0.0",
+    "electron-log": "^4.4.7",
     "electron-reload": "1.5.0",
+    "electron-simple-publisher": "^2.0.1",
+    "electron-simple-updater": "^2.0.11",
+    "electron-updater": "^5.0.1",
+    "electron-winstaller": "^5.0.0",
     "eslint": "^7.26.0",
     "eslint-plugin-import": "2.23.4",
     "eslint-plugin-jsdoc": "35.4.3",
@@ -153,6 +161,7 @@
     "spectron": "15.0.0",
     "ts-node": "10.1.0",
     "typescript": "~4.2.0",
+    "update-electron-app": "^2.0.1",
     "wait-on": "5.3.0",
     "webdriver-manager": "12.1.8"
   },
@@ -161,5 +170,10 @@
   },
   "browserslist": [
     "chrome 91"
-  ]
+  ],
+  "browser": {
+    "fs": false,
+    "path": false,
+    "os": false
+  }
 }

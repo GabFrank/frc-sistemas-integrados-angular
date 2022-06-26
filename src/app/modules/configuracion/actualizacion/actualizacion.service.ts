@@ -1,21 +1,27 @@
 import { Injectable } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Observable } from 'rxjs';
+import { version } from '../../../../environments/conectionConfig';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
 import { CargandoDialogService } from '../../../shared/components/cargando-dialog/cargando-dialog.service';
+import { DialogosService } from '../../../shared/components/dialogos/dialogos.service';
 import { Actualizacion, TipoActualizacion } from './actualizacion.model';
 import { ActualizacionByIdGQL } from './graphql/actualizacionById';
 import { ActualizacionesGQL } from './graphql/actualizacionQuery';
 import { DeleteActualizacionGQL } from './graphql/deleteActualizacion';
 import { SaveActualizacionGQL } from './graphql/saveActualizacion';
 import { ultimaActualizacionGQL } from './graphql/ultimaActualizacion';
+import { UpdateWizardComponent } from './update-wizard/update-wizard.component';
 
 @UntilDestroy()
 @Injectable({
   providedIn: 'root'
 })
 export class ActualizacionService {
+
+  dialog;
 
   constructor(
     private crudService: GenericCrudService,
@@ -25,7 +31,9 @@ export class ActualizacionService {
     private getUltimaActualizacion: ultimaActualizacionGQL,
     private saveActualizacion: SaveActualizacionGQL,
     private deleteActualizacion: DeleteActualizacionGQL,
-    private cargandoService: CargandoDialogService
+    private cargandoService: CargandoDialogService,
+    private dialogoService: DialogosService,
+    private matDialog: MatDialog
   ) { }
 
   onGetAll(): Observable<Actualizacion[]> {
@@ -69,5 +77,32 @@ export class ActualizacionService {
 
   onDelete(id): Observable<boolean> {
     return this.crudService.onDelete(this.deleteActualizacion, id)
+  }
+
+  checkForUpdates() {
+    if (this.dialog == null) {
+      this.onGetUltimaActualizacion(TipoActualizacion.DESKTOP)
+        .pipe()
+        .subscribe(res => {
+          if (res != null) {
+            if (res.currentVersion != version) {
+              this.dialog = this.dialogoService.confirm(res.title, res.msg)
+                .subscribe(dialogoRes => {
+                  if (res) {
+                    this.matDialog.open(UpdateWizardComponent, {
+                      data: res,
+                      width: '60%',
+                      disableClose: true
+                    }).afterClosed().subscribe(updateRes => {
+                      this.dialog = null;
+                    })
+                  } else {
+                    this.dialog = null;
+                  }
+                })
+            }
+          }
+        })
+    }
   }
 }

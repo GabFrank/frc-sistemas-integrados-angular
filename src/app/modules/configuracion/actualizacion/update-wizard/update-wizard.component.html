@@ -1,0 +1,28 @@
+<div fxLayout="column" fxLayoutAlign="start start" fxLayoutGap="10px">
+    <h3 style="width: 100%; text-align: center;">Actualización del software</h3>
+    <div fxFlex fxLayout="row">
+        Versión actual: {{versionActual}}
+    </div>
+    <div fxFlex fxLayout="row">
+        Nueva versión: {{selectedActualizacion?.currentVersion}}
+    </div>
+    <div fxFlex style="width: 100%;">
+        <mat-progress-bar *ngIf="progress!=0" mode="determinate" [value]="progress"></mat-progress-bar>
+    </div>
+    <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="10px">
+        <div fxFlex="30%">
+          <app-boton
+            nombre="Cancelar"
+            color="primary"
+            (clickEvent)="onCancelar()"
+          ></app-boton>
+        </div>
+        <div fxFlex="30%">
+          <app-boton
+            nombre="Descargar"
+            color="accent"
+            (clickEvent)="onDescargar()"
+          ></app-boton>
+        </div>
+      </div>
+</div>

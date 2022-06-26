@@ -41,6 +41,27 @@ var electron_1 = require("electron");
 var path = require("path");
 var fs = require("fs");
 var url = require("url");
+var electron_updater_1 = require("electron-updater");
+var log = require('electron-log');
+var readFileSync = require('fs').readFileSync;
+var isDev = require('electron-is-dev');
+var home = electron_1.app.getPath('home');
+var configPath = home + "/FRC/configuracion.json";
+if (process.platform == 'darwin') {
+    configPath = "/FRC/configuracion.json";
+}
+if (process.platform == 'win32') {
+    configPath = "C:\\FRC\\configuracion.json";
+}
+var configFile = JSON.parse(readFileSync(configPath));
+log.info(configFile);
+electron_updater_1.autoUpdater.logger = log;
+electron_updater_1.autoUpdater.setFeedURL({
+    provider: 'github',
+    owner: 'GabFrank',
+    repo: configFile['repositoryUrl'],
+    private: false
+});
 var ipcMain = require('electron').ipcMain;
 // Initialize remote module
 require("@electron/remote/main").initialize();
@@ -60,13 +81,14 @@ function createWindow() {
                 y: 0,
                 width: 1024 / factor,
                 height: 768 / factor,
-                icon: __dirname + "/icons/logo.ico",
+                icon: "file://" + __dirname + "/dist/assets/logo.ico",
                 webPreferences: {
+                    webSecurity: false,
                     zoomFactor: 1.0 / factor,
                     nodeIntegration: true,
                     allowRunningInsecureContent: serve ? true : false,
-                    contextIsolation: false,
-                    enableRemoteModule: true, // true if you want to run e2e test with Spectron or use remote module in renderer context (ie. Angular)
+                    contextIsolation: false, // false if you want to run e2e test with Spectron
+                    // enableRemoteModule: true, // true if you want to run e2e test with Spectron or use remote module in renderer context (ie. Angular)
                 },
             });
             gotTheLock = electron_1.app.requestSingleInstanceLock();
@@ -114,12 +136,47 @@ function createWindow() {
     });
 }
 exports.createWindow = createWindow;
+ipcMain.on('get-config-file', function (event, arg) {
+    console.log(arg);
+    // Event emitter for sending asynchronous messages
+    event.sender.send('send-config-file', configFile);
+});
 try {
     // This method will be called when Electron has finished
     // initialization and is ready to create browser windows.
     // Some APIs can only be used after this event occurs.
     // Added 400 ms to fix the black background issue while using transparent window. More detais at https://github.com/electron/electron/issues/15947
     electron_1.app.on("ready", function () {
+        if (!isDev) {
+            electron_updater_1.autoUpdater.checkForUpdatesAndNotify();
+            setInterval(function () {
+                log.info('Buscando actualizacion');
+                electron_updater_1.autoUpdater.checkForUpdatesAndNotify();
+            }, 100000);
+        }
+        electron_updater_1.autoUpdater.on('update-available', function () {
+            log.info('Actualizacion disponible, descargando...');
+        });
+        electron_updater_1.autoUpdater.on('update-not-available', function () {
+            log.info('No existen actualizaciones disponibles...');
+        });
+        electron_updater_1.autoUpdater.on('update-downloaded', function (event, releaseNotes, releaseName) {
+            var dialogOpts = {
+                type: 'info',
+                buttons: ['Reiniciar'],
+                title: 'Actualización disponible',
+                message: process.platform === 'win32' ? releaseNotes : releaseName,
+                detail: 'Una actualización fue encontrada y descargada. Reinicie el programa para instalarla.'
+            };
+            electron_1.dialog.showMessageBox(dialogOpts).then(function (returnValue) {
+                if (returnValue.response === 0)
+                    electron_updater_1.autoUpdater.quitAndInstall();
+            });
+        });
+        electron_updater_1.autoUpdater.on('error', function (message) {
+            console.error('There was a problem updating the application');
+            console.error(message);
+        });
         electron_1.Menu.setApplicationMenu(electron_1.Menu.buildFromTemplate([
             {
                 role: "appMenu",
@@ -221,6 +278,15 @@ try {
                         label: 'Seleccionar Todo',
                         accelerator: 'CmdOrCtrl+A',
                         role: 'selectAll',
+                    },
+                ],
+            },
+            {
+                role: 'about',
+                label: "Sobre",
+                submenu: [
+                    {
+                        label: electron_1.app.getVersion(),
                     },
                 ],
             },

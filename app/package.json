@@ -1,9 +1,19 @@
 {
   "name": "frc-app",
-  "version": "1.0.4",
+  "version": "v1.1.70",
+  "description": "Sistema de control integral para comercios",
+  "homepage": "https://github.com/GabFrank",
+  "author": {
+    "name": "Gabriel Franco",
+    "email": "francogabrielpy@outlook.com"
+  },
   "main": "main.js",
   "private": true,
   "dependencies": {
-    "@electron/remote": "1.2.0"
+    "@electron/remote": "1.2.0",
+    "update-electron-app": "^2.0.1",
+    "electron-log": "^4.4.7",
+    "electron-updater": "^5.0.1",
+    "electron-is-dev": "^2.0.0"
   }
 }

@@ -9,35 +9,37 @@
     "!*.map",
     "!package.json",
     "!package-lock.json"
-  ],
+    ],
   "extraResources": [
     {
       "from": "dist",
       "to": "app",
-      "filter": [
-        "**/*"
-      ]
+      "filter": ["**/*"]
     }
   ],
   "win": {
-    "icon": "dist/assets/icons",
+    "icon": "./app/icons/logo.ico",
     "target": [
-      "portable"
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
     ]
+  },
+  "nsis": {
+    "installerIcon": "./app/icons/logo.ico",
+    "uninstallerIcon": "./app/icons/logo_uninstall.ico"
   },
   "portable": {
     "splashImage": "dist/assets/logo_inicio.bmp"
   },
   "mac": {
     "icon": "dist/assets/icons",
-    "target": [
-      "dmg"
-    ]
+    "target": ["dmg"]
   },
   "linux": {
     "icon": "dist/assets/icons",
-    "target": [
-      "AppImage"
-    ]
-  }
+    "target": ["AppImage"]
+  },
+  "afterAllArtifactBuild": "./afterAllArtifactBuild.js"
 }

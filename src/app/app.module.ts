@@ -41,11 +41,11 @@ import { BehaviorSubject } from "rxjs";
 import { setContext } from "@apollo/client/link/context";
 import { SubscriptionClient } from "subscriptions-transport-ws";
 import { NgxSpinnerModule } from "ngx-spinner";
+import { NgxElectronModule } from 'ngx-electron';
 
 export const errorObs = new BehaviorSubject<any>(null);
+export const connectionStatusSub = new BehaviorSubject<any>(null);
 
-const uri = `http://${serverAdress.serverIp}:${serverAdress.serverPort}`;
-const wUri = `ws://${serverAdress.serverIp}:${serverAdress.serverPort}/subscriptions`;
 
 // error handling
 const errorLink = onError(({ graphQLErrors, networkError }) => {
@@ -59,27 +59,6 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
   //   );
 
   // if (networkError) console.log(`[Network error]: ${networkError}`);
-});
-
-const wsClient = new SubscriptionClient(wUri, {
-  reconnect: true,
-});
-
-export const connectionStatusSub = new BehaviorSubject<any>(null);
-
-wsClient.onConnected(() => {
-  connectionStatusSub.next(true);
-  console.log("websocket connected!!");
-});
-wsClient.onDisconnected(() => {
-  if (connectionStatusSub.value != false) {
-    connectionStatusSub.next(false);
-  }
-  console.log("websocket disconnected!!");
-});
-wsClient.onReconnected(() => {
-  connectionStatusSub.next(true);
-  console.log("websocket reconnected!!");
 });
 
 registerLocaleData(localePY);
@@ -106,11 +85,44 @@ export function appInit(appConfigService: MainService) {
     AngularFirestoreModule,
     AngularFireStorageModule,
     NgxSpinnerModule,
-    AngularFireModule.initializeApp(environment.firebaseConfig)  ],
+    NgxElectronModule,
+    AngularFireModule.initializeApp(environment.firebaseConfig)],
   providers: [
+    [
+      MainService,
+      {
+        provide: APP_INITIALIZER,
+        useFactory: appInit,
+        deps: [MainService],
+        multi: true,
+      },
+    ],
     {
       provide: APOLLO_OPTIONS,
       useFactory(httpLink: HttpLink): ApolloClientOptions<any> {
+        const url = `http://${environment['serverIp']}:${environment['serverPort']}/graphql`;
+        const wUri = `ws://${environment['serverIp']}:${environment['serverPort']}/subscriptions`;
+
+        const wsClient = new SubscriptionClient(wUri, {
+          reconnect: true,
+        });
+
+
+        wsClient.onConnected(() => {
+          connectionStatusSub.next(true);
+          console.log("websocket connected!!");
+        });
+        wsClient.onDisconnected(() => {
+          if (connectionStatusSub.value != false) {
+            connectionStatusSub.next(false);
+          }
+          console.log("websocket disconnected!!");
+        });
+        wsClient.onReconnected(() => {
+          connectionStatusSub.next(true);
+          console.log("websocket reconnected!!");
+        });
+
         const basic = setContext((operation, context) => ({
           // headers: {
           //   Accept: 'charset=utf-8'
@@ -135,7 +147,7 @@ export function appInit(appConfigService: MainService) {
           basic,
           auth,
           httpLink.create({
-            uri: `http://${serverAdress.serverIp}:${serverAdress.serverPort}/graphql`,
+            uri: url,
           }),
         ]);
 
@@ -169,19 +181,13 @@ export function appInit(appConfigService: MainService) {
     },
     { provide: LocationStrategy, useClass: HashLocationStrategy },
     { provide: LOCALE_ID, useValue: "es-PY" },
-    { provide: MAT_DATE_LOCALE, useValue: "es-PY" },
-    [
-      MainService,
-      {
-        provide: APP_INITIALIZER,
-        useFactory: appInit,
-        deps: [MainService],
-        multi: true,
-      },
-    ],
+    { provide: MAT_DATE_LOCALE, useValue: "es-PY" }
+
   ],
   bootstrap: [AppComponent],
 })
 export class AppModule {
-  constructor() {}
+  constructor() {
+
+  }
 }

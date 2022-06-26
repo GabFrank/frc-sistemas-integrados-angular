@@ -6,6 +6,8 @@ import { ipcRenderer, webFrame } from 'electron';
 import * as remote from '@electron/remote';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
+import { ConfigFile } from '../../../../environments/conectionConfig';
+import { Observable } from 'rxjs';
 
 
 @Injectable({
@@ -38,6 +40,15 @@ export class ElectronService {
       this.remote = window.require('@electron/remote');
     }
   }
+
+  // getConfigFile(): Promise<ConfigFile>{
+  //   return new Promise((resolve) => {
+  //     this.ipcRenderer.send('get-config-file')
+  //     this.ipcRenderer.on('send-config-file', (event, args) => {
+  //       return resolve(args)        
+  //     })
+  //   })
+  // }
 
   relaunch(){
     window.location.reload()

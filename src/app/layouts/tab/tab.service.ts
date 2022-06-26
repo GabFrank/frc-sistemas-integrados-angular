@@ -49,7 +49,7 @@ export class TabService {
     this.tabs = [
     // new Tab(ListFuncioarioComponent, 'Lista de funcionarios', null, null),
     // new Tab(ListPreRegistroFuncionarioComponent, 'List de solicitudes', null, null),
-    new Tab(ListActualizacionComponent, 'Actualizaciones', null, null),
+    // new Tab(ListActualizacionComponent, 'Actualizaciones', null, null),
     ];
     this.tabSub.next(this.tabs);
 

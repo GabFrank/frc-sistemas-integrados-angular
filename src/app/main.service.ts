@@ -2,7 +2,7 @@ import { HttpClient } from "@angular/common/http";
 import { Injectable, Injector, OnDestroy } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
 import { BehaviorSubject, Observable, Subscription, takeUntil } from "rxjs";
-import { ipAddress } from "../environments/conectionConfig";
+import { ConfigFile, ipAddress } from "../environments/conectionConfig";
 import { environment } from "../environments/environment";
 import { SucursalByIdGQL } from "./modules/empresarial/sucursal/graphql/sucursalById";
 import { Sucursal } from "./modules/empresarial/sucursal/sucursal.model";
@@ -13,6 +13,10 @@ import { UsuarioService } from "./modules/personas/usuarios/usuario.service";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { SucursalService } from "./modules/empresarial/sucursal/sucursal.service";
+import { Actualizacion } from "./modules/configuracion/actualizacion/actualizacion.model";
+import { ActualizacionService } from "./modules/configuracion/actualizacion/actualizacion.service";
+import { IpcRenderer } from "electron";
+import { ElectronService } from "../app/commons/core/electron/electron.service";
 
 @UntilDestroy()
 @Injectable({
@@ -38,6 +42,9 @@ export class MainService implements OnDestroy {
   serverIpAddres = ipAddress;
   authSub;
   isServidor = false;
+  private updateService: ActualizacionService;
+  public renderer: IpcRenderer;
+  configFile: ConfigFile
 
   // isUserLoggerSub = new BehaviorSubject<boolean>(false);
 
@@ -47,15 +54,13 @@ export class MainService implements OnDestroy {
     private matDialog: MatDialog,
     private http: HttpClient,
     private sucursalService: SucursalService,
-    private usuarioService: UsuarioService
-
+    private usuarioService: UsuarioService,
+    private injector: Injector,
+    private electronService: ElectronService
   ) {
-    this.http
-      .get("http://api.ipify.org/?format=json")
-      .subscribe((res: any) => {
-        this.ipLocal = res.ip;
-      })
+    
     localStorage.setItem("serverIpAddress", this.serverIpAddres);
+    
   }
 
   isAuthenticated(): Observable<boolean> {
@@ -63,16 +68,16 @@ export class MainService implements OnDestroy {
       let isToken = localStorage.getItem("token");
       if (isToken != null) {
         this.getUsuario()
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res) {
-            obs.next(true);
-            this.authenticationSub.next(res);
-          } else {
-            obs.next(false);
-            this.authenticationSub.next(res);
-          }
-        });
+          .pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            if (res) {
+              obs.next(true);
+              this.authenticationSub.next(res);
+            } else {
+              obs.next(false);
+              this.authenticationSub.next(res);
+            }
+          });
       } else {
         obs.next(false);
       }
@@ -105,9 +110,9 @@ export class MainService implements OnDestroy {
     this.sucursalService.onGetSucursalActual()
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        if(res!=null){
+        if (res != null) {
           this.sucursalActual = res;
-          if(this.sucursalActual?.nombre == 'SERVIDOR'){
+          if (this.sucursalActual?.nombre == 'SERVIDOR') {
             this.isServidor = true;
           }
         }
@@ -128,5 +133,17 @@ export class MainService implements OnDestroy {
     this.serverIpAddres = localStorage.getItem("serverIpAddress");
   }
 
-  ngOnDestroy(): void {}
+  // async getConfigFile(){
+  //   this.configFile = await this.electronService.getConfigFile();
+  // }
+
+  // async getUrl(){
+  //   return `http://${await this.configFile.serverUrl}:${await this.configFile.serverPor}/graphql`
+  // }
+
+  // async getWs(){
+  //   return `ws://${await this.configFile.serverUrl}:${await this.configFile.serverPor}/subscriptions`
+  // }
+
+  ngOnDestroy(): void { }
 }

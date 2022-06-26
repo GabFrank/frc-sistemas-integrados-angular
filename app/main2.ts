@@ -32,20 +32,20 @@ export function createWindow(): BrowserWindow {
 
   const gotTheLock = app.requestSingleInstanceLock();
 
-  if (!gotTheLock) {
-    app.quit();
-  } else {
-    app.on("second-instance", (event, commandLine, workingDirectory) => {
-      // Someone tried to run a second instance, we should focus our window.
-      if (win) {
-        if (win.isMinimized()) win.restore();
-        win.focus();
-      }
-    });
+  // if (!gotTheLock) {
+  //   app.quit();
+  // } else {
+  //   app.on("second-instance", (event, commandLine, workingDirectory) => {
+  //     // Someone tried to run a second instance, we should focus our window.
+  //     if (win) {
+  //       if (win.isMinimized()) win.restore();
+  //       win.focus();
+  //     }
+  //   });
 
-    // Create myWindow, load the rest of the app, etc...
-    app.on("ready", () => { });
-  }
+  //   // Create myWindow, load the rest of the app, etc...
+  //   app.on("ready", () => { });
+  // }
 
   if (serve) {
     win.webContents.openDevTools();

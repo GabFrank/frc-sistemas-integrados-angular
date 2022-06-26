@@ -1,11 +1,37 @@
-import { app, BrowserWindow, screen, Menu } from "electron";
+import { app, BrowserWindow, screen, Menu, dialog } from "electron";
 import * as path from "path";
 import * as fs from "fs";
 import * as url from "url";
-const {ipcMain} = require('electron');
+import { autoUpdater } from "electron-updater"
 
-var appVersion = require('electron').remote.app.getVersion();
+const log = require('electron-log');
+const { readFileSync } = require('fs');
+const isDev = require('electron-is-dev');
+var home = app.getPath('home')
+var configPath = home + "/FRC/configuracion.json"
 
+if (process.platform == 'darwin') {
+  configPath = "/FRC/configuracion.json"
+}
+if (process.platform == 'win32') {
+  configPath = "C:\\FRC\\configuracion.json"
+}
+
+var configFile = JSON.parse(readFileSync(configPath));
+
+log.info(configFile)
+autoUpdater.logger = log
+autoUpdater.setFeedURL({
+  provider: 'github',
+  owner: 'GabFrank',
+  repo: configFile['repositoryUrl'],
+  private: false
+});
+
+
+
+
+const { ipcMain } = require('electron');
 
 
 // Initialize remote module
@@ -16,10 +42,12 @@ const args = process.argv.slice(1),
   serve = args.some((val) => val === "--serve");
 
 export async function createWindow(): Promise<BrowserWindow> {
+
+
   const electronScreen = screen;
   const size = electronScreen.getPrimaryDisplay().workAreaSize;
   let factor = screen.getPrimaryDisplay().scaleFactor;
-  console.log(appVersion);
+
 
   // Create the browser window.
   win = new BrowserWindow({
@@ -28,13 +56,14 @@ export async function createWindow(): Promise<BrowserWindow> {
     y: 0,
     width: 1024 / factor,
     height: 768 / factor,
-    icon: `${__dirname}/icons/logo.ico`,
+    icon: `file://${__dirname}/dist/assets/logo.ico`,
     webPreferences: {
+      webSecurity: false,
       zoomFactor: 1.0 / factor,
       nodeIntegration: true,
       allowRunningInsecureContent: serve ? true : false,
       contextIsolation: false, // false if you want to run e2e test with Spectron
-      enableRemoteModule: true, // true if you want to run e2e test with Spectron or use remote module in renderer context (ie. Angular)
+      // enableRemoteModule: true, // true if you want to run e2e test with Spectron or use remote module in renderer context (ie. Angular)
     },
   });
 
@@ -55,7 +84,7 @@ export async function createWindow(): Promise<BrowserWindow> {
   //   app.on("ready", () => { });
   // }
 
-  
+
 
   if (serve) {
     win.webContents.openDevTools();
@@ -92,7 +121,12 @@ export async function createWindow(): Promise<BrowserWindow> {
   return win;
 }
 
+ipcMain.on('get-config-file', (event, arg) => {
+  console.log(arg)
 
+  // Event emitter for sending asynchronous messages
+  event.sender.send('send-config-file', configFile)
+})
 
 try {
   // This method will be called when Electron has finished
@@ -100,6 +134,42 @@ try {
   // Some APIs can only be used after this event occurs.
   // Added 400 ms to fix the black background issue while using transparent window. More detais at https://github.com/electron/electron/issues/15947
   app.on("ready", () => {
+
+    if (!isDev) {
+      autoUpdater.checkForUpdatesAndNotify();
+      setInterval(() => {
+        log.info('Buscando actualizacion');
+        autoUpdater.checkForUpdatesAndNotify();
+      }, 100000)
+    }
+
+    autoUpdater.on('update-available', () => {
+      log.info('Actualizacion disponible, descargando...');
+    })
+
+    autoUpdater.on('update-not-available', () => {
+      log.info('No existen actualizaciones disponibles...');
+    })
+
+    autoUpdater.on('update-downloaded', (event, releaseNotes, releaseName) => {
+      const dialogOpts = {
+        type: 'info',
+        buttons: ['Reiniciar'],
+        title: 'Actualización disponible',
+        message: process.platform === 'win32' ? releaseNotes : releaseName,
+        detail: 'Una actualización fue encontrada y descargada. Reinicie el programa para instalarla.'
+      }
+
+      dialog.showMessageBox(dialogOpts).then((returnValue) => {
+        if (returnValue.response === 0) autoUpdater.quitAndInstall()
+      })
+    })
+
+    autoUpdater.on('error', message => {
+      console.error('There was a problem updating the application')
+      console.error(message)
+    })
+
     Menu.setApplicationMenu(
       Menu.buildFromTemplate([
         {
@@ -208,6 +278,15 @@ try {
             },
           ],
         },
+        {
+          role: 'about',
+          label: "Sobre",
+          submenu: [
+            {
+              label: app.getVersion(),
+            },
+          ],
+        },
       ])
     );
     setTimeout(createWindow, 400);
@@ -274,4 +353,6 @@ export function relaunchElectron() {
       })
     );
   }
+
+
 }
