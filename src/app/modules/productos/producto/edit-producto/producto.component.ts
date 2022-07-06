@@ -37,7 +37,7 @@ import { CodigoInput } from "../../codigo/codigo-input.model";
 import { PrecioPorSucursalInput } from "../../precio-por-sucursal/precio-por-sucursal-input.model";
 import { PrecioPorSucursalService } from "../../precio-por-sucursal/precio-por-sucursal.service";
 import { MainService } from "../../../../main.service";
-import { CurrencyMask } from "../../../../commons/core/utils/numbersUtils";
+import { CurrencyMask, updateDataSource } from "../../../../commons/core/utils/numbersUtils";
 import {
   NotificacionSnackbarService,
   NotificacionColor,
@@ -171,7 +171,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
   //codigo
   isEditingCodigo = false;
-  codigoDataSource = new MatTableDataSource<Codigo>(null);
+  codigoDataSource = new MatTableDataSource<Codigo>([]);
   codigosList: Codigo[] = [];
   selectedCodigo: Codigo;
   isPrincipal = false;
@@ -184,7 +184,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
   currency = new CurrencyMask();
   isEditingPrecio = false;
   precioList: PrecioPorSucursal[];
-  precioDataSource = new MatTableDataSource<PrecioPorSucursal>(null);
+  precioDataSource = new MatTableDataSource<PrecioPorSucursal>([]);
   codigoImagenQr = "";
   isCropping = false;
   isCodigoPrincipal = false;
@@ -276,7 +276,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
   cargarProducto(id) {
     this.productoService.getProducto(id).pipe(untilDestroyed(this)).subscribe((res) => {
-      console.log(res);
       this.selectedProducto = res;
       this.selectedSubfamilia = this.selectedProducto?.subfamilia;
       this.selectedFamilia = this.selectedSubfamilia?.familia;
@@ -337,7 +336,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
       //     this.precioDataSource.data = this.precioList;
       //   });
 
-      console.log("buscando presentaciones del producto", res.id);
 
       this.getPresentacionPorProductoId(res.id);
 
@@ -434,7 +432,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onProductoSave() {
-    console.log(!this.datosGeneralesControl.dirty)
     if (this.selectedProducto != null && !this.datosGeneralesControl.dirty) {
       //nada
     } else {
@@ -674,7 +671,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
               ).pipe(untilDestroyed(this))
               .subscribe((res2) => {
                 if (res2 != null) {
-                  console.log(res2);
                   let presentacionIndex =
                     this.presentacionesDataSource.data.findIndex(
                       (p) => p.id == this.selectedPresentacion.id
@@ -786,7 +782,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
     this.presentacionService
       .onGetPresentacionesPorProductoId(id).pipe(untilDestroyed(this))
       .subscribe((data) => {
-        console.log(data);
         this.presentacionesList = data.data.data;
         this.presentacionesDataSource.data = [...this.presentacionesList];
         this.isPresentacionLoading = false;
@@ -827,7 +822,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
       })
       .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
-        console.log(res);
         if (res?.id != null) {
           this.presentacionesList[
             this.presentacionesList.findIndex((p) => p.id == res.id)
@@ -843,7 +837,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
       this.codigoService
         .onGetCodigosPorPresentacionId(this.selectedPresentacion.id).pipe(untilDestroyed(this))
         .subscribe((res) => {
-          console.log(res);
           this.selectedPresentacionCodigoDataSource.data = res.data.data;
 
           this.precioPorSucursalService
@@ -851,7 +844,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
               this.selectedPresentacion.id
             ).pipe(untilDestroyed(this))
             .subscribe((res2) => {
-              console.log(res2);
               this.selectedPresentacionPrecioDataSource.data = res2.data.data;
             });
         });
@@ -895,7 +887,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
   //fin funciones de presentacion
 
   //adicionar codigo y precio
-  onAddCodigo() {
+  onAddCodigo(index?, presentacionIndex?) {    
     this.selectedPresentacion.producto = this.selectedProducto;
     let data = new AdicionarCodigoData();
     data.codigo = this.selectedCodigo;
@@ -909,8 +901,15 @@ export class ProductoComponent implements OnInit, OnDestroy {
       .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
-          this.getPresentacionPorProductoId(this.selectedProducto.id);
-
+          this.codigoDataSource.data = updateDataSource(this.codigoDataSource.data, res, index)
+          let presentacion = this.presentacionesDataSource.data[presentacionIndex];
+          if(res.principal){
+            presentacion.codigoPrincipal = res;
+            this.presentacionesDataSource.data = updateDataSource(this.presentacionesDataSource.data, presentacion, presentacionIndex)
+          } else if(presentacion?.codigoPrincipal!=null && presentacion?.codigoPrincipal?.id == res.id) {
+            presentacion.codigoPrincipal = null;
+            this.presentacionesDataSource.data = updateDataSource(this.presentacionesDataSource.data, presentacion, presentacionIndex)
+          }
           // let presentacionId = res.presentacion.id;
           // if (presentacionId != null) {
           //   let presentacionIndex =
@@ -936,9 +935,9 @@ export class ProductoComponent implements OnInit, OnDestroy {
       });
   }
 
-  onEditCodigo(codigo: Codigo) {
+  onEditCodigo(codigo: Codigo, i, presentacionIndex) {
     this.selectedCodigo = codigo;
-    this.onAddCodigo();
+    this.onAddCodigo(i, presentacionIndex);
   }
 
   onDeleteCodigo(codigo: Codigo, codigoIndex) {
@@ -951,7 +950,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
     // });
   }
 
-  onAddPrecio() {
+  onAddPrecio(index?, presentacionIndex?) {
     let data = new AdicionarPrecioPorSucursalData();
     data.precio = this.selectedPrecio;
     data.presentacion = this.selectedPresentacion;
@@ -964,7 +963,15 @@ export class ProductoComponent implements OnInit, OnDestroy {
       .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
-          this.getPresentacionPorProductoId(this.selectedProducto.id);
+          this.precioDataSource.data = updateDataSource(this.precioDataSource.data, res, index)
+          let presentacion = this.presentacionesDataSource.data[presentacionIndex];
+          if(res.principal){
+            presentacion.precioPrincipal = res;
+            this.presentacionesDataSource.data = updateDataSource(this.presentacionesDataSource.data, presentacion, presentacionIndex)
+          } else if(presentacion?.precioPrincipal!=null && presentacion?.precioPrincipal?.id == res.id) {
+            presentacion.precioPrincipal = null;
+            this.presentacionesDataSource.data = updateDataSource(this.presentacionesDataSource.data, presentacion, presentacionIndex)
+          }
           // let presentacionId = res.presentacion.id;
           // if (presentacionId != null) {
           //   let presentacionIndex =
@@ -987,10 +994,9 @@ export class ProductoComponent implements OnInit, OnDestroy {
       });
   }
 
-  onEditPrecio(precio: PrecioPorSucursal) {
-    console.log(precio);
+  onEditPrecio(precio: PrecioPorSucursal, i, presentacionIndex) {
     this.selectedPrecio = precio;
-    this.onAddPrecio();
+    this.onAddPrecio(i, presentacionIndex);
   }
 
   onDeletePrecio(precio: PrecioPorSucursal, precioIndex) {

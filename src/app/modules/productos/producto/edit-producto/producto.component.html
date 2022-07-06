@@ -762,7 +762,7 @@
               <th mat-header-cell *matHeaderCellDef style="width: 5%"></th>
               <td
                 mat-cell
-                *matCellDef="let element"
+                *matCellDef="let element; let i = dataIndex"
                 style="width: 5%; text-align: center"
                 (click)="
                   selectedPresentacion == expandedPresentacion
@@ -774,6 +774,10 @@
                   <mat-icon>more_vert</mat-icon>
                 </button>
                 <mat-menu #menu="matMenu" xPosition="before">
+                  <!-- <button mat-menu-item (click)="onActualizar(element, i)">
+                    <mat-icon style="color: red">clear</mat-icon>
+                    <span>Eliminar</span>
+                  </button> -->
                   <button
                     mat-menu-item
                     (click)="onPresentacionRowClick(element)"
@@ -787,12 +791,12 @@
                   </button>
                   <button
                     mat-menu-item
-                    (click)="selectedCodigo = null; onAddCodigo()"
+                    (click)="selectedCodigo = null; onAddCodigo(i, presentacionIndex)"
                   >
                     <mat-icon>add_circle_outline</mat-icon>
                     <span>Código</span>
                   </button>
-                  <button mat-menu-item (click)="onAddPrecio()">
+                  <button mat-menu-item (click)="onAddPrecio(i, presentacionIndex)">
                     <mat-icon>add_circle_outline</mat-icon>
                     <span>Precio</span>
                   </button>
@@ -815,7 +819,7 @@
             <ng-container matColumnDef="expandedDetail">
               <td
                 mat-cell
-                *matCellDef="let element"
+                *matCellDef="let element; let presentacionIndex = dataIndex"
                 [attr.colspan]="presentacionColumnsToDisplay.length"
               >
                 <div
@@ -836,7 +840,7 @@
                       <table
                         mat-table
                         #codigoTable
-                        [dataSource]="element?.codigos"
+                        [dataSource]="codigoDataSource"
                         class="mat-elevation-z8"
                         style="background-color: rgb(43, 43, 43)"
                       >
@@ -902,8 +906,8 @@
                         ></tr>
                         <tr
                           mat-row
-                          *matRowDef="let row; columns: codigoColumnsToDisplay"
-                          (click)="onEditCodigo(row)"
+                          *matRowDef="let row; columns: codigoColumnsToDisplay; let codigoIndex = index"
+                          (click)="onEditCodigo(row, codigoIndex, presentacionIndex)"
                         ></tr>
                       </table>
                       <br />
@@ -912,7 +916,7 @@
                           mat-fab
                           color="primary"
                           aria-label="adicionar codigo"
-                          (click)="selectedCodigo = null; onAddCodigo()"
+                          (click)="selectedCodigo = null; onAddCodigo(null, presentacionIndex)"
                           type="button"
                         >
                           <mat-icon>add</mat-icon>
@@ -925,7 +929,7 @@
                       </div>
                       <table
                         mat-table
-                        [dataSource]="element?.precios"
+                        [dataSource]="precioDataSource"
                         class="mat-elevation-z8"
                         style="background-color: rgb(43, 43, 43)"
                       >
@@ -986,8 +990,8 @@
                         ></tr>
                         <tr
                           mat-row
-                          *matRowDef="let row; columns: precioColumnsToDisplay"
-                          (click)="onEditPrecio(row)"
+                          *matRowDef="let row; columns: precioColumnsToDisplay; let precioIndex = index"
+                          (click)="onEditPrecio(row, precioIndex, presentacionIndex)"
                         ></tr>
                       </table>
                       <br />
@@ -996,7 +1000,7 @@
                           mat-fab
                           color="primary"
                           aria-label="adicionar codigo"
-                          (click)="selectedPrecio = null; onAddPrecio()"
+                          (click)="selectedPrecio = null; onAddPrecio(null, presentacionIndex)"
                           type="button"
                         >
                           <mat-icon>add</mat-icon>
@@ -1072,7 +1076,9 @@
               (click)="
                 expandedPresentacion =
                   expandedPresentacion === element ? null : element;
-                onPresentacionSelect(expandedPresentacion)
+                onPresentacionSelect(expandedPresentacion);
+                codigoDataSource.data = element.codigos;
+                precioDataSource.data = element.precios;
               "
             ></tr>
             <tr

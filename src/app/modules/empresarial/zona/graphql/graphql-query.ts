@@ -9,7 +9,7 @@ export const zonasQuery = gql
       }
       descripcion
       activo
-      creadoEn
+      
       usuario{
         id
       }
@@ -25,7 +25,7 @@ export const zonasSearch = gql
       }
       descripcion
       activo
-      creadoEn
+      
       usuario{
         id
       }
@@ -41,7 +41,7 @@ export const zonaQuery = gql
       }
       descripcion
       activo
-      creadoEn
+      
       usuario{
         id
       }
@@ -58,7 +58,7 @@ export const saveZona = gql
         }
         descripcion
         activo
-        creadoEn
+    
         usuario{
           id
         }

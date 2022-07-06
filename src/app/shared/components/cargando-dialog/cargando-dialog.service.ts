@@ -27,7 +27,6 @@ export class CargandoDialogService {
 
   openDialog(disable?: boolean, texto?: string) {
     this.dialogCount++;
-    console.log('abriendo: ', this.dialogCount)
     if (this.dialogCount == 1) {
       this.spinner.show(texto)
     }
@@ -35,7 +34,6 @@ export class CargandoDialogService {
 
   closeDialog() {
     this.dialogCount--;
-    console.log('saliendo: ', this.dialogCount)
     if (this.dialogCount == 0) {
       setTimeout(() => {
         this.spinner.hide()

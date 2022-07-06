@@ -15,8 +15,8 @@ export class Presentacion {
     creadoEn: Date
     imagenPrincipal: string
     usuario: Usuario
-    codigos: Codigo[];
-    precios: PrecioPorSucursal[];
+    codigos: Codigo[] = []
+    precios: PrecioPorSucursal[] = []
     codigoPrincipal?: Codigo
     precioPrincipal?: PrecioPorSucursal;
 }

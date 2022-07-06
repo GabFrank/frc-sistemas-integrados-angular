@@ -76,6 +76,7 @@ export class ListUsuarioComponent implements OnInit {
         usuario
       },
       width: '60%',
+      height: '75%'
     })
   }
 

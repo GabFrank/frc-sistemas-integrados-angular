@@ -7,12 +7,16 @@ import { NgxMaskModule } from 'ngx-mask';
 import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
 import { InventarioModule } from '../operaciones/inventario/inventario.module';
+import { AdicionarZonaDialogComponent } from './zona/adicionar-zona-dialog/adicionar-zona-dialog.component';
+import { AdicionarSectorDialogComponent } from './sector/adicionar-sector-dialog/adicionar-sector-dialog.component';
 
 
 
 @NgModule({
   declarations: [
-    ListSectorComponent
+    ListSectorComponent,
+    AdicionarZonaDialogComponent,
+    AdicionarSectorDialogComponent
   ],
   imports: [
     CommonModule,

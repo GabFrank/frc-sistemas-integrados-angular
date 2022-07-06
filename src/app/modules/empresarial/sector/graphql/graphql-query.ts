@@ -1,7 +1,7 @@
 import gql from 'graphql-tag';
 
 export const sectoresQuery = gql
-`query($id: ID!){
+  `query($id: ID!){
   data : sectores(id: $id){
     id
     sucursal {
@@ -16,6 +16,7 @@ export const sectoresQuery = gql
     zonaList {
       id
       descripcion
+      activo
     }
   }
 }`
@@ -36,6 +37,7 @@ export const sectoresSearch = gql
       zonaList {
         id
         descripcion
+        activo
       }
     }
   }`
@@ -56,6 +58,7 @@ export const sectorQuery = gql
       zonaList {
         id
         descripcion
+        activo
       }
     }
   }`
@@ -77,6 +80,7 @@ export const saveSector = gql
       zonaList {
         id
         descripcion
+        activo
       }
       }
     }`

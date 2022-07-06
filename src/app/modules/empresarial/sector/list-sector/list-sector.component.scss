@@ -5,3 +5,33 @@ table {
 tr.example-detail-row {
   height: 0;
 }
+
+.example-element-row:hover {
+  background-color: rgb(34, 34, 34);
+}
+
+.example-element-detail {
+    overflow: hidden;
+    display: flex;
+}
+
+.example-element-detail:hover {
+  background-color: rgb(32, 32, 32);
+}
+
+td, th {
+  text-align: center !important;
+}
+th {
+  text-align: center !important;
+}
+
+mat-column-expandedDetail {
+  padding: 0px !important;
+}
+
+.heightLight {
+  background-color: rgb(0, 143, 64);
+  box-shadow: 0 4px 8px rgb(43, 155, 93);
+}
+

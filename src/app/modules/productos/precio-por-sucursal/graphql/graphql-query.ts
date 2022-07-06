@@ -45,8 +45,11 @@ export const savePrecioPorSucursal = gql`
       }
       tipoPrecio {
         id
+        descripcion
       }
       precio
+      activo
+      principal
     }
   }
 `;
