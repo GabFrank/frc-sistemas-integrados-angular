@@ -39,7 +39,7 @@ export class MainService implements OnDestroy {
   hasInternetAccess: boolean;
   ipLocal = "";
   logged = false;
-  serverIpAddres = ipAddress;
+  serverIpAddres = environment['serverIp'];
   authSub;
   isServidor = false;
   private updateService: ActualizacionService;

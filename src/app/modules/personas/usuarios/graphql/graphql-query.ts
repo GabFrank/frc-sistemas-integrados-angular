@@ -1,21 +1,17 @@
 import gql from "graphql-tag";
 
 export const usuariosQuery = gql`
-  {
-    usuario {
+query ($page: Int){
+  data: usuarios(page: $page) {
       id
       nickname
+      activo
       persona {
         id
         nombre
+        telefono
       }
-      password
       creadoEn
-      usuario {
-        persona {
-          nombre
-        }
-      }
     }
   }
 `;
@@ -25,11 +21,11 @@ export const usuariosSearch = gql`
     data: usuarioSearch(texto: $texto) {
       id
       nickname
+      activo
       persona {
         id
         nombre
       }
-      password
       creadoEn
       usuario {
         persona {
@@ -45,11 +41,11 @@ export const usuarioQuery = gql`
     data: usuario(id: $id) {
       id
       nickname
+      activo
       persona {
         id
         nombre
       }
-      password
       creadoEn
       usuario {
         persona {
@@ -66,11 +62,11 @@ export const usuarioPorPersonaIdQuery = gql`
     data: usuarioPorPersonaId(id: $id) {
       id
       nickname
+      activo
       persona {
         id
         nombre
       }
-      password
       creadoEn
       usuario {
         persona {
@@ -87,11 +83,11 @@ export const saveUsuario = gql`
     data: saveUsuario(usuario: $entity) {
       id
       nickname
+      activo
       persona {
         id
         nombre
       }
-      password
       creadoEn
       usuario {
         persona {

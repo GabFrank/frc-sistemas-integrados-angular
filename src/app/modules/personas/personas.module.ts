@@ -20,6 +20,7 @@ import { ListFuncioarioComponent } from './funcionarios/list-funcioario/list-fun
 import { ListPreRegistroFuncionarioComponent } from './funcionarios/list-pre-registro-funcionario/list-pre-registro-funcionario.component';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { FuncionarioDashboardComponent } from './funcionarios/funcionario-dashboard/funcionario-dashboard.component';
+import { PersonasDashboardComponent } from './personas-dashboard/personas-dashboard.component';
 
 
 @NgModule({
@@ -37,7 +38,8 @@ import { FuncionarioDashboardComponent } from './funcionarios/funcionario-dashbo
     AdicionarFuncionarioDialogComponent, 
     ListPreRegistroFuncionarioComponent, 
     FuncionarioWizardComponent,
-    FuncionarioDashboardComponent
+    FuncionarioDashboardComponent,
+    PersonasDashboardComponent
   ],
   imports: [
     CommonModule,

@@ -1,5 +1,16 @@
 {
-    "serverUrl": "150.136.137.98",
-    "serverPort": "8081",
-    "repositoryUrl": "https://github.com/GabFrank/franco-system-frontend-general.git"
+    "serverUrl": "localhost",
+    "serverPort": "8082",
+    "repositoryUrl": "https://github.com/GabFrank/franco-system-frontend-general.git",
+    "sucursales": [
+        {
+            "url": "172.25.0.3",
+            "nombre": "Katuete 2"
+        },
+        {
+            "url": "172.25.0.21",
+            "nombre": "Puente Kyjha 1"
+        }
+    ],
+    "sucursalesPort": "8082"
 }

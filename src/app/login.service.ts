@@ -47,7 +47,7 @@ export class LoginService {
       };
       let httpResponse = this.http
         .post(
-          `http://${serverAdress.serverIp}:${serverAdress.serverPort}/login`,
+          `http://${environment['serverIp']}:${environment['serverPort']}/login`,
           httpBody,
           this.httpOptions
         )

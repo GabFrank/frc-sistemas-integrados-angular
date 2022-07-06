@@ -11,6 +11,7 @@ export class Usuario  {
   usuario: Usuario;
   roles: string[];
   avatar: string;
+  activo: boolean;
 
   toInput(): UsuarioInput {
     let input = new UsuarioInput;
@@ -18,8 +19,8 @@ export class Usuario  {
     input.personaId = this.persona?.id
     input.password = this.password
     input.nickname = this.nickname
-    input.creadoEn = this.creadoEn
     input.usuarioId = this.usuario?.id
+    input.activo = this.activo
     return input;
   }
 }

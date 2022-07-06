@@ -21,76 +21,67 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 })
 export class AdicionarUsuarioDialogComponent implements OnInit {
 
-  selectedUsuario: Usuario;
+  selectedUsuario = new Usuario;
   nicknameControl = new FormControl(null, Validators.required)
-  passwordControl = new FormControl(null, [Validators.required, Validators.minLength(3)])
-  hidePassword = true;
+  activoControl = new FormControl(true)
+
   formGroup: FormGroup;
-  isEditing = false;
+  isEditar = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarUsuarioDialogData,
     private matDialogRef: MatDialogRef<AdicionarUsuarioDialogComponent>,
     private usuarioService: UsuarioService
-  ) { 
-    if(data?.usuario != null){
-      this.selectedUsuario = data.usuario;
-      this.setState('view')
-    }
+  ) {
+
   }
 
   ngOnInit(): void {
+
+    this.formGroup = new FormGroup({
+      'nickname': this.nicknameControl,
+      'activo': this.activoControl
+    })
+
+    if (this.data?.usuario != null) {
+      this.selectedUsuario = this.data.usuario;
+    } else if (this.data?.personaId != null) {
+      this.usuarioService.onGetUsuarioPorPersonaId(this.data?.personaId)
+        .pipe(untilDestroyed(this))
+        .subscribe(res => {
+          console.log(res)
+          if (res != null) {
+            Object.assign(this.selectedUsuario, res);
+            this.cargarDatos()
+          }
+        })
+    }
   }
 
-  onSave(){
-    let input = new UsuarioInput;
-    if(this.selectedUsuario!=null){
-      input.id = this.selectedUsuario.id;
-      input.creadoEn = this.selectedUsuario.creadoEn;
-      input.usuarioId = this.selectedUsuario.usuario.id
-    }
-    input.personaId = this.data.personaId;
-    input.nickname = this.nicknameControl.value;
-    input.password = this.passwordControl.value;
-    this.usuarioService.onSaveUsuario(input).pipe(untilDestroyed(this)).subscribe(res => {
-      if(res!=null){
+  cargarDatos() {
+    this.nicknameControl.setValue(this.selectedUsuario.nickname)
+    this.activoControl.setValue(this.selectedUsuario.activo)
+    this.formGroup.disable()
+  }
+
+  onSave() {
+    this.selectedUsuario.nickname = this.nicknameControl.value
+    this.selectedUsuario.activo = this.activoControl.value
+    this.usuarioService.onSaveUsuario(this.selectedUsuario.toInput()).pipe(untilDestroyed(this)).subscribe(res => {
+      if (res != null) {
         this.selectedUsuario = res;
         this.matDialogRef.close(this.selectedUsuario)
       }
     })
   }
 
-  onCancel(){
+  onCancel() {
     this.matDialogRef.close();
   }
 
-  setState(state){
-    switch (state) {
-      case 'view':
-        this.isEditing = false;
-        this.nicknameControl.disable()
-        this.passwordControl.disable()
-        this.nicknameControl.setValue(this.selectedUsuario.nickname)
-        this.passwordControl.setValue(this.selectedUsuario.password)
-        this.hidePassword = true;
-        break;
-      case 'edit':
-        this.isEditing = true;
-        this.nicknameControl.enable()
-        this.passwordControl.enable()
-        this.hidePassword = true;
-        break;
-      case 'reset':
-        this.isEditing = true;
-        this.nicknameControl.setValue(null)
-        this.passwordControl.setValue(null)
-        this.nicknameControl.enable()
-        this.passwordControl.enable()
-        this.hidePassword = true;
-        break;
-      default:
-        break;
-    }
+  onEnable() {
+    this.isEditar = true;
+    this.formGroup.enable()
   }
 
 }

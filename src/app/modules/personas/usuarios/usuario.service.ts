@@ -16,6 +16,7 @@ import { Observable } from "rxjs";
 import { DeleteUsuarioGQL } from "./graphql/deleteUsuario";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { VerificarUsuarioGQL } from "./graphql/verificarUsuario";
+import { UsuariosGQL } from "./graphql/usuariosQuery";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -33,10 +34,15 @@ export class UsuarioService {
     private notificacionBar: NotificacionSnackbarService,
     private deleteUsuario: DeleteUsuarioGQL,
     private injector: Injector,
-    private verificarUsuario: VerificarUsuarioGQL
+    private verificarUsuario: VerificarUsuarioGQL,
+    private getUsuarios: UsuariosGQL
   ) // private mainService: MainService
   {
     setTimeout(() => this.genericService = injector.get(GenericCrudService));
+  }
+
+  onGetUsuarios(page): Observable<Usuario[]>{
+    return this.genericService.onGetAll(this.getUsuarios, page)
   }
 
   onGetUsuario(id: number): Observable<any> {
@@ -62,54 +68,11 @@ export class UsuarioService {
   }
 
   onGetUsuarioPorPersonaId(id: number): Observable<any> {
-    return new Observable((obs) => {
-      this.getUsuarioPorPersonaId
-        .fetch(
-          {
-            id,
-          },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        ).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res?.errors == null) {
-            obs.next(res?.data.data);
-          } else {
-            obs.next(res.errors);
-          }
-        });
-    });
+    return this.genericService.onGetById(this.getUsuarioPorPersonaId, id)
   }
 
   onSeachUsuario(texto: string): Observable<Usuario[]> {
-    if (texto != null || texto != "") {
-      return new Observable((obs) => {
-        this.searchUsuario
-          .fetch(
-            {
-              texto: texto.toUpperCase(),
-            },
-            {
-              fetchPolicy: "no-cache",
-              errorPolicy: "all",
-            }
-          )
-          .pipe(untilDestroyed(this))
-          .subscribe((res) => {
-            if (res.errors == null) {
-              obs.next(res.data);
-            } else {
-              this.notificacionBar.notification$.next({
-                texto: "Ups! algo salio mal: " + res.errors[0].message,
-                color: NotificacionColor.danger,
-                duracion: 3,
-              });
-            }
-          });
-      });
-    }
+    return this.genericService.onGetByTexto(this.searchUsuario, texto)
   }
 
   onSaveUsuario(input: UsuarioInput): Observable<any> {

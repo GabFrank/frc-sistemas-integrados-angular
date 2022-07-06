@@ -9,7 +9,7 @@ import { Sucursal } from "./sucursal.model";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { HttpClient, HttpHeaders } from "@angular/common/http";
-import { serverAdress } from "../../../../environments/environment";
+import { environment, serverAdress } from "../../../../environments/environment";
 import { SucursalActualGQL } from "./graphql/sucursalActual";
 
 @UntilDestroy({ checkProperties: true })
@@ -88,7 +88,7 @@ export class SucursalService {
       };
       let httpResponse = this.http
         .post(
-          `http://${serverAdress.serverIp}:${serverAdress.serverPort}/sucursales`,
+          `http://${environment['serverIp']}:${environment['serverPort']}/sucursales`,
           httpBody,
           this.httpOptions
         )

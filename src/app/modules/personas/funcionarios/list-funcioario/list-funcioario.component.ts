@@ -35,7 +35,7 @@ export class ListFuncioarioComponent implements OnInit {
   dataSource = new MatTableDataSource<Funcionario>([]);
   expandedFuncionario: Funcionario;
   displayedColumns: string[] = ['id', 'nombre', 'sucursal', 'cargo', 'supervisadoPor', 'telefono', 'nickname', 'acciones'];
-  page = 0;
+  page = -1;
   isLastPage = false;
   isSearching = false;
 
@@ -47,11 +47,7 @@ export class ListFuncioarioComponent implements OnInit {
    }
 
   ngOnInit(): void {
-    console.log(this.windowInfoService.innerHeight*0.9)
-    this.service.onGetAllFuncionarios().pipe(untilDestroyed(this)).subscribe(res => {
-      console.log(res)
-      this.dataSource.data = res;
-    })
+    this.cargarMasDatos()
   }
 
   rowSelectedEvent(e){

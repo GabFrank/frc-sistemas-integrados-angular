@@ -18,7 +18,7 @@ import { DeletePreRegistroFuncionarioGQL } from "./graphql/graphql-pre-funcionar
 import { PreRegistroFuncionarioByIdGQL } from "./graphql/graphql-pre-funcionario/preRegistroFuncionarioById";
 import { PreRegistroFuncionariosGQL } from "./graphql/graphql-pre-funcionario/preRegistroFuncionariosQuery";
 import { SavePreRegistroFuncionarioGQL } from "./graphql/graphql-pre-funcionario/savePreRegistroFuncionario";
-import { serverAdress } from '../../../../environments/environment';
+import { environment, serverAdress } from '../../../../environments/environment';
 import { PreRegistroFuncionario } from './pre-registro-funcionario.model';
 
 @UntilDestroy({ checkProperties: true })
@@ -110,7 +110,7 @@ export class FuncionarioService {
 
     return new Observable(obs => {
       this.http.post<PreRegistroFuncionario>(
-        `http://${serverAdress.serverIp}:${serverAdress.serverPort}/config/pre-registro`,
+        `http://${environment['serverIp']}:${environment['serverPort']}/config/pre-registro`,
         input,
         httpOptions
       ).pipe(untilDestroyed(this)).subscribe(res => {

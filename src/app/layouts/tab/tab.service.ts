@@ -15,6 +15,9 @@ import { ProductoComponent } from '../../modules/productos/producto/edit-product
 import { Producto } from '../../modules/productos/producto/producto.model';
 import { ProductoService } from '../../modules/productos/producto/producto.service';
 import { ListActualizacionComponent } from '../../modules/configuracion/actualizacion/list-actualizacion/list-actualizacion.component';
+import { ListUsuarioComponent } from '../../modules/personas/usuarios/list-usuario/list-usuario.component';
+import { PersonasDashboardComponent } from '../../modules/personas/personas-dashboard/personas-dashboard.component';
+import { ListPersonaComponent } from '../../modules/personas/persona/list-persona/list-persona.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -48,8 +51,8 @@ export class TabService {
 
     this.tabs = [
     // new Tab(ListFuncioarioComponent, 'Lista de funcionarios', null, null),
-    // new Tab(ListPreRegistroFuncionarioComponent, 'List de solicitudes', null, null),
-    // new Tab(ListActualizacionComponent, 'Actualizaciones', null, null),
+    // new Tab(ListPersonaComponent, 'Lista de personas', null, null),
+    // new Tab(ListUsuarioComponent, 'Lista de usuarios', null, null),
     ];
     this.tabSub.next(this.tabs);
 

@@ -1,14 +1,11 @@
 table {
-  width: 60%;
+  width: 100%;
 }
 
-.mat-header-cell {
-  flex-direction: column;
-  text-align: center;
-  justify-content: center;
+tr.example-detail-row {
+  height: 0;
 }
 
-.mat-cell {
-  text-align: center;
-  justify-content:center;
+input {
+    text-transform: uppercase;
 }

@@ -21,6 +21,10 @@ import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { LoginComponent } from '../../../modules/login/login.component';
 import { TipoEntidad } from '../../../generics/tipo-entidad.enum';
 import { QrData, QrCodeComponent } from '../../qr-code/qr-code.component';
+import { Actualizacion } from '../../../modules/configuracion/actualizacion/actualizacion.model';
+import { ActualizacionService } from '../../../modules/configuracion/actualizacion/actualizacion.service';
+import { ConfiguracionService } from '../../../modules/configuracion/configuracion.service';
+import { ConfigurarServidorDialogComponent } from '../../../modules/configuracion/configurar-servidor-dialog/configurar-servidor-dialog.component';
 // import { ApolloConfigService } from '../../../apollo-config.service';
 
 @UntilDestroy({ checkProperties: true })
@@ -46,7 +50,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private router: Router,
     private tabService: TabService,
     private electronService: ElectronService,
-    private loginService: LoginService
+    private loginService: LoginService,
+    private actualizacionService: ActualizacionService,
+    private configService: ConfiguracionService
   ) {
     // mainService.statusSub.subscribe(res => {
     //   console.log(res)
@@ -101,19 +107,19 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.statusSub.unsubscribe();
   }
 
-  onSearch(){
+  onSearch() {
     this.matDialog.open(SearchBarDialogComponent, {
       data: null,
       width: '70%'
     })
   }
 
-  removeServer(){
+  removeServer() {
     // this.apolloService.removeClient()
     // this.apolloService.connectClient()
   }
 
-  createQrCode(){
+  createQrCode() {
     let codigo: QrData = {
       'sucursalId': this.mainService.sucursalActual.id,
       'tipoEntidad': TipoEntidad.SUCURSAL,
@@ -121,6 +127,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
       'idCentral': null,
       'componentToOpen': null
     }
+    console.log(this.mainService.sucursalActual)
     this.matDialog.open(QrCodeComponent, {
       data: {
         codigo: codigo,
@@ -130,4 +137,19 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
     })
   }
+
+  onGetConfiguracion() {
+    this.configService.isConfigured()
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        if (!res) {
+          this.matDialog.open(ConfigurarServidorDialogComponent, {
+            width: "80%",
+            height: "500px",
+            disableClose: true
+          })
+        }
+      })
+  }
+
 }

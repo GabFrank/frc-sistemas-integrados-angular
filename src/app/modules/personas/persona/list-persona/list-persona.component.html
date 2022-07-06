@@ -1,0 +1,172 @@
+<app-generic-list
+  [data]="dataSource.data"
+  (cargarMasDatos)="cargarMasDatos()"
+  [isLastPage]="isLastPage || isSearching"
+  (filtrar)="onFiltrar()"
+  (adicionar)="onAddPersona()"
+  [isAdicionar]="true"
+  titulo="Lista de personas"
+>
+  <div filtros>
+    <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px" style="width: 100%;">
+      <div fxFlex="50%">
+        <mat-form-field style="width: 90%;">
+          <mat-label>Nombre o alias</mat-label>
+          <input #buscar type="text" matInput [formControl]="buscarControl" (keyup.enter)="onFiltrar()">
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+  <div table>
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      multiTemplateDataRows
+      class="mat-elevation-z8"
+      style="width: 100%"
+    >
+      <ng-container matColumnDef="id" style="width: 5%">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 5%"
+        >
+          Id
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let persona"
+          style="text-align: center; width: 5%"
+        >
+          {{ persona?.id }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="nombre">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Nombre
+        </th>
+        <td mat-cell *matCellDef="let persona" style="text-align: center">
+          {{ persona?.nombre | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="apodo">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Alias
+        </th>
+        <td mat-cell *matCellDef="let persona" style="text-align: center">
+          {{ persona?.apodo | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="telefono">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Teléfono
+        </th>
+        <td mat-cell *matCellDef="let persona" style="text-align: center">
+          {{ persona?.persona?.telefono }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="documento">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Documento/Ruc
+        </th>
+        <td mat-cell *matCellDef="let persona" style="text-align: center">
+          {{ persona?.documento }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="nacimiento">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Fecha de nacimiento
+        </th>
+        <td mat-cell *matCellDef="let persona" style="text-align: center">
+          {{ persona?.nacimiento | date: 'shortDate' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="creadoEn">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Creado en
+        </th>
+        <td mat-cell *matCellDef="let persona" style="text-align: center">
+          {{ persona?.creadoEn | date: "short" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 5%; text-align: center"
+        >
+          ...
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let persona; let i = index"
+          style="text-align: center; width: 5%"
+        >
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onAddPersona(persona, i)">
+              Editar datos
+            </button>
+            <button mat-menu-item (click)="irA('usuario', persona)">
+              {{persona?.isUsuario ? 'Ir a usuario' : 'Crear usuario'}}
+            </button>
+            <button mat-menu-item (click)="irA('cliente', persona)">
+              {{persona?.isCliente ? 'Ir a cliente' : 'Crear cliente'}}
+            </button>
+            <button mat-menu-item (click)="irA('funcionario', persona)">
+              {{persona?.isFuncionario ? 'Ir a funcionario' : 'Crear funcionario'}}
+            </button>
+            <button mat-menu-item (click)="irA('proveedor', persona)">
+              {{persona?.isProveedor ? 'Ir a proveedor' : 'Crear proveedor'}}
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <mat-divider></mat-divider>
+
+      <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let persona"
+          [attr.colspan]="displayedColumns.length"
+          class="expanded"
+        >
+          <div
+            class="example-persona-detail"
+            [@detailExpand]="
+              persona == expandedPersona ? 'expanded' : 'collapsed'
+            "
+            style="text-align: center"
+            fxLayout="column"
+            fxLayoutAlign="start start"
+          ></div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: ['expandedDetail']"
+        class="example-detail-row"
+      ></tr>
+    </table>
+  </div>
+</app-generic-list>

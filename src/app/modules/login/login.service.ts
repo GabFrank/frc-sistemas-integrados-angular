@@ -39,7 +39,7 @@ export class LoginService {
         password: password,
       };
       let httpResponse = this.http
-        .post(`http://${serverAdress.serverIp}:${serverAdress.serverPort}/login`, httpBody, this.httpOptions)
+        .post(`http://${environment['serverIp']}:${environment['serverPort']}/login`, httpBody, this.httpOptions)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res["token"] != null) {

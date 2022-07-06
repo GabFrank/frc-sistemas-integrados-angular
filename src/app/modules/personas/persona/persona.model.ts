@@ -21,6 +21,7 @@ export class Persona  {
   isFuncionario: boolean
   isCliente: boolean
   isProveedor: boolean
+  isUsuario: boolean
 
   toInput(): PersonaInput {
     let input = new PersonaInput;

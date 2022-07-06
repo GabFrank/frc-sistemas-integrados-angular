@@ -9,8 +9,7 @@
       >
         <div fxFlex="30%" fxLayout="row" fxLayoutAlign="center center">
           <p fxFlex>
-            Vamos a verificar si la conexión con el servidor esta correctamente
-            configurada.
+            Vamos a limpiar todos los datos de la base de datos. Esto borrará todos los registros.
           </p>
         </div>
 
@@ -34,8 +33,8 @@
           >
         </div>
         <div fxFlex="30" fxLayout="row" fxLayoutAlign="center center">
-          <button fxFlex mat-raised-button (click)="onVerificar()">
-            Verificar
+          <button *ngIf="!verificado && !verificando" fxFlex mat-raised-button (click)="onVerificar()">
+            Inicializar base de datos
           </button>
         </div>
       </div>

@@ -14,6 +14,7 @@ import { PersonaPorIdGQL } from "./graphql/personaPorId";
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { DeletePersonaGQL } from "./graphql/deletePersona";
+import { PersonasGQL } from "./graphql/personasQuery";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -24,37 +25,18 @@ export class PersonaService {
     private searchPersona: PersonaSearchGQL,
     private notificacionBar: NotificacionSnackbarService,
     private savePersonna: SavePersonaGQL,
-    private mainService: MainService,
     private getPersona: PersonaPorIdGQL,
     private genericService: GenericCrudService,
-    private deletePersona: DeletePersonaGQL
+    private deletePersona: DeletePersonaGQL,
+    private getPersonas: PersonasGQL
   ) {}
 
+  onGetAll(page): Observable<Persona[]>{
+    return this.genericService.onGetAll(this.getPersonas, page)
+  }
+
   onSearch(texto): Observable<Persona[]> {
-    console.log("buscando ", texto);
-    return new Observable((obs) => {
-      this.searchPersona
-        .fetch(
-          {
-            texto,
-          },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        ).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data.data);
-          } else {
-            this.notificacionBar.notification$.next({
-              texto: `Ups! Algo salió mal. ${res.errors[0].message}`,
-              color: NotificacionColor.danger,
-              duracion: 4,
-            });
-          }
-        });
-    });
+    return this.genericService.onGetByTexto(this.searchPersona, texto)
   }
 
   onSavePersona(input: PersonaInput): Observable<any> {
@@ -62,30 +44,7 @@ export class PersonaService {
   }
 
   onGetPersona(id): Observable<Persona> {
-    return new Observable((obs) => {
-      this.getPersona
-        .fetch(
-          {
-            id,
-          },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        ).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data.data);
-          } else {
-            this.notificacionBar.notification$.next({
-              texto: `Ups! Algo salió mal. ${res.errors[0].message}`,
-              color: NotificacionColor.danger,
-              duracion: 4,
-            });
-            obs.next(null);
-          }
-        });
-    });
+    return this.genericService.onGetById(this.getPersona, id)
   }
 
   onDeletePersona(id): Observable<boolean> {

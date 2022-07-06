@@ -46,15 +46,18 @@ var log = require('electron-log');
 var readFileSync = require('fs').readFileSync;
 var isDev = require('electron-is-dev');
 var home = electron_1.app.getPath('home');
-var configPath = home + "/FRC/configuracion.json";
-if (process.platform == 'darwin') {
-    configPath = "/FRC/configuracion.json";
+var configPath;
+if (isDev) {
+    configPath = "./../configuracion.json";
 }
-if (process.platform == 'win32') {
-    configPath = "C:\\FRC\\configuracion.json";
+else if (process.platform == 'darwin') {
+    configPath = "./../configuracion.json";
+}
+else if (process.platform == 'win32') {
+    configPath = ".\\..\\configuracion.json";
 }
 var configFile = JSON.parse(readFileSync(configPath));
-log.info(configFile);
+var sucursales = configFile['sucursales'];
 electron_updater_1.autoUpdater.logger = log;
 electron_updater_1.autoUpdater.setFeedURL({
     provider: 'github',
@@ -147,6 +150,7 @@ try {
     // Some APIs can only be used after this event occurs.
     // Added 400 ms to fix the black background issue while using transparent window. More detais at https://github.com/electron/electron/issues/15947
     electron_1.app.on("ready", function () {
+        electron_1.dialog.showOpenDialog(win, { title: 'hola que paso' });
         if (!isDev) {
             electron_updater_1.autoUpdater.checkForUpdatesAndNotify();
             setInterval(function () {
@@ -289,7 +293,7 @@ try {
                         label: electron_1.app.getVersion(),
                     },
                 ],
-            },
+            }
         ]));
         setTimeout(createWindow, 400);
     });

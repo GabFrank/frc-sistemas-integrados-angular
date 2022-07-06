@@ -89,3 +89,8 @@ export const deleteActualizacionQuery = gql
   ` mutation deleteActualizacion($id: ID!){
       deleteActualizacion(id: $id)
     }`
+
+    export const pingQuery = gql
+    `query($id: ID!){
+      data : ping(id: $id)
+    }`

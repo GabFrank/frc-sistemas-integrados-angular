@@ -11,6 +11,7 @@ import { Actualizacion, TipoActualizacion } from './actualizacion.model';
 import { ActualizacionByIdGQL } from './graphql/actualizacionById';
 import { ActualizacionesGQL } from './graphql/actualizacionQuery';
 import { DeleteActualizacionGQL } from './graphql/deleteActualizacion';
+import { PingGQL } from './graphql/pingQuery';
 import { SaveActualizacionGQL } from './graphql/saveActualizacion';
 import { ultimaActualizacionGQL } from './graphql/ultimaActualizacion';
 import { UpdateWizardComponent } from './update-wizard/update-wizard.component';
@@ -33,8 +34,13 @@ export class ActualizacionService {
     private deleteActualizacion: DeleteActualizacionGQL,
     private cargandoService: CargandoDialogService,
     private dialogoService: DialogosService,
-    private matDialog: MatDialog
+    private matDialog: MatDialog,
+    private getPing: PingGQL
   ) { }
+
+  onGetPing(){
+    return this.crudService.onGetById(this.getPing, 1)
+  }
 
   onGetAll(): Observable<Actualizacion[]> {
     return this.crudService.onGetAll(this.getAllActualizaciones)

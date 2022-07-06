@@ -13,3 +13,6 @@ RUN apt-get install sudo
 
 ADD general_costanera_v1.sql /docker-entrypoint-initdb.d/
 
+# docker run --name frc-server -v "C:\FRC\docker\pg-data:/var/lib/postgresql/data" -p 5551:5432 --restart=always -d frc-server
+
+

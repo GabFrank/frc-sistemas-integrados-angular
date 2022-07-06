@@ -92,6 +92,7 @@ export class InventarioProductoItem {
   zona: Zona;
   presentacion: Presentacion; 
   cantidad: number;
+  cantidadFisica: number;
   vencimiento: Date;
   usuario: Usuario;
   estado: InventarioProductoEstado
@@ -104,6 +105,7 @@ export class InventarioProductoItem {
     input.zonaId = this.zona?.id
     input.presentacionId = this.presentacion?.id
     input.cantidad = this.cantidad
+    input.cantidadFisica = this.cantidadFisica
     input.vencimiento = this.vencimiento
     input.estado = this.estado
     input.usuarioId = this.usuario?.id
@@ -120,6 +122,7 @@ export class InventarioProductoItemInput {
   zonaId: number;
   presentacionId: any; //presentacion
   cantidad: number;
+  cantidadFisica: number;
   vencimiento: Date; //vencimiento que el sistema le va a indicar, si no existe crear vencimiento
   estado: InventarioProductoEstado
   usuarioId: number;

@@ -3,7 +3,7 @@ import { Injectable } from "@angular/core";
 import { untilDestroyed } from "@ngneat/until-destroy";
 import { Subscription } from "apollo-angular";
 import { Observable } from "rxjs";
-import { serverAdress } from "../../../environments/environment";
+import { environment, serverAdress } from "../../../environments/environment";
 import { SincEstadoGQL } from "./graphql/sinc-estado-sub";
 
 @Injectable({
@@ -28,7 +28,7 @@ export class ConfiguracionService {
       };
       let httpResponse = this.http
         .post(
-          `http://${serverAdress.serverIp}:${serverAdress.serverPort}/config/sucursales`,
+          `http://${environment['serverIp']}:${environment['serverPort']}/config/sucursales`,
           httpBody,
           this.httpOptions
         )
@@ -51,7 +51,7 @@ export class ConfiguracionService {
       };
       let httpResponse = this.http
         .post(
-          `http://${serverAdress.serverIp}:${serverAdress.serverPort}/config/verificar`,
+          `http://${environment['serverIp']}:${environment['serverPort']}/config/verificar`,
           httpBody,
           this.httpOptions
         )
@@ -74,7 +74,7 @@ export class ConfiguracionService {
       };
       let httpResponse = this.http
         .post(
-          `http://${serverAdress.serverIp}:${serverAdress.serverPort}/config/solicitardb`,
+          `http://${environment['serverIp']}:${environment['serverPort']}/config/solicitardb`,
           httpBody,
           this.httpOptions
         )
@@ -97,7 +97,7 @@ export class ConfiguracionService {
       };
       let httpResponse = this.http
         .post(
-          `http://${serverAdress.serverIp}:${serverAdress.serverPort}/config/isconfigured`,
+          `http://${environment['serverIp']}:${environment['serverPort']}/config/isconfigured`,
           httpBody,
           this.httpOptions
         )

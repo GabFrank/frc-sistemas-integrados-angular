@@ -6,45 +6,26 @@
         {{ selectedUsuario?.persona.nombre | titlecase }}
       </h3>
     </div>
-    <div fxFlex>
-      <mat-form-field style="width: 90%" class="form-element">
-        <mat-label>Nickname</mat-label>
-        <input
-          type="text"
-          matInput
-          placeholder="Nickname"
-          [formControl]="nicknameControl"
-        />
-      </mat-form-field>
-      <mat-error *ngIf="nicknameControl.invalid && nicknameControl.touched">
-        <h6>Este campo es obligatorio.</h6>
-      </mat-error>
-    </div>
-
-    <div fxFlex fxLayout="row" fxLayoutAlign="start center">
+    <div fxFlex fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
       <div fxFlex="50%">
-        <mat-form-field
-          style="width: 90%"
-          class="form-element"
-        >
-          <input
-            [type]="!hidePassword ? 'text' : 'password'"
-            matInput
-            placeholder="Password"
-            [formControl]="passwordControl"
-          />
+        <mat-form-field style="width: 90%" class="form-element">
+          <mat-label>Nombre de usuario</mat-label>
+          <input type="text" matInput [formControl]="nicknameControl" />
         </mat-form-field>
-        <mat-error *ngIf="passwordControl.invalid && passwordControl.touched">
+        <mat-error *ngIf="nicknameControl.invalid && nicknameControl.touched">
           <h6>Este campo es obligatorio.</h6>
         </mat-error>
       </div>
-      <div fxFlex="10%">
-        <mat-icon *ngIf="!hidePassword" (click)="hidePassword = true" style="cursor: pointer;"
-          >password</mat-icon
-        >
-        <mat-icon *ngIf="hidePassword" (click)="hidePassword = false" style="cursor: pointer;"
-          >visibility</mat-icon
-        >
+      <div fxFlex="50%" style="text-align: center;">
+        <section>
+          <mat-slide-toggle
+            color="primary"
+            [checked]="activoControl.value"
+            [formControl]="activoControl"
+          >
+            {{ activoControl.value ? "Activo" : "Inactivo" }}
+          </mat-slide-toggle>
+        </section>
       </div>
     </div>
 
@@ -70,28 +51,14 @@
       </div>
       <div fxFlex="30">
         <button
-          *ngIf="isEditing"
           style="width: 100%"
           mat-raised-button
           color="accent"
-          [disabled]="!(nicknameControl.valid && passwordControl.valid)"
+          [disabled]="formGroup.invalid"
           type="button"
-          (click)="onSave()"
+          (click)="isEditar ? onSave() : onEnable()"
         >
-          Guardar
-        </button>
-      </div>
-      <div fxFlex="30">
-        <button
-          *ngIf="!isEditing"
-          style="width: 100%"
-          mat-raised-button
-          color="accent"
-          [disabled]="!(nicknameControl.valid && passwordControl.valid)"
-          type="button"
-          (click)="onSave()"
-        >
-          Guardar
+          {{ isEditar ? "Guardar" : "Editar" }}
         </button>
       </div>
     </div>

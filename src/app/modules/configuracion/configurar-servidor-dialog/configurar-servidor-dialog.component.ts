@@ -63,10 +63,12 @@ export class ConfigurarServidorDialogComponent implements OnInit {
 
   onVerificar() {
     this.verificando = true;
+    this.sincronizando = true;
     this.configService.onVerificarConexion().subscribe((res) => {
-      if (res != null) {
+      if (res) {
         this.verificado = res;
         this.verificando = false;
+        this.sincronizando = false;
         this.verificadoControl.setValue(true);
       }
     });

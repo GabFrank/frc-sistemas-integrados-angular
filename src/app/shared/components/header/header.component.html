@@ -16,7 +16,6 @@
       <span style="padding-left: 20px" fxFlex
         >BODEGA FRANCO
         {{ mainService?.sucursalActual?.nombre | uppercase }}</span
-        
       >
     </div>
 
@@ -33,15 +32,14 @@
         </button>
         <mat-menu #menuServerIp="matMenu">
           <div style="padding: 5px">
-            <div style="text-align: center">
-              <button
-                mat-raised-button
-                color="success"
-                (click)="createQrCode()"
-              >
-                QR de la sucursal
-              </button>
-            </div>
+            <button mat-flat-button color="success" (click)="createQrCode()">
+              QR de la sucursal
+            </button>
+          </div>
+          <div style="padding: 5px">
+            <button mat-flat-button color="success" (click)="onGetConfiguracion()">
+              Configurar BD
+            </button>
           </div>
         </mat-menu>
       </li>

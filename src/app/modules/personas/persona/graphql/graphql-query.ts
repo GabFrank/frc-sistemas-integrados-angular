@@ -1,8 +1,8 @@
 import gql from "graphql-tag";
 
 export const personasQuery = gql`
-  {
-    personas {
+query ($page: Int) {
+    data: personas(page: $page) {
       id
       nombre
       apodo
@@ -22,6 +22,7 @@ export const personasQuery = gql`
       isFuncionario
       isCliente
       isProveedor
+      isUsuario
     }
   }
 `;
@@ -48,6 +49,7 @@ export const personasSearch = gql`
       isFuncionario
       isCliente
       isProveedor
+      isUsuario
     }
   }
 `;
@@ -74,6 +76,7 @@ export const personaQuery = gql`
       isFuncionario
       isCliente
       isProveedor
+      isUsuario
     }
   }
 `;
@@ -100,6 +103,7 @@ export const savePersona = gql`
       isFuncionario
       isCliente
       isProveedor
+      isUsuario
     }
   }
 `;

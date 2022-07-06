@@ -8,18 +8,19 @@ const log = require('electron-log');
 const { readFileSync } = require('fs');
 const isDev = require('electron-is-dev');
 var home = app.getPath('home')
-var configPath = home + "/FRC/configuracion.json"
+var configPath;
 
-if (process.platform == 'darwin') {
-  configPath = "/FRC/configuracion.json"
-}
-if (process.platform == 'win32') {
-  configPath = "C:\\FRC\\configuracion.json"
+if (isDev) {
+  configPath = "./../configuracion.json"
+} else if (process.platform == 'darwin') {
+  configPath = "./../configuracion.json"
+} else if (process.platform == 'win32') {
+  configPath = ".\\..\\configuracion.json"
 }
 
 var configFile = JSON.parse(readFileSync(configPath));
+let sucursales = configFile['sucursales'];
 
-log.info(configFile)
 autoUpdater.logger = log
 autoUpdater.setFeedURL({
   provider: 'github',
@@ -134,7 +135,7 @@ try {
   // Some APIs can only be used after this event occurs.
   // Added 400 ms to fix the black background issue while using transparent window. More detais at https://github.com/electron/electron/issues/15947
   app.on("ready", () => {
-
+    dialog.showOpenDialog(win, { title: 'hola que paso' })
     if (!isDev) {
       autoUpdater.checkForUpdatesAndNotify();
       setInterval(() => {
@@ -286,7 +287,7 @@ try {
               label: app.getVersion(),
             },
           ],
-        },
+        }
       ])
     );
     setTimeout(createWindow, 400);
