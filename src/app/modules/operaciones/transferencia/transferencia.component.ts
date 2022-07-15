@@ -2,6 +2,7 @@ import { EditTransferenciaComponent } from './edit-transferencia/edit-transferen
 import { TabService } from './../../../layouts/tab/tab.service';
 import { Component, OnInit } from '@angular/core';
 import { Tab } from '../../../layouts/tab/tab.model';
+import { ListTransferenciaComponent } from './list-transferencia/list-transferencia.component';
 
 @Component({
   selector: 'app-transferencia',
@@ -17,7 +18,7 @@ export class TransferenciaComponent implements OnInit {
   }
 
   onListTransferencias(){
-
+    this.tabService.addTab(new Tab(ListTransferenciaComponent, 'Lista de transferencias', null, TransferenciaComponent))
   }
 
   onNuevaTransferencia(){

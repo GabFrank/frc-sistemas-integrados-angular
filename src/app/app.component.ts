@@ -104,7 +104,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.matDialog.open(LoginComponent, {
       width: "500px",
       height: "500px",
-      disableClose: true,
+      disableClose: false,
     }).afterClosed().subscribe(res => {
       if(!res){
         this.configService.isConfigured()

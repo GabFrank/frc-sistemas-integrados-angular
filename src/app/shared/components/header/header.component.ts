@@ -39,7 +39,7 @@ import { isDevMode } from '@angular/core';
   styleUrls: ["./header.component.scss"],
 })
 export class HeaderComponent implements OnInit, OnDestroy {
-  isDev = isDevMode;
+  isDev = isDevMode();
   isLocalhost = localStorage.getItem('ip') == 'localhost';
   status = false;
   statusObs: Observable<any>;
@@ -97,6 +97,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.mainService.usuarioActual = null;
     this.mainService.logged = false;
     this.tabService.removeAllTabs()
+    this.electronService.relaunch()
+  }
+
+  onLogin(){
     this.electronService.relaunch()
   }
 

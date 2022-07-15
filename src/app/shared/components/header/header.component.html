@@ -10,7 +10,7 @@
       fxLayoutAlign="start center"
       fxLayoutGap="20px"
     >
-      <button fxFlex mat-icon-button (click)="toogleSideBar()">
+      <button fxFlex mat-icon-button (click)="toogleSideBar()" [disabled]="!status">
         <mat-icon style="font-size: 2em">menu</mat-icon>
       </button>
       <span style="padding-left: 20px" fxFlex
@@ -32,12 +32,12 @@
         </button>
         <mat-menu #menuServerIp="matMenu">
           <div style="padding: 5px">
-            <button mat-flat-button color="success" (click)="createQrCode()">
+            <button mat-flat-button color="success" (click)="createQrCode()" [disabled]="!status">
               QR de la sucursal
             </button>
           </div>
           <div *ngIf="mainService.usuarioActual?.roles.includes(ROLES.SOPORTE)" style="padding: 5px">
-            <button mat-flat-button color="success" (click)="onGetConfiguracion()">
+            <button mat-flat-button color="success" (click)="onGetConfiguracion()" [disabled]="!status">
               Configurar BD
             </button>
           </div>
@@ -45,12 +45,12 @@
         </mat-menu>
       </li>
       <li>
-        <button mat-icon-button>
+        <button mat-icon-button [disabled]="!status">
           <mat-icon (click)="onSearch()">search</mat-icon>
         </button>
       </li>
       <li fxFlex>
-        <button fxFlex="25" mat-button [matMenuTriggerFor]="menu">
+        <button fxFlex="25" mat-button [matMenuTriggerFor]="menu" [disabled]="!status">
           <mat-icon *ngIf="mainService?.usuarioActual?.persona == null" fxFlex
             >person_outline</mat-icon
           >
@@ -61,8 +61,9 @@
             {{ mainService.usuarioActual.persona.nombre | titlecase }}
           </div>
         </button>
-        <mat-menu #menu="matMenu">
-          <button mat-menu-item (click)="onLogout()">Salir</button>
+        <mat-menu #menu="matMenu" >
+          <button mat-menu-item (click)="onLogout()" *ngIf="mainService?.usuarioActual?.persona != null" [disabled]="!status">Salir</button>
+          <button mat-menu-item (click)="onLogin()" *ngIf="mainService?.usuarioActual?.persona == null" [disabled]="!status">Entrar</button>
         </mat-menu>
       </li>
 

@@ -103,7 +103,6 @@ Sucursal Destino: {{selectedSucursalDestino?.nombre}} -->
             fxLayout="row"
             style="width: 100%"
             fxLayoutAlign="start center"
-            *ngIf="mainService?.sucursalActual?.id!=0"
             (click)="onQrClick()"
           >
             <div fxFlex="70">Generar QR</div>
