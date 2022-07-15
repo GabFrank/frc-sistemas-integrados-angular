@@ -6,12 +6,12 @@ import { Usuario } from '../usuario.model';
 import { UsuarioService } from '../usuario.service';
 
 export class AdicionarUsuarioDialogData {
-  personaId: number;
+  persona: Persona;
   usuario: Usuario;
-  isEditar = false;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { Persona } from '../../persona/persona.model';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -22,39 +22,32 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 export class AdicionarUsuarioDialogComponent implements OnInit {
 
   selectedUsuario = new Usuario;
+  selectedPersona: Persona;
   nicknameControl = new FormControl(null, Validators.required)
   activoControl = new FormControl(true)
-
   formGroup: FormGroup;
-  isEditar = false;
+  isEditting = false;
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: AdicionarUsuarioDialogData,
-    private matDialogRef: MatDialogRef<AdicionarUsuarioDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) private data: AdicionarUsuarioDialogData,
+    private dialogRef: MatDialogRef<AdicionarUsuarioDialogComponent>,
     private usuarioService: UsuarioService
-  ) {
-
-  }
+  ) { }
 
   ngOnInit(): void {
-
+    console.log(this.data);
+    
     this.formGroup = new FormGroup({
-      'nickname': this.nicknameControl,
-      'activo': this.activoControl
+      nickname: this.nicknameControl,
+      activo: this.activoControl
     })
 
-    if (this.data?.usuario != null) {
-      this.selectedUsuario = this.data.usuario;
-    } else if (this.data?.personaId != null) {
-      this.usuarioService.onGetUsuarioPorPersonaId(this.data?.personaId)
-        .pipe(untilDestroyed(this))
-        .subscribe(res => {
-          console.log(res)
-          if (res != null) {
-            Object.assign(this.selectedUsuario, res);
-            this.cargarDatos()
-          }
-        })
+    if (this.data.usuario != null) {
+      Object.assign(this.selectedUsuario, this.data.usuario)
+      this.selectedPersona = this.selectedUsuario.persona;
+      this.cargarDatos()
+    } else {
+      this.isEditting = true
     }
   }
 
@@ -64,24 +57,22 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
     this.formGroup.disable()
   }
 
+  onCancel() {
+    this.dialogRef.close(null)
+  }
+
   onSave() {
     this.selectedUsuario.nickname = this.nicknameControl.value
     this.selectedUsuario.activo = this.activoControl.value
-    this.usuarioService.onSaveUsuario(this.selectedUsuario.toInput()).pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) {
-        this.selectedUsuario = res;
-        this.matDialogRef.close(this.selectedUsuario)
-      }
-    })
-  }
-
-  onCancel() {
-    this.matDialogRef.close();
-  }
-
-  onEnable() {
-    this.isEditar = true;
-    this.formGroup.enable()
+    this.selectedUsuario.persona = this.selectedPersona;
+    this.selectedUsuario.password = '123';
+    this.usuarioService.onSaveUsuario(this.selectedUsuario.toInput())
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        if (res != null) {
+          this.dialogRef.close(res)
+        }
+      })
   }
 
 }

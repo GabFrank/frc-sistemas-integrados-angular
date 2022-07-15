@@ -25,6 +25,11 @@ import { Actualizacion } from '../../../modules/configuracion/actualizacion/actu
 import { ActualizacionService } from '../../../modules/configuracion/actualizacion/actualizacion.service';
 import { ConfiguracionService } from '../../../modules/configuracion/configuracion.service';
 import { ConfigurarServidorDialogComponent } from '../../../modules/configuracion/configurar-servidor-dialog/configurar-servidor-dialog.component';
+import { environment } from '../../../../environments/environment';
+import { DialogosService } from '../dialogos/dialogos.service';
+import { ROLES } from '../../../modules/personas/roles/roles.enum';
+import { isDevMode } from '@angular/core';
+
 // import { ApolloConfigService } from '../../../apollo-config.service';
 
 @UntilDestroy({ checkProperties: true })
@@ -34,13 +39,16 @@ import { ConfigurarServidorDialogComponent } from '../../../modules/configuracio
   styleUrls: ["./header.component.scss"],
 })
 export class HeaderComponent implements OnInit, OnDestroy {
+  isDev = isDevMode;
+  isLocalhost = localStorage.getItem('ip') == 'localhost';
   status = false;
   statusObs: Observable<any>;
   serverIpAddress = "";
   editServerIp = false;
   serverIpControl = new FormControl();
   statusSub: Subscription;
-
+  sucursalList: any[]
+  readonly ROLES = ROLES;
   @Output() toogleSideBarEvent: EventEmitter<any> = new EventEmitter();
 
   constructor(
@@ -52,12 +60,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private electronService: ElectronService,
     private loginService: LoginService,
     private actualizacionService: ActualizacionService,
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private dialogoService: DialogosService
   ) {
-    // mainService.statusSub.subscribe(res => {
-    //   console.log(res)
-    //   this.status = res;
-    // })
   }
 
   ngOnInit(): void {
@@ -66,6 +71,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
       .subscribe((res) => {
         this.status = res;
       });
+
+    this.sucursalList = environment['sucursales']
+
   }
 
   toogleSideBar() {
@@ -89,16 +97,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.mainService.usuarioActual = null;
     this.mainService.logged = false;
     this.tabService.removeAllTabs()
-    window.location.href = '';
-    // this.matDialog.open(LoginComponent, {
-    //   width: "500px",
-    //   height: "500px",
-    //   disableClose: true,
-    // }).afterClosed().subscribe(res => {
-    //   if(!res){
-    //     console.log(res)
-    //   }
-    // });lo
+    this.electronService.relaunch()
   }
 
   ngOnDestroy(): void {
@@ -150,6 +149,24 @@ export class HeaderComponent implements OnInit, OnDestroy {
           })
         }
       })
+  }
+
+  cambiarSucursal(sucursal) {
+    if (sucursal != null) {
+      this.dialogoService.confirm('Atención!!', 'Realmente quieres cambiar de sucursal?').subscribe(res => {
+        if (res) {
+          localStorage.setItem('ip', sucursal['ip'])
+          localStorage.setItem('port', sucursal['port'])
+          this.electronService.relaunch()
+        }
+      })
+    }
+  }
+
+  onDevMode(server) {
+    localStorage.setItem('ip', 'localhost')
+    localStorage.setItem('port', server ? '8081' : '8082')
+    this.electronService.relaunch()
   }
 
 }

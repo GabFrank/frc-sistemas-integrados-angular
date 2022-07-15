@@ -9,7 +9,8 @@
     "!*.map",
     "!package.json",
     "!package-lock.json"
-    ],
+  ],
+  "extraFiles": ["configuracion.json"],
   "extraResources": [
     {
       "from": "dist",

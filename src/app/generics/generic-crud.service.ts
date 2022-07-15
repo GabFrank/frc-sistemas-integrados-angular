@@ -27,12 +27,12 @@ export class GenericCrudService {
     private cargandoService: CargandoDialogService
   ) { }
 
-  onGetAll(gql: Query, page?): Observable<any> {
+  onGetAll(gql: Query, page?, size?): Observable<any> {
     this.isLoading = true;
     this.cargandoService.openDialog(false, 'Buscando...')
     return new Observable((obs) => {
       gql
-        .fetch({ page }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
+        .fetch({ page, size }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.cargandoService.closeDialog()
           this.isLoading = false

@@ -4,13 +4,34 @@
     "repositoryUrl": "https://github.com/GabFrank/franco-system-frontend-general.git",
     "sucursales": [
         {
-            "url": "172.25.0.3",
-            "nombre": "Katuete 2"
+            "id": 0,
+            "nombre": "Servidor",
+            "ip": "150.136.137.98",
+            "port": "8081"
         },
         {
-            "url": "172.25.0.21",
-            "nombre": "Puente Kyjha 1"
+            "id": 1,
+            "nombre": "Central",
+            "ip": "172.25.0.11",
+            "port": "8082"
+        },
+        {
+            "id": 6,
+            "nombre": "Calle 10",
+            "ip": "172.25.0.190",
+            "port": "8082"
+        },
+        {
+            "id": 10,
+            "nombre": "Katuete 2",
+            "ip": "172.25.0.3",
+            "port": "8082"
+        },
+        {
+            "id": 11,
+            "nombre": "Puente Kyjha 1",
+            "ip": "172.25.0.21",
+            "port": "8082"
         }
-    ],
-    "sucursalesPort": "8082"
+    ]
 }

@@ -15,7 +15,7 @@
       </button>
       <span style="padding-left: 20px" fxFlex
         >BODEGA FRANCO
-        {{ mainService?.sucursalActual?.nombre | uppercase }}</span
+        {{ mainService?.sucursalActual?.nombre | uppercase }} {{ isDev && isLocalhost ? 'DEV' : null}}</span
       >
     </div>
 
@@ -36,11 +36,12 @@
               QR de la sucursal
             </button>
           </div>
-          <div style="padding: 5px">
+          <div *ngIf="mainService.usuarioActual?.roles.includes(ROLES.SOPORTE)" style="padding: 5px">
             <button mat-flat-button color="success" (click)="onGetConfiguracion()">
               Configurar BD
             </button>
           </div>
+          <button mat-menu-item [matMenuTriggerFor]="sucursales">Cambiar sucursal</button>
         </mat-menu>
       </li>
       <li>
@@ -67,7 +68,7 @@
 
       <mat-card>
         <div fxLayout="column" fxLayoutAlign="center center">
-          <div fxFlex="10" style="font-size: 0.5em">Status</div>
+          <div fxFlex="10" style="font-size: 0.5em">Servidor</div>
           <div
             *ngIf="status == true"
             fxFlex="10"
@@ -96,3 +97,12 @@
     </ul>
   </mat-toolbar-row>
 </mat-toolbar>
+
+
+<mat-menu #sucursales="matMenu">
+  <a mat-menu-item *ngIf="isDev" (click)="onDevMode(true)">Dev server</a>
+  <a mat-menu-item *ngIf="isDev" (click)="onDevMode(false)">Dev sucursal</a>
+  <a  *ngFor="let sucursal of sucursalList" [class.selected]="sucursal?.id == this.mainService?.sucursalActual?.id" mat-menu-item (click)="sucursal?.id != this.mainService?.sucursalActual?.id || isDev ? cambiarSucursal(sucursal) : null">
+    {{sucursal?.id}} - {{sucursal?.nombre}}
+  </a>
+</mat-menu>

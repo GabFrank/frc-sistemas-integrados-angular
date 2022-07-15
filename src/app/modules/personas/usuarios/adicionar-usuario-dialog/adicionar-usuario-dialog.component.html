@@ -1,66 +1,59 @@
-<div class="container">
-  <div fxLayout="column" fxFlexAlign="start center" style="width: 100%">
-    <div fxFlex style="width: 100%; text-align: center">
-      <h3 *ngIf="selectedUsuario == null">Nuevo Usuario</h3>
-      <h3 *ngIf="selectedUsuario != null">
-        {{ selectedUsuario?.persona.nombre | titlecase }}
-      </h3>
-    </div>
-    <div fxFlex fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
-      <div fxFlex="50%">
-        <mat-form-field style="width: 90%" class="form-element">
-          <mat-label>Nombre de usuario</mat-label>
-          <input type="text" matInput [formControl]="nicknameControl" />
-        </mat-form-field>
-        <mat-error *ngIf="nicknameControl.invalid && nicknameControl.touched">
-          <h6>Este campo es obligatorio.</h6>
-        </mat-error>
+<div>
+  <form [formGroup]="formGroup">
+    <div fxLayout="column" fxLayoutAlign="start">
+      <div fxFlex style="width: 100%; text-align: center">
+        <h3 *ngIf="selectedUsuario?.id != null">Editar Usuario</h3>
+        <h3 *ngIf="selectedUsuario?.id == null">Nuevo Usuario</h3>
       </div>
-      <div fxFlex="50%" style="text-align: center;">
-        <section>
-          <mat-slide-toggle
-            color="primary"
-            [checked]="activoControl.value"
-            [formControl]="activoControl"
+      <div fxFlex fxLayout="row" fxLayoutGap="20px">
+        <div fxFlex="50%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Nombre de usuario</mat-label>
+            <input
+              #nombreInput
+              type="text"
+              matInput
+              formControlName="nickname"
+              autocomplete="off"
+              oninput="this.value == ' ' ? this.value = '': null"
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="50%" fxLayout="row" fxLayoutAlign="center center">
+          <mat-label fxFlex="30">Activo</mat-label>
+          <mat-slide-toggle fxFlex="30" formControlName="activo">{{
+            activoControl.value == true ? "Si" : "No"
+          }}</mat-slide-toggle>
+        </div>
+      </div>
+      <br />
+      <div fxFlex fxLayout="row">
+        <div fxFlex="50%" style="text-align: center">
+          <button
+            style="width: 70%"
+            mat-raised-button
+            [color]="isEditting ? 'accent' : 'primary'"
+            [disabled]="isEditting ? !formGroup.valid : false"
+            (click)="
+              isEditting ? onSave() : (isEditting = true);
+              formGroup.enable();
+              nombreInput.focus()
+            "
           >
-            {{ activoControl.value ? "Activo" : "Inactivo" }}
-          </mat-slide-toggle>
-        </section>
+            {{ isEditting ? "Guardar" : "Editar" }}
+          </button>
+        </div>
+        <div fxFlex="50%" style="text-align: center">
+          <button
+            style="width: 70%"
+            mat-raised-button
+            color="primary"
+            (click)="onCancel()"
+          >
+            Cancelar
+          </button>
+        </div>
       </div>
     </div>
-
-    <br />
-
-    <div
-      fxFlex
-      fxLayout="row"
-      fxLayoutAlign="center center"
-      fxLayoutGap="20px"
-      style="width: 100%"
-    >
-      <div fxFlex="30">
-        <button
-          style="width: 100%"
-          mat-raised-button
-          color="primary"
-          type="button"
-          (click)="onCancel()"
-        >
-          Cancelar
-        </button>
-      </div>
-      <div fxFlex="30">
-        <button
-          style="width: 100%"
-          mat-raised-button
-          color="accent"
-          [disabled]="formGroup.invalid"
-          type="button"
-          (click)="isEditar ? onSave() : onEnable()"
-        >
-          {{ isEditar ? "Guardar" : "Editar" }}
-        </button>
-      </div>
-    </div>
-  </div>
+  </form>
 </div>

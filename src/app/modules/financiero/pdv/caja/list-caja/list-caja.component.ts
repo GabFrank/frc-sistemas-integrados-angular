@@ -28,6 +28,7 @@ import { PdvCaja, PdvCajaEstado } from "../caja.model";
 import { CajaService } from "../caja.service";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { MostrarBalanceDialogComponent } from "../mostrar-balance-dialog/mostrar-balance-dialog.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -97,12 +98,12 @@ export class ListCajaComponent implements OnInit {
     private tabService: TabService,
     private ventaService: VentaService,
     private searchMaletin: SearchMaletinGQL
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     let hoy = new Date()
     let aux = new Date()
-    aux.setDate(hoy.getDate()-2)
+    aux.setDate(hoy.getDate() - 2)
 
     this.fechaInicioControl.setValue(aux)
     this.fechaFinalControl.setValue(hoy)
@@ -115,7 +116,7 @@ export class ListCajaComponent implements OnInit {
       fin: this.fechaFinalControl,
     });
 
-    
+
 
     this.onBuscar()
   }
@@ -134,14 +135,14 @@ export class ListCajaComponent implements OnInit {
   }
 
   onFilter() {
-    if(this.codigoControl.valid){
+    if (this.codigoControl.valid) {
       this.fechaInicioControl.setValue(null)
       this.fechaFinalControl.setValue(null)
       this.cajaService.onGetById(this.codigoControl.value).pipe(untilDestroyed(this)).subscribe(res => {
-        if(res!=null){
+        if (res != null) {
           this.dataSource.data = []
           this.dataSource.data = updateDataSource(this.dataSource.data, res);
-        } 
+        }
       })
     } else {
       this.cajaService.onGetByDate(this.fechaInicioControl.value, this.fechaFinalControl.value).pipe(untilDestroyed(this)).subscribe((res) => {
@@ -150,10 +151,10 @@ export class ListCajaComponent implements OnInit {
         }
       });
     }
-    
+
   }
 
-  onResetFilter() {}
+  onResetFilter() { }
 
   irVentas(caja: PdvCaja) {
     let data = new TabData();
@@ -168,7 +169,7 @@ export class ListCajaComponent implements OnInit {
     );
   }
 
-  onCondigoEnter() {}
+  onCondigoEnter() { }
 
   onProductoSearch() {
     this.matDialog
@@ -185,7 +186,7 @@ export class ListCajaComponent implements OnInit {
       });
   }
 
-  onCajeroSearch() {}
+  onCajeroSearch() { }
 
   onSelectProducto(producto: Producto) {
     this.selectedProducto = producto;
@@ -200,22 +201,22 @@ export class ListCajaComponent implements OnInit {
     this.lastValue = this.activoControl.value;
   }
 
-  onProductoEnter() {}
+  onProductoEnter() { }
 
-  onCajeroEnter() {}
+  onCajeroEnter() { }
 
-  onBuscar(){
+  onBuscar() {
     this.ventaService
       .onGetVentasPorPeriodo("2022-03-01T00:00:00", "2022-03-03T00:00:00").pipe(untilDestroyed(this))
       .subscribe((res) => {
       });
   }
 
-  onMaletinSearch(){
+  onMaletinSearch() {
     let data: SearchListtDialogData = {
       titulo: 'Buscar caja',
-      tableData: [{id:'id', nombre: 'Id', width: '5%'}, {id: 'descripcion', nombre: 'Descripción', width: '50%'}, {id: 'abierto', nombre: 'Abierto', width: '22%'}],
-      query:this.searchMaletin,
+      tableData: [{ id: 'id', nombre: 'Id', width: '5%' }, { id: 'descripcion', nombre: 'Descripción', width: '50%' }, { id: 'abierto', nombre: 'Abierto', width: '22%' }],
+      query: this.searchMaletin,
       inicialSearch: true
     }
     this.matDialog.open(SearchListDialogComponent, {
@@ -223,20 +224,35 @@ export class ListCajaComponent implements OnInit {
       height: '80vh',
       width: '70vw'
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      if(res!=null){
+      if (res != null) {
         this.onSelectMaletin(res);
       }
     })
   }
 
-  onSelectMaletin(maletin: Maletin){
+  onSelectMaletin(maletin: Maletin) {
     this.codigoMaletinControl.setValue(maletin.id)
     this.maletinControl.setValue(maletin.descripcion)
     this.selectedMaletin = maletin;
   }
 
-  cargarMasDatos(){
-    
+  cargarMasDatos() {
+
+  }
+
+  getBalance() {
+    this.cajaService.onGetBalanceByDate(this.fechaInicioControl.value, this.fechaFinalControl.value)
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        if (res != null) {
+          this.matDialog.open(MostrarBalanceDialogComponent, {
+            data: {
+              balance: res
+            },
+            width: '50%'
+          })
+        }
+      })
   }
 }
 

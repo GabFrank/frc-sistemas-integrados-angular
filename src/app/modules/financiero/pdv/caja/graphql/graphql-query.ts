@@ -52,6 +52,17 @@ export const cajasPorFecha = gql`
   }
 `;
 
+export const balancePorFecha = gql`
+  query ($inicio: String, $fin: String) {
+    data: balancePorFecha(inicio: $inicio, fin: $fin) {
+      totalVentaGs
+      totalVentaRs
+      totalVentaDs
+      totalTarjeta
+    }
+  }
+`;
+
 // export const cajasSearch = gql`
 //   query ($texto: String) {
 //     cajas: cajasSearch(texto: $texto) {

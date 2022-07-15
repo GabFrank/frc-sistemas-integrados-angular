@@ -791,12 +791,12 @@
                   </button>
                   <button
                     mat-menu-item
-                    (click)="selectedCodigo = null; onAddCodigo(i, presentacionIndex)"
+                    (click)="selectedCodigo = null; onAddCodigo(null, i)"
                   >
                     <mat-icon>add_circle_outline</mat-icon>
                     <span>Código</span>
                   </button>
-                  <button mat-menu-item (click)="onAddPrecio(i, presentacionIndex)">
+                  <button mat-menu-item (click)="onAddPrecio(null, i)">
                     <mat-icon>add_circle_outline</mat-icon>
                     <span>Precio</span>
                   </button>

@@ -12,6 +12,8 @@ import { EditTransferenciaComponent } from '../../../modules/operaciones/transfe
 import { ListTransferenciaComponent } from '../../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
 import { FuncionarioDashboardComponent } from '../../../modules/personas/funcionarios/funcionario-dashboard/funcionario-dashboard.component';
 import { ListActualizacionComponent } from '../../../modules/configuracion/actualizacion/list-actualizacion/list-actualizacion.component';
+import { ListCajaComponent } from '../../../modules/financiero/pdv/caja/list-caja/list-caja.component';
+import { ListSectorComponent } from '../../../modules/empresarial/sector/list-sector/list-sector.component';
 
 export enum TIPO_SEARCH {
   COMPONENTE = 'COMPONENTE',
@@ -39,7 +41,9 @@ export const componenteList: SearchData[] =
   {title: 'Nueva Transferencia', component: EditTransferenciaComponent},
   {title: 'Cotización', component: CambioComponent},
   {title: 'Funcionarios', component: FuncionarioDashboardComponent},
-  {title: 'Actualizacion', component: ListActualizacionComponent}
+  {title: 'Actualizacion', component: ListActualizacionComponent},
+  {title: 'Lista de cajas', component: ListCajaComponent},
+  {title: 'Lista de sectores', component: ListSectorComponent}
 ]
 
 @UntilDestroy()

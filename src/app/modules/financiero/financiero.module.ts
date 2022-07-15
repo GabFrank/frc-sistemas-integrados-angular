@@ -25,6 +25,7 @@ import { AdicionarRetiroDialogComponent } from './retiro/adicionar-retiro-dialog
 import { ListRetiroComponent } from './retiro/list-retiro/list-retiro.component';
 import { AdicionarGastoDialogComponent } from './gastos/adicionar-gasto-dialog/adicionar-gasto-dialog.component';
 import { CrearCambioDialogComponent } from './cambio/crear-cambio-dialog/crear-cambio-dialog.component';
+import { MostrarBalanceDialogComponent } from './pdv/caja/mostrar-balance-dialog/mostrar-balance-dialog.component';
 
 @NgModule({
   declarations: [
@@ -48,6 +49,7 @@ import { CrearCambioDialogComponent } from './cambio/crear-cambio-dialog/crear-c
     ListRetiroComponent,
     AdicionarGastoDialogComponent,
     CrearCambioDialogComponent,
+    MostrarBalanceDialogComponent,
   ],
   imports: [
     CommonModule,

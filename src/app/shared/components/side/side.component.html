@@ -38,8 +38,8 @@
     </mat-expansion-panel>
   </mat-accordion>
 
-  <mat-accordion *ngIf="mainService?.isServidor">
-    <mat-expansion-panel>
+  <mat-accordion>
+    <mat-expansion-panel *ngIf="mainService?.isServidor">
       <mat-expansion-panel-header>
         <mat-panel-title> Operaciones </mat-panel-title>
       </mat-expansion-panel-header>
@@ -63,7 +63,7 @@
           <a mat-list-item (click)="onItemClick('list-inventario')">Inventarios</a>
         </mat-expansion-panel>
       </mat-accordion>
-      <mat-accordion>
+      <mat-accordion *ngIf="isTest">
         <mat-expansion-panel>
           <mat-expansion-panel-header>
             <mat-panel-title> Venta </mat-panel-title>
@@ -72,9 +72,9 @@
           <!-- <a mat-list-item (click)="onItemClick('list-movimiento')">Movimientos</a> -->
         </mat-expansion-panel>
       </mat-accordion>
-      <a mat-list-item (click)="onItemClick('list-necesidad')">Necesidad</a>
-      <a mat-list-item (click)="onItemClick('list-pedido')">Pedidos</a>
-      <a mat-list-item (click)="onItemClick('list-compra')">Compras</a>
+      <a [hidden]="true" mat-list-item (click)="onItemClick('list-necesidad')">Necesidad</a>
+      <a [hidden]="true" mat-list-item (click)="onItemClick('list-pedido')">Pedidos</a>
+      <a [hidden]="true" mat-list-item (click)="onItemClick('list-compra')">Compras</a>
     </mat-expansion-panel>
   </mat-accordion>
 
@@ -118,6 +118,7 @@
       <a mat-list-item (click)="onItemClick('funcionario-dashboard')"
         >Funcionarios</a
       >
+      <a mat-list-item (click)="onItemClick('list-roles')">Roles</a>
     </mat-expansion-panel>
   </mat-accordion>
 

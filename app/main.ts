@@ -8,24 +8,12 @@ const log = require('electron-log');
 const { readFileSync } = require('fs');
 const isDev = require('electron-is-dev');
 var home = app.getPath('home')
-var configPath;
-
-if (isDev) {
-  configPath = "./../configuracion.json"
-} else if (process.platform == 'darwin') {
-  configPath = "./../configuracion.json"
-} else if (process.platform == 'win32') {
-  configPath = ".\\..\\configuracion.json"
-}
-
-var configFile = JSON.parse(readFileSync(configPath));
-let sucursales = configFile['sucursales'];
 
 autoUpdater.logger = log
 autoUpdater.setFeedURL({
   provider: 'github',
   owner: 'GabFrank',
-  repo: configFile['repositoryUrl'],
+  repo: 'franco-system-frontend-general',
   private: false
 });
 
@@ -124,10 +112,13 @@ export async function createWindow(): Promise<BrowserWindow> {
 
 ipcMain.on('get-config-file', (event, arg) => {
   console.log(arg)
-
-  // Event emitter for sending asynchronous messages
-  event.sender.send('send-config-file', configFile)
 })
+
+ipcMain.on('reiniciar', (event: any, arg: any) => {
+  relaunchElectron()
+}
+
+);
 
 try {
   // This method will be called when Electron has finished
@@ -135,7 +126,6 @@ try {
   // Some APIs can only be used after this event occurs.
   // Added 400 ms to fix the black background issue while using transparent window. More detais at https://github.com/electron/electron/issues/15947
   app.on("ready", () => {
-    dialog.showOpenDialog(win, { title: 'hola que paso' })
     if (!isDev) {
       autoUpdater.checkForUpdatesAndNotify();
       setInterval(() => {
@@ -180,29 +170,7 @@ try {
             {
               label: "Reiniciar",
               click() {
-                if (serve) {
-                  win.webContents.openDevTools();
-                  require("electron-reload")(__dirname, {
-                    electron: require(path.join(__dirname, "/../node_modules/electron")),
-                  });
-                  win.loadURL("http://localhost:4200");
-                } else {
-                  // Path when running electron executable
-                  let pathIndex = "./index.html";
-
-                  if (fs.existsSync(path.join(__dirname, "../dist/index.html"))) {
-                    // Path when running electron in local folder
-                    pathIndex = "../dist/index.html";
-                  }
-
-                  win.loadURL(
-                    url.format({
-                      pathname: path.join(__dirname, pathIndex),
-                      protocol: "file:",
-                      slashes: true,
-                    })
-                  );
-                }
+                relaunchElectron()
               }
             },
             {
@@ -354,6 +322,5 @@ export function relaunchElectron() {
       })
     );
   }
-
-
 }
+

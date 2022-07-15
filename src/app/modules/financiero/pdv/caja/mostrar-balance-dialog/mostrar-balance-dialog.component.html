@@ -1,0 +1,29 @@
+<div fxLayout="column" fxLayoutGap="10px">
+  <div fxFlex>
+    <h3>Balance integrado de cajas</h3>
+  </div>
+  <div fxFlex fxLayout="row" fxLayoutGap="10px">
+    <div fxFlex="50%">Total de ventas en Gs:</div>
+    <div fxFlex="50%">
+      {{ selectedBalance?.totalVentaGs | number: "1.0-0" }}
+    </div>
+  </div>
+  <div fxFlex fxLayout="row" fxLayoutGap="10px">
+    <div fxFlex="50%">Total de ventas en Rs:</div>
+    <div fxFlex="50%">
+      {{ selectedBalance?.totalVentaRs | number: "1.2-2" }}
+    </div>
+  </div>
+  <div fxFlex fxLayout="row" fxLayoutGap="10px">
+    <div fxFlex="50%">Total de ventas en Ds:</div>
+    <div fxFlex="50%">
+      {{ selectedBalance?.totalVentaDs | number: "1.2-2" }}
+    </div>
+  </div>
+  <div fxFlex fxLayout="row" fxLayoutGap="10px">
+    <div fxFlex="50%">Total de ventas en tarjetas:</div>
+    <div fxFlex="50%">
+      {{ selectedBalance?.totalTarjeta | number: "1.2-2" }}
+    </div>
+  </div>
+</div>

@@ -119,7 +119,7 @@ eliminar frc-server.jar de /FRC/
 substituir frc-server.jar
 sudo systemctl reenable frc.service
 sudo systemctl start frc.service
-
+sudo systemctl status frc.service
 
 --conectar al servidor central via ssh
 ssh opc@150.136.137.98

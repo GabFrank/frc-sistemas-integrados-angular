@@ -19,7 +19,8 @@ export const environment = {
     appId: "1:389460380308:web:53701896405855d9f64281"
   },
   serverIp: ipAddress,
-  serverPort: port
+  serverPort: port,
+  sucursales: null
 };
 
 export const serverAdress = {

@@ -60,6 +60,7 @@ export class MainService implements OnDestroy {
   ) {
     
     localStorage.setItem("serverIpAddress", this.serverIpAddres);
+
     
   }
 

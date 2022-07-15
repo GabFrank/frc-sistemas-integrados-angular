@@ -2,7 +2,7 @@ import { MainService } from './../../../../main.service';
 import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
 import { GenericCrudService } from "../../../../generics/generic-crud.service";
-import { PdvCaja, PdvCajaInput } from "./caja.model";
+import { CajaBalance, PdvCaja, PdvCajaInput } from "./caja.model";
 import { CajaPorIdGQL } from "./graphql/cajaPorId";
 import { CajaPorUsuarioIdAndAbiertoGQL } from "./graphql/cajaPorUsuarioIdAndAbierto";
 import { CajasPorFechaGQL } from "./graphql/cajasPorFecha";
@@ -11,6 +11,7 @@ import { ImprimirBalanceGQL } from "./graphql/imprimirBalance";
 import { SaveCajaGQL } from "./graphql/saveCaja";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { BalancePorFechaGQL } from './graphql/balancePorFecha';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -28,7 +29,8 @@ export class CajaService {
     private deleteCaja: DeleteCajaGQL,
     private cajaPorUsuarioIdAndAbierto: CajaPorUsuarioIdAndAbiertoGQL,
     private imprimirBalance: ImprimirBalanceGQL,
-    private mainService: MainService
+    private mainService: MainService,
+    private balancePorFecha: BalancePorFechaGQL
   ) {
     
   }
@@ -48,6 +50,19 @@ export class CajaService {
       fin = hoy;
     }
     return this.genericService.onGetByFecha(this.cajasPorFecha, inicio, fin);
+  }
+
+  onGetBalanceByDate(inicio?: Date, fin?: Date): Observable<CajaBalance> {
+    let hoy = new Date();
+    if (inicio == null) {
+      inicio = new Date()
+      inicio.setDate(hoy.getDate() - 2);
+    }
+    if (fin == null) {
+      fin = new Date()
+      fin = hoy;
+    }
+    return this.genericService.onGetByFecha(this.balancePorFecha, inicio, fin);
   }
 
   onSave(input: PdvCajaInput): Observable<any> {

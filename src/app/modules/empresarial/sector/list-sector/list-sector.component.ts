@@ -103,8 +103,6 @@ export class ListSectorComponent implements OnInit {
   }
 
   onEdit(sector, i) {
-    console.log(i);
-
     this.matDialog.open(AdicionarSectorDialogComponent, {
       data: {
         sector,

@@ -18,6 +18,7 @@ import { ListProductoComponent } from "../../../modules/productos/producto/list-
 import { FuncionarioDashboardComponent } from '../../../modules/personas/funcionarios/funcionario-dashboard/funcionario-dashboard.component';
 import { ListFuncioarioComponent } from '../../../modules/personas/funcionarios/list-funcioario/list-funcioario.component';
 import { ListPreRegistroFuncionarioComponent } from '../../../modules/personas/funcionarios/list-pre-registro-funcionario/list-pre-registro-funcionario.component';
+import { ListRolesComponent } from '../../../modules/configuracion/roles/list-roles/list-roles.component';
 
 @Component({
   selector: "app-side",
@@ -36,6 +37,7 @@ export class SideComponent implements OnInit {
   }
 
   onItemClick(tab: string): void {
+    // this.isTest = this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
     switch (tab) {
       case "list-persona":
         if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_PERSONAS) || this.isTest) {
@@ -179,6 +181,16 @@ export class SideComponent implements OnInit {
         ) {
           this.tabService.addTab(
             new Tab(CambioComponent, "Cotizaciónes", null, null)
+          );
+        }
+        break;
+      case "list-roles":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.SOPORTE
+          ) || this.isTest
+        ) {
+          this.tabService.addTab(
+            new Tab(ListRolesComponent, "Lista de roles", null, null)
           );
         }
         break;

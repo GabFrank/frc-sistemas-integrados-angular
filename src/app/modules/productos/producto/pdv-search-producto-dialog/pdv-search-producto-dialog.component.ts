@@ -160,22 +160,29 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   }
 
   onSearchProducto(text: string, offset?: number) {
+    let isPesable = false;
+    let peso;
+    let codigo;
     this.isSearching = true;
     if (this.onSearchTimer != null) {
       clearTimeout(this.onSearchTimer);
     }
     if (text == "" || text == null || text == " ") {
-      console.log("text is ", text);
       this.dataSource != undefined ? this.dataSource.data = []: null;
       this.isSearching = false;
     } else {
+      if(text.length == 13 && text.substring(0, 2)=='20'){
+        isPesable = true;
+        codigo = text.substring(2,7)
+        peso = +text.substring(7, 12) / 1000
+        text = codigo
+        this.formGroup.get("cantidad").setValue(peso)
+      }
       this.onSearchTimer = setTimeout(() => {
         this.productoService.onSearch(text, offset).pipe(untilDestroyed(this)).subscribe((res) => {
             if (offset == null) {
-              console.log("offset es nulo");
               this.dataSource.data = res;
             } else {
-              console.log("offset es: ", offset);
               const arr = [...this.dataSource.data.concat(res)];
               this.dataSource.data = arr;
             }
