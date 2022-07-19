@@ -1,6 +1,4 @@
 {
-    "serverUrl": "localhost",
-    "serverPort": "8082",
     "repositoryUrl": "https://github.com/GabFrank/franco-system-frontend-general.git",
     "sucursales": [
         {

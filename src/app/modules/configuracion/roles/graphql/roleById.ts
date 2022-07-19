@@ -4,7 +4,7 @@ import { Role } from '../role.model';
 import { roleQuery } from './graphql-query';
 
 export interface Response {
-  role: Role;
+  data: Role;
 }
 
 @Injectable({

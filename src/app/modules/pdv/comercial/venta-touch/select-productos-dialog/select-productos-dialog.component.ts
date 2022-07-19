@@ -33,10 +33,8 @@ export class SelectProductosDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    console.log('abrio select producto')
     if(this.data.productos?.length > 0){
       this.productos = this.data.productos;
-      console.log(this.productos)
       if(this.productos.length == 1){
         this.onProductoClick(this.productos[0])
       }
@@ -51,7 +49,6 @@ export class SelectProductosDialogComponent implements OnInit {
       },
       width: '90%'
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      console.log(res)
       let respuesta: SelectProductosResponseData = new SelectProductosResponseData;
       let productoCategoriaResponse : ProductoCategoriaResponseData = res;
       if(productoCategoriaResponse?.presentacion!=null && productoCategoriaResponse.precio!=null){

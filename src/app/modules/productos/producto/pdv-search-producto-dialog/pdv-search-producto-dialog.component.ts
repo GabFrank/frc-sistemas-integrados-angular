@@ -345,7 +345,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     producto?: Producto,
     precio?: PrecioPorSucursal,
   ) {
- 
+    presentacion.producto = producto;
     let response: PdvSearchProductoResponseData = {
       producto,
       presentacion,

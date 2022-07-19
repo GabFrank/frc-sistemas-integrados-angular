@@ -181,8 +181,14 @@ export const gastoQuery = gql`
 `;
 
 export const saveGasto = gql`
-  mutation saveGasto($entity: GastoInput!) {
-    data: saveGasto(entity: $entity) {
+  mutation saveGasto(
+    $entity: GastoInput!
+    $printerName: String
+    ) {
+    data: saveGasto(
+      entity: $entity
+      printerName: $printerName
+      ) {
       id
       responsable {
         id

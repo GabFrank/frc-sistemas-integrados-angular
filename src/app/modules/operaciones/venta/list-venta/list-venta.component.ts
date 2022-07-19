@@ -18,6 +18,7 @@ import { Venta } from "../venta.model";
 import { VentaService } from "../venta.service";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { FormControl } from "@angular/forms";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -45,6 +46,8 @@ export class ListVentaComponent implements OnInit {
   selectedCaja: PdvCaja;
   loading = false;
   isCargando = false;
+  isLastPage = false;
+  idVentaControl = new FormControl()
 
   constructor(
     private cajaService: CajaService,
@@ -66,6 +69,26 @@ export class ListVentaComponent implements OnInit {
     }
   }
 
+  onFiltrar(){
+    console.log('on filter');
+    
+    if(this.idVentaControl.value!=null){
+      console.log('id is no null');
+      
+      this.ventaService.onGetPorId(this.idVentaControl.value)
+        .pipe(untilDestroyed(this))
+        .subscribe(res => {
+          console.log(res);
+          
+          this.isLastPage = true;
+          if(res!=null && (res?.caja?.id == this.selectedCaja?.id)){
+            this.ventaDataSource.data = []
+            this.ventaDataSource.data = updateDataSource(this.ventaDataSource.data, res)
+          }
+        })
+    }
+  }
+
   onGetVentas() {
     this.cargandoService.openDialog()
     this.isCargando = true;
@@ -73,6 +96,7 @@ export class ListVentaComponent implements OnInit {
       this.cargandoService.closeDialog()
       this.isCargando = false;
       if (res != null) {
+        if(res.length < 20) this.isLastPage;
         this.ventaDataSource.data = this.ventaDataSource.data.concat(res);
       }
     });

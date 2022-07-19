@@ -11,7 +11,7 @@ import { Presentacion } from '../../../productos/presentacion/presentacion.model
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SeleccionarSucursalDialogComponent } from '../seleccionar-sucursal-dialog/seleccionar-sucursal-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, HostListener, Input, OnInit } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { CreateItemDialogComponent } from '../create-item-dialog/create-item-dialog.component';
 import { updateDataSourceWithId } from '../../../../commons/core/utils/numbersUtils';
@@ -54,6 +54,8 @@ export class EditTransferenciaComponent implements OnInit {
 
   selectedEtapa: EtapaTransferencia;
 
+  isDialogOpen = false;
+
   isPreTransferenciaCreacion = false;
   isPreTransferenciaOrigen = false;
   isPreparacionMercaderia = false;
@@ -92,7 +94,7 @@ export class EditTransferenciaComponent implements OnInit {
     this.selectedTransferencia.estado = TransferenciaEstado.ABIERTA;
     this.selectedTransferencia.etapa = EtapaTransferencia.PRE_TRANSFERENCIA_CREACION;
 
-    if (this.data.tabData != null) {
+    if (this.data?.tabData['id']!=null) {      
       this.cargarDatos()
     } else {
       setTimeout(() => {
@@ -103,12 +105,32 @@ export class EditTransferenciaComponent implements OnInit {
 
   }
 
+  @HostListener("window:keyup", ["$event"])
+  keyEvent(event: KeyboardEvent) {
+    let key = event.key;
+    if(this.isDialogOpen){
+      return null;
+    }    
+    if(this.selectedTransferencia.etapa == EtapaTransferencia.PRE_TRANSFERENCIA_CREACION){
+      switch (key) {
+        case 'Enter':
+          this.onAddItem()
+          break;
+      
+        default:
+          break;
+      }
+    }
+  }
+
   selectSucursales() {
+    this.isDialogOpen = true;
     this.matDialog.open(SeleccionarSucursalDialogComponent, {
       width: '80%',
       height: '70%',
       disableClose: false
     }).afterClosed().subscribe(async res => {
+      this.isDialogOpen = false;
       if (res != null) {
         this.selectedTransferencia.sucursalOrigen = res['sucursalOrigen']
         this.selectedTransferencia.sucursalDestino = res['sucursalDestino']
@@ -210,6 +232,7 @@ export class EditTransferenciaComponent implements OnInit {
 
 
   onAddItem() {
+    this.isDialogOpen = true;
     let data: PdvSearchProductoData = {
       texto: null,
       cantidad: 1,
@@ -220,6 +243,7 @@ export class EditTransferenciaComponent implements OnInit {
       data: data,
       height: '80%',
     }).afterClosed().subscribe(res => {
+      this.isDialogOpen = false;
       let response: PdvSearchProductoResponseData = res;
       if (response.presentacion != null) {
         this.createItem(response.presentacion)
@@ -228,6 +252,7 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   createItem(presentacion: Presentacion, item?) {
+    this.isDialogOpen = true;
     this.matDialog.open(CreateItemDialogComponent, {
       data: {
         item,
@@ -237,6 +262,7 @@ export class EditTransferenciaComponent implements OnInit {
       width: '40%',
       disableClose: true
     }).afterClosed().subscribe(async res => {
+      this.isDialogOpen = false;
       if (res != null) {
         if (this.selectedTransferencia?.id == null) {
           this.onSaveTransferencia().then(() => {
@@ -407,6 +433,7 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onModificarItem(item, cantidad?: boolean, vencimiento?: boolean, rechazar?: boolean) {
+    this.isDialogOpen = true;
     this.matDialog.open(ModificarItemDialogComponent, {
       data: {
         item,
@@ -417,8 +444,7 @@ export class EditTransferenciaComponent implements OnInit {
       },
       width: '500px'
     }).afterClosed().subscribe(res => {
-      console.log(res)
-      console.log(res?.item.toInput())
+      this.isDialogOpen = false;
       if (res?.item != null) {
         this.transferenciaService.onSaveTransferenciaItem(res['item'].toInput())
           .pipe(untilDestroyed(this))
@@ -469,41 +495,24 @@ export class EditTransferenciaComponent implements OnInit {
       'idCentral': this.selectedTransferencia.id,
       'componentToOpen': 'EditTransferenciaComponent'
     }
+    this.isDialogOpen = true;
     this.matDialog.open(QrCodeComponent, {
       data: {
         codigo: codigo,
         nombre: 'Transferencia'
       }
     }).afterClosed().subscribe(res => {
-
+      this.isDialogOpen = false;
     })
   }
 
   onOpenTimeLine() {
+    this.isDialogOpen = true;
     this.matDialog.open(TransferenciaTimelineDialogComponent, {
       data: this.selectedTransferencia,
       width: '70vw'
     }).afterClosed().subscribe(res => {
-      // switch (res) {
-      //   case 'Creación':
-      //     this.selectedTransferencia.etapa = EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN
-      //     this.verificarEtapa()
-      //     break;
-      //   case 'Preparación':
-      //     this.selectedTransferencia.etapa = EtapaTransferencia.PREPARACION_MERCADERIA_CONCLUIDA
-      //     this.verificarEtapa()
-      //     break;
-      //   case 'Transporte':
-      //     this.selectedTransferencia.etapa = EtapaTransferencia.TRANSPORTE_EN_DESTINO
-      //     this.verificarEtapa()
-      //     break;
-      //   case 'Recepción':
-      //     this.selectedTransferencia.etapa = EtapaTransferencia.RECEPCION_EN_VERIFICACION
-      //     this.verificarEtapa()
-      //     break;
-      //   default:
-      //     ;
-      // }
+      this.isDialogOpen = false;
     })
   }
 }

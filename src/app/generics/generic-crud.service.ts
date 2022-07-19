@@ -100,14 +100,14 @@ export class GenericCrudService {
     });
   }
 
-  onSave<T>(gql: Mutation, input): Observable<T> {
+  onSave<T>(gql: Mutation, input, printerName?: string): Observable<T> {
     this.isLoading = true;
     input.usuarioId = this.mainService.usuarioActual.id
     this.cargandoService.openDialog(false, 'Guardando...')
     return new Observable((obs) => {
       gql
         .mutate(
-          { entity: input },
+          { entity: input, printerName },
           { fetchPolicy: "no-cache", errorPolicy: "all" }
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {

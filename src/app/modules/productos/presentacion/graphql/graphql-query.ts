@@ -28,6 +28,8 @@ export const presentacionQuery = gql`
       producto {
         id
         descripcion
+        balanza
+        vencimiento
         costo {
           costoMedio
         }

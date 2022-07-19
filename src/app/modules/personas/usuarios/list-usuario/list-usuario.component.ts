@@ -4,7 +4,9 @@ import { FormControl, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { MainService } from '../../../../main.service';
 import { WindowInfoService } from '../../../../shared/services/window-info.service';
+import { ROLES } from '../../roles/roles.enum';
 import { AdicionarUsuarioDialogComponent } from '../adicionar-usuario-dialog/adicionar-usuario-dialog.component';
 import { Usuario } from '../usuario.model';
 import { UsuarioService } from '../usuario.service';
@@ -27,6 +29,8 @@ import { UsuarioService } from '../usuario.service';
 })
 export class ListUsuarioComponent implements OnInit {
 
+  readonly ROLES = ROLES
+
   @ViewChild('buscar', {static: true}) buscar: ElementRef;
 
   dataSource = new MatTableDataSource<Usuario>([]);
@@ -42,7 +46,8 @@ export class ListUsuarioComponent implements OnInit {
 
   constructor(
     public service: UsuarioService,
-    private matDialog: MatDialog
+    private matDialog: MatDialog,
+    public mainService: MainService
   ) { }
 
   ngOnInit(): void {
@@ -76,6 +81,7 @@ export class ListUsuarioComponent implements OnInit {
         usuario
       },
       width: '60%',
+      height: '80%'
     })
   }
 

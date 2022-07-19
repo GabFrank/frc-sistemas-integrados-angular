@@ -28,7 +28,7 @@
       <div fxFlex>
         <mat-form-field style="width: 100%">
           <mat-label>Cantidad</mat-label>
-          <input #cantidadInput matInput type="number" [formControl]="cantidadControl" />
+          <input #cantidadInput matInput type="number" [formControl]="cantidadControl" (keyup.enter)="formGroup.valid ? onGuardar() : null"/>
         </mat-form-field>
       </div>
       <div fxFlex>
@@ -46,14 +46,14 @@
           <mat-datepicker #picker></mat-datepicker>
         </mat-form-field>
       </div>
-      <div fxFlex fxLayout="row" style="text-align: center">
+      <!-- <div fxFlex fxLayout="row" style="text-align: center">
         <mat-slide-toggle fxFlex [formControl]="activoControl"
           >Activo</mat-slide-toggle
         >
         <mat-slide-toggle fxFlex [formControl]="poseeVencimientoControl"
           >Posee vencimiento</mat-slide-toggle
         >
-      </div>
+      </div> -->
       <br>
       <div fxFlex style="width: 100%; text-align: center">
         <button mat-raised-button color="primary" style="width: 150px;" (click)="onCancelar()">

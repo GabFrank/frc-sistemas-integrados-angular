@@ -27,12 +27,11 @@ export class CreateItemDialogComponent implements OnInit {
   selectedItem = new TransferenciaItem;
   selectedtransferencia: Transferencia;
   activoControl = new FormControl(true, Validators.required)
-  poseeVencimientoControl = new FormControl(true, Validators.required)
-  cantidadControl = new FormControl(1, Validators.required)
-  vencimientoControl = new FormControl(1, Validators.required)
+  cantidadControl = new FormControl(1, [Validators.required, Validators.min(0)])
+  vencimientoControl = new FormControl()
   formGroup = new FormGroup({
     'activo': this.activoControl,
-    'poseeVencimiento': this.poseeVencimientoControl,
+    // 'poseeVencimiento': this.poseeVencimientoControl,
     'cantidad': this.cantidadControl,
     'vencimiento': this.vencimientoControl
   })
@@ -58,20 +57,22 @@ export class CreateItemDialogComponent implements OnInit {
           this.cargandoService.closeDialog()
           if (res != null) {
             this.selectedPresentacion = res as Presentacion;
+            console.log(this.selectedPresentacion);
+            
           }
         })
     } else {
       this.matDialogRef.close()
     }
 
-    this.poseeVencimientoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) {
-        this.vencimientoControl.enable()
-      } else {
-        this.vencimientoControl.setValue(null)
-        this.vencimientoControl.disable()
-      }
-    })
+    // this.poseeVencimientoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
+    //   if (res) {
+    //     this.vencimientoControl.enable()
+    //   } else {
+    //     this.vencimientoControl.setValue(null)
+    //     this.vencimientoControl.disable()
+    //   }
+    // })
 
     setTimeout(() => {
       this.cantidadInput.nativeElement.select()
@@ -85,11 +86,6 @@ export class CreateItemDialogComponent implements OnInit {
       this.activoControl.setValue(item.activo)
       this.cantidadControl.setValue(item.cantidadPreTransferencia)
       this.vencimientoControl.setValue(new Date(item.vencimientoPreTransferencia))
-      this.poseeVencimientoControl.setValue(item.poseeVencimiento)
-      if (item.poseeVencimiento == false) {
-        this.vencimientoControl.setValue(null)
-        this.vencimientoControl.disable()
-      }
       this.selectedPresentacion = item.presentacionPreTransferencia;
       this.cargandoService.closeDialog()
     }
@@ -103,7 +99,7 @@ export class CreateItemDialogComponent implements OnInit {
       this.selectedItem.presentacionPreTransferencia = this.selectedPresentacion;
       this.selectedItem.activo = this.activoControl.value;
       this.selectedItem.cantidadPreTransferencia = this.cantidadControl.value;
-      this.selectedItem.poseeVencimiento = this.poseeVencimientoControl.value;
+      this.selectedItem.poseeVencimiento = this.selectedPresentacion?.producto?.vencimiento;
       if (this.selectedItem.poseeVencimiento) {
         this.selectedItem.vencimientoPreTransferencia = this.vencimientoControl.value;
       }

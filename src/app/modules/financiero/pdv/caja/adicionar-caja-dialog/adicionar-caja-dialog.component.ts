@@ -101,6 +101,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
 
   conteoInicial = true;
 
+  isCierre = false;
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarCajaData,
     private matDialogRef: MatDialogRef<AdicionarCajaDialogComponent>,
@@ -125,6 +127,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
       this.cajaService.onGetById(this.data.caja.id).pipe(untilDestroyed(this)).subscribe((res) => {
         if (res != null) {
           this.selectedCaja = res;
+          this.isCierre = this.selectedCaja?.conteoCierre != null;
           this.cargarDatos();
         }
       });
@@ -315,6 +318,10 @@ export class AdicionarCajaDialogComponent implements OnInit {
       this.selectedConteoApertura = response.conteo;
     } else {
       this.selectedConteoCierre = response.conteo;
+      if(!this.isCierre){
+        this.goTo('imprimir')
+        this.isCierre = true;
+      }
     }
   }
 

@@ -117,7 +117,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   dialogReference;
   formaPagoList: FormaPago[];
   disableCobroRapido = false;
-
   buscadorFocusSub: Subject<void> = new Subject<void>();
 
 

@@ -319,8 +319,14 @@ export const deleteCajaQuery = gql`
 `;
 
 export const imprimirBalanceQuery = gql`
-  query imprimirBalance($id: ID!) {
-    imprimirBalance(id: $id) {
+  query imprimirBalance(
+    $id: ID!
+    $printerName: String
+    ) {
+    imprimirBalance(
+      id: $id
+      printerName: $printerName
+      ) {
       id
     }
   }

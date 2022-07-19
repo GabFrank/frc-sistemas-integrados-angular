@@ -24,6 +24,8 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { SeleccionarPresentacionDialogComponent } from './presentacion/seleccionar-presentacion-dialog/seleccionar-presentacion-dialog.component';
 import { SearchEnvaseDialogComponent } from './envase/search-envase-dialog/search-envase-dialog.component';
 import { AddEnvaseDialogComponent } from './envase/add-envase-dialog/add-envase-dialog.component';
+import { ProductosDashboardComponent } from './productos-dashboard/productos-dashboard.component';
+import { ListGrupoComponent } from './list-grupo/list-grupo.component';
 
 
 
@@ -48,6 +50,8 @@ import { AddEnvaseDialogComponent } from './envase/add-envase-dialog/add-envase-
     SeleccionarPresentacionDialogComponent,
     SearchEnvaseDialogComponent,
     AddEnvaseDialogComponent,
+    ProductosDashboardComponent,
+    ListGrupoComponent,
   ],
   imports: [
     CommonModule,

@@ -10,6 +10,7 @@ import { Retiro } from "./retiro.model";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CargandoDialogService } from "../../../shared/components/cargando-dialog/cargando-dialog.service";
+import { environment } from "../../../../environments/environment";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -35,6 +36,7 @@ export class RetiroService {
           {
             entity: retiro.toInput(),
             retiroDetalleInputList: retiro.toDetalleInput(),
+            printerName: environment['printers']['ticket']
           },
           {
             fetchPolicy: "no-cache",

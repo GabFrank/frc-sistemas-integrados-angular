@@ -1,0 +1,8 @@
+{
+  "ipDefault": "localhost",
+  "puertoDefault": "8082",
+  "printers": {
+    "ticket": "TICKET"
+  },
+  "local": "Caja 1"
+}

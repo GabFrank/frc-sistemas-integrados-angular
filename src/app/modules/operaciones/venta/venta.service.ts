@@ -17,6 +17,7 @@ import { VentaPorPeriodoGQL } from "./graphql/ventaPorPeriodo";
 import { NotificacionColor, NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { environment } from "../../../../environments/environment";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -61,7 +62,8 @@ export class VentaService {
             ventaItemList: ventaItemInputList,
             cobro: cobroInput,
             cobroDetalleList: cobroDetalleInputList,
-            ticket
+            ticket,
+            printerName: environment['printers']['ticket']
           },
           {
             errorPolicy: "all",
@@ -80,6 +82,7 @@ export class VentaService {
         .mutate(
           {
             id,
+            printerName: environment['printers']['ticket']
           },
           {
             fetchPolicy: "no-cache",

@@ -19,6 +19,7 @@ import { FuncionarioDashboardComponent } from '../../../modules/personas/funcion
 import { ListFuncioarioComponent } from '../../../modules/personas/funcionarios/list-funcioario/list-funcioario.component';
 import { ListPreRegistroFuncionarioComponent } from '../../../modules/personas/funcionarios/list-pre-registro-funcionario/list-pre-registro-funcionario.component';
 import { ListRolesComponent } from '../../../modules/configuracion/roles/list-roles/list-roles.component';
+import { ProductosDashboardComponent } from '../../../modules/productos/productos-dashboard/productos-dashboard.component';
 
 @Component({
   selector: "app-side",
@@ -55,10 +56,11 @@ export class SideComponent implements OnInit {
         break;
       case "list-producto":
         if (
-          this.mainService.usuarioActual?.roles.includes(ROLES.VER_PRODUCTOS) || this.isTest
+          this.mainService.usuarioActual?.roles.includes(ROLES.VER_PRODUCTOS) || this.isTest || 
+          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
         ) {
           this.tabService.addTab(
-            new Tab(ListProductoComponent, "Productos", null, null)
+            new Tab(ListProductoComponent, "Lista de productos", null, null)
           );
         }
         break;

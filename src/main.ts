@@ -12,29 +12,41 @@ if (APP_CONFIG.production) {
 
 (async () => {
   var configPath;
+  var configLocalPath;
   if (isDevMode) {
     configPath = "./configuracion.json"
+    configLocalPath = "./configuracion-local.json"
   } else if (process.platform == 'darwin') {
     configPath = "./configuracion.json"
+    configLocalPath = "./configuracion-local.json"
   } else if (process.platform == 'win32') {
     configPath = ".\\configuracion.json"
+    configLocalPath = ".\\configuracion-local.json"
   }
-  var configFile = JSON.parse(readFileSync(configPath));
+  var configFile: Config = JSON.parse(readFileSync(configPath));
+  var configLocalFile: ConfigLocal = JSON.parse(readFileSync(configLocalPath));
+
+  if(configLocalPath!=null){
+    if(localStorage.getItem('ip')==null){
+      environment['serverIp'] = configLocalFile.ipDefault;
+      environment['serverPort'] = configLocalFile.puertoDefault;
+      localStorage.setItem('ip', configLocalFile.ipDefault)
+      localStorage.setItem('port', configLocalFile.puertoDefault+"")
+    } else {
+      environment['serverIp'] =  localStorage.getItem('ip');
+      environment['serverPort'] = +localStorage.getItem('port');
+    }
+    environment['printers'] = configLocalFile.printers;
+    environment['local'] = configLocalFile.local;
+    console.log(environment['printers']['ticket']);
+    
+  } else {
+    alert("Archivo de configuración local en falta")
+  }
 
   if (configFile != null) {
-    environment['sucursales'] = configFile['sucursales'];
-    if (localStorage.getItem('ip') != null) {
-      environment['serverIp'] = localStorage.getItem('ip');
-      environment['serverPort'] = +localStorage.getItem('port');
-    } else {
-      environment['serverIp'] = configFile.serverUrl;
-      environment['serverPort'] = configFile.serverPort
-    }
-
-  } else {
-    environment['serverIp'] = 'localhost';
-    environment['serverPort'] = 8082
-  }
+    environment['sucursales'] = configFile.sucursales;
+  } 
 
   platformBrowserDynamic()
     .bootstrapModule(AppModule, {
@@ -44,3 +56,19 @@ if (APP_CONFIG.production) {
 })();
 
 
+export interface Config {
+  repositoryUrl: string;
+  sucursales: {
+      id: number
+      nombre: string
+      ip: string
+      port: number
+  }
+}
+
+export interface ConfigLocal {
+  ipDefault: string
+  puertoDefault: number
+  printers;
+  local: string;
+}

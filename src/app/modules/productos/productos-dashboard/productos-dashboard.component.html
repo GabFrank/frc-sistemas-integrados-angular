@@ -1,0 +1,39 @@
+<div
+  fxLayout="row"
+  style="width: 100%; height: 80%"
+  fxLayoutAlign="center center"
+>
+  <div fxFlex="60" fxLayout="column">
+    <div
+      fxFlex
+      fxLayout="row wrap"
+      fxLayoutAlign="start start"
+      fxLayoutGap="10px"
+    >
+      <div fxFlex="30%" style="height: 250px">
+        <app-boton
+          nombre="Lista de productos"
+          icon="manage_search"
+          [iconSize]="4"
+          (clickEvent)="onList()"
+        ></app-boton>
+      </div>
+      <div fxFlex="30%" style="height: 250px">
+        <app-boton
+          nombre="Nuevo producto"
+          icon="move_up"
+          [iconSize]="4"
+          (clickEvent)="onNew()"
+        ></app-boton>
+      </div>
+      <div fxFlex="30%" style="height: 250px">
+        <app-boton
+          nombre="Gestión de favoritos"
+          icon="tune"
+          [iconSize]="4"
+          (clickEvent)="listFavoritos()"
+        ></app-boton>
+      </div>
+    </div>
+  </div>
+</div>

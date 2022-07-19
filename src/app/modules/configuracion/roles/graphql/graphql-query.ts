@@ -66,3 +66,45 @@ export const deleteRoleQuery = gql`
   }
 `;
 
+export const usuarioRolePorUsuarioIdQuery = gql`
+  query ($id: ID!) {
+    data: usuarioRolePorUsuarioId(id: $id) {
+      id
+      role {
+        id
+        nombre
+      }
+      creadoEn
+      usuario {
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
+export const saveUsuarioRole = gql`
+  mutation saveUsuarioRole($entity: UsuarioRoleInput!) {
+    data: saveUsuarioRole(usuarioRole: $entity) {
+      id
+      role {
+        id
+        nombre
+      }
+      creadoEn
+      usuario {
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
+export const deleteUsuarioRoleQuery = gql`
+  mutation deleteUsuarioRole($id: ID!) {
+    deleteUsuarioRole(id: $id)
+  }
+`;
+

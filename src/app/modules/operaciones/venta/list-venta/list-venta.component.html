@@ -261,11 +261,25 @@
     </mat-accordion>
   </mat-card>
   <div fxFlex="80%" fxLayout="column" style="width: 95%; height: 95%">
-    <mat-card fxFlex="15%" style="background-color: rgb(32, 32, 32)">
-      filtros
-    </mat-card>
-    <div fxFlex="80%" style="overflow-y: auto">
-      <table
+    <app-generic-list
+      titulo="Lista de versiones"
+      (filtrar)="onFiltrar()"
+      [data]="ventaDataSource.data"
+      (cargarMasDatos)="onGetVentas()"
+      [isLastPage]="isLastPage"
+    >
+      <div filtros>
+        <div fxLayout="row" fxLayoutAlign="start center" style="width: 100%;">
+          <div fxFlex="30%">
+            <mat-form-field>
+              <mat-label>Nº de venta</mat-label>
+              <input type="number" matInput [formControl]="idVentaControl" (keyup.enter)="onFiltrar()">
+            </mat-form-field>
+          </div>
+        </div>
+      </div>
+      <div table>
+        <table
         mat-table
         [dataSource]="ventaDataSource"
         multiTemplateDataRows
@@ -427,13 +441,16 @@
                     <mat-divider style="height: 100%"></mat-divider>
                   </div>
                   <div
-                    *ngFor="let ventaItem of venta?.ventaItemList; let i = index"
+                    *ngFor="
+                      let ventaItem of venta?.ventaItemList;
+                      let i = index
+                    "
                     fxLayout="column"
                     fxFlex
                     style="width: 100%; padding-bottom: 5px; padding-top: 5px"
                   >
                     <div fxFlex fxLayout="row">
-                      <div fxFlex="5%"> </div>
+                      <div fxFlex="5%"></div>
                       <div fxFlex="35%">
                         {{ ventaItem?.producto?.descripcion | uppercase }}
                       </div>
@@ -500,7 +517,7 @@
                     style="width: 100%; padding-bottom: 5px; padding-top: 5px"
                   >
                     <div fxFlex fxLayout="row">
-                      <div fxFlex="5%"> </div>
+                      <div fxFlex="5%"></div>
                       <div fxFlex="25%">
                         {{
                           cobroDetalle?.pago
@@ -632,15 +649,7 @@
           class="example-detail-row"
         ></tr>
       </table>
-    </div>
-    <div fxFlex="5%">
-      <div fxFlex style="width: 100%; text-align: center">
-        <button mat-fab color="primary" [disabled]="isCargando" (click)="onGetVentas()">
-          <mat-icon  
-            >add</mat-icon
-          >
-        </button>
       </div>
-    </div>
+    </app-generic-list>
   </div>
 </div>

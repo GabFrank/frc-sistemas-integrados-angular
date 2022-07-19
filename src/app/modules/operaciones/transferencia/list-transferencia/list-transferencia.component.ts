@@ -105,5 +105,6 @@ export class ListTransferenciaComponent implements OnInit {
   onAdd(){
     this.tabService.addTab(new Tab(EditTransferenciaComponent, 'Nueva Transferencia', null, ListTransferenciaComponent))
   }
+  
   onFilter(){}
 }

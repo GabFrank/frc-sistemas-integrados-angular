@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { Gasto } from './gastos.model';
 import { DeleteGastoGQL } from './graphql/deleleGasto';
@@ -27,7 +28,7 @@ export class GastoService {
   // }
 
   onSave(gasto: Gasto): Observable<Gasto>{
-    return this.genericService.onSave(this.saveGasto, gasto.toInput());
+    return this.genericService.onSave(this.saveGasto, gasto.toInput(), environment['printers']['ticket']);
   }
 
   onGetByDate(inicio?: Date, fin?: Date): Observable<Gasto[]>{

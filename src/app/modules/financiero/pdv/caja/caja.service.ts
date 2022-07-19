@@ -12,6 +12,7 @@ import { SaveCajaGQL } from "./graphql/saveCaja";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { BalancePorFechaGQL } from './graphql/balancePorFecha';
+import { environment } from '../../../../../environments/environment';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -86,6 +87,7 @@ export class CajaService {
       .fetch(
         {
           id,
+          printerName: environment['printers']['ticket']
         },
         {
           fetchPolicy: "no-cache",

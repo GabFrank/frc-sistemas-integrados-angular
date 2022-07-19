@@ -71,8 +71,8 @@ export const retiroQuery = gql`
 `;
 
 export const saveRetiro = gql`
-  mutation saveRetiro($entity:RetiroInput!, $retiroDetalleInputList: [RetiroDetalleInput]) {
-    data: saveRetiro(retiro: $entity, retiroDetalleInputList: $retiroDetalleInputList) {
+  mutation saveRetiro($entity:RetiroInput!, $retiroDetalleInputList: [RetiroDetalleInput], $printerName: String) {
+    data: saveRetiro(retiro: $entity, retiroDetalleInputList: $retiroDetalleInputList, printerName: $printerName) {
       id
       responsable {
         id

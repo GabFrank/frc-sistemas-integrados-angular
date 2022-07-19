@@ -20,3 +20,27 @@ export class RoleInput {
     nombre: string;
     usuarioId: number;
 }
+
+export class UsuarioRole {
+    id: number;
+    user: Usuario;
+    role: Role;
+    creadoEn: Date;
+    usuario: Usuario;
+
+    toInput(): UsuarioRoleInput {
+        let input = new UsuarioRoleInput;
+        input.id = this.id
+        input.userId = this.user?.id
+        input.roleId = this.role?.id
+        input.usuarioId = this.usuario?.id
+        return input;
+    }
+}
+
+export class UsuarioRoleInput {
+    id: number;
+    userId: number;
+    roleId: number;
+    usuarioId: number;
+}

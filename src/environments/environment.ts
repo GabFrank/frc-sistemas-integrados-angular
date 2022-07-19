@@ -20,10 +20,13 @@ export const environment = {
   },
   serverIp: ipAddress,
   serverPort: port,
-  sucursales: null
+  sucursales: null,
+  printers: null,
+  local: null
 };
 
 export const serverAdress = {
   serverIp: ipAddress,
   serverPort: port
 }
+

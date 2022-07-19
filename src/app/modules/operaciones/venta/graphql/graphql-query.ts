@@ -54,6 +54,9 @@ export const ventaQuery = gql`
         id
         descripcion
       }
+      caja {
+        id
+      }
       estado
       creadoEn
       usuario {
@@ -119,13 +122,15 @@ export const saveVenta = gql`
     $cobro: CobroInput
     $cobroDetalleList: [CobroDetalleInput]
     $ticket: Boolean
+    $printerName: String
   ) {
     data: saveVenta(
       ventaInput: $ventaInput
       ventaItemList: $ventaItemList
       cobro: $cobro
       cobroDetalleList: $cobroDetalleList
-      ticket: $ticket
+      ticket: $ticket,
+      printerName: $printerName
     )
   }
 `;
@@ -143,8 +148,14 @@ export const cancelarVentaQuery = gql`
 `;
 
 export const reimprimirVentaQuery = gql`
-  mutation reimprimirVenta($id: ID!) {
-    data: reimprimirVenta(id: $id)
+  mutation reimprimirVenta(
+    $id: ID!
+    $printerName: String
+    ) {
+    data: reimprimirVenta(
+      id: $id
+      printerName: $printerName
+      )
   }
 `;
 

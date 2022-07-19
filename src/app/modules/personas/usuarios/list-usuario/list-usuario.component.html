@@ -105,11 +105,8 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="onAddUsuario(usuario, i)">
+            <button mat-menu-item (click)="onAddUsuario(usuario, i)" *ngIf="(mainService.usuarioActual?.roles.includes(ROLES.ADMIN))">
               Editar
-            </button>
-            <button mat-menu-item (click)="onEditRoles(usuario, i)">
-              Roles
             </button>
           </mat-menu>
         </td>
