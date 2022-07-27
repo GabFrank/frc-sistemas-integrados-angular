@@ -40,6 +40,9 @@ export class GenericListComponent implements OnInit {
   isAdicionar: boolean;
 
   @Input()
+  isMenu: boolean = true;
+
+  @Input()
   disableAdicionar: boolean;
 
   @Input()

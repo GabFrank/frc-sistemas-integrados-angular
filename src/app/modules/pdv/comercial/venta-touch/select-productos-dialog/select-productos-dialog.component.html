@@ -5,10 +5,11 @@
   <div
     fxFlex
     fxLayout="row wrap"
-    fxLayoutAlign="start space-around"
-    fxLayoutGap="10px"
+    fxLayoutAlign="start start"
+    fxLayoutGap="5px"
+    fxLayoutGap="5px grid"
   >
-    <div fxFlex="14" *ngFor="let producto of data.productos; let i = index">
+    <div [fxFlex]="data?.productos?.length > 0 && data?.productos?.length < 8 ? 99/data?.productos?.length : 99/7" *ngFor="let producto of data.productos; let i = index">
       <mat-card
         style="
           padding: 0;
@@ -24,7 +25,7 @@
           <div>
             <img
               [src]="producto?.imagenPrincipal != null ? producto?.imagenPrincipal : '/assets/no-image.png'"
-              style="width: 150px; height: 100%;object-fit: cover;"
+              style="width: 150px; height: 100%;object-fit: cover; padding-top: 8px;"
             >
           </div>
           <div style="text-align: center; font-weight: bold;">

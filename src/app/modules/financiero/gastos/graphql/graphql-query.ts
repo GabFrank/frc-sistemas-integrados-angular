@@ -184,10 +184,12 @@ export const saveGasto = gql`
   mutation saveGasto(
     $entity: GastoInput!
     $printerName: String
+    $local: String
     ) {
     data: saveGasto(
       entity: $entity
       printerName: $printerName
+      local: $local
       ) {
       id
       responsable {

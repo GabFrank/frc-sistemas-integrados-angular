@@ -14,6 +14,7 @@ import { GenericCrudService } from './../../../generics/generic-crud.service';
 import { Injectable } from '@angular/core';
 import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaInput } from './transferencia.model';
 import { DeleteTransferenciaGQL } from './graphql/deleteTransferencia';
+import { GetTransferenciaItensPorTransferenciaIdGQL } from './graphql/getTransferenciaItensPorTransferenciaId';
 
 @UntilDestroy()
 @Injectable({
@@ -32,7 +33,8 @@ export class TransferenciaService {
     private dialogoService: DialogosService,
     private notificacionService: NotificacionSnackbarService,
     private getTransferenciasPorFecha: GetTransferenciaPorFechaGQL,
-    private mainService: MainService
+    private mainService: MainService,
+    private transferenciaItemPorTransferenciaId: GetTransferenciaItensPorTransferenciaIdGQL
   ) { }
 
   onGetTrasferenciasPorFecha(inicio, fin) {
@@ -41,6 +43,10 @@ export class TransferenciaService {
 
   onGetTransferencia(id): Observable<Transferencia> {
     return this.genericCrudService.onGetById(this.getTransferencia, id);
+  }
+
+  onGetTransferenciaItensPorTransferenciaId(id, page?, size?): Observable<TransferenciaItem[]> {
+    return this.genericCrudService.onGetById(this.transferenciaItemPorTransferenciaId, id, page, size);
   }
 
   onSaveTransferencia(input): Observable<Transferencia> {

@@ -201,6 +201,7 @@ export const filterPedidosQuery = gql`
         producto {
           id
           descripcion
+          descripcionFactura
         }
         precioUnitario
         descuentoUnitario

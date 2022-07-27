@@ -1,20 +1,16 @@
-<!-- Sucursal Origen: {{selectedSucursalOrigen?.nombre}}
-<br>
-Sucursal Destino: {{selectedSucursalDestino?.nombre}} -->
-<div
-  fxLayout="row"
-  style="width: 100%; height: 95%"
-  fxLayoutAlign="center start"
+<app-generic-list
+  titulo="Gestión de Transferencia"
+  style="height: 90%"
+  [data]="dataSource.data"
+  (cargarMasDatos)="cargarMasDatos()"
+  [isLastPage]="isLastPage"
+  [isMenu]="false"
 >
-  <mat-card fxFlex="95" fxLayout="column" style="height: 100%">
-    <div fxFlex="5" style="width: 100%; text-align: center">
-      Gestión de Transferencia
-    </div>
+  <div filtros style="width: 100%; height: 100%">
     <mat-card
-      fxFlex="20%"
       fxLayout="column"
       fxLayoutGap="10px"
-      style="background-color: rgb(32, 32, 32)"
+      style="background-color: rgb(32, 32, 32); height: 100%; width: 100%;"
     >
       <div fxFlex="33" fxLayout="row">
         <div fxFlex="25" fxLayout="column">
@@ -82,7 +78,7 @@ Sucursal Destino: {{selectedSucursalDestino?.nombre}} -->
           style="width: 100%"
           fxLayoutAlign="start center"
         >
-          <div fxFlex="5%">
+          <!-- <div fxFlex="5%">
             <mat-icon style="color: #43a047">circle</mat-icon>
           </div>
           <div fxFlex="10%">Sin cambios</div>
@@ -95,11 +91,11 @@ Sucursal Destino: {{selectedSucursalDestino?.nombre}} -->
           <div fxFlex="5%">
             <mat-icon style="color: #f44336">circle</mat-icon>
           </div>
-          <div fxFlex="10%">Rechazado</div>
+          <div fxFlex="10%">Rechazado</div> -->
           <div fxFlex="5"></div>
           <div
             class="raised-button"
-            fxFlex="15%"
+            fxFlex="20%"
             fxLayout="row"
             style="width: 100%"
             fxLayoutAlign="start center"
@@ -227,7 +223,10 @@ Sucursal Destino: {{selectedSucursalDestino?.nombre}} -->
             Iniciar Recepción
           </button>
         </div>
-        <div fxFlex="15%" *ngIf="isRecepcionEnVerificacion && isDestino && puedeEditar">
+        <div
+          fxFlex="15%"
+          *ngIf="isRecepcionEnVerificacion && isDestino && puedeEditar"
+        >
           <button
             style="width: 100%"
             mat-raised-button
@@ -240,752 +239,738 @@ Sucursal Destino: {{selectedSucursalDestino?.nombre}} -->
         </div>
       </div>
     </mat-card>
-    <div fxFlex="75">
-      <table
-        *ngIf="isPreTransferenciaCreacion"
-        mat-table
-        [dataSource]="dataSource"
-        multiTemplateDataRows
-        class="mat-elevation-z8"
-      >
-        <ng-container matColumnDef="producto">
-          <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
-          <td mat-cell *matCellDef="let item" style="width: 30%">
-            {{
-              item?.presentacionPreTransferencia?.producto?.descripcion
-                | uppercase
-            }}
-          </td>
-        </ng-container>
+  </div>
 
-        <ng-container matColumnDef="codigo">
-          <th mat-header-cell *matHeaderCellDef>Cod. Barra</th>
-          <td mat-cell *matCellDef="let item">
-            {{ item?.presentacionPreTransferencia?.producto?.codigoPrincipal }}
-          </td>
-        </ng-container>
+  <div table style="width: 100%; height: 100%">
+    <table
+      *ngIf="isPreTransferenciaCreacion"
+      mat-table
+      [dataSource]="dataSource"
+      multiTemplateDataRows
+      class="mat-elevation-z8"
+    >
+      <ng-container matColumnDef="producto">
+        <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
+        <td mat-cell *matCellDef="let item" style="width: 30%">
+          {{
+            item?.presentacionPreTransferencia?.producto?.descripcion
+              | uppercase
+          }}
+        </td>
+      </ng-container>
 
-        <ng-container matColumnDef="presentacion">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Presentacion
-          </th>
-          <td mat-cell *matCellDef="let item" style="text-align: center">
-            {{ item?.presentacionPreTransferencia?.cantidad | number: "1.0-2" }}
-          </td>
-        </ng-container>
+      <ng-container matColumnDef="codigo">
+        <th mat-header-cell *matHeaderCellDef>Cod. Barra</th>
+        <td mat-cell *matCellDef="let item">
+          {{ item?.presentacionPreTransferencia?.producto?.codigoPrincipal }}
+        </td>
+      </ng-container>
 
-        <ng-container matColumnDef="cantidad">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Cantidad
-          </th>
-          <td mat-cell *matCellDef="let item" style="text-align: center">
-            {{ item?.cantidadPreTransferencia | number: "1.0-2" }}
-          </td>
-        </ng-container>
+      <ng-container matColumnDef="presentacion">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Presentacion
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item?.presentacionPreTransferencia?.cantidad | number: "1.0-2" }}
+        </td>
+      </ng-container>
 
-        <ng-container matColumnDef="precio">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Precio venta
-          </th>
-          <td mat-cell *matCellDef="let item" style="text-align: center">
-            {{
-              item?.presentacionPreTransferencia?.precioPrincipal?.precio
-                | number: "1.0-2"
-            }}
-          </td>
-        </ng-container>
+      <ng-container matColumnDef="cantidad">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Cantidad
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item?.cantidadPreTransferencia | number: "1.0-2" }}
+        </td>
+      </ng-container>
 
-        <ng-container matColumnDef="vencimiento">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Vencimiento
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let item"
-            style="text-align: center; height: 100%"
+      <ng-container matColumnDef="precio">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Precio venta
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{
+            item?.presentacionPreTransferencia?.precioPrincipal?.precio
+              | number: "1.0-2"
+          }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="vencimiento">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Vencimiento
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let item"
+          style="text-align: center; height: 100%"
+        >
+          <div
+            fxLayout="row"
+            style="width: 100%; height: 100%"
+            fxLayoutGap="10px"
           >
-            <div
-              fxLayout="row"
-              style="width: 100%; height: 100%"
-              fxLayoutGap="10px"
-            >
-              <div fxFlex>
-                {{ item?.vencimientoPreTransferencia | date: "shortDate" }}
-              </div>
+            <div fxFlex>
+              {{ item?.vencimientoPreTransferencia | date: "shortDate" }}
             </div>
-          </td>
-        </ng-container>
+          </div>
+        </td>
+      </ng-container>
 
-        <ng-container matColumnDef="estado">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Estado
-          </th>
-          <td mat-cell *matCellDef="let item" style="text-align: center">
-            Falta verificar
-          </td>
-        </ng-container>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Estado
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          Falta verificar
+        </td>
+      </ng-container>
 
-        <ng-container matColumnDef="menu">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="width: 5%; text-align: center"
-          ></th>
-          <td
-            mat-cell
-            *matCellDef="let item"
-            style="width: 5%; text-align: center"
+      <ng-container matColumnDef="menu">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 5%; text-align: center"
+        ></th>
+        <td
+          mat-cell
+          *matCellDef="let item"
+          style="width: 5%; text-align: center"
+        >
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
           >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
             <button
-              mat-icon-button
-              [matMenuTriggerFor]="menu"
-              (click)="$event.stopPropagation()"
+              mat-menu-item
+              (click)="onEditItem(item)"
+              [disabled]="isPreparacionMercaderia && puedeEditar"
             >
-              <mat-icon>more_vert</mat-icon>
+              Editar
             </button>
-            <mat-menu #menu="matMenu">
-              <button
-                mat-menu-item
-                (click)="onEditItem(item)"
-                [disabled]="isPreparacionMercaderia && puedeEditar"
-              >
-                Editar
-              </button>
-              <button
-                mat-menu-item
-                (click)="onDeleteItem(item)"
-                style="color: red"
-                [disabled]="isPreparacionMercaderia"
-              >
-                Eliminar
-              </button>
-            </mat-menu>
-          </td>
-        </ng-container>
-
-        <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
-        <ng-container matColumnDef="expandedDetail">
-          <td
-            mat-cell
-            *matCellDef="let element"
-            [attr.colspan]="columnsToDisplay.length"
-          >
-            <div
-              class="example-element-detail"
-              [@detailExpand]="
-                element == expandedElement ? 'expanded' : 'collapsed'
-              "
-            ></div>
-          </td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
-        <tr
-          mat-row
-          *matRowDef="let element; columns: columnsToDisplay"
-          class="example-element-row"
-          [class.example-expanded-row]="expandedElement === element"
-          (click)="
-            expandedElement = expandedElement === element ? null : element
-          "
-        ></tr>
-        <tr
-          mat-row
-          *matRowDef="let row; columns: ['expandedDetail']"
-          class="example-detail-row"
-        ></tr>
-      </table>
-
-      <table
-        *ngIf="isPreTransferenciaOrigen || isPreparacionMercaderia"
-        mat-table
-        [dataSource]="dataSource"
-        multiTemplateDataRows
-        class="mat-elevation-z8"
-      >
-        <ng-container matColumnDef="producto">
-          <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
-          <td mat-cell *matCellDef="let item" style="width: 30%">
-            {{
-              item?.presentacionPreTransferencia?.producto?.descripcion
-                | uppercase
-            }}
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="codigo">
-          <th mat-header-cell *matHeaderCellDef>Cod. Barra</th>
-          <td mat-cell *matCellDef="let item">
-            {{ item?.presentacionPreTransferencia?.producto?.codigoPrincipal }}
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="presentacion">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Presentacion
-          </th>
-          <td mat-cell *matCellDef="let item" style="text-align: center">
-            {{ item?.presentacionPreTransferencia?.cantidad | number: "1.0-2" }}
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="cantidad">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Cantidad
-          </th>
-          <td mat-cell *matCellDef="let item" style="text-align: center">
-            {{ item?.cantidadPreTransferencia | number: "1.0-2" }}
-            {{
-              item?.motivoModificacionPreparacion == "CANTIDAD_INCORRECTA"
-                ? " / " + item?.cantidadPreparacion
-                : null
-            }}
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="precio">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Precio venta
-          </th>
-          <td mat-cell *matCellDef="let item" style="text-align: center">
-            {{
-              item?.presentacionPreTransferencia?.precioPrincipal?.precio
-                | number: "1.0-2"
-            }}
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="vencimiento">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Vencimiento
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let item"
-            style="text-align: center; height: 100%"
-          >
-            <div
-              fxLayout="row"
-              style="width: 100%; height: 100%"
-              fxLayoutGap="10px"
+            <button
+              mat-menu-item
+              (click)="onDeleteItem(item)"
+              style="color: red"
+              [disabled]="isPreparacionMercaderia"
             >
-              <div fxFlex>
-                {{ item?.vencimientoPreTransferencia | date: "shortDate" }}
-              </div>
-              <div
-                fxFlex="10"
-                *ngIf="
-                  item?.motivoModificacionPreparacion ==
-                  'VENCIMIENTO_INCORRECTO'
-                "
-              >
-                -
-              </div>
-              <div
-                fxFlex
-                *ngIf="
-                  item?.motivoModificacionPreparacion ==
-                  'VENCIMIENTO_INCORRECTO'
-                "
-              >
-                {{ item?.vencimientoPreparacion | date: "shortDate" }}
-              </div>
+              Eliminar
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+      <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let element"
+          [attr.colspan]="columnsToDisplay.length"
+        >
+          <div
+            class="example-element-detail"
+            [@detailExpand]="
+              element == expandedElement ? 'expanded' : 'collapsed'
+            "
+          ></div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
+      <tr
+        mat-row
+        *matRowDef="let element; columns: columnsToDisplay"
+        class="example-element-row"
+        [class.example-expanded-row]="expandedElement === element"
+        (click)="expandedElement = expandedElement === element ? null : element"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: ['expandedDetail']"
+        class="example-detail-row"
+      ></tr>
+    </table>
+
+    <table
+      *ngIf="isPreTransferenciaOrigen || isPreparacionMercaderia"
+      mat-table
+      [dataSource]="dataSource"
+      multiTemplateDataRows
+      class="mat-elevation-z8"
+    >
+      <ng-container matColumnDef="producto">
+        <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
+        <td mat-cell *matCellDef="let item" style="width: 30%">
+          {{
+            item?.presentacionPreTransferencia?.producto?.descripcion
+              | uppercase
+          }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="codigo">
+        <th mat-header-cell *matHeaderCellDef>Cod. Barra</th>
+        <td mat-cell *matCellDef="let item">
+          {{ item?.presentacionPreTransferencia?.producto?.codigoPrincipal }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="presentacion">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Presentacion
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item?.presentacionPreTransferencia?.cantidad | number: "1.0-2" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="cantidad">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Cantidad
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item?.cantidadPreTransferencia | number: "1.0-2" }}
+          {{
+            item?.motivoModificacionPreparacion == "CANTIDAD_INCORRECTA"
+              ? " / " + item?.cantidadPreparacion
+              : null
+          }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="precio">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Precio venta
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{
+            item?.presentacionPreTransferencia?.precioPrincipal?.precio
+              | number: "1.0-2"
+          }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="vencimiento">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Vencimiento
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let item"
+          style="text-align: center; height: 100%"
+        >
+          <div
+            fxLayout="row"
+            style="width: 100%; height: 100%"
+            fxLayoutGap="10px"
+          >
+            <div fxFlex>
+              {{ item?.vencimientoPreTransferencia | date: "shortDate" }}
             </div>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="estado">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Estado
-          </th>
-          <td mat-cell *matCellDef="let item" style="text-align: center">
-            {{
-              item?.cantidadPreparacion != null ||
-              item?.vencimientoPreparacion != null ||
-              item?.motivoRechazoPreparacion != null
-                ? "Verificado"
-                : "Falta verificar"
-            }}
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="menu">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="width: 5%; text-align: center"
-          ></th>
-          <td
-            mat-cell
-            *matCellDef="let item; let i = tabIndex"
-            style="width: 5%; text-align: center"
-          >
-            <button
-              mat-icon-button
-              [matMenuTriggerFor]="menu"
-              (click)="$event.stopPropagation()"
-              [disabled]="!isPreparacionMercaderia || !puedeEditar"
-            >
-              <mat-icon>more_vert</mat-icon>
-            </button>
-            <mat-menu #menu="matMenu">
-              <button
-                mat-menu-item
-                color="accent"
-                (click)="onConfirm(item)"
-                *ngIf="isPreparacionMercaderia"
-              >
-                Confirmar
-              </button>
-              <button
-                mat-menu-item
-                *ngIf="
-                  item.cantidadPreparacion != null ||
-                  item.vencimientoPreparacion != null ||
-                  item.motivoRechazoPreparacion != null
-                "
-                color="primary"
-                (click)="onDesconfirm(item)"
-              >
-                Desconfirmar
-              </button>
-              <button mat-menu-item (click)="onModificarCantidad(item)">
-                Modificar cantidad
-              </button>
-              <button mat-menu-item (click)="onModificarVencimiento(item)">
-                Modificar vencimiento
-              </button>
-              <button mat-menu-item (click)="onRechazar(item)">
-                Rechazar item
-              </button>
-            </mat-menu>
-          </td>
-        </ng-container>
-
-        <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
-        <ng-container matColumnDef="expandedDetail">
-          <td
-            mat-cell
-            *matCellDef="let element"
-            [attr.colspan]="columnsToDisplay.length"
-          >
             <div
-              class="example-element-detail"
-              [@detailExpand]="
-                element == expandedElement ? 'expanded' : 'collapsed'
+              fxFlex="10"
+              *ngIf="
+                item?.motivoModificacionPreparacion == 'VENCIMIENTO_INCORRECTO'
               "
             >
-              <div>{{ element?.cantidadPreparacion | number: "1.0-2" }}</div>
+              -
             </div>
-          </td>
-        </ng-container>
+            <div
+              fxFlex
+              *ngIf="
+                item?.motivoModificacionPreparacion == 'VENCIMIENTO_INCORRECTO'
+              "
+            >
+              {{ item?.vencimientoPreparacion | date: "shortDate" }}
+            </div>
+          </div>
+        </td>
+      </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
-        <tr
-          mat-row
-          *matRowDef="let element; columns: columnsToDisplay"
-          class="example-element-row"
-          [class.example-expanded-row]="expandedElement === element"
-          (click)="
-            expandedElement = expandedElement === element ? null : element
-          "
-          [class.sin-cambios]="
-            element.cantidadPreparacion != null &&
-            element.motivoModificacionPreparacion == null &&
-            element.motivoRechazoPreparacion == null
-          "
-          [class.con-cambios]="element.motivoModificacionPreparacion != null"
-          [class.rechazado]="element.motivoRechazoPreparacion != null"
-        ></tr>
-        <tr
-          mat-row
-          *matRowDef="let row; columns: ['expandedDetail']"
-          class="example-detail-row"
-        ></tr>
-      </table>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Estado
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{
+            item?.cantidadPreparacion != null ||
+            item?.vencimientoPreparacion != null ||
+            item?.motivoRechazoPreparacion != null
+              ? "Verificado"
+              : "Falta verificar"
+          }}
+        </td>
+      </ng-container>
 
-      <table
-        *ngIf="
-          isPreparacionMercaderiaConcluida ||
-          isTransporteVerificacion ||
-          isTransporteEnCamino
+      <ng-container matColumnDef="menu">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 5%; text-align: center"
+        ></th>
+        <td
+          mat-cell
+          *matCellDef="let item; let i = tabIndex"
+          style="width: 5%; text-align: center"
+        >
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+            [disabled]="!isPreparacionMercaderia || !puedeEditar"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button
+              mat-menu-item
+              color="accent"
+              (click)="onConfirm(item)"
+              *ngIf="isPreparacionMercaderia"
+            >
+              Confirmar
+            </button>
+            <button
+              mat-menu-item
+              *ngIf="
+                item.cantidadPreparacion != null ||
+                item.vencimientoPreparacion != null ||
+                item.motivoRechazoPreparacion != null
+              "
+              color="primary"
+              (click)="onDesconfirm(item)"
+            >
+              Desconfirmar
+            </button>
+            <button mat-menu-item (click)="onModificarCantidad(item)">
+              Modificar cantidad
+            </button>
+            <button mat-menu-item (click)="onModificarVencimiento(item)">
+              Modificar vencimiento
+            </button>
+            <button mat-menu-item (click)="onRechazar(item)">
+              Rechazar item
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+      <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let element"
+          [attr.colspan]="columnsToDisplay.length"
+        >
+          <div
+            class="example-element-detail"
+            [@detailExpand]="
+              element == expandedElement ? 'expanded' : 'collapsed'
+            "
+          >
+            <div>{{ element?.cantidadPreparacion | number: "1.0-2" }}</div>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
+      <tr
+        mat-row
+        *matRowDef="let element; columns: columnsToDisplay"
+        class="example-element-row"
+        [class.example-expanded-row]="expandedElement === element"
+        (click)="expandedElement = expandedElement === element ? null : element"
+        [class.sin-cambios]="
+          element.cantidadPreparacion != null &&
+          element.motivoModificacionPreparacion == null &&
+          element.motivoRechazoPreparacion == null
         "
-        mat-table
-        [dataSource]="dataSource"
-        multiTemplateDataRows
-        class="mat-elevation-z8"
-      >
-        <ng-container matColumnDef="producto">
-          <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
-          <td mat-cell *matCellDef="let item" style="width: 30%">
-            {{
-              item?.presentacionPreparacion?.producto?.descripcion | uppercase
-            }}
-          </td>
-        </ng-container>
+        [class.con-cambios]="element.motivoModificacionPreparacion != null"
+        [class.rechazado]="element.motivoRechazoPreparacion != null"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: ['expandedDetail']"
+        class="example-detail-row"
+      ></tr>
+    </table>
 
-        <ng-container matColumnDef="codigo">
-          <th mat-header-cell *matHeaderCellDef>Cod. Barra</th>
-          <td mat-cell *matCellDef="let item">
-            {{ item?.presentacionPreparacion?.producto?.codigoPrincipal }}
-          </td>
-        </ng-container>
+    <table
+      *ngIf="
+        isPreparacionMercaderiaConcluida ||
+        isTransporteVerificacion ||
+        isTransporteEnCamino
+      "
+      mat-table
+      [dataSource]="dataSource"
+      multiTemplateDataRows
+      class="mat-elevation-z8"
+    >
+      <ng-container matColumnDef="producto">
+        <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
+        <td mat-cell *matCellDef="let item" style="width: 30%">
+          {{ item?.presentacionPreparacion?.producto?.descripcion | uppercase }}
+        </td>
+      </ng-container>
 
-        <ng-container matColumnDef="presentacion">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Presentacion
-          </th>
-          <td mat-cell *matCellDef="let item" style="text-align: center">
-            {{ item?.presentacionPreparacion?.cantidad | number: "1.0-2" }}
-          </td>
-        </ng-container>
+      <ng-container matColumnDef="codigo">
+        <th mat-header-cell *matHeaderCellDef>Cod. Barra</th>
+        <td mat-cell *matCellDef="let item">
+          {{ item?.presentacionPreparacion?.producto?.codigoPrincipal }}
+        </td>
+      </ng-container>
 
-        <ng-container matColumnDef="cantidad">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Cantidad
-          </th>
-          <td mat-cell *matCellDef="let item" style="text-align: center">
-            {{ item?.cantidadPreparacion | number: "1.0-2" }}
-          </td>
-        </ng-container>
+      <ng-container matColumnDef="presentacion">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Presentacion
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item?.presentacionPreparacion?.cantidad | number: "1.0-2" }}
+        </td>
+      </ng-container>
 
-        <ng-container matColumnDef="precio">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Precio venta
-          </th>
-          <td mat-cell *matCellDef="let item" style="text-align: center">
-            {{
-              item?.presentacionPreparacion?.precioPrincipal?.precio
-                | number: "1.0-2"
-            }}
-          </td>
-        </ng-container>
+      <ng-container matColumnDef="cantidad">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Cantidad
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item?.cantidadPreparacion | number: "1.0-2" }}
+        </td>
+      </ng-container>
 
-        <ng-container matColumnDef="vencimiento">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Vencimiento
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let item"
-            style="text-align: center; height: 100%"
+      <ng-container matColumnDef="precio">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Precio venta
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{
+            item?.presentacionPreparacion?.precioPrincipal?.precio
+              | number: "1.0-2"
+          }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="vencimiento">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Vencimiento
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let item"
+          style="text-align: center; height: 100%"
+        >
+          <div
+            fxLayout="row"
+            style="width: 100%; height: 100%"
+            fxLayoutGap="10px"
           >
-            <div
-              fxLayout="row"
-              style="width: 100%; height: 100%"
-              fxLayoutGap="10px"
-            >
-              <div fxFlex>
-                {{ item?.vencimientoPreparacion | date: "shortDate" }}
-              </div>
+            <div fxFlex>
+              {{ item?.vencimientoPreparacion | date: "shortDate" }}
             </div>
-          </td>
-        </ng-container>
+          </div>
+        </td>
+      </ng-container>
 
-        <ng-container matColumnDef="estado">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Estado
-          </th>
-          <td mat-cell *matCellDef="let item" style="text-align: center">
-            {{
-              item?.cantidadTransporte != null ||
-              item?.vencimientoTransporte != null ||
-              (item?.motivoRechazoTransporte != null && !isTransporteEnCamino)
-                ? "Verificado"
-                : "Falta verificar"
-            }}
-          </td>
-        </ng-container>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Estado
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{
+            item?.cantidadTransporte != null ||
+            item?.vencimientoTransporte != null ||
+            (item?.motivoRechazoTransporte != null && !isTransporteEnCamino)
+              ? "Verificado"
+              : "Falta verificar"
+          }}
+        </td>
+      </ng-container>
 
-        <ng-container matColumnDef="menu">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="width: 5%; text-align: center"
-          ></th>
-          <td
-            mat-cell
-            *matCellDef="let item; let i = tabIndex"
-            style="width: 5%; text-align: center"
+      <ng-container matColumnDef="menu">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 5%; text-align: center"
+        ></th>
+        <td
+          mat-cell
+          *matCellDef="let item; let i = tabIndex"
+          style="width: 5%; text-align: center"
+        >
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+            [disabled]="!isTransporteVerificacion || !puedeEditar"
           >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
             <button
-              mat-icon-button
-              [matMenuTriggerFor]="menu"
-              (click)="$event.stopPropagation()"
-              [disabled]="!isTransporteVerificacion || !puedeEditar"
-            >
-              <mat-icon>more_vert</mat-icon>
-            </button>
-            <mat-menu #menu="matMenu">
-              <button
-                mat-menu-item
-                *ngIf="
-                  item.cantidadTransporte == null &&
-                  item.vencimientoTransporte == null &&
-                  item.motivoRechazoTransporte == null
-                "
-                color="accent"
-                (click)="onConfirm(item)"
-              >
-                Confirmar
-              </button>
-              <button
-                mat-menu-item
-                *ngIf="
-                  item.cantidadTransporte != null ||
-                  item.vencimientoTransporte != null ||
-                  item.motivoRechazoTransporte != null
-                "
-                color="primary"
-                (click)="onDesconfirm(item)"
-              >
-                Desconfirmar
-              </button>
-              <button
-                mat-menu-item
-                (click)="onSolicitarModificarItem(item)"
-                [disabled]="true"
-              >
-                Solicitar modificación
-              </button>
-              <button mat-menu-item (click)="onRechazar(item)">
-                Rechazar item
-              </button>
-            </mat-menu>
-          </td>
-        </ng-container>
-
-        <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
-        <ng-container matColumnDef="expandedDetail">
-          <td
-            mat-cell
-            *matCellDef="let element"
-            [attr.colspan]="columnsToDisplay.length"
-          >
-            <div
-              class="example-element-detail"
-              [@detailExpand]="
-                element == expandedElement ? 'expanded' : 'collapsed'
+              mat-menu-item
+              *ngIf="
+                item.cantidadTransporte == null &&
+                item.vencimientoTransporte == null &&
+                item.motivoRechazoTransporte == null
               "
-            ></div>
-          </td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
-        <tr
-          mat-row
-          *matRowDef="let element; columns: columnsToDisplay"
-          class="example-element-row"
-          [class.example-expanded-row]="expandedElement === element"
-          (click)="
-            expandedElement = expandedElement === element ? null : element
-          "
-          [class.sin-cambios]="
-            element.cantidadTransporte != null &&
-            element.motivoModificacionTransporte == null &&
-            element.motivoRechazoTransporte == null &&
-            !isTransporteEnCamino
-          "
-          [class.con-cambios]="
-            element.motivoModificacionTransporte != null &&
-            !isTransporteEnCamino
-          "
-          [class.rechazado]="
-            element.motivoRechazoTransporte != null && !isTransporteEnCamino
-          "
-        ></tr>
-        <tr
-          mat-row
-          *matRowDef="let row; columns: ['expandedDetail']"
-          class="example-detail-row"
-        ></tr>
-      </table>
-      <table
-        *ngIf="isRecepcionEnVerificacion || isRecepcionConcluida"
-        mat-table
-        [dataSource]="dataSource"
-        multiTemplateDataRows
-        class="mat-elevation-z8"
-      >
-        <ng-container matColumnDef="producto">
-          <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
-          <td mat-cell *matCellDef="let item" style="width: 30%">
-            {{
-              item?.presentacionTransporte?.producto?.descripcion | uppercase
-            }}
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="codigo">
-          <th mat-header-cell *matHeaderCellDef>Cod. Barra</th>
-          <td mat-cell *matCellDef="let item">
-            {{ item?.presentacionTransporte?.producto?.codigoPrincipal }}
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="presentacion">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Presentacion
-          </th>
-          <td mat-cell *matCellDef="let item" style="text-align: center">
-            {{ item?.presentacionTransporte?.cantidad | number: "1.0-2" }}
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="cantidad">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Cantidad
-          </th>
-          <td mat-cell *matCellDef="let item" style="text-align: center">
-            {{ item?.cantidadTransporte | number: "1.0-2" }}
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="precio">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Precio venta
-          </th>
-          <td mat-cell *matCellDef="let item" style="text-align: center">
-            {{
-              item?.presentacionTransporte?.precioPrincipal?.precio
-                | number: "1.0-2"
-            }}
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="vencimiento">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Vencimiento
-          </th>
-          <td
-            mat-cell
-            *matCellDef="let item"
-            style="text-align: center; height: 100%"
-          >
-            <div
-              fxLayout="row"
-              style="width: 100%; height: 100%"
-              fxLayoutGap="10px"
+              color="accent"
+              (click)="onConfirm(item)"
             >
-              <div fxFlex>
-                {{ item?.vencimientoTransporte | date: "shortDate" }}
-              </div>
+              Confirmar
+            </button>
+            <button
+              mat-menu-item
+              *ngIf="
+                item.cantidadTransporte != null ||
+                item.vencimientoTransporte != null ||
+                item.motivoRechazoTransporte != null
+              "
+              color="primary"
+              (click)="onDesconfirm(item)"
+            >
+              Desconfirmar
+            </button>
+            <button
+              mat-menu-item
+              (click)="onSolicitarModificarItem(item)"
+              [disabled]="true"
+            >
+              Solicitar modificación
+            </button>
+            <button mat-menu-item (click)="onRechazar(item)">
+              Rechazar item
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+      <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let element"
+          [attr.colspan]="columnsToDisplay.length"
+        >
+          <div
+            class="example-element-detail"
+            [@detailExpand]="
+              element == expandedElement ? 'expanded' : 'collapsed'
+            "
+          ></div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
+      <tr
+        mat-row
+        *matRowDef="let element; columns: columnsToDisplay"
+        class="example-element-row"
+        [class.example-expanded-row]="expandedElement === element"
+        (click)="expandedElement = expandedElement === element ? null : element"
+        [class.sin-cambios]="
+          element.cantidadTransporte != null &&
+          element.motivoModificacionTransporte == null &&
+          element.motivoRechazoTransporte == null &&
+          !isTransporteEnCamino
+        "
+        [class.con-cambios]="
+          element.motivoModificacionTransporte != null && !isTransporteEnCamino
+        "
+        [class.rechazado]="
+          element.motivoRechazoTransporte != null && !isTransporteEnCamino
+        "
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: ['expandedDetail']"
+        class="example-detail-row"
+      ></tr>
+    </table>
+    <table
+      *ngIf="isRecepcionEnVerificacion || isRecepcionConcluida"
+      mat-table
+      [dataSource]="dataSource"
+      multiTemplateDataRows
+      class="mat-elevation-z8"
+    >
+      <ng-container matColumnDef="producto">
+        <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
+        <td mat-cell *matCellDef="let item" style="width: 30%">
+          {{ item?.presentacionTransporte?.producto?.descripcion | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="codigo">
+        <th mat-header-cell *matHeaderCellDef>Cod. Barra</th>
+        <td mat-cell *matCellDef="let item">
+          {{ item?.presentacionTransporte?.producto?.codigoPrincipal }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="presentacion">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Presentacion
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item?.presentacionTransporte?.cantidad | number: "1.0-2" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="cantidad">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Cantidad
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{ item?.cantidadTransporte | number: "1.0-2" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="precio">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Precio venta
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{
+            item?.presentacionTransporte?.precioPrincipal?.precio
+              | number: "1.0-2"
+          }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="vencimiento">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Vencimiento
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let item"
+          style="text-align: center; height: 100%"
+        >
+          <div
+            fxLayout="row"
+            style="width: 100%; height: 100%"
+            fxLayoutGap="10px"
+          >
+            <div fxFlex>
+              {{ item?.vencimientoTransporte | date: "shortDate" }}
             </div>
-          </td>
-        </ng-container>
+          </div>
+        </td>
+      </ng-container>
 
-        <ng-container matColumnDef="estado">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">
-            Estado
-          </th>
-          <td mat-cell *matCellDef="let item" style="text-align: center">
-            {{
-              item?.cantidadRecepcion != null ||
-              item?.vencimientoRecepcion != null ||
-              item?.motivoRechazoRecepcion != null
-                ? "Verificado"
-                : "Falta verificar"
-            }}
-          </td>
-        </ng-container>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Estado
+        </th>
+        <td mat-cell *matCellDef="let item" style="text-align: center">
+          {{
+            item?.cantidadRecepcion != null ||
+            item?.vencimientoRecepcion != null ||
+            item?.motivoRechazoRecepcion != null
+              ? "Verificado"
+              : "Falta verificar"
+          }}
+        </td>
+      </ng-container>
 
-        <ng-container matColumnDef="menu">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="width: 5%; text-align: center"
-          ></th>
-          <td
-            mat-cell
-            *matCellDef="let item; let i = tabIndex"
-            style="width: 5%; text-align: center"
+      <ng-container matColumnDef="menu">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 5%; text-align: center"
+        ></th>
+        <td
+          mat-cell
+          *matCellDef="let item; let i = tabIndex"
+          style="width: 5%; text-align: center"
+        >
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+            [disabled]="!isRecepcionEnVerificacion && !isDestino"
           >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
             <button
-              mat-icon-button
-              [matMenuTriggerFor]="menu"
-              (click)="$event.stopPropagation()"
-              [disabled]="!isRecepcionEnVerificacion && !isDestino"
-            >
-              <mat-icon>more_vert</mat-icon>
-            </button>
-            <mat-menu #menu="matMenu">
-              <button
-                mat-menu-item
-                *ngIf="
-                  item.cantidadRecepcion == null &&
-                  item.vencimientoRecepcion == null &&
-                  item.motivoRechazoRecepcion == null
-                "
-                color="accent"
-                (click)="onConfirm(item)"
-              >
-                Confirmar
-              </button>
-              <button
-                mat-menu-item
-                *ngIf="
-                  item.cantidadRecepcion != null ||
-                  item.vencimientoRecepcion != null ||
-                  item.motivoRechazoRecepcion != null
-                "
-                color="primary"
-                (click)="onDesconfirm(item)"
-              >
-                Desconfirmar
-              </button>
-              <button
-                mat-menu-item
-                (click)="onSolicitarModificarItem(item)"
-                [disabled]="true"
-              >
-                Solicitar modificación
-              </button>
-              <button mat-menu-item (click)="onRechazar(item)">
-                Rechazar item
-              </button>
-            </mat-menu>
-          </td>
-        </ng-container>
-
-        <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
-        <ng-container matColumnDef="expandedDetail">
-          <td
-            mat-cell
-            *matCellDef="let element"
-            [attr.colspan]="columnsToDisplay.length"
-          >
-            <div
-              class="example-element-detail"
-              [@detailExpand]="
-                element == expandedElement ? 'expanded' : 'collapsed'
+              mat-menu-item
+              *ngIf="
+                item.cantidadRecepcion == null &&
+                item.vencimientoRecepcion == null &&
+                item.motivoRechazoRecepcion == null
               "
-            ></div>
-          </td>
-        </ng-container>
+              color="accent"
+              (click)="onConfirm(item)"
+            >
+              Confirmar
+            </button>
+            <button
+              mat-menu-item
+              *ngIf="
+                item.cantidadRecepcion != null ||
+                item.vencimientoRecepcion != null ||
+                item.motivoRechazoRecepcion != null
+              "
+              color="primary"
+              (click)="onDesconfirm(item)"
+            >
+              Desconfirmar
+            </button>
+            <button
+              mat-menu-item
+              (click)="onSolicitarModificarItem(item)"
+              [disabled]="true"
+            >
+              Solicitar modificación
+            </button>
+            <button mat-menu-item (click)="onRechazar(item)">
+              Rechazar item
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
-        <tr
-          mat-row
-          *matRowDef="let element; columns: columnsToDisplay"
-          class="example-element-row"
-          [class.example-expanded-row]="expandedElement === element"
-          (click)="
-            expandedElement = expandedElement === element ? null : element
-          "
-          [class.sin-cambios]="
-            element.cantidadRecepcion != null &&
-            element.motivoModificacionRecepcion == null &&
-            element.motivoRechazoRecepcion == null
-          "
-          [class.con-cambios]="element.motivoModificacionRecepcion != null"
-          [class.rechazado]="element.motivoRechazoRecepcion != null"
-        ></tr>
-        <tr
-          mat-row
-          *matRowDef="let row; columns: ['expandedDetail']"
-          class="example-detail-row"
-        ></tr>
-      </table>
-    </div>
-  </mat-card>
-</div>
+      <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+      <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let element"
+          [attr.colspan]="columnsToDisplay.length"
+        >
+          <div
+            class="example-element-detail"
+            [@detailExpand]="
+              element == expandedElement ? 'expanded' : 'collapsed'
+            "
+          ></div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
+      <tr
+        mat-row
+        *matRowDef="let element; columns: columnsToDisplay"
+        class="example-element-row"
+        [class.example-expanded-row]="expandedElement === element"
+        (click)="expandedElement = expandedElement === element ? null : element"
+        [class.sin-cambios]="
+          element.cantidadRecepcion != null &&
+          element.motivoModificacionRecepcion == null &&
+          element.motivoRechazoRecepcion == null
+        "
+        [class.con-cambios]="element.motivoModificacionRecepcion != null"
+        [class.rechazado]="element.motivoRechazoRecepcion != null"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: ['expandedDetail']"
+        class="example-detail-row"
+      ></tr>
+    </table>
+  </div>
+</app-generic-list>

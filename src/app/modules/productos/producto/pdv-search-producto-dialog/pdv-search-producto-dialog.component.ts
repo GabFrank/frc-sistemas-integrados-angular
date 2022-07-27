@@ -48,6 +48,7 @@ export interface PdvSearchProductoData {
   selectedTipoPrecio?: TipoPrecio;
   mostrarOpciones?: boolean;
   mostrarStock?: boolean;
+  conservarUltimaBusqueda?: boolean;
 }
 
 export interface PdvSearchProductoResponseData {
@@ -58,6 +59,7 @@ export interface PdvSearchProductoResponseData {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { environment } from "../../../../../environments/environment";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -109,7 +111,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   mostrarTipoPrecios = false;
   desplegarTipoPrecios = false;
   selectedPresentacion: Presentacion;
-
+  precios: string[];
+  modoPrecio: string;
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: PdvSearchProductoData,
     public dialogRef: MatDialogRef<PdvSearchProductoDialogComponent>,
@@ -120,7 +123,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     private _el: ElementRef,
     private stockService: MovimientoStockService
   ) {
-    if(data?.mostrarStock == true){
+    if (data?.mostrarStock == true) {
       this.displayedColumns = [
         "id",
         "descripcion",
@@ -128,6 +131,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         "existencia",
         // "acciones"
       ]
+      this.precios = environment['precios'];
+      this.modoPrecio = environment['modo'];
     }
   }
 
@@ -135,6 +140,10 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     this.createForm();
 
     this.productoDetailList = [];
+
+    if (this.data.conservarUltimaBusqueda == true) {
+      this.formGroup.get("buscarControl").setValue(this.productoService.lastSearchText);
+    }
   }
 
   ngAfterViewInit(): void {
@@ -151,7 +160,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     });
 
     this.formGroup.get("buscarControl").valueChanges.pipe(untilDestroyed(this)).subscribe((value) => {
-      if(value!=null) this.onSearchProducto(value);
+      if (value != null) this.onSearchProducto(value);
 
     });
 
@@ -164,82 +173,120 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     let peso;
     let codigo;
     this.isSearching = true;
+    if (this.data.conservarUltimaBusqueda == true) this.productoService.lastSearchText = text;
     if (this.onSearchTimer != null) {
       clearTimeout(this.onSearchTimer);
     }
     if (text == "" || text == null || text == " ") {
-      this.dataSource != undefined ? this.dataSource.data = []: null;
+      this.dataSource != undefined ? this.dataSource.data = [] : null;
       this.isSearching = false;
     } else {
-      if(text.length == 13 && text.substring(0, 2)=='20'){
+      if (text.length == 13 && text.substring(0, 2) == '20') {
         isPesable = true;
-        codigo = text.substring(2,7)
+        codigo = text.substring(2, 7)
         peso = +text.substring(7, 12) / 1000
         text = codigo
         this.formGroup.get("cantidad").setValue(peso)
       }
       this.onSearchTimer = setTimeout(() => {
         this.productoService.onSearch(text, offset).pipe(untilDestroyed(this)).subscribe((res) => {
-            if (offset == null) {
-              this.dataSource.data = res;
-            } else {
-              const arr = [...this.dataSource.data.concat(res)];
-              this.dataSource.data = arr;
-            }
-            this.isSearching = false;
+          if (offset == null) {
+            this.dataSource.data = res;
+          } else {
+            const arr = [...this.dataSource.data.concat(res)];
+            this.dataSource.data = arr;
+          }
+          this.buscarInput.nativeElement.focus()
+          this.isSearching = false;
         });
       }, 1000);
     }
   }
 
   highlight(index: number) {
-    console.log(index);
     if (index >= 0 && index <= this.dataSource.data.length - 1) {
       this.selectedRowIndex = index;
-      this.expandedProducto = this.dataSource.data[index];
-      this.getProductoDetail(this.expandedProducto, index);
+      // this.expandedProducto = this.dataSource.data[index];
+      // this.getProductoDetail(this.expandedProducto, index);
     }
   }
 
   highlightPresentacion(index: number) {
     if (
-      index < 0 
-    ){
+      index < 0
+    ) {
       this.selectedPresentacionRowIndex++;
-    } else if(index > this.dataSource.data[this.selectedRowIndex]?.presentaciones?.length - 1){
+    } else if (index > this.dataSource.data[this.selectedRowIndex]?.presentaciones?.length - 1) {
       this.selectedPresentacionRowIndex--;
     } else {
       this.selectedPresentacionRowIndex = index;
-      if(this.dataSource.data!=null){
-        this.selectedPresentacion =
-        this.dataSource?.data[this.selectedRowIndex]?.presentaciones[index];
+      if (this.dataSource.data != null) {
+        this.selectedPresentacion = this.dataSource?.data[this.selectedRowIndex]?.presentaciones[index];
+        if (this.selectedPresentacion?.precios?.length > 0) this.selectedPrecio = this.selectedPresentacion?.precios[0]
       }
-      
+
     }
   }
 
   getProductoDetail(producto: Producto, index) {
     if (producto?.presentaciones == null) {
       this.productoService.getProducto(producto.id).pipe(untilDestroyed(this)).subscribe((res) => {
-        console.log(res);
+        if (this.precios != null && this.modoPrecio == 'ONLY') {
+          res.presentaciones = res.presentaciones.filter((p, index) => {
+            res.presentaciones[index].precios = p.precios?.filter(pre => this.precios?.includes(pre?.tipoPrecio?.descripcion))
+            return res.presentaciones[index].precios?.length > 0
+          })
+        }
+        if (this.precios != null && this.modoPrecio == 'MIXTO') {
+          console.log('hay precio y es mixto');
+          res.presentaciones = res.presentaciones.filter((p, index) => {
+            let foundPrecios = p.precios?.filter(pre => this.precios?.includes(pre?.tipoPrecio?.descripcion))
+            if (foundPrecios.length > 0) {
+              console.log(foundPrecios);
+              console.log(res.presentaciones[index].precios);
+              res.presentaciones[index].precios = foundPrecios;
+
+            }
+            return true;
+          })
+        } else if (this.precios != null && this.modoPrecio == 'NOT') {
+          res.presentaciones = res.presentaciones?.filter((p, index) => {
+            res.presentaciones[index].precios = p.precios?.filter(pre => !this.precios?.includes(pre?.tipoPrecio?.descripcion))
+            return res.presentaciones[index].precios?.length > 0
+          })
+        }
         this.dataSource.data[index].presentaciones = res.presentaciones;
         this.highlightPresentacion(0);
       });
     }
   }
-  
+
+  scroll(id) {
+    console.log(`scrolling to ${id}`);
+    let el = document.getElementById(id);
+    el.scrollIntoView();
+  }
+
   tableKeyDownEvent(key, index) {
     switch (key) {
       case "ArrowDown":
         this.highlight(index + 1);
-        this.highlightPresentacion(0);
+        this.expandedProducto = null;
+        // this.highlightPresentacion(0);
         break;
       case "ArrowUp":
         this.highlight(index - 1);
-        this.highlightPresentacion(0);
+        this.expandedProducto = null;
+        // this.highlightPresentacion(0);
         break;
       case "Enter":
-        this.onPresentacionClick(this.dataSource.data[index]?.presentaciones[this.selectedPresentacionRowIndex], this.dataSource.data[index], null);
+        if (this.expandedProducto == null) {
+          this.expandedProducto = this.dataSource.data[index];
+          this.getProductoDetail(this.expandedProducto, index);
+        } else {
+          // console.log(index, this.selectedPresentacionRowIndex);
+          this.onPresentacionClick(this.dataSource.data[index]?.presentaciones[this.selectedPresentacionRowIndex], this.dataSource.data[index], null);
+        }
         break;
       case "ArrowRight":
         if (this.selectedPresentacionRowIndex == -1) {
@@ -258,12 +305,12 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         }
         break;
       default:
-        if(!isNaN(+key)){
+        if (!isNaN(+key)) {
           console.log('precio con id ', key)
-          let precio = this.selectedPresentacion.precios.find(p => p.tipoPrecio.id == key)
+          let precio = this.selectedPresentacion.precios?.find(p => p?.tipoPrecio?.id == key)
           console.log(precio)
           this.onPresentacionClick(this.selectedPresentacion, this.dataSource.data[this.selectedRowIndex], precio)
-        } 
+        }
         break;
     }
   }
@@ -278,11 +325,13 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   }
 
   keydownEvent(e) {
-    if (e == "ArrowDown" || e == "Enter" || e == "Tab") {
+    if (e == "ArrowDown" || e == "Tab") {
       if (this.dataSource.data?.length > 0) {
         this.highlight(0);
         this.setFocustEvent();
       }
+    } else if (e == 'Enter') {
+      this.onSearchProducto(this.formGroup.controls.buscarControl.value)
     }
   }
 
@@ -346,19 +395,19 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     precio?: PrecioPorSucursal,
   ) {
     presentacion.producto = producto;
+    if (precio == null && presentacion?.precios != null) {
+      precio = this.selectedPrecio
+    }
     let response: PdvSearchProductoResponseData = {
       producto,
       presentacion,
       cantidad: this.formGroup.controls.cantidad.value,
       precio,
     };
-
-    // this.stockService.onGetStockPorProducto(producto.id).subscribe(res => {
-    //   if(res!=null){
-    //     response.producto.stockPorProducto = res;
-    //   }
-    // })
-    this.dialogRef.close(response);
+    
+    if (producto != null && presentacion != null && precio != null) {
+      this.dialogRef.close(response);
+    }
   }
 
   onMostrarTipoPrecios(presentacion: Presentacion) {
@@ -366,11 +415,14 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     this.selectedPresentacion = presentacion;
   }
 
-  presentacionArrowRightEvent(index) {
+  presentacionArrowRightEvent(index, el?) {
+    console.log(el);
+
     this.highlightPresentacion(index + 1);
   }
 
-  presentacionArrowLeftEvent(index) {
+  presentacionArrowLeftEvent(index, el) {
+    console.log(el);
     this.highlightPresentacion(index - 1);
   }
 
@@ -383,9 +435,9 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     }
   }
 
-  mostrarStock(producto: Producto, index?){
+  mostrarStock(producto: Producto, index?) {
     this.stockService.onGetStockPorProducto(producto.id).pipe(untilDestroyed(this)).subscribe(res => {
-      if(res!=null){
+      if (res != null) {
         console.log(res)
         producto.stockPorProducto = res;
         this.dataSource[index] = producto;
@@ -393,9 +445,9 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     })
   }
 
-  mostrarCodigoPrincipal(producto: Producto, index?){
+  mostrarCodigoPrincipal(producto: Producto, index?) {
     this.stockService.onGetStockPorProducto(producto.id).pipe(untilDestroyed(this)).subscribe(res => {
-      if(res!=null){
+      if (res != null) {
         console.log(res)
         producto.stockPorProducto = res;
         this.dataSource[index] = producto;
@@ -403,14 +455,14 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     })
   }
 
-  abrirProductoDialog(producto?: Producto){
+  abrirProductoDialog(producto?: Producto) {
     this.matDialog.open(ProductoComponent, {
       data: {
         isDialog: true,
         producto: producto
       }
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      if(res!=null){
+      if (res != null) {
         this.dataSource.data = []
         this.onSearchProducto(res.descripcion, 0);
       }

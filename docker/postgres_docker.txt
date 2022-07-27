@@ -36,7 +36,7 @@ docker run --name frc-server -v "C:\FRC\docker\pg-data:/var/lib/postgresql/data"
 
 -- adicionar servicio en servidor cloud
 - crear el servicio
-sudo vi /etc/systemd/system/frc.service
+sudo vim /etc/systemd/system/frc.service
 ********************************************
 [Unit]
 Description = FRC
@@ -123,6 +123,10 @@ sudo systemctl status frc.service
 
 --conectar al servidor central via ssh
 ssh opc@150.136.137.98
+
+-- restart ssh
+sudo launchctl unload  /System/Library/LaunchDaemons/ssh.plist
+sudo launchctl load -w /System/Library/LaunchDaemons/ssh.plist
 
 --copiar archivos al servidor central
 scp origen:path destino:path

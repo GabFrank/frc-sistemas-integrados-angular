@@ -123,6 +123,7 @@ export const saveVenta = gql`
     $cobroDetalleList: [CobroDetalleInput]
     $ticket: Boolean
     $printerName: String
+    $local: String
   ) {
     data: saveVenta(
       ventaInput: $ventaInput
@@ -130,7 +131,8 @@ export const saveVenta = gql`
       cobro: $cobro
       cobroDetalleList: $cobroDetalleList
       ticket: $ticket,
-      printerName: $printerName
+      printerName: $printerName,
+      local: $local
     )
   }
 `;
@@ -150,11 +152,13 @@ export const cancelarVentaQuery = gql`
 export const reimprimirVentaQuery = gql`
   mutation reimprimirVenta(
     $id: ID!
-    $printerName: String
+    $printerName: String,
+    $local: String
     ) {
     data: reimprimirVenta(
       id: $id
-      printerName: $printerName
+      printerName: $printerName,
+      local: $local
       )
   }
 `;

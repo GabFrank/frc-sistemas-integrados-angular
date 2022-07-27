@@ -37,6 +37,8 @@ export class ProductoCategoriaResponseData {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { environment } from "../../../../../../environments/environment";
+import { NotificacionSnackbarService } from "../../../../../notificacion-snackbar.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -53,20 +55,44 @@ export class ProductoCategoriaDialogComponent implements OnInit {
   cantidad = 1;
   formGroup: FormGroup;
   currency = new CurrencyMask();
-  mostrarTipoPrecios = false;
-  desplegarTipoPrecio = false;
+  mostrarTipoPrecios = true;
+  desplegarTipoPrecio = true;
   selectedPresentacion: Presentacion;
   selectedPrecio: PrecioPorSucursal;
+  filteredPrecios: string[]
+  modoPrecio: string;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: ProductoCategoriaDialogData,
     public dialogRef: MatDialogRef<ProductoCategoriaDialogComponent>,
     public windowInfo: WindowInfoService,
     public matDialog: MatDialog,
-    public mainService: MainService
+    public mainService: MainService,
+    private notificacionService: NotificacionSnackbarService
   ) {
     this.presentaciones = data?.presentaciones;
     this.cantidad = +data?.cantidad;
+    this.filteredPrecios = environment['precios']
+    this.modoPrecio = environment['modo']
+    if(this.filteredPrecios!=null && this.modoPrecio == 'ONLY'){
+      this.presentaciones.filter((p, index) => {
+        this.presentaciones[index].precios = p.precios.filter(pre => this.filteredPrecios?.includes(pre.tipoPrecio.descripcion))
+        return this.presentaciones[index].precios.length > 0
+      })
+    } else if(this.filteredPrecios!=null && this.modoPrecio == 'MIXTO'){
+      this.presentaciones.filter((p, index) => {
+        let foundPrecios = p.precios.filter(pre => this.filteredPrecios?.includes(pre.tipoPrecio.descripcion))
+        if(foundPrecios.length > 0){
+          this.presentaciones[index].precios = foundPrecios;
+        }
+        return true;
+      })
+    } else if(this.filteredPrecios!=null && this.modoPrecio=='NOT'){
+      this.presentaciones.filter((p, index) => {
+        this.presentaciones[index].precios = p.precios.filter(pre => !this.filteredPrecios?.includes(pre.tipoPrecio.descripcion))
+        return this.presentaciones[index].precios.length > 0
+      })
+    }
   }
 
   ngOnInit(): void {
@@ -114,7 +140,6 @@ export class ProductoCategoriaDialogComponent implements OnInit {
   onGridCardClick(presentacion?: Presentacion) {
     this.selectedPresentacion = presentacion;
     let response: ProductoCategoriaResponseData = null;
-    
     if (this.selectedPrecio == null) {
       this.selectedPrecio = this.selectedPresentacion?.precios.find(
         (p) => p.principal == true
@@ -129,6 +154,16 @@ export class ProductoCategoriaDialogComponent implements OnInit {
         tipoPrecio: this.tipoPrecio,
       };
       this.dialogRef.close(response);
+    } else if(this.selectedPrecio==null && this.selectedPresentacion?.precios.length > 0){
+      response = {
+        presentacion: this.selectedPresentacion,
+        precio: this.selectedPresentacion?.precios[0],
+        cantidad: this.formGroup.get("cantidad").value,
+        tipoPrecio: this.tipoPrecio,
+      };
+      this.dialogRef.close(response);
+    } else {
+      this.notificacionService.openWarn('No existe precio disponible')
     }
     
   }

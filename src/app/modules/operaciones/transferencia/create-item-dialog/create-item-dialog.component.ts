@@ -99,7 +99,7 @@ export class CreateItemDialogComponent implements OnInit {
       this.selectedItem.presentacionPreTransferencia = this.selectedPresentacion;
       this.selectedItem.activo = this.activoControl.value;
       this.selectedItem.cantidadPreTransferencia = this.cantidadControl.value;
-      this.selectedItem.poseeVencimiento = this.selectedPresentacion?.producto?.vencimiento;
+      this.selectedItem.poseeVencimiento = this.selectedPresentacion?.producto?.vencimiento == true;
       if (this.selectedItem.poseeVencimiento) {
         this.selectedItem.vencimientoPreTransferencia = this.vencimientoControl.value;
       }

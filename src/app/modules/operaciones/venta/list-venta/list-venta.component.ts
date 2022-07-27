@@ -119,7 +119,7 @@ export class ListVentaComponent implements OnInit {
   getCobroTotal(lista: CobroDetalle[], moneda: string): number {
     let total = 0;
     lista?.forEach((c) => {
-      if (c.moneda.denominacion == moneda && (c.pago || c.vuelto))
+      if (c.moneda.denominacion == moneda && (c.pago || c.vuelto) && !c.aumento)
         total += c.valor;
     });
     return total;
@@ -132,11 +132,9 @@ export class ListVentaComponent implements OnInit {
   ): number {
     let total = 0;
     lista?.forEach((c) => {
-      if (descuento) {
+      if (descuento && !c.aumento) {
         if (c.descuento) total += c.valor;
-      } else if (aumento) {
-        if (c.aumento) total += c.valor * c.cambio;
-      } else if (c.pago || c.vuelto) total += c.valor * c.cambio;
+      } else if ((c.pago || c.vuelto) && !c.aumento) total += c.valor * c.cambio;
     });
     return total;
   }

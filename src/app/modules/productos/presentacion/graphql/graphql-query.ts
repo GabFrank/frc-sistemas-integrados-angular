@@ -28,6 +28,7 @@ export const presentacionQuery = gql`
       producto {
         id
         descripcion
+        descripcionFactura
         balanza
         vencimiento
         costo {
@@ -122,5 +123,11 @@ export const savePresentacion = gql`
 export const deletePresentacionQuery = gql`
   mutation deletePresentacion($id: ID!) {
     deletePresentacion(id: $id)
+  }
+`;
+
+export const saveImagenPresentacionQuery = gql`
+  mutation saveImagenPresentacion($image: String!, $filename: String!) {
+    saveImagenPresentacion(image: $image, filename: $filename)
   }
 `;

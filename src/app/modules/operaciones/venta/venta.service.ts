@@ -63,7 +63,8 @@ export class VentaService {
             cobro: cobroInput,
             cobroDetalleList: cobroDetalleInputList,
             ticket,
-            printerName: environment['printers']['ticket']
+            printerName: environment['printers']['ticket'],
+            local: environment['local']
           },
           {
             errorPolicy: "all",
@@ -82,7 +83,8 @@ export class VentaService {
         .mutate(
           {
             id,
-            printerName: environment['printers']['ticket']
+            printerName: environment['printers']['ticket'],
+            local: environment['local']
           },
           {
             fetchPolicy: "no-cache",

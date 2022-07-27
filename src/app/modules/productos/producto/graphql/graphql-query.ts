@@ -5,6 +5,7 @@ export const productosQuery = gql`
     data: productos {
       id
       descripcion
+      descripcionFactura
       garantia
       vencimiento
       diasVencimiento
@@ -74,6 +75,7 @@ export const productoSearchPdv = gql`
       id
       balanza
       descripcion
+      descripcionFactura
       garantia
       vencimiento
       diasVencimiento

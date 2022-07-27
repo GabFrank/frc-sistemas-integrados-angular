@@ -219,23 +219,7 @@
                             presentacion?.id == selectedPresentacion?.id
                           "
                           [class.highlight]="selectedPresentacionRowIndex == i"
-                          (keydown.arrowRight)="
-                            presentacionArrowRightEvent(
-                              selectedPresentacionRowIndex
-                            )
-                          "
-                          (keydown.arrowLeft)="
-                            presentacionArrowLeftEvent(
-                              selectedPresentacionRowIndex
-                            )
-                          "
-                          (keydown.enter)="
-                            onPresentacionClick(
-                              selectedPresentacion,
-                              producto,
-                              selectedPresentacion?.precios[0]
-                            )
-                          "
+                          
                           style="
                             padding: 0;
                             margin: 0;
@@ -247,7 +231,7 @@
                           (click)="
                             mostrarTipoPrecios
                               ? onMostrarTipoPrecios(presentacion)
-                              : onPresentacionClick(presentacion, producto)
+                              : onPresentacionClick(presentacion, producto, presentacion?.precios[0])
                           "
                         >
                           <div
@@ -273,7 +257,7 @@
                         </mat-card>
                         <div style="text-align: center; font-weight: bold">
                           <div>
-                            {{ presentacion.cantidad | number: "1.0-2" }}
+                           Cantidad: {{ presentacion.cantidad | number: "1.0-2" }}
                           </div>
                         </div>
                       </div>
@@ -345,9 +329,9 @@
               #tableRows
               mat-row
               *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
-              (click)="highlight(i); this.highlightPresentacion(0)"
+              (click)="expandedProducto = null; highlight(i);tableKeyDownEvent('Enter', i)"
               tabindex="999"
-              (keydown)="tableKeyDownEvent($event.key, selectedRowIndex)"
+              (keydown)="tableKeyDownEvent($event.key, selectedRowIndex);"
             ></tr>
             <tr
               mat-row

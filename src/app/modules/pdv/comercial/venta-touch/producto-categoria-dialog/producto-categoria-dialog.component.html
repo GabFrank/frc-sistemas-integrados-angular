@@ -17,6 +17,7 @@
   >
     <div fxFlex="13" *ngFor="let presentacion of presentaciones; let i = index">
       <mat-card
+        *ngIf="presentacion?.activo == true"
         style="
           padding: 0;
           margin: 0;
@@ -53,7 +54,7 @@
         </div>
       </mat-card>
       <div style="height: 5px"></div>
-      <div *ngIf="mostrarTipoPrecios == true">
+      <div *ngIf="mostrarTipoPrecios == true && presentacion?.activo == true">
         <mat-card
           *ngFor="let precio of presentacion?.precios"
           fxLayout="column"
@@ -65,9 +66,7 @@
             padding: 0px;
             margin-bottom: 5px;
           "
-          (click)="
-            selectedPrecio = precio; onGridCardClick(presentacion)
-          "
+          (click)="selectedPrecio = precio; onGridCardClick(presentacion)"
         >
           <div fxFlex>
             {{ precio?.tipoPrecio?.descripcion?.substring(0, 4) | uppercase }}

@@ -50,10 +50,12 @@ export interface PagoItem {
   descuento?: boolean;
   aumento?: boolean;
   pago?: boolean
+  itemList?: VentaItem[];
 }
 
 export interface PagoData {
   valor: number;
+  itemList: VentaItem[]
 }
 
 export interface PagoResponseData {
@@ -61,6 +63,9 @@ export interface PagoResponseData {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { AddFacturaLegalDialogComponent } from "../../../../financiero/factura-legal/add-factura-legal-dialog/add-factura-legal-dialog.component";
+import { Venta } from "../../../../operaciones/venta/venta.model";
+import { VentaItem } from "../../../../operaciones/venta/venta-item.model";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -476,7 +481,20 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
 
   onPresupuesto() {}
 
-  onFactura() {}
+  onFactura() {
+    this.isDialogOpen = true
+    let venta = new Venta;
+    venta.totalGs = this.formGroup.get("valorTotal").value;
+    this.matDialog.open(AddFacturaLegalDialogComponent, {
+      data: {
+        venta,
+        ventaItemList: this.data.itemList
+      },
+      width: '100%'
+    }).afterClosed().subscribe(res => {
+      
+    })
+  }
 
   ngOnDestroy(): void {
     //Called once, before the instance is destroyed.

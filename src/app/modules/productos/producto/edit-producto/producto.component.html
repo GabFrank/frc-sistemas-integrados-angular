@@ -800,7 +800,7 @@
                     <mat-icon>add_circle_outline</mat-icon>
                     <span>Precio</span>
                   </button>
-                  <button
+                  <!-- <button
                     mat-menu-item
                     (click)="
                       selectedPresentacion?.imagenPrincipal == null
@@ -810,7 +810,7 @@
                   >
                     <mat-icon>add_circle_outline</mat-icon>
                     <span>Imagen</span>
-                  </button>
+                  </button> -->
                 </mat-menu>
               </td>
             </ng-container>
@@ -906,8 +906,14 @@
                         ></tr>
                         <tr
                           mat-row
-                          *matRowDef="let row; columns: codigoColumnsToDisplay; let codigoIndex = index"
-                          (click)="onEditCodigo(row, codigoIndex, presentacionIndex)"
+                          *matRowDef="
+                            let row;
+                            columns: codigoColumnsToDisplay;
+                            let codigoIndex = index
+                          "
+                          (click)="
+                            onEditCodigo(row, codigoIndex, presentacionIndex)
+                          "
                         ></tr>
                       </table>
                       <br />
@@ -916,7 +922,10 @@
                           mat-fab
                           color="primary"
                           aria-label="adicionar codigo"
-                          (click)="selectedCodigo = null; onAddCodigo(null, presentacionIndex)"
+                          (click)="
+                            selectedCodigo = null;
+                            onAddCodigo(null, presentacionIndex)
+                          "
                           type="button"
                         >
                           <mat-icon>add</mat-icon>
@@ -990,8 +999,14 @@
                         ></tr>
                         <tr
                           mat-row
-                          *matRowDef="let row; columns: precioColumnsToDisplay; let precioIndex = index"
-                          (click)="onEditPrecio(row, precioIndex, presentacionIndex)"
+                          *matRowDef="
+                            let row;
+                            columns: precioColumnsToDisplay;
+                            let precioIndex = index
+                          "
+                          (click)="
+                            onEditPrecio(row, precioIndex, presentacionIndex)
+                          "
                         ></tr>
                       </table>
                       <br />
@@ -1000,7 +1015,10 @@
                           mat-fab
                           color="primary"
                           aria-label="adicionar codigo"
-                          (click)="selectedPrecio = null; onAddPrecio(null, presentacionIndex)"
+                          (click)="
+                            selectedPrecio = null;
+                            onAddPrecio(null, presentacionIndex)
+                          "
                           type="button"
                         >
                           <mat-icon>add</mat-icon>
@@ -1012,11 +1030,11 @@
                         <h4>Imagen</h4>
                       </div>
                       <div
-                        *ngIf="element?.imagenPrincipal == null"
                         style="
                           width: 200px;
                           height: 200px;
                           background-color: rgb(43, 43, 43);
+                          display: none
                         "
                       >
                         <input
@@ -1024,22 +1042,26 @@
                           type="file"
                           accept="image/*"
                           (change)="onFileInput($event)"
-                          style="display: none"
                         />
                       </div>
-                      <div *ngIf="element?.imagenPrincipal != null">
+                      <div>
                         <img
-                          [src]="element?.imagenPrincipal"
+                          [src]="element?.imagenPrincipal!=null ? element?.imagenPrincipal : '/assets/no-image.png'"
                           alt="element?.id"
                           style="
                             width: 200px;
                             height: 200px;
-                            object-fit: contain;
+                            object-fit: cover;
+                          "
+                          (click)="
+                            element?.imagenPrincipal == null
+                              ? fileInput.click()
+                              : onImageClick(element)
                           "
                         />
                       </div>
                       <br />
-                      <div>
+                      <!-- <div>
                         <button
                           type="button"
                           mat-raised-button
@@ -1056,7 +1078,7 @@
                               : "Cargar Imagen"
                           }}
                         </button>
-                      </div>
+                      </div> -->
                     </mat-card>
                   </div>
                 </div>
@@ -1078,7 +1100,7 @@
                   expandedPresentacion === element ? null : element;
                 onPresentacionSelect(expandedPresentacion);
                 codigoDataSource.data = element.codigos;
-                precioDataSource.data = element.precios;
+                precioDataSource.data = element.precios
               "
             ></tr>
             <tr
@@ -1101,14 +1123,14 @@
             style="width: 100px; margin-right: 10px"
             mat-raised-button
             type="button"
-            matStepperNext
+            (click)="onFinalizar()"
           >
-            Siguiente
+            Nuevo producto
           </button>
         </div>
       </form>
     </mat-step>
-    <mat-step
+    <!-- <mat-step
       [stepControl]="imagenesControl"
       [editable]="true"
       [completed]="selectedProducto?.id != null"
@@ -1166,7 +1188,6 @@
               </button>
             </div>
           </div>
-          <!-- <div fxFlex="50%"></div> -->
         </div>
 
         <div style="width: 100%; text-align: center">
@@ -1187,6 +1208,6 @@
           </button>
         </div>
       </form>
-    </mat-step>
+    </mat-step> -->
   </mat-horizontal-stepper>
 </div>

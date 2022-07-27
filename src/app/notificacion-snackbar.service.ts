@@ -40,4 +40,20 @@ export class NotificacionSnackbarService {
       duracion: 4,
     });
   }
+
+  openWarn(texto?){
+    this.notification$.next({
+      texto: `${texto}`,
+      color: NotificacionColor.warn,
+      duracion: 3,
+    });
+  }
+
+  openSucess(texto?){
+    this.notification$.next({
+      texto: `${texto}`,
+      color: NotificacionColor.success,
+      duracion: 2,
+    });
+  }
 }

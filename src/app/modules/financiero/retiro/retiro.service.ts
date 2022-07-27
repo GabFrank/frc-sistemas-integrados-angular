@@ -36,7 +36,8 @@ export class RetiroService {
           {
             entity: retiro.toInput(),
             retiroDetalleInputList: retiro.toDetalleInput(),
-            printerName: environment['printers']['ticket']
+            printerName: environment['printers']['ticket'],
+            local: environment['local']
           },
           {
             fetchPolicy: "no-cache",

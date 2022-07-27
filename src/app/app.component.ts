@@ -24,6 +24,10 @@ import { ConfigurarServidorDialogComponent } from "./modules/configuracion/confi
 import { ConfiguracionService } from "./modules/configuracion/configuracion.service";
 import { CargandoDialogService } from './shared/components/cargando-dialog/cargando-dialog.service';
 import { CargandoDialogComponent } from './shared/components/cargando-dialog/cargando-dialog.component';
+import { Venta } from './modules/operaciones/venta/venta.model';
+import { AddFacturaLegalDialogComponent } from './modules/financiero/factura-legal/add-factura-legal-dialog/add-factura-legal-dialog.component';
+import { VentaItem } from './modules/operaciones/venta/venta-item.model';
+import { PrecioPorSucursal } from './modules/productos/precio-por-sucursal/precio-por-sucursal.model';
 
 @UntilDestroy({ checkProperties: true })
 @Component({

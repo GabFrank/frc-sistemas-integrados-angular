@@ -86,12 +86,13 @@
             <div fxFlex="50%">Guaranies:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
               {{
+                selectedCaja?.balance.totalCierreGs -
                 selectedCaja?.balance.totalAperGs +
-                  selectedCaja?.balance.totalVentaGs -
-                  (selectedCaja?.balance.totalGastoGs +
-                    selectedCaja?.balance.totalRetiroGs +
-                    selectedCaja?.balance.totalDescuento) -
-                  selectedCaja?.balance.totalCierreGs | number: "1.0-0"
+                selectedCaja?.balance.totalRetiroGs +
+                selectedCaja?.balance.totalGastoGs -
+                selectedCaja?.balance.totalVentaGs +
+                selectedCaja?.balance.totalDescuento
+                   | number: "1.0-0"
               }}
             </div>
           </div>
@@ -99,11 +100,11 @@
             <div fxFlex="50%">Reales:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
               {{
+                selectedCaja?.balance.totalCierreRs - 
                 selectedCaja?.balance.totalAperRs +
-                  selectedCaja?.balance.totalVentaRs -
-                  (selectedCaja?.balance.totalGastoRs +
-                    selectedCaja?.balance.totalRetiroRs) -
-                  selectedCaja?.balance.totalCierreRs | number: "1.2-2"
+                selectedCaja?.balance.totalRetiroRs +
+                selectedCaja?.balance.totalGastoRs -
+                selectedCaja?.balance.totalVentaRs | number: "1.2-2"
               }}
             </div>
           </div>
@@ -516,7 +517,7 @@
                     fxFlex
                     style="width: 100%; padding-bottom: 5px; padding-top: 5px"
                   >
-                    <div fxFlex fxLayout="row">
+                    <div *ngIf="!cobroDetalle?.aumento" fxFlex fxLayout="row">
                       <div fxFlex="5%"></div>
                       <div fxFlex="25%">
                         {{

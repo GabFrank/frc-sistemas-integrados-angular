@@ -22,7 +22,9 @@ export const environment = {
   serverPort: port,
   sucursales: null,
   printers: null,
-  local: null
+  local: null,
+  precios: null,
+  modo: null
 };
 
 export const serverAdress = {

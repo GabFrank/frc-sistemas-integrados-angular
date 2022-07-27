@@ -322,10 +322,12 @@ export const imprimirBalanceQuery = gql`
   query imprimirBalance(
     $id: ID!
     $printerName: String
+    $local: String
     ) {
     imprimirBalance(
       id: $id
       printerName: $printerName
+      local: $local
       ) {
       id
     }

@@ -8,6 +8,7 @@ import {
   OnDestroy,
   OnInit,
   ViewChild,
+  ViewChildren,
 } from "@angular/core";
 import { FormGroup, Validators, FormControl } from "@angular/forms";
 import {
@@ -109,7 +110,8 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 })
 export class ProductoComponent implements OnInit, OnDestroy {
   @Input() data;
-
+  
+  @ViewChildren("fileInput") fileInputList: any;
   @ViewChild("stepper", { static: false }) stepper: MatStepper;
   @ViewChild("codigoInput", { static: false }) codigoInput: ElementRef;
   @ViewChild("nombreInput", { static: false }) nombreInput: ElementRef;
@@ -272,11 +274,12 @@ export class ProductoComponent implements OnInit, OnDestroy {
         this.datosGeneralesControl.controls.vencimiento.setValue(false)                                 
       }
     })
+
   }
 
   cargarProducto(id) {
     this.productoService.getProducto(id).pipe(untilDestroyed(this)).subscribe((res) => {
-      this.selectedProducto = res;
+      this.selectedProducto = res;      
       this.selectedSubfamilia = this.selectedProducto?.subfamilia;
       this.selectedFamilia = this.selectedSubfamilia?.familia;
       setTimeout(() => {
@@ -570,9 +573,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
         reader.readAsDataURL(res);
         reader.onloadend = () => {
           let base64data = reader.result;
-          this.productoService.onImageSave(
-            base64data.toString(),
-            `/productos/${this.selectedProducto.id}.jpg`
+          this.presentacionService.onImageSave(
+            base64data.toString(),`${this.selectedProducto.id}.jpg`
           );
         };
       });
@@ -667,7 +669,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
             this.presentacionService
               .onImageSave(
                 res,
-                `/productos/presentaciones/${this.selectedPresentacion.id}.jpg`
+                `${this.selectedPresentacion.id}.jpg`
               ).pipe(untilDestroyed(this))
               .subscribe((res2) => {
                 if (res2 != null) {
@@ -810,7 +812,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onPresentacionRowClick(row: Presentacion) {
-    this.selectedPresentacion = row;
+    this.selectedPresentacion = row;    
     let data = new AdicionarPresentacionData();
     data.producto = this.selectedProducto;
     data.presentacion = row;
@@ -833,12 +835,12 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
   onPresentacionSelect(row: Presentacion) {
     this.selectedPresentacion = row;
+    console.log(row);
     if (row != null) {
       this.codigoService
         .onGetCodigosPorPresentacionId(this.selectedPresentacion.id).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.selectedPresentacionCodigoDataSource.data = res.data.data;
-
           this.precioPorSucursalService
             .onGetPrecioPorSurursalPorPresentacionId(
               this.selectedPresentacion.id

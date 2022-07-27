@@ -10,6 +10,7 @@ import { VentaItem } from '../../../operaciones/venta/venta-item.model';
 import { ProductoPorCodigoGQL } from '../../../productos/producto/graphql/productoPorCodigo';
 import { Producto } from '../../../productos/producto/producto.model';
 import { Observable } from 'rxjs';
+import { environment } from '../../../../../environments/environment';
 
 @UntilDestroy()
 @Component({
@@ -44,14 +45,18 @@ export class BuscadorComponent implements OnInit {
   buscadorControl = new FormControl(null)
   dialogReference;
   isAudio = true;
-
+  filteredPrecios: string[]
+  modoPrecio: string;
 
   constructor(
     private dialog: MatDialog,
     public getProductoByCodigo: ProductoPorCodigoGQL,
     private beepService: BeepService,
     private notificacionSnackbar: NotificacionSnackbarService
-  ) { }
+  ) { 
+    this.filteredPrecios = environment['precios']
+    this.modoPrecio = environment['modo']
+  }
 
   ngOnInit(): void {
     this.formGroup = new FormGroup({
@@ -109,7 +114,7 @@ export class BuscadorComponent implements OnInit {
   onTabPress() {
     let cantidad = this.buscadorControl.value;
     if (!isNaN(cantidad)) {
-      this.cantidadControl.setValue(cantidad)
+      this.cantidadControl.setValue(+cantidad)
       this.buscadorControl.setValue(null)
       this.setFocusToInput()
     }

@@ -39,6 +39,7 @@ export class ProductoService {
   productosSub = new BehaviorSubject<Producto[]>(null);
   buscandoProductos = false;
   productosList: Producto[];
+  lastSearchText = ''
 
   constructor(
     public mainService: MainService,

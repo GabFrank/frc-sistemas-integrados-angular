@@ -49,12 +49,12 @@ export class GenericCrudService {
     });
   }
 
-  onGetById<T>(gql: any, id: number): Observable<T> {
+  onGetById<T>(gql: any, id: number, page?, size?): Observable<T> {
     this.isLoading = true;
     this.cargandoService.openDialog(false, 'Buscando...')
     return new Observable((obs) => {
       gql
-        .fetch({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
+        .fetch({ id, page, size }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.cargandoService.closeDialog()
           this.isLoading = false;
@@ -100,14 +100,14 @@ export class GenericCrudService {
     });
   }
 
-  onSave<T>(gql: Mutation, input, printerName?: string): Observable<T> {
+  onSave<T>(gql: Mutation, input, printerName?: string, local?: string): Observable<T> {
     this.isLoading = true;
     input.usuarioId = this.mainService.usuarioActual.id
     this.cargandoService.openDialog(false, 'Guardando...')
     return new Observable((obs) => {
       gql
         .mutate(
-          { entity: input, printerName },
+          { entity: input, printerName, local},
           { fetchPolicy: "no-cache", errorPolicy: "all" }
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {
@@ -258,7 +258,7 @@ export class GenericCrudService {
   }
 
 
-  onSaveConDetalle(gql: Mutation, entity: any, detalleList: any[], info?: string) {
+  onSaveConDetalle(gql: Mutation, entity: any, detalleList: any[], info?: string, printerName?: string) {
     entity.usuarioId = this.mainService?.usuarioActual?.id;
     return new Observable((obs) => {
       gql
@@ -266,6 +266,7 @@ export class GenericCrudService {
           {
             entity,
             detalleList,
+            printerName
           },
           {
             fetchPolicy: "no-cache",

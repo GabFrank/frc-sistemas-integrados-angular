@@ -28,7 +28,7 @@ export class GastoService {
   // }
 
   onSave(gasto: Gasto): Observable<Gasto>{
-    return this.genericService.onSave(this.saveGasto, gasto.toInput(), environment['printers']['ticket']);
+    return this.genericService.onSave(this.saveGasto, gasto.toInput(), environment['printers']['ticket'], environment['local']);
   }
 
   onGetByDate(inicio?: Date, fin?: Date): Observable<Gasto[]>{

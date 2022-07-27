@@ -26,6 +26,9 @@ import { ListRetiroComponent } from './retiro/list-retiro/list-retiro.component'
 import { AdicionarGastoDialogComponent } from './gastos/adicionar-gasto-dialog/adicionar-gasto-dialog.component';
 import { CrearCambioDialogComponent } from './cambio/crear-cambio-dialog/crear-cambio-dialog.component';
 import { MostrarBalanceDialogComponent } from './pdv/caja/mostrar-balance-dialog/mostrar-balance-dialog.component';
+import { ListFacturaLegalComponent } from './factura-legal/list-factura-legal/list-factura-legal.component';
+import { AddFacturaLegalDialogComponent } from './factura-legal/add-factura-legal-dialog/add-factura-legal-dialog.component';
+import { EditFacturaLegalItemComponent } from './factura-legal/edit-factura-legal-item/edit-factura-legal-item.component';
 
 @NgModule({
   declarations: [
@@ -50,6 +53,9 @@ import { MostrarBalanceDialogComponent } from './pdv/caja/mostrar-balance-dialog
     AdicionarGastoDialogComponent,
     CrearCambioDialogComponent,
     MostrarBalanceDialogComponent,
+    ListFacturaLegalComponent,
+    AddFacturaLegalDialogComponent,
+    EditFacturaLegalItemComponent,
   ],
   imports: [
     CommonModule,

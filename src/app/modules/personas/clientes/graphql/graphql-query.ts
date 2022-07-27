@@ -32,6 +32,24 @@ export const clientesSearchByPersona = gql
     }
   }`
 
+  export const clientePorPersonaDocumento = gql
+  `query($texto: String){
+    data : clientePorPersonaDocumento(texto: $texto){
+        id
+        persona{
+          id
+          nombre
+          direccion
+        }
+        nombre
+        credito
+        contactos{
+          id
+          telefono
+        }
+    }
+  }`
+
 export const clienteSearchByPersonaId = gql
 `query($id: ID){
   cliente : clientePorPersonaId(id: $id){

@@ -87,7 +87,8 @@ export class CajaService {
       .fetch(
         {
           id,
-          printerName: environment['printers']['ticket']
+          printerName: environment['printers']['ticket'],
+          cajaName: environment['local']
         },
         {
           fetchPolicy: "no-cache",

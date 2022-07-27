@@ -85,6 +85,13 @@ export function updateDataSourceWithId(arr, value, id?): any[]{
   return aux;
 }
 
+export function updateDataSourceInsertFirst(arr: any[], value): any[]{
+  arr.unshift(value);
+  console.log(arr);
+  
+  return arr;
+}
+
 export function stringToInteger(texto: string){
   let lenght = texto.length;
   let factor = Math.floor((lenght-1)/3);

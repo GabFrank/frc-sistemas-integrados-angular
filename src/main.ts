@@ -38,7 +38,8 @@ if (APP_CONFIG.production) {
     }
     environment['printers'] = configLocalFile.printers;
     environment['local'] = configLocalFile.local;
-    console.log(environment['printers']['ticket']);
+    environment['precios'] = configLocalFile.precios;
+    environment['modo'] = configLocalFile.modo;
     
   } else {
     alert("Archivo de configuración local en falta")
@@ -71,4 +72,6 @@ export interface ConfigLocal {
   puertoDefault: number
   printers;
   local: string;
+  precios: string[]
+  modo: string;
 }

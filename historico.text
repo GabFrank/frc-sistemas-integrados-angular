@@ -1,3 +1,7 @@
-Historico de acciones realizadas
-18/02/22 11:46:
-- acabo de actualizar el punto de venta de katuete 2 para cargar mas rapido los productos favoritos
+Config json local info:
+precios: 
+    EXPO
+modo: 
+    NOT = no incluir precios especiales
+    ONLY = solo precios expeciales
+    MIXTO = incluir precios especiales

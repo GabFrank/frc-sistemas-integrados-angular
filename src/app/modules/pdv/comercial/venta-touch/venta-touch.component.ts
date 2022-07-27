@@ -82,6 +82,7 @@ export interface PdvTouchData {
 
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { environment } from "../../../../../environments/environment";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -118,7 +119,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   formaPagoList: FormaPago[];
   disableCobroRapido = false;
   buscadorFocusSub: Subject<void> = new Subject<void>();
-
+  filteredPrecios: string[];
+  modoPrecio: string;
 
   constructor(
     private dialog: MatDialog,
@@ -143,6 +145,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
     this.isDialogOpen = false;
+    this.filteredPrecios = environment['precios']
+    this.modoPrecio = environment['modo']
   }
 
   ngOnInit(): void {
@@ -297,7 +301,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         if (res != null) {
           let item: VentaItem = new VentaItem();
           item.presentacion = respuesta.data.presentacion;
-          item.precioVenta = respuesta.data.precio;
+          item.precioVenta = respuesta.data?.precio;
           item.producto = respuesta.producto;
           item.cantidad = respuesta.data.cantidad;
           this.addItem(item);
@@ -310,11 +314,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   calcularTotales() {
     this.totalGs = 0;
     this.selectedItemList.forEach((item) => {
-      this.totalGs += Math.round(+item.cantidad * +item.precioVenta.precio);
+      this.totalGs += Math.round(+item.cantidad * +item.precioVenta?.precio);
     });
   }
 
   addItem(item: VentaItem, index?) {
+    console.log(item);
+
     let cantidad = item.cantidad;
     if (item.producto.balanza != true) {
       if (!isInt(cantidad)) {
@@ -328,9 +334,17 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       );
     }
     if (item.precioVenta == null) {
-      item.precioVenta = item.presentacion.precios.find(
-        (p) => p.principal == true
-      );
+      if (this.filteredPrecios == null || this.modoPrecio == 'NOT') {
+        item.precioVenta = item.presentacion.precios?.find(
+          (p) => p.principal == true
+        );
+      } else if (this.modoPrecio?.includes('MIXTO') || this.modoPrecio?.includes('ONLY')) {
+        item.precioVenta = item?.presentacion?.precios.find(
+          (p) => this.filteredPrecios.includes(p.tipoPrecio?.descripcion)
+        );
+      }
+
+
     }
     let presentacionCaja: Presentacion;
     item.producto.presentaciones.forEach((p) => {
@@ -346,9 +360,17 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     if (presentacionCaja != null) {
       Object.assign(item2, item);
       item2.presentacion = presentacionCaja;
-      item2.precioVenta = item2.presentacion.precios.find(
-        (precio) => precio?.principal == true
-      );
+      if (this.filteredPrecios == null || this.modoPrecio == 'NOT') {
+        item2.precioVenta = item2.presentacion?.precios?.find(
+          (precio) => precio?.principal == true
+        );
+      } else if (this.modoPrecio?.includes('MIXTO') || this.modoPrecio?.includes('ONLY')) {
+        item2.precioVenta = item2.presentacion?.precios?.find(
+          (p) => this.filteredPrecios.includes(p.tipoPrecio?.descripcion)
+        );
+      }
+
+
       if (item2.precioVenta != null) {
         let factor = Math.floor(
           (cantidad * item.presentacion.cantidad) / item2.presentacion.cantidad
@@ -356,7 +378,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         let cantAux = item2.presentacion.cantidad * factor;
         item2.cantidad = factor;
         cantidad -= cantAux / item.presentacion.cantidad;
+        console.log(item.cantidad, cantidad);
+
         item.cantidad = cantidad;
+        console.log(item2);
+        
         this.addItem(item2);
       }
     }
@@ -365,7 +391,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       index = this.selectedItemList.findIndex(
         (i) =>
           i.presentacion.id == item.presentacion.id &&
-          i.precioVenta.precio == item.precioVenta.precio
+          i.precioVenta?.precio == item.precioVenta?.precio
       );
     }
     if (index != -1 && index != null) {
@@ -458,6 +484,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     let selectedPresentacion: Presentacion;
     item.cantidad = cantidad;
     item.producto = producto;
+    console.log(eventData);
+    
     if (texto != null) {
       item.presentacion = producto?.presentaciones.find((p) => {
         p.codigos.find((c) => {
@@ -473,9 +501,21 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         (p) => p.principal == true
       );
     }
-    item.precioVenta = item?.presentacion?.precios.find(
-      (p) => p.principal == true
-    );
+    if (this.filteredPrecios == null || this.modoPrecio == 'NOT') {
+      item.precioVenta = item?.presentacion?.precios?.find(
+        (p) => p.principal == true
+      );
+    } else if (this.modoPrecio?.includes('MIXTO') || this.modoPrecio?.includes('ONLY')) {
+      item.precioVenta = item?.presentacion?.precios?.find(
+        (p) => this.filteredPrecios.includes(p.tipoPrecio?.descripcion)
+      );
+      if(item.precioVenta == null){
+        item.precioVenta = item?.presentacion?.precios?.find(
+          (p) => p.principal == true
+        );
+      }
+    }
+
     if (item.presentacion == null || item.precioVenta == null) {
       this.notificacionSnackbar.notification$.next({
         texto: "El producto no tiene precio",
@@ -514,6 +554,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
           restoreFocus: true,
           data: {
             valor: this.totalGs,
+            itemList: this.selectedItemList
           },
           width: "80vw",
           height: "80vh",

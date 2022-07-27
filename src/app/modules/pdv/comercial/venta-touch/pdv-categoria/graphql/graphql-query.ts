@@ -34,6 +34,7 @@ export const pdvCategoriaSearch = gql`
           producto {
             id
             descripcion
+            descripcionFactura
             imagenPrincipal
             balanza
             garantia
@@ -81,6 +82,7 @@ export const pdvCategoriaQuery = gql`
           producto {
             id
             descripcion
+            descripcionFactura
             balanza
             garantia
             combo
@@ -138,6 +140,7 @@ export const pdvGruposProductosPorGrupoIdQuery = gql`
       producto {
         id
         descripcion
+        descripcionFactura
         balanza
         garantia
         combo

@@ -20,6 +20,7 @@ import { PersonasDashboardComponent } from '../../modules/personas/personas-dash
 import { ListPersonaComponent } from '../../modules/personas/persona/list-persona/list-persona.component';
 import { ListCajaComponent } from '../../modules/financiero/pdv/caja/list-caja/list-caja.component';
 import { ListRolesComponent } from '../../modules/configuracion/roles/list-roles/list-roles.component';
+import { ListTransferenciaComponent } from '../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -54,7 +55,7 @@ export class TabService {
     this.tabs = [
     // new Tab(ListFuncioarioComponent, 'Lista de funcionarios', null, null),
     // new Tab(ListPersonaComponent, 'Lista de personas', null, null),
-    // new Tab(ListUsuarioComponent, 'Lista de usuarios', null, null),
+    // new Tab(VentaTouchComponent, 'Venta', null, null),
     ];
     this.tabSub.next(this.tabs);
 

@@ -14,7 +14,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { Component, HostListener, Input, OnInit } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { CreateItemDialogComponent } from '../create-item-dialog/create-item-dialog.component';
-import { updateDataSourceWithId } from '../../../../commons/core/utils/numbersUtils';
+import { updateDataSourceInsertFirst, updateDataSourceWithId } from '../../../../commons/core/utils/numbersUtils';
 import { EtapaTransferencia, TipoTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem } from '../transferencia.model';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { SelectionModel } from '@angular/cdk/collections';
@@ -56,6 +56,11 @@ export class EditTransferenciaComponent implements OnInit {
 
   isDialogOpen = false;
 
+  page = 0;
+  size = 10;
+
+  isLastPage = false;
+
   isPreTransferenciaCreacion = false;
   isPreTransferenciaOrigen = false;
   isPreparacionMercaderia = false;
@@ -94,7 +99,7 @@ export class EditTransferenciaComponent implements OnInit {
     this.selectedTransferencia.estado = TransferenciaEstado.ABIERTA;
     this.selectedTransferencia.etapa = EtapaTransferencia.PRE_TRANSFERENCIA_CREACION;
 
-    if (this.data?.tabData['id']!=null) {      
+    if (this.data?.tabData != null && this.data?.tabData['id']) {
       this.cargarDatos()
     } else {
       setTimeout(() => {
@@ -108,15 +113,15 @@ export class EditTransferenciaComponent implements OnInit {
   @HostListener("window:keyup", ["$event"])
   keyEvent(event: KeyboardEvent) {
     let key = event.key;
-    if(this.isDialogOpen){
+    if (this.isDialogOpen) {
       return null;
-    }    
-    if(this.selectedTransferencia.etapa == EtapaTransferencia.PRE_TRANSFERENCIA_CREACION){
+    }
+    if (this.selectedTransferencia.etapa == EtapaTransferencia.PRE_TRANSFERENCIA_CREACION) {
       switch (key) {
         case 'Enter':
           this.onAddItem()
           break;
-      
+
         default:
           break;
       }
@@ -148,8 +153,7 @@ export class EditTransferenciaComponent implements OnInit {
           this.cargandoService.closeDialog()
           if (res != null) {
             this.selectedTransferencia = res;
-            console.log(this.selectedTransferencia)
-            this.dataSource.data = this.selectedTransferencia?.transferenciaItemList;
+            this.getTransferenciaItemList()
             this.isOrigen = this.selectedTransferencia?.sucursalOrigen?.id == this.mainService?.sucursalActual?.id;
             this.isDestino = this.selectedTransferencia?.sucursalDestino?.id == this.mainService?.sucursalActual?.id;
             this.onVerificarConfirmados()
@@ -158,6 +162,27 @@ export class EditTransferenciaComponent implements OnInit {
         })
     }
 
+  }
+
+  getTransferenciaItemList() {
+    this.transferenciaService.onGetTransferenciaItensPorTransferenciaId(this.selectedTransferencia.id, this.page, this.size).pipe(untilDestroyed(this))
+      .subscribe(res => {
+        if (res != null) {
+          if (res.length < this.size) {
+            this.isLastPage = true;
+          }
+          if (this.dataSource.data.length == 0) {
+            this.dataSource.data = res;
+          } else {
+            this.dataSource.data = this.dataSource.data.concat(res)
+          }
+        }
+      })
+  }
+
+  cargarMasDatos() {
+    this.page++;
+    this.getTransferenciaItemList()
   }
 
   onRefresh() {
@@ -237,7 +262,8 @@ export class EditTransferenciaComponent implements OnInit {
       texto: null,
       cantidad: 1,
       mostrarOpciones: false,
-      mostrarStock: true
+      mostrarStock: true,
+      conservarUltimaBusqueda: true
     }
     this.matDialog.open(PdvSearchProductoDialogComponent, {
       data: data,
@@ -294,6 +320,7 @@ export class EditTransferenciaComponent implements OnInit {
 
   onSaveTransferenciaItem(item: TransferenciaItem) {
     let auxItem = new TransferenciaItem;
+    let isNew = item?.id == null;
     Object.assign(auxItem, item)
     auxItem.transferencia = this.selectedTransferencia;
     this.cargandoService.openDialog()
@@ -302,7 +329,20 @@ export class EditTransferenciaComponent implements OnInit {
       .subscribe(res => {
         this.cargandoService.closeDialog()
         if (res != null) {
-          this.dataSource.data = updateDataSourceWithId(this.dataSource.data, res, res?.id)
+          if (!isNew) {
+            this.dataSource.data = updateDataSourceWithId(this.dataSource.data, res, res?.id);
+          } else {
+            this.isLastPage = false;
+            this.page = 0;
+            this.dataSource.data = updateDataSourceInsertFirst(this.dataSource.data, res);
+            let lenght = this.dataSource.data.length;
+            if (lenght > this.size) {
+              let diff = lenght - this.size;
+              let aux = this.dataSource.data;
+              aux.splice(4, diff)
+              this.dataSource.data = aux;
+            }
+          }
         }
       })
   }

@@ -1,0 +1,213 @@
+<div fxLayout="column" style="width: 100%" fxLayoutGap="10px">
+  <div fxFlex style="width: 100%; text-align: center">
+    <h2>Factura legal</h2>
+  </div>
+  <div fxFlex fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+    <div fxFlex="20%">
+      <mat-form-field>
+        <mat-label>RUC</mat-label>
+        <input
+          type="text"
+          matInput
+          [formControl]="rucControl"
+          (keyup.enter)="buscarCliente()"
+        />
+      </mat-form-field>
+    </div>
+    <div fxFlex="70%">
+      <mat-form-field style="width: 100%">
+        <mat-label>Razon Social</mat-label>
+        <input type="text" matInput [formControl]="clienteDescripcionControl" />
+      </mat-form-field>
+    </div>
+    <div fxFlex="10%">
+      <mat-icon (click)="onClienteSearch()">search</mat-icon>
+    </div>
+  </div>
+  <div fxFlex fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+    <div fxFlex="70%">
+      <mat-form-field style="width: 100%">
+        <mat-label>Dirección</mat-label>
+        <input type="text" matInput [formControl]="direccionControl" />
+      </mat-form-field>
+    </div>
+    <div
+      fxFlex="30%"
+      fxLayout="row"
+      fxLayoutAlign="center center"
+      fxLayoutGap="10px"
+    >
+      <div fxFlex style="text-align: center">
+        <mat-slide-toggle [formControl]="creditoControl"
+          >{{ creditoControl.value == false ? "Contado" : "Crédito" }}
+        </mat-slide-toggle>
+      </div>
+    </div>
+  </div>
+  <div fxFlex fxLayout="row" style="width: 100%; text-align: center">
+    <div fxFlex="20%"></div>
+    <div fxFlex="60%" style="text-align: center">
+      <h4 style="width: 100%">Lista de productos</h4>
+    </div>
+    <div fxFlex="20%">
+      <app-boton
+        nombre="+ Producto"
+        color="primary"
+        (clickEvent)="addItem(null, null)"
+      ></app-boton>
+    </div>
+  </div>
+  <div fxFlex style="width: 100%">
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      class="mat-elevation-z8"
+      style="width: 100%"
+    >
+      <ng-container matColumnDef="cantidad" [sticky]="true">
+        <th mat-header-cell *matHeaderCellDef style="width: 10%">Cant.</th>
+        <td mat-cell *matCellDef="let item" style="width: 10%">
+          {{ item.cantidad }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="descripcion">
+        <th mat-header-cell *matHeaderCellDef style="width: 50%">
+          Descripción
+        </th>
+        <td mat-cell *matCellDef="let item" style="width: 50%">
+          {{ item.descripcion | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="precioUnitario" style="text-align: center">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 15%; text-align: center"
+        >
+          Precio Unit.
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let item"
+          style="width: 15%; text-align: center"
+        >
+          {{ item.precioUnitario | number: "1.0-0" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="total" style="text-align: center">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 20%; text-align: center"
+        >
+          Total
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let item"
+          style="width: 20%; text-align: center"
+        >
+          {{ item.total | number: "1.0-0" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 5%; text-align: center"
+        >
+          ...
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let item; let i = index"
+          style="text-align: center; width: 5%"
+        >
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="addItem(item, i)">Editar</button>
+            <button
+              style="color: red"
+              mat-menu-item
+              (click)="deleteItem(item, i)"
+            >
+              Eliminar
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <tr
+        mat-header-row
+        *matHeaderRowDef="
+          ['cantidad', 'descripcion', 'precioUnitario', 'total', 'acciones'];
+          sticky: true
+        "
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="
+          let row;
+          columns: [
+            'cantidad',
+            'descripcion',
+            'precioUnitario',
+            'total',
+            'acciones'
+          ];
+          let i = index
+        "
+        (click)="onSelectItem(row)"
+      ></tr>
+    </table>
+  </div>
+  <mat-card
+    fxFlex
+    fxLayout="row"
+    style="width: 100%; background-color: rgb(32, 32, 32)"
+  >
+    <div fxFlex="70%" fxLayout="column">
+      <div fxFlex="50">Cantidad de itens: {{ dataSource?.data?.length }}</div>
+      <div fxFlex="50">Cantidad de hojas: {{ cantidadHojas }}</div>
+    </div>
+    <div fxFlex="30">
+      <div fxLayout="row">
+        <h2 fxFlex="50">Total en Gs:</h2>
+        <h2 fxFlex="50" style="text-align: end">
+          {{ totalFinalControl.value | number: "1.0-0" }}
+        </h2>
+      </div>
+    </div>
+  </mat-card>
+  <div fxFlex fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="10px">
+    <div fxFlex="30%">
+      <app-boton
+        nombre="Cancelar"
+        color="primary"
+        (clickEvent)="onCancelar()"
+      ></app-boton>
+    </div>
+    <div fxFlex="30%">
+      <app-boton
+        nombre="Imprimir"
+        color="accent"
+        [disableExpression]="
+          rucControl.invalid ||
+          clienteDescripcionControl.invalid ||
+          totalFinalControl.invalid
+        "
+        (clickEvent)="onGuardar()"
+      ></app-boton>
+    </div>
+  </div>
+</div>

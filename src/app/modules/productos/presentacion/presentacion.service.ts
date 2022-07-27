@@ -15,6 +15,7 @@ import { Presentacion } from "./presentacion.model";
 import { PresentacionInput } from "./presentacion.model-input";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { SaveImagenPresentacionGQL } from './graphql/saveImagenPresentacion';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -31,7 +32,7 @@ export class PresentacionService {
     private deletePresentacion: DeletePresentacionGQL,
     private getPresentacionesPorProductoId: PresentacionPorProductoIdGQL,
     public mainService: MainService,
-    private saveImage: SaveImagenProductoGQL,
+    private saveImage: SaveImagenPresentacionGQL,
     private notificacionSnack: NotificacionSnackbarService,
     private dialogoService: DialogosService,
     private genericService: GenericCrudService
