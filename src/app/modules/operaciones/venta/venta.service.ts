@@ -64,7 +64,8 @@ export class VentaService {
             cobroDetalleList: cobroDetalleInputList,
             ticket,
             printerName: environment['printers']['ticket'],
-            local: environment['local']
+            local: environment['local'],
+            pdvId: environment['pdvId']
           },
           {
             errorPolicy: "all",

@@ -24,7 +24,8 @@ export const environment = {
   printers: null,
   local: null,
   precios: null,
-  modo: null
+  modo: null,
+  pdvId: null
 };
 
 export const serverAdress = {

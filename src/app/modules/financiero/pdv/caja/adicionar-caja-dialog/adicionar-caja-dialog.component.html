@@ -46,6 +46,16 @@
         <div fxFlex="10">
           <button
             style="width: 100%"
+            mat-raised-button
+            *ngIf="selectedConteoApertura != null"
+            (click)="goTo('imprimir-factura')"
+          >
+            Imprimir vía tributaria
+          </button>
+        </div>
+        <div fxFlex="10">
+          <button
+            style="width: 100%"
             [color]="stepper.selectedIndex == 3 ? 'accent' : ''"
             mat-raised-button
             *ngIf="
@@ -53,9 +63,10 @@
             "
             (click)="goTo('imprimir')"
           >
-            Imprimir
+            Imprimir Cierre
           </button>
         </div>
+
         <br />
         <div
           *ngIf="selectedConteoApertura"

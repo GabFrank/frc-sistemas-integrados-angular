@@ -40,6 +40,7 @@ if (APP_CONFIG.production) {
     environment['local'] = configLocalFile.local;
     environment['precios'] = configLocalFile.precios;
     environment['modo'] = configLocalFile.modo;
+    environment['pdvId'] = configLocalFile.pdvId;
     
   } else {
     alert("Archivo de configuración local en falta")
@@ -74,4 +75,5 @@ export interface ConfigLocal {
   local: string;
   precios: string[]
   modo: string;
+  pdvId: number;
 }

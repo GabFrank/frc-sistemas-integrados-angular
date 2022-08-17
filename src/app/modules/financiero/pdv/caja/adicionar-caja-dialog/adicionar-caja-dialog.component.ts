@@ -47,6 +47,7 @@ export interface AdicionarCajaResponse {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { FacturaLegalService } from "../../../factura-legal/factura-legal.service";
 
 @UntilDestroy()
 @Component({
@@ -113,7 +114,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
     private matDialog: MatDialog,
     private monedaService: MonedaService,
     private dialogBox: DialogosService,
-    private conteoService: ConteoService
+    private conteoService: ConteoService,
+    private facturaService: FacturaLegalService
   ) {
     // this.cargarMonedas();
   }
@@ -369,6 +371,9 @@ export class AdicionarCajaDialogComponent implements OnInit {
         break;
       case "imprimir":
         if (this.selectedCaja != null) this.cajaService.onImprimirBalance(this.selectedCaja?.id)
+        break;
+      case "imprimir-factura":
+        if (this.selectedCaja != null) this.facturaService.onImprimirFacturasPorCaja(this.selectedCaja?.id)
         break;
       case "salir":
         this.matDialogRef.close();

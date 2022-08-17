@@ -60,6 +60,7 @@ export interface PagoData {
 
 export interface PagoResponseData {
   pagoItemList: PagoItem[];
+  facturado?: boolean;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -105,6 +106,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
   isAumento = false;
   formaPagoList: FormaPago[];
   formaPagoSub: Subscription;
+  facturado = false;
 
   currencyOptionsGuarani = {
     allowNegative: true,
@@ -229,7 +231,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
   @HostListener("document:keyup", ["$event"]) onKeydownHandler(
     event: KeyboardEvent
   ) {
-    if(!this.isDialogOpen){
+    if (!this.isDialogOpen) {
       switch (event.key) {
         case "F1":
           this.setMoneda("GUARANI", false);
@@ -251,13 +253,23 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
             }
           }
           break;
-        case "F9":
+        case "F10":
+          if (!this.isDialogOpen) {
+            if (this.formGroup.controls.saldo.value == 0) {
+              this.onFinalizar();
+            } else {
+              this.addPagoItem();
+            }
+          }
+          break;
+        case "F12":
+          this.onFactura()
           break;
         default:
           break;
       }
     }
-    
+
   }
 
   onMonedaSearch(a?): void {
@@ -335,43 +347,26 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
             this.isVuelto = res.isVuelto;
             this.addPagoItem();
           }
+          setTimeout(() => {
+            this.valorInput.nativeElement.focus()
+          }, 0);
           this.isDialogOpen = false;
         });
-    } 
+    }
   }
 
   setFormaPago(formaPago) {
     this.selectedFormaPago = formaPago;
     this.formGroup.controls.formaPago.setValue(
       this.selectedFormaPago.id +
-        " - " +
-        this.selectedFormaPago.descripcion.toUpperCase()
+      " - " +
+      this.selectedFormaPago.descripcion.toUpperCase()
     );
-    console.log(this.selectedFormaPago);
-    console.log(this.formGroup.controls.formaPago.value);
-    // if(formaPago == 'Tarjeta') {
-    //   this.matDialog.open(TarjetaDialogComponent, {
-    //     autoFocus: false,
-    //     restoreFocus: true
-    //   }).afterClosed().subscribe((res)=>{
-    //     if(res!=null){
-    //       console.log(res)
-    //       formaPago = res;
-    //     } else {
-    //       formaPago = 'Efectivo';
-    //     }
-    //     this.selectedFormaPago = this.formaPagoList.find(
-    //       (fp) => fp.descripcion == formaPago
-    //     );
-    //     this.formGroup.controls.formaPago.setValue(this.selectedFormaPago.id);
-    //     this.setFocusToValorInput();
-    //   })
-    // }
   }
 
-  onOtrasMonedasClick() {}
+  onOtrasMonedasClick() { }
 
-  onOtrasFormaPagoClick() {}
+  onOtrasFormaPagoClick() { }
 
   openTecladoNumerico() {
     let ref = this.matDialog.open(TecladoNumericoComponent, {
@@ -388,14 +383,18 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
   }
 
   addPagoItem() {
+    
     let valor = this.formGroup.get("valor").value;
     let saldo = this.formGroup.get("saldo").value;
-    if(this.isDescuento){
+    if(saldo == 0){
+      return this.onFinalizar();
+    }
+    if (this.isDescuento) {
       valor = (this.data.valor - this.valorParcialPagado);
       this.selectedMoneda = this.monedas.find(m => m.denominacion == 'GUARANI');
     }
     if (valor < 0) this.isVuelto = true;
-    if(this.selectedFormaPago.descripcion=='TARJETA' && (this.isVuelto || this.isDescuento || this.isAumento)){
+    if (this.selectedFormaPago.descripcion == 'TARJETA' && (this.isVuelto || this.isDescuento || this.isAumento)) {
       this.selectedFormaPago = this.formaPagoList.find(f => f.descripcion == 'EFECTIVO');
     }
     if (this.formGroup.valid && saldo != 0) {
@@ -405,11 +404,11 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
         valor: valor,
         vuelto: this.isVuelto,
         descuento: this.isDescuento,
-        aumento: this.isAumento, 
-        pago: (!this.isVuelto && !this.isDescuento && !this.isAumento) 
+        aumento: this.isAumento,
+        pago: (!this.isVuelto && !this.isDescuento && !this.isAumento)
       };
       this.valorParcialPagado += item.valor * item.moneda.cambio;
-      
+
       this.formGroup
         .get("valor")
         .setValue((this.data.valor - this.valorParcialPagado) / this.selectedMoneda.cambio);
@@ -426,7 +425,6 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
   setFocusToValorInput() {
     if (this.formGroup.controls.saldo.value == 0) {
       setTimeout(() => {
-        this.btnFinalizar._elementRef.nativeElement.focus();
         this.valorInput.nativeElement.select();
       }, 0);
     } else {
@@ -438,13 +436,13 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
   }
 
   onFinalizar() {
-    let response: PagoResponseData = { pagoItemList: this.pagoItemList };
+    let response: PagoResponseData = { pagoItemList: this.pagoItemList, facturado: this.facturado };
     this.dialogRef.close(response);
   }
 
   onDeleteItem(item: PagoItem, i) {
     this.valorParcialPagado -= item.valor * item.moneda.cambio;
-    console.log(this.data.valor , this.valorParcialPagado , this.selectedMoneda.cambio);
+    console.log(this.data.valor, this.valorParcialPagado, this.selectedMoneda.cambio);
     this.formGroup.controls.saldo.setValue(
       (this.data.valor - this.valorParcialPagado)
     );
@@ -477,9 +475,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
     }
   }
 
-  onTicket() {}
+  onTicket() { }
 
-  onPresupuesto() {}
+  onPresupuesto() { }
 
   onFactura() {
     this.isDialogOpen = true
@@ -492,7 +490,13 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
       },
       width: '100%'
     }).afterClosed().subscribe(res => {
-      
+      if(res){
+        this.facturado = res;
+      }
+      this.isDialogOpen = false;
+      setTimeout(() => {
+        this.valorInput.nativeElement.focus()
+      }, 0);
     })
   }
 

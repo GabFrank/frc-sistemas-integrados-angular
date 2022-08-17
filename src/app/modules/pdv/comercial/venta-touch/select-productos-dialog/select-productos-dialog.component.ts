@@ -35,6 +35,8 @@ export class SelectProductosDialogComponent implements OnInit {
   ngOnInit(): void {
     if(this.data.productos?.length > 0){
       this.productos = this.data.productos;
+      console.log(this.productos);
+      
       if(this.productos.length == 1){
         this.onProductoClick(this.productos[0])
       }

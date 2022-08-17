@@ -123,7 +123,8 @@ export const saveVenta = gql`
     $cobroDetalleList: [CobroDetalleInput]
     $ticket: Boolean
     $printerName: String
-    $local: String
+    $local: String,
+    $pdvId: Int
   ) {
     data: saveVenta(
       ventaInput: $ventaInput
@@ -132,7 +133,8 @@ export const saveVenta = gql`
       cobroDetalleList: $cobroDetalleList
       ticket: $ticket,
       printerName: $printerName,
-      local: $local
+      local: $local,
+      pdvId: $pdvId
     )
   }
 `;

@@ -1,5 +1,6 @@
 import {
   Component,
+  HostListener,
   Input,
   OnDestroy,
   OnInit,
@@ -87,7 +88,7 @@ import { environment } from "../../../../../environments/environment";
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-venta-touch",
-  templateUrl: "./venta-touch2.component.html",
+  templateUrl: "./venta-touch.component.html",
   styleUrls: ["./venta-touch.component.css"],
 })
 export class VentaTouchComponent implements OnInit, OnDestroy {
@@ -282,6 +283,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   onGridCardClick(grupo: PdvGrupo) {
+    this.isDialogOpen = true;
     let descripcion = grupo.descripcion;
     let pdvGruposProductos = grupo.pdvGruposProductos;
     let productos: Producto[] = [];
@@ -297,6 +299,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       })
       .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
+        this.isDialogOpen = false;
         let respuesta: SelectProductosResponseData = res;
         if (res != null) {
           let item: VentaItem = new VentaItem();
@@ -382,7 +385,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
 
         item.cantidad = cantidad;
         console.log(item2);
-        
+
         this.addItem(item2);
       }
     }
@@ -399,6 +402,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     } else {
       if (item.cantidad > 0) {
         if (item.producto?.envase != null) {
+          this.isDialogOpen = true;
           this.dialogReference = this.dialog
             .open(SeleccionarEnvaseDialogComponent, {
               data: {
@@ -409,6 +413,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
             })
             .afterClosed().pipe(untilDestroyed(this))
             .subscribe((res) => {
+              this.isDialogOpen = false;
               this.dialogReference = undefined;
               if (res != null) {
                 this.addItem(res);
@@ -485,7 +490,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     item.cantidad = cantidad;
     item.producto = producto;
     console.log(eventData);
-    
+
     if (texto != null) {
       item.presentacion = producto?.presentaciones.find((p) => {
         p.codigos.find((c) => {
@@ -509,7 +514,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       item.precioVenta = item?.presentacion?.precios?.find(
         (p) => this.filteredPrecios.includes(p.tipoPrecio?.descripcion)
       );
-      if(item.precioVenta == null){
+      if (item.precioVenta == null) {
         item.precioVenta = item?.presentacion?.precios?.find(
           (p) => p.principal == true
         );
@@ -561,6 +566,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         })
         .afterClosed().pipe(untilDestroyed(this))
         .subscribe((res) => {
+          this.isDialogOpen = false;
           if (res != null) {
             this.cargandoService.openDialog();
             let response: PagoResponseData = res;
@@ -591,10 +597,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
               });
             }
             this.cargandoService.closeDialog();
-            this.onSaveVenta(venta, cobro, true);
+            this.onSaveVenta(venta, cobro, !(response?.facturado == true));
             this.dialogReference = undefined;
           }
-          this.isDialogOpen = false;
           this.buscadorFocusSub.next()
         });
     }
@@ -760,6 +765,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       })
       .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
+        this.isDialogOpen = false;
         if (this.cajaService?.selectedCaja != null) {
           if (this.cajaService?.selectedCaja.conteoApertura == null) {
             this.openSelectCajaDialog();
@@ -771,6 +777,34 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         this.dialogReference = undefined;
         this.buscadorFocusSub.next()
       });
+  }
+
+  @HostListener("document:keydown", ["$event"]) onKeydownHandler(
+    event: KeyboardEvent
+  ) {
+    if (!this.isDialogOpen) {
+      switch (event.key) {
+        case "F9":
+          if (this.itemList.length > 0) {
+            this.onPagoClick()
+          }
+          break;
+        case "F10":
+          if (this.itemList.length > 0 && !this.disableCobroRapido) {
+            this.onTicketClick()
+          }
+          break;
+        case "F1":
+          this.onTicketClick(true)
+          break;
+          case "F12":
+            this.pdvAuxiliarClick()
+            break;
+        default:
+          break;
+      }
+    }
+
   }
 }
 

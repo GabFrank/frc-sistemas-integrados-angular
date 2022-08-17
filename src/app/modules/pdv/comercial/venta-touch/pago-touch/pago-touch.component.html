@@ -36,7 +36,7 @@
         <div
           fxFlex="80"
           class="totales-cambios"
-          [ngStyle]="{ 'font-size': '1.5em' }"
+          [ngStyle]="{ 'font-size': '2em' }"
         >
           {{ formGroup.controls.valorTotal.value | number: "1.0-0" }}
         </div>
@@ -167,7 +167,7 @@
                       text-align: center;
                     "
                   >
-                    {{ item.valor  | number: "1.0-0" }}
+                    {{ item.valor | number: "1.0-0" }}
                   </td>
                   <td
                     *ngIf="item.moneda?.id != 1"
@@ -264,8 +264,7 @@
               style="width: 100%; height: 6em"
               (click)="setMoneda('GUARANI')"
             >
-              Guarani
-              (F1)
+              Guarani (F1)
             </button>
           </div>
           <div fxFlex="20">
@@ -278,8 +277,7 @@
               style="width: 100%; height: 6em"
               (click)="setMoneda('REAL')"
             >
-              Real
-              (F2)
+              Real (F2)
             </button>
           </div>
           <div fxFlex="20">
@@ -292,8 +290,7 @@
               style="width: 100%; height: 6em"
               (click)="setMoneda('DOLAR')"
             >
-              Dolar
-              (F3)
+              Dolar (F3)
             </button>
           </div>
           <div fxFlex="20">
@@ -499,7 +496,7 @@
     </div>
     <div
       class="cambios"
-      fxFlex
+      fxFlex="8"
       fxLayout="row"
       fxLayoutAlign="space-between center"
       style="margin-bottom: 0px !important"
@@ -572,107 +569,64 @@
       </div>
     </div>
     <div
-      fxFlex
+      fxFlex="12"
       fxLayout="row"
       fxLayoutAlign="space-between start"
-      fxLayoutGap="20px"
-      style="padding-top: 20px"
+      fxLayoutGap="10px"
+      style="height: 100px"
     >
-      <div fxFlex="10">
-        <button
-          #btnFinalizar
-          type="button"
-          class="bottom-action-button"
-          mat-raised-button
+      <div fxFlex="14" style="height: 100%">
+        <app-boton
           color="accent"
-          style="width: 100%; height: 6em"
-          [disabled]="!(formGroup.controls.saldo.value == 0)"
-          (click)="onFinalizar()"
-        >
-          <div fxLayout="column" fxFlexAlign="center center">
-            <div fxFlex style="height: 2em">
-              <mat-icon style="font-size: 2em; width: 100%; height: 2em">
-                price_check
-              </mat-icon>
-            </div>
-            <div fxFlex style="text-align: center">Finalizar</div>
-          </div>
-        </button>
+          nombre="Finalizar (F10)"
+          [disableExpression]="!(formGroup.controls.saldo.value == 0)"
+          (clickEvent)="onFinalizar()"
+          icon="price_check"
+          [iconSize]="2"
+        ></app-boton>
       </div>
-      <div fxFlex="10">
-        <button
-          #btnFinalizar
-          type="button"
-          class="bottom-action-button"
-          mat-raised-button
+      <div fxFlex="14" style="height: 100%">
+        <app-boton
           color="primary"
-          style="width: 100%; height: 6em"
-          [disabled]="
-            valorParcialPagado == 0 || formGroup.controls.saldo.value == 0
-          "
-          (click)="onFinalizar()"
-        >
-          <div fxLayout="column" fxFlexAlign="center center">
-            <div fxFlex style="height: 2em">
-              <mat-icon style="font-size: 2em; width: 100%; height: 2em">
-                money_off_csred
-              </mat-icon>
-            </div>
-            <div fxFlex style="text-align: center">Cobro Parcial</div>
-          </div>
-        </button>
-      </div>
-      <div *ngIf="formGroup.controls.saldo.value < 0" fxFlex="10">
-        <button
-          #btnAumento
-          type="button"
-          class="bottom-action-button"
-          mat-raised-button
-          color="primary"
-          style="width: 100%; height: 6em"
-          [disabled]="
-            formGroup.controls.saldo.value < 0 &&
-            formGroup.controls.saldo.value < data.valor * -0.2
-          "
-          (click)="onAumento()"
-        >
-          <div fxLayout="column" fxFlexAlign="center center">
-            <div fxFlex style="height: 2em">
-              <mat-icon style="font-size: 2em; width: 100%; height: 2em">
-                arrow_upward
-              </mat-icon>
-            </div>
-            <div fxFlex style="text-align: center">Aumento</div>
-          </div>
-        </button>
-      </div>
-      <div *ngIf="formGroup.controls.saldo.value >= 0" fxFlex="10">
-        <button
-          #btnDescuento
-          type="button"
-          class="bottom-action-button"
-          mat-raised-button
-          color="primary"
-          style="width: 100%; height: 6em"
-          [disabled]="
-            (formGroup.controls.saldo.value > 0 &&
-              formGroup.controls.saldo.value > data.valor * 0.2) ||
-            formGroup.controls.saldo.value == 0
-          "
-          (click)="onDescuento()"
-        >
-          <div fxLayout="column" fxFlexAlign="center center">
-            <div fxFlex style="height: 2em">
-              <mat-icon style="font-size: 2em; width: 100%; height: 2em">
-                arrow_downward
-              </mat-icon>
-            </div>
-            <div fxFlex style="text-align: center">Descuento</div>
-          </div>
-        </button>
+          nombre="Cobro Parcial"
+          [disableExpression]="true"
+          (clickEvent)="(null)"
+          icon="money_off_csred"
+          [iconSize]="2"
+        ></app-boton>
       </div>
 
-      <div fxFlex="10">
+      <div fxFlex="14" style="height: 100%">
+        <app-boton
+          color="primary"
+          nombre="Aumento (F8)"
+          [disableExpression]="
+            formGroup.controls.saldo.value == 0 ||
+            formGroup.controls.saldo.value > 0 ||
+            formGroup.controls.saldo.value < data.valor * -0.2
+          "
+          (clickEvent)="onAumento()"
+          icon="arrow_upward"
+          [iconSize]="2"
+        ></app-boton>
+      </div>
+
+      <div fxFlex="14" style="height: 100%">
+        <app-boton
+          color="primary"
+          nombre="Descuento (F9)"
+          [disableExpression]="
+            formGroup.controls.saldo.value == 0 ||
+            formGroup.controls.saldo.value < 0 ||
+            formGroup.controls.saldo.value > data.valor * 0.2
+          "
+          (clickEvent)="onDescuento()"
+          icon="arrow_downward"
+          [iconSize]="2"
+        ></app-boton>
+      </div>
+
+      <!-- <div fxFlex="10">
         <button
           #btnTicket
           type="button"
@@ -692,67 +646,39 @@
             <div fxFlex style="text-align: center">Ticket</div>
           </div>
         </button>
-      </div>
-      <div fxFlex="10">
-        <button
-          #btnFactura
-          type="button"
-          class="bottom-action-button"
-          mat-raised-button
+      </div> -->
+
+      <div fxFlex="14" style="height: 100%">
+        <app-boton
           color="primary"
-          style="width: 100%; height: 6em"
-          (click)="onFactura()"
-        >
-          <div fxLayout="column" fxFlexAlign="center center">
-            <div fxFlex style="height: 2em">
-              <mat-icon style="font-size: 2em; width: 100%; height: 2em">
-                receipt
-              </mat-icon>
-            </div>
-            <div fxFlex style="text-align: center">Factura</div>
-          </div>
-        </button>
+          nombre="Factura (F12)"
+          [disableExpression]="false"
+          (clickEvent)="onFactura()"
+          icon="receipt"
+          [iconSize]="2"
+        ></app-boton>
       </div>
-      <div fxFlex="10">
-        <button
-          [disabled]="true"
-          #btnPresupuesto
-          type="button"
-          class="bottom-action-button"
-          mat-raised-button
+
+      <div fxFlex="14" style="height: 100%">
+        <app-boton
           color="primary"
-          style="width: 100%; height: 6em"
-          (click)="onPresupuesto()"
-        >
-          <div fxLayout="column" fxFlexAlign="center center">
-            <div fxFlex style="height: 2em">
-              <mat-icon style="font-size: 2em; width: 100%; height: 2em">
-                list_alt
-              </mat-icon>
-            </div>
-            <div fxFlex style="text-align: center">Presupuesto</div>
-          </div>
-        </button>
+          nombre="Presupuesto"
+          [disableExpression]="true"
+          (clickEvent)="onPresupuesto()"
+          icon="list_alt"
+          [iconSize]="2"
+        ></app-boton>
       </div>
-      <div fxFlex="10">
-        <button
-          #btnCancelar
-          type="button"
-          class="bottom-action-button"
-          mat-raised-button
+
+      <div fxFlex="14" style="height: 100%">
+        <app-boton
           color="primary"
-          style="width: 100%; height: 6em"
-          (click)="dialogRef.close(null)"
-        >
-          <div fxLayout="column" fxFlexAlign="center center">
-            <div fxFlex style="height: 1em">
-              <mat-icon style="font-size: 1em; width: 100%; height: 1em">
-                close
-              </mat-icon>
-            </div>
-            <div fxFlex style="text-align: center">Cancelar</div>
-          </div>
-        </button>
+          nombre="Cancelar"
+          [disableExpression]="false"
+          (clickEvent)="dialogRef.close(null)"
+          icon="close"
+          [iconSize]="2"
+        ></app-boton>
       </div>
     </div>
   </div>

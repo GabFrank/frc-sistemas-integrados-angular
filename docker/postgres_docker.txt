@@ -56,7 +56,7 @@ sudo vi /usr/local/bin/frc.sh
 ********************************************
 #!/bin/sh
 SERVICE_NAME=frc
-PATH_TO_JAR=~/frc-server.jar
+PATH_TO_JAR=/home/opc/frc-server.jar
 PID_PATH_NAME=/tmp/frc-pid
 case $1 in
     start)

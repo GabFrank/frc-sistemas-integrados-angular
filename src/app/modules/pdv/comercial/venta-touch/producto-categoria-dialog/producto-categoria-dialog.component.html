@@ -16,6 +16,9 @@
     style="width: 100%"
   >
     <div fxFlex="13" *ngFor="let presentacion of presentaciones; let i = index">
+      <app-boton>
+        
+      </app-boton>
       <mat-card
         *ngIf="presentacion?.activo == true"
         style="

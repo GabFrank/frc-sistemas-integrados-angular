@@ -76,12 +76,12 @@ export class ProductoCategoriaDialogComponent implements OnInit {
     this.modoPrecio = environment['modo']
     if(this.filteredPrecios!=null && this.modoPrecio == 'ONLY'){
       this.presentaciones.filter((p, index) => {
-        this.presentaciones[index].precios = p.precios.filter(pre => this.filteredPrecios?.includes(pre.tipoPrecio.descripcion))
+        this.presentaciones[index].precios = p.precios.filter(pre => this.filteredPrecios?.includes(pre?.tipoPrecio?.descripcion))
         return this.presentaciones[index].precios.length > 0
       })
     } else if(this.filteredPrecios!=null && this.modoPrecio == 'MIXTO'){
       this.presentaciones.filter((p, index) => {
-        let foundPrecios = p.precios.filter(pre => this.filteredPrecios?.includes(pre.tipoPrecio.descripcion))
+        let foundPrecios = p.precios.filter(pre => this.filteredPrecios?.includes(pre?.tipoPrecio?.descripcion))
         if(foundPrecios.length > 0){
           this.presentaciones[index].precios = foundPrecios;
         }
@@ -89,7 +89,7 @@ export class ProductoCategoriaDialogComponent implements OnInit {
       })
     } else if(this.filteredPrecios!=null && this.modoPrecio=='NOT'){
       this.presentaciones.filter((p, index) => {
-        this.presentaciones[index].precios = p.precios.filter(pre => !this.filteredPrecios?.includes(pre.tipoPrecio.descripcion))
+        this.presentaciones[index].precios = p.precios.filter(pre => !this.filteredPrecios?.includes(pre?.tipoPrecio?.descripcion))
         return this.presentaciones[index].precios.length > 0
       })
     }

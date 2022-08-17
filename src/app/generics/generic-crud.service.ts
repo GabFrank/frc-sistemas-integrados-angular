@@ -49,6 +49,28 @@ export class GenericCrudService {
     });
   }
 
+  onCustomQuery(gql: Query, data): Observable<any> {
+    this.isLoading = true;
+    this.cargandoService.openDialog(false, 'Buscando...')
+    return new Observable((obs) => {
+      gql
+        .fetch(data, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          this.cargandoService.closeDialog()
+          this.isLoading = false
+          if (res.errors == null) {
+            obs.next(res.data["data"]);
+          } else {
+            this.notificacionSnackBar.notification$.next({
+              texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
+              color: NotificacionColor.danger,
+              duracion: 3,
+            });
+          }
+        });
+    });
+  }
+
   onGetById<T>(gql: any, id: number, page?, size?): Observable<T> {
     this.isLoading = true;
     this.cargandoService.openDialog(false, 'Buscando...')
@@ -258,7 +280,8 @@ export class GenericCrudService {
   }
 
 
-  onSaveConDetalle(gql: Mutation, entity: any, detalleList: any[], info?: string, printerName?: string) {
+  onSaveConDetalle(gql: Mutation, entity: any, detalleList: any[], info?: string, printerName?: string, pdvId?: number) {
+    this.cargandoService.openDialog()
     entity.usuarioId = this.mainService?.usuarioActual?.id;
     return new Observable((obs) => {
       gql
@@ -266,7 +289,8 @@ export class GenericCrudService {
           {
             entity,
             detalleList,
-            printerName
+            printerName,
+            pdvId
           },
           {
             fetchPolicy: "no-cache",
@@ -274,6 +298,7 @@ export class GenericCrudService {
           }
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {
+          this.cargandoService.closeDialog()
           if (res.errors == null) {
             this.notificacionBar.notification$.next({
               texto: "Guardado con éxito!!",

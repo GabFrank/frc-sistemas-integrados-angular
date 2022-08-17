@@ -2,9 +2,11 @@ import { VentaItem } from "../../operaciones/venta/venta-item.model"
 import { Venta } from "../../operaciones/venta/venta.model"
 import { Cliente } from "../../personas/clientes/cliente.model"
 import { Usuario } from "../../personas/usuarios/usuario.model"
+import { PdvCaja } from "../pdv/caja/caja.model"
 
 export class FacturaLegal {
     id: number
+    caja: PdvCaja
     timbrado: string
     nroSucursal: string
     nroFactura: string
@@ -22,15 +24,14 @@ export class FacturaLegal {
     totalParcial5: number
     totalParcial10: number
     totalFinal: number
+    viaTributaria: boolean
     usuario: Usuario
     creadoEn: Date
 
     toInput(): FacturaLegalInput {
         let input = new FacturaLegalInput;
         input.id = this.id
-        input.timbrado = this.timbrado
-        input.nroSucursal = this.nroSucursal
-        input.nroFactura = this.nroFactura
+        input.cajaId = this.caja?.id
         input.clienteId = this.cliente?.id
         input.ventaId = this.venta?.id
         input.fecha = this.fecha
@@ -46,15 +47,14 @@ export class FacturaLegal {
         input.totalParcial10 = this.totalParcial10
         input.totalFinal = this.totalFinal
         input.usuarioId = this.usuario?.id
+        input.viaTributaria = this.viaTributaria
         return input;
     }
 }
 
 export class FacturaLegalInput {
     id: number
-    timbrado: string
-    nroSucursal: string
-    nroFactura: string
+    cajaId: number
     clienteId: number
     ventaId: number
     fecha: Date
@@ -68,6 +68,7 @@ export class FacturaLegalInput {
     totalParcial0: number
     totalParcial5: number
     totalParcial10: number
+    viaTributaria: boolean
     totalFinal: number
     usuarioId: number
 }
@@ -80,6 +81,7 @@ export class FacturaLegalItem {
     descripcion: string
     precioUnitario: number
     total: number
+    iva: number
     creadoEn: Date
     usuario: Usuario
 
@@ -92,8 +94,9 @@ export class FacturaLegalItem {
         input.descripcion = this.descripcion
         input.precioUnitario = this.precioUnitario
         input.total = this.total
+        input.iva = this.iva
         input.creadoEn = this.creadoEn
-        input.usuarioId = this.usuario.id
+        input.usuarioId = this.usuario?.id
         return input;
     }
 }
@@ -106,6 +109,7 @@ export class FacturaLegalItemInput {
     descripcion: string
     precioUnitario: number
     total: number
+    iva: number
     creadoEn: Date
     usuarioId: number
 }

@@ -36,6 +36,12 @@
             "nombre": "Deposito Acuario",
             "ip": "172.25.0.11",
             "port": "8082"
+        },
+        {
+            "id": 0,
+            "nombre": "Farmacia",
+            "ip": "158.101.114.87",
+            "port": "8081"
         }
     ]
 }

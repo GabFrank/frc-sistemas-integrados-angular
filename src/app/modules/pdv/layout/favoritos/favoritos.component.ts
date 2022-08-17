@@ -72,4 +72,8 @@ export class FavoritosComponent implements OnInit {
   onGridCardClick(grupo) {
     this.event.emit(grupo)
   }
+
+  actualizar(){
+    this.buscarPdvCategoria()
+  }
 }

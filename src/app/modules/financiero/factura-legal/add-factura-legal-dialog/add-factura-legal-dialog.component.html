@@ -7,21 +7,24 @@
       <mat-form-field>
         <mat-label>RUC</mat-label>
         <input
+          #rucInput
           type="text"
           matInput
           [formControl]="rucControl"
           (keyup.enter)="buscarCliente()"
+          (keydown.tab)="buscarCliente(); $event.preventDefault()"
         />
       </mat-form-field>
     </div>
     <div fxFlex="70%">
       <mat-form-field style="width: 100%">
         <mat-label>Razon Social</mat-label>
-        <input type="text" matInput [formControl]="clienteDescripcionControl" />
+        <input #nombreInput type="text" matInput [formControl]="clienteDescripcionControl" (keyup.enter)="onSaveCliente()"/>
       </mat-form-field>
     </div>
     <div fxFlex="10%">
       <mat-icon (click)="onClienteSearch()">search</mat-icon>
+      <mat-icon (click)="onClear()" style="color: red;">clear</mat-icon>
     </div>
   </div>
   <div fxFlex fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
@@ -199,6 +202,7 @@
     </div>
     <div fxFlex="30%">
       <app-boton
+        focusEvent="guardarSub.asObservable()"
         nombre="Imprimir"
         color="accent"
         [disableExpression]="

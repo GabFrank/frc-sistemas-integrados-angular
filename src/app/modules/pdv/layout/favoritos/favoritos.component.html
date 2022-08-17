@@ -6,6 +6,7 @@
     fxLayoutAlign="start center"
   >
     <div
+      fxFlex="90"
       #categorias
       fxLayout="row"
       fxLayoutAlign="start center"
@@ -27,6 +28,9 @@
         </button>
       </div>
     </div>
+    <div fxFlex="10">
+      <mat-icon style="cursor: pointer;" (click)="actualizar()">refresh</mat-icon>
+    </div>
   </div>
 
   <div fxFlex style="text-align: center">
@@ -46,7 +50,7 @@
       *ngFor="let grupo of selectedPdvCategoria?.grupos; let i = index"
     >
       <mat-card
-        *ngIf="grupo.pdvGruposProductos[0]?.producto!=null"
+        *ngIf="grupo.pdvGruposProductos[0]?.producto != null"
         style="
           padding: 0;
           margin: 0;

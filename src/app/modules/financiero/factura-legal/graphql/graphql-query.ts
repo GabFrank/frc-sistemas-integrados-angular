@@ -85,44 +85,8 @@ export const facturaLegalQuery = gql`
 `;
 
 export const saveFacturaLegal = gql`
-  mutation saveFacturaLegal($entity: FacturaLegalInput!) {
-    data: saveFacturaLegal(facturaLegal: $entity) {
-      id
-      timbrado
-      nroSucursal
-      nroFactura
-      cliente{
-        persona {
-          id
-          documento
-          direccion
-        }
-      }
-      venta{
-        id
-        valorTotal
-        totalGs
-      }
-      fecha
-      credito
-      nombre
-      ruc
-      direccion
-      ivaParcial0
-      ivaParcial5
-      ivaParcial10
-      totalParcial0
-      totalParcial5
-      totalParcial10
-      totalFinal
-      creadoEn
-      usuario {
-        id
-        persona {
-          nombre
-        }
-      }
-    }
+  mutation saveFacturaLegal($entity:FacturaLegalInput!, $detalleList: [FacturaLegalItemInput], $printerName: String, $pdvId: Int!) {
+    data: saveFacturaLegal(entity: $entity, detalleList: $detalleList, printerName: $printerName, pdvId: $pdvId)
   }
 `;
 
@@ -151,3 +115,11 @@ export const saveFacturaLegalItem = gql`
     }
   }
 `;
+
+export const imprimirFacturasPorCajaQuery = gql`
+  query ($id: Int, $printerName: String) {
+    data: imprimirFacturasPorCaja(id: $id, printerName: $printerName)
+  }
+`;
+
+

@@ -55,7 +55,7 @@ export class TabService {
     this.tabs = [
     // new Tab(ListFuncioarioComponent, 'Lista de funcionarios', null, null),
     // new Tab(ListPersonaComponent, 'Lista de personas', null, null),
-    // new Tab(VentaTouchComponent, 'Venta', null, null),
+    new Tab(VentaTouchComponent, 'Venta', null, null),
     ];
     this.tabSub.next(this.tabs);
 

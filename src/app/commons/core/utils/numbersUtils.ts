@@ -148,3 +148,5 @@ export function stringToUnknown(texto: string){
     return stringToInteger(texto)
   }
 }
+
+

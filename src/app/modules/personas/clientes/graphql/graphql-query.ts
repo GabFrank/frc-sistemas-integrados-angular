@@ -18,21 +18,24 @@ export const clientesQuery = gql
 
 export const clientesSearchByPersona = gql
   `query($texto: String){
-    clientes : clientePorPersona(texto: $texto){
+    data : clientePorPersona(texto: $texto){
+      id
+      persona{
         id
-        persona{
-          id
-        }
         nombre
-        credito
-        contactos{
-          id
-          telefono
-        }
+        direccion
+      }
+      nombre
+      documento
+      credito
+      contactos{
+        id
+        telefono
+      }
     }
   }`
 
-  export const clientePorPersonaDocumento = gql
+export const clientePorPersonaDocumento = gql
   `query($texto: String){
     data : clientePorPersonaDocumento(texto: $texto){
         id
@@ -51,8 +54,8 @@ export const clientesSearchByPersona = gql
   }`
 
 export const clienteSearchByPersonaId = gql
-`query($id: ID){
-  cliente : clientePorPersonaId(id: $id){
+  `query($id: ID){
+  data : clientePorPersonaId(id: $id){
       id
       persona{
         id
@@ -68,33 +71,33 @@ export const clienteSearchByPersonaId = gql
 
 export const clientesSearchByTelefono = gql
   `query($texto: String){
-    clientes : clientePorTelefono(texto: $texto){
+    data : clientePorTelefono(texto: $texto){
       id
-        persona{
-          id
-        }
-        nombre
-        credito
-        contactos{
-          id
-          telefono
-        }
+      persona{
+        id
+      }
+      nombre
+      credito
+      contactos{
+        id
+        telefono
+      }
     }
   }`
 
 export const clienteQuery = gql
   `query($id: ID!){
-    cliente(id: $id){
+    data(id: $id){
       id
-        persona{
-          id
-        }
-        nombre
-        credito
-        contactos{
-          id
-          telefono
-        }
+      persona{
+        id
+      }
+      nombre
+      credito
+      contactos{
+        id
+        telefono
+      }
     }
   }`
 

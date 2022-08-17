@@ -3,6 +3,7 @@ import * as path from "path";
 import * as fs from "fs";
 import * as url from "url";
 import { autoUpdater } from "electron-updater"
+import { PosPrinter, PosPrintData, PosPrintOptions } from "electron-pos-printer";
 
 const log = require('electron-log');
 const { readFileSync } = require('fs');

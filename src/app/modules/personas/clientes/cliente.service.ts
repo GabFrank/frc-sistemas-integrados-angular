@@ -26,7 +26,7 @@ export class ClienteService {
     return this.genericService.onGetById(this.getClienteById, id);
   }
 
-  onSearch(texto: string): Observable<any> {
+  onSearch(texto: string): Observable<Cliente[]> {
     return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto);
   }
 

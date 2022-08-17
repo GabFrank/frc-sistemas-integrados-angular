@@ -21,6 +21,7 @@ import { ListPreRegistroFuncionarioComponent } from './funcionarios/list-pre-reg
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { FuncionarioDashboardComponent } from './funcionarios/funcionario-dashboard/funcionario-dashboard.component';
 import { PersonasDashboardComponent } from './personas-dashboard/personas-dashboard.component';
+import { AddClienteDialogComponent } from './clientes/add-cliente-dialog/add-cliente-dialog.component';
 
 
 @NgModule({
@@ -39,7 +40,8 @@ import { PersonasDashboardComponent } from './personas-dashboard/personas-dashbo
     ListPreRegistroFuncionarioComponent, 
     FuncionarioWizardComponent,
     FuncionarioDashboardComponent,
-    PersonasDashboardComponent
+    PersonasDashboardComponent,
+    AddClienteDialogComponent
   ],
   imports: [
     CommonModule,

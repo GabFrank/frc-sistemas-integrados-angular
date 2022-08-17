@@ -23,7 +23,7 @@
       <ng-container *ngFor="let item of data?.tableData">
         <ng-container [matColumnDef]="item.id">
           <th [style.width]="item?.width" mat-header-cell *matHeaderCellDef>
-            {{ item.nombre }}
+            {{ item['nombre'] }}
           </th>
           <td [style.width]="item?.width" mat-cell *matCellDef="let element">
             {{ element[item.id] }}

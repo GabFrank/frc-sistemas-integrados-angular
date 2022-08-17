@@ -3,7 +3,8 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
-import { FacturaLegal, FacturaLegalInput, FacturaLegalItemInput } from './factura-legal.model';
+import { FacturaLegalInput, FacturaLegalItemInput } from './factura-legal.model';
+import { ImprimirFacturasPorCajaGQL } from './graphql/imprimirFacturas';
 import { SaveFacturaLegalGQL } from './graphql/saveFactura';
 
 @Injectable({
@@ -14,11 +15,24 @@ export class FacturaLegalService {
   constructor(
     private saveFactura: SaveFacturaLegalGQL,
     private genericService: GenericCrudService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private imprimirFacturasPorCaja: ImprimirFacturasPorCajaGQL,
+
   ) { }
 
   onSaveFactura(input: FacturaLegalInput, facturaLegalItemInputList: FacturaLegalItemInput[]): Observable<any> {
-    return this.genericService.onSaveConDetalle(this.saveFactura, input, facturaLegalItemInputList, environment['printers']['factura']);
+    console.log(input);
+    
+    if(input?.nombre!=null) input.nombre = input.nombre.toUpperCase()
+    return this.genericService.onSaveConDetalle(this.saveFactura, input, facturaLegalItemInputList, null, environment['printers']['ticket'], environment['pdvId']);
+  }
+
+  onImprimirFacturasPorCaja(id:number){
+    return this.genericService.onCustomQuery(this.imprimirFacturasPorCaja, {id: id, printerName: environment['printers']['ticket']}).subscribe(res => {
+      if(res){
+        this.notificacionService.openGuardadoConExito()
+      }
+    })
   }
 
 }
