@@ -18,7 +18,7 @@ export interface BotonData {
 })
 export class BotonComponent implements OnInit {
 
-  @ViewChild('btn', {static: false}) btn: ElementRef;
+  @ViewChild('btn', { static: false }) btn: ElementRef;
 
   @Input()
   nombre = 'Boton'
@@ -48,18 +48,20 @@ export class BotonComponent implements OnInit {
 
   ngOnInit(): void {
     this.focusEvent.pipe(untilDestroyed(this)).subscribe(res => {
-      if(res){
+      if (res) {
         this.btn.nativeElement.focus()
       }
     })
   }
 
-  onClick(){
-    this.clickEvent.emit()
-    this.temporaryDisable = true;
-    setTimeout(() => {
-      this.temporaryDisable = false;
-    }, 1000);
+  onClick() {
+    if (this.disableExpression != true) {
+      this.clickEvent.emit()
+      this.temporaryDisable = true;
+      setTimeout(() => {
+        this.temporaryDisable = false;
+      }, 1000);
+    }
   }
 
 }

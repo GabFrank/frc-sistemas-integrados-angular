@@ -32,6 +32,7 @@ import { BotonComponent } from './components/boton/boton.component';
 import { SearchBarDialogComponent } from './widgets/search-bar-dialog/search-bar-dialog.component';
 import { NgxQRCodeModule } from '@techiediaries/ngx-qrcode';
 import { TimelineComponent } from './timeline/timeline.component';
+import { DigitarContrasenaDialogComponent } from './digitar-contrasena-dialog/digitar-contrasena-dialog.component';
 
 
 @NgModule({
@@ -57,7 +58,8 @@ import { TimelineComponent } from './timeline/timeline.component';
     SearchListDialogComponent,
     BotonComponent,
     SearchBarDialogComponent,
-    TimelineComponent
+    TimelineComponent,
+    DigitarContrasenaDialogComponent
     ],
   imports: [
     CommonModule,
@@ -84,7 +86,8 @@ import { TimelineComponent } from './timeline/timeline.component';
     NgxPanZoomModule,
     InnerDialogComponent,
     BotonComponent,
-    TimelineComponent
+    TimelineComponent, 
+    DigitarContrasenaDialogComponent
   ],
   providers: [NgxImageCompressService]
 })

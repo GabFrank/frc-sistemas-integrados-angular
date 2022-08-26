@@ -210,11 +210,9 @@ export class AdicionarCajaDialogComponent implements OnInit {
   }
 
   verificarMaletin() {
-    this.cargandoDialog.openDialog();
     this.maletinService
       .onGetPorDescripcion(this.descripcionMaletinControl.value).pipe(untilDestroyed(this))
       .subscribe((res) => {
-        this.cargandoDialog.closeDialog();
         if (res != null) {
           let maletinEncontrado: Maletin = res;
           if (maletinEncontrado.abierto == true) {

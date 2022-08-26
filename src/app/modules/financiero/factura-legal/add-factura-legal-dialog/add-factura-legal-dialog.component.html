@@ -202,7 +202,7 @@
     </div>
     <div fxFlex="30%">
       <app-boton
-        focusEvent="guardarSub.asObservable()"
+        (focusEvent)="guardarSub.asObservable()"
         nombre="Imprimir"
         color="accent"
         [disableExpression]="

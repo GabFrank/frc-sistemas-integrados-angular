@@ -52,6 +52,13 @@
               {{ selectedCaja?.balance.totalTarjeta | number: "1.0-0" }}
             </div>
           </div>
+          <div fxFlex style="width: 100%; text-align: center">Crédito</div>
+          <div fxFlex fxLayout="row">
+            <div fxFlex="50%">Guaranies:</div>
+            <div fxFlex="50%" style="width: 100%; text-align: end">
+              {{ selectedCaja?.balance.totalCredito | number: "1.0-0" }}
+            </div>
+          </div>
           <div fxFlex style="padding-top: 5px; padding-bottom: 5px">
             <mat-divider></mat-divider>
           </div>
@@ -554,16 +561,16 @@
                   </div>
                   <br />
                   <div fxFlex fxLayout="row">
-                    <div fxFlex="10%">Total recibido Gs:</div>
-                    <div fxFlex="20%">
+                    <div fxFlex="15%">Total recibido Gs:</div>
+                    <div fxFlex="15%">
                       {{
                         getCobroTotal(venta?.cobro?.cobroDetalleList, "GUARANI")
                           | number: "1.0-0"
                       }}
                     </div>
                     <div fxFlex="40%"></div>
-                    <div fxFlex="10%">Total recibido:</div>
-                    <div fxFlex="20%">
+                    <div fxFlex="15%">Total recibido:</div>
+                    <div fxFlex="15%">
                       {{
                         getCobroTotalGeneral(venta?.cobro?.cobroDetalleList)
                           | number: "1.0-0"
@@ -571,16 +578,16 @@
                     </div>
                   </div>
                   <div fxFlex fxLayout="row">
-                    <div fxFlex="10%">Total recibido Rs:</div>
-                    <div fxFlex="20%">
+                    <div fxFlex="15%">Total recibido Rs:</div>
+                    <div fxFlex="15%">
                       {{
                         getCobroTotal(venta?.cobro?.cobroDetalleList, "REAL")
                           | number: "1.2-2"
                       }}
                     </div>
                     <div fxFlex="40%"></div>
-                    <div fxFlex="10%">Total descuento:</div>
-                    <div fxFlex="20%">
+                    <div fxFlex="15%">Total descuento:</div>
+                    <div fxFlex="15%">
                       {{
                         getCobroTotalGeneral(
                           venta?.cobro?.cobroDetalleList,
@@ -591,16 +598,16 @@
                     </div>
                   </div>
                   <div fxFlex fxLayout="row">
-                    <div fxFlex="10%">Total recibido Ds:</div>
-                    <div fxFlex="20%">
+                    <div fxFlex="15%">Total recibido Ds:</div>
+                    <div fxFlex="15%">
                       {{
                         getCobroTotal(venta?.cobro?.cobroDetalleList, "DOLAR")
                           | number: "1.2-2"
                       }}
                     </div>
                     <div fxFlex="40%"></div>
-                    <div fxFlex="10%">Total aumento:</div>
-                    <div fxFlex="20%">
+                    <div fxFlex="15%">Total aumento:</div>
+                    <div fxFlex="15%">
                       {{
                         getCobroTotalGeneral(
                           venta?.cobro?.cobroDetalleList,
@@ -615,8 +622,8 @@
                   </div>
                   <div fxFlex fxLayout="row">
                     <div fxFlex="70%"></div>
-                    <div fxFlex="10%">Total final:</div>
-                    <div fxFlex="20%">
+                    <div fxFlex="15%">Total final:</div>
+                    <div fxFlex="15%">
                       {{
                         getCobroTotalFinal(venta?.cobro?.cobroDetalleList)
                           | number: "1.0-0"

@@ -29,6 +29,7 @@ import { MostrarBalanceDialogComponent } from './pdv/caja/mostrar-balance-dialog
 import { ListFacturaLegalComponent } from './factura-legal/list-factura-legal/list-factura-legal.component';
 import { AddFacturaLegalDialogComponent } from './factura-legal/add-factura-legal-dialog/add-factura-legal-dialog.component';
 import { EditFacturaLegalItemComponent } from './factura-legal/edit-factura-legal-item/edit-factura-legal-item.component';
+import { AddVentaCreditoDialogComponent } from './venta-credito/add-venta-credito-dialog/add-venta-credito-dialog.component';
 
 @NgModule({
   declarations: [
@@ -56,6 +57,7 @@ import { EditFacturaLegalItemComponent } from './factura-legal/edit-factura-lega
     ListFacturaLegalComponent,
     AddFacturaLegalDialogComponent,
     EditFacturaLegalItemComponent,
+    AddVentaCreditoDialogComponent,
   ],
   imports: [
     CommonModule,

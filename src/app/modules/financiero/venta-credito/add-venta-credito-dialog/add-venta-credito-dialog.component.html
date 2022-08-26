@@ -1,0 +1,233 @@
+<div fxLayout="column" style="height: 100%; width: 100%" fxLayoutGap="10px">
+  <div fxFlex="5" style="text-align: center">
+    <h4>Adicionar venta a crédito</h4>
+  </div>
+  <div fxFlex="90" style="height: 100%" fxLayout="row" fxLayoutGap="10px">
+    <div fxFlex="80%" fxLayout="column">
+      <div fxFlex="10" fxLayout="row" fxLayoutGap="10px">
+        <div fxFlex="10">
+          <mat-form-field style="width: 95%">
+            <mat-label>Id</mat-label>
+            <input
+              #idInput
+              type="text"
+              matInput
+              [formControl]="idClienteControl"
+              (keydown.enter)="buscarPersonaPorId()"
+              (keydown.tab)="buscarPersonaPorId(); $event.preventDefault()"
+              (keydown.arrowUp)="$event.preventDefault()"
+              (keydown.arrowDown)="$event.preventDefault()"
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="80">
+          <mat-form-field style="width: 100%">
+            <mat-label>Nombre del cliente</mat-label>
+            <input
+              #nombreInput
+              type="text"
+              matInput
+              [formControl]="nombreClienteControl"
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="10" style="height: 35px">
+          <app-boton nombre="Buscar"></app-boton>
+        </div>
+      </div>
+      <div
+        fxFlex="10"
+        fxLayout="row"
+        fxLayoutGap="10px"
+        fxLayoutAlign="start center"
+      >
+        <div fxFlex="25">
+          <mat-form-field style="width: 100%">
+            <mat-label>Cuotas</mat-label>
+            <input
+              #idCuotas
+              type="number"
+              matInput
+              [formControl]="cuotasControl"
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="25">
+          <mat-form-field style="width: 100%">
+            <mat-label>Interes mensual (%)</mat-label>
+            <input
+              #idInteres
+              type="number"
+              matInput
+              min="0"
+              [formControl]="interesControl"
+            />
+          </mat-form-field>
+        </div>
+      </div>
+      <div fxFlex="70" style="width: 100%; height: 100%">
+        <table mat-table [dataSource]="dataSource">
+          <!-- Position Column -->
+          <ng-container matColumnDef="id">
+            <th mat-header-cell *matHeaderCellDef style="width: 30%">Cuota</th>
+            <td
+              mat-cell
+              *matCellDef="let element; let i = index"
+              style="width: 30%"
+            >
+              {{ i + 1 }}
+            </td>
+          </ng-container>
+
+          <!-- Name Column -->
+          <ng-container matColumnDef="vencimiento">
+            <th mat-header-cell *matHeaderCellDef style="width: 30%">
+              Vencimiento
+            </th>
+            <td mat-cell *matCellDef="let element" style="width: 30%">
+              {{ element?.vencimiento | date: "shortDate" }}
+            </td>
+          </ng-container>
+
+          <!-- Weight Column -->
+          <ng-container matColumnDef="valor">
+            <th mat-header-cell *matHeaderCellDef style="width: 30%">Valor</th>
+            <td mat-cell *matCellDef="let element" style="width: 30%">
+              {{ element?.valor | number: "1.0-0" }}
+            </td>
+          </ng-container>
+
+          <!-- Symbol Column -->
+          <ng-container matColumnDef="acciones">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="width: 10%; text-align: center"
+            >
+              ...
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let gasto"
+              style="width: 10%; text-align: center"
+            >
+              <button
+                mat-icon-button
+                [matMenuTriggerFor]="menu"
+                (click)="$event.stopPropagation()"
+              >
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item (click)="onVer(gasto)">Ver</button>
+                <button
+                  *ngIf="gasto?.finalizado != true"
+                  mat-menu-item
+                  (click)="onVuelto(gasto)"
+                >
+                  Vuelto
+                </button>
+                <button
+                  *ngIf="gasto?.finalizado != true"
+                  mat-menu-item
+                  (click)="onFinalizar(gasto)"
+                >
+                  Finalizar
+                </button>
+                <!-- <button *ngIf="gasto?.finalizado == true" mat-menu-item (click)="onImprimir(gasto)">
+                      Imprimir
+                    </button> -->
+              </mat-menu>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="cantidad">
+            <th mat-header-cell *matHeaderCellDef>Cantidad</th>
+            <td mat-cell *matCellDef="let element">
+              {{ element?.cantidad | number: "1.0-2" }}
+            </td>
+          </ng-container>
+
+          <!-- Acciones -->
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: displayedColumns"
+            (click)="onSelectEntradaItem(row)"
+          ></tr>
+        </table>
+      </div>
+      <mat-card
+        fxFlex="10%"
+        fxLayout="row"
+        fxLayoutAlign="center center"
+        style="text-align: center; background-color: rgb(32, 32, 32)"
+      >
+        <h2>Total: {{ total | number: "1.0-0" }}</h2>
+      </mat-card>
+    </div>
+    <div fxFlex="20%" fxLayout="column" fxLayoutGap="10px">
+      <div fxFlex>
+        <app-boton
+          #contraBtn
+          style="height: 50px"
+          nombre="Código (F1)"
+          [disableExpression]="
+            selectedCliente == null || this.total > this.saldoEnCredito || selectedCliente?.tipo != TipoCliente.VIP
+          "
+          (clickEvent)="setTipoConfirmacion(1); onContrasenaClick()"
+          [color]="selectedTipoConfirmacion == 1 ? 'accent' : 'primary'"
+        ></app-boton>
+      </div>
+
+      <div fxFlex>
+        <app-boton
+          #qrBtn
+          style="height: 50px"
+          nombre="Código QR (F2)"
+          [disableExpression]="
+            selectedCliente != null && this.total > this.saldoEnCredito
+          "
+          (clickEvent)="setTipoConfirmacion(2)"
+          [color]="selectedTipoConfirmacion == 2 ? 'accent' : 'primary'"
+        ></app-boton>
+      </div>
+      <div fxFlex>
+        <app-boton
+          #firmaBtn
+          style="height: 50px"
+          nombre="Firma (F3)"
+          [disableExpression]="
+            selectedCliente == null || this.total > this.saldoEnCredito
+          "
+          (clickEvent)="setTipoConfirmacion(3); onFirmaClick()"
+          [color]="selectedTipoConfirmacion == 3 ? 'accent' : 'primary'"
+        ></app-boton>
+      </div>
+      <div fxFlex>
+        <app-boton
+          #appBtn
+          style="height: 50px"
+          nombre="Aplicativo (F4)"
+          [disableExpression]="
+            selectedCliente == null || this.total > this.saldoEnCredito
+          "
+          (clickEvent)="setTipoConfirmacion(4)"
+          [color]="selectedTipoConfirmacion == 4 ? 'accent' : 'primary'"
+        ></app-boton>
+      </div>
+    </div>
+  </div>
+  <div
+    fxFlex="5"
+    fxLayout="row"
+    fxLayoutGap="10px"
+    fxLayoutAlign="space-around center"
+  >
+    <div fxFlex="30%" style="text-align: center">
+      <app-boton color="primary" (clickEvent)="onCancelar()" nombre="Cancelar">
+      </app-boton>
+    </div>
+  </div>
+</div>

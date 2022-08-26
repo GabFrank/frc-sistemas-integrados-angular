@@ -15,7 +15,7 @@ pg_dump -U franco -W central > central_servidor.sql
 -- comando para hacer restore de base de datos
 psql -U franco -W dba < dbb.sql
 -- comando para copiar archivos en docker
-docker cp filial1:/generalv3.sql /Users/gabfranck/Desktop
+docker cp filial1:/bkp_18_08.sql /Users/gabfranck/Desktop
 
 
 comando para logear en psql

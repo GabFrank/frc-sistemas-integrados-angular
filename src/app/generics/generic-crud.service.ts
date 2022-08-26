@@ -18,7 +18,7 @@ import { CargandoDialogService } from "../shared/components/cargando-dialog/carg
 export class GenericCrudService {
 
   isLoading = false;
-
+  
   constructor(
     private notificacionSnackBar: NotificacionSnackbarService,
     private dialogoService: DialogosService,
@@ -27,12 +27,12 @@ export class GenericCrudService {
     private cargandoService: CargandoDialogService
   ) { }
 
-  onGetAll(gql: Query, page?, size?): Observable<any> {
+  onGetAll(gql: Query, page?, size?, servidor?): Observable<any> {
     this.isLoading = true;
     this.cargandoService.openDialog(false, 'Buscando...')
     return new Observable((obs) => {
       gql
-        .fetch({ page, size }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
+        .fetch({ page, size }, { fetchPolicy: "no-cache", errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.cargandoService.closeDialog()
           this.isLoading = false
@@ -49,12 +49,12 @@ export class GenericCrudService {
     });
   }
 
-  onCustomQuery(gql: Query, data): Observable<any> {
+  onCustomQuery(gql: Query, data, servidor?): Observable<any> {
     this.isLoading = true;
     this.cargandoService.openDialog(false, 'Buscando...')
     return new Observable((obs) => {
       gql
-        .fetch(data, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
+        .fetch(data, { fetchPolicy: "no-cache", errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.cargandoService.closeDialog()
           this.isLoading = false
@@ -71,12 +71,12 @@ export class GenericCrudService {
     });
   }
 
-  onGetById<T>(gql: any, id: number, page?, size?): Observable<T> {
+  onGetById<T>(gql: any, id: number, page?, size?, servidor?): Observable<T> {
     this.isLoading = true;
     this.cargandoService.openDialog(false, 'Buscando...')
     return new Observable((obs) => {
       gql
-        .fetch({ id, page, size }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
+        .fetch({ id, page, size }, { fetchPolicy: "no-cache", errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.cargandoService.closeDialog()
           this.isLoading = false;
@@ -100,12 +100,12 @@ export class GenericCrudService {
     });
   }
 
-  onGetByTexto(gql: Query, texto: string): Observable<any> {
+  onGetByTexto(gql: Query, texto: string, servidor?): Observable<any> {
     this.isLoading = true;
     this.cargandoService.openDialog(false, 'Buscando...')
     return new Observable((obs) => {
       gql
-        .fetch({ texto }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
+        .fetch({ texto }, { fetchPolicy: "no-cache", errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.cargandoService.closeDialog()
           this.isLoading = false;
@@ -122,7 +122,7 @@ export class GenericCrudService {
     });
   }
 
-  onSave<T>(gql: Mutation, input, printerName?: string, local?: string): Observable<T> {
+  onSave<T>(gql: Mutation, input, printerName?: string, local?: string, servidor?): Observable<T> {
     this.isLoading = true;
     input.usuarioId = this.mainService.usuarioActual.id
     this.cargandoService.openDialog(false, 'Guardando...')
@@ -130,7 +130,7 @@ export class GenericCrudService {
       gql
         .mutate(
           { entity: input, printerName, local},
-          { fetchPolicy: "no-cache", errorPolicy: "all" }
+          { fetchPolicy: "no-cache", errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.isLoading = false;
@@ -161,7 +161,8 @@ export class GenericCrudService {
     id,
     titulo?,
     data?: any,
-    showDialog?: boolean
+    showDialog?: boolean,
+    servidor?
   ): Observable<any> {
     this.cargandoService.openDialog(false, 'Eliminando...')
     return new Observable((obs) => {
@@ -171,7 +172,7 @@ export class GenericCrudService {
             {
               id,
             },
-            { errorPolicy: "all" }
+            { errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }
           ).pipe(untilDestroyed(this))
           .subscribe((res) => {
             this.cargandoService.closeDialog()
@@ -209,7 +210,7 @@ export class GenericCrudService {
                   {
                     id,
                   },
-                  { errorPolicy: "all" }
+                  { errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }
                 )
                 .subscribe((res) => {
                   if (res.errors == null) {
@@ -239,7 +240,7 @@ export class GenericCrudService {
     });
   }
 
-  onGetByFecha(gql: any, inicio: Date, fin: Date): Observable<any> {
+  onGetByFecha(gql: any, inicio: Date, fin: Date, servidor?): Observable<any> {
     let hoy = new Date();
     let ayer = new Date(hoy.getDay() - 1);
     ayer.setHours(0);
@@ -264,7 +265,7 @@ export class GenericCrudService {
     }
     return new Observable((obs) => {
       gql
-        .fetch({ inicio, fin }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
+        .fetch({ inicio, fin }, { fetchPolicy: "no-cache", errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             obs.next(res.data["data"]);
@@ -280,7 +281,7 @@ export class GenericCrudService {
   }
 
 
-  onSaveConDetalle(gql: Mutation, entity: any, detalleList: any[], info?: string, printerName?: string, pdvId?: number) {
+  onSaveConDetalle(gql: Mutation, entity: any, detalleList: any[], info?: string, printerName?: string, pdvId?: number, servidor?, error?: boolean) {
     this.cargandoService.openDialog()
     entity.usuarioId = this.mainService?.usuarioActual?.id;
     return new Observable((obs) => {
@@ -295,6 +296,7 @@ export class GenericCrudService {
           {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
+            context: { clientName: servidor == true ? 'servidor' : null } 
           }
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {
@@ -305,14 +307,22 @@ export class GenericCrudService {
               color: NotificacionColor.success,
               duracion: 2,
             });
-            obs.next(res.data['data']);
+            if(error){
+              obs.next({data: res.data['data']});
+            } else {
+              obs.next(res.data['data']);
+            }
           } else {
             this.notificacionBar.notification$.next({
               texto: "Ups!! Algo salio mal: " + res.errors[0].message,
               color: NotificacionColor.danger,
               duracion: 5,
             });
-            obs.next(null);
+            if(error){
+              obs.next({error: res.errors})
+            } else {
+              obs.next(null);
+            }
           }
         });
     });

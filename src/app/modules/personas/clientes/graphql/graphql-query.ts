@@ -6,6 +6,7 @@ export const clientesQuery = gql
       id
       persona{
         id
+        nombre
       }
       nombre
       credito
@@ -59,6 +60,7 @@ export const clienteSearchByPersonaId = gql
       id
       persona{
         id
+        nombre
       }
       nombre
       credito
@@ -66,8 +68,33 @@ export const clienteSearchByPersonaId = gql
         id
         telefono
       }
+      saldo
+      tipo
+      codigo
   }
 }`
+
+export const clientePorPersonaIdFromServer = gql
+  `query($id: ID){
+  data : clientePorPersonaIdFromServer(id: $id){
+      id
+      persona{
+        id
+        nombre
+      }
+      nombre
+      credito
+      contactos{
+        id
+        telefono
+      }
+      saldo
+      tipo
+      codigo
+  }
+}`
+
+
 
 export const clientesSearchByTelefono = gql
   `query($texto: String){
@@ -75,6 +102,7 @@ export const clientesSearchByTelefono = gql
       id
       persona{
         id
+        nombre
       }
       nombre
       credito
@@ -87,10 +115,11 @@ export const clientesSearchByTelefono = gql
 
 export const clienteQuery = gql
   `query($id: ID!){
-    data(id: $id){
+    data: cliente(id: $id){
       id
       persona{
         id
+        nombre
       }
       nombre
       credito

@@ -172,6 +172,7 @@ export const cajaQuery = gql`
         totalVentaRs
         totalVentaDs
         totalTarjeta
+        totalCredito
         totalRetiroGs
         totalRetiroRs
         totalRetiroDs

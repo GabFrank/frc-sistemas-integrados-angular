@@ -318,15 +318,50 @@
         <div
           fxFlex
           fxLayout="row"
-          style="height: 6em"
+          style="height: 100%"
           fxLayoutGap="10px"
           fxLayoutAlign="space-around start"
           *ngIf="formaPagoList.length > 0"
         >
-          <div fxFlex="19" *ngFor="let formaPago of formaPagoList">
+          <app-boton
+            style="height: 80%"
+            nombre="Efectivo (F4)"
+            (clickEvent)="setFormaPago('EFECTIVO')"
+            [disableExpression]="false"
+            fxFlex="22"
+            [color]="selectedFormaPago?.descripcion == 'EFECTIVO' ? 'primary' : 'null'"
+          >
+          </app-boton>
+          <app-boton
+            style="height: 80%"
+            nombre="Tarjeta (F5)"
+            (clickEvent)="setFormaPago('TARJETA')"
+            [disableExpression]="false"
+            fxFlex="22"
+            [color]="selectedFormaPago?.descripcion == 'TARJETA' ? 'primary' : 'null'"
+          >
+          </app-boton>
+          <app-boton
+            style="height: 80%"
+            nombre="Convenio (F6)"
+            (clickEvent)="onConvenioClick()"
+            [disableExpression]="false"
+            fxFlex="22"
+            [color]="selectedFormaPago?.descripcion == 'CONVENIO' ? 'primary' : 'null'"
+          >
+          </app-boton>
+          <app-boton
+            style="height: 80%"
+            nombre="Otros"
+            (clickEvent)="onOtrasFormaPagoClick()"
+            [disableExpression]="false"
+            fxFlex="22"
+            [color]="null"
+          >
+          </app-boton>
+          <!-- <div fxFlex="19" *ngFor="let formaPago of formaPagoList">
             <button
               [disabled]="
-                formaPago.descripcion.toUpperCase() == 'CONVENIO' ||
                 formaPago.descripcion.toUpperCase() == 'TRANSFERENCIA'
               "
               type="button"
@@ -353,7 +388,7 @@
             >
               Otros
             </button>
-          </div>
+          </div> -->
         </div>
       </div>
     </div>

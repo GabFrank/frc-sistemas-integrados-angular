@@ -153,7 +153,7 @@ export class UtilitariosDialogComponent implements OnInit {
           reimpresion: true,
           cancelacion: false,
         },
-        width: "70%",
+        width: "95%",
         height: "70%",
         disableClose: false,
         autoFocus: true,

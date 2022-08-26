@@ -125,6 +125,7 @@ export const saveVenta = gql`
     $printerName: String
     $local: String,
     $pdvId: Int
+    $credito: Boolean
   ) {
     data: saveVenta(
       ventaInput: $ventaInput
@@ -134,8 +135,11 @@ export const saveVenta = gql`
       ticket: $ticket,
       printerName: $printerName,
       local: $local,
-      pdvId: $pdvId
-    )
+      pdvId: $pdvId,
+      credito: $credito
+    ){
+      id
+    }
   }
 `;
 
@@ -148,6 +152,22 @@ export const deleteVentaQuery = gql`
 export const cancelarVentaQuery = gql`
   mutation cancelarVenta($id: ID!) {
     data: cancelarVenta(id: $id)
+  }
+`;
+
+export const imprimirPagareQuery = gql`
+  mutation imprimirPagare(
+    $id: ID!,
+    $itens: [VentaCreditoCuotaInput]!,
+    $printerName: String,
+    $local: String
+    ) {
+    data: imprimirPagare(
+      id: $id
+      itens: $itens
+      printerName: $printerName,
+      local: $local
+      )
   }
 `;
 
@@ -173,6 +193,9 @@ export const ventasPorCajaIdQuery = gql`
       id
       cliente {
         id
+        persona {
+          nombre
+        }
       }
       formaPago {
         id

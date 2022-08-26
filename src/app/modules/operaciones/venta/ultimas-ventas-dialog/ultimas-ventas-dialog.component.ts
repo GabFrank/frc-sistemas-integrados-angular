@@ -38,7 +38,6 @@ export class UltimasVentasDialogComponent implements OnInit {
     "totalRs",
     "totalDs",
     "estado",
-    "formaPago",
     "cliente",
     "acciones",
   ];

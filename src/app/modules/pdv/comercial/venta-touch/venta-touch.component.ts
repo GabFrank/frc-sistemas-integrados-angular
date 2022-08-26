@@ -6,7 +6,7 @@ import {
   OnInit,
 } from "@angular/core";
 import { MatDialog, MatDialogRef } from "@angular/material/dialog";
-import { Subject, Subscription } from "rxjs";
+import { Observable, Subject, Subscription } from "rxjs";
 import { isInt } from "../../../../commons/core/utils/numbersUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabService } from "../../../../layouts/tab/tab.service";
@@ -84,6 +84,9 @@ export interface PdvTouchData {
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { environment } from "../../../../../environments/environment";
+import { TipoConfirmacion, VentaCredito, VentaCreditoCuotaInput } from "../../../financiero/venta-credito/venta-credito.model";
+import { VentaCreditoService } from "../../../financiero/venta-credito/venta-credito.service";
+import { VentaService } from "../../../operaciones/venta/venta.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -141,7 +144,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     private formaPagoService: FormaPagoService,
     private cargandoService: CargandoDialogService,
     public printService: NgxPrintElementService,
-    private dialogoService: DialogosService
+    private dialogoService: DialogosService,
+    private ventaCreditoService: VentaCreditoService,
+    private ventaService: VentaService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -597,7 +602,35 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
               });
             }
             this.cargandoService.closeDialog();
-            this.onSaveVenta(venta, cobro, !(response?.facturado == true));
+            let ventaCredito: VentaCredito = res['ventaCredito'];
+            if (ventaCredito != null) venta.cliente = ventaCredito.cliente;
+            this.onSaveVenta(venta, cobro, !(response?.facturado == true), ventaCredito != null).subscribe(ventaRes => {
+              if (ventaRes.id != null) {
+                let ventaCreditoCuotaInputList: VentaCreditoCuotaInput[] = res['itens']
+                if (ventaCredito != null && ventaCreditoCuotaInputList != null) {
+                  ventaCredito.venta = ventaRes;
+                  this.ventaCreditoService.onSave(ventaCredito.toInput(), ventaCreditoCuotaInputList).subscribe(ventaCreditoRes => {
+                    console.log(ventaCredito);
+                    if (ventaCreditoRes['error'] == null) {
+                      this.notificacionSnackbar.openGuardadoConExito()
+                      if(ventaCredito.tipoConfirmacion == TipoConfirmacion.FIRMA) {
+                        this.ventaService.onImprimirPagare(ventaRes.id, ventaCreditoCuotaInputList).subscribe().unsubscribe()
+                      }
+                    } else {
+                      this.notificacionSnackbar.openAlgoSalioMal()
+                      console.log('cancelando');
+                      this.ventaService.onCancelarVenta(ventaRes.id).subscribe(cancelarRes => {
+                        if (cancelarRes) {
+                          this.notificacionSnackbar.openWarn('Venta cancelada')
+                        } else {
+                          this.notificacionSnackbar.openWarn('No se puedo cancelar la venta. Comuniquese con el sector administrativo.')
+                        }
+                      })
+                    }
+                  })
+                }
+              }
+            })
             this.dialogReference = undefined;
           }
           this.buscadorFocusSub.next()
@@ -644,30 +677,34 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     cobroDetalle.valor = this.totalGs;
     cobro.cobroDetalleList = [cobroDetalle];
     // cobroDetalle.
-    this.onSaveVenta(venta, cobro, ticket);
+    this.onSaveVenta(venta, cobro, ticket, false).subscribe().unsubscribe();
     this.disableCobroRapido = false;
     this.buscadorFocusSub.next()
   }
 
-  onSaveVenta(venta, cobro, ticket) {
+  onSaveVenta(venta, cobro, ticket, credito): Observable<Venta> {
     this.cargandoService.openDialog();
-    this.ventaTouchServive.onSaveVenta(venta, cobro, ticket).pipe(untilDestroyed(this)).subscribe((res) => {
-      this.cargandoService.closeDialog();
-      if (res == true) {
-        this.notificacionSnackbar.notification$.next({
-          color: NotificacionColor.success,
-          texto: "Venta guardada con éxito",
-          duracion: 2,
-        });
-        this.resetForm();
-      } else {
-        this.notificacionSnackbar.notification$.next({
-          color: NotificacionColor.danger,
-          texto: "Ups! Ocurrió un problema al guardar",
-          duracion: 3,
-        });
-      }
-    });
+    return new Observable(obs => {
+      this.ventaTouchServive.onSaveVenta(venta, cobro, ticket, credito).pipe(untilDestroyed(this)).subscribe((res) => {
+        this.cargandoService.closeDialog();
+        if (res.id != null) {
+          this.notificacionSnackbar.notification$.next({
+            color: NotificacionColor.success,
+            texto: "Venta guardada con éxito",
+            duracion: 2,
+          });
+          this.resetForm();
+          obs.next(res)
+        } else {
+          this.notificacionSnackbar.notification$.next({
+            color: NotificacionColor.danger,
+            texto: "Ups! Ocurrió un problema al guardar",
+            duracion: 3,
+          });
+          obs.next(null)
+        }
+      });
+    })
   }
 
   onDeliveryClick() {
@@ -797,9 +834,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         case "F1":
           this.onTicketClick(true)
           break;
-          case "F12":
-            this.pdvAuxiliarClick()
-            break;
+        case "F12":
+          this.pdvAuxiliarClick()
+          break;
         default:
           break;
       }

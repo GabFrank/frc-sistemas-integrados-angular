@@ -1,0 +1,25 @@
+<div fxLayout="column" style="width: 300px" fxLayoutGap="10px">
+  <div fxFlex style="width: 100%">
+    <h3>Digite su Contraseña</h3>
+  </div>
+  <div fxFlex>
+    <mat-form-field style="width: 100%; font-size: 2em;">
+      <input type="password" matInput [formControl]="passwordControl" style="text-align:center" (keyup.enter)="passwordControl.valid ? onAceptar() : null"/>
+    </mat-form-field>
+  </div>
+  <div fxFlex>
+    <app-boton
+      nombre="Aceptar"
+      (clickEvent)="onAceptar()"
+      [disableExpression]="passwordControl.invalid"
+      color="accent"
+    ></app-boton>
+  </div>
+  <div fxFlex>
+    <app-boton
+      nombre="Cancelar"
+      (clickEvent)="onCancelar()"
+      color="primary"
+    ></app-boton>
+  </div>
+</div>

@@ -21,7 +21,7 @@ import { FormatNumberPipe } from "./pipes/format-number.pipe";
 import { IConfig, NgxMaskModule } from "ngx-mask";
 import { MainService } from "./main.service";
 import { APP_INITIALIZER } from "@angular/core";
-import { Apollo, APOLLO_OPTIONS } from "apollo-angular";
+import { Apollo, APOLLO_NAMED_OPTIONS, APOLLO_OPTIONS } from "apollo-angular";
 import {
   ApolloClientOptions,
   ApolloLink,
@@ -46,7 +46,6 @@ import { NgxElectronModule } from 'ngx-electron';
 export const errorObs = new BehaviorSubject<any>(null);
 export const connectionStatusSub = new BehaviorSubject<any>(null);
 
-
 // error handling
 const errorLink = onError(({ graphQLErrors, networkError }) => {
   console.log(graphQLErrors, networkError);
@@ -60,6 +59,88 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
 
   // if (networkError) console.log(`[Network error]: ${networkError}`);
 });
+
+export function createNamed(httpLink: HttpLink): Record<string, ApolloClientOptions<any>> {
+  const url = `http://localhost:8081/graphql`;
+  // const wUri = `ws://${environment['serverIp']}:${environment['serverPort']}/subscriptions`;
+
+  // const wsClient = new SubscriptionClient(wUri, {
+  //   reconnect: true,
+  // });
+
+
+  // wsClient.onConnected(() => {
+  //   connectionStatusSub.next(true);
+  //   console.log("websocket connected!!");
+  // });
+  // wsClient.onDisconnected(() => {
+  //   if (connectionStatusSub.value != false) {
+  //     connectionStatusSub.next(false);
+  //   }
+  //   console.log("websocket disconnected!!");
+  // });
+  // wsClient.onReconnected(() => {
+  //   connectionStatusSub.next(true);
+  //   console.log("websocket reconnected!!");
+  // });
+
+  const basic = setContext((operation, context) => ({
+    // headers: {
+    //   Accept: 'charset=utf-8'
+    // }
+  }));
+
+  const auth = setContext((operation, context) => {
+    const token = localStorage.getItem("token");
+    if (token === null) {
+      return {};
+    } else {
+      return {
+        headers: {
+          Authorization: `Token ${token}`,
+        },
+      };
+    }
+  });
+
+  // Create an http link:
+  const http = ApolloLink.from([
+    basic,
+    auth,
+    httpLink.create({
+      uri: url,
+    }),
+  ]);
+
+  // Create a WebSocket link:
+  // const ws = new WebSocketLink(wsClient);
+
+  // using the ability to split links, you can send data to each link
+  // depending on what kind of operation is being sent
+  const link = errorLink.concat(
+    split(
+      // split based on operation type
+
+      ({ query }) => {
+        const definition = getMainDefinition(query);
+        return (
+          definition.kind === "OperationDefinition" &&
+          definition.operation === "subscription"
+        );
+      },
+      // ws,
+      http
+    )
+  );
+
+  return {
+    servidor: {
+      name: 'servidor',
+      link,
+      cache: new InMemoryCache(),
+    }
+  }
+}
 
 registerLocaleData(localePY);
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
@@ -101,6 +182,7 @@ export function appInit(appConfigService: MainService) {
       provide: APOLLO_OPTIONS,
       useFactory(httpLink: HttpLink): ApolloClientOptions<any> {
         const url = `http://${environment['serverIp']}:${environment['serverPort']}/graphql`;
+        const url2 = `http://localhost:8081/graphql`;
         const wUri = `ws://${environment['serverIp']}:${environment['serverPort']}/subscriptions`;
 
         const wsClient = new SubscriptionClient(wUri, {
@@ -151,6 +233,14 @@ export function appInit(appConfigService: MainService) {
           }),
         ]);
 
+        const http2 = ApolloLink.from([
+          basic,
+          auth,
+          httpLink.create({
+            uri: url2,
+          }),
+        ]);
+
         // Create a WebSocket link:
         const ws = new WebSocketLink(wsClient);
 
@@ -168,7 +258,11 @@ export function appInit(appConfigService: MainService) {
               );
             },
             ws,
-            http
+            ApolloLink.split(
+              operation => operation.getContext().clientName === 'servidor',
+              http2,
+              http
+            )
           )
         );
 
@@ -179,6 +273,11 @@ export function appInit(appConfigService: MainService) {
       },
       deps: [HttpLink],
     },
+    // {
+    //   provide: APOLLO_NAMED_OPTIONS,
+    //   useFactory: createNamed,
+    //   deps: [HttpLink],
+    // },
     { provide: LocationStrategy, useClass: HashLocationStrategy },
     { provide: LOCALE_ID, useValue: "es-PY" },
     { provide: MAT_DATE_LOCALE, useValue: "es-PY" }

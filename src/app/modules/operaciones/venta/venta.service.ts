@@ -18,6 +18,8 @@ import { NotificacionColor, NotificacionSnackbarService } from "../../../notific
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { environment } from "../../../../environments/environment";
+import { DeleteVentaGQL } from "./graphql/deleteVenta";
+import { ImprimirPagareGQL } from "./graphql/imprimirPagare";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -34,12 +36,15 @@ export class VentaService {
     private ventasPorCajaId: VentaPorCajaIdGQL,
     private ventaPorId: VentaPorIdGQL,
     private ventaPorPeriodo: VentaPorPeriodoGQL,
-    private notificacionBar: NotificacionSnackbarService
+    private notificacionBar: NotificacionSnackbarService,
+    private deleteVenta: DeleteVentaGQL,
+    private imprimirPagare: ImprimirPagareGQL
   ) {}
 
   // $venta:VentaInput!, $venteItemList: [VentaItemInput], $cobro: CobroInput, $cobroDetalleList: [CobroDetalleInput]
 
-  onSaveVenta(venta: Venta, cobro: Cobro, ticket): Observable<any> {
+  onSaveVenta(venta: Venta, cobro: Cobro, ticket, credito?): Observable<any> {
+    
     let ventaItemInputList: VentaItemInput[] = [];
     let cobroDetalleInputList: CobroDetalleInput[] = [];
     let ventaInput: VentaInput = venta.toInput();
@@ -65,7 +70,8 @@ export class VentaService {
             ticket,
             printerName: environment['printers']['ticket'],
             local: environment['local'],
-            pdvId: environment['pdvId']
+            pdvId: environment['pdvId'],
+            credito
           },
           {
             errorPolicy: "all",
@@ -78,12 +84,41 @@ export class VentaService {
     });
   }
 
+  onDeleteVenta(id): Observable<boolean> {
+    return this.genericService.onDelete(this.deleteVenta, id, null, null, false, false);
+  }
+
   onReimprimirVenta(id): Observable<boolean> {
     return new Observable((obs) => {
       this.reimprimirVenta
         .mutate(
           {
             id,
+            printerName: environment['printers']['ticket'],
+            local: environment['local']
+          },
+          {
+            fetchPolicy: "no-cache",
+            errorPolicy: "all",
+          }
+        ).pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          if (res.errors == null) {
+            obs.next(res.data.data);
+          } else {
+            obs.next(null);
+          }
+        });
+    });
+  }
+
+  onImprimirPagare(id, itens): Observable<boolean> {
+    return new Observable((obs) => {
+      this.imprimirPagare
+        .mutate(
+          {
+            id,
+            itens,
             printerName: environment['printers']['ticket'],
             local: environment['local']
           },
