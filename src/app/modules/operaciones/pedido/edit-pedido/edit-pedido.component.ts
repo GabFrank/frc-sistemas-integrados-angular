@@ -62,6 +62,8 @@ export interface Transaction {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { AdicionarProveedorDialogComponent } from "../../../personas/proveedor/adicionar-proveedor-dialog/adicionar-proveedor-dialog.component";
+import { MatDatepicker } from "@angular/material/datepicker";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -97,6 +99,9 @@ export class EditPedidoComponent implements OnInit {
 
   @ViewChild("monedaInput", { static: false })
   monedaInput: ElementRef;
+
+  @ViewChild("picker", { static: false })
+  calendar: MatDatepicker<any>;
 
   detalleForm: FormGroup = new FormGroup({});
 
@@ -196,7 +201,7 @@ export class EditPedidoComponent implements OnInit {
     private notaRecepcionService: NotaRecepcionService,
     private compraService: CompraService,
     private cargandoDialog: CargandoDialogService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.createDetalleForm();
@@ -340,13 +345,18 @@ export class EditPedidoComponent implements OnInit {
       this.selectedProveedor = e;
       this.proveedorControl.setValue(
         this.selectedProveedor?.id +
-          " - " +
-          this.selectedProveedor?.persona?.nombre
+        " - " +
+        this.selectedProveedor?.persona?.nombre
       );
       if (e?.vendedores != null) {
         this.vendedorList = e.vendedores;
         this.proveedorInput.nativeElement.select();
       }
+      setTimeout(() => {
+        let formaPago = this.formaPagoList.find(fp => fp.descripcion == 'CHEQUE');
+        if (this.selectedProveedor?.credito == true) this.onFormaPagoSelect(formaPago);
+        if (this.selectedProveedor?.chequeDias != null) this.plazoCreditoControl.setValue(this.selectedProveedor.chequeDias)
+      }, 1000);
     }
   }
 
@@ -361,8 +371,8 @@ export class EditPedidoComponent implements OnInit {
       this.selectedVendedor = e;
       this.vendedorControl.setValue(
         this.selectedVendedor?.id +
-          " - " +
-          this.selectedVendedor?.persona?.nombre
+        " - " +
+        this.selectedVendedor?.persona?.nombre
       );
       if (e?.proveedores != null) {
         if (this.selectedProveedor == null) {
@@ -375,7 +385,7 @@ export class EditPedidoComponent implements OnInit {
 
   onVendedorAutocompleteClose() {
     setTimeout(() => {
-      this.vendedorInput.nativeElement.select();
+      if (this.vendedorControl.value != null) this.vendedorInput.nativeElement.select();
     }, 100);
   }
 
@@ -414,8 +424,11 @@ export class EditPedidoComponent implements OnInit {
               data: {
                 pedido: this.selectedPedido,
               },
-              width: "100%",
-              height: "70%",
+              // maxWidth: '100vw',
+              // maxHeight: '100vh',
+              height: '80%',
+              width: '100%',
+              // panelClass: 'full-screen-modal',
               disableClose: false,
             })
             .afterClosed().pipe(untilDestroyed(this))
@@ -561,17 +574,17 @@ export class EditPedidoComponent implements OnInit {
                 this.selectedPedido.estado =
                   PedidoEstado.EN_RECEPCION_MERCADERIA;
                 this.pedidoService.onSave(this.selectedPedido.toInput()).pipe(untilDestroyed(this)).subscribe(res2 => {
-                  if(res2!==null){
+                  if (res2 !== null) {
                     this.cargandoDialog.closeDialog();
                     this.stepper.selectedIndex = 2;
                   }
                 })
               }
             });
-        } else if(this.selectedPedido.estado >= PedidoEstado.EN_RECEPCION_MERCADERIA) {
+        } else if (this.selectedPedido.estado >= PedidoEstado.EN_RECEPCION_MERCADERIA) {
           this.stepper.selectedIndex = 2;
         }
-        
+
         break;
 
       case "detalle-compra":
@@ -641,7 +654,7 @@ export class EditPedidoComponent implements OnInit {
     this.dataSourceNotaRecepcion.data.forEach((e) => {
       if (e.pedidoItemList != null) {
         e.pedidoItemList.forEach((n) => {
-          if (n.compraItem.verificado==true) {
+          if (n.compraItem.verificado == true) {
             cantidad++;
           }
         });
@@ -705,7 +718,7 @@ export class EditPedidoComponent implements OnInit {
     }
   }
 
-  deleteItemNotaRecepcion(nota, i) {}
+  deleteItemNotaRecepcion(nota, i) { }
 
   crearCompraItem(item: PedidoItem): CompraItem {
     let compraItem = new CompraItem();
@@ -726,7 +739,7 @@ export class EditPedidoComponent implements OnInit {
     this.cargandoDialog.openDialog();
     let compraItem = new CompraItem();
     Object.assign(compraItem, item.compraItem);
-    compraItem.verificado = true; 
+    compraItem.verificado = true;
     this.compraService
       .onSaveCompraItem(compraItem.toInput()).pipe(untilDestroyed(this))
       .subscribe((res) => {
@@ -737,7 +750,7 @@ export class EditPedidoComponent implements OnInit {
           let notaRecepcion =
             this.dataSourceNotaRecepcion.data[notaRecepcionIndex];
           notaRecepcion.pedidoItemList[pedidoItemIndex] = item;
-            this.dataSourceNotaRecepcion.data = updateDataSource(
+          this.dataSourceNotaRecepcion.data = updateDataSource(
             this.dataSourceNotaRecepcion.data,
             notaRecepcion,
             notaRecepcionIndex
@@ -767,7 +780,7 @@ export class EditPedidoComponent implements OnInit {
         data: {
           compraItem: item.compraItem,
           pedidoItem: item,
-          modificarPrecio : false
+          modificarPrecio: false
         },
         width: "100%",
         disableClose: true,
@@ -789,5 +802,19 @@ export class EditPedidoComponent implements OnInit {
           }
         }
       });
+  }
+
+  onAddProveedor() {
+    this.matDialog.open(AdicionarProveedorDialogComponent, {
+      width: '50%'
+    }).afterClosed().subscribe(res => {
+      if (res != null) {
+        this.onProveedorSelect(res)
+      }
+    })
+  }
+
+  openCalendar(){
+    this.calendar.open()
   }
 }

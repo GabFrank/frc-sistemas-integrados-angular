@@ -14,6 +14,20 @@ export const maletinsQuery = gql`
           nombre
         }
       }
+      cajaActual {
+        id
+        fechaApertura
+        fechaCierre
+        sucursal {
+          nombre
+        }
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+      }
     }
   }
 `;
@@ -68,6 +82,19 @@ export const maletinQuery = gql`
           nombre
         }
       }
+      cajaActual {
+        id
+        fechaApertura
+        fechaCierre
+        sucursal {
+          nombre
+        }
+        usuario {
+          persona {
+            nombre
+          }
+        }
+      }
     }
   }
 `;
@@ -104,6 +131,19 @@ export const searchMaletinQuery = gql`
           nombre
         }
       }
+      cajaActual {
+        id
+        fechaApertura
+        fechaCierre
+        sucursal {
+          nombre
+        }
+        usuario {
+          persona {
+            nombre
+          }
+        }
+      }
     }
   }
 `;
@@ -128,5 +168,11 @@ export const saveMaletin = gql`
 export const deleteMaletinQuery = gql`
   mutation deleteMaletin($id: ID!) {
     deleteMaletin(id: $id)
+  }
+`;
+
+export const countMaletinQuery = gql`
+   {
+    data: countMaletin
   }
 `;

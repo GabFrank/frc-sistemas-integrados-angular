@@ -1,8 +1,8 @@
 import gql from 'graphql-tag';
 
 export const vueltosQuery = gql
-  `query{
-    data: vueltos {
+  `query ($sucId: ID){
+    data: vueltos (sucId: $sucId) {
       id
       activo
       responsable {
@@ -19,8 +19,8 @@ export const vueltosQuery = gql
   }`;
 
 export const vueltosSearch = gql
-  `query($texto: String){
-    data : vueltoSearch(texto: $texto){
+  `query($texto: String, $sucId: ID){
+    data : vueltoSearch(texto: $texto, sucId: $sucId){
       id
       activo
       responsable {
@@ -37,8 +37,8 @@ export const vueltosSearch = gql
   }`
 
 export const vueltoQuery = gql
-  `query($id: ID!){
-    data : vuelto(id: $id){
+  `query($id: ID!, $sucId: ID){
+    data : vuelto(id: $id, sucId: $sucId){
       id
       activo
       responsable {
@@ -62,6 +62,6 @@ export const saveVueltoQuery = gql
     }`
 
 export const deleteVueltoQuery = gql
-  ` mutation deleteVuelto($id: ID!){
-      deleteVuelto(id: $id)
+  ` mutation deleteVuelto($id: ID!, $sucId: ID){
+      deleteVuelto(id: $id, sucId: $sucId)
     }`

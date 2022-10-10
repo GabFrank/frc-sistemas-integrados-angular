@@ -1,8 +1,8 @@
 import gql from "graphql-tag";
 
 export const retirosQuery = gql`
-  {
-    data: retiros {
+  query ($sucId: ID){
+    data: retiros (sucId: $sucId) {
       id
       responsable {
         id
@@ -22,22 +22,16 @@ export const retirosQuery = gql`
           nombre
         }
       }
-      retiroDetalleList{
-        id
-        moneda{
-          id
-          denominacion
-        }
-        cambio
-        cantidad
-      }
+      retiroGs
+      retiroRs
+      retiroDs
     }
   }
 `;
 
 export const retiroQuery = gql`
-  query ($id: ID!) {
-    data: retiro(id: $id) {
+  query ($id: ID!, $sucId: ID) {
+    data: retiro(id: $id, sucId: $sucId) {
       id
       responsable {
         id
@@ -57,15 +51,41 @@ export const retiroQuery = gql`
           nombre
         }
       }
-      retiroDetalleList{
+      retiroGs
+      retiroRs
+      retiroDs
+    }
+  }
+`;
+
+export const retiroListPorCajaSalidaIdQuery = gql`
+  query ($id: ID!, $sucId: ID) {
+    data: retiroListPorCajaSalidaId(id: $id, sucId: $sucId) {
+      id
+      responsable {
         id
-        moneda{
-          id
-          denominacion
+        persona {
+          nombre
         }
-        cambio
-        cantidad
       }
+      estado
+      observacion
+      cajaSalida {
+        id
+      }
+      cajaEntrada {
+        id
+      }
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      retiroGs
+      retiroRs
+      retiroDs
     }
   }
 `;
@@ -92,21 +112,21 @@ export const saveRetiro = gql`
           nombre
         }
       }
-      retiroDetalleList{
-        id
-        moneda{
-          id
-          denominacion
-        }
-        cambio
-        cantidad
-      }
+      retiroGs
+      retiroRs
+      retiroDs
     }
   }
 `;
 
+export const reimprimirRetiro = gql`
+  query reimprimirRetiro($id:ID!, $printerName: String, $local: String, $sucId: ID) {
+    data: reimprimirRetiro(id: $id, printerName: $printerName, local: $local, sucId: $sucId)
+  }
+`;
+
 export const deleteRetiroQuery = gql`
-  mutation deleteRetiro($id: ID!) {
-    deleteRetiro(id: $id)
+  mutation deleteRetiro($id: ID!,  $sucId: ID) {
+    deleteRetiro(id: $id, sucId: $sucId)
   }
 `;

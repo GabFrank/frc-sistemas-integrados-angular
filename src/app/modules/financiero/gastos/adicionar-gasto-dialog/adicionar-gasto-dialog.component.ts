@@ -4,21 +4,21 @@ import {
   Inject,
   OnDestroy,
   OnInit,
-  ViewChild,
+  ViewChild
 } from "@angular/core";
 import { FormControl } from "@angular/forms";
-import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
+import { MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { MatStepper } from "@angular/material/stepper";
 import { MatTableDataSource } from "@angular/material/table";
 import { Subscription } from "rxjs";
 import {
   orderByIdDesc,
-  replaceObject,
+  replaceObject
 } from "../../../../commons/core/utils/arraysUtil";
 import {
   CurrencyMask,
   stringToDecimal,
-  stringToInteger,
+  stringToInteger
 } from "../../../../commons/core/utils/numbersUtils";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
@@ -28,7 +28,6 @@ import { MonedaService } from "../../moneda/moneda.service";
 import { PdvCaja } from "../../pdv/caja/caja.model";
 import { TipoGasto } from "../../tipo-gastos/list-tipo-gastos/tipo-gasto.model";
 import { TipoGastoService } from "../../tipo-gastos/tipo-gasto.service";
-import { GastoDetalle } from "../gasto-detalle/gasto-detalle.model";
 import { GastoService } from "../gasto.service";
 import { Gasto } from "../gastos.model";
 
@@ -37,6 +36,9 @@ export class AdicionarGastoData {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { MainService } from "../../../../main.service";
+import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+import { FamiliasSearchGQL } from "../../../productos/familia/graphql/familiasSearch";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -53,11 +55,12 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   @ViewChild("guaraniVueltoGs", { static: false })
   guaraniVueltoGsInput: ElementRef;
   @ViewChild("stepper", { static: false }) stepper: MatStepper;
+
   isVuelto = false;
 
-  displayedColumns = ["id", "responsable", "tipo", "estado", "acciones"];
+  displayedColumns = ["id", "responsable", "tipo", "valorGs", "valorRs", "valorDs", "vuelto", "creadoEn", "acciones"];
 
-  dataSource = new MatTableDataSource<Gasto >(null);
+  dataSource = new MatTableDataSource<Gasto>(null);
 
   selectedCaja: PdvCaja;
   selectedResponsable: Funcionario;
@@ -101,13 +104,13 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     private dialogService: DialogosService,
     private gastoService: GastoService,
     private monedaService: MonedaService,
-    private tipoGastoService: TipoGastoService
+    private tipoGastoService: TipoGastoService,
+    private mainService: MainService,
+    private notificacionService: NotificacionSnackbarService
   ) {
-    this.cargandoDialog.openDialog()
     if (data?.caja != null) {
       this.selectedCaja = data.caja;
       gastoService.onGetByCajaId(this.selectedCaja.id).pipe(untilDestroyed(this)).subscribe((res) => {
-        this.cargandoDialog.closeDialog()
         if (res != null) {
           this.gastoList = orderByIdDesc<Gasto>(res);
           this.dataSource.data = this.gastoList;
@@ -211,8 +214,8 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       this.selectedResponsable = e;
       this.responsableControl.setValue(
         this.selectedResponsable?.id +
-          " - " +
-          this.selectedResponsable?.persona?.nombre
+        " - " +
+        this.selectedResponsable?.persona?.nombre
       );
     }
   }
@@ -249,8 +252,8 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       this.selectedAutorizadoPor = e;
       this.autorizadoPorControl.setValue(
         this.selectedAutorizadoPor?.id +
-          " - " +
-          this.selectedAutorizadoPor?.persona?.nombre
+        " - " +
+        this.selectedAutorizadoPor?.persona?.nombre
       );
     }
   }
@@ -262,49 +265,82 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   onGuardar() {
-    if (this.selectedResponsable != null && this.verficarValores()) {
+    if (this.isVuelto == false) {
+      if (this.selectedResponsable != null && this.verficarValores()) {
+        this.dialogService
+          .confirm("Confirmar valores de gasto", null, null, [
+            `Guaranies: ${stringToInteger(this.guaraniControl.value.toString())}`,
+            `Reales: ${stringToDecimal(this.realControl.value.toString())}`,
+            `Dolares: ${stringToDecimal(this.dolarControl.value.toString())}`,
+          ]).pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            if (res) {
+              let gasto = new Gasto();
+              if (this.selectedGasto != null) {
+                Object.assign(gasto, this.selectedGasto);
+              }
+              gasto.caja = this.selectedCaja;
+              gasto.responsable = this.selectedResponsable;
+              gasto.tipoGasto = this.selectedTipoGasto;
+              gasto.autorizadoPor = this.selectedAutorizadoPor;
+              gasto.observacion = this.observacionControl.value;
+              gasto.retiroGs = this.guaraniControl.value;
+              gasto.retiroRs = this.realControl.value;
+              gasto.retiroDs = this.dolarControl.value;
+              gasto.vueltoGs = this.guaraniVueltoControl.value;
+              gasto.vueltoRs = this.realVueltoControl.value;
+              gasto.vueltoDs = this.dolarVueltoControl.value;
+              gasto.activo = true;
+              if (this.isVuelto) {
+                gasto.finalizado = true;
+              } else {
+                gasto.finalizado = false;
+              }
+              this.gastoService.onSave(gasto).pipe(untilDestroyed(this)).subscribe((gastoResponse) => {
+                this.cargandoDialog.closeDialog();
+                if (gastoResponse != null) {
+                  this.gastoList.push(gastoResponse as Gasto);
+                  this.dataSource.data = orderByIdDesc<Gasto>(this.gastoList);
+                  this.goTo("lista-gastos");
+                }
+                this.onCancelar()
+              });
+
+            }
+          });
+      }
+    } else {
+      this.onSaveVuelto()
+    }
+
+  }
+
+  onSaveVuelto() {
+    if(this.guaraniVueltoControl.value > this.guaraniControl.value || this.realVueltoControl.value > this.realControl.value || this.dolarVueltoControl.value > this.dolarControl.value) {
+      this.notificacionService.openWarn("Vuelto mayor a retiro")
+      return;
+    }
+    if (this.selectedGasto?.sucursalVuelto == null || (this.selectedGasto?.sucursalVuelto != null && this.selectedGasto?.sucursalVuelto?.id == this.mainService?.sucursalActual?.id)) {
       this.dialogService
-        .confirm("Confirmar valores de retiro", null, null, [
-          `Guaranies: ${stringToInteger(this.guaraniControl.value.toString())}`,
-          `Reales: ${stringToDecimal(this.realControl.value.toString())}`,
-          `Dolares: ${stringToDecimal(this.dolarControl.value.toString())}`,
+        .confirm("Confirmar valores de gasto", null, null, [
+          `Guaranies: ${stringToInteger(this.guaraniControl.value.toString())} ${this.guaraniVueltoControl.value != null ? ' - Vuelto: ' + stringToInteger(this.guaraniVueltoControl.value.toString()) : ''}`,
+          `Reales: ${stringToDecimal(this.realControl.value.toString())}  ${this.realVueltoControl.value != null ? ' - Vuelto: ' + stringToDecimal(this.realVueltoControl.value.toString()) : ''}`,
+          `Dolares: ${stringToDecimal(this.dolarControl.value.toString())}  ${this.dolarVueltoControl.value != null ? ' - Vuelto: ' + stringToDecimal(this.dolarVueltoControl.value.toString()) : ''}`,
         ]).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res) {
-            let gasto = new Gasto();
-            if (this.selectedGasto != null) {
-              gasto.id = this.selectedGasto.id;
-            }
-            gasto.caja = this.selectedCaja;
-            gasto.responsable = this.selectedResponsable;
-            gasto.tipoGasto = this.selectedTipoGasto;
-            gasto.autorizadoPor = this.selectedAutorizadoPor;
-            gasto.observacion = this.observacionControl.value;
-            gasto.retiroGs = this.guaraniControl.value;
-            gasto.retiroRs = this.realControl.value;
-            gasto.retiroDs = this.dolarControl.value;
-            gasto.vueltoGs = this.guaraniVueltoControl.value;
-            gasto.vueltoRs = this.realVueltoControl.value;
-            gasto.vueltoDs = this.dolarVueltoControl.value;
-            gasto.activo = true;
-            if(this.isVuelto){
-              gasto.finalizado = true;
-            } else {
-              gasto.finalizado = false;
-            }
-            this.gastoService.onSave(gasto).pipe(untilDestroyed(this)).subscribe((gastoResponse) => {
-              this.cargandoDialog.closeDialog();
-              if (gastoResponse != null) {
-                this.gastoList.push(gastoResponse as Gasto);
-                this.dataSource.data = orderByIdDesc<Gasto>(this.gastoList);
-                this.goTo("lista-gastos");
-              }
-              this.onCancelar()
-            });   
-
+            this.gastoService.onSaveVuelto({ id: this.selectedGasto.id, valorGs: this.guaraniVueltoControl.value, valorRs: this.realVueltoControl.value, valorDs: this.dolarVueltoControl.value })
+              .pipe(untilDestroyed(this)).subscribe(res => {
+                if (res != null) {
+                  this.ngOnInit()
+                }
+              })
           }
         });
+    } else {
+      this.notificacionService.openWarn("No se puede guardar este gasto")
     }
+
   }
 
   onCancelar() {
@@ -368,13 +404,15 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     this.isVuelto = true;
   }
 
-  onGastoClick(gasto: Gasto) {}
+  onGastoClick(gasto: Gasto) { }
 
   verficarValores(): boolean {
     let verificado = false;
-    if (this.guaraniControl.value > 0) verificado = true;
-    if (this.realControl.value > 0) verificado = true;
-    if (this.dolarControl.value > 0) verificado = true;
+    if (this.isVuelto) {
+      verificado = this.guaraniVueltoControl.value > 0 || this.realVueltoControl.value > 0 || this.dolarVueltoControl.value > 0;
+    } else {
+      verificado = this.guaraniControl.value > 0 || this.realControl.value > 0 || this.dolarControl.value > 0;
+    }
     return verificado;
   }
 
@@ -435,5 +473,9 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       this.autorizadoPorControl.disable();
       this.tipoGastoControl.disable();
     }
+  }
+
+  onReimprimir(gasto: Gasto) {
+    this.gastoService.onReimprimir(gasto.id).subscribe().unsubscribe()
   }
 }

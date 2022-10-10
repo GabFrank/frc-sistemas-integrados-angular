@@ -53,7 +53,7 @@ export class MainService implements OnDestroy {
     private getMonedas: MonedasGetAllGQL,
     private matDialog: MatDialog,
     private http: HttpClient,
-    private sucursalService: SucursalService,
+    public sucursalService: SucursalService,
     private usuarioService: UsuarioService,
     private injector: Injector,
     private electronService: ElectronService

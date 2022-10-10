@@ -87,6 +87,7 @@ import { environment } from "../../../../../environments/environment";
 import { TipoConfirmacion, VentaCredito, VentaCreditoCuotaInput } from "../../../financiero/venta-credito/venta-credito.model";
 import { VentaCreditoService } from "../../../financiero/venta-credito/venta-credito.service";
 import { VentaService } from "../../../operaciones/venta/venta.service";
+import { DescuentoDialogComponent, DescuentoDialogData } from "./pago-touch/descuento-dialog/descuento-dialog.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -310,6 +311,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
           let item: VentaItem = new VentaItem();
           item.presentacion = respuesta.data.presentacion;
           item.precioVenta = respuesta.data?.precio;
+          item.precio = respuesta.data?.precio?.precio;
           item.producto = respuesta.producto;
           item.cantidad = respuesta.data.cantidad;
           this.addItem(item);
@@ -327,8 +329,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   addItem(item: VentaItem, index?) {
-    console.log(item);
-
     let cantidad = item.cantidad;
     if (item.producto.balanza != true) {
       if (!isInt(cantidad)) {
@@ -351,9 +351,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
           (p) => this.filteredPrecios.includes(p.tipoPrecio?.descripcion)
         );
       }
-
-
     }
+
     let presentacionCaja: Presentacion;
     item.producto.presentaciones.forEach((p) => {
       if (
@@ -365,6 +364,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         presentacionCaja = p;
       }
     });
+
     if (presentacionCaja != null) {
       Object.assign(item2, item);
       item2.presentacion = presentacionCaja;
@@ -377,7 +377,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
           (p) => this.filteredPrecios.includes(p.tipoPrecio?.descripcion)
         );
       }
-
 
       if (item2.precioVenta != null) {
         let factor = Math.floor(
@@ -417,11 +416,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
               disableClose: true,
             })
             .afterClosed().pipe(untilDestroyed(this))
-            .subscribe((res) => {
+            .subscribe((envaseRes) => {
               this.isDialogOpen = false;
               this.dialogReference = undefined;
-              if (res != null) {
-                this.addItem(res);
+              if (envaseRes != null) {
+                this.addItem(envaseRes);
               }
             });
         }
@@ -459,8 +458,26 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   editItem(event: any) {
-    // let item = event['item']
-    // let index = event['i']
+    let item = new VentaItem;
+    Object.assign(item, event['item'])
+    let index = event['i']
+
+    let data: DescuentoDialogData = {
+      valorTotal: item.precio,
+      saldo: 0,
+      cambioDs: this.cambioDs,
+      cambioRs: this.cambioRs
+    }
+    this.matDialog.open(DescuentoDialogComponent, {
+      data: data
+    }).afterClosed().subscribe(res => {
+      if (res > 0) {
+        item.precio = item.precio - res;
+        item.precioVenta.precio = item.precio;
+        this.selectedItemList[index] = item;
+        this.calcularTotales()
+      }
+    })
     // let dialogReference = this.dialog.open(EditItemDialogComponent, {
     //   data: {
     //     item,
@@ -605,7 +622,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
             let ventaCredito: VentaCredito = res['ventaCredito'];
             if (ventaCredito != null) venta.cliente = ventaCredito.cliente;
             this.onSaveVenta(venta, cobro, !(response?.facturado == true), ventaCredito != null).subscribe(ventaRes => {
-              if (ventaRes.id != null) {
+              if (ventaRes?.id != null) {
                 let ventaCreditoCuotaInputList: VentaCreditoCuotaInput[] = res['itens']
                 if (ventaCredito != null && ventaCreditoCuotaInputList != null) {
                   ventaCredito.venta = ventaRes;
@@ -613,13 +630,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
                     console.log(ventaCredito);
                     if (ventaCreditoRes['error'] == null) {
                       this.notificacionSnackbar.openGuardadoConExito()
-                      if(ventaCredito.tipoConfirmacion == TipoConfirmacion.FIRMA) {
+                      if (ventaCredito.tipoConfirmacion == TipoConfirmacion.FIRMA) {
                         this.ventaService.onImprimirPagare(ventaRes.id, ventaCreditoCuotaInputList).subscribe().unsubscribe()
                       }
                     } else {
                       this.notificacionSnackbar.openAlgoSalioMal()
                       console.log('cancelando');
-                      this.ventaService.onCancelarVenta(ventaRes.id).subscribe(cancelarRes => {
+                      this.ventaService.onCancelarVenta(ventaRes.id, ventaRes.sucursalId).subscribe(cancelarRes => {
                         if (cancelarRes) {
                           this.notificacionSnackbar.openWarn('Venta cancelada')
                         } else {
@@ -795,7 +812,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         data: {
           caja: this.cajaService?.selectedCaja,
         },
-        width: "70%",
+        width: "95%",
         disableClose: false,
         restoreFocus: true,
         autoFocus: true,

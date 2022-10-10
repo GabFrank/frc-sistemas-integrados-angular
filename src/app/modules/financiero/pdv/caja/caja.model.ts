@@ -1,3 +1,4 @@
+import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
 import { Conteo } from "../../conteo/conteo.model";
 import { Maletin } from "../../maletin/maletin.model";
@@ -17,6 +18,8 @@ export class PdvCaja {
     conteoApertura: Conteo
     conteoCierre: Conteo
     balance: CajaBalance
+    sucursalId: number;
+    sucursal: Sucursal;
 }
 
 export class PdvCajaInput {
@@ -33,6 +36,7 @@ export class PdvCajaInput {
     usuarioId: number
     conteoAperturaId: number
     conteoCierreId: number
+    sucursalId: number;
 }
 
 export  enum PdvCajaEstado {
@@ -46,6 +50,7 @@ export  enum PdvCajaEstado {
 
 export class CajaBalance {
     cajaId: number;
+    totalGeneral: number;
     totalVentaGs: number;
     totalVentaRs: number;
     totalVentaDs: number;
@@ -58,11 +63,21 @@ export class CajaBalance {
     totalGastoDs: number;
     totalDescuento: number;
     totalAumento: number;
-    totalCanceladas: number;
+    totalCanceladasGs: number;
+    totalCanceladasRs: number;
+    totalCanceladasDs: number;
     totalAperGs: number;
     totalAperRs: number;
     totalAperDs: number;
     totalCierreGs: number;
     totalCierreRs: number;
     totalCierreDs: number;
+    vueltoGs: number;
+    vueltoRs: number;
+    vueltoDs: number;
+    totalCredito: number;
+    totalCanceladas: number;
+    diferenciaGs: number;
+    diferenciaRs: number;
+    diferenciaDs: number;
 }

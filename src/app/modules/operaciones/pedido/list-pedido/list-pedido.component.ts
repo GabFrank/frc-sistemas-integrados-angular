@@ -1,15 +1,12 @@
 import {
-  trigger,
-  state,
+  animate, state,
   style,
-  transition,
-  animate,
+  transition, trigger
 } from "@angular/animations";
 import { Component, OnDestroy, OnInit } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
 import { Subscription } from "rxjs";
-import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
 import { EditPedidoComponent } from "../edit-pedido/edit-pedido.component";
@@ -55,19 +52,19 @@ export class ListPedidoComponent implements OnInit, OnDestroy {
     private pedidoService: PedidoService,
     private matDialog: MatDialog,
     private tabService: TabService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.onGetAll()
 
     this.actualizarSub = this.pedidoService.actualizarSub.pipe(untilDestroyed(this)).subscribe(res => {
-      if(res){
+      if (res) {
         this.onGetAll()
       }
     })
   }
 
-  onGetAll(){
+  onGetAll() {
     this.pedidoService.onGetAll().pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         this.dataSource.data = res;
@@ -80,13 +77,13 @@ export class ListPedidoComponent implements OnInit, OnDestroy {
     this.tabService.addTab(new Tab(EditPedidoComponent, 'Nuevo Pedido', null, null))
   }
 
-  onFilter() {}
+  onFilter() { }
 
-  openPedido(pedido: Pedido){
+  openPedido(pedido: Pedido) {
     this.tabService.addTab(new Tab(EditPedidoComponent, `Pedido ${pedido.id}`, new TabData(null, pedido), null))
   }
 
   ngOnDestroy(): void {
-      this.actualizarSub.unsubscribe();
+    this.actualizarSub.unsubscribe();
   }
 }

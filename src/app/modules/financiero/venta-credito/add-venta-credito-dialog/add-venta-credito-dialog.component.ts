@@ -207,4 +207,8 @@ export class AddVentaCreditoDialogComponent implements OnInit {
 
   }
 
+  onVer(gasto){}
+  onVuelto(gasto){}
+  onFinalizar(gasto){}
+  onSelectEntradaItem(row){}
 }

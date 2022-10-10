@@ -1,3 +1,4 @@
+import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
 import { Funcionario } from "../../personas/funcionarios/funcionario.model";
 import { Usuario } from "../../personas/usuarios/usuario.model";
 import { PdvCaja } from "../pdv/caja/caja.model";
@@ -6,6 +7,7 @@ import { GastoDetalle, GastoDetalleInput } from "./gasto-detalle/gasto-detalle.m
 
 export class Gasto {
     id: number;
+    sucursalId: number;
     caja: PdvCaja
     responsable: Funcionario
     tipoGasto: TipoGasto
@@ -22,6 +24,7 @@ export class Gasto {
     vueltoGs: number;
     vueltoRs: number;
     vueltoDs: number;
+    sucursalVuelto: Sucursal;
 
     toInput(): GastoInput {
         let input = new GastoInput;
@@ -41,6 +44,8 @@ export class Gasto {
         input.vueltoDs = this.vueltoDs
         input.activo = this.activo;
         input.finalizado = this.finalizado;
+        input.sucursalVueltoId = this.sucursalVuelto?.id;
+        input.sucursalId = this.sucursalId;
         return input;
     }
 
@@ -55,6 +60,7 @@ export class Gasto {
 
 export class GastoInput {
     id: number;
+    sucursalId: number;
     cajaId: number
     responsableId: number
     tipoGastoId: number
@@ -70,4 +76,5 @@ export class GastoInput {
     vueltoDs: number;
     activo: boolean;
     finalizado: boolean;
+    sucursalVueltoId: number;
 }

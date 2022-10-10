@@ -1,9 +1,10 @@
 import gql from "graphql-tag";
 
 export const conteosQuery = gql`
-  {
-    data: conteos {
+  query ($sucId: ID) {
+    data: conteos(sucId: $sucId) {
       id
+      sucursalId
       descripcion
       activo
       estado
@@ -140,6 +141,7 @@ export const saveConteo = gql`
       apertura: $apertura
     ) {
       id
+      sucursalId
       observacion
       creadoEn
       conteoMonedaList {
@@ -163,7 +165,7 @@ export const saveConteo = gql`
 `;
 
 export const deleteConteoQuery = gql`
-  mutation deleteConteo($id: ID!) {
-    deleteConteo(id: $id)
+  mutation deleteConteo($id: ID!, $sucId: ID) {
+    deleteConteo(id: $id, sucId: $sucId)
   }
 `;

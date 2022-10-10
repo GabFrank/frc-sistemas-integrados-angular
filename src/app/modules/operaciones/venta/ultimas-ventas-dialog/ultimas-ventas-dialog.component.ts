@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from "@angular/core";
+import { Component, Inject, OnInit, ViewChild } from "@angular/core";
 import { FormControl } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
@@ -19,6 +19,8 @@ class UltimasVentasDialogData {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { MatPaginator } from "@angular/material/paginator";
+import { catchError, map, merge, startWith, switchMap, Observable, of as observableOf } from "rxjs";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -27,6 +29,8 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
   styleUrls: ["./ultimas-ventas-dialog.component.scss"],
 })
 export class UltimasVentasDialogComponent implements OnInit {
+
+
   dataSource = new MatTableDataSource<Venta>([]);
   selectedVenta: Venta;
   codigoVentaControl = new FormControl();
@@ -59,9 +63,8 @@ export class UltimasVentasDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.ventaService
-      .onSearch(this.data.caja.id, this.dataSource.data.length).pipe(untilDestroyed(this))
+      .onSearch(this.data.caja.id, 0, 20, false).pipe(untilDestroyed(this))
       .subscribe((res) => {
-        console.log(res);
         if (res != null) {
           this.dataSource.data = res;
         }
@@ -113,16 +116,16 @@ export class UltimasVentasDialogComponent implements OnInit {
       ).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res) {
-          this.ventaService.onCancelarVenta(id).pipe(untilDestroyed(this)).subscribe((res) => {
-            setTimeout(() => {
-              this.cargandoService.closeDialog();
-            }, 1000);
-            if (res != null) {
-              console.log("exito");
-              this.dataSource.data = [];
-              this.buscarVentas();
-            }
-          });
+          // this.ventaService.onCancelarVenta(id).pipe(untilDestroyed(this)).subscribe((res) => {
+          //   setTimeout(() => {
+          //     this.cargandoService.closeDialog();
+          //   }, 1000);
+          //   if (res != null) {
+          //     console.log("exito");
+          //     this.dataSource.data = [];
+          //     this.buscarVentas();
+          //   }
+          // });
         }
       });
   }

@@ -1,3 +1,4 @@
+import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
 import { Usuario } from "../../personas/usuarios/usuario.model";
 
 export class Maletin {
@@ -7,6 +8,7 @@ export class Maletin {
     abierto: boolean;
     creadoEn: Date;
     usuario: Usuario;
+    cajaActual: Sucursal
 }
 
 export class MaletinInput {

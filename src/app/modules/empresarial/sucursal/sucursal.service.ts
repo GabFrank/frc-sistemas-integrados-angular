@@ -1,4 +1,4 @@
-import { Injectable } from "@angular/core";
+import { Injectable, Injector } from "@angular/core";
 import { Observable } from "rxjs";
 import {
   NotificacionColor,
@@ -11,6 +11,8 @@ import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import { environment, serverAdress } from "../../../../environments/environment";
 import { SucursalActualGQL } from "./graphql/sucursalActual";
+import { SucursalByIdGQL } from "./graphql/sucursalById";
+import { GenericCrudService } from "../../../generics/generic-crud.service";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -24,12 +26,24 @@ export class SucursalService {
     }),
   };
 
+  private crudService: GenericCrudService
+
   constructor(
     private getAllSucursales: SucursalesGQL,
     private notificacionBar: NotificacionSnackbarService,
     private getSucursalActual: SucursalActualGQL,
-    private http: HttpClient
-  ) {}
+    private http: HttpClient,
+    private injector: Injector,
+    private sucursalPorId: SucursalByIdGQL,
+
+  ) {
+    setTimeout(() => this.crudService = injector.get(GenericCrudService));
+
+  }
+
+  onGetSucursal(id): Observable<Sucursal>{
+    return this.crudService.onGetById(this.sucursalPorId, id);
+  }
 
   onGetAllSucursales(): Observable<Sucursal[]> {
     return new Observable((obs) => {

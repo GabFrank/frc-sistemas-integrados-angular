@@ -4,11 +4,12 @@
 <div fxLayout="row wrap" fxLayoutGap="10px">
   <mat-card
     fxFlex="19%"
-    *ngFor="let presentacion of data?.producto?.presentaciones"
+    *ngFor="let presentacion of selectedProducto?.presentaciones"
     [style.background-color]="
-      selectedPresentacion.id == presentacion.id ? '#43A047' : '#f44336'
+      selectedPresentacion?.id == presentacion?.id ? '#43A047' : '#f44336'
     "
     style="padding: 0px"
+    (click)="onSelectPresentacion(presentacion)"
   >
     <div fxLayout="column" fxLayoutAlign="start space-around" fxLayoutGap="5px">
       <div>

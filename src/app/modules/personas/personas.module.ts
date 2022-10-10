@@ -22,6 +22,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { FuncionarioDashboardComponent } from './funcionarios/funcionario-dashboard/funcionario-dashboard.component';
 import { PersonasDashboardComponent } from './personas-dashboard/personas-dashboard.component';
 import { AddClienteDialogComponent } from './clientes/add-cliente-dialog/add-cliente-dialog.component';
+import { AdicionarProveedorDialogComponent } from './proveedor/adicionar-proveedor-dialog/adicionar-proveedor-dialog.component';
 
 
 @NgModule({
@@ -41,7 +42,8 @@ import { AddClienteDialogComponent } from './clientes/add-cliente-dialog/add-cli
     FuncionarioWizardComponent,
     FuncionarioDashboardComponent,
     PersonasDashboardComponent,
-    AddClienteDialogComponent
+    AddClienteDialogComponent,
+    AdicionarProveedorDialogComponent
   ],
   imports: [
     CommonModule,

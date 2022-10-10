@@ -9,6 +9,8 @@ export interface TableData {
   id: string
   nombre: string
   width?: string
+  nested?: boolean
+  nestedId?: string
 }
 
 export class SearchListtDialogData {
@@ -19,6 +21,7 @@ export class SearchListtDialogData {
   search? = true;
   inicialSearch? = false;
   inicialData?: any;
+  texto?: string;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -40,7 +43,6 @@ export class SearchListDialogComponent implements OnInit {
     private matDialogRef: MatDialogRef<SearchListDialogComponent>,
     private genericCrudService: GenericCrudService
   ) {
-    console.log(data.titulo)
     data?.tableData.forEach(e => {
       this.displayedColumns.push(e.id)
     })
@@ -51,6 +53,7 @@ export class SearchListDialogComponent implements OnInit {
 
   ngOnInit(): void {
     if(this.data?.inicialSearch){
+      if(this.data?.texto!=null) this.buscarControl.setValue(this.data.texto)
       this.onSearch();
     }
   }

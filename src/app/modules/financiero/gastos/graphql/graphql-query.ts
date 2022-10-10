@@ -1,9 +1,10 @@
 import gql from "graphql-tag";
 
 export const gastosQuery = gql`
-  {
-    data: gastos {
+  query ($sucId: ID){
+    data: gastos (sucId: $sucId) {
       id
+      sucursalId
       responsable {
         id
         persona {
@@ -45,9 +46,10 @@ export const gastosQuery = gql`
 `;
 
 export const gastosPorFecha = gql`
-  query ($inicio: String, $fin: String) {
-    data: gastosPorFecha(inicio: $inicio, fin: $fin) {
+  query ($inicio: String, $fin: String, $sucId: ID) {
+    data: gastosPorFecha(inicio: $inicio, fin: $fin, sucId: $sucId) {
       id
+      sucursalId
       responsable {
         id
         persona {
@@ -84,6 +86,10 @@ export const gastosPorFecha = gql`
       vueltoDs
       activo
       finalizado
+      sucursalVuelto {
+        id
+        nombre
+      }
     }
   }
 `;
@@ -137,9 +143,10 @@ export const gastosPorFecha = gql`
 // `;
 
 export const gastoQuery = gql`
-  query ($id: ID!) {
-    data: gasto(id: $id) {
+  query ($id: ID!, $sucId: ID) {
+    data: gasto(id: $id, sucId: $sucId) {
       id
+      sucursalId
       responsable {
         id
         persona {
@@ -176,7 +183,17 @@ export const gastoQuery = gql`
       vueltoDs
       activo
       finalizado
+      sucursalVuelto {
+        id
+        nombre
+      }
     }
+  }
+`;
+
+export const reimprimirQuery = gql`
+  query ($id: ID!, $printerName: String, $sucId: ID) {
+    data: reimprimirGasto(id: $id, printerName: $printerName, sucId: $sucId) 
   }
 `;
 
@@ -228,22 +245,24 @@ export const saveGasto = gql`
       vueltoDs
       activo
       finalizado
+      sucursalVuelto {
+        id
+        nombre
+      }
     }
   }
 `;
 
-export const deleteGastoQuery = gql`
-  mutation deleteGasto($id: ID!) {
-    deleteGasto(id: $id)
-  }
-`;
-
-//gastosPorCajaId
-
-export const gastosPorCajaIdQuery = gql`
-  query ($id: ID!) {
-    data: gastosPorCajaId(id: $id) {
+export const saveVueltoGasto = gql`
+  mutation saveVueltoGasto(
+    $id: ID!,
+    $valorGs: Float,
+    $valorRs: Float,
+    $valorDs: Float,
+    ) {
+    data: saveVueltoGasto(id:$id, valorGs:$valorGs, valorRs:$valorRs, valorDs:$valorDs) {
       id
+      sucursalId
       responsable {
         id
         persona {
@@ -280,6 +299,68 @@ export const gastosPorCajaIdQuery = gql`
       vueltoDs
       activo
       finalizado
+      sucursalVuelto {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
+
+export const deleteGastoQuery = gql`
+  mutation deleteGasto($id: ID!, $sucId: ID) {
+    deleteGasto(id: $id, sucId: $sucId)
+  }
+`;
+
+//gastosPorCajaId
+
+export const gastosPorCajaIdQuery = gql`
+  query ($id: ID!, $sucId: ID) {
+    data: gastosPorCajaId(id: $id, sucId: $sucId) {
+      id
+      sucursalId
+      responsable {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      tipoGasto {
+        id
+        descripcion
+        autorizacion
+      }
+      autorizadoPor {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      observacion
+      creadoEn
+      usuario {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      retiroGs
+      retiroRs
+      retiroDs
+      vueltoGs
+      vueltoRs
+      vueltoDs
+      activo
+      finalizado
+      sucursalVuelto {
+        id
+        nombre
+      }
     }
   }
 `;

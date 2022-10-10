@@ -1,9 +1,8 @@
-import { app, BrowserWindow, screen, Menu, dialog } from "electron";
-import * as path from "path";
+import { app, BrowserWindow, dialog, Menu, screen } from "electron";
+import { autoUpdater } from "electron-updater";
 import * as fs from "fs";
+import * as path from "path";
 import * as url from "url";
-import { autoUpdater } from "electron-updater"
-import { PosPrinter, PosPrintData, PosPrintOptions } from "electron-pos-printer";
 
 const log = require('electron-log');
 const { readFileSync } = require('fs');

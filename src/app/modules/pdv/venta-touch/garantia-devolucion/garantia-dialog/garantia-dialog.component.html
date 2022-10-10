@@ -1,4 +1,7 @@
-<div *ngIf="selectedVenta == null && ventaItemList.length == 0" style="width: 100%; text-align: center">
+<div
+  *ngIf="selectedVenta == null && ventaItemList.length == 0"
+  style="width: 100%; text-align: center"
+>
   <div><h3>Ingrese el código de venta</h3></div>
   <div>
     <mat-form-field>
@@ -12,7 +15,13 @@
     </mat-form-field>
   </div>
   <div>
-    <button style="width: 100%;" mat-raised-button color="accent" (click)="onBuscarCodigo()" [disabled]="ventaIdControl.invalid">
+    <button
+      style="width: 100%"
+      mat-raised-button
+      color="accent"
+      (click)="onBuscarCodigo()"
+      [disabled]="ventaIdControl.invalid"
+    >
       Buscar
     </button>
   </div>
@@ -22,89 +31,229 @@
   fxLayout="column"
   style="width: 100%; height: 800px"
 >
-  <div fxFlex fxLayout="column" style="width: 800px; height: 800px;">
-    <div fxFlex="45%">
-        <table style="width: 100%" mat-table [dataSource]="dataSource">
-            <!--- Note that these columns can be defined in any order.
+  <div
+    fxFlex
+    fxLayout="column"
+    style="width: 800px; height: 800px"
+    fxLayoutGap="10px"
+  >
+    <div fxFlex style="width: 100%; text-align: center">
+      <h3>Devolución de envases</h3>
+    </div>
+    <mat-card fxFlex="45%" style="background-color: rgb(32, 32, 32)">
+      <h4>Envases disponibles</h4>
+      <table style="width: 100%" mat-table [dataSource]="dataSource">
+        <!--- Note that these columns can be defined in any order.
                   The actual rendered columns are set as a property on the row definition" -->
-    
-            <!-- Position Column -->
-            <ng-container matColumnDef="id">
-              <th mat-header-cell *matHeaderCellDef style="width: 10%">#</th>
-              <td
-                mat-cell
-                *matCellDef="let ventaItem; let i = index"
-                style="width: 10%"
-              >
-                {{ ventaItem.id }}
-              </td>
-            </ng-container>
-    
-            <!-- Name Column -->
-            <ng-container matColumnDef="descripcion">
-              <th mat-header-cell *matHeaderCellDef style="width: 50%">
-                Descripción
-              </th>
-              <td mat-cell *matCellDef="let ventaItem" style="width: 50%">
-                {{ ventaItem?.producto?.descripcion | uppercase }}
-              </td>
-            </ng-container>
-    
-            <!-- Weight Column -->
-            <ng-container matColumnDef="cantidad">
-              <th mat-header-cell *matHeaderCellDef style="width: 25%; text-align: center;">Cantidad</th>
-              <td mat-cell *matCellDef="let ventaItem" style="width: 25%; text-align: center">
-                {{ ventaItem.cantidad }}
-              </td>
-            </ng-container>
-    
-            <!-- Symbol Column -->
-            <ng-container matColumnDef="precio">
-              <th mat-header-cell *matHeaderCellDef style="width: 10%; text-align: center;">Precio</th>
-              <td mat-cell *matCellDef="let ventaItem" style="width: 10%; text-align: center">
-                {{ ventaItem?.precioVenta?.precio | number: '1.0-0' }}
-              </td>
-            </ng-container>
 
-            <ng-container matColumnDef="total">
-                <th mat-header-cell *matHeaderCellDef style="width: 10%; text-align: center;">Total</th>
-                <td mat-cell *matCellDef="let ventaItem" style="width: 10%; text-align: center">
-                  {{ ventaItem?.precioVenta?.precio * ventaItem.cantidad | number: '1.0-0' }}
-                </td>
-              </ng-container>
-    
-            <ng-container matColumnDef="acciones">
-              <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center;">...</th>
-              <td mat-cell *matCellDef="let ventaItem" style="width: 5%; text-align: center">
-                <button
-                  mat-icon-button
-                  [matMenuTriggerFor]="menu"
-                  (click)="$event.stopPropagation()"
-                >
-                  <mat-icon>more_vert</mat-icon>
-                </button>
-                <mat-menu #menu="matMenu">
-                  <button mat-menu-item >Ver</button>
-                  <button *ngIf="ventaItem?.finalizado != true" mat-menu-item >Vuelto</button>
-                  <button *ngIf="ventaItem?.finalizado != true" mat-menu-item >
-                    Finalizar
-                  </button>
-                  <!-- <button *ngIf="ventaItem?.finalizado == true" mat-menu-item (click)="onImprimir(ventaItem)">
-                    Imprimir
-                  </button> -->
-                </mat-menu>
-              </td>
-            </ng-container>
-    
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-          </table>
-    </div>
-    <div fxFlex="45%">
-        tabla2
-    </div>
-    <div fxFlex="10%">
-        valor final
-    </div>
-</div>
+        <!-- Position Column -->
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef style="width: 10%">#</th>
+          <td
+            mat-cell
+            *matCellDef="let ventaItem; let i = index"
+            style="width: 10%"
+          >
+            {{ ventaItem.id }}
+          </td>
+        </ng-container>
+
+        <!-- Name Column -->
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef style="width: 50%">
+            Descripción
+          </th>
+          <td mat-cell *matCellDef="let ventaItem" style="width: 50%">
+            {{ ventaItem?.producto?.descripcion | uppercase }}
+          </td>
+        </ng-container>
+
+        <!-- Weight Column -->
+        <ng-container matColumnDef="cantidad">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 25%; text-align: center"
+          >
+            Cantidad
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let ventaItem"
+            style="width: 25%; text-align: center"
+          >
+            {{ ventaItem.cantidad }}
+          </td>
+        </ng-container>
+
+        <!-- Symbol Column -->
+        <ng-container matColumnDef="precio">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 10%; text-align: center"
+          >
+            Precio
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let ventaItem"
+            style="width: 10%; text-align: center"
+          >
+            {{ ventaItem?.precioVenta?.precio | number: "1.0-0" }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="total">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 10%; text-align: center"
+          >
+            Total
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let ventaItem"
+            style="width: 10%; text-align: center"
+          >
+            {{
+              ventaItem?.precioVenta?.precio * ventaItem.cantidad
+                | number: "1.0-0"
+            }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 5%; text-align: center"
+          >
+            ...
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let ventaItem; let i = index"
+            style="width: 5%; text-align: center"
+          >
+            <button mat-flat-button (click)="onAdd(ventaItem, i)">
+              Adicionar
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </mat-card>
+    <mat-card fxFlex="45%" style="background-color: rgb(32, 32, 32)">
+      <h4>Envases a devolver</h4>
+      <table style="width: 100%" mat-table [dataSource]="addedDataSource">
+        <!--- Note that these columns can be defined in any order.
+                  The actual rendered columns are set as a property on the row definition" -->
+
+        <!-- Position Column -->
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef style="width: 10%">#</th>
+          <td
+            mat-cell
+            *matCellDef="let ventaItem; let i = index"
+            style="width: 10%"
+          >
+            {{ ventaItem.id }}
+          </td>
+        </ng-container>
+
+        <!-- Name Column -->
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef style="width: 50%">
+            Descripción
+          </th>
+          <td mat-cell *matCellDef="let ventaItem" style="width: 50%">
+            {{ ventaItem?.producto?.descripcion | uppercase }}
+          </td>
+        </ng-container>
+
+        <!-- Weight Column -->
+        <ng-container matColumnDef="cantidad">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 25%; text-align: center"
+          >
+            Cantidad
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let ventaItem"
+            style="width: 25%; text-align: center"
+          >
+            {{ ventaItem.cantidad }}
+          </td>
+        </ng-container>
+
+        <!-- Symbol Column -->
+        <ng-container matColumnDef="precio">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 10%; text-align: center"
+          >
+            Precio
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let ventaItem"
+            style="width: 10%; text-align: center"
+          >
+            {{ ventaItem?.precioVenta?.precio | number: "1.0-0" }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="total">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 10%; text-align: center"
+          >
+            Total
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let ventaItem"
+            style="width: 10%; text-align: center"
+          >
+            {{
+              ventaItem?.precioVenta?.precio * ventaItem.cantidad
+                | number: "1.0-0"
+            }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 5%; text-align: center"
+          >
+            ...
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let ventaItem; let i = index"
+            style="width: 5%; text-align: center"
+          >
+            <button mat-flat-button (click)="onDelete(ventaItem)">
+              Eliminar
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </mat-card>
+    <div fxFlex="10%">valor final</div>
+  </div>
 </div>

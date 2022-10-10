@@ -101,8 +101,8 @@
               style="width: 100%"
               fxLayoutAlign="space-between start"
             >
-              <div fxFlex="50">
-                <mat-form-field style="width: 90%">
+              <div fxFlex="50" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+                <mat-form-field fxFlex="90" style="width: 100%">
                   <mat-label>Proveedor</mat-label>
                   <input
                     #proveedorInput
@@ -126,9 +126,10 @@
                     </mat-option>
                   </mat-autocomplete>
                 </mat-form-field>
+                <mat-icon fxFlex="10" class="highlight-hover" (click)="onAddProveedor()">add_circle</mat-icon>
               </div>
-              <div fxFlex="50" fxFlexAlign="end">
-                <mat-form-field style="width: 90%">
+              <div fxFlex="50" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+                <mat-form-field fxFlex="90" style="width: 100%">
                   <mat-label>Vendedor</mat-label>
                   <input
                     #vendedorInput
@@ -152,6 +153,7 @@
                     </mat-option>
                   </mat-autocomplete>
                 </mat-form-field>
+                <mat-icon fxFlex="10" class="highlight-hover">add_circle</mat-icon>
               </div>
             </div>
             <div fxFlex fxLayout="row" fxLayoutAlign="space-between start">
@@ -161,7 +163,7 @@
                   <mat-select [formControl]="formaPagoControl" name="formaPago">
                     <mat-option
                       *ngFor="let formaPago of formaPagoList"
-                      [value]="selectedFormaPago.id"
+                      [value]="formaPago.id"
                     >
                       {{ formaPago.id }} -
                       {{ formaPago.descripcion | uppercase }}
@@ -205,6 +207,7 @@
                     matInput
                     [matDatepicker]="picker"
                     [formControl]="fechaEntregaControl"
+                    (keyup.enter)="openCalendar()"
                   />
                   <mat-datepicker-toggle
                     matSuffix

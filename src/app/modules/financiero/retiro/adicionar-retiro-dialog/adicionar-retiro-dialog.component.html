@@ -1,80 +1,305 @@
-<div fxLayout="column" style="width: 400px">
-  <div fxFlex style="width: 100%; text-align: center">
-    <h1>Nuevo Retiro</h1>
-  </div>
-  <div #retiro fxFlex fxLayout="row" style="width: 100%">
-    <mat-form-field style="width: 100%">
-        <mat-label>Responsable</mat-label>
-        <input
-          #responsableInput
-          type="text"
-          matInput
-          [formControl]="responsableControl"
-          oninput="this.value == ' ' ? this.value = '': null"
-          [matAutocomplete]="auto"
-        />
-        <mat-autocomplete
-          #auto="matAutocomplete"
-          (optionSelected)="onResponsableSelect($event.option.value)"
-          (closed)="onResponsableAutocompleteClose()"
+<div fxLayout="row" style="width: 100%; height: 100%">
+  <mat-card
+    fxFlex="20%"
+    fxLayout="column"
+    fxLayoutGap="10px"
+    style="background-color: rgb(32, 32, 32); height: 100%"
+  >
+    <div
+      fxFlex="70%"
+      fxLayout="column"
+      fxLayoutAlign="start"
+      style="width: 100%"
+    >
+      <div fxFlex="10">
+        <button
+          style="width: 100%"
+          [color]="stepper.selectedIndex == 0 ? 'accent' : ''"
+          (click)="goTo('informacion')"
+          mat-raised-button
         >
-          <mat-option
-            *ngFor="let funcionario of funcionarioList"
-            [value]="funcionario"
+          Información
+        </button>
+      </div>
+      <div fxFlex="10">
+        <button
+          style="width: 100%"
+          [color]="stepper.selectedIndex == 1 ? 'accent' : ''"
+          mat-raised-button
+          (click)="goTo('lista-retiros')"
+        >
+          Lista de Retiros
+        </button>
+      </div>
+      <br />
+    </div>
+    <div fxFlex="30%" fxLayout="column" fxLayoutAlign="end">
+      <div fxFlex="10">
+        <button
+          style="width: 100%"
+          color="primary"
+          mat-raised-button
+          (click)="goTo('salir')"
+        >
+          Salir
+        </button>
+      </div>
+    </div>
+  </mat-card>
+  <mat-stepper
+    fxFlex="80%"
+    fxLayout="column"
+    linear
+    #stepper
+    style="width: 100%"
+  >
+    <mat-step style="width: 100%">
+      <ng-template matStepLabel>Información</ng-template>
+      <div fxLayout="column">
+        <div fxFlex style="width: 100%; text-align: center">
+          <h1>Nuevo Retiro</h1>
+        </div>
+        <div #retiro fxFlex fxLayout="row" style="width: 100%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Responsable</mat-label>
+            <input
+              #responsableInput
+              type="text"
+              matInput
+              [formControl]="responsableControl"
+              oninput="this.value == ' ' ? this.value = '': null"
+              [matAutocomplete]="auto"
+            />
+            <mat-autocomplete
+              #auto="matAutocomplete"
+              (optionSelected)="onResponsableSelect($event.option.value)"
+              (closed)="onResponsableAutocompleteClose()"
+            >
+              <mat-option
+                *ngFor="let funcionario of funcionarioList"
+                [value]="funcionario"
+              >
+                {{ funcionario.id }} -
+                {{ funcionario?.persona?.nombre | uppercase }}
+              </mat-option>
+            </mat-autocomplete>
+          </mat-form-field>
+        </div>
+        <div #retiro fxFlex fxLayout="row" style="width: 100%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Observación</mat-label>
+            <input type="text" matInput [formControl]="observacionControl" />
+          </mat-form-field>
+        </div>
+        <div fxFlex>
+          <mat-form-field style="width: 100%">
+            <mat-label>Guaranies G$</mat-label>
+            <input
+              type="text"
+              matInput
+              [formControl]="guaraniControl"
+              currencyMask
+              [options]="currencyMask.currencyOptionsGuarani"
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex>
+          <mat-form-field style="width: 100%">
+            <mat-label>Reales R$</mat-label>
+            <input
+              type="text"
+              matInput
+              [formControl]="realControl"
+              currencyMask
+              [options]="currencyMask.currencyOptionsNoGuarani"
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex>
+          <mat-form-field style="width: 100%">
+            <mat-label>Dolares D$</mat-label>
+            <input
+              type="text"
+              matInput
+              [formControl]="dolarControl"
+              currencyMask
+              [options]="currencyMask.currencyOptionsNoGuarani"
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex *ngIf="selectedResponsable != null && verficarValores()">
+          <button
+            style="width: 100%; height: 100%; font-size: 1.2em"
+            mat-raised-button
+            color="accent"
+            (click)="onGuardar()"
           >
-            {{ funcionario.id }} -
-            {{ funcionario?.persona?.nombre | uppercase }}
-          </mat-option>
-        </mat-autocomplete>
-      </mat-form-field>
-  </div>
-  <div #retiro fxFlex fxLayout="row" style="width: 100%">
-    <mat-form-field style="width: 100%">
-      <mat-label>Observación</mat-label>
-      <input type="text" matInput [formControl]="observacionControl" />
-    </mat-form-field>
-  </div>
-  <div fxFlex>
-    <mat-form-field style="width: 100%">
-      <mat-label>Guaranies G$</mat-label>
-      <input
-        type="text"
-        matInput
-        [formControl]="guaraniControl"
-        currencyMask
-        [options]="currencyMask.currencyOptionsGuarani"
-      />
-    </mat-form-field>
-  </div>
-  <div fxFlex>
-    <mat-form-field style="width: 100%">
-      <mat-label>Reales R$</mat-label>
-      <input
-        type="text"
-        matInput
-        [formControl]="realControl"
-        currencyMask
-        [options]="currencyMask.currencyOptionsNoGuarani"
-      />
-    </mat-form-field>
-  </div>
-  <div fxFlex>
-    <mat-form-field style="width: 100%">
-      <mat-label>Dolares D$</mat-label>
-      <input
-        type="text"
-        matInput
-        [formControl]="dolarControl"
-        currencyMask
-        [options]="currencyMask.currencyOptionsNoGuarani"
-      />
-    </mat-form-field>
-  </div>
-  <div fxFlex *ngIf="selectedResponsable!=null && verficarValores()">
-      <button style="width: 100%; height: 100%; font-size: 1.2em;" mat-raised-button color="accent" (click)="onGuardar()">Guardar</button>
-  </div>
-  <br>
-  <div fxFlex>
-    <button style="width: 100%; height: 100%; font-size: 1.2em;" mat-raised-button color="primary" (click)="onCancelar()">Cancelar</button>
-</div>
+            Guardar
+          </button>
+        </div>
+        <br />
+        <div fxFlex>
+          <button
+            style="width: 100%; height: 100%; font-size: 1.2em"
+            mat-raised-button
+            color="primary"
+            (click)="onCancelar()"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </mat-step>
+    <mat-step>
+      <ng-template matStepLabel>Lista de Retiros</ng-template>
+      <table style="width: 100%" mat-table [dataSource]="dataSource">
+        <!--- Note that these columns can be defined in any order.
+              The actual rendered columns are set as a property on the row definition" -->
+
+        <!-- Position Column -->
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef style="width: 5%">#</th>
+          <td
+            mat-cell
+            *matCellDef="let retiro; let i = index"
+            style="width: 5%"
+          >
+            {{ retiro.id }}
+          </td>
+        </ng-container>
+
+        <!-- Name Column -->
+        <ng-container matColumnDef="responsable">
+          <th mat-header-cell *matHeaderCellDef style="width: 25%">
+            Retirado por
+          </th>
+          <td mat-cell *matCellDef="let retiro" style="width: 25%">
+            {{ retiro.responsable?.persona?.nombre | titlecase }}
+          </td>
+        </ng-container>
+
+        <!-- Weight Column -->
+        <ng-container matColumnDef="usuario">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 25%; text-align: center"
+          >
+            Cajero
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let retiro"
+            style="width: 25%; text-align: center"
+          >
+            {{ retiro.usuario?.persona?.nombre | titlecase }}
+          </td>
+        </ng-container>
+
+        <!-- Symbol Column -->
+        <ng-container matColumnDef="retiroGs">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 10%; text-align: center"
+          >
+            Guaranies
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let retiro"
+            style="width: 10%; text-align: center"
+          >
+            {{ retiro?.retiroGs | number: '1.0-0'}}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="retiroRs">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 10%; text-align: center"
+          >
+            Reales
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let retiro"
+            style="width: 10%; text-align: center"
+          >
+            {{ retiro?.retiroRs | number: '1.0-2'}}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="retiroDs">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 10%; text-align: center"
+          >
+            Dolares
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let retiro"
+            style="width: 10%; text-align: center"
+          >
+            {{ retiro?.retiroDs | number: '1.0-2'}}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="creadoEn">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 10%; text-align: center"
+          >
+            Creado en
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let retiro"
+            style="width: 10%; text-align: center"
+          >
+            {{ retiro?.creadoEn | date: 'short'}}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 5%; text-align: center"
+          >
+            ...
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let retiro"
+            style="width: 5%; text-align: center"
+          >
+            <button
+              mat-icon-button
+              [matMenuTriggerFor]="menu"
+              (click)="$event.stopPropagation()"
+            >
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menu="matMenu">
+              <button mat-menu-item (click)="onVer(retiro)">Ver</button>
+              <button mat-menu-item (click)="onReimprimir(retiro)">
+                Reimprimir
+              </button>
+              <!-- <button *ngIf="retiro?.finalizado == true" mat-menu-item (click)="onImprimir(retiro)">
+                Imprimir
+              </button> -->
+            </mat-menu>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </mat-step>
+  </mat-stepper>
 </div>

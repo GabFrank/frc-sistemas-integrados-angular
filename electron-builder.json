@@ -10,7 +10,6 @@
     "!package.json",
     "!package-lock.json"
   ],
-  "extraFiles": ["configuracion.json", "configuracion-local.json"],
   "extraResources": [
     {
       "from": "dist",

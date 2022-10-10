@@ -143,6 +143,16 @@ input::selection {
   cursor: pointer;
 }
 
+.highlight-hover:hover {
+  color: #43a047;
+  cursor: pointer;
+}
+
+.highlight-hover-danger:hover {
+  color: #f44336;
+  cursor: pointer;
+}
+
 .titulo {
   text-align: start;
   color: #f57c00;
@@ -155,4 +165,8 @@ input::selection {
 .titulo-center {
   text-align: center;
   color: #f57c00;
+}
+
+.required-field::after {
+  content: "*";
 }

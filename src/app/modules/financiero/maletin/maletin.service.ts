@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { AllMaletinsGQL } from './graphql/allMaletines';
+import { CountMaletinGQL } from './graphql/count-maletin';
 import { DeleteMaletinGQL } from './graphql/deleteMaletin';
 import { MaletinByIdGQL } from './graphql/MaletinById';
 import { MaletinPorDescripcionGQL } from './graphql/maletinPorDescripcion';
@@ -19,11 +20,16 @@ export class MaletinService {
     private genericCrud: GenericCrudService,
     private saveMaletin: SaveMaletinGQL,
     private deleteMaletin: DeleteMaletinGQL,
-    private getMaletinPorDescripcion: MaletinPorDescripcionGQL
+    private getMaletinPorDescripcion: MaletinPorDescripcionGQL,
+    private countMaletin: CountMaletinGQL
   ) { }
 
-  onGetAll(): Observable<any>{
-    return this.genericCrud.onGetAll(this.getAllMaletines)
+  onCount(): Observable<number> {
+    return this.genericCrud.onCustomQuery(this.countMaletin, null);
+  }
+
+  onGetAll(page?, size?): Observable<any>{
+    return this.genericCrud.onGetAll(this.getAllMaletines, page, size)
   }
 
   onGetPorId(id): Observable<any>{

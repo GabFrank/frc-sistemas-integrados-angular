@@ -5,6 +5,7 @@ import { Gasto } from "../gastos.model"
 
 export class GastoDetalle {
     id:number
+    sucursalId: number;
     gasto: Gasto
     moneda: Moneda
     cambio: number
@@ -21,6 +22,7 @@ export class GastoDetalle {
         input.cantidad = this.cantidad
         input.creadoEn = this.creadoEn
         input.usuarioId = this.usuario?.id
+        input.sucursalId = this.sucursalId
         return input;
     }
 }
@@ -33,4 +35,5 @@ export class GastoDetalleInput {
     cantidad: number
     creadoEn: Date
     usuarioId: number
+    sucursalId: number;
 }

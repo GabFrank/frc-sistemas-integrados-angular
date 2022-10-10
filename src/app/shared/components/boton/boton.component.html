@@ -33,16 +33,18 @@
         </div>
       </div>
     </div> -->
-    <div *ngIf="icon != null" fxLayout="row" fxLayoutAlign="center center">
-      <mat-icon
-        style="width: 100%; text-align: center"
-        [style.fontSize.em]="iconSize"
-        >{{ icon }}</mat-icon
-      >
-    </div>
-    <div fxLayout="row" fxLayoutAlign="center center">
-      <div style="white-space: normal;">
-        {{ nombre }}
+    <div fxLayout="column" fxLayoutGap="10px">
+      <div fxFlex *ngIf="icon != null" fxLayout="row" fxLayoutAlign="center center">
+        <mat-icon
+          style="width: 100%; text-align: center"
+          [style.fontSize.em]="iconSize"
+          >{{ icon }}</mat-icon
+        >
+      </div>
+      <div fxFlex fxLayout="row" fxLayoutAlign="center center">
+        <div style="white-space: normal">
+          {{ nombre }}
+        </div>
       </div>
     </div>
   </button>

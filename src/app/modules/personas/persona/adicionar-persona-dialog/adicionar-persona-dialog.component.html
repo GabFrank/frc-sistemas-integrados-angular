@@ -8,7 +8,8 @@
       <div fxFlex fxLayout="row" fxFlexAlign="space-around center">
         <div fxFlex="50">
           <mat-form-field style="width: 90%" class="form-element">
-            <input matInput placeholder="Nombre" formControlName="nombre" />
+            <mat-label class="required-field">Nombre</mat-label>
+            <input matInput  formControlName="nombre" class="required-field"/>
           </mat-form-field>
           <mat-error
             *ngIf="
@@ -34,7 +35,8 @@
             class="form-element"
             style="width: 50%"
           >
-            <input matInput placeholder="C.I." formControlName="documento" />
+          <mat-label class="required-field">C.I / RUC</mat-label>
+            <input matInput formControlName="documento" class="required-field"/>
           </mat-form-field>
           <mat-error
             *ngIf="
@@ -48,7 +50,8 @@
 
         <div fxFlex="50" fxFlexAlign="space-around center">
           <mat-form-field style="width: 90%" class="form-element">
-            <input matInput placeholder="Teléfono" formControlName="telefono" />
+            <mat-label class="required-field">Teléfono</mat-label>
+            <input matInput formControlName="telefono" />
           </mat-form-field>
           <mat-error
             *ngIf="

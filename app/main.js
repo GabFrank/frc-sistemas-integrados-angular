@@ -38,10 +38,10 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.relaunchElectron = exports.createWindow = void 0;
 var electron_1 = require("electron");
-var path = require("path");
-var fs = require("fs");
-var url = require("url");
 var electron_updater_1 = require("electron-updater");
+var fs = require("fs");
+var path = require("path");
+var url = require("url");
 var log = require('electron-log');
 var readFileSync = require('fs').readFileSync;
 var isDev = require('electron-is-dev');

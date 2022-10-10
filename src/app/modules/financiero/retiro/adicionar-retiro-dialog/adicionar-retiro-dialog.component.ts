@@ -18,6 +18,9 @@ export class AdicionarRetiroData {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { MatTableDataSource } from '@angular/material/table';
+import { MatStepper } from '@angular/material/stepper';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -28,6 +31,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy {
 
   @ViewChild("responsableInput", { static: false }) responsableInput: ElementRef;
+  @ViewChild("stepper", { static: false }) stepper: MatStepper;
 
 
   selectedRetiro: Retiro;
@@ -45,6 +49,18 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy {
   funcionarioSub: Subscription;
   timer: any;
 
+  dataSource = new MatTableDataSource<Retiro>([]);
+  displayedColumns = [
+    'id',
+    'responsable',
+    'usuario',
+    'retiroGs',
+    'retiroRs',
+    'retiroDs',
+    'creadoEn',
+    'acciones'
+  ]
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarRetiroData,
     public dialogRef: MatDialogRef<AdicionarRetiroDialogComponent>,
@@ -52,9 +68,18 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy {
     private cargandoDialog: CargandoDialogService,
     private dialogService: DialogosService,
     private retiroService: RetiroService,
-    private monedaService: MonedaService
+    private monedaService: MonedaService,
+    private cargandoService: CargandoDialogService,
+    private notificacionService: NotificacionSnackbarService
   ) {
-    if(data?.caja != null) this.selectedCajaSalida = data.caja;
+    if (data?.caja != null) {
+      this.selectedCajaSalida = data.caja;
+      retiroService.onGePorCajaSalidaId(this.selectedCajaSalida.id).pipe(untilDestroyed(this)).subscribe((res) => {
+        if (res != null) {
+          this.dataSource.data = res;
+        }
+      });
+    }
   }
 
   ngOnInit(): void {
@@ -91,21 +116,21 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy {
       this.selectedResponsable = e;
       this.responsableControl.setValue(
         this.selectedResponsable?.id +
-          " - " +
-          this.selectedResponsable?.persona?.nombre
+        " - " +
+        this.selectedResponsable?.persona?.nombre
       );
     }
   }
 
 
-  onGuardar(){
-    if(this.selectedResponsable!=null && this.verficarValores()){
+  onGuardar() {
+    if (this.selectedResponsable != null && this.verficarValores()) {
       this.dialogService.confirm('Confirmar valores de retiro', null, null, [
         `Guaranies: ${stringToInteger(this.guaraniControl.value.toString())}`,
         `Reales: ${stringToDecimal(this.realControl.value.toString())}`,
         `Dolares: ${stringToDecimal(this.dolarControl.value.toString())}`,
       ]).pipe(untilDestroyed(this)).subscribe(res => {
-        if(res){
+        if (res) {
           let retiro = new Retiro()
           retiro.cajaSalida = this.selectedCajaSalida;
           retiro.observacion = this.observacionControl.value;
@@ -126,10 +151,9 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy {
             guaraniDetalle, realDetalle, dolarDetalle
           ]
           retiro.retiroDetalleList = retiroDetalleList;
-          console.log(retiro)
           this.retiroService.onSave(retiro).pipe(untilDestroyed(this)).subscribe(retiroResponse => {
             this.cargandoDialog.closeDialog()
-            if(retiroResponse!=null){
+            if (retiroResponse != null) {
               this.dialogRef.close(true)
             } else {
 
@@ -140,22 +164,62 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy {
     }
   }
 
-  verficarValores(): boolean{
+  verficarValores(): boolean {
     let verificado = false;
-    if(this.guaraniControl.value > 0) verificado = true;
-    if(this.realControl.value > 0) verificado = true;
-    if(this.dolarControl.value > 0) verificado = true;
+    if (this.guaraniControl.value > 0) verificado = true;
+    if (this.realControl.value > 0) verificado = true;
+    if (this.dolarControl.value > 0) verificado = true;
     return verificado;
   }
 
-  onCancelar(){
+  onCancelar() {
     this.dialogRef.close(null);
   }
 
-  onResponsableAutocompleteClose(){
+  onResponsableAutocompleteClose() {
     setTimeout(() => {
       this.responsableInput.nativeElement.select()
     }, 100);
+  }
+
+  goTo(text) {
+    switch (text) {
+      case "informacion":
+        this.stepper.selectedIndex = 0;
+        break;
+      case "lista-retiros":
+        this.stepper.selectedIndex = 1;
+        break;
+      case "salir":
+        this.dialogRef.close();
+        break;
+      default:
+        break;
+    }
+  }
+
+  onVer(retiro: Retiro){
+    this.selectedRetiro = retiro;
+    this.onResponsableSelect(retiro.responsable)
+    this.observacionControl.setValue(retiro.observacion)
+    this.guaraniControl.setValue(retiro.retiroGs)
+    this.dolarControl.setValue(retiro.retiroRs)
+    this.realControl.setValue(retiro.retiroDs)
+    this.responsableControl.disable()
+    this.observacionControl.disable()
+    this.guaraniControl.disable()
+    this.realControl.disable()
+    this.dolarControl.disable()
+  }
+
+  onReimprimir(retiro: Retiro){
+    this.retiroService.onReimprimirRetiro(retiro.id).subscribe(res => {
+      if(res==true){
+        this.notificacionService.openSucess('Reimpresión con éxito')
+      } else {
+        this.notificacionService.openAlgoSalioMal('Ups! intente de nuevo')
+      }
+    })
   }
 
   ngOnDestroy(): void {

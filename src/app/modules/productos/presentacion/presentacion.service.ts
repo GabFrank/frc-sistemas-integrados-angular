@@ -38,13 +38,8 @@ export class PresentacionService {
     private genericService: GenericCrudService
   ) { }
 
-  onGetPresentacionesPorProductoId(id) {
-    return this.getPresentacionesPorProductoId.fetch({
-      id
-    },
-      {
-        fetchPolicy: "no-cache"
-      });
+  onGetPresentacionesPorProductoId(id): Observable<Presentacion[]>{
+    return this.genericService.onGetById(this.getPresentacionesPorProductoId, id);
   }
 
   onGetPresentaciones() {

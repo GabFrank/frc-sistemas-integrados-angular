@@ -22,6 +22,7 @@ export class Venta {
     totalRs: number;
     totalDs: number;
     cobro: Cobro
+    sucursalId: number;
 
     public toInput(): VentaInput {
         let input = new VentaInput()
@@ -35,6 +36,7 @@ export class Venta {
         input.cajaId = this.caja?.id;
         input.totalRs = this.totalRs;
         input.totalDs = this.totalDs;
+        input.sucursalId = this.sucursalId;
         return input;
     }
 }
@@ -50,6 +52,7 @@ export class VentaInput {
     totalGs: number;
     totalRs: number;
     totalDs: number;
+    sucursalId: number;
 }
 
 export class VentaPorPeriodo {

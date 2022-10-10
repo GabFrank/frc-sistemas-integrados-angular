@@ -4,6 +4,7 @@ import { Conteo } from "../conteo.model";
 
 export class ConteoMoneda {
     id:number;
+    sucursalId: number;
     conteo: Conteo
     monedaBilletes: MonedaBillete
     cantidad: number
@@ -20,12 +21,14 @@ export class ConteoMoneda {
         input.creadoEn = this.creadoEn;
         input.conteoId = this.conteo?.id;
         input.monedaBilletesId = this.monedaBilletes?.id;
+        input.sucursalId = this.sucursalId;
         return input;
     }
 }
 
 export class ConteoMonedaInput {
     id:number;
+    sucursalId: number;
     conteoId: number
     monedaBilletesId: number
     cantidad: number

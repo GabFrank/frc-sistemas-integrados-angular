@@ -6,6 +6,7 @@ import { PdvCaja } from "../pdv/caja/caja.model"
 
 export class FacturaLegal {
     id: number
+    sucursalId: number;
     caja: PdvCaja
     timbrado: string
     nroSucursal: string
@@ -48,12 +49,14 @@ export class FacturaLegal {
         input.totalFinal = this.totalFinal
         input.usuarioId = this.usuario?.id
         input.viaTributaria = this.viaTributaria
+        input.sucursalId = this.sucursalId
         return input;
     }
 }
 
 export class FacturaLegalInput {
     id: number
+    sucursalId: number;
     cajaId: number
     clienteId: number
     ventaId: number

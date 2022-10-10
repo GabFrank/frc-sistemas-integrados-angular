@@ -1,9 +1,10 @@
 import gql from "graphql-tag";
 
 export const ventasQuery = gql`
-  {
-    ventas {
+    query ($sucId: ID){
+    data: ventas (sucId: $sucId) {
       id
+      sucursalId
       cliente {
         id
       }
@@ -26,6 +27,7 @@ export const ventasQuery = gql`
         precioVenta {
           precio
         }
+        precio
         valorDescuento
         unidadMedida
         creadoEn
@@ -44,9 +46,10 @@ export const ventasQuery = gql`
 `;
 
 export const ventaQuery = gql`
-  query ($id: ID!) {
-    data: venta(id: $id) {
+  query ($id: ID!, $sucId: ID) {
+    data: venta(id: $id, sucId: $sucId) {
       id
+      sucursalId
       cliente {
         id
       }
@@ -80,6 +83,7 @@ export const ventaQuery = gql`
             descripcion
           }
         }
+        precio
         valorDescuento
         unidadMedida
         creadoEn
@@ -109,6 +113,7 @@ export const ventaQuery = gql`
           aumento
           vuelto
           pago
+          identificadorTransaccion
         }
       }
     }
@@ -144,14 +149,14 @@ export const saveVenta = gql`
 `;
 
 export const deleteVentaQuery = gql`
-  mutation deleteVenta($id: ID!) {
-    deleteVenta(id: $id)
+  mutation deleteVenta($id: ID!, $sucId: ID) {
+    deleteVenta(id: $id, sucId: $sucId)
   }
 `;
 
 export const cancelarVentaQuery = gql`
-  mutation cancelarVenta($id: ID!) {
-    data: cancelarVenta(id: $id)
+  mutation cancelarVenta($id: ID!, $sucId: ID) {
+    data: cancelarVenta(id: $id, sucId: $sucId)
   }
 `;
 
@@ -160,13 +165,15 @@ export const imprimirPagareQuery = gql`
     $id: ID!,
     $itens: [VentaCreditoCuotaInput]!,
     $printerName: String,
-    $local: String
+    $local: String,
+    $sucId: ID
     ) {
     data: imprimirPagare(
       id: $id
       itens: $itens
       printerName: $printerName,
-      local: $local
+      local: $local,
+      sucId: $sucId
       )
   }
 `;
@@ -175,12 +182,14 @@ export const reimprimirVentaQuery = gql`
   mutation reimprimirVenta(
     $id: ID!
     $printerName: String,
-    $local: String
+    $local: String,
+    $sucId: ID
     ) {
     data: reimprimirVenta(
       id: $id
       printerName: $printerName,
-      local: $local
+      local: $local,
+      sucId: $sucId
       )
   }
 `;
@@ -188,9 +197,10 @@ export const reimprimirVentaQuery = gql`
 //ventasPorCajaId
 
 export const ventasPorCajaIdQuery = gql`
-  query ($id: ID!, $offset: Int) {
-    data: ventasPorCajaId(id: $id, offset: $offset) {
+  query ($id: ID!, $page: Int, $size: Int, $asc: Boolean, $sucId: ID, $formaPago: ID, $estado: VentaEstado) {
+    data: ventasPorCajaId(id: $id, page: $page,size: $size,asc: $asc, sucId: $sucId, formaPago: $formaPago, estado: $estado) {
       id
+      sucursalId
       cliente {
         id
         persona {
@@ -216,8 +226,8 @@ export const ventasPorCajaIdQuery = gql`
 `;
 
 export const ventaPorPeriodoQuery = gql`
-  query ($inicio: String, $fin: String) {
-    data: ventaPorPeriodo(inicio: $inicio, fin: $fin) {
+  query ($inicio: String, $fin: String, $sucId: ID) {
+    data: ventaPorPeriodo(inicio: $inicio, fin: $fin, sucId: $sucId) {
       valorGs
       valorRs
       valorDs
@@ -226,3 +236,7 @@ export const ventaPorPeriodoQuery = gql`
     }
   }
 `;
+
+export const countVentaQuery = gql `
+  {data: countVenta}
+`

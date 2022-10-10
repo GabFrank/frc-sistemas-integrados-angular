@@ -20,6 +20,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { environment } from "../../../../environments/environment";
 import { DeleteVentaGQL } from "./graphql/deleteVenta";
 import { ImprimirPagareGQL } from "./graphql/imprimirPagare";
+import { CountVentaGQL } from "./graphql/count-venta";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -38,7 +39,8 @@ export class VentaService {
     private ventaPorPeriodo: VentaPorPeriodoGQL,
     private notificacionBar: NotificacionSnackbarService,
     private deleteVenta: DeleteVentaGQL,
-    private imprimirPagare: ImprimirPagareGQL
+    private imprimirPagare: ImprimirPagareGQL,
+    private countVenta: CountVentaGQL
   ) {}
 
   // $venta:VentaInput!, $venteItemList: [VentaItemInput], $cobro: CobroInput, $cobroDetalleList: [CobroDetalleInput]
@@ -137,12 +139,13 @@ export class VentaService {
     });
   }
 
-  onCancelarVenta(id): Observable<boolean> {
+  onCancelarVenta(id, sucId): Observable<boolean> {
     return new Observable((obs) => {
       this.cancelarVenta
         .mutate(
           {
             id,
+            sucId
           },
           {
             fetchPolicy: "no-cache",
@@ -159,15 +162,24 @@ export class VentaService {
     });
   }
 
-  onSearch(id, offset?): Observable<Venta[]> {
+  onSearch(id, page?, size?, asc?, sucId?, formaPago?, estado?): Observable<Venta[]> {
     this.genericService.isLoading = true;
-    if (offset == null) offset = 0;
+    if(page==null) page = 0;
+    if(size==null) size = 20;
+    if(asc==null) asc = true;
+    console.log(id, page, size, asc, sucId, formaPago, estado);
+    
     return new Observable((obs) => {
       this.ventasPorCajaId
         .fetch(
           {
             id,
-            offset,
+            page,
+            size,
+            asc,
+            sucId,
+            formaPago,
+            estado
           },
           {
             fetchPolicy: "no-cache",
@@ -185,13 +197,13 @@ export class VentaService {
     });
   }
 
-  onGetPorId(id): Observable<Venta> {
-    return this.genericService.onGetById(this.ventaPorId, id);
+  onGetPorId(id, sucId?): Observable<Venta> {
+    return this.genericService.onGetById(this.ventaPorId, id, null, null, false, sucId);
   }
 
-  onGetVentasPorPeriodo(inicio: string, fin: string): Observable<any> {
+  onGetVentasPorPeriodo(inicio: string, fin: string, sucId?): Observable<any> {
     return new Observable((obs) => {
-      this.ventaPorPeriodo.fetch({inicio, fin},{
+      this.ventaPorPeriodo.fetch({inicio, fin, sucId},{
         fetchPolicy: "no-cache",
         errorPolicy: "all",
       }).pipe(untilDestroyed(this)).subscribe(res => {
@@ -207,5 +219,9 @@ export class VentaService {
         }
       })
     });
+  }
+
+  onCountVenta(): Observable<number>{
+    return this.genericService.onCustomQuery(this.countVenta, null);
   }
 }

@@ -1,4 +1,3 @@
-import { Cambio } from "../../../financiero/cambio/cambio.model"
 import { FormaPago } from "../../../financiero/forma-pago/forma-pago.model"
 import { Moneda } from "../../../financiero/moneda/moneda.model"
 import { Usuario } from "../../../personas/usuarios/usuario.model"
@@ -17,6 +16,7 @@ export class CobroDetalle {
     pago: boolean
     creadoEn: Date
     usuario: Usuario
+    identificadorTransaccion: string
 
     toInput(): CobroDetalleInput {
         let input = new CobroDetalleInput()
@@ -32,6 +32,7 @@ export class CobroDetalle {
         input.vuelto = this.vuelto;
         input.creadoEn = this.creadoEn
         input.usuarioId = this.usuario?.id;
+        input.identificadorTransaccion = this.identificadorTransaccion;
         return input;
     }
 }
@@ -49,4 +50,5 @@ export class CobroDetalleInput {
     pago: boolean
     creadoEn: Date
     usuarioId: number
+    identificadorTransaccion: string
 }

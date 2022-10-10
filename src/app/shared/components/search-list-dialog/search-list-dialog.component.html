@@ -22,12 +22,23 @@
     <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%;">
       <ng-container *ngFor="let item of data?.tableData">
         <ng-container [matColumnDef]="item.id">
-          <th [style.width]="item?.width" mat-header-cell *matHeaderCellDef>
-            {{ item['nombre'] }}
-          </th>
-          <td [style.width]="item?.width" mat-cell *matCellDef="let element">
-            {{ element[item.id] }}
-          </td>
+          <ng-container *ngIf="item?.nested == true">
+            <th [style.width]="item?.width" mat-header-cell *matHeaderCellDef>
+              {{ item['nombre'] }}
+            </th>
+            <td [style.width]="item?.width" mat-cell *matCellDef="let element">
+              {{ element[item?.nestedId][item.id] }}
+            </td>
+          </ng-container>
+          <ng-container *ngIf="item?.nested != true">
+            <th [style.width]="item?.width" mat-header-cell *matHeaderCellDef>
+              {{ item['nombre'] }}
+            </th>
+            <td [style.width]="item?.width" mat-cell *matCellDef="let element">
+              {{ element[item.id] }}
+            </td>
+          </ng-container>
+          
         </ng-container>
       </ng-container>
 

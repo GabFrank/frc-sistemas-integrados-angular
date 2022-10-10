@@ -7,6 +7,7 @@ export class Cobro {
     usuario: Usuario
     totalGs: number
     cobroDetalleList: CobroDetalle[]
+    sucursalId: number;
 
     toInput(): CobroInput {
         let input = new CobroInput()
@@ -14,6 +15,7 @@ export class Cobro {
         input.creadoEn = this.creadoEn
         input.totalGs = this.totalGs;
         input.usuarioId = this.usuario?.id;
+        input.sucursalId = this.sucursalId
         return input;
     }
 }
@@ -23,4 +25,5 @@ export class CobroInput {
     creadoEn: Date
     usuarioId: number
     totalGs: number
+    sucursalId: number;
 }

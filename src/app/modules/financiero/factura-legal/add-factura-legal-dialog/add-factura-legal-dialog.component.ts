@@ -84,8 +84,8 @@ export class AddFacturaLegalDialogComponent implements OnInit {
         let facturaItem = new FacturaLegalItem;
         facturaItem.cantidad = v.cantidad;
         facturaItem.descripcion = v.producto.descripcionFactura;
-        facturaItem.precioUnitario = v.precioVenta.precio;
-        facturaItem.total = v.cantidad * v.precioVenta.precio;
+        facturaItem.precioUnitario = v.precio;
+        facturaItem.total = v.cantidad * v.precio;
         facturaItem.iva
         facturaItemList.push(facturaItem)
       })

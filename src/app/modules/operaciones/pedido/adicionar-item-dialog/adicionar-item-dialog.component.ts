@@ -218,6 +218,8 @@ export class AdicionarItemDialogComponent implements OnInit {
       this.selectedProducto = producto;
       this.productoIdControl.setValue(this.selectedProducto.id);
       this.productoControl.setValue(this.selectedProducto.descripcion);
+      this.precioPorUnidadControl.setValue(producto?.costo?.ultimoPrecioCompra)
+      this.costoMedioControl.setValue(producto?.costo?.costoMedio)
     } else {
       this.selectedProducto = producto;
       this.productoIdControl.setValue(null);

@@ -48,6 +48,7 @@ export interface AdicionarCajaResponse {
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { FacturaLegalService } from "../../../factura-legal/factura-legal.service";
+import { MainService } from "../../../../../main.service";
 
 @UntilDestroy()
 @Component({
@@ -112,9 +113,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
     private notificacionBar: NotificacionSnackbarService,
     private cargandoDialog: CargandoDialogService,
     private matDialog: MatDialog,
-    private monedaService: MonedaService,
-    private dialogBox: DialogosService,
-    private conteoService: ConteoService,
+    private mainService: MainService,
     private facturaService: FacturaLegalService
   ) {
     // this.cargarMonedas();
@@ -126,7 +125,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
     this.creadoEnControl.disable();
     this.usuarioControl.disable();
     if (this.data?.caja != null) {
-      this.cajaService.onGetById(this.data.caja.id).pipe(untilDestroyed(this)).subscribe((res) => {
+      this.cajaService.onGetById(this.data.caja.id, this.data.caja.sucursalId).pipe(untilDestroyed(this)).subscribe((res) => {
         if (res != null) {
           this.selectedCaja = res;
           this.isCierre = this.selectedCaja?.conteoCierre != null;

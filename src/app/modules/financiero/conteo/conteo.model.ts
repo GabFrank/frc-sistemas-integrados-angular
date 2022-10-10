@@ -10,6 +10,7 @@ export class Conteo {
     totalGs: number;
     totalRs; number;
     totalDs: number;
+    sucursalId: number;
 
     public toInput(): ConteoInput{
         let conteoInput = new ConteoInput()
@@ -20,6 +21,7 @@ export class Conteo {
         conteoInput.totalGs = this.totalGs;
         conteoInput.totalRs = this.totalRs;
         conteoInput.totalDs = this.totalDs;
+        conteoInput.sucursalId = this.sucursalId;
         return conteoInput;
     }
 }
@@ -32,4 +34,5 @@ export class ConteoInput {
     totalGs: number;
     totalRs; number;
     totalDs: number;
+    sucursalId: number;
 }

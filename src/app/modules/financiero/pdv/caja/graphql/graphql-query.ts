@@ -1,9 +1,14 @@
 import gql from "graphql-tag";
 
 export const cajasQuery = gql`
-  {
-    data: cajas {
+  query ($sucId: ID) {
+  data: cajas(sucId: $sucId) {
       id
+      sucursalId
+      sucursal {
+        id
+        nombre
+      }
       descripcion
       activo
       estado
@@ -27,9 +32,14 @@ export const cajasQuery = gql`
 `;
 
 export const cajasPorFecha = gql`
-  query ($inicio: String, $fin: String) {
-    data: cajasPorFecha(inicio: $inicio, fin: $fin) {
+  query ($inicio: String, $fin: String, $sucId: ID) {
+    data: cajasPorFecha(inicio: $inicio, fin: $fin, sucId: $sucId) {
       id
+      sucursal {
+        id
+        nombre
+      }
+      sucursalId
       descripcion
       activo
       estado
@@ -53,8 +63,8 @@ export const cajasPorFecha = gql`
 `;
 
 export const balancePorFecha = gql`
-  query ($inicio: String, $fin: String) {
-    data: balancePorFecha(inicio: $inicio, fin: $fin) {
+  query ($inicio: String, $fin: String, $sucId: ID) {
+    data: balancePorFecha(inicio: $inicio, fin: $fin, sucId: $sucId) {
       totalVentaGs
       totalVentaRs
       totalVentaDs
@@ -112,9 +122,14 @@ export const balancePorFecha = gql`
 // `;
 
 export const cajaQuery = gql`
-  query ($id: ID!) {
-    data: pdvCaja(id: $id) {
+  query ($id: ID!, $sucId: ID) {
+    data: pdvCaja(id: $id, sucId: $sucId) {
       id
+      sucursal {
+        id
+        nombre
+      }
+      sucursalId
       descripcion
       activo
       estado
@@ -168,6 +183,7 @@ export const cajaQuery = gql`
         }
       }
       balance {
+        totalGeneral
         totalVentaGs
         totalVentaRs
         totalVentaDs
@@ -187,16 +203,29 @@ export const cajaQuery = gql`
         totalCierreDs
         totalDescuento
         totalAumento
-        totalCanceladas
+        totalCanceladasGs
+        totalCanceladasRs
+        totalCanceladasDs
+        vueltoGs
+        vueltoRs
+        vueltoDs
+        diferenciaGs
+        diferenciaRs
+        diferenciaDs
       }
     }
   }
 `;
 
 export const cajaPorUsuarioIdAndAbiertoQuery = gql`
-  query ($id: ID!) {
-    data: cajaAbiertoPorUsuarioId(id: $id) {
+  query ($id: ID!, $sucId: ID) {
+    data: cajaAbiertoPorUsuarioId(id: $id, sucId: $sucId) {
       id
+      sucursal {
+        id
+        nombre
+      }
+      sucursalId
       descripcion
       activo
       estado
@@ -257,6 +286,11 @@ export const savePdvCaja = gql`
   mutation savePdvCaja($entity: PdvCajaInput!) {
     data: savePdvCaja(pdvCaja: $entity) {
       id
+      sucursal {
+        id
+        nombre
+      }
+      sucursalId
       descripcion
       activo
       estado
@@ -314,8 +348,8 @@ export const savePdvCaja = gql`
 `;
 
 export const deleteCajaQuery = gql`
-  mutation deletePdvCaja($id: ID!) {
-    deletePdvCaja(id: $id)
+  mutation deletePdvCaja($id: ID!, $sucId: ID) {
+    deletePdvCaja(id: $id, sucId: $sucId)
   }
 `;
 
@@ -323,12 +357,14 @@ export const imprimirBalanceQuery = gql`
   query imprimirBalance(
     $id: ID!
     $printerName: String
-    $local: String
+    $local: String,
+    $sucId: ID
     ) {
     imprimirBalance(
       id: $id
       printerName: $printerName
       local: $local
+      sucId: $sucId
       ) {
       id
     }

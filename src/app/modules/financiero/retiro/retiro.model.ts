@@ -16,6 +16,7 @@ export class Retiro {
   retiroGs: number;
   retiroRs: number;
   retiroDs: number;
+  sucursalId: number;
 
   toInput(): RetiroInput {
     let input = new RetiroInput();
@@ -30,6 +31,7 @@ export class Retiro {
     input.retiroGs = this.retiroGs;
     input.retiroRs = this.retiroRs;
     input.retiroDs = this.retiroDs;
+    input.sucursalId = this.sucursalId
     return input;
   }
   toDetalleInput(): RetiroDetalleInput[] {
@@ -53,6 +55,7 @@ export class RetiroInput {
   retiroGs: number;
   retiroRs: number;
   retiroDs: number;
+  sucursalId: number;
 }
 
 export enum EstadoRetiro {

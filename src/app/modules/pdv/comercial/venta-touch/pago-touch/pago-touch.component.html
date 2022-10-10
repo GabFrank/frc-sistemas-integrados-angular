@@ -652,8 +652,7 @@
           nombre="Descuento (F9)"
           [disableExpression]="
             formGroup.controls.saldo.value == 0 ||
-            formGroup.controls.saldo.value < 0 ||
-            formGroup.controls.saldo.value > data.valor * 0.2
+            formGroup.controls.saldo.value < 0
           "
           (clickEvent)="onDescuento()"
           icon="arrow_downward"

@@ -34,6 +34,10 @@ export const presentacionQuery = gql`
         costo {
           costoMedio
         }
+        envase {
+          id
+          descripcion
+        }
       }
     }
   }

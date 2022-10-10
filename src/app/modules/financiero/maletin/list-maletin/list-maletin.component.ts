@@ -1,6 +1,6 @@
-import { trigger, state, style, transition, animate } from '@angular/animations';
-import { Component, OnInit } from '@angular/core';
-import { MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { animate, state, style, transition, trigger } from '@angular/animations';
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { updateDataSource } from '../../../../commons/core/utils/numbersUtils';
 import { WindowInfoService } from '../../../../shared/services/window-info.service';
@@ -10,6 +10,7 @@ import { MaletinService } from '../maletin.service';
 
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { MatPaginator } from '@angular/material/paginator';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -29,13 +30,15 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 })
 export class ListMaletinComponent implements OnInit {
 
+  @ViewChild('paginator', {static: true}) paginator: MatPaginator;
+
   headerHeight;
   tableHeight;
   containerHeight;
-  displayedColumns: string[] = ['id', 'descripcion', 'activo', 'creadoEn', 'usuario', 'acciones'];
+  displayedColumns: string[] = ['id', 'descripcion', 'sucursalActual', 'activo', 'creadoEn', 'usuario', 'acciones'];
   expandedMaletin: Maletin;
   selectedMaletin: Maletin;
-
+  resultsLength = 0;
   dataSource = new MatTableDataSource<Maletin>(null);
 
   constructor(
@@ -46,14 +49,19 @@ export class ListMaletinComponent implements OnInit {
     this.headerHeight = windowInfoService.innerTabHeight * 0.2;
     this.tableHeight = windowInfoService.innerTabHeight * 0.8;
     this.containerHeight = windowInfoService.innerTabHeight;
+
+    maletinService.onCount().subscribe(res => {
+      if(res!=null) this.resultsLength = res;
+    })
   }
 
   ngOnInit(): void {
-    this.maletinService.onGetAll().subscribe(res => {
+    this.maletinService.onGetAll(this.paginator.pageIndex, this.paginator.pageSize).subscribe(res => {
       if(res!=null){
         this.dataSource.data = res;
+        this.dataSource.paginator = this.paginator;
       }
-    }).unsubscribe()
+    })
   }
 
   rowSelectedEvent(e){

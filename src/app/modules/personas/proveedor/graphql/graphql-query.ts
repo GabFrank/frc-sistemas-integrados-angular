@@ -37,6 +37,7 @@ export const proveedoresSearchByPersona = gql
         }
       }
       credito
+      chequeDias
       tipoCredito
       productos{
         id
@@ -66,7 +67,7 @@ export const proveedoresSearchByProveedor = gql
     }
   }`
 
-  export const proveedoresPorProveedor = gql
+export const proveedoresPorProveedor = gql
   `query($id: Int){
     data : proveedorPorVendedor(id: $id){
       id
@@ -112,6 +113,12 @@ export const saveProveedor = gql
   `mutation saveProveedor($entity:ProveedorInput!){
       data: saveProveedor(proveedor:$entity){
         id
+        credito
+        chequeDias
+        persona {
+          id
+          nombre
+        }
       }
     }`
 

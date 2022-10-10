@@ -40,7 +40,7 @@ export class CajaService {
   //   return this.genericService.onGetAll(this.getAllCajas);
   // }
 
-  onGetByDate(inicio?: Date, fin?: Date): Observable<PdvCaja[]> {
+  onGetByDate(inicio?: Date, fin?: Date, sucId?): Observable<PdvCaja[]> {
     let hoy = new Date();
     if (inicio == null) {
       inicio = new Date()
@@ -50,10 +50,10 @@ export class CajaService {
       fin = new Date()
       fin = hoy;
     }
-    return this.genericService.onGetByFecha(this.cajasPorFecha, inicio, fin);
+    return this.genericService.onGetByFecha(this.cajasPorFecha, inicio, fin, null, sucId);
   }
 
-  onGetBalanceByDate(inicio?: Date, fin?: Date): Observable<CajaBalance> {
+  onGetBalanceByDate(inicio?: Date, fin?: Date, sucId?): Observable<CajaBalance> {
     let hoy = new Date();
     if (inicio == null) {
       inicio = new Date()
@@ -63,32 +63,33 @@ export class CajaService {
       fin = new Date()
       fin = hoy;
     }
-    return this.genericService.onGetByFecha(this.balancePorFecha, inicio, fin);
+    return this.genericService.onGetByFecha(this.balancePorFecha, inicio, fin, null, sucId);
   }
 
   onSave(input: PdvCajaInput): Observable<any> {
     return this.genericService.onSave(this.onSaveCaja, input);
   }
 
-  onGetById(id): Observable<any> {
-    return this.genericService.onGetById(this.cajaPorId, id);
+  onGetById(id, sucId?): Observable<any> {
+    return this.genericService.onGetById(this.cajaPorId, id, null, null, null, sucId);
   }
 
-  onGetByUsuarioIdAndAbierto(id): Observable<any> {
-    return this.genericService.onGetById(this.cajaPorUsuarioIdAndAbierto, id);
+  onGetByUsuarioIdAndAbierto(id, sucId?): Observable<any> {
+    return this.genericService.onGetById(this.cajaPorUsuarioIdAndAbierto, id, null, null, null, sucId);
   }
 
   onDelete(id, showDialog?: boolean): Observable<any> {
     return this.genericService.onDelete(this.deleteCaja, id, showDialog);
   }
 
-  onImprimirBalance(id) {
+  onImprimirBalance(id, sucId?) {
     return this.imprimirBalance
       .fetch(
         {
           id,
           printerName: environment['printers']['ticket'],
-          cajaName: environment['local']
+          cajaName: environment['local'],
+          sucId
         },
         {
           fetchPolicy: "no-cache",

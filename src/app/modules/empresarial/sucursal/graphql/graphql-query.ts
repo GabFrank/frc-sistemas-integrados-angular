@@ -24,6 +24,7 @@ export const sucursalesSearch = gql
       localizacion
       ciudad{
         id
+        descripcion
       }
       creadoEn
       usuario{

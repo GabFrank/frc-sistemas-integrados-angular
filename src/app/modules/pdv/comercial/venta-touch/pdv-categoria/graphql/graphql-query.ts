@@ -40,6 +40,10 @@ export const pdvCategoriaSearch = gql`
             garantia
             combo
             promocion
+            envase {
+              id
+              descripcion
+            }
             codigos {
               id
               caja
@@ -87,6 +91,10 @@ export const pdvCategoriaQuery = gql`
             garantia
             combo
             promocion
+            envase {
+              id
+              descripcion
+            }
             presentacion {
               id
               descripcion
@@ -145,6 +153,10 @@ export const pdvGruposProductosPorGrupoIdQuery = gql`
         garantia
         combo
         promocion
+        envase {
+          id
+          descripcion
+        }
         presentaciones {
           id
           descripcion

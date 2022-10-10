@@ -16,7 +16,7 @@ export class CurrencyMask {
     align: 'right',
     allowZero: true,
     decimal: null,
-    prefix: 'G$',
+    prefix: '',
     suffix: '',
     max: null,
     min: null,

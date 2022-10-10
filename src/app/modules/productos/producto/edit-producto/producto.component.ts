@@ -784,7 +784,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
     this.presentacionService
       .onGetPresentacionesPorProductoId(id).pipe(untilDestroyed(this))
       .subscribe((data) => {
-        this.presentacionesList = data.data.data;
+        this.presentacionesList = data;
         this.presentacionesDataSource.data = [...this.presentacionesList];
         this.isPresentacionLoading = false;
         this.cargandoDialog.closeDialog()

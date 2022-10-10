@@ -1,26 +1,14 @@
-import { EditInventarioComponent } from './../../modules/operaciones/inventario/edit-inventario/edit-inventario.component';
-import { CargandoDialogService } from './../../shared/components/cargando-dialog/cargando-dialog.service';
-import { Injectable, OnInit } from '@angular/core';
-import { Tab } from './tab.model';
+import { EventEmitter, Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { EventEmitter } from '@angular/core';
-import { InventarioDashboardComponent } from '../../modules/operaciones/inventario/inventario-dashboard/inventario-dashboard.component';
-import { ListInventarioComponent } from '../../modules/operaciones/inventario/list-inventario/list-inventario.component';
-import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
-import { FuncionarioDashboardComponent } from '../../modules/personas/funcionarios/funcionario-dashboard/funcionario-dashboard.component';
-import { ListPreRegistroFuncionarioComponent } from '../../modules/personas/funcionarios/list-pre-registro-funcionario/list-pre-registro-funcionario.component';
-import { ListSectorComponent } from '../../modules/empresarial/sector/list-sector/list-sector.component';
-import { ListFuncioarioComponent } from '../../modules/personas/funcionarios/list-funcioario/list-funcioario.component';
-import { ProductoComponent } from '../../modules/productos/producto/edit-producto/producto.component';
-import { Producto } from '../../modules/productos/producto/producto.model';
-import { ProductoService } from '../../modules/productos/producto/producto.service';
-import { ListActualizacionComponent } from '../../modules/configuracion/actualizacion/list-actualizacion/list-actualizacion.component';
-import { ListUsuarioComponent } from '../../modules/personas/usuarios/list-usuario/list-usuario.component';
-import { PersonasDashboardComponent } from '../../modules/personas/personas-dashboard/personas-dashboard.component';
-import { ListPersonaComponent } from '../../modules/personas/persona/list-persona/list-persona.component';
+import { DashboardComponent } from '../../modules/dashboard/dashboard.component';
+import { ListMaletinComponent } from '../../modules/financiero/maletin/list-maletin/list-maletin.component';
 import { ListCajaComponent } from '../../modules/financiero/pdv/caja/list-caja/list-caja.component';
-import { ListRolesComponent } from '../../modules/configuracion/roles/list-roles/list-roles.component';
-import { ListTransferenciaComponent } from '../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
+import { EditPedidoComponent } from '../../modules/operaciones/pedido/edit-pedido/edit-pedido.component';
+import { PedidoDashboardComponent } from '../../modules/operaciones/pedido/pedido-dashboard/pedido-dashboard.component';
+import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
+import { ProductoService } from '../../modules/productos/producto/producto.service';
+import { CargandoDialogService } from './../../shared/components/cargando-dialog/cargando-dialog.service';
+import { Tab } from './tab.model';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -54,8 +42,8 @@ export class TabService {
 
     this.tabs = [
     // new Tab(ListFuncioarioComponent, 'Lista de funcionarios', null, null),
-    // new Tab(ListPersonaComponent, 'Lista de personas', null, null),
-    new Tab(VentaTouchComponent, 'Venta', null, null),
+    // new Tab(VentaTouchComponent, 'Venta', null, null),
+    // new Tab(ListMaletinComponent, 'Lista de maletines', null, null),
     ];
     this.tabSub.next(this.tabs);
 

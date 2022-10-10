@@ -33,6 +33,8 @@ export class SeleccionarEnvaseDialogComponent implements OnInit {
     if (data.envase != null) {
       productoService.onGetProductoPorId(data.envase.id).pipe(untilDestroyed(this)).subscribe((res) => {
         if (res != null) {
+          console.log(res);
+          
           this.selectedEnvase = res;
         }
       });
@@ -49,7 +51,7 @@ export class SeleccionarEnvaseDialogComponent implements OnInit {
     let item = new VentaItem();
     item.cantidad = this.cantidadControl.value;
     item.presentacion = this.selectedEnvase.presentaciones.find(p => p.principal == true);
-    item.precioVenta = item?.presentacion?.precioPrincipal;
+    item.precioVenta = item?.presentacion?.precios.find(p => p.principal == true);
     item.producto = this.selectedEnvase
     this.dialogRef.close(item)
   }

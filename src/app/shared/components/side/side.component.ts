@@ -20,6 +20,11 @@ import { ListFuncioarioComponent } from '../../../modules/personas/funcionarios/
 import { ListPreRegistroFuncionarioComponent } from '../../../modules/personas/funcionarios/list-pre-registro-funcionario/list-pre-registro-funcionario.component';
 import { ListRolesComponent } from '../../../modules/configuracion/roles/list-roles/list-roles.component';
 import { ProductosDashboardComponent } from '../../../modules/productos/productos-dashboard/productos-dashboard.component';
+import { MatDialog } from '@angular/material/dialog';
+import { UltimasCajasDialogComponent } from '../../../modules/pdv/comercial/venta-touch/ultimas-cajas-dialog/ultimas-cajas-dialog.component';
+import { ListPedidoComponent } from '../../../modules/operaciones/pedido/list-pedido/list-pedido.component';
+import { PedidoDashboardComponent } from '../../../modules/operaciones/pedido/pedido-dashboard/pedido-dashboard.component';
+import { ListMaletinComponent } from '../../../modules/financiero/maletin/list-maletin/list-maletin.component';
 
 @Component({
   selector: "app-side",
@@ -30,7 +35,11 @@ export class SideComponent implements OnInit {
 
   isTest = true;
 
-  constructor(public tabService: TabService, public mainService: MainService) {
+  constructor(
+    public tabService: TabService,
+    public mainService: MainService,
+    private matDialog: MatDialog
+  ) {
 
   }
 
@@ -56,7 +65,7 @@ export class SideComponent implements OnInit {
         break;
       case "list-producto":
         if (
-          this.mainService.usuarioActual?.roles.includes(ROLES.VER_PRODUCTOS) || this.isTest || 
+          this.mainService.usuarioActual?.roles.includes(ROLES.VER_PRODUCTOS) || this.isTest ||
           this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
         ) {
           this.tabService.addTab(
@@ -69,16 +78,16 @@ export class SideComponent implements OnInit {
         //   new Tab(ListCompraComponent, "Compras", null, null)
         // );
         break;
-      // case "list-pedido":
-      //   this.tabService.addTab(
-      //     new Tab(ListPedidoComponent, "Pedidos", null, null)
-      //   );
-      //   break;
-      // case "pdv-restaurant":
-      //   // this.tabService.addTab(
-      //   //   new Tab(RestaurantComponent, "Venta Restaurant", null, null)
-      //   // );
-      //   break;
+      case "list-pedido":
+        this.tabService.addTab(
+          new Tab(PedidoDashboardComponent, "Gestion de pedidos", null, null)
+        );
+        break;
+      case "pdv-restaurant":
+        // this.tabService.addTab(
+        //   new Tab(RestaurantComponent, "Venta Restaurant", null, null)
+        // );
+        break;
       case "funcionario-dashboard":
         if (
           this.mainService.usuarioActual?.roles.includes(ROLES.VER_FUNCIONARIOS) || this.isTest
@@ -104,10 +113,18 @@ export class SideComponent implements OnInit {
         // );
         break;
       case "pdv-venta-touch":
-        if (this.mainService.usuarioActual?.roles.includes(ROLES.VENTA_TOUCH) || this.isTest) {
+        if ((this.mainService.usuarioActual?.roles.includes(ROLES.VENTA_TOUCH) || this.isTest)) {
           this.tabService.addTab(
             new Tab(VentaTouchComponent, "Venta Touch", null, null)
           );
+        }
+        break;
+      case "pdv-venta-ultimas-cajas":
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.VENTA_TOUCH) || this.isTest) {
+          this.matDialog.open(UltimasCajasDialogComponent, {
+            width: '90%',
+            height: '90%'
+          })
         }
         break;
       case "list-movimiento":
@@ -193,6 +210,16 @@ export class SideComponent implements OnInit {
         ) {
           this.tabService.addTab(
             new Tab(ListRolesComponent, "Lista de roles", null, null)
+          );
+        }
+        break;
+        case "list-maletin":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.CAMBIAR_COTIZACION
+          ) || this.isTest
+        ) {
+          this.tabService.addTab(
+            new Tab(ListMaletinComponent, "Maletines", null, null)
           );
         }
         break;

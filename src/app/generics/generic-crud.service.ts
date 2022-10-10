@@ -10,6 +10,7 @@ import { DialogosService } from "../shared/components/dialogos/dialogos.service"
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CargandoDialogService } from "../shared/components/cargando-dialog/cargando-dialog.service";
+import { dateToString } from "../commons/core/utils/dateUtils";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -71,12 +72,14 @@ export class GenericCrudService {
     });
   }
 
-  onGetById<T>(gql: any, id: number, page?, size?, servidor?): Observable<T> {
+  onGetById<T>(gql: any, id: number, page?, size?, servidor?, sucId?): Observable<T> {
     this.isLoading = true;
+    console.log('loggin sucId', sucId);
+    
     this.cargandoService.openDialog(false, 'Buscando...')
     return new Observable((obs) => {
       gql
-        .fetch({ id, page, size }, { fetchPolicy: "no-cache", errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }).pipe(untilDestroyed(this))
+        .fetch({ id, page, size, sucId }, { fetchPolicy: "no-cache", errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.cargandoService.closeDialog()
           this.isLoading = false;
@@ -130,6 +133,38 @@ export class GenericCrudService {
       gql
         .mutate(
           { entity: input, printerName, local},
+          { fetchPolicy: "no-cache", errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }
+        ).pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          this.isLoading = false;
+          this.cargandoService.closeDialog()
+          if (res.errors == null) {
+            obs.next(res.data["data"]);
+            this.notificacionSnackBar.notification$.next({
+              texto: "Guardado con éxito",
+              duracion: 2,
+              color: NotificacionColor.success,
+            });
+          } else {
+            this.notificacionSnackBar.notification$.next({
+              texto:
+                "Ups! Algo salió mal en operacion: " +
+                res.errors[0].message,
+              color: NotificacionColor.danger,
+              duracion: 5,
+            });
+          }
+        });
+    });
+  }
+
+  onSaveCustom<T>(gql: Mutation, data, servidor?): Observable<T> {
+    this.isLoading = true;
+    this.cargandoService.openDialog(false, 'Guardando...')
+    return new Observable((obs) => {
+      gql
+        .mutate(
+          data,
           { fetchPolicy: "no-cache", errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {
@@ -240,7 +275,7 @@ export class GenericCrudService {
     });
   }
 
-  onGetByFecha(gql: any, inicio: Date, fin: Date, servidor?): Observable<any> {
+  onGetByFecha(gql: any, inicio: Date, fin: Date, servidor?, sucId?): Observable<any> {
     let hoy = new Date();
     let ayer = new Date(hoy.getDay() - 1);
     ayer.setHours(0);
@@ -265,7 +300,7 @@ export class GenericCrudService {
     }
     return new Observable((obs) => {
       gql
-        .fetch({ inicio, fin }, { fetchPolicy: "no-cache", errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }).pipe(untilDestroyed(this))
+        .fetch({ inicio: dateToString(inicio), fin: dateToString(fin), sucId }, { fetchPolicy: "no-cache", errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             obs.next(res.data["data"]);

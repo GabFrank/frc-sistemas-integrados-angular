@@ -11,8 +11,8 @@ RUN apt-get update
 
 RUN apt-get install sudo
 
-ADD general_costanera_v1.sql /docker-entrypoint-initdb.d/
+ADD bkp_servidor_06_10_22_schema_only.sql /docker-entrypoint-initdb.d/
 
-# docker run --name frc-server -v "C:\FRC\docker\pg-data:/var/lib/postgresql/data" -p 5551:5432 --restart=always -d frc-server
+# docker run --name server-test -p 5555:5556 --restart=always -d frc-test
 
 

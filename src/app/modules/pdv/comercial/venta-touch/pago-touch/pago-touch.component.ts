@@ -5,7 +5,7 @@ import {
   Inject,
   OnDestroy,
   OnInit,
-  ViewChild,
+  ViewChild
 } from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
@@ -13,33 +13,25 @@ import { MatButton } from "@angular/material/button";
 import {
   MatDialog,
   MatDialogRef,
-  MAT_DIALOG_DATA,
+  MAT_DIALOG_DATA
 } from "@angular/material/dialog";
-import { CurrencyMaskConfig, CurrencyMaskInputMode } from "ngx-currency";
+import { CurrencyMaskInputMode } from "ngx-currency";
 import { Subscription } from "rxjs";
-import { CurrencyMask } from "../../../../../commons/core/utils/numbersUtils";
 import { MainService } from "../../../../../main.service";
-import { monedasSearch } from "../../../../../modules/financiero/moneda/graphql/graphql-query";
 import { MonedasGetAllGQL } from "../../../../../modules/financiero/moneda/graphql/monedasGetAll";
-import { MonedasSearchGQL } from "../../../../../modules/financiero/moneda/graphql/monedasSearch";
 import { Moneda } from "../../../../../modules/financiero/moneda/moneda.model";
 import {
-  NotificacionColor,
-  NotificacionSnackbarService,
+  NotificacionSnackbarService
 } from "../../../../../notificacion-snackbar.service";
 import { CargandoDialogService } from "../../../../../shared/components/cargando-dialog/cargando-dialog.service";
-import { DialogosComponent } from "../../../../../shared/components/dialogos/dialogos.component";
 import { DialogosService } from "../../../../../shared/components/dialogos/dialogos.service";
 import { TecladoNumericoComponent } from "../../../../../shared/components/teclado-numerico/teclado-numerico.component";
 import { FormaPago } from "../../../../financiero/forma-pago/forma-pago.model";
 import { FormaPagoService } from "../../../../financiero/forma-pago/forma-pago.service";
-import { DescuentoDialogComponent } from "../descuento-dialog/descuento-dialog.component";
 import {
   SeleccionarBilletesTouchComponent,
-  SelectBilletesResponseData,
+  SelectBilletesResponseData
 } from "../seleccionar-billetes-touch/seleccionar-billetes-touch.component";
-import { TarjetaDialogComponent } from "../tarjeta-dialog/tarjeta-dialog.component";
-import { VueltoDialogComponent } from "../vuelto-dialog/vuelto-dialog.component";
 
 export class PagoItem {
   index?;
@@ -67,10 +59,11 @@ export interface PagoResponseData {
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { AddFacturaLegalDialogComponent } from "../../../../financiero/factura-legal/add-factura-legal-dialog/add-factura-legal-dialog.component";
-import { Venta } from "../../../../operaciones/venta/venta.model";
-import { VentaItem } from "../../../../operaciones/venta/venta-item.model";
 import { AddVentaCreditoDialogComponent } from "../../../../financiero/venta-credito/add-venta-credito-dialog/add-venta-credito-dialog.component";
 import { VentaCredito, VentaCreditoCuotaInput } from "../../../../financiero/venta-credito/venta-credito.model";
+import { VentaItem } from "../../../../operaciones/venta/venta-item.model";
+import { Venta } from "../../../../operaciones/venta/venta.model";
+import { DescuentoDialogComponent, DescuentoDialogData } from "./descuento-dialog/descuento-dialog.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -124,7 +117,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
     prefix: "",
     suffix: "",
     max: null,
-    min: null,
+    min: null
   };
 
   currencyOptionsNoGuarani = {
@@ -139,7 +132,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
     prefix: "",
     suffix: "",
     max: null,
-    min: null,
+    min: null
   };
 
   constructor(
@@ -404,7 +397,9 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
   }
 
   addPagoItem() {
-
+    if(this.selectedFormaPago.descripcion == 'TARJETA'){
+      
+    }
     let valor = this.formGroup.get("valor").value;
     let saldo = this.formGroup.get("saldo").value;
     if (saldo == 0) {
@@ -475,14 +470,39 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
   }
 
   onDescuento() {
-    let valor =
-      this.formGroup.controls.valor.value * this.selectedMoneda.cambio;
-    if (valor < this.data.valor * 0.8 && valor > 0) {
-      this.isDescuento = true;
-      this.isVuelto = false;
-      this.isAumento = false;
-      this.addPagoItem();
+    this.isDialogOpen = true;
+    // let valor =
+    //   this.formGroup.controls.valor.value * this.selectedMoneda.cambio;
+    // if (valor < this.data.valor * 0.8 && valor > 0) {
+    //   this.isDescuento = true;
+    //   this.isVuelto = false;
+    //   this.isAumento = false;
+    //   this.addPagoItem();
+    // }
+    let total = this.data.valor;
+    let saldo = this.formGroup?.controls?.saldo?.value;
+
+    let data: DescuentoDialogData = {
+      valorTotal: total,
+      cambioDs: this.cambioDs,
+      cambioRs: this.cambioRs,
+      saldo: saldo
     }
+    this.matDialog.open(DescuentoDialogComponent, {
+      data: data
+    }).afterClosed().subscribe(res => {
+      this.isDialogOpen = false;
+      if (res > 0) {
+        let valor = res;
+        if (valor < (this.data.valor * 0.25)) {
+          this.isAumento = false;
+          this.isVuelto = false;
+          this.isDescuento = true;
+          this.formGroup.controls.valor.setValue(valor)
+          this.addPagoItem();
+        }
+      }
+    })
   }
 
   onAumento() {

@@ -29,12 +29,13 @@
 
   <mat-divider></mat-divider>
 
-  <mat-accordion>
+  <mat-accordion *ngIf="!mainService?.isServidor">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> PDV </mat-panel-title>
       </mat-expansion-panel-header>
       <a mat-list-item (click)="onItemClick('pdv-venta-touch')">Venta Touch</a>
+      <a mat-list-item (click)="onItemClick('pdv-venta-ultimas-cajas')">Últimas cajas</a>
     </mat-expansion-panel>
   </mat-accordion>
 
@@ -86,6 +87,7 @@
       <a mat-list-item (click)="onItemClick('list-cotizacion')">Cotización</a>
       <a mat-list-item (click)="onItemClick('finanzas-dashboard')">Dashboard</a>
       <a mat-list-item (click)="onItemClick('list-gastos')">Gastos</a>
+      <a mat-list-item (click)="onItemClick('list-maletin')">Maletines</a>
     </mat-expansion-panel>
   </mat-accordion>
 

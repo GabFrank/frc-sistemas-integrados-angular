@@ -6,6 +6,7 @@ import { TipoMovimiento } from "./movimiento-stock.enums";
 
 export class MovimientoStock {
     id: number;
+    sucursalId: number;
     producto: Producto;
     codigo: Codigo;
     tipoMovimiento: TipoMovimiento;

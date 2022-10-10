@@ -1,9 +1,10 @@
 import gql from "graphql-tag";
 
 export const facturaLegalesQuery = gql`
-  {
-    data: facturaLegales {
+  query ($sucId: ID){
+    data: facturaLegales(sucId: $sucId) {
       id
+      sucursalId
       timbrado
       nroSucursal
       nroFactura
@@ -43,9 +44,10 @@ export const facturaLegalesQuery = gql`
 `;
 
 export const facturaLegalQuery = gql`
-  query ($id: ID!) {
-    data: facturaLegal(id: $id) {
+  query ($id: ID!, $sucId: ID) {
+    data: facturaLegal(id: $id, sucId: $sucId) {
       id
+      sucursalId
       timbrado
       nroSucursal
       nroFactura
@@ -91,8 +93,8 @@ export const saveFacturaLegal = gql`
 `;
 
 export const deleteFacturaLegalQuery = gql`
-  mutation deleteFacturaLegal($id: ID!) {
-    deleteFacturaLegal(id: $id)
+  mutation deleteFacturaLegal($id: ID!, $sucId: ID) {
+    deleteFacturaLegal(id: $id, sucId: $sucId)
   }
 `;
 
@@ -117,8 +119,8 @@ export const saveFacturaLegalItem = gql`
 `;
 
 export const imprimirFacturasPorCajaQuery = gql`
-  query ($id: Int, $printerName: String) {
-    data: imprimirFacturasPorCaja(id: $id, printerName: $printerName)
+  query ($id: Int, $printerName: String, $sucId: ID) {
+    data: imprimirFacturasPorCaja(id: $id, printerName: $printerName, sucId: $sucId)
   }
 `;
 

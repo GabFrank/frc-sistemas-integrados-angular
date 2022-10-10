@@ -33,6 +33,7 @@ import { CreateItemDialogComponent } from './transferencia/create-item-dialog/cr
 import { ModificarItemDialogComponent } from './transferencia/modificar-item-dialog/modificar-item-dialog.component';
 import { TransferenciaTimelineDialogComponent } from '../transferencias/transferencia-timeline-dialog/transferencia-timeline-dialog.component';
 import { EmpresarialModule } from '../empresarial/empresarial.module';
+import { PedidoDashboardComponent } from './pedido/pedido-dashboard/pedido-dashboard.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -64,6 +65,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     CreateItemDialogComponent,
     ModificarItemDialogComponent,
     TransferenciaTimelineDialogComponent,
+    PedidoDashboardComponent,
   ],
   imports: [
     CommonModule,
