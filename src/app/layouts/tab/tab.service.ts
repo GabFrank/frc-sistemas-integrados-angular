@@ -5,6 +5,7 @@ import { ListMaletinComponent } from '../../modules/financiero/maletin/list-male
 import { ListCajaComponent } from '../../modules/financiero/pdv/caja/list-caja/list-caja.component';
 import { EditPedidoComponent } from '../../modules/operaciones/pedido/edit-pedido/edit-pedido.component';
 import { PedidoDashboardComponent } from '../../modules/operaciones/pedido/pedido-dashboard/pedido-dashboard.component';
+import { ListTransferenciaComponent } from '../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
 import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
 import { ProductoService } from '../../modules/productos/producto/producto.service';
 import { CargandoDialogService } from './../../shared/components/cargando-dialog/cargando-dialog.service';
@@ -43,7 +44,7 @@ export class TabService {
     this.tabs = [
     // new Tab(ListFuncioarioComponent, 'Lista de funcionarios', null, null),
     // new Tab(VentaTouchComponent, 'Venta', null, null),
-    // new Tab(ListMaletinComponent, 'Lista de maletines', null, null),
+    new Tab(ListTransferenciaComponent, 'Lista de transferencias', null, null),
     ];
     this.tabSub.next(this.tabs);
 

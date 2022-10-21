@@ -10,7 +10,7 @@ restart cron
 
 -- comando para hacer backup de base de datos
 pg_dump -U franco -W central > central_servidor.sql
-pg_dump -U franco -W general > bkp_filial_08_10_22.sql
+pg_dump -U franco -W general > bkp_pk_12_10_22.sql
 pg_dump -s -U franco -W central > bkp_servidor_06_10_22_schema_only.sql
 -- comando para hacer restore de base de datos
 psql -U franco -W dba < dbb.sql

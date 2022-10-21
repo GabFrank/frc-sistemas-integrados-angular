@@ -20,9 +20,9 @@ export class MostrarBalanceDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    console.log(this.data);
     if(this.data.balance!=null){
       this.selectedBalance = this.data.balance;
     }
   }
-
 }

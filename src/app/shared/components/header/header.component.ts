@@ -77,17 +77,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   toogleSideBar() {
-    this.mainService
-      .isAuthenticated()
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res) {
-          this.toogleSideBarEvent.emit();
-          setTimeout(() => {
-            window.dispatchEvent(new Event("resize"));
-          }, 300);
-        }
-      });
+    this.toogleSideBarEvent.emit();
+    setTimeout(() => {
+      window.dispatchEvent(new Event("resize"));
+    }, 300);
   }
 
   onLogout() {
@@ -100,7 +93,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.electronService.relaunch()
   }
 
-  onLogin(){
+  onLogin() {
     this.electronService.relaunch()
   }
 

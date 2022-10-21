@@ -30,6 +30,7 @@ export class CustomData {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { ProductoPorCodigoGQL } from "./graphql/productoPorCodigo";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -56,7 +57,8 @@ export class ProductoService {
     private genericService: GenericCrudService,
     private getProductoParaPedido: ProductoParaPedidoGQL,
     private exportarReporte: ExportarProductoGQL,
-    private findByPdvGrupoProductoId: FindByPdvGrupoProductoIdGQL
+    private findByPdvGrupoProductoId: FindByPdvGrupoProductoIdGQL,
+    private productoPorCodigo: ProductoPorCodigoGQL
   ) {
     this.productosList = [];
     // getAllProductos.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
@@ -66,6 +68,10 @@ export class ProductoService {
     //     console.log(this.productosList)
     //   }
     // })
+  }
+
+  onGetProductoPorCodigo(texto): Observable<Producto>{
+    return this.genericService.onCustomQuery(this.productoPorCodigo, {texto});
   }
 
   onSearch(texto, offset?): Observable<Producto[]> {

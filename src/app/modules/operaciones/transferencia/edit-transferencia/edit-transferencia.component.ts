@@ -11,18 +11,22 @@ import { Presentacion } from '../../../productos/presentacion/presentacion.model
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SeleccionarSucursalDialogComponent } from '../seleccionar-sucursal-dialog/seleccionar-sucursal-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
-import { Component, HostListener, Input, OnInit } from '@angular/core';
+import { Component, ElementRef, HostListener, Input, OnInit, ViewChild } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { CreateItemDialogComponent } from '../create-item-dialog/create-item-dialog.component';
-import { updateDataSourceInsertFirst, updateDataSourceWithId } from '../../../../commons/core/utils/numbersUtils';
+import { updateDataSource, updateDataSourceInsertFirst, updateDataSourceWithId } from '../../../../commons/core/utils/numbersUtils';
 import { EtapaTransferencia, TipoTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem } from '../transferencia.model';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { SelectionModel } from '@angular/cdk/collections';
 import { ModificarItemDialogComponent } from '../modificar-item-dialog/modificar-item-dialog.component';
+import { FormControl, Validators } from '@angular/forms';
+import { Producto } from '../../../productos/producto/producto.model';
+import { ProductoService } from '../../../productos/producto/producto.service';
+import { MatSelect } from '@angular/material/select';
 
 
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-edit-transferencia',
   templateUrl: './edit-transferencia.component.html',
@@ -37,6 +41,11 @@ import { ModificarItemDialogComponent } from '../modificar-item-dialog/modificar
 })
 export class EditTransferenciaComponent implements OnInit {
 
+  @ViewChild('codigoInput', { static: false }) codigoInput: ElementRef;
+  @ViewChild('cantPresentacionInput', { static: false }) cantPresentacionInput: ElementRef;
+  @ViewChild('vencimientoInput', { static: false }) vencimientoInput: ElementRef;
+  @ViewChild('matSelect', { static: false }) matSelect: MatSelect;
+  
   @Input()
   data: Tab;
 
@@ -47,6 +56,8 @@ export class EditTransferenciaComponent implements OnInit {
   selectedSucursalDestino: Sucursal;
 
   selectedTransferencia = new Transferencia;
+
+  selectedProducto = new Producto;
 
   dataSource = new MatTableDataSource<TransferenciaItem>([])
 
@@ -76,7 +87,7 @@ export class EditTransferenciaComponent implements OnInit {
 
   isOrigen = false;
   isDestino = false;
-
+  isPesable = false;
   selection = new SelectionModel<TransferenciaItem>(true, []);
 
   etapaList;
@@ -85,12 +96,23 @@ export class EditTransferenciaComponent implements OnInit {
 
   selectedResponsable;
 
+  codigoControl = new FormControl(null, Validators.required);
+  presentacionControl = new FormControl(null, Validators.required);
+  cantidadPresentacionControl = new FormControl(1, [Validators.min(0), Validators.pattern('\\d+([.]\\d+)?')]);
+  cantidadUnidadControl = new FormControl(1, [Validators.min(0), Validators.pattern('\\d+([.]\\d+)?')]);
+  vencimientoControl = new FormControl(null)
   constructor(private matDialog: MatDialog,
     public mainService: MainService,
     private transferenciaService: TransferenciaService,
-    private cargandoService: CargandoDialogService) { }
+    private cargandoService: CargandoDialogService,
+    private productoService: ProductoService
+  ) {
+
+  }
 
   ngOnInit(): void {
+
+    this.dataSource.data = []
 
     this.etapaList = Object.values(EtapaTransferencia)
 
@@ -108,6 +130,20 @@ export class EditTransferenciaComponent implements OnInit {
       }, 1000);
     }
 
+    this.cantidadUnidadControl.disable()
+
+    this.cantidadPresentacionControl.valueChanges.subscribe(res => {
+      if (res != null && this.presentacionControl.valid) {
+        this.cantidadUnidadControl.enable()
+        this.cantidadUnidadControl.setValue(this.presentacionControl.value?.cantidad * res)
+        this.cantidadUnidadControl.disable()
+      }
+    })
+
+    setTimeout(() => {
+      this.codigoInput.nativeElement.focus()
+    }, 1000);
+
   }
 
   @HostListener("window:keyup", ["$event"])
@@ -118,10 +154,6 @@ export class EditTransferenciaComponent implements OnInit {
     }
     if (this.selectedTransferencia.etapa == EtapaTransferencia.PRE_TRANSFERENCIA_CREACION) {
       switch (key) {
-        case 'Enter':
-          this.onAddItem()
-          break;
-
         default:
           break;
       }
@@ -186,7 +218,7 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onRefresh() {
-    this.cargarDatos()
+    this.ngOnInit()
   }
 
   verificarEtapa() {
@@ -256,10 +288,10 @@ export class EditTransferenciaComponent implements OnInit {
 
 
 
-  onAddItem() {
+  onAddItem(texto?) {
     this.isDialogOpen = true;
     let data: PdvSearchProductoData = {
-      texto: null,
+      texto: texto,
       cantidad: 1,
       mostrarOpciones: false,
       mostrarStock: true,
@@ -271,19 +303,25 @@ export class EditTransferenciaComponent implements OnInit {
     }).afterClosed().subscribe(res => {
       this.isDialogOpen = false;
       let response: PdvSearchProductoResponseData = res;
-      if (response.presentacion != null) {
-        this.createItem(response.presentacion)
-      }
+      // if (response.presentacion != null) {
+      //   this.createItem(response.presentacion, null, response.cantidad)
+      // }
+      this.selectedProducto = response.producto;
+      this.presentacionControl.setValue(response.presentacion)
+      this.cantidadPresentacionControl.setValue(1)
+      this.cantPresentacionInput.nativeElement.select()
+      this.codigoControl.setValue(response.presentacion?.codigoPrincipal?.codigo)
     })
   }
 
-  createItem(presentacion: Presentacion, item?) {
+  createItem(presentacion: Presentacion, item?, cantidad?) {
     this.isDialogOpen = true;
     this.matDialog.open(CreateItemDialogComponent, {
       data: {
         item,
         presentacion,
-        transferencia: this.selectedTransferencia
+        transferencia: this.selectedTransferencia,
+        cantidad
       },
       width: '40%',
       disableClose: true
@@ -347,8 +385,12 @@ export class EditTransferenciaComponent implements OnInit {
       })
   }
 
-  onDeleteItem(item: TransferenciaItem) {
-    this.transferenciaService.onDeleteTransferenciaItem(item.id)
+  onDeleteItem(item: TransferenciaItem, index) {
+    this.transferenciaService.onDeleteTransferenciaItem(item.id).subscribe(res => {
+      if(res){
+        this.dataSource.data = updateDataSource(this.dataSource.data, null, index);
+      }
+    })    
   }
 
   onEditItem(item: TransferenciaItem) {
@@ -554,5 +596,97 @@ export class EditTransferenciaComponent implements OnInit {
     }).afterClosed().subscribe(res => {
       this.isDialogOpen = false;
     })
+  }
+
+  onSearchPorCodigo() {
+    if (this.codigoControl.valid) {
+      let text = this.codigoControl.value;
+      this.isPesable = false;
+      let peso;
+      let codigo;
+      if (text.length == 13 && text.substring(0, 2) == '20') {
+        this.isPesable = true;
+        codigo = text.substring(2, 7)
+        peso = +text.substring(7, 12) / 1000
+        text = codigo
+        this.cantidadUnidadControl.enable();
+        this.cantidadPresentacionControl.setValue(peso);
+        this.cantidadUnidadControl.setValue(peso);
+        this.cantidadPresentacionControl.disable();
+        this.cantidadUnidadControl.disable();
+        this.presentacionControl.disable();
+      } else {
+        this.cantidadPresentacionControl.enable();
+        this.presentacionControl.enable();
+      }
+      this.productoService.onGetProductoPorCodigo(text).subscribe(res => {
+        if (res != null) {
+          this.selectedProducto = res;
+          if (this.selectedProducto?.presentaciones?.length == 1) {
+            this.presentacionControl.setValue(this.selectedProducto.presentaciones[0])
+            if(!this.isPesable){
+              this.cantidadPresentacionControl.setValue(1)
+              this.cantidadUnidadControl.setValue(this.presentacionControl.value?.cantidad)
+            }
+            if (this.selectedProducto.balanza) {
+              this.vencimientoInput.nativeElement.select()
+            } else {
+              this.cantPresentacionInput.nativeElement.select()
+            }
+          } else if(this.selectedProducto?.presentaciones?.length > 1) {
+            this.presentacionControl.setValue(this.selectedProducto.presentaciones[0])
+            this.matSelect.focus()
+            this.matSelect.open()
+          } else {
+            
+          }
+        } else {
+          this.onAddItem(this.codigoControl.value)
+        }
+      })
+    } else {
+      this.onAddItem()
+    }
+  }
+  onPresentacionSelect() {
+    this.cantPresentacionInput.nativeElement.select()
+    this.matSelect.close()
+  }
+  onCantidadPresentacionEnter() {
+    this.vencimientoInput.nativeElement.select()
+  }
+  onCantidadUnidadEnter() {
+
+  }
+
+  onVencimientoEnter() {
+    this.cantidadPresentacionControl.enable();
+    this.presentacionControl.enable();
+    if (this.selectedProducto != null && this.presentacionControl.valid && this.cantidadPresentacionControl.valid && (this.vencimientoControl.value==null || this.vencimientoControl.value >= new Date())) {
+      let item = new TransferenciaItem;
+      item.activo = true;
+      item.cantidadPreTransferencia = this.cantidadPresentacionControl.value;
+      item.vencimientoPreTransferencia = this.vencimientoControl.value;
+      item.transferencia = this.selectedTransferencia;
+      item.presentacionPreTransferencia = this.presentacionControl.value;
+      item.poseeVencimiento = this.vencimientoControl.value != null;
+      this.onSaveTransferenciaItem(item);
+      this.onClear();
+    }
+  }
+
+  onCodigoFocus(){
+    this.codigoInput.nativeElement.select()
+  }
+
+  onClear(){
+    this.selectedProducto = null;
+    this.presentacionControl.setValue(null);
+    this.isPesable = false;
+    this.cantidadPresentacionControl.setValue(1);
+    this.cantidadUnidadControl.setValue(1);
+    this.vencimientoControl.setValue(null);
+    this.codigoControl.setValue(null);
+    this.codigoInput.nativeElement.select();
   }
 }

@@ -25,6 +25,9 @@ import { UltimasCajasDialogComponent } from '../../../modules/pdv/comercial/vent
 import { ListPedidoComponent } from '../../../modules/operaciones/pedido/list-pedido/list-pedido.component';
 import { PedidoDashboardComponent } from '../../../modules/operaciones/pedido/pedido-dashboard/pedido-dashboard.component';
 import { ListMaletinComponent } from '../../../modules/financiero/maletin/list-maletin/list-maletin.component';
+import { CargandoDialogComponent } from '../cargando-dialog/cargando-dialog.component';
+import { CargandoDialogService } from '../cargando-dialog/cargando-dialog.service';
+import { ElectronService } from '../../../commons/core/electron/electron.service';
 
 @Component({
   selector: "app-side",
@@ -38,7 +41,9 @@ export class SideComponent implements OnInit {
   constructor(
     public tabService: TabService,
     public mainService: MainService,
-    private matDialog: MatDialog
+    private matDialog: MatDialog,
+    private cargandoDialogService: CargandoDialogService,
+    private electronService: ElectronService
   ) {
 
   }
@@ -213,7 +218,7 @@ export class SideComponent implements OnInit {
           );
         }
         break;
-        case "list-maletin":
+      case "list-maletin":
         if (
           this.mainService.usuarioActual?.roles.includes(ROLES.CAMBIAR_COTIZACION
           ) || this.isTest
@@ -226,5 +231,19 @@ export class SideComponent implements OnInit {
       default:
         break;
     }
+  }
+
+  onLogout() {
+    this.cargandoDialogService.openDialog();
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuarioId");
+    this.mainService.usuarioActual = null;
+    this.mainService.logged = false;
+    this.tabService.removeAllTabs()
+    this.electronService.relaunch()
+  }
+
+  onLogin() {
+    this.electronService.relaunch()
   }
 }

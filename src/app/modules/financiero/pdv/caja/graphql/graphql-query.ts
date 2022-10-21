@@ -65,10 +65,7 @@ export const cajasPorFecha = gql`
 export const balancePorFecha = gql`
   query ($inicio: String, $fin: String, $sucId: ID) {
     data: balancePorFecha(inicio: $inicio, fin: $fin, sucId: $sucId) {
-      totalVentaGs
-      totalVentaRs
-      totalVentaDs
-      totalTarjeta
+      totalGeneral
     }
   }
 `;

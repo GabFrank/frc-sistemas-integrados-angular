@@ -11,6 +11,7 @@ export interface CreateItemDialogData {
   item: TransferenciaItem;
   presentacion: Presentacion;
   transferencia?: Transferencia;
+  cantidad?: number;
 }
 
 
@@ -45,7 +46,6 @@ export class CreateItemDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-
     this.cargandoService.openDialog()
     this.selectedtransferencia = this.data.transferencia;
     if (this.data.item != null) {
@@ -63,6 +63,10 @@ export class CreateItemDialogComponent implements OnInit {
         })
     } else {
       this.matDialogRef.close()
+    }
+
+    if(this.data?.cantidad != null){
+      this.cantidadControl.setValue(this.data.cantidad)
     }
 
     // this.poseeVencimientoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {

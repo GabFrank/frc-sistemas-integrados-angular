@@ -65,3 +65,7 @@ input::-webkit-inner-spin-button {
 th {
   height: 80% !important;
 }
+
+input {
+  text-transform: uppercase;
+}

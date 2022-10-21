@@ -1,11 +1,12 @@
-<mat-nav-list>
+<mat-nav-list style="min-width: 300px;">
   <div class="profile-card">
     <div class="header"></div>
-    <h3 style="margin-bottom: 0px">
+    <h3 style="margin-bottom: 0px; padding: 5px;">
       {{ mainService?.usuarioActual?.persona?.nombre }}
     </h3>
-    <div style="text-align: center; width: 100%;">
-      <mat-icon style="width: 100px; height: 100px; font-size: 100px; margin: 0px;"
+    <div style="text-align: center; width: 100%">
+      <mat-icon
+        style="width: 100px; height: 100px; font-size: 100px; margin: 0px"
         >perm_identity</mat-icon
       >
     </div>
@@ -17,7 +18,7 @@
     <h5>{{ mainService?.usuarioActual?.email }}</h5>
   </div>
 
-  <div
+  <!-- <div
     fxLayout="row"
     fxLayoutAlign="center center"
     style="padding-bottom: 10px"
@@ -25,17 +26,19 @@
     <div fxFlex="45">
       <mat-slide-toggle>Reportes</mat-slide-toggle>
     </div>
-  </div>
+  </div> -->
 
   <mat-divider></mat-divider>
 
-  <mat-accordion *ngIf="!mainService?.isServidor">
+  <mat-accordion *ngIf="!mainService?.isServidor && mainService?.usuarioActual!=null">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> PDV </mat-panel-title>
       </mat-expansion-panel-header>
       <a mat-list-item (click)="onItemClick('pdv-venta-touch')">Venta Touch</a>
-      <a mat-list-item (click)="onItemClick('pdv-venta-ultimas-cajas')">Últimas cajas</a>
+      <a mat-list-item (click)="onItemClick('pdv-venta-ultimas-cajas')"
+        >Últimas cajas</a
+      >
     </mat-expansion-panel>
   </mat-accordion>
 
@@ -58,10 +61,18 @@
           <mat-expansion-panel-header>
             <mat-panel-title> Gestión de Stock </mat-panel-title>
           </mat-expansion-panel-header>
-          <a mat-list-item (click)="onItemClick('list-entrada-salida')">Entrada/Salida</a>
-          <a mat-list-item (click)="onItemClick('list-movimiento')">Movimientos</a>
-          <a mat-list-item (click)="onItemClick('list-transferencias')">Transferencias</a>
-          <a mat-list-item (click)="onItemClick('list-inventario')">Inventarios</a>
+          <a mat-list-item (click)="onItemClick('list-entrada-salida')"
+            >Entrada/Salida</a
+          >
+          <a mat-list-item (click)="onItemClick('list-movimiento')"
+            >Movimientos</a
+          >
+          <a mat-list-item (click)="onItemClick('list-transferencias')"
+            >Transferencias</a
+          >
+          <a mat-list-item (click)="onItemClick('list-inventario')"
+            >Inventarios</a
+          >
         </mat-expansion-panel>
       </mat-accordion>
       <mat-accordion *ngIf="isTest">
@@ -73,9 +84,15 @@
           <!-- <a mat-list-item (click)="onItemClick('list-movimiento')">Movimientos</a> -->
         </mat-expansion-panel>
       </mat-accordion>
-      <a [hidden]="true" mat-list-item (click)="onItemClick('list-necesidad')">Necesidad</a>
-      <a [hidden]="true" mat-list-item (click)="onItemClick('list-pedido')">Pedidos</a>
-      <a [hidden]="true" mat-list-item (click)="onItemClick('list-compra')">Compras</a>
+      <a [hidden]="true" mat-list-item (click)="onItemClick('list-necesidad')"
+        >Necesidad</a
+      >
+      <a [hidden]="true" mat-list-item (click)="onItemClick('list-pedido')"
+        >Pedidos</a
+      >
+      <a [hidden]="true" mat-list-item (click)="onItemClick('list-compra')"
+        >Compras</a
+      >
     </mat-expansion-panel>
   </mat-accordion>
 
@@ -98,7 +115,9 @@
       </mat-expansion-panel-header>
       <a mat-list-item (click)="onItemClick('list-producto')">Productos</a>
       <a mat-list-item (click)="onItemClick('list-cliente')">Clientes</a>
-      <a mat-list-item (click)="onItemClick('list-funcionario')">Funcionarios</a>
+      <a mat-list-item (click)="onItemClick('list-funcionario')"
+        >Funcionarios</a
+      >
       <a mat-list-item (click)="onItemClick('list-proveedor')">Proveedores</a>
     </mat-expansion-panel>
   </mat-accordion>
@@ -144,5 +163,14 @@
     </mat-expansion-panel>
   </mat-accordion>
 
+  <!-- <mat-accordion>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title> Configuración </mat-panel-title>
+      </mat-expansion-panel-header>
+    </mat-expansion-panel>
+  </mat-accordion> -->
+  <app-boton *ngIf="mainService?.usuarioActual != null" nombre="Salir" (clickEvent)="onLogout()"></app-boton>
+  <app-boton color="accent" *ngIf="mainService?.usuarioActual == null" nombre="Entrar" (clickEvent)="onLogin()"></app-boton>
   <!-- <h3 matSubheader>Pages</h3> -->
 </mat-nav-list>

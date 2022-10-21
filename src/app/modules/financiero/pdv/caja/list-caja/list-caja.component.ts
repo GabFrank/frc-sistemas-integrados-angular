@@ -288,7 +288,7 @@ export class ListCajaComponent implements OnInit {
   }
 
   getBalance() {
-    this.cajaService.onGetBalanceByDate(this.fechaInicioControl.value, this.fechaFinalControl.value)
+    this.cajaService.onGetBalanceByDate(this.fechaInicioControl.value, this.fechaFinalControl.value, this.selectedSucursal?.id)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         if (res != null) {
