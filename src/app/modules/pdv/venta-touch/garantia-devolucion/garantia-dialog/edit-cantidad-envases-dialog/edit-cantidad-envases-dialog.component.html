@@ -1,0 +1,30 @@
+<div fxLayout="column" fxLayoutGap="10px" style="width: 100%">
+  <div fxFlex style="width: 100%; text-align: center">
+    <h3>Cantidad de envases a devolver</h3>
+  </div>
+  <div fxFlex>
+    <mat-form-field>
+      <input
+        type="text"
+        matInput
+        [formControl]="cantidadControl"
+        (keyup.enter)="cantidadControl.valid ? onAceptar() : null"
+      />
+    </mat-form-field>
+  </div>
+  <div fxFlex>
+    <app-boton
+      nombre="Aceptar"
+      color="accent"
+      [disableExpression]="cantidadControl.invalid"
+      (clickEvent)="onAceptar()"
+    ></app-boton>
+  </div>
+  <div fxFlex>
+    <app-boton
+      nombre="Cancelar"
+      color="primary"
+      (clickEvent)="onCancelar()"
+    ></app-boton>
+  </div>
+</div>

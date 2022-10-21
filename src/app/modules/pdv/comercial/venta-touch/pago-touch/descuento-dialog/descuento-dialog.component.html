@@ -1,0 +1,80 @@
+<div fxLayout="column" fxLayoutGap="10px" style="width: 400px">
+  <div fxFlex style="width: 100%; text-align: center">
+    <h3>Descuento</h3>
+  </div>
+  <div fxFlex>
+    <mat-form-field style="width: 100%">
+      <mat-label>Porcentaje (%)</mat-label>
+      <input
+        #porcentaje
+        matInput
+        type="number"
+        [formControl]="porcentajeDescuento"
+        autocomplete="off"
+        (keyup.enter)="onGuardar(); $event.stopPropagation()"
+        (keyup)="onKeyUp(4, porcentajeDescuento.value)"
+        style="text-align: end"
+      />
+      <span matSuffix>% &nbsp;</span>
+    </mat-form-field>
+  </div>
+  <div fxFlex>
+    <mat-form-field style="width: 100%">
+      <mat-label>Valor en Guaranies</mat-label>
+      <input
+        matInput
+        type="text"
+        [formControl]="valorDescuentoGsControl"
+        currencyMask
+        [options]="currencyOptionsGuarani"
+        autocomplete="off"
+        (keyup.enter)="onGuardar()"
+        (keyup)="onKeyUp(1, valorDescuentoGsControl.value)"
+      />
+    </mat-form-field>
+  </div>
+  <div fxFlex>
+    <mat-form-field style="width: 100%">
+      <mat-label>Valor en Reales</mat-label>
+      <input
+        matInput
+        type="text"
+        [formControl]="valorDescuentoRsControl"
+        currencyMask
+        [options]="currencyOptionsNoGuarani"
+        autocomplete="off"
+        (keyup.enter)="onGuardar(); $event.stopPropagation()"
+        (keyup)="onKeyUp(2, valorDescuentoRsControl.value)"
+      />
+    </mat-form-field>
+  </div>
+  <div fxFlex>
+    <mat-form-field style="width: 100%">
+      <mat-label>Valor en Dolares</mat-label>
+      <input
+        matInput
+        type="text"
+        [formControl]="valorDescuentoDsControl"
+        currencyMask
+        [options]="currencyOptionsNoGuarani"
+        autocomplete="off"
+        (keyup.enter)="onGuardar(); $event.stopPropagation()"
+        (keyup)="onKeyUp(3, valorDescuentoDsControl.value)"
+      />
+    </mat-form-field>
+  </div>
+  <div fxFlex>
+    <app-boton
+      nombre="Cancelar"
+      color="primary"
+      (clickEvent)="onCancelar()"
+    ></app-boton>
+  </div>
+  <div fxFlex>
+    <app-boton
+      nombre="Aceptar"
+      color="accent"
+      (clickEvent)="onGuardar()"
+    ></app-boton>
+  </div>
+</div>

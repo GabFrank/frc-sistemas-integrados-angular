@@ -1,0 +1,90 @@
+<app-generic-list
+  titulo="Lista de Cajas"
+  (isFiltrar)="false"
+  style="height: 95%"
+  [data]="dataSource.data"
+  (cargarMasDatos)="cargarMasDatos()"
+  [isLastPage]="isLastPage"
+>
+  <!-- <div filtros></div> -->
+  <div table>
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      multiTemplateDataRows
+      class="mat-elevation-z8"
+      style="width: 100%"
+    >
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef style="width: 5%">Id</th>
+        <td mat-cell *matCellDef="let caja" style="width: 5%">
+          {{ caja.id }}
+        </td>
+      </ng-container>
+
+      <!-- Name Column -->
+      <ng-container matColumnDef="responsable">
+        <th mat-header-cell *matHeaderCellDef style="width: 40%">Cajero</th>
+        <td mat-cell *matCellDef="let caja" style="width: 40%">
+          {{ caja?.usuario?.persona?.nombre | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="fechaApertura">
+        <th mat-header-cell *matHeaderCellDef style="width: 20%">
+          Fecha apertura
+        </th>
+        <td mat-cell *matCellDef="let caja" style="width: 20%">
+          {{ caja?.fechaApertura | date: "short" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="fechaCierre">
+        <th mat-header-cell *matHeaderCellDef style="width: 20%">
+          FechaCierre
+        </th>
+        <td mat-cell *matCellDef="let caja" style="width: 20%">
+          {{ caja?.fechaCierre | date: "short" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 5%; text-align: center"
+        >
+          ...
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let caja; let i = index"
+          style="text-align: center; width: 5%"
+        >
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button
+              mat-menu-item
+              (click)="onImprimirBalance(caja)"
+              [disabled]="caja?.fechaCierre == null"
+            >
+              Imprimir balance
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+      ></tr>
+    </table>
+  </div>
+</app-generic-list>

@@ -1,0 +1,60 @@
+<div fxLayout="column" fxLayoutGap="10px" style="width: 100%; height: 100%">
+  <div fxFlex style="width: 100%; text-align: center">
+    <h3>
+      {{ selectedProveedor == null ? "Nuevo Proveedor" : "Editar Proveedor" }}
+    </h3>
+  </div>
+  <div fxFlex fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+    <div fxFlex="80%">
+      <mat-form-field style="width: 90%">
+        <mat-label class="required-field">Persona</mat-label>
+        <input type="text" matInput [formControl]="nombreControl" />
+      </mat-form-field>
+    </div>
+    <div fxFlex="20%" fxLayout="row" fxLayoutAlign="space-around center">
+      <div fxFlex>
+        <mat-icon class="highlight-hover" (click)="onSearchPersona()">search</mat-icon>
+      </div>
+      <div fxFlex>
+        <mat-icon class="highlight-hover" (click)="onAddPersona()">add_circle</mat-icon>
+      </div>
+      <div fxFlex>
+        <mat-icon class="highlight-hover-danger" (click)="onClearData()">clear</mat-icon>
+      </div>
+    </div>
+  </div>
+  <div fxFlex fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+    <mat-label>Crédito</mat-label>
+    <section>
+      <mat-slide-toggle
+        color="primary"
+        [checked]="creditoControl.value"
+        [formControl]="creditoControl"
+      >
+        {{ creditoControl.value ? "Si" : "No" }}
+      </mat-slide-toggle>
+    </section>
+    <div fxFlex="10%"></div>
+    <mat-form-field *ngIf="creditoControl.value == true">
+      <mat-label>Plazo en días</mat-label>
+      <input type="number" matInput [formControl]="chequeDiasControl"/>
+    </mat-form-field>
+  </div>
+  <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="10px">
+    <div fxFlex="30%">
+      <app-boton
+        nombre="Cancelar"
+        color="primary"
+        (clickEvent)="onCancelar()"
+      ></app-boton>
+    </div>
+    <div fxFlex="30%">
+      <app-boton
+        nombre="Guardar"
+        color="accent"
+        [disableExpression]="selectedPersona==null"
+        (clickEvent)="onGuardar()"
+      ></app-boton>
+    </div>
+  </div>
+</div>
