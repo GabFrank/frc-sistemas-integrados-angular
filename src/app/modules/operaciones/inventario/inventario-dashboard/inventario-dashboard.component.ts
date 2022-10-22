@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { ListInventarioComponent } from '../list-inventario/list-inventario.component';
 import { EditInventarioComponent } from '../edit-inventario/edit-inventario.component';
+import { ListSectorComponent } from '../../../empresarial/sector/list-sector/list-sector.component';
 
 @Component({
   selector: 'app-inventario-dashboard',
@@ -25,6 +26,10 @@ export class InventarioDashboardComponent implements OnInit {
   
   onNuevoInventario(){
     this.tabService.addTab(new Tab(EditInventarioComponent, 'Nuevo inventario', null, InventarioDashboardComponent))
+  }
+
+  onListSectores(){
+    this.tabService.addTab(new Tab(ListSectorComponent, 'Lista de sectores', null, InventarioDashboardComponent))
   }
 
 }

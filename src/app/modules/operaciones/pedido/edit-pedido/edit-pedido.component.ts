@@ -1,69 +1,57 @@
 import {
-  trigger,
-  state,
+  animate, state,
   style,
-  transition,
-  animate,
+  transition, trigger
 } from "@angular/animations";
 import {
   Component,
   ElementRef,
   Input,
   OnInit,
-  ViewChild,
-  ViewEncapsulation,
+  ViewChild
 } from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
+import { MatDialog } from "@angular/material/dialog";
+import { MatStepper } from "@angular/material/stepper";
+import { MatTableDataSource } from "@angular/material/table";
+import { Observable, Subscription } from "rxjs";
+import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
 import { Moneda } from "../../../../modules/financiero/moneda/moneda.model";
 import { Proveedor } from "../../../../modules/personas/proveedor/proveedor.model";
-import { PedidoEstado } from "./pedido-enums";
+import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
+import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { FormaPago } from "../../../financiero/forma-pago/forma-pago.model";
-import { Usuario } from "../../../personas/usuarios/usuario.model";
-import { Pedido } from "./pedido.model";
-import { MonedaComponent } from "../../../financiero/moneda/moneda.component";
-import { Observable, Subscription } from "rxjs";
-import { ProveedorService } from "../../../personas/proveedor/proveedor.service";
-import { VendedorService } from "../../../personas/vendedor/vendedor.service";
-import { Vendedor } from "../../../personas/vendedor/vendedor.model";
 import { FormaPagoService } from "../../../financiero/forma-pago/forma-pago.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
-import {
-  orderByIdAsc,
-  orderByIdDesc,
-} from "../../../../commons/core/utils/arraysUtil";
-import { MatTableDataSource } from "@angular/material/table";
-import { PedidoItem } from "./pedido-item.model";
-import { randomInt } from "crypto";
-import { Producto } from "../../../productos/producto/producto.model";
-import { MatDialog } from "@angular/material/dialog";
-import { AdicionarItemDialogComponent } from "../adicionar-item-dialog/adicionar-item-dialog.component";
-import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
-import { Tab } from "../../../../layouts/tab/tab.model";
-import { PedidoService } from "../pedido.service";
-import { MatStepper } from "@angular/material/stepper";
-import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
-import { NotaRecepcion } from "../nota-recepcion/nota-recepcion.model";
-import {
-  AdicionarNotaRecepcionData,
-  AdicionarNotaRecepcionDialogComponent,
-} from "../nota-recepcion/adicionar-nota-recepcion-dialog/adicionar-nota-recepcion-dialog.component";
-import { AdicionarNotaRecepcionItemDialogComponent } from "../nota-recepcion/adicionar-nota-recepcion-item-dialog/adicionar-nota-recepcion-item-dialog.component";
-import { NotaRecepcionService } from "../nota-recepcion/nota-recepcion.service";
-import { CompraItem } from "../../compra/compra-item.model";
-import { CompraService } from "../../compra/compra.service";
-import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
-import { Compra } from "../../compra/compra.model";
-import { CompraEstado } from "../../compra/compra-enums";
+import { ProveedorService } from "../../../personas/proveedor/proveedor.service";
+import { Usuario } from "../../../personas/usuarios/usuario.model";
+import { Vendedor } from "../../../personas/vendedor/vendedor.model";
+import { VendedorService } from "../../../personas/vendedor/vendedor.service";
 import { AdicionarDetalleCompraItemDialogComponent } from "../../compra/adicionar-detalle-compra-item-dialog/adicionar-detalle-compra-item-dialog.component";
+import { CompraEstado } from "../../compra/compra-enums";
+import { CompraItem } from "../../compra/compra-item.model";
+import { Compra } from "../../compra/compra.model";
+import { CompraService } from "../../compra/compra.service";
+import { AdicionarItemDialogComponent } from "../adicionar-item-dialog/adicionar-item-dialog.component";
+import {
+  AdicionarNotaRecepcionDialogComponent
+} from "../nota-recepcion/adicionar-nota-recepcion-dialog/adicionar-nota-recepcion-dialog.component";
+import { NotaRecepcion } from "../nota-recepcion/nota-recepcion.model";
+import { NotaRecepcionService } from "../nota-recepcion/nota-recepcion.service";
+import { PedidoService } from "../pedido.service";
+import { PedidoEstado } from "./pedido-enums";
+import { PedidoItem } from "./pedido-item.model";
+import { Pedido } from "./pedido.model";
 
 export interface Transaction {
   item: string;
   cost: number;
 }
 
+import { MatDatepicker } from "@angular/material/datepicker";
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { AdicionarProveedorDialogComponent } from "../../../personas/proveedor/adicionar-proveedor-dialog/adicionar-proveedor-dialog.component";
-import { MatDatepicker } from "@angular/material/datepicker";
+import { MatSelect } from "@angular/material/select";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -91,14 +79,20 @@ export class EditPedidoComponent implements OnInit {
   @ViewChild("proveedorInput", { static: false })
   proveedorInput: ElementRef;
 
+  @ViewChild("plazoInput", { static: false })
+  plazoInput: ElementRef;
+
+  @ViewChild("fechaInput", { static: false })
+  fechaInput: ElementRef;
+
   @ViewChild("vendedorInput", { static: false })
-  vendedorInput: ElementRef;
+  vendedorInput: MatSelect;
 
   @ViewChild("formaPagoInput", { static: false })
-  formaPagoInput: ElementRef;
+  formaPagoInput: MatSelect;
 
   @ViewChild("monedaInput", { static: false })
-  monedaInput: ElementRef;
+  monedaInput: MatSelect;
 
   @ViewChild("picker", { static: false })
   calendar: MatDatepicker<any>;
@@ -256,38 +250,16 @@ export class EditPedidoComponent implements OnInit {
       }
     });
 
-    this.vendedorSub = this.vendedorControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res == "") this.selectedVendedor = null;
-      if (this.vendedorTimer != null) {
-        clearTimeout(this.vendedorTimer);
-      }
-      if (res != null && res.length != 0) {
-        this.vendedorTimer = setTimeout(() => {
-          this.vendedorService.onSearch(res).pipe(untilDestroyed(this)).subscribe((response) => {
-            this.vendedorList = response;
-            if (this.vendedorList.length == 1) {
-              this.onVendedorSelect(this.vendedorList[0]);
-              this.onVendedorAutocompleteClose();
-            } else {
-              this.onVendedorAutocompleteClose();
-              this.onVendedorSelect(null);
-            }
-          });
-        }, 500);
-      } else {
-        this.vendedorList = [];
-      }
-    });
-
-    setTimeout(() => {
-      this.proveedorInput.nativeElement.focus();
-    }, 500);
 
     if (this.data?.tabData != null) {
       this.cargarPedido(+this.data?.tabData["data"].id);
     } else {
       console.log("nuevo pedido");
     }
+
+    setTimeout(() => {
+      this.proveedorInput.nativeElement.focus();
+    }, 1000);
   }
 
   cargarPedido(id) {
@@ -300,7 +272,6 @@ export class EditPedidoComponent implements OnInit {
         this.selectedPedido = new Pedido();
         Object.assign(this.selectedPedido, res);
         this.onProveedorSelect(this.selectedPedido.proveedor);
-        this.onVendedorSelect(this.selectedPedido.vendedor);
         this.onMonedaSelect(this.selectedPedido.moneda);
         this.onFormaPagoSelect(this.selectedPedido.formaPago);
         this.creditoControl.setValue(this.selectedPedido.plazoCredito > 1);
@@ -366,29 +337,6 @@ export class EditPedidoComponent implements OnInit {
     }, 100);
   }
 
-  onVendedorSelect(e: Vendedor) {
-    if (e?.id != null) {
-      this.selectedVendedor = e;
-      this.vendedorControl.setValue(
-        this.selectedVendedor?.id +
-        " - " +
-        this.selectedVendedor?.persona?.nombre
-      );
-      if (e?.proveedores != null) {
-        if (this.selectedProveedor == null) {
-          this.proveedorList = e.proveedores;
-          this.proveedorInput.nativeElement.select();
-        }
-      }
-    }
-  }
-
-  onVendedorAutocompleteClose() {
-    setTimeout(() => {
-      if (this.vendedorControl.value != null) this.vendedorInput.nativeElement.select();
-    }, 100);
-  }
-
   onFormaPagoSelect(e: FormaPago) {
     if (e?.id != null) {
       this.selectedFormaPago = e;
@@ -396,23 +344,11 @@ export class EditPedidoComponent implements OnInit {
     }
   }
 
-  onFormaPagoAutocompleteClose() {
-    setTimeout(() => {
-      this.formaPagoInput.nativeElement.select();
-    }, 100);
-  }
-
   onMonedaSelect(e: Moneda) {
     if (e?.id != null) {
       this.selectedMoneda = e;
       this.monedaControl.setValue(this.selectedMoneda.id);
     }
-  }
-
-  onMonedaAutocompleteClose() {
-    setTimeout(() => {
-      this.monedaInput.nativeElement.select();
-    }, 100);
   }
 
   onAdicionar() {
@@ -814,7 +750,32 @@ export class EditPedidoComponent implements OnInit {
     })
   }
 
-  openCalendar(){
+  openCalendar() {
     this.calendar.open()
+  }
+
+  onProveedorEnter() {
+    this.vendedorInput.focus()
+  }
+
+  onVendedorEnter() {
+    this.vendedorInput.close()
+    this.formaPagoInput.focus()
+  }
+
+  onFormaPagoEnter(){
+    this.monedaInput.focus()
+  }
+
+  onMonedaEnter() {
+    this.plazoInput.nativeElement.select()
+  }
+
+  onPlazoEnter() {
+    this.fechaInput.nativeElement.select()
+  }
+
+  onFechaEntergaEnter() {
+
   }
 }

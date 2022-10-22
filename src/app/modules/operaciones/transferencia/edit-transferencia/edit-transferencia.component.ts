@@ -45,7 +45,7 @@ export class EditTransferenciaComponent implements OnInit {
   @ViewChild('cantPresentacionInput', { static: false }) cantPresentacionInput: ElementRef;
   @ViewChild('vencimientoInput', { static: false }) vencimientoInput: ElementRef;
   @ViewChild('matSelect', { static: false }) matSelect: MatSelect;
-  
+
   @Input()
   data: Tab;
 
@@ -387,10 +387,10 @@ export class EditTransferenciaComponent implements OnInit {
 
   onDeleteItem(item: TransferenciaItem, index) {
     this.transferenciaService.onDeleteTransferenciaItem(item.id).subscribe(res => {
-      if(res){
+      if (res) {
         this.dataSource.data = updateDataSource(this.dataSource.data, null, index);
       }
-    })    
+    })
   }
 
   onEditItem(item: TransferenciaItem) {
@@ -624,7 +624,7 @@ export class EditTransferenciaComponent implements OnInit {
           this.selectedProducto = res;
           if (this.selectedProducto?.presentaciones?.length == 1) {
             this.presentacionControl.setValue(this.selectedProducto.presentaciones[0])
-            if(!this.isPesable){
+            if (!this.isPesable) {
               this.cantidadPresentacionControl.setValue(1)
               this.cantidadUnidadControl.setValue(this.presentacionControl.value?.cantidad)
             }
@@ -633,12 +633,12 @@ export class EditTransferenciaComponent implements OnInit {
             } else {
               this.cantPresentacionInput.nativeElement.select()
             }
-          } else if(this.selectedProducto?.presentaciones?.length > 1) {
+          } else if (this.selectedProducto?.presentaciones?.length > 1) {
             this.presentacionControl.setValue(this.selectedProducto.presentaciones[0])
             this.matSelect.focus()
             this.matSelect.open()
           } else {
-            
+
           }
         } else {
           this.onAddItem(this.codigoControl.value)
@@ -660,26 +660,45 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onVencimientoEnter() {
-    this.cantidadPresentacionControl.enable();
-    this.presentacionControl.enable();
-    if (this.selectedProducto != null && this.presentacionControl.valid && this.cantidadPresentacionControl.valid && (this.vencimientoControl.value==null || this.vencimientoControl.value >= new Date())) {
-      let item = new TransferenciaItem;
-      item.activo = true;
-      item.cantidadPreTransferencia = this.cantidadPresentacionControl.value;
-      item.vencimientoPreTransferencia = this.vencimientoControl.value;
-      item.transferencia = this.selectedTransferencia;
-      item.presentacionPreTransferencia = this.presentacionControl.value;
-      item.poseeVencimiento = this.vencimientoControl.value != null;
-      this.onSaveTransferenciaItem(item);
-      this.onClear();
+    if (this.selectedTransferencia?.id != null) {
+      this.cantidadPresentacionControl.enable();
+      this.presentacionControl.enable();
+      if (this.selectedProducto != null && this.presentacionControl.valid && this.cantidadPresentacionControl.valid && (this.vencimientoControl.value == null || this.vencimientoControl.value >= new Date())) {
+        let item = new TransferenciaItem;
+        item.activo = true;
+        item.cantidadPreTransferencia = this.cantidadPresentacionControl.value;
+        item.vencimientoPreTransferencia = this.vencimientoControl.value;
+        item.transferencia = this.selectedTransferencia;
+        item.presentacionPreTransferencia = this.presentacionControl.value;
+        item.poseeVencimiento = this.vencimientoControl.value != null;
+        this.onSaveTransferenciaItem(item);
+        this.onClear();
+      }
+    } else {
+      this.onSaveTransferencia().then(res => {
+        this.cantidadPresentacionControl.enable();
+        this.presentacionControl.enable();
+        if (this.selectedProducto != null && this.presentacionControl.valid && this.cantidadPresentacionControl.valid && (this.vencimientoControl.value == null || this.vencimientoControl.value >= new Date())) {
+          let item = new TransferenciaItem;
+          item.activo = true;
+          item.cantidadPreTransferencia = this.cantidadPresentacionControl.value;
+          item.vencimientoPreTransferencia = this.vencimientoControl.value;
+          item.transferencia = this.selectedTransferencia;
+          item.presentacionPreTransferencia = this.presentacionControl.value;
+          item.poseeVencimiento = this.vencimientoControl.value != null;
+          this.onSaveTransferenciaItem(item);
+          this.onClear();
+        }
+      })
     }
+
   }
 
-  onCodigoFocus(){
+  onCodigoFocus() {
     this.codigoInput.nativeElement.select()
   }
 
-  onClear(){
+  onClear() {
     this.selectedProducto = null;
     this.presentacionControl.setValue(null);
     this.isPesable = false;

@@ -16,7 +16,8 @@
         fxLayoutGap="10px"
       >
         <div style="width: 100%" fxFlexAlign="start">
-          <button type="button"
+          <button
+            type="button"
             [color]="stepper.selectedIndex == 0 ? 'accent' : 'primary'"
             mat-raised-button
             style="width: 100%"
@@ -26,8 +27,15 @@
           </button>
         </div>
         <div style="width: 100%" fxFlexAlign="start">
-          <button type="button"
-            [color]="stepper.selectedIndex == 1 ? 'accent' : (dataSource.data.length > 0 ? 'primary': '')"
+          <button
+            type="button"
+            [color]="
+              stepper.selectedIndex == 1
+                ? 'accent'
+                : dataSource.data.length > 0
+                ? 'primary'
+                : ''
+            "
             mat-raised-button
             style="width: 100%"
             (click)="goTo('recepcion-nota')"
@@ -37,10 +45,17 @@
           </button>
         </div>
         <div style="width: 100%" fxFlexAlign="start">
-          <button type="button"
-          [disabled]="dataSourceNotaRecepcion.data.length <= 0"
-          [color]="stepper.selectedIndex == 2 ? 'accent' : (dataSourceNotaRecepcion.data.length > 0 ? 'primary': '')"
-          mat-raised-button
+          <button
+            type="button"
+            [disabled]="dataSourceNotaRecepcion.data.length <= 0"
+            [color]="
+              stepper.selectedIndex == 2
+                ? 'accent'
+                : dataSourceNotaRecepcion.data.length > 0
+                ? 'primary'
+                : ''
+            "
+            mat-raised-button
             style="width: 100%"
             (click)="goTo('recepcion-mercaderia')"
           >
@@ -48,12 +63,23 @@
           </button>
         </div>
         <div style="width: 100%" fxFlexAlign="start">
-          <button type="button"
-          [color]="stepper.selectedIndex == 3 ? 'accent' : (dataSource.data.length <= 0 || (dataSource.data.length - getCantidadItensVerificados()) == 0 ? 'primary': '')"
+          <button
+            type="button"
+            [color]="
+              stepper.selectedIndex == 3
+                ? 'accent'
+                : dataSource.data.length <= 0 ||
+                  dataSource.data.length - getCantidadItensVerificados() == 0
+                ? 'primary'
+                : ''
+            "
             mat-raised-button
             style="width: 100%"
             (click)="goTo('detalle-compra')"
-            [disabled]="dataSource.data.length <= 0 || (dataSource.data.length - getCantidadItensVerificados()) != 0"
+            [disabled]="
+              dataSource.data.length <= 0 ||
+              dataSource.data.length - getCantidadItensVerificados() != 0
+            "
           >
             Resumen Compra
           </button>
@@ -83,6 +109,7 @@
               fxLayout="row"
               style="width: 100%"
               fxLayoutAlign="space-between start"
+              *ngIf="selectedPedido != null"
             >
               <div fxFlex="20" fxFlexAlign="start">
                 ID: {{ selectedPedido?.id }}
@@ -101,7 +128,12 @@
               style="width: 100%"
               fxLayoutAlign="space-between start"
             >
-              <div fxFlex="50" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+              <div
+                fxFlex="50"
+                fxLayout="row"
+                fxLayoutAlign="start center"
+                fxLayoutGap="10px"
+              >
                 <mat-form-field fxFlex="90" style="width: 100%">
                   <mat-label>Proveedor</mat-label>
                   <input
@@ -111,6 +143,8 @@
                     [formControl]="proveedorControl"
                     oninput="this.value == ' ' ? this.value = '': null"
                     [matAutocomplete]="autoProveedor"
+                    (keyup.enter)="onProveedorEnter()"
+                    (keyup.tab)="onProveedorEnter()"
                   />
                   <mat-autocomplete
                     #autoProveedor="matAutocomplete"
@@ -126,34 +160,38 @@
                     </mat-option>
                   </mat-autocomplete>
                 </mat-form-field>
-                <mat-icon fxFlex="10" class="highlight-hover" (click)="onAddProveedor()">add_circle</mat-icon>
+                <mat-icon
+                  fxFlex="10"
+                  class="highlight-hover"
+                  (click)="onAddProveedor()"
+                  >add_circle</mat-icon
+                >
               </div>
-              <div fxFlex="50" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
-                <mat-form-field fxFlex="90" style="width: 100%">
+              <div
+                fxFlex="50"
+                fxLayout="row"
+                fxLayoutAlign="start center"
+                fxLayoutGap="10px"
+              >
+                <mat-form-field style="width: 100%">
                   <mat-label>Vendedor</mat-label>
-                  <input
+                  <mat-select
                     #vendedorInput
-                    type="text"
-                    matInput
                     [formControl]="vendedorControl"
-                    oninput="this.value == ' ' ? this.value = '': null"
-                    [matAutocomplete]="autoVendedor"
-                  />
-                  <mat-autocomplete
-                    #autoVendedor="matAutocomplete"
-                    (optionSelected)="onVendedorSelect($event.option.value)"
-                    (closed)="onVendedorAutocompleteClose()"
+                    name="vendedor"
+                    (keyup.enter)="onVendedorEnter()"
                   >
                     <mat-option
-                      *ngFor="let vendedor of vendedorList"
+                      *ngFor="let vendedor of selectedProveedor?.vendedores"
                       [value]="vendedor"
                     >
-                      {{ vendedor.id }} -
-                      {{ vendedor?.persona?.nombre | uppercase }}
+                      {{ vendedor?.persona?.nombre | titlecase }}
                     </mat-option>
-                  </mat-autocomplete>
+                  </mat-select>
                 </mat-form-field>
-                <mat-icon fxFlex="10" class="highlight-hover">add_circle</mat-icon>
+                <mat-icon fxFlex="10" class="highlight-hover"
+                  >add_circle</mat-icon
+                >
               </div>
             </div>
             <div fxFlex fxLayout="row" fxLayoutAlign="space-between start">
@@ -162,8 +200,10 @@
                   <mat-label>Forma de Pago</mat-label>
                   <mat-select [formControl]="formaPagoControl" name="formaPago">
                     <mat-option
+                      #formaPagoInput
                       *ngFor="let formaPago of formaPagoList"
-                      [value]="formaPago.id"
+                      [value]="formaPago"
+                      (keyup.enter)="onFormaPagoEnter()"
                     >
                       {{ formaPago.id }} -
                       {{ formaPago.descripcion | uppercase }}
@@ -176,8 +216,10 @@
                   <mat-label>Moneda</mat-label>
                   <mat-select [formControl]="monedaControl" name="moneda">
                     <mat-option
+                      #monedaInput
                       *ngFor="let moneda of monedaList"
-                      [value]="selectedMoneda.id"
+                      [value]="selectedMoneda"
+                      (keyup.enter)="onMonedaEnter()"
                     >
                       {{ moneda.id }} - {{ moneda.denominacion | uppercase }}
                     </mat-option>
@@ -194,9 +236,11 @@
                   <mat-label>Plazo en días</mat-label>
                   <input
                     matInput
+                    #plazoInput
                     type="number"
                     [formControl]="plazoCreditoControl"
                     min="1"
+                    (keyup.enter)="onPlazoEnter()"
                   />
                 </mat-form-field>
               </div>
@@ -205,9 +249,10 @@
                   <mat-label>Fecha de entrega</mat-label>
                   <input
                     matInput
+                    #fechaInput
                     [matDatepicker]="picker"
                     [formControl]="fechaEntregaControl"
-                    (keyup.enter)="openCalendar()"
+                    (keyup.enter)="onFechaEntregaEnter()"
                   />
                   <mat-datepicker-toggle
                     matSuffix
@@ -244,18 +289,24 @@
                   >
                 </div>
                 <div fxFlex="15">
-                  <button type="button"
+                  <button
+                    type="button"
                     style="width: 90%"
                     color="primary"
                     mat-raised-button
                     (click)="onAdicionar()"
-                    [disabled]="(selectedProveedor == null) || (selectedPedido?.estado !=null && selectedPedido?.estado != 'ABIERTO')"
+                    [disabled]="
+                      selectedProveedor == null ||
+                      (selectedPedido?.estado != null &&
+                        selectedPedido?.estado != 'ABIERTO')
+                    "
                   >
                     Adicionar +
                   </button>
                 </div>
                 <div fxFlex="15">
-                  <button type="button"
+                  <button
+                    type="button"
                     style="width: 90%"
                     color="accent"
                     mat-raised-button
@@ -397,7 +448,8 @@
                       *matCellDef="let pedidoItem; let i = index"
                       style="width: 10%; text-align: center"
                     >
-                      <button type="button"
+                      <button
+                        type="button"
                         mat-icon-button
                         [matMenuTriggerFor]="menu"
                         (click)="$event.stopPropagation()"
@@ -405,10 +457,18 @@
                         <mat-icon>more_vert</mat-icon>
                       </button>
                       <mat-menu #menu="matMenu">
-                        <button type="button" mat-menu-item (click)="openItem(pedidoItem)">
+                        <button
+                          type="button"
+                          mat-menu-item
+                          (click)="openItem(pedidoItem)"
+                        >
                           Ir a item
                         </button>
-                        <button type="button" mat-menu-item (click)="deleteItem(pedidoItem)">
+                        <button
+                          type="button"
+                          mat-menu-item
+                          (click)="deleteItem(pedidoItem)"
+                        >
                           Eliminar
                         </button>
                       </mat-menu>
@@ -571,7 +631,8 @@
                   >
                 </div>
                 <div fxFlex="15">
-                  <button type="button"
+                  <button
+                    type="button"
                     style="width: 90%"
                     color="primary"
                     mat-raised-button
@@ -712,7 +773,8 @@
                       *matCellDef="let notaRecepcion; let i = index"
                       style="width: 10%"
                     >
-                      <button type="button"
+                      <button
+                        type="button"
                         mat-icon-button
                         [matMenuTriggerFor]="menu"
                         (click)="$event.stopPropagation()"
@@ -720,13 +782,15 @@
                         <mat-icon>more_vert</mat-icon>
                       </button>
                       <mat-menu #menu="matMenu">
-                        <button type="button"
+                        <button
+                          type="button"
                           mat-menu-item
                           (click)="openNotaRecepcion(notaRecepcion, i)"
                         >
                           Ir a item
                         </button>
-                        <button type="button"
+                        <button
+                          type="button"
                           mat-menu-item
                           (click)="deleteItemNotaRecepcion(notaRecepcion, i)"
                         >
@@ -854,7 +918,8 @@
                   </button>
                 </div> -->
                 <div fxFlex="15">
-                  <button type="button"
+                  <button
+                    type="button"
                     style="width: 90%"
                     color="accent"
                     mat-raised-button
@@ -993,7 +1058,8 @@
                       *matCellDef="let notaRecepcion; let i = index"
                       style="width: 10%"
                     >
-                      <button type="button"
+                      <button
+                        type="button"
                         mat-icon-button
                         [matMenuTriggerFor]="menu"
                         (click)="$event.stopPropagation()"
@@ -1001,13 +1067,15 @@
                         <mat-icon>more_vert</mat-icon>
                       </button>
                       <mat-menu #menu="matMenu">
-                        <button type="button"
+                        <button
+                          type="button"
                           mat-menu-item
                           (click)="openNotaRecepcion(notaRecepcion, i)"
                         >
                           Ir a item
                         </button>
-                        <button type="button"
+                        <button
+                          type="button"
                           mat-menu-item
                           (click)="deleteItemNotaRecepcion(notaRecepcion, i)"
                         >
@@ -1139,7 +1207,15 @@
                                     <th>Pedido</th>
                                     <th>Recibido</th>
                                   </tr>
-                                  <tr style="text-align: center" [style.background-color]="item?.cantidad != item?.compraItem?.cantidad ? '#f57c00':'black'">
+                                  <tr
+                                    style="text-align: center"
+                                    [style.background-color]="
+                                      item?.cantidad !=
+                                      item?.compraItem?.cantidad
+                                        ? '#f57c00'
+                                        : 'black'
+                                    "
+                                  >
                                     <td>
                                       {{
                                         item.cantidad /
@@ -1170,8 +1246,11 @@
                               >
                                 Vencimiento
                               </div>
-                              <div fxFle="25" style="width: 100%; text-align: center;">
-                                {{item?.compraItem?.vencimiento}}
+                              <div
+                                fxFle="25"
+                                style="width: 100%; text-align: center"
+                              >
+                                {{ item?.compraItem?.vencimiento }}
                               </div>
                             </div>
                             <div
@@ -1186,8 +1265,13 @@
                               >
                                 Lote
                               </div>
-                              <div fxFle="25" style="width: 100%; text-align: center;">
-                                {{item?.compraItem?.lote?.toString() | uppercase}}
+                              <div
+                                fxFle="25"
+                                style="width: 100%; text-align: center"
+                              >
+                                {{
+                                  item?.compraItem?.lote?.toString() | uppercase
+                                }}
                               </div>
                             </div>
                             <div
@@ -1201,7 +1285,8 @@
                                 fxFlexAlign="center"
                                 style="text-align: center"
                               >
-                                <button type="button"
+                                <button
+                                  type="button"
                                   mat-raised-button
                                   color="primary"
                                   (click)="
@@ -1220,8 +1305,9 @@
                                 fxFlexAlign="center"
                                 style="text-align: center"
                               >
-                                <button type="button"
-                                  *ngIf="item?.compraItem.verificado!=true"
+                                <button
+                                  type="button"
+                                  *ngIf="item?.compraItem.verificado != true"
                                   mat-raised-button
                                   color="accent"
                                   (click)="
@@ -1235,13 +1321,16 @@
                                   Confirmar
                                 </button>
                                 <mat-icon
-                                  *ngIf="item?.compraItem.verificado==true"
+                                  *ngIf="item?.compraItem.verificado == true"
                                   color="accent"
                                   >check_circle</mat-icon
                                 >
                               </div>
                             </div>
-                            <div *ngIf="expandedNotaRecepcion === notaRecepcion" fxFlex="1%">
+                            <div
+                              *ngIf="expandedNotaRecepcion === notaRecepcion"
+                              fxFlex="1%"
+                            >
                               <mat-divider></mat-divider>
                             </div>
                           </div>

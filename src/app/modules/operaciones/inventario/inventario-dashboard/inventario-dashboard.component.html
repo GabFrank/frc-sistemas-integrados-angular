@@ -14,7 +14,7 @@
         <app-boton
           nombre="Histórico de Inventarios"
           icon="manage_search"
-          [iconSize]="4"
+          [iconSize]="3"
           (clickEvent)="onListInventarios()"
         ></app-boton>
       </div>
@@ -22,7 +22,7 @@
         <app-boton
           nombre="Nuevo Inventario"
           icon="move_up"
-          [iconSize]="4"
+          [iconSize]="3"
           (clickEvent)="onNuevoInventario()"
         ></app-boton>
       </div>
@@ -30,7 +30,15 @@
         <app-boton
           nombre="Configurar Inventario"
           icon="tune"
-          [iconSize]="4"
+          [iconSize]="3"
+        ></app-boton>
+      </div>
+      <div fxFlex="30%" style="height: 250px">
+        <app-boton
+          nombre="Zonas y sectores"
+          icon="pin_drop"
+          [iconSize]="3"
+          (clickEvent)="onListSectores()"
         ></app-boton>
       </div>
     </div>
