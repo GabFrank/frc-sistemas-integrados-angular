@@ -43,7 +43,7 @@
       </div>
       <div fxFlex fxLayout="row" fxLayoutAlign="center center">
         <div style="white-space: normal">
-          {{ nombre }}
+         {{prefix}} {{ !isNumber ? nombre : nombre | number: '1.0-2'}} {{sufix}}
         </div>
       </div>
     </div>

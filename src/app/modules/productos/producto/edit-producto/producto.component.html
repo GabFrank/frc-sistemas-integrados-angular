@@ -1046,8 +1046,8 @@
                       </div>
                       <div>
                         <img
-                          [src]="element?.imagenPrincipal!=null ? element?.imagenPrincipal : 'assets/no-image.png'"
-                          alt="element?.id"
+                          [src]="element?.imagenPrincipal!='' ? element?.imagenPrincipal : 'assets/no-image.png'"
+                          [alt]="element?.imagenPrincipal"
                           style="
                             width: 200px;
                             height: 200px;

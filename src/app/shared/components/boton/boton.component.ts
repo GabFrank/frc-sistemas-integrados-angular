@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, Output, EventEmitter, ViewChild, ElementRef } from '@angular/core';
+import { MatButton } from '@angular/material/button';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { BehaviorSubject } from 'rxjs';
 
@@ -18,7 +19,7 @@ export interface BotonData {
 })
 export class BotonComponent implements OnInit {
 
-  @ViewChild('btn', { static: false }) btn: ElementRef;
+  @ViewChild('btn', { static: false }) btn: MatButton;
 
   @Input()
   nombre = 'Boton'
@@ -35,7 +36,18 @@ export class BotonComponent implements OnInit {
   @Input()
   iconSize = 1;
 
+  @Input()
+  clickDelay = 1000;
+
+  @Input()
+  prefix;
+
+  @Input()
+  sufix;
+  
   temporaryDisable = false;
+
+  isNumber = false;
 
 
   @Output()
@@ -49,9 +61,11 @@ export class BotonComponent implements OnInit {
   ngOnInit(): void {
     this.focusEvent.pipe(untilDestroyed(this)).subscribe(res => {
       if (res) {
-        this.btn.nativeElement.focus()
+        this.btn.focus()
       }
     })
+
+    if(Number(this.nombre) == +this.nombre) this.isNumber = true;
   }
 
   onClick() {
@@ -60,8 +74,11 @@ export class BotonComponent implements OnInit {
       this.temporaryDisable = true;
       setTimeout(() => {
         this.temporaryDisable = false;
-      }, 1000);
+      }, this.clickDelay);
     }
   }
 
+  onGetFocus() {
+    this.btn.focus()
+  }
 }

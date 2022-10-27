@@ -113,7 +113,7 @@ export class MainService implements OnDestroy {
       .subscribe((res) => {
         if (res != null) {
           this.sucursalActual = res;
-          if (this.sucursalActual?.nombre == 'SERVIDOR') {
+          if (this.sucursalActual?.id == 0) {
             this.isServidor = true;
           }
         }

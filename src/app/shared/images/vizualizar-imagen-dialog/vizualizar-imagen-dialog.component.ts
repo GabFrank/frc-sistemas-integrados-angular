@@ -60,7 +60,7 @@ export class VizualizarImagenDialogComponent implements OnInit {
           if (res != null) this.img = res;
           this.presentacionService.onImageSave(
             res,
-            `${this.data.url}/${id}.jpg`
+            `${id}.jpg`
           ).pipe(untilDestroyed(this)).subscribe(res2 => {
             if(res2!=null){
               this.img = res2;

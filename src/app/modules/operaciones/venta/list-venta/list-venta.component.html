@@ -54,11 +54,13 @@
           <mat-panel-title> Total ventas </mat-panel-title>
         </mat-expansion-panel-header>
         <div fxLayout="column" style="width: 100%">
-          <div fxFlex style="width: 100%; text-align: center">Efectivo</div>
+          <div fxFlex style="width: 100%; text-align: center">Total General</div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Guaranies:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalGeneral | number: "1.0-0" }}
+              {{ 
+                selectedCaja?.balance?.totalGeneral
+                 | number: "1.0-0" }}
             </div>
           </div>
           <!-- <div fxFlex fxLayout="row">
@@ -73,6 +75,17 @@
               {{ selectedCaja?.balance?.totalVentaDs | number: "1.2-2" }}
             </div>
           </div> -->
+          <div fxFlex style="width: 100%; text-align: center">Efectivo</div>
+          <div fxFlex fxLayout="row">
+            <div fxFlex="50%">Guaranies:</div>
+            <div fxFlex="50%" style="width: 100%; text-align: end">
+              {{ 
+                selectedCaja?.balance?.totalGeneral -
+                selectedCaja?.balance?.totalTarjeta -
+                selectedCaja?.balance?.totalCredito
+                 | number: "1.0-0" }}
+            </div>
+          </div>
           <div fxFlex style="width: 100%; text-align: center">Tarjeta</div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Guaranies:</div>

@@ -183,6 +183,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     }, 3000);
 
     this.selectedItemList = this.itemList;
+
+    this.onDeliveryClick()
   }
 
   getFormaPagos() {
@@ -726,80 +728,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
 
   onDeliveryClick() {
     this.isDialogOpen = true;
-    this.dialogReference = this.dialog
-      .open(DeliveryDialogComponent, {
-        data: {
-          valor: this.totalGs,
-          monedas: this.monedas,
-        },
-        autoFocus: false,
-        restoreFocus: true,
-        width: "80vw",
-        height: "90vh",
-        panelClass: ["deliveryBackground"],
+    this.matDialog.open(DeliveryDialogComponent, 
+      {
+        maxWidth: '100vw',
+        maxHeight: '90vh',
+        height: '100%',
+        width: '90%'
       })
-      .afterClosed().pipe(untilDestroyed(this))
-      .subscribe((resDialog) => {
-        this.isDialogOpen = false;
-        if (resDialog != null) {
-          let vueltoId;
-          let vueltoList: VueltoItemInput[] = resDialog["vueltoList"];
-          if (vueltoList.length > 0) {
-            let vueltoInput: VueltoInput = {
-              id: null,
-              activo: true,
-            };
-            this.saveVuelto
-              .mutate({
-                entity: vueltoInput,
-              }).pipe(untilDestroyed(this))
-              .subscribe((resVuelto) => {
-                if (resVuelto != null) {
-                  vueltoId = resVuelto.data["saveVuelto"]["id"];
-                  vueltoList.forEach((v) => {
-                    let aux: VueltoItemInput = {
-                      monedaId: v.monedaId,
-                      valor: v.valor,
-                      vueltoId: vueltoId,
-                    };
-                    this.saveVueltoItem
-                      .mutate({
-                        entity: aux,
-                      }).pipe(untilDestroyed(this))
-                      .subscribe((resVueltoItem) => {
-                        let deliveryInput: DeliveryInput = {
-                          estado: DeliveryEstado.ABIERTO,
-                          precioId: resDialog["deliveryInput"]["precioId"],
-                          telefono: resDialog["deliveryInput"]["telefono"],
-                          valor: resDialog["deliveryInput"]["valor"],
-                          direccion: resDialog["deliveryInput"]["direccion"],
-                          barrioId: resDialog["deliveryInput"]["barrioId"],
-                          vueltoId: resVuelto.data["saveVuelto"]["id"],
-                          entregadorId:
-                            resDialog["deliveryInput"]["entregadorId"],
-                          usuarioId: resDialog["deliveryInput"]["usuarioId"],
-                          vehiculoId: resDialog["deliveryInput"]["vehiculoId"],
-                          ventaId: resDialog["deliveryInput"]["ventaId"],
-                        };
-                        this.saveDelivery
-                          .mutate({
-                            entity: deliveryInput,
-                          }).pipe(untilDestroyed(this))
-                          .subscribe((resDelivery) => {
-                            let savedDelivery = new Delivery();
-                            savedDelivery = resDelivery.data;
-                            if (savedDelivery.id != null) {
-                            }
-                            this.resetForm();
-                          });
-                      });
-                  });
-                }
-              });
-          }
-        }
-        this.dialogReference = undefined;
-      });
   }
 
   ngOnDestroy(): void {

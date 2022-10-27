@@ -8,3 +8,8 @@ export const sincEstadoSubQuery = gql`
     }
   }
 `;
+
+export const solicitarResourcesQuery = gql
+  `{
+    solicitarResources
+  }`

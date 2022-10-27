@@ -90,6 +90,7 @@
     "ngx-image-compress": "^11.0.3",
     "ngx-image-cropper": "^4.0.1",
     "ngx-mask": "^11.1.5",
+    "ngx-mat-select-search": "^5.0.0",
     "ngx-material-timepicker": "^5.5.3",
     "ngx-panzoom": "^13.0.0",
     "ngx-print-element": "^2.0.7",

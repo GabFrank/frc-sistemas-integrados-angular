@@ -10,12 +10,12 @@ restart cron
 
 -- comando para hacer backup de base de datos
 pg_dump -U franco -W central > central_servidor.sql
-pg_dump -U franco -W general > bkp_pk_12_10_22.sql
-pg_dump -s -U franco -W central > bkp_servidor_06_10_22_schema_only.sql
+pg_dump -U franco -W general > bkp_farma_filial.sql
+pg_dump -s -U franco -W general > bkp_filial_dev_25_10_22_schema_only.sql
 -- comando para hacer restore de base de datos
 psql -U franco -W dba < dbb.sql
 -- comando para copiar archivos en docker
-docker cp filial1:/bkp_filial_08_10_22.sql /Users/gabfranck/workspace/franco-systems/bd
+docker cp filial1:/bkp_servidor_dev_24_10_22_schema_only.sql /Users/gabfranck/workspace/franco-systems/bd
 docker cp frc-server:/bkp_servidor_central_08_10_22.sql /
 
 
@@ -28,6 +28,7 @@ docker build . -t frc-server
 -- crear el connteiner
 docker run --name frc-server -v "C:\FRC\docker\pg-data:/var/lib/postgresql/data" -p 5551:5432 --restart=always -d frc-server
 docker run --name frc-server -v "/home/opc/FRC/docker/pg-data:/var/lib/postgresql/data" -p 5551:5432 --restart=always -d frc-server
+docker run --name farma-filial -p 5557:5432 -d farma-filial
 
 --Pasos para instalar el servidor
 1 - ./mvnw clean package (spring boot)

@@ -14,7 +14,7 @@
       ></app-totales>
     </div>
     <div fxFlex="55%">
-      <app-item-list
+      <app-item-list 
         [itemList]="selectedItemList"
         (editEvent)="editItem($event)"
         (removeEvent)="removeItem($event)"
@@ -74,7 +74,7 @@
         ></app-boton>
       </div>
       <div fxFlex="20%">
-        <app-boton nombre="Delivery (F12)"></app-boton>
+        <app-boton nombre="Delivery (F12)" (clickEvent)="onDeliveryClick()"></app-boton>
       </div>
       <div fxFlex="20%">
         <app-boton

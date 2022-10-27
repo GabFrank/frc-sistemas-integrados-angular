@@ -54,6 +54,9 @@ export const sucursalQuery = gql
     data : sucursalActual{
       id
       nombre
+      ciudad{
+        id
+      }
     }
   }`
 

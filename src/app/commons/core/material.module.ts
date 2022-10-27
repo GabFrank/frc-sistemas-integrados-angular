@@ -39,6 +39,7 @@ import {ClipboardModule} from '@angular/cdk/clipboard';
 import { MatKeyboardModule } from 'angular-onscreen-material-keyboard';
 import {MatTreeModule} from '@angular/material/tree';
 import { MatFileUploadModule } from 'angular-material-fileupload';
+import { NgxMatSelectSearchModule } from 'ngx-mat-select-search';
 
 
 
@@ -89,7 +90,8 @@ import { MatFileUploadModule } from 'angular-material-fileupload';
     MatStepperModule,
     MatKeyboardModule,
     MatTreeModule,
-    MatFileUploadModule
+    MatFileUploadModule,
+    NgxMatSelectSearchModule
   ]
 })
 export class MaterialModule { }

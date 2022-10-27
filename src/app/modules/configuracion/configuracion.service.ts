@@ -4,14 +4,20 @@ import { untilDestroyed } from "@ngneat/until-destroy";
 import { Subscription } from "apollo-angular";
 import { Observable } from "rxjs";
 import { environment, serverAdress } from "../../../environments/environment";
+import { GenericCrudService } from "../../generics/generic-crud.service";
 import { SincEstadoGQL } from "./graphql/sinc-estado-sub";
+import { SolicitarResourcesGQL } from "./graphql/solicitar-resources";
 
 @Injectable({
   providedIn: "root",
 })
 export class ConfiguracionService {
-  constructor(private http: HttpClient,
-    private sincSub: SincEstadoGQL) { }
+  constructor(
+    private genericService: GenericCrudService,
+    private http: HttpClient,
+    private sincSub: SincEstadoGQL,
+    private onSolicitarResources: SolicitarResourcesGQL
+    ) { }
 
   httpOptions = {
     headers: new HttpHeaders({
@@ -114,6 +120,10 @@ export class ConfiguracionService {
 
   onStatusSub(): Subscription {
     return this.sincSub
+  }
+
+  solicitarResources(){
+    return this.genericService.onGetAll(this.onSolicitarResources)
   }
 
   // this.deliverySub = this.getDeliverySub.subscribe((res) => {

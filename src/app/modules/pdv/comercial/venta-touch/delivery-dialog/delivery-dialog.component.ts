@@ -1,47 +1,15 @@
-import { Clipboard } from '@angular/cdk/clipboard';
 import {
-  AfterContentChecked,
   Component,
-  ElementRef,
-  Inject,
-  OnInit,
+  ElementRef, OnInit,
+  QueryList,
   ViewChild,
+  ViewChildren
 } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { MatAutocompleteTrigger } from '@angular/material/autocomplete';
-import { MatButton } from '@angular/material/button';
-import {
-  MAT_DIALOG_DATA,
-  MatDialogRef,
-  MatDialog,
-} from '@angular/material/dialog';
-import { MatSelect } from '@angular/material/select';
-import { Observable } from 'rxjs';
-import { CurrencyMask } from '../../../../../commons/core/utils/numbersUtils';
-import { MonedasGetAllGQL } from '../../../../../modules/financiero/moneda/graphql/monedasGetAll';
+import { MatSelect, MatSelectChange } from '@angular/material/select';
 import { Moneda } from '../../../../../modules/financiero/moneda/moneda.model';
 import { Barrio } from '../../../../../modules/general/barrio/barrio.model';
-import { BarriosPorCiudadIdGQL } from '../../../../../modules/general/barrio/graphql/barriosPorCiudadId';
 import { Delivery } from '../../../../../modules/operaciones/delivery/delivery.model';
-import { DeliveryEstado } from '../../../../../modules/operaciones/delivery/enums';
-import { DeliveryInput } from '../../../../../modules/operaciones/delivery/graphql/delivery-input.model';
-import { SaveDeliveryGQL } from '../../../../../modules/operaciones/delivery/graphql/saveDelivery';
-import { PrecioDelivery } from '../../../../../modules/operaciones/delivery/precio-delivery.model';
-import { PreciosDeliveryGQL } from '../../../../../modules/operaciones/delivery/precio-delivery/graphql/precioDeliverySearchByPrecio';
-import { VueltoItemInput } from '../../../../../modules/operaciones/vuelto/vuelto-item/vuelto-item-input.model';
-import {
-  NotificacionColor,
-  NotificacionSnackbarService,
-} from '../../../../../notificacion-snackbar.service';
-import { DeliveryService } from '../delivery.service';
-import {
-  PagoTouchComponent,
-} from '../pago-touch/pago-touch.component';
-import { RedondeoDialogComponent } from '../redondeo-dialog/redondeo-dialog.component';
-import {
-  SeleccionarBilletesTouchComponent,
-  SelectBilletesResponseData,
-} from '../seleccionar-billetes-touch/seleccionar-billetes-touch.component';
 
 export class DeliveryData {
   valor: number;
@@ -54,7 +22,18 @@ interface VueltoItem {
   formaPago: string;
 }
 
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { UntilDestroy } from '@ngneat/until-destroy';
+import { MainService } from '../../../../../main.service';
+import { BarrioService } from '../../../../general/barrio/barrio.service';
+import { PrecioDelivery } from '../../../../operaciones/delivery/precio-delivery.model';
+import { DeliveryService } from './delivery.service';
+import { BotonComponent } from '../../../../../shared/components/boton/boton.component';
+import { comparatorLike } from '../../../../../commons/core/utils/string-utils';
+import { FormaPagoService } from '../../../../financiero/forma-pago/forma-pago.service';
+import { FormaPago } from '../../../../financiero/forma-pago/forma-pago.model';
+import { MonedaService } from '../../../../financiero/moneda/moneda.service';
+import { PagoItem } from '../pago-touch/pago-touch.component';
+import { CurrencyMaskInputMode } from 'ngx-currency';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -62,613 +41,338 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
   templateUrl: './delivery-dialog.component.html',
   styleUrls: ['./delivery-dialog.component.css'],
 })
-export class DeliveryDialogComponent implements OnInit, AfterContentChecked {
-  @ViewChild('telefonoInput', { static: false }) telefonoInput: ElementRef;
-  @ViewChild('nombreClienteInput', { static: false })
-  nombreClienteInput: ElementRef;
-  @ViewChild('direccionInput', { static: false }) direccionInput: ElementRef;
-  @ViewChild('efectivoBtn', { static: false }) efectivoBtn: MatButton;
-  @ViewChild('guaraniBtn', { static: false }) guaraniBtn: MatButton;
-  @ViewChild('valorVueltoInput', { static: false })
-  valorVueltoInput: ElementRef;
-  @ViewChild('finalizarBtn', { static: false }) finalizarBtn: MatButton;
-  @ViewChild('vueltoParaGsBtn', { static: false }) vueltoParaGsBtn: MatButton;
-  @ViewChild('vueltoParaRsBtn', { static: false }) vueltoParaRsBtn: MatButton;
-  @ViewChild('vueltoParaDsBtn', { static: false }) vueltoParaDsBtn: MatButton;
-  @ViewChild('vueltoParaOtroBtn', { static: false })
-  vueltoParaOtroBtn: MatButton;
-  @ViewChild('monedaBtn', { static: false }) monedaBtn: MatButton;
-  @ViewChild('formaPagoBtn', { static: false }) formaPagoBtn: MatButton;
-  @ViewChild('precioDeliveryBtn', { static: false })
-  precioDeliveryBtn: MatButton;
-  @ViewChild('autoBarrioInput', { static: false }) autoBarrioInput: ElementRef;
-  @ViewChild('paisTelefonoSelect', { static: false })
-  paisTelefonoSelect: MatSelect;
-  @ViewChild('autoBarrioInput', {
-    static: false,
-    read: MatAutocompleteTrigger,
-  })
-  matBarrioTrigger: MatAutocompleteTrigger;
+export class DeliveryDialogComponent implements OnInit {
 
+  @ViewChild('matPrefixSelect', { static: false }) matPrefixSelect: MatSelect;
+  @ViewChild('telefonoInput', { static: false }) telefonoInput: ElementRef;
+  @ViewChild('valorInput', { static: false }) valorInput: ElementRef;
+  @ViewChild('direccionInput', { static: false }) direccionInput: ElementRef;
+  @ViewChild('barrioInput', { static: false }) barrioInput: ElementRef;
+  @ViewChild('barrioSelect', { static: false }) barrioSelect: MatSelect;
+  @ViewChildren('preciosList') preciosListBtn: QueryList<BotonComponent>;
+  @ViewChild('barrioFilterInput', { static: false }) barrioFilterInput: ElementRef;
+  @ViewChildren('formaPagoBtnList') formaPagoBtnList: QueryList<BotonComponent>;
+  @ViewChildren('monedasBtnList') monedasBtnList: QueryList<BotonComponent>;
+  @ViewChildren('vueltoBtnList') vueltoBtnList: QueryList<BotonComponent>;
+
+  currencyOptionsGuarani = {
+    allowNegative: true,
+    precision: 0,
+    thousands: ".",
+    nullable: false,
+    inputMode: CurrencyMaskInputMode.NATURAL,
+    align: "right",
+    allowZero: true,
+    decimal: null,
+    prefix: "",
+    suffix: "",
+    max: null,
+    min: null
+  };
+
+  currencyOptionsNoGuarani = {
+    allowNegative: true,
+    precision: 2,
+    thousands: ",",
+    nullable: false,
+    inputMode: CurrencyMaskInputMode.FINANCIAL,
+    align: "right",
+    allowZero: true,
+    decimal: ".",
+    prefix: "",
+    suffix: "",
+    max: null,
+    min: null
+  };
+
+  totalGs = 94000;
+  totalConDelivery = 0;
+  cambioRs = 1250;
+  cambioDs = 6900;
+  cambioArg = 40;
+  selectedVueltoList = []
+
+  selectedDelivery: Delivery;
   formGroup: FormGroup;
-  selectedPrecio: FormControl = new FormControl();
-  selectedPago = 'Efectivo';
-  valorRs = 0;
-  valorDs = 0;
-  cambioRs = 0;
-  cambioDs = 0;
-  cambioPs = 0;
-  deliveryGs = 0;
-  deliveryRs = 0;
-  deliveryDs = 0;
-  monedas: Moneda[];
-  filteredMonedas: Moneda[];
-  selectedMoneda: Moneda;
-  vueltoParaGs = 0;
-  vueltoParaRs = 0;
-  vueltoParaDs = 0;
-  selectedVueltoPara = 0;
-  barrios: Barrio[];
-  filteredBarrios: Barrio[];
-  selectedBarrio: Barrio;
-  timer: any;
-  precioDeliveryList: PrecioDelivery[];
-  filteredPrecioDeliveryList: PrecioDelivery[];
-  focusableItemList: Record<string, any>[];
-  vueltoItemList: VueltoItem[] = [];
-  totalVueltoGs: number = 0;
-  totalVueltoRs: number = 0;
-  totalVueltoDs: number = 0;
-  currencyMask = new CurrencyMask();
-  selectedPaisTelefono = 'py';
-  prefixPy = '+595';
-  prefixBr = '+55';
-  ultimosDeliverys: Delivery[];
-  deliverysActivos: Delivery[];
-  deliverysUltimos10: Delivery[];
-  deliverysObs: Observable<any>;
+  telefonoControl = new FormControl(null, [Validators.required, Validators.minLength(9), Validators.pattern("^[0-9]*$")])
+  telefonoPrefixControl = new FormControl()
+  direccionControl = new FormControl()
+  barrioControl = new FormControl()
+  entregadorControl = new FormControl()
+  estadoControl = new FormControl()
+  precioControl = new FormControl()
+  ventaControl = new FormControl()
+  formaPagoControl = new FormControl()
+  barrioFilterControl = new FormControl()
+  barrioList: Barrio[] = []
+  filteredBarriosList: Barrio[] = []
+  precioDeliveryList: PrecioDelivery[] = []
+  formaPagoList: FormaPago[] = []
+  monedaList: Moneda[] = []
+  monedaControl = new FormControl()
+  pagoItemList: PagoItem[] = []
+  valorControl = new FormControl(0)
+  vueltoControl = new FormControl(null)
+  vueltoListGs: number[] = []
+  vueltoListRs: number[] = []
+  vueltoListDs: number[] = []
+  saldoGs = 0;
+
+  prefixList = ['+595', '+55']
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: DeliveryData,
-    public dialogRef: MatDialogRef<PagoTouchComponent>,
-    private getMonedas: MonedasGetAllGQL,
-    private getBarriosPorCiudadId: BarriosPorCiudadIdGQL,
-    private getPreciosDelivery: PreciosDeliveryGQL,
-    private matDialogRef: MatDialog,
-    private notificacionBar: NotificacionSnackbarService,
-    private saveDelivery: SaveDeliveryGQL,
+    private barrioService: BarrioService,
+    private mainService: MainService,
     private deliveryService: DeliveryService,
-    private copyToClip: Clipboard
+    private formaPagoService: FormaPagoService,
+    private monedaService: MonedaService
   ) {
-  }
 
-  ngAfterContentChecked(): void {
-    this.focusableItemList = [
-      {
-        key: 'telefonoInput',
-        value: this.telefonoInput,
-      },
-      {
-        key: 'nombreClienteInput',
-        value: this.nombreClienteInput,
-      },
-      {
-        key: 'autoBarrioInput',
-        value: this.autoBarrioInput,
-      },
-      {
-        key: 'direccionInput',
-        value: this.direccionInput,
-      },
-      {
-        key: 'efectivoBtn',
-        value: this.efectivoBtn,
-      },
-      {
-        key: 'formaPago',
-        value: this.formaPagoBtn,
-      },
-      {
-        key: 'guaraniBtn',
-        value: this.guaraniBtn,
-      },
-      {
-        key: 'monedaBtn',
-        value: this.monedaBtn,
-      },
-      {
-        key: 'vueltoParaGsBtn',
-        value: this.vueltoParaGsBtn,
-      },
-      {
-        key: 'vueltoParaRsBtn',
-        value: this.vueltoParaRsBtn,
-      },
-      {
-        key: 'vueltoParaDsBtn',
-        value: this.vueltoParaDsBtn,
-      },
-      {
-        key: 'vueltoParaOtroBtn',
-        value: this.vueltoParaOtroBtn,
-      },
-      {
-        key: 'finalizarBtn',
-        value: this.finalizarBtn,
-      },
-      {
-        key: 'precioDeliveryBtn',
-        value: this.precioDeliveryBtn,
-      },
-      {
-        key: 'valorVueltoInput',
-        value: this.valorVueltoInput,
-      },
-      {
-        key: 'paisTelefonoSelect', //(keyup.enter)="onEnterEvent('paisTelefonoSelect')"
-        value: this.paisTelefonoSelect,
-      },
-    ];
+    this.totalConDelivery = this.totalGs;
+
+    this.barrioService.onGetPorCiudadId(this.mainService?.sucursalActual?.ciudad?.id).subscribe(res => {
+      this.barrioList = res;
+      this.filteredBarriosList = res;
+    })
+
+    this.monedaService.onGetAll().subscribe(res => {
+      this.monedaList = res;
+      this.monedaControl.setValue(this.monedaList[0])
+      this.deliveryService.onGetPreciosDelivery().subscribe(res => {
+        this.precioDeliveryList = res;
+        this.precioControl.setValue(this.precioDeliveryList[0])
+        this.totalConDelivery += this.precioControl.value?.valor;
+        this.calcularVuelto()
+        setTimeout(() => {
+          this.navigateVuelto(0)
+        }, 0);
+      })
+    })
+
+    this.barrioFilterControl.valueChanges.subscribe(res => {
+      this.filteredBarriosList = this.barrioList.filter(b => b.descripcion?.toUpperCase().includes(res?.toUpperCase()))
+    })
+
+    this.formaPagoService.onGetAllFormaPago().subscribe(res => {
+      this.formaPagoList = res;
+      this.formaPagoControl.setValue(this.formaPagoList[0])
+    })
+
+
   }
 
   ngOnInit(): void {
-    this.createForm();
-    this.getPreciosDel();
-    this.setCambios();
-    this.getBarrios();
-    this.getDeliverys();
-
+    this.createForm()
+    this.telefonoPrefixControl.setValue(this.prefixList[0])
     setTimeout(() => {
-      this.telefonoInput.nativeElement.focus();
-    }, 0);
+      this.matPrefixSelect.focus()
+    }, 500);
 
-    this.selectedPrecio.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res != null) {
-        let valorDelivery = res.valor;
-        let valorTotal = this.data.valor;
-        this.formGroup.controls.valor.setValue(valorTotal + valorDelivery);
-      }
-    });
+
   }
 
-  ngAfterViewInit(): void {}
+  calcularVuelto() {
+    this.vueltoListGs = []
+    this.vueltoListRs = []
+    this.vueltoListDs = []
+    let factorGs = Math.floor(this.totalConDelivery / 100000) + 1;
+    let factorRs = Math.floor((this.totalConDelivery / this.cambioRs) / 100) + 1;
+    let factorDs = Math.floor((this.totalConDelivery / this.cambioDs) / 100) + 1;
+    this.vueltoListGs.push(factorGs * 100000);
+    this.vueltoListRs.push(factorRs * 100);
+    this.vueltoListDs.push(factorDs * 100);
+
+    if (this.totalConDelivery < 50000) {
+      this.vueltoListGs.push(50000)
+    }
+    if (this.totalConDelivery / this.cambioRs < 50) {
+      this.vueltoListRs.push(50)
+    }
+    if (this.totalConDelivery / this.cambioDs < 50) {
+      this.vueltoListDs.push(50)
+    }
+
+    this.vueltoListGs.push(this.totalConDelivery)
+
+    this.vueltoListRs.push(this.totalConDelivery / this.cambioRs)
+
+    this.vueltoListDs.push(this.totalConDelivery / this.cambioDs)
+
+
+    if (this.monedaControl.value?.denominacion.includes('GUARANI')) {
+      this.selectedVueltoList = this.vueltoListGs;
+    }
+    if (this.monedaControl.value?.denominacion.includes('REAL')) {
+      this.selectedVueltoList = this.vueltoListRs;
+    }
+    if (this.monedaControl.value?.denominacion.includes('DOLAR')) {
+      this.selectedVueltoList = this.vueltoListDs;
+    }
+  }
 
   createForm() {
     this.formGroup = new FormGroup({
-      telefono: new FormControl(null, Validators.required),
-      prefixTelefono: new FormControl('py'),
-      cliente: new FormControl(null),
-      tipoDelivery: new FormControl(null),
-      descripcionDelivery: new FormControl(null),
-      direccion: new FormControl(null),
-      entregador: new FormControl(null),
-      vehiculo: new FormControl(null),
-      moneda: new FormControl(null),
-      valor: new FormControl(null),
-      barrio: new FormControl(null),
-      valorVuelto: new FormControl(null),
-    });
-
-    this.formGroup.controls.cliente.setValue('SIN NOMBRE');
-    this.formGroup.controls.valor.setValue(this.data.valor);
-
-    this.formGroup.controls.valor.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
-      this.setCambios();
-      this.setVueltoPara();
-    });
-
-    this.formGroup.controls.prefixTelefono.setValue('py');
-  }
-
-  setCambios() {
-    this.getMonedas.fetch().pipe(untilDestroyed(this)).subscribe((res) => {
-      if (!res.errors) {
-        this.monedas = res.data.data;
-        this.filteredMonedas = this.monedas.filter(
-          (m) => m.denominacion != 'GUARANI'
-        );
-        if (this.selectedMoneda == null) {
-          this.selectedMoneda = this.monedas.find(
-            (m) => m.denominacion == 'GUARANI'
-          );
-        }
-        this.cambioRs = this.monedas.find(
-          (m) => m.denominacion === 'REAL'
-        )?.cambio;
-        this.cambioDs = this.monedas.find(
-          (m) => m.denominacion === 'DOLAR'
-        )?.cambio;
-        this.valorRs = this.formGroup.controls.valor.value / this.cambioRs;
-        this.valorDs = this.formGroup.controls.valor.value / this.cambioDs;
-        this.setVueltoPara();
-      }
-    });
-  }
-
-  getBarrios() {
-    this.getBarriosPorCiudadId
-      .fetch({
-        id: 1,
-      }).pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (!res.errors) {
-          this.barrios = res.data.data;
-        }
-      });
-  }
-
-  getPreciosDel() {
-    this.getPreciosDelivery.fetch().pipe(untilDestroyed(this)).subscribe((res) => {
-      if (!res.errors) {
-        this.precioDeliveryList = res.data.data;
-        this.filteredPrecioDeliveryList = this.precioDeliveryList.filter(
-          (p) => p.valor != 5000
-        );
-        this.selectedPrecio.setValue(this.precioDeliveryList[0]);
-      }
-    });
-  }
-
-  getDeliverys() {
-    // this.getDeliverysByEstadoNotIn
-    //   .fetch({ estado: DeliveryEstado.ENTREGADO }, { fetchPolicy: 'no-cache' })
-    //   .subscribe((res) => {
-    //     this.deliverysActivos = res.data.data.filter(
-    //       (d) => d.estado != DeliveryEstado.CANCELADO
-    //     );
-    //   });
-    // this.getDeliverysUltimos
-    //   .fetch({ fetchPolicy: 'no-cache' })
-    //   .subscribe((res) => {
-    //     if (!res.errors) {
-    //       this.deliverysUltimos10 = res.data.data;
-    //     }
-    //   });
-    this.deliveryService.deliverysActivosSub.pipe(untilDestroyed(this)).subscribe(res=>{
-      this.deliverysActivos = res;
-    })
-
-    this.deliveryService.ultimosDeliverysSub.pipe(untilDestroyed(this)).subscribe(res=>{
-      this.ultimosDeliverys = res;
+      'telefonoControl': this.telefonoControl,
+      'direccionControl': this.direccionControl,
+      'barrioControl': this.barrioControl,
+      'entregadorControl': this.entregadorControl,
+      'estadoControl': this.estadoControl,
+      'precioControl': this.precioControl,
+      'ventaControl': this.ventaControl,
+      'telefonoPrefixControl': this.telefonoPrefixControl
     })
   }
 
-  onBarrioSearch() {
-    if (this.timer != null) {
-      clearTimeout(this.timer);
-    }
-    let text: string = this.formGroup.controls.barrio.value;
-    this.filteredBarrios = this.barrios?.filter(
-      (b) => b.id + '' == text || b.descripcion.includes(text?.toUpperCase())
-    );
-
-    if (this.filteredBarrios.length == 1) {
-      this.timer = setTimeout(() => {
-        this.formGroup.controls.barrio.setValue(this.filteredBarrios[0].id);
-        this.matBarrioTrigger.closePanel();
-        this.onBarrioAutoClosed();
-      }, 1000);
-    }
-  }
-
-  displayBarrio(value?: number) {
-    let res = value ? this.barrios.find((_) => _.id === value) : undefined;
-    this.selectedBarrio = res;
-    this.selectedPrecio.setValue(this.selectedBarrio?.precioDelivery);
-    return res ? res.id + ' - ' + res.descripcion : undefined;
-  }
-
-  onBarrioAutoClosed() {
+  onPrefixSelect() {
     setTimeout(() => {
-      this.autoBarrioInput.nativeElement.select();
-    }, 0);
+      this.matPrefixSelect.close()
+      this.telefonoInput.nativeElement.select()
+    }, 100);
   }
 
-  onKeydownEvent(key) {}
-
-  selectGuarani() {
-    this.selectedMoneda = this.monedas.find((m) => m.denominacion == 'GUARANI');
+  onTelefonoEnter() {
+    this.direccionInput.nativeElement.select()
   }
 
-  selectMoneda() {
-    if (this.selectedMoneda.denominacion == 'GUARANI') {
-      this.vueltoParaGsBtn._elementRef.nativeElement.focus();
-    } else if (this.selectedMoneda.denominacion == 'REAL') {
-      this.vueltoParaRsBtn._elementRef.nativeElement.focus();
-    } else {
-      this.vueltoParaOtroBtn._elementRef.nativeElement.focus();
-    }
-  }
-
-  setVueltoPara() {
-    let valor = this.formGroup.controls.valor.value;
-    let factorGs = Math.floor(valor / 100001) + 1;
-    this.vueltoParaGs = factorGs * 100000;
-    this.selectedVueltoPara = this.vueltoParaGs;
-    let factorRs = Math.floor(valor / this.cambioRs / 100.1) + 1;
-    this.vueltoParaRs = factorRs * 100;
-    let factorDs = Math.floor(valor / this.cambioDs / 100.1) + 1;
-    this.vueltoParaDs = factorDs * 100;
-  }
-
-  selectVueltoPara(moneda?: Moneda) {
-    if (moneda.denominacion == 'GUARANI') {
-      this.selectedVueltoPara = this.vueltoParaGs;
-    } else if (moneda.denominacion == 'REAL') {
-      this.selectedVueltoPara = this.vueltoParaRs;
-    } else if (moneda.denominacion == 'DOLAR') {
-      this.selectedVueltoPara = this.vueltoParaDs;
-    } else {
-      this.selectedVueltoPara = -1;
-    }
-  }
-
-  sumarConTotal() {
-    let valor = this.formGroup.controls.valor.value;
-    this.formGroup.controls.valor.setValue(
-      valor + this.selectedPrecio.value.valor
-    );
-  }
-
-  selectOtro() {}
-
-  onEnterEvent(item) {
-    let aux: ElementRef<any> | MatButton;
-    switch (item) {
-      case 'paisTelefonoSelect':
-        aux = this.focusableItemList.find(
-          (f) => f.key == 'telefonoInput'
-        ).value;
-        break;
-      case 'telefonoInput':
-        aux = this.focusableItemList.find(
-          (f) => f.key == 'nombreClienteInput'
-        ).value;
-        break;
-      case 'nombreClienteInput':
-        aux = this.focusableItemList.find(
-          (f) => f.key == 'autoBarrioInput'
-        ).value;
-        break;
-      case 'autoBarrioInput':
-        if (this.timer != null) {
-          clearTimeout(this.timer);
-        }
-        aux = this.focusableItemList.find(
-          (f) => f.key == 'direccionInput'
-        ).value;
-        break;
-      case 'direccionInput':
-        if (this.selectedBarrio != null) {
-          aux = this.focusableItemList.find(
-            (f) => f.key == 'efectivoBtn'
-          ).value;
-        } else {
-          aux = this.focusableItemList.find(
-            (f) => f.key == 'precioDeliveryBtn'
-          ).value;
-        }
-
-        break;
-      case 'precioDeliveryBtn':
-        aux = this.focusableItemList.find((f) => f.key == 'efectivoBtn').value;
-        break;
-      case 'efectivoBtn':
-        if (this.selectedPago != 'Efectivo') {
-          this.selectedMoneda = null;
-          this.selectedVueltoPara = null;
-          aux = this.focusableItemList.find(
-            (f) => f.key == 'finalizarBtn'
-          ).value;
-        } else {
-          aux = this.focusableItemList.find((f) => f.key == 'guaraniBtn').value;
-        }
-        break;
-      case 'guaraniBtn':
-        aux = this.focusableItemList.find(
-          (f) => f.key == 'vueltoParaGsBtn'
-        ).value;
-        break;
-      case 'REAL':
-        aux = this.focusableItemList.find(
-          (f) => f.key == 'vueltoParaRsBtn'
-        ).value;
-        break;
-      case 'DOLAR':
-        aux = this.focusableItemList.find(
-          (f) => f.key == 'vueltoParaDsBtn'
-        ).value;
-        break;
-      case 'vueltoParaOtro':
-        aux = this.focusableItemList.find(
-          (f) => f.key == 'valorVueltoInput'
-        ).value;
-        break;
-      case 'valorVueltoInput':
-        let vuelto = this.formGroup.controls.valorVuelto.value;
-        this.addVueltoItem(vuelto);
-        break;
-      case 'valorVueltoInput':
-      case 'vueltoParaGsBtn':
-      case 'vueltoParaRsBtn':
-      case 'vueltoParaDsBtn':
-        aux = this.focusableItemList.find((f) => f.key == 'finalizarBtn').value;
-      default:
-        break;
-    }
-    if (aux != null) {
-      if (aux instanceof ElementRef) {
-        aux.nativeElement.focus();
-      } else {
-        aux._elementRef.nativeElement.focus();
-      }
-    } else {
-    }
-  }
-
-  deleteVueltoItem(i) {
-    this.vueltoItemList.splice(i, 1);
-  }
-
-  addVueltoItem(valor?) {
-    let vuelto = valor != null ? valor : this.selectedVueltoPara;
-    this.formGroup.controls.valorVuelto.reset();
-    this.vueltoItemList.push({
-      valor:
-        vuelto -
-        this.formGroup.controls.valor.value / this.selectedMoneda.cambio,
-      formaPago: this.selectedPago,
-      moneda: this.selectedMoneda,
-    });
-    this.actualizarVueltos();
-  }
-
-  onBilletesSelect(text) {
-    let moneda: Moneda = this.monedas.find((m) => m.denominacion == text);
-    if (moneda != null) {
-      this.matDialogRef
-        .open(SeleccionarBilletesTouchComponent, {
-          data: {
-            moneda,
-            isVuelto: false,
-            valor: 0,
-          },
-        })
-        .afterClosed().pipe(untilDestroyed(this))
-        .subscribe((res: SelectBilletesResponseData) => {
-          if (res != null) {
-            this.selectedMoneda = res.moneda;
-            this.selectedPago = 'Efectivo';
-            this.addVueltoItem(res.valor);
-          }
-        });
-    }
-  }
-
-  onRedondearClick(index) {
-    this.matDialogRef
-      .open(RedondeoDialogComponent, {
-        data: {
-          isRedondeo: true,
-          moneda: this.vueltoItemList[index].moneda,
-          valor: this.vueltoItemList[index].valor,
-        },
-        width: '50vw',
-      })
-      .afterClosed().pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          this.vueltoItemList[index].valor = res.valor;
-          this.actualizarVueltos();
-        }
-      });
-  }
-
-  //funcion para cambiar la moneda seleccionada como vuelto
-  onMonedaChange(index) {
-    this.matDialogRef
-      .open(RedondeoDialogComponent, {
-        data: {
-          isRedondeo: false,
-          moneda: this.vueltoItemList[index].moneda,
-        },
-        width: '50vw',
-      })
-      .afterClosed().pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          let valorActual =
-            this.vueltoItemList[index].valor *
-            this.vueltoItemList[index].moneda.cambio;
-          let nuevoValor = valorActual / res.moneda.cambio;
-          this.vueltoItemList[index].moneda = res.moneda;
-          this.vueltoItemList[index].valor = nuevoValor;
-          this.actualizarVueltos();
-        }
-      });
-  }
-
-  actualizarVueltos() {
-    this.totalVueltoGs = 0;
-    this.totalVueltoRs = 0;
-    this.totalVueltoDs = 0;
-    this.vueltoItemList.forEach((v) => {
-      switch (v.moneda.denominacion) {
-        case 'GUARANI':
-          this.totalVueltoGs += v.valor;
-          break;
-        case 'REAL':
-          this.totalVueltoRs += v.valor;
-          break;
-        case 'DOLAR':
-          this.totalVueltoDs += v.valor;
-          break;
-
-        default:
-          break;
-      }
-    });
-  }
-
-  onFinalizarBtn() {
-    if (this.formGroup.invalid) {
-      this.notificacionBar.notification$.next({
-        color: NotificacionColor.warn,
-        texto: 'Ingresar número de teléfono',
-        duracion: 2,
-      });
-    } else {
-      let deliveryInput: DeliveryInput = {
-        id: null,
-        precioId: this.selectedPrecio.value.id,
-        telefono:
-          (this.selectedPaisTelefono == 'py' ? this.prefixPy : this.prefixBr) +
-          this.formGroup.controls.telefono.value,
-        direccion: this.formGroup.controls.direccion.value,
-        estado: DeliveryEstado.ABIERTO,
-        entregadorId: 1,
-        usuarioId: 1,
-        valor: this.formGroup.controls.valor.value,
-        vehiculoId: null,
-        ventaId: null,
-        barrioId: this.selectedBarrio?.id,
-      };
-      let vueltoList = [];
-      this.vueltoItemList.forEach((v) => {
-        let vueltoItem: VueltoItemInput = {
-          monedaId: v.moneda.id,
-          valor: v.valor,
-        };
-        vueltoList.push(vueltoItem);
-      });
-      // delivery.vuelto = vueltoList;
-      this.dialogRef.close({ deliveryInput, vueltoList });
-    }
-  }
-
-  copiar(item, copyText?) {
-    let texto = '';
-    if (copyText != null) {
-      this.copyToClip.copy(copyText);
-    } else {
-      switch (item) {
-        case 'telefono':
-          texto =
-            (this.selectedPaisTelefono == 'py'
-              ? this.prefixPy
-              : this.prefixBr) + this.formGroup.controls.telefono.value;
-          this.copyToClip.copy(texto);
-
-          break;
-
-        default:
-          break;
+  verificarTelefono() {
+    if (this.telefonoControl.valid) {
+      if (this.telefonoControl.value[0] == '0') {
+        let telefono: string = this.telefonoControl.value;
+        this.telefonoControl.setValue(telefono.substring(1))
       }
     }
-    this.notificacionBar.notification$.next({
-      color: NotificacionColor.info,
-      texto: 'Copiado con éxito',
-      duracion: 1,
-    });
   }
+
+  onDireccionEnter() {
+    this.barrioSelect.focus()
+    this.barrioSelect.open()
+  }
+
+  navigatePrecios(index) {
+    if (index < 0) index = this.precioDeliveryList.findIndex(p => p.id == this.precioControl.value?.precioDelivery?.id);
+    if (index > this.preciosListBtn.length - 1) {
+      console.log(index);
+      index = index - 1;
+    }
+    setTimeout(() => {
+      this.precioControl.setValue(this.precioDeliveryList[index])
+      this.totalConDelivery = this.totalGs + this.precioControl?.value?.valor;
+      this.calcularVuelto()
+      this.preciosListBtn.toArray()[index].onGetFocus()
+    }, 100);
+  }
+
+  onPrecioSelect() {
+    let index = this.formaPagoList.findIndex(p => p.id == this.formaPagoControl.value?.id)
+    if (index >= 0) {
+      this.navigateFormaPago(index)
+      this.calcularVuelto()
+    }
+  }
+
+  onBarrioChange(e: MatSelectChange) {
+    // if (e.value?.precioDelivery) {
+    //   let index = this.precioDeliveryList.findIndex(p => p.id == e.value?.precioDelivery?.id)
+    //   if (index >= 0) {
+    //     this.navigatePrecios(index)
+    //   } else {
+    //     this.navigatePrecios(0)
+    //   }
+    // }
+  }
+
+  onBarrioEnter() {
+    this.barrioSelect.close()
+    let index = this.precioDeliveryList.findIndex(p => p.id == this.barrioControl.value?.precioDelivery?.id)
+    if (index != -1) {
+      this.navigatePrecios(index)
+    } else {
+      index = this.precioDeliveryList.findIndex(p => p.id == this.precioControl.value?.id)
+      this.navigatePrecios(0)
+    }
+  }
+
+  navigateFormaPago(index) {
+    if (index < 0) index = 0;
+    if (index > this.formaPagoBtnList.length - 1) index = index - 1;
+    setTimeout(() => {
+      this.formaPagoControl.setValue(this.formaPagoList[index])
+      this.formaPagoBtnList.toArray()[index].onGetFocus()
+    }, 100);
+  }
+
+  onFormaPagoSelect() {
+    this.navigateMoneda(0)
+  }
+
+  onFormaPagoKeyUp(key) {
+    if (Number(key) == +key) {
+      let index = this.formaPagoList.findIndex(f => f.id == +key);
+      if (index != -1) {
+        this.navigateFormaPago(index)
+        this.navigateMoneda(0)
+      }
+    }
+  }
+
+  navigateMoneda(index) {
+    if (index < 0) index = 0;
+    if (index > this.monedasBtnList.length - 1) index = index - 1;
+    setTimeout(() => {
+      this.monedaControl.setValue(this.monedaList[index])
+      this.monedasBtnList.toArray()[index].onGetFocus()
+      this.calcularVuelto()
+    }, 100);
+  }
+
+  onMonedaKeyUp(key) {
+    if (Number(key) == +key) {
+      let index = this.monedaList.findIndex(f => f.id == +key);
+      if (index != -1) {
+        this.navigateMoneda(index)
+        this.navigateVuelto(0)
+      }
+    }
+  }
+
+  onMonedaSelect() {
+    this.navigateVuelto(0)
+  }
+
+  navigateVuelto(index) {
+    if (index < 0) index = 0;
+    if (index > this.vueltoBtnList.length - 1) index = index - 1;
+    setTimeout(() => {
+      this.vueltoControl.setValue(this.selectedVueltoList[index])
+      this.vueltoBtnList.toArray()[index].onGetFocus()
+      this.calcularVuelto()
+    }, 100);
+  }
+
+  onVueltoKeyUp(key) {
+    if (Number(key) == +key) {
+      let index = this.selectedVueltoList.findIndex(f => f.id == +key);
+      if (index != -1) {
+        this.navigateVuelto(index)
+        this.valorInput.nativeElement.select()
+      }
+    }
+  }
+
+  onVueltoSelect() {
+    this.valorInput.nativeElement.select()
+  }
+
+  onDeleteItem(item, i) {
+
+  }
+
+  onValorEnter() {
+
+  }
+
+  onValorFocus() {
+    this.valorInput.nativeElement.select()
+  }
+
 }

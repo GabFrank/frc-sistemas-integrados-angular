@@ -397,8 +397,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
   }
 
   addPagoItem() {
-    if(this.selectedFormaPago.descripcion == 'TARJETA'){
-      
+    if (this.selectedFormaPago.descripcion == 'TARJETA') {
+
     }
     let valor = this.formGroup.get("valor").value;
     let saldo = this.formGroup.get("saldo").value;

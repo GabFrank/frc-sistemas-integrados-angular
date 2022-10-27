@@ -49,7 +49,6 @@ export class FavoritosComponent implements OnInit {
                   .pipe(untilDestroyed(this))
                   .subscribe((res) => {
                     if (res != null) {
-                      console.log("cargando: " + gr.descripcion);
                       gr.pdvGruposProductos = res;
                     }
                   });

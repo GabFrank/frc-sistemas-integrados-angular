@@ -14,6 +14,7 @@ import { FuncionarioDashboardComponent } from '../../../modules/personas/funcion
 import { ListActualizacionComponent } from '../../../modules/configuracion/actualizacion/list-actualizacion/list-actualizacion.component';
 import { ListCajaComponent } from '../../../modules/financiero/pdv/caja/list-caja/list-caja.component';
 import { ListSectorComponent } from '../../../modules/empresarial/sector/list-sector/list-sector.component';
+import { SolicitarRecursosDialogComponent } from '../../../modules/configuracion/solicitar-recursos-dialog/solicitar-recursos-dialog.component';
 
 export enum TIPO_SEARCH {
   COMPONENTE = 'COMPONENTE',
@@ -22,10 +23,10 @@ export enum TIPO_SEARCH {
 }
 
 export interface SearchData {
-  title:string, 
+  title: string,
   component?: Type<any>,
   producto?: Producto,
-  data?:any;
+  data?: any;
   role?: string;
 }
 
@@ -34,17 +35,18 @@ export class SearchDataResult {
   productos: SearchData[]
 }
 
-export const componenteList: SearchData[] = 
-[
-  {title: 'Lista de Productos', component: ListProductoComponent},
-  {title: 'Lista de Transferencias', component: ListTransferenciaComponent},
-  {title: 'Nueva Transferencia', component: EditTransferenciaComponent},
-  {title: 'Cotización', component: CambioComponent},
-  {title: 'Funcionarios', component: FuncionarioDashboardComponent},
-  {title: 'Actualizacion', component: ListActualizacionComponent},
-  {title: 'Lista de cajas', component: ListCajaComponent},
-  {title: 'Lista de sectores', component: ListSectorComponent}
-]
+export const componenteList: SearchData[] =
+  [
+    { title: 'Lista de Productos', component: ListProductoComponent },
+    { title: 'Lista de Transferencias', component: ListTransferenciaComponent },
+    { title: 'Nueva Transferencia', component: EditTransferenciaComponent },
+    { title: 'Cotización', component: CambioComponent },
+    { title: 'Funcionarios', component: FuncionarioDashboardComponent },
+    { title: 'Actualizacion', component: ListActualizacionComponent },
+    { title: 'Lista de cajas', component: ListCajaComponent },
+    { title: 'Lista de sectores', component: ListSectorComponent },
+    { title: 'Solicitar Recursos', component: SolicitarRecursosDialogComponent }
+  ]
 
 @UntilDestroy()
 @Injectable({
@@ -56,11 +58,11 @@ export class SearchBarService {
 
   timer;
 
-  constructor(private tabService: TabService, 
+  constructor(private tabService: TabService,
     private productoService: ProductoService,
-    ) { }
+  ) { }
 
-  onSearch(texto): Promise<SearchDataResult>{
+  onSearch(texto): Promise<SearchDataResult> {
     if (this.timer != null) {
       clearTimeout(this.timer);
     }
@@ -71,24 +73,24 @@ export class SearchBarService {
       let productoList: Producto[];
       this.timer = setTimeout(() => {
         this.productoService.onSearch(texto)
-        .pipe()
-        .subscribe(res => {
-          if(res!=null){
-            productoList = res;
-            result.productos = []
-            productoList.forEach(p => {
-              let item: SearchData = {title: p.descripcion, component: ProductoComponent, data: p}
-              result.productos.push(item)
-            })
-          }
-          return resolve(result);
-      })
+          .pipe()
+          .subscribe(res => {
+            if (res != null) {
+              productoList = res;
+              result.productos = []
+              productoList.forEach(p => {
+                let item: SearchData = { title: p.descripcion, component: ProductoComponent, data: p }
+                result.productos.push(item)
+              })
+            }
+            return resolve(result);
+          })
       }, 1000);
     })
-    
+
   }
 
-  openTab(data: SearchData){
+  openTab(data: SearchData) {
     this.tabService.addTab(new Tab(data.component, data.title, new TabData(data?.data?.id, data?.data), this.tabService?.currentTab()?.component))
   }
 }

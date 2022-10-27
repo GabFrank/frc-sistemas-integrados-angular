@@ -1,30 +1,11 @@
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+.card {
+  background-color: rgb(32, 32, 32);
 }
 
-/* Firefox */
-input[type=number] {
-  -moz-appearance: textfield;
+input {
+  text-transform: uppercase;
 }
 
-.tableFixHead          { overflow: auto; height: 100px; }
-.tableFixHead thead th { position: sticky; top: 0; z-index: 1; }
-table  { border-collapse: collapse; width: 100%; }
-
-
-.EN_CAMINO {
-  background-color: #F57C00;
-  color: white;
-}
-
-.ABIERTO {
-  background-color: #43A047;
-  color: white;
-}
-
-.CANCELADO {
-  background-color: #F44336;
-  color: white;
+ngx-mat-select-search > div > input {
+  text-transform: uppercase;
 }

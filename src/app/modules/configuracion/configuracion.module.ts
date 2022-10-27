@@ -11,11 +11,12 @@ import { UpdateWizardComponent } from './actualizacion/update-wizard/update-wiza
 import { ListRolesComponent } from './roles/list-roles/list-roles.component';
 import { AdicionarRoleDialogComponent } from './roles/adicionar-role-dialog/adicionar-role-dialog.component';
 import { AdicionarGrupoRoleDialogComponent } from './roles/adicionar-grupo-role-dialog/adicionar-grupo-role-dialog.component';
+import { SolicitarRecursosDialogComponent } from './solicitar-recursos-dialog/solicitar-recursos-dialog.component';
 
 
 
 @NgModule({
-  declarations: [ConfigurarServidorDialogComponent, ListActualizacionComponent, EditActualizacionComponent, UpdateWizardComponent, ListRolesComponent, AdicionarRoleDialogComponent, AdicionarGrupoRoleDialogComponent],
+  declarations: [ConfigurarServidorDialogComponent, ListActualizacionComponent, EditActualizacionComponent, UpdateWizardComponent, ListRolesComponent, AdicionarRoleDialogComponent, AdicionarGrupoRoleDialogComponent, SolicitarRecursosDialogComponent],
   imports: [
     CommonModule,
     FlexLayoutModule,
