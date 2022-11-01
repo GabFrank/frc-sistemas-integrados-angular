@@ -3,5 +3,6 @@ export enum DeliveryEstado {
     EN_CAMINO = 'EN_CAMINO', 
     ENTREGADO = 'ENTREGADO', 
     CANCELADO = 'CANCELADO', 
-    DEVOLVIDO ='DEVOLVIDO'
+    DEVOLVIDO ='DEVOLVIDO',
+    PARA_ENTREGA = 'PARA_ENTREGA'
 }

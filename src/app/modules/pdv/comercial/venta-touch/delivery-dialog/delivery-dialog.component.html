@@ -8,7 +8,7 @@
   >
     <div fxFlex="70" style="height: 100%">
       <mat-card class="card" fxLayout="column" style="height: 100%">
-        <div fxFlex="10" fxLayout="column">
+        <div fxFlex fxLayout="column">
           <div fxFlex fxLayout="row" fxLayoutAlign="center center">
             <hr fxFlex="40" style="background-color: grey" />
             Totales
@@ -57,54 +57,6 @@
               </div>
             </div>
           </div>
-          <div fxFlex fxLayout="row" fxLayoutAlign="center center">
-            <hr fxFlex="40" style="background-color: grey" />
-            Vuelto
-            <hr fxFlex="40" style="background-color: grey" />
-          </div>
-          <div
-            class="cambios"
-            fxFlex
-            fxLayout="row"
-            fxLayoutAlign="space-between center"
-          >
-            <div fxFlex="30" FxLayout="row" fxLayoutAlign="start center">
-              <div fxFlex="20">
-                <img
-                  src="assets/flags/py/py32.png"
-                  alt="br"
-                  style="width: 50%; height: 50%"
-                />
-              </div>
-              <div fxFlex="80" class="valores-cambios" style="font-size: 1.2em">
-                {{ saldoGs | number }}
-              </div>
-            </div>
-            <div fxFlex="30" FxLayout="row" fxLayoutAlign="start center">
-              <div fxFlex="20">
-                <img
-                  src="assets/flags/br/br32.png"
-                  alt="br"
-                  style="width: 50%; height: 50%"
-                />
-              </div>
-              <div fxFlex="70" class="valores-cambios" style="font-size: 1.2em">
-                {{ saldoGs / cambioRs | number: "1.2-2" }}
-              </div>
-            </div>
-            <div fxFlex="30" FxLayout="row" fxLayoutAlign="star center">
-              <div fxFlex="20">
-                <img
-                  src="assets/flags/usa/usa32.png"
-                  alt="br"
-                  style="width: 50%; height: 50%"
-                />
-              </div>
-              <div fxFlex="80" class="valores-cambios" style="font-size: 1.2em">
-                {{ saldoGs / cambioDs | number: "1.2-2" }}
-              </div>
-            </div>
-          </div>
         </div>
         <br />
         <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
@@ -135,6 +87,24 @@
                 (focusout)="verificarTelefono()"
               />
             </mat-form-field>
+          </div>
+          <div fxFlex="10%">
+            
+          </div>
+          <div fxFlex="45%">
+            <mat-form-field style="width: 100%">
+              <mat-label>Cliente</mat-label>
+              <input
+                #clienteInput
+                matInput
+                type="text"
+                [formControl]="clienteControl"
+                (keyup.enter)="onClienteEnter()"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="value%">
+            <mat-icon (click)="onClienteSearch()">search</mat-icon>
           </div>
         </div>
         <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
@@ -189,7 +159,7 @@
           </div>
         </div>
         <div
-          fxFlex="10"
+          fxFlex
           fxLayout="row wrap"
           fxLayoutAlign="start center"
           fxLayoutGap="10px"
@@ -212,7 +182,7 @@
             ></app-boton>
           </div>
         </div>
-        <div fxFlex="5" fxLayout="column">
+        <div fxFlex fxLayout="column">
           <div fxFlex fxLayout="row" fxLayoutAlign="center center">
             <hr fxFlex="40" style="background-color: grey" />
             Pago
@@ -220,7 +190,7 @@
           </div>
         </div>
         <div
-          fxFlex="10"
+          fxFlex
           fxLayout="row wrap"
           fxLayoutAlign="start center"
           fxLayoutGap="10px"
@@ -244,7 +214,7 @@
           </div>
         </div>
         <div
-          fxFlex="10"
+          fxFlex
           fxLayout="row wrap"
           fxLayoutAlign="start center"
           fxLayoutGap="10px"
@@ -266,7 +236,7 @@
           </div>
         </div>
         <div
-          fxFlex="10"
+          fxFlex
           fxLayout="row wrap"
           fxLayoutAlign="start center"
           fxLayoutGap="10px"
@@ -290,7 +260,12 @@
             ></app-boton>
           </div>
         </div>
-        <div fxFlex="10%" fxLayout="row" fxLayoutAlign="start center">
+        <div
+          fxFlex
+          fxLayout="row"
+          fxLayoutAlign="start center"
+          fxLayoutGap="5px"
+        >
           <div fxFlex="10%">Valor:</div>
           <div fxFlex="30%">
             <mat-form-field
@@ -311,6 +286,7 @@
                 "
                 autocomplete="off"
                 (focusin)="onValorFocus()"
+                (keydown.enter)="onAddItem()"
               />
               <button
                 type="button"
@@ -326,8 +302,11 @@
               </button>
             </mat-form-field>
           </div>
+          <div fxFlex="5%" style="text-align: start; font-size: 1.2em">
+            (F8)
+          </div>
         </div>
-        <div fxFlex="25" style="width: 100%; height: 100%">
+        <div fxFlex="30" style="width: 100%; height: 100%">
           <mat-card
             style="
               background-color: white;
@@ -336,150 +315,465 @@
               width: 100%;
               overflow-y: scroll;
             "
+            fxLayout="column"
           >
-            <table class="table" style="font-size: 1em">
-              <thead>
-                <tr style="background-color: rgb(209, 209, 209); height: 2vh">
-                  <th
-                    scope="col"
-                    style="text-align: center; width: 10%; padding: 2px"
-                  >
-                    #
-                  </th>
-                  <th scope="col" style="width: 20%; padding: 5px">Moneda</th>
-                  <th
-                    scope="col"
-                    style="text-align: center; width: 20%; padding: 5px"
-                  >
-                    Forma Pago
-                  </th>
-                  <th
-                    scope="col"
-                    style="text-align: center; width: 30%; padding: 5px"
-                  >
-                    Cantidad
-                  </th>
-                  <th
-                    scope="col"
-                    style="text-align: center; width: 10%; padding: 5px"
-                  ></th>
-                  <th
-                    scope="col"
-                    style="text-align: center; width: 10%; padding: 5px"
-                  ></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let item of pagoItemList; let i = index">
-                  <td
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                    "
-                  >
-                    {{ i + 1 }}
-                  </td>
-                  <td style="padding-bottom: 0; padding-top: 5px">
-                    {{ item.moneda?.denominacion | titlecase }}
-                  </td>
-                  <td
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                    "
-                  >
-                    {{ item.formaPago?.descripcion }}
-                  </td>
-                  <td
-                    *ngIf="item.moneda?.id == 1"
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                    "
-                  >
-                    {{ item.valor | number: "1.0-0" }}
-                  </td>
-                  <td
-                    *ngIf="item.moneda?.id != 1"
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                    "
-                  >
-                    {{ item.valor | number: "1.2-2" }}
-                  </td>
-                  <td
-                    *ngIf="item.vuelto && !item.aumento"
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                    "
-                  >
-                    Vuelto
-                  </td>
-                  <td
-                    *ngIf="item.descuento"
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                    "
-                  >
-                    Descuento
-                  </td>
-                  <td
-                    *ngIf="item.aumento"
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                    "
-                  >
-                    Aumento
-                  </td>
-                  <td
-                    *ngIf="!item.descuento && !item.vuelto && !item.aumento"
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                    "
-                  >
-                    Pago
-                  </td>
-                  <td
-                    style="
-                      padding-bottom: 5px;
-                      padding-top: 5px;
-                      text-align: center;
-                    "
-                  >
-                    <mat-icon style="color: red" (click)="onDeleteItem(item, i)"
-                      >clear</mat-icon
+            <div fxFlex="90%">
+              <table class="table" style="font-size: 1em">
+                <thead>
+                  <tr style="background-color: rgb(209, 209, 209); height: 2vh">
+                    <th
+                      scope="col"
+                      style="text-align: center; width: 10%; padding: 2px"
                     >
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                      #
+                    </th>
+                    <th scope="col" style="width: 20%; padding: 5px">Moneda</th>
+                    <th
+                      scope="col"
+                      style="text-align: center; width: 20%; padding: 5px"
+                    >
+                      Forma Pago
+                    </th>
+                    <th
+                      scope="col"
+                      style="text-align: center; width: 30%; padding: 5px"
+                    >
+                      Cantidad
+                    </th>
+                    <th
+                      scope="col"
+                      style="text-align: center; width: 10%; padding: 5px"
+                    ></th>
+                    <th
+                      scope="col"
+                      style="text-align: center; width: 10%; padding: 5px"
+                    ></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of pagoItemList; let i = index">
+                    <td
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                      "
+                    >
+                      {{ i + 1 }}
+                    </td>
+                    <td style="padding-bottom: 0; padding-top: 5px">
+                      {{ item.moneda?.denominacion | titlecase }}
+                    </td>
+                    <td
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                      "
+                    >
+                      {{ item.formaPago?.descripcion }}
+                    </td>
+                    <td
+                      *ngIf="item.moneda?.id == 1"
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                      "
+                    >
+                      {{ item.valor | number: "1.0-0" }}
+                    </td>
+                    <td
+                      *ngIf="item.moneda?.id != 1"
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                      "
+                    >
+                      {{ item.valor | number: "1.2-2" }}
+                    </td>
+                    <td
+                      *ngIf="item.vuelto && !item.aumento"
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                      "
+                    >
+                      Vuelto
+                    </td>
+                    <td
+                      *ngIf="item.descuento"
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                      "
+                    >
+                      Descuento
+                    </td>
+                    <td
+                      *ngIf="item.aumento"
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                      "
+                    >
+                      Aumento
+                    </td>
+                    <td
+                      *ngIf="!item.descuento && !item.vuelto && !item.aumento"
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                      "
+                    >
+                      Pago
+                    </td>
+                    <td
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                      "
+                    >
+                      <mat-icon
+                        style="color: red"
+                        (click)="onDeleteItem(item, i)"
+                        >clear</mat-icon
+                      >
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div fxFlex="10%">
+              <div
+                fxLayout="row"
+                fxLayoutGap="10px"
+                fxLayoutAlign="end center"
+                style="color: black"
+              >
+                <div fxFlex="10">Total:</div>
+                <div fxFlex="20%">
+                  {{ saldoGs | number: "1.0-0" }}
+                </div>
+              </div>
+            </div>
           </mat-card>
         </div>
-        <div fxFlex="10%">botones</div>
+        <br />
+        <div fxFlex fxLayout="row" fxLayoutAlign="center center">
+          <hr fxFlex="40" style="background-color: grey" />
+          Vuelto
+          <hr fxFlex="40" style="background-color: grey" />
+        </div>
+        <div
+          class="cambios"
+          fxFlex
+          fxLayout="row"
+          fxLayoutAlign="space-between center"
+        >
+          <div fxFlex="30" FxLayout="row" fxLayoutAlign="start center">
+            <div fxFlex="20">
+              <img
+                src="assets/flags/py/py32.png"
+                alt="br"
+                style="width: 50%; height: 50%"
+              />
+            </div>
+            <div fxFlex="80" class="valores-cambios" style="font-size: 1.2em">
+              {{ vueltoGs | number }}
+            </div>
+          </div>
+          <div fxFlex="30" FxLayout="row" fxLayoutAlign="start center">
+            <div fxFlex="20">
+              <img
+                src="assets/flags/br/br32.png"
+                alt="br"
+                style="width: 50%; height: 50%"
+              />
+            </div>
+            <div fxFlex="70" class="valores-cambios" style="font-size: 1.2em">
+              {{ vueltoGs / cambioRs | number: "1.2-2" }}
+            </div>
+          </div>
+          <div fxFlex="30" FxLayout="row" fxLayoutAlign="star center">
+            <div fxFlex="20">
+              <img
+                src="assets/flags/usa/usa32.png"
+                alt="br"
+                style="width: 50%; height: 50%"
+              />
+            </div>
+            <div fxFlex="80" class="valores-cambios" style="font-size: 1.2em">
+              {{ vueltoGs / cambioDs | number: "1.2-2" }}
+            </div>
+          </div>
+        </div>
+        <br />
+        <div fxFlex="10%" fxLayout="row" fxLayoutGap="10px">
+          <div fxFlex="16%">
+            <app-boton
+              nombre="Salir (Esc)"
+              color="primary"
+              (clickEvent)="onSalir()"
+            ></app-boton>
+          </div>
+          <div fxFlex="16%">
+            <app-boton
+              nombre="Presupuesto (F1)"
+              color="primary"
+              (clickEvent)="onPresupuesto()"
+            ></app-boton>
+          </div>
+          <div fxFlex="16%">
+            <app-boton
+              nombre="Factura Legal (F6)"
+              color="primary"
+              (clickEvent)="onFacturaLegal()"
+            ></app-boton>
+          </div>
+          <div fxFlex="16%">
+            <app-boton
+              nombre="Modificar itens (F7)"
+              color="primary"
+              (clickEvent)="onModificarItens()"
+            ></app-boton>
+          </div>
+          <div fxFlex="16%">
+            <app-boton
+              nombre="Guardar (F9)"
+              color="accent"
+              (clickEvent)="onGuardar()"
+            ></app-boton>
+          </div>
+          <div fxFlex="16%">
+            <app-boton
+              #finalizarBtn
+              nombre="Finalizar (F10)"
+              color="accent"
+              [disableExpression]="telefonoControl.invalid"
+              (clickEvent)="onFinalizar()"
+            ></app-boton>
+          </div>
+        </div>
       </mat-card>
     </div>
     <div fxFlex="30%" style="width: 100%" fxLayout="column" fxLayoutGap="10px">
       <mat-card fxFlex="50" class="card" fxLayout="column" style="height: 100%">
-        <div fxFlex>
-          <h3>Delivery activo</h3>
+        <div fxFlex fxLayout="row" fxLayoutAlign="center center">
+          Envios Activos
+        </div>
+        <div fxFlex="90">
+          <mat-card
+            style="
+              background-color: white;
+              padding: 5px;
+              height: 100%;
+              width: 100%;
+              overflow-y: scroll;
+            "
+            fxLayout="column"
+          >
+            <div fxFlex="100%">
+              <table class="table" style="font-size: 1em">
+                <thead>
+                  <tr style="background-color: rgb(209, 209, 209); height: 2vh">
+                    <th
+                      scope="col"
+                      style="text-align: center; width: 10%; padding: 2px"
+                    >
+                      #
+                    </th>
+                    <th
+                      scope="col"
+                      style="width: 50%; padding: 5px; width: 50%"
+                    >
+                      Teléfono
+                    </th>
+                    <th
+                      scope="col"
+                      style="text-align: center; width: 30%; padding: 5px"
+                    >
+                      Hora
+                    </th>
+                    <th
+                      scope="col"
+                      style="text-align: center; width: 30%; padding: 5px"
+                    >
+                      ...
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    *ngFor="
+                      let deliverActivo of deliverActivoList;
+                      let i = index
+                    "
+                    [class.activo]="deliverActivo?.estado == 'ACTIVO'"
+                    [class.para_entregar]="
+                      deliverActivo?.estado == 'PARA_ENTREGA'
+                    "
+                  >
+                    <td
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                      "
+                    >
+                      {{ i + 1 }}
+                    </td>
+                    <td style="padding-bottom: 0; padding-top: 5px; width: 50%">
+                      {{ deliverActivo?.telefono | titlecase }}
+                    </td>
+                    <td
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                        width: 30%;
+                      "
+                    >
+                      {{ deliverActivo?.creadoEn | date: "short" }}
+                    </td>
+                    <td
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                      "
+                    >
+                      <button
+                        mat-icon-button
+                        [matMenuTriggerFor]="menu"
+                        (click)="$event.stopPropagation()"
+                      >
+                        <mat-icon>more_vert</mat-icon>
+                      </button>
+                      <mat-menu #menu="matMenu">
+                        <button
+                          mat-menu-item
+                          (click)="onDelete(deliverActivo, i)"
+                        >
+                          Eliminar
+                        </button>
+                      </mat-menu>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </mat-card>
         </div>
       </mat-card>
       <mat-card fxFlex="50" class="card" fxLayout="column" style="height: 100%">
-        <div fxFlex>
-          <h3>Delivery concluído</h3>
+        <div fxFlex fxLayout="row" fxLayoutAlign="center center">
+          Envios Concluidos
+        </div>
+        <div fxFlex="90%">
+          <mat-card
+            style="
+              background-color: white;
+              padding: 5px;
+              height: 100%;
+              width: 100%;
+              overflow-y: scroll;
+            "
+            fxLayout="column"
+          >
+            <div fxFlex="100%">
+              <table class="table" style="font-size: 1em">
+                <thead>
+                  <tr style="background-color: rgb(209, 209, 209); height: 2vh">
+                    <th
+                      scope="col"
+                      style="text-align: center; width: 15%; padding: 2px"
+                    >
+                      #
+                    </th>
+                    <th scope="col" style="width: 50%; padding: 5px">
+                      Teléfono
+                    </th>
+                    <th
+                      scope="col"
+                      style="text-align: center; width: 25%; padding: 5px"
+                    >
+                      Hora
+                    </th>
+                    <th
+                      scope="col"
+                      style="text-align: center; width: 10%; padding: 5px"
+                    >
+                      ...
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    *ngFor="
+                      let deliveryConcluido of deliveryConcluidoList;
+                      let i = index
+                    "
+                  >
+                    <td
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                        width: 15%;
+                        color: black;
+                      "
+                    >
+                      {{ i + 1 }}
+                    </td>
+                    <td style="padding-bottom: 0; padding-top: 5px; width: 50%">
+                      {{ deliveryConcluido.telefono }}
+                    </td>
+                    <td
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                        width: 25%;
+                      "
+                    >
+                      {{ deliveryConcluido.creadoEn | date: "short" }}
+                    </td>
+                    <td
+                      style="
+                        padding-bottom: 5px;
+                        padding-top: 5px;
+                        text-align: center;
+                        width: 10%;
+                      "
+                    >
+                      <button
+                        mat-icon-button
+                        [matMenuTriggerFor]="menu"
+                        (click)="$event.stopPropagation()"
+                      >
+                        <mat-icon>more_vert</mat-icon>
+                      </button>
+                      <mat-menu #menu="matMenu">
+                        <button
+                          mat-menu-item
+                          (click)="onDelete(deliveryConcluido)"
+                        >
+                          Eliminar
+                        </button>
+                      </mat-menu>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </mat-card>
         </div>
       </mat-card>
     </div>

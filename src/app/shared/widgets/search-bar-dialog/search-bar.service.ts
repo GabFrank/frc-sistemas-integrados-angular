@@ -15,6 +15,7 @@ import { ListActualizacionComponent } from '../../../modules/configuracion/actua
 import { ListCajaComponent } from '../../../modules/financiero/pdv/caja/list-caja/list-caja.component';
 import { ListSectorComponent } from '../../../modules/empresarial/sector/list-sector/list-sector.component';
 import { SolicitarRecursosDialogComponent } from '../../../modules/configuracion/solicitar-recursos-dialog/solicitar-recursos-dialog.component';
+import { ROLES } from '../../../modules/personas/roles/roles.enum';
 
 export enum TIPO_SEARCH {
   COMPONENTE = 'COMPONENTE',
@@ -38,14 +39,14 @@ export class SearchDataResult {
 export const componenteList: SearchData[] =
   [
     { title: 'Lista de Productos', component: ListProductoComponent },
-    { title: 'Lista de Transferencias', component: ListTransferenciaComponent },
-    { title: 'Nueva Transferencia', component: EditTransferenciaComponent },
+    { title: 'Lista de Transferencias', component: ListTransferenciaComponent, role: ROLES.VER_TRANSFERENCIA },
+    { title: 'Nueva Transferencia', component: EditTransferenciaComponent, role: ROLES.CREAR_TRANSFERENCIA },
     { title: 'Cotización', component: CambioComponent },
-    { title: 'Funcionarios', component: FuncionarioDashboardComponent },
+    { title: 'Funcionarios', component: FuncionarioDashboardComponent, role: ROLES.VER_FUNCIONARIOS },
     { title: 'Actualizacion', component: ListActualizacionComponent },
-    { title: 'Lista de cajas', component: ListCajaComponent },
+    { title: 'Lista de cajas', component: ListCajaComponent, role: ROLES.ANALISIS_DE_CAJA },
     { title: 'Lista de sectores', component: ListSectorComponent },
-    { title: 'Solicitar Recursos', component: SolicitarRecursosDialogComponent }
+    { title: 'Solicitar Recursos', component: SolicitarRecursosDialogComponent, role: ROLES.SOPORTE }
   ]
 
 @UntilDestroy()

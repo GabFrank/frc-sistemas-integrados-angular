@@ -62,7 +62,7 @@ export class DescuentoDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.onKeyUp(1, this.data.saldo)
+    this.onKeyUp(1, this.data.saldo)    
     setTimeout(() => {
       this.porcentajeInput.nativeElement.select()
     }, 0);

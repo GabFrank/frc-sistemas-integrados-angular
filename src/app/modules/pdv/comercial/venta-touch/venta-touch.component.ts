@@ -3,9 +3,10 @@ import {
   HostListener,
   Input,
   OnDestroy,
-  OnInit,
+  OnInit
 } from "@angular/core";
 import { MatDialog, MatDialogRef } from "@angular/material/dialog";
+import { NgxPrintElementService } from "ngx-print-element";
 import { Observable, Subject, Subscription } from "rxjs";
 import { isInt } from "../../../../commons/core/utils/numbersUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
@@ -13,21 +14,16 @@ import { TabService } from "../../../../layouts/tab/tab.service";
 import { MainService } from "../../../../main.service";
 import { MonedasGetAllGQL } from "../../../../modules/financiero/moneda/graphql/monedasGetAll";
 import { Moneda } from "../../../../modules/financiero/moneda/moneda.model";
-import { Delivery } from "../../../../modules/operaciones/delivery/delivery.model";
-import { DeliveryEstado } from "../../../../modules/operaciones/delivery/enums";
-import { DeliveryInput } from "../../../../modules/operaciones/delivery/graphql/delivery-input.model";
 import { SaveDeliveryGQL } from "../../../../modules/operaciones/delivery/graphql/saveDelivery";
 import { SaveVueltoGQL } from "../../../../modules/operaciones/vuelto/graphql/saveVuelto";
-import { VueltoInput } from "../../../../modules/operaciones/vuelto/vuelto-input.model";
 import { SaveVueltoItemGQL } from "../../../../modules/operaciones/vuelto/vuelto-item/graphql/saveVueltoItem";
-import { VueltoItemInput } from "../../../../modules/operaciones/vuelto/vuelto-item/vuelto-item-input.model";
 import { Codigo } from "../../../../modules/productos/codigo/codigo.model";
 import { Producto } from "../../../../modules/productos/producto/producto.model";
 import { AllTiposPreciosGQL } from "../../../../modules/productos/tipo-precio/graphql/allTiposPrecios";
 import { TipoPrecio } from "../../../../modules/productos/tipo-precio/tipo-precio.model";
 import {
   NotificacionColor,
-  NotificacionSnackbarService,
+  NotificacionSnackbarService
 } from "../../../../notificacion-snackbar.service";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
@@ -41,24 +37,22 @@ import { CobroDetalle } from "../../../operaciones/venta/cobro/cobro-detalle.mod
 import { Cobro } from "../../../operaciones/venta/cobro/cobro.model";
 import { VentaItem } from "../../../operaciones/venta/venta-item.model";
 import { Venta } from "../../../operaciones/venta/venta.model";
+import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 import { DeliveryDialogComponent } from "./delivery-dialog/delivery-dialog.component";
-import { EditItemDialogComponent } from "./edit-item-dialog/edit-item-dialog.component";
 import {
   PagoResponseData,
-  PagoTouchComponent,
+  PagoTouchComponent
 } from "./pago-touch/pago-touch.component";
 import { PdvCategoria } from "./pdv-categoria/pdv-categoria.model";
+import { PdvGrupo } from "./pdv-grupo/pdv-grupo.model";
 import { SeleccionarCajaDialogComponent } from "./seleccionar-caja-dialog/seleccionar-caja-dialog.component";
+import { SeleccionarEnvaseDialogComponent } from "./seleccionar-envase-dialog/seleccionar-envase-dialog.component";
 import {
   SelectProductosDialogComponent,
-  SelectProductosResponseData,
+  SelectProductosResponseData
 } from "./select-productos-dialog/select-productos-dialog.component";
 import { UtilitariosDialogComponent } from "./utilitarios-dialog/utilitarios-dialog.component";
 import { VentaTouchService } from "./venta-touch.service";
-import { NgxPrintElementService } from "ngx-print-element";
-import { PdvGrupo } from "./pdv-grupo/pdv-grupo.model";
-import { Presentacion } from "../../../productos/presentacion/presentacion.model";
-import { SeleccionarEnvaseDialogComponent } from "./seleccionar-envase-dialog/seleccionar-envase-dialog.component";
 
 export interface Item {
   producto: Producto;
@@ -184,7 +178,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
 
     this.selectedItemList = this.itemList;
 
-    this.onDeliveryClick()
+    // this.onDeliveryClick()
   }
 
   getFormaPagos() {
@@ -326,7 +320,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   calcularTotales() {
     this.totalGs = 0;
     this.selectedItemList.forEach((item) => {
-      this.totalGs += Math.round(+item.cantidad * +item.precioVenta?.precio);
+      this.totalGs += Math.round(+item.cantidad * +item?.precio);
     });
   }
 
@@ -463,9 +457,10 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     let item = new VentaItem;
     Object.assign(item, event['item'])
     let index = event['i']
+    console.log(item);
 
     let data: DescuentoDialogData = {
-      valorTotal: item.precio,
+      valorTotal: item.precioVenta.precio,
       saldo: 0,
       cambioDs: this.cambioDs,
       cambioRs: this.cambioRs
@@ -474,34 +469,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       data: data
     }).afterClosed().subscribe(res => {
       if (res > 0) {
-        item.precio = item.precio - res;
-        item.precioVenta.precio = item.precio;
+        item.valorDescuento = res;
         this.selectedItemList[index] = item;
         this.calcularTotales()
       }
     })
-    // let dialogReference = this.dialog.open(EditItemDialogComponent, {
-    //   data: {
-    //     item,
-    //   },
-    // });
-    // dialogReference.afterClosed().pipe(untilDestroyed(this)).subscribe((res) => {
-    //   if (res != null) {
-    //     switch (res) {
-    //       case -1:
-    //       case 0:
-    //         this.removeItem({ item, index });
-    //         break;
-    //       default:
-    //         this.removeItem({ item, index });
-    //         item.cantidad = res;
-    //         this.addItem(item);
-    //         break;
-    //     }
-    //   }
-    //   this.dialogReference = undefined;
-    //   this.buscadorFocusSub.next()
-    // });
   }
 
   crearItem(eventData: any, index?) {
@@ -577,13 +549,19 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   onPagoClick() {
     this.isDialogOpen = true;
     if (this.selectedItemList?.length > 0) {
+      let descuento = 0;
+      this.selectedItemList.forEach(vi => {
+        descuento += vi.cantidad * vi.valorDescuento;
+      })
+      console.log(descuento);
       this.dialogReference = this.dialog
         .open(PagoTouchComponent, {
           autoFocus: true,
           restoreFocus: true,
           data: {
             valor: this.totalGs,
-            itemList: this.selectedItemList
+            itemList: this.selectedItemList,
+            descuento: descuento
           },
           width: "80vw",
           height: "80vh",
@@ -615,6 +593,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
                 cobroDetalle.vuelto = p.vuelto;
                 cobroDetalle.pago = p.pago;
                 cobroDetalle.valor = p.valor;
+                if (p.descuento) {
+                  cobro.totalGs -= p.valor
+                }
                 if (cobroDetalle.aumento)
                   cobroDetalle.valor = cobroDetalle.valor * -1;
                 cobro.cobroDetalleList.push(cobroDetalle);
@@ -676,6 +657,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     venta.formaPago = this.formaPagoService.formaPagoList.find(
       (f) => f.descripcion == "EFECTIVO"
     );
+    let descuento = 0;
     venta.totalGs = this.totalGs;
     venta.totalRs = this.totalGs / this.cambioRs;
     venta.totalDs = this.totalGs / this.cambioDs;
@@ -695,6 +677,23 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     cobroDetalle.pago = true;
     cobroDetalle.valor = this.totalGs;
     cobro.cobroDetalleList = [cobroDetalle];
+    this.selectedItemList.forEach(vi => {
+      descuento += vi.valorDescuento;
+    })
+    if (descuento > 0) {
+      let cobroDetalleDesc = new CobroDetalle();
+      cobroDetalleDesc.moneda = this.monedas.find((m) => m.denominacion == "GUARANI");
+      cobroDetalleDesc.cambio = cobroDetalleDesc.moneda.cambio;
+      cobroDetalleDesc.formaPago = this.formaPagoList.find(
+        (f) => f.descripcion == "EFECTIVO"
+      );
+      cobroDetalleDesc.descuento = true;
+      cobroDetalleDesc.aumento = false;
+      cobroDetalleDesc.vuelto = false;
+      cobroDetalleDesc.pago = false;
+      cobroDetalleDesc.valor = descuento;
+      cobro.cobroDetalleList.push(cobroDetalleDesc);
+    }
     // cobroDetalle.
     this.onSaveVenta(venta, cobro, ticket, false).subscribe().unsubscribe();
     this.disableCobroRapido = false;
@@ -728,7 +727,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
 
   onDeliveryClick() {
     this.isDialogOpen = true;
-    this.matDialog.open(DeliveryDialogComponent, 
+    this.matDialog.open(DeliveryDialogComponent,
       {
         maxWidth: '100vw',
         maxHeight: '90vh',

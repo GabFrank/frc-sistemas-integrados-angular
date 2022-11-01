@@ -47,7 +47,8 @@ export class PagoItem {
 
 export interface PagoData {
   valor: number;
-  itemList: VentaItem[]
+  itemList: VentaItem[];
+  descuento?: number;
 }
 
 export interface PagoResponseData {
@@ -75,7 +76,6 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
   @ViewChild("autoMonedaInput", { static: false, read: MatAutocompleteTrigger })
   matMonedaTrigger: MatAutocompleteTrigger;
   @ViewChild("autoMonedaInput", { static: false }) autoMonedaInput: ElementRef;
-
   @ViewChild("autoFormaPagoInput", {
     static: false,
     read: MatAutocompleteTrigger,
@@ -135,6 +135,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
     min: null
   };
 
+  isLoaded = 0;
+
   constructor(
     private getMonedas: MonedasGetAllGQL,
     public mainService: MainService,
@@ -157,8 +159,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
     this.getFormaPagos();
     this.createForm();
     setTimeout(() => {
-      this.valorInput.nativeElement.focus();
-      this.valorInput.nativeElement.select();
+      this.setFocusToValorInput()
       this.cargandoDialog.closeDialog();
     }, 500);
 
@@ -174,14 +175,37 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
           );
         }, 0);
       }
+      this.isLoaded++;
     });
     this.formaPagoSub = this.formaPagoService.formaPagoSub.pipe(untilDestroyed(this)).subscribe((res) => {
       this.formaPagoList = res;
       if (this.formaPagoList?.length > 0) {
-        console.log(this.formaPagoList);
         this.setFormaPago(this.formaPagoList[0]?.descripcion);
       }
+      this.isLoaded++;
     });
+
+    let loadTimer = setInterval(() => {
+      if (this.isLoaded == 2 && this.data.descuento > 0) {
+        let item: PagoItem = {
+          formaPago: this.selectedFormaPago,
+          moneda: this.selectedMoneda,
+          valor: this.data.descuento,
+          vuelto: false,
+          descuento: true,
+          aumento: false,
+          pago: false
+        };
+        this.valorParcialPagado += item.valor;
+        this.formGroup
+          .controls
+          .valor
+          .setValue(this.data.valor - this.valorParcialPagado);
+        this.formGroup.controls.saldo.setValue(this.data.valor - this.valorParcialPagado);
+        this.pagoItemList.push(item);
+        clearInterval(loadTimer)
+      }
+    }, 500);
   }
 
   createForm() {
@@ -196,6 +220,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
     this.formGroup.get("valorTotal").setValue(this.data.valor);
     this.formGroup.get("valor").setValue(this.data.valor);
     this.formGroup.get("saldo").setValue(this.data.valor);
+
   }
 
   getFormaPagos() {
@@ -289,8 +314,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
     if (filteredMonedas.length == 1) {
       setTimeout(() => {
         this.formGroup.get("moneda").setValue(filteredMonedas[0].id);
-        this.valorInput.nativeElement.focus();
-        this.valorInput.nativeElement.select();
+        this.setFocusToValorInput()
         this.matMonedaTrigger.closePanel();
       }, 1000);
     }
@@ -354,7 +378,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
             this.addPagoItem();
           }
           setTimeout(() => {
-            this.valorInput.nativeElement.focus()
+            this.setFocusToValorInput()
           }, 0);
           this.isDialogOpen = false;
         });
@@ -396,11 +420,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
     });
   }
 
-  addPagoItem() {
-    if (this.selectedFormaPago.descripcion == 'TARJETA') {
-
-    }
-    let valor = this.formGroup.get("valor").value;
+  addPagoItem(selectedValor?: number) {
+    let valor = selectedValor != null ? selectedValor : this.formGroup.get("valor").value;
     let saldo = this.formGroup.get("saldo").value;
     if (saldo == 0) {
       return this.onFinalizar();
@@ -436,19 +457,14 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
     this.isVuelto = false;
     this.isDescuento = false;
     this.isAumento = false;
+    this.setFormaPago(this.formaPagoList[0]?.descripcion);
   }
 
   setFocusToValorInput() {
-    if (this.formGroup.controls.saldo.value == 0) {
-      setTimeout(() => {
-        this.valorInput.nativeElement.select();
-      }, 0);
-    } else {
-      this.valorInput.nativeElement.focus();
-      setTimeout(() => {
-        this.valorInput.nativeElement.select();
-      }, 0);
-    }
+    this.valorInput.nativeElement.focus();
+    setTimeout(() => {
+      this.valorInput.nativeElement.select();
+    }, 100);
   }
 
   onFinalizar(ventaCredito?: VentaCredito, itens?: VentaCreditoCuotaInput[]) {
@@ -536,7 +552,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
       }
       this.isDialogOpen = false;
       setTimeout(() => {
-        this.valorInput.nativeElement.focus()
+        this.setFocusToValorInput()
       }, 0);
     })
   }

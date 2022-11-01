@@ -17,6 +17,6 @@ export class Delivery {
     usuario: Usuario;
     precio: PrecioDelivery;
     estado: DeliveryEstado;
-    vuelto: Vuelto;
+    vuelto: number;
     barrio: Barrio;
 }

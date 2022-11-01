@@ -103,6 +103,7 @@ export class BuscadorComponent implements OnInit {
         item.producto = response.producto;
         item.presentacion = response.presentacion;
         item.precioVenta = response.precio;
+        item.precio = item.precioVenta?.precio;
         console.log(response)
         this.addItemEvent.emit(item);
       }

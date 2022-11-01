@@ -2,10 +2,9 @@
   "ipDefault": "localhost",
   "puertoDefault": "8082",
   "printers": {
-    "ticket": "ticket",
+    "ticket": "ticket58",
     "factura": "factura"
   },
   "local": "Caja 1",
-  "modo": "NOT",
-  "pdvId": 6
+  "modo": "NOT"
 }

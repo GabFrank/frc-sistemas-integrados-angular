@@ -9,3 +9,16 @@ input {
 ngx-mat-select-search > div > input {
   text-transform: uppercase;
 }
+
+.cambios {
+  font-size: 1.3em;
+}
+
+
+.activo {
+  background-color: green;
+}
+
+.para_entregar {
+  background-color: yellow;
+}

@@ -1,6 +1,6 @@
 import {
   Component,
-  ElementRef, OnInit,
+  ElementRef, HostListener, OnInit,
   QueryList,
   ViewChild,
   ViewChildren
@@ -22,18 +22,23 @@ interface VueltoItem {
   formaPago: string;
 }
 
+import { Clipboard } from "@angular/cdk/clipboard";
 import { UntilDestroy } from '@ngneat/until-destroy';
+import { CurrencyMaskInputMode } from 'ngx-currency';
 import { MainService } from '../../../../../main.service';
+import { NotificacionColor, NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
+import { BotonComponent } from '../../../../../shared/components/boton/boton.component';
+import { CargandoDialogService } from '../../../../../shared/components/cargando-dialog/cargando-dialog.service';
+import { FormaPago } from '../../../../financiero/forma-pago/forma-pago.model';
+import { FormaPagoService } from '../../../../financiero/forma-pago/forma-pago.service';
+import { MonedaService } from '../../../../financiero/moneda/moneda.service';
 import { BarrioService } from '../../../../general/barrio/barrio.service';
 import { PrecioDelivery } from '../../../../operaciones/delivery/precio-delivery.model';
-import { DeliveryService } from './delivery.service';
-import { BotonComponent } from '../../../../../shared/components/boton/boton.component';
-import { comparatorLike } from '../../../../../commons/core/utils/string-utils';
-import { FormaPagoService } from '../../../../financiero/forma-pago/forma-pago.service';
-import { FormaPago } from '../../../../financiero/forma-pago/forma-pago.model';
-import { MonedaService } from '../../../../financiero/moneda/moneda.service';
 import { PagoItem } from '../pago-touch/pago-touch.component';
-import { CurrencyMaskInputMode } from 'ngx-currency';
+import { DeliveryService } from './delivery.service';
+import { DeliveryEstado } from '../../../../operaciones/delivery/enums';
+import { Vuelto } from '../../../../operaciones/vuelto/vuelto.model';
+import { Cliente } from '../../../../personas/clientes/cliente.model';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -54,6 +59,7 @@ export class DeliveryDialogComponent implements OnInit {
   @ViewChildren('formaPagoBtnList') formaPagoBtnList: QueryList<BotonComponent>;
   @ViewChildren('monedasBtnList') monedasBtnList: QueryList<BotonComponent>;
   @ViewChildren('vueltoBtnList') vueltoBtnList: QueryList<BotonComponent>;
+  @ViewChild('finalizarBtn', { read: BotonComponent }) finalizarBtn: BotonComponent;
 
   currencyOptionsGuarani = {
     allowNegative: true,
@@ -85,7 +91,7 @@ export class DeliveryDialogComponent implements OnInit {
     min: null
   };
 
-  totalGs = 94000;
+  totalGs = 55000;
   totalConDelivery = 0;
   cambioRs = 1250;
   cambioDs = 6900;
@@ -94,7 +100,7 @@ export class DeliveryDialogComponent implements OnInit {
 
   selectedDelivery: Delivery;
   formGroup: FormGroup;
-  telefonoControl = new FormControl(null, [Validators.required, Validators.minLength(9), Validators.pattern("^[0-9]*$")])
+  telefonoControl = new FormControl(null, [Validators.required, Validators.minLength(4)])
   telefonoPrefixControl = new FormControl()
   direccionControl = new FormControl()
   barrioControl = new FormControl()
@@ -111,21 +117,30 @@ export class DeliveryDialogComponent implements OnInit {
   monedaList: Moneda[] = []
   monedaControl = new FormControl()
   pagoItemList: PagoItem[] = []
-  valorControl = new FormControl(0)
+  valorControl = new FormControl(0, [Validators.required, Validators.min(1)])
   vueltoControl = new FormControl(null)
   vueltoListGs: number[] = []
   vueltoListRs: number[] = []
   vueltoListDs: number[] = []
   saldoGs = 0;
-
+  vueltoGs = 0;
   prefixList = ['+595', '+55']
+  deliverActivoList: Delivery[] = []
+  deliveryConcluidoList: Delivery[] = []
+  clienteControl = new FormControl()
+  selectedCliente: Cliente;
+
+  loadingItens = 1;
 
   constructor(
     private barrioService: BarrioService,
     private mainService: MainService,
     private deliveryService: DeliveryService,
     private formaPagoService: FormaPagoService,
-    private monedaService: MonedaService
+    private monedaService: MonedaService,
+    private cargandoService: CargandoDialogService,
+    private copyToClipService: Clipboard,
+    private notificacionService: NotificacionSnackbarService
   ) {
 
     this.totalConDelivery = this.totalGs;
@@ -133,6 +148,7 @@ export class DeliveryDialogComponent implements OnInit {
     this.barrioService.onGetPorCiudadId(this.mainService?.sucursalActual?.ciudad?.id).subscribe(res => {
       this.barrioList = res;
       this.filteredBarriosList = res;
+      this.loadingItens++;
     })
 
     this.monedaService.onGetAll().subscribe(res => {
@@ -145,6 +161,7 @@ export class DeliveryDialogComponent implements OnInit {
         this.calcularVuelto()
         setTimeout(() => {
           this.navigateVuelto(0)
+          this.loadingItens++;
         }, 0);
       })
     })
@@ -156,8 +173,8 @@ export class DeliveryDialogComponent implements OnInit {
     this.formaPagoService.onGetAllFormaPago().subscribe(res => {
       this.formaPagoList = res;
       this.formaPagoControl.setValue(this.formaPagoList[0])
+      this.loadingItens++;
     })
-
 
   }
 
@@ -165,10 +182,19 @@ export class DeliveryDialogComponent implements OnInit {
     this.createForm()
     this.telefonoPrefixControl.setValue(this.prefixList[0])
     setTimeout(() => {
-      this.matPrefixSelect.focus()
+    }, 1000);
+
+    let time;
+    time = setInterval(() => {
+      console.log(this.loadingItens);
+
+      if (this.loadingItens < 4) {
+
+      } else {
+        this.telefonoInput.nativeElement.select()
+        clearInterval(time)
+      }
     }, 500);
-
-
   }
 
   calcularVuelto() {
@@ -236,10 +262,19 @@ export class DeliveryDialogComponent implements OnInit {
 
   verificarTelefono() {
     if (this.telefonoControl.valid) {
-      if (this.telefonoControl.value[0] == '0') {
-        let telefono: string = this.telefonoControl.value;
-        this.telefonoControl.setValue(telefono.substring(1))
+      let telefono: string = this.telefonoControl.value;
+      telefono = telefono.replace(/\ /g, "");
+      telefono = telefono.replace(/\-/g, "");
+      telefono = telefono.replace(/\+55/g, "");
+      telefono = telefono.replace(/\+595/g, "");
+      if (telefono[0] == '0') {
+        telefono = telefono.substring(1);
       }
+      if (telefono.length == 10) {
+        this.telefonoPrefixControl.setValue(this.prefixList[1])
+      }
+      this.telefonoControl.setValue(telefono)
+      this.copyToClip(this.telefonoPrefixControl.value + this.telefonoControl.value)
     }
   }
 
@@ -345,7 +380,7 @@ export class DeliveryDialogComponent implements OnInit {
     setTimeout(() => {
       this.vueltoControl.setValue(this.selectedVueltoList[index])
       this.vueltoBtnList.toArray()[index].onGetFocus()
-      this.calcularVuelto()
+      this.valorControl.setValue(this.vueltoControl.value)
     }, 100);
   }
 
@@ -354,17 +389,18 @@ export class DeliveryDialogComponent implements OnInit {
       let index = this.selectedVueltoList.findIndex(f => f.id == +key);
       if (index != -1) {
         this.navigateVuelto(index)
-        this.valorInput.nativeElement.select()
+        this.onValorFocus()
       }
     }
   }
 
   onVueltoSelect() {
-    this.valorInput.nativeElement.select()
+    this.onValorFocus()
   }
 
   onDeleteItem(item, i) {
-
+    this.pagoItemList.splice(i, 1);
+    this.calcularSaldo()
   }
 
   onValorEnter() {
@@ -372,7 +408,114 @@ export class DeliveryDialogComponent implements OnInit {
   }
 
   onValorFocus() {
-    this.valorInput.nativeElement.select()
+    this.valorInput.nativeElement.focus()
+    setTimeout(() => {
+      this.valorInput.nativeElement.select()
+    }, 100);
+  }
+
+  onAddItem() {
+    if (this.valorControl.valid) {
+      let item = new PagoItem();
+      item.pago = true;
+      item.formaPago = this.formaPagoControl.value;
+      item.moneda = this.monedaControl.value;
+      item.valor = this.valorControl.value;
+      this.pagoItemList.push(item)
+      this.calcularSaldo()
+    }
+  }
+
+  calcularSaldo() {
+    this.saldoGs = 0;
+    this.vueltoGs = 0;
+    if (this.pagoItemList.length > 0) {
+      this.pagoItemList.forEach(p => {
+        if (p.pago) {
+          this.saldoGs += (p.valor * p.moneda.cambio)
+        }
+      })
+      if (this.saldoGs > this.totalConDelivery) {
+        this.vueltoGs = this.saldoGs - this.totalConDelivery;
+        this.valorControl.setValue(0)
+
+      } else if (this.saldoGs < this.totalConDelivery) {
+        this.valorControl.setValue(this.totalConDelivery - this.saldoGs)
+        this.navigateFormaPago(0)
+        this.navigateMoneda(0)
+        this.navigateVuelto(0)
+        this.onValorFocus()
+      } else if (this.saldoGs == this.totalConDelivery) {
+        this.valorControl.setValue(0)
+        setTimeout(() => {
+          this.finalizarBtn.onGetFocus()
+        }, 500);
+      }
+    } else {
+      this.valorControl.setValue(this.vueltoControl.value)
+      this.onValorFocus()
+    }
+  }
+
+  onFinalizar() {
+    let item = new Delivery;
+    item.barrio = this.barrioControl.value;
+    item.direccion = this.direccionControl.value;
+    item.estado = DeliveryEstado.PARA_ENTREGA;
+    item.precio = this.precioControl.value;
+    item.telefono = this.telefonoPrefixControl.value + this.telefonoControl.value;
+    item.vuelto = this.vueltoGs;
+    item.creadoEn = new Date()
+    this.deliverActivoList.push(item)
+  }
+
+  onGuardar() {
+    console.log('guardar');
+  }
+
+  onSalir() {
+
+  }
+  onPresupuesto() {
+
+  }
+  onFacturaLegal() {
+
+  }
+  onModificarItens() {
+
+  }
+
+  @HostListener("document:keydown", ["$event"]) onKeydownHandler(
+    event: KeyboardEvent
+  ) {
+    switch (event.key) {
+      case "F8":
+        this.onAddItem();
+        break;
+      case "F9":
+        this.onGuardar()
+        break;
+      case "F10":
+        this.onFinalizar()
+        break;
+      case "F1":
+        break;
+      case "F12":
+        break;
+      default:
+        break;
+    }
+
+  }
+
+  copyToClip(text) {
+    this.copyToClipService.copy(text);
+    this.notificacionService.notification$.next({
+      texto: "Copiado",
+      color: NotificacionColor.success,
+      duracion: 1,
+    });
   }
 
 }

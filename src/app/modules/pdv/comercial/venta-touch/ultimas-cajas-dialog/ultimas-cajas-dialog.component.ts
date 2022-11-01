@@ -27,7 +27,7 @@ export class UltimasCajasDialogComponent implements OnInit {
     let ayer = new Date()
     let manana = new Date()
     manana.setDate(manana.getDate() + 1)
-    ayer.setDate(ayer.getDate() - 1)
+    ayer.setDate(ayer.getDate() - 2)
     this.cajaService.onGetByDate(ayer, manana).subscribe(res => {
       this.dataSource.data = res;
     })

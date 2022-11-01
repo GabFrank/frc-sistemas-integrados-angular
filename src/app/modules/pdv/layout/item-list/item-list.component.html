@@ -12,10 +12,11 @@
     <thead>
       <tr style="background-color: rgb(209, 209, 209)">
         <th scope="col" style="text-align: center; width: 5%">#</th>
-        <th scope="col" style="width: 55%">Descripción</th>
+        <th scope="col" style="width: 50%">Descripción</th>
         <th scope="col" style="text-align: center; width: 10%">Tipo</th>
-        <th scope="col" style="text-align: center; width: 10%">Cant</th>
+        <th scope="col" style="text-align: center; width: 5%">Cant</th>
         <th scope="col" style="text-align: center; width: 10%">Precio</th>
+        <th scope="col" style="text-align: center; width: 10%">Desc</th>
         <th scope="col" style="text-align: center; width: 10%">Total</th>
         <th scope="col" style="text-align: center; width: 5%"></th>
       </tr>
@@ -40,10 +41,13 @@
           {{ item.cantidad | number: "1.0-3" }}
         </td>
         <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
-          {{ item.precioVenta.precio | number: "1.0-0" }}
+          {{ item.precio | number: "1.0-0" }}
         </td>
         <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
-          {{ item.cantidad * item.precioVenta.precio | number: "1.0-0" }}
+          {{ item.valorDescuento | number: "1.0-0" }}
+        </td>
+        <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
+          {{ item.cantidad * (item.precio - item.valorDescuento) | number: "1.0-0" }}
         </td>
         <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
           <mat-icon

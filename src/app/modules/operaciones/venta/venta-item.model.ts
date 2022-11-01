@@ -1,7 +1,6 @@
 import { Usuario } from "../../personas/usuarios/usuario.model";
 import { PrecioPorSucursal } from "../../productos/precio-por-sucursal/precio-por-sucursal.model";
 import { Presentacion } from "../../productos/presentacion/presentacion.model";
-import { UnidadMedida } from "../../productos/producto/enums/enums";
 import { Producto } from "../../productos/producto/producto.model";
 import { Venta } from "./venta.model";
 
@@ -18,6 +17,7 @@ export class VentaItem {
     usuario: Usuario;
     valorTotal: number;
     sucursalId: number;
+    valorDescuento: number = 0;
 
     toInput(): VentaItemInput{
         let input = new VentaItemInput()
@@ -34,6 +34,7 @@ export class VentaItem {
         input.cantidad = this.cantidad;
         input.precioVentaId = this.precioVenta?.id;
         input.sucursalId = this.sucursalId
+        input.valorDescuento = this.valorDescuento;
         return input;
     }
 }
@@ -53,4 +54,5 @@ export class VentaItemInput {
     usuarioId: number;
     valorTotal: number;
     sucursalId: number;
+    valorDescuento: number;
 }

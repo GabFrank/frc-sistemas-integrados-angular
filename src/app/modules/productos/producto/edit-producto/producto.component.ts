@@ -1,4 +1,12 @@
 import {
+  animate,
+  state,
+  style,
+  transition,
+  trigger
+} from "@angular/animations";
+import { Clipboard } from "@angular/cdk/clipboard";
+import {
   ChangeDetectorRef,
   Component,
   ElementRef,
@@ -8,82 +16,65 @@ import {
   OnDestroy,
   OnInit,
   ViewChild,
-  ViewChildren,
+  ViewChildren
 } from "@angular/core";
-import { FormGroup, Validators, FormControl } from "@angular/forms";
+import { FormControl, FormGroup, Validators } from "@angular/forms";
 import {
   MatDialog,
   MatDialogRef,
-  MAT_DIALOG_DATA,
+  MAT_DIALOG_DATA
 } from "@angular/material/dialog";
+import { MatStepper } from "@angular/material/stepper";
 import { MatTable, MatTableDataSource } from "@angular/material/table";
 import { DomSanitizer } from "@angular/platform-browser";
 import { NgxImageCompressService } from "ngx-image-compress";
+import { Subscription } from "rxjs";
+import { CurrencyMask, updateDataSource } from "../../../../commons/core/utils/numbersUtils";
+import { Tab } from "../../../../layouts/tab/tab.model";
+import { TabService } from "../../../../layouts/tab/tab.service";
+import { MainService } from "../../../../main.service";
+import {
+  NotificacionColor, NotificacionSnackbarService
+} from "../../../../notificacion-snackbar.service";
+import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
+import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
+import { CortarImagenDialogComponent } from "../../../../shared/cortar-imagen-dialog/cortar-imagen-dialog.component";
+import {
+  VizualizarImagenData,
+  VizualizarImagenDialogComponent
+} from "../../../../shared/images/vizualizar-imagen-dialog/vizualizar-imagen-dialog.component";
+import { QrCodeComponent } from "../../../../shared/qr-code/qr-code.component";
+import { ListCompraComponent } from "../../../operaciones/compra/list-compra/list-compra.component";
+import {
+  AdicionarCodigoData,
+  AdicionarCodigoDialogComponent
+} from "../../codigo/adicionar-codigo-dialog/adicionar-codigo-dialog.component";
 import { Codigo } from "../../codigo/codigo.model";
-import { CrearCodigosDialogComponent } from "../../codigo/crear-codigos-dialog/crear-codigos-dialog.component";
+import { CodigoService } from "../../codigo/codigo.service";
+import { SearchEnvaseDialogComponent } from "../../envase/search-envase-dialog/search-envase-dialog.component";
 import { AddFamiliaDialogComponent } from "../../familia/add-familia-dialog/add-familia-dialog.component";
 import { Familia } from "../../familia/familia.model";
 import { FamiliaService } from "../../familia/familia.service";
+import {
+  AdicionarPrecioDialogComponent,
+  AdicionarPrecioPorSucursalData
+} from "../../precio-por-sucursal/adicionar-precio-dialog/adicionar-precio-dialog.component";
 import { PrecioPorSucursal } from "../../precio-por-sucursal/precio-por-sucursal.model";
+import { PrecioPorSucursalService } from "../../precio-por-sucursal/precio-por-sucursal.service";
+import {
+  AdicionarPresentacionComponent,
+  AdicionarPresentacionData
+} from "../../presentacion/adicionar-presentacion/adicionar-presentacion.component";
+import { Presentacion } from "../../presentacion/presentacion.model";
+import { PresentacionService } from "../../presentacion/presentacion.service";
 import { AddSubfamiliaDialogComponent } from "../../sub-familia/add-subfamilia-dialog/add-subfamilia-dialog.component";
 import { Subfamilia } from "../../sub-familia/sub-familia.model";
 import { SubFamiliaService } from "../../sub-familia/sub-familia.service";
 import { TipoPrecio } from "../../tipo-precio/tipo-precio.model";
+import { ProductoInput } from "../producto-input.model";
 import { Producto } from "../producto.model";
 import { ProductoService } from "../producto.service";
 import { TipoConservacion } from "./producto-enums";
-import { ProductoInput } from "../producto-input.model";
-import { CodigoService } from "../../codigo/codigo.service";
-import { CodigoInput } from "../../codigo/codigo-input.model";
-import { PrecioPorSucursalInput } from "../../precio-por-sucursal/precio-por-sucursal-input.model";
-import { PrecioPorSucursalService } from "../../precio-por-sucursal/precio-por-sucursal.service";
-import { MainService } from "../../../../main.service";
-import { CurrencyMask, updateDataSource } from "../../../../commons/core/utils/numbersUtils";
-import {
-  NotificacionSnackbarService,
-  NotificacionColor,
-} from "../../../../notificacion-snackbar.service";
-import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
-import { CortarImagenDialogComponent } from "../../../../shared/cortar-imagen-dialog/cortar-imagen-dialog.component";
-import { QrCodeComponent } from "../../../../shared/qr-code/qr-code.component";
-import { MatStepper } from "@angular/material/stepper";
-import { MatInput } from "@angular/material/input";
-import { dialog } from "electron";
-import { CargandoDialogComponent } from "../../../../shared/components/cargando-dialog/cargando-dialog.component";
-import { TabService } from "../../../../layouts/tab/tab.service";
-import { Tab } from "../../../../layouts/tab/tab.model";
-import { ListCompraComponent } from "../../../operaciones/compra/list-compra/list-compra.component";
-import { Clipboard } from "@angular/cdk/clipboard";
-import { PresentacionService } from "../../presentacion/presentacion.service";
-import { Presentacion } from "../../presentacion/presentacion.model";
-import {
-  AdicionarPresentacionComponent,
-  AdicionarPresentacionData,
-} from "../../presentacion/adicionar-presentacion/adicionar-presentacion.component";
-import {
-  animate,
-  state,
-  style,
-  transition,
-  trigger,
-} from "@angular/animations";
-import { PrecioPorSucursalPorPresentacionIdGQL } from "../../precio-por-sucursal/graphql/precioPorSucursalPorPresentacionId";
-import { ImagesService } from "../../../../shared/images/images.service";
-import {
-  VizualizarImagenData,
-  VizualizarImagenDialogComponent,
-} from "../../../../shared/images/vizualizar-imagen-dialog/vizualizar-imagen-dialog.component";
-import {
-  AdicionarCodigoData,
-  AdicionarCodigoDialogComponent,
-} from "../../codigo/adicionar-codigo-dialog/adicionar-codigo-dialog.component";
-import {
-  AdicionarPrecioDialogComponent,
-  AdicionarPrecioPorSucursalData,
-} from "../../precio-por-sucursal/adicionar-precio-dialog/adicionar-precio-dialog.component";
-import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
-import { SearchEnvaseDialogComponent } from "../../envase/search-envase-dialog/search-envase-dialog.component";
-import { Subscription } from "rxjs";
 
 export class ProductoDialogData {
   producto: Producto;
