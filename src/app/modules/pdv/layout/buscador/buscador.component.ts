@@ -28,7 +28,7 @@ export class BuscadorComponent implements OnInit {
   @Input()
   tiposPrecios;
 
-  @Input() 
+  @Input()
   focusEvent: Observable<void>;
 
   @Output()
@@ -40,12 +40,15 @@ export class BuscadorComponent implements OnInit {
   @Output()
   crearItemEvent = new EventEmitter;
 
+  @Input()
+  openSearchEvent: Observable<void>
+
   formGroup: FormGroup;
-  cantidadControl = new FormControl(null, Validators.required)
-  buscadorControl = new FormControl(null)
+  cantidadControl = new FormControl(null, Validators.required);
+  buscadorControl = new FormControl(null);
   dialogReference;
-  isAudio = true;
-  filteredPrecios: string[]
+  isAudio = false;
+  filteredPrecios: string[];
   modoPrecio: string;
 
   constructor(
@@ -53,7 +56,7 @@ export class BuscadorComponent implements OnInit {
     public getProductoByCodigo: ProductoPorCodigoGQL,
     private beepService: BeepService,
     private notificacionSnackbar: NotificacionSnackbarService
-  ) { 
+  ) {
     this.filteredPrecios = environment['precios']
     this.modoPrecio = environment['modo']
   }
@@ -70,15 +73,22 @@ export class BuscadorComponent implements OnInit {
       .subscribe(res => {
         this.setFocusToInput()
       })
+
+    this.openSearchEvent
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        this.onEnterPress()
+      })
   }
 
   buscarProductoDialog() {
     let codigo: string = this.buscadorControl.value;
     let prefix;
-    if(codigo!=null && codigo.length > 7){
+    if (codigo != null && codigo.length > 7) {
       prefix = codigo.substring(0, 2)
       console.log(prefix)
     }
+
     let data: PdvSearchProductoData = {
       cantidad: this.formGroup.get("cantidad").value,
       texto: this.formGroup.get("buscador").value,
@@ -86,6 +96,7 @@ export class BuscadorComponent implements OnInit {
       tiposPrecios: this.tiposPrecios,
       mostrarStock: true,
       mostrarOpciones: true,
+      conservarUltimaBusqueda: true
     };
     this.dialogReference = this.dialog.open(PdvSearchProductoDialogComponent, {
       height: "98%",
@@ -104,7 +115,7 @@ export class BuscadorComponent implements OnInit {
         item.presentacion = response.presentacion;
         item.precioVenta = response.precio;
         item.precio = item.precioVenta?.precio;
-        console.log(response)
+        console.log(item)
         this.addItemEvent.emit(item);
       }
       this.dialogReference = undefined;
@@ -122,7 +133,12 @@ export class BuscadorComponent implements OnInit {
   }
 
   onEnterPress() {
-    this.buscarPorCodigo(this.buscadorControl.value)
+    let multiIndex = this.buscadorControl.value?.indexOf('*')
+    if (multiIndex > -1) {
+      this.cantidadControl.setValue(this.buscadorControl.value?.slice(0, multiIndex))
+      this.buscadorControl.setValue(this.buscadorControl.value?.slice(multiIndex + 1))
+    }
+    this.buscarPorCodigo(this.buscadorControl.value);
   }
 
   buscarPorCodigo(texto: string) {
@@ -131,9 +147,9 @@ export class BuscadorComponent implements OnInit {
     let peso;
     let codigo;
     if (texto == null || texto == " " || texto == "") return null;
-    if(texto.length == 13 && texto.substring(0, 2)=='20'){
+    if (texto.length == 13 && texto.substring(0, 2) == '20') {
       isPesable = true;
-      codigo = texto.substring(2,7)
+      codigo = texto.substring(2, 7)
       peso = +texto.substring(7, 12) / 1000
       texto = codigo
       this.cantidadControl.setValue(peso)

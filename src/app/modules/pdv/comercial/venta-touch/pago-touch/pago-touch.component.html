@@ -1,4 +1,5 @@
 <form
+  #container
   [formGroup]="formGroup"
   style="overflow-x: hidden; overflow-y: hidden; height: 100%; width: 100%"
 >
@@ -129,7 +130,9 @@
                   <th
                     scope="col"
                     style="text-align: center; width: 10%; padding: 5px"
-                  >Tipo</th>
+                  >
+                    Tipo
+                  </th>
                   <th
                     scope="col"
                     style="text-align: center; width: 10%; padding: 5px"
@@ -137,7 +140,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let item of pagoItemList; let i = index">
+                <tr *ngFor="let item of cobroDetalleList; let i = index">
                   <td
                     style="
                       padding-bottom: 5px;
@@ -329,7 +332,9 @@
             (clickEvent)="setFormaPago('EFECTIVO')"
             [disableExpression]="false"
             fxFlex="22"
-            [color]="selectedFormaPago?.descripcion == 'EFECTIVO' ? 'primary' : 'null'"
+            [color]="
+              selectedFormaPago?.descripcion == 'EFECTIVO' ? 'primary' : 'null'
+            "
           >
           </app-boton>
           <app-boton
@@ -338,7 +343,9 @@
             (clickEvent)="setFormaPago('TARJETA')"
             [disableExpression]="false"
             fxFlex="22"
-            [color]="selectedFormaPago?.descripcion == 'TARJETA' ? 'primary' : 'null'"
+            [color]="
+              selectedFormaPago?.descripcion == 'TARJETA' ? 'primary' : 'null'
+            "
           >
           </app-boton>
           <app-boton
@@ -347,7 +354,9 @@
             (clickEvent)="onConvenioClick()"
             [disableExpression]="false"
             fxFlex="22"
-            [color]="selectedFormaPago?.descripcion == 'CONVENIO' ? 'primary' : 'null'"
+            [color]="
+              selectedFormaPago?.descripcion == 'CONVENIO' ? 'primary' : 'null'
+            "
           >
           </app-boton>
           <app-boton
@@ -518,7 +527,7 @@
           mat-raised-button
           color="primary"
           style="width: 90%; height: 3em"
-          (click)="addPagoItem()"
+          (click)="addCobroDetalle()"
         >
           <mat-icon>done</mat-icon>
         </button>

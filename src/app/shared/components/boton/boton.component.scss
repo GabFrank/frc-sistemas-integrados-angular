@@ -2,4 +2,24 @@ button:focus {
     filter: brightness(110%) !important;
     border: 3px double rgb(94, 94, 94) !important;
     color: rgb(32, 32, 32) !important;
+    animation: blinkActive 1s infinite;
+}
+
+@keyframes blinkActive {
+  0% {
+    color: white !important;
+  }
+
+  50% {
+    color: rgb(32, 32, 32) !important;
+  }
+
+  100% {
+    color: white!important;
+  }
+}
+
+.warn {
+    background-color: #f57c00 !important;
+    color: white !important
 }

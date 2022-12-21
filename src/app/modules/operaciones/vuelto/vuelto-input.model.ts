@@ -1,4 +1,4 @@
-export interface VueltoInput {
+export class VueltoInput {
     id?: number;
     activo: boolean;
     responsableId?: number;

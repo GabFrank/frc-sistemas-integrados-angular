@@ -10,29 +10,22 @@ import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatButton } from "@angular/material/button";
 import {
   MAT_DIALOG_DATA,
-  MatDialogRef,
   MatDialog,
+  MatDialogRef,
 } from "@angular/material/dialog";
 import { MatStepper } from "@angular/material/stepper";
 import { Subject } from "rxjs";
-import {
-  stringToDecimal,
-  stringToInteger,
-} from "../../../../../commons/core/utils/numbersUtils";
 import {
   NotificacionColor,
   NotificacionSnackbarService,
 } from "../../../../../notificacion-snackbar.service";
 import { CargandoDialogService } from "../../../../../shared/components/cargando-dialog/cargando-dialog.service";
-import { DialogosService } from "../../../../../shared/components/dialogos/dialogos.service";
 import { AdicionarConteoResponse } from "../../../conteo/adicionar-conteo-dialog/adicionar-conteo-dialog.component";
 import { ConteoMoneda } from "../../../conteo/conteo-moneda/conteo-moneda.model";
 import { Conteo } from "../../../conteo/conteo.model";
-import { ConteoService } from "../../../conteo/conteo.service";
 import { AdicionarMaletinDialogComponent } from "../../../maletin/adicionar-maletin-dialog/adicionar-maletin-dialog.component";
 import { Maletin } from "../../../maletin/maletin.model";
 import { MaletinService } from "../../../maletin/maletin.service";
-import { MonedaService } from "../../../moneda/moneda.service";
 import { PdvCaja, PdvCajaInput } from "../caja.model";
 import { CajaService } from "../caja.service";
 
@@ -47,8 +40,8 @@ export interface AdicionarCajaResponse {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { FacturaLegalService } from "../../../factura-legal/factura-legal.service";
 import { MainService } from "../../../../../main.service";
+import { FacturaLegalService } from "../../../factura-legal/factura-legal.service";
 
 @UntilDestroy()
 @Component({
@@ -120,7 +113,6 @@ export class AdicionarCajaDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.cargandoDialog.openDialog()
     this.idControl.disable();
     this.creadoEnControl.disable();
     this.usuarioControl.disable();
@@ -196,7 +188,6 @@ export class AdicionarCajaDialogComponent implements OnInit {
     this.usuarioControl.setValue(this.selectedCaja.usuario.persona.nombre);
     this.siguienteSubject.next(1);
     this.siguienteCierreSubject.next(1);
-    this.cargandoDialog.closeDialog()
   }
 
   onCancel() {
@@ -286,7 +277,6 @@ export class AdicionarCajaDialogComponent implements OnInit {
         this.siguienteSubject.next(0);
         break;
       case 1:
-        this.cargandoDialog.openDialog();
         this.siguienteSubject.next(1);
         break;
 

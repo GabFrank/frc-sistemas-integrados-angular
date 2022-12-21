@@ -7,8 +7,7 @@
 
 $angular-primary: mat.define-palette(mat.$red-palette, 500, 100, 700);
 $angular-accent: mat.define-palette(mat.$green-palette, 600, 100, 600);
-
-$angular-warn: mat.define-palette(mat.$red-palette);
+$angular-warn: mat.define-palette(mat.$red-palette, 500, 100, 700);
 
 $angular-default-theme: mat.define-light-theme(
   (
@@ -170,3 +169,4 @@ input::selection {
 .required-field::after {
   content: "*";
 }
+

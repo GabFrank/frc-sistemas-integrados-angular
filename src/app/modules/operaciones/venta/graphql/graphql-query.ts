@@ -130,7 +130,8 @@ export const saveVenta = gql`
     $printerName: String
     $local: String,
     $pdvId: Int
-    $credito: Boolean
+    $ventaCreditoInput: VentaCreditoInput, 
+    $ventaCreditoCuotaInputList: [VentaCreditoCuotaInput]
   ) {
     data: saveVenta(
       ventaInput: $ventaInput
@@ -141,7 +142,8 @@ export const saveVenta = gql`
       printerName: $printerName,
       local: $local,
       pdvId: $pdvId,
-      credito: $credito
+      ventaCreditoInput: $ventaCreditoInput
+      ventaCreditoCuotaInputList: $ventaCreditoCuotaInputList
     ){
       id
     }
@@ -237,6 +239,32 @@ export const ventaPorPeriodoQuery = gql`
   }
 `;
 
-export const countVentaQuery = gql `
+export const countVentaQuery = gql`
   {data: countVenta}
 `
+
+export const saveVentaItemQuery = gql`
+  mutation saveVentaItem(
+    $entity: VentaItemInput!
+  ) {
+    data: saveVentaItem(
+      entity: $entity
+    ){
+      id
+    }
+  }
+`;
+
+
+export const saveCobroDetalleQuery = gql`
+  mutation saveCobroDetalle(
+    $entity: CobroDetalleInput!
+  ) {
+    data: saveCobroDetalle(
+      entity: $entity
+    ){
+      id
+    }
+  }
+`;
+

@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { Mutation, Query } from "apollo-angular";
+import { Mutation, Query, Subscription } from "apollo-angular";
 import { Observable } from "rxjs";
 import { MainService } from "../main.service";
 import {
@@ -56,6 +56,28 @@ export class GenericCrudService {
     return new Observable((obs) => {
       gql
         .fetch(data, { fetchPolicy: "no-cache", errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }).pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          this.cargandoService.closeDialog()
+          this.isLoading = false
+          if (res.errors == null) {
+            obs.next(res.data["data"]);
+          } else {
+            this.notificacionSnackBar.notification$.next({
+              texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
+              color: NotificacionColor.danger,
+              duracion: 3,
+            });
+          }
+        });
+    });
+  }
+
+  onCustomSub(gql: Subscription, data, servidor?): Observable<any> {
+    this.isLoading = true;
+    this.cargandoService.openDialog(false, 'Buscando...')
+    return new Observable((obs) => {
+      gql
+        .subscribe(data, { fetchPolicy: "no-cache", errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.cargandoService.closeDialog()
           this.isLoading = false
@@ -129,6 +151,7 @@ export class GenericCrudService {
     this.isLoading = true;
     input.usuarioId = this.mainService.usuarioActual.id
     this.cargandoService.openDialog(false, 'Guardando...')
+    console.log(input);
     return new Observable((obs) => {
       gql
         .mutate(
@@ -362,4 +385,6 @@ export class GenericCrudService {
         });
     });
   }
+
+  
 }

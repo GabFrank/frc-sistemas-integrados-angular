@@ -4,7 +4,7 @@ import { Usuario } from "../../../personas/usuarios/usuario.model"
 import { Cobro } from "./cobro.model"
 
 export class CobroDetalle {
-    id:number
+    id: number
     cobro: Cobro
     moneda: Moneda
     cambio: number
@@ -38,7 +38,7 @@ export class CobroDetalle {
 }
 
 export class CobroDetalleInput {
-    id:number
+    id: number
     cobroId: number
     monedaId: number
     cambio: number

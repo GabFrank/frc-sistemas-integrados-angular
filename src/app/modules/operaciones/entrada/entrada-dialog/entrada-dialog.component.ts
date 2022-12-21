@@ -89,7 +89,7 @@ export class EntradaDialogComponent implements OnInit {
     "producto",
     "codigo",
     "presentacion",
-    "cantidad"  ];
+    "cantidad"];
 
   isEditar = true;
   isItemEditar = true;
@@ -156,7 +156,7 @@ export class EntradaDialogComponent implements OnInit {
     });
 
     if (this.data?.entrada != null) this.cargarDatos();
-    if (this.data?.id!=null) this.buscarEntrada(this.data.id)
+    if (this.data?.id != null) this.buscarEntrada(this.data.id)
 
     this.cargandoService.closeDialog()
 
@@ -199,13 +199,13 @@ export class EntradaDialogComponent implements OnInit {
     });
   }
 
-  buscarEntrada(id){
+  buscarEntrada(id) {
     this.entradaService.onGetEntrada(id).pipe(untilDestroyed(this)).subscribe(res => {
       console.log(res)
-      if(res!=null){
+      if (res != null) {
         this.selectedEntrada = res;
         this.cargarDatos()
-      } 
+      }
     })
   }
 
@@ -217,7 +217,7 @@ export class EntradaDialogComponent implements OnInit {
     this.onSelectTipoEntrada(this.selectedEntrada?.tipoEntrada);
     this.onSelectSucursal(this.selectedEntrada?.sucursal);
     this.formGroup.disable();
-    if(this.selectedEntrada.entradaItemList!=null){
+    if (this.selectedEntrada.entradaItemList != null) {
       this.itemDataSource.data = this.selectedEntrada.entradaItemList;
     }
     setTimeout(() => {
@@ -233,16 +233,15 @@ export class EntradaDialogComponent implements OnInit {
     }
   }
 
-  onUsuarioInput() {}
+  onUsuarioInput() { }
 
   onResponsableSelect(e) {
-    console.log(e);
     if (e?.id != null) {
       this.selectedResponsable = e;
       this.usuarioInputControl.setValue(
         this.selectedResponsable?.id +
-          " - " +
-          this.selectedResponsable?.persona?.nombre
+        " - " +
+        this.selectedResponsable?.persona?.nombre
       );
     }
   }
@@ -268,17 +267,17 @@ export class EntradaDialogComponent implements OnInit {
     }, 0);
   }
 
-  onEdit(e: EntradaItem) {}
+  onEdit(e: EntradaItem) { }
 
   onDelete() {
     this.cargandoService.openDialog()
     this.dialogoService.confirm('Atención!!', 'Realmente desea eliminar este item?', null, [`Producto: ${this.selectedEntradaItem.producto?.descripcion.toUpperCase()}`, `Presentación: ${this.selectedEntradaItem.presentacion?.descripcion.toUpperCase()}`, `Cantidad: ${this.selectedEntradaItem.cantidad}`]).subscribe(res => {
-      if(res){
+      if (res) {
         this.entradaItemService.onDeleteEntradaItem(this.selectedEntradaItem.id).pipe(untilDestroyed(this)).subscribe(res2 => {
-          if(res2){
+          if (res2) {
             let auxArray = this.itemDataSource.data;
             let index = auxArray.findIndex(i => i.id == this.selectedEntradaItem.id)
-            if(index> -1){
+            if (index > -1) {
               auxArray.splice(index, 1);
               this.itemDataSource.data = auxArray;
             }
@@ -318,7 +317,7 @@ export class EntradaDialogComponent implements OnInit {
     });
   }
 
-  addProducto() {}
+  addProducto() { }
 
   onEditar() {
     this.isEditar = true;
@@ -329,7 +328,7 @@ export class EntradaDialogComponent implements OnInit {
 
   onCancelar() {
     console.log("hola");
-    if(this.selectedEntrada!=null) this.selectedEntrada.entradaItemList = this.itemDataSource.data;
+    if (this.selectedEntrada != null) this.selectedEntrada.entradaItemList = this.itemDataSource.data;
     this.matDialogRef.close(this.selectedEntrada);
   }
 
@@ -362,7 +361,7 @@ export class EntradaDialogComponent implements OnInit {
     this.productoIdControl.setValue(this.selectedProducto.id);
   }
 
-  onProductoFocus(){
+  onProductoFocus() {
     this.productoControl.value != null ? this.productoInput.nativeElement.select() : null;
   }
 
@@ -383,10 +382,10 @@ export class EntradaDialogComponent implements OnInit {
     }, 100);
   }
 
-  onItemSave(){
+  onItemSave() {
     this.cargandoService.openDialog()
     let auxArray: EntradaItem[] = []
-    if(this.itemFormGroup.valid){
+    if (this.itemFormGroup.valid) {
       let isNew = this.selectedEntradaItem?.id == null;
       let item = new EntradaItem();
       item.id = this.selectedEntradaItem?.id;
@@ -397,9 +396,9 @@ export class EntradaDialogComponent implements OnInit {
       item.usuario = this.selectedEntradaItem?.usuario;
       item.creadoEn = this.selectedEntradaItem?.creadoEn;
       this.entradaItemService.onSaveEntradaItem(item.toInput()).pipe(untilDestroyed(this)).subscribe(res => {
-        if(res!=null){
+        if (res != null) {
           this.selectedEntradaItem = res['data'];
-          if(!isNew){
+          if (!isNew) {
             let index = this.itemDataSource.data.findIndex(s => s.id == this.selectedEntradaItem.id)
             auxArray = this.itemDataSource.data;
             auxArray[index] = this.selectedEntradaItem;
@@ -412,12 +411,12 @@ export class EntradaDialogComponent implements OnInit {
           this.onItemCancelar()
           this.cargandoService.closeDialog()
         }
-        
+
       })
     }
   }
 
-  onSelectEntradaItem(item: EntradaItem){
+  onSelectEntradaItem(item: EntradaItem) {
     this.selectedEntradaItem = item;
     this.onSelectProducto(item.producto);
     this.onSelectPresentacion(item.presentacion);
@@ -426,7 +425,7 @@ export class EntradaDialogComponent implements OnInit {
     this.isItemEditar = false;
   }
 
-  onEditItem(){
+  onEditItem() {
     console.log('hola')
     this.isItemEditar = true;
     this.productoControl.enable()
@@ -434,9 +433,9 @@ export class EntradaDialogComponent implements OnInit {
     this.setFocusToProductoInput()
   }
 
-  onFinalizarEntrada(){
+  onFinalizarEntrada() {
     this.cargandoService.openDialog()
-    if(this.selectedEntrada?.id != null){
+    if (this.selectedEntrada?.id != null) {
       this.entradaService.onFinalizarEntrega(this.selectedEntrada.id).pipe(untilDestroyed(this)).subscribe(res => {
         this.selectedEntrada.activo = res as boolean;
         this.cargandoService.closeDialog()
@@ -444,7 +443,7 @@ export class EntradaDialogComponent implements OnInit {
     }
   }
 
-  onItemCancelar(){
+  onItemCancelar() {
     this.selectedEntradaItem = null;
     this.itemFormGroup.reset();
     this.onEditItem()
@@ -464,6 +463,6 @@ export class EntradaDialogComponent implements OnInit {
       pdfData.setPage(1)
       pdfData.addImage(contentDataURL, 'PNG', 0, 0, 200, 290)
       pdfData.save(`MyPdf.pdf`);
-  });
+    });
   }
 }

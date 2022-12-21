@@ -1,0 +1,249 @@
+<mat-card
+  #image
+  fxLayout="column"
+  style="
+    width: 100% !important;
+    height: 100%;
+    color: black;
+    padding-left: 10px;
+    padding-right: 10px;
+    background-color: white;
+  "
+>
+  <br />
+  <div style="height: 40px; width: 100%; text-align: center">
+    <img
+      src="assets/logo_bodega_negro.png"
+      alt="logo"
+      style="height: 40px; object-fit: contain"
+    />
+  </div>
+  <br />
+  <div *ngIf="delivery != null" style="color: black; text-align: start">
+    <span>Teléfono: </span>
+    <span style="font-weight: bold">{{ delivery?.telefono }}</span>
+  </div>
+  <div style="height: 5px"></div>
+  <div style="width: 100%; text-align: center">
+    <table class="table" style="width: 100%" *ngIf="delivery != null">
+      <thead>
+        <tr>
+          <th scope="col" style="width: 50%; text-align: start">Descripción</th>
+          <th scope="col" style="text-align: center; width: 15%">Cant</th>
+          <th scope="col" style="text-align: center; width: 15%">Precio</th>
+          <th scope="col" style="text-align: center; width: 20%">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of delivery?.venta?.ventaItemList; let i = index">
+          <td
+            style="
+              padding-bottom: 0px;
+              padding-top: 5px;
+              width: 50%;
+              text-align: start;
+              font-size: 0.8em;
+            "
+          >
+            {{ item?.producto?.descripcion }}
+          </td>
+          <td
+            style="
+              padding-bottom: 5px;
+              padding-top: 5px;
+              text-align: center;
+              font-size: 0.8em;
+            "
+          >
+            {{ item?.cantidad | number : "1.0-3" }}
+          </td>
+          <td
+            style="
+              padding-bottom: 5px;
+              padding-top: 5px;
+              text-align: center;
+              font-size: 0.8em;
+            "
+          >
+            {{ item?.precio - item.valorDescuento | number : "1.0-0" }}
+          </td>
+          <td
+            style="
+              padding-bottom: 5px;
+              padding-top: 5px;
+              text-align: center;
+              font-size: 0.8em;
+            "
+          >
+            {{
+              item?.cantidad * (item.precio - item.valorDescuento)
+                | number : "1.0-0"
+            }}
+          </td>
+        </tr>
+        <tr *ngIf="delivery?.precio?.valor != null">
+          <td
+            style="
+              padding-bottom: 0px;
+              padding-top: 5px;
+              width: 50%;
+              text-align: start;
+            "
+          >
+            DELIVERY
+          </td>
+          <td
+            style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+          ></td>
+          <td
+            style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+          ></td>
+          <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
+            {{ delivery?.precio?.valor | number : "1.0-0" }}
+          </td>
+        </tr>
+        <tr style="font-weight: bold">
+          <td
+            style="
+              padding-bottom: 0;
+              padding-top: 5px;
+              width: 50%;
+              text-align: start;
+            "
+          >
+            Total en Gs:
+          </td>
+          <td
+            style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+          ></td>
+          <td
+            style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+          ></td>
+          <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
+            {{ totalFinal | number : "1.0-0" }}
+          </td>
+        </tr>
+        <tr style="font-weight: bold">
+          <td
+            style="
+              padding-bottom: 0;
+              padding-top: 5px;
+              width: 50%;
+              text-align: start;
+            "
+          >
+            Total en Rs:
+          </td>
+          <td
+            style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+          ></td>
+          <td
+            style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+          ></td>
+          <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
+            {{ totalFinal / cambioRs | number : "1.2-2" }}
+          </td>
+        </tr>
+        <tr style="font-weight: bold">
+          <td
+            style="
+              padding-bottom: 0;
+              padding-top: 5px;
+              width: 50%;
+              text-align: start;
+            "
+          >
+            Total en Ds:
+          </td>
+          <td
+            style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+          ></td>
+          <td
+            style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+          ></td>
+          <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
+            {{ totalFinal / cambioDs | number : "1.2-2" }}
+          </td>
+        </tr>
+        <ng-container *ngIf="vueltoParaGs > 0"
+        >
+          <tr style="font-weight: bold">
+            <td
+              style="
+                padding-bottom: 0;
+                padding-top: 5px;
+                width: 50%;
+                text-align: start;
+              "
+            >
+              Vuelto para Gs:
+            </td>
+            <td
+              style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+            ></td>
+            <td
+              style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+            ></td>
+            <td
+              style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+            >
+              {{ vueltoParaGs | number : "1.0-2" }}
+            </td>
+          </tr>
+        </ng-container>
+        <ng-container *ngIf="vueltoParaRs > 0"
+        >
+          <tr style="font-weight: bold">
+            <td
+              style="
+                padding-bottom: 0;
+                padding-top: 5px;
+                width: 50%;
+                text-align: start;
+              "
+            >
+              Vuelto para Rs:
+            </td>
+            <td
+              style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+            ></td>
+            <td
+              style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+            ></td>
+            <td
+              style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+            >
+              {{ vueltoParaRs | number : "1.0-2" }}
+            </td>
+          </tr>
+        </ng-container>
+        <ng-container *ngIf="vueltoParaDs > 0"
+        >
+          <tr style="font-weight: bold">
+            <td
+              style="
+                padding-bottom: 0;
+                padding-top: 5px;
+                width: 50%;
+                text-align: start;
+              "
+            >
+              Vuelto para Ds:
+            </td>
+            <td
+              style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+            ></td>
+            <td
+              style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+            ></td>
+            <td
+              style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+            >
+              {{ vueltoParaDs | number : "1.0-2" }}
+            </td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </div>
+</mat-card>

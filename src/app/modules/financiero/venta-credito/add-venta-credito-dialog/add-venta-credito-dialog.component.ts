@@ -1,20 +1,25 @@
-import { Component, ElementRef, HostListener, Inject, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, Inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy } from '@ngneat/until-destroy';
+import { QrcodeComponent } from '@techiediaries/ngx-qrcode';
 import { Apollo } from 'apollo-angular';
+import { Subscription } from 'rxjs';
 import { dateToString, getLastDayOfNextMonth } from '../../../../commons/core/utils/dateUtils';
 import { updateDataSource } from '../../../../commons/core/utils/numbersUtils';
+import { TipoEntidad } from '../../../../generics/tipo-entidad.enum';
 import { MainService } from '../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { BotonComponent } from '../../../../shared/components/boton/boton.component';
 import { DigitarContrasenaDialogComponent } from '../../../../shared/digitar-contrasena-dialog/digitar-contrasena-dialog.component';
+import { QrCodeComponent, QrCodeDialogData, QrData } from '../../../../shared/qr-code/qr-code.component';
 import { Cliente, TipoCliente } from '../../../personas/clientes/cliente.model';
 import { ClienteService } from '../../../personas/clientes/cliente.service';
 import { Persona } from '../../../personas/persona/persona.model';
 import { PersonaService } from '../../../personas/persona/persona.service';
 import { EstadoVentaCredito, TipoConfirmacion, VentaCredito, VentaCreditoCuota, VentaCreditoCuotaInput } from '../venta-credito.model';
+import { VentaCreditoService } from '../venta-credito.service';
 
 export class AddVentaCreditoData {
   valor: number;
@@ -26,7 +31,7 @@ export class AddVentaCreditoData {
   templateUrl: './add-venta-credito-dialog.component.html',
   styleUrls: ['./add-venta-credito-dialog.component.scss']
 })
-export class AddVentaCreditoDialogComponent implements OnInit {
+export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy {
 
   readonly TipoCliente = TipoCliente
 
@@ -52,6 +57,8 @@ export class AddVentaCreditoDialogComponent implements OnInit {
   dataSource = new MatTableDataSource<VentaCreditoCuotaInput>([])
   displayedColumns = ['id', 'vencimiento', 'valor', 'acciones']
   total = 0;
+  ventaSub: Subscription;
+
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: AddVentaCreditoData,
     private dialogRef: MatDialogRef<AddVentaCreditoDialogComponent>,
@@ -59,8 +66,10 @@ export class AddVentaCreditoDialogComponent implements OnInit {
     private clienteService: ClienteService,
     private notificacionService: NotificacionSnackbarService,
     private matDialog: MatDialog,
-    private mainService: MainService
+    private mainService: MainService,
+    private ventaCreditoService: VentaCreditoService
   ) { }
+  
 
   ngOnInit(): void {
     if (this.data?.valor != null) {
@@ -207,8 +216,48 @@ export class AddVentaCreditoDialogComponent implements OnInit {
 
   }
 
-  onVer(gasto){}
-  onVuelto(gasto){}
-  onFinalizar(gasto){}
-  onSelectEntradaItem(row){}
+  onQrClick() {
+    let now = Date.now()
+    let id = this.selectedCliente.persona.id;
+    let qrData: QrData = {
+      idOrigen: this.mainService.sucursalActual.id,
+      tipoEntidad: TipoEntidad.VENTA_CREDITO,
+      data: id,
+      timestamp: now
+    }
+    let qrDialogRef = this.matDialog.open(QrCodeComponent, {
+      data: {
+        codigo: qrData,
+        nombre: 'Convenio',
+        segundos: 60
+      }
+    })
+
+   this.ventaSub = this.ventaCreditoService.ventaCreditoQrSub().subscribe(res => {      
+      console.log(res);
+      
+      if(res['clienteId'] == qrData.data){
+        let diff = ((Date.now() - (+qrData.timestamp))/1000)/60;
+        console.log(diff);
+        
+        if(diff<60){
+          this.ventaSub.unsubscribe()
+          qrDialogRef.close()
+          this.tipoConfirmacion = TipoConfirmacion.QR;
+          this.onConfirmVentaCredito()
+        }
+      }
+    })
+  }
+
+  onVer(gasto) { }
+  onVuelto(gasto) { }
+  onFinalizar(gasto) { }
+  onSelectEntradaItem(row) { }
+
+  ngOnDestroy(): void {
+    if(this.ventaSub!=null){
+      this.ventaSub.unsubscribe()
+    }
+  }
 }

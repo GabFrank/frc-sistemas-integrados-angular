@@ -26,29 +26,35 @@ if (APP_CONFIG.production) {
   var configFile: Config = JSON.parse(readFileSync(configPath));
   var configLocalFile: ConfigLocal = JSON.parse(readFileSync(configLocalPath));
 
-  if(configLocalPath!=null){
-    if(localStorage.getItem('ip')==null){
+  if (configLocalPath != null) {
+    if (localStorage.getItem('ip') == null || localStorage.getItem('centralIp') == null) {
       environment['serverIp'] = configLocalFile.ipDefault;
       environment['serverPort'] = configLocalFile.puertoDefault;
+      environment['serverCentralIp'] = configLocalFile.ipDefault;
+      environment['serverCentralPort'] = configLocalFile.puertoDefault;
       localStorage.setItem('ip', configLocalFile.ipDefault)
-      localStorage.setItem('port', configLocalFile.puertoDefault+"")
+      localStorage.setItem('port', configLocalFile.puertoDefault + "")
+      localStorage.setItem('centralIp', configLocalFile.ipCentralDefault)
+      localStorage.setItem('centralPort', configLocalFile.puertoCentralDefault + "")
     } else {
-      environment['serverIp'] =  localStorage.getItem('ip');
+      environment['serverIp'] = localStorage.getItem('ip');
       environment['serverPort'] = +localStorage.getItem('port');
+      environment['serverCentralIp'] = localStorage.getItem('centralIp');
+      environment['serverCentralPort'] = +localStorage.getItem('centralPort');
     }
     environment['printers'] = configLocalFile.printers;
     environment['local'] = configLocalFile.local;
     environment['precios'] = configLocalFile.precios;
     environment['modo'] = configLocalFile.modo;
     environment['pdvId'] = configLocalFile.pdvId;
-    
+
   } else {
     alert("Archivo de configuración local en falta")
   }
 
   if (configFile != null) {
     environment['sucursales'] = configFile.sucursales;
-  } 
+  }  
 
   platformBrowserDynamic()
     .bootstrapModule(AppModule, {
@@ -61,16 +67,18 @@ if (APP_CONFIG.production) {
 export interface Config {
   repositoryUrl: string;
   sucursales: {
-      id: number
-      nombre: string
-      ip: string
-      port: number
+    id: number
+    nombre: string
+    ip: string
+    port: number
   }
 }
 
 export interface ConfigLocal {
   ipDefault: string
   puertoDefault: number
+  ipCentralDefault: string
+  puertoCentralDefault: number
   printers;
   local: string;
   precios: string[]

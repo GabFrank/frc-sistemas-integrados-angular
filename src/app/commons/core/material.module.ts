@@ -40,13 +40,14 @@ import { MatKeyboardModule } from 'angular-onscreen-material-keyboard';
 import {MatTreeModule} from '@angular/material/tree';
 import { MatFileUploadModule } from 'angular-material-fileupload';
 import { NgxMatSelectSearchModule } from 'ngx-mat-select-search';
-
+import { EnumToStringPipe } from './utils/pipes/enum-to-string';
+import { TimeDiffPipe } from './utils/pipes/time-diff';
 
 
 @NgModule({
   imports: [],
   providers: [],
-  declarations: [],
+  declarations: [EnumToStringPipe, TimeDiffPipe],
   bootstrap: [],
   exports: [
     BrowserAnimationsModule,
@@ -91,7 +92,9 @@ import { NgxMatSelectSearchModule } from 'ngx-mat-select-search';
     MatKeyboardModule,
     MatTreeModule,
     MatFileUploadModule,
-    NgxMatSelectSearchModule
+    NgxMatSelectSearchModule,
+    EnumToStringPipe,
+    TimeDiffPipe
   ]
 })
 export class MaterialModule { }

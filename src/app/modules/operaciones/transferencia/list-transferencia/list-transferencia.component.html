@@ -106,7 +106,7 @@
           *matCellDef="let transferencia"
           style="text-align: center; width: 20%"
         >
-          {{ transferencia?.estado }}
+          {{ transferencia?.estado | enumToString | titlecase}}
         </td>
       </ng-container>
 

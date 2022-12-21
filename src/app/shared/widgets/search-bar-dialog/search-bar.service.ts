@@ -92,6 +92,8 @@ export class SearchBarService {
   }
 
   openTab(data: SearchData) {
+    console.log(data);
+    
     this.tabService.addTab(new Tab(data.component, data.title, new TabData(data?.data?.id, data?.data), this.tabService?.currentTab()?.component))
   }
 }

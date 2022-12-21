@@ -139,7 +139,6 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
   }
 
   onButtonClick() {
-    this.cargandoDialog.openDialog(null, 'Guardando conteo...')
     setTimeout(() => {
       this.guardarConteo(this.createMonedaBilletes(), this.apertura)
     }, 1000);

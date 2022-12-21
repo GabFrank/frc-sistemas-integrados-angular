@@ -102,7 +102,7 @@
           *matCellDef="let caja"
           style="text-align: center; width: 15%"
         >
-          {{ caja?.estado }}
+          {{ caja?.estado | enumToString | titlecase}}
         </td>
       </ng-container>
 

@@ -38,6 +38,18 @@
             "port": "8082"
         },
         {
+            "id": 4,
+            "nombre": "Suc. Industrial",
+            "ip": "172.25.106.87",
+            "port": "8082"
+        },
+        {
+            "id": 15,
+            "nombre": "Suc. San Pedro",
+            "ip": "172.25.0.60",
+            "port": "8082"
+        },
+        {
             "id": 0,
             "nombre": "Farmacia",
             "ip": "158.101.114.87",

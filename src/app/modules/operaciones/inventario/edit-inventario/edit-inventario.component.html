@@ -49,7 +49,7 @@
         <div fxFlex="25" fxLayout="column">
           <div class="title" fxFlex="50">Estado</div>
           <div fxFlex="50">
-            {{ selectedInventario?.estado }}
+            {{ selectedInventario?.estado | enumToString | titlecase}}
           </div>
         </div>
         <div fxFlex="50" fxLayout="column">

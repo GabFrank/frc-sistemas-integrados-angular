@@ -1,0 +1,67 @@
+<div
+  (keyup)="onKeyup($event)"
+  fxLayout="row wrap"
+  fxLayoutAlign="center center"
+  fxLayoutGap="10px"
+  style="width: 100%; height: 70px !important"
+>
+  <div class="btn" fxFlex="19%">
+    <app-boton
+      *ngIf="selectedDelivery?.estado == 'ABIERTO'"
+      #btn
+      nombre="PARA ENTREGA"
+      (clickEvent)="onClick('para-entrega')"
+    ></app-boton>
+    <app-boton
+      *ngIf="
+        selectedDelivery?.estado == 'EN_CAMINO' ||
+        selectedDelivery?.estado == 'ENTREGADO' ||
+        selectedDelivery?.estado == 'PARA_ENTREGA'
+      "
+      #btn
+      nombre="FINALIZAR"
+      color="accent"
+      (clickEvent)="onClick('finalizar')"
+    ></app-boton>
+    <app-boton
+      *ngIf="selectedDelivery?.estado == 'CONCLUIDO'"
+      #btn
+      nombre="REABRIR"
+      (clickEvent)="onClick('reabrir')"
+    ></app-boton>
+  </div>
+  <div class="btn" fxFlex="19%">
+    <app-boton
+      #btn
+      nombre="Modif. itens"
+      [disableExpression]="
+      selectedDelivery?.estado == 'CANCELADO' ||
+      selectedDelivery?.estado == 'CONCLUIDO'"
+      (clickEvent)="onClick('edit-itens')"
+    ></app-boton>
+  </div>
+  <div class="btn" fxFlex="19%">
+    <app-boton
+      #btn
+      nombre="Editar info."
+      (clickEvent)="onClick('edit-info')"
+      [disableExpression]="
+      selectedDelivery?.estado == 'CANCELADO' ||
+      selectedDelivery?.estado == 'CONCLUIDO'"
+    ></app-boton>
+  </div>
+  <div class="btn" fxFlex="19%">
+    <app-boton
+      #btn
+      nombre="Cancelar delivery"
+      (clickEvent)="onClick('cancelar')"
+    ></app-boton>
+  </div>
+  <div class="btn" fxFlex="19%">
+    <app-boton
+      #btn
+      nombre="Reimprimir"
+      (clickEvent)="onClick('reimprimir')"
+    ></app-boton>
+  </div>
+</div>

@@ -95,7 +95,7 @@
           *matCellDef="let inventario"
           style="text-align: center; width: 20%"
         >
-          {{ inventario?.estado }}
+          {{ inventario?.estado | enumToString | titlecase}}
         </td>
       </ng-container>
 

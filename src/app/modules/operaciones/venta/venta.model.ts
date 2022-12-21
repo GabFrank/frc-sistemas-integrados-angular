@@ -3,9 +3,8 @@ import { PdvCaja } from "../../financiero/pdv/caja/caja.model";
 import { Cliente } from "../../personas/clientes/cliente.model";
 import { Usuario } from "../../personas/usuarios/usuario.model";
 import { Cobro } from "./cobro/cobro.model";
-import { TipoVenta } from "./enums/tipo-venta.enums";
 import { VentaEstado } from "./enums/venta-estado.enums";
-import { VentaItem } from "./venta-item.model";
+import { VentaItem, VentaItemInput } from "./venta-item.model";
 
 export class Venta {
     id: number;
@@ -23,8 +22,9 @@ export class Venta {
     totalDs: number;
     cobro: Cobro
     sucursalId: number;
+    isDelivery: boolean;
 
-    public toInput(): VentaInput {
+    toInput(): VentaInput {
         let input = new VentaInput()
         input.id = this.id;
         input.formaPagoId = this.formaPago?.id;
@@ -38,6 +38,16 @@ export class Venta {
         input.totalDs = this.totalDs;
         input.sucursalId = this.sucursalId;
         return input;
+    }
+
+    toItemInputList(): VentaItemInput[] {
+        let itemList: VentaItemInput[] = []
+        this.ventaItemList?.forEach(vi => {
+            let viAux = new VentaItem;
+            Object.assign(viAux, vi)
+            itemList.push(viAux.toInput())
+        })
+        return itemList;
     }
 }
 

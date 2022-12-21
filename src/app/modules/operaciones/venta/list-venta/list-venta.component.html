@@ -12,7 +12,7 @@
   >
     <div fxFlex="5" fxLayout="row" style="width: 100%">
       <div fxFlex>ID: {{ selectedCaja?.id }}</div>
-      <div fxFlex>Estado: {{ selectedCaja?.estado | uppercase }}</div>
+      <div fxFlex>Estado: {{ selectedCaja?.estado | enumToString | titlecase }}</div>
     </div>
     <div fxFlex="5">
       Cajero: {{ selectedCaja?.usuario?.persona?.nombre | uppercase }}
@@ -401,7 +401,7 @@
               *matCellDef="let venta"
               style="text-align: center; width: 20%"
             >
-              {{ venta?.estado }}
+              {{ venta?.estado | enumToString | titlecase}}
             </td>
           </ng-container>
 

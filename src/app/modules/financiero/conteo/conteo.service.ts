@@ -9,6 +9,7 @@ import { ConteoMonedaService } from "./conteo-moneda/conteo-moneda.service";
 import { Conteo } from "./conteo.model";
 import { DeleteConteoGQL } from "./graphql/deleleConteo";
 import { SaveConteoGQL } from "./graphql/saveConteo";
+import { CargandoDialogService } from '../../../shared/components/cargando-dialog/cargando-dialog.service';
 
 @UntilDestroy()
 @Injectable({
@@ -20,12 +21,14 @@ export class ConteoService {
     private onSaveConteo: SaveConteoGQL,
     private deleteConteo: DeleteConteoGQL,
     private conteoMonedaService: ConteoMonedaService,
-    private notificacionSnackBar: NotificacionSnackbarService
+    private notificacionSnackBar: NotificacionSnackbarService,
+    private cargandoService: CargandoDialogService
   ) { }
 
   onSave(conteo: Conteo, cajaId, apertura: boolean): Observable<any> {
     let conteoMonedaInputList: ConteoMonedaInput[] = []
     conteo.conteoMonedaList.forEach(c => conteoMonedaInputList.push(c.toInput()))
+    this.cargandoService.openDialog()
     return new Observable((obs) => {
       this.onSaveConteo.mutate(
         {
@@ -37,6 +40,7 @@ export class ConteoService {
       { fetchPolicy: 'no-cache', errorPolicy: 'all' })
       .pipe(untilDestroyed(this))
       .subscribe(res => {
+        this.cargandoService.closeDialog()
         if (res.errors == null) {
           obs.next(res.data['data'])
           this.notificacionSnackBar.notification$.next({

@@ -45,13 +45,15 @@
         type="button"
         fxFlex
         fxLayout="row"
-        fxLayoutAlign="center center"
+        fxLayoutAlign="space-around center"
         mat-raised-button
         color="primary"
         style="height: 2em"
         (click)="buscarProductoDialog()"
       >
-        <mat-icon fxFlex style="font-size: 2em">search</mat-icon>
+        <div fxFlex>
+          Buscar (F9)
+        </div>
       </button>
     </div>
   </form>

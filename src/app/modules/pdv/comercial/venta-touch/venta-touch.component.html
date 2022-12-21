@@ -1,9 +1,15 @@
-<div fxLayout="row" style="width: 100%; height: 95%" fxLayoutGap="5px">
+<div
+  #container
+  fxLayout="row"
+  style="width: 100%; height: 95%"
+  fxLayoutGap="5px"
+>
   <mat-card
     fxFlex="50%"
     fxLayout="column"
     style="width: 100%; height: 100%"
-    [style.background-color]="isAuxiliar ? 'rgb(0, 155, 39)' : ''"
+    [style.background-color]="isDelivery ? '#f57c00' : (isAuxiliar ? 'rgb(0, 155, 39)' : '')"
+    (click)="isDialogOpen ? null : buscadorFocusSub.next()"
   >
     <div fxFlex="20%">
       <app-totales
@@ -14,7 +20,7 @@
       ></app-totales>
     </div>
     <div fxFlex="55%">
-      <app-item-list 
+      <app-item-list
         [itemList]="selectedItemList"
         (editEvent)="editItem($event)"
         (removeEvent)="removeItem($event)"
@@ -26,24 +32,25 @@
         [tiposPrecios]="tiposPrecios"
         (dialogEvent)="isDialogOpen = true"
         (addItemEvent)="addItem($event)"
-        [focusEvent]="buscadorFocusSub.asObservable()"
+        [focusEvent]="!isDialogOpen ? buscadorFocusSub.asObservable() : null"
+        [openSearchEvent]="buscadorOpenSearch.asObservable()"
         (crearItemEvent)="crearItem($event)"
       ></app-buscador>
     </div>
     <div fxFlex="15%" fxLayout="row" fxLayoutGap="10px">
       <div fxFlex="33%">
-        <app-boton nombre="Precios"></app-boton>
+        <app-boton nombre="Precios" [disableExpression]="true"></app-boton>
       </div>
       <div fxFlex="33%">
         <app-boton
-          nombre="Eliminar todo"
+          nombre="Eliminar todo (ESC)"
           [disableExpression]="selectedItemList.length == 0"
           (clickEvent)="removeItem({})"
         ></app-boton>
       </div>
       <div fxFlex="33%">
         <app-boton
-          nombre="Pago (F9)"
+          nombre="Pago (F12)"
           color="accent"
           [disableExpression]="selectedItemList.length == 0"
           (clickEvent)="onPagoClick()"
@@ -54,38 +61,48 @@
   <mat-card
     fxFlex="50%"
     fxLayout="column"
-    style="width: 100%; height: 100%;"  >
+    style="width: 100%; height: 100%"
+    (click)="isDialogOpen ? null : buscadorFocusSub.next()"
+  >
     <div fxFlex="85%">
       <app-favoritos (event)="onGridCardClick($event)"></app-favoritos>
     </div>
-    <div fxFlex="15%" fxLayout="row" fxLayoutGap="10px">
+    <div
+      fxFlex="15%"
+      fxLayout="row"
+      fxLayoutGap="10px"
+    >
       <div fxFlex="20%">
         <app-boton
-          nombre="Cobro Rápido (F10)"
-          [disableExpression]="selectedItemList.length == 0"
+          nombre="Cobro Rápido (F8)"
+          [disableExpression]="selectedItemList.length == 0 || isDelivery"
           (clickEvent)="onTicketClick()"
         ></app-boton>
       </div>
       <div fxFlex="20%">
         <app-boton
           nombre="CR + Ticket (F11)"
-          [disableExpression]="selectedItemList.length == 0"
+          [disableExpression]="selectedItemList.length == 0 || isDelivery"
           (clickEvent)="onTicketClick(true)"
         ></app-boton>
       </div>
       <div fxFlex="20%">
-        <app-boton nombre="Delivery (F12)" (clickEvent)="onDeliveryClick()"></app-boton>
+        <app-boton
+          nombre="Delivery (F10)"
+          (clickEvent)="onDeliveryClick()"
+        ></app-boton>
       </div>
       <div fxFlex="20%">
         <app-boton
-          [nombre]="!isAuxiliar ? 'PDV 1 (F1)' : 'PDV 2 (F1)'"
+          [nombre]="!isAuxiliar ? 'PDV 1 (F2)' : 'PDV 2 (F2)'"
           (clickEvent)="pdvAuxiliarClick()"
         ></app-boton>
       </div>
       <div fxFlex="20%">
         <app-boton
-          nombre="Utilitarios"
+          nombre="Utilitarios (F1)"
           (clickEvent)="openUtilitarios()"
+          [disableExpression]="isDelivery"
         ></app-boton>
       </div>
     </div>

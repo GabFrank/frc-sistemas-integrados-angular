@@ -123,7 +123,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
       'idCentral': null,
       'componentToOpen': null
     }
-    console.log(this.mainService.sucursalActual)
     this.matDialog.open(QrCodeComponent, {
       data: {
         codigo: codigo,

@@ -775,7 +775,7 @@ export class EditPedidoComponent implements OnInit {
     this.fechaInput.nativeElement.select()
   }
 
-  onFechaEntergaEnter() {
+  onFechaEntregaEnter() {
 
   }
 }

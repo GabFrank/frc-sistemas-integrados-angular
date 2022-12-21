@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { MatDialogRef } from '@angular/material/dialog';
 import { ConfiguracionService } from '../configuracion.service';
 
 @Component({
@@ -9,7 +10,8 @@ import { ConfiguracionService } from '../configuracion.service';
 export class SolicitarRecursosDialogComponent implements OnInit {
 
   constructor(
-    private configuracionService: ConfiguracionService
+    private configuracionService: ConfiguracionService,
+    private matDialogRef: MatDialogRef<SolicitarRecursosDialogComponent>
   ) { }
 
   ngOnInit(): void {
@@ -19,6 +21,10 @@ export class SolicitarRecursosDialogComponent implements OnInit {
     this.configuracionService.solicitarResources().subscribe(res => {
       
     })
+  }
+
+  onCancelar(){
+    this.matDialogRef.close()
   }
 
 }

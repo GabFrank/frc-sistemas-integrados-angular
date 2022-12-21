@@ -1,5 +1,5 @@
 import { Usuario } from "../../../personas/usuarios/usuario.model"
-import { CobroDetalle } from "./cobro-detalle.model"
+import { CobroDetalle, CobroDetalleInput } from "./cobro-detalle.model"
 
 export class Cobro {
     id: number
@@ -17,6 +17,16 @@ export class Cobro {
         input.usuarioId = this.usuario?.id;
         input.sucursalId = this.sucursalId
         return input;
+    }
+
+    toItemInputList(): CobroDetalleInput[] {
+        let itemList: CobroDetalleInput[] = []
+        this.cobroDetalleList?.forEach(vi => {
+            let viAux = new CobroDetalle;
+            Object.assign(viAux, vi)
+            itemList.push(viAux.toInput())
+        })
+        return itemList;
     }
 }
 

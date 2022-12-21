@@ -28,6 +28,7 @@ import { ListMaletinComponent } from '../../../modules/financiero/maletin/list-m
 import { CargandoDialogComponent } from '../cargando-dialog/cargando-dialog.component';
 import { CargandoDialogService } from '../cargando-dialog/cargando-dialog.service';
 import { ElectronService } from '../../../commons/core/electron/electron.service';
+import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
 
 @Component({
   selector: "app-side",
@@ -36,14 +37,15 @@ import { ElectronService } from '../../../commons/core/electron/electron.service
 })
 export class SideComponent implements OnInit {
 
-  isTest = true;
+  isTest = false;
 
   constructor(
     public tabService: TabService,
     public mainService: MainService,
     private matDialog: MatDialog,
     private cargandoDialogService: CargandoDialogService,
-    private electronService: ElectronService
+    private electronService: ElectronService,
+    private notificacionService: NotificacionSnackbarService
   ) {
 
   }
@@ -55,27 +57,35 @@ export class SideComponent implements OnInit {
     // this.isTest = this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
     switch (tab) {
       case "list-persona":
-        if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_PERSONAS) || this.isTest) {
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_PERSONAS)) {
           this.tabService.addTab(
             new Tab(ListPersonaComponent, "Personas", null, null)
           );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
       case "list-usuario":
-        if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_USUARIOS) || this.isTest) {
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_USUARIOS)
+          || this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
+        ) {
           this.tabService.addTab(
             new Tab(ListUsuarioComponent, "Usuarios", null, null)
           );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
       case "list-producto":
         if (
-          this.mainService.usuarioActual?.roles.includes(ROLES.VER_PRODUCTOS) || this.isTest ||
+          this.mainService.usuarioActual?.roles.includes(ROLES.VER_PRODUCTOS) ||
           this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
         ) {
           this.tabService.addTab(
             new Tab(ListProductoComponent, "Lista de productos", null, null)
           );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
       case "list-compra":
@@ -95,11 +105,13 @@ export class SideComponent implements OnInit {
         break;
       case "funcionario-dashboard":
         if (
-          this.mainService.usuarioActual?.roles.includes(ROLES.VER_FUNCIONARIOS) || this.isTest
+          this.mainService.usuarioActual?.roles.includes(ROLES.VER_FUNCIONARIOS)
         ) {
           this.tabService.addTab(
             new Tab(FuncionarioDashboardComponent, "Gestión de funcionarios", null, null)
           );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
       case "list-paises":
@@ -118,14 +130,16 @@ export class SideComponent implements OnInit {
         // );
         break;
       case "pdv-venta-touch":
-        if ((this.mainService.usuarioActual?.roles.includes(ROLES.VENTA_TOUCH) || this.isTest)) {
+        if ((this.mainService.usuarioActual?.roles.includes(ROLES.VENTA_TOUCH))) {
           this.tabService.addTab(
-            new Tab(VentaTouchComponent, "Venta Touch", null, null)
+            new Tab(VentaTouchComponent, "Venta", null, null)
           );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
       case "pdv-venta-ultimas-cajas":
-        if (this.mainService.usuarioActual?.roles.includes(ROLES.VENTA_TOUCH) || this.isTest) {
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.VENTA_TOUCH)) {
           this.matDialog.open(UltimasCajasDialogComponent, {
             width: '90%',
             height: '90%'
@@ -133,17 +147,21 @@ export class SideComponent implements OnInit {
         }
         break;
       case "list-movimiento":
-        if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_MOVIMIENTO_DE_STOCK) || this.isTest) {
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_MOVIMIENTO_DE_STOCK)) {
           this.tabService.addTab(
             new Tab(ListMovimientoStockComponent, "Movimientos", null, null)
           );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
       case "list-inventario":
-        if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_INVENTARIO) || this.isTest) {
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_INVENTARIO)) {
           this.tabService.addTab(
             new Tab(InventarioDashboardComponent, "Inventario", null, null)
           );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
       case "list-entrada-salida":
@@ -155,15 +173,19 @@ export class SideComponent implements OnInit {
           this.tabService.addTab(
             new Tab(EntradaSalidaComponent, "Entrada/Salida", null, null)
           );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
       case "list-caja":
         if (
-          this.mainService.usuarioActual?.roles.includes("ANALISIS-CAJA") || this.isTest
+          this.mainService.usuarioActual?.roles.includes(ROLES.ANALISIS_DE_CAJA)
         ) {
           this.tabService.addTab(
             new Tab(ListCajaComponent, "Cajas", null, null)
           );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
       case "finanzas-dashboard":
@@ -175,6 +197,8 @@ export class SideComponent implements OnInit {
           this.tabService.addTab(
             new Tab(FinancieroDashboardComponent, "Financiero", null, null)
           );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
       case "list-gastos":
@@ -186,46 +210,56 @@ export class SideComponent implements OnInit {
           this.tabService.addTab(
             new Tab(ListGastosComponent, "Gastos", null, null)
           );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
       case "list-transferencias":
         if (
           this.mainService.usuarioActual?.roles.includes(ROLES.VER_TRANSFERENCIA
-          ) || this.isTest
+          )
         ) {
           this.tabService.addTab(
             new Tab(TransferenciaComponent, "Transferencia", null, null)
           );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
       case "list-cotizacion":
         if (
           this.mainService.usuarioActual?.roles.includes(ROLES.CAMBIAR_COTIZACION
-          ) || this.isTest
+          )
         ) {
           this.tabService.addTab(
             new Tab(CambioComponent, "Cotizaciónes", null, null)
           );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
       case "list-roles":
         if (
           this.mainService.usuarioActual?.roles.includes(ROLES.SOPORTE
-          ) || this.isTest
+          )
         ) {
           this.tabService.addTab(
             new Tab(ListRolesComponent, "Lista de roles", null, null)
           );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
       case "list-maletin":
         if (
           this.mainService.usuarioActual?.roles.includes(ROLES.CAMBIAR_COTIZACION
-          ) || this.isTest
+          )
         ) {
           this.tabService.addTab(
             new Tab(ListMaletinComponent, "Maletines", null, null)
           );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
       default:

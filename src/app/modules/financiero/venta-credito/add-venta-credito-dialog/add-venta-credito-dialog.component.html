@@ -187,9 +187,9 @@
           style="height: 50px"
           nombre="Código QR (F2)"
           [disableExpression]="
-            selectedCliente != null && this.total > this.saldoEnCredito
+            selectedCliente == null || this.total > this.saldoEnCredito
           "
-          (clickEvent)="setTipoConfirmacion(2)"
+          (clickEvent)="setTipoConfirmacion(2); onQrClick()"
           [color]="selectedTipoConfirmacion == 2 ? 'accent' : 'primary'"
         ></app-boton>
       </div>

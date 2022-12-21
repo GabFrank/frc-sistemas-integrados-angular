@@ -14,11 +14,40 @@ ngx-mat-select-search > div > input {
   font-size: 1.3em;
 }
 
-
 .activo {
-  background-color: green;
+  background-color: #43a047;
+  color: white
 }
 
 .para_entregar {
-  background-color: yellow;
+  background-color: #f57c00;
+  color: white
+}
+
+.en_camino {
+  background-color: rgb(44, 149, 191);
+  color: white
+}
+
+td {
+  vertical-align: middle !important;
+}
+
+.selected-delivery {
+  background-color: rgb(46, 46, 46);
+  animation: blinkActive 1s infinite;
+}
+
+@keyframes blinkActive {
+  0% {
+    background-color: #43a047;
+  }
+
+  50% {
+    background-color: rgb(46, 46, 46);
+  }
+
+  100% {
+    background-color: #43a047;
+  }
 }

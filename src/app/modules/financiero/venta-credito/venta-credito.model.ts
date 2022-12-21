@@ -109,3 +109,8 @@ export enum EstadoVentaCredito {
     EN_MORA = 'EN_MORA',
     INCOBRABLE = 'INCOBRABLE'
 }
+
+export class VentaCreditoQRAuthUpdate {
+    clienteId: number;
+    timestamp: number;
+}

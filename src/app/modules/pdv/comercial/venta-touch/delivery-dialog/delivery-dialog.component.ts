@@ -1,31 +1,26 @@
+import { Clipboard } from "@angular/cdk/clipboard";
 import {
+  AfterViewInit,
   Component,
-  ElementRef, HostListener, OnInit,
+  ElementRef, Inject, OnDestroy, OnInit,
   QueryList,
   ViewChild,
   ViewChildren
 } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { MatSelect, MatSelectChange } from '@angular/material/select';
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { CurrencyMaskInputMode } from 'ngx-currency';
+import { Subscription } from 'rxjs';
+import { updateDataSourceWithId } from "../../../../../commons/core/utils/numbersUtils";
+import { comparatorLike } from "../../../../../commons/core/utils/string-utils";
+import { Tab } from "../../../../../layouts/tab/tab.model";
+import { TabService } from "../../../../../layouts/tab/tab.service";
+import { MainService } from '../../../../../main.service';
 import { Moneda } from '../../../../../modules/financiero/moneda/moneda.model';
 import { Barrio } from '../../../../../modules/general/barrio/barrio.model';
 import { Delivery } from '../../../../../modules/operaciones/delivery/delivery.model';
-
-export class DeliveryData {
-  valor: number;
-  monedas: Moneda[];
-}
-
-interface VueltoItem {
-  valor: number;
-  moneda: Moneda;
-  formaPago: string;
-}
-
-import { Clipboard } from "@angular/cdk/clipboard";
-import { UntilDestroy } from '@ngneat/until-destroy';
-import { CurrencyMaskInputMode } from 'ngx-currency';
-import { MainService } from '../../../../../main.service';
 import { NotificacionColor, NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { BotonComponent } from '../../../../../shared/components/boton/boton.component';
 import { CargandoDialogService } from '../../../../../shared/components/cargando-dialog/cargando-dialog.service';
@@ -33,12 +28,30 @@ import { FormaPago } from '../../../../financiero/forma-pago/forma-pago.model';
 import { FormaPagoService } from '../../../../financiero/forma-pago/forma-pago.service';
 import { MonedaService } from '../../../../financiero/moneda/moneda.service';
 import { BarrioService } from '../../../../general/barrio/barrio.service';
-import { PrecioDelivery } from '../../../../operaciones/delivery/precio-delivery.model';
-import { PagoItem } from '../pago-touch/pago-touch.component';
-import { DeliveryService } from './delivery.service';
 import { DeliveryEstado } from '../../../../operaciones/delivery/enums';
-import { Vuelto } from '../../../../operaciones/vuelto/vuelto.model';
+import { PrecioDelivery } from '../../../../operaciones/delivery/precio-delivery.model';
+import { Venta } from "../../../../operaciones/venta/venta.model";
+import { VueltoItem } from "../../../../operaciones/vuelto/vuelto-item/vuelto-item.model";
+import { Vuelto } from "../../../../operaciones/vuelto/vuelto.model";
+import { VueltoService } from "../../../../operaciones/vuelto/vuelto.service";
 import { Cliente } from '../../../../personas/clientes/cliente.model';
+import { ClienteService } from '../../../../personas/clientes/cliente.service';
+import { DeliveryPresupuestoDialogComponent } from "../delivery-presupuesto-dialog/delivery-presupuesto-dialog.component";
+import { VentaTouchComponent } from "../venta-touch.component";
+import { DeliveryService } from './delivery.service';
+
+export class DeliveryData {
+  cambioRs: number
+  cambioDs: number
+  cambioArg: number
+}
+
+export class DeliveryResponseData {
+  delivery: Delivery;
+  finalizado: boolean;
+  modificar: boolean;
+  cancelar: boolean;
+}
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -46,8 +59,11 @@ import { Cliente } from '../../../../personas/clientes/cliente.model';
   templateUrl: './delivery-dialog.component.html',
   styleUrls: ['./delivery-dialog.component.css'],
 })
-export class DeliveryDialogComponent implements OnInit {
+export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit {
 
+  readonly DeliveryEstado = DeliveryEstado
+  @ViewChild('container', { read: ElementRef }) container: ElementRef;
+  @ViewChild('child', { read: HTMLElement }) child: HTMLElement;
   @ViewChild('matPrefixSelect', { static: false }) matPrefixSelect: MatSelect;
   @ViewChild('telefonoInput', { static: false }) telefonoInput: ElementRef;
   @ViewChild('valorInput', { static: false }) valorInput: ElementRef;
@@ -60,6 +76,20 @@ export class DeliveryDialogComponent implements OnInit {
   @ViewChildren('monedasBtnList') monedasBtnList: QueryList<BotonComponent>;
   @ViewChildren('vueltoBtnList') vueltoBtnList: QueryList<BotonComponent>;
   @ViewChild('finalizarBtn', { read: BotonComponent }) finalizarBtn: BotonComponent;
+
+  @ViewChild("clienteInput", { static: false })
+  clienteInput: ElementRef;
+  clienteControl = new FormControl();
+
+  clienteList: Cliente[];
+
+  clienteSub: Subscription;
+  barrioSub: Subscription;
+
+  clienteTimer;
+  barrioTimer;
+
+  horaActualTimer;
 
   currencyOptionsGuarani = {
     allowNegative: true,
@@ -91,14 +121,17 @@ export class DeliveryDialogComponent implements OnInit {
     min: null
   };
 
-  totalGs = 55000;
+  totalGs = 0;
   totalConDelivery = 0;
-  cambioRs = 1250;
-  cambioDs = 6900;
-  cambioArg = 40;
+  cambioRs = 0;
+  cambioDs = 0;
+  cambioArg = 0;
   selectedVueltoList = []
 
   selectedDelivery: Delivery;
+  selectedVenta: Venta = new Venta;
+  selectedVuelto: Vuelto = new Vuelto;
+  selectedBarrio: Barrio;
   formGroup: FormGroup;
   telefonoControl = new FormControl(null, [Validators.required, Validators.minLength(4)])
   telefonoPrefixControl = new FormControl()
@@ -116,7 +149,7 @@ export class DeliveryDialogComponent implements OnInit {
   formaPagoList: FormaPago[] = []
   monedaList: Moneda[] = []
   monedaControl = new FormControl()
-  pagoItemList: PagoItem[] = []
+  vueltoItemList: VueltoItem[] = []
   valorControl = new FormControl(0, [Validators.required, Validators.min(1)])
   vueltoControl = new FormControl(null)
   vueltoListGs: number[] = []
@@ -127,12 +160,14 @@ export class DeliveryDialogComponent implements OnInit {
   prefixList = ['+595', '+55']
   deliverActivoList: Delivery[] = []
   deliveryConcluidoList: Delivery[] = []
-  clienteControl = new FormControl()
   selectedCliente: Cliente;
 
   loadingItens = 1;
 
+  isDialogOpen = false;
+
   constructor(
+    @Inject(MAT_DIALOG_DATA) private data: DeliveryData,
     private barrioService: BarrioService,
     private mainService: MainService,
     private deliveryService: DeliveryService,
@@ -140,8 +175,23 @@ export class DeliveryDialogComponent implements OnInit {
     private monedaService: MonedaService,
     private cargandoService: CargandoDialogService,
     private copyToClipService: Clipboard,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private clienteService: ClienteService,
+    private matDialog: MatDialog,
+    private tabService: TabService,
+    private matDialogRef: MatDialogRef<DeliveryDialogComponent>,
+    private vueltoService: VueltoService
   ) {
+
+    this.horaActualTimer = setInterval((value) => {
+      this.actualizarHorarios(new Date())
+    }, 1000);
+
+    if (data != null) {
+      this.cambioRs = data.cambioRs
+      this.cambioDs = data.cambioDs
+      this.cambioArg = data.cambioArg
+    }
 
     this.totalConDelivery = this.totalGs;
 
@@ -153,6 +203,16 @@ export class DeliveryDialogComponent implements OnInit {
 
     this.monedaService.onGetAll().subscribe(res => {
       this.monedaList = res;
+      this.cambioRs = this.monedaList.find(
+        (m) => m.denominacion == "REAL"
+      )?.cambio;
+      this.cambioDs = this.monedaList.find(
+        (m) => m.denominacion == "DOLAR"
+      )?.cambio;
+      this.cambioArg = this.monedaList.find(
+        (m) => m.denominacion == "PESO ARG"
+      )?.cambio;
+
       this.monedaControl.setValue(this.monedaList[0])
       this.deliveryService.onGetPreciosDelivery().subscribe(res => {
         this.precioDeliveryList = res;
@@ -160,7 +220,8 @@ export class DeliveryDialogComponent implements OnInit {
         this.totalConDelivery += this.precioControl.value?.valor;
         this.calcularVuelto()
         setTimeout(() => {
-          this.navigateVuelto(0)
+          this.vueltoControl.setValue(this.vueltoListGs[0])
+          this.valorControl.setValue(this.vueltoControl.value)
           this.loadingItens++;
         }, 0);
       })
@@ -179,6 +240,7 @@ export class DeliveryDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+
     this.createForm()
     this.telefonoPrefixControl.setValue(this.prefixList[0])
     setTimeout(() => {
@@ -186,15 +248,184 @@ export class DeliveryDialogComponent implements OnInit {
 
     let time;
     time = setInterval(() => {
-      console.log(this.loadingItens);
-
-      if (this.loadingItens < 4) {
-
-      } else {
+      if (this.loadingItens = 4) {
         this.telefonoInput.nativeElement.select()
         clearInterval(time)
       }
     }, 500);
+
+    this.clienteList = [];
+
+    this.clienteSub = this.clienteControl.valueChanges.pipe(untilDestroyed(this)).subscribe(
+      (res) => {
+        if (res == "") this.selectedCliente = null;
+        if (this.clienteTimer != null) {
+          clearTimeout(this.clienteTimer);
+        }
+        if (res != null && res.length != 0) {
+          this.clienteTimer = setTimeout(() => {
+            this.clienteService
+              .onSearch(res).pipe(untilDestroyed(this))
+              .subscribe((response) => {
+                this.clienteList = response;
+                if (this.clienteList.length == 1) {
+                  this.onClienteSelect(this.clienteList[0]);
+                  this.onClienteAutocompleteClose();
+                } else {
+                  this.onClienteAutocompleteClose();
+                  this.onClienteSelect(null);
+                }
+              });
+          }, 500);
+        } else {
+          this.clienteList = [];
+        }
+      }
+    );
+
+    this.barrioSub = this.barrioControl.valueChanges.pipe(untilDestroyed(this)).subscribe(
+      (res) => {
+        if (res == "") this.selectedBarrio = null;
+        if (this.barrioTimer != null) {
+          clearTimeout(this.barrioTimer);
+        }
+        if (res != null && res.length != 0) {
+          this.barrioTimer = setTimeout(() => {
+            this.filteredBarriosList = this.barrioList.filter(b => res == b.id || comparatorLike(res, b.descripcion) != null)
+            if (this.filteredBarriosList.length == 1) {
+              this.onBarrioSelect(this.filteredBarriosList[0]);
+              this.onBarrioAutocompleteClose();
+            } else {
+              this.onBarrioAutocompleteClose();
+              this.onBarrioSelect(null);
+            }
+          }, 500);
+        } else {
+          this.clienteList = [];
+        }
+      }
+    );
+
+    this.cargarDatos()
+  }
+
+  ngAfterViewInit(): void {
+    this.child = this.container.nativeElement;
+    this.tabService.tabSub.pipe(untilDestroyed(this)).subscribe(res => {
+      setTimeout(() => {
+        if (this.tabService.currentTab()?.title == 'Delivery') {
+          this.telefonoInput.nativeElement.select()
+        }
+      }, 500);
+    })
+
+    this.container.nativeElement.addEventListener("keydown", (e) => {
+      this.keyFunctions(e.key)
+    });
+  }
+
+  keyFunctions(key) {
+    if (!this.isDialogOpen) {
+      switch (key) {
+        case "F12":
+          this.verificarTelefono()
+          if (this.telefonoControl.valid) {
+            this.onFinalizar()
+          }
+          break;
+        case "F11":
+          this.verificarTelefono()
+          if (this.telefonoControl.valid) {
+            this.onGuardar()
+          }
+          break;
+        case "F10":
+          this.goToVentas()
+          break;
+        case "F9":
+          break;
+        case "F8":
+          if (this.valorControl.valid) {
+            this.onAddItem();
+          }
+          break;
+        case "F7":
+          break;
+        case "F6":
+          break;
+        case "F5":
+          break;
+        case "F4":
+          break;
+        case "F3":
+          break;
+        case "F2":
+          break;
+        case "F1":
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  cargarDatos() {
+    this.onDeliverySelect(this.selectedDelivery)
+    this.deliveryService.onGetDeliverysByEstadoList([DeliveryEstado.ABIERTO, DeliveryEstado.PARA_ENTREGA, DeliveryEstado.EN_CAMINO]).subscribe(res => {
+      if (res != null) {
+        this.deliverActivoList = res;
+      }
+    })
+  }
+
+  onDeliverySelect(deliverActivo) {
+    if (deliverActivo?.venta?.id != null) {
+      this.cargarDatosDelivery(deliverActivo)
+    } else if (deliverActivo?.id != null) {
+      this.deliveryService.onGetById(deliverActivo?.id).pipe(untilDestroyed(this)).subscribe(res => {
+        if (res != null) {
+          this.deliverActivoList = updateDataSourceWithId(this.deliverActivoList, res, deliverActivo.id)
+          this.cargarDatosDelivery(res)
+        }
+      })
+    }
+  }
+
+  cargarDatosDelivery(delivery: Delivery) {
+    this.cargandoService.openDialog()
+    this.selectedDelivery = new Delivery;
+    this.selectedVenta = new Venta;
+    this.selectedVuelto = new Vuelto;
+
+    if(delivery?.venta?.cliente == null){
+      this.selectedCliente = null;
+      this.clienteControl.setValue(null);
+    } else {
+      this.onClienteSelect(delivery?.venta?.cliente)
+    }
+
+    if(delivery?.barrio == null){
+      this.selectedBarrio = null;
+      this.barrioControl.setValue(null);
+    } else {
+      this.onBarrioSelect(delivery?.barrio)
+    }
+
+    Object.assign(this.selectedDelivery, delivery)
+    this.selectedDelivery?.venta != null ? Object.assign(this.selectedVenta, this.selectedDelivery?.venta) : null;
+    this.selectedDelivery?.vuelto != null ? Object.assign(this.selectedVuelto, this.selectedDelivery?.vuelto) : null;
+    this.copyToClip(this.selectedDelivery?.telefono)
+    this.telefonoControl.setValue(this.selectedDelivery?.telefono)
+    this.verificarTelefono()
+    this.navigatePrecios(this.precioDeliveryList.findIndex(p => p.id == delivery?.precio?.id))
+    if (this.selectedVuelto?.vueltoItemList?.length > 0) {
+      this.selectedVuelto.vueltoItemList = delivery?.vuelto?.vueltoItemList;
+    }
+    this.calcularSaldo()
+    setTimeout(() => {
+      this.cargandoService.closeDialog()
+      this.finalizarBtn.onGetFocus()
+    }, 800);
   }
 
   calcularVuelto() {
@@ -257,12 +488,26 @@ export class DeliveryDialogComponent implements OnInit {
   }
 
   onTelefonoEnter() {
+    this.clienteInput.nativeElement.select()
+  }
+
+  onClienteEnter() {
     this.direccionInput.nativeElement.select()
   }
 
   verificarTelefono() {
     if (this.telefonoControl.valid) {
       let telefono: string = this.telefonoControl.value;
+      telefono = telefono.trim()
+      if (telefono.includes('+595') || telefono.substring(0, 2).includes('595')) {
+        this.telefonoPrefixControl.setValue(this.prefixList[0])
+      }
+      if (telefono.includes('+55') || telefono.substring(0, 1).includes('55')) {
+        this.telefonoPrefixControl.setValue(this.prefixList[1])
+      }
+      if (telefono.includes('09')) {
+        this.telefonoPrefixControl.setValue(this.prefixList[0])
+      }
       telefono = telefono.replace(/\ /g, "");
       telefono = telefono.replace(/\-/g, "");
       telefono = telefono.replace(/\+55/g, "");
@@ -270,23 +515,18 @@ export class DeliveryDialogComponent implements OnInit {
       if (telefono[0] == '0') {
         telefono = telefono.substring(1);
       }
-      if (telefono.length == 10) {
-        this.telefonoPrefixControl.setValue(this.prefixList[1])
-      }
       this.telefonoControl.setValue(telefono)
       this.copyToClip(this.telefonoPrefixControl.value + this.telefonoControl.value)
     }
   }
 
   onDireccionEnter() {
-    this.barrioSelect.focus()
-    this.barrioSelect.open()
+    this.barrioInput.nativeElement.focus()
   }
 
   navigatePrecios(index) {
     if (index < 0) index = this.precioDeliveryList.findIndex(p => p.id == this.precioControl.value?.precioDelivery?.id);
     if (index > this.preciosListBtn.length - 1) {
-      console.log(index);
       index = index - 1;
     }
     setTimeout(() => {
@@ -303,17 +543,6 @@ export class DeliveryDialogComponent implements OnInit {
       this.navigateFormaPago(index)
       this.calcularVuelto()
     }
-  }
-
-  onBarrioChange(e: MatSelectChange) {
-    // if (e.value?.precioDelivery) {
-    //   let index = this.precioDeliveryList.findIndex(p => p.id == e.value?.precioDelivery?.id)
-    //   if (index >= 0) {
-    //     this.navigatePrecios(index)
-    //   } else {
-    //     this.navigatePrecios(0)
-    //   }
-    // }
   }
 
   onBarrioEnter() {
@@ -398,9 +627,19 @@ export class DeliveryDialogComponent implements OnInit {
     this.onValorFocus()
   }
 
-  onDeleteItem(item, i) {
-    this.pagoItemList.splice(i, 1);
-    this.calcularSaldo()
+  onDeleteItem(item: VueltoItem, i) {
+    if (item?.id) {
+      this.vueltoService.onDeleteVueltoItem(item.id).pipe(untilDestroyed(this)).subscribe(res => {
+        if (res) {
+          this.selectedVuelto?.vueltoItemList?.splice(i, 1);
+          this.calcularSaldo()
+        }
+      })
+    } else {
+      this.selectedVuelto?.vueltoItemList?.splice(i, 1);
+      this.calcularSaldo()
+    }
+
   }
 
   onValorEnter() {
@@ -416,12 +655,10 @@ export class DeliveryDialogComponent implements OnInit {
 
   onAddItem() {
     if (this.valorControl.valid) {
-      let item = new PagoItem();
-      item.pago = true;
-      item.formaPago = this.formaPagoControl.value;
+      let item = new VueltoItem();
       item.moneda = this.monedaControl.value;
       item.valor = this.valorControl.value;
-      this.pagoItemList.push(item)
+      this.selectedVuelto?.vueltoItemList?.push(item)
       this.calcularSaldo()
     }
   }
@@ -429,11 +666,9 @@ export class DeliveryDialogComponent implements OnInit {
   calcularSaldo() {
     this.saldoGs = 0;
     this.vueltoGs = 0;
-    if (this.pagoItemList.length > 0) {
-      this.pagoItemList.forEach(p => {
-        if (p.pago) {
-          this.saldoGs += (p.valor * p.moneda.cambio)
-        }
+    if (this.selectedVuelto?.vueltoItemList?.length > 0) {
+      this.selectedVuelto?.vueltoItemList?.forEach(p => {
+        this.saldoGs += (p.valor * p.moneda.cambio)
       })
       if (this.saldoGs > this.totalConDelivery) {
         this.vueltoGs = this.saldoGs - this.totalConDelivery;
@@ -458,64 +693,173 @@ export class DeliveryDialogComponent implements OnInit {
   }
 
   onFinalizar() {
-    let item = new Delivery;
-    item.barrio = this.barrioControl.value;
-    item.direccion = this.direccionControl.value;
-    item.estado = DeliveryEstado.PARA_ENTREGA;
-    item.precio = this.precioControl.value;
-    item.telefono = this.telefonoPrefixControl.value + this.telefonoControl.value;
-    item.vuelto = this.vueltoGs;
-    item.creadoEn = new Date()
-    this.deliverActivoList.push(item)
+
   }
 
   onGuardar() {
-    console.log('guardar');
+    let isNew = this.selectedDelivery?.id == null;
+    if (isNew) this.selectedDelivery = new Delivery;
+    this.selectedDelivery.barrio = this.barrioControl.value;
+    this.selectedDelivery.direccion = this.direccionControl.value;
+    this.selectedDelivery.estado = DeliveryEstado.ABIERTO;
+    this.selectedDelivery.precio = this.precioControl.value;
+    this.selectedDelivery.telefono = this.telefonoPrefixControl.value + this.telefonoControl.value;
+    this.selectedDelivery.venta = this.selectedVenta;
+    this.selectedDelivery.vuelto = this.selectedVuelto;
+
+    // this.deliveryService.onSaveDeliveryAndVenta(this.selectedDelivery?.toInput(), this.selectedDelivery?.venta?.toInput(), this.selectedDelivery?.venta?.toItemInputList(), this.selectedDelivery?.vuelto?.toInput(), this.selectedDelivery?.vuelto?.toItemInputList()).subscribe(res => {
+    //   if (res != null) {
+    //     this.selectedDelivery = res;
+    //     if (isNew) {
+    //       this.deliverActivoList.push(res)
+    //     } else {
+    //       this.deliverActivoList = updateDataSourceWithId(this.deliverActivoList, res, res.id)
+    //     }
+    //   }
+    // })
   }
 
   onSalir() {
 
   }
   onPresupuesto() {
-
+    this.matDialog.open(DeliveryPresupuestoDialogComponent, {
+      data: {
+        delivery: this.selectedDelivery,
+        cambioRs: this.cambioRs,
+        cambioDs: this.cambioDs,
+        totalFinal: this.totalConDelivery
+      },
+      height: '900px'
+    })
   }
+
   onFacturaLegal() {
 
   }
   onModificarItens() {
-
+    this.isDialogOpen = true
+    this.matDialog.open(VentaTouchComponent, {
+      maxWidth: '90vw',
+      height: '90vh',
+      width: '90vw',
+      data: {
+        isDelivery: true,
+        venta: this.selectedVenta
+      }
+    })
   }
 
-  @HostListener("document:keydown", ["$event"]) onKeydownHandler(
-    event: KeyboardEvent
-  ) {
-    switch (event.key) {
-      case "F8":
-        this.onAddItem();
-        break;
-      case "F9":
-        this.onGuardar()
-        break;
-      case "F10":
-        this.onFinalizar()
-        break;
-      case "F1":
-        break;
-      case "F12":
-        break;
-      default:
-        break;
-    }
-
+  goToVentas() {
+    this.tabService.addTab(new Tab(VentaTouchComponent, 'Venta', null, null));
   }
 
   copyToClip(text) {
     this.copyToClipService.copy(text);
     this.notificacionService.notification$.next({
-      texto: "Copiado",
+      texto: `Copiado: ${text}`,
       color: NotificacionColor.success,
       duracion: 1,
     });
   }
 
+  onDelete(deliverActivo, i) {
+
+  }
+
+  onClienteSearch() {
+
+  }
+
+  onClienteSelect(e) {
+    if (e?.id != null) {
+      this.selectedCliente = e;
+      this.clienteControl.setValue(
+        this.selectedCliente?.id +
+        " - " +
+        this.selectedCliente?.persona?.nombre
+      );
+    } 
+  }
+
+  onBarrioSelect(e) {
+    if (e?.id != null) {
+      this.selectedBarrio = e;
+      this.barrioControl.setValue(
+        this.selectedBarrio?.id +
+        " - " +
+        this.selectedBarrio?.descripcion +
+        " - " +
+        this.selectedBarrio?.precioDelivery?.valor
+      );
+    } 
+  }
+
+  onClienteAutocompleteClose() {
+    setTimeout(() => {
+      this.clienteInput.nativeElement.select();
+    }, 100);
+  }
+
+  onBarrioAutocompleteClose() {
+    setTimeout(() => {
+      this.barrioInput.nativeElement.select();
+    }, 100);
+  }
+
+  ngOnDestroy(): void {
+    clearTimeout(this.horaActualTimer)
+  }
+
+  actualizarHorarios(newDate: Date) {
+    // this.deliverActivoList.forEach(d => {
+    //   let diff = newDate?.getTime() - d.creadoEn?.getTime();
+    //   const seconds = Math.floor(diff / 1000 % 60);
+    //   d.duracion = new Date(seconds * 1000).toISOString().slice(11, 19);
+    // })
+  }
+
+  onNewDelivery() {
+    this.selectedDelivery = null;
+    this.selectedVenta = null;
+    this.selectedVuelto = null;
+    this.cargandoService.openDialog()
+    this.onDeliverySelect(null)
+    this.telefonoPrefixControl.setValue(this.prefixList[0])
+    this.telefonoControl.setValue('')
+    this.clienteControl.setValue(null)
+    this.selectedCliente = null;
+    this.barrioControl.setValue(null)
+    this.selectedBarrio = null;
+    this.direccionControl.setValue(null)
+    this.navigatePrecios(0)
+    this.navigateFormaPago(0)
+    this.navigateMoneda(0)
+    this.navigateVuelto(0)
+    this.valorControl.setValue(null)
+    this.calcularSaldo();
+    setTimeout(() => {
+      this.cargandoService.closeDialog()
+      this.telefonoInput.nativeElement.focus()
+    }, 500);
+  }
 }
+
+
+/*
+
+Buenas, quetal? estoy necesitando cortes de acrilico blanco en las siguientes medidas:
+2 unidades - 30cm x 45cm
+4 unidades - 2cm x 41cm
+4 unidades - 1.5cm x 41cm
+4 unidades - 2cm x 30cm
+Tambien necesito corte en mdf de 3mm
+4 unidades - 10cm x 30cm
+4 unidades - 10 x 45cm
+2 unidades - 30 x 45 cm
+
+Tambien necesito letras en adhesivos negro
+2 unidades - frase: WIFI, tamanho: 15cm de ancho la frase entera y ancho proporcional
+2 unidades - frase: DON FRANCO, tamanho: 38cm de ancho la frase entera y ancho proporcional
+2 unidades - frase: buenacomida, tamanho: 40cm de ancho la frase entera y ancho proporcional
+*/

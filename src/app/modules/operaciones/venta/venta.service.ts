@@ -2,7 +2,7 @@ import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { MainService } from "../../../main.service";
-import { CobroDetalleInput } from "./cobro/cobro-detalle.model";
+import { CobroDetalle, CobroDetalleInput } from "./cobro/cobro-detalle.model";
 import { Cobro, CobroInput } from "./cobro/cobro.model";
 import { VentaEstado } from "./enums/venta-estado.enums";
 import { CancelarVentaGQL } from "./graphql/cancelarVenta";
@@ -10,7 +10,7 @@ import { ReimprimirVentaGQL } from "./graphql/reimprimirVenta";
 import { SaveVentaGQL } from "./graphql/saveVenta";
 import { VentaPorIdGQL } from "./graphql/ventaPorId";
 import { VentaPorCajaIdGQL } from "./graphql/ventasPorCajaId";
-import { VentaItemInput } from "./venta-item.model";
+import { VentaItem, VentaItemInput } from "./venta-item.model";
 import { SaveVentaItemListGQL } from "./venta-item/graphql/saveVentaItemList";
 import { Venta, VentaInput } from "./venta.model";
 import { VentaPorPeriodoGQL } from "./graphql/ventaPorPeriodo";
@@ -21,6 +21,8 @@ import { environment } from "../../../../environments/environment";
 import { DeleteVentaGQL } from "./graphql/deleteVenta";
 import { ImprimirPagareGQL } from "./graphql/imprimirPagare";
 import { CountVentaGQL } from "./graphql/count-venta";
+import { SaveVentaItemGQL } from "./graphql/saveVentaItem";
+import { SaveCobroDetalleGQL } from "./graphql/saveCobroDetalle";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -40,13 +42,14 @@ export class VentaService {
     private notificacionBar: NotificacionSnackbarService,
     private deleteVenta: DeleteVentaGQL,
     private imprimirPagare: ImprimirPagareGQL,
-    private countVenta: CountVentaGQL
-  ) {}
+    private countVenta: CountVentaGQL,
+    private saveVentaItemQuery: SaveVentaItemGQL,
+    private saveCobroDetalleQuery: SaveCobroDetalleGQL
+  ) { }
 
   // $venta:VentaInput!, $venteItemList: [VentaItemInput], $cobro: CobroInput, $cobroDetalleList: [CobroDetalleInput]
 
-  onSaveVenta(venta: Venta, cobro: Cobro, ticket, credito?): Observable<any> {
-    
+  onSaveVenta(venta: Venta, cobro: Cobro, ticket, ventaCreditoInput?, ventaCreditoCuotaInputList?): Observable<any> {
     let ventaItemInputList: VentaItemInput[] = [];
     let cobroDetalleInputList: CobroDetalleInput[] = [];
     let ventaInput: VentaInput = venta.toInput();
@@ -73,7 +76,8 @@ export class VentaService {
             printerName: environment['printers']['ticket'],
             local: environment['local'],
             pdvId: environment['pdvId'],
-            credito
+            ventaCreditoInput,
+            ventaCreditoCuotaInputList
           },
           {
             errorPolicy: "all",
@@ -164,11 +168,11 @@ export class VentaService {
 
   onSearch(id, page?, size?, asc?, sucId?, formaPago?, estado?): Observable<Venta[]> {
     this.genericService.isLoading = true;
-    if(page==null) page = 0;
-    if(size==null) size = 20;
-    if(asc==null) asc = true;
+    if (page == null) page = 0;
+    if (size == null) size = 20;
+    if (asc == null) asc = true;
     console.log(id, page, size, asc, sucId, formaPago, estado);
-    
+
     return new Observable((obs) => {
       this.ventasPorCajaId
         .fetch(
@@ -203,11 +207,11 @@ export class VentaService {
 
   onGetVentasPorPeriodo(inicio: string, fin: string, sucId?): Observable<any> {
     return new Observable((obs) => {
-      this.ventaPorPeriodo.fetch({inicio, fin, sucId},{
+      this.ventaPorPeriodo.fetch({ inicio, fin, sucId }, {
         fetchPolicy: "no-cache",
         errorPolicy: "all",
       }).pipe(untilDestroyed(this)).subscribe(res => {
-        if(res.errors==null){
+        if (res.errors == null) {
           obs.next(res.data.data)
         } else {
           obs.next(null)
@@ -221,7 +225,15 @@ export class VentaService {
     });
   }
 
-  onCountVenta(): Observable<number>{
+  onCountVenta(): Observable<number> {
     return this.genericService.onCustomQuery(this.countVenta, null);
+  }
+
+  onSaveVentaItem(ventaItemInput: VentaItemInput): Observable<any> {
+    return this.genericService.onSave(this.saveVentaItemQuery, ventaItemInput);
+  }
+
+  onSaveCobroDetalle(cobroDetalleInput: CobroDetalleInput): Observable<CobroDetalle> {
+    return this.genericService.onSave(this.saveCobroDetalleQuery, cobroDetalleInput);
   }
 }

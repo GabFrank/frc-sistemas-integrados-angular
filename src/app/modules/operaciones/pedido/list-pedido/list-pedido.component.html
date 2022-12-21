@@ -83,7 +83,7 @@
           *matCellDef="let pedido"
           style="text-align: center; width: 10%"
         >
-          {{ pedido?.estado | uppercase }}
+          {{ pedido?.estado | enumToString | titlecase}}
         </td>
       </ng-container>
 

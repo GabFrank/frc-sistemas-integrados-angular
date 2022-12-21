@@ -22,22 +22,22 @@ export class CargandoDialogService {
 
 
 
-  constructor(private matDialog: MatDialog, private spinner: NgxSpinnerService) {
+  constructor(private matDialog: MatDialog, private spinnerService: NgxSpinnerService) {
   }
 
   openDialog(disable?: boolean, texto?: string) {
     this.dialogCount++;
-    if (this.dialogCount == 1) {
-      this.spinner.show(texto)
-    }
+    this.spinnerService.show()
   }
 
   closeDialog() {
-    this.dialogCount--;
-    if (this.dialogCount == 0) {
-      setTimeout(() => {
-        this.spinner.hide()
-      }, 500);
-    }
+    setTimeout(() => {
+      if (this.dialogCount > 1) {
+        this.dialogCount--;
+      } else if (this.dialogCount == 1) {
+        this.dialogCount--;
+        this.spinnerService.hide()
+      }
+    }, 500);
   }
 }

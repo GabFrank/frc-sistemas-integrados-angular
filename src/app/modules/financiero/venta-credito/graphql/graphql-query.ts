@@ -71,4 +71,12 @@ export const deleteVentaCreditoQuery = gql
     deleteVentaCredito(id: $id)
 }`
 
+export const ventaCreditoAuthSubQuery = gql
+  ` subscription ventaCreditoAuthQrSub {
+    data: ventaCreditoAuthQrSub {
+      clienteId
+      timestamp
+    }
+  }`
+
 

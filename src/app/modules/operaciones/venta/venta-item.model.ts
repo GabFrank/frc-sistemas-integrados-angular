@@ -18,6 +18,7 @@ export class VentaItem {
     valorTotal: number;
     sucursalId: number;
     valorDescuento: number = 0;
+    activo: Boolean
 
     toInput(): VentaItemInput{
         let input = new VentaItemInput()
@@ -29,12 +30,12 @@ export class VentaItem {
         input.productoId = this.producto?.id;
         input.productoDescripcion = this.producto?.descripcion;
         input.usuarioId = this.usuario?.id;
-        input.valorTotal = this.valorTotal;
         input.ventaId = this.venta?.id;
         input.cantidad = this.cantidad;
         input.precioVentaId = this.precioVenta?.id;
         input.sucursalId = this.sucursalId
         input.valorDescuento = this.valorDescuento;
+        input.activo = this.activo;
         return input;
     }
 }
@@ -52,7 +53,7 @@ export class VentaItemInput {
     precio: number;
     creadoEn: Date;
     usuarioId: number;
-    valorTotal: number;
     sucursalId: number;
     valorDescuento: number;
+    activo: Boolean
 }

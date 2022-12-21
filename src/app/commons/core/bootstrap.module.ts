@@ -1,17 +1,19 @@
-import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NgModule } from '@angular/core';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
+import { MatRowKeyboardSelectionDirective } from './utils/mat-row-keyboard-selection.directive';
 
 
 
 @NgModule({
-  declarations: [],
+  declarations: [MatRowKeyboardSelectionDirective],
   imports: [
     CommonModule,
     NgbModule
   ],
   exports: [
-    NgbModule
+    NgbModule,
+    MatRowKeyboardSelectionDirective
   ]
 })
 export class BootstrapModule { }

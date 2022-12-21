@@ -2,12 +2,16 @@ import { CommonModule } from "@angular/common";
 import { NgModule } from "@angular/core";
 import { FlexLayoutModule } from "@angular/flex-layout";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
-import { NgxPrintElementModule } from "ngx-print-element";
+import { BootstrapModule } from "../../commons/core/bootstrap.module";
 import { MaterialModule } from "../../commons/core/material.module";
 import { SharedModule } from "../../shared/shared.module";
 import { AdicionarPdvProductoDialogComponent } from "./comercial/venta-touch/adicionar-pdv-producto-dialog/adicionar-pdv-producto-dialog.component";
 import { DeliveryDialogComponent } from "./comercial/venta-touch/delivery-dialog/delivery-dialog.component";
+import { DeliveryPresupuestoDialogComponent } from './comercial/venta-touch/delivery-presupuesto-dialog/delivery-presupuesto-dialog.component';
 import { EditItemDialogComponent } from "./comercial/venta-touch/edit-item-dialog/edit-item-dialog.component";
+import { DeliveryOpcionesDialogComponent } from './comercial/venta-touch/list-delivery/delivery-opciones-dialog/delivery-opciones-dialog.component';
+import { EditDeliveryDialogComponent } from './comercial/venta-touch/list-delivery/edit-delivery-dialog/edit-delivery-dialog.component';
+import { ListDeliveryComponent } from './comercial/venta-touch/list-delivery/list-delivery.component';
 import { DescuentoDialogComponent } from "./comercial/venta-touch/pago-touch/descuento-dialog/descuento-dialog.component";
 import { PagoTouchComponent } from "./comercial/venta-touch/pago-touch/pago-touch.component";
 import { AddCategoriaDialogComponent } from "./comercial/venta-touch/pdv-categoria/add-categoria-dialog/add-categoria-dialog.component";
@@ -60,7 +64,11 @@ import { GarantiaDialogComponent } from './venta-touch/garantia-devolucion/garan
     BuscadorComponent,
     EditCantidadEnvasesDialogComponent,
     UltimasCajasDialogComponent,
-    DescuentoDialogComponent
+    DescuentoDialogComponent,
+    DeliveryPresupuestoDialogComponent,
+    ListDeliveryComponent,
+    DeliveryOpcionesDialogComponent,
+    EditDeliveryDialogComponent,
   ],
   imports: [
     CommonModule,
@@ -69,7 +77,7 @@ import { GarantiaDialogComponent } from './venta-touch/garantia-devolucion/garan
     FormsModule,
     MaterialModule,
     SharedModule,
-    NgxPrintElementModule,
+    BootstrapModule
   ],
 })
 export class PdvModule {}

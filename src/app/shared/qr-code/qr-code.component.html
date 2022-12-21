@@ -12,8 +12,12 @@
   <div><h3>Código alfanumerico</h3></div>
   <div><h1>{{codigoAlfanumerico | uppercase}}</h1></div>
 </div> -->
-
-<div style="text-align: center;">
+<br>
+<div *ngIf="countdown != null" style="text-align: center; font-size: 1.5em">
+  {{ countdown }}
+</div>
+<br>
+<div style="text-align: center">
   <button mat-raised-button (click)="onSalir()">Salir</button>
 </div>
 

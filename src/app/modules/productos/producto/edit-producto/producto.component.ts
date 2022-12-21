@@ -867,14 +867,13 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onDeletePresentacion(presentacion: Presentacion) {
-    // this.cargandoDialog.openDialog()
-    // this.presentacionService
-    //   .onDeletePresentacion(presentacion).pipe(untilDestroyed(this))
-    //   .subscribe((res) => {
-    //     if (res) {
-    //       this.getPresentacionPorProductoId(this.selectedProducto.id);
-    //     }
-    //   });
+    this.presentacionService
+      .onDeletePresentacion(presentacion).pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) {
+          this.getPresentacionPorProductoId(this.selectedProducto.id);
+        }
+      });
   }
 
   //fin funciones de presentacion

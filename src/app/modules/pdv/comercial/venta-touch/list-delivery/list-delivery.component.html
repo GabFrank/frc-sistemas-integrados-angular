@@ -1,0 +1,309 @@
+<div
+  fxLayout="row"
+  style="width: 100%; height: 100%; padding-bottom: 10px"
+  fxLayoutGap="10px"
+  fxLayoutAlign="center start"
+  #container
+>
+  <div fxFlex="70%" style="height: 100%">
+    <div fxLayout="column" fxLayoutGap="10px" style="width: 100%; height: 100%">
+      <div style="font-size: 1.5em; text-align: center">Lista de deliverys</div>
+      <div
+        fxLayout="row"
+        style="width: 100%"
+        fxLayoutGap="10px"
+        fxLayoutAlign="space-around center"
+      >
+        <div fxFlex="30">
+          <mat-form-field appearance="fill" style="width: 100%">
+            <mat-label>Estados</mat-label>
+            <mat-select [formControl]="selectedEstadosControl" multiple>
+              <mat-select-trigger>
+                {{(selectedEstadosControl.value?.[0] || '') | enumToString}}
+                <span
+                  *ngIf="(selectedEstadosControl.value?.length || 0) > 1"
+                  class="example-additional-selection"
+                >
+                  (+{{ (selectedEstadosControl.value?.length || 0) - 1 }}
+                  {{
+                    selectedEstadosControl.value?.length === 2
+                      ? "otro"
+                      : "otros"
+                  }})
+                </span>
+              </mat-select-trigger>
+              <mat-option
+                *ngFor="let delivery of deliveryEstadoList"
+                [value]="delivery"
+                >{{ delivery | enumToString }}</mat-option
+              >
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <div fxFlex="10">
+          <app-boton
+            nombre="Buscar"
+            (clickEvent)="onFiltrarDeliverys()"
+          ></app-boton>
+        </div>
+      </div>
+      <div fxFlex="70%">
+        <table
+          mat-table
+          [dataSource]="dataSource"
+          style="width: 100%; background-color: rgb(32, 32, 32)"
+          #table
+        >
+          <!-- Position Column -->
+          <ng-container matColumnDef="id">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="width: 5%; text-align: center"
+            >
+              Id
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let element; let i = index"
+              style="width: 5%; text-align: center"
+            >
+              {{ element?.id }}
+            </td>
+          </ng-container>
+
+          <!-- Name Column -->
+          <ng-container matColumnDef="valor">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="width: 10%; text-align: center"
+            >
+              Valor en Gs
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let element"
+              style="width: 10%; text-align: center"
+            >
+              {{
+                element?.venta?.valorTotal + element?.precio?.valor
+                  | number : "1.0-0"
+              }}
+            </td>
+          </ng-container>
+
+          <!-- Weight Column -->
+          <ng-container matColumnDef="entregador">
+            <th mat-header-cell *matHeaderCellDef style="width: 15%">
+              Entregador
+            </th>
+            <td mat-cell *matCellDef="let element" style="width: 15%">
+              {{ element?.entregador?.persona?.nombre | titlecase }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="vehiculo">
+            <th mat-header-cell *matHeaderCellDef style="width: 10%">
+              Vehículo
+            </th>
+            <td mat-cell *matCellDef="let element" style="width: 10%">
+              {{ element?.vehiculo }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="direccion">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="width: 10%; text-align: center"
+            >
+              Dirección
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let element"
+              style="width: 10%; text-align: center"
+            >
+              {{ element?.direccion | titlecase }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="telefono">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="width: 10%; text-align: center"
+            >
+              Teléfono
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let element"
+              style="width: 10%; text-align: center"
+            >
+              {{ element?.telefono }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="cliente">
+            <th mat-header-cell *matHeaderCellDef style="width: 15%">
+              Cliente
+            </th>
+            <td mat-cell *matCellDef="let element" style="width: 15%">
+              {{ element?.venta?.cliente?.persona?.nombre | titlecase }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="creadoEn">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="width: 10%; text-align: center"
+            >
+              Demora (hh:mm)
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let element; let index = index"
+              style="width: 10%; text-align: center"
+            >
+              {{ duracionList[index] }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="estado">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="width: 10%; text-align: center"
+            >
+              Estado
+            </th>
+            <td
+              [class.abierto]="element?.estado == 'ABIERTO'"
+              [class.para-entrega]="element?.estado == 'PARA_ENTREGA'"
+              [class.en-camino]="element?.estado == 'EN_CAMINO'"
+              mat-cell
+              *matCellDef="let element"
+              style="width: 10%; text-align: center"
+            >
+              {{ element?.estado | enumToString }}
+            </td>
+          </ng-container>
+
+          <!-- Symbol Column -->
+          <ng-container matColumnDef="acciones">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="width: 5%; text-align: center"
+            >
+              ...
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let gasto"
+              style="width: 5%; text-align: center"
+            >
+              <button
+                mat-icon-button
+                [matMenuTriggerFor]="menu"
+                (click)="$event.stopPropagation()"
+              >
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item (click)="onVer(gasto)">Ver</button>
+                <button
+                  *ngIf="gasto?.finalizado != true"
+                  mat-menu-item
+                  (click)="onVuelto(gasto)"
+                >
+                  Vuelto
+                </button>
+                <button
+                  *ngIf="gasto?.finalizado != true"
+                  mat-menu-item
+                  (click)="onFinalizar(gasto)"
+                >
+                  Finalizar
+                </button>
+                <!-- <button *ngIf="gasto?.finalizado == true" mat-menu-item (click)="onImprimir(gasto)">
+                        Imprimir
+                      </button> -->
+              </mat-menu>
+            </td>
+          </ng-container>
+
+          <!-- Acciones -->
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr
+            mat-row
+            #demmatrow
+            *matRowDef="let row; columns: displayedColumns; let index = index"
+            [matRowKeyboardSelection]="this.selection"
+            [rowModel]="row"
+            [matTable]="table"
+            [row]="demmatrow"
+            [ngClass]="{ selected: selection.isSelected(row) }"
+            (click)="onDeliveryClick(row, index)"
+            (keyup.enter)="onDeliveryClick(row, index)"
+            (keyup.arrowUp)="selectedDelivery = row"
+            (keyup.arrowDown)="selectedDelivery = row"
+          ></tr>
+        </table>
+      </div>
+      <div fxFlex="15%">
+        <div class="btn" fxFlex="19%" tabindex="-1">
+          <app-boton nombre="Salir (Esc)"></app-boton>
+        </div>
+        <div class="btn" fxFlex="19%" tabindex="-1">
+          <app-boton
+            #newBtn
+            nombre="Nuevo delivery (F10)"
+            (clickEvent)="onNuevoDelivery()"
+          ></app-boton>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    fxFlex="30%"
+    fxLayout="column"
+    fxLayoutGap="10px"
+    style="width: 100%; height: 100%"
+  >
+    <div fxFlex="90%">
+      <app-delivery-presupuesto-dialog
+        #presupuesto
+        [delivery]="selectedDelivery"
+        [cambioRs]="cambioRs"
+        [cambioDs]="cambioDs"
+        [totalFinal]="
+          selectedDelivery?.venta?.valorTotal + selectedDelivery?.precio?.valor
+        "
+        [calcularVueltoEvent]="calcularVueltoSub.asObservable()"
+      ></app-delivery-presupuesto-dialog>
+    </div>
+    <div fxFlex="10%">
+      <div style="text-align: center">
+        <app-boton
+          nombre="Captura"
+          (clickEvent)="onGetPresupuesto()"
+        ></app-boton>
+      </div>
+    </div>
+
+    <!-- <div class="btn" fxFlex="19%">
+      <app-boton nombre="Boton 3"></app-boton>
+    </div>
+    <div class="btn" fxFlex="19%">
+      <app-boton nombre="Boton 4"></app-boton>
+    </div>
+    <div class="btn" fxFlex="19%">
+      <app-boton nombre="Boton 5"></app-boton>
+    </div> -->
+  </div>
+</div>

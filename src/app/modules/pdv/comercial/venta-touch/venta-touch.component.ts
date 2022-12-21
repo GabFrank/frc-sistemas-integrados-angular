@@ -1,12 +1,13 @@
 import {
+  AfterViewInit,
   Component,
-  HostListener,
+  ElementRef, Inject,
   Input,
   OnDestroy,
-  OnInit
+  OnInit,
+  ViewChild
 } from "@angular/core";
-import { MatDialog, MatDialogRef } from "@angular/material/dialog";
-import { NgxPrintElementService } from "ngx-print-element";
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { Observable, Subject, Subscription } from "rxjs";
 import { isInt } from "../../../../commons/core/utils/numbersUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
@@ -31,14 +32,12 @@ import { WindowInfoService } from "../../../../shared/services/window-info.servi
 import { FormaPago } from "../../../financiero/forma-pago/forma-pago.model";
 import { FormaPagoService } from "../../../financiero/forma-pago/forma-pago.service";
 import { AdicionarCajaResponse } from "../../../financiero/pdv/caja/adicionar-caja-dialog/adicionar-caja-dialog.component";
-import { PdvCaja } from "../../../financiero/pdv/caja/caja.model";
 import { CajaService } from "../../../financiero/pdv/caja/caja.service";
 import { CobroDetalle } from "../../../operaciones/venta/cobro/cobro-detalle.model";
 import { Cobro } from "../../../operaciones/venta/cobro/cobro.model";
 import { VentaItem } from "../../../operaciones/venta/venta-item.model";
 import { Venta } from "../../../operaciones/venta/venta.model";
 import { Presentacion } from "../../../productos/presentacion/presentacion.model";
-import { DeliveryDialogComponent } from "./delivery-dialog/delivery-dialog.component";
 import {
   PagoResponseData,
   PagoTouchComponent
@@ -75,12 +74,22 @@ export interface PdvTouchData {
   titulo: String;
 }
 
+export interface VentaTouchData {
+  isDelivery;
+  venta: Venta;
+}
+
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { environment } from "../../../../../environments/environment";
-import { TipoConfirmacion, VentaCredito, VentaCreditoCuotaInput } from "../../../financiero/venta-credito/venta-credito.model";
+import { VentaCredito, VentaCreditoCuotaInput } from "../../../financiero/venta-credito/venta-credito.model";
 import { VentaCreditoService } from "../../../financiero/venta-credito/venta-credito.service";
+import { Delivery } from "../../../operaciones/delivery/delivery.model";
+import { DeliveryEstado } from "../../../operaciones/delivery/enums";
+import { VentaEstado } from "../../../operaciones/venta/enums/venta-estado.enums";
 import { VentaService } from "../../../operaciones/venta/venta.service";
+import { DeliveryService } from "./delivery-dialog/delivery.service";
+import { ListDeliveryComponent, ListDeliveryData } from "./list-delivery/list-delivery.component";
 import { DescuentoDialogComponent, DescuentoDialogData } from "./pago-touch/descuento-dialog/descuento-dialog.component";
 
 @UntilDestroy({ checkProperties: true })
@@ -89,18 +98,21 @@ import { DescuentoDialogComponent, DescuentoDialogData } from "./pago-touch/desc
   templateUrl: "./venta-touch.component.html",
   styleUrls: ["./venta-touch.component.css"],
 })
-export class VentaTouchComponent implements OnInit, OnDestroy {
+export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
+
+  @ViewChild('container', { read: ElementRef }) container: ElementRef;
+
   @Input() data: Tab;
 
-  selectedCaja: PdvCaja;
-
+  // selectedCaja: PdvCaja;
+  selectedVenta: Venta;
   winHeigth;
   winWidth;
   totalGs = 0;
   descuentoGs = 0;
-  cambioRs = 0;
-  cambioDs = 0;
-  cambioArg = 0;
+  cambioRs = 1;
+  cambioDs = 1;
+  cambioArg = 1;
   selectedPdvCategoria: PdvCategoria;
   ultimoAdicionado: VentaItem[] = [];
   tiposPrecios: TipoPrecio[] = [];
@@ -118,10 +130,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   formaPagoList: FormaPago[];
   disableCobroRapido = false;
   buscadorFocusSub: Subject<void> = new Subject<void>();
+  buscadorOpenSearch: Subject<void> = new Subject<void>();
   filteredPrecios: string[];
   modoPrecio: string;
-
+  isDelivery = false;
+  selectedDelivery: Delivery
   constructor(
+    @Inject(MAT_DIALOG_DATA) private dialogData: VentaTouchData,
     private dialog: MatDialog,
     public windowInfo: WindowInfoService,
     public mainService: MainService,
@@ -138,10 +153,10 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     private cajaService: CajaService,
     private formaPagoService: FormaPagoService,
     private cargandoService: CargandoDialogService,
-    public printService: NgxPrintElementService,
     private dialogoService: DialogosService,
     private ventaCreditoService: VentaCreditoService,
-    private ventaService: VentaService
+    private ventaService: VentaService,
+    private deliveryService: DeliveryService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -164,6 +179,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       .subscribe(res => {
         if (res != null) {
           this.cajaService.selectedCaja = res;
+
           if (this.cajaService.selectedCaja == null || this.cajaService.selectedCaja?.conteoApertura == null) {
             this.openSelectCajaDialog()
           }
@@ -178,7 +194,70 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
 
     this.selectedItemList = this.itemList;
 
-    // this.onDeliveryClick()
+    if (this.dialogData?.venta) {
+      this.selectedVenta = this.dialogData?.venta;
+      this.totalGs = this.selectedVenta?.totalGs
+      this.selectedItemList = this.selectedVenta?.ventaItemList;
+    }
+
+
+  }
+
+  ngAfterViewInit(): void {
+    this.tabService.tabSub.pipe(untilDestroyed(this)).subscribe(res => {
+      setTimeout(() => {
+        if (this.tabService?.currentTab()?.title == 'Venta') {
+          this.buscadorFocusSub.next()
+        }
+      }, 500);
+    })
+
+    this.container.nativeElement.addEventListener('keydown', (e) => {
+      if (!this.isDialogOpen) {
+        switch (e.key) {
+          case "F12":
+            if (this.itemList.length > 0) {
+              this.onPagoClick()
+            }
+            break;
+          case "F11":
+            if (this.itemList.length > 0 && !this.disableCobroRapido) {
+              this.onTicketClick(true)
+            }
+            break;
+          case "F10":
+            this.onDeliveryClick()
+            break;
+          case "F9":
+            this.buscadorOpenSearch.next()
+            break;
+          case "F8":
+            this.onTicketClick(false);
+            break;
+          case "F7":
+            break;
+          case "F6":
+            break;
+          case "F5":
+            break;
+          case "F4":
+            break;
+          case "F3":
+            break;
+          case "F2":
+            this.pdvAuxiliarClick()
+            break;
+          case "F1":
+            this.openUtilitarios()
+            break;
+          case "Escape":
+            if (this.selectedItemList.length > 0) this.removeItem({})
+            break;
+          default:
+            break;
+        }
+      }
+    })
   }
 
   getFormaPagos() {
@@ -325,6 +404,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   addItem(item: VentaItem, index?) {
+    item.precio = item?.precioVenta?.precio;
     let cantidad = item.cantidad;
     if (item.producto.balanza != true) {
       if (!isInt(cantidad)) {
@@ -334,17 +414,17 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     let item2 = new VentaItem();
     if (item.presentacion == null) {
       item.presentacion = item.producto.presentaciones.find(
-        (p) => p.principal == true
+        (p) => p.principal == true && p.activo == true
       );
     }
     if (item.precioVenta == null) {
       if (this.filteredPrecios == null || this.modoPrecio == 'NOT') {
         item.precioVenta = item.presentacion.precios?.find(
-          (p) => p.principal == true
+          (p) => p.principal == true && p.activo == true
         );
       } else if (this.modoPrecio?.includes('MIXTO') || this.modoPrecio?.includes('ONLY')) {
         item.precioVenta = item?.presentacion?.precios.find(
-          (p) => this.filteredPrecios.includes(p.tipoPrecio?.descripcion)
+          (p) => this.filteredPrecios.includes(p.tipoPrecio?.descripcion) && p.activo == true
         );
       }
     }
@@ -366,11 +446,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       item2.presentacion = presentacionCaja;
       if (this.filteredPrecios == null || this.modoPrecio == 'NOT') {
         item2.precioVenta = item2.presentacion?.precios?.find(
-          (precio) => precio?.principal == true
+          (precio) => precio?.principal == true && precio.activo == true
         );
       } else if (this.modoPrecio?.includes('MIXTO') || this.modoPrecio?.includes('ONLY')) {
         item2.precioVenta = item2.presentacion?.precios?.find(
-          (p) => this.filteredPrecios.includes(p.tipoPrecio?.descripcion)
+          (p) => this.filteredPrecios.includes(p.tipoPrecio?.descripcion) && p.activo == true
         );
       }
 
@@ -381,10 +461,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
         let cantAux = item2.presentacion.cantidad * factor;
         item2.cantidad = factor;
         cantidad -= cantAux / item.presentacion.cantidad;
-        console.log(item.cantidad, cantidad);
-
         item.cantidad = cantidad;
-        console.log(item2);
+        item.precio = item?.precioVenta?.precio;
 
         this.addItem(item2);
       }
@@ -393,7 +471,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     if (this.selectedItemList.length > 0 && index == null) {
       index = this.selectedItemList.findIndex(
         (i) =>
-          i.presentacion.id == item.presentacion.id &&
+          i.presentacion?.id == item.presentacion?.id &&
           i.precioVenta?.precio == item.precioVenta?.precio
       );
     }
@@ -420,7 +498,17 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
               }
             });
         }
-        this.selectedItemList.push(item);
+        if (this.isDelivery) {
+          item.venta = this.selectedDelivery.venta;
+          item.activo = true;
+          this.ventaService.onSaveVentaItem(item.toInput()).subscribe(ventaItemRes => {
+            if (ventaItemRes != null) {
+              this.selectedItemList.push(item);
+            }
+          })
+        } else {
+          this.selectedItemList.push(item);
+        }
       }
     }
     this.calcularTotales();
@@ -457,7 +545,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     let item = new VentaItem;
     Object.assign(item, event['item'])
     let index = event['i']
-    console.log(item);
 
     let data: DescuentoDialogData = {
       valorTotal: item.precioVenta.precio,
@@ -485,7 +572,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
     let selectedPresentacion: Presentacion;
     item.cantidad = cantidad;
     item.producto = producto;
-    console.log(eventData);
 
     if (texto != null) {
       item.presentacion = producto?.presentaciones.find((p) => {
@@ -499,20 +585,20 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       item.presentacion = selectedPresentacion;
     } else {
       item.presentacion = producto?.presentaciones.find(
-        (p) => p.principal == true
+        (p) => p.principal == true && p.activo == true
       );
     }
     if (this.filteredPrecios == null || this.modoPrecio == 'NOT') {
       item.precioVenta = item?.presentacion?.precios?.find(
-        (p) => p.principal == true
+        (p) => p.principal == true && p.activo == true
       );
     } else if (this.modoPrecio?.includes('MIXTO') || this.modoPrecio?.includes('ONLY')) {
       item.precioVenta = item?.presentacion?.precios?.find(
-        (p) => this.filteredPrecios.includes(p.tipoPrecio?.descripcion)
+        (p) => this.filteredPrecios.includes(p.tipoPrecio?.descripcion) && p.activo == true
       );
       if (item.precioVenta == null) {
         item.precioVenta = item?.presentacion?.precios?.find(
-          (p) => p.principal == true
+          (p) => p.principal == true && p.activo == true
         );
       }
     }
@@ -534,14 +620,20 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
   }
 
   pdvAuxiliarClick() {
-    if (!this.isAuxiliar) {
-      this.isAuxiliar = true;
-      this.selectedItemList = this.itemList2;
+    if (this.isDelivery) {
+      this.isDelivery = false;
+      this.selectedItemList = []
       this.calcularTotales()
     } else {
-      this.isAuxiliar = false;
-      this.selectedItemList = this.itemList;
-      this.calcularTotales()
+      if (!this.isAuxiliar) {
+        this.isAuxiliar = true;
+        this.selectedItemList = this.itemList2;
+        this.calcularTotales()
+      } else {
+        this.isAuxiliar = false;
+        this.selectedItemList = this.itemList;
+        this.calcularTotales()
+      }
     }
     this.buscadorFocusSub.next()
   }
@@ -553,7 +645,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       this.selectedItemList.forEach(vi => {
         descuento += vi.cantidad * vi.valorDescuento;
       })
-      console.log(descuento);
       this.dialogReference = this.dialog
         .open(PagoTouchComponent, {
           autoFocus: true,
@@ -561,7 +652,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
           data: {
             valor: this.totalGs,
             itemList: this.selectedItemList,
-            descuento: descuento
+            descuento: descuento,
+            delivery: this.selectedDelivery
           },
           width: "80vw",
           height: "80vh",
@@ -582,56 +674,40 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
             cobro.totalGs = this.totalGs;
             cobro.cobroDetalleList = [];
             // cobroDetalle.
-            if (response.pagoItemList != null) {
-              response.pagoItemList.forEach((p) => {
-                let cobroDetalle = new CobroDetalle();
-                cobroDetalle.moneda = p.moneda;
-                cobroDetalle.cambio = p.moneda.cambio;
-                cobroDetalle.formaPago = p.formaPago;
-                cobroDetalle.descuento = p.descuento;
-                cobroDetalle.aumento = p.aumento;
-                cobroDetalle.vuelto = p.vuelto;
-                cobroDetalle.pago = p.pago;
-                cobroDetalle.valor = p.valor;
-                if (p.descuento) {
-                  cobro.totalGs -= p.valor
+            if (response.cobroDetalleList != null) {
+              response.cobroDetalleList.forEach((cobroDetalle) => {
+                if (cobroDetalle.descuento) {
+                  cobro.totalGs -= cobroDetalle.valor
                 }
                 if (cobroDetalle.aumento)
                   cobroDetalle.valor = cobroDetalle.valor * -1;
                 cobro.cobroDetalleList.push(cobroDetalle);
               });
             }
+
             this.cargandoService.closeDialog();
             let ventaCredito: VentaCredito = res['ventaCredito'];
+            let ventaCreditoCuotaInputList: VentaCreditoCuotaInput[] = res['itens']
             if (ventaCredito != null) venta.cliente = ventaCredito.cliente;
-            this.onSaveVenta(venta, cobro, !(response?.facturado == true), ventaCredito != null).subscribe(ventaRes => {
-              if (ventaRes?.id != null) {
-                let ventaCreditoCuotaInputList: VentaCreditoCuotaInput[] = res['itens']
-                if (ventaCredito != null && ventaCreditoCuotaInputList != null) {
-                  ventaCredito.venta = ventaRes;
-                  this.ventaCreditoService.onSave(ventaCredito.toInput(), ventaCreditoCuotaInputList).subscribe(ventaCreditoRes => {
-                    console.log(ventaCredito);
-                    if (ventaCreditoRes['error'] == null) {
-                      this.notificacionSnackbar.openGuardadoConExito()
-                      if (ventaCredito.tipoConfirmacion == TipoConfirmacion.FIRMA) {
-                        this.ventaService.onImprimirPagare(ventaRes.id, ventaCreditoCuotaInputList).subscribe().unsubscribe()
-                      }
-                    } else {
-                      this.notificacionSnackbar.openAlgoSalioMal()
-                      console.log('cancelando');
-                      this.ventaService.onCancelarVenta(ventaRes.id, ventaRes.sucursalId).subscribe(cancelarRes => {
-                        if (cancelarRes) {
-                          this.notificacionSnackbar.openWarn('Venta cancelada')
-                        } else {
-                          this.notificacionSnackbar.openWarn('No se puedo cancelar la venta. Comuniquese con el sector administrativo.')
-                        }
-                      })
-                    }
-                  })
-                }
-              }
-            })
+            if (this.isDelivery) {
+              this.deliveryService.onSaveDeliveryEstado(this.selectedDelivery.id, DeliveryEstado.CONCLUIDO).subscribe(delRes => {
+                console.log(delRes);
+                this.isDelivery = false;
+                this.selectedDelivery = null;
+                this.selectedItemList = [];
+                this.calcularTotales()
+              })
+            } else {
+              this.onSaveVenta(venta, cobro, !(response?.facturado == true) || ventaCredito != null, ventaCredito?.toInput(), ventaCreditoCuotaInputList).subscribe(ventaRes => {
+                console.log(ventaRes);
+              })
+            }
             this.dialogReference = undefined;
+          } else if (this.isDelivery) {
+            this.isDelivery = false;
+            this.selectedDelivery = null;
+            this.selectedItemList = [];
+            this.calcularTotales()
           }
           this.buscadorFocusSub.next()
         });
@@ -695,16 +771,18 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       cobro.cobroDetalleList.push(cobroDetalleDesc);
     }
     // cobroDetalle.
-    this.onSaveVenta(venta, cobro, ticket, false).subscribe().unsubscribe();
+    this.onSaveVenta(venta, cobro, ticket).subscribe().unsubscribe();
     this.disableCobroRapido = false;
     this.buscadorFocusSub.next()
   }
 
-  onSaveVenta(venta, cobro, ticket, credito): Observable<Venta> {
+  onSaveVenta(venta, cobro, ticket, ventaCreditoInput?, ventaCreditoCuotaInputList?): Observable<Venta> {
     this.cargandoService.openDialog();
     return new Observable(obs => {
-      this.ventaTouchServive.onSaveVenta(venta, cobro, ticket, credito).pipe(untilDestroyed(this)).subscribe((res) => {
+      this.ventaTouchServive.onSaveVenta(venta, cobro, ticket, ventaCreditoInput, ventaCreditoCuotaInputList).pipe(untilDestroyed(this)).subscribe((res) => {
         this.cargandoService.closeDialog();
+        console.log(res);
+
         if (res.id != null) {
           this.notificacionSnackbar.notification$.next({
             color: NotificacionColor.success,
@@ -727,13 +805,82 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
 
   onDeliveryClick() {
     this.isDialogOpen = true;
-    this.matDialog.open(DeliveryDialogComponent,
-      {
-        maxWidth: '100vw',
-        maxHeight: '90vh',
-        height: '100%',
-        width: '90%'
-      })
+    if (this.selectedDelivery == null) {
+      this.selectedDelivery = new Delivery;
+      let venta = new Venta();
+      venta.caja = this.cajaService?.selectedCaja;
+      venta.estado = VentaEstado.ABIERTA;
+      venta.totalGs = this.totalGs;
+      venta.totalRs = this.totalGs / this.cambioRs;
+      venta.totalDs = this.totalGs / this.cambioDs;
+      venta.valorDescuento = this.descuentoGs;
+      venta.ventaItemList = this.selectedItemList;
+      venta.isDelivery = true;
+      this.selectedDelivery.venta = venta;
+      this.selectedDelivery.estado = DeliveryEstado.ABIERTO;
+    }
+    let data: ListDeliveryData = {
+      delivery: this.selectedDelivery,
+      cambioRs: this.cambioRs,
+      cambioDs: this.cambioDs,
+      monedaList: this.monedas,
+      formaPagoList: this.formaPagoList
+    }
+    this.matDialog.open(ListDeliveryComponent, {
+      width: '100vw',
+      maxWidth: '99vw',
+      height: '80vh',
+      data: data,
+      autoFocus: false
+    }).afterClosed().subscribe(res => {
+      if (res != null) {
+        if (res['delivery'] != null) {
+          this.selectedDelivery = new Delivery;
+          Object.assign(this.selectedDelivery, res['delivery']);
+          this.isDelivery = true;
+        }
+        switch (res['role']) {
+          case 'para-entrega':
+            this.isDelivery = false;
+            this.selectedDelivery = null;
+            this.selectedItemList = []
+            this.calcularTotales()
+            break;
+          case 'edit':
+            if (this.selectedDelivery != null) {
+              this.isDelivery = true;
+              this.selectedItemList = []
+              if (this.selectedDelivery.venta != null) {
+                this.ventaService.onGetPorId(this.selectedDelivery.venta.id).subscribe(ventaRes => {
+                  if (ventaRes != null) {
+                    this.selectedDelivery.venta = ventaRes;
+                    this.selectedItemList = this.selectedDelivery.venta.ventaItemList;
+                    this.calcularTotales()
+                  }
+                })
+              }
+            }
+            break;
+          case 'finalizar':
+            this.selectedItemList = this.selectedDelivery.venta.ventaItemList;
+            this.calcularTotales()
+            this.onPagoClick();
+            break;
+          default:
+            this.isDelivery = false;
+            this.selectedDelivery = null;
+            this.selectedItemList = []
+            this.calcularTotales()
+            break;
+        }
+      } else {
+        this.isDelivery = false;
+        this.selectedDelivery = null;
+        this.selectedItemList = []
+        this.calcularTotales()
+      }
+      this.isDialogOpen = false;
+    })
   }
 
   ngOnDestroy(): void {
@@ -767,33 +914,118 @@ export class VentaTouchComponent implements OnInit, OnDestroy {
       });
   }
 
-  @HostListener("document:keydown", ["$event"]) onKeydownHandler(
-    event: KeyboardEvent
-  ) {
-    if (!this.isDialogOpen) {
-      switch (event.key) {
-        case "F9":
-          if (this.itemList.length > 0) {
-            this.onPagoClick()
-          }
-          break;
-        case "F10":
-          if (this.itemList.length > 0 && !this.disableCobroRapido) {
-            this.onTicketClick()
-          }
-          break;
-        case "F1":
-          this.onTicketClick(true)
-          break;
-        case "F12":
-          this.pdvAuxiliarClick()
-          break;
-        default:
-          break;
-      }
-    }
+  // @HostListener("document:keydown", ["$event"]) onKeydownHandler(
+  //   event: KeyboardEvent
+  // ) {
+  //   if (this.tabService.currentTab().title == 'Venta') {
+  //     if (!this.isDialogOpen) {
+  //       switch (event.key) {
+  //         case "F12":
+  //           if (this.itemList.length > 0) {
+  //             this.onPagoClick()
+  //           }
+  //           break;
+  //         case "F11":
+  //           if (this.itemList.length > 0 && !this.disableCobroRapido) {
+  //             this.onTicketClick(true)
+  //           }
+  //           break;
+  //         case "F10":
+  //           this.onDeliveryClick()
+  //           break;
+  //         case "F9":
+  //           this.buscadorOpenSearch.next()
+  //           break;
+  //         case "F8":
+  //           this.onTicketClick(false);
+  //           break;
+  //         case "F7":
+  //           break;
+  //         case "F6":
+  //           break;
+  //         case "F5":
+  //           break;
+  //         case "F4":
+  //           break;
+  //         case "F3":
+  //           break;
+  //         case "F2":
+  //           this.pdvAuxiliarClick()
+  //           break;
+  //         case "F1":
+  //           this.openUtilitarios()
+  //           break;
+  //         case "Escape":
+  //           if (this.selectedItemList.length > 0) this.removeItem({})
+  //           break;
+  //         default:
+  //           break;
+  //       }
+  //     }
+  //   }
+  // }
 
-  }
+  // onKeyDown(event) {
+  //   {
+  //     console.log(event.key);
+
+  //     if (!this.isDialogOpen) {
+  //       switch (event.key) {
+  //         case "F12":
+  //           if (this.itemList.length > 0) {
+  //             this.onPagoClick()
+  //           }
+  //           break;
+  //         case "F11":
+  //           if (this.itemList.length > 0 && !this.disableCobroRapido) {
+  //             this.onTicketClick(true)
+  //           }
+  //           break;
+  //         case "F10":
+  //           this.onDeliveryClick()
+  //           break;
+  //         case "F9":
+  //           this.buscadorOpenSearch.next()
+  //           break;
+  //         case "F8":
+  //           this.onTicketClick(false);
+  //           break;
+  //         case "F7":
+  //           break;
+  //         case "F6":
+  //           break;
+  //         case "F5":
+  //           break;
+  //         case "F4":
+  //           break;
+  //         case "F3":
+  //           console.log('log on venta');
+  //           break;
+  //         case "F2":
+  //           this.pdvAuxiliarClick()
+  //           break;
+  //         case "F1":
+  //           this.openUtilitarios()
+  //           break;
+  //         case "Escape":
+  //           if (this.selectedItemList.length > 0) this.removeItem({})
+  //           break;
+  //         default:
+  //           break;
+  //       }
+  //     }
+
+  //   }
+  // }
 }
 
+
+/*
+- quitar papas rusticas
+- burger especiales son: Sr. Miyagi, Tentation, Chicken (ya tenes todos los precios vd)
+- quesadilla 4 quesos: 30.000 gs
+- Nembo fit: Cammbiar bife ancho por Bife nomas, precio 20.000 gs
+- Quitar los adicionales para milanesa napolitana y bife a caballo
+
+*/
 

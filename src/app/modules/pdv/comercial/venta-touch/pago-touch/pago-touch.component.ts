@@ -1,4 +1,5 @@
 import {
+  AfterViewInit,
   Component,
   ElementRef,
   HostListener,
@@ -33,26 +34,16 @@ import {
   SelectBilletesResponseData
 } from "../seleccionar-billetes-touch/seleccionar-billetes-touch.component";
 
-export class PagoItem {
-  index?;
-  moneda: Moneda;
-  formaPago: FormaPago;
-  valor: number;
-  vuelto?: boolean;
-  descuento?: boolean;
-  aumento?: boolean;
-  pago?: boolean
-  itemList?: VentaItem[];
-}
 
 export interface PagoData {
   valor: number;
   itemList: VentaItem[];
   descuento?: number;
+  delivery?: Delivery;
 }
 
 export interface PagoResponseData {
-  pagoItemList: PagoItem[];
+  cobroDetalleList: CobroDetalle[];
   facturado?: boolean;
   ventaCredito?: VentaCredito;
   itens?: VentaCreditoCuotaInput[];
@@ -65,6 +56,9 @@ import { VentaCredito, VentaCreditoCuotaInput } from "../../../../financiero/ven
 import { VentaItem } from "../../../../operaciones/venta/venta-item.model";
 import { Venta } from "../../../../operaciones/venta/venta.model";
 import { DescuentoDialogComponent, DescuentoDialogData } from "./descuento-dialog/descuento-dialog.component";
+import { Delivery } from "../../../../operaciones/delivery/delivery.model";
+import { VentaService } from "../../../../operaciones/venta/venta.service";
+import { CobroDetalle } from "../../../../operaciones/venta/cobro/cobro-detalle.model";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -72,7 +66,7 @@ import { DescuentoDialogComponent, DescuentoDialogData } from "./descuento-dialo
   templateUrl: "./pago-touch.component.html",
   styleUrls: ["./pago-touch.component.css"],
 })
-export class PagoTouchComponent implements OnInit, OnDestroy {
+export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild("autoMonedaInput", { static: false, read: MatAutocompleteTrigger })
   matMonedaTrigger: MatAutocompleteTrigger;
   @ViewChild("autoMonedaInput", { static: false }) autoMonedaInput: ElementRef;
@@ -86,16 +80,17 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
 
   @ViewChild("valorInput", { static: false }) valorInput: ElementRef;
   @ViewChild("btnFinalizar", { static: false }) btnFinalizar: MatButton;
+  @ViewChild('container', { read: ElementRef }) container: ElementRef;
 
   monedas: Moneda[] = [];
   selectedMoneda: Moneda;
   selectedFormaPago: FormaPago;
   formGroup: FormGroup;
-  pagoItem: PagoItem;
+  cobroDetalle: CobroDetalle;
   cambioRs;
   cambioDs;
   cambioArg;
-  pagoItemList: PagoItem[] = [];
+  cobroDetalleList: CobroDetalle[] = [];
   valorParcialPagado = 0;
   isDialogOpen = false;
   isVuelto = false;
@@ -146,9 +141,13 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
     private dialog: DialogosService,
     private notificacionSnackbar: NotificacionSnackbarService,
     private formaPagoService: FormaPagoService,
-    private cargandoDialog: CargandoDialogService
+    private cargandoDialog: CargandoDialogService,
+    private ventaService: VentaService
   ) {
     this.formaPagoList = [];
+    if (data.delivery != null) {
+      data.valor += data.delivery.precio.valor;
+    }
   }
 
   ngOnInit(): void {
@@ -186,26 +185,105 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
     });
 
     let loadTimer = setInterval(() => {
-      if (this.isLoaded == 2 && this.data.descuento > 0) {
-        let item: PagoItem = {
-          formaPago: this.selectedFormaPago,
-          moneda: this.selectedMoneda,
-          valor: this.data.descuento,
-          vuelto: false,
-          descuento: true,
-          aumento: false,
-          pago: false
-        };
-        this.valorParcialPagado += item.valor;
-        this.formGroup
-          .controls
-          .valor
-          .setValue(this.data.valor - this.valorParcialPagado);
-        this.formGroup.controls.saldo.setValue(this.data.valor - this.valorParcialPagado);
-        this.pagoItemList.push(item);
+      if (this.isLoaded == 2) {
+        if (this.data.descuento > 0) {
+          let item = new CobroDetalle;
+          item.formaPago = this.selectedFormaPago
+          item.moneda = this.selectedMoneda
+          item.valor = this.data.descuento
+          item.vuelto = false
+          item.descuento = true
+          item.aumento = false
+          item.pago = false
+          this.valorParcialPagado += item.valor;
+          this.formGroup
+            .controls
+            .valor
+            .setValue(this.data.valor - this.valorParcialPagado);
+          this.formGroup.controls.saldo.setValue(this.data.valor - this.valorParcialPagado);
+          this.cobroDetalleList.push(item);
+        }
+        if (this.data.delivery != null) {
+          this.data.delivery.venta.cobro.cobroDetalleList.forEach(c => {
+            this.isDescuento = c.descuento;
+            this.isAumento = c.aumento;
+            this.setFormaPago(c.formaPago?.descripcion)
+            this.setMoneda(c.moneda?.denominacion, false)
+            this.formGroup.get('valor').setValue(c.valor)
+            this.addCobroDetalle(null, c);
+          })
+        }
         clearInterval(loadTimer)
       }
+
     }, 500);
+
+    // setTimeout(() => {
+    //   if (this.data?.delivery != null) {
+    //     this.data?.delivery?.venta?.cobro?.cobroDetalleList.forEach(cd => {
+    //       this.setMoneda(cd.moneda.denominacion, false)
+    //       this.setFormaPago(cd.formaPago.descripcion)
+    //       this.formGroup.get("valor").setValue(cd.valor)
+    //       this.isAumento = false;
+    //       this.isDescuento = false;
+    //       this.addCobroDetalle();
+    //     });
+    //   }
+    // }, 1000);
+  }
+
+
+  // agrega un listener en el container raiz del componente para escuchar las teclas presionadas
+  ngAfterViewInit(): void {
+    this.container.nativeElement.addEventListener("keydown", (e) => {
+      if (!this.isDialogOpen) {
+        switch (e.key) {
+          case "F1":
+            this.setMoneda("GUARANI", false);
+            break;
+          case "F2":
+            this.setMoneda("REAL", false);
+            break;
+          case "F3":
+            this.setMoneda("DOLAR", false);
+            break;
+          case "F4":
+            this.setFormaPago('EFECTIVO')
+            break;
+          case "F5":
+            this.setFormaPago('TARJETA')
+            break;
+          case "F6":
+            this.onConvenioClick()
+            break;
+          case "Escape":
+            break;
+          case "Enter":
+            if (!this.isDialogOpen) {
+              if (this.formGroup.controls.saldo.value == 0) {
+                this.onFinalizar();
+              } else {
+                this.addCobroDetalle();
+              }
+            }
+            break;
+          case "F10":
+            if (!this.isDialogOpen) {
+              if (this.formGroup.controls.saldo.value == 0) {
+                this.onFinalizar();
+              } else {
+                this.addCobroDetalle();
+              }
+            }
+            break;
+          case "F12":
+            this.onFactura()
+            break;
+          default:
+            break;
+        }
+      }
+    })
   }
 
   createForm() {
@@ -250,58 +328,14 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
     });
   }
 
-  @HostListener("document:keyup", ["$event"]) onKeydownHandler(
-    event: KeyboardEvent
-  ) {
-    if (!this.isDialogOpen) {
-      switch (event.key) {
-        case "F1":
-          this.setMoneda("GUARANI", false);
-          break;
-        case "F2":
-          this.setMoneda("REAL", false);
-          break;
-        case "F3":
-          this.setMoneda("DOLAR", false);
-          break;
-        case "F4":
-          this.setFormaPago('EFECTIVO')
-          break;
-        case "F5":
-          this.setFormaPago('TARJETA')
-          break;
-        case "F6":
-          this.onConvenioClick()
-          break;
-        case "Escape":
-          break;
-        case "Enter":
-          if (!this.isDialogOpen) {
-            if (this.formGroup.controls.saldo.value == 0) {
-              this.onFinalizar();
-            } else {
-              this.addPagoItem();
-            }
-          }
-          break;
-        case "F10":
-          if (!this.isDialogOpen) {
-            if (this.formGroup.controls.saldo.value == 0) {
-              this.onFinalizar();
-            } else {
-              this.addPagoItem();
-            }
-          }
-          break;
-        case "F12":
-          this.onFactura()
-          break;
-        default:
-          break;
-      }
-    }
+  // @HostListener("document:keyup", ["$event"]) onKeydownHandler(
+  //   event: KeyboardEvent
+  // ) {
+  //   if (!this.isDialogOpen) {
 
-  }
+  //   }
+
+  // }
 
   onMonedaSearch(a?): void {
     let texto;
@@ -375,7 +409,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
           if (res != null) {
             this.formGroup.controls.valor.setValue(res.valor);
             this.isVuelto = res.isVuelto;
-            this.addPagoItem();
+            this.addCobroDetalle();
           }
           setTimeout(() => {
             this.setFocusToValorInput()
@@ -420,7 +454,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
     });
   }
 
-  addPagoItem(selectedValor?: number) {
+  addCobroDetalle(selectedValor?: number, selectedItem?: CobroDetalle) {
     let valor = selectedValor != null ? selectedValor : this.formGroup.get("valor").value;
     let saldo = this.formGroup.get("saldo").value;
     if (saldo == 0) {
@@ -435,15 +469,15 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
       this.selectedFormaPago = this.formaPagoList.find(f => f.descripcion == 'EFECTIVO');
     }
     if (this.formGroup.valid && saldo != 0) {
-      let item: PagoItem = {
-        formaPago: this.selectedFormaPago,
-        moneda: this.selectedMoneda,
-        valor: valor,
-        vuelto: this.isVuelto,
-        descuento: this.isDescuento,
-        aumento: this.isAumento,
-        pago: (!this.isVuelto && !this.isDescuento && !this.isAumento)
-      };
+      let item = new CobroDetalle;
+      if (selectedItem != null) Object.assign(item, selectedItem);
+      item.formaPago = this.selectedFormaPago
+      item.moneda = this.selectedMoneda
+      item.valor = valor
+      item.vuelto = this.isVuelto
+      item.descuento = this.isDescuento
+      item.aumento = this.isAumento
+      item.pago = (!this.isVuelto && !this.isDescuento && !this.isAumento)
       this.valorParcialPagado += item.valor * item.moneda.cambio;
 
       this.formGroup
@@ -452,7 +486,17 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
       this.formGroup.controls.saldo.setValue(
         (this.data.valor - this.valorParcialPagado)
       );
-      this.pagoItemList.push(item);
+      if (this.data?.delivery != null && item?.id == null) {
+        item.cobro = this.data?.delivery?.venta?.cobro;
+        this.ventaService.onSaveCobroDetalle(item.toInput()).subscribe(cbRes => {
+          if (cbRes != null) {
+            item.id = cbRes.id;
+            this.cobroDetalleList.push(item);
+          }
+        })
+      } else {
+        this.cobroDetalleList.push(item);
+      }
     }
     this.isVuelto = false;
     this.isDescuento = false;
@@ -468,11 +512,11 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
   }
 
   onFinalizar(ventaCredito?: VentaCredito, itens?: VentaCreditoCuotaInput[]) {
-    let response: PagoResponseData = { pagoItemList: this.pagoItemList, facturado: this.facturado, ventaCredito: ventaCredito, itens: itens };
+    let response: PagoResponseData = { cobroDetalleList: this.cobroDetalleList, facturado: this.facturado, ventaCredito: ventaCredito, itens: itens };
     this.dialogRef.close(response);
   }
 
-  onDeleteItem(item: PagoItem, i) {
+  onDeleteItem(item: CobroDetalle, i) {
     this.valorParcialPagado -= item.valor * item.moneda.cambio;
     console.log(this.data.valor, this.valorParcialPagado, this.selectedMoneda.cambio);
     this.formGroup.controls.saldo.setValue(
@@ -481,7 +525,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
     this.formGroup.controls.valor.setValue(
       (this.data.valor - this.valorParcialPagado) / this.selectedMoneda.cambio
     );
-    this.pagoItemList.splice(i, 1);
+    this.cobroDetalleList.splice(i, 1);
     this.setFocusToValorInput();
   }
 
@@ -493,7 +537,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
     //   this.isDescuento = true;
     //   this.isVuelto = false;
     //   this.isAumento = false;
-    //   this.addPagoItem();
+    //   this.addCobroDetalle();
     // }
     let total = this.data.valor;
     let saldo = this.formGroup?.controls?.saldo?.value;
@@ -515,7 +559,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
           this.isVuelto = false;
           this.isDescuento = true;
           this.formGroup.controls.valor.setValue(valor)
-          this.addPagoItem();
+          this.addCobroDetalle();
         }
       }
     })
@@ -528,7 +572,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
       this.isAumento = true;
       this.isVuelto = false;
       this.isDescuento = false;
-      this.addPagoItem();
+      this.addCobroDetalle();
     }
   }
 
@@ -564,14 +608,14 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
       .subscribe(res => {
         if (res['ventaCredito'] != null) {
           let ventaCredito: VentaCredito = res['ventaCredito'];
-          let pagoItem = new PagoItem();
-          pagoItem.pago = true;
-          pagoItem.descuento = false;
-          pagoItem.aumento = false;
-          pagoItem.formaPago = this.selectedFormaPago;
-          pagoItem.moneda = this.monedas.find(m => m.denominacion == 'GUARANI');
-          pagoItem.valor = this.formGroup?.controls?.saldo?.value
-          this.pagoItemList.push(pagoItem);
+          let cobroDetalle = new CobroDetalle();
+          cobroDetalle.pago = true;
+          cobroDetalle.descuento = false;
+          cobroDetalle.aumento = false;
+          cobroDetalle.formaPago = this.selectedFormaPago;
+          cobroDetalle.moneda = this.monedas.find(m => m.denominacion == 'GUARANI');
+          cobroDetalle.valor = this.formGroup?.controls?.saldo?.value
+          this.cobroDetalleList.push(cobroDetalle);
           this.onFinalizar(ventaCredito, res['itens'])
         }
       });
@@ -584,14 +628,14 @@ export class PagoTouchComponent implements OnInit, OnDestroy {
       .subscribe(res => {
         if (res['ventaCredito'] != null) {
           let ventaCredito: VentaCredito = res['ventaCredito'];
-          let pagoItem = new PagoItem();
-          pagoItem.pago = true;
-          pagoItem.descuento = false;
-          pagoItem.aumento = false;
-          pagoItem.formaPago = this.selectedFormaPago;
-          pagoItem.moneda = this.monedas.find(m => m.denominacion == 'GUARANI');
-          pagoItem.valor = this.formGroup?.controls?.saldo?.value
-          this.pagoItemList.push(pagoItem);
+          let cobroDetalle = new CobroDetalle();
+          cobroDetalle.pago = true;
+          cobroDetalle.descuento = false;
+          cobroDetalle.aumento = false;
+          cobroDetalle.formaPago = this.selectedFormaPago;
+          cobroDetalle.moneda = this.monedas.find(m => m.denominacion == 'GUARANI');
+          cobroDetalle.valor = this.formGroup?.controls?.saldo?.value
+          this.cobroDetalleList.push(cobroDetalle);
           this.onFinalizar(ventaCredito, res['itens'])
         }
       });

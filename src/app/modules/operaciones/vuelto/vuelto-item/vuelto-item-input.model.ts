@@ -1,4 +1,4 @@
-export interface VueltoItemInput {
+export class VueltoItemInput {
     id?: number;
     vueltoId?: number;
     valor: number;

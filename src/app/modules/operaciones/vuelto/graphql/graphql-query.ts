@@ -65,3 +65,8 @@ export const deleteVueltoQuery = gql
   ` mutation deleteVuelto($id: ID!, $sucId: ID){
       deleteVuelto(id: $id, sucId: $sucId)
     }`
+
+export const deleteVueltoItemQuery = gql
+  ` mutation deleteVueltoItem($id: ID!, $sucId: ID){
+      deleteVueltoItem(id: $id, sucId: $sucId)
+    }`

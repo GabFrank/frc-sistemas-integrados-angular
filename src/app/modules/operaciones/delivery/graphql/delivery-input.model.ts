@@ -1,12 +1,12 @@
 import { DeliveryEstado } from "../enums";
 
-export interface DeliveryInput {
+export class DeliveryInput {
     id?: number
     ventaId?: number
     entregadorId?: number
     vehiculoId?: number
-    direccion?: String
-    telefono: String
+    direccion?: string
+    telefono: string
     estado: DeliveryEstado
     precioId: number
     usuarioId?: number

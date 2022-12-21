@@ -22,7 +22,7 @@ export class BotonComponent implements OnInit {
   @ViewChild('btn', { static: false }) btn: MatButton;
 
   @Input()
-  nombre = 'Boton'
+  nombre;
 
   @Input()
   disableExpression: boolean;

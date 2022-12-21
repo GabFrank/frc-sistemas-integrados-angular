@@ -1,6 +1,7 @@
 {
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "cli": {
+    "analytics": "8d431a4a-68f9-4a46-81bd-052f120343a9",
     "defaultCollection": "@angular-eslint/schematics"
   },
   "version": 1,
@@ -42,10 +43,7 @@
               "node_modules/@fortawesome/fontawesome-free/scss/brands.scss",
               "node_modules/angular-bootstrap-md/assets/scss/bootstrap/bootstrap.scss",
               "node_modules/angular-bootstrap-md/assets/scss/mdb.scss",
-              "node_modules/animate.css/animate.css",
-              "node_modules/ngx-spinner/animations/ball-newton-cradle.css",
-              "node_modules/ngx-spinner/animations/ball-spin-clockwise.css",
-              "node_modules/ngx-spinner/animations/pacman.css"
+              "node_modules/animate.css/animate.css"
             ],
             "scripts": [
               {

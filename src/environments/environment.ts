@@ -1,4 +1,4 @@
-import { ipAddress, port } from "./conectionConfig";
+import { centralPort, ipAddress, ipCentralAddress, port } from "./conectionConfig";
 
 export const APP_CONFIG = {
   production: false,
@@ -18,6 +18,8 @@ export const environment = {
     messagingSenderId: "389460380308",
     appId: "1:389460380308:web:53701896405855d9f64281"
   },
+  serverCentralIp: ipCentralAddress,
+  serverCentralPort: centralPort,
   serverIp: ipAddress,
   serverPort: port,
   sucursales: null,
