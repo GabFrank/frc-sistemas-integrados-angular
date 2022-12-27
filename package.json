@@ -74,6 +74,7 @@
     "electron-node-config": "^1.1.0",
     "electron-packager": "^15.3.0",
     "electron-squirrel-startup": "^1.0.0",
+    "file-saver": "^2.0.5",
     "firebase": "^8.8.0",
     "git-describe": "^4.1.1",
     "graphql": "^15.3.0",
@@ -102,6 +103,7 @@
     "rxjs": "^7.5.4",
     "subscriptions-transport-ws": "^0.9.19",
     "tslib": "^2.1.0",
+    "xlsx": "^0.18.5",
     "zen-observable-ts": "^1.0.0",
     "zone.js": "~0.11.4"
   },

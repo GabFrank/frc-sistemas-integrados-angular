@@ -34,15 +34,15 @@
         </div>
       </div>
     </div> -->
-    <div fxLayout="column" fxLayoutGap="10px">
-      <div fxFlex *ngIf="icon != null" fxLayout="row" fxLayoutAlign="center center">
+    <div fxLayout="column" fxLayoutGap="10px" style="height: 100%;">
+      <div fxFlex="50" *ngIf="icon != null" fxLayout="row" fxLayoutAlign="center end">
         <mat-icon
-          style="width: 100%; text-align: center"
+          style="width: 100%; height: auto; text-align: center"
           [style.fontSize.em]="iconSize"
           >{{ icon }}</mat-icon
         >
       </div>
-      <div fxFlex fxLayout="row" fxLayoutAlign="center center">
+      <div [fxFlex]="icon != null ? '50' : '100'" fxLayout="row" [fxLayoutAlign]="icon != null ? 'center start' : 'center center'">
         <div style="white-space: normal">
          {{prefix}} {{ !isNumber ? nombre : nombre | number: '1.0-2'}} {{sufix}}
         </div>

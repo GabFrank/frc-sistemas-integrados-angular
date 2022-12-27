@@ -4,6 +4,8 @@ import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/ven
 import { ProductoService } from '../../modules/productos/producto/producto.service';
 import { CargandoDialogService } from './../../shared/components/cargando-dialog/cargando-dialog.service';
 import { Tab } from './tab.model';
+import { FinancieroDashboardComponent } from '../../modules/financiero/financiero-dashboard/financiero-dashboard.component';
+import { ListFacturaLegalComponent } from '../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -37,7 +39,7 @@ export class TabService {
 
     this.tabs = [
       // new Tab(ListFuncioarioComponent, 'Lista de funcionarios', null, null),
-      new Tab(VentaTouchComponent, 'Venta', null, null),
+      new Tab(ListFacturaLegalComponent, 'Lista de facturas', null, null),
     ];
     this.tabSub.next(this.tabs);
 

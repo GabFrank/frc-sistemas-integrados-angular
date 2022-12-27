@@ -1,24 +1,82 @@
 import gql from "graphql-tag";
 
 export const facturaLegalesQuery = gql`
-  query ($sucId: ID){
-    data: facturaLegales(sucId: $sucId) {
-      id
-      sucursalId
-      timbrado
-      nroSucursal
-      nroFactura
-      cliente{
+  query (
+    $fechaInicio: String!, 
+    $fechaFin: String!, 
+    $sucId: [ID], 
+    $ruc: String, 
+    $nombre: String, 
+    $iva5: Boolean, 
+    $iva10: Boolean
+    ){
+    data: facturaLegales(
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      sucId: $sucId
+      nombre: $nombre
+      ruc: $ruc
+      iva5: $iva5
+      iva10: $iva10
+      ) {
+        id
+        viaTributaria
+        numeroFactura
+        fecha
+        credito
+        nombre
+        ruc
+        direccion
+        ivaParcial0
+        ivaParcial5
+        ivaParcial10
+        totalParcial0
+        totalParcial5
+        totalParcial10
+        totalFinal
+        creadoEn
+        sucursalId
+    }
+  }
+`;
+
+export const facturaLegalesFullInfoQuery = gql`
+  query (
+    $fechaInicio: String!, 
+    $fechaFin: String!, 
+    $sucId: [ID], 
+    $ruc: String, 
+    $nombre: String, 
+    $iva5: Boolean, 
+    $iva10: Boolean
+    ){
+    data: facturaLegales(
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      sucId: $sucId
+      nombre: $nombre
+      ruc: $ruc
+      iva5: $iva5
+      iva10: $iva10
+      ) {
+        id
+      viaTributaria
+      timbradoDetalle{
+        id
+        timbrado {
+          numero
+        }
+        puntoExpedicion
+      }
+      numeroFactura
+      cliente {
+        id
         persona {
-          id
-          documento
-          direccion
+          nombre
         }
       }
-      venta{
+      venta {
         id
-        valorTotal
-        totalGs
       }
       fecha
       credito
@@ -33,11 +91,26 @@ export const facturaLegalesQuery = gql`
       totalParcial10
       totalFinal
       creadoEn
+      sucursal{
+        nombre
+        codigoEstablecimientoFactura
+      }
       usuario {
         id
         persona {
           nombre
         }
+      }
+      facturaLegalItemList {
+        id
+        ventaItem {
+          id
+        }
+        cantidad
+        descripcion
+        precioUnitario
+        total
+        creadoEn
       }
     }
   }
@@ -47,21 +120,23 @@ export const facturaLegalQuery = gql`
   query ($id: ID!, $sucId: ID) {
     data: facturaLegal(id: $id, sucId: $sucId) {
       id
-      sucursalId
-      timbrado
-      nroSucursal
-      nroFactura
-      cliente{
+      viaTributaria
+      timbradoDetalle{
+        id
+        timbrado {
+          numero
+        }
+        puntoExpedicion
+      }
+      numeroFactura
+      cliente {
+        id
         persona {
-          id
-          documento
-          direccion
+          nombre
         }
       }
-      venta{
+      venta {
         id
-        valorTotal
-        totalGs
       }
       fecha
       credito
@@ -76,11 +151,26 @@ export const facturaLegalQuery = gql`
       totalParcial10
       totalFinal
       creadoEn
+      sucursal{
+        nombre
+        codigoEstablecimientoFactura
+      }
       usuario {
         id
         persona {
           nombre
         }
+      }
+      facturaLegalItemList {
+        id
+        ventaItem {
+          id
+        }
+        cantidad
+        descripcion
+        precioUnitario
+        total
+        creadoEn
       }
     }
   }

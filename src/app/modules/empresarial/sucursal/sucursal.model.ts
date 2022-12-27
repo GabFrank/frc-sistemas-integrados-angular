@@ -10,4 +10,5 @@ export class Sucursal {
   depositoPredeterminado: Boolean
   creadoEn: Date;
   usuario: Usuario;
+  codigoEstablecimientoFactura: string
 }

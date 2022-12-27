@@ -4,6 +4,8 @@ import { TabService } from "../../../layouts/tab/tab.service";
 import { WindowInfoService } from "../../../shared/services/window-info.service";
 import { ListMaletinComponent } from "../maletin/list-maletin/list-maletin.component";
 import { MaletinComponent } from "../maletin/maletin.component";
+import { ListFacturaLegalComponent } from "../factura-legal/list-factura-legal/list-factura-legal.component";
+import { MatDialog } from "@angular/material/dialog";
 
 interface FinancieroItemDashboard {
   titulo: string;
@@ -22,31 +24,13 @@ export class FinancieroDashboardComponent implements OnInit {
   cardWidth;
 
   constructor(
-    public windowInfoService: WindowInfoService,
-    private tabService: TabService
+    public tabService: TabService
   ) {}
 
   ngOnInit(): void {
-    this.itemList = [];
-
-    this.cargarList();
-
-    this.cardWidth = Math.floor(this.windowInfoService.innerWidth / 5);
   }
 
-  cargarList() {
-    this.itemList = [
-      {
-        titulo: "Maletines",
-        component: ListMaletinComponent,
-        descripcion:
-          "El maletin representa el objeto físico en donde se transporta efectivo para apertura y cierre de caja",
-        icon: "card_travel",
-      },
-    ];
-  }
-
-  openComponent(item: FinancieroItemDashboard) {
-    this.tabService.addTab(new Tab(item.component, item.titulo, null, null))
+  onListFacturas(){
+    this.tabService.addTab(new Tab(ListFacturaLegalComponent, 'Lista de facturas', null, FinancieroDashboardComponent))
   }
 }

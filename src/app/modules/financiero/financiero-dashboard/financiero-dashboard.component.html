@@ -1,19 +1,39 @@
-<div fxLayout="column" fxLayoutAlign="start center" style="width: 100%;">
-  <div fxLayout="row wrap">
-    <div fxFlex="24" *ngFor="let item of itemList" [style.width.px]="cardWidth" style="padding-bottom: 20px;">
-      <mat-card style="background-color: #f44336; cursor: pointer;" [style.width.px]="cardWidth" (click)="openComponent(item)">
-        <mat-card-header>
-          <mat-card-title>{{item.titulo}}</mat-card-title>
-        </mat-card-header>
-        <div>
-          <mat-icon>{{ item.icon }}</mat-icon>
-        </div>
-        <mat-card-content>
-          <p>
-            {{ item.descripcion }}
-          </p>
-        </mat-card-content>
-      </mat-card>
+<div
+  fxLayout="row"
+  style="width: 100%; height: 80%"
+  fxLayoutAlign="center center"
+>
+  <div fxFlex="60" fxLayout="column">
+    <div
+      fxFlex
+      fxLayout="row wrap"
+      fxLayoutAlign="start start"
+      fxLayoutGap="10px"
+    >
+      <div fxFlex="25%" style="height: 200px">
+        <app-boton
+          nombre="Lista de Facturas"
+          icon="receipt_long"
+          [iconSize]="4"
+          (clickEvent)="onListFacturas()"
+        ></app-boton>
+      </div>
+      <!-- <div fxFlex="30%" style="height: 250px">
+        <app-boton
+          nombre="Nueva Transferencia"
+          icon="move_up"
+          [iconSize]="4"
+          (clickEvent)="onNuevaTransferencia()"
+        ></app-boton>
+      </div>
+      <div fxFlex="30%" style="height: 250px">
+        <app-boton
+          nombre="Configurar Transferencias"
+          icon="tune"
+          [iconSize]="4"
+        ></app-boton>
+      </div> -->
     </div>
   </div>
 </div>
+

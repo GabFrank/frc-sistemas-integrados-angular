@@ -1,1 +1,367 @@
-<p>list-factura-legal works!</p>
+<app-generic-list
+  titulo="Lista de Facturas"
+  (adicionar)="onAdd()"
+  (filtrar)="onFilter()"
+  [isAdicionar]="true"
+  [disableFilter]="sucursalControl.invalid"
+  (resetFiltro)="resetFiltro()"
+>
+  <div filtros fxLayout="row" fxLayoutGap="10px" style="width: 100%">
+    <div fxFlex="80">
+      <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+        <div fxFlex="30%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Rango de fecha</mat-label>
+            <mat-date-range-input
+              [formGroup]="fechaFormGroup"
+              [rangePicker]="picker"
+              style="font-size: 1.2em; width: 100%"
+            >
+              <input
+                matStartDate
+                formControlName="inicio"
+                placeholder="Inicio"
+                [max]="today"
+              />
+              <input
+                matEndDate
+                formControlName="fin"
+                placeholder="Fin"
+                [max]="fechaInicioControl.value"
+              />
+            </mat-date-range-input>
+            <mat-datepicker-toggle
+              matSuffix
+              [for]="picker"
+            ></mat-datepicker-toggle>
+            <mat-date-range-picker #picker></mat-date-range-picker>
+
+            <mat-error
+              *ngIf="
+                fechaFormGroup.controls.inicio.hasError('matStartDateInvalid')
+              "
+              >Fecha inicial inválida</mat-error
+            >
+            <mat-error
+              *ngIf="fechaFormGroup.controls.fin.hasError('matEndDateInvalid')"
+              >Fecha final inválida</mat-error
+            >
+          </mat-form-field>
+        </div>
+        <div fxFlex="30%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Sucursales</mat-label>
+            <mat-select
+              [formControl]="sucursalControl"
+              multiple
+              [(value)]="sucursalControl.value"
+            >
+              <mat-select-trigger>
+                {{(sucursalControl.value?.[0]?.nombre || '')}}
+                <span
+                  *ngIf="(sucursalControl.value?.length || 0) > 1"
+                  class="example-additional-selection"
+                >
+                  (+{{ (sucursalControl.value?.length || 0) - 1 }}
+                  {{ sucursalControl.value?.length === 2 ? "otro" : "otros" }})
+                </span>
+              </mat-select-trigger>
+              <mat-option
+                *ngFor="let sucursal of sucursalList"
+                [value]="sucursal"
+                >{{ sucursal?.id }} -
+                {{ sucursal?.nombre | titlecase }}</mat-option
+              >
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+      <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+        <div fxFlex="30%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Nombre del cliente</mat-label>
+            <input type="text" matInput [formControl]="nombreControl" />
+          </mat-form-field>
+        </div>
+        <div fxFlex="30%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Ruc del cliente</mat-label>
+            <input type="text" matInput [formControl]="rucControl" />
+          </mat-form-field>
+        </div>
+        <div fxFlex="10%" style="text-align: center">
+          <mat-checkbox [formControl]="iva5Control"> Iva al 5% </mat-checkbox>
+        </div>
+        <div fxFlex="10%" style="text-align: center">
+          <mat-checkbox [formControl]="iva5Control"> Iva al 10% </mat-checkbox>
+        </div>
+      </div>
+      <div fxLayout="row" fxLayoutGap="10px">
+        <div fxFlex="20">
+          <app-boton (clickEvent)="exportarExcel()" nombre="Exportar a excel" [disableExpression]="dataSource.data.length < 1">
+          </app-boton>
+        </div>
+      </div>
+    </div>
+    <mat-card
+      fxFlex="20"
+      style="background-color: rgb(32, 32, 32); width: 100%; height: 100%"
+    >
+      <div style="width: 100%; text-align: center">Resumen</div>
+      <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+        <div fxFlex="50%">Cantidad de facturas:</div>
+        <div fxFlex="50%" style="text-align: end">
+          {{ cantidadFacturas }}
+        </div>
+      </div>
+      <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+        <div fxFlex="50%">Nro. inicio:</div>
+        <div fxFlex="50%" style="text-align: end">
+          {{ numeroInicioFactura }}
+        </div>
+      </div>
+      <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+        <div fxFlex="50%">Nro. fin:</div>
+        <div fxFlex="50%" style="text-align: end">
+          {{ numeroFinFactura }}
+        </div>
+      </div>
+      <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+        <div fxFlex="50%">Total en Gs:</div>
+        <div fxFlex="50%" style="text-align: end">
+          {{ totalEnGs | number : "1.0-0" }}
+        </div>
+      </div>
+    </mat-card>
+  </div>
+  <div table>
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      multiTemplateDataRows
+      class="mat-elevation-z8"
+      style="width: 100%"
+    >
+      <ng-container matColumnDef="id" style="width: 5%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">Id</th>
+        <td mat-cell *matCellDef="let factura" style="text-align: center">
+          {{ factura.id }}
+        </td>
+      </ng-container>
+
+      <!-- Name Column -->
+      <ng-container matColumnDef="sucursal">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Sucursal
+        </th>
+        <td mat-cell *matCellDef="let factura" style="text-align: center">
+          {{ factura?.sucursal?.nombre | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="numero">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Número
+        </th>
+        <td mat-cell *matCellDef="let factura" style="text-align: center">
+          {{ factura?.numeroFactura | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="cliente">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Cliente
+        </th>
+        <td mat-cell *matCellDef="let factura" style="text-align: center">
+          {{ factura?.nombre | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="ruc">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Ruc
+        </th>
+        <td mat-cell *matCellDef="let factura" style="text-align: center">
+          {{ factura?.ruc | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="totalFinal">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Total
+        </th>
+        <td mat-cell *matCellDef="let factura" style="text-align: center">
+          {{ factura?.totalFinal | number : "1.0-0" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="creadoEn">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Creado en
+        </th>
+        <td mat-cell *matCellDef="let factura" style="text-align: center">
+          {{ factura?.creadoEn | date : "short" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 5%; text-align: center"
+        >
+          ...
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let factura; let i = dataIndex"
+          style="text-align: center; width: 5%"
+        >
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onEdit(factura, i)">Editar</button>
+            <button
+              mat-menu-item
+              color="primary"
+              (click)="onDeleteFactura(factura, i)"
+            >
+              Eliminar
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <mat-divider></mat-divider>
+
+      <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+      <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let factura; let i = dataIndex"
+          [attr.colspan]="displayedColumns.length"
+          style="padding: 0px !important"
+        >
+          <div
+            class="example-element-detail"
+            [@detailExpand]="
+              factura == expandedElement ? 'expanded' : 'collapsed'
+            "
+          >
+            <div
+              fxLayout="row"
+              style="width: 100%; padding-bottom: 20px"
+              fxLayoutGap="20px"
+              fxLayoutAlign="center center"
+            >
+              <mat-card fxFlex="40%">
+                <div style="text-align: center">
+                  <h4>Item</h4>
+                </div>
+                <table
+                  mat-table
+                  #facturaItemTable
+                  [dataSource]="facturaItemDataSource"
+                  class="mat-elevation-z8"
+                  style="background-color: rgb(43, 43, 43)"
+                >
+                  <!--- Note that these columns can be defined in any order.
+                  The actual rendered columns are set as a property on the row definition" -->
+
+                  <!-- Position Column -->
+                  <ng-container matColumnDef="id">
+                    <th mat-header-cell *matHeaderCellDef>Id</th>
+                    <td mat-cell *matCellDef="let facturaItem">
+                      {{ facturaItem.id }}
+                    </td>
+                  </ng-container>
+
+                  <!-- Name Column -->
+                  <ng-container matColumnDef="descripcion">
+                    <th mat-header-cell *matHeaderCellDef>Descripción</th>
+                    <td mat-cell *matCellDef="let facturaItem">
+                      {{ facturaItem?.descripcion | titlecase }}
+                    </td>
+                  </ng-container>
+
+                  <!-- Weight Column -->
+                  <ng-container matColumnDef="cantidad">
+                    <th mat-header-cell *matHeaderCellDef>Cantidad</th>
+                    <td mat-cell *matCellDef="let facturaItem">
+                      {{ facturaItem?.cantidad | number : "1.0-2" }}
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="precioUnitario">
+                    <th mat-header-cell *matHeaderCellDef>P. Unitario</th>
+                    <td mat-cell *matCellDef="let facturaItem">
+                      {{ facturaItem?.precioUnitario | number : "1.0-2" }}
+                    </td>
+                  </ng-container>
+
+                  <ng-container matColumnDef="total">
+                    <th mat-header-cell *matHeaderCellDef>Total</th>
+                    <td mat-cell *matCellDef="let facturaItem">
+                      {{ facturaItem?.total | number : "1.0-2" }}
+                    </td>
+                  </ng-container>
+
+                  <tr
+                    mat-header-row
+                    *matHeaderRowDef="facturaItemColumnsToDisplay"
+                  ></tr>
+                  <tr
+                    mat-row
+                    *matRowDef="
+                      let row;
+                      columns: facturaItemColumnsToDisplay;
+                      let facturaItemIndex = index
+                    "
+                    (click)="onEditFacturaItem(row, facturaItemIndex)"
+                  ></tr>
+                </table>
+                <br />
+                <div style="width: 100%; text-align: center">
+                  <button
+                    mat-fab
+                    color="primary"
+                    aria-label="adicionar facturaItem"
+                    (click)="
+                      selectedFacturaItem = null; onAddFacturaItem(factura, i)
+                    "
+                    type="button"
+                  >
+                    <mat-icon>add</mat-icon>
+                  </button>
+                </div>
+              </mat-card>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr
+        mat-row
+        *matRowDef="let element; columns: displayedColumns"
+        class="example-element-row"
+        [class.example-expanded-row]="expandedElement === element"
+        [class.heightLight]="expandedElement === element"
+        (click)="
+          expandedElement = expandedElement === element ? null : element;
+          facturaItemDataSource.data = element.facturaItemList
+        "
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: ['expandedDetail']"
+        class="example-detail-row"
+      ></tr>
+    </table>
+  </div>
+</app-generic-list>

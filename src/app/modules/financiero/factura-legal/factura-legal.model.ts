@@ -1,33 +1,36 @@
+import { Sucursal } from "../../empresarial/sucursal/sucursal.model"
 import { VentaItem } from "../../operaciones/venta/venta-item.model"
 import { Venta } from "../../operaciones/venta/venta.model"
 import { Cliente } from "../../personas/clientes/cliente.model"
 import { Usuario } from "../../personas/usuarios/usuario.model"
 import { PdvCaja } from "../pdv/caja/caja.model"
+import { TimbradoDetalle } from "../timbrado/timbrado.modal"
 
 export class FacturaLegal {
-    id: number
-    sucursalId: number;
+    id:number
     caja: PdvCaja
-    timbrado: string
-    nroSucursal: string
-    nroFactura: string
+    viaTributaria: boolean
+    timbradoDetalle:TimbradoDetalle
+    numeroFactura:string
     cliente: Cliente
     venta: Venta
-    fecha: Date
-    credito: boolean
-    nombre: string
-    ruc: string
-    direccion: string
-    ivaParcial0: number
-    ivaParcial5: number
-    ivaParcial10: number
-    totalParcial0: number
-    totalParcial5: number
-    totalParcial10: number
-    totalFinal: number
-    viaTributaria: boolean
+    fecha:Date
+    credito:boolean
+    nombre:string
+    ruc:string
+    direccion:string
+    ivaParcial0:number
+    ivaParcial5:number
+    ivaParcial10:number
+    totalParcial0:number
+    totalParcial5:number
+    totalParcial10:number
+    totalFinal:number
     usuario: Usuario
     creadoEn: Date
+    sucursalId: number
+    facturaLegalItemList: FacturaLegalItem[]
+    sucursal:Sucursal
 
     toInput(): FacturaLegalInput {
         let input = new FacturaLegalInput;
