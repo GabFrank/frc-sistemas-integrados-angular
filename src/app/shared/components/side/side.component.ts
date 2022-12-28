@@ -192,7 +192,7 @@ export class SideComponent implements OnInit {
         if (
           this.mainService.usuarioActual?.roles.includes(
             "ANALISIS-FINANCIERO"
-          )
+          ) || true
         ) {
           this.tabService.addTab(
             new Tab(FinancieroDashboardComponent, "Financiero", null, null)
@@ -261,8 +261,6 @@ export class SideComponent implements OnInit {
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
-        break;
-      default:
         break;
     }
   }

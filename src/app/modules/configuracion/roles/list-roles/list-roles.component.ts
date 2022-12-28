@@ -38,7 +38,7 @@ export class ListRolesComponent implements OnInit, GenericList<Role> {
   constructor(
     private roleService: RoleService,
     private matDialog: MatDialog,
-    
+
   ) {
     this.dataSource = new MatTableDataSource<Role>([])
     this.displayedColumns = [
@@ -56,22 +56,24 @@ export class ListRolesComponent implements OnInit, GenericList<Role> {
   ngOnInit(): void {
     this.onGetData()
   }
-  
-  onGetData(): void {    
-    this.roleService.onGetRoles(this.page).pipe(untilDestroyed(this)).subscribe(res => {
-      if(res!=null){
-        if(this.page == 0){
-          this.dataSource.data = res;
-        } else {
-          this.dataSource.data = this.dataSource.data.concat(res);
+
+  onGetData(): void {
+    setTimeout(() => {
+      this.roleService.onGetRoles(this.page).pipe(untilDestroyed(this)).subscribe(res => {
+        if (res != null) {
+          if (this.page == 0) {
+            this.dataSource.data = res;
+          } else {
+            this.dataSource.data = this.dataSource.data.concat(res);
+          }
+          if (res.length < 10) {
+            this.isLastPage = true
+          } else {
+            this.page++;
+          }
         }
-        if(res.length < 10){
-          this.isLastPage = true
-        } else {
-          this.page++;
-        }
-      }
-    })
+      })
+    }, 0);
   }
 
   onRowClick(entity: Role, index: any): void {
@@ -83,19 +85,20 @@ export class ListRolesComponent implements OnInit, GenericList<Role> {
   onAddOrEdit(entity?: Role, index?: any): void {
     this.matDialog.open(AdicionarRoleDialogComponent, {
       data: {
-        role:entity,
+        role: entity,
       },
       width: '50%'
     }).afterClosed().subscribe(res => {
       if (res != null) {
         this.dataSource.data = updateDataSource(this.dataSource.data, res, index)
       }
-    })  }
+    })
+  }
   onFilter(): void {
     throw new Error('Method not implemented.');
   }
 
-  
+
 
 
 }

@@ -5,6 +5,7 @@
   [isAdicionar]="true"
   [disableFilter]="sucursalControl.invalid"
   (resetFiltro)="resetFiltro()"
+  [buscarTrigger]="facturaStep5"
 >
   <div filtros fxLayout="row" fxLayoutGap="10px" style="width: 100%">
     <div fxFlex="80">
@@ -33,6 +34,7 @@
             <mat-datepicker-toggle
               matSuffix
               [for]="picker"
+              [bdcWalkTriggerFor]="facturaStep1"
             ></mat-datepicker-toggle>
             <mat-date-range-picker #picker></mat-date-range-picker>
 
@@ -52,9 +54,11 @@
           <mat-form-field style="width: 100%">
             <mat-label>Sucursales</mat-label>
             <mat-select
+              #sucursalSelect
               [formControl]="sucursalControl"
               multiple
               [(value)]="sucursalControl.value"
+              [bdcWalkTriggerFor]="facturaStep2"
             >
               <mat-select-trigger>
                 {{(sucursalControl.value?.[0]?.nombre || '')}}
@@ -66,6 +70,18 @@
                   {{ sucursalControl.value?.length === 2 ? "otro" : "otros" }})
                 </span>
               </mat-select-trigger>
+              <div
+                style="
+                  width: 100%;
+                  text-align: end;
+                  padding-right: 10px;
+                  padding-top: 10px;
+                  font-size: 0.8em;
+                  color: white;
+                "
+              >
+                <mat-icon (click)="sucursalSelect.close()">clear</mat-icon>
+              </div>
               <mat-option
                 *ngFor="let sucursal of sucursalList"
                 [value]="sucursal"
@@ -80,59 +96,84 @@
         <div fxFlex="30%">
           <mat-form-field style="width: 100%">
             <mat-label>Nombre del cliente</mat-label>
-            <input type="text" matInput [formControl]="nombreControl" />
+            <input
+              type="text"
+              matInput
+              [formControl]="nombreControl"
+              [bdcWalkTriggerFor]="facturaStep3"
+            />
           </mat-form-field>
         </div>
         <div fxFlex="30%">
           <mat-form-field style="width: 100%">
             <mat-label>Ruc del cliente</mat-label>
-            <input type="text" matInput [formControl]="rucControl" />
+            <input
+              type="text"
+              matInput
+              [formControl]="rucControl"
+              [bdcWalkTriggerFor]="facturaStep4"
+            />
           </mat-form-field>
         </div>
-        <div fxFlex="10%" style="text-align: center">
+        <!-- <div fxFlex="10%" style="text-align: center">
           <mat-checkbox [formControl]="iva5Control"> Iva al 5% </mat-checkbox>
         </div>
         <div fxFlex="10%" style="text-align: center">
           <mat-checkbox [formControl]="iva5Control"> Iva al 10% </mat-checkbox>
-        </div>
+        </div> -->
       </div>
-      <div fxLayout="row" fxLayoutGap="10px">
-        <div fxFlex="20">
-          <app-boton (clickEvent)="exportarExcel()" nombre="Exportar a excel" [disableExpression]="dataSource.data.length < 1">
+      <div fxLayout="row" fxLayoutGap="20px">
+        <div
+          fxLayout="row"
+          fxLayoutAlign="center center"
+          style="cursor: pointer; width: auto"
+          (click)="iniciarTutorial()"
+        >
+          Ayuda<mat-icon>info</mat-icon>
+        </div>
+        <div [bdcWalkTriggerFor]="facturaStep7">
+          <app-boton
+            (clickEvent)="exportarExcel()"
+            nombre="Exportar a excel"
+            [disableExpression]="dataSource.data.length < 1"
+          >
           </app-boton>
         </div>
       </div>
     </div>
-    <mat-card
+    <div
       fxFlex="20"
-      style="background-color: rgb(32, 32, 32); width: 100%; height: 100%"
+      style="width: 100%; height: 100%; font-size: 1.15em; padding-right: 20px"
+      [bdcWalkTriggerFor]="facturaStep6"
+      fxLayout="column"
+      fxLayoutGap="10px"
     >
       <div style="width: 100%; text-align: center">Resumen</div>
       <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
-        <div fxFlex="50%">Cantidad de facturas:</div>
-        <div fxFlex="50%" style="text-align: end">
+        <div fxFlex="60%">Cantidad de facturas:</div>
+        <div fxFlex="40%" style="text-align: end">
           {{ cantidadFacturas }}
         </div>
       </div>
       <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
-        <div fxFlex="50%">Nro. inicio:</div>
-        <div fxFlex="50%" style="text-align: end">
-          {{ numeroInicioFactura }}
+        <div fxFlex="60%">Nro. inicio:</div>
+        <div fxFlex="40%" style="text-align: end">
+          {{ numeroInicioFactura || "-" }}
         </div>
       </div>
       <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
-        <div fxFlex="50%">Nro. fin:</div>
-        <div fxFlex="50%" style="text-align: end">
-          {{ numeroFinFactura }}
+        <div fxFlex="60%">Nro. fin:</div>
+        <div fxFlex="40%" style="text-align: end">
+          {{ numeroFinFactura || "-" }}
         </div>
       </div>
       <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
-        <div fxFlex="50%">Total en Gs:</div>
-        <div fxFlex="50%" style="text-align: end">
+        <div fxFlex="60%">Total en Gs:</div>
+        <div fxFlex="40%" style="text-align: end">
           {{ totalEnGs | number : "1.0-0" }}
         </div>
       </div>
-    </mat-card>
+    </div>
   </div>
   <div table>
     <table
@@ -365,3 +406,212 @@
     </table>
   </div>
 </app-generic-list>
+
+<bdc-walk-dialog
+  #facturaWelcomeDialog
+  name="facturaWelcomeDialog"
+  width="650px"
+  [mustCompleted]="{ inicio: 1 }"
+>
+  <div style="color: white; font-size: 1.2em">
+    <div style="width: 100%; text-align: end; font-size: 0.8em; color: white">
+      <mat-icon (click)="facturaWelcomeDialog.close()">clear</mat-icon>
+    </div>
+    <div><h2>Tour virtual: Lista de facturas legales</h2></div>
+    <p>
+      En esta pantalla, podes consultar las facturas legales hechas en todas las
+      sucursales. También podrás realizar distintas acciones como:
+    </p>
+    <ul dir="auto" fxLayout="column" fxLayoutGap="10px">
+      <li>
+        <code>Filtrar</code>
+        Utilizar filtros para optimizar las búsquedas
+      </li>
+      <li>
+        <code>Exportar a excel</code>
+        Exportar la lista de facturas filtradas a un formato excel compatible
+        con el sistema de gestión contable.
+      </li>
+      <li>
+        <code>Imprimir vía tributaria</code>
+        Imprimir o reimprimir la vía tributaria de una o mas facturas.
+      </li>
+      <li>
+        <code>Crear nueva factura</code>
+        Crear nuevas facturas (próximamente)
+      </li>
+    </ul>
+    <p>
+      A continuación, te mostraremos algunas de estas funciones en un tour
+      guiado.
+    </p>
+    <div style="width: 100%; text-align: center">
+      <button
+        mat-stroked-button
+        (click)="bdcWalkService.setTaskCompleted('facturaWelcomeDialog', 1)"
+      >
+        Iniciar
+      </button>
+    </div>
+  </div>
+</bdc-walk-dialog>
+
+<bdc-walk-popup
+  #facturaStep1
+  name="facturaStep1"
+  xPosition="after"
+  [showButton]="true"
+  buttonText="Siguiente"
+  [mustCompleted]="{ facturaWelcomeDialog: 1 }"
+  [onButtonCompleteTask]="{ facturaNext: 1 }"
+>
+  <div style="color: white; font-size: 1.2em">
+    <div><h2>Rango de fechas</h2></div>
+    <p>
+      Seleccionar rango de fechas en la cual te gustaría realizar la búsqueda de
+      facturas. Este campo es obligatorio.
+    </p>
+  </div>
+</bdc-walk-popup>
+
+<bdc-walk-popup
+  style="color: white"
+  #facturaStep2
+  name="facturaStep2"
+  xPosition="after"
+  [showButton]="true"
+  buttonText="Siguiente"
+  [mustCompleted]="{ facturaNext: 1 }"
+  [onButtonCompleteTask]="{ facturaNext: 2 }"
+>
+  <div style="color: white; font-size: 1.2em">
+    <div><h2>Seleccionar sucursales</h2></div>
+    <p>
+      Aquí puedes seleccionar una o mas sucursales en las cuales buscar las
+      facturas. Tenga en cuenta que si selecciona mas de una sucursal, las
+      facturas estarán mezcladas. Este campo es obligatorio.
+    </p>
+  </div></bdc-walk-popup
+>
+
+<bdc-walk-popup
+  style="color: white"
+  #facturaStep3
+  name="facturaStep3"
+  xPosition="after"
+  [showButton]="true"
+  buttonText="Siguiente"
+  [mustCompleted]="{ facturaNext: 2 }"
+  [onButtonCompleteTask]="{ facturaNext: 3 }"
+>
+  <div style="color: white; font-size: 1.2em">
+    <div><h2>Nombre del cliente</h2></div>
+    <p>
+      También puedes buscar facturas de un determinado cliente escribiendo la
+      razón social. Este campo no es obligatorio.
+    </p>
+  </div></bdc-walk-popup
+>
+
+<bdc-walk-popup
+  style="color: white"
+  #facturaStep4
+  name="facturaStep4"
+  xPosition="after"
+  [showButton]="true"
+  buttonText="Siguiente"
+  [mustCompleted]="{ facturaNext: 3 }"
+  [onButtonCompleteTask]="{ facturaNext: 4 }"
+>
+  <div style="color: white; font-size: 1.2em">
+    <div><h2>Ruc del cliente</h2></div>
+    <p>
+      También puedes buscar facturas de un determinado cliente escribiendo el
+      RUC. Este campo no es obligatorio.
+    </p>
+  </div></bdc-walk-popup
+>
+
+<bdc-walk-popup
+  style="color: white"
+  #facturaStep5
+  name="facturaStep5"
+  xPosition="before"
+  yPosition="below"
+  [showButton]="true"
+  buttonText="Siguiente"
+  [mustCompleted]="{ facturaNext: 4 }"
+  [onButtonCompleteTask]="{ facturaNext: 5 }"
+>
+  <div style="color: white; font-size: 1.2em">
+    <div><h2>Buscar</h2></div>
+    <p>
+      Ahora estamos preparados para realizar una búsqueda presionando sobre el
+      botón Buscar. Recuerda que la velocidad de la búsqueda esta limitada a la
+      conexión de internet.
+    </p>
+  </div>
+</bdc-walk-popup>
+
+<bdc-walk-popup
+  #facturaStep6
+  name="facturaStep6"
+  xPosition="after"
+  yPosition="below"
+  [showButton]="true"
+  buttonText="Siguiente"
+  [mustCompleted]="{ facturaNext: 5 }"
+  [onButtonCompleteTask]="{ facturaNext: 6 }"
+>
+  <div style="color: white; font-size: 1.2em">
+    <div><h2>Resumen de la búsqueda</h2></div>
+    <p>En este apartado tenemos las siguientes informaciones:</p>
+
+    <ul dir="auto">
+      <li>
+        Cantidad de facturas: La cantidad de facturas devueltas por la búsqueda.
+      </li>
+      <li>Nro. de inicio: El menor número de factura</li>
+      <li>Nro. de fin: El mayor número de factura</li>
+      <li>
+        Total en Gs: Corresponde a la suma de todas las facturas devueltas por
+        la búsqueda
+      </li>
+    </ul>
+  </div>
+</bdc-walk-popup>
+
+<bdc-walk-popup
+  #facturaStep7
+  name="facturaStep7"
+  [showButton]="true"
+  buttonText="Finalizar"
+  [mustCompleted]="{ facturaNext: 6 }"
+  [onButtonCompleteTask]="{ facturaNext: 7 }"
+>
+  <div style="color: white; font-size: 1.2em">
+    <div><h2>Exportar a excel</h2></div>
+    <p>
+      Esta función permite exportar la lista de facturas en un formato excel
+      especifico
+    </p>
+  </div>
+</bdc-walk-popup>
+
+<bdc-walk-dialog
+  #facturaStep8
+  name="facturaStep8"
+  width="400px"
+  [mustCompleted]="{ facturaNext: 7 }"
+>
+  <div style="color: white; font-size: 1.2em">
+    <div><h2>Finalizado!</h2></div>
+    <p>
+      Completaste el tour guiado de esta pantalla. En caso de tener alguna duda,
+      puede contactar con el soporte técnico.
+    </p>
+    <div style="width: 100%; text-align: center">
+      <button mat-stroked-button (click)="facturaStep8.close(); onFinalizar()">Cerrar</button>
+    </div>
+  </div>
+</bdc-walk-dialog>

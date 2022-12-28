@@ -12,6 +12,7 @@ import { FacturaLegalService } from '../factura-legal.service';
 import { AddFacturaLegalDialogComponent } from '../add-factura-legal-dialog/add-factura-legal-dialog.component';
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { BdcWalkService, TaskList } from 'bdc-walkthrough';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -74,12 +75,27 @@ export class ListFacturaLegalComponent implements OnInit {
     'precioUnitario',
     'total',
   ]
+
   constructor(
     private sucursalService: SucursalService,
     private facturaService: FacturaLegalService,
     private cargandoService: CargandoDialogService,
-    private matDialog: MatDialog
-  ) { }
+    private matDialog: MatDialog,
+    private bdcWalkService: BdcWalkService
+  ) { 
+    
+  }
+
+  iniciarTutorial(){
+    this.bdcWalkService.disableAll(false)
+    this.bdcWalkService.reset('factura')
+    this.bdcWalkService.setTaskCompleted('inicio', 1)
+  }
+
+  onFinalizar(){
+    this.bdcWalkService.reset('factura')
+    this.bdcWalkService.disableAll(true)
+  }
 
   ngOnInit(): void {
     this.fechaFormGroup = new FormGroup({

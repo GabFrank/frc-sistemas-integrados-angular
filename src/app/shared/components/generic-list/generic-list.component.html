@@ -21,12 +21,14 @@
           fxLayoutGap="5px"
         >
           <div fxFlex="33">
+            <ng-content select="[buscar]"></ng-content>
             <button
               mat-raised-button
               color="primary"
               (click)="onFiltrar()"
               style="width: 100%"
               [disabled]="disableFilter"
+              [bdcWalkTriggerFor]="buscarTrigger"
             >
               Buscar
             </button>

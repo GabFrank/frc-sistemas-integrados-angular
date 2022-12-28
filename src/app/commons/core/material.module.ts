@@ -42,7 +42,7 @@ import { MatFileUploadModule } from 'angular-material-fileupload';
 import { NgxMatSelectSearchModule } from 'ngx-mat-select-search';
 import { EnumToStringPipe } from './utils/pipes/enum-to-string';
 import { TimeDiffPipe } from './utils/pipes/time-diff';
-
+import { BdcWalkModule } from 'bdc-walkthrough';
 
 @NgModule({
   imports: [],
@@ -94,7 +94,8 @@ import { TimeDiffPipe } from './utils/pipes/time-diff';
     MatFileUploadModule,
     NgxMatSelectSearchModule,
     EnumToStringPipe,
-    TimeDiffPipe
+    TimeDiffPipe,
+    BdcWalkModule
   ]
 })
 export class MaterialModule { }

@@ -42,6 +42,7 @@ import { DetailPopupComponent } from "./layouts/detail-popup/detail-popup.compon
 import { MainService } from "./main.service";
 import { ModulesModule } from "./modules/modules.module";
 import { FormatNumberPipe } from "./pipes/format-number.pipe";
+import { BdcWalkModule } from 'bdc-walkthrough';
 
 export const errorObs = new BehaviorSubject<any>(null);
 export const connectionStatusSub = new BehaviorSubject<any>(null);

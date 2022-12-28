@@ -26,35 +26,35 @@ export class RoleService {
     private saveUsuarioRole: SaveUsuarioRoleGQL,
     private deleteUsuarioRole: DeleteUsuarioRoleGQL,
     private injector: Injector
-  ) { 
+  ) {
     setTimeout(() => this.genericCrud = injector.get(GenericCrudService));
   }
 
-  onGetRole(id): Observable<Role>{
+  onGetRole(id): Observable<Role> {
     return this.genericCrud.onGetById(this.getRole, id)
   }
 
-  onGetRoles(page?, size?): Observable<Role[]>{
+  onGetRoles(page?, size?): Observable<Role[]> {
     return this.genericCrud.onGetAll(this.getRoles, page, size)
   }
 
-  onSaveRole(input): Observable<Role>{
+  onSaveRole(input): Observable<Role> {
     return this.genericCrud.onSave(this.saveRole, input)
   }
 
-  onDeleteRole(id): Observable<boolean>{
+  onDeleteRole(id): Observable<boolean> {
     return this.genericCrud.onDelete(this.deleteRole, id)
   }
 
-  onGetUsuarioRolePorUsuario(id): Observable<UsuarioRole[]>{
+  onGetUsuarioRolePorUsuario(id): Observable<UsuarioRole[]> {
     return this.genericCrud.onGetById(this.getUsuarioRolePorUsuarioId, id)
   }
 
-  onSaveUsuarioRole(input): Observable<UsuarioRole>{
+  onSaveUsuarioRole(input): Observable<UsuarioRole> {
     return this.genericCrud.onSave(this.saveUsuarioRole, input)
   }
 
-  onDeleteUsuarioRole(id): Observable<boolean>{
+  onDeleteUsuarioRole(id): Observable<boolean> {
     return this.genericCrud.onDelete(this.deleteUsuarioRole, id)
   }
 }

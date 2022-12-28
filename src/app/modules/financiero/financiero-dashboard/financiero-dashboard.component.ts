@@ -6,6 +6,9 @@ import { ListMaletinComponent } from "../maletin/list-maletin/list-maletin.compo
 import { MaletinComponent } from "../maletin/maletin.component";
 import { ListFacturaLegalComponent } from "../factura-legal/list-factura-legal/list-factura-legal.component";
 import { MatDialog } from "@angular/material/dialog";
+import { MainService } from "../../../main.service";
+import { ROLES } from "../../personas/roles/roles.enum";
+import { NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
 
 interface FinancieroItemDashboard {
   titulo: string;
@@ -24,13 +27,23 @@ export class FinancieroDashboardComponent implements OnInit {
   cardWidth;
 
   constructor(
-    public tabService: TabService
-  ) {}
+    public tabService: TabService,
+    private mainService: MainService,
+    private notificacionService: NotificacionSnackbarService
+  ) { }
 
   ngOnInit(): void {
   }
 
-  onListFacturas(){
-    this.tabService.addTab(new Tab(ListFacturaLegalComponent, 'Lista de facturas', null, FinancieroDashboardComponent))
+  onListFacturas() {
+    if (
+      this.mainService.usuarioActual?.roles.includes(
+        ROLES.ANALISIS_CONTABLE
+      )
+    ) {
+      this.tabService.addTab(new Tab(ListFacturaLegalComponent, 'Lista de facturas', null, FinancieroDashboardComponent))
+    } else {
+      this.notificacionService.openWarn('No tenés acceso a esta opción. ')
+    }
   }
 }

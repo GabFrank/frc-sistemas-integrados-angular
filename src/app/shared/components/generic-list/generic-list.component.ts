@@ -50,6 +50,9 @@ export class GenericListComponent implements OnInit {
 
   @Input()
   data
+
+  @Input()
+  buscarTrigger;
   
   @Input()
   isLastPage = false;
