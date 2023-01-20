@@ -6,7 +6,7 @@ import html2canvas from 'html2canvas';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
 import { CargandoDialogService } from '../../../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { Delivery } from '../../../../operaciones/delivery/delivery.model';
-import { BehaviorSubject, Subscription } from 'rxjs';
+import { BehaviorSubject, Observable, Subscription } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 export class DeliveryPresupuestoData {
@@ -35,7 +35,7 @@ export class DeliveryPresupuestoDialogComponent implements OnInit {
   @Input()
   totalFinal: number;
   @Input()
-  calcularVueltoEvent = new BehaviorSubject<void>(null);
+  calcularVueltoEvent = new Observable<void>();
 
   vueltoParaGs = 0;
   vueltoParaRs = 0;

@@ -305,6 +305,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.formaPagoService.onGetAllFormaPago().pipe(untilDestroyed(this)).subscribe((res) => {
       this.formaPagoList = res;
       this.selectedFormaPago = this.formaPagoList[0];
+      this.setFormaPago(this.selectedFormaPago.descripcion)
     });
   }
 
@@ -383,6 +384,16 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onFormaPagoAutoClosed() {
     this.autoFormaPagoInput.nativeElement.select();
+    if (this.selectedFormaPago.descripcion == 'CONVENIO') {
+      this.onConvenioClick()
+    }
+  }
+
+  displayFormaPago(value?: number) {
+    let res = value ? this.formaPagoList?.find((_) => _.id === value) : undefined;
+    this.selectedFormaPago = res;
+    console.log(res);
+    return res ? res?.id + " - " + res?.descripcion : undefined;
   }
 
   setMoneda(moneda, openDialog?) {
@@ -424,16 +435,12 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       this.selectedFormaPago = this.formaPagoList.find(fp => fp.descripcion == formaPago);
       if (this.selectedFormaPago != null) {
         this.formGroup.controls.formaPago.setValue(
-          this.selectedFormaPago.id +
-          " - " +
-          this.selectedFormaPago.descripcion.toUpperCase()
+          this.selectedFormaPago.id
         );
       } else {
         this.notificacionSnackbar.openWarn('Forma de pago no válida')
       }
     }
-
-
   }
 
   onOtrasMonedasClick() { }
@@ -473,6 +480,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       if (selectedItem != null) Object.assign(item, selectedItem);
       item.formaPago = this.selectedFormaPago
       item.moneda = this.selectedMoneda
+      item.cambio = this.selectedMoneda.cambio
       item.valor = valor
       item.vuelto = this.isVuelto
       item.descuento = this.isDescuento
@@ -606,7 +614,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.setFormaPago('CONVENIO')
     this.matDialog.open(AddVentaCreditoDialogComponent, { width: '100%', height: '80%', data: { valor: this.formGroup?.controls?.saldo?.value } }).afterClosed()
       .subscribe(res => {
-        if (res['ventaCredito'] != null) {
+        if (res?.ventaCredito != null) {
           let ventaCredito: VentaCredito = res['ventaCredito'];
           let cobroDetalle = new CobroDetalle();
           cobroDetalle.pago = true;

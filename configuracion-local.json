@@ -1,6 +1,8 @@
 {
   "ipDefault": "localhost",
   "puertoDefault": "8082",
+  "centralIp": "localhost",
+  "centralPort": "8081",
   "ipCentralDefault": "localhost",
   "puertoCentralDefault": "8081",
   "printers": {
@@ -9,6 +11,5 @@
   },
   "local": "Caja 1",
   "precios": "EXPO",
-  "modo": "NOT",
-  "pdvId": 6
+  "modo": "NOT"
 }

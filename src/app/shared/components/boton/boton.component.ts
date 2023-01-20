@@ -37,7 +37,7 @@ export class BotonComponent implements OnInit {
   iconSize = 1;
 
   @Input()
-  clickDelay = 1000;
+  clickDelay: any = 1000;
 
   @Input()
   prefix;

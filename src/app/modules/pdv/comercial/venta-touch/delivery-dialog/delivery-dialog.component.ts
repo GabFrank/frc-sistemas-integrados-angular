@@ -843,6 +843,10 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
       this.telefonoInput.nativeElement.focus()
     }, 500);
   }
+
+  onBarrioSearch(){
+    
+  }
 }
 
 

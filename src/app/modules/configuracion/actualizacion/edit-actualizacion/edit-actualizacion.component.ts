@@ -5,6 +5,9 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { ipAddress, port } from '../../../../../environments/conectionConfig';
 import { Actualizacion, NivelActualizacion, TipoActualizacion } from '../actualizacion.model';
 import { ActualizacionService } from '../actualizacion.service';
+import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
+import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
+import { MainService } from '../../../../main.service';
 
 export interface ActualizacionData {
   actualizacion: Actualizacion
@@ -27,9 +30,12 @@ export class EditActualizacionComponent implements OnInit {
   enabled = new FormControl(true)
   nivel = new FormControl(NivelActualizacion.CRITICO, [Validators.required])
   tipo = new FormControl(TipoActualizacion.DESKTOP, [Validators.required])
-  title = new FormControl('Atención!! Actualización importante', [Validators.required])
+  title = new FormControl(null, [Validators.required])
   msg = new FormControl('Por favor actualize a la nueva versión del sistema para continuar utilizando', [Validators.required])
-  
+  sucursalControl = new FormControl(null, Validators.required); 
+  sucursalList: Sucursal[] = []
+
+
   //url en donde subir el archivo
   url = `http://${ipAddress}:${port}/update/upload`
 
@@ -37,7 +43,8 @@ export class EditActualizacionComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) private data: ActualizacionData,
     private dialogRef: MatDialogRef<EditActualizacionComponent>,
     private actualizacionService: ActualizacionService,
-
+    private sucursalService: SucursalService,
+    private mainService: MainService
   ) {
     if (data?.actualizacion != null) {
       this.selectedActualizacion = data.actualizacion;
@@ -52,7 +59,12 @@ export class EditActualizacionComponent implements OnInit {
       'nivel': this.nivel,
       'tipo': this.tipo,
       'title': this.title,
-      'msg': this.msg
+      'msg': this.msg,
+      'sucursales': this.sucursalControl
+    })
+
+    this.sucursalService.onGetAllSucursales().subscribe(res => {
+      this.sucursalList = res.filter(s => s.id != 0);
     })
   }
 
@@ -71,22 +83,14 @@ export class EditActualizacionComponent implements OnInit {
     this.dialogRef.close(null)
   }
   onGuardar() {
+    let sucIdList = [];
+    this.sucursalControl?.value?.forEach(s => {
+      sucIdList.push(s.id)
+    });
     this.selectedActualizacion.currentVersion = this.currentVersion.value
-    this.selectedActualizacion.nivel = this.nivel.value
-    this.selectedActualizacion.tipo = this.tipo.value
     this.selectedActualizacion.title = this.title.value
-    this.selectedActualizacion.msg = this.msg.value
-    this.selectedActualizacion.enabled = this.enabled.value
-    switch (this.selectedActualizacion.nivel) {
-      case NivelActualizacion.CRITICO:
-        this.selectedActualizacion.btn = 'Descargar'
-        break;
-      case NivelActualizacion.MANTENIMIENTO:
-      case NivelActualizacion.MODERADO:
-        this.selectedActualizacion.btn = 'Aceptar'
-        break;
-    }
-    this.actualizacionService.onSave(this.selectedActualizacion.toInput())
+    if(this.selectedActualizacion?.usuario == null) this.selectedActualizacion.usuario = this.mainService.usuarioActual;
+    this.actualizacionService.onSaveForSucursales(this.selectedActualizacion.toInput(), sucIdList)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         if (res != null) {

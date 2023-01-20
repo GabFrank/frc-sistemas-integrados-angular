@@ -54,6 +54,10 @@ export class ListFacturaLegalComponent implements OnInit {
   allSucursales = false;
 
   selectedFacturaItem: FacturaLegalItem;
+  facturaList: FacturaLegal[];
+  page = 0;
+  size = 30;
+  isLast = true;
   dataSource = new MatTableDataSource<FacturaLegal>([])
   facturaItemDataSource = new MatTableDataSource<FacturaLegalItem>([])
 
@@ -81,7 +85,7 @@ export class ListFacturaLegalComponent implements OnInit {
     private facturaService: FacturaLegalService,
     private cargandoService: CargandoDialogService,
     private matDialog: MatDialog,
-    private bdcWalkService: BdcWalkService
+    public bdcWalkService: BdcWalkService
   ) { 
     
   }

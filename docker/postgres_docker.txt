@@ -10,12 +10,13 @@ restart cron
 
 -- comando para hacer backup de base de datos
 pg_dump -U franco -W central > central_servidor.sql
-bpg_dump -s -U franco -W general > bkp_filial_dev_25_10_22_schema_only.sql
+pg_dump -s -U franco -W general > bkp_filial_dev_25_10_22_schema_only.sql
+pg_dump -U franco -W general > canindeyu_bkp_11_01_23.sql
 -- comando para hacer restore de base de datos
-psql -U franco -W dba < dbb.sql
+psql -U franco -W general < dbb.sql
 -- comando para copiar archivos en docker
 docker cp filial1:/bkp_servidor_dev_24_10_22_schema_only.sql /Users/gabfranck/workspace/franco-systems/bd
-docker cp frc-server:/bkp_servidor_central_08_10_22.sql /
+docker cp frc-server:/canindeyu_bkp_13_01_23.sql /
 
 
 comando para logear en psql
@@ -142,3 +143,21 @@ scp origen:path destino:path
 
 -- tocker GH_TOKEN
 export GH_TOKEN="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"
+
+-- localizacion de logs del servicio
+/var/log/journal
+-- Cuanto el servidor queda sin espacio por los logs
+sudo find /var/log -type f -delete
+
+-- como crear un cron job
+https://stackoverflow.com/questions/28498400/restart-apache-service-automatically-using-cron-12am-daily
+
+-- guia sobre logs en linux
+https://www.loggly.com/ultimate-guide/linux-logging-with-systemd/
+
+-- crear un batch file para self updater
+- ejecutar .bat
+Runtime.getRuntime().exec("cmd /c start cmd.exe /K \"cd C:\\path\\to\\batch & batchfile.bat\"");
+
+-- proxima pregunta para chatgpt 
+how to create a .bat file that downloads a new release of a .jar file from github repository, stop the current service, replace old .jar file with the new downloaded and start service

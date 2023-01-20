@@ -43,6 +43,8 @@ import { MainService } from "./main.service";
 import { ModulesModule } from "./modules/modules.module";
 import { FormatNumberPipe } from "./pipes/format-number.pipe";
 import { BdcWalkModule } from 'bdc-walkthrough';
+import { MAT_DIALOG_DEFAULT_OPTIONS } from "@angular/material/dialog";
+import { NoopScrollStrategy } from "@angular/cdk/overlay";
 
 export const errorObs = new BehaviorSubject<any>(null);
 export const connectionStatusSub = new BehaviorSubject<any>(null);
@@ -231,7 +233,8 @@ export function appInit(appConfigService: MainService) {
 
         const wsClient2 = new SubscriptionClient(wUri2,
           {
-            reconnect: true
+            reconnect: true,
+            lazy: true
           }
         );
 
@@ -293,8 +296,8 @@ export function appInit(appConfigService: MainService) {
     // },
     { provide: LocationStrategy, useClass: HashLocationStrategy },
     { provide: LOCALE_ID, useValue: "es-PY" },
-    { provide: MAT_DATE_LOCALE, useValue: "es-PY" }
-
+    { provide: MAT_DATE_LOCALE, useValue: "es-PY" },
+    // { provide: MAT_DIALOG_DEFAULT_OPTIONS, useValue: { scrollStrategy: new NoopScrollStrategy() } }
   ],
   bootstrap: [AppComponent],
 })

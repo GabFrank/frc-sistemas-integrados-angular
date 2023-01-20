@@ -71,6 +71,8 @@ export class ProductoCategoriaDialogComponent implements OnInit {
     private notificacionService: NotificacionSnackbarService
   ) {
     this.presentaciones = data?.presentaciones;
+    console.log(this.presentaciones);
+    
     this.cantidad = +data?.cantidad;
     this.filteredPrecios = environment['precios']
     this.modoPrecio = environment['modo']

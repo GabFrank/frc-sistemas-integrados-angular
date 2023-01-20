@@ -64,9 +64,30 @@ export const actualizacionQuery = gql
   }`
 
 
+export const saveActualizacionForSucursales = gql
+  `mutation saveActualizacion($entity:ActualizacionInput!, $sucId: [ID]){
+      data: saveActualizacion(entity:$entity, sucId: $sucId){
+        id
+        currentVersion
+        enabled
+        nivel
+        tipo
+        title
+        msg
+        btn
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+        creadoEn
+      }
+}`
+
 export const saveActualizacion = gql
   `mutation saveActualizacion($entity:ActualizacionInput!){
-      data: saveActualizacion(actualizacion:$entity){
+      data: saveActualizacion(entity:$entity){
         id
         currentVersion
         enabled

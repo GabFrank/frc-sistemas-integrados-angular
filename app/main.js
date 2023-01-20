@@ -70,6 +70,7 @@ function createWindow() {
                 fullscreen: true,
                 x: 0,
                 y: 0,
+                frame: true,
                 width: 1024 / factor,
                 height: 768 / factor,
                 icon: "file://" + __dirname + "/dist/assets/logo.ico",

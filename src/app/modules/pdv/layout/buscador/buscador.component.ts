@@ -11,6 +11,8 @@ import { ProductoPorCodigoGQL } from '../../../productos/producto/graphql/produc
 import { Producto } from '../../../productos/producto/producto.model';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
+import { ProductoCategoriaDialogComponent, ProductoCategoriaDialogData, ProductoCategoriaResponseData } from '../../comercial/venta-touch/producto-categoria-dialog/producto-categoria-dialog.component';
+import { SelectProductosResponseData } from '../../comercial/venta-touch/select-productos-dialog/select-productos-dialog.component';
 
 @UntilDestroy()
 @Component({
@@ -27,6 +29,9 @@ export class BuscadorComponent implements OnInit {
 
   @Input()
   tiposPrecios;
+
+  @Input()
+  mostrarPrecios = false;
 
   @Input()
   focusEvent: Observable<void>;
@@ -162,13 +167,34 @@ export class BuscadorComponent implements OnInit {
         { fetchPolicy: "no-cache", errorPolicy: "all" }
       ).pipe(untilDestroyed(this))
       .subscribe((res) => {
-        if (res.errors == null) {
+        if (res.errors == null) {          
           producto = res.data.data;
+          console.log(producto);
           if (producto != null) {
             this.isAudio ? this.beepService.beep() : null;
-            this.crearItemEvent.emit({ producto: producto, texto: texto, cantidad: this.cantidadControl.value });
-            this.buscadorControl.setValue(null);
-            this.cantidadControl.setValue(1)
+            if(this.mostrarPrecios){
+              this.dialog.open(ProductoCategoriaDialogComponent, {
+                data: {
+                  presentaciones: producto?.presentaciones,
+                  producto
+                },
+                width: '90%'
+              }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+                let respuesta: SelectProductosResponseData = new SelectProductosResponseData;
+                let productoCategoriaResponse : ProductoCategoriaResponseData = res;
+                if(productoCategoriaResponse?.presentacion!=null && productoCategoriaResponse.precio!=null){
+                  respuesta.producto = producto;
+                  respuesta.data = productoCategoriaResponse;
+                  this.crearItemEvent.emit({presentacion:productoCategoriaResponse?.presentacion, precio:productoCategoriaResponse.precio, producto: producto, texto: texto, cantidad: productoCategoriaResponse.cantidad });
+                  this.buscadorControl.setValue(null);
+                  this.cantidadControl.setValue(1)                } 
+              })
+            } else {
+              this.crearItemEvent.emit({ producto: producto, texto: texto, cantidad: this.cantidadControl.value });
+              this.buscadorControl.setValue(null);
+              this.cantidadControl.setValue(1)
+            }
+            
           } else {
             this.isAudio ? this.beepService.boop() : null;
             this.buscarProductoDialog();

@@ -1,11 +1,11 @@
-<div fxLayout="column" style="height: 100%; width: 100%" fxLayoutGap="10px">
+<div #container fxLayout="column" style="height: 100%; width: 100%" fxLayoutGap="10px">
   <div fxFlex="5" style="text-align: center">
     <h4>Adicionar venta a crédito</h4>
   </div>
   <div fxFlex="90" style="height: 100%" fxLayout="row" fxLayoutGap="10px">
     <div fxFlex="80%" fxLayout="column">
       <div fxFlex="10" fxLayout="row" fxLayoutGap="10px">
-        <div fxFlex="10">
+        <!-- <div fxFlex="10">
           <mat-form-field style="width: 95%">
             <mat-label>Id</mat-label>
             <input
@@ -19,8 +19,8 @@
               (keydown.arrowDown)="$event.preventDefault()"
             />
           </mat-form-field>
-        </div>
-        <div fxFlex="80">
+        </div> -->
+        <div fxFlex="100">
           <mat-form-field style="width: 100%">
             <mat-label>Nombre del cliente</mat-label>
             <input
@@ -28,7 +28,22 @@
               type="text"
               matInput
               [formControl]="nombreClienteControl"
+              oninput="this.value == ' ' ? this.value = '': null"
+              [matAutocomplete]="autoCliente"
             />
+            <mat-autocomplete
+              #autoCliente="matAutocomplete"
+              (optionSelected)="onClienteSelect($event.option.value)"
+              (closed)="onClienteAutocompleteClose()"
+            >
+              <mat-option
+                *ngFor="let cliente of clienteList"
+                [value]="cliente"
+              >
+                {{ cliente?.persona?.id }} -
+                {{ cliente?.persona?.nombre | uppercase }}
+              </mat-option>
+            </mat-autocomplete>
           </mat-form-field>
         </div>
         <div fxFlex="10" style="height: 35px">
@@ -168,7 +183,7 @@
       </mat-card>
     </div>
     <div fxFlex="20%" fxLayout="column" fxLayoutGap="10px">
-      <div fxFlex>
+      <!-- <div fxFlex>
         <app-boton
           #contraBtn
           style="height: 50px"
@@ -179,7 +194,7 @@
           (clickEvent)="setTipoConfirmacion(1); onContrasenaClick()"
           [color]="selectedTipoConfirmacion == 1 ? 'accent' : 'primary'"
         ></app-boton>
-      </div>
+      </div> -->
 
       <div fxFlex>
         <app-boton
@@ -211,7 +226,7 @@
           style="height: 50px"
           nombre="Aplicativo (F4)"
           [disableExpression]="
-            selectedCliente == null || this.total > this.saldoEnCredito
+            selectedCliente == null || this.total > this.saldoEnCredito || true
           "
           (clickEvent)="setTipoConfirmacion(4)"
           [color]="selectedTipoConfirmacion == 4 ? 'accent' : 'primary'"

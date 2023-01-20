@@ -72,7 +72,7 @@ export class ListActualizacionComponent implements OnInit {
 
   onAdicionarVersion() {
     this.matDialog.open(EditActualizacionComponent, {
-      width: '60%',
+      width: '40%',
       disableClose: true
     }).afterClosed().subscribe(res => {
       if (res != null) {

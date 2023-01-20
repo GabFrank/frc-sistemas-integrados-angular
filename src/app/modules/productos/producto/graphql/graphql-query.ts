@@ -209,6 +209,7 @@ export const productoPorCodigoQuery = gql`
       id
       balanza
       descripcion
+      descripcionFactura
       garantia
       vencimiento
       diasVencimiento
@@ -231,6 +232,7 @@ export const productoPorCodigoQuery = gql`
       presentaciones {
         id
         principal
+        activo
         codigos {
           id
           codigo

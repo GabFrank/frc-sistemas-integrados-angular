@@ -72,14 +72,14 @@ export class GenericCrudService {
     });
   }
 
-  onCustomSub(gql: Subscription, data, servidor?): Observable<any> {
+  onCustomSub(gql: Subscription, data, servidor?, cargando?: boolean): Observable<any> {
     this.isLoading = true;
-    this.cargandoService.openDialog(false, 'Buscando...')
+    if(cargando == true) this.cargandoService.openDialog(false, 'Buscando...')
     return new Observable((obs) => {
       gql
         .subscribe(data, { fetchPolicy: "no-cache", errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }).pipe(untilDestroyed(this))
         .subscribe((res) => {
-          this.cargandoService.closeDialog()
+          if(cargando == true) this.cargandoService.closeDialog()
           this.isLoading = false
           if (res.errors == null) {
             obs.next(res.data["data"]);
@@ -94,7 +94,7 @@ export class GenericCrudService {
     });
   }
 
-  onGetById<T>(gql: any, id: number, page?, size?, servidor?, sucId?): Observable<T> {
+  onGetById<T>(gql: any, id: number, page?, size?, servidor?, sucId?, error?): Observable<T> {
     this.isLoading = true;
     console.log('loggin sucId', sucId);
     
@@ -107,7 +107,7 @@ export class GenericCrudService {
           this.isLoading = false;
           if (res.errors == null) {
             obs.next(res.data["data"]);
-            if (res.data["data"] == null) {
+            if (res.data["data"] == null && error==false) {
               this.notificacionSnackBar.notification$.next({
                 texto: "Item no encontrado",
                 color: NotificacionColor.warn,
@@ -222,9 +222,9 @@ export class GenericCrudService {
     showDialog?: boolean,
     servidor?
   ): Observable<any> {
-    this.cargandoService.openDialog(false, 'Eliminando...')
     return new Observable((obs) => {
       if (showDialog == false) {
+        this.cargandoService.openDialog(false, 'Eliminando...')
         gql
           .mutate(
             {
@@ -261,7 +261,7 @@ export class GenericCrudService {
             "Realemente desea eliminar este " + titulo
           ).pipe(untilDestroyed(this))
           .subscribe((res1) => {
-            this.cargandoService.closeDialog()
+            this.cargandoService.openDialog(false, 'Eliminando...')
             if (res1) {
               gql
                 .mutate(
@@ -271,6 +271,7 @@ export class GenericCrudService {
                   { errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }
                 )
                 .subscribe((res) => {
+                  this.cargandoService.closeDialog()
                   if (res.errors == null) {
                     this.notificacionSnackBar.notification$.next({
                       texto: "Eliminado con éxito",

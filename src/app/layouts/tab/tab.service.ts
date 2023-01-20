@@ -6,6 +6,7 @@ import { CargandoDialogService } from './../../shared/components/cargando-dialog
 import { Tab } from './tab.model';
 import { FinancieroDashboardComponent } from '../../modules/financiero/financiero-dashboard/financiero-dashboard.component';
 import { ListFacturaLegalComponent } from '../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component';
+import { ListActualizacionComponent } from '../../modules/configuracion/actualizacion/list-actualizacion/list-actualizacion.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -39,7 +40,7 @@ export class TabService {
 
     this.tabs = [
       // new Tab(ListFuncioarioComponent, 'Lista de funcionarios', null, null),
-      new Tab(ListFacturaLegalComponent, 'Lista de facturas', null, null),
+      // new Tab(VentaTouchComponent, 'Venta', null, null),
     ];
     this.tabSub.next(this.tabs);
 
@@ -47,7 +48,6 @@ export class TabService {
     //   console.log(res)
     //   this.addTab(new Tab(ProductoComponent, 'Nuevo Producto', { data: res }))
     // })
-
   }
 
 

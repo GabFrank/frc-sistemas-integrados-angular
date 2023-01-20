@@ -47,7 +47,11 @@ export class ClienteService {
   }
 
   onGetByPersonaIdFromServer(id: number): Observable<Cliente> {
-    return this.genericService.onGetById(this.getClientePorPersonaId, id, null, null, true);
+    return this.genericService.onGetById(this.getClientePorPersonaId, id, null, null, true, null, false);
+  }
+
+  onSearchFromServer(texto: string): Observable<Cliente[]> {
+    return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto, true);
   }
 
 

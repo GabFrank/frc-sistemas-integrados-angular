@@ -15,7 +15,7 @@
     fxLayoutGap="5px"
     style="width: 100%"
   >
-    <div fxFlex="13" *ngFor="let presentacion of presentaciones; let i = index">
+    <div fxFlex="13" [fxHide]="presentacion?.activo != true" *ngFor="let presentacion of presentaciones; let i = index">
       <mat-card
         *ngIf="presentacion?.activo == true"
         style="

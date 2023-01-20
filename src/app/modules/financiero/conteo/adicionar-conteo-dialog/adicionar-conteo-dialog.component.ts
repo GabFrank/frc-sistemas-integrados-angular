@@ -37,6 +37,7 @@ export interface AdicionarConteoResponse {
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { stringToDecimal, stringToInteger } from '../../../../commons/core/utils/numbersUtils';
+import { BotonComponent } from '../../../../shared/components/boton/boton.component';
 
 @UntilDestroy()
 @Component({
@@ -45,6 +46,9 @@ import { stringToDecimal, stringToInteger } from '../../../../commons/core/utils
   styleUrls: ["./adicionar-conteo-dialog.component.scss"],
 })
 export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
+
+  @ViewChild('btn', {read: BotonComponent}) btn: BotonComponent;
+
   @Input() events: Observable<number>;
   @Input() conteo: Observable<Conteo>;
   @Input() focus: Observable<Conteo>;

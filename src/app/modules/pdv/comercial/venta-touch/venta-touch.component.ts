@@ -135,6 +135,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   modoPrecio: string;
   isDelivery = false;
   selectedDelivery: Delivery
+  mostrarPrecios = false;
   constructor(
     @Inject(MAT_DIALOG_DATA) private dialogData: VentaTouchData,
     private dialog: MatDialog,
@@ -365,6 +366,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onGridCardClick(grupo: PdvGrupo) {
     this.isDialogOpen = true;
+    this.mostrarPrecios = false;
     let descripcion = grupo.descripcion;
     let pdvGruposProductos = grupo.pdvGruposProductos;
     let productos: Producto[] = [];
@@ -518,6 +520,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   removeItem(event: any) {
+    this.mostrarPrecios = false
     let item = event['item']
     let index = event['i']
     if (item == null && index == null) {
@@ -543,6 +546,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   editItem(event: any) {
     let item = new VentaItem;
+    this.mostrarPrecios = false
     Object.assign(item, event['item'])
     let index = event['i']
 
@@ -564,45 +568,56 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   crearItem(eventData: any, index?) {
+    this.mostrarPrecios = false
     let producto = eventData['producto']
     let texto = eventData['texto']
     let cantidad = eventData['cantidad']
     let item: VentaItem = new VentaItem();
     let selectedCodigo: Codigo;
-    let selectedPresentacion: Presentacion;
+    let selectedPresentacion = eventData['presentacion'];
+    let precio = eventData['precio'];
     item.cantidad = cantidad;
     item.producto = producto;
 
-    if (texto != null) {
-      item.presentacion = producto?.presentaciones.find((p) => {
-        p.codigos.find((c) => {
-          if (c.codigo == texto) {
-            selectedCodigo = c;
-            selectedPresentacion = p;
-          }
+    if(selectedPresentacion==null){
+      if (texto != null) {
+        item.presentacion = producto?.presentaciones.find((p) => {
+          p.codigos.find((c) => {
+            if (c.codigo == texto) {
+              selectedCodigo = c;
+              selectedPresentacion = p;
+            }
+          });
         });
-      });
-      item.presentacion = selectedPresentacion;
-    } else {
-      item.presentacion = producto?.presentaciones.find(
-        (p) => p.principal == true && p.activo == true
-      );
-    }
-    if (this.filteredPrecios == null || this.modoPrecio == 'NOT') {
-      item.precioVenta = item?.presentacion?.precios?.find(
-        (p) => p.principal == true && p.activo == true
-      );
-    } else if (this.modoPrecio?.includes('MIXTO') || this.modoPrecio?.includes('ONLY')) {
-      item.precioVenta = item?.presentacion?.precios?.find(
-        (p) => this.filteredPrecios.includes(p.tipoPrecio?.descripcion) && p.activo == true
-      );
-      if (item.precioVenta == null) {
-        item.precioVenta = item?.presentacion?.precios?.find(
+        item.presentacion = selectedPresentacion;
+      } else {
+        item.presentacion = producto?.presentaciones.find(
           (p) => p.principal == true && p.activo == true
         );
       }
+    } else {
+      item.presentacion = selectedPresentacion
     }
 
+    if(precio==null){
+      if (this.filteredPrecios == null || this.modoPrecio == 'NOT') {
+        item.precioVenta = item?.presentacion?.precios?.find(
+          (p) => p.principal == true && p.activo == true
+        );
+      } else if (this.modoPrecio?.includes('MIXTO') || this.modoPrecio?.includes('ONLY')) {
+        item.precioVenta = item?.presentacion?.precios?.find(
+          (p) => this.filteredPrecios.includes(p.tipoPrecio?.descripcion) && p.activo == true
+        );
+        if (item.precioVenta == null) {
+          item.precioVenta = item?.presentacion?.precios?.find(
+            (p) => p.principal == true && p.activo == true
+          );
+        }
+      }
+    } else {
+      item.precioVenta = precio
+    }
+    
     if (item.presentacion == null || item.precioVenta == null) {
       this.notificacionSnackbar.notification$.next({
         texto: "El producto no tiene precio",
@@ -640,6 +655,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onPagoClick() {
     this.isDialogOpen = true;
+    this.mostrarPrecios = false
     if (this.selectedItemList?.length > 0) {
       let descuento = 0;
       this.selectedItemList.forEach(vi => {
@@ -781,8 +797,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     return new Observable(obs => {
       this.ventaTouchServive.onSaveVenta(venta, cobro, ticket, ventaCreditoInput, ventaCreditoCuotaInputList).pipe(untilDestroyed(this)).subscribe((res) => {
         this.cargandoService.closeDialog();
-        console.log(res);
-
         if (res.id != null) {
           this.notificacionSnackbar.notification$.next({
             color: NotificacionColor.success,

@@ -24,6 +24,6 @@ export class VentaCreditoService {
   }
 
   ventaCreditoQrSub(){
-    return this.genericService.onCustomSub(this.ventaCreditoQrAuthSub, null, true);
+    return this.genericService.onCustomSub(this.ventaCreditoQrAuthSub, null, true, false);
   }
 }

@@ -422,10 +422,11 @@
             autoActiveFirstOption
             #autoFormaPago="matAutocomplete"
             (closed)="onFormaPagoAutoClosed()"
+            [displayWith]="displayFormaPago.bind(this)"
           >
             <mat-option
               *ngFor="let formaPago of formaPagoList"
-              [value]="formaPago"
+              [value]="formaPago.id"
               style="color: white"
             >
               <div style="color: white; font-size: 1em">

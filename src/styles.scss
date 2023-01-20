@@ -39,14 +39,19 @@ $angular-dark-theme: mat.define-dark-theme(
   @include mat.all-component-colors($angular-dark-theme);
 }
 
-html,
-body {
+html {
   height: 100%;
-  overflow: hidden;
 }
+
 body {
-  margin: 0;
-  font-family: Roboto, "Helvetica Neue", sans-serif;
+ height: 100%;
+ font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+.cdk-global-scrollblock{
+  position: static !important;
+  width: initial !important;
+  overflow-y: inherit !important;
 }
 
 .mat-row:hover {

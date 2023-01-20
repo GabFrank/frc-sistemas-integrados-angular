@@ -142,7 +142,8 @@ export class SideComponent implements OnInit {
         if (this.mainService.usuarioActual?.roles.includes(ROLES.VENTA_TOUCH)) {
           this.matDialog.open(UltimasCajasDialogComponent, {
             width: '90%',
-            height: '90%'
+            height: '90%',
+            disableClose: false
           })
         }
         break;

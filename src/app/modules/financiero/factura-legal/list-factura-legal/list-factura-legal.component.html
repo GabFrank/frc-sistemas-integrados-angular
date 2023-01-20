@@ -57,7 +57,6 @@
               #sucursalSelect
               [formControl]="sucursalControl"
               multiple
-              [(value)]="sucursalControl.value"
               [bdcWalkTriggerFor]="facturaStep2"
             >
               <mat-select-trigger>
@@ -427,7 +426,7 @@
         <code>Filtrar</code>
         Utilizar filtros para optimizar las búsquedas
       </li>
-      <li>
+      <li> 
         <code>Exportar a excel</code>
         Exportar la lista de facturas filtradas a un formato excel compatible
         con el sistema de gestión contable.

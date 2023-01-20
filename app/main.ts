@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog, Menu, screen } from "electron";
 import { autoUpdater } from "electron-updater";
 import * as fs from "fs";
+import { totalmem } from "os";
 import * as path from "path";
 import * as url from "url";
 
@@ -43,6 +44,7 @@ export async function createWindow(): Promise<BrowserWindow> {
     fullscreen: true,
     x: 0,
     y: 0,
+    frame: false,
     width: 1024 / factor,
     height: 768 / factor,
     icon: `file://${__dirname}/dist/assets/logo.ico`,
@@ -59,7 +61,7 @@ export async function createWindow(): Promise<BrowserWindow> {
   const gotTheLock = app.requestSingleInstanceLock();
 
   // if (!gotTheLock) {
-  //   app.quit();
+  //   app.quit(); 
   // } else {
   //   app.on("second-instance", (event, commandLine, workingDirectory) => {
   //     // Someone tried to run a second instance, we should focus our window.
@@ -323,4 +325,3 @@ export function relaunchElectron() {
     );
   }
 }
-

@@ -69,6 +69,7 @@
               [formControl]="responsableControl"
               oninput="this.value == ' ' ? this.value = '': null"
               [matAutocomplete]="auto"
+              (keyup.enter)="obs.select()"
             />
             <mat-autocomplete
               #auto="matAutocomplete"
@@ -88,18 +89,20 @@
         <div #retiro fxFlex fxLayout="row" style="width: 100%">
           <mat-form-field style="width: 100%">
             <mat-label>Observación</mat-label>
-            <input type="text" matInput [formControl]="observacionControl" />
+            <input #obs type="text" matInput [formControl]="observacionControl" (keyup.enter)="gs.select()"/>
           </mat-form-field>
         </div>
         <div fxFlex>
           <mat-form-field style="width: 100%">
             <mat-label>Guaranies G$</mat-label>
             <input
+              #gs
               type="text"
               matInput
               [formControl]="guaraniControl"
               currencyMask
               [options]="currencyMask.currencyOptionsGuarani"
+              (keyup.enter)="rs.select()"
             />
           </mat-form-field>
         </div>
@@ -107,11 +110,13 @@
           <mat-form-field style="width: 100%">
             <mat-label>Reales R$</mat-label>
             <input
+              #rs
               type="text"
               matInput
               [formControl]="realControl"
               currencyMask
               [options]="currencyMask.currencyOptionsNoGuarani"
+              (keyup.enter)="ds.select()"
             />
           </mat-form-field>
         </div>
@@ -119,16 +124,19 @@
           <mat-form-field style="width: 100%">
             <mat-label>Dolares D$</mat-label>
             <input
+              #ds
               type="text"
               matInput
               [formControl]="dolarControl"
               currencyMask
               [options]="currencyMask.currencyOptionsNoGuarani"
+              (keyup.enter)="selectedResponsable != null && verficarValores() ? onGuardar() : null"
             />
           </mat-form-field>
         </div>
         <div fxFlex *ngIf="selectedResponsable != null && verficarValores()">
           <button
+            #guardarBtn
             style="width: 100%; height: 100%; font-size: 1.2em"
             mat-raised-button
             color="accent"

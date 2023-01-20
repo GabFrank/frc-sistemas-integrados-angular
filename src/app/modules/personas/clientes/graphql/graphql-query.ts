@@ -27,8 +27,10 @@ export const clientesSearchByPersona = gql
         direccion
       }
       nombre
-      documento
       credito
+      saldo
+      tipo
+      codigo
       contactos{
         id
         telefono

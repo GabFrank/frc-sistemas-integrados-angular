@@ -48,6 +48,12 @@ input::-webkit-inner-spin-button {
   text-align: start;
 }
 
+::ng-deep .cdk-global-scrollblock{
+  position: static !important;
+  width: initial !important;
+  overflow-y: inherit !important;
+}
+
 
 
 

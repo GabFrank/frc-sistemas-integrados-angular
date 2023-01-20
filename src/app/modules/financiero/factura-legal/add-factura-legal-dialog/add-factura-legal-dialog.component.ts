@@ -96,6 +96,10 @@ export class AddFacturaLegalDialogComponent implements OnInit {
 
   buscarCliente() {
     if (this.rucControl.valid) {
+      let validText: string = this.rucControl.value;
+      let arr = validText.split('-');
+      validText = arr[0]
+      this.rucControl.setValue(validText)
       if (this.clienteDescripcionControl.value!=null && this.totalFinalControl.valid) {
         this.onGuardar()
       } else {

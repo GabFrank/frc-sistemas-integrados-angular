@@ -7,6 +7,7 @@
     "experimentalDecorators": true,
     "allowJs": true,    
     "target": "es5",
+    "strict": false,
     "types": [
       "node"
     ],

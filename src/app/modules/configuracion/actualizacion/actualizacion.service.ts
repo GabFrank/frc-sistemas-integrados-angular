@@ -15,6 +15,7 @@ import { PingGQL } from './graphql/pingQuery';
 import { SaveActualizacionGQL } from './graphql/saveActualizacion';
 import { ultimaActualizacionGQL } from './graphql/ultimaActualizacion';
 import { UpdateWizardComponent } from './update-wizard/update-wizard.component';
+import { SaveActualizacionForSucursalesGQL } from './graphql/saveActualizacionBySucursales';
 
 @UntilDestroy()
 @Injectable({
@@ -31,6 +32,7 @@ export class ActualizacionService {
     private getActualizacion: ActualizacionByIdGQL,
     private getUltimaActualizacion: ultimaActualizacionGQL,
     private saveActualizacion: SaveActualizacionGQL,
+    private saveActualizacionForSucursales: SaveActualizacionForSucursalesGQL,
     private deleteActualizacion: DeleteActualizacionGQL,
     private cargandoService: CargandoDialogService,
     private dialogoService: DialogosService,
@@ -79,6 +81,10 @@ export class ActualizacionService {
 
   onSave(input): Observable<Actualizacion> {
     return this.crudService.onSave(this.saveActualizacion, input)
+  }
+
+  onSaveForSucursales(input, sucList): Observable<Actualizacion> {
+    return this.crudService.onSaveCustom(this.saveActualizacion, {entity: input, sucId: sucList})
   }
 
   onDelete(id): Observable<boolean> {

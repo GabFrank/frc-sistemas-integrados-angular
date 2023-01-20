@@ -101,6 +101,7 @@ export class EditTransferenciaComponent implements OnInit {
   cantidadPresentacionControl = new FormControl(1, [Validators.min(0), Validators.pattern('\\d+([.]\\d+)?')]);
   cantidadUnidadControl = new FormControl(1, [Validators.min(0), Validators.pattern('\\d+([.]\\d+)?')]);
   vencimientoControl = new FormControl(null)
+
   constructor(private matDialog: MatDialog,
     public mainService: MainService,
     private transferenciaService: TransferenciaService,
@@ -111,11 +112,9 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   ngOnInit(): void {
-
+    this.selectedTransferencia = new Transferencia;
     this.dataSource.data = []
-
     this.etapaList = Object.values(EtapaTransferencia)
-
     this.selectedTransferencia.usuarioPreTransferencia = this.mainService.usuarioActual;
     this.selectedTransferencia.tipo = TipoTransferencia.MANUAL;
     this.selectedTransferencia.estado = TransferenciaEstado.ABIERTA;
@@ -707,5 +706,10 @@ export class EditTransferenciaComponent implements OnInit {
     this.vencimientoControl.setValue(null);
     this.codigoControl.setValue(null);
     this.codigoInput.nativeElement.select();
+  }
+
+  nuevaTransferencia(){
+    this.onClear()
+    this.selectedTransferencia
   }
 }

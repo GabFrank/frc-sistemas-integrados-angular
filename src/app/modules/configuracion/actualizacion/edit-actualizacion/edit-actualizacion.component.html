@@ -15,11 +15,8 @@
         <input type="text" matInput [formControl]="currentVersion" />
       </mat-form-field>
     </div>
-    <div fxFlex="50">
-      <mat-slide-toggle fxFlex [formControl]="enabled">Activo</mat-slide-toggle>
-    </div>
   </div>
-  <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+  <div *ngIf="false" fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
     <mat-form-field style="width: 90%">
       <mat-label>Tipo</mat-label>
       <mat-select [formControl]="tipo" name="tipo">
@@ -29,7 +26,7 @@
       </mat-select>
     </mat-form-field>
   </div>
-  <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+  <div *ngIf="false" fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
     <mat-form-field style="width: 90%">
       <mat-label>Nivel</mat-label>
       <mat-select [formControl]="nivel" name="nivel">
@@ -42,35 +39,62 @@
       </mat-select>
     </mat-form-field>
   </div>
-  <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+  <div *ngIf="true" fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
     <div fxFlex>
       <mat-form-field style="width: 100%;">
-        <mat-label>Título</mat-label>
+        <mat-label>Archivos</mat-label>
         <input type="text" matInput [formControl]="title" />
       </mat-form-field>
     </div>
   </div>
-  <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+  <div *ngIf="false" fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
     <div fxFlex>
       <mat-form-field style="width: 100%;">
-        <mat-label>Mensaje</mat-label>
-        <textarea type="text" matInput [formControl]="msg"></textarea>
+        <mat-label>Nombre del archivo</mat-label>
+        <input type="text" matInput [formControl]="msg">
       </mat-form-field>
     </div>
   </div>
-  <div fxLayout="column" fxLayoutAlign="start start">
-    <label for="singleFile">Subir archivo</label>
-    <input id="singleFile" type="file" [fileUploadInputFor]= "fileUploadQueue"/>
-    <br>
-    
-    <mat-file-upload-queue #fileUploadQueue
-        [fileAlias]="'hola'"
-        [httpUrl]="url"
-        style="width: 100%;"
+  <div fxFlex>
+    <div fxFlex="30%">
+      <mat-form-field style="width: 100%">
+        <mat-label>Sucursales</mat-label>
+        <mat-select
+          #sucursalSelect
+          [formControl]="sucursalControl"
+          multiple
         >
-    
-        <mat-file-upload [file]="file" [id]="i" *ngFor="let file of fileUploadQueue.files; let i = index"></mat-file-upload>
-    </mat-file-upload-queue>
+          <mat-select-trigger>
+            {{(sucursalControl.value?.[0]?.nombre || '')}}
+            <span
+              *ngIf="(sucursalControl.value?.length || 0) > 1"
+              class="example-additional-selection"
+            >
+              (+{{ (sucursalControl.value?.length || 0) - 1 }}
+              {{ sucursalControl.value?.length === 2 ? "otro" : "otros" }})
+            </span>
+          </mat-select-trigger>
+          <div
+            style="
+              width: 100%;
+              text-align: end;
+              padding-right: 10px;
+              padding-top: 10px;
+              font-size: 0.8em;
+              color: white;
+            "
+          >
+            <mat-icon (click)="sucursalSelect.close()">clear</mat-icon>
+          </div>
+          <mat-option
+            *ngFor="let sucursal of sucursalList"
+            [value]="sucursal"
+            >{{ sucursal?.id }} -
+            {{ sucursal?.nombre | titlecase }}</mat-option
+          >
+        </mat-select>
+      </mat-form-field>
+    </div>
   </div>
   <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="10px">
     <div fxFlex="30%">

@@ -1,4 +1,4 @@
-import { Component, ElementRef, Inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, Inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dialog';
 import { Subscriber, Subscription } from 'rxjs';
@@ -28,7 +28,7 @@ import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.s
   templateUrl: './adicionar-retiro-dialog.component.html',
   styleUrls: ['./adicionar-retiro-dialog.component.scss']
 })
-export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy {
+export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterViewInit {
 
   @ViewChild("responsableInput", { static: false }) responsableInput: ElementRef;
   @ViewChild("stepper", { static: false }) stepper: MatStepper;
@@ -80,6 +80,11 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy {
         }
       });
     }
+  }
+  ngAfterViewInit(): void {
+    setTimeout(() => {
+      this.responsableInput.nativeElement.select()
+    }, 1000);
   }
 
   ngOnInit(): void {

@@ -42,7 +42,7 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
   selectedDeliveryIndex: number;
   dataSource = new MatTableDataSource<Delivery>([])
   selection = new SelectionModel<Delivery>(null)
-  calcularVueltoSub = new Subject();
+  calcularVueltoSub = new BehaviorSubject<void>(null);
 
   displayedColumns = [
     'id',
@@ -290,6 +290,18 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onGetPresupuesto() {
     this.presupuesto.copyToClipboard()
+  }
+
+  onVer(e){
+
+  }
+
+  onFinalizar(e){
+
+  }
+
+  onVuelto(e){
+
   }
 
 }

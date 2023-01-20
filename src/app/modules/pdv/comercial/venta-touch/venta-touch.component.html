@@ -35,11 +35,12 @@
         [focusEvent]="!isDialogOpen ? buscadorFocusSub.asObservable() : null"
         [openSearchEvent]="buscadorOpenSearch.asObservable()"
         (crearItemEvent)="crearItem($event)"
+        [mostrarPrecios]="mostrarPrecios"
       ></app-buscador>
     </div>
     <div fxFlex="15%" fxLayout="row" fxLayoutGap="10px">
       <div fxFlex="33%">
-        <app-boton nombre="Precios" [disableExpression]="true"></app-boton>
+        <app-boton clickDelay="0" [color]="mostrarPrecios ? 'accent' : 'primary'" nombre="Precios" [disableExpression]="false" (clickEvent)="mostrarPrecios = !mostrarPrecios"></app-boton>
       </div>
       <div fxFlex="33%">
         <app-boton
