@@ -45,7 +45,7 @@ sudo docker run -v C:\FRC\docker\rabbit-conf\rabbit-1000\:/config/ ^
 -p 15672:15672 ^
 -p 5672:5672 ^
 --restart=always ^
---net rabbits ^
+--network host ^
 -d ^
 rabbitmq:3.8-management
 
