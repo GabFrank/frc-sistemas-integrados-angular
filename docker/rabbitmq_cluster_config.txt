@@ -35,7 +35,7 @@ sudo docker run \
 rabbitmq:3.8-management
 y
 ------- filiales windows (cambiar id filial)---------
-sudo docker run -v ${PWD}\rabbit-conf\rabbit-1000\:/config/ ^
+sudo docker run -v C:\FRC\docker\rabbit-conf\rabbit-1000\:/config/ ^
 -e RABBITMQ_CONFIG_FILE=/config/rabbitmq ^
 -e RABBITMQ_ERLANG_COOKIE=WIWVHCDTCIUAWANLMQAW ^
 -e RABBITMQ_DEFAULT_USER=franco ^
