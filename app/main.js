@@ -67,13 +67,8 @@ function createWindow() {
             factor = electron_1.screen.getPrimaryDisplay().scaleFactor;
             // Create the browser window.
             win = new electron_1.BrowserWindow({
-                fullscreen: true,
-                x: 0,
-                y: 0,
-                frame: true,
-                width: 1024 / factor,
-                height: 768 / factor,
                 icon: "file://" + __dirname + "/dist/assets/logo.ico",
+                resizable: false,
                 webPreferences: {
                     webSecurity: false,
                     zoomFactor: 1.0 / factor,
@@ -83,9 +78,11 @@ function createWindow() {
                     // enableRemoteModule: true, // true if you want to run e2e test with Spectron or use remote module in renderer context (ie. Angular)
                 },
             });
+            win.maximize();
+            win.show();
             gotTheLock = electron_1.app.requestSingleInstanceLock();
             // if (!gotTheLock) {
-            //   app.quit();
+            //   app.quit(); 
             // } else {
             //   app.on("second-instance", (event, commandLine, workingDirectory) => {
             //     // Someone tried to run a second instance, we should focus our window.
@@ -139,134 +136,232 @@ try {
     // initialization and is ready to create browser windows.
     // Some APIs can only be used after this event occurs.
     // Added 400 ms to fix the black background issue while using transparent window. More detais at https://github.com/electron/electron/issues/15947
-    electron_1.app.on("ready", function () {
-        if (!isDev) {
-            electron_updater_1.autoUpdater.checkForUpdatesAndNotify();
-            setInterval(function () {
-                log.info('Buscando actualizacion');
-                electron_updater_1.autoUpdater.checkForUpdatesAndNotify();
-            }, 100000);
-        }
-        electron_updater_1.autoUpdater.on('update-available', function () {
-            log.info('Actualizacion disponible, descargando...');
-        });
-        electron_updater_1.autoUpdater.on('update-not-available', function () {
-            log.info('No existen actualizaciones disponibles...');
-        });
-        electron_updater_1.autoUpdater.on('update-downloaded', function (event, releaseNotes, releaseName) {
-            var dialogOpts = {
-                type: 'info',
-                buttons: ['Reiniciar'],
-                title: 'Actualización disponible',
-                message: process.platform === 'win32' ? releaseNotes : releaseName,
-                detail: 'Una actualización fue encontrada y descargada. Reinicie el programa para instalarla.'
-            };
-            electron_1.dialog.showMessageBox(dialogOpts).then(function (returnValue) {
-                if (returnValue.response === 0)
-                    electron_updater_1.autoUpdater.quitAndInstall();
-            });
-        });
-        electron_updater_1.autoUpdater.on('error', function (message) {
-            console.error('There was a problem updating the application');
-            console.error(message);
-        });
-        electron_1.Menu.setApplicationMenu(electron_1.Menu.buildFromTemplate([
-            {
-                role: "appMenu",
-                label: "Aplicacion",
-                submenu: [
-                    {
-                        label: "Reiniciar",
-                        click: function () {
-                            relaunchElectron();
-                        }
+    electron_1.app.on("ready", function () { return __awaiter(void 0, void 0, void 0, function () {
+        var options, result, isServidor, config, configJson, config2, configJson2;
+        return __generator(this, function (_a) {
+            if (!fs.existsSync(process.cwd() + "/configuracion-local.json")) {
+                options = {
+                    type: "info",
+                    title: "Configuration Input",
+                    message: "Please enter the configuration settings",
+                    buttons: ["OK", "Cancel"],
+                    defaultId: 0,
+                    cancelId: 1,
+                    checkboxLabel: "Es servidor?",
+                    checkboxChecked: false,
+                    ipDefault: {
+                        label: "Ip local:",
+                        value: "localhost",
                     },
-                    {
-                        label: "Open Dev Tools",
-                        click: function () {
-                            win.webContents.openDevTools();
+                    puertoDefault: {
+                        label: "Puerto local:",
+                        value: "8082",
+                    },
+                    idSucursal: {
+                        label: "Id de la sucursal:",
+                        value: "",
+                    },
+                    centralIp: {
+                        label: "Ip del servidor:",
+                        value: "150.136.137.98",
+                    },
+                    centralPort: {
+                        label: "Puerto del servidor:",
+                        value: "8081",
+                    },
+                    ticket: {
+                        label: "Impresora para ticket:",
+                        value: "ticket",
+                    },
+                    pdvId: {
+                        label: "Id del punto de venta:",
+                        value: "null",
+                    },
+                };
+                result = electron_1.dialog.showMessageBoxSync(options);
+                if (result === 0) {
+                    isServidor = options.checkboxChecked;
+                    config = {
+                        ipDefault: isServidor ? options.centralIp : options.defaultId,
+                        puertoDefault: isServidor ? options.centralPort : options.puertoDefault,
+                        centralIp: options.centralIp,
+                        centralPort: options.centralPort,
+                        ipCentralDefault: options.centralIp,
+                        puertoCentralDefault: options.centralPort,
+                        printers: {
+                            ticket: options.ticket,
+                            factura: "factura",
                         },
-                    },
-                    {
-                        label: "Close Dev Tools",
-                        click: function () {
-                            win.webContents.closeDevTools();
-                        },
-                    },
-                    {
-                        label: "Minimizar",
-                        click: function () {
-                            win.minimize();
-                        },
-                    },
-                    {
-                        label: "Zoom in",
-                        click: function () {
-                            win.webContents.setZoomLevel(win.webContents.zoomLevel + 1);
-                        },
-                    },
-                    {
-                        label: "Zoom out",
-                        click: function () {
-                            win.webContents.setZoomLevel(win.webContents.zoomLevel - 1);
-                        },
-                    },
-                    {
-                        label: "Salir",
-                        click: function () {
-                            electron_1.app.quit();
-                        },
-                    },
-                ],
-            },
-            {
-                role: 'editMenu',
-                label: "Editar",
-                submenu: [
-                    {
-                        label: 'Cortar',
-                        accelerator: 'CmdOrCtrl+X',
-                        role: 'cut',
-                    },
-                    {
-                        label: 'Copiar',
-                        accelerator: 'CmdOrCtrl+C',
-                        role: 'copy',
-                    },
-                    {
-                        label: 'Pegar',
-                        accelerator: 'CmdOrCtrl+V',
-                        role: 'paste',
-                    },
-                    {
-                        label: 'Deshacer',
-                        accelerator: 'CmdOrCtrl+Z',
-                        role: 'undo',
-                    },
-                    {
-                        label: 'Rehacer',
-                        accelerator: 'Shift+CmdOrCtrl+Z',
-                        role: 'redo',
-                    },
-                    {
-                        label: 'Seleccionar Todo',
-                        accelerator: 'CmdOrCtrl+A',
-                        role: 'selectAll',
-                    },
-                ],
-            },
-            {
-                role: 'about',
-                label: "Sobre",
-                submenu: [
-                    {
-                        label: electron_1.app.getVersion(),
-                    },
-                ],
+                        local: "Caja 1",
+                        precios: "EXPO",
+                        modo: "NOT",
+                    };
+                    configJson = JSON.stringify(config, null, 2);
+                    fs.writeFileSync(__dirname + "/configuracion-local.json", configJson);
+                    config2 = void 0;
+                    if (isServidor) {
+                        config2 = [
+                            {
+                                id: 0,
+                                nombre: "Servidor",
+                                ip: options.centralIp,
+                                port: options.centralPort,
+                            },
+                            {
+                                id: options.idSucursal,
+                                nombre: "Local",
+                                ip: options.ipDefault,
+                                port: options.puertoDefault,
+                            },
+                        ];
+                    }
+                    else {
+                        config2 = [
+                            {
+                                id: 0,
+                                nombre: "Servidor",
+                                ip: options.centralIp,
+                                port: options.centralPort,
+                            },
+                        ];
+                    }
+                    configJson2 = JSON.stringify(config2, null, 2);
+                    fs.writeFileSync(__dirname + "/configuracion.json", configJson2);
+                }
+                else {
+                    electron_1.app.quit();
+                }
             }
-        ]));
-        setTimeout(createWindow, 400);
-    });
+            // Create the browser window and start the Angular app
+            if (!isDev) {
+                electron_updater_1.autoUpdater.checkForUpdatesAndNotify();
+                setInterval(function () {
+                    log.info('Buscando actualizacion');
+                    electron_updater_1.autoUpdater.checkForUpdatesAndNotify();
+                }, 100000);
+            }
+            electron_updater_1.autoUpdater.on('update-available', function () {
+                log.info('Actualizacion disponible, descargando...');
+            });
+            electron_updater_1.autoUpdater.on('update-not-available', function () {
+                log.info('No existen actualizaciones disponibles...');
+            });
+            electron_updater_1.autoUpdater.on('update-downloaded', function (event, releaseNotes, releaseName) {
+                var dialogOpts = {
+                    type: 'info',
+                    buttons: ['Reiniciar'],
+                    title: 'Actualización disponible',
+                    message: process.platform === 'win32' ? releaseNotes : releaseName,
+                    detail: 'Una actualización fue encontrada y descargada. Reinicie el programa para instalarla.'
+                };
+                electron_1.dialog.showMessageBox(dialogOpts).then(function (returnValue) {
+                    if (returnValue.response === 0)
+                        electron_updater_1.autoUpdater.quitAndInstall();
+                });
+            });
+            electron_updater_1.autoUpdater.on('error', function (message) {
+                console.error('There was a problem updating the application');
+                console.error(message);
+            });
+            electron_1.Menu.setApplicationMenu(electron_1.Menu.buildFromTemplate([
+                {
+                    role: "appMenu",
+                    label: "Aplicacion",
+                    submenu: [
+                        {
+                            label: "Reiniciar",
+                            click: function () {
+                                relaunchElectron();
+                            }
+                        },
+                        {
+                            label: "Open Dev Tools",
+                            click: function () {
+                                win.webContents.openDevTools();
+                            },
+                        },
+                        {
+                            label: "Close Dev Tools",
+                            click: function () {
+                                win.webContents.closeDevTools();
+                            },
+                        },
+                        {
+                            label: "Minimizar",
+                            click: function () {
+                                win.minimize();
+                            },
+                        },
+                        {
+                            label: "Zoom in",
+                            click: function () {
+                                win.webContents.setZoomLevel(win.webContents.zoomLevel + 1);
+                            },
+                        },
+                        {
+                            label: "Zoom out",
+                            click: function () {
+                                win.webContents.setZoomLevel(win.webContents.zoomLevel - 1);
+                            },
+                        },
+                        {
+                            label: "Salir",
+                            click: function () {
+                                electron_1.app.quit();
+                            },
+                        },
+                    ],
+                },
+                {
+                    role: 'editMenu',
+                    label: "Editar",
+                    submenu: [
+                        {
+                            label: 'Cortar',
+                            accelerator: 'CmdOrCtrl+X',
+                            role: 'cut',
+                        },
+                        {
+                            label: 'Copiar',
+                            accelerator: 'CmdOrCtrl+C',
+                            role: 'copy',
+                        },
+                        {
+                            label: 'Pegar',
+                            accelerator: 'CmdOrCtrl+V',
+                            role: 'paste',
+                        },
+                        {
+                            label: 'Deshacer',
+                            accelerator: 'CmdOrCtrl+Z',
+                            role: 'undo',
+                        },
+                        {
+                            label: 'Rehacer',
+                            accelerator: 'Shift+CmdOrCtrl+Z',
+                            role: 'redo',
+                        },
+                        {
+                            label: 'Seleccionar Todo',
+                            accelerator: 'CmdOrCtrl+A',
+                            role: 'selectAll',
+                        },
+                    ],
+                },
+                {
+                    role: 'about',
+                    label: "Sobre",
+                    submenu: [
+                        {
+                            label: electron_1.app.getVersion(),
+                        },
+                    ],
+                }
+            ]));
+            setTimeout(createWindow, 400);
+            return [2 /*return*/];
+        });
+    }); });
     // Quit when all windows are closed.
     electron_1.app.on("window-all-closed", function () {
         // On OS X it is common for applications and their menu bar

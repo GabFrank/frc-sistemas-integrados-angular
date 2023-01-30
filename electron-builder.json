@@ -27,8 +27,17 @@
     ]
   },
   "nsis": {
+    "oneClick": false,
+    "perMachine": true,
+    "allowElevation": true,
+    "allowToChangeInstallationDirectory": false,
     "installerIcon": "./app/icons/logo.ico",
-    "uninstallerIcon": "./app/icons/logo_uninstall.ico"
+    "uninstallerIcon": "./app/icons/logo_uninstall.ico",
+    "guid": "FRC",
+    "include": "app/installer.nsh",
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "FRC"
   },
   "portable": {
     "splashImage": "dist/assets/logo_inicio.bmp"

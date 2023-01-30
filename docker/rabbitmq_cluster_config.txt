@@ -1,0 +1,71 @@
+
+// primero tenemos que crear una red interna en docker
+sudo docker network create rabbits
+------------------------------------------------------------------------------------
+// crear un archivo conf: rabbit.conf
+listeners.tcp.default = 5672
+default_user = franco
+default_pass = franco
+
+cluster_formation.peer_discovery_backend = rabbit_peer_discovery_classic_config
+cluster_formation.classic_config.nodes.1 = rabbit@rabbit-0
+cluster_formation.classic_config.nodes.2 = rabbit@rabbit-1
+
+cluster_partition_handling = autoheal
+------------------------------------------------------------------------------------
+// comando para iniciar el servicio rabbit con el archivo de configuracion
+// cambiar el RABBITMQ_ERLANG_COOKIE
+// cambiar el hostname
+// crear una carpeta rabbit-conf y agregar el archivo de configuracion
+
+------- servidor ---------
+sudo docker run \
+-v ${PWD}/rabbit-conf/rabbit-0:/config/ \
+-e RABBITMQ_CONFIG_FILE=/config/rabbitmq \
+-e RABBITMQ_ERLANG_COOKIE=WIWVHCDTCIUAWANLMQAW \
+-e RABBITMQ_DEFAULT_USER=franco \
+-e RABBITMQ_DEFAULT_PASS=franco \
+--hostname rabbit-0 \
+--name rabbit-0 \
+-p 8090:15672 \
+-p 5672:5672 \
+--restart=always \
+--net rabbits \
+-d \
+rabbitmq:3.8-management
+y
+------- filiales ---------
+sudo docker run \
+-v ${PWD}/rabbit-conf/rabbit-1000/:/config/ \
+-e RABBITMQ_CONFIG_FILE=/config/rabbitmq \
+-e RABBITMQ_ERLANG_COOKIE=WIWVHCDTCIUAWANLMQAW \
+-e RABBITMQ_DEFAULT_USER=franco \
+-e RABBITMQ_DEFAULT_PASS=franco \
+--hostname rabbit-1000 \
+--name rabbit-1000 \
+-p 15672:15672 \
+-p 5672:5672 \
+--restart=always \
+--net rabbits \
+-d \
+rabbitmq:3.8-management
+
+------------------------------------------------------------------------------------
+
+// habilitar el plugin de federacion
+docker exec -it rabbit-0 rabbitmq-plugins --offline enable rabbitmq_federation 
+docker exec -it rabbit-2 rabbitmq-plugins --offline enable rabbitmq_federation 
+
+------------------------------------------------------------------------------------
+
+// aplicar politica de mirroring en nuestro cluster 
+//primero entrar en el docker de uno de los servidores rabbit
+// adicionar todos los nodos
+docker exec -it rabbit-0 /bin/bash
+rabbitmqctl set_policy ha-fed \
+    ".*" '{"federation-upstream-set":"all", "ha-sync-mode":"automatic", "ha-mode":"nodes", "ha-params":["rabbit@rabbit-1"]}' \
+    --priority 1 \
+    --apply-to queues
+
+------------------------------------------------------------------------------------
+

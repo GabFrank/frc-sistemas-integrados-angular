@@ -9,7 +9,7 @@ restart cron
 /etc/init.d/cron restart
 
 -- comando para hacer backup de base de datos
-pg_dump -U franco -W central > central_servidor.sql
+pg_dump -U franco -W central > central_servidor_26_01_23.sql
 pg_dump -s -U franco -W general > bkp_filial_dev_25_10_22_schema_only.sql
 pg_dump -U franco -W general > canindeyu_bkp_11_01_23.sql
 -- comando para hacer restore de base de datos
@@ -119,9 +119,9 @@ sudo systemctl reset-failed
 -- actualizar servicio
 sudo systemctl stop frc.service
 eliminar frc-server.jar de /FRC/
-substituir frc-server.jar
+substituir frc-server.jar : wget -O frc-server.jar https://github.com/GabFrank/franco-system-backend-servidor/releases/download/v2.0.6/frc-server.jar
 sudo systemctl reenable frc.service
-sudo systemctl start frc.service
+sudo systemctl start frc.service && journalctl -f -u frc
 sudo systemctl status frc.service
 
 --conectar al servidor central via ssh
@@ -147,7 +147,8 @@ export GH_TOKEN="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"
 -- localizacion de logs del servicio
 /var/log/journal
 -- Cuanto el servidor queda sin espacio por los logs
-sudo find /var/log -type f -delete
+sudo find /var/log/journal/ -type f -delete
+sudo find /run/log/journal/ -type f -delete
 
 -- como crear un cron job
 https://stackoverflow.com/questions/28498400/restart-apache-service-automatically-using-cron-12am-daily

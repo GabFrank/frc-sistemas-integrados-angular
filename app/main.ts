@@ -1,7 +1,6 @@
-import { app, BrowserWindow, dialog, Menu, screen } from "electron";
+import { app, BrowserWindow, dialog, Menu, MessageBoxReturnValue, OpenDialogOptions, OpenDialogReturnValue, screen } from "electron";
 import { autoUpdater } from "electron-updater";
 import * as fs from "fs";
-import { totalmem } from "os";
 import * as path from "path";
 import * as url from "url";
 
@@ -41,13 +40,8 @@ export async function createWindow(): Promise<BrowserWindow> {
 
   // Create the browser window.
   win = new BrowserWindow({
-    fullscreen: true,
-    x: 0,
-    y: 0,
-    frame: false,
-    width: 1024 / factor,
-    height: 768 / factor,
     icon: `file://${__dirname}/dist/assets/logo.ico`,
+    resizable: false,
     webPreferences: {
       webSecurity: false,
       zoomFactor: 1.0 / factor,
@@ -57,6 +51,9 @@ export async function createWindow(): Promise<BrowserWindow> {
       // enableRemoteModule: true, // true if you want to run e2e test with Spectron or use remote module in renderer context (ie. Angular)
     },
   });
+
+  win.maximize();
+  win.show();
 
   const gotTheLock = app.requestSingleInstanceLock();
 
@@ -127,7 +124,104 @@ try {
   // initialization and is ready to create browser windows.
   // Some APIs can only be used after this event occurs.
   // Added 400 ms to fix the black background issue while using transparent window. More detais at https://github.com/electron/electron/issues/15947
-  app.on("ready", () => {
+  app.on("ready", async () => {
+
+    if (!fs.existsSync(`${process.cwd()}/configuracion-local.json`)) {
+      const options = {
+        type: "info",
+        title: "Configuration Input",
+        message: "Please enter the configuration settings",
+        buttons: ["OK", "Cancel"],
+        defaultId: 0,
+        cancelId: 1,
+        checkboxLabel: "Es servidor?",
+        checkboxChecked: false,
+        ipDefault: {
+          label: "Ip local:",
+          value: "localhost",
+        },
+        puertoDefault: {
+          label: "Puerto local:",
+          value: "8082",
+        },
+        idSucursal: {
+          label: "Id de la sucursal:",
+          value: "",
+        },
+        centralIp: {
+          label: "Ip del servidor:",
+          value: "150.136.137.98",
+        },
+        centralPort: {
+          label: "Puerto del servidor:",
+          value: "8081",
+        },
+        ticket: {
+          label: "Impresora para ticket:",
+          value: "ticket",
+        },
+        pdvId: {
+          label: "Id del punto de venta:",
+          value: "null",
+        },
+      };
+
+      const result = dialog.showMessageBoxSync(options);
+
+      if (result === 0) {
+        const isServidor = options.checkboxChecked;
+        const config = {
+          ipDefault: isServidor ? options.centralIp : options.defaultId,
+          puertoDefault: isServidor ? options.centralPort : options.puertoDefault,
+          centralIp: options.centralIp,
+          centralPort: options.centralPort,
+          ipCentralDefault: options.centralIp,
+          puertoCentralDefault: options.centralPort,
+          printers: {
+            ticket: options.ticket,
+            factura: "factura",
+          },
+          local: "Caja 1",
+          precios: "EXPO",
+          modo: "NOT",
+        };
+        const configJson = JSON.stringify(config, null, 2);
+        fs.writeFileSync(`${__dirname}/configuracion-local.json`, configJson);
+        let config2;
+        if (isServidor) {
+          config2 = [
+            {
+              id: 0,
+              nombre: "Servidor",
+              ip: options.centralIp,
+              port: options.centralPort,
+            },
+            {
+              id: options.idSucursal,
+              nombre: "Local",
+              ip: options.ipDefault,
+              port: options.puertoDefault,
+            },
+          ];
+        } else {
+          config2 = [
+            {
+              id: 0,
+              nombre: "Servidor",
+              ip: options.centralIp,
+              port: options.centralPort,
+            },
+          ];
+        }
+        const configJson2 = JSON.stringify(config2, null, 2);
+        fs.writeFileSync(`${__dirname}/configuracion.json`, configJson2);
+      } else {
+        app.quit();
+      }
+    }
+    // Create the browser window and start the Angular app
+
+
     if (!isDev) {
       autoUpdater.checkForUpdatesAndNotify();
       setInterval(() => {

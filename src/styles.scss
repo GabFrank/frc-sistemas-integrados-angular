@@ -175,3 +175,6 @@ input::selection {
   content: "*";
 }
 
+::-webkit-scrollbar {
+  display: none;
+}
