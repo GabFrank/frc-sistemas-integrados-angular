@@ -35,19 +35,19 @@ sudo docker run \
 rabbitmq:3.8-management
 y
 ------- filiales ---------
-sudo docker run \
--v ${PWD}/rabbit-conf/rabbit-1000/:/config/ \
--e RABBITMQ_CONFIG_FILE=/config/rabbitmq \
--e RABBITMQ_ERLANG_COOKIE=WIWVHCDTCIUAWANLMQAW \
--e RABBITMQ_DEFAULT_USER=franco \
--e RABBITMQ_DEFAULT_PASS=franco \
---hostname rabbit-1000 \
---name rabbit-1000 \
--p 15672:15672 \
--p 5672:5672 \
---restart=always \
---net rabbits \
--d \
+sudo docker run `
+-v ${PWD}/rabbit-conf/rabbit-1000/:/config/ `
+-e RABBITMQ_CONFIG_FILE=/config/rabbitmq `
+-e RABBITMQ_ERLANG_COOKIE=WIWVHCDTCIUAWANLMQAW `
+-e RABBITMQ_DEFAULT_USER=franco `
+-e RABBITMQ_DEFAULT_PASS=franco `
+--hostname rabbit-1000 `
+--name rabbit-1000 `
+-p 15672:15672 `
+-p 5672:5672 `
+--restart=always `
+--net rabbits `
+-d `
 rabbitmq:3.8-management
 
 ------------------------------------------------------------------------------------
