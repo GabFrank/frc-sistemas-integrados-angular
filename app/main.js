@@ -296,12 +296,22 @@ try {
                             label: "Zoom in",
                             click: function () {
                                 win.webContents.setZoomLevel(win.webContents.zoomLevel + 1);
+                                win.webContents
+                                    .executeJavaScript("localStorage.setItem(\"zoomLevel\", " + win.webContents.getZoomLevel() + ");", true)
+                                    .then(function (result) {
+                                    console.log(result);
+                                });
                             },
                         },
                         {
                             label: "Zoom out",
                             click: function () {
                                 win.webContents.setZoomLevel(win.webContents.zoomLevel - 1);
+                                win.webContents
+                                    .executeJavaScript("localStorage.setItem(\"zoomLevel\", " + win.webContents.getZoomLevel() + ");", true)
+                                    .then(function (result) {
+                                    console.log(result);
+                                });
                             },
                         },
                         {
@@ -383,7 +393,13 @@ try {
         // REDIRECT TO FIRST WEBPAGE AGAIN
     });
     win.webContents.setZoomFactor(1);
-    win.webContents.setZoomLevel(0);
+    win.webContents
+        .executeJavaScript('localStorage.getItem("zoomLevel");', true)
+        .then(function (result) {
+        if (result != null) {
+            win.webContents.setZoomLevel(+result);
+        }
+    });
     win.webContents.print({ silent: true });
     win.webContents.setWindowOpenHandler(function (_a) {
         var url = _a.url;

@@ -1,10 +1,87 @@
 <app-generic-list
   titulo="Transferencias"
   (adicionar)="onAdd()"
-  (filtrar)="onGetTransferencias()"
+  (filtrar)="onFilter()"
+  (resetFiltro)="onResetFiltro()"
   [isAdicionar]="mainService?.sucursalActual?.id == 0 ? true : false"
 >
   <div filtros fxLayout="column" style="width: 100%; height: 100%">
+    <div fxLayout="row wrap" fxLayoutGap="10px">
+      <mat-form-field fxFlex="10">
+        <mat-label>Id</mat-label>
+        <input matInput [formControl]="idControl" type="number" />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Sucursal de Origen</mat-label>
+        <mat-select [formControl]="sucOrigenControl">
+          <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
+            {{ sucursal.id }} - {{ sucursal.nombre }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Sucursal de Destino</mat-label>
+        <mat-select [formControl]="sucDestinoControl">
+          <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
+            {{ sucursal.id }} - {{ sucursal.nombre }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Estado</mat-label>
+        <mat-select [formControl]="estadoControl">
+          <mat-option *ngFor="let estado of estadoList" [value]="estado">
+            {{ estado | enumToString }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Etapa</mat-label>
+        <mat-select [formControl]="etapaControl">
+          <mat-option *ngFor="let etapa of etapaList" [value]="etapa">
+            {{ etapa | enumToString }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>Rango de fecha</mat-label>
+        <mat-date-range-input
+          [formGroup]="fechaFormGroup"
+          [rangePicker]="picker"
+          style="font-size: 1em; width: 100%"
+        >
+          <input
+            matStartDate
+            formControlName="inicio"
+            placeholder="Inicio"
+            [max]="today"
+          />
+          <input
+            matEndDate
+            formControlName="fin"
+            placeholder="Fin"
+            [max]="fechaInicioControl.value"
+          />
+        </mat-date-range-input>
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-date-range-picker #picker></mat-date-range-picker>
+
+        <mat-error
+          *ngIf="fechaFormGroup.controls.inicio.hasError('matStartDateInvalid')"
+          >Fecha inicial inválida</mat-error
+        >
+        <mat-error
+          *ngIf="fechaFormGroup.controls.fin.hasError('matEndDateInvalid')"
+          >Fecha final inválida</mat-error
+        >
+      </mat-form-field>
+    </div>
+
     <div fxFlex="80%" style="height: 100%"></div>
     <div
       fxFlex="20%"
@@ -106,7 +183,7 @@
           *matCellDef="let transferencia"
           style="text-align: center; width: 20%"
         >
-          {{ transferencia?.estado | enumToString | titlecase}}
+          {{ transferencia?.estado | enumToString | titlecase }}
         </td>
       </ng-container>
 
@@ -140,7 +217,7 @@
           *matCellDef="let transferencia"
           style="text-align: center; width: 15%"
         >
-          {{ transferencia?.creadoEn | date: "short" }}
+          {{ transferencia?.creadoEn | date : "short" }}
         </td>
       </ng-container>
 
@@ -224,7 +301,7 @@
                     {{ item?.presentacion?.producto?.descripcion | uppercase }}
                   </div>
                   <div fxFlex="50%">
-                    {{ item?.cantidad | number: "1.0-2" }}
+                    {{ item?.cantidad | number : "1.0-2" }}
                   </div>
                 </div>
                 <br />
@@ -245,22 +322,28 @@
           expandedTransferencia = expandedTransferencia === row ? null : row
         "
         [class.en-origen]="
-          row?.etapa == 'PRE_TRANSFERENCIA_CREACION' || row?.etapa == 'PRE_TRANSFERENCIA_ORIGEN'
+          row?.etapa == 'PRE_TRANSFERENCIA_CREACION' ||
+          row?.etapa == 'PRE_TRANSFERENCIA_ORIGEN'
         "
         [class.en-origen-preparacion]="
-          row?.etapa == 'PREPARACION_MERCADERIA' || row?.etapa == 'PREPARACION_MERCADERIA_CONCLUIDA'
+          row?.etapa == 'PREPARACION_MERCADERIA' ||
+          row?.etapa == 'PREPARACION_MERCADERIA_CONCLUIDA'
         "
         [class.en-origen-transito]="
-          row?.etapa == 'TRANSPORTE_VERIFICACION' || row?.etapa == 'TRANSPORTE_EN_CAMINO' || row?.etapa == 'TRANSPORTE_EN_DESTINO'
+          row?.etapa == 'TRANSPORTE_VERIFICACION' ||
+          row?.etapa == 'TRANSPORTE_EN_CAMINO' ||
+          row?.etapa == 'TRANSPORTE_EN_DESTINO'
         "
         [class.en-destino-destino]="
-          row?.etapa == 'RECEPCION_EN_VERIFICACION' || row?.etapa == 'RECEPCION_CONCLUIDA'
+          row?.etapa == 'RECEPCION_EN_VERIFICACION' ||
+          row?.etapa == 'RECEPCION_CONCLUIDA'
         "
         [class.en-destino-recepcion]="
-          row?.etapa == 'RECEPCION_EN_VERIFICACION' || row?.etapa == 'RECEPCION_CONCLUIDA'
+          row?.etapa == 'RECEPCION_EN_VERIFICACION' ||
+          row?.etapa == 'RECEPCION_CONCLUIDA'
         "
       ></tr>
-      
+
       <tr
         mat-row
         *matRowDef="let row; columns: ['expandedDetail']"

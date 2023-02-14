@@ -16,6 +16,8 @@ import { ListCajaComponent } from '../../../modules/financiero/pdv/caja/list-caj
 import { ListSectorComponent } from '../../../modules/empresarial/sector/list-sector/list-sector.component';
 import { SolicitarRecursosDialogComponent } from '../../../modules/configuracion/solicitar-recursos-dialog/solicitar-recursos-dialog.component';
 import { ROLES } from '../../../modules/personas/roles/roles.enum';
+import { PrecioDelivery } from '../../../modules/operaciones/delivery/precio-delivery.model';
+import { PrecioDeliveryComponent } from '../../../modules/operaciones/delivery/precio-delivery/precio-delivery.component';
 
 export enum TIPO_SEARCH {
   COMPONENTE = 'COMPONENTE',
@@ -46,7 +48,8 @@ export const componenteList: SearchData[] =
     { title: 'Actualizacion', component: ListActualizacionComponent },
     { title: 'Lista de cajas', component: ListCajaComponent, role: ROLES.ANALISIS_DE_CAJA },
     { title: 'Lista de sectores', component: ListSectorComponent },
-    { title: 'Solicitar Recursos', component: SolicitarRecursosDialogComponent, role: ROLES.SOPORTE }
+    { title: 'Solicitar Recursos', component: SolicitarRecursosDialogComponent, role: ROLES.SOPORTE },
+    { title: 'Precio del Delivery', component: PrecioDeliveryComponent }
   ]
 
 @UntilDestroy()

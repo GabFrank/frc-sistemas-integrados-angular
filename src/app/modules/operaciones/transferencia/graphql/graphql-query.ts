@@ -173,6 +173,35 @@ export const transferenciaQuery = gql`
   }
 `;
 
+export const transferenciasPorUsuarioQuery = gql`
+  query ($id: ID!) {
+    data: transferenciasPorUsuario(id: $id) {
+      id
+      sucursalOrigen {
+        id
+        nombre
+      }
+      sucursalDestino {
+        id
+        nombre
+      }
+      isOrigen
+      isDestino
+      tipo
+      estado
+      etapa
+      observacion
+      creadoEn
+      usuarioPreTransferencia {
+        id
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
 export const saveTransferencia = gql`
   mutation saveTransferencia($entity: TransferenciaInput!) {
     data: saveTransferencia(transferencia: $entity) {
@@ -229,6 +258,54 @@ export const deleteTransferenciaQuery = gql`
 export const transferenciaPorFechaQuery = gql`
   query ($inicio: String, $fin: String) {
     data: transferenciaPorFecha(inicio: $inicio, fin: $fin) {
+      id
+      sucursalOrigen {
+        id
+        nombre
+      }
+      sucursalDestino {
+        id
+        nombre
+      }
+      isOrigen
+      isDestino
+      tipo
+      estado
+      etapa
+      observacion
+      creadoEn
+      usuarioPreTransferencia {
+        id 
+        persona {
+          nombre
+        }
+      }
+      usuarioPreparacion {
+        id 
+        persona {
+          nombre
+        }
+      }
+      usuarioTransporte {
+        id 
+        persona {
+          nombre
+        }
+      }
+      usuarioRecepcion {
+        id 
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
+
+export const transferenciaWithFiltersQuery = gql`
+  query ($sucursalOrigenId: Int, $sucursalDestinoId: Int, $estado: TransferenciaEstado, $tipo: TipoTransferencia, $etapa: EtapaTransferencia, $isOrigen: Boolean, $isDestino: Boolean, $creadoDesde: String, $creadoHasta: String, $page: Int, $size: Int) {
+    data: transferenciasWithFilters(sucursalOrigenId: $sucursalOrigenId, sucursalDestinoId: $sucursalDestinoId, estado: $estado, tipo: $tipo, etapa: $etapa, isOrigen: $isOrigen, isDestino: $isDestino, creadoDesde: $creadoDesde, creadoHasta: $creadoHasta, page: $page, size: $size) {
       id
       sucursalOrigen {
         id

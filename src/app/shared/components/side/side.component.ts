@@ -29,6 +29,7 @@ import { CargandoDialogComponent } from '../cargando-dialog/cargando-dialog.comp
 import { CargandoDialogService } from '../cargando-dialog/cargando-dialog.service';
 import { ElectronService } from '../../../commons/core/electron/electron.service';
 import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
+import { DeliveryDashboardComponent } from '../../../modules/operaciones/delivery/delivery-dashboard/delivery-dashboard.component';
 
 @Component({
   selector: "app-side",
@@ -263,6 +264,11 @@ export class SideComponent implements OnInit {
           this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
+        case "delivery-dashboard":
+          this.tabService.addTab(
+            new Tab(DeliveryDashboardComponent, "Delivery Dash", null, null)
+          );
+          break;
     }
   }
 

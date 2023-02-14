@@ -160,5 +160,14 @@ https://www.loggly.com/ultimate-guide/linux-logging-with-systemd/
 - ejecutar .bat
 Runtime.getRuntime().exec("cmd /c start cmd.exe /K \"cd C:\\path\\to\\batch & batchfile.bat\"");
 
--- proxima pregunta para chatgpt 
-how to create a .bat file that downloads a new release of a .jar file from github repository, stop the current service, replace old .jar file with the new downloaded and start service
+-- Clean up journal
+https://nts.strzibny.name/cleaning-up-systemd-journal-logs-on-fedora/
+-- verificar disk usage
+sudo journalctl --disk-usage
+sudo journalctl --rotate
+sudo journalctl --vacuum-size=10M --vacuum-time=1d
+sudo systemctl restart systemd-journald.service
+sudo cat /etc/systemd/journald.conf
+
+-- docker las 100 logs
+sudo docker logs -f --tail 100 frc-server

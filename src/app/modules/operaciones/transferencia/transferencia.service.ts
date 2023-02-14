@@ -12,9 +12,11 @@ import { Observable } from 'rxjs';
 import { GetTransferenciaGQL } from './graphql/getTransferencia';
 import { GenericCrudService } from './../../../generics/generic-crud.service';
 import { Injectable } from '@angular/core';
-import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaInput } from './transferencia.model';
+import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaInput, TipoTransferencia } from './transferencia.model';
 import { DeleteTransferenciaGQL } from './graphql/deleteTransferencia';
 import { GetTransferenciaItensPorTransferenciaIdGQL } from './graphql/getTransferenciaItensPorTransferenciaId';
+import { GetTransferenciasPorUsuarioGQL } from './graphql/getTransferenciasPorUsuario';
+import { GetTransferenciasWithFilterGQL } from './graphql/getTransferenciasWithFilter';
 
 @UntilDestroy()
 @Injectable({
@@ -34,12 +36,19 @@ export class TransferenciaService {
     private notificacionService: NotificacionSnackbarService,
     private getTransferenciasPorFecha: GetTransferenciaPorFechaGQL,
     private mainService: MainService,
-    private transferenciaItemPorTransferenciaId: GetTransferenciaItensPorTransferenciaIdGQL
+    private transferenciaItemPorTransferenciaId: GetTransferenciaItensPorTransferenciaIdGQL,
+    private transferenciasPorUsuario: GetTransferenciasPorUsuarioGQL,
+    private getTransferenciasWithFiler: GetTransferenciasWithFilterGQL
   ) { }
 
   onGetTrasferenciasPorFecha(inicio, fin) {
     return this.genericCrudService.onGetByFecha(this.getTransferenciasPorFecha, inicio, fin);
   }
+
+  onGetTrasnferenciasPorUsuario(id): Observable<Transferencia[]> {
+    return this.genericCrudService.onGetById(this.transferenciasPorUsuario, id)
+  }
+
 
   onGetTransferencia(id): Observable<Transferencia> {
     return this.genericCrudService.onGetById(this.getTransferencia, id);
@@ -148,6 +157,33 @@ export class TransferenciaService {
         }
       })
     })
+  }
+
+  onGetTransferenciasWithFilters(
+    sucursalOrigenId?: number,
+    sucursalDestinoId?: number,
+    estado?: TransferenciaEstado,
+    tipo?: TipoTransferencia,
+    etapa?: EtapaTransferencia,
+    isOrigen?: boolean,
+    isDestino?: boolean,
+    creadoDesde?: string,
+    creadoHasta?: string,
+    page?: number,
+    size?: number) {
+    return this.genericCrudService.onCustomQuery(this.getTransferenciasWithFiler, {
+      sucursalOrigenId,
+      sucursalDestinoId,
+      estado,
+      tipo,
+      etapa,
+      isOrigen,
+      isDestino,
+      creadoDesde,
+      creadoHasta,
+      page,
+      size
+    });
   }
 }
 

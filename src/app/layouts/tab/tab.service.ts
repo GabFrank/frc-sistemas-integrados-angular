@@ -7,6 +7,9 @@ import { Tab } from './tab.model';
 import { FinancieroDashboardComponent } from '../../modules/financiero/financiero-dashboard/financiero-dashboard.component';
 import { ListFacturaLegalComponent } from '../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component';
 import { ListActualizacionComponent } from '../../modules/configuracion/actualizacion/list-actualizacion/list-actualizacion.component';
+import { DeliveryDashboardComponent } from '../../modules/operaciones/delivery/delivery-dashboard/delivery-dashboard.component';
+import { TransferenciaComponent } from '../../modules/operaciones/transferencia/transferencia.component';
+import { ListTransferenciaComponent } from '../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -39,7 +42,7 @@ export class TabService {
   ) {
 
     this.tabs = [
-      // new Tab(ListFuncioarioComponent, 'Lista de funcionarios', null, null),
+      new Tab(ListTransferenciaComponent, 'Lista de Transferencias', null, null),
       // new Tab(VentaTouchComponent, 'Venta', null, null),
     ];
     this.tabSub.next(this.tabs);

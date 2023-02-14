@@ -44,6 +44,12 @@
             "port": "8082"
         },
         {
+            "id": 14,
+            "nombre": "Suc. Canindeyu",
+            "ip": "172.25.164.10",
+            "port": "8082"
+        },
+        {
             "id": 15,
             "nombre": "Suc. San Pedro",
             "ip": "172.25.0.60",

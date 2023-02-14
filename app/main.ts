@@ -291,12 +291,22 @@ try {
               label: "Zoom in",
               click() {
                 win.webContents.setZoomLevel(win.webContents.zoomLevel + 1)
+                win.webContents
+                  .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true)
+                  .then(result => {
+                    console.log(result);
+                  });
               },
             },
             {
               label: "Zoom out",
               click() {
                 win.webContents.setZoomLevel(win.webContents.zoomLevel - 1)
+                win.webContents
+                  .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true)
+                  .then(result => {
+                    console.log(result);
+                  });
               },
             },
             {
@@ -381,8 +391,14 @@ try {
   });
 
   win.webContents.setZoomFactor(1)
-  win.webContents.setZoomLevel(0)
-
+  win.webContents
+  .executeJavaScript('localStorage.getItem("zoomLevel");', true)
+  .then(result => {
+    if(result!=null){
+      win.webContents.setZoomLevel(+result)
+    }
+  });
+  
   win.webContents.print({ silent: true });
 
   win.webContents.setWindowOpenHandler(({ url }) => {
