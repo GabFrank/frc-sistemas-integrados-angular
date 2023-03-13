@@ -1,4 +1,3 @@
-import { SearchBarDialogComponent } from './shared/widgets/search-bar-dialog/search-bar-dialog.component';
 import { OverlayContainer } from "@angular/cdk/overlay";
 import {
   Component,
@@ -10,24 +9,20 @@ import {
 } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
 import { MatSnackBar } from "@angular/material/snack-bar";
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { connectionStatusSub } from "./app.module";
 import { GenericCrudService } from "./generics/generic-crud.service";
 import { MainService } from "./main.service";
+import { ConfiguracionService } from "./modules/configuracion/configuracion.service";
+import { ConfigurarServidorDialogComponent } from "./modules/configuracion/configurar-servidor-dialog/configurar-servidor-dialog.component";
 import { LoginComponent } from "./modules/login/login.component";
 import {
   NotificacionColor,
   NotificacionSnackbarService,
 } from "./notificacion-snackbar.service";
-import { WindowInfoService } from "./shared/services/window-info.service";
-import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { ConfigurarServidorDialogComponent } from "./modules/configuracion/configurar-servidor-dialog/configurar-servidor-dialog.component";
-import { ConfiguracionService } from "./modules/configuracion/configuracion.service";
 import { CargandoDialogService } from './shared/components/cargando-dialog/cargando-dialog.service';
-import { CargandoDialogComponent } from './shared/components/cargando-dialog/cargando-dialog.component';
-import { Venta } from './modules/operaciones/venta/venta.model';
-import { AddFacturaLegalDialogComponent } from './modules/financiero/factura-legal/add-factura-legal-dialog/add-factura-legal-dialog.component';
-import { VentaItem } from './modules/operaciones/venta/venta-item.model';
-import { PrecioPorSucursal } from './modules/productos/precio-por-sucursal/precio-por-sucursal.model';
+import { WindowInfoService } from "./shared/services/window-info.service";
+import { SearchBarDialogComponent } from './shared/widgets/search-bar-dialog/search-bar-dialog.component';
 
 @UntilDestroy({ checkProperties: true })
 @Component({

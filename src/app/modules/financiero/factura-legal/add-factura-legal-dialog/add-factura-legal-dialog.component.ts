@@ -19,6 +19,7 @@ import { CajaService } from '../../pdv/caja/caja.service';
 import { EditFacturaLegalItemComponent } from '../edit-factura-legal-item/edit-factura-legal-item.component';
 import { FacturaLegal, FacturaLegalInput, FacturaLegalItem, FacturaLegalItemInput } from '../factura-legal.model';
 import { FacturaLegalService } from '../factura-legal.service';
+import { getDigitoVerificadorString } from '../../../../commons/core/utils/rucUtils';
 
 export interface FacturaLegalData {
   venta?: Venta;
@@ -52,6 +53,8 @@ export class AddFacturaLegalDialogComponent implements OnInit {
   selectedFacturaItem: FacturaLegalItem;
   cantidadHojas = 1;
 
+  digitoVerificador = ''
+
   guardarSub = new Subject<boolean>();
 
   constructor(
@@ -72,6 +75,15 @@ export class AddFacturaLegalDialogComponent implements OnInit {
     this.clienteDescripcionControl.disable()
     this.direccionControl.disable()
     this.cargarDatos()
+
+    this.rucControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
+      if(this.rucControl.value?.length > 6) {
+        this.digitoVerificador = getDigitoVerificadorString(this.rucControl.value);
+      } else {
+        this.digitoVerificador = ''
+      }
+    })
+    
   }
 
   cargarDatos() {

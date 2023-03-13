@@ -42,6 +42,7 @@ var electron_updater_1 = require("electron-updater");
 var fs = require("fs");
 var path = require("path");
 var url = require("url");
+var PosPrinter = require("electron-pos-printer").PosPrinter;
 var log = require('electron-log');
 var readFileSync = require('fs').readFileSync;
 var isDev = require('electron-is-dev');
@@ -68,7 +69,8 @@ function createWindow() {
             // Create the browser window.
             win = new electron_1.BrowserWindow({
                 icon: "file://" + __dirname + "/dist/assets/logo.ico",
-                resizable: false,
+                resizable: true,
+                maximizable: true,
                 webPreferences: {
                     webSecurity: false,
                     zoomFactor: 1.0 / factor,
@@ -130,6 +132,13 @@ ipcMain.on('get-config-file', function (event, arg) {
 });
 ipcMain.on('reiniciar', function (event, arg) {
     relaunchElectron();
+});
+ipcMain.on('print', function (event, data, options) {
+    PosPrinter.print(data, options)
+        .then(console.log)
+        .catch(function (error) {
+        console.error(error);
+    });
 });
 try {
     // This method will be called when Electron has finished

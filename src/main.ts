@@ -27,34 +27,30 @@ if (APP_CONFIG.production) {
   var configLocalFile: ConfigLocal = JSON.parse(readFileSync(configLocalPath));
 
   if (configLocalPath != null) {
-    if (localStorage.getItem('ip') == null || localStorage.getItem('centralIp') == null) {
-      environment['serverIp'] = configLocalFile.ipDefault;
-      environment['serverPort'] = configLocalFile.puertoDefault;
-      environment['serverCentralIp'] = configLocalFile.ipDefault;
-      environment['serverCentralPort'] = configLocalFile.puertoDefault;
-      localStorage.setItem('ip', configLocalFile.ipDefault)
+    if (localStorage.getItem('ip') == null) {
       localStorage.setItem('port', configLocalFile.puertoDefault + "")
+      localStorage.setItem('ip', configLocalFile.ipDefault)
+    }
+    if (localStorage.getItem('centralIp') == null) {
       localStorage.setItem('centralIp', configLocalFile.ipCentralDefault)
       localStorage.setItem('centralPort', configLocalFile.puertoCentralDefault + "")
-    } else {
-      environment['serverIp'] = localStorage.getItem('ip');
-      environment['serverPort'] = +localStorage.getItem('port');
-      environment['serverCentralIp'] = localStorage.getItem('centralIp');
-      environment['serverCentralPort'] = +localStorage.getItem('centralPort');
     }
+    environment['serverIp'] = localStorage.getItem('ip');
+    environment['serverPort'] = +localStorage.getItem('port');
+    environment['serverCentralIp'] = localStorage.getItem('centralIp');
+    environment['serverCentralPort'] = +localStorage.getItem('centralPort');
     environment['printers'] = configLocalFile.printers;
     environment['local'] = configLocalFile.local;
     environment['precios'] = configLocalFile.precios;
     environment['modo'] = configLocalFile.modo;
     environment['pdvId'] = configLocalFile.pdvId;
-
   } else {
     alert("Archivo de configuración local en falta")
   }
 
   if (configFile != null) {
     environment['sucursales'] = configFile.sucursales;
-  }  
+  }
 
   platformBrowserDynamic()
     .bootstrapModule(AppModule, {

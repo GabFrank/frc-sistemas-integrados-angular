@@ -1,7 +1,6 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from "@angular/common/http";
 import { Injectable } from "@angular/core";
-import { MatDialog } from "@angular/material/dialog";
-import { environment, serverAdress } from "../../../environments/environment";
+import { environment } from "../../../environments/environment";
 import { MainService } from "../../main.service";
 import { Usuario } from "../personas/usuarios/usuario.model";
 import { UsuarioService } from "../personas/usuarios/usuario.service";

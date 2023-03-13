@@ -171,3 +171,18 @@ sudo cat /etc/systemd/journald.conf
 
 -- docker las 100 logs
 sudo docker logs -f --tail 100 frc-server
+
+// encontrar diferencias entre base de datos
+ -- pg_dump by schema name
+pg_dump --on-conflict-do-nothing --inserts -h 172.25.0.23 -p 5551 -U franco -d general -n productos -f productos_rotonda.sql
+pg_dump --on-conflict-do-nothing --inserts -h 172.25.0.200 -p 5551 -U franco -d central -n productos -f productos_servidor.sql
+ -- diff entre dos archivos
+ diff -e
+
+ -- create a superuser on windows in powershell
+New-LocalUser -Name "franco" -Description "frc sistemas" -AccountNeverExpires -Password (ConvertTo-SecureString "franco" -AsPlainText -Force)
+Add-LocalGroupMember -Group "Administradores" -Member "franco"
+
+-- Habilitar un puerto en el firewall 
+sudo firewall-cmd --add-port=3000/tcp --permanent
+sudo firewall-cmd --reload

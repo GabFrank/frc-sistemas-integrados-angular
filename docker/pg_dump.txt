@@ -1,0 +1,46 @@
+-- pg_dump para filiales
+pg_dump -U franco -h localhost -p 5432 \
+-d general -f bkp_filial.sql \
+--exclude-table-data 'empresarial.sector' \
+--exclude-table-data 'empresarial.zona' \
+--exclude-table-data 'financiero.cambio_caja' \
+--exclude-table-data 'financiero.conteo' \
+--exclude-table-data 'financiero.conteo_moneda' \
+--exclude-table-data 'financiero.factura_legal' \
+--exclude-table-data 'financiero.factura_legal_item' \
+--exclude-table-data 'financiero.gasto' \
+--exclude-table-data 'financiero.gasto_detalle' \
+--exclude-table-data 'financiero.movimiento_caja' \
+--exclude-table-data 'financiero.movimiento_personas' \
+--exclude-table-data 'financiero.pdv_caja' \
+--exclude-table-data 'financiero.retiro' \
+--exclude-table-data 'financiero.retiro_detalle' \
+--exclude-table-data 'financiero.venta_credito' \
+--exclude-table-data 'financiero.venta_credito_cuota' \
+--exclude-table-data 'financiero.cobro' \
+--exclude-table-data 'financiero.cobro_detalle' \
+--exclude-table-data 'financiero.delivery' \
+--exclude-table-data 'financiero.entrada' \
+--exclude-table-data 'financiero.entrada_item' \
+--exclude-table-data 'financiero.inventario' \
+--exclude-table-data 'financiero.inventario_producto' \
+--exclude-table-data 'financiero.inventario_producto_item' \
+--exclude-table-data 'financiero.movimiento_stock' \
+--exclude-table-data 'financiero.necesidad' \
+--exclude-table-data 'financiero.necesidad_item' \
+--exclude-table-data 'financiero.nota_pedido' \
+--exclude-table-data 'financiero.nota_recepcion' \
+--exclude-table-data 'financiero.nota_recepcion_item' \
+--exclude-table-data 'financiero.pedido' \
+--exclude-table-data 'financiero.pedido_item' \
+--exclude-table-data 'financiero.pedido_item_sucursal' \
+--exclude-table-data 'financiero.salida' \
+--exclude-table-data 'financiero.salida_item' \
+--exclude-table-data 'financiero.sesion_inventario' \
+--exclude-table-data 'financiero.transferencia' \
+--exclude-table-data 'financiero.transferencia_item' \
+--exclude-table-data 'financiero.venta' \
+--exclude-table-data 'financiero.venta_item' \
+--exclude-table-data 'financiero.vuelto' \
+--exclude-table-data 'financiero.vuelto_item'
+

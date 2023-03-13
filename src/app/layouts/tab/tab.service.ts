@@ -10,6 +10,8 @@ import { ListActualizacionComponent } from '../../modules/configuracion/actualiz
 import { DeliveryDashboardComponent } from '../../modules/operaciones/delivery/delivery-dashboard/delivery-dashboard.component';
 import { TransferenciaComponent } from '../../modules/operaciones/transferencia/transferencia.component';
 import { ListTransferenciaComponent } from '../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
+import { ListProductoComponent } from '../../modules/productos/producto/list-producto/list-producto.component';
+import { EditTransferenciaComponent } from '../../modules/operaciones/transferencia/edit-transferencia/edit-transferencia.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -42,7 +44,7 @@ export class TabService {
   ) {
 
     this.tabs = [
-      new Tab(ListTransferenciaComponent, 'Lista de Transferencias', null, null),
+      // new Tab(EditTransferenciaComponent, 'Editar transferencia', null, null),
       // new Tab(VentaTouchComponent, 'Venta', null, null),
     ];
     this.tabSub.next(this.tabs);

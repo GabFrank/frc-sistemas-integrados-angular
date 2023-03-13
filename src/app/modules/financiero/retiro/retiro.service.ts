@@ -74,7 +74,7 @@ export class RetiroService {
             obs.next(res.data.data);
           } else {
             this.notificacionBar.notification$.next({
-              texto: "Ups!! Algo salio mal" + res.errors[0].message,
+              texto: "Ups!! Algo salio mal: " + res.errors[0].message,
               color: NotificacionColor.danger,
               duracion: 5,
             });

@@ -1,9 +1,8 @@
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import { Injectable } from "@angular/core";
-import { untilDestroyed } from "@ngneat/until-destroy";
 import { Subscription } from "apollo-angular";
 import { Observable } from "rxjs";
-import { environment, serverAdress } from "../../../environments/environment";
+import { environment } from "../../../environments/environment";
 import { GenericCrudService } from "../../generics/generic-crud.service";
 import { SincEstadoGQL } from "./graphql/sinc-estado-sub";
 import { SolicitarResourcesGQL } from "./graphql/solicitar-resources";

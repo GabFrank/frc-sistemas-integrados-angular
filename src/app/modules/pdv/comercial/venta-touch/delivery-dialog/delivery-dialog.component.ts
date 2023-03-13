@@ -719,8 +719,8 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
     // })
   }
 
-  onSalir() {
-
+  onSalir() {    
+    this.matDialogRef.close()
   }
   onPresupuesto() {
     this.matDialog.open(DeliveryPresupuestoDialogComponent, {

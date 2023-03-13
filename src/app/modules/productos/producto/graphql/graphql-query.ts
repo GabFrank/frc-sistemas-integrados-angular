@@ -81,6 +81,7 @@ export const productoSearchPdv = gql`
       diasVencimiento
       observacion
       codigoPrincipal
+      precioPrincipal
       envase {
         id
         descripcion

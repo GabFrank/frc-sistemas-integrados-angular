@@ -20,8 +20,3 @@ export const environment = {
   },
   
 };
-
-export const serverAdress = {
-  serverIp: localStorage.getItem('serverIpAddress') != null ? localStorage.getItem('serverIpAddress') : ipAddress,
-  serverPort: port
-}

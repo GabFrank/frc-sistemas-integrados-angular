@@ -43,12 +43,13 @@
     "splashImage": "dist/assets/logo_inicio.bmp"
   },
   "mac": {
-    "icon": "dist/assets/icons",
+    "icon": "./app/icons/logo_inicio.png",
     "target": ["dmg"]
   },
   "linux": {
-    "icon": "dist/assets/icons",
-    "target": ["AppImage"]
+    "icon": "./app/icons/logo_inicio.png",
+    "target": ["AppImage"],
+    "category": "Utility"
   },
   "afterAllArtifactBuild": "./afterAllArtifactBuild.js"
 }

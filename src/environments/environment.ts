@@ -29,9 +29,3 @@ export const environment = {
   modo: null,
   pdvId: null
 };
-
-export const serverAdress = {
-  serverIp: ipAddress,
-  serverPort: port
-}
-

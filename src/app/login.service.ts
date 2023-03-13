@@ -6,7 +6,7 @@ import {
 import { Injectable } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
 import { StorageMap } from "@ngx-pwa/local-storage";
-import { environment, serverAdress } from "../environments/environment";
+import { environment } from "../environments/environment";
 import { MainService } from "./main.service";
 import { Usuario } from "./modules/personas/usuarios/usuario.model";
 import { UsuarioService } from "./modules/personas/usuarios/usuario.service";

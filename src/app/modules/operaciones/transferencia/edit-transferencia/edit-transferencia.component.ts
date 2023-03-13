@@ -23,6 +23,10 @@ import { FormControl, Validators } from '@angular/forms';
 import { Producto } from '../../../productos/producto/producto.model';
 import { ProductoService } from '../../../productos/producto/producto.service';
 import { MatSelect } from '@angular/material/select';
+import { Moneda } from '../../../financiero/moneda/moneda.model';
+import { Subscription } from 'rxjs';
+import { MonedaService } from '../../../financiero/moneda/moneda.service';
+import { comparatorLike } from '../../../../commons/core/utils/string-utils';
 
 
 
@@ -45,6 +49,8 @@ export class EditTransferenciaComponent implements OnInit {
   @ViewChild('cantPresentacionInput', { static: false }) cantPresentacionInput: ElementRef;
   @ViewChild('vencimientoInput', { static: false }) vencimientoInput: ElementRef;
   @ViewChild('matSelect', { static: false }) matSelect: MatSelect;
+  @ViewChild("monedaInput", { static: false }) monedaInput: ElementRef;
+  @ViewChild("monedaVueltoInput", { static: false }) monedaVueltoInput: ElementRef;
 
   @Input()
   data: Tab;
@@ -101,15 +107,21 @@ export class EditTransferenciaComponent implements OnInit {
   cantidadPresentacionControl = new FormControl(1, [Validators.min(0), Validators.pattern('\\d+([.]\\d+)?')]);
   cantidadUnidadControl = new FormControl(1, [Validators.min(0), Validators.pattern('\\d+([.]\\d+)?')]);
   vencimientoControl = new FormControl(null)
+  monedaControl = new FormControl(null)
+
+  monedaList: Moneda[]
+  filteredMonedaList: Moneda[]
+  selectedMoneda: Moneda;
+  monedaSub: Subscription;
+  monedaTimer;  
 
   constructor(private matDialog: MatDialog,
     public mainService: MainService,
     private transferenciaService: TransferenciaService,
     private cargandoService: CargandoDialogService,
-    private productoService: ProductoService
-  ) {
-
-  }
+    private productoService: ProductoService,
+    private monedaService: MonedaService
+  ) {}
 
   ngOnInit(): void {
     this.selectedTransferencia = new Transferencia;
@@ -143,6 +155,34 @@ export class EditTransferenciaComponent implements OnInit {
       this.codigoInput.nativeElement.focus()
     }, 1000);
 
+    setTimeout(() => {
+      this.monedaList = this.monedaService.monedaList;
+      this.onMonedaSelect(this.monedaList[0])
+    }, 0);
+
+    this.monedaSub = this.monedaControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
+      if (this.monedaControl.dirty) {
+        if (res == "") this.selectedMoneda = null;
+        if (this.monedaTimer != null) {
+          clearTimeout(this.monedaTimer);
+        }
+        if (res != null && res.length != 0) {
+          this.monedaTimer = setTimeout(() => {
+            this.filteredMonedaList = this.monedaList.filter(p => p.id == res || comparatorLike(res, p.denominacion))
+            if (this.filteredMonedaList.length == 1) {
+              this.onMonedaSelect(this.filteredMonedaList[0]);
+              this.onMonedaAutocompleteClose();
+            } else {
+              this.onMonedaAutocompleteClose();
+              this.onMonedaSelect(null);
+            }
+          }, 500);
+        } else {
+          this.filteredMonedaList = [];
+        }
+      }
+    });
+
   }
 
   @HostListener("window:keyup", ["$event"])
@@ -156,6 +196,15 @@ export class EditTransferenciaComponent implements OnInit {
         default:
           break;
       }
+    }
+  }
+
+  onMonedaSelect(e) {
+    if (e?.id != null) {
+      this.selectedMoneda = e;
+      this.monedaControl.setValue(
+        this.selectedMoneda?.id + " - " + this.selectedMoneda?.denominacion
+      );
     }
   }
 
@@ -711,5 +760,11 @@ export class EditTransferenciaComponent implements OnInit {
   nuevaTransferencia(){
     this.onClear()
     this.selectedTransferencia
+  }
+
+  onMonedaAutocompleteClose() {
+    setTimeout(() => {
+      this.monedaInput.nativeElement.select();
+    }, 100);
   }
 }

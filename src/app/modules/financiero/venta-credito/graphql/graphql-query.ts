@@ -76,6 +76,8 @@ export const ventaCreditoAuthSubQuery = gql
     data: ventaCreditoAuthQrSub {
       clienteId
       timestamp
+      sucursalId
+      secretKey
     }
   }`
 

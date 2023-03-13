@@ -10,6 +10,7 @@ import { ConfigFile } from '../../../../environments/conectionConfig';
 import { Observable } from 'rxjs';
 import { ElectronServiceRef } from 'ngx-electron';
 import { ElectronService as ElService }  from 'ngx-electron';
+import { environment } from '../../../../environments/environment';
 
 
 @Injectable({
@@ -57,5 +58,24 @@ export class ElectronService {
 
   relaunch(){
     this.ipcRenderer.send('reiniciar')
+  }
+
+  print(data){
+    const options = {
+      preview: false,
+      margin: '0 0 0 0',    
+      copies: 1,
+      printerName: environment['printers']['ticket'],
+      timeOutPerLine: 400,
+      pageSize: '58mm', // page size,
+      silent: true,
+      dpi: {
+        horizontal: 300,
+        vertical: 300
+      }
+   }
+
+   this.ipcRenderer.send('print', data, options)
+
   }
 }

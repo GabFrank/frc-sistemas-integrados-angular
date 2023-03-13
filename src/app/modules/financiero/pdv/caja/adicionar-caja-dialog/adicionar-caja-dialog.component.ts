@@ -357,7 +357,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
         this.focusToCierreSub.next(null);
         break;
       case "imprimir":
-        if (this.selectedCaja != null) this.cajaService.onImprimirBalance(this.selectedCaja?.id)
+        if (this.selectedCaja != null) this.cajaService.onImprimirBalance(this.selectedCaja?.id, this.selectedCaja?.sucursalId)
         break;
       case "imprimir-factura":
         if (this.selectedCaja != null) this.facturaService.onImprimirFacturasPorCaja(this.selectedCaja?.id)

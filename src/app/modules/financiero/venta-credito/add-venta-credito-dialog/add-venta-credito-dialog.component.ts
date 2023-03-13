@@ -19,6 +19,7 @@ import { PersonaService } from '../../../personas/persona/persona.service';
 import { EstadoVentaCredito, TipoConfirmacion, VentaCredito, VentaCreditoCuotaInput } from '../venta-credito.model';
 import { VentaCreditoService } from '../venta-credito.service';
 import { isNumber } from 'util';
+import { generateRandomString } from '../../../../commons/core/utils/string-utils';
 
 export class AddVentaCreditoData {
   valor: number;
@@ -69,7 +70,7 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
     private notificacionService: NotificacionSnackbarService,
     private matDialog: MatDialog,
     private mainService: MainService,
-    private ventaCreditoService: VentaCreditoService
+    private ventaCreditoService: VentaCreditoService,
   ) { }
 
 
@@ -162,16 +163,13 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
 
   onSearchByNombre() {
     this.clienteService.onSearchFromServer(this.nombreClienteControl.value).subscribe(res2 => {
-      console.log(res2);
-      
       if (res2 != null) {
         if (res2.length == 1) {
           this.onClienteSelect(res2[0])
           this.onClienteAutocompleteClose();
         } else if (res2.length > 1) {
           this.clienteList = res2;
-          console.log(this.clienteList);
-          
+
         } else {
           this.onClienteAutocompleteClose();
           this.onClienteSelect(null);
@@ -258,12 +256,15 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   onQrClick() {
     let now = Date.now()
     let id = this.selectedCliente.persona.id;
+    let secretKey = generateRandomString(16);
     let qrData: QrData = {
-      idOrigen: this.mainService.sucursalActual.id,
+      idOrigen: id,
       tipoEntidad: TipoEntidad.VENTA_CREDITO,
-      data: id,
-      timestamp: now
+      data: secretKey,
+      timestamp: now,
+      sucursalId: this.mainService.sucursalActual.id
     }
+    console.log(qrData);
     let qrDialogRef = this.matDialog.open(QrCodeComponent, {
       data: {
         codigo: qrData,
@@ -272,19 +273,17 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
       }
     })
 
-    this.ventaSub = this.ventaCreditoService.ventaCreditoQrSub().subscribe(res => {
-      if (res['clienteId'] == qrData.data) {
-        let diff = ((Date.now() - (+qrData.timestamp)) / 1000) / 60;
-        console.log(diff);
+    this.ventaSub = this.ventaCreditoService.ventaCreditoQrSub().pipe(untilDestroyed(this)).subscribe(res => {
+      console.log(res);
 
+      if (+res['clienteId'] == +id && +this.mainService.sucursalActual.id == +res['sucursalId'] && secretKey == res['secretKey']) {
+        let diff = ((Date.now() - (+qrData.timestamp)) / 1000) / 60;
         if (diff < 60) {
           this.ventaSub.unsubscribe()
           qrDialogRef.close()
           this.tipoConfirmacion = TipoConfirmacion.QR;
           this.onConfirmVentaCredito()
         }
-      } else {
-        this.notificacionService.openWarn('Cliente incorrecto.')
       }
     })
   }

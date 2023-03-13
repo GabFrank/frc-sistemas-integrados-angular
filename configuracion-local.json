@@ -1,15 +1,16 @@
 {
   "ipDefault": "localhost",
   "puertoDefault": "8082",
-  "centralIp": "localhost",
+  "centralIp": "172.25.0.1",
   "centralPort": "8081",
-  "ipCentralDefault": "localhost",
+  "ipCentralDefault": "172.25.0.1",
   "puertoCentralDefault": "8081",
   "printers": {
-    "ticket": "v-ticket",
+    "ticket": "mb-ticket",
     "factura": "factura"
   },
   "local": "Caja 1",
   "precios": "EXPO",
-  "modo": "NOT"
+  "modo": "NOT",
+  "pdvId": 1
 }

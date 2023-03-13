@@ -1,9 +1,11 @@
 import { SelectionModel } from '@angular/cdk/collections';
 import { AfterViewInit, Component, ElementRef, Inject, OnDestroy, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
-import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { FormControl } from '@angular/forms';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatRow, MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy } from '@ngneat/until-destroy';
-import { updateDataSource } from '../../../../../commons/core/utils/numbersUtils';
+import { BehaviorSubject } from 'rxjs';
+import { updateDataSource, updateDataSourceWithId } from '../../../../../commons/core/utils/numbersUtils';
 import { BotonComponent } from '../../../../../shared/components/boton/boton.component';
 import { FormaPago } from '../../../../financiero/forma-pago/forma-pago.model';
 import { Moneda } from '../../../../financiero/moneda/moneda.model';
@@ -13,10 +15,6 @@ import { DeliveryService } from '../delivery-dialog/delivery.service';
 import { DeliveryPresupuestoDialogComponent } from '../delivery-presupuesto-dialog/delivery-presupuesto-dialog.component';
 import { DeliveryOpcionesDialogComponent } from './delivery-opciones-dialog/delivery-opciones-dialog.component';
 import { EditDeliveryDialogComponent } from './edit-delivery-dialog/edit-delivery-dialog.component';
-import { enumToArray } from '../../../../../commons/core/utils/enumUtils';
-import { FormControl } from '@angular/forms';
-import { BehaviorSubject, Subject } from 'rxjs';
-import { PagoTouchComponent } from '../pago-touch/pago-touch.component';
 
 export interface ListDeliveryData {
   delivery?: Delivery;
@@ -223,7 +221,7 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
               this.deliveryService.onSaveDeliveryEstado(this.selectedDelivery?.id, DeliveryEstado.PARA_ENTREGA).subscribe(res => {
                 if (res != null) {
                   this.selectedDelivery.estado = res.estado;
-                  this.dataSource.data = updateDataSource(this.dataSource.data, this.selectedDelivery, index)
+                  this.dataSource.data = updateDataSourceWithId(this.dataSource.data, this.selectedDelivery, this.selectedDelivery?.id)
                   this.calcularDuracion()
                 }
               })
@@ -302,6 +300,10 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onVuelto(e){
 
+  }
+
+  onSalir() {    
+    this.matDialogRef.close()
   }
 
 }

@@ -72,7 +72,7 @@
                 *ngFor="let funcionario of responsableList"
                 [value]="funcionario"
               >
-                {{ funcionario.id }} -
+                {{ funcionario.persona?.id }} -
                 {{ funcionario?.persona?.nombre | uppercase }}
               </mat-option>
             </mat-autocomplete>

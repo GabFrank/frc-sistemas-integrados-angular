@@ -90,12 +90,14 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   displayedColumnsId: string[] = [
     "id",
     "descripcion",
-    "precio1",
+    "codigo",
+    "precio",
   ];
   displayedColumns: string[] = [
     "id",
     "descripcion",
-    "precio1",
+    "codigo",
+    "precio",
   ];
 
   constructor(

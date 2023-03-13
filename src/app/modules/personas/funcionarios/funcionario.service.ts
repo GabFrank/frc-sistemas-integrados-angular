@@ -1,24 +1,23 @@
-import { CargandoDialogService } from './../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Injectable, Type } from "@angular/core";
-import { AllFuncionariosGQL } from "./graphql/allFuncionarios";
-import { FuncionarioInput } from "./funcionario-input.model";
+import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
-import { Funcionario } from "./funcionario.model";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
-import { SaveFuncionarioGQL } from "./graphql/saveFuncionario";
 import {
-  NotificacionColor,
-  NotificacionSnackbarService,
+  NotificacionSnackbarService
 } from "../../../notificacion-snackbar.service";
+import { CargandoDialogService } from './../../../shared/components/cargando-dialog/cargando-dialog.service';
+import { FuncionarioInput } from "./funcionario-input.model";
+import { Funcionario } from "./funcionario.model";
+import { AllFuncionariosGQL } from "./graphql/allFuncionarios";
 import { FuncionarioSearchGQL } from "./graphql/funcionarioSearch";
+import { SaveFuncionarioGQL } from "./graphql/saveFuncionario";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { environment } from '../../../../environments/environment';
 import { DeletePreRegistroFuncionarioGQL } from "./graphql/graphql-pre-funcionario/deletePreRegistroFuncionario";
 import { PreRegistroFuncionarioByIdGQL } from "./graphql/graphql-pre-funcionario/preRegistroFuncionarioById";
 import { PreRegistroFuncionariosGQL } from "./graphql/graphql-pre-funcionario/preRegistroFuncionariosQuery";
 import { SavePreRegistroFuncionarioGQL } from "./graphql/graphql-pre-funcionario/savePreRegistroFuncionario";
-import { environment, serverAdress } from '../../../../environments/environment';
 import { PreRegistroFuncionario } from './pre-registro-funcionario.model';
 
 @UntilDestroy({ checkProperties: true })

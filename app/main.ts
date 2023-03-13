@@ -3,6 +3,7 @@ import { autoUpdater } from "electron-updater";
 import * as fs from "fs";
 import * as path from "path";
 import * as url from "url";
+const {PosPrinter} = require("electron-pos-printer");
 
 const log = require('electron-log');
 const { readFileSync } = require('fs');
@@ -16,9 +17,6 @@ autoUpdater.setFeedURL({
   repo: 'franco-system-frontend-general',
   private: false
 });
-
-
-
 
 const { ipcMain } = require('electron');
 
@@ -41,7 +39,8 @@ export async function createWindow(): Promise<BrowserWindow> {
   // Create the browser window.
   win = new BrowserWindow({
     icon: `file://${__dirname}/dist/assets/logo.ico`,
-    resizable: false,
+    resizable: true,
+    maximizable: true,
     webPreferences: {
       webSecurity: false,
       zoomFactor: 1.0 / factor,
@@ -115,9 +114,15 @@ ipcMain.on('get-config-file', (event, arg) => {
 
 ipcMain.on('reiniciar', (event: any, arg: any) => {
   relaunchElectron()
-}
+})
 
-);
+ipcMain.on('print', (event: any, data: any, options: any) => {
+  PosPrinter.print(data, options)
+ .then(console.log)
+ .catch((error) => {
+    console.error(error);
+  });
+})
 
 try {
   // This method will be called when Electron has finished
@@ -392,13 +397,13 @@ try {
 
   win.webContents.setZoomFactor(1)
   win.webContents
-  .executeJavaScript('localStorage.getItem("zoomLevel");', true)
-  .then(result => {
-    if(result!=null){
-      win.webContents.setZoomLevel(+result)
-    }
-  });
-  
+    .executeJavaScript('localStorage.getItem("zoomLevel");', true)
+    .then(result => {
+      if (result != null) {
+        win.webContents.setZoomLevel(+result)
+      }
+    });
+
   win.webContents.print({ silent: true });
 
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -434,4 +439,5 @@ export function relaunchElectron() {
       })
     );
   }
+
 }

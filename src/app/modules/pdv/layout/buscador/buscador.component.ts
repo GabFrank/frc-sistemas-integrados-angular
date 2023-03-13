@@ -140,7 +140,7 @@ export class BuscadorComponent implements OnInit {
   onEnterPress() {
     let multiIndex = this.buscadorControl.value?.indexOf('*')
     if (multiIndex > -1) {
-      this.cantidadControl.setValue(this.buscadorControl.value?.slice(0, multiIndex))
+      this.cantidadControl.setValue(+this.buscadorControl.value?.slice(0, multiIndex))
       this.buscadorControl.setValue(this.buscadorControl.value?.slice(multiIndex + 1))
     }
     this.buscarPorCodigo(this.buscadorControl.value);

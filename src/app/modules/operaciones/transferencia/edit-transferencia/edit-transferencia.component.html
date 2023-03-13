@@ -28,13 +28,13 @@
         <div fxFlex="25" fxLayout="column">
           <div class="title" fxFlex="50">Creado En</div>
           <div fxFlex="50">
-            {{ selectedTransferencia?.creadoEn | date: "short" }}
+            {{ selectedTransferencia?.creadoEn | date : "short" }}
           </div>
         </div>
         <div fxFlex="25" fxLayout="column">
           <div class="title" fxFlex="50">Estado</div>
           <div fxFlex="50">
-            {{ selectedTransferencia?.estado | enumToString | titlecase}}
+            {{ selectedTransferencia?.estado | enumToString | titlecase }}
           </div>
         </div>
       </div>
@@ -79,20 +79,6 @@
           style="width: 100%"
           fxLayoutAlign="start center"
         >
-          <!-- <div fxFlex="5%">
-            <mat-icon style="color: #43a047">circle</mat-icon>
-          </div>
-          <div fxFlex="10%">Sin cambios</div>
-          <div fxFlex="5%"></div>
-          <div fxFlex="5%">
-            <mat-icon style="color: #f57c00">circle</mat-icon>
-          </div>
-          <div fxFlex="10%">Modificado</div>
-          <div fxFlex="5%"></div>
-          <div fxFlex="5%">
-            <mat-icon style="color: #f44336">circle</mat-icon>
-          </div>
-          <div fxFlex="10%">Rechazado</div> -->
           <div fxFlex="5"></div>
           <div
             class="raised-button"
@@ -137,18 +123,18 @@
           </div>
         </div>
         <div
-            class="raised-button"
-            fxFlex="15%"
-            fxLayout="row"
-            style="width: 100%"
-            fxLayoutAlign="start center"
-            (click)="nuevaTransferencia()"
-          >
-            <div fxFlex="70">Nueva Transferencia</div>
-            <div fxFle="30">
-              <mat-icon style="font-size: 2em">add_circle</mat-icon>
-            </div>
+          class="raised-button"
+          fxFlex="15%"
+          fxLayout="row"
+          style="width: 100%"
+          fxLayoutAlign="start center"
+          (click)="nuevaTransferencia()"
+        >
+          <div fxFlex="70">Nueva Transferencia</div>
+          <div fxFle="30">
+            <mat-icon style="font-size: 2em">add_circle</mat-icon>
           </div>
+        </div>
         <div fxFlex="15%">
           <button
             *ngIf="isPreTransferenciaCreacion"
@@ -254,10 +240,9 @@
       </div>
       <mat-card
         fxFlex
-        fxLayout="row"
+        fxLayout="column"
         style="width: 100%"
         fxLayoutGap="10px"
-        fxLayoutAlign="space-around center"
         style="
           background-color: rgb(66, 66, 66);
           padding-top: 15px;
@@ -265,104 +250,146 @@
         "
         *ngIf="isPreTransferenciaCreacion"
       >
-        <div fxFlex="5%" style="text-align: center">
-          <img
-            [src]="
-              presentacionControl.value?.imagenPrincipal != null
-                ? presentacionControl.value?.imagenPrincipal
-                : 'assets/no-image.png'
-            "
-            style="width: 50px; height: 50px; object-fit: contain"
-          />
-        </div>
-        <div fxFlex="25" fxLayout="column">
-          <div fxFlex>
-            DESCRIPCION: {{ selectedProducto?.descripcion | uppercase }}
-          </div>
-          <div fxFlex>
-            FACTURA : {{ selectedProducto?.descripcionFactura | uppercase }}
-          </div>
-        </div>
-        <div fxFlex="20%">
-          <mat-form-field style="width: 100%" appearance="outline">
-            <mat-label>Código de barra</mat-label>
-            <input
-              #codigoInput
-              matInput
-              type="text"
-              [formControl]="codigoControl"
-              (keyup.enter)="onSearchPorCodigo()"
-              (keyup.tab)="onSearchPorCodigo()"
-              (focusin)="onCodigoFocus()"
+        <div fxFlex fxLayout="row" style="width: 100%" fxLayoutGap="10px">
+          <div fxFlex="5%" style="text-align: center">
+            <img
+              [src]="
+                presentacionControl.value?.imagenPrincipal != null
+                  ? presentacionControl.value?.imagenPrincipal
+                  : 'assets/no-image.png'
+              "
+              style="width: 50px; height: 50px; object-fit: contain"
             />
-          </mat-form-field>
-        </div>
-        <div fxFlex="10%">
-          <mat-form-field style="width: 100%">
-            <mat-label>Presentación</mat-label>
-            <mat-select
-              #matSelect
-              [formControl]="presentacionControl"
-              name="presentacion"
-              (keyup.enter)="onPresentacionSelect(); $event.stopPropagation()"
-            >
-              <mat-option
-                *ngFor="let presentacion of selectedProducto?.presentaciones"
-                [value]="presentacion"
+          </div>
+          <div fxFlex="25" fxLayout="column">
+            <div fxFlex>
+              DESCRIPCION: {{ selectedProducto?.descripcion | uppercase }}
+            </div>
+            <div fxFlex>
+              FACTURA : {{ selectedProducto?.descripcionFactura | uppercase }}
+            </div>
+          </div>
+          <div fxFlex="20%">
+            <mat-form-field style="width: 100%" appearance="outline">
+              <mat-label>Código de barra</mat-label>
+              <input
+                #codigoInput
+                matInput
+                type="text"
+                [formControl]="codigoControl"
+                (keyup.enter)="onSearchPorCodigo()"
+                (keyup.tab)="onSearchPorCodigo()"
+                (focusin)="onCodigoFocus()"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="10%">
+            <mat-form-field style="width: 100%">
+              <mat-label>Presentación</mat-label>
+              <mat-select
+                #matSelect
+                [formControl]="presentacionControl"
+                name="presentacion"
+                (keyup.enter)="onPresentacionSelect(); $event.stopPropagation()"
               >
-                {{ presentacion?.cantidad | number: "1.0-3" }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
+                <mat-option
+                  *ngFor="let presentacion of selectedProducto?.presentaciones"
+                  [value]="presentacion"
+                >
+                  {{ presentacion?.cantidad | number : "1.0-3" }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div fxFlex="10%">
+            <mat-form-field style="width: 100%" appearance="outline">
+              <mat-label>Cantidad por presentación</mat-label>
+              <input
+                #cantPresentacionInput
+                matInput
+                type="text"
+                [formControl]="cantidadPresentacionControl"
+                (keyup.enter)="onCantidadPresentacionEnter()"
+                (keyup.tab)="onCantidadPresentacionEnter()"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="10%">
+            <mat-form-field style="width: 100%" appearance="outline">
+              <mat-label>Cantidad por unidad</mat-label>
+              <input
+                #cantUnidadInput
+                matInput
+                type="text"
+                [formControl]="cantidadUnidadControl"
+                (keyup.enter)="onCantidadUnidadEnter()"
+                (keyup.tab)="onCantidadUnidadEnter()"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="10">
+            <mat-form-field style="width: 100%">
+              <mat-label>Vencimiento</mat-label>
+              <input
+                matInput
+                #vencimientoInput
+                [matDatepicker]="picker"
+                [formControl]="vencimientoControl"
+                (keyup.enter)="onVencimientoEnter()"
+              />
+              <mat-datepicker-toggle
+                matSuffix
+                [for]="picker"
+              ></mat-datepicker-toggle>
+              <mat-datepicker #picker></mat-datepicker>
+            </mat-form-field>
+          </div>
+          <div fxFlex="5%" style="width: 100%; text-align: center">
+            <mat-icon class="highlight-hover-danger" (click)="onClear()"
+              >clear</mat-icon
+            >
+          </div>
         </div>
-        <div fxFlex="10%">
-          <mat-form-field style="width: 100%" appearance="outline">
-            <mat-label>Cantidad por presentación</mat-label>
-            <input
-              #cantPresentacionInput
-              matInput
-              type="text"
-              [formControl]="cantidadPresentacionControl"
-              (keyup.enter)="onCantidadPresentacionEnter()"
-              (keyup.tab)="onCantidadPresentacionEnter()"
-            />
-          </mat-form-field>
-        </div>
-        <div fxFlex="10%">
-          <mat-form-field style="width: 100%" appearance="outline">
-            <mat-label>Cantidad por unidad</mat-label>
-            <input
-              #cantUnidadInput
-              matInput
-              type="text"
-              [formControl]="cantidadUnidadControl"
-              (keyup.enter)="onCantidadUnidadEnter()"
-              (keyup.tab)="onCantidadUnidadEnter()"
-            />
-          </mat-form-field>
-        </div>
-        <div fxFlex="10">
-          <mat-form-field style="width: 100%">
-            <mat-label>Vencimiento</mat-label>
-            <input
-              matInput
-              #vencimientoInput
-              [matDatepicker]="picker"
-              [formControl]="vencimientoControl"
-              (keyup.enter)="onVencimientoEnter()"
-            />
-            <mat-datepicker-toggle
-              matSuffix
-              [for]="picker"
-            ></mat-datepicker-toggle>
-            <mat-datepicker #picker></mat-datepicker>
-          </mat-form-field>
-        </div>
-        <div fxFlex="5%" style="width: 100%; text-align: center">
-          <mat-icon class="highlight-hover-danger" (click)="onClear()"
-            >clear</mat-icon
-          >
-        </div>
+        <!-- <div
+          *ngIf="
+            selectedTransferencia.sucursalOrigen?.nombre?.includes('COMPRAS')
+          "
+          fxFlex
+          fxLayout="row"
+          style="width: 100%"
+          fxLayoutGap="10px"
+        >
+          <div fxFlex="15"></div>
+          <div fxFlex="15"></div>
+          <div fxFlex="15">
+            <mat-form-field style="width: 100%">
+              <mat-label>Moneda</mat-label>
+              <input
+                #monedaInput
+                type="text"
+                matInput
+                [formControl]="monedaControl"
+                oninput="this.value == ' ' ? this.value = '': null"
+                [matAutocomplete]="autoMoneda"
+              />
+              <span matSuffix style="cursor: pointer">(F9)</span>
+
+              <mat-autocomplete
+                #autoMoneda="matAutocomplete"
+                (optionSelected)="onMonedaSelect($event.option.value)"
+                (closed)="onMonedaAutocompleteClose()"
+              >
+                <mat-option
+                  *ngFor="let moneda of filteredMonedaList"
+                  [value]="moneda"
+                >
+                  {{ moneda.id }} -
+                  {{ moneda?.denominacion | uppercase }}
+                </mat-option>
+              </mat-autocomplete>
+            </mat-form-field>
+          </div>
+        </div> -->
       </mat-card>
     </mat-card>
   </div>
@@ -397,7 +424,7 @@
           Presentacion
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
-          {{ item?.presentacionPreTransferencia?.cantidad | number: "1.0-3" }}
+          {{ item?.presentacionPreTransferencia?.cantidad | number : "1.0-3" }}
         </td>
       </ng-container>
 
@@ -406,7 +433,7 @@
           Cantidad
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
-          {{ item?.cantidadPreTransferencia | number: "1.0-3" }}
+          {{ item?.cantidadPreTransferencia | number : "1.0-3" }}
         </td>
       </ng-container>
 
@@ -417,7 +444,7 @@
         <td mat-cell *matCellDef="let item" style="text-align: center">
           {{
             item?.presentacionPreTransferencia?.precioPrincipal?.precio
-              | number: "1.0-3"
+              | number : "1.0-3"
           }}
         </td>
       </ng-container>
@@ -437,7 +464,7 @@
             fxLayoutGap="10px"
           >
             <div fxFlex>
-              {{ item?.vencimientoPreTransferencia | date: "shortDate" }}
+              {{ item?.vencimientoPreTransferencia | date : "shortDate" }}
             </div>
           </div>
         </td>
@@ -550,7 +577,7 @@
           Presentacion
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
-          {{ item?.presentacionPreTransferencia?.cantidad | number: "1.0-3" }}
+          {{ item?.presentacionPreTransferencia?.cantidad | number : "1.0-3" }}
         </td>
       </ng-container>
 
@@ -559,7 +586,7 @@
           Cantidad
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
-          {{ item?.cantidadPreTransferencia | number: "1.0-3" }}
+          {{ item?.cantidadPreTransferencia | number : "1.0-3" }}
           {{
             item?.motivoModificacionPreparacion == "CANTIDAD_INCORRECTA"
               ? " / " + item?.cantidadPreparacion
@@ -575,7 +602,7 @@
         <td mat-cell *matCellDef="let item" style="text-align: center">
           {{
             item?.presentacionPreTransferencia?.precioPrincipal?.precio
-              | number: "1.0-2"
+              | number : "1.0-2"
           }}
         </td>
       </ng-container>
@@ -595,7 +622,7 @@
             fxLayoutGap="10px"
           >
             <div fxFlex>
-              {{ item?.vencimientoPreTransferencia | date: "shortDate" }}
+              {{ item?.vencimientoPreTransferencia | date : "shortDate" }}
             </div>
             <div
               fxFlex="10"
@@ -611,7 +638,7 @@
                 item?.motivoModificacionPreparacion == 'VENCIMIENTO_INCORRECTO'
               "
             >
-              {{ item?.vencimientoPreparacion | date: "shortDate" }}
+              {{ item?.vencimientoPreparacion | date : "shortDate" }}
             </div>
           </div>
         </td>
@@ -698,7 +725,7 @@
               element == expandedElement ? 'expanded' : 'collapsed'
             "
           >
-            <div>{{ element?.cantidadPreparacion | number: "1.0-3" }}</div>
+            <div>{{ element?.cantidadPreparacion | number : "1.0-3" }}</div>
           </div>
         </td>
       </ng-container>
@@ -755,7 +782,7 @@
           Presentacion
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
-          {{ item?.presentacionPreparacion?.cantidad | number: "1.0-3" }}
+          {{ item?.presentacionPreparacion?.cantidad | number : "1.0-3" }}
         </td>
       </ng-container>
 
@@ -764,7 +791,7 @@
           Cantidad
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
-          {{ item?.cantidadPreparacion | number: "1.0-3" }}
+          {{ item?.cantidadPreparacion | number : "1.0-3" }}
         </td>
       </ng-container>
 
@@ -775,7 +802,7 @@
         <td mat-cell *matCellDef="let item" style="text-align: center">
           {{
             item?.presentacionPreparacion?.precioPrincipal?.precio
-              | number: "1.0-2"
+              | number : "1.0-2"
           }}
         </td>
       </ng-container>
@@ -795,7 +822,7 @@
             fxLayoutGap="10px"
           >
             <div fxFlex>
-              {{ item?.vencimientoPreparacion | date: "shortDate" }}
+              {{ item?.vencimientoPreparacion | date : "shortDate" }}
             </div>
           </div>
         </td>
@@ -942,7 +969,7 @@
           Presentacion
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
-          {{ item?.presentacionTransporte?.cantidad | number: "1.0-3" }}
+          {{ item?.presentacionTransporte?.cantidad | number : "1.0-3" }}
         </td>
       </ng-container>
 
@@ -951,7 +978,7 @@
           Cantidad
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
-          {{ item?.cantidadTransporte | number: "1.0-3" }}
+          {{ item?.cantidadTransporte | number : "1.0-3" }}
         </td>
       </ng-container>
 
@@ -962,7 +989,7 @@
         <td mat-cell *matCellDef="let item" style="text-align: center">
           {{
             item?.presentacionTransporte?.precioPrincipal?.precio
-              | number: "1.0-2"
+              | number : "1.0-2"
           }}
         </td>
       </ng-container>
@@ -982,7 +1009,7 @@
             fxLayoutGap="10px"
           >
             <div fxFlex>
-              {{ item?.vencimientoTransporte | date: "shortDate" }}
+              {{ item?.vencimientoTransporte | date : "shortDate" }}
             </div>
           </div>
         </td>
