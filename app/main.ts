@@ -3,7 +3,7 @@ import { autoUpdater } from "electron-updater";
 import * as fs from "fs";
 import * as path from "path";
 import * as url from "url";
-const {PosPrinter} = require("electron-pos-printer");
+const { PosPrinter } = require("electron-pos-printer");
 
 const log = require('electron-log');
 const { readFileSync } = require('fs');
@@ -118,10 +118,10 @@ ipcMain.on('reiniciar', (event: any, arg: any) => {
 
 ipcMain.on('print', (event: any, data: any, options: any) => {
   PosPrinter.print(data, options)
- .then(console.log)
- .catch((error) => {
-    console.error(error);
-  });
+    .then(console.log)
+    .catch((error) => {
+      console.error(error);
+    });
 })
 
 try {

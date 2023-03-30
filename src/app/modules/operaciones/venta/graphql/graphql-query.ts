@@ -34,6 +34,7 @@ export const ventasQuery = gql`
         usuario {
           id
         }
+        sucursalId
         valorTotal
       }
       valorDescuento
@@ -67,6 +68,7 @@ export const ventaQuery = gql`
       }
       ventaItemList {
         id
+        sucursalId
         producto {
           id
           descripcion
@@ -116,6 +118,13 @@ export const ventaQuery = gql`
           identificadorTransaccion
         }
       }
+      delivery {
+        id
+        precio {
+          valor
+        }
+        estado
+      }
     }
   }
 `;
@@ -153,6 +162,12 @@ export const saveVenta = gql`
 export const deleteVentaQuery = gql`
   mutation deleteVenta($id: ID!, $sucId: ID) {
     deleteVenta(id: $id, sucId: $sucId)
+  }
+`;
+
+export const deleteVentaItemQuery = gql`
+  mutation deleteVentaItem($id: ID!, $sucId: ID) {
+    deleteVentaItem(id: $id, sucId: $sucId)
   }
 `;
 
@@ -199,9 +214,15 @@ export const reimprimirVentaQuery = gql`
 //ventasPorCajaId
 
 export const ventasPorCajaIdQuery = gql`
-  query ($id: ID!, $page: Int, $size: Int, $asc: Boolean, $sucId: ID, $formaPago: ID, $estado: VentaEstado) {
-    data: ventasPorCajaId(id: $id, page: $page,size: $size,asc: $asc, sucId: $sucId, formaPago: $formaPago, estado: $estado) {
+  query ($id: ID!, $page: Int, $size: Int, $asc: Boolean, $sucId: ID, $formaPago: ID, $estado: VentaEstado, $isDelivery: Boolean) {
+    data: ventasPorCajaId(id: $id, page: $page,size: $size,asc: $asc, sucId: $sucId, formaPago: $formaPago, estado: $estado, isDelivery: $isDelivery) {
       id
+      delivery {
+        id
+        precio {
+          valor
+        }
+      }
       sucursalId
       cliente {
         id
@@ -251,6 +272,7 @@ export const saveVentaItemQuery = gql`
       entity: $entity
     ){
       id
+      sucursalId
     }
   }
 `;
@@ -265,6 +287,12 @@ export const saveCobroDetalleQuery = gql`
     ){
       id
     }
+  }
+`;
+
+export const deleteCobroDetalleQuery = gql`
+  mutation deleteCobroDetalle($id: ID!, $sucId: ID) {
+    deleteCobroDetalle(id: $id, sucId: $sucId)
   }
 `;
 

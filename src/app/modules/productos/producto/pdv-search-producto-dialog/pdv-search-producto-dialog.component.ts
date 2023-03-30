@@ -49,6 +49,7 @@ export interface PdvSearchProductoData {
   mostrarOpciones?: boolean;
   mostrarStock?: boolean;
   conservarUltimaBusqueda?: boolean;
+  costo?: boolean;
 }
 
 export interface PdvSearchProductoResponseData {

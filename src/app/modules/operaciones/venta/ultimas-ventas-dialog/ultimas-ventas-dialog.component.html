@@ -24,6 +24,16 @@
               <th mat-header-cell *matHeaderCellDef style="width: 12%; text-align: center;" > ID </th>
               <td mat-cell *matCellDef="let venta" style="width: 12%; text-align: center;"> {{venta.id}} </td>
             </ng-container>
+
+            <ng-container matColumnDef="modo">
+              <th mat-header-cell *matHeaderCellDef  style="width: 12%; text-align: center;"> Modo</th>
+              <td mat-cell *matCellDef="let venta" style="width: 12%; text-align: center;"> {{venta.delivery == null ? 'Normal' : 'Delivery'}}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="precioDelivery">
+              <th mat-header-cell *matHeaderCellDef  style="width: 12%; text-align: center;"> Precio delivery</th>
+              <td mat-cell *matCellDef="let venta" style="width: 12%; text-align: center;"> {{venta.delivery?.precio?.valor | number: '1.0-2'}}</td>
+            </ng-container>
         
             <!-- Name Column -->
             <ng-container matColumnDef="totalGs">

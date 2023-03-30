@@ -299,6 +299,93 @@ export class GenericCrudService {
     });
   }
 
+  onDeleteWithSucId(
+    gql: Mutation,
+    id,
+    sucId?,
+    titulo?,
+    data?: any,
+    showDialog?: boolean,
+    servidor?
+  ): Observable<any> {
+    return new Observable((obs) => {
+      if (showDialog == false) {
+        this.cargandoService.openDialog(false, 'Eliminando...')
+        gql
+          .mutate(
+            {
+              id,
+              sucId
+            },
+            { errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }
+          ).pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            this.cargandoService.closeDialog()
+            if (res.errors == null) {
+              this.notificacionSnackBar.notification$.next({
+                texto: "Eliminado con éxito",
+                duracion: 2,
+                color: NotificacionColor.success,
+              });
+              obs.next(true);
+            } else {
+              {
+                this.notificacionSnackBar.notification$.next({
+                  texto:
+                    "Ups! Ocurrió algun problema al eliminar: " +
+                    res.errors[0].message,
+                  duracion: 3,
+                  color: NotificacionColor.danger,
+                });
+                obs.next(null);
+              }
+            }
+          });
+      } else {
+        this.dialogoService
+          .confirm(
+            "Atención!!",
+            "Realemente desea eliminar este " + titulo
+          ).pipe(untilDestroyed(this))
+          .subscribe((res1) => {
+            this.cargandoService.openDialog(false, 'Eliminando...')
+            if (res1) {
+              gql
+                .mutate(
+                  {
+                    id,
+                  },
+                  { errorPolicy: "all", context: { clientName: servidor == true ? 'servidor' : null }  }
+                )
+                .subscribe((res) => {
+                  this.cargandoService.closeDialog()
+                  if (res.errors == null) {
+                    this.notificacionSnackBar.notification$.next({
+                      texto: "Eliminado con éxito",
+                      duracion: 2,
+                      color: NotificacionColor.success,
+                    });
+                    obs.next(true);
+                  } else {
+                    {
+                      this.notificacionSnackBar.notification$.next({
+                        texto:
+                          "Ups! Ocurrió algun problema al eliminar: " +
+                          res.errors[0].message,
+                        duracion: 3,
+                        color: NotificacionColor.danger,
+                      });
+                      obs.next(null);
+                    }
+                  }
+                });
+            } else {
+            }
+          });
+      }
+    });
+  }
+
   onGetByFecha(gql: any, inicio: Date, fin: Date, servidor?, sucId?): Observable<any> {
     let hoy = new Date();
     let ayer = new Date(hoy.getDay() - 1);

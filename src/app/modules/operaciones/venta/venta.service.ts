@@ -23,6 +23,8 @@ import { ImprimirPagareGQL } from "./graphql/imprimirPagare";
 import { CountVentaGQL } from "./graphql/count-venta";
 import { SaveVentaItemGQL } from "./graphql/saveVentaItem";
 import { SaveCobroDetalleGQL } from "./graphql/saveCobroDetalle";
+import { DeleteCobroDetalleGQL } from "./graphql/deleteCobroDetalle";
+import { DeleteVentaItemGQL } from "./graphql/deleteVentaItem";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -41,15 +43,17 @@ export class VentaService {
     private ventaPorPeriodo: VentaPorPeriodoGQL,
     private notificacionBar: NotificacionSnackbarService,
     private deleteVenta: DeleteVentaGQL,
+    private deleteVentaItem: DeleteVentaItemGQL,
     private imprimirPagare: ImprimirPagareGQL,
     private countVenta: CountVentaGQL,
     private saveVentaItemQuery: SaveVentaItemGQL,
-    private saveCobroDetalleQuery: SaveCobroDetalleGQL
+    private saveCobroDetalleQuery: SaveCobroDetalleGQL,
+    private deleteCobroDetalle: DeleteCobroDetalleGQL
   ) { }
 
   // $venta:VentaInput!, $venteItemList: [VentaItemInput], $cobro: CobroInput, $cobroDetalleList: [CobroDetalleInput]
 
-  onSaveVenta(venta: Venta, cobro: Cobro, ticket, ventaCreditoInput?, ventaCreditoCuotaInputList?): Observable<any> {
+  onSaveVenta(venta: Venta, cobro: Cobro, ticket, ventaCreditoInput?, ventaCreditoCuotaInputList?): Observable<Venta> {
     let ventaItemInputList: VentaItemInput[] = [];
     let cobroDetalleInputList: CobroDetalleInput[] = [];
     let ventaInput: VentaInput = venta.toInput();
@@ -90,8 +94,32 @@ export class VentaService {
     });
   }
 
+  onSaveVenta2(ventaInput?: VentaInput): Observable<Venta> {
+    console.log(ventaInput);
+    
+    return new Observable((obs) => {
+      this.saveVenta
+        .mutate(
+          {
+            ventaInput: ventaInput
+          },
+          {
+            errorPolicy: "all",
+            fetchPolicy: "no-cache",
+          }
+        ).pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          obs.next(res.data["data"]);
+        });
+    });
+  }
+
   onDeleteVenta(id): Observable<boolean> {
     return this.genericService.onDelete(this.deleteVenta, id, null, null, false, false);
+  }
+
+  onDeleteVentaItem(id, sucId): Observable<boolean> {
+    return this.genericService.onDeleteWithSucId(this.deleteVentaItem, id, sucId, null, null, false, false);
   }
 
   onReimprimirVenta(id): Observable<boolean> {
@@ -166,13 +194,11 @@ export class VentaService {
     });
   }
 
-  onSearch(id, page?, size?, asc?, sucId?, formaPago?, estado?): Observable<Venta[]> {
+  onSearch(id, page?, size?, asc?, sucId?, formaPago?, estado?, isDelivery?): Observable<Venta[]> {
     this.genericService.isLoading = true;
     if (page == null) page = 0;
     if (size == null) size = 20;
     if (asc == null) asc = true;
-    console.log(id, page, size, asc, sucId, formaPago, estado);
-
     return new Observable((obs) => {
       this.ventasPorCajaId
         .fetch(
@@ -183,7 +209,8 @@ export class VentaService {
             asc,
             sucId,
             formaPago,
-            estado
+            estado,
+            isDelivery
           },
           {
             fetchPolicy: "no-cache",
@@ -235,5 +262,9 @@ export class VentaService {
 
   onSaveCobroDetalle(cobroDetalleInput: CobroDetalleInput): Observable<CobroDetalle> {
     return this.genericService.onSave(this.saveCobroDetalleQuery, cobroDetalleInput);
+  }
+
+  onDeleteCobroDetalle(id, sucId): Observable<boolean> {
+    return this.genericService.onDeleteWithSucId(this.deleteCobroDetalle, id, sucId, null, null, false)
   }
 }

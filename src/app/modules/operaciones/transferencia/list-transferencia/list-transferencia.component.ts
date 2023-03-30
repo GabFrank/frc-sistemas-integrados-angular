@@ -170,4 +170,10 @@ export class ListTransferenciaComponent implements OnInit {
     this.tabService.addTab(new Tab(EditTransferenciaComponent, 'Nueva Transferencia', null, ListTransferenciaComponent))
   }
 
+  onImprimir(id) {
+    this.transferenciaService.onImprimirTransferencia(id);
+  }
+
 }
+
+

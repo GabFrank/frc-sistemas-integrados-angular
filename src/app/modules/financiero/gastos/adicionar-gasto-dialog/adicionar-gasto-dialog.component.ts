@@ -39,6 +39,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MainService } from "../../../../main.service";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { FamiliasSearchGQL } from "../../../productos/familia/graphql/familiasSearch";
+import { CajaService } from "../../pdv/caja/caja.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -106,7 +107,8 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     private monedaService: MonedaService,
     private tipoGastoService: TipoGastoService,
     private mainService: MainService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private cajaService: CajaService
   ) {
     if (data?.caja != null) {
       this.selectedCaja = data.caja;
@@ -116,6 +118,11 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
           this.dataSource.data = this.gastoList;
         }
       });
+      this.cajaService.onCajaBalancePorId(this.selectedCaja.id).subscribe(res => {
+        if (res != null) {
+          this.selectedCaja.balance = res;
+        }
+      })
     }
   }
 
@@ -407,13 +414,19 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   onGastoClick(gasto: Gasto) { }
 
   verficarValores(): boolean {
-    let verificado = false;
-    if (this.isVuelto) {
-      verificado = this.guaraniVueltoControl.value > 0 || this.realVueltoControl.value > 0 || this.dolarVueltoControl.value > 0;
-    } else {
-      verificado = this.guaraniControl.value > 0 || this.realControl.value > 0 || this.dolarControl.value > 0;
+    if (this.guaraniControl.value > (this.selectedCaja.balance.diferenciaGs * -1)) {
+      this.notificacionService.openWarn("El monto en guaraníes es mayor a lo que tiene en caja")
+      return false;
     }
-    return verificado;
+    if (this.realControl.value > (this.selectedCaja.balance.diferenciaRs * -1)) {
+      this.notificacionService.openWarn("El monto en reales es mayor a lo que tiene en caja")
+      return false;
+    }
+    if (this.dolarControl.value > (this.selectedCaja.balance.diferenciaDs * -1)) {
+      this.notificacionService.openWarn("El monto en dolares es mayor a lo que tiene en caja")
+      return false;
+    }
+    return true;
   }
 
   goTo(text) {

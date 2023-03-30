@@ -26,6 +26,7 @@ import { environment } from "../../../../../../environments/environment";
 import { CobroInput } from "../../../../operaciones/venta/cobro/cobro.model";
 import { CobroDetalleInput } from "../../../../operaciones/venta/cobro/cobro-detalle.model";
 import { ReimprimirDeliveryGQL } from "../../../../operaciones/delivery/graphql/reimprimir-delivery";
+import { DeliverysPorCajaIdAndEstadoGQL } from "../../../../operaciones/delivery/graphql/deliveryPorCajaIdAndEstado";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -41,8 +42,13 @@ export class DeliveryService {
     private deliveryById: DeliveryByIdGQL,
     private mainService: MainService,
     private saveDeliveryEstado: SaveDeliveryEstadoGQL,
-    private reimprimirDelivery: ReimprimirDeliveryGQL
+    private reimprimirDelivery: ReimprimirDeliveryGQL,
+    private deliveryPorCajaIdAndEstado: DeliverysPorCajaIdAndEstadoGQL
   ) {
+  }
+
+  onDeliveryPorCajaIdAndEstado(id: number, estadoList: DeliveryEstado[]): Observable<Delivery[]> {
+    return this.genericService.onCustomQuery(this.deliveryPorCajaIdAndEstado, { id: id, estadoList: estadoList });
   }
 
   onGetById(id): Observable<Delivery> {

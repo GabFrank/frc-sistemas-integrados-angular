@@ -74,65 +74,42 @@
         fxLayoutAlign="start center"
       >
         <div
-          fxFlex="60%"
+          fxFlex="70%"
           fxLayout="row"
+          fxLayoutGap="25px"
           style="width: 100%"
           fxLayoutAlign="start center"
         >
-          <div fxFlex="5"></div>
           <div
+            *ngIf="selectedTransferencia?.id != null"
             class="raised-button"
-            fxFlex="20%"
-            fxLayout="row"
-            style="width: 100%"
-            fxLayoutAlign="start center"
             (click)="onQrClick()"
           >
-            <div fxFlex="70">Generar QR</div>
-            <div fxFle="30">
-              <mat-icon style="font-size: 2em">qr_code</mat-icon>
-            </div>
+            Generar QR
           </div>
-          <div fxFlex="5"></div>
           <div
+            *ngIf="selectedTransferencia?.id != null"
             class="raised-button"
-            fxFlex="15%"
-            fxLayout="row"
-            style="width: 100%"
-            fxLayoutAlign="start center"
+            (click)="onImprimir()"
+          >
+            Imprimir
+          </div>
+          <div
+            *ngIf="selectedTransferencia?.id != null"
+            class="raised-button"
             (click)="onRefresh()"
           >
-            <div fxFlex="70">Actualizar</div>
-            <div fxFle="30">
-              <mat-icon style="font-size: 2em">refresh</mat-icon>
-            </div>
+            Actualizar
           </div>
-          <div fxFlex="5"></div>
           <div
+            *ngIf="selectedTransferencia?.id != null"
             class="raised-button"
-            fxFlex="15%"
-            fxLayout="row"
-            style="width: 100%"
-            fxLayoutAlign="start center"
             (click)="onOpenTimeLine()"
           >
-            <div fxFlex="70">Resumen</div>
-            <div fxFle="30">
-              <mat-icon style="font-size: 2em">timeline</mat-icon>
-            </div>
+            Resumen de la transf.
           </div>
-        </div>
-        <div
-          class="raised-button"
-          fxFlex="15%"
-          fxLayout="row"
-          style="width: 100%"
-          fxLayoutAlign="start center"
-          (click)="nuevaTransferencia()"
-        >
-          <div fxFlex="70">Nueva Transferencia</div>
-          <div fxFle="30">
-            <mat-icon style="font-size: 2em">add_circle</mat-icon>
+          <div class="raised-button" (click)="nuevaTransferencia()">
+            Nueva Transferencia
           </div>
         </div>
         <div fxFlex="15%">
@@ -250,8 +227,14 @@
         "
         *ngIf="isPreTransferenciaCreacion"
       >
-        <div fxFlex fxLayout="row" style="width: 100%" fxLayoutGap="10px">
-          <div fxFlex="5%" style="text-align: center">
+        <div
+          fxFlex
+          fxLayout="row"
+          style="width: 100%"
+          fxLayoutGap="10px"
+          fxLayoutAlign="start center"
+        >
+          <!-- <div fxFlex="5%" style="text-align: center">
             <img
               [src]="
                 presentacionControl.value?.imagenPrincipal != null
@@ -260,8 +243,8 @@
               "
               style="width: 50px; height: 50px; object-fit: contain"
             />
-          </div>
-          <div fxFlex="25" fxLayout="column">
+          </div> -->
+          <div fxFlex="30" fxLayout="column">
             <div fxFlex>
               DESCRIPCION: {{ selectedProducto?.descripcion | uppercase }}
             </div>
@@ -284,7 +267,7 @@
             </mat-form-field>
           </div>
           <div fxFlex="10%">
-            <mat-form-field style="width: 100%">
+            <mat-form-field style="width: 100%" appearance="outline">
               <mat-label>Presentación</mat-label>
               <mat-select
                 #matSelect
@@ -328,7 +311,7 @@
             </mat-form-field>
           </div>
           <div fxFlex="10">
-            <mat-form-field style="width: 100%">
+            <mat-form-field style="width: 100%" appearance="outline">
               <mat-label>Vencimiento</mat-label>
               <input
                 matInput
@@ -341,16 +324,25 @@
                 matSuffix
                 [for]="picker"
               ></mat-datepicker-toggle>
-              <mat-datepicker #picker></mat-datepicker>
+              <mat-datepicker
+                #picker
+                (closed)="onDatepickerClosed()"
+              ></mat-datepicker>
             </mat-form-field>
           </div>
-          <div fxFlex="5%" style="width: 100%; text-align: center">
-            <mat-icon class="highlight-hover-danger" (click)="onClear()"
+          <div fxFlex style="width: 100%; text-align: center">
+            <mat-icon class="highlight-hover" (click)="onSave()" style="font-size: 2em;"
+              >save</mat-icon
+            >
+          </div>
+
+          <div fxFlex style="width: 100%; text-align: center">
+            <mat-icon class="highlight-hover-danger" (click)="onClear()"  style="font-size: 2em;"
               >clear</mat-icon
             >
           </div>
         </div>
-        <!-- <div
+        <div
           *ngIf="
             selectedTransferencia.sucursalOrigen?.nombre?.includes('COMPRAS')
           "
@@ -362,7 +354,7 @@
           <div fxFlex="15"></div>
           <div fxFlex="15"></div>
           <div fxFlex="15">
-            <mat-form-field style="width: 100%">
+            <mat-form-field style="width: 100%" appearance="outline">
               <mat-label>Moneda</mat-label>
               <input
                 #monedaInput
@@ -389,7 +381,37 @@
               </mat-autocomplete>
             </mat-form-field>
           </div>
-        </div> -->
+          <div fxFlex="10%">
+            <mat-form-field style="width: 100%" appearance="outline">
+              <mat-label>Costo por unidad</mat-label>
+              <input
+                #precioUnidadInput
+                matInput
+                type="text"
+                [formControl]="precioUnidadControl"
+                (keyup.enter)="onPrecioUnidadEnter()"
+                (keyup.tab)="onPrecioUnidadEnter()"
+                currencyMask
+                [options]="currencyMask.currencyOptionsGuarani"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="10%">
+            <mat-form-field style="width: 100%" appearance="outline">
+              <mat-label>Costo por presentación</mat-label>
+              <input
+                #precioPresentacionInput
+                matInput
+                type="text"
+                [formControl]="precioPresentacionControl"
+                (keyup.enter)="onPrecioPresentacionEnter()"
+                (keyup.tab)="onPrecioPresentacionEnter()"
+                currencyMask
+                [options]="currencyMask.currencyOptionsGuarani"
+              />
+            </mat-form-field>
+          </div>
+        </div>
       </mat-card>
     </mat-card>
   </div>

@@ -1,17 +1,14 @@
 import { EventEmitter, Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
+import { EditTransferenciaComponent } from '../../modules/operaciones/transferencia/edit-transferencia/edit-transferencia.component';
 import { ProductoService } from '../../modules/productos/producto/producto.service';
 import { CargandoDialogService } from './../../shared/components/cargando-dialog/cargando-dialog.service';
 import { Tab } from './tab.model';
-import { FinancieroDashboardComponent } from '../../modules/financiero/financiero-dashboard/financiero-dashboard.component';
-import { ListFacturaLegalComponent } from '../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component';
-import { ListActualizacionComponent } from '../../modules/configuracion/actualizacion/list-actualizacion/list-actualizacion.component';
-import { DeliveryDashboardComponent } from '../../modules/operaciones/delivery/delivery-dashboard/delivery-dashboard.component';
-import { TransferenciaComponent } from '../../modules/operaciones/transferencia/transferencia.component';
 import { ListTransferenciaComponent } from '../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
-import { ListProductoComponent } from '../../modules/productos/producto/list-producto/list-producto.component';
-import { EditTransferenciaComponent } from '../../modules/operaciones/transferencia/edit-transferencia/edit-transferencia.component';
+import { ListCajaComponent } from '../../modules/financiero/pdv/caja/list-caja/list-caja.component';
+import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
+import { ListVentaComponent } from '../../modules/operaciones/venta/list-venta/list-venta.component';
+import { PdvCaja } from '../../modules/financiero/pdv/caja/caja.model';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -44,9 +41,11 @@ export class TabService {
   ) {
 
     this.tabs = [
-      // new Tab(EditTransferenciaComponent, 'Editar transferencia', null, null),
-      // new Tab(VentaTouchComponent, 'Venta', null, null),
+      new Tab(VentaTouchComponent, 'Venta', null, null),
     ];
+
+    // this.addTab(new Tab(ListVentaComponent, 'Ventas de caja 50', new TabData(null, new PdvCaja(50, 4)), null))
+    // this.addTab(new Tab(EditTransferenciaComponent, 'Transferencia 19', new TabData(19), null))
     this.tabSub.next(this.tabs);
 
     // this.productoService.getProducto(1152).subscribe(res => {
@@ -67,7 +66,7 @@ export class TabService {
     return this.tabs[this.currentIndex];
   }
 
-  setTabActive(index): void {    
+  setTabActive(index): void {
     if (this.tabs.length > 0) {
       for (let i = 0; i < this.tabs.length; i++) {
         if (this.tabs[i].active === true) {
@@ -75,16 +74,18 @@ export class TabService {
         }
       }
       if (this.tabs[index] != undefined) {
+        console.log(this.tabs[index]);
         this.tabs[index].active = true;
       }
       this.currentIndex = index;
       this.tabSub.next(this.tabs);
+      
     }
   }
 
   public removeTab(index: number): void {
     //buscar si tiene parent
-    const parentComponent = this.tabs[index].parentComponent ?? null;
+    const parentComponent = this.tabs[index]?.parentComponent ?? null;
     // remover tab
     this.tabs[index] = null
     this.tabs.splice(index, 1);
@@ -110,7 +111,7 @@ export class TabService {
     this.tabSub.next(this.tabs);
   }
 
-  public addTab(tab: Tab): void {    
+  public addTab(tab: Tab): void {
     this.cargandoService.openDialog()
     const duplicado = this.tabs.findIndex(x => x.title == tab.title);
     if (duplicado == -1) {
@@ -143,5 +144,16 @@ export class TabService {
   getIndexByName(nombre: string) {
     let index = this.tabs.findIndex(t => t.title == nombre);
     return index;
+  }
+
+  reiniciarTab() {
+    let auxTab = new Tab()
+    Object.assign(auxTab, this.currentTab())
+    this.removeTab(this.currentIndex)  
+    this.addTab(auxTab)  
+  }
+
+  removeCurrentTab(){
+    this.removeTab(this.currentIndex)
   }
 }

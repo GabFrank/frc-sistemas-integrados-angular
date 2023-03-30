@@ -82,6 +82,9 @@ export const productoSearchPdv = gql`
       observacion
       codigoPrincipal
       precioPrincipal
+      costo {
+        ultimoPrecioCompra
+      }
       envase {
         id
         descripcion
@@ -218,6 +221,10 @@ export const productoPorCodigoQuery = gql`
       cambiable
       imagenPrincipal
       isEnvase
+      costo {
+        ultimoPrecioCompra
+        costoMedio
+      }
       envase {
         id
         descripcion

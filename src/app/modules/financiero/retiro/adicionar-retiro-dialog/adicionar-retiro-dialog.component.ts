@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, ElementRef, Inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { FormControl } from '@angular/forms';
+import { FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Subscription } from 'rxjs';
 import { CurrencyMask, stringToDecimal, stringToInteger } from '../../../../commons/core/utils/numbersUtils';
@@ -21,6 +21,7 @@ import { MatStepper } from '@angular/material/stepper';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { CajaService } from '../../pdv/caja/caja.service';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -39,11 +40,12 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
   selectedResponsable: Funcionario;
   observacionControl = new FormControl()
   responsableControl = new FormControl()
-  guaraniControl = new FormControl(0)
-  realControl = new FormControl(0)
-  dolarControl = new FormControl(0)
+  guaraniControl = new FormControl(0, Validators.min(100))
+  realControl = new FormControl(0, Validators.min(0.05))
+  dolarControl = new FormControl(0, Validators.min(1))
   currencyMask = new CurrencyMask
   funcionarioList: Funcionario[];
+
 
   retiroDetalleList: RetiroDetalle[]
   funcionarioSub: Subscription;
@@ -70,7 +72,8 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
     private retiroService: RetiroService,
     private monedaService: MonedaService,
     private cargandoService: CargandoDialogService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private cajaService: CajaService
   ) {
     if (data?.caja != null) {
       this.selectedCajaSalida = data.caja;
@@ -79,6 +82,11 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
           this.dataSource.data = res;
         }
       });
+      this.cajaService.onCajaBalancePorId(this.selectedCajaSalida.id).subscribe(res => {
+        if (res != null) {
+          this.selectedCajaSalida.balance = res;
+        }
+      })
     }
   }
   ngAfterViewInit(): void {
@@ -98,7 +106,6 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
       if (res != null && res.length != 0) {
         this.timer = setTimeout(() => {
           this.funcionarioService.onFuncionarioSearch(res).pipe(untilDestroyed(this)).subscribe((response) => {
-            console.log(response)
             this.funcionarioList = response;
             if (this.funcionarioList.length == 1) {
               this.onResponsableSelect(this.funcionarioList[0]);
@@ -129,7 +136,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
 
 
   onGuardar() {
-    if (this.selectedResponsable != null && this.verficarValores()) {
+    if (this.selectedResponsable != null && this.verficarValores() && (this.guaraniControl.valid || this.realControl.valid || this.dolarControl.valid)) {
       this.dialogService.confirm('Confirmar valores de retiro', null, null, [
         `Guaranies: ${stringToInteger(this.guaraniControl.value.toString())}`,
         `Reales: ${stringToDecimal(this.realControl.value.toString())}`,
@@ -170,11 +177,19 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
   }
 
   verficarValores(): boolean {
-    let verificado = false;
-    if (this.guaraniControl.value > 0) verificado = true;
-    if (this.realControl.value > 0) verificado = true;
-    if (this.dolarControl.value > 0) verificado = true;
-    return verificado;
+    if (this.guaraniControl.value > (this.selectedCajaSalida.balance.diferenciaGs * -1)) {
+      this.notificacionService.openWarn("El monto en guaraníes es mayor a lo que tiene en caja")
+      return false;
+    }
+    if (this.realControl.value > (this.selectedCajaSalida.balance.diferenciaRs * -1)) {
+      this.notificacionService.openWarn("El monto en reales es mayor a lo que tiene en caja")
+      return false;
+    }
+    if (this.dolarControl.value > (this.selectedCajaSalida.balance.diferenciaDs * -1)) {
+      this.notificacionService.openWarn("El monto en dolares es mayor a lo que tiene en caja")
+      return false;
+    }
+    return true;
   }
 
   onCancelar() {
@@ -203,7 +218,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
     }
   }
 
-  onVer(retiro: Retiro){
+  onVer(retiro: Retiro) {
     this.selectedRetiro = retiro;
     this.onResponsableSelect(retiro.responsable)
     this.observacionControl.setValue(retiro.observacion)
@@ -217,9 +232,9 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
     this.dolarControl.disable()
   }
 
-  onReimprimir(retiro: Retiro){
+  onReimprimir(retiro: Retiro) {
     this.retiroService.onReimprimirRetiro(retiro.id).subscribe(res => {
-      if(res==true){
+      if (res == true) {
         this.notificacionService.openSucess('Reimpresión con éxito')
       } else {
         this.notificacionService.openAlgoSalioMal('Ups! intente de nuevo')

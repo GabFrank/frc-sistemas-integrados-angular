@@ -22,14 +22,14 @@
       </tr>
     </thead>
     <tbody>
-      <tr
-        *ngFor="let item of itemList; let i = index"
-        (click)="editItem(item, i)"
-      >
+      <tr *ngFor="let item of itemList; let i = index">
         <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
           {{ i + 1 }}
         </td>
-        <td style="padding-bottom: 0; padding-top: 5px; width: 100%">
+        <td
+          style="padding-bottom: 0; padding-top: 5px; width: 100%"
+          (click)="editItem(item, i)"
+        >
           {{ item?.producto?.descripcion }}
         </td>
         <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
@@ -38,21 +38,25 @@
           }})
         </td>
         <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
-          {{ item.cantidad | number: "1.0-3" }}
+          {{ item.cantidad | number : "1.0-3" }}
         </td>
         <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
-          {{ item.precio | number: "1.0-0" }}
+          {{ item.precio | number : "1.0-0" }}
         </td>
         <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
-          {{ item.valorDescuento | number: "1.0-0" }}
+          {{ item.valorDescuento | number : "1.0-0" }}
         </td>
         <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
-          {{ item.cantidad * (item.precio - item.valorDescuento) | number: "1.0-0" }}
+          {{
+            item.cantidad * (item.precio - item.valorDescuento)
+              | number : "1.0-0"
+          }}
         </td>
-        <td style="padding-bottom: 5px; padding-top: 5px; text-align: center">
-          <mat-icon
-            style="color: red; font-size: 1.5em; cursor: pointer"
-            (click)="removeItem(item, i)"
+        <td
+          style="padding-bottom: 5px; padding-top: 5px; text-align: center"
+          (click)="removeItem(item, i)"
+        >
+          <mat-icon style="color: red; font-size: 1.5em; cursor: pointer"
             >clear</mat-icon
           >
         </td>

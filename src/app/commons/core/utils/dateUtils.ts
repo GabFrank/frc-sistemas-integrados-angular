@@ -14,3 +14,9 @@ export function getLastDayOfNextMonth() {
     const date = new Date();
     return new Date(date.getFullYear(), date.getMonth() + 1, 0);
 }
+
+export const mask = {
+    guide: true,
+    showMask : true,
+    mask: [/\d/, /\d/, '/', /\d/, /\d/, '/',/\d/, /\d/,/\d/, /\d/]
+};

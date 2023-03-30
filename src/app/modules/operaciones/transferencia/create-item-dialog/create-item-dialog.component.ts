@@ -6,6 +6,7 @@ import { FormControl, Validators, FormGroup } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { PresentacionService } from '../../../productos/presentacion/presentacion.service';
+import { Producto } from '../../../productos/producto/producto.model';
 
 export interface CreateItemDialogData {
   item: TransferenciaItem;
@@ -30,6 +31,7 @@ export class CreateItemDialogComponent implements OnInit {
   activoControl = new FormControl(true, Validators.required)
   cantidadControl = new FormControl(1, [Validators.required, Validators.min(0)])
   vencimientoControl = new FormControl()
+  presentacionControl = new FormControl()
   formGroup = new FormGroup({
     'activo': this.activoControl,
     // 'poseeVencimiento': this.poseeVencimientoControl,
@@ -37,12 +39,14 @@ export class CreateItemDialogComponent implements OnInit {
     'vencimiento': this.vencimientoControl
   })
 
+  presentacionList: Presentacion[];
   selectedPresentacion: Presentacion;
+
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: CreateItemDialogData,
     private matDialogRef: MatDialogRef<CreateItemDialogComponent>,
     private presentacionService: PresentacionService,
-    private cargandoService: CargandoDialogService
+    private cargandoService: CargandoDialogService,
   ) { }
 
   ngOnInit(): void {
@@ -51,21 +55,15 @@ export class CreateItemDialogComponent implements OnInit {
     if (this.data.item != null) {
       this.cargarDatos(this.data.item)
     } else if (this.data.presentacion != null) {
-      this.presentacionService.onGetPresentacion(this.data.presentacion?.id)
-        .pipe(untilDestroyed(this))
-        .subscribe(res => {
-          this.cargandoService.closeDialog()
-          if (res != null) {
-            this.selectedPresentacion = res as Presentacion;
-            console.log(this.selectedPresentacion);
-            
-          }
-        })
+      this.selectedPresentacion = this.data.presentacion;
+      this.presentacionService.onGetPresentacionesPorProductoId(this.selectedPresentacion.producto.id).subscribe(res => {
+        this.presentacionList = res;
+      })
     } else {
       this.matDialogRef.close()
     }
 
-    if(this.data?.cantidad != null){
+    if (this.data?.cantidad != null) {
       this.cantidadControl.setValue(this.data.cantidad)
     }
 
@@ -104,11 +102,13 @@ export class CreateItemDialogComponent implements OnInit {
       this.selectedItem.activo = this.activoControl.value;
       this.selectedItem.cantidadPreTransferencia = this.cantidadControl.value;
       this.selectedItem.poseeVencimiento = this.selectedPresentacion?.producto?.vencimiento == true;
-      if (this.selectedItem.poseeVencimiento) {
-        this.selectedItem.vencimientoPreTransferencia = this.vencimientoControl.value;
-      }
+      this.selectedItem.vencimientoPreTransferencia = this.vencimientoControl.value;
       this.matDialogRef.close({ item: this.selectedItem })
     }
+  }
+
+  onPresentacionSelect() {
+
   }
 
 }

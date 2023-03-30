@@ -51,7 +51,7 @@ export class SeleccionarSucursalDialogComponent implements OnInit {
     private cargandoService: CargandoDialogService,
     private matDialog: MatDialog, private sucursalService: SucursalService,
     private mainService: MainService
-    ) { }
+  ) { }
 
   ngOnInit(): void {
     this.cargandoService.openDialog()
@@ -60,9 +60,9 @@ export class SeleccionarSucursalDialogComponent implements OnInit {
       .subscribe(res => {
         if (res != null) {
           this.sucursalList = res.filter(s => s.id != 0)
-          if(this.mainService.sucursalActual.id!=0){
+          if (this.mainService.sucursalActual.id != 0) {
             this.filteredOrigenSucursalList = [this.mainService.sucursalActual]
-            this.filteredDestinoSucursalList = res.filter(s => s.id != this.mainService.sucursalActual.id && s.id != 0) 
+            this.filteredDestinoSucursalList = res.filter(s => s.id != this.mainService.sucursalActual.id && s.id != 0)
           } else {
             this.filteredOrigenSucursalList = this.sucursalList;
           }
@@ -88,21 +88,21 @@ export class SeleccionarSucursalDialogComponent implements OnInit {
     this.selectedSucursalDestino = e;
   }
 
-  onOrigenFilter(){
+  onOrigenFilter() {
     let texto = this.buscarOrigenControl.value;
-    this.filteredOrigenSucursalList = this.sucursalList.filter(s => comparatorLike(texto, s.nombre))
+    this.filteredOrigenSucursalList = this.sucursalList.filter(s => comparatorLike(texto, s.id.toString()) || comparatorLike(texto, s.nombre))
   }
 
-  onDestinoFilter(){
+  onDestinoFilter() {
     let texto: string = this.buscarDestinoControl.value;
-    this.filteredDestinoSucursalList = this.sucursalList.filter(s => comparatorLike(texto, s.nombre) && s.id != this.selectedSucursalOrigen.id)
+    this.filteredDestinoSucursalList = this.sucursalList.filter(s => (comparatorLike(texto, s.id.toString()) || comparatorLike(texto, s.nombre)) && s.id != this.selectedSucursalOrigen.id)
   }
 
-  onCancelar(){
+  onCancelar() {
     this.matDialoRef.close()
   }
 
-  onConfirmar(){
-    this.matDialoRef.close({sucursalOrigen: this.selectedSucursalOrigen, sucursalDestino: this.selectedSucursalDestino})
+  onConfirmar() {
+    this.matDialoRef.close({ sucursalOrigen: this.selectedSucursalOrigen, sucursalDestino: this.selectedSucursalDestino })
   }
 }

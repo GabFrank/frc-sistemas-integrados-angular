@@ -215,10 +215,12 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
 
       this.monedaControl.setValue(this.monedaList[0])
       this.deliveryService.onGetPreciosDelivery().subscribe(res => {
-        this.precioDeliveryList = res;
-        this.precioControl.setValue(this.precioDeliveryList[0])
-        this.totalConDelivery += this.precioControl.value?.valor;
-        this.calcularVuelto()
+        setTimeout(() => {
+          this.precioDeliveryList = res;
+          this.precioControl.setValue(this.precioDeliveryList[0])
+          this.totalConDelivery += this.precioControl.value?.valor;
+          this.calcularVuelto()
+        }, 5000);
         setTimeout(() => {
           this.vueltoControl.setValue(this.vueltoListGs[0])
           this.valorControl.setValue(this.vueltoControl.value)
@@ -397,14 +399,14 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
     this.selectedVenta = new Venta;
     this.selectedVuelto = new Vuelto;
 
-    if(delivery?.venta?.cliente == null){
+    if (delivery?.venta?.cliente == null) {
       this.selectedCliente = null;
       this.clienteControl.setValue(null);
     } else {
       this.onClienteSelect(delivery?.venta?.cliente)
     }
 
-    if(delivery?.barrio == null){
+    if (delivery?.barrio == null) {
       this.selectedBarrio = null;
       this.barrioControl.setValue(null);
     } else {
@@ -719,7 +721,7 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
     // })
   }
 
-  onSalir() {    
+  onSalir() {
     this.matDialogRef.close()
   }
   onPresupuesto() {
@@ -779,7 +781,7 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
         " - " +
         this.selectedCliente?.persona?.nombre
       );
-    } 
+    }
   }
 
   onBarrioSelect(e) {
@@ -792,7 +794,7 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
         " - " +
         this.selectedBarrio?.precioDelivery?.valor
       );
-    } 
+    }
   }
 
   onClienteAutocompleteClose() {
@@ -844,8 +846,8 @@ export class DeliveryDialogComponent implements OnInit, OnDestroy, AfterViewInit
     }, 500);
   }
 
-  onBarrioSearch(){
-    
+  onBarrioSearch() {
+
   }
 }
 

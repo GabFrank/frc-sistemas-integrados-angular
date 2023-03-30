@@ -130,11 +130,11 @@
               [formControl]="dolarControl"
               currencyMask
               [options]="currencyMask.currencyOptionsNoGuarani"
-              (keyup.enter)="selectedResponsable != null && verficarValores() ? onGuardar() : null"
+              (keyup.enter)="selectedResponsable != null ? onGuardar() : null"
             />
           </mat-form-field>
         </div>
-        <div fxFlex *ngIf="selectedResponsable != null && verficarValores()">
+        <div fxFlex *ngIf="selectedResponsable != null">
           <button
             #guardarBtn
             style="width: 100%; height: 100%; font-size: 1.2em"

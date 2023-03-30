@@ -254,6 +254,9 @@
             <button mat-menu-item (click)="onEdit(transferencia, i)">
               {{ mainService?.isServidor ? "Editar" : "Ver" }}
             </button>
+            <button mat-menu-item (click)="onImprimir(transferencia.id)">
+              Imprimir
+            </button>
             <button
               *ngIf="mainService?.isServidor"
               mat-menu-item

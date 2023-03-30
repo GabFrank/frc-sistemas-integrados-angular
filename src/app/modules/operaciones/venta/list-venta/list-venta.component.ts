@@ -47,7 +47,7 @@ export class ListVentaComponent implements OnInit {
   data: Tab;
 
   ventaDataSource = new MatTableDataSource<Venta>([]);
-  ventaDisplayedColumns = ["id", "fecha", "estado", "total", "acciones"];
+  ventaDisplayedColumns = ["id", "modo", "fecha", "estado", "total", "acciones"];
   expandedVenta: Venta;
   selectedCaja: PdvCaja;
   loading = false;
@@ -55,6 +55,7 @@ export class ListVentaComponent implements OnInit {
   isLastPage = false;
   idVentaControl = new FormControl()
   formaPagoControl = new FormControl()
+  modoControl = new FormControl()
   selectedFormaPago: FormaPago;
   formaPagoList: FormaPago[] = []
   totalRecibidoGs = 0;
@@ -135,7 +136,7 @@ export class ListVentaComponent implements OnInit {
     this.isCargando = true;
     if(this.filterChanged) this.ventaDataSource.data = [];
     this.page = Math.floor(this.ventaDataSource.data.length / this.size);
-    this.ventaService.onSearch(this.selectedCaja.id, this.page, this.size, true, this.selectedCaja.sucursalId, this.formaPagoControl.value, this.estadoControl.value).pipe(untilDestroyed(this)).subscribe((res) => {
+    this.ventaService.onSearch(this.selectedCaja.id, this.page, this.size, true, this.selectedCaja.sucursalId, this.formaPagoControl.value, this.estadoControl.value, this.modoControl.value).pipe(untilDestroyed(this)).subscribe((res) => {
       this.cargandoService.closeDialog()
       this.isCargando = false;
       if (res != null) {

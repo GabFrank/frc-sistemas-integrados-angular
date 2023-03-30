@@ -195,10 +195,12 @@ export const deliverysByEstadoList = gql`
             vuelto
             descuento
             aumento
+            sucursalId
             moneda {
               id
               denominacion
               simbolo
+              cambio
             }
             formaPago {
               id
@@ -224,9 +226,11 @@ export const deliverysByEstadoList = gql`
               descripcion
             }
           }
+          sucursalId
         }
         cliente {
           persona {
+            id
             nombre
           }
         }
@@ -235,6 +239,42 @@ export const deliverysByEstadoList = gql`
     }
   }
 `;
+
+export const deliveryPorCajaIdAndEstadoQuery = gql`
+  query deliveryPorCajaIdAndEstados($id: ID!, $estadoList: [DeliveryEstado]!) {
+    data: deliveryPorCajaIdAndEstados(id: $id, estadoList: $estadoList) {
+      id
+      creadoEn
+      entregador {
+        id
+        persona {
+          nombre
+        }
+      }
+      direccion
+      telefono
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      estado
+      valor
+      barrio {
+        id
+      }
+      precio {
+        id
+        valor
+      }
+      valor
+    }
+  }
+`;
+
+
 
 export const deliverysByEstadoNotIn = gql`
   query ($estado: DeliveryEstado) {
@@ -284,6 +324,131 @@ export const deliveryQuery = gql`
         cliente {
           id
           persona {
+            id
+            nombre
+          }
+        }
+        formaPago {
+          id
+        }
+        estado
+        creadoEn
+        usuario {
+          id
+        }
+        valorDescuento
+        valorTotal
+        totalGs
+        totalRs
+        totalDs
+        delivery {
+          id
+        }
+        ventaItemList {
+          id
+          sucursalId
+          venta {
+            id
+          }
+          producto {
+            id
+          }
+          presentacion {
+            id
+          }
+          cantidad
+          precioCosto
+          precioVenta {
+            id
+          }
+          precio
+          valorDescuento
+          unidadMedida
+          creadoEn
+          usuario {
+            id
+          }
+          valorTotal
+        }
+        valorDescuento
+        valorTotal
+        totalGs
+        totalRs
+        totalDs
+        cobro {
+          id
+          cobroDetalleList {
+            id
+            pago
+            vuelto
+            descuento
+            aumento
+            sucursalId
+            moneda {
+              id
+              denominacion
+              simbolo
+              cambio
+            }
+            formaPago {
+              id
+              descripcion
+            }
+            valor
+          }
+        }
+      }
+      entregador {
+        id
+        persona {
+          nombre
+        }
+      }
+      vehiculo
+      direccion
+      telefono
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      estado
+      valor
+      barrio {
+        id
+        descripcion
+        precioDelivery {
+          valor
+        }
+      }
+      precio {
+        id
+      }
+      sucursalId
+    }
+  }
+`;
+
+export const saveDelivery = gql`
+  mutation saveDelivery($entity: DeliveryInput!) {
+    data: saveDelivery(delivery: $entity) {
+      id
+      precio {
+        id
+        valor
+      }
+      venta {
+        id
+        sucursalId
+        caja {
+          id
+        }
+        cliente {
+          id
+          persona {
+            id
             nombre
           }
         }
@@ -345,10 +510,12 @@ export const deliveryQuery = gql`
             vuelto
             descuento
             aumento
+            sucursalId
             moneda {
               id
               denominacion
               simbolo
+              cambio
             }
             formaPago {
               id
@@ -391,37 +558,6 @@ export const deliveryQuery = gql`
   }
 `;
 
-export const saveDelivery = gql`
-  mutation saveDelivery($entity: DeliveryInput!) {
-    data: saveDelivery(delivery: $entity) {
-      id
-      entregador {
-        id
-        persona {
-          nombre
-        }
-      }
-      direccion
-      telefono
-      creadoEn
-      usuario {
-        id
-        persona {
-          nombre
-        }
-      }
-      estado
-      valor
-      barrio {
-        id
-      }
-      precio {
-        id
-      }
-    }
-  }
-`;
-
 export const saveDeliveryAndVentaQuery = gql`
   mutation saveDeliveryAndVenta($deliveryInput:DeliveryInput!, $ventaInput:VentaInput, $ventaItemInputList:[VentaItemInput], $cobroInput:CobroInput, $cobroDetalleInputList:[CobroDetalleInput]) {
     data: saveDeliveryAndVenta(deliveryInput: $deliveryInput, ventaInput: $ventaInput, ventaItemInputList: $ventaItemInputList, cobroInput: $cobroInput, cobroDetalleInputList: $cobroDetalleInputList) {
@@ -458,6 +594,7 @@ export const saveDeliveryAndVentaQuery = gql`
         cliente {
           id
           persona {
+            id
             nombre
           }
         }
@@ -521,9 +658,11 @@ export const saveDeliveryAndVentaQuery = gql`
             vuelto
             descuento
             aumento
+            sucursalId
             moneda {
               id
               denominacion
+              cambio
             }
             valor
           }

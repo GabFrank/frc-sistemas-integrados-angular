@@ -214,7 +214,7 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
 
               break;
             case 'edit-info':
-
+              this.onNuevoDelivery(this.selectedDelivery)
               break;
             case 'para-entrega':
               this.selectedDelivery.estado = DeliveryEstado.PARA_ENTREGA;
@@ -247,11 +247,11 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
 
   }
 
-  onNuevoDelivery() {
+  onNuevoDelivery(delivery?: Delivery) {
     this.matDialog.open(EditDeliveryDialogComponent, {
       width: '700px',
       data: {
-        delivery: this.data?.delivery,
+        delivery: delivery != null ? delivery : this.data?.delivery,
         monedaList: this.data?.monedaList,
         cambioRs: this.cambioRs,
         cambioDs: this.cambioDs,
@@ -266,6 +266,7 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     })
   }
+
 
   onEditDelivery(delivery: Delivery, index) {
     this.matDialog.open(EditDeliveryDialogComponent, {

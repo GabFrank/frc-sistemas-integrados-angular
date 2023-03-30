@@ -14,7 +14,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { Component, ElementRef, HostListener, Input, OnInit, ViewChild } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { CreateItemDialogComponent } from '../create-item-dialog/create-item-dialog.component';
-import { updateDataSource, updateDataSourceInsertFirst, updateDataSourceWithId } from '../../../../commons/core/utils/numbersUtils';
+import { CurrencyMask, updateDataSource, updateDataSourceInsertFirst, updateDataSourceWithId } from '../../../../commons/core/utils/numbersUtils';
 import { EtapaTransferencia, TipoTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem } from '../transferencia.model';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { SelectionModel } from '@angular/cdk/collections';
@@ -26,7 +26,9 @@ import { MatSelect } from '@angular/material/select';
 import { Moneda } from '../../../financiero/moneda/moneda.model';
 import { Subscription } from 'rxjs';
 import { MonedaService } from '../../../financiero/moneda/moneda.service';
-import { comparatorLike } from '../../../../commons/core/utils/string-utils';
+import { TabService } from '../../../../layouts/tab/tab.service';
+import { PresentacionService } from '../../../productos/presentacion/presentacion.service';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 
 
 
@@ -47,6 +49,8 @@ export class EditTransferenciaComponent implements OnInit {
 
   @ViewChild('codigoInput', { static: false }) codigoInput: ElementRef;
   @ViewChild('cantPresentacionInput', { static: false }) cantPresentacionInput: ElementRef;
+  @ViewChild('precioPresentacionInput', { static: false }) precioPresentacionInput: ElementRef;
+  @ViewChild('precioUnidadInput', { static: false }) precioUnidadInput: ElementRef;
   @ViewChild('vencimientoInput', { static: false }) vencimientoInput: ElementRef;
   @ViewChild('matSelect', { static: false }) matSelect: MatSelect;
   @ViewChild("monedaInput", { static: false }) monedaInput: ElementRef;
@@ -63,6 +67,8 @@ export class EditTransferenciaComponent implements OnInit {
 
   selectedTransferencia = new Transferencia;
 
+  selectedTransferenciaItem: TransferenciaItem;
+
   selectedProducto = new Producto;
 
   dataSource = new MatTableDataSource<TransferenciaItem>([])
@@ -72,6 +78,8 @@ export class EditTransferenciaComponent implements OnInit {
   selectedEtapa: EtapaTransferencia;
 
   isDialogOpen = false;
+
+  currencyMask = new CurrencyMask();
 
   page = 0;
   size = 10;
@@ -108,20 +116,25 @@ export class EditTransferenciaComponent implements OnInit {
   cantidadUnidadControl = new FormControl(1, [Validators.min(0), Validators.pattern('\\d+([.]\\d+)?')]);
   vencimientoControl = new FormControl(null)
   monedaControl = new FormControl(null)
+  precioUnidadControl = new FormControl(null, Validators.required)
+  precioPresentacionControl = new FormControl(null, Validators.required)
 
   monedaList: Moneda[]
   filteredMonedaList: Moneda[]
   selectedMoneda: Moneda;
   monedaSub: Subscription;
-  monedaTimer;  
+  monedaTimer;
 
   constructor(private matDialog: MatDialog,
     public mainService: MainService,
     private transferenciaService: TransferenciaService,
     private cargandoService: CargandoDialogService,
     private productoService: ProductoService,
-    private monedaService: MonedaService
-  ) {}
+    private monedaService: MonedaService,
+    private tabService: TabService,
+    private presentacionService: PresentacionService,
+    private dialogoService: DialogosService
+  ) { }
 
   ngOnInit(): void {
     this.selectedTransferencia = new Transferencia;
@@ -157,31 +170,34 @@ export class EditTransferenciaComponent implements OnInit {
 
     setTimeout(() => {
       this.monedaList = this.monedaService.monedaList;
-      this.onMonedaSelect(this.monedaList[0])
-    }, 0);
+      this.monedaList?.length > 0 ? this.onMonedaSelect(this.monedaList[0]) : null;
+    }, 1000);
 
-    this.monedaSub = this.monedaControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
-      if (this.monedaControl.dirty) {
-        if (res == "") this.selectedMoneda = null;
-        if (this.monedaTimer != null) {
-          clearTimeout(this.monedaTimer);
-        }
-        if (res != null && res.length != 0) {
-          this.monedaTimer = setTimeout(() => {
-            this.filteredMonedaList = this.monedaList.filter(p => p.id == res || comparatorLike(res, p.denominacion))
-            if (this.filteredMonedaList.length == 1) {
-              this.onMonedaSelect(this.filteredMonedaList[0]);
-              this.onMonedaAutocompleteClose();
-            } else {
-              this.onMonedaAutocompleteClose();
-              this.onMonedaSelect(null);
-            }
-          }, 500);
-        } else {
-          this.filteredMonedaList = [];
-        }
-      }
-    });
+    // this.monedaSub = this.monedaControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
+    //   if (this.monedaControl.dirty) {
+    //     if (res == "") this.selectedMoneda = null;
+    //     if (this.monedaTimer != null) {
+    //       clearTimeout(this.monedaTimer);
+    //     }
+    //     if (res != null && res.length != 0) {
+    //       this.monedaTimer = setTimeout(() => {
+    //         this.filteredMonedaList = this.monedaList.filter(p => p.id == res || comparatorLike(res, p.denominacion))
+    //         if (this.filteredMonedaList.length == 1) {
+    //           this.onMonedaSelect(this.filteredMonedaList[0]);
+    //           this.onMonedaAutocompleteClose();
+    //         } else {
+    //           this.onMonedaAutocompleteClose();
+    //           this.onMonedaSelect(null);
+    //         }
+    //       }, 500);
+    //     } else {
+    //       this.filteredMonedaList = [];
+    //     }
+    //   }
+    // });
+
+    this.monedaControl.setValue("1 - GUARANI")
+    this.monedaControl.disable()
 
   }
 
@@ -219,6 +235,7 @@ export class EditTransferenciaComponent implements OnInit {
       if (res != null) {
         this.selectedTransferencia.sucursalOrigen = res['sucursalOrigen']
         this.selectedTransferencia.sucursalDestino = res['sucursalDestino']
+        this.codigoInput.nativeElement.focus()
       }
     })
   }
@@ -266,6 +283,7 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onRefresh() {
+
     this.ngOnInit()
   }
 
@@ -351,14 +369,24 @@ export class EditTransferenciaComponent implements OnInit {
     }).afterClosed().subscribe(res => {
       this.isDialogOpen = false;
       let response: PdvSearchProductoResponseData = res;
-      // if (response.presentacion != null) {
-      //   this.createItem(response.presentacion, null, response.cantidad)
-      // }
       this.selectedProducto = response.producto;
+      this.precioUnidadControl.setValue(this.selectedProducto?.costo?.ultimoPrecioCompra)
       this.presentacionControl.setValue(response.presentacion)
       this.cantidadPresentacionControl.setValue(1)
-      this.cantPresentacionInput.nativeElement.select()
-      this.codigoControl.setValue(response.presentacion?.codigoPrincipal?.codigo)
+      let codigo = response.presentacion?.codigoPrincipal?.codigo;
+      if (codigo == null) codigo = response.producto.codigoPrincipal;
+      this.codigoControl.setValue(codigo)
+      let foundItem = this.dataSource.data?.find(t => t.presentacionPreTransferencia.id == this.presentacionControl.value?.id)
+      if (foundItem != null) {
+        this.dialogoService.confirm("Ya existe un item con la misma presentación", "Desea editar el item?").subscribe(dialogRes => {
+          if (dialogRes) {
+            this.onEditItem(foundItem)
+          }
+        })
+      }
+      setTimeout(() => {
+        this.cantPresentacionInput.nativeElement.select()
+      }, 100);
     })
   }
 
@@ -404,15 +432,17 @@ export class EditTransferenciaComponent implements OnInit {
     })
   }
 
-  onSaveTransferenciaItem(item: TransferenciaItem) {
+  onSaveTransferenciaItem(item: TransferenciaItem, precioCosto?: number) {
+    item.usuario = this.mainService.usuarioActual;
     let auxItem = new TransferenciaItem;
     let isNew = item?.id == null;
     Object.assign(auxItem, item)
     auxItem.transferencia = this.selectedTransferencia;
     this.cargandoService.openDialog()
-    this.transferenciaService.onSaveTransferenciaItem(auxItem.toInput())
+    this.transferenciaService.onSaveTransferenciaItem(auxItem.toInput(), precioCosto)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
+        console.log(res);
         this.cargandoService.closeDialog()
         if (res != null) {
           if (!isNew) {
@@ -442,7 +472,21 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onEditItem(item: TransferenciaItem) {
-    this.createItem(null, item)
+    this.selectedTransferenciaItem = item;
+    this.presentacionService.onGetPresentacionesPorProductoId(item.presentacionPreTransferencia.producto.id).subscribe(res => {
+      this.selectedProducto = item.presentacionPreTransferencia.producto;
+      this.selectedProducto.presentaciones = res;
+      this.presentacionControl.setValue(res.find(p => p.id == item.presentacionPreTransferencia.id))
+      if (this.precioPresentacionControl?.value?.codigoPrincipal?.codigo != null) {
+        this.codigoControl.setValue(this.presentacionControl?.value?.codigoPrincipal?.codigo);
+      } else {
+        this.codigoControl.setValue(item?.presentacionPreTransferencia?.producto?.codigoPrincipal)
+      }
+      this.cantidadPresentacionControl.setValue(item.cantidadPreTransferencia);
+      this.vencimientoControl.setValue(new Date(item.vencimientoPreTransferencia))
+      this.matSelect.focus()
+      this.matSelect.open()
+    })
   }
 
   onFinalizar() {
@@ -629,10 +673,14 @@ export class EditTransferenciaComponent implements OnInit {
     this.matDialog.open(QrCodeComponent, {
       data: {
         codigo: codigo,
-        nombre: 'Transferencia'
+        nombre: 'Transferencia',
+        imprimir: true
       }
     }).afterClosed().subscribe(res => {
       this.isDialogOpen = false;
+      if(res == 'imprimir'){
+        this.transferenciaService.onImprimirTransferencia(this.selectedTransferencia.id, true)
+      }
     })
   }
 
@@ -670,6 +718,7 @@ export class EditTransferenciaComponent implements OnInit {
       this.productoService.onGetProductoPorCodigo(text).subscribe(res => {
         if (res != null) {
           this.selectedProducto = res;
+          this.precioUnidadControl.setValue(this.selectedProducto?.costo?.ultimoPrecioCompra)
           if (this.selectedProducto?.presentaciones?.length == 1) {
             this.presentacionControl.setValue(this.selectedProducto.presentaciones[0])
             if (!this.isPesable) {
@@ -707,19 +756,30 @@ export class EditTransferenciaComponent implements OnInit {
 
   }
 
-  onVencimientoEnter() {
+  onPrecioUnidadEnter() {
+    if (this.precioUnidadControl.value != null) {
+      this.precioPresentacionControl.setValue(this.precioUnidadControl.value * this.presentacionControl.value?.cantidad)
+    }
+    this.precioPresentacionInput.nativeElement.select()
+  }
+
+  onPrecioPresentacionEnter() {
+    if (this.precioPresentacionControl.value != null) {
+      this.precioUnidadControl.setValue(this.precioPresentacionControl.value / this.presentacionControl.value?.cantidad)
+    }
     if (this.selectedTransferencia?.id != null) {
       this.cantidadPresentacionControl.enable();
       this.presentacionControl.enable();
       if (this.selectedProducto != null && this.presentacionControl.valid && this.cantidadPresentacionControl.valid && (this.vencimientoControl.value == null || this.vencimientoControl.value >= new Date())) {
         let item = new TransferenciaItem;
+        Object.assign(item, this.selectedTransferenciaItem)
         item.activo = true;
         item.cantidadPreTransferencia = this.cantidadPresentacionControl.value;
         item.vencimientoPreTransferencia = this.vencimientoControl.value;
         item.transferencia = this.selectedTransferencia;
         item.presentacionPreTransferencia = this.presentacionControl.value;
         item.poseeVencimiento = this.vencimientoControl.value != null;
-        this.onSaveTransferenciaItem(item);
+        this.onSaveTransferenciaItem(item, this.precioUnidadControl.value);
         this.onClear();
       }
     } else {
@@ -734,11 +794,52 @@ export class EditTransferenciaComponent implements OnInit {
           item.transferencia = this.selectedTransferencia;
           item.presentacionPreTransferencia = this.presentacionControl.value;
           item.poseeVencimiento = this.vencimientoControl.value != null;
-          this.onSaveTransferenciaItem(item);
+          this.onSaveTransferenciaItem(item, this.precioUnidadControl.value);
           this.onClear();
         }
       })
     }
+  }
+
+  onVencimientoEnter() {
+    if (this.selectedTransferencia.sucursalOrigen?.nombre?.includes('COMPRAS')) {
+      this.precioUnidadInput.nativeElement.select()
+    } else {
+      if (this.selectedTransferencia?.id != null) {
+        this.cantidadPresentacionControl.enable();
+        this.presentacionControl.enable();
+        if (this.selectedProducto != null && this.presentacionControl.valid && this.cantidadPresentacionControl.valid && (this.vencimientoControl.value == null || this.vencimientoControl.value >= new Date())) {
+          let item = new TransferenciaItem;
+          Object.assign(item, this.selectedTransferenciaItem)
+          item.activo = true;
+          item.cantidadPreTransferencia = this.cantidadPresentacionControl.value;
+          item.vencimientoPreTransferencia = this.vencimientoControl.value;
+          item.transferencia = this.selectedTransferencia;
+          item.presentacionPreTransferencia = this.presentacionControl.value;
+          item.poseeVencimiento = this.vencimientoControl.value != null;
+          this.onSaveTransferenciaItem(item);
+          this.onClear();
+
+        }
+      } else {
+        this.onSaveTransferencia().then(res => {
+          this.cantidadPresentacionControl.enable();
+          this.presentacionControl.enable();
+          if (this.selectedProducto != null && this.presentacionControl.valid && this.cantidadPresentacionControl.valid && (this.vencimientoControl.value == null || this.vencimientoControl.value >= new Date())) {
+            let item = new TransferenciaItem;
+            item.activo = true;
+            item.cantidadPreTransferencia = this.cantidadPresentacionControl.value;
+            item.vencimientoPreTransferencia = this.vencimientoControl.value;
+            item.transferencia = this.selectedTransferencia;
+            item.presentacionPreTransferencia = this.presentacionControl.value;
+            item.poseeVencimiento = this.vencimientoControl.value != null;
+            this.onSaveTransferenciaItem(item);
+            this.onClear();
+          }
+        })
+      }
+    }
+
 
   }
 
@@ -755,16 +856,35 @@ export class EditTransferenciaComponent implements OnInit {
     this.vencimientoControl.setValue(null);
     this.codigoControl.setValue(null);
     this.codigoInput.nativeElement.select();
+    this.precioUnidadControl.setValue(null)
+    this.precioPresentacionControl.setValue(null);
+    this.selectedTransferenciaItem = null;
   }
 
-  nuevaTransferencia(){
-    this.onClear()
-    this.selectedTransferencia
+  nuevaTransferencia() {
+    this.tabService.removeCurrentTab();
+    this.tabService.addTab(new Tab(EditTransferenciaComponent, "Nueva transferencia", null, null))
   }
 
   onMonedaAutocompleteClose() {
     setTimeout(() => {
       this.monedaInput.nativeElement.select();
     }, 100);
+  }
+
+  onImprimir() {
+    this.transferenciaService.onImprimirTransferencia(this.selectedTransferencia.id);
+  }
+
+  onDatepickerClosed() {
+    this.vencimientoInput.nativeElement.select()
+  }
+
+  onSave(){
+    if(this.selectedTransferencia.sucursalOrigen.nombre.includes('COMPRA')){
+      this.onPrecioPresentacionEnter()
+    } else {
+      this.onVencimientoEnter()
+    }
   }
 }

@@ -1,10 +1,7 @@
-import { MatDialogRef } from '@angular/material/dialog';
-import { EtapaTransferencia } from '../../operaciones/transferencia/transferencia.model';
-import { TimelineData } from '../../../shared/timeline/timeline.component';
-import { TransferenciaComponent } from '../../operaciones/transferencia/transferencia.component';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Component, Inject, OnInit } from '@angular/core';
-import { Transferencia } from '../../operaciones/transferencia/transferencia.model';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { TimelineData } from '../../../shared/timeline/timeline.component';
+import { EtapaTransferencia, Transferencia } from '../../operaciones/transferencia/transferencia.model';
 
 export interface TransferenciaTimelineData {
   transferencia: Transferencia;
@@ -25,6 +22,8 @@ export class TransferenciaTimelineDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) private transferencia: Transferencia,
     private matDialogRef: MatDialogRef<TransferenciaTimelineDialogComponent>
   ) {
+    console.log(transferencia);
+    
   }
 
   ngOnInit(): void {
@@ -33,7 +32,7 @@ export class TransferenciaTimelineDialogComponent implements OnInit {
         texto: 'Creación',
         fecha: this.transferencia?.creadoEn,
         usuario: this.transferencia?.usuarioPreTransferencia,
-        terminado: this.transferencia?.usuarioPreparacion != null
+        terminado: this.transferencia?.usuarioPreTransferencia != null
       },
       {
         texto: 'Preparación',

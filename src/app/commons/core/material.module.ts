@@ -96,6 +96,6 @@ import { BdcWalkModule } from 'bdc-walkthrough';
     EnumToStringPipe,
     TimeDiffPipe,
     BdcWalkModule
-  ]
+    ]
 })
 export class MaterialModule { }

@@ -26,6 +26,24 @@
     </div>
     <div fxLayout="column" style="width: 100%">
       <div fxFlex>
+        <!-- <mat-form-field style="width: 100%" appearance="outline">
+          <mat-label>Presentación</mat-label>
+          <mat-select
+            #matSelect
+            [formControl]="presentacionControl"
+            name="presentacion"
+            (keyup.enter)="onPresentacionSelect(); $event.stopPropagation()"
+          >
+            <mat-option
+              *ngFor="let presentacion of selectedProducto?.presentaciones"
+              [value]="presentacion"
+            >
+              {{ presentacion?.cantidad | number : "1.0-3" }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field> -->
+      </div>
+      <div fxFlex>
         <mat-form-field style="width: 100%">
           <mat-label>Cantidad</mat-label>
           <input #cantidadInput matInput type="number" [formControl]="cantidadControl" (keyup.enter)="formGroup.valid ? onGuardar() : null"/>

@@ -39,12 +39,12 @@ sudo zerotier-cli join b6079f73c6af6767
 sudo dnf install rabbitmq-server -y
 sudo systemctl start rabbitmq-server
 sudo systemctl enable rabbitmq-server
-sudo rabbitmq-plugins enable rabbit_management
+sudo rabbitmq-plugins enable rabbitmq_management
 sudo rabbitmq-plugins enable rabbitmq_shovel
 sudo rabbitmq-plugins enable rabbitmq_shovel_management
 sudo rabbitmqctl add_user franco franco
-sudo rabbitmqctl set_user_tags administrator
-sudo rabbitmqctl set_permissions -p franco ".*" ".*" ".*"
+sudo rabbitmqctl set_user_tags franco administrator
+sudo rabbitmqctl set_permissions -p / franco ".*" ".*" ".*"
 -- instalar java -y
 sudo dnf install java -y
 -- abrir puertos necesarios

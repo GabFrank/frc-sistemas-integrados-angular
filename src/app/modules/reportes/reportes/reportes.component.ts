@@ -1,5 +1,5 @@
 import { Component, Input, OnDestroy, OnInit } from "@angular/core";
-import { pdfDefaultOptions } from "ngx-extended-pdf-viewer";
+import { NgxExtendedPdfViewerService, pdfDefaultOptions } from "ngx-extended-pdf-viewer";
 import { Subscription } from "rxjs";
 import { ReporteData, ReporteService } from "../reporte.service";
 
@@ -10,6 +10,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
   selector: "app-reportes",
   templateUrl: "./reportes.component.html",
   styleUrls: ["./reportes.component.scss"],
+  providers: [NgxExtendedPdfViewerService]
 })
 export class ReportesComponent implements OnInit, OnDestroy {
   selectedBase64Pdf: string;
@@ -19,7 +20,9 @@ export class ReportesComponent implements OnInit, OnDestroy {
   currentPage: number;
   selectedReporte: ReporteData;
 
-  constructor(private reporteService: ReporteService) {}
+  constructor(private reporteService: ReporteService) {
+
+  }
 
   ngOnInit(): void {
     this.reporteList = [];

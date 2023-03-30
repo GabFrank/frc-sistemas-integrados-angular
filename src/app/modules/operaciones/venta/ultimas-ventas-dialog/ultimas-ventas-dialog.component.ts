@@ -38,6 +38,8 @@ export class UltimasVentasDialogComponent implements OnInit {
 
   displayedColumns = [
     "id",
+    "modo",
+    "precioDelivery",
     "totalGs",
     "totalRs",
     "totalDs",

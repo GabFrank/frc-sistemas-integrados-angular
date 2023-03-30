@@ -293,7 +293,7 @@ export class AddFacturaLegalDialogComponent implements OnInit {
         
         this.facturaService.onSaveFactura(factura.toInput(), facturaItemInputList).pipe(untilDestroyed(this)).subscribe(res => {
           if (res) {
-            this.matDialogRef.close(true)
+            this.matDialogRef.close({facturado: true, cliente: this.selectedCliente})
           } 
         })
       }

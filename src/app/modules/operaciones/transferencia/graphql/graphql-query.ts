@@ -302,6 +302,11 @@ export const transferenciaPorFechaQuery = gql`
   }
 `;
 
+export const imprimirTransferenciaQuery = gql`
+query ($id:ID!, $printerName:String!, $ticket: Boolean){
+  data: imprimirTransferencia(id: $id, ticket: $ticket, printerName: $printerName)
+}
+`;
 
 export const transferenciaWithFiltersQuery = gql`
   query ($sucursalOrigenId: Int, $sucursalDestinoId: Int, $estado: TransferenciaEstado, $tipo: TipoTransferencia, $etapa: EtapaTransferencia, $isOrigen: Boolean, $isDestino: Boolean, $creadoDesde: String, $creadoHasta: String, $page: Int, $size: Int) {
@@ -369,8 +374,8 @@ export const imprimirTransferencia = gql`
 `;
 
 export const saveTransferenciaItem = gql`
-  mutation saveTransferenciaItem($entity: TransferenciaItemInput!) {
-    data: saveTransferenciaItem(transferenciaItem: $entity) {
+  mutation saveTransferenciaItem($entity: TransferenciaItemInput!, $precioCosto: Float) {
+    data: saveTransferenciaItem(transferenciaItem: $entity, precioCosto: $precioCosto) {
       id
         transferencia { 
           id
@@ -609,6 +614,7 @@ export const transferenciaItemPorTransferenciaIdQuery = gql`
         producto {
           id
           descripcion
+          descripcionFactura
           codigoPrincipal
           costo {
             costoMedio
@@ -626,6 +632,7 @@ export const transferenciaItemPorTransferenciaIdQuery = gql`
         producto {
           id
           descripcion
+          descripcionFactura
           codigoPrincipal
           costo {
             costoMedio

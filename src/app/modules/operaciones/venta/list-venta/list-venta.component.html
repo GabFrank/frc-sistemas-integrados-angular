@@ -343,6 +343,16 @@
               </mat-select>
             </mat-form-field>
           </div>
+          <div fxFlex="25%">
+            <mat-form-field style="width: 100%">
+              <mat-label>Modo</mat-label>
+              <mat-select [formControl]="modoControl" name="modo">
+                <mat-option [value]="null"> Todas </mat-option>
+                <mat-option [value]="false"> Local </mat-option>
+                <mat-option [value]="true"> Delivery </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
         </div>
       </div>
       <div table>
@@ -367,6 +377,24 @@
               style="text-align: center; width: 5%"
             >
               {{ venta.id }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="modo">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="text-align: center; width: 20%"
+            >
+              Modo
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let venta"
+              style="text-align: center; width: 20%;"
+              [class.is-delivery]="venta?.delivery!=null"
+            >
+              {{ venta?.delivery == null ? 'Local' : 'Delivery' }}
             </td>
           </ng-container>
 
@@ -418,7 +446,7 @@
               *matCellDef="let venta"
               style="text-align: center; width: 20%"
             >
-              {{ venta?.totalGs | number: "1.0-0" }}
+              {{ venta?.totalGs + venta?.delivery?.precio?.valor | number: "1.0-0" }}
             </td>
           </ng-container>
 
@@ -543,11 +571,41 @@
                         <mat-divider></mat-divider>
                       </div>
                     </div>
+                    <div
+                      *ngIf="venta?.delivery!=null"
+                      fxLayout="column"
+                      fxFlex
+                      style="width: 100%; padding-bottom: 5px; padding-top: 5px"
+                    >
+                      <div fxFlex fxLayout="row">
+                        <div fxFlex="5%"></div>
+                        <div fxFlex="35%">
+                          Delivery
+                        </div>
+                        <div fxFlex="10%">
+                          
+                        </div>
+                        <div fxFlex="10%">
+                          1
+                        </div>
+                        <div fxFlex="20%">
+                          
+                        </div>
+                        <div fxFlex="20%">
+                          {{
+                            venta?.delivery?.precio?.valor | number: "1.0-0" 
+                          }}
+                        </div>
+                      </div>
+                      <div fxFlex="10">
+                        <mat-divider></mat-divider>
+                      </div>
+                    </div>
                     <div fxFlex fxLayout="row">
                       <div fxFlex="70%"></div>
                       <div fxFlex="10%">Total:</div>
                       <div fxFlex="20%">
-                        {{ venta?.totalGs | number: "1.0-0" }}
+                        {{ venta?.totalGs + venta?.delivery?.precio?.valor | number: "1.0-0" }}
                       </div>
                     </div>
                     <br />

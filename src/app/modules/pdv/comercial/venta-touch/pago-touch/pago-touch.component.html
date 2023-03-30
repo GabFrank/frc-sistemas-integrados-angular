@@ -39,7 +39,7 @@
           class="totales-cambios"
           [ngStyle]="{ 'font-size': '2em' }"
         >
-          {{ formGroup.controls.valorTotal.value | number: "1.0-0" }}
+          {{ formGroup.controls.valorTotal.value | number : "1.0-0" }}
         </div>
       </div>
       <div
@@ -61,7 +61,9 @@
           class="totales-cambios"
           [ngStyle]="{ 'font-size': '1.5em' }"
         >
-          {{ formGroup.controls.valorTotal.value / cambioRs | number: "1.2-2" }}
+          {{
+            formGroup.controls.valorTotal.value / cambioRs | number : "1.2-2"
+          }}
         </div>
       </div>
       <div
@@ -83,7 +85,9 @@
           class="totales-cambios"
           [ngStyle]="{ 'font-size': '1.5em' }"
         >
-          {{ formGroup.controls.valorTotal.value / cambioDs | number: "1.2-2" }}
+          {{
+            formGroup.controls.valorTotal.value / cambioDs | number : "1.2-2"
+          }}
         </div>
       </div>
     </div>
@@ -170,7 +174,7 @@
                       text-align: center;
                     "
                   >
-                    {{ item.valor | number: "1.0-0" }}
+                    {{ item.valor | number : "1.0-0" }}
                   </td>
                   <td
                     *ngIf="item.moneda?.id != 1"
@@ -180,7 +184,7 @@
                       text-align: center;
                     "
                   >
-                    {{ item.valor | number: "1.2-2" }}
+                    {{ item.valor | number : "1.2-2" }}
                   </td>
                   <td
                     *ngIf="item.vuelto && !item.aumento"
@@ -565,7 +569,7 @@
           class="totales-cambios"
           [ngStyle]="{ 'font-size': '1.5em' }"
         >
-          {{ formGroup.controls.saldo.value | number: "1.0-0" }}
+          {{ formGroup.controls.saldo.value | number : "1.0-0" }}
         </div>
       </div>
       <div
@@ -587,7 +591,7 @@
           class="totales-cambios"
           [ngStyle]="{ 'font-size': '1.5em' }"
         >
-          {{ formGroup.controls.saldo.value / cambioRs | number: "1.2-2" }}
+          {{ formGroup.controls.saldo.value / cambioRs | number : "1.2-2" }}
         </div>
       </div>
       <div
@@ -609,7 +613,7 @@
           class="totales-cambios"
           [ngStyle]="{ 'font-size': '1.5em' }"
         >
-          {{ formGroup.controls.saldo.value / cambioDs | number: "1.2-2" }}
+          {{ formGroup.controls.saldo.value / cambioDs | number : "1.2-2" }}
         </div>
       </div>
     </div>
@@ -620,7 +624,7 @@
       fxLayoutGap="10px"
       style="height: 100px"
     >
-      <div fxFlex="14" style="height: 100%">
+      <div fxFlex="12" style="height: 100%">
         <app-boton
           color="accent"
           nombre="Finalizar (F10)"
@@ -630,7 +634,17 @@
           [iconSize]="2"
         ></app-boton>
       </div>
-      <div fxFlex="14" style="height: 100%">
+      <div fxFlex="12" style="height: 100%">
+        <app-boton
+          color="accent"
+          nombre="Finalizar + Ticket"
+          [disableExpression]="!(formGroup.controls.saldo.value == 0) || facturado"
+          (clickEvent)="onFinalizar(null, null, true)"
+          icon="price_check"
+          [iconSize]="2"
+        ></app-boton>
+      </div>
+      <div fxFlex="12" style="height: 100%">
         <app-boton
           color="primary"
           nombre="Cobro Parcial"
@@ -641,7 +655,7 @@
         ></app-boton>
       </div>
 
-      <div fxFlex="14" style="height: 100%">
+      <div fxFlex="12" style="height: 100%">
         <app-boton
           color="primary"
           nombre="Aumento (F8)"
@@ -656,7 +670,7 @@
         ></app-boton>
       </div>
 
-      <div fxFlex="14" style="height: 100%">
+      <div fxFlex="12" style="height: 100%">
         <app-boton
           color="primary"
           nombre="Descuento (F9)"
@@ -692,7 +706,7 @@
         </button>
       </div> -->
 
-      <div fxFlex="14" style="height: 100%">
+      <div fxFlex="12" style="height: 100%">
         <app-boton
           color="primary"
           nombre="Factura (F12)"
@@ -703,7 +717,7 @@
         ></app-boton>
       </div>
 
-      <div fxFlex="14" style="height: 100%">
+      <div fxFlex="12" style="height: 100%">
         <app-boton
           color="primary"
           nombre="Presupuesto"
@@ -714,7 +728,7 @@
         ></app-boton>
       </div>
 
-      <div fxFlex="14" style="height: 100%">
+      <div fxFlex="12" style="height: 100%">
         <app-boton
           color="primary"
           nombre="Cancelar"

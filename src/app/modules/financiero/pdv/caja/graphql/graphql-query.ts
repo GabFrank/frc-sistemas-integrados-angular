@@ -118,6 +118,42 @@ export const balancePorFecha = gql`
 //   }
 // `;
 
+export const balancePorCajaIdQuery = gql`
+  query ($id: ID!) {
+    data: balancePorCajaId(id: $id) {
+        totalGeneral
+        totalVentaGs
+        totalVentaRs
+        totalVentaDs
+        totalTarjeta
+        totalCredito
+        totalRetiroGs
+        totalRetiroRs
+        totalRetiroDs
+        totalGastoGs
+        totalGastoRs
+        totalGastoDs
+        totalAperGs
+        totalAperRs
+        totalAperDs
+        totalCierreGs
+        totalCierreRs
+        totalCierreDs
+        totalDescuento
+        totalAumento
+        totalCanceladasGs
+        totalCanceladasRs
+        totalCanceladasDs
+        vueltoGs
+        vueltoRs
+        vueltoDs
+        diferenciaGs
+        diferenciaRs
+        diferenciaDs
+    }
+  }
+`;
+
 export const cajaQuery = gql`
   query ($id: ID!, $sucId: ID) {
     data: pdvCaja(id: $id, sucId: $sucId) {

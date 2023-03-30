@@ -20,6 +20,11 @@ export class PdvCaja {
     balance: CajaBalance
     sucursalId: number;
     sucursal: Sucursal;
+
+    constructor(id, sucId){
+        this.id = id;
+        this.sucursalId = sucId;
+    }
 }
 
 export class PdvCajaInput {

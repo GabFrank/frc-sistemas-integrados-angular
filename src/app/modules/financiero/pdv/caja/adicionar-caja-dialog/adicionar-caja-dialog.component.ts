@@ -42,6 +42,9 @@ export interface AdicionarCajaResponse {
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MainService } from "../../../../../main.service";
 import { FacturaLegalService } from "../../../factura-legal/factura-legal.service";
+import { DeliveryService } from "../../../../pdv/comercial/venta-touch/delivery-dialog/delivery.service";
+import { DeliveryEstado } from "../../../../operaciones/delivery/enums";
+import { Delivery } from "../../../../operaciones/delivery/delivery.model";
 
 @UntilDestroy()
 @Component({
@@ -98,6 +101,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
 
   isCierre = false;
 
+  isDeliveryAbierto = false;
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarCajaData,
     private matDialogRef: MatDialogRef<AdicionarCajaDialogComponent>,
@@ -107,7 +112,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
     private cargandoDialog: CargandoDialogService,
     private matDialog: MatDialog,
     private mainService: MainService,
-    private facturaService: FacturaLegalService
+    private facturaService: FacturaLegalService,
+    private deliveryService: DeliveryService
   ) {
     // this.cargarMonedas();
   }
@@ -122,13 +128,18 @@ export class AdicionarCajaDialogComponent implements OnInit {
           this.selectedCaja = res;
           this.isCierre = this.selectedCaja?.conteoCierre != null;
           this.cargarDatos();
+          this.deliveryService.onDeliveryPorCajaIdAndEstado(this.selectedCaja.id, [DeliveryEstado.ABIERTO, DeliveryEstado.EN_CAMINO, DeliveryEstado.PARA_ENTREGA]).subscribe((deliveryRes: Delivery[]) => {
+            console.log(deliveryRes);
+            
+            if (deliveryRes.length > 0) this.isDeliveryAbierto = true
+          })
         }
       });
     } else {
     }
+
     setTimeout(() => {
       this.codigoMaletinInput.nativeElement.focus();
-
     }, 1000);
   }
 
@@ -307,7 +318,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
       this.selectedConteoApertura = response.conteo;
     } else {
       this.selectedConteoCierre = response.conteo;
-      if(!this.isCierre){
+      if (!this.isCierre) {
         this.goTo('imprimir')
         this.isCierre = true;
       }
@@ -352,9 +363,14 @@ export class AdicionarCajaDialogComponent implements OnInit {
         this.focusToAPerturaSub.next(null);
         break;
       case "cierre":
-        this.stepper.selectedIndex = 1;
-        this.stepper.selectedIndex = 2;
-        this.focusToCierreSub.next(null);
+        if (this.isDeliveryAbierto) {
+          this.notificacionBar.openWarn("Posee deliverys sin concluir")
+        } else {
+          this.stepper.selectedIndex = 1;
+          this.stepper.selectedIndex = 2;
+          this.focusToCierreSub.next(null);
+        }
+
         break;
       case "imprimir":
         if (this.selectedCaja != null) this.cajaService.onImprimirBalance(this.selectedCaja?.id, this.selectedCaja?.sucursalId)

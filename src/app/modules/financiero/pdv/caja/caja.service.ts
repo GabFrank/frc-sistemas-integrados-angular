@@ -13,6 +13,7 @@ import { SaveCajaGQL } from "./graphql/saveCaja";
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { BalancePorFechaGQL } from './graphql/balancePorFecha';
 import { environment } from '../../../../../environments/environment';
+import { BalancePorCajaIdGQL } from './graphql/imprimirBalance copy';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -31,14 +32,19 @@ export class CajaService {
     private cajaPorUsuarioIdAndAbierto: CajaPorUsuarioIdAndAbiertoGQL,
     private imprimirBalance: ImprimirBalanceGQL,
     private mainService: MainService,
-    private balancePorFecha: BalancePorFechaGQL
+    private balancePorFecha: BalancePorFechaGQL,
+    private balancePorCajaId: BalancePorCajaIdGQL
   ) {
-    
+
   }
 
   // onGetAll(): Observable<any> {
   //   return this.genericService.onGetAll(this.getAllCajas);
   // }
+
+  onCajaBalancePorId(id: number): Observable<CajaBalance> {
+    return this.genericService.onGetById(this.balancePorCajaId, id);
+  }
 
   onGetByDate(inicio?: Date, fin?: Date, sucId?): Observable<PdvCaja[]> {
     let hoy = new Date();

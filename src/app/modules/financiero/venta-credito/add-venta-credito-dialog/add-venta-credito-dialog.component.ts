@@ -251,8 +251,6 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   }
   onGuardar() { }
 
-
-
   onQrClick() {
     let now = Date.now()
     let id = this.selectedCliente.persona.id;
@@ -264,7 +262,6 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
       timestamp: now,
       sucursalId: this.mainService.sucursalActual.id
     }
-    console.log(qrData);
     let qrDialogRef = this.matDialog.open(QrCodeComponent, {
       data: {
         codigo: qrData,
@@ -274,8 +271,6 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
     })
 
     this.ventaSub = this.ventaCreditoService.ventaCreditoQrSub().pipe(untilDestroyed(this)).subscribe(res => {
-      console.log(res);
-
       if (+res['clienteId'] == +id && +this.mainService.sucursalActual.id == +res['sucursalId'] && secretKey == res['secretKey']) {
         let diff = ((Date.now() - (+qrData.timestamp)) / 1000) / 60;
         if (diff < 60) {

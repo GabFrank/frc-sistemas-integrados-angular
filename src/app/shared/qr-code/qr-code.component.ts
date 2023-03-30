@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, Inject, OnInit, ViewChild, ElementRef, EventEmitter, Output } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/firestore';
 import { AngularFireStorage } from '@angular/fire/storage';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -20,6 +20,7 @@ export interface QrCodeDialogData {
   nombre: any;
   codigo: QrData;
   segundos?: number;
+  imprimir?: boolean;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -32,7 +33,6 @@ import { QrcodeComponent } from '@techiediaries/ngx-qrcode';
   styleUrls: ['./qr-code.component.scss']
 })
 export class QrCodeComponent implements OnInit {
-
 
   value = '';
   isQrShow = true;
@@ -47,6 +47,8 @@ export class QrCodeComponent implements OnInit {
     public dialogRef: MatDialogRef<QrCodeComponent>,
   ) {
     this.value = codificarQr(data.codigo)
+    console.log(this.value);
+    
     this.codigoAlfanumerico = data.codigo.tipoEntidad + '-' + data.codigo.sucursalId + '-' + data.codigo.idOrigen;
     if (data.segundos != null) {
       this.countdown = data.segundos;
@@ -67,6 +69,11 @@ export class QrCodeComponent implements OnInit {
   onSalir() {
     clearTimeout(this.timer)
     this.dialogRef.close()
+  }
+
+  onImprimir(){
+    clearTimeout(this.timer)
+    this.dialogRef.close('imprimir')
   }
 
 }

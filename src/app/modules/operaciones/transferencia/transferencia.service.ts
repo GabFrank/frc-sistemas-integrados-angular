@@ -17,6 +17,13 @@ import { DeleteTransferenciaGQL } from './graphql/deleteTransferencia';
 import { GetTransferenciaItensPorTransferenciaIdGQL } from './graphql/getTransferenciaItensPorTransferenciaId';
 import { GetTransferenciasPorUsuarioGQL } from './graphql/getTransferenciasPorUsuario';
 import { GetTransferenciasWithFilterGQL } from './graphql/getTransferenciasWithFilter';
+import { ImprimirTransferenciaGQL } from './graphql/imprimirTransferencia';
+import { environment } from '../../../../environments/environment';
+import { ReporteService } from '../../reportes/reporte.service';
+import { TabService } from '../../../layouts/tab/tab.service';
+import { Tab } from '../../../layouts/tab/tab.model';
+import { ListProductoComponent } from '../../productos/producto/list-producto/list-producto.component';
+import { ReportesComponent } from '../../reportes/reportes/reportes.component';
 
 @UntilDestroy()
 @Injectable({
@@ -38,8 +45,33 @@ export class TransferenciaService {
     private mainService: MainService,
     private transferenciaItemPorTransferenciaId: GetTransferenciaItensPorTransferenciaIdGQL,
     private transferenciasPorUsuario: GetTransferenciasPorUsuarioGQL,
-    private getTransferenciasWithFiler: GetTransferenciasWithFilterGQL
+    private getTransferenciasWithFiler: GetTransferenciasWithFilterGQL,
+    private imprimirTransferencia: ImprimirTransferenciaGQL,
+    private reporteService: ReporteService,
+    private tabService: TabService
   ) { }
+
+  onImprimirTransferencia(id, ticket?) {
+    this.genericCrudService.onCustomQuery(this.imprimirTransferencia, {
+      id: id,
+      ticket: ticket,
+      printerName: environment['printers']['ticket'],
+    }).subscribe(res => {
+      if (res != null) {
+        // const byteCharacters = atob(res);
+        // const byteNumbers = new Array(byteCharacters.length);
+        // for (let i = 0; i < byteCharacters.length; i++) {
+        //   byteNumbers[i] = byteCharacters.charCodeAt(i);
+        // }
+        // const byteArray = new Uint8Array(byteNumbers);
+        // const pdfBlob = new Blob([byteArray], { type: 'application/pdf' });
+        // const pdfUrl = URL.createObjectURL(pdfBlob);
+        // window.open(pdfUrl, '_blank');
+        this.reporteService.onAdd('Transferencia '+ id, res)
+        this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListProductoComponent))
+      }
+    })
+  }
 
   onGetTrasferenciasPorFecha(inicio, fin) {
     return this.genericCrudService.onGetByFecha(this.getTransferenciasPorFecha, inicio, fin);
@@ -67,8 +99,8 @@ export class TransferenciaService {
     return this.genericCrudService.onDelete(this.deleteTransfencia, id, 'Realmente  desea eliminar esta transferencia?')
   }
 
-  onSaveTransferenciaItem(input): Observable<TransferenciaItem> {
-    return this.genericCrudService.onSave(this.saveTransferenciaItem, input);
+  onSaveTransferenciaItem(input, precioCosto?: number): Observable<TransferenciaItem> {
+    return this.genericCrudService.onSaveCustom(this.saveTransferenciaItem, { entity: input, precioCosto: precioCosto });
   }
 
   onDeleteTransferenciaItem(id): Observable<boolean> {
