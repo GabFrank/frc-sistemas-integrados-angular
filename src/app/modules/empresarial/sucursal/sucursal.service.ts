@@ -13,6 +13,7 @@ import { environment } from "../../../../environments/environment";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { SucursalActualGQL } from "./graphql/sucursalActual";
 import { SucursalByIdGQL } from "./graphql/sucursalById";
+import { CargandoDialogService } from "../../../shared/components/cargando-dialog/cargando-dialog.service";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -26,7 +27,7 @@ export class SucursalService {
     }),
   };
 
-  private crudService: GenericCrudService
+  isLoading = false;
 
   constructor(
     private getAllSucursales: SucursalesGQL,
@@ -35,15 +36,41 @@ export class SucursalService {
     private http: HttpClient,
     private injector: Injector,
     private sucursalPorId: SucursalByIdGQL,
-
+    private cargandoService: CargandoDialogService,
+    private notificacionSnackBar: NotificacionSnackbarService
   ) {
-    setTimeout(() => this.crudService = injector.get(GenericCrudService));
-
   }
 
-  onGetSucursal(id): Observable<Sucursal>{
-    return this.crudService.onGetById(this.sucursalPorId, id);
-  }
+  onGetSucursal(id): Observable<Sucursal> {
+    this.isLoading = true;
+    this.cargandoService.openDialog(false, 'Buscando...')
+    return new Observable((obs) => {
+      this.sucursalPorId
+        .fetch({ id}, { fetchPolicy: "no-cache", errorPolicy: "all"}).pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          this.cargandoService.closeDialog()
+          this.isLoading = false;
+          if (res.errors == null) {
+            obs.next(res.data["data"]);
+            if (res.data["data"] == null && res.data["error"] == false) {
+              this.notificacionSnackBar.notification$.next({
+                texto: "Item no encontrado",
+                color: NotificacionColor.warn,
+                duracion: 2,
+              });
+            }
+          } else {
+            this.notificacionSnackBar.notification$.next({
+              texto: "Ups! Algo salió mal: " + res.errors[0].message,
+              color: NotificacionColor.danger,
+              duracion: 3,
+            });
+          }
+        }, (err) => {
+          this.notificacionBar.openWarn('Problema al realizar esta operación')
+          this.cargandoService.closeDialog()
+        });
+    });  }
 
   onGetAllSucursales(): Observable<Sucursal[]> {
     return new Observable((obs) => {
@@ -70,7 +97,7 @@ export class SucursalService {
     });
   }
 
-  onGetSucursalActual(): Observable<Sucursal>{
+  onGetSucursalActual(): Observable<Sucursal> {
     return new Observable((obs) => {
       this.getSucursalActual
         .fetch(
@@ -92,7 +119,8 @@ export class SucursalService {
             });
           }
         });
-    });  }
+    });
+  }
 
   getSucursalesAdmin(): Observable<any> {
     return new Observable((obs) => {

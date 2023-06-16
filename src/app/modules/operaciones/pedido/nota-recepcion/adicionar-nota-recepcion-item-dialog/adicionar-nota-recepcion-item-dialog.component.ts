@@ -128,10 +128,8 @@ export class AdicionarNotaRecepcionItemDialogComponent implements OnInit {
     });
 
     this.onAddItens(addItems).pipe(untilDestroyed(this)).subscribe(res => {
-      console.log('adding items')
       if(res){
         this.onRemoveItens(removeItems).pipe(untilDestroyed(this)).subscribe(res => {
-          console.log('remov items')
           this.matDialogRef.close(addItems)
         })
       }
@@ -148,7 +146,6 @@ export class AdicionarNotaRecepcionItemDialogComponent implements OnInit {
             this.pedidoService
               .onUpdateNotaRecepcionId(i.id, this.selectedNotaRecepcion.id).pipe(untilDestroyed(this))
               .subscribe((res) => {
-                console.log(res)
                 count++;
                 if (length == count) {
                   obs.next(true);
@@ -177,7 +174,6 @@ export class AdicionarNotaRecepcionItemDialogComponent implements OnInit {
             this.pedidoService
               .onUpdateNotaRecepcionId(i.id, null).pipe(untilDestroyed(this))
               .subscribe((res) => {
-                console.log(res)
                 count++;
                 if (length == count) {
                   obs.next(true);

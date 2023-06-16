@@ -1,16 +1,29 @@
 <div fxLayout="column" style="width: 100%; height: 100%">
-  <div fxFlex fxLayout="row" fxLayoutAlign="center center">
-    <div fxFlex="20"></div>
-    <!-- <div fxFlex="20" style="width: 100%;" fxFlexAlign="end">
-                
-              </div> -->
-    <img src="assets/flags/py/py64.png" alt="br" style="width: 3vw" />
+  <div fxFlex fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="10px">
+    <div fxFlex="40" style="text-align: right">
+      <img
+        src="assets/flags/py/py64.png"
+        alt="br"
+        style="height: 50px; width: 50px"
+      />
+    </div>
     <div
-      fxFlex
+      fxFlex="60"
       class="valor-principal"
-      style="padding-left: 2%; text-align: end; padding-right: 15%"
+      style="text-align: center"
+      *ngIf="descuentoGs == 0 || descuentoGs == null"
     >
       <div style="font-size: 2em">{{ totalGs | number }} Gs.</div>
+    </div>
+    <div
+      fxFlex="60"
+      class="valor-principal"
+      style="text-align: center"
+      *ngIf="descuentoGs > 0"
+      fxLayout="column"
+    >
+      <div style="font-size: 1em">{{ totalGs | number }} Gs.</div>
+      <div fxFlex style="font-size: 2em">{{ totalGs - descuentoGs | number }} Gs.</div>
     </div>
   </div>
   <div fxFlex="1">
@@ -36,7 +49,7 @@
         class="totales-cambios"
         [ngStyle]="{ 'font-size': '1.5em' }"
       >
-        {{ totalGs / cambioRs | number: "1.2-2" }}
+        {{ totalGs / cambioRs | number : "1.2-2" }}
       </div>
     </div>
     <div fxFlex="30" FxLayout="row" fxLayoutAlign="center center">
@@ -52,23 +65,7 @@
         class="totales-cambios"
         [ngStyle]="{ 'font-size': '1.5em' }"
       >
-        {{ totalGs / cambioDs | number: "1.2-2" }}
-      </div>
-    </div>
-    <div fxFlex="30" FxLayout="row" fxLayoutAlign="center center">
-      <div fxFlex="30">
-        <img
-          src="assets/flags/arg/arg32.png"
-          alt="br"
-          style="width: 50%; height: 50%"
-        />
-      </div>
-      <div
-        fxFlex="70"
-        class="totales-cambios"
-        [ngStyle]="{ 'font-size': '1.3em' }"
-      >
-        {{ totalGs / cambioArg | number: "1.2-2" }}
+        {{ totalGs / cambioDs | number : "1.2-2" }}
       </div>
     </div>
   </div>
@@ -105,18 +102,6 @@
       </div>
       <div fxFlex="70" class="valores-cambios" style="font-size: 1.2em">
         {{ cambioDs | number }} Gs.
-      </div>
-    </div>
-    <div fxFlex="30" FxLayout="row" fxLayoutAlign="star center">
-      <div fxFlex="20">
-        <img
-          src="assets/flags/arg/arg32.png"
-          alt="br"
-          style="width: 50%; height: 50%"
-        />
-      </div>
-      <div fxFlex="80" class="valores-cambios" style="font-size: 1.2em">
-        {{ cambioArg | number }} Gs.
       </div>
     </div>
   </div>

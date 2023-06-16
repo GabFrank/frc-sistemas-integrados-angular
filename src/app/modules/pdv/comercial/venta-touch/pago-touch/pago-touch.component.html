@@ -1,7 +1,13 @@
 <form
   #container
   [formGroup]="formGroup"
-  style="overflow-x: hidden; overflow-y: hidden; height: 100%; width: 100%"
+  style="
+    overflow-x: hidden;
+    overflow-y: hidden;
+    height: 100%;
+    width: 100%;
+    padding: 10px;
+  "
 >
   <div
     fxLayout="column"
@@ -101,6 +107,7 @@
       <div fxFlex="50" fxLayout="column" fxLayoutGap="20px" style="width: 100%">
         <div fxFlex fxLayout="row" style="width: 100%">
           <mat-card
+            appearance="outlined"
             style="
               background-color: white;
               padding: 5px;
@@ -328,7 +335,7 @@
           style="height: 100%"
           fxLayoutGap="10px"
           fxLayoutAlign="space-around start"
-          *ngIf="formaPagoList.length > 0"
+          *ngIf="formaPagoList?.length > 0"
         >
           <app-boton
             style="height: 80%"
@@ -356,7 +363,7 @@
             style="height: 80%"
             nombre="Convenio (F6)"
             (clickEvent)="onConvenioClick()"
-            [disableExpression]="false"
+            [disableExpression]="isCredito"
             fxFlex="22"
             [color]="
               selectedFormaPago?.descripcion == 'CONVENIO' ? 'primary' : 'null'
@@ -405,7 +412,13 @@
         </div>
       </div>
     </div>
-    <div fxFlex fxLayout="row" fxLayoutGap="20px" style="padding-top: 3vh">
+    <div
+      fxFlex
+      fxLayout="row"
+      fxLayoutGap="20px"
+      style="padding-top: 20px"
+      fxLayoutAlign="start center"
+    >
       <div
         fxFlex="20%"
         style="color: black; font-size: 100%; text-align: center"
@@ -472,71 +485,52 @@
           </mat-autocomplete>
         </mat-form-field>
       </div>
-      <div fxFlex="20%" fxLayout="column" style="width: 100%">
-        <div
-          fxFlex="50"
-          style="
-            color: black;
-            font-size: 100%;
-            text-align: center;
-            height: 100%;
-          "
-          fxLayoutAlign="start center"
-        >
-          <mat-form-field
-            class="example-form-field"
-            style="width: 100%; height: 100%"
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%" class="shrinking-mat-form-field">
+          <mat-label>Valor</mat-label>
+          <input
+            #valorInput
+            matInput
+            type="text"
+            formControlName="valor"
+            style="color: white; font-size: 1.3em"
+            currencyMask
+            [options]="
+              selectedMoneda?.id == 1
+                ? currencyOptionsGuarani
+                : currencyOptionsNoGuarani
+            "
+            autocomplete="off"
+          />
+          <button
+            type="button"
+            *ngIf="formGroup.controls.valor.value"
+            matSuffix
+            mat-icon-button
+            aria-label="Clear"
+            (click)="formGroup.get('valor').setValue(null)"
+            style="padding-top: 20px"
           >
-            <mat-label>Valor</mat-label>
-            <input
-              #valorInput
-              matInput
-              type="text"
-              formControlName="valor"
-              style="color: white; font-size: 1.3em"
-              currencyMask
-              [options]="
-                selectedMoneda?.id == 1
-                  ? currencyOptionsGuarani
-                  : currencyOptionsNoGuarani
-              "
-              autocomplete="off"
-            />
-            <button
-              type="button"
-              *ngIf="formGroup.controls.valor.value"
-              matSuffix
-              mat-icon-button
-              aria-label="Clear"
-              (click)="formGroup.get('valor').setValue(null)"
-            >
-              <mat-icon style="color: white; font-size: 1.5em">close</mat-icon>
-            </button>
-          </mat-form-field>
-        </div>
+            <mat-icon style="color: white">close</mat-icon>
+          </button>
+        </mat-form-field>
       </div>
-      <div fxFlex="20%">
-        <button
-          type="button"
-          mat-raised-button
-          color="primary"
-          style="width: 90%; height: 3em"
-          (click)="openTecladoNumerico()"
-        >
-          <mat-icon>keyboard_alt</mat-icon>
-        </button>
-      </div>
-      <div fxFlex="20%">
-        <button
-          type="button"
-          mat-raised-button
-          color="primary"
-          style="width: 90%; height: 3em"
+      <div fxFlex style="text-align: center; height: 100%; width: 100%">
+        <mat-icon
+          style="height: 1em; width: 100%; font-size: 3em"
+          class="btn-success-flat"
           (click)="addCobroDetalle()"
+          >done</mat-icon
         >
-          <mat-icon>done</mat-icon>
-        </button>
       </div>
+      <div fxFlex style="text-align: center; height: 100%; width: 100%">
+        <mat-icon
+          style="height: 1em; width: 100%; font-size: 3em"
+          (click)="openTecladoNumerico()"
+          >keyboard_alt</mat-icon
+        >
+      </div>
+      <div fxFlexFill></div>
     </div>
     <div class="cambios" fxFlex fxLayout="row" fxLayoutAlign="center center">
       <hr fxFlex="40" style="background-color: grey" />
@@ -638,7 +632,9 @@
         <app-boton
           color="accent"
           nombre="Finalizar + Ticket"
-          [disableExpression]="!(formGroup.controls.saldo.value == 0) || facturado"
+          [disableExpression]="
+            !(formGroup.controls.saldo.value == 0) || facturado || isCredito
+          "
           (clickEvent)="onFinalizar(null, null, true)"
           icon="price_check"
           [iconSize]="2"

@@ -12,45 +12,42 @@
       fxLayoutAlign="start center"
       fxLayoutGap="10px"
     >
-      <div fxFlex="5%" style="width: 100%">Caja:</div>
-      <div fxFlex="5">
-        <mat-form-field style="width: 60%">
+      <div fxFlex="10">
+        <mat-form-field style="width: 90%" class="shrinking-mat-form-field">
+          <mat-label>Caja:</mat-label>
           <input
             type="number"
             matInput
             [formControl]="codigoControl"
             (keyup.enter)="onCondigoEnter()"
-            style="font-size: 1.2em !important"
+            style="text-align: end"
           />
         </mat-form-field>
       </div>
       <div fxFlex="30%">
-        <mat-form-field style="width: 100%">
+        <mat-form-field style="width: 100%" class="shrinking-mat-form-field">
           <mat-label>Situación</mat-label>
           <mat-select [formControl]="estadoControl" multiple>
-            <mat-select-trigger style="font-size: 1.2em">
+            <mat-select-trigger>
               <span *ngFor="let estado of estadoControl.value; let i = index"
                 >{{ estado }}
                 <span *ngIf="estadoControl.value?.length - 1 > i">, </span>
               </span>
             </mat-select-trigger>
-            <mat-option
-              style="font-size: 1.2em"
-              *ngFor="let estado of estadoList"
-              [value]="estado"
-              >{{ estado }}</mat-option
-            >
+            <mat-option *ngFor="let estado of estadoList" [value]="estado">{{
+              estado
+            }}</mat-option>
           </mat-select>
         </mat-form-field>
       </div>
       <div fxFlex="8%"></div>
       <div fxFlex="25%">
-        <mat-form-field style="width: 100%">
+        <mat-form-field style="width: 100%" class="shrinking-mat-form-field">
           <mat-label>Rango de fecha</mat-label>
           <mat-date-range-input
             [formGroup]="fechaFormGroup"
             [rangePicker]="picker"
-            style="font-size: 1.2em; width: 100%"
+            style="width: 100%"
           >
             <input
               matStartDate
@@ -84,7 +81,11 @@
         </mat-form-field>
       </div>
       <div fxFlex="30%" fxAlignItem="center">
-        <mat-checkbox [indeterminate]="activoControl.value == null" [formControl]="activoControl" (change)="onChange()">
+        <mat-checkbox
+          [indeterminate]="activoControl.value == null"
+          [formControl]="activoControl"
+          (change)="onChange()"
+        >
           {{
             activoControl.value == null
               ? "TODAS"
@@ -102,10 +103,15 @@
       fxLayoutAlign="start center"
       fxLayoutGap="10px"
     >
-      <div fxFlex="5%" style="width: 100%">Maletin:</div>
-      <div fxFlex="5%">
-        <mat-form-field style="width: 60%">
-          <input type="number" matInput [formControl]="codigoMaletinControl" />
+      <div fxFlex="10%">
+        <mat-form-field style="width: 90%" class="shrinking-mat-form-field">
+          <mat-label>Maletin:</mat-label>
+          <input
+            type="number"
+            matInput
+            [formControl]="codigoMaletinControl"
+            style="text-align: end"
+          />
         </mat-form-field>
       </div>
       <div fxFlex="30%">
@@ -115,7 +121,6 @@
             matInput
             [formControl]="maletinControl"
             (keyup.enter)="onMaletinSearch()"
-            style="font-size: 1.2em !important"
           />
         </mat-form-field>
       </div>
@@ -126,7 +131,9 @@
           color="primary"
           (click)="onProductoSearch()"
         > -->
-          <mat-icon (click)="onMaletinSearch()" style="cursor: pointer;">search</mat-icon>
+        <mat-icon (click)="onMaletinSearch()" style="cursor: pointer"
+          >search</mat-icon
+        >
         <!-- </button> -->
       </div>
       <div fxFlex="30%">
@@ -142,10 +149,15 @@
       fxLayoutAlign="start center"
       fxLayoutGap="10px"
     >
-      <div fxFlex="5%" style="width: 100%">Cajero:</div>
-      <div fxFlex="5%">
-        <mat-form-field style="width: 60%">
-          <input type="number" matInput [formControl]="codigoCajeroControl" />
+      <div fxFlex="10%">
+        <mat-form-field style="width: 90%" class="shrinking-mat-form-field">
+          <mat-label>Cajero:</mat-label>
+          <input
+            type="number"
+            matInput
+            [formControl]="codigoCajeroControl"
+            style="text-align: end"
+          />
         </mat-form-field>
       </div>
       <div fxFlex="30%">
@@ -155,7 +167,6 @@
             matInput
             [formControl]="cajeroControl"
             (keyup.enter)="onCajeroEnter()"
-            style="font-size: 1.2em !important"
           />
         </mat-form-field>
       </div>
@@ -166,14 +177,22 @@
           color="primary"
           (click)="onCajeroSearch()"
         > -->
-        <mat-icon (click)="onProductoSearch()" style="cursor: pointer;">search</mat-icon>
+        <mat-icon (click)="onProductoSearch()" style="cursor: pointer"
+          >search</mat-icon
+        >
         <!-- </button> -->
       </div>
 
-      <div fxFlex="5%" style="width: 100%">Sucursal:</div>
-      <div fxFlex="5%">
-        <mat-form-field style="width: 60%">
-          <input type="number" matInput [formControl]="sucursalCodigoControl" (keyup.enter)="onSucursalSearchById(sucursalCodigoControl.value)"/>
+      <div fxFlex="10%">
+        <mat-form-field style="width: 90%">
+          <mat-label>Sucursal:</mat-label>
+          <input
+            type="number"
+            matInput
+            [formControl]="sucursalCodigoControl"
+            (keyup.enter)="onSucursalSearchById(sucursalCodigoControl.value)"
+            style="text-align: center;"
+          />
         </mat-form-field>
       </div>
       <div fxFlex="30%">
@@ -183,7 +202,6 @@
             matInput
             [formControl]="sucursalControl"
             (keyup.enter)="onSucursalSearch(sucursalControl.value)"
-            style="font-size: 1.2em !important"
           />
         </mat-form-field>
       </div>
@@ -194,10 +212,11 @@
           color="primary"
           (click)="onCajeroSearch()"
         > -->
-        <mat-icon (click)="onSucursalSearch()" style="cursor: pointer;">search</mat-icon>
+        <mat-icon (click)="onSucursalSearch()" style="cursor: pointer"
+          >search</mat-icon
+        >
         <!-- </button> -->
       </div>
-
     </div>
   </div>
   <div table style="width: 100%" fxLayoutGap="20px">
@@ -403,9 +422,15 @@
         class="example-detail-row"
       ></tr>
     </table>
-    <br>
+    <br />
     <div [hidden]="dataSource.data.length == 0" style="text-align: center">
-      <button type="button" type="button" mat-fab color="primary" (click)="cargarMasDatos()">
+      <button
+        type="button"
+        type="button"
+        mat-fab
+        color="primary"
+        (click)="cargarMasDatos()"
+      >
         <mat-icon>add</mat-icon>
       </button>
     </div>

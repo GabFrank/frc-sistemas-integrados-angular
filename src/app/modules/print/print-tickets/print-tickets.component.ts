@@ -55,22 +55,20 @@ export class PrintTicketsComponent implements OnInit {
   downloadImage(){
     html2canvas(this.ticket.nativeElement).then(canvas => {
       let image = canvas.toDataURL("image/jpeg").split(';base64,')[1];
-      console.log(image)
       this.printService.print(canvas.toDataURL('image/png').split(';base64,')[1]);
       this.downloadLink.nativeElement.href = canvas.toDataURL('image/png');
       this.downloadLink.nativeElement.download = 'marble-diagram.png';
-      this.downloadLink.nativeElement.click();  
+      this.downloadLink.nativeElement.click();
     });
   }
 
   downloadImage2(){
     html2canvas(this.ticket2.nativeElement).then(canvas2 => {
       let image = canvas2.toDataURL("image/jpeg").split(';base64,')[1];
-      console.log(image)
       this.printService.print(canvas2.toDataURL('image/png').split(';base64,')[1]);
       this.downloadLink2.nativeElement.href = canvas2.toDataURL('image/png');
       this.downloadLink2.nativeElement.download = 'ticket.png';
-      this.downloadLink2.nativeElement.click();  
+      this.downloadLink2.nativeElement.click();
     });
   }
 

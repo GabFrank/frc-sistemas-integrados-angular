@@ -61,6 +61,7 @@ export const facturaLegalesFullInfoQuery = gql`
       ) {
         id
       viaTributaria
+      sucursalId
       timbradoDetalle{
         id
         timbrado {
@@ -92,6 +93,7 @@ export const facturaLegalesFullInfoQuery = gql`
       totalFinal
       creadoEn
       sucursal{
+        id
         nombre
         codigoEstablecimientoFactura
       }
@@ -214,4 +216,9 @@ export const imprimirFacturasPorCajaQuery = gql`
   }
 `;
 
+export const reimprimirFacturaLegalQuery = gql`
+  query ($id: ID!, $sucId: ID!, $printerName: String) {
+    data: reimprimirFacturaLegal(id: $id, sucId: $sucId, printerName: $printerName)
+  }
+`;
 

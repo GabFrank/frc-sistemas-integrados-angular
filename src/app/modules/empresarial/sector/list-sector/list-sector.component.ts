@@ -137,8 +137,6 @@ export class ListSectorComponent implements OnInit {
   }
 
   onEditZona(zona, i) {
-    console.log(i);
-
     this.matDialog.open(AdicionarZonaDialogComponent, {
       data: {
         sector: this.expandedElement,
@@ -149,7 +147,7 @@ export class ListSectorComponent implements OnInit {
     }).afterClosed().subscribe(res => {
       if (res != null) {
         this.zonaDataSource.data = updateDataSource(this.zonaDataSource.data, res, i)
-        // this.dataSource.data = updateDataSource(this.dataSource.data, this.zonaDataSource.data, i)       
+        // this.dataSource.data = updateDataSource(this.dataSource.data, this.zonaDataSource.data, i)
       }
     })
   }
@@ -163,7 +161,7 @@ export class ListSectorComponent implements OnInit {
     }).afterClosed().subscribe(res => {
       if (res != null) {
         this.zonaDataSource.data = updateDataSource(this.zonaDataSource.data, res)
-        // this.dataSource.data = updateDataSource(this.dataSource.data, this.zonaDataSource.data, i)       
+        // this.dataSource.data = updateDataSource(this.dataSource.data, this.zonaDataSource.data, i)
       }
     })
   }

@@ -3,6 +3,7 @@
   fxLayoutAlign="center start"
   fxLayoutGap="20px"
   (click)="setFocusToCantidad()"
+  style="padding: 10px"
 >
   <div style="width: 100%; text-align: center">
     <h2>{{ data.producto.descripcion }}</h2>
@@ -15,8 +16,13 @@
     fxLayoutGap="5px"
     style="width: 100%"
   >
-    <div fxFlex="13" [fxHide]="presentacion?.activo != true" *ngFor="let presentacion of presentaciones; let i = index">
+    <div
+      fxFlex="13"
+      [fxHide]="presentacion?.activo != true"
+      *ngFor="let presentacion of presentaciones; let i = index"
+    >
       <mat-card
+        appearance="outlined"
         *ngIf="presentacion?.activo == true"
         style="
           padding: 0;
@@ -36,7 +42,7 @@
               margin: 0px;
             "
           >
-            {{ presentacion?.precioPrincipal?.precio | number: "1.0-2" }}
+            {{ presentacion?.precioPrincipal?.precio | number : "1.0-2" }}
           </div>
           <div>
             <img
@@ -56,6 +62,7 @@
       <div style="height: 5px"></div>
       <div *ngIf="mostrarTipoPrecios == true && presentacion?.activo == true">
         <mat-card
+          appearance="outlined"
           *ngFor="let precio of presentacion?.precios"
           fxLayout="column"
           style="
@@ -72,7 +79,7 @@
             {{ precio?.tipoPrecio?.descripcion?.substring(0, 4) | uppercase }}
           </div>
           <div fxFlex>
-            {{ precio?.precio | number: "1.0-2" }}
+            {{ precio?.precio | number : "1.0-2" }}
           </div>
         </mat-card>
       </div>
@@ -87,22 +94,22 @@
   >
     <div fxFlex="33">
       <form [formGroup]="formGroup">
-        <mat-form-field>
-          <mat-label>Cantidad</mat-label>
+        <mat-form-field class="shrinking-mat-form-field">
           <input
             #cantidad
             formControlName="cantidad"
             type="number"
             matInput
-            style="font-size: 2em; text-align: center"
+            style="font-size: 1.5em; text-align: center"
             min="1"
             (click)="formGroup.controls.cantidad.setValue(1)"
             autocomplete="off"
           />
+          <span matTextPrefix style="color: white">Cantidad:</span>
         </mat-form-field>
       </form>
     </div>
-    <div fxFlex="33%">
+    <!-- <div fxFlex="33%">
       <button
         style="height: 100%; font-size: 1.5em"
         mat-raised-button
@@ -111,7 +118,7 @@
       >
         Ver tipo de precios
       </button>
-    </div>
+    </div> -->
     <div fxFlex="77%"></div>
   </div>
   <div
@@ -138,7 +145,16 @@
         style="font-size: 2em; width: 2em; height: 2em"
         (click)="formGroup.controls.cantidad.setValue(1)"
       >
-        <mat-icon>clear</mat-icon>
+        <mat-icon
+          style="
+            height: 1em;
+            width: 1em;
+            font-size: 1em;
+            margin-right: 0px;
+            margin-left: 0px;
+          "
+          >clear</mat-icon
+        >
       </button>
     </div>
   </div>
@@ -154,6 +170,7 @@
       *ngFor="let precio of selectedPresentacion?.precios; let i = index"
     >
       <mat-card
+        appearance="outlined"
         style="
           padding-top: 10px;
           margin: 0;
@@ -167,7 +184,7 @@
             {{ precio?.tipoPrecio?.descripcion | uppercase }}
           </div>
           <div style="text-align: center">
-            {{ precio?.precio | number: "1.0-0" }}
+            {{ precio?.precio | number : "1.0-0" }}
           </div>
         </div>
       </mat-card>

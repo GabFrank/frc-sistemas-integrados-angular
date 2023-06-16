@@ -5,6 +5,6 @@ import { solicitarResourcesQuery } from "./graphql-query";
 @Injectable({
   providedIn: "root",
 })
-export class SolicitarResourcesGQL extends Query<Boolean> {
+export class SolicitarResourcesGQL extends Query<boolean> {
   document = solicitarResourcesQuery;
 }

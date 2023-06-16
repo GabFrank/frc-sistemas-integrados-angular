@@ -11,144 +11,136 @@
         <mat-card
           fxLayout="column"
           fxLayoutGap="5px"
-          style="background-color: rgb(32, 32, 32)"
+          style="
+            background-color: rgb(32, 32, 32);
+            padding: 10px;
+            border-color: balck;
+          "
         >
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">500</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #gs500Input
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="gs500"
-                  (focusout)="sumarGs()"
-                  (keyup.enter)="gs1000?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">1.000</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #gs1000
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="gs1000"
-                  (focusout)="sumarGs()"
-                  (keyup.enter)="gs2000?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">2.000</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #gs2000
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="gs2000"
-                  (focusout)="sumarGs()"
-                  (keyup.enter)="gs5000?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">5.000</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #gs5000
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="gs5000"
-                  (focusout)="sumarGs()"
-                  (keyup.enter)="gs10000?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">10.000</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #gs10000
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="gs10000"
-                  (focusout)="sumarGs()"
-                  (keyup.enter)="gs20000?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">20.000</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #gs20000
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="gs20000"
-                  (focusout)="sumarGs()"
-                  (keyup.enter)="gs50000?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">50.000</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #gs50000
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="gs50000"
-                  (focusout)="sumarGs()"
-                  (keyup.enter)="gs100000?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">100.000</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #gs100000
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="gs100000"
-                  (focusout)="sumarGs()"
-                  (keyup.enter)="rs005?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #gs500Input
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="gs500"
+              (focusout)="sumarGs()"
+              (keyup.enter)="gs1000?.select()"
+            />
+            <span matTextPrefix style="color: white">500</span>
+          </mat-form-field>
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #gs1000
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="gs1000"
+              (focusout)="sumarGs()"
+              (keyup.enter)="gs2000?.select()"
+            />
+            <span matTextPrefix style="color: white">1.000</span>
+          </mat-form-field>
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #gs2000
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="gs2000"
+              (focusout)="sumarGs()"
+              (keyup.enter)="gs5000?.select()"
+            />
+            <span matTextPrefix style="color: white">2.000</span>
+          </mat-form-field>
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #gs5000
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="gs5000"
+              (focusout)="sumarGs()"
+              (keyup.enter)="gs10000?.select()"
+            />
+            <span matTextPrefix style="color: white">5.000</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #gs10000
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="gs10000"
+              (focusout)="sumarGs()"
+              (keyup.enter)="gs20000?.select()"
+            />
+            <span matTextPrefix style="color: white">10.000</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #gs20000
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="gs20000"
+              (focusout)="sumarGs()"
+              (keyup.enter)="gs50000?.select()"
+            />
+            <span matTextPrefix style="color: white">20.000</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #gs50000
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="gs50000"
+              (focusout)="sumarGs()"
+              (keyup.enter)="gs100000?.select()"
+            />
+            <span matTextPrefix style="color: white">50.000</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #gs100000
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="gs100000"
+              (focusout)="sumarGs()"
+              (keyup.enter)="rs005?.select()"
+            />
+            <span matTextPrefix style="color: white">100.000</span>
+          </mat-form-field>
         </mat-card>
       </form>
     </div>
@@ -158,213 +150,200 @@
         <mat-card
           fxLayout="column"
           fxLayoutGap="5px"
-          style="background-color: rgb(32, 32, 32)"
+          style="background-color: rgb(32, 32, 32); padding: 10px"
         >
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">0.05</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #rs005
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="rs005"
-                  (focusout)="sumarRs()"
-                  (keyup.enter)="rs010?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">0.10</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #rs010
-                  #gs500Input
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="rs01"
-                  (focusout)="sumarRs()"
-                  (keyup.enter)="rs025?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">0.25</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #rs025
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="rs025"
-                  (focusout)="sumarRs()"
-                  (keyup.enter)="rs05?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">0.5</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #rs05
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="rs05"
-                  (focusout)="sumarRs()"
-                  (keyup.enter)="rs1?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">1</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #rs1
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="rs1"
-                  (focusout)="sumarRs()"
-                  (keyup.enter)="rs2?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">2</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #rs2
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="rs2"
-                  (focusout)="sumarRs()"
-                  (keyup.enter)="rs5?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">5</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #rs5
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="rs5"
-                  (focusout)="sumarRs()"
-                  (keyup.enter)="rs10?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">10</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #rs10
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="rs10"
-                  (focusout)="sumarRs()"
-                  (keyup.enter)="rs20?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">20</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #rs20
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="rs20"
-                  (focusout)="sumarRs()"
-                  (keyup.enter)="rs50?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">50</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #rs50
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="rs50"
-                  (focusout)="sumarRs()"
-                  (keyup.enter)="rs100?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">100</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #rs100
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="rs100"
-                  (focusout)="sumarRs()"
-                  (keyup.enter)="rs200?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">200</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #rs200
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="rs200"
-                  (focusout)="sumarRs()"
-                  (keyup.enter)="us1?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #rs005
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="rs005"
+              (focusout)="sumarRs()"
+              (keyup.enter)="rs010?.select()"
+            />
+            <span matTextPrefix style="color: white">0.05</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #rs010
+              #gs500Input
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="rs01"
+              (focusout)="sumarRs()"
+              (keyup.enter)="rs025?.select()"
+            />
+            <span matTextPrefix style="color: white">0.10</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #rs025
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="rs025"
+              (focusout)="sumarRs()"
+              (keyup.enter)="rs05?.select()"
+            />
+            <span matTextPrefix style="color: white">0.25</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #rs05
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="rs05"
+              (focusout)="sumarRs()"
+              (keyup.enter)="rs1?.select()"
+            />
+            <span matTextPrefix style="color: white">0.50</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #rs1
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="rs1"
+              (focusout)="sumarRs()"
+              (keyup.enter)="rs2?.select()"
+            />
+            <span matTextPrefix style="color: white">1</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #rs2
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="rs2"
+              (focusout)="sumarRs()"
+              (keyup.enter)="rs5?.select()"
+            />
+            <span matTextPrefix style="color: white">2</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #rs5
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="rs5"
+              (focusout)="sumarRs()"
+              (keyup.enter)="rs10?.select()"
+            />
+            <span matTextPrefix style="color: white">5</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #rs10
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="rs10"
+              (focusout)="sumarRs()"
+              (keyup.enter)="rs20?.select()"
+            />
+            <span matTextPrefix style="color: white">10</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #rs20
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="rs20"
+              (focusout)="sumarRs()"
+              (keyup.enter)="rs50?.select()"
+            />
+            <span matTextPrefix style="color: white">20</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #rs50
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="rs50"
+              (focusout)="sumarRs()"
+              (keyup.enter)="rs100?.select()"
+            />
+            <span matTextPrefix style="color: white">50</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #rs100
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="rs100"
+              (focusout)="sumarRs()"
+              (keyup.enter)="rs200?.select()"
+            />
+            <span matTextPrefix style="color: white">100</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #rs200
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="rs200"
+              (focusout)="sumarRs()"
+              (keyup.enter)="us1?.select()"
+            />
+            <span matTextPrefix style="color: white">200</span>
+          </mat-form-field>
         </mat-card>
       </form>
     </div>
@@ -374,110 +353,103 @@
         <mat-card
           fxLayout="column"
           fxLayoutGap="5px"
-          style="background-color: rgb(32, 32, 32)"
+          style="background-color: rgb(32, 32, 32); padding: 10px"
         >
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">1</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #us1
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="ds1"
-                  (focusout)="sumarDs()"
-                  (keyup.enter)="us5?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">5</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #us5
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="ds5"
-                  (focusout)="sumarDs()"
-                  (keyup.enter)="us10?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">10</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #us10
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="ds10"
-                  (focusout)="sumarDs()"
-                  (keyup.enter)="us20?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">20</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #us20
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="ds20"
-                  (focusout)="sumarDs()"
-                  (keyup.enter)="us50?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">50</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #us50
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="ds50"
-                  (focusout)="sumarDs()"
-                  (keyup.enter)="us100?.select()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
-          <div fxFlex="5" fxLayout="row" style="font-size: 1em">
-            <div fxFlex="40">100</div>
-            <div fxFlex="10%">:</div>
-            <div fxFlex="50%">
-              <mat-form-field style="width: 50%">
-                <input
-                  #us100
-                  type="number"
-                  matInput
-                  style="text-align: center"
-                  formControlName="ds100"
-                  (focusout)="sumarDs()"
-                  (keyup.enter)="btn.onGetFocus()"
-                />
-              </mat-form-field>
-            </div>
-          </div>
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #us1
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="ds1"
+              (focusout)="sumarDs()"
+              (keyup.enter)="us5?.select()"
+            />
+            <span matTextPrefix style="color: white">1</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #us5
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="ds5"
+              (focusout)="sumarDs()"
+              (keyup.enter)="us10?.select()"
+            />
+            <span matTextPrefix style="color: white">5</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #us10
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="ds10"
+              (focusout)="sumarDs()"
+              (keyup.enter)="us20?.select()"
+            />
+            <span matTextPrefix style="color: white">10</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #us20
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="ds20"
+              (focusout)="sumarDs()"
+              (keyup.enter)="us50?.select()"
+            />
+            <span matTextPrefix style="color: white">20</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #us50
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="ds50"
+              (focusout)="sumarDs()"
+              (keyup.enter)="us100?.select()"
+            />
+            <span matTextPrefix style="color: white">50</span>
+          </mat-form-field>
+
+          <mat-form-field
+            style="height: 30px !important"
+            class="shrinking-mat-form-field"
+          >
+            <input
+              #us100
+              type="number"
+              matInput
+              style="text-align: end"
+              formControlName="ds100"
+              (focusout)="sumarDs()"
+              (keyup.enter)="btn.onGetFocus()"
+            />
+            <span matTextPrefix style="color: white">100</span>
+          </mat-form-field>
         </mat-card>
       </form>
     </div>
@@ -502,7 +474,12 @@
   >
     <div fxFlex="33%">
       <mat-card
-        style="background-color: rgb(32, 32, 32); width: 100%; height: 100%"
+        style="
+          background-color: rgb(32, 32, 32);
+          width: 100%;
+          height: 100%;
+          padding: 10px;
+        "
       >
         <div fxLayout="row">
           <div fxFlex="40">Total G$</div>
@@ -515,9 +492,14 @@
     </div>
     <div fxFlex="33%">
       <mat-card
-        style="background-color: rgb(32, 32, 32); width: 100%; height: 100%"
+        style="
+          background-color: rgb(32, 32, 32);
+          width: 100%;
+          height: 100%;
+          padding: 10px;
+        "
       >
-        <div fxLayout="row" style="font-size: 1em">
+        <div fxLayout="row">
           <div fxFlex="40">Total R$</div>
           <div fxFlex="10%">:</div>
           <div fxFlex="50%" style="text-align: center; font-size: 1.2em">
@@ -528,9 +510,14 @@
     </div>
     <div fxFlex="33%">
       <mat-card
-        style="background-color: rgb(32, 32, 32); width: 100%; height: 100%"
+        style="
+          background-color: rgb(32, 32, 32);
+          width: 100%;
+          height: 100%;
+          padding: 10px;
+        "
       >
-        <div fxLayout="row" style="font-size: 1em">
+        <div fxLayout="row">
           <div fxFlex="40">Total D$</div>
           <div fxFlex="10%">:</div>
           <div fxFlex="50%" style="text-align: center; font-size: 1.2em">
@@ -540,7 +527,7 @@
       </mat-card>
     </div>
   </div>
-  <div fxFlex style="width: 100%; text-align: center">
+  <div style="width: 100%; text-align: center; height: 40px">
     <!-- <button mat-raised-button (click)="onButtonClick()" [disabled]="selectedConteo!=null" color="accent" style="width: 150px;">{{nombreBoton}}</button> -->
     <app-boton
       #btn
@@ -548,6 +535,7 @@
       [nombre]="nombreBoton"
       [disableExpression]="selectedConteo != null"
       (clickEvent)="onButtonClick()"
+      style="height: 100%"
     ></app-boton>
   </div>
 </div>

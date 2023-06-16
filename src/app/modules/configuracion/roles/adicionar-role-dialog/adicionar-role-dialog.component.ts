@@ -31,8 +31,6 @@ export class AdicionarRoleDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    console.log(this.data);
-
     this.formGroup = new FormGroup({
       nombre: this.nombreControl,
     })

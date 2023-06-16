@@ -1,17 +1,18 @@
-<div fxLayout="column" fxLayoutAlign="start" style="height: 100%">
-  <div fxFlex="5" style="width: 100%; text-align: center">
+<div fxLayout="column" fxLayoutAlign="start" style="height: 100%; padding: 20px;">
+  <div fxFlex="5" style="width: 100%; text-align: center; font-size: large;">
     <h3 *ngIf="selectedCaja?.id != null">Editar Caja</h3>
     <h3 *ngIf="selectedCaja?.id == null">Nueva Caja</h3>
   </div>
   <div fxFlex="95" fxLayout="row" style="width: 100%; height: 100%">
     <mat-card
+      appearance="outlined"
       fxFlex="30%"
       fxLayout="column"
       fxLayoutGap="10px"
       style="background-color: rgb(32, 32, 32); height: 100%"
     >
       <div fxFlex="70%" fxLayout="column" fxLayoutAlign="start">
-        <div fxFlex="10">
+        <div style="padding: 10px;">
           <button
             style="width: 100%"
             [color]="stepper.selectedIndex == 0 ? 'accent' : ''"
@@ -21,7 +22,7 @@
             Maletin
           </button>
         </div>
-        <div fxFlex="10">
+        <div style="padding: 10px;">
           <button
             style="width: 100%"
             [color]="stepper.selectedIndex == 1 ? 'accent' : ''"
@@ -32,7 +33,7 @@
             Conteo Apertura
           </button>
         </div>
-        <div fxFlex="10">
+        <div style="padding: 10px;">
           <button
             style="width: 100%"
             [color]="stepper.selectedIndex == 2 ? 'accent' : ''"
@@ -43,7 +44,7 @@
             Conteo Cierre
           </button>
         </div>
-        <div fxFlex="10">
+        <div style="padding: 10px;">
           <button
             style="width: 100%"
             mat-raised-button
@@ -53,7 +54,7 @@
             Imprimir vía tributaria
           </button>
         </div>
-        <div fxFlex="10">
+        <div style="padding: 10px;">
           <button
             style="width: 100%"
             [color]="stepper.selectedIndex == 3 ? 'accent' : ''"
@@ -72,7 +73,7 @@
           *ngIf="selectedConteoApertura"
           fxFlex="30"
           fxLayout="column"
-          style="width: 100%"
+          style="width: 100%; padding: 10px;"
         >
           <div fxFlex style="text-align: center">
             <h3>Apertura</h3>
@@ -126,7 +127,7 @@
           </div>
         </div>
       </div>
-      <div fxFlex="30%" fxLayout="column" fxLayoutAlign="end">
+      <div fxFlex="30%" fxLayout="column" fxLayoutAlign="end" style="padding: 10px;">
         <div fxFlex="10">
           <button
             style="width: 100%"
@@ -217,11 +218,11 @@
                   <h4>Verificar maletin</h4>
                 </div>
               </div>
-              <div fxFlex>
+              <!-- <div fxFlex>
                 <div class="verificarMaletin" (click)="sinMaletin()">
                   <h4>Crear maletin</h4>
                 </div>
-              </div>
+              </div> -->
 
               <br />
               <div fxFlex="10" style="width: 100%">

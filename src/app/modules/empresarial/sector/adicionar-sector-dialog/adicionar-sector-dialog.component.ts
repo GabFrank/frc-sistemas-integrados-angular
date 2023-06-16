@@ -33,8 +33,6 @@ export class AdicionarSectorDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    console.log(this.data);
-    
     this.formGroup = new FormGroup({
       descripcion: this.descripcionControl,
       activo: this.activoControl

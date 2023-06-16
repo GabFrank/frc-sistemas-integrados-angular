@@ -1,40 +1,108 @@
-<form *ngIf="!showBienvenida" [formGroup]="formGroup" style="width: 100%; height: 100%;">
-    <div fxLayout="column" fxLayoutAlign="center center" style="width: 100%; font-size: 1.2em;">
+<mat-card fxLayout="row" *ngIf="!showBienvenida" style="padding: 20px">
+  <div fxFlex="50%" style="width: 100%; height: 100%">
+    <img
+      src="assets/logo_inicio.png"
+      alt="logo"
+      style="width: 90%; object-fit: contain; border-radius: 10px"
+    />
+  </div>
+  <div fxFlex="50%">
+    <form [formGroup]="formGroup" style="width: 100%; color: white">
+      <div
+        fxLayout="column"
+        fxLayoutAlign="space-between center"
+        style="width: 100%; font-size: 1.2em"
+      >
         <div fxFlex fxLayout="row">
-            <h1>Bienvenido</h1>
+          <h1>Bienvenido</h1>
         </div>
-        <div fxFlex fxLayout="row" >
-            <h4>Ingrese sus credenciales para tener acceso al sistema.</h4>
+        <div fxFlex fxLayout="row">
+          <h4>Ingrese sus credenciales para tener acceso al sistema.</h4>
         </div>
-        <div fxFlex fxLayout="row" style="width:100%">
-            <mat-form-field fxFlex style="width:100%">
-              <mat-label>Usuario</mat-label>
-              <!-- <input matInput type="text" formControlName="nickname"/> -->
-              <input matInput type="text" formControlName="nickname"/>
-            </mat-form-field>
+        <div fxFlex fxLayout="row" style="width: 100%">
+          <mat-form-field fxFlex style="width: 100%">
+            <!-- <input matInput type="text" formControlName="nickname"/> -->
+            <input
+              matInput
+              type="text"
+              formControlName="nickname"
+              placeholder="Usuario"
+            />
+          </mat-form-field>
         </div>
-        <div fxFlex fxLayout="row" style="width:100%">
-            <mat-form-field fxFlex style="width:100%">
-              <mat-label>Contraseña</mat-label>
-              <!-- <input matInput type="password" formControlName="password"/> -->
-              <input matInput type="password" formControlName="password"/>
-            </mat-form-field>
+        <br />
+        <div fxFlex fxLayout="row" style="width: 100%">
+          <mat-form-field fxFlex style="width: 100%">
+            <!-- <input matInput type="password" formControlName="password"/> -->
+            <input
+              matInput
+              type="password"
+              formControlName="password"
+              placeholder="Contraseña"
+            />
+          </mat-form-field>
         </div>
-        <div fxFlex fxLayout="row" style="width: 100%;" fxLayoutAlign="center center" fxLayoutGap="10px">
-            <button [disabled]="!formGroup.valid" type="submit" style="width: 90%;" color="primary" mat-raised-button (click)="onEntrar()">Entrar</button>
-            <button type="button" style="width: 90%;" color="" mat-raised-button (click)="onCancelar()">Cancelar</button>
+        <br />
+        <div
+          fxFlex
+          fxLayout="row"
+          style="width: 100%"
+          fxLayoutAlign="center center"
+          fxLayoutGap="10px"
+        >
+          <button
+            [disabled]="!formGroup.valid"
+            type="submit"
+            style="width: 90%"
+            color="accent"
+            mat-raised-button
+            (click)="onEntrar()"
+          >
+            Entrar
+          </button>
+          <button
+            type="button"
+            style="width: 90%"
+            color="primary"
+            mat-raised-button
+            (click)="onCancelar()"
+          >
+            Cancelar
+          </button>
         </div>
-        <br>
+        <br />
         <div fxFlex fxLayout="row" fxLayoutGap="10ppx">
-            <h4 style="color: red;">{{errorMessage}}</h4>
+          <h4 style="color: red">{{ errorMessage }}</h4>
         </div>
-        <div *ngIf="errorMessage == 'Servidor no configurado'" fxFlex fxLayout="row" fxLayoutGap="10ppx">
-            <button mat-raised-button (click)="onConfigurarServidor()">Configurar servidor</button>
+        <div
+          *ngIf="errorMessage == 'Servidor no configurado'"
+          fxFlex
+          fxLayout="row"
+          fxLayoutGap="10ppx"
+        >
+          <button mat-raised-button (click)="onConfigurarServidor()">
+            Configurar servidor
+          </button>
         </div>
-    </div>
-</form>
+      </div>
+    </form>
+  </div>
+</mat-card>
 
-<div *ngIf="showBienvenida" fxLayout="column" fxLayoutAlign="center center" style="width: 100%; height: 100%;">
-    <h2>Bienvenido</h2>
-    <h1>{{mainService?.usuarioActual?.persona?.nombre}}</h1>
-</div>
+<mat-card
+  *ngIf="showBienvenida"
+  fxLayout="row"
+  fxLayoutAlign="center center"
+  style="width: 100%; height: 200px; color: white"
+>
+  <div fxFlex="35%" style="text-align: center; width: 140%">
+    <img src="assets/icons/celebration.png" alt="celebration" style="width: 150px;"/>
+  </div>
+  <div fxFlex="65%" style="text-align: center">
+    <div style="font-size: xx-large; color: #43a047">Bienvenido</div>
+    <br>
+    <div style="font-size: x-large; color: rgb(200, 200, 200)">
+      {{ mainService?.usuarioActual?.persona?.nombre }}
+    </div>
+  </div>
+</mat-card>

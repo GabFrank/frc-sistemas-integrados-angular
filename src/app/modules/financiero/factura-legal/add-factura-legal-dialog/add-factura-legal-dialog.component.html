@@ -1,11 +1,20 @@
-<div fxLayout="column" style="width: 100%" fxLayoutGap="10px">
+<div
+  fxLayout="column"
+  style="width: 100%; padding: 10px; height: 100%"
+  fxLayoutGap="10px"
+>
   <div fxFlex style="width: 100%; text-align: center">
     <h2>Factura legal</h2>
   </div>
-  <div fxFlex fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+  <div
+    fxFlex="10"
+    fxLayout="row"
+    fxLayoutGap="10px"
+    fxLayoutAlign="start center"
+  >
     <div fxFlex="20%">
       <mat-form-field>
-        <mat-label>RUC</mat-label>
+        <!-- <mat-label>RUC</mat-label> -->
         <input
           #rucInput
           type="text"
@@ -13,22 +22,38 @@
           [formControl]="rucControl"
           (keyup.enter)="buscarCliente()"
           (keydown.tab)="buscarCliente(); $event.preventDefault()"
+          style="text-align: center"
         />
-        <span matSuffix>{{digitoVerificador}}</span>
+        <span matTextPrefix>RUC:</span>
+        <span matTextSuffix>{{ digitoVerificador }}</span>
       </mat-form-field>
     </div>
     <div fxFlex="70%">
       <mat-form-field style="width: 100%">
-        <mat-label>Razon Social</mat-label>
-        <input #nombreInput type="text" matInput [formControl]="clienteDescripcionControl" (keyup.enter)="onSaveCliente()"/>
+        <!-- <mat-label></mat-label> -->
+        <input
+          #nombreInput
+          type="text"
+          matInput
+          [formControl]="clienteDescripcionControl"
+          (keyup.enter)="onSaveCliente()"
+        />
+        <span matTextPrefix style="padding-right: 20px">Razon Social:</span>
       </mat-form-field>
     </div>
-    <div fxFlex="10%">
-      <mat-icon (click)="onClienteSearch()">search</mat-icon>
-      <mat-icon (click)="onClear()" style="color: red;">clear</mat-icon>
+    <div fxFlex="10%" fxLayout="row" fxLayoutAlign="space-around center">
+      <mat-icon (click)="onClienteSearch()" class="highlight-hover"
+        >search</mat-icon
+      >
+      <mat-icon (click)="onClear()" style="color: red">clear</mat-icon>
     </div>
   </div>
-  <div fxFlex fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+  <div
+    fxFlex="10"
+    fxLayout="row"
+    fxLayoutGap="10px"
+    fxLayoutAlign="start center"
+  >
     <div fxFlex="70%">
       <mat-form-field style="width: 100%">
         <mat-label>Dirección</mat-label>
@@ -48,7 +73,12 @@
       </div>
     </div>
   </div>
-  <div fxFlex fxLayout="row" style="width: 100%; text-align: center">
+  <div
+    fxFlex="5"
+    fxLayout="row"
+    style="width: 100%; text-align: center"
+    fxLayoutAlign="start center"
+  >
     <div fxFlex="20%"></div>
     <div fxFlex="60%" style="text-align: center">
       <h4 style="width: 100%">Lista de productos</h4>
@@ -58,10 +88,11 @@
         nombre="+ Producto"
         color="primary"
         (clickEvent)="addItem(null, null)"
+        style="height: 40px"
       ></app-boton>
     </div>
   </div>
-  <div fxFlex style="width: 100%">
+  <div fxFlex="50" style="width: 100%">
     <table
       mat-table
       [dataSource]="dataSource"
@@ -97,7 +128,7 @@
           *matCellDef="let item"
           style="width: 15%; text-align: center"
         >
-          {{ item.precioUnitario | number: "1.0-0" }}
+          {{ item.precioUnitario | number : "1.0-0" }}
         </td>
       </ng-container>
 
@@ -114,7 +145,7 @@
           *matCellDef="let item"
           style="width: 20%; text-align: center"
         >
-          {{ item.total | number: "1.0-0" }}
+          {{ item.total | number : "1.0-0" }}
         </td>
       </ng-container>
 
@@ -176,32 +207,37 @@
     </table>
   </div>
   <mat-card
-    fxFlex
+    fxFlex="10"
     fxLayout="row"
-    style="width: 100%; background-color: rgb(32, 32, 32)"
+    style="width: 100%; background-color: rgb(32, 32, 32); padding: 10px"
   >
     <div fxFlex="70%" fxLayout="column">
       <div fxFlex="50">Cantidad de itens: {{ dataSource?.data?.length }}</div>
-      <div fxFlex="50">Cantidad de hojas: {{ cantidadHojas }}</div>
+      <!-- <div fxFlex="50">Cantidad de hojas: {{ cantidadHojas }}</div> -->
     </div>
     <div fxFlex="30">
       <div fxLayout="row">
         <h2 fxFlex="50">Total en Gs:</h2>
         <h2 fxFlex="50" style="text-align: end">
-          {{ totalFinalControl.value | number: "1.0-0" }}
+          {{ totalFinalControl.value | number : "1.0-0" }}
         </h2>
       </div>
     </div>
   </mat-card>
-  <div fxFlex fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="10px">
-    <div fxFlex="30%">
+  <div
+    fxFlex="10"
+    fxLayout="row"
+    fxLayoutAlign="center center"
+    fxLayoutGap="10px"
+  >
+    <div fxFlex="30%" style="height: 35px">
       <app-boton
         nombre="Cancelar"
         color="primary"
         (clickEvent)="onCancelar()"
       ></app-boton>
     </div>
-    <div fxFlex="30%">
+    <div fxFlex="30%" style="height: 35px">
       <app-boton
         (focusEvent)="guardarSub.asObservable()"
         nombre="Imprimir"

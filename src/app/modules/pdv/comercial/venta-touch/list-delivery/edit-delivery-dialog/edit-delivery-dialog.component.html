@@ -1,4 +1,8 @@
-<div fxLayout="column" style="width: 100%; height: 100%" fxLayoutGap="10px">
+<div
+  fxLayout="column"
+  style="width: 100%; height: 100%; padding: 20px"
+  fxLayoutGap="10px"
+>
   <div style="text-align: center; width: 100%">
     <h2>Información del delivery</h2>
   </div>
@@ -461,7 +465,7 @@
             aria-label="Clear"
             (click)="vueltoControl.setValue(null)"
           >
-            <mat-icon style="color: white; font-size: 1.5em">close</mat-icon>
+            <mat-icon style="color: white">close</mat-icon>
           </button>
         </mat-form-field>
       </div>
@@ -593,29 +597,18 @@
             cambioDs | number : "1.2-2"
         }}
       </div>
-      <!-- <div fxFlex="33%" style="text-align: center; font-size: 1.2em">
-        {{
-          vueltoDs -
-            (selectedDelivery?.venta?.valorTotal + selectedPrecio?.valor) /
-              cambioDs | number : "1.2-2"
-        }}
-      </div> -->
     </div>
   </div>
-  <!-- <div fxFlex>
-    <mat-accordion style="width: 100%">
-      <mat-expansion-panel [expanded]="false">
-        <mat-expansion-panel-header>
-          <mat-panel-title> Mas información </mat-panel-title>
-        </mat-expansion-panel-header>
-      </mat-expansion-panel>
-    </mat-accordion>
-  </div> -->
   <app-boton
     #guardarBtn
     nombre="Guardar"
     color="accent"
     (clickEvent)="onGuardar()"
+    style="height: 35px"
   ></app-boton>
-  <app-boton nombre="Cancelar" (clickEvent)="onCancelar()"></app-boton>
+  <app-boton
+    nombre="Cancelar"
+    (clickEvent)="onCancelar()"
+    style="height: 35px"
+  ></app-boton>
 </div>

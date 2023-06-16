@@ -54,7 +54,6 @@ export class FuncionarioService {
         if(res.errors==null){
           obs.next(res.data.data)
         } else {
-          console.log(res)
           obs.next(null)
         }
       });
@@ -62,7 +61,6 @@ export class FuncionarioService {
   }
 
   onSaveFuncionario(input: FuncionarioInput): Observable<Funcionario> {
-    console.log(input);
     return new Observable((obs) => {
       if (input.id == null && input.usuarioId == null) {
         input.usuarioId = +localStorage.getItem("usuarioId");
@@ -75,7 +73,6 @@ export class FuncionarioService {
           { errorPolicy: "all" }
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {
-          console.log(res.errors);
           if (res.errors == null) {
             obs.next(res.data.data);
             this.notificacionBar.openGuardadoConExito()
@@ -99,7 +96,6 @@ export class FuncionarioService {
 
   onSavePreRegistroFuncionario(input): Observable<boolean> {
     this.cargandoService.openDialog()
-    console.log(input)
     let httpOptions = {
       headers: new HttpHeaders({
         Accept: "application/json",
@@ -133,7 +129,6 @@ export class FuncionarioService {
   }
 
   onGetAllPreRegistroFuncionarios(page?): Observable<PreRegistroFuncionario[]>{
-    console.log('page: ', page)
     return this.genericCrud.onGetAll(this.preRegistroFuncionarios, page)
   }
 }

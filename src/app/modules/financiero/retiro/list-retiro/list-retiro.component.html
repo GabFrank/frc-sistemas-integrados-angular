@@ -1,1 +1,213 @@
-<p>list-retiro works!</p>
+<app-generic-list
+  [data]="dataSource.data"
+  (cargarMasDatos)="cargarMasDatos()"
+  [isLastPage]="isLastPage || isSearching"
+  (filtrar)="onFiltrar()"
+  (resetFiltro)="resetFiltro()"
+>
+  <div filtros>
+    <div
+      fxLayout="row wrap"
+      fxLayoutAlign="start center"
+      fxLayoutGap="10px"
+      style="width: 100%"
+    >
+      <div fxFlex="15%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Id del retiro</mat-label>
+          <input type="text" matInput [formControl]="idRetiroControl" />
+        </mat-form-field>
+      </div>
+      <div fxFlex="25%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Sucursal de Origen</mat-label>
+          <mat-select [formControl]="sucOrigenControl">
+            <mat-option
+              *ngFor="let sucursal of sucursalList"
+              [value]="sucursal"
+            >
+              {{ sucursal.id }} - {{ sucursal.nombre }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="15%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Id de la caja</mat-label>
+          <input type="text" matInput [formControl]="idCajaControl" />
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+  <div table>
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      multiTemplateDataRows
+      class="mat-elevation-z8"
+      style="width: 100%"
+    >
+      <ng-container matColumnDef="id" style="width: 5%">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 5%"
+        >
+          Id
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let retiro"
+          style="text-align: center; width: 5%"
+        >
+          {{ retiro?.id }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="sucursal">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Sucursal
+        </th>
+        <td mat-cell *matCellDef="let retiro" style="text-align: center">
+          {{ retiro?.sucursal?.nombre | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="retiroGs">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Guaranies
+        </th>
+        <td mat-cell *matCellDef="let retiro" style="text-align: center">
+          {{ retiro?.retiroGs | number : "1.0-0" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="retiroRs">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Reales
+        </th>
+        <td mat-cell *matCellDef="let retiro" style="text-align: center">
+          {{ retiro?.retiroRs | number : "1.2-2" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="retiroDs">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Dolares
+        </th>
+        <td mat-cell *matCellDef="let retiro" style="text-align: center">
+          {{ retiro?.retiroDs | number : "1.2-2" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="cajaSalida">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Caja
+        </th>
+        <td mat-cell *matCellDef="let retiro" style="text-align: center">
+          <span>{{ retiro?.cajaSalida?.id }}</span>
+          <button
+            mat-icon-button
+            matTooltip="Ir a caja"
+            (click)="onIrACaja(retiro.cajaSalida)"
+          >
+            <mat-icon style="color: rgb(0, 128, 255); font-size: 0.9em"
+              >launch</mat-icon
+            >
+          </button>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="responsable">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Responsable
+        </th>
+        <td mat-cell *matCellDef="let retiro" style="text-align: center">
+          {{ retiro?.responsable?.persona?.nombre | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="usuario">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Cajero
+        </th>
+        <td mat-cell *matCellDef="let retiro" style="text-align: center">
+          {{ retiro?.usuario?.nickname | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="creadoEn">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Fecha
+        </th>
+        <td mat-cell *matCellDef="let retiro" style="text-align: center">
+          {{ retiro?.creadoEn | date : "short" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 5%; text-align: center"
+        >
+          ...
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let retiro; let i = index"
+          style="text-align: center; width: 5%"
+        >
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <!-- <button
+              mat-menu-item
+              (click)="onEditRetiro(retiro, i)"
+              *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)"
+            >
+              Editar
+            </button> -->
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <mat-divider></mat-divider>
+
+      <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let retiro"
+          [attr.colspan]="displayedColumns.length"
+          class="expanded"
+        >
+          <div
+            class="example-retiro-detail"
+            [@detailExpand]="
+              retiro == expandedRetiro ? 'expanded' : 'collapsed'
+            "
+            style="text-align: center"
+            fxLayout="column"
+            fxLayoutAlign="start start"
+          ></div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: ['expandedDetail']"
+        class="example-detail-row"
+      ></tr>
+    </table>
+  </div>
+</app-generic-list>

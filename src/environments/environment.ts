@@ -1,4 +1,4 @@
-import { centralPort, ipAddress, ipCentralAddress, port } from "./conectionConfig";
+import { ipCentralAddress, centralPort, ipAddress, port } from "./conectionConfig";
 
 export const APP_CONFIG = {
   production: false,

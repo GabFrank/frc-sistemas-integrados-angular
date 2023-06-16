@@ -1,14 +1,15 @@
-import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
-import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Subject } from 'rxjs';
 import { updateDataSource } from '../../../../commons/core/utils/numbersUtils';
+import { getDigitoVerificadorString } from '../../../../commons/core/utils/rucUtils';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { CargandoDialogService } from '../../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
-import { SearchListtDialogData, SearchListDialogComponent } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { SearchListDialogComponent, SearchListtDialogData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { VentaItem } from '../../../operaciones/venta/venta-item.model';
 import { Venta } from '../../../operaciones/venta/venta.model';
 import { Cliente } from '../../../personas/clientes/cliente.model';
@@ -17,9 +18,10 @@ import { Persona } from '../../../personas/persona/persona.model';
 import { PersonaService } from '../../../personas/persona/persona.service';
 import { CajaService } from '../../pdv/caja/caja.service';
 import { EditFacturaLegalItemComponent } from '../edit-factura-legal-item/edit-factura-legal-item.component';
-import { FacturaLegal, FacturaLegalInput, FacturaLegalItem, FacturaLegalItemInput } from '../factura-legal.model';
+import { FacturaLegal, FacturaLegalItem, FacturaLegalItemInput } from '../factura-legal.model';
 import { FacturaLegalService } from '../factura-legal.service';
-import { getDigitoVerificadorString } from '../../../../commons/core/utils/rucUtils';
+import { PersonaSearchGQL } from '../../../personas/persona/graphql/personaSearch';
+import { UsuarioService } from '../../../personas/usuarios/usuario.service';
 
 export interface FacturaLegalData {
   venta?: Venta;
@@ -32,7 +34,7 @@ export interface FacturaLegalData {
   templateUrl: './add-factura-legal-dialog.component.html',
   styleUrls: ['./add-factura-legal-dialog.component.scss']
 })
-export class AddFacturaLegalDialogComponent implements OnInit {
+export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
 
   @ViewChild('imprimirBtn', { static: false }) imprimirBtn: ElementRef
   @ViewChild('rucInput', { static: false }) rucInput: ElementRef
@@ -67,8 +69,16 @@ export class AddFacturaLegalDialogComponent implements OnInit {
     private dialogoService: DialogosService,
     private matDialog: MatDialog,
     private personaService: PersonaService,
-    private cajaService: CajaService
+    private cajaService: CajaService,
+    private personaSearch: PersonaSearchGQL,
+    private dialog: MatDialog,
+    private usuarioService: UsuarioService
   ) {
+  }
+  ngAfterViewInit(): void {
+    setTimeout(() => {
+      this.rucInput.nativeElement.focus()
+    }, 500);
   }
 
   ngOnInit(): void {
@@ -77,13 +87,12 @@ export class AddFacturaLegalDialogComponent implements OnInit {
     this.cargarDatos()
 
     this.rucControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
-      if(this.rucControl.value?.length > 6) {
+      if (this.rucControl.value?.length > 6) {
         this.digitoVerificador = getDigitoVerificadorString(this.rucControl.value);
       } else {
         this.digitoVerificador = ''
       }
     })
-    
   }
 
   cargarDatos() {
@@ -112,7 +121,7 @@ export class AddFacturaLegalDialogComponent implements OnInit {
       let arr = validText.split('-');
       validText = arr[0]
       this.rucControl.setValue(validText)
-      if (this.clienteDescripcionControl.value!=null && this.totalFinalControl.valid) {
+      if (this.clienteDescripcionControl.value != null && this.totalFinalControl.valid) {
         this.onGuardar()
       } else {
         this.cargandoService.openDialog()
@@ -121,8 +130,6 @@ export class AddFacturaLegalDialogComponent implements OnInit {
           .subscribe(res => {
             this.cargandoService.closeDialog()
             if (res != null) {
-              console.log('cliente service');
-              
               this.setCliente(res)
             } else {
               this.clienteService.onSearch(this.rucControl.value).pipe(untilDestroyed(this)).subscribe(res2 => {
@@ -172,7 +179,6 @@ export class AddFacturaLegalDialogComponent implements OnInit {
                   })
 
                 } else if (res2?.length == 1) {
-                  console.log('cliente service');
                   this.setCliente(res2[0])
                 } else {
                   let data: SearchListtDialogData = {
@@ -204,6 +210,8 @@ export class AddFacturaLegalDialogComponent implements OnInit {
             }
           })
       }
+    } else {
+      this.onClienteSearch()
     }
   }
 
@@ -282,26 +290,48 @@ export class AddFacturaLegalDialogComponent implements OnInit {
         factura.nombre = this.clienteDescripcionControl.value;
         factura.ruc = this.rucControl.value;
         factura.caja = this.cajaService?.selectedCaja;
-        if(this.selectedCliente?.id!=null){
-          factura.cliente = this.selectedCliente;  
+        if (this.selectedCliente?.id != null) {
+          factura.cliente = this.selectedCliente;
         }
         let facturaItemInputList: FacturaLegalItemInput[] = []
         this.dataSource.data.forEach(f => {
           facturaItemInputList.push(f.toInput())
         })
-        console.log(factura.cliente);
-        
         this.facturaService.onSaveFactura(factura.toInput(), facturaItemInputList).pipe(untilDestroyed(this)).subscribe(res => {
           if (res) {
-            this.matDialogRef.close({facturado: true, cliente: this.selectedCliente})
-          } 
+            this.matDialogRef.close({ facturado: true, cliente: this.selectedCliente })
+          }
         })
       }
     })
   }
 
   onClienteSearch() {
-
+    let data: SearchListtDialogData = {
+      titulo: "Buscar Persona",
+      query: this.personaSearch,
+      tableData: [
+        { id: "id", nombre: "Id", width: "10%" },
+        { id: "nombre", nombre: "Nombre", width: "70%" },
+        { id: "documento", nombre: "Documento/Ruc", width: "20%" },
+      ],
+      search: true
+    };
+    this.dialog
+      .open(SearchListDialogComponent, {
+        data,
+        height: "50%",
+        width: "50%",
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res: Persona) => {
+        if (res != null) {
+          this.onClear()
+          this.rucControl.setValue(res.documento);
+          this.buscarCliente()
+        }
+      });
   }
 
   onClear() {

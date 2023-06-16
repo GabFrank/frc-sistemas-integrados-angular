@@ -44,7 +44,7 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
   sucursalControl = new FormControl()
   supervisadoPorControl = new FormControl()
   activoControl = new FormControl()
-  
+
   selectedFuncionario: Funcionario;
   selectedPersona: Persona;
   selectedSucursal: Sucursal;
@@ -66,7 +66,7 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
     private usuarioService: UsuarioService,
     private funcionarioService: FuncionarioService,
     private personaService: PersonaService
-  ) { 
+  ) {
     if(data?.funcionario != null){
       this.selectedFuncionario = data.funcionario;
       personaService.onGetPersona(this.selectedFuncionario.persona.id).pipe(untilDestroyed(this)).subscribe(res => {
@@ -126,7 +126,6 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
           this.usuarioService.onGetUsuarioPorPersonaId(this.selectedPersona.id).pipe(untilDestroyed(this)).subscribe(res => {
             if(res!=null){
               this.selectedUsuario = res;
-              console.log(res)
             }
           })
         }
@@ -148,7 +147,6 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
         this.usuarioService.onGetUsuarioPorPersonaId(this.selectedPersona.id).pipe(untilDestroyed(this)).subscribe(res => {
           if(res!=null){
             this.selectedUsuario = res;
-            console.log(res)
           }
         })
       } else {
@@ -159,7 +157,6 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
   }
 
   onAddUsuario(){
-    console.log(this.selectedUsuario)
     this.matDialog.open(AdicionarUsuarioDialogComponent, {
       data: {
         personaId: this.selectedPersona.id,
@@ -182,11 +179,11 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
   }
 
   onSearchCargo(){
-    
+
   }
 
   onSearchSucursal(){
-    
+
   }
 
   onCancelar(){

@@ -7,8 +7,8 @@ import { TipoPresentacion } from "../tipo-presentacion/tipo-presentacion.model"
 export class Presentacion {
     id:number
     descripcion: string
-    activo: Boolean
-    principal: Boolean
+    activo: boolean
+    principal: boolean
     producto: Producto
     tipoPresentacion: TipoPresentacion
     cantidad: number

@@ -1,6 +1,11 @@
-<div fxLayout="column" fxLayoutAlign="center start" fxLayoutGap="20px">
-  <div style="width: 100%; text-align: center;">
-    <h2>{{data.descripcion}}</h2>
+<div
+  fxLayout="column"
+  fxLayoutAlign="center start"
+  fxLayoutGap="20px"
+  style="padding: 10px"
+>
+  <div style="width: 100%; text-align: center">
+    <h2>{{ data.descripcion }}</h2>
   </div>
   <div
     fxFlex
@@ -9,8 +14,16 @@
     fxLayoutGap="5px"
     fxLayoutGap="5px grid"
   >
-    <div [fxFlex]="data?.productos?.length > 0 && data?.productos?.length < 8 ? 99/data?.productos?.length : 99/7" *ngFor="let producto of data.productos; let i = index">
+    <div
+      [fxFlex]="
+        data?.productos?.length > 0 && data?.productos?.length < 8
+          ? 99 / data?.productos?.length
+          : 99 / 7
+      "
+      *ngFor="let producto of data.productos; let i = index"
+    >
       <mat-card
+        appearance="outlined"
         style="
           padding: 0;
           margin: 0;
@@ -24,16 +37,26 @@
         <div fxLayout="column" fxLayoutGap="10px">
           <div>
             <img
-              [src]="producto?.imagenPrincipal != null ? producto?.imagenPrincipal : 'assets/no-image.png'"
-              style="width: 150px; height: 100%;object-fit: cover; padding-top: 8px;"
-            >
+              [src]="
+                producto?.imagenPrincipal != null
+                  ? producto?.imagenPrincipal
+                  : 'assets/no-image.png'
+              "
+              style="
+                width: 150px;
+                height: 100%;
+                object-fit: cover;
+                padding-top: 8px;
+              "
+            />
           </div>
-          <div style="text-align: center; font-weight: bold;">
-            {{ producto.descripcion | uppercase }}
+          <div #container style="text-align: center; height: 50px; font-size: 2em;">
+            <div appDynamicFontSize [calcSize]="12">
+              {{ producto.descripcion | uppercase }}
+            </div>
           </div>
         </div>
       </mat-card>
     </div>
   </div>
 </div>
-

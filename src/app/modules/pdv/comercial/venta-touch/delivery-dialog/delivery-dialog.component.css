@@ -6,6 +6,7 @@ input {
   text-transform: uppercase;
 }
 
+/* TODO(mdc-migration): The following rule targets internal classes of select that may no longer apply for the MDC version. */
 ngx-mat-select-search > div > input {
   text-transform: uppercase;
 }

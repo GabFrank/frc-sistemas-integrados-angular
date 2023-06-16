@@ -29,7 +29,6 @@ constructor(
      fetchPolicy: 'no-cache',
      errorPolicy: 'all'
    }).pipe(untilDestroyed(this)).subscribe(res => {
-      console.log(res)
    })
  }
 
@@ -41,7 +40,6 @@ constructor(
      errorPolicy: 'all'
    }).pipe(untilDestroyed(this)).subscribe(res => {
      if(res){
-       console.log(res)
      }
    })
  }

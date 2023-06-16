@@ -364,3 +364,32 @@ export const gastosPorCajaIdQuery = gql`
     }
   }
 `;
+
+export const filterGastosQuery = gql`
+  query ($id:ID, $cajaId:ID, $sucId:ID, $responsableId:ID, $page:Int, $size:Int) {
+    data: filterGastos(id:$id, cajaId:$cajaId, sucId:$sucId, responsableId:$responsableId, page:$page, size:$size) {
+      id
+      sucursal {
+        id
+        nombre
+      }
+      caja {
+        id
+        sucursalId
+      }
+      responsable {
+        persona {
+          nombre
+        }
+      }
+      tipoGasto {
+        descripcion
+      }
+      observacion
+      retiroGs
+      retiroRs
+      retiroDs
+      creadoEn
+    }
+  }
+`;

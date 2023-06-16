@@ -1,7 +1,0 @@
-Config json local info:
-precios: 
-    EXPO
-modo: 
-    NOT = no incluir precios especiales
-    ONLY = solo precios expeciales
-    MIXTO = incluir precios especiales

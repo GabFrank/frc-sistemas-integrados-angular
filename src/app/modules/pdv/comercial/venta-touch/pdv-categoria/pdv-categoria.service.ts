@@ -37,26 +37,21 @@ export class PdvCategoriaService implements OnDestroy {
     this.onGetCategorias()
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        // this.cargandoService.openDialog(false, "Cargando Otros");
-        // this.cargandoService.closeDialog();
-        if (res.errors == null) {
-          this.pdvCategorias = res.data.data;
-          this.pdvCategoriasSub.next(this.pdvCategorias)
-          res.data.data.forEach((cat) => {
-            cat.grupos.forEach((gr) => {
-              if (gr.activo == true) {
-                this.onGetGrupoProductosPorGrupoId(gr.id)
-                  .pipe(untilDestroyed(this))
-                  .subscribe((res) => {
-                    if (res != null) {
-                      gr.pdvGruposProductos = res;
-                    }
-                  });
-              }
-            });
-            console.log("carga completa");
+        this.pdvCategorias = res;
+        this.pdvCategoriasSub.next(this.pdvCategorias)
+        this.pdvCategorias.forEach((cat) => {
+          cat.grupos.forEach((gr) => {
+            if (gr.activo == true) {
+              this.onGetGrupoProductosPorGrupoId(gr.id)
+                .pipe(untilDestroyed(this))
+                .subscribe((res) => {
+                  if (res != null) {
+                    gr.pdvGruposProductos = res;
+                  }
+                });
+            }
           });
-        }
+        });
       });
   }
 
@@ -64,8 +59,28 @@ export class PdvCategoriaService implements OnDestroy {
     clearInterval(this.timer)
   }
 
-  onGetCategorias() {
-    return this.getCategorias.fetch(null, { fetchPolicy: 'no-cache', errorPolicy: 'all' })
+  onGetCategorias(): Observable<PdvCategoria[]> {
+    return this.genericService.onGetAll(this.getCategorias);
+  }
+
+  onRefresh() {
+    this.onGetCategorias().subscribe(res => {
+      this.pdvCategorias = res;
+      this.pdvCategoriasSub.next(this.pdvCategorias)
+      this.pdvCategorias.forEach((cat) => {
+        cat.grupos.forEach((gr) => {
+          if (gr.activo == true) {
+            this.onGetGrupoProductosPorGrupoId(gr.id)
+              .pipe(untilDestroyed(this))
+              .subscribe((res) => {
+                if (res != null) {
+                  gr.pdvGruposProductos = res;
+                }
+              });
+          }
+        });
+      });
+    })
   }
 
   onSaveCategoria(input: PdvCategoriaInput) {

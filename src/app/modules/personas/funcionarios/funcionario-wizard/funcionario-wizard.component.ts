@@ -106,8 +106,6 @@ export class FuncionarioWizardComponent implements OnInit {
     this.nombrePersona.setValue(this.selectedPreRegistro?.nombreCompleto)
     this.apodoPersona.setValue(this.selectedPreRegistro?.apodo)
     this.nacimientoPersona.setValue(new Date(this.selectedPreRegistro?.fechaNacimiento))
-    console.log(this.selectedPreRegistro.fechaNacimiento)
-    console.log(this.nacimientoPersona.value)
     this.documentoPersona.setValue(this.selectedPreRegistro?.documento)
     this.emailPersona.setValue(this.selectedPreRegistro?.email)
     this.direccionPersona.setValue(this.selectedPreRegistro?.direccion)

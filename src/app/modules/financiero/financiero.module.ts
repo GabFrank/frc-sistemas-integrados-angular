@@ -9,7 +9,7 @@ import { FormaPagoComponent } from "./forma-pago/forma-pago.component";
 import { MaletinComponent } from "./maletin/maletin.component";
 import { MonedaComponent } from "./moneda/moneda.component";
 import { ListCajaComponent } from "./pdv/caja/list-caja/list-caja.component";
-import { FlexLayoutModule } from "@angular/flex-layout";
+import { FlexLayoutModule } from "ngx-flexible-layout";
 import { ReactiveFormsModule, FormsModule } from "@angular/forms";
 import { MaterialModule } from "../../commons/core/material.module";
 import { SharedModule } from "../../shared/shared.module";
@@ -30,6 +30,7 @@ import { ListFacturaLegalComponent } from './factura-legal/list-factura-legal/li
 import { AddFacturaLegalDialogComponent } from './factura-legal/add-factura-legal-dialog/add-factura-legal-dialog.component';
 import { EditFacturaLegalItemComponent } from './factura-legal/edit-factura-legal-item/edit-factura-legal-item.component';
 import { AddVentaCreditoDialogComponent } from './venta-credito/add-venta-credito-dialog/add-venta-credito-dialog.component';
+import { ListVentaCreditoComponent } from './venta-credito/list-venta-credito/list-venta-credito.component';
 
 @NgModule({
   declarations: [
@@ -58,6 +59,7 @@ import { AddVentaCreditoDialogComponent } from './venta-credito/add-venta-credit
     AddFacturaLegalDialogComponent,
     EditFacturaLegalItemComponent,
     AddVentaCreditoDialogComponent,
+    ListVentaCreditoComponent,
   ],
   imports: [
     CommonModule,

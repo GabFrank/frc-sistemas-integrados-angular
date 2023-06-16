@@ -77,7 +77,6 @@ export class AddFamiliaDialogComponent implements OnInit {
 
   loadData() {
     if (this.data?.familia != null) {
-      console.log(this.data.familia)
       this.idControl.setValue(this.data.familia.id);
       this.nombreControl.setValue(this.data.familia.nombre);
       this.descripcionControl.setValue(this.data.familia?.descripcion);

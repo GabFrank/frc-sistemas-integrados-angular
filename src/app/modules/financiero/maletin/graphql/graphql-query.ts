@@ -1,8 +1,8 @@
 import gql from "graphql-tag";
 
 export const maletinsQuery = gql`
-  {
-    data: maletines {
+  query ($page: Int, $size: Int) {
+    data: maletines(page: $page, size: $size) {
       id
       descripcion
       activo

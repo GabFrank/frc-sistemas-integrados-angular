@@ -41,7 +41,6 @@ export class DialogosComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     setTimeout(() => {
-      console.log(this.okButton);
       this.okButton._elementRef.nativeElement.focus();
     }, 0);
   }

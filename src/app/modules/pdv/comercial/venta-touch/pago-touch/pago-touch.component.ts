@@ -37,9 +37,10 @@ import {
 
 export interface PagoData {
   valor: number;
-  itemList: VentaItem[];
+  itemList?: VentaItem[];
   descuento?: number;
   delivery?: Delivery;
+  isCredito?: boolean;
 }
 
 export interface PagoResponseData {
@@ -103,6 +104,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   formaPagoSub: Subscription;
   facturado = false;
   selectedCliente: Cliente
+  isCredito = false;
 
   currencyOptionsGuarani = {
     allowNegative: true,
@@ -152,6 +154,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     if (data.delivery != null) {
       data.valor += data.delivery.precio.valor;
     }
+    if (data?.isCredito == true) this.isCredito = true;
   }
 
   ngOnInit(): void {
@@ -258,7 +261,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             this.setFormaPago('TARJETA')
             break;
           case "F6":
-            this.onConvenioClick()
+            if (!this.isCredito) this.onConvenioClick()
             break;
           case "Escape":
             break;
@@ -396,7 +399,6 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   displayFormaPago(value?: number) {
     let res = value ? this.formaPagoList?.find((_) => _.id === value) : undefined;
     this.selectedFormaPago = res;
-    console.log(res);
     return res ? res?.id + " - " + res?.descripcion : undefined;
   }
 
@@ -472,7 +474,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       return this.onFinalizar();
     }
     if (this.isDescuento) {
-      valor = (this.data.valor - this.valorParcialPagado);
+      // valor = (this.data.valor - this.valorParcialPagado);
       this.selectedMoneda = this.monedas.find(m => m.denominacion == 'GUARANI');
     }
     if (valor < 0 && !this.isAumento) this.isVuelto = true;
@@ -514,6 +516,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.isDescuento = false;
     this.isAumento = false;
     this.setFormaPago(this.formaPagoList[0]?.descripcion);
+    this.setFocusToValorInput()
+
   }
 
   setFocusToValorInput() {
@@ -533,7 +537,6 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       this.ventaService.onDeleteCobroDetalle(item.id, item.sucursalId).subscribe(res => {
         if (res) { // borrado con exito
           this.valorParcialPagado -= item.valor * item.moneda.cambio;
-          console.log(this.data.valor, this.valorParcialPagado, this.selectedMoneda.cambio);
           this.formGroup.controls.saldo.setValue(
             (this.data.valor - this.valorParcialPagado)
           );
@@ -546,7 +549,6 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       })
     } else {
       this.valorParcialPagado -= item.valor * item.moneda.cambio;
-      console.log(this.data.valor, this.valorParcialPagado, this.selectedMoneda.cambio);
       this.formGroup.controls.saldo.setValue(
         (this.data.valor - this.valorParcialPagado)
       );
@@ -561,14 +563,16 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onDescuento() {
     this.isDialogOpen = true;
-    // let valor =
-    //   this.formGroup.controls.valor.value * this.selectedMoneda.cambio;
-    // if (valor < this.data.valor * 0.8 && valor > 0) {
-    //   this.isDescuento = true;
-    //   this.isVuelto = false;
-    //   this.isAumento = false;
-    //   this.addCobroDetalle();
-    // }
+    let valorCosto = 0;
+    this.data.itemList.forEach(i => {
+      let costoTotal = 0;
+      if (i?.precioCosto > 0) {
+        costoTotal = i.precioCosto * i.cantidad;
+      } else {
+        costoTotal = i.precio * 0.85;
+      }
+      valorCosto += costoTotal;
+    })
     let total = this.data.valor;
     let saldo = this.formGroup?.controls?.saldo?.value;
 
@@ -576,21 +580,19 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       valorTotal: total,
       cambioDs: this.cambioDs,
       cambioRs: this.cambioRs,
-      saldo: saldo
+      saldo: saldo,
+      costo: valorCosto
     }
     this.matDialog.open(DescuentoDialogComponent, {
       data: data
     }).afterClosed().subscribe(res => {
       this.isDialogOpen = false;
       if (res > 0) {
-        let valor = res;
-        if (valor < (this.data.valor * 0.25)) {
-          this.isAumento = false;
-          this.isVuelto = false;
-          this.isDescuento = true;
-          this.formGroup.controls.valor.setValue(valor)
-          this.addCobroDetalle();
-        }
+        this.isAumento = false;
+        this.isVuelto = false;
+        this.isDescuento = true;
+        this.formGroup.controls.valor.setValue(res)
+        this.addCobroDetalle(res);
       }
     })
   }
@@ -619,7 +621,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         venta,
         ventaItemList: this.data.itemList
       },
-      width: '100%'
+      width: '100%',
+      height: '80vh'
     }).afterClosed().subscribe(res => {
       if (res) {
         this.facturado = res?.facturado;
@@ -643,6 +646,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           cobroDetalle.pago = true;
           cobroDetalle.descuento = false;
           cobroDetalle.aumento = false;
+          cobroDetalle.vuelto = false;
           cobroDetalle.formaPago = this.selectedFormaPago;
           cobroDetalle.moneda = this.monedas.find(m => m.denominacion == 'GUARANI');
           cobroDetalle.valor = this.formGroup?.controls?.saldo?.value
@@ -663,6 +667,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           cobroDetalle.pago = true;
           cobroDetalle.descuento = false;
           cobroDetalle.aumento = false;
+          cobroDetalle.vuelto = false;
           cobroDetalle.formaPago = this.selectedFormaPago;
           cobroDetalle.moneda = this.monedas.find(m => m.denominacion == 'GUARANI');
           cobroDetalle.valor = this.formGroup?.controls?.saldo?.value

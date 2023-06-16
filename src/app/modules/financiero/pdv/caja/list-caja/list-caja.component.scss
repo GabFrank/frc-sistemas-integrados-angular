@@ -1,5 +1,5 @@
-tr:focus{
-    outline: none;
+tr:focus {
+  outline: none;
 }
 
 table {
@@ -25,45 +25,57 @@ tr.example-detail-row {
   background-color: none;
 }
 
-.mat-cell,
-.mat-header-cell {
-word-wrap: initial;
-display: table-cell;
-padding: 0px 10px;
-line-break: unset;
-/* width: 100%; */
-white-space: nowrap;
-overflow: hidden;
-vertical-align: middle;
-} 
+.mat-mdc-cell,
+.mat-mdc-header-cell {
+  word-wrap: initial;
+  display: table-cell;
+  padding: 0px 10px;
+  line-break: unset;
+  /* width: 100%; */
+  white-space: nowrap;
+  overflow: hidden;
+  vertical-align: middle;
+}
 
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
--webkit-appearance: none;
-margin: 0;
+  -webkit-appearance: none;
+  margin: 0;
 }
 
-.highlight{
-background: #42A948;
+.highlight {
+  background: #42A948;
 }
 
 
 .selectedCard {
-background-color: #43A047 !important;
+  background-color: #43A047 !important;
 }
 
 .expanded:hover {
-background-color: rgb(51, 51, 51) !important;
+  background-color: rgb(51, 51, 51) !important;
 }
 
 .tableRows:hover {
-background-color: rgb(51, 51, 51) !important;
+  background-color: rgb(51, 51, 51) !important;
 }
 
 input {
   text-transform: uppercase;
 }
 
-mat-form-field{
-  font-size: 10px;
+// mat-form-field{
+//   font-size: 10px;
+// }
+
+// .shrinking-mat-form-field {
+//   ::ng-deep .mat-mdc-form-field-infix {
+//     transform: translateY(-10px) !important;
+//   }
+// }
+
+.shrinking-mat-form-field {
+  ::ng-deep .mat-mdc-text-field-wrapper {
+    padding-left: 5px;
+  }
 }

@@ -20,8 +20,8 @@ tr.example-detail-row {
 }
 
 .example-element-detail {
-    overflow: hidden;
-    display: flex;
+  overflow: hidden;
+  display: flex;
 }
 
 .sin-cambios {
@@ -41,24 +41,55 @@ tr.example-detail-row {
   cursor: pointer;
 }
 
-
 mat-form-field {
-  font-size: 0.8em;
+  font-size: 10px;
 }
 
 input {
-  font-size: 1.3em;
   text-transform: uppercase;
 }
 
-mat-option{
-  font-size: 1.3em;
+.shrinking-mat-form-field {
+  height: 30px !important;
+
+  ::ng-deep .mat-mdc-form-field-infix {
+    transform: translateY(-10px) !important;
+  }
+
+  ::ng-deep .mat-mdc-input-element {
+    font-size: 15px;
+  }
+
+  ::ng-deep.mat-mdc-form-field-text-prefix {
+    transform: translateY(-10px) !important;
+    font-size: small;
+  }
 }
 
-mat-select{
-  font-size: 1.3em;
+.frame {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
 }
 
+.text-1 {
+  text-align: left;
+  vertical-align: middle;
+  font-size: 14px;
+  font-family: Roboto;
+  letter-spacing: 0.25px;
+  line-height: 20px;
+  color: white;
+}
 
-
+.text-2 {
+  text-align: left;
+  vertical-align: middle;
+  font-size: 12px;
+  font-family: Roboto;
+  letter-spacing: 0.4000000059604645px;
+  line-height: 16px;
+  color: rgb(176, 176, 176);
+}
 

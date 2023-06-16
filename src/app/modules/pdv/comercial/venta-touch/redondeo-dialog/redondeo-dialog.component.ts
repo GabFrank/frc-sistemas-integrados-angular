@@ -35,7 +35,7 @@ export class RedondeoDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: RedondeoDialogData,
     public dialogRef: MatDialogRef<RedondeoDialogComponent>,
     private getMonedas: MonedasGetAllGQL
-  ) { 
+  ) {
     this.selectedMoneda = data.moneda;
     this.isRedondeo = data.isRedondeo;
     this.valorInicial = data.valor;
@@ -55,10 +55,9 @@ export class RedondeoDialogComponent implements OnInit {
     switch (this.selectedMoneda.denominacion) {
       case 'GUARANI':
         this.opcionesRedondeo.push(Math.round(this.valorInicial - 1000))
-        this.opcionesRedondeo.push(Math.round(this.valorInicial - 500))        
-        this.opcionesRedondeo.push(Math.round(this.valorInicial + 500))        
-        this.opcionesRedondeo.push(Math.round(this.valorInicial + 1000)) 
-        console.log(this.opcionesRedondeo)       
+        this.opcionesRedondeo.push(Math.round(this.valorInicial - 500))
+        this.opcionesRedondeo.push(Math.round(this.valorInicial + 500))
+        this.opcionesRedondeo.push(Math.round(this.valorInicial + 1000))
         break;
       default:
         let enteros = Math.floor(this.valorInicial);
@@ -67,7 +66,6 @@ export class RedondeoDialogComponent implements OnInit {
         this.opcionesRedondeo.push(enteros + 0.25)
         this.opcionesRedondeo.push(enteros + 0.75)
         this.opcionesRedondeo.push(enteros + 1)
-        console.log(this.opcionesRedondeo)
         break;
     }
   }

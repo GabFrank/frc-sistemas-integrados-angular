@@ -18,7 +18,6 @@ export class Cliente {
     let input = new ClienteInput;
     input.id = this.id
     input.personaId = this.persona?.id
-    input.nombre = this.nombre
     input.credito = this.credito
     input.creadoEn = this.creadoEn
     input.usuarioId = this.usuario?.id

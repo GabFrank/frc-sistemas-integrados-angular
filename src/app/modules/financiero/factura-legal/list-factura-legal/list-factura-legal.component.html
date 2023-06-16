@@ -8,9 +8,14 @@
   [buscarTrigger]="facturaStep5"
 >
   <div filtros fxLayout="row" fxLayoutGap="10px" style="width: 100%">
-    <div fxFlex="80">
-      <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
-        <div fxFlex="30%">
+    <div
+      fxFlex="60"
+      fxLayout="column"
+      fxLayoutAlign="space-between start"
+      fxLayoutGap="20px"
+    >
+      <div fxFlex="33" fxLayout="row" fxLayoutGap="10px" style="width: 100%">
+        <div fxFlex="50%">
           <mat-form-field style="width: 100%">
             <mat-label>Rango de fecha</mat-label>
             <mat-date-range-input
@@ -50,7 +55,7 @@
             >
           </mat-form-field>
         </div>
-        <div fxFlex="30%">
+        <div fxFlex="50%">
           <mat-form-field style="width: 100%">
             <mat-label>Sucursales</mat-label>
             <mat-select
@@ -91,8 +96,14 @@
           </mat-form-field>
         </div>
       </div>
-      <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
-        <div fxFlex="30%">
+      <div
+        fxFlex="33"
+        fxLayout="row"
+        fxLayoutAlign="start center"
+        fxLayoutGap="10px"
+        style="width: 100%"
+      >
+        <div fxFlex="50%">
           <mat-form-field style="width: 100%">
             <mat-label>Nombre del cliente</mat-label>
             <input
@@ -103,7 +114,7 @@
             />
           </mat-form-field>
         </div>
-        <div fxFlex="30%">
+        <div fxFlex="50%">
           <mat-form-field style="width: 100%">
             <mat-label>Ruc del cliente</mat-label>
             <input
@@ -114,14 +125,8 @@
             />
           </mat-form-field>
         </div>
-        <!-- <div fxFlex="10%" style="text-align: center">
-          <mat-checkbox [formControl]="iva5Control"> Iva al 5% </mat-checkbox>
-        </div>
-        <div fxFlex="10%" style="text-align: center">
-          <mat-checkbox [formControl]="iva5Control"> Iva al 10% </mat-checkbox>
-        </div> -->
       </div>
-      <div fxLayout="row" fxLayoutGap="20px">
+      <div fxFlex="33" fxLayout="row" fxLayoutGap="20px">
         <div
           fxLayout="row"
           fxLayoutAlign="center center"
@@ -141,7 +146,7 @@
       </div>
     </div>
     <div
-      fxFlex="20"
+      fxFlex="40"
       style="width: 100%; height: 100%; font-size: 1.15em; padding-right: 20px"
       [bdcWalkTriggerFor]="facturaStep6"
       fxLayout="column"
@@ -266,6 +271,9 @@
           </button>
           <mat-menu #menu="matMenu">
             <button mat-menu-item (click)="onEdit(factura, i)">Editar</button>
+            <button mat-menu-item (click)="onImprimir(factura, i)">
+              Imprimir
+            </button>
             <button
               mat-menu-item
               color="primary"
@@ -299,7 +307,7 @@
               fxLayoutGap="20px"
               fxLayoutAlign="center center"
             >
-              <mat-card fxFlex="40%">
+              <mat-card appearance="outlined" fxFlex="40%">
                 <div style="text-align: center">
                   <h4>Item</h4>
                 </div>
@@ -426,7 +434,7 @@
         <code>Filtrar</code>
         Utilizar filtros para optimizar las búsquedas
       </li>
-      <li> 
+      <li>
         <code>Exportar a excel</code>
         Exportar la lista de facturas filtradas a un formato excel compatible
         con el sistema de gestión contable.
@@ -610,7 +618,9 @@
       puede contactar con el soporte técnico.
     </p>
     <div style="width: 100%; text-align: center">
-      <button mat-stroked-button (click)="facturaStep8.close(); onFinalizar()">Cerrar</button>
+      <button mat-stroked-button (click)="facturaStep8.close(); onFinalizar()">
+        Cerrar
+      </button>
     </div>
   </div>
 </bdc-walk-dialog>

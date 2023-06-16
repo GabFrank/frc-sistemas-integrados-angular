@@ -17,9 +17,9 @@ export class SearchListtDialogData {
   titulo: string;
   tableData: TableData[];
   query: Query;
-  multiple? = false;
-  search? = true;
-  inicialSearch? = false;
+  multiple?= false;
+  search?= true;
+  inicialSearch?= false;
   inicialData?: any;
   texto?: string;
 }
@@ -46,42 +46,49 @@ export class SearchListDialogComponent implements OnInit {
     data?.tableData.forEach(e => {
       this.displayedColumns.push(e.id)
     })
-    if(data?.inicialData!=null){
+    if (data?.inicialData != null) {
       this.dataSource.data = data.inicialData;
     }
   }
 
   ngOnInit(): void {
-    if(this.data?.inicialSearch){
-      if(this.data?.texto!=null) this.buscarControl.setValue(this.data.texto)
-      this.onSearch();
+    if (this.data?.inicialSearch) {
+      if (this.data?.texto != null) {
+        this.buscarControl.setValue(this.data.texto)
+
+      }
+      setTimeout(() => {
+        this.onSearch();
+      }, 500);
     }
   }
 
-  onBuscar(){
+  onBuscar() {
     this.onSearch()
   }
 
   onSearch() {
+    let text = this.buscarControl.value;
+    if (text != null) text = text.toUpperCase()
     this.genericCrudService
-      .onGetByTexto(this.data.query, this.buscarControl.value).pipe(untilDestroyed(this))
+      .onGetByTexto(this.data.query, text).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.dataSource.data = res;
         }
       });
-  } 
+  }
 
-  onRowSelect(row){
-    if(row==this.selectedItem) this.matDialogRef.close(row)
+  onRowSelect(row) {
+    if (row == this.selectedItem) this.matDialogRef.close(row)
     this.selectedItem = row;
   }
 
-  onAceptar(){
+  onAceptar() {
     this.matDialogRef.close(this.selectedItem)
   }
 
-  onCancelar(){
+  onCancelar() {
     this.matDialogRef.close()
   }
 }

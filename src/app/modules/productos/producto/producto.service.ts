@@ -31,6 +31,12 @@ export class CustomData {
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { ProductoPorCodigoGQL } from "./graphql/productoPorCodigo";
+import { ReporteLucroPorProductoGQL } from "./graphql/reporteLucroPorProducto";
+import { ReporteService } from "../../reportes/reporte.service";
+import { TabService } from "../../../layouts/tab/tab.service";
+import { ListProductoComponent } from "./list-producto/list-producto.component";
+import { Tab } from "../../../layouts/tab/tab.model";
+import { ReportesComponent } from "../../reportes/reportes/reportes.component";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -58,7 +64,10 @@ export class ProductoService {
     private getProductoParaPedido: ProductoParaPedidoGQL,
     private exportarReporte: ExportarProductoGQL,
     private findByPdvGrupoProductoId: FindByPdvGrupoProductoIdGQL,
-    private productoPorCodigo: ProductoPorCodigoGQL
+    private productoPorCodigo: ProductoPorCodigoGQL,
+    private reporteLucroPorProducto: ReporteLucroPorProductoGQL,
+    private reporteService: ReporteService,
+    private tabService: TabService
   ) {
     this.productosList = [];
     // getAllProductos.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
@@ -74,14 +83,14 @@ export class ProductoService {
     return this.genericService.onCustomQuery(this.productoPorCodigo, {texto});
   }
 
-  onSearch(texto, offset?): Observable<Producto[]> {
-    console.log("buscando ", texto, "offest ", offset);
+  onSearch(texto, offset?, activo?): Observable<Producto[]> {
     return new Observable((obs) => {
       this.productoSearch
         .fetch(
           {
             texto,
             offset,
+            activo
           },
           {
             fetchPolicy: "no-cache",
@@ -90,7 +99,6 @@ export class ProductoService {
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
-            console.log(res.data.data);
             obs.next(res.data.data);
           } else {
           }
@@ -99,7 +107,6 @@ export class ProductoService {
   }
 
   onEnvaseSearch(texto, offset?, isEnvase?: boolean): Observable<Producto[]> {
-    console.log("buscando ", texto, "offest ", offset);
     return new Observable((obs) => {
       this.envaseSearch
         .fetch(
@@ -115,7 +122,6 @@ export class ProductoService {
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
-            console.log(res.data.data);
             obs.next(res.data.data);
           } else {
           }
@@ -131,7 +137,6 @@ export class ProductoService {
           regex.test(p.descripcion) ||
           p.descripcion.replace(" ", "").includes(texto.replace(" ", ""))
         ) {
-          console.log(p.descripcion);
           return p;
         }
       })
@@ -156,7 +161,6 @@ export class ProductoService {
           { errorPolicy: "all" }
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {
-          console.log(res.errors);
           if (res.errors == null) {
             obs.next(res.data.data);
             if (isNew) {
@@ -192,7 +196,6 @@ export class ProductoService {
 
   onImageSave(image: string, filename: string) {
     // return new Observable((obs) => {
-    console.log("saving image");
     this.saveImage
       .mutate({
         image,
@@ -218,7 +221,6 @@ export class ProductoService {
   }
 
   onPrintProductoPorId(id) {
-    console.log("entro al onPrint", id);
     this.printProductoPorId
       .fetch(
         {
@@ -230,7 +232,6 @@ export class ProductoService {
         }
       ).pipe(untilDestroyed(this))
       .subscribe((res) => {
-        console.log(res);
       });
   }
 
@@ -254,5 +255,16 @@ export class ProductoService {
 
   onFindByPdvGrupoProductoId(id): Observable<Producto[]> {
     return this.genericService.onGetById(this.findByPdvGrupoProductoId, id);
+  }
+
+  onImprimirReporteLucroPorProducto(fechaInicio, fechaFin, sucursalIdList?, usuarioIdList?, productoIdList?) {
+    this.genericService.onCustomQuery(this.reporteLucroPorProducto, {
+      fechaInicio, fechaFin, sucursalIdList, usuarioId: this.mainService.usuarioActual.id, usuarioIdList, productoIdList
+    }, true).subscribe(res => {
+      if (res != null) {
+        this.reporteService.onAdd('Lucro por producto '+ Date.now(), res)
+        this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListProductoComponent))
+      }
+    })
   }
 }

@@ -11,6 +11,11 @@ import { MaletinService } from '../maletin.service';
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MatPaginator } from '@angular/material/paginator';
+import { TabData, TabService } from '../../../../layouts/tab/tab.service';
+import { Tab } from '../../../../layouts/tab/tab.model';
+import { ListVentaComponent } from '../../../operaciones/venta/list-venta/list-venta.component';
+import { PdvCaja } from '../../pdv/caja/caja.model';
+import { ListRetiroComponent } from '../../retiro/list-retiro/list-retiro.component';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -30,48 +35,46 @@ import { MatPaginator } from '@angular/material/paginator';
 })
 export class ListMaletinComponent implements OnInit {
 
-  @ViewChild('paginator', {static: true}) paginator: MatPaginator;
+  @ViewChild('paginator', { static: true }) paginator: MatPaginator;
 
   headerHeight;
   tableHeight;
   containerHeight;
-  displayedColumns: string[] = ['id', 'descripcion', 'sucursalActual', 'activo', 'creadoEn', 'usuario', 'acciones'];
+  displayedColumns: string[] = ['id', 'descripcion', 'sucursalActual', 'cajaActual', 'activo', 'creadoEn', 'usuario', 'acciones'];
   expandedMaletin: Maletin;
   selectedMaletin: Maletin;
   resultsLength = 0;
   dataSource = new MatTableDataSource<Maletin>(null);
 
+
+  isLastPage = false;
+  isSearching = false;
+
+
+
   constructor(
     private maletinService: MaletinService,
     public windowInfoService: WindowInfoService,
-    private matDialog: MatDialog
-  ) { 
+    private matDialog: MatDialog,
+    private tabService: TabService
+  ) {
     this.headerHeight = windowInfoService.innerTabHeight * 0.2;
     this.tableHeight = windowInfoService.innerTabHeight * 0.8;
     this.containerHeight = windowInfoService.innerTabHeight;
-
-    maletinService.onCount().subscribe(res => {
-      if(res!=null) this.resultsLength = res;
-    })
   }
 
   ngOnInit(): void {
-    this.maletinService.onGetAll(this.paginator.pageIndex, this.paginator.pageSize).subscribe(res => {
-      if(res!=null){
+    this.maletinService.onGetAll(0, 50).subscribe(res => {
+      if (res != null) {
         this.dataSource.data = res;
-        this.dataSource.paginator = this.paginator;
       }
     })
   }
 
-  rowSelectedEvent(e){
+  rowSelectedEvent(e) {
   }
 
-  onFiltrar(){
-
-  }
-
-  onAdd(maletin?: Maletin, index?){
+  onAdd(maletin?: Maletin, index?) {
     this.matDialog.open(AdicionarMaletinDialogComponent, {
       data: {
         maletin
@@ -81,13 +84,27 @@ export class ListMaletinComponent implements OnInit {
       autoFocus: true,
       restoreFocus: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      if(res!=null){
-        if(maletin==null){
+      if (res != null) {
+        if (maletin == null) {
           this.dataSource.data = updateDataSource(this.dataSource.data, res);
         } else {
           this.dataSource.data = updateDataSource(this.dataSource.data, res, index);
         }
       }
     })
+  }
+
+  cargarMasDatos() {
+
+  }
+  onFiltrar() {
+
+  }
+  resetFiltro() {
+
+  }
+
+  onIrACaja(cajaSalida: PdvCaja){
+    this.tabService.addTab(new Tab(ListVentaComponent, 'Venta de la caja ' + cajaSalida.id, new TabData(null, cajaSalida), ListRetiroComponent))
   }
 }

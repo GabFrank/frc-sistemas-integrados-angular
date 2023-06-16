@@ -48,7 +48,6 @@ export class UtilitariosDialogComponent implements OnInit {
     public matDialog: MatDialog,
     private mainService: MainService
   ) {
-    console.log(data)
     if (data?.caja != null) this.selectedCaja = data.caja;
   }
 

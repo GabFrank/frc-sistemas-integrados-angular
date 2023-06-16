@@ -50,6 +50,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   sucursalList: any[]
   readonly ROLES = ROLES;
   @Output() toogleSideBarEvent: EventEmitter<any> = new EventEmitter();
+  appVersion = null;
 
   constructor(
     public mainService: MainService,
@@ -72,7 +73,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.status = res;
       });
 
-    this.sucursalList = environment['sucursales']
+    this.sucursalList = environment['sucursales'];
+
+    this.appVersion = this.electronService.getAppVersion();
 
   }
 
@@ -106,7 +109,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   onSearch() {
     this.matDialog.open(SearchBarDialogComponent, {
       data: null,
-      width: '70%'
+      width: '50%'
     })
   }
 
@@ -153,6 +156,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
         if (res) {
           localStorage.setItem('ip', sucursal['ip'])
           localStorage.setItem('port', sucursal['port'])
+          localStorage.setItem('centralIp', environment['serverCentralIp'])
+          localStorage.setItem('centralPort', environment['serverCentralPort']+"")
           this.electronService.relaunch()
         }
       })

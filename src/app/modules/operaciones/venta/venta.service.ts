@@ -53,7 +53,7 @@ export class VentaService {
 
   // $venta:VentaInput!, $venteItemList: [VentaItemInput], $cobro: CobroInput, $cobroDetalleList: [CobroDetalleInput]
 
-  onSaveVenta(venta: Venta, cobro: Cobro, ticket, ventaCreditoInput?, ventaCreditoCuotaInputList?): Observable<Venta> {
+  onSaveVenta(venta: Venta, cobro: Cobro, ticket, ventaCreditoInput?, ventaCreditoCuotaInputList?, isFactura?: boolean): Observable<Venta> {
     let ventaItemInputList: VentaItemInput[] = [];
     let cobroDetalleInputList: CobroDetalleInput[] = [];
     let ventaInput: VentaInput = venta.toInput();
@@ -79,7 +79,7 @@ export class VentaService {
             ticket,
             printerName: environment['printers']['ticket'],
             local: environment['local'],
-            pdvId: environment['pdvId'],
+            pdvId: isFactura == false ? null : environment['pdvId'],
             ventaCreditoInput,
             ventaCreditoCuotaInputList
           },
@@ -95,8 +95,6 @@ export class VentaService {
   }
 
   onSaveVenta2(ventaInput?: VentaInput): Observable<Venta> {
-    console.log(ventaInput);
-    
     return new Observable((obs) => {
       this.saveVenta
         .mutate(

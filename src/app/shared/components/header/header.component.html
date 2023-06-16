@@ -5,105 +5,160 @@
     fxLayoutAlign="space-between center"
   >
     <div
-      fxFlex="15"
+      fxFlex="25"
       fxLayout="row"
       fxLayoutAlign="start center"
       fxLayoutGap="20px"
     >
-      <button fxFlex mat-icon-button (click)="toogleSideBar()" [disabled]="!status">
-        <mat-icon style="font-size: 2em">menu</mat-icon>
-      </button>
-      <span style="padding-left: 20px" fxFlex
-        >BODEGA FRANCO
-        {{ mainService?.sucursalActual?.nombre | uppercase }} {{ isDev && isLocalhost ? 'DEV' : null}}</span
+      <button
+        fxFlex="20"
+        mat-icon-button
+        (click)="toogleSideBar()"
+        [disabled]="!status"
       >
+        <mat-icon>menu</mat-icon>
+      </button>
+      <!-- <span style="padding-left: 20px" fxFlex="80"
+        >BODEGA FRANCO {{ mainService?.sucursalActual?.nombre | uppercase }}
+        {{ isDev && isLocalhost ? "DEV" : null }}
+        <div style="font-size: medium; padding-top: -10px;">v{{ appVersion }}</div>
+      </span> -->
+      <div style="position: relative; text-align: center;">
+        <span style="padding-left: 20px; display: inline-block;">
+          BODEGA FRANCO {{ mainService?.sucursalActual?.nombre | uppercase }}
+          {{ isDev && isLocalhost ? 'DEV' : null }}
+        </span>
+        <span style="position: absolute; bottom: -20px; left: 0; width: 100%; font-size: small;">
+          FRC Sistemas Informáticos v{{ appVersion }}
+        </span>
+      </div>
     </div>
 
-    <ul
-      fxFlex="20"
+    <div
+      fxFlex="50"
       fxLayout="row"
       fxLayoutGap="20px"
       fxLayoutAlign="end center"
       style="width: 100%"
     >
-      <li fxFlex>
-        <button mat-icon-button [matMenuTriggerFor]="menuServerIp">
+      <div fxFlex="10">
+        <button fxFlex mat-icon-button [matMenuTriggerFor]="menuServerIp">
           <mat-icon>settings</mat-icon>
         </button>
         <mat-menu #menuServerIp="matMenu">
           <div style="padding: 5px">
-            <button mat-flat-button color="success" (click)="createQrCode()" [disabled]="!status">
+            <button
+              mat-flat-button
+              color="success"
+              (click)="createQrCode()"
+              [disabled]="!status"
+            >
               QR de la sucursal
             </button>
           </div>
-          <div *ngIf="mainService.usuarioActual?.roles.includes(ROLES.SOPORTE)" style="padding: 5px">
-            <button mat-flat-button color="success" (click)="onGetConfiguracion()" [disabled]="!status">
+          <div
+            *ngIf="mainService.usuarioActual?.roles.includes(ROLES.SOPORTE)"
+            style="padding: 5px"
+          >
+            <button
+              mat-flat-button
+              color="success"
+              (click)="onGetConfiguracion()"
+              [disabled]="!status"
+            >
               Configurar BD
             </button>
           </div>
-          <button mat-menu-item [matMenuTriggerFor]="sucursales">Cambiar sucursal</button>
+          <button mat-menu-item [matMenuTriggerFor]="sucursales">
+            Cambiar sucursal
+          </button>
         </mat-menu>
-      </li>
-      <li>
-        <button mat-icon-button [disabled]="!status">
-          <mat-icon (click)="onSearch()">search</mat-icon>
+      </div>
+
+      <div fxFlex="10">
+        <button mat-icon-button [disabled]="!status" (click)="onSearch()">
+          <mat-icon>search</mat-icon>
         </button>
-      </li>
-      <li fxFlex>
-        <button fxFlex="25" mat-button [matMenuTriggerFor]="menu" [disabled]="!status">
+      </div>
+      <div fxFlex="50">
+        <button mat-button [matMenuTriggerFor]="menu" [disabled]="!status">
           <mat-icon *ngIf="mainService?.usuarioActual?.persona == null" fxFlex
             >person_outline</mat-icon
           >
           <div
-            style="font-size: 1.2em; text-overflow: ellipsis"
+            style="text-overflow: ellipsis; font-size: medium"
             *ngIf="mainService?.usuarioActual?.persona != null"
           >
-            {{ mainService.usuarioActual.persona.nombre | titlecase }}
+            Usuario: {{ mainService.usuarioActual.persona.nombre | titlecase }}
           </div>
         </button>
-        <mat-menu #menu="matMenu" >
-          <button mat-menu-item (click)="onLogout()" *ngIf="mainService?.usuarioActual?.persona != null" [disabled]="!status">Salir</button>
-          <button mat-menu-item (click)="onLogin()" *ngIf="mainService?.usuarioActual?.persona == null" [disabled]="!status">Entrar</button>
+        <mat-menu #menu="matMenu">
+          <button
+            mat-menu-item
+            (click)="onLogout()"
+            *ngIf="mainService?.usuarioActual?.persona != null"
+            [disabled]="!status"
+          >
+            Salir
+          </button>
+          <button
+            mat-menu-item
+            (click)="onLogin()"
+            *ngIf="mainService?.usuarioActual?.persona == null"
+            [disabled]="!status"
+          >
+            Entrar
+          </button>
         </mat-menu>
-      </li>
+      </div>
+    </div>
+    <div
+      fxFlex="10"
+      fxLayout="column"
+      fxLayoutAlign="center center"
+      style="background-color: rgb(32, 32, 32)"
+    >
+      <div fxFlex="10" style="font-size: 0.5em">Servidor</div>
+      <div
+        *ngIf="status == true"
+        fxFlex="10"
+        style="font-size: 0.6em; color: #43a047"
+      >
+        Online
+      </div>
 
-      <mat-card>
-        <div fxLayout="column" fxLayoutAlign="center center">
-          <div fxFlex="10" style="font-size: 0.5em">Servidor</div>
-          <div
-            *ngIf="status == true"
-            fxFlex="10"
-            style="font-size: 0.6em; color: #43a047"
-          >
-            Online
-          </div>
+      <div
+        *ngIf="status == false"
+        fxFlex="10"
+        style="font-size: 0.6em; color: #f44336"
+      >
+        Offline
+      </div>
 
-          <div
-            *ngIf="status == false"
-            fxFlex="10"
-            style="font-size: 0.6em; color: #f44336"
-          >
-            Offline
-          </div>
-
-          <div
-            *ngIf="status == null"
-            fxFlex="10"
-            style="font-size: 0.6em; color: #f44336"
-          >
-            <mat-spinner diameter="25"></mat-spinner>
-          </div>
-        </div>
-      </mat-card>
-    </ul>
+      <div
+        *ngIf="status == null"
+        fxFlex="10"
+        style="font-size: 0.6em; color: #f44336"
+      >
+        <mat-spinner diameter="25"></mat-spinner>
+      </div>
+    </div>
   </mat-toolbar-row>
 </mat-toolbar>
-
 
 <mat-menu #sucursales="matMenu">
   <a mat-menu-item *ngIf="isDev" (click)="onDevMode(true)">Dev server</a>
   <a mat-menu-item *ngIf="isDev" (click)="onDevMode(false)">Dev sucursal</a>
-  <a  *ngFor="let sucursal of sucursalList" [class.selected]="sucursal?.id == this.mainService?.sucursalActual?.id" mat-menu-item (click)="sucursal?.id != this.mainService?.sucursalActual?.id || isDev ? cambiarSucursal(sucursal) : null">
-    {{sucursal?.id}} - {{sucursal?.nombre}}
+  <a
+    *ngFor="let sucursal of sucursalList"
+    [class.selected]="sucursal?.id == this.mainService?.sucursalActual?.id"
+    mat-menu-item
+    (click)="
+      sucursal?.id != this.mainService?.sucursalActual?.id || isDev
+        ? cambiarSucursal(sucursal)
+        : null
+    "
+  >
+    {{ sucursal?.id }} - {{ sucursal?.nombre }}
   </a>
 </mat-menu>

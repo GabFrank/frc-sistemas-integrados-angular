@@ -143,8 +143,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     this.productoDetailList = [];
 
     if (this.data.conservarUltimaBusqueda == true) {
-      console.log(this.productoService.lastSearchText);
-      
+
       this.formGroup.get("buscarControl").setValue(this.productoService.lastSearchText);
     }
   }
@@ -192,7 +191,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         this.formGroup.get("cantidad").setValue(peso)
       }
       this.onSearchTimer = setTimeout(() => {
-        this.productoService.onSearch(text, offset).pipe(untilDestroyed(this)).subscribe((res) => {
+        this.productoService.onSearch(text, offset, true).pipe(untilDestroyed(this)).subscribe((res) => {
+
           if (offset == null) {
             this.dataSource.data = res;
           } else {
@@ -241,12 +241,10 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
           })
         }
         if (this.precios != null && this.modoPrecio == 'MIXTO') {
-          console.log('hay precio y es mixto');
           res.presentaciones = res.presentaciones.filter((p, index) => {
             let foundPrecios = p.precios?.filter(pre => this.precios?.includes(pre?.tipoPrecio?.descripcion))
             if (foundPrecios.length > 0) {
-              console.log(foundPrecios);
-              console.log(res.presentaciones[index].precios);
+
               res.presentaciones[index].precios = foundPrecios;
 
             }
@@ -265,7 +263,6 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   }
 
   scroll(id) {
-    console.log(`scrolling to ${id}`);
     let el = document.getElementById(id);
     el.scrollIntoView();
   }
@@ -287,7 +284,6 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
           this.expandedProducto = this.dataSource.data[index];
           this.getProductoDetail(this.expandedProducto, index);
         } else {
-          // console.log(index, this.selectedPresentacionRowIndex);
           this.onPresentacionClick(this.dataSource.data[index]?.presentaciones[this.selectedPresentacionRowIndex], this.dataSource.data[index], null);
         }
         break;
@@ -309,9 +305,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         break;
       default:
         if (!isNaN(+key)) {
-          console.log('precio con id ', key)
           let precio = this.selectedPresentacion.precios?.find(p => p?.tipoPrecio?.id == key)
-          console.log(precio)
           this.onPresentacionClick(this.selectedPresentacion, this.dataSource.data[this.selectedRowIndex], precio)
         }
         break;
@@ -407,7 +401,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       cantidad: this.formGroup.controls.cantidad.value,
       precio,
     };
-    
+
     if (producto != null && presentacion != null && precio != null) {
       this.dialogRef.close(response);
     }
@@ -419,13 +413,11 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   }
 
   presentacionArrowRightEvent(index, el?) {
-    console.log(el);
 
     this.highlightPresentacion(index + 1);
   }
 
   presentacionArrowLeftEvent(index, el) {
-    console.log(el);
     this.highlightPresentacion(index - 1);
   }
 
@@ -441,7 +433,6 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   mostrarStock(producto: Producto, index?) {
     this.stockService.onGetStockPorProducto(producto.id).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
-        console.log(res)
         producto.stockPorProducto = res;
         this.dataSource[index] = producto;
       }
@@ -451,7 +442,6 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   mostrarCodigoPrincipal(producto: Producto, index?) {
     this.stockService.onGetStockPorProducto(producto.id).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
-        console.log(res)
         producto.stockPorProducto = res;
         this.dataSource[index] = producto;
       }

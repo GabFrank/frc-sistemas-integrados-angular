@@ -1,5 +1,8 @@
-const { app, BrowserWindow } = require('electron')
+const electron = require('electron');
 
+const app = electron.contextBridge;
+const BrowserWindow = electron.BrowserWindow;
+console.log('context:', app);
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let win
@@ -40,14 +43,16 @@ app.on('window-all-closed', () => {
 })
 
 app.on('activate', () => {
+  console.log('Activate event fired, win is currently: ', win);
   // On macOS it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
   if (win === null) {
     createWindow()
   }
 
-  win.webContents.on('did-fail-load', () => { 
-    console.log('on browser reload it did-fail-load and reloaded the app'); 
-    win.loadURL(`file://${__dirname}/dist//index.html`); 
+  win.webContents.on('did-fail-load', () => {
+    console.log('on browser reload it did-fail-load and reloaded the app');
+    win.loadURL(`file://${__dirname}/dist//index.html`);
   });
 })
+

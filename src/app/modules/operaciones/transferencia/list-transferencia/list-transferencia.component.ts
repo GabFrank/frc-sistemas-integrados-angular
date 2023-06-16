@@ -143,7 +143,6 @@ export class ListTransferenciaComponent implements OnInit {
           this.cargandoService.closeDialog()
           if (res != null) {
             this.selectedTransferencia = res;
-            console.log(res)
             this.dataSource.data = updateDataSource(this.dataSource.data, res, index)
           }
         })

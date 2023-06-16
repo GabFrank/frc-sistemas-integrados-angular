@@ -2,12 +2,14 @@ import { Injectable } from '@angular/core';
 import { ApolloBase } from 'apollo-angular';
 import { Observable } from 'rxjs';
 import { GenericCrudService } from './../../../generics/generic-crud.service';
-import { Cliente } from './cliente.model';
+import { Cliente, ClienteInput, TipoCliente } from './cliente.model';
 import { ClienteByIdGQL } from './graphql/clienteById';
 import { ClientePersonaDocumentoGQL } from './graphql/clientePorPersonaDocumento';
 import { ClientePersonaIdFromServerGQL } from './graphql/clientePorPersonaIdFromServer';
 import { ClientesSearchByPersonaGQL } from './graphql/clienteSearchByPersona';
 import { ClientesSearchByPersonaIdGQL } from './graphql/clienteSearchByPersonaId';
+import { ClientesSearchConFiltrosGQL } from './graphql/clienteWithFilters';
+import { SaveClienteGQL } from './graphql/saveCliente';
 
 @Injectable({
   providedIn: 'root'
@@ -23,14 +25,20 @@ export class ClienteService {
     private getClientePorPersonaDocumento: ClientePersonaDocumentoGQL,
     private getClientePorPersonaId: ClientesSearchByPersonaIdGQL,
     private getClientePorPersonaIdFromServer: ClientePersonaIdFromServerGQL,
+    private searchWithFilters: ClientesSearchConFiltrosGQL,
+    private saveCliente: SaveClienteGQL
   ) {
+  }
+
+  onSaveCliente(input: ClienteInput): Observable<Cliente> {
+    return this.genericService.onSave(this.saveCliente, input, null, null, true);
   }
 
   onGetClientePorPersonaDocumento(texto: string): Observable<Cliente> {
     return this.genericService.onGetByTexto(this.getClientePorPersonaDocumento, texto)
   }
 
-  onGetById(id: number): Observable<Cliente[]> {
+  onGetById(id: number): Observable<Cliente> {
     return this.genericService.onGetById(this.getClienteById, id);
   }
 
@@ -46,13 +54,16 @@ export class ClienteService {
     return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto);
   }
 
+  onSearchConFiltros(texto: string, tipo: TipoCliente, page, size): Observable<Cliente[]> {
+    return this.genericService.onCustomQuery(this.searchWithFilters, { texto, tipo, page, size }, true);
+  }
+
   onGetByPersonaIdFromServer(id: number): Observable<Cliente> {
-    return this.genericService.onGetById(this.getClientePorPersonaId, id, null, null, true, null, false);
+    return this.genericService.onGetById(this.getClientePorPersonaId, id, null, null, true, null, false, 10000);
   }
 
   onSearchFromServer(texto: string): Observable<Cliente[]> {
-    return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto, true);
+    return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto, true, 10000);
   }
-
 
 }

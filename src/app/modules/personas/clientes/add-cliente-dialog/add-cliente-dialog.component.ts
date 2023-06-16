@@ -1,11 +1,15 @@
-import { Component, Inject, OnInit, ViewChild } from '@angular/core';
-import { FormControl, Validators, FormGroup } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { Component, Inject, OnInit } from '@angular/core';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { CurrencyMask } from '../../../../commons/core/utils/numbersUtils';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { PersonaSearchGQL } from '../../persona/graphql/personaSearch';
 import { Persona } from '../../persona/persona.model';
 import { PersonaService } from '../../persona/persona.service';
-import { PersonaInput } from '../../persona/persona/persona-input.model';
-import { Cliente } from '../cliente.model';
+import { ROLES } from '../../roles/roles.enum';
+import { Cliente, TipoCliente } from '../cliente.model';
 import { ClienteService } from '../cliente.service';
 
 export interface AdicionarClienteData {
@@ -22,80 +26,166 @@ export interface AdicionarClienteData {
 })
 export class AddClienteDialogComponent implements OnInit {
 
-  // @ViewChild
+  readonly ROLES = ROLES;
 
-  selectedCliente = new Cliente;
+  selectedCliente: Cliente;
   selectedPersona: Persona;
-  rucControl = new FormControl(null, [Validators.required, Validators.minLength(7)])
-  nombreControl = new FormControl(null, [Validators.required, Validators.minLength(3)])
+
+  //cliente
+  tipoControl = new FormControl(TipoCliente.NORMAL, Validators.required)
+  personaControl = new FormControl()
+  buscarControl = new FormControl()
+  creditoControl = new FormControl(0, Validators.min(0));
+
+  //persona
+  nombreControl = new FormControl(null, Validators.required)
+  apodoControl = new FormControl(null)
+  documentoControl = new FormControl(null, Validators.required)
+  telefonoControl = new FormControl(null, Validators.required)
+  emailControl = new FormControl(null)
+  nacimientoControl = new FormControl(null)
   direccionControl = new FormControl(null)
+
+  tipoClienteList = Object.keys(TipoCliente)
+
+  currency = new CurrencyMask;
+  maxDate = new Date()
+
   formGroup: FormGroup;
-  isEditting = false;
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) private data: AdicionarClienteData,
-    private dialogRef: MatDialogRef<AddClienteDialogComponent>,
+    private personaService: PersonaService,
     private clienteService: ClienteService,
-    private personaService: PersonaService
+    @Inject(MAT_DIALOG_DATA) private data: AdicionarClienteData,
+    private dialog: MatDialog,
+    private personaSearch: PersonaSearchGQL,
+    private notificacionService: NotificacionSnackbarService,
+    private dialogRef: MatDialogRef<AddClienteDialogComponent>
   ) { }
 
   ngOnInit(): void {
 
     this.formGroup = new FormGroup({
-      ruc: this.rucControl,
-      nombre: this.nombreControl,
-      direccion: this.direccionControl
+      'tipoControl': this.tipoControl,
+      'creditoControl': this.creditoControl,
+      'nombreControl': this.nombreControl,
+      'documentoControl': this.documentoControl,
+      'telefonoControl': this.telefonoControl,
+      'direccionControl': this.direccionControl
     })
 
-    if(this.data?.ruc != null){
-      this.personaService.onSearch(this.data.ruc).pipe(untilDestroyed(this)).subscribe(res => {
-        if(res?.length == 0){
+    this.creditoControl.disable()
 
-        } else if(res?.length == 1){
-          
-        } else {
+    this.tipoControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res: TipoCliente) => {
+      if (res === TipoCliente.NORMAL) {
+        this.creditoControl.disable()
+      } else {
+        this.creditoControl.enable()
+      }
+    })
 
+    if (this.data?.cliente != null) {
+      this.selectedCliente = this.data?.cliente;
+      this.selectedPersona = this.selectedCliente.persona;
+      this.tipoControl.setValue(this.selectedCliente?.tipo)
+      this.creditoControl.setValue(this.selectedCliente?.credito)
+      this.nombreControl.setValue(this.selectedPersona.nombre)
+      this.apodoControl.setValue(this.selectedPersona?.apodo)
+      this.documentoControl.setValue(this.selectedPersona?.documento)
+      this.telefonoControl.setValue(this.selectedPersona?.telefono)
+      this.emailControl.setValue(this.selectedPersona?.email)
+      this.nacimientoControl.setValue(new Date(this.selectedPersona?.nacimiento))
+      this.direccionControl.setValue(this.selectedPersona?.direccion)
+    }
+
+  }
+
+  onBuscarPersona() {
+    let tableData: TableData[] = [
+      {
+        id: 'id',
+        nombre: 'Id'
+      },
+      {
+        id: 'nombre',
+        nombre: 'Nombre'
+      },
+      {
+        id: 'documento',
+        nombre: 'Documento'
+      }
+    ]
+    let data: SearchListtDialogData = {
+      query: this.personaSearch,
+      tableData: tableData,
+      titulo: 'Buscar persona',
+      search: true,
+      texto: this.nombreControl.value,
+      inicialSearch: true
+    }
+    this.dialog.open(SearchListDialogComponent, {
+      data: data,
+      width: '60%',
+      height: '80%'
+    }).afterClosed().subscribe((res: Persona) => {
+      if ((res) != null) {
+        this.selectedPersona = res;
+        if (res?.isCliente == true) {
+          this.notificacionService.openWarn('Ya existe un cliente registrado con este documento')
+          this.clienteService.onGetByPersonaId(res.id).pipe(untilDestroyed(this)).subscribe((res2: Cliente) => {
+            this.selectedCliente = res2;
+            this.tipoControl.setValue(this.selectedCliente?.tipo)
+            this.creditoControl.setValue(this.selectedCliente?.credito)
+          })
         }
-      })
-    }
-
-    if (this.data.persona == null) {
-      this.dialogRef.close(null)
-    } else {
-      this.selectedPersona = this.data.persona;
-    }
-    if (this.data.cliente != null) {
-      Object.assign(this.selectedCliente, this.data.cliente)
-      this.cargarDatos()
-    } else {
-      this.isEditting = true;
-    }
+        this.nombreControl.setValue(this.selectedPersona.nombre)
+        this.apodoControl.setValue(this.selectedPersona?.apodo)
+        this.documentoControl.setValue(this.selectedPersona?.documento)
+        this.telefonoControl.setValue(this.selectedPersona?.telefono)
+        this.emailControl.setValue(this.selectedPersona?.email)
+        this.nacimientoControl.setValue(new Date(this.selectedPersona?.nacimiento))
+        this.direccionControl.setValue(this.selectedPersona?.direccion)
+      }
+    })
   }
 
-  cargarDatos() {
-    this.rucControl.setValue(this.selectedCliente?.persona?.documento)
-    this.nombreControl.setValue(this.selectedCliente?.persona?.nombre)
-    this.direccionControl.setValue(this.selectedCliente?.persona)
-    this.formGroup.disable()
+  onCrearPersona() {
+
   }
 
-  onEdit() {
-    this.isEditting = true;
-    this.formGroup.enable()
+  onFechaNacimienntoChange(e) {
+
   }
 
   onCancel() {
-    this.dialogRef.close(null)
+    this.dialogRef.close(this.selectedCliente)
   }
 
   onSave() {
-    if(this.selectedPersona == null && this.selectedCliente?.persona == null){
-      let personaInput = new PersonaInput;
-      personaInput.nombre = this.nombreControl.value;
-      personaInput.documento = this.rucControl.value;
-      personaInput.direccion = this.direccionControl.value;
-      this.personaService.onSavePersona(personaInput).pipe(untilDestroyed(this))
-    }
+    let newPersona = new Persona()
+    if (this.selectedPersona != null) Object.assign(newPersona, this.selectedPersona)
+    newPersona.nombre = this.nombreControl.value;
+    newPersona.apodo = this.apodoControl.value;
+    newPersona.documento = this.documentoControl.value;
+    newPersona.direccion = this.direccionControl.value;
+    newPersona.nacimiento = this.nacimientoControl.value;
+    newPersona.email = this.emailControl.value;
+    newPersona.telefono = this.telefonoControl.value;
+    this.personaService.onSavePersona(newPersona.toInput()).pipe(untilDestroyed(this)).subscribe((personaRes: Persona) => {
+      if (personaRes != null) {
+        this.selectedPersona = personaRes;
+        let newCliente = new Cliente;
+        if (this.selectedCliente != null) Object.assign(newCliente, this.selectedCliente)
+        newCliente.persona = this.selectedPersona;
+        newCliente.tipo = this.tipoControl.value;
+        newCliente.credito = this.creditoControl.value;
+        this.clienteService.onSaveCliente(newCliente.toInput()).pipe(untilDestroyed(this)).subscribe((clienteRes: Cliente) => {
+          if (clienteRes != null) {
+            this.selectedCliente = clienteRes;
+          }
+        })
+      }
+    })
   }
 
 }

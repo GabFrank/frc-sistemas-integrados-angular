@@ -123,7 +123,6 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
   }
 
   onResponsableSelect(e) {
-    console.log(e);
     if (e?.id != null) {
       this.selectedResponsable = e;
       this.responsableControl.setValue(

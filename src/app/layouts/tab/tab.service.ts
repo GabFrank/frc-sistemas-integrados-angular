@@ -1,14 +1,8 @@
-import { EventEmitter, Injectable } from '@angular/core';
+import { EventEmitter, Injectable, OnInit } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { EditTransferenciaComponent } from '../../modules/operaciones/transferencia/edit-transferencia/edit-transferencia.component';
-import { ProductoService } from '../../modules/productos/producto/producto.service';
 import { CargandoDialogService } from './../../shared/components/cargando-dialog/cargando-dialog.service';
 import { Tab } from './tab.model';
-import { ListTransferenciaComponent } from '../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
-import { ListCajaComponent } from '../../modules/financiero/pdv/caja/list-caja/list-caja.component';
-import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
-import { ListVentaComponent } from '../../modules/operaciones/venta/list-venta/list-venta.component';
-import { PdvCaja } from '../../modules/financiero/pdv/caja/caja.model';
+import { LucroPorProductoComponent } from '../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -27,24 +21,21 @@ export class TabData {
 @Injectable({
   providedIn: 'root'
 })
-export class TabService {
+export class TabService implements OnInit {
 
   tabs: Tab[] = []
   currentIndex = -1;
   tabSub = new BehaviorSubject<Tab[]>(this.tabs);
   tabChangedEvent = new EventEmitter<any>();
 
-
   constructor(
-    private cargandoService: CargandoDialogService,
-    private productoService: ProductoService
+    private cargandoService: CargandoDialogService
   ) {
 
     this.tabs = [
-      new Tab(VentaTouchComponent, 'Venta', null, null),
+      // new Tab(VentaTouchComponent, 'Venta', null, null),
     ];
 
-    // this.addTab(new Tab(ListVentaComponent, 'Ventas de caja 50', new TabData(null, new PdvCaja(50, 4)), null))
     // this.addTab(new Tab(EditTransferenciaComponent, 'Transferencia 19', new TabData(19), null))
     this.tabSub.next(this.tabs);
 
@@ -52,6 +43,9 @@ export class TabService {
     //   console.log(res)
     //   this.addTab(new Tab(ProductoComponent, 'Nuevo Producto', { data: res }))
     // })
+  }
+  ngOnInit(): void {
+    // this.addTab(new Tab(LucroPorProductoComponent, 'Lucro por producto', null, null))
   }
 
 
@@ -74,12 +68,11 @@ export class TabService {
         }
       }
       if (this.tabs[index] != undefined) {
-        console.log(this.tabs[index]);
         this.tabs[index].active = true;
       }
       this.currentIndex = index;
       this.tabSub.next(this.tabs);
-      
+
     }
   }
 
@@ -149,11 +142,11 @@ export class TabService {
   reiniciarTab() {
     let auxTab = new Tab()
     Object.assign(auxTab, this.currentTab())
-    this.removeTab(this.currentIndex)  
-    this.addTab(auxTab)  
+    this.removeTab(this.currentIndex)
+    this.addTab(auxTab)
   }
 
-  removeCurrentTab(){
+  removeCurrentTab() {
     this.removeTab(this.currentIndex)
   }
 }

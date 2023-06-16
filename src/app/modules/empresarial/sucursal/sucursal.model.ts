@@ -7,7 +7,7 @@ export class Sucursal {
   localizacion: string;
   ciudad: Ciudad;
   deposito: boolean
-  depositoPredeterminado: Boolean
+  depositoPredeterminado: boolean
   creadoEn: Date;
   usuario: Usuario;
   codigoEstablecimientoFactura: string

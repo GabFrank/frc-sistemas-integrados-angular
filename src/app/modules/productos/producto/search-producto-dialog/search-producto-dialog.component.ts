@@ -17,7 +17,7 @@ export interface DialogData {
 }
 
 export interface ProductoExistenciaCosto {
-  
+
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -120,23 +120,22 @@ export class SearchProductoDialogComponent implements OnInit{
   setFocustEvent(){
     setTimeout(()=>{ // this will make the execution after the above boolean has changed
       if(this.tableElement!=undefined){
-        this.tableElement.nativeElement.focus();  
-      } 
+        this.tableElement.nativeElement.focus();
+      }
     },100);
   }
 
   keydownEvent(e: KeyboardEvent){
     if(e.key == 'ArrowDown' || e.key == 'Enter' || e.key == 'Tab'){
       if(this.dataSource.length > 0){
-        console.log(this.dataSource[0], 0)
         this.highlight(this.dataSource[0], 0);
         this.setFocustEvent();
       }
     }
   }
 
-  isNumber(val): boolean { 
-    return typeof val === 'number'; 
+  isNumber(val): boolean {
+    return typeof val === 'number';
   }
 
 }

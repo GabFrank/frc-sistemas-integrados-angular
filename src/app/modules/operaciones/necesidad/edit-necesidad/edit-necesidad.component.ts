@@ -51,7 +51,7 @@ export class EditNecesidadComponent implements OnInit {
   selectedSucursal: Sucursal;
   today: Date;
   selectedProducto: Producto;
-  frioChecked: Boolean = false;
+  frioChecked: boolean = false;
   sucursalId = 1;
   productosList: NecesidadProducto[];
   displayedColumnsProducto = ['select', 'id', 'nombreProducto', 'cantidad', 'frio'];
@@ -188,7 +188,7 @@ export class EditNecesidadComponent implements OnInit {
 
   onCantidadConfirm(e){
     if(!this.formGroup.valid)
-    return   
+    return
     if(e == 'ArrowDown' || e == 'Enter'){
       this.dialogService.confirm('Desea adicionar este producto?', `DESCRIPCION: ${this.selectedProducto.descripcion}`, `CANTIDAD: ${this.formGroup.get('cantidadProducto').value}`).pipe(untilDestroyed(this)).subscribe((result)=>{
         if(result){
@@ -197,10 +197,10 @@ export class EditNecesidadComponent implements OnInit {
           necesidadProducto.producto = this.selectedProducto;
           necesidadProducto.nombreProducto = this.selectedProducto.descripcion;
           necesidadProducto.cantidad = this.formGroup.get('cantidadProducto').value;
-          necesidadProducto.frio = this.formGroup.get('frio').value;          
+          necesidadProducto.frio = this.formGroup.get('frio').value;
           this.productosList[this.productosList.length] = necesidadProducto;
           this.resetForm();
-          this.codigoProductoEL.nativeElement.focus(); 
+          this.codigoProductoEL.nativeElement.focus();
           this._matTables['_results'][0].renderRows();
         }
       });
@@ -262,7 +262,7 @@ export class EditNecesidadComponent implements OnInit {
   masterToggle() {
     this.isAllSelected() ?
         this.selection.clear() :
-        this.productosList.forEach(row => this.selection.select(row));        
+        this.productosList.forEach(row => this.selection.select(row));
   }
 
   /** The label for the checkbox on the passed row */

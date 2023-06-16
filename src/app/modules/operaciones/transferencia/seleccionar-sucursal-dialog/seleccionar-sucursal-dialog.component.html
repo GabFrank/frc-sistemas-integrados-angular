@@ -1,9 +1,14 @@
-<div fxLayout="column" style="width: 100%; height: 100%">
-  <div fxFlex="10" style="width: 100%; text-align: center; font-size: 1.5em">
+<div
+  fxLayout="column"
+  style="width: 100%; height: 100%; padding: 10px"
+  fxLayoutGap="10px"
+>
+  <br />
+  <div style="width: 100%; text-align: center; font-size: 1.5em">
     Seleccionar origen y destino
   </div>
   <div
-    fxFlex="70"
+    fxFlex="80"
     fxLayout="row"
     style="width: 100%; height: 100%"
     fxLayoutGap="10px"
@@ -14,9 +19,8 @@
       style="width: 100%"
       fxLayoutAlign="start center"
     >
-      <div fxFlex="10" style="width: 100%; text-align: center">
-        Sucursal de origen:
-      </div>
+      <br />
+      <div style="width: 100%; text-align: center">Sucursal de origen:</div>
       <div fxFlex="10%" style="width: 100%">
         <mat-form-field style="width: 100%">
           <mat-label>Buscar</mat-label>
@@ -46,9 +50,8 @@
       style="width: 100%"
       fxLayoutAlign="start center"
     >
-      <div fxFlex="10" style="width: 100%; text-align: center">
-        Sucursal de destino:
-      </div>
+      <br />
+      <div style="width: 100%; text-align: center">Sucursal de destino:</div>
       <div fxFlex="10%" style="width: 100%">
         <mat-form-field style="width: 100%">
           <mat-label>Buscar</mat-label>
@@ -66,37 +69,36 @@
             *ngFor="let sucursal of filteredDestinoSucursalList"
             (click)="onDestinoChange(sucursal)"
           >
-          {{ sucursal?.id }} - {{ sucursal?.nombre | uppercase }}
+            {{ sucursal?.id }} - {{ sucursal?.nombre | uppercase }}
           </mat-list-option>
         </mat-selection-list>
       </div>
     </mat-card>
   </div>
   <div
-    fxFlex="10%"
+    fxFlex="10"
     fxLayout="row"
-    style="font-size: 1.5em"
+    style="font-size: large; height: 100%"
     fxLayoutAlign="space-around center"
   >
     <div
       fxFlex="30"
       fxLayout="row"
       fxLayoutAlign="center center"
-      style="text-align: center"
+      style="text-align: center; height: 100%"
     >
       {{ selectedSucursalOrigen?.id }} -
       {{ selectedSucursalOrigen?.nombre | uppercase }}
     </div>
-    <div fxFlex="30%" style="width: 100%">
-      <mat-icon
-        [hidden]="
-          selectedSucursalOrigen == null && selectedSucursalDestino == null
-        "
-        [@slideInOut]="iconState"
-        style="font-size: 2em; width: 100%"
-        >local_shipping</mat-icon
-      >
-    </div>
+    <mat-icon
+      fxFlex
+      [hidden]="
+        selectedSucursalOrigen == null && selectedSucursalDestino == null
+      "
+      [@slideInOut]="iconState"
+      style="font-size: x-large; width: 100%"
+      >local_shipping</mat-icon
+    >
     <div
       fxFlex="30"
       fxLayout="row"
@@ -110,18 +112,18 @@
   <div
     fxFlex="10"
     fxLayout="row"
-    style="width: 100%; text-align: center"
+    style="width: 100%; text-align: center; height: 100%"
     fxLayoutGap="10px"
     fxLayoutAlign="center center"
   >
-    <div fxFlex="20">
+    <div fxFlex="20" style="height: 100%;">
       <app-boton
         color="primary"
         nombre="Cancelar"
         (clickEvent)="onCancelar()"
       ></app-boton>
     </div>
-    <div fxFlex="20">
+    <div fxFlex="20" style="height: 100%;">
       <app-boton
         color="accent"
         nombre="Confirmar"

@@ -40,7 +40,7 @@ export class PersonaService {
   }
 
   onSavePersona(input: PersonaInput): Observable<any> {
-    return this.genericService.onSave(this.savePersonna, input)
+    return this.genericService.onSave(this.savePersonna, input, null, null, true)
   }
 
   onGetPersona(id): Observable<Persona> {

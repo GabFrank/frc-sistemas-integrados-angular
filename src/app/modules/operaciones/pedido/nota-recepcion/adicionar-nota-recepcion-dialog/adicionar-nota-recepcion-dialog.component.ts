@@ -264,7 +264,6 @@ export class AdicionarNotaRecepcionDialogComponent implements OnInit {
       this.compraService
         .onSaveCompraItem(compraItem.toInput()).pipe(untilDestroyed(this))
         .subscribe((res) => {
-          console.log(res);
           this.cargandoDialogo.closeDialog();
           if (res != null) {
             compraItem.id = res.id;
@@ -315,5 +314,5 @@ export class AdicionarNotaRecepcionDialogComponent implements OnInit {
 
   onEditar() {}
 
-  
+
 }

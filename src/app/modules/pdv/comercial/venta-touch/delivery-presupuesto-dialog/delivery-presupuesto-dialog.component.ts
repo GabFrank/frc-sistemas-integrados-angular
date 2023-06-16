@@ -51,8 +51,6 @@ export class DeliveryPresupuestoDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.calcularVueltoEvent.pipe(untilDestroyed(this)).subscribe(res => {
-      console.log('calcular vuelto');
-
       this.calcularVuelto()
     })
   }
@@ -79,7 +77,6 @@ export class DeliveryPresupuestoDialogComponent implements OnInit {
     this.vueltoParaDs = 0;
     if (this.delivery?.venta?.cobro?.cobroDetalleList != null) {
       this.delivery?.venta?.cobro?.cobroDetalleList.forEach(c => {
-        console.log(c);
         if (c.pago == true) {
           switch (c.moneda.denominacion) {
             case 'GUARANI':

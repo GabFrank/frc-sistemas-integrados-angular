@@ -1,14 +1,11 @@
-import { app, BrowserWindow, dialog, Menu, MessageBoxReturnValue, OpenDialogOptions, OpenDialogReturnValue, screen } from "electron";
-import { autoUpdater } from "electron-updater";
+import { app, BrowserWindow, dialog, Menu, MessageBoxOptions, screen } from "electron";
+import { autoUpdater, UpdateDownloadedEvent } from "electron-updater";
 import * as fs from "fs";
 import * as path from "path";
 import * as url from "url";
-const { PosPrinter } = require("electron-pos-printer");
 
 const log = require('electron-log');
-const { readFileSync } = require('fs');
 const isDev = require('electron-is-dev');
-var home = app.getPath('home')
 
 autoUpdater.logger = log
 autoUpdater.setFeedURL({
@@ -19,90 +16,111 @@ autoUpdater.setFeedURL({
 });
 
 const { ipcMain } = require('electron');
-
+let instanceCount = 0;
 
 // Initialize remote module
 require("@electron/remote/main").initialize();
 
 let win: BrowserWindow = null;
 const args = process.argv.slice(1),
-  serve = args.some((val) => val === "--serve");
+  serve = args.some(val => val === '--serve');
 
 export async function createWindow(): Promise<BrowserWindow> {
-
-
   const electronScreen = screen;
-  const size = electronScreen.getPrimaryDisplay().workAreaSize;
+  const size = screen.getPrimaryDisplay().workAreaSize;
   let factor = screen.getPrimaryDisplay().scaleFactor;
-
 
   // Create the browser window.
   win = new BrowserWindow({
     icon: `file://${__dirname}/dist/assets/logo.ico`,
-    resizable: true,
-    maximizable: true,
+    x: 0,
+    y: 0,
+    width: size.width,
+    height: size.height,
     webPreferences: {
-      webSecurity: false,
-      zoomFactor: 1.0 / factor,
       nodeIntegration: true,
-      allowRunningInsecureContent: serve ? true : false,
-      contextIsolation: false, // false if you want to run e2e test with Spectron
-      // enableRemoteModule: true, // true if you want to run e2e test with Spectron or use remote module in renderer context (ie. Angular)
+      allowRunningInsecureContent: (serve),
+      contextIsolation: false,  // false if you want to run e2e test with Spectron
     },
   });
+
+  win.webContents.setZoomFactor(1)
+  win.webContents
+    .executeJavaScript('localStorage.getItem("zoomLevel");', true)
+    .then(result => {
+      if (result != null) {
+        win.webContents.setZoomLevel(+result)
+      }
+    });
 
   win.maximize();
   win.show();
 
-  const gotTheLock = app.requestSingleInstanceLock();
+  app.on("second-instance", (event, commandLine, workingDirectory) => {
+    // Increment the instance count
+    instanceCount++;
 
-  // if (!gotTheLock) {
-  //   app.quit(); 
-  // } else {
-  //   app.on("second-instance", (event, commandLine, workingDirectory) => {
-  //     // Someone tried to run a second instance, we should focus our window.
-  //     if (win) {
-  //       if (win.isMinimized()) win.restore();
-  //       win.focus();
-  //     }
-  //   });
+    // If more than 2 instances, quit the app
+    if (instanceCount >= 2) {
+      app.quit();
+      return;
+    }
 
-  //   // Create myWindow, load the rest of the app, etc...
-  //   app.on("ready", () => { });
-  // }
-
-
+    // Someone tried to run a second instance, we should focus our window.
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.focus();
+    }
+  });
 
   if (serve) {
     win.webContents.openDevTools();
-    require("electron-reload")(__dirname, {
-      electron: require(path.join(__dirname, "/../node_modules/electron")),
-    });
-    win.loadURL("http://localhost:4200");
+    const debug = require('electron-debug');
+    debug();
+
+    require('electron-reloader')(module);
+    win.loadURL('http://localhost:4200');
   } else {
     // Path when running electron executable
-    let pathIndex = "./index.html";
+    let pathIndex = './index.html';
 
-    if (fs.existsSync(path.join(__dirname, "../dist/index.html"))) {
+    if (fs.existsSync(path.join(__dirname, '../dist/index.html'))) {
       // Path when running electron in local folder
-      pathIndex = "../dist/index.html";
+      pathIndex = '../dist/index.html';
     }
 
-    win.loadURL(
-      url.format({
-        pathname: path.join(__dirname, pathIndex),
-        protocol: "file:",
-        slashes: true,
-      })
-    );
+    const url = new URL(path.join('file:', __dirname, pathIndex));
+    win.loadURL(url.href);
   }
 
   // Emitted when the window is closed.
-  win.on("closed", () => {
+  win.on('closed', () => {
     // Dereference the window object, usually you would store window
     // in an array if your app supports multi windows, this is the time
     // when you should delete the corresponding element.
     win = null;
+    app.quit();
+  });
+
+  win.webContents.on("did-fail-load", () => {
+    console.log("did-fail-load");
+    relaunchElectron()
+    // REDIRECT TO FIRST WEBPAGE AGAIN
+  });
+
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    require("electron").shell.openExternal(url);
+    return { action: "deny" };
+  });
+
+  win.webContents.on('did-finish-load', () => {
+    win.webContents
+      .executeJavaScript('localStorage.getItem("zoomLevel");', true)
+      .then((zoomLevel) => {
+        if (zoomLevel) {
+          win.webContents.setZoomLevel(parseFloat(zoomLevel));
+        }
+      });
   });
 
   return win;
@@ -116,117 +134,16 @@ ipcMain.on('reiniciar', (event: any, arg: any) => {
   relaunchElectron()
 })
 
-ipcMain.on('print', (event: any, data: any, options: any) => {
-  PosPrinter.print(data, options)
-    .then(console.log)
-    .catch((error) => {
-      console.error(error);
-    });
-})
+ipcMain.on('get-app-version', (event) => {
+  event.returnValue = app.getVersion();
+});
 
 try {
   // This method will be called when Electron has finished
   // initialization and is ready to create browser windows.
   // Some APIs can only be used after this event occurs.
   // Added 400 ms to fix the black background issue while using transparent window. More detais at https://github.com/electron/electron/issues/15947
-  app.on("ready", async () => {
-
-    if (!fs.existsSync(`${process.cwd()}/configuracion-local.json`)) {
-      const options = {
-        type: "info",
-        title: "Configuration Input",
-        message: "Please enter the configuration settings",
-        buttons: ["OK", "Cancel"],
-        defaultId: 0,
-        cancelId: 1,
-        checkboxLabel: "Es servidor?",
-        checkboxChecked: false,
-        ipDefault: {
-          label: "Ip local:",
-          value: "localhost",
-        },
-        puertoDefault: {
-          label: "Puerto local:",
-          value: "8082",
-        },
-        idSucursal: {
-          label: "Id de la sucursal:",
-          value: "",
-        },
-        centralIp: {
-          label: "Ip del servidor:",
-          value: "150.136.137.98",
-        },
-        centralPort: {
-          label: "Puerto del servidor:",
-          value: "8081",
-        },
-        ticket: {
-          label: "Impresora para ticket:",
-          value: "ticket",
-        },
-        pdvId: {
-          label: "Id del punto de venta:",
-          value: "null",
-        },
-      };
-
-      const result = dialog.showMessageBoxSync(options);
-
-      if (result === 0) {
-        const isServidor = options.checkboxChecked;
-        const config = {
-          ipDefault: isServidor ? options.centralIp : options.defaultId,
-          puertoDefault: isServidor ? options.centralPort : options.puertoDefault,
-          centralIp: options.centralIp,
-          centralPort: options.centralPort,
-          ipCentralDefault: options.centralIp,
-          puertoCentralDefault: options.centralPort,
-          printers: {
-            ticket: options.ticket,
-            factura: "factura",
-          },
-          local: "Caja 1",
-          precios: "EXPO",
-          modo: "NOT",
-        };
-        const configJson = JSON.stringify(config, null, 2);
-        fs.writeFileSync(`${__dirname}/configuracion-local.json`, configJson);
-        let config2;
-        if (isServidor) {
-          config2 = [
-            {
-              id: 0,
-              nombre: "Servidor",
-              ip: options.centralIp,
-              port: options.centralPort,
-            },
-            {
-              id: options.idSucursal,
-              nombre: "Local",
-              ip: options.ipDefault,
-              port: options.puertoDefault,
-            },
-          ];
-        } else {
-          config2 = [
-            {
-              id: 0,
-              nombre: "Servidor",
-              ip: options.centralIp,
-              port: options.centralPort,
-            },
-          ];
-        }
-        const configJson2 = JSON.stringify(config2, null, 2);
-        fs.writeFileSync(`${__dirname}/configuracion.json`, configJson2);
-      } else {
-        app.quit();
-      }
-    }
-    // Create the browser window and start the Angular app
-
-
+  app.on('ready', () => {
     if (!isDev) {
       autoUpdater.checkForUpdatesAndNotify();
       setInterval(() => {
@@ -243,12 +160,12 @@ try {
       log.info('No existen actualizaciones disponibles...');
     })
 
-    autoUpdater.on('update-downloaded', (event, releaseNotes, releaseName) => {
-      const dialogOpts = {
+    autoUpdater.on('update-downloaded', (event: UpdateDownloadedEvent) => {
+      const dialogOpts: MessageBoxOptions = {
         type: 'info',
         buttons: ['Reiniciar'],
         title: 'Actualización disponible',
-        message: process.platform === 'win32' ? releaseNotes : releaseName,
+        message: event.releaseName + ' - ' + event.version,
         detail: 'Una actualización fue encontrada y descargada. Reinicie el programa para instalarla.'
       }
 
@@ -372,44 +289,30 @@ try {
     setTimeout(createWindow, 400);
   });
 
+
+
   // Quit when all windows are closed.
-  app.on("window-all-closed", () => {
+  app.on('window-all-closed', () => {
     // On OS X it is common for applications and their menu bar
     // to stay active until the user quits explicitly with Cmd + Q
+    instanceCount--;
     if (process.platform !== "darwin") {
       app.quit();
     }
   });
 
-  app.on("activate", () => {
+  app.on('activate', () => {
     // On OS X it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
+    if (instanceCount >= 2) {
+      return;
+    }
+    instanceCount++;
     if (win === null) {
       createWindow();
     }
   });
 
-  win.webContents.on("did-fail-load", () => {
-    console.log("did-fail-load");
-    relaunchElectron()
-    // REDIRECT TO FIRST WEBPAGE AGAIN
-  });
-
-  win.webContents.setZoomFactor(1)
-  win.webContents
-    .executeJavaScript('localStorage.getItem("zoomLevel");', true)
-    .then(result => {
-      if (result != null) {
-        win.webContents.setZoomLevel(+result)
-      }
-    });
-
-  win.webContents.print({ silent: true });
-
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    require("electron").shell.openExternal(url);
-    return { action: "deny" };
-  });
 } catch (e) {
   // Catch Error
   // throw e;
@@ -439,5 +342,4 @@ export function relaunchElectron() {
       })
     );
   }
-
 }

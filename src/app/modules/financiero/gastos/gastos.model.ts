@@ -25,6 +25,7 @@ export class Gasto {
     vueltoRs: number;
     vueltoDs: number;
     sucursalVuelto: Sucursal;
+    sucursal: Sucursal
 
     toInput(): GastoInput {
         let input = new GastoInput;

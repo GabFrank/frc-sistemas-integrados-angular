@@ -108,8 +108,6 @@ export const inventarioPorUsuarioQuery = gql`
   query ($id: ID!) {
     data: inventarioPorUsuario(id: $id) {
       id
-      idOrigen
-      idCentral
       sucursal {
         id
         nombre

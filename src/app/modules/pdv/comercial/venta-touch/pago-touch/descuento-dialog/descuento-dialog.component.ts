@@ -9,6 +9,7 @@ export class DescuentoDialogData {
   saldo: number;
   cambioRs: number;
   cambioDs: number;
+  costo?: number;
 }
 
 @Component({
@@ -62,10 +63,22 @@ export class DescuentoDialogComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.onKeyUp(1, this.data.saldo)    
+    let porcentaje = 20;
+    if (this.data?.costo > 0) {
+      let margen = this.data.valorTotal - this.data.costo;
+      porcentaje = (margen * 100) / this.data.valorTotal;
+      porcentaje = porcentaje + (porcentaje * 0.05);
+    }
+    this.porcentajeDescuento.setValidators(Validators.max(porcentaje))
+    this.porcentajeDescuento.updateValueAndValidity();
+    if (this.data.saldo > 0) {
+      this.onKeyUp(1, this.data.saldo)
+    } else {
+      this.onKeyUp(1, 0)
+    }
     setTimeout(() => {
       this.porcentajeInput.nativeElement.select()
-    }, 0);
+    }, 500);
   }
 
   onKeyUp(i, valor) {

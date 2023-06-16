@@ -7,12 +7,8 @@
   [isMenu]="false"
 >
   <div filtros style="width: 100%; height: 100%">
-    <mat-card
-      fxLayout="column"
-      fxLayoutGap="10px"
-      style="background-color: rgb(32, 32, 32); height: 100%; width: 100%"
-    >
-      <div fxFlex="33" fxLayout="row">
+    <div fxLayout="column" fxLayoutGap="10px" style="height: 100%; width: 100%">
+      <div fxFlex fxLayout="row">
         <div fxFlex="25" fxLayout="column">
           <div class="title" fxFlex="50">Id</div>
           <div class="item" fxFlex="50">
@@ -38,7 +34,7 @@
           </div>
         </div>
       </div>
-      <div fxFlex="33" fxLayout="row">
+      <div fxFlex fxLayout="row">
         <div fxFlex="25" fxLayout="column">
           <div class="title" fxFlex="50">Suc. Origen</div>
           <div class="item" fxFlex="50">
@@ -68,7 +64,7 @@
       </div>
 
       <div
-        fxFlex="33"
+        fxFlex
         fxLayout="row"
         fxLayoutGap="10px"
         fxLayoutAlign="start center"
@@ -111,6 +107,27 @@
           <div class="raised-button" (click)="nuevaTransferencia()">
             Nueva Transferencia
           </div>
+          <mat-form-field class="shrinking-mat-form-field">
+            <input
+              #cantidadInput
+              type="text"
+              matInput
+              [formControl]="sizeControl"
+              style="text-align: center"
+              (keyup.enter)="onCantidadItensFocusOut()"
+              (click)="cantidadInput.select()"
+            />
+            <span matTextPrefix>Ver itens:</span>
+            <span matTextSuffix>
+              <mat-icon
+                class="raised-button"
+                (click)="onCantidadItensFocusOut()"
+                style="transform: translateY(-5px) !important"
+                matTooltip="Recargar itens"
+                >refresh</mat-icon
+              >
+            </span>
+          </mat-form-field>
         </div>
         <div fxFlex="15%">
           <button
@@ -216,15 +233,12 @@
         </div>
       </div>
       <mat-card
+        appearance="outlined"
         fxFlex
         fxLayout="column"
-        style="width: 100%"
+        style="width: 100%; height: 100%"
         fxLayoutGap="10px"
-        style="
-          background-color: rgb(66, 66, 66);
-          padding-top: 15px;
-          padding-bottom: 3px;
-        "
+        style="background-color: rgb(66, 66, 66); padding: 10px"
         *ngIf="isPreTransferenciaCreacion"
       >
         <div
@@ -244,16 +258,24 @@
               style="width: 50px; height: 50px; object-fit: contain"
             />
           </div> -->
-          <div fxFlex="30" fxLayout="column">
-            <div fxFlex>
-              DESCRIPCION: {{ selectedProducto?.descripcion | uppercase }}
+          <div fxFlex="30" fxLayout="column" fxLayoutAlign="center start">
+            <div style="width: 100%; text-align: center">Producto</div>
+            <div style="color: white; font-size: medium">
+              {{ selectedProducto?.id }}
+              {{ selectedProducto != null ? " - " : "" }}
+              {{ selectedProducto?.descripcion | uppercase }}
             </div>
-            <div fxFlex>
-              FACTURA : {{ selectedProducto?.descripcionFactura | uppercase }}
+            <div style="color: rgb(177, 177, 177); font-size: small">
+              {{ selectedProducto?.descripcionFactura | uppercase }}
             </div>
           </div>
           <div fxFlex="20%">
-            <mat-form-field style="width: 100%" appearance="outline">
+            <mat-form-field
+              style="width: 100%"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+              floatLabel="always"
+            >
               <mat-label>Código de barra</mat-label>
               <input
                 #codigoInput
@@ -267,8 +289,13 @@
             </mat-form-field>
           </div>
           <div fxFlex="10%">
-            <mat-form-field style="width: 100%" appearance="outline">
-              <mat-label>Presentación</mat-label>
+            <mat-form-field
+              style="width: 100%; text-align: center"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+              floatLabel="always"
+            >
+              <mat-label>Present.</mat-label>
               <mat-select
                 #matSelect
                 [formControl]="presentacionControl"
@@ -285,8 +312,13 @@
             </mat-form-field>
           </div>
           <div fxFlex="10%">
-            <mat-form-field style="width: 100%" appearance="outline">
-              <mat-label>Cantidad por presentación</mat-label>
+            <mat-form-field
+              style="width: 100%; text-align: center"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+              floatLabel="always"
+            >
+              <mat-label>Cant. por present.</mat-label>
               <input
                 #cantPresentacionInput
                 matInput
@@ -298,8 +330,13 @@
             </mat-form-field>
           </div>
           <div fxFlex="10%">
-            <mat-form-field style="width: 100%" appearance="outline">
-              <mat-label>Cantidad por unidad</mat-label>
+            <mat-form-field
+              style="width: 100%; text-align: center"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+              floatLabel="always"
+            >
+              <mat-label>Cant. por unid.</mat-label>
               <input
                 #cantUnidadInput
                 matInput
@@ -311,7 +348,12 @@
             </mat-form-field>
           </div>
           <div fxFlex="10">
-            <mat-form-field style="width: 100%" appearance="outline">
+            <mat-form-field
+              style="width: 100%"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+              floatLabel="always"
+            >
               <mat-label>Vencimiento</mat-label>
               <input
                 matInput
@@ -331,13 +373,19 @@
             </mat-form-field>
           </div>
           <div fxFlex style="width: 100%; text-align: center">
-            <mat-icon class="highlight-hover" (click)="onSave()" style="font-size: 2em;"
+            <mat-icon
+              class="highlight-hover"
+              (click)="onSave()"
+              style="font-size: 2em"
               >save</mat-icon
             >
           </div>
 
           <div fxFlex style="width: 100%; text-align: center">
-            <mat-icon class="highlight-hover-danger" (click)="onClear()"  style="font-size: 2em;"
+            <mat-icon
+              class="highlight-hover-danger"
+              (click)="onClear()"
+              style="font-size: 2em"
               >clear</mat-icon
             >
           </div>
@@ -354,7 +402,12 @@
           <div fxFlex="15"></div>
           <div fxFlex="15"></div>
           <div fxFlex="15">
-            <mat-form-field style="width: 100%" appearance="outline">
+            <mat-form-field
+              style="width: 100%"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+              floatLabel="always"
+            >
               <mat-label>Moneda</mat-label>
               <input
                 #monedaInput
@@ -382,8 +435,13 @@
             </mat-form-field>
           </div>
           <div fxFlex="10%">
-            <mat-form-field style="width: 100%" appearance="outline">
-              <mat-label>Costo por unidad</mat-label>
+            <mat-form-field
+              style="width: 100%"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+              floatLabel="always"
+            >
+              <mat-label>Costo por unid.</mat-label>
               <input
                 #precioUnidadInput
                 matInput
@@ -397,8 +455,13 @@
             </mat-form-field>
           </div>
           <div fxFlex="10%">
-            <mat-form-field style="width: 100%" appearance="outline">
-              <mat-label>Costo por presentación</mat-label>
+            <mat-form-field
+              style="width: 100%"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+              floatLabel="always"
+            >
+              <mat-label>Costo por present.</mat-label>
               <input
                 #precioPresentacionInput
                 matInput
@@ -413,7 +476,7 @@
           </div>
         </div>
       </mat-card>
-    </mat-card>
+    </div>
   </div>
 
   <div table style="width: 100%; height: 100%">
@@ -427,16 +490,20 @@
       <ng-container matColumnDef="producto">
         <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
         <td mat-cell *matCellDef="let item" style="width: 30%">
-          {{
+          <span copiarAClipboard>{{
+            item?.presentacionPreTransferencia?.producto?.id
+          }}</span>
+          -
+          <span copiarAClipboard>{{
             item?.presentacionPreTransferencia?.producto?.descripcion
               | uppercase
-          }}
+          }}</span>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="codigo">
         <th mat-header-cell *matHeaderCellDef>Cod. Barra</th>
-        <td mat-cell *matCellDef="let item">
+        <td mat-cell *matCellDef="let item" copiarAClipboard>
           {{ item?.presentacionPreTransferencia?.producto?.codigoPrincipal }}
         </td>
       </ng-container>
@@ -463,7 +530,14 @@
         <th mat-header-cell *matHeaderCellDef style="text-align: center">
           Precio venta
         </th>
-        <td mat-cell *matCellDef="let item" style="text-align: center">
+        <td
+          mat-cell
+          *matCellDef="let item"
+          style="text-align: center"
+          [copiarAClipboard]="
+            item?.presentacionPreTransferencia?.precioPrincipal?.precio
+          "
+        >
           {{
             item?.presentacionPreTransferencia?.precioPrincipal?.precio
               | number : "1.0-3"
@@ -580,6 +654,7 @@
       <ng-container matColumnDef="producto">
         <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
         <td mat-cell *matCellDef="let item" style="width: 30%">
+          {{ item?.presentacionPreTransferencia?.producto?.id }} -
           {{
             item?.presentacionPreTransferencia?.producto?.descripcion
               | uppercase
@@ -788,7 +863,11 @@
       <ng-container matColumnDef="producto">
         <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
         <td mat-cell *matCellDef="let item" style="width: 30%">
-          {{ item?.presentacionPreparacion?.producto?.descripcion | uppercase }}
+          {{ item?.presentacionPreTransferencia?.producto?.id }} -
+          {{
+            item?.presentacionPreTransferencia?.producto?.descripcion
+              | uppercase
+          }}
         </td>
       </ng-container>
 
@@ -975,7 +1054,11 @@
       <ng-container matColumnDef="producto">
         <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
         <td mat-cell *matCellDef="let item" style="width: 30%">
-          {{ item?.presentacionTransporte?.producto?.descripcion | uppercase }}
+          {{ item?.presentacionPreTransferencia?.producto?.id }} -
+          {{
+            item?.presentacionPreTransferencia?.producto?.descripcion
+              | uppercase
+          }}
         </td>
       </ng-container>
 

@@ -4,6 +4,7 @@
   fxLayoutGap="20px"
 >
   <mat-card
+    appearance="outlined"
     fxFlex="20%"
     fxLayout="column"
     fxLayoutAlign="start start"
@@ -12,7 +13,9 @@
   >
     <div fxFlex="5" fxLayout="row" style="width: 100%">
       <div fxFlex>ID: {{ selectedCaja?.id }}</div>
-      <div fxFlex>Estado: {{ selectedCaja?.estado | enumToString | titlecase }}</div>
+      <div fxFlex>
+        Estado: {{ selectedCaja?.estado | enumToString | titlecase }}
+      </div>
     </div>
     <div fxFlex="5">
       Cajero: {{ selectedCaja?.usuario?.persona?.nombre | uppercase }}
@@ -32,19 +35,19 @@
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Guaranies:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalAperGs | number: "1.0-0" }}
+              {{ selectedCaja?.balance?.totalAperGs | number : "1.0-0" }}
             </div>
           </div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Reales:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalAperRs | number: "1.2-2" }}
+              {{ selectedCaja?.balance?.totalAperRs | number : "1.2-2" }}
             </div>
           </div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Dolares:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalAperDs | number: "1.2-2" }}
+              {{ selectedCaja?.balance?.totalAperDs | number : "1.2-2" }}
             </div>
           </div>
         </div>
@@ -54,13 +57,13 @@
           <mat-panel-title> Total ventas </mat-panel-title>
         </mat-expansion-panel-header>
         <div fxLayout="column" style="width: 100%">
-          <div fxFlex style="width: 100%; text-align: center">Total General</div>
+          <div fxFlex style="width: 100%; text-align: center">
+            Total General
+          </div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Guaranies:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ 
-                selectedCaja?.balance?.totalGeneral
-                 | number: "1.0-0" }}
+              {{ selectedCaja?.balance?.totalGeneral | number : "1.0-0" }}
             </div>
           </div>
           <!-- <div fxFlex fxLayout="row">
@@ -79,25 +82,25 @@
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Guaranies:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ 
+              {{
                 selectedCaja?.balance?.totalGeneral -
-                selectedCaja?.balance?.totalTarjeta -
-                selectedCaja?.balance?.totalCredito
-                 | number: "1.0-0" }}
+                  selectedCaja?.balance?.totalTarjeta -
+                  selectedCaja?.balance?.totalCredito | number : "1.0-0"
+              }}
             </div>
           </div>
           <div fxFlex style="width: 100%; text-align: center">Tarjeta</div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Guaranies:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalTarjeta | number: "1.0-0" }}
+              {{ selectedCaja?.balance?.totalTarjeta | number : "1.0-0" }}
             </div>
           </div>
           <div fxFlex style="width: 100%; text-align: center">Crédito</div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Guaranies:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalCredito | number: "1.0-0" }}
+              {{ selectedCaja?.balance?.totalCredito | number : "1.0-0" }}
             </div>
           </div>
           <div fxFlex style="padding-top: 5px; padding-bottom: 5px">
@@ -133,19 +136,19 @@
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Guaranies:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.diferenciaGs | number: "1.0-0" }}
+              {{ selectedCaja?.balance?.diferenciaGs | number : "1.0-0" }}
             </div>
           </div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Reales:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.diferenciaRs | number: "1.2-2" }}
+              {{ selectedCaja?.balance?.diferenciaRs | number : "1.2-2" }}
             </div>
           </div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Dolares:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.diferenciaDs | number: "1.2-2" }}
+              {{ selectedCaja?.balance?.diferenciaDs | number : "1.2-2" }}
             </div>
           </div>
         </div>
@@ -164,19 +167,19 @@
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Guaranies:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalCierreGs | number: "1.0-0" }}
+              {{ selectedCaja?.balance?.totalCierreGs | number : "1.0-0" }}
             </div>
           </div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Reales:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalCierreRs | number: "1.2-2" }}
+              {{ selectedCaja?.balance?.totalCierreRs | number : "1.2-2" }}
             </div>
           </div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Dolares:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalCierreDs | number: "1.2-2" }}
+              {{ selectedCaja?.balance?.totalCierreDs | number : "1.2-2" }}
             </div>
           </div>
         </div>
@@ -189,19 +192,19 @@
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Descuento:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalDescuento | number: "1.0-0" }}
+              {{ selectedCaja?.balance?.totalDescuento | number : "1.0-0" }}
             </div>
           </div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Aumento:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalAumento | number: "1.0-0" }}
+              {{ selectedCaja?.balance?.totalAumento | number : "1.0-0" }}
             </div>
           </div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Canceladas:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalCanceladas | number: "1.0-0" }}
+              {{ selectedCaja?.balance?.totalCanceladas | number : "1.0-0" }}
             </div>
           </div>
         </div>
@@ -240,25 +243,38 @@
 
       <mat-expansion-panel>
         <mat-expansion-panel-header>
-          <mat-panel-title> Retiros </mat-panel-title>
+          <mat-panel-title>
+            <div>
+              <span>Retiros</span>
+              <button
+                mat-icon-button
+                matTooltip="Ir a retiros"
+                (click)="onGoToRetiros()"
+              >
+                <mat-icon style="color: rgb(0, 128, 255); font-size: 0.9em"
+                  >launch</mat-icon
+                >
+              </button>
+            </div>
+          </mat-panel-title>
         </mat-expansion-panel-header>
         <div fxLayout="column" style="width: 100%">
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Guaranies:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalRetiroGs | number: "1.0-0" }}
+              {{ selectedCaja?.balance?.totalRetiroGs | number : "1.0-0" }}
             </div>
           </div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Reales:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalRetiroRs | number: "1.2-2" }}
+              {{ selectedCaja?.balance?.totalRetiroRs | number : "1.2-2" }}
             </div>
           </div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Dolares:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalRetiroDs | number: "1.2-2" }}
+              {{ selectedCaja?.balance?.totalRetiroDs | number : "1.2-2" }}
             </div>
           </div>
         </div>
@@ -271,19 +287,19 @@
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Guaranies:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalGastoGs | number: "1.0-0" }}
+              {{ selectedCaja?.balance?.totalGastoGs | number : "1.0-0" }}
             </div>
           </div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Reales:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalGastoRs | number: "1.2-2" }}
+              {{ selectedCaja?.balance?.totalGastoRs | number : "1.2-2" }}
             </div>
           </div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Dolares:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalGastoDs | number: "1.2-2" }}
+              {{ selectedCaja?.balance?.totalGastoDs | number : "1.2-2" }}
             </div>
           </div>
         </div>
@@ -391,10 +407,10 @@
             <td
               mat-cell
               *matCellDef="let venta"
-              style="text-align: center; width: 20%;"
-              [class.is-delivery]="venta?.delivery!=null"
+              style="text-align: center; width: 20%"
+              [class.is-delivery]="venta?.delivery != null"
             >
-              {{ venta?.delivery == null ? 'Local' : 'Delivery' }}
+              {{ venta?.delivery == null ? "Local" : "Delivery" }}
             </td>
           </ng-container>
 
@@ -428,8 +444,9 @@
               mat-cell
               *matCellDef="let venta"
               style="text-align: center; width: 20%"
+              [ngClass]="{'cancelada': venta?.estado == 'CANCELADA'}"
             >
-              {{ venta?.estado | enumToString | titlecase}}
+              {{ venta?.estado | enumToString | titlecase }}
             </td>
           </ng-container>
 
@@ -446,7 +463,10 @@
               *matCellDef="let venta"
               style="text-align: center; width: 20%"
             >
-              {{ venta?.totalGs + venta?.delivery?.precio?.valor | number: "1.0-0" }}
+              {{
+                venta?.totalGs + venta?.delivery?.precio?.valor
+                  | number : "1.0-0"
+              }}
             </td>
           </ng-container>
 
@@ -555,15 +575,15 @@
                           }}({{ ventaItem?.presentacion?.cantidad }})
                         </div>
                         <div fxFlex="10%">
-                          {{ ventaItem?.cantidad | number: "1.0-2" }}
+                          {{ ventaItem?.cantidad | number : "1.0-2" }}
                         </div>
                         <div fxFlex="20%">
-                          {{ ventaItem?.precio | number: "1.0-0" }}
+                          {{ ventaItem?.precio | number : "1.0-0" }}
                         </div>
                         <div fxFlex="20%">
                           {{
                             ventaItem?.cantidad * ventaItem?.precio
-                              | number: "1.0-0"
+                              | number : "1.0-0"
                           }}
                         </div>
                       </div>
@@ -572,28 +592,20 @@
                       </div>
                     </div>
                     <div
-                      *ngIf="venta?.delivery!=null"
+                      *ngIf="venta?.delivery != null"
                       fxLayout="column"
                       fxFlex
                       style="width: 100%; padding-bottom: 5px; padding-top: 5px"
                     >
                       <div fxFlex fxLayout="row">
                         <div fxFlex="5%"></div>
-                        <div fxFlex="35%">
-                          Delivery
-                        </div>
-                        <div fxFlex="10%">
-                          
-                        </div>
-                        <div fxFlex="10%">
-                          1
-                        </div>
-                        <div fxFlex="20%">
-                          
-                        </div>
+                        <div fxFlex="35%">Delivery</div>
+                        <div fxFlex="10%"></div>
+                        <div fxFlex="10%">1</div>
+                        <div fxFlex="20%"></div>
                         <div fxFlex="20%">
                           {{
-                            venta?.delivery?.precio?.valor | number: "1.0-0" 
+                            venta?.delivery?.precio?.valor | number : "1.0-0"
                           }}
                         </div>
                       </div>
@@ -605,7 +617,10 @@
                       <div fxFlex="70%"></div>
                       <div fxFlex="10%">Total:</div>
                       <div fxFlex="20%">
-                        {{ venta?.totalGs + venta?.delivery?.precio?.valor | number: "1.0-0" }}
+                        {{
+                          venta?.totalGs + venta?.delivery?.precio?.valor
+                            | number : "1.0-0"
+                        }}
                       </div>
                     </div>
                     <br />
@@ -665,12 +680,12 @@
                           {{ cobroDetalle?.moneda?.denominacion | uppercase }}
                         </div>
                         <div fxFlex="20%">
-                          {{ cobroDetalle?.valor | number: "1.0-2" }}
+                          {{ cobroDetalle?.valor | number : "1.0-2" }}
                         </div>
                         <div fxFlex="20%">
                           {{
                             cobroDetalle?.valor * cobroDetalle?.cambio
-                              | number: "1.0-2"
+                              | number : "1.0-2"
                           }}
                         </div>
                       </div>
@@ -682,34 +697,34 @@
                     <div fxFlex fxLayout="row">
                       <div fxFlex="15%">Total recibido Gs:</div>
                       <div fxFlex="15%">
-                        {{ totalRecibidoGs | number: "1.0-0" }}
+                        {{ totalRecibidoGs | number : "1.0-0" }}
                       </div>
                       <div fxFlex="40%"></div>
                       <div fxFlex="15%">Total recibido:</div>
                       <div fxFlex="15%">
-                        {{ totalRecibido | number: "1.0-0" }}
+                        {{ totalRecibido | number : "1.0-0" }}
                       </div>
                     </div>
                     <div fxFlex fxLayout="row">
                       <div fxFlex="15%">Total recibido Rs:</div>
                       <div fxFlex="15%">
-                        {{ totalRecibidoRs | number: "1.2-2" }}
+                        {{ totalRecibidoRs | number : "1.2-2" }}
                       </div>
                       <div fxFlex="40%"></div>
                       <div fxFlex="15%">Total descuento:</div>
                       <div fxFlex="15%">
-                        {{ totalDescuento | number: "1.0-0" }}
+                        {{ totalDescuento | number : "1.0-0" }}
                       </div>
                     </div>
                     <div fxFlex fxLayout="row">
                       <div fxFlex="15%">Total recibido Ds:</div>
                       <div fxFlex="15%">
-                        {{ totalRecibidoDs | number: "1.2-2" }}
+                        {{ totalRecibidoDs | number : "1.2-2" }}
                       </div>
                       <div fxFlex="40%"></div>
                       <div fxFlex="15%">Total aumento:</div>
                       <div fxFlex="15%">
-                        {{ totalAumento | number: "1.0-0" }}
+                        {{ totalAumento | number : "1.0-0" }}
                       </div>
                     </div>
                     <div fxFlex="1">
@@ -719,7 +734,7 @@
                       <div fxFlex="70%"></div>
                       <div fxFlex="15%">Total final:</div>
                       <div fxFlex="15%">
-                        {{ totalFinal | number: "1.0-0" }}
+                        {{ totalFinal | number : "1.0-0" }}
                       </div>
                     </div>
                   </div>

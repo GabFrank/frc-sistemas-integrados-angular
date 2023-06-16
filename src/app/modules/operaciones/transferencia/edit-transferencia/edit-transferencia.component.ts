@@ -110,6 +110,8 @@ export class EditTransferenciaComponent implements OnInit {
 
   selectedResponsable;
 
+  sizeControl = new FormControl(this.size, [Validators.required, Validators.min(1)]);
+
   codigoControl = new FormControl(null, Validators.required);
   presentacionControl = new FormControl(null, Validators.required);
   cantidadPresentacionControl = new FormControl(1, [Validators.min(0), Validators.pattern('\\d+([.]\\d+)?')]);
@@ -262,10 +264,10 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   getTransferenciaItemList() {
-    this.transferenciaService.onGetTransferenciaItensPorTransferenciaId(this.selectedTransferencia.id, this.page, this.size).pipe(untilDestroyed(this))
+    this.transferenciaService.onGetTransferenciaItensPorTransferenciaId(this.selectedTransferencia.id, this.page, this.sizeControl.value).pipe(untilDestroyed(this))
       .subscribe(res => {
         if (res != null) {
-          if (res.length < this.size) {
+          if (res.length < this.sizeControl.value) {
             this.isLastPage = true;
           }
           if (this.dataSource.data.length == 0) {
@@ -376,9 +378,9 @@ export class EditTransferenciaComponent implements OnInit {
       let codigo = response.presentacion?.codigoPrincipal?.codigo;
       if (codigo == null) codigo = response.producto.codigoPrincipal;
       this.codigoControl.setValue(codigo)
-      let foundItem = this.dataSource.data?.find(t => t.presentacionPreTransferencia.id == this.presentacionControl.value?.id)
+      let foundItem = this.dataSource.data?.find(t => t.presentacionPreTransferencia?.producto?.id == this.presentacionControl.value?.producto?.id)
       if (foundItem != null) {
-        this.dialogoService.confirm("Ya existe un item con la misma presentación", "Desea editar el item?").subscribe(dialogRes => {
+        this.dialogoService.confirm("Ya existe un producto cargado en la lista", "Desea editar el item?").subscribe(dialogRes => {
           if (dialogRes) {
             this.onEditItem(foundItem)
           }
@@ -442,7 +444,6 @@ export class EditTransferenciaComponent implements OnInit {
     this.transferenciaService.onSaveTransferenciaItem(auxItem.toInput(), precioCosto)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
-        console.log(res);
         this.cargandoService.closeDialog()
         if (res != null) {
           if (!isNew) {
@@ -452,10 +453,10 @@ export class EditTransferenciaComponent implements OnInit {
             this.page = 0;
             this.dataSource.data = updateDataSourceInsertFirst(this.dataSource.data, res);
             let lenght = this.dataSource.data.length;
-            if (lenght > this.size) {
-              let diff = lenght - this.size;
+            if (lenght > this.sizeControl.value) {
+              let diff = lenght - this.sizeControl.value;
               let aux = this.dataSource.data;
-              aux.splice(4, diff)
+              aux.splice(this.sizeControl.value)
               this.dataSource.data = aux;
             }
           }
@@ -517,7 +518,6 @@ export class EditTransferenciaComponent implements OnInit {
 
   onSelectRow(row) {
     this.selection.toggle(row);
-    console.log(row)
   }
 
   onEditClick(row) {
@@ -633,7 +633,6 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onAvanzarEtapa(etapa) {
-    console.log(etapa)
     this.transferenciaService.onAvanzarEtapa(this.selectedTransferencia, etapa)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
@@ -678,7 +677,7 @@ export class EditTransferenciaComponent implements OnInit {
       }
     }).afterClosed().subscribe(res => {
       this.isDialogOpen = false;
-      if(res == 'imprimir'){
+      if (res == 'imprimir') {
         this.transferenciaService.onImprimirTransferencia(this.selectedTransferencia.id, true)
       }
     })
@@ -880,11 +879,15 @@ export class EditTransferenciaComponent implements OnInit {
     this.vencimientoInput.nativeElement.select()
   }
 
-  onSave(){
-    if(this.selectedTransferencia.sucursalOrigen.nombre.includes('COMPRA')){
+  onSave() {
+    if (this.selectedTransferencia.sucursalOrigen.nombre.includes('COMPRA')) {
       this.onPrecioPresentacionEnter()
     } else {
       this.onVencimientoEnter()
     }
+  }
+
+  onCantidadItensFocusOut() {
+    this.onRefresh()
   }
 }

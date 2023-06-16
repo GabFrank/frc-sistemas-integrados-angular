@@ -25,6 +25,7 @@ import { VentaEstado } from "../enums/venta-estado.enums";
 import { FormaPago } from "../../../financiero/forma-pago/forma-pago.model";
 import { FormaPagoService } from "../../../financiero/forma-pago/forma-pago.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
+import { ListRetiroComponent } from "../../../financiero/retiro/list-retiro/list-retiro.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -83,12 +84,12 @@ export class ListVentaComponent implements OnInit {
     private tabService: TabService
   ) { }
 
-  ngOnInit(): void {    
-    if (this.data?.tabData?.data != null) {      
-      this.selectedCaja = this.data.tabData.data; 
+  ngOnInit(): void {
+    if (this.data?.tabData?.data != null) {
+      this.selectedCaja = this.data.tabData.data;
       this.cajaService.onGetById(this.selectedCaja.id, this.selectedCaja.sucursalId).subscribe(res => {
         if(res!=null) this.selectedCaja = res;
-      })     
+      })
       this.onFiltrar()
     } else {
       this.tabService.removeTab(this.tabService.currentIndex)
@@ -106,8 +107,6 @@ export class ListVentaComponent implements OnInit {
 
     this.form.valueChanges.subscribe(res => {
       this.filterChanged = true;
-      console.log('hola');
-      
     })
   }
 
@@ -164,8 +163,6 @@ export class ListVentaComponent implements OnInit {
   }
 
   getTotales(venta: Venta) {
-    console.log(venta.cobro.cobroDetalleList);
-
     this.totalRecibidoGs = 0;
     this.totalRecibidoRs = 0;
     this.totalRecibidoDs = 0;
@@ -180,10 +177,10 @@ export class ListVentaComponent implements OnInit {
           this.totalRecibidoGs += res.valor;
           this.totalRecibido += res.valor;
           this.totalFinal += res.valor;
-        } else if (res.aumento) { 
+        } else if (res.aumento) {
           this.totalAumento += res.valor;
           this.totalFinal += res.valor;
-        } 
+        }
         else if (res.descuento) this.totalDescuento += res.valor
 
       } else if (res.moneda.denominacion == 'REAL') {
@@ -203,8 +200,6 @@ export class ListVentaComponent implements OnInit {
   }
 
   getCobroTotal(lista: CobroDetalle[], moneda: string): number {
-    console.log('cargando');
-
     let total = 0;
     lista?.forEach((c) => {
       if (c.moneda.denominacion == moneda && (c.pago || c.vuelto) && !c.aumento)
@@ -262,6 +257,12 @@ export class ListVentaComponent implements OnInit {
     this.formaPagoControl.setValue(null)
     this.estadoControl.setValue(null)
     this.selectedFormaPago = null;
-    this.ventaDataSource.data = []
+    this.ventaDataSource.data = [];
+  }
+
+  onGoToRetiros(){
+    let tabData: TabData = new TabData();
+    tabData.data = {caja: this.selectedCaja, sucursal: this.selectedCaja.sucursal};
+    this.tabService.addTab(new Tab(ListRetiroComponent, 'Retiros de caja ' + this.selectedCaja.id, tabData, ListVentaComponent))
   }
 }

@@ -1,25 +1,13 @@
-import { Component, OnInit, Input } from "@angular/core";
-import { UsuarioInput } from "./usuario-input.model";
-import { FormGroup, FormControl, Validators } from "@angular/forms";
-import { Apollo } from "apollo-angular";
-import { TabService } from "../../../layouts/tab/tab.service";
-import { UsuarioService } from "./usuario.service";
+import { Component, Input, OnInit } from "@angular/core";
+import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
-import { Observable } from "rxjs";
-import {
-  startWith,
-  map,
-  debounceTime,
-  distinctUntilChanged,
-  filter,
-} from "rxjs/operators";
-import { PersonaService } from "../persona/persona.service";
-import { personasSearch } from "../persona/graphql/graphql-query";
-import {
-  analyzeAndValidateNgModules,
-  SelectorContext,
-} from "@angular/compiler";
 import { MatSelectionListChange } from "@angular/material/list";
+import { Apollo } from "apollo-angular";
+import { Observable } from "rxjs";
+import { TabService } from "../../../layouts/tab/tab.service";
+import { PersonaService } from "../persona/persona.service";
+import { UsuarioInput } from "./usuario-input.model";
+import { UsuarioService } from "./usuario.service";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 
@@ -56,12 +44,8 @@ export class UsuarioComponent implements OnInit {
   options: any[];
 
   constructor(
-    private apollo: Apollo,
-    private tabService: TabService,
-    private service: UsuarioService,
-    private personaService: PersonaService,
     public dialog: MatDialog
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.createForm();
@@ -93,8 +77,8 @@ export class UsuarioComponent implements OnInit {
   }
 
   onSelectionChange(e: MatSelectionListChange): void {
-    const selected = e.option.selected;
-    const value = e.option.value;
+    const selected = e.options[0].selected;
+    const value = e.options[0].value;
     if (selected) {
       this.selectedRoles.push(value);
     } else {
@@ -106,9 +90,8 @@ export class UsuarioComponent implements OnInit {
   }
 
   onAssignedSelectionChange(e: MatSelectionListChange): void {
-    const selected = e.option.selected;
-    const value = e.option.value;
-    console.log(e);
+    const selected = e.options[0].selected;
+    const value = e.options[0].value;
     if (selected) {
       this.selectedAssignedRoles.push(value);
     } else {
@@ -117,13 +100,11 @@ export class UsuarioComponent implements OnInit {
       });
       this.selectedAssignedRoles.splice(roleIndex, 1);
     }
-    console.log("seleccion", this.selectedAssignedRoles);
   }
 
   addRoles(): void {
     this.selectedRoles.forEach((role) => {
       const roleIndex = this.roles.findIndex((x) => x == role);
-      console.log(role, roleIndex, this.roles[roleIndex]);
       this.roles.splice(roleIndex, 1);
       this.assigedRoles.push(role);
     });
@@ -133,7 +114,6 @@ export class UsuarioComponent implements OnInit {
   removeRoles(): void {
     this.selectedAssignedRoles.forEach((role) => {
       const roleIndex = this.assigedRoles.findIndex((x) => x == role);
-      console.log(role, roleIndex, this.assigedRoles[roleIndex]);
       this.assigedRoles.splice(roleIndex, 1);
       this.roles.push(role);
     });

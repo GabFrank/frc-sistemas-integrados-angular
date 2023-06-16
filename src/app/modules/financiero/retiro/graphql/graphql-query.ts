@@ -1,8 +1,8 @@
 import gql from "graphql-tag";
 
 export const retirosQuery = gql`
-  query ($sucId: ID){
-    data: retiros (sucId: $sucId) {
+  query ($page:Int, $size:Int, $sucId:ID){
+    data: retiros (page: $page, size: $size, sucId: $sucId) {
       id
       responsable {
         id
@@ -130,3 +130,43 @@ export const deleteRetiroQuery = gql`
     deleteRetiro(id: $id, sucId: $sucId)
   }
 `;
+
+export const filterRetirosQuery = gql`
+  query ($id:ID, $cajaId:ID, $sucId:ID, $responsableId:ID, $cajeroId:ID, $page:Int, $size:Int) {
+    data: filterRetiros(id:$id, cajaId:$cajaId, sucId:$sucId, responsableId:$responsableId, cajeroId:$cajeroId, page:$page, size:$size) {
+      id
+      responsable {
+        id
+        persona {
+          nombre
+        }
+      }
+      estado
+      observacion
+      cajaSalida {
+        id
+        sucursalId
+      }
+      cajaEntrada {
+        id
+        sucursalId
+      }
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+        nickname
+      }
+      retiroGs
+      retiroRs
+      retiroDs
+      sucursal {
+        nombre
+      }
+    }
+  }
+`;
+
+

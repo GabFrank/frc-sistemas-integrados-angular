@@ -3,11 +3,13 @@
     <div fxLayout="column">
       <div fxFlex="15%" style="width: 100%; text-align: center">
         <h3>{{ titulo }}</h3>
+        <br />
       </div>
       <mat-card
+        appearance="outlined"
         fxLayout="row"
         fxFlex="85%"
-        style="width: 100%; background-color: rgb(32, 32, 32)"
+        style="width: 100%; background-color: rgb(32, 32, 32); padding: 10px"
       >
         <div [fxFlex]="!isMenu ? '100%' : '90%'">
           <ng-content select="[filtros]"></ng-content>
@@ -16,7 +18,7 @@
           *ngIf="isMenu"
           [fxFlex]="isMenu ? '10%' : '0%'"
           fxLayout="column"
-          fxLayoutAlign="start space-between"
+          fxLayoutAlign="space-between space-between"
           style="height: 100%"
           fxLayoutGap="5px"
         >
@@ -51,6 +53,16 @@
               style="width: 100%"
             >
               + Adicionar
+            </button>
+          </div>
+          <div fxFlex="33" *ngIf="isCustom">
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="onCustomFunc()"
+              style="width: 100%"
+            >
+              {{ customName }}
             </button>
           </div>
         </div>

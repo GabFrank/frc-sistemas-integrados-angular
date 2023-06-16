@@ -22,8 +22,7 @@ export class TransferenciaTimelineDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) private transferencia: Transferencia,
     private matDialogRef: MatDialogRef<TransferenciaTimelineDialogComponent>
   ) {
-    console.log(transferencia);
-    
+
   }
 
   ngOnInit(): void {
@@ -54,7 +53,7 @@ export class TransferenciaTimelineDialogComponent implements OnInit {
       }
     ]
 
-  this.finalizado = this.transferencia.etapa == EtapaTransferencia.RECEPCION_CONCLUIDA   
+  this.finalizado = this.transferencia.etapa == EtapaTransferencia.RECEPCION_CONCLUIDA
 
   }
 
