@@ -128,7 +128,6 @@ export class EntradaSalidaComponent implements OnInit {
       this.entradaInicioControl.value == null ||
       this.entradaInicioControl.value > new Date()
     ) {
-      console.log('reseteando por entrada null o mayor a actual')
       this.resetFilters();
     }
     if (
@@ -144,7 +143,6 @@ export class EntradaSalidaComponent implements OnInit {
       .subscribe((res) => {
         this.entradaDataSource.data = res["data"];
         this.aplicarFiltrosEntrada(this.entradaDataSource.data)
-        console.log(this.entradaDataSource.data);
       });
   }
 
@@ -168,17 +166,14 @@ export class EntradaSalidaComponent implements OnInit {
       .subscribe((res) => {
         this.salidaDataSource.data = res["data"];
         this.aplicarFiltrosSalida(this.salidaDataSource.data)
-        console.log(this.salidaDataSource.data);
       });
   }
 
   onEntradaRowClick(row: Entrada) {
-    console.log(row);
     this.expandedEntrada = row;
   }
 
   onSalidaRowClick(row: Salida) {
-    console.log(row);
     this.expandedSalida = row;
   }
 
@@ -209,7 +204,6 @@ export class EntradaSalidaComponent implements OnInit {
   }
 
   onEditEntrada(entrada: Entrada, index?) {
-    console.log(entrada);
     this.matDialog.open(EntradaDialogComponent, {
       data: {
         entrada,
@@ -242,8 +236,7 @@ export class EntradaSalidaComponent implements OnInit {
     ayer.setHours(0);
     ayer.setMinutes(0);
     ayer.setSeconds(0);
-  
-    console.log(hoy, ayer);
+
     this.entradaInicioControl.setValue(ayer);
     this.entradaFinControl.setValue(hoy);
     this.estadoControl.setValue(null);
@@ -263,9 +256,8 @@ export class EntradaSalidaComponent implements OnInit {
       })
       .afterClosed().pipe(untilDestroyed(this))
       .subscribe((res) => {
-        console.log(res);
         if (res != null) {
-          this.salidaDataSource.data = updateDataSource(this.salidaDataSource.data, res)  
+          this.salidaDataSource.data = updateDataSource(this.salidaDataSource.data, res)
         }
       });
   }
@@ -282,21 +274,20 @@ export class EntradaSalidaComponent implements OnInit {
       if(res!=null){
         let index = this.salidaDataSource.data.findIndex(s => s.id == res.id)
         if(index > -1){
-          this.salidaDataSource.data = updateDataSource(this.salidaDataSource.data, res, index)  
+          this.salidaDataSource.data = updateDataSource(this.salidaDataSource.data, res, index)
         }
       }
     })
   }
 
   deleteEntrada(entrada:Entrada, i){
-    console.log(i)
     this.dialogoService.confirm('Atención!!', 'Realmente desea eliminar esta entrada?').pipe(untilDestroyed(this)).subscribe(response => {
       if(response){
         this.entradaService.onDeleteEntrada(entrada.id).pipe(untilDestroyed(this)).subscribe(res => {
           if(res){
             let aux = this.entradaDataSource.data;
             aux.splice(i, 1);
-            this.entradaDataSource.data = aux;          
+            this.entradaDataSource.data = aux;
           }
         })
       }
@@ -304,7 +295,6 @@ export class EntradaSalidaComponent implements OnInit {
   }
 
   deleteSalida(salida:Salida, i){
-    console.log(i)
     this.dialogoService.confirm('Atención!!', 'Realmente desea eliminar esta salida?').pipe(untilDestroyed(this)).subscribe(response => {
       if(response){
         this.salidaService.onDeleteSalida(salida.id).pipe(untilDestroyed(this)).subscribe(res => {
@@ -320,7 +310,6 @@ export class EntradaSalidaComponent implements OnInit {
 
   onImprimirEntrada(id){
     this.entradaService.onImprimirEntrada(id).pipe(untilDestroyed(this)).subscribe(res => {
-      console.log(res)
     });
   }
 
@@ -365,7 +354,6 @@ export class EntradaSalidaComponent implements OnInit {
       entradaList = entradaList.filter(e => e.activo == this.estadoControl.value)
     }
     if(this.sucursalControl.value!=null){
-      console.log(this.sucursalControl.value)
       entradaList = entradaList.filter(e => e.sucursal != null && e.sucursal?.id == this.sucursalControl.value)
     }
     this.entradaDataSource.data = entradaList;
@@ -381,8 +369,6 @@ export class EntradaSalidaComponent implements OnInit {
       salidaList = salidaList.filter(e => e.activo == this.estadoControl.value)
     }
     if(this.sucursalControl.value!=null){
-      console.log(this.sucursalControl.value)
-      console.log(salidaList)
       salidaList = salidaList.filter(e => e.sucursal != null && e.sucursal?.id == this.sucursalControl.value)
     }
     this.salidaDataSource.data = salidaList;

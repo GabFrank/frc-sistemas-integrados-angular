@@ -24,9 +24,13 @@ input {
 }
 
 td {
-    padding: 0px !important
+  padding: 0px !important
 }
 
 .is-delivery {
   color: #f57c00 !important;
+}
+
+.cancelada {
+  background-color: #f44336;
 }

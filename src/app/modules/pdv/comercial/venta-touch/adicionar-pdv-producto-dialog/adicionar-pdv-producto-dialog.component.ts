@@ -25,11 +25,10 @@ export class AdicionarPdvProductoDialogComponent implements OnInit {
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: Data,
     public dialogRef: MatDialogRef<AdicionarPdvProductoDialogComponent>,
-  ) { 
+  ) {
     if(data?.pdvGrupo!=null){
-      console.log(data)
       this.cargarDatos(data.pdvGrupo)
-    } 
+    }
   }
 
   ngOnInit(): void {

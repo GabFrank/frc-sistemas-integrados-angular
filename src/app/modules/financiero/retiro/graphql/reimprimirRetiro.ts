@@ -10,6 +10,6 @@ export interface Response {
 @Injectable({
   providedIn: 'root',
 })
-export class ReimprimirRetiroGQL extends Query<Boolean> {
+export class ReimprimirRetiroGQL extends Query<boolean> {
   document = reimprimirRetiro;
 }

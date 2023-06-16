@@ -1,25 +1,24 @@
 <div style="height: 100%">
-  
   <app-header (toogleSideBarEvent)="tootleSideBar($event)"></app-header>
 
   <mat-drawer-container>
     <mat-drawer mode="side" [opened]="sideBarOpen">
       <app-side></app-side>
     </mat-drawer>
-    <mat-drawer-content>
+    <mat-drawer-content (mouseover)="onSideBarFocus()">
       <mat-tab-group
         class="main-tab-group mt-2"
         [selectedIndex]="selectedTab"
         (selectedTabChange)="tabChanged($event)"
-        style="height: 100%; width: 100%"
-        (mouseover)="onSideBarFocus()"
+        style="width: 100%"
+        mat-stretch-tabs="false"
       >
         <mat-tab
           class="mat-tab-class"
           *ngFor="let tab of tabs; let tabIndex = index"
           style="width: 100%"
         >
-          <ng-template mat-tab-label>
+          <ng-template mat-tab-label style="height: 2em !important;">
             <div
               fxLayout="row"
               fxLayoutAlign="start center"
@@ -28,7 +27,7 @@
               <div
                 fxFlex="70"
                 matTooltip="{{ tab.title }}"
-                style="font-size: 1em; text-align: center;"
+                style="font-size: 1em; text-align: center; color: white"
               >
                 {{ tab.title.substring(0, 25) }}
               </div>

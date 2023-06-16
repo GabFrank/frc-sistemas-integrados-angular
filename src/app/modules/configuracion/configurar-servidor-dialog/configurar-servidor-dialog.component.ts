@@ -17,7 +17,7 @@ import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
 import { SucursalService } from "../../empresarial/sucursal/sucursal.service";
 import { ConfiguracionService } from "../configuracion.service";
 
-class Data {}
+class Data { }
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -47,7 +47,7 @@ export class ConfigurarServidorDialogComponent implements OnInit {
     private dialogRef: MatDialogRef<ConfigurarServidorDialogComponent>,
     private matDialog: MatDialog,
     private configService: ConfiguracionService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.conexionGroup.addControl("verificado", this.verificadoControl);
@@ -111,10 +111,8 @@ export class ConfigurarServidorDialogComponent implements OnInit {
     let timer: NodeJS.Timeout;
     this.configService.onSolicitarSincronizacion().subscribe((res) => {
       if (res == true) {
-        console.log("sincronizacionn iniciada...");
         this.sincronizando = true;
         timer = setInterval(() => {
-          console.log("solicitando is configured");
           this.configService
             .isConfigured()
             .pipe(untilDestroyed(this))

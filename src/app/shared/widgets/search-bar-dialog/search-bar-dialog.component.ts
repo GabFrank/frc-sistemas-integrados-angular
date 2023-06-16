@@ -1,9 +1,9 @@
 import { SearchBarService, SearchData, SearchDataResult } from './search-bar.service';
 import { FormControl } from '@angular/forms';
-import { Component, OnInit } from '@angular/core';
-import { MatDialogRef } from '@angular/material/dialog';
+import { Component, Injector, OnInit } from '@angular/core';
 import { MainService } from '../../../main.service';
 import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
+import { MatDialogRef } from '@angular/material/dialog';
 
 @Component({
   selector: 'app-search-bar-dialog',
@@ -14,26 +14,27 @@ export class SearchBarDialogComponent implements OnInit {
 
   buscarControl = new FormControl('')
   searchDataList: SearchDataResult;
+  private mainService: MainService;
 
   constructor(
     private searchBarService: SearchBarService,
     private matDialogRef: MatDialogRef<SearchBarDialogComponent>,
-    private mainService: MainService,
+    private injector: Injector,
     private notificacionService: NotificacionSnackbarService
-  ) { }
+  ) {
+    setTimeout(() => this.mainService = injector.get(MainService));
+  }
 
   ngOnInit(): void {
   }
 
   async onBuscar() {
-    console.log('buscando')
     this.searchDataList = await this.searchBarService.onSearch(this.buscarControl.value)
   }
 
   onClick(item: SearchData) {
-    console.log(item);
-    console.log(this.mainService.usuarioActual.roles);
-    
+
+
     if (item?.role == null) {
       this.searchBarService.openTab(item)
       this.matDialogRef.close()

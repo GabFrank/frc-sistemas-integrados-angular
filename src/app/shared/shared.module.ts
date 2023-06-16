@@ -1,39 +1,44 @@
-import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NgModule } from '@angular/core';
+import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { RouterModule } from '@angular/router';
 import { MaterialModule } from '../commons/core/material.module';
-import { FlexLayoutModule } from '@angular/flex-layout';
 
-import { CardComponent } from './widgets/card/card.component';
-import { FileUploadComponent } from './widgets/file-upload/file-upload.component';
-import { HeaderComponent } from './components/header/header.component';
-import { SideComponent } from './components/side/side.component';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { NgxQRCodeModule } from '@techiediaries/ngx-qrcode';
+import { NgxCurrencyModule } from 'ngx-currency';
+import { NgxImageCompressService } from 'ngx-image-compress';
+import { ImageCropperModule } from 'ngx-image-cropper';
+import { NgxPanZoomModule } from 'ngx-panzoom';
+import { CapturarImagenComponent } from './capturar-imagen/capturar-imagen.component';
+import { BotonComponent } from './components/boton/boton.component';
+import { CargandoDialogComponent } from './components/cargando-dialog/cargando-dialog.component';
+import { DialogosComponent } from './components/dialogos/dialogos.component';
 import { FooterComponent } from './components/footer/footer.component';
 import { GenericListComponent } from './components/generic-list/generic-list.component';
-import { DialogosComponent } from './components/dialogos/dialogos.component';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { CargandoDialogComponent } from './components/cargando-dialog/cargando-dialog.component';
-import { TecladoNumericoComponent } from './components/teclado-numerico/teclado-numerico.component';
+import { HeaderComponent } from './components/header/header.component';
 import { Imagebase64Component } from './components/imagebase64/imagebase64.component';
-import { NgxCurrencyModule } from 'ngx-currency';
-import { QrCodeComponent } from './qr-code/qr-code.component';
-import { CapturarImagenComponent } from './capturar-imagen/capturar-imagen.component';
-import { ImageCropperModule } from 'ngx-image-cropper';
-import { NgxImageCompressService } from 'ngx-image-compress';
-import { CortarImagenDialogComponent } from './cortar-imagen-dialog/cortar-imagen-dialog.component';
-import { SelectIconDialogComponent } from './select-icon-dialog/select-icon-dialog.component';
 import { PanelLaterialInvisibleComponent } from './components/panel-laterial-invisible/panel-laterial-invisible.component';
-import { VizualizarImagenDialogComponent } from './images/vizualizar-imagen-dialog/vizualizar-imagen-dialog.component';
-import { ReportTestComponent } from './report-test/report-test.component';
-import { NgxPanZoomModule } from 'ngx-panzoom';
-import { InnerDialogComponent } from './inner-dialog/inner-dialog.component';
 import { SearchListDialogComponent } from './components/search-list-dialog/search-list-dialog.component';
-import { BotonComponent } from './components/boton/boton.component';
-import { SearchBarDialogComponent } from './widgets/search-bar-dialog/search-bar-dialog.component';
-import { NgxQRCodeModule } from '@techiediaries/ngx-qrcode';
-import { TimelineComponent } from './timeline/timeline.component';
+import { SideComponent } from './components/side/side.component';
+import { TecladoNumericoComponent } from './components/teclado-numerico/teclado-numerico.component';
+import { CortarImagenDialogComponent } from './cortar-imagen-dialog/cortar-imagen-dialog.component';
 import { DigitarContrasenaDialogComponent } from './digitar-contrasena-dialog/digitar-contrasena-dialog.component';
+import { VizualizarImagenDialogComponent } from './images/vizualizar-imagen-dialog/vizualizar-imagen-dialog.component';
+import { InnerDialogComponent } from './inner-dialog/inner-dialog.component';
+import { QrCodeComponent } from './qr-code/qr-code.component';
+import { ReportTestComponent } from './report-test/report-test.component';
+import { SelectIconDialogComponent } from './select-icon-dialog/select-icon-dialog.component';
+import { TimelineComponent } from './timeline/timeline.component';
+import { CardComponent } from './widgets/card/card.component';
+import { FileUploadComponent } from './widgets/file-upload/file-upload.component';
+import { SearchBarDialogComponent } from './widgets/search-bar-dialog/search-bar-dialog.component';
+import { IConfig, provideEnvironmentNgxMask } from 'ngx-mask';
+import { Ng2FittextModule } from 'ng2-fittext';
+import { DynamicFontSizeDirective } from './directives/dynamic-font-size.directive';
+import { CopiarAClipboardDirective } from './directives/copiar-a-clipboard.directive';
 
+export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
 @NgModule({
   declarations: [
@@ -59,8 +64,9 @@ import { DigitarContrasenaDialogComponent } from './digitar-contrasena-dialog/di
     BotonComponent,
     SearchBarDialogComponent,
     TimelineComponent,
-    DigitarContrasenaDialogComponent
-    ],
+    DigitarContrasenaDialogComponent,
+    CopiarAClipboardDirective
+  ],
   imports: [
     CommonModule,
     MaterialModule,
@@ -71,8 +77,9 @@ import { DigitarContrasenaDialogComponent } from './digitar-contrasena-dialog/di
     NgxCurrencyModule,
     ImageCropperModule,
     NgxPanZoomModule,
-    NgxQRCodeModule
-    ],
+    NgxQRCodeModule,
+    Ng2FittextModule
+  ],
   exports: [
     HeaderComponent,
     SideComponent,
@@ -86,9 +93,10 @@ import { DigitarContrasenaDialogComponent } from './digitar-contrasena-dialog/di
     NgxPanZoomModule,
     InnerDialogComponent,
     BotonComponent,
-    TimelineComponent, 
-    DigitarContrasenaDialogComponent
+    TimelineComponent,
+    DigitarContrasenaDialogComponent,
+    CopiarAClipboardDirective
   ],
-  providers: [NgxImageCompressService]
+  providers: [NgxImageCompressService, provideEnvironmentNgxMask(options)]
 })
 export class SharedModule { }

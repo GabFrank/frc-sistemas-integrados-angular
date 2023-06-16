@@ -60,7 +60,7 @@ export interface Item {
   index?;
   numero?;
   tipoPrecio?: TipoPrecio;
-  caja?: Boolean;
+  caja?: boolean;
   unidadPorCaja?: number;
 }
 
@@ -91,6 +91,7 @@ import { VentaService } from "../../../operaciones/venta/venta.service";
 import { DeliveryService } from "./delivery-dialog/delivery.service";
 import { ListDeliveryComponent, ListDeliveryData } from "./list-delivery/list-delivery.component";
 import { DescuentoDialogComponent, DescuentoDialogData } from "./pago-touch/descuento-dialog/descuento-dialog.component";
+import { FormControl } from "@angular/forms";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -131,11 +132,14 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   disableCobroRapido = false;
   buscadorFocusSub: Subject<void> = new Subject<void>();
   buscadorOpenSearch: Subject<void> = new Subject<void>();
+  clearBuscadorSub: Subject<void> = new Subject<void>();
   filteredPrecios: string[];
   modoPrecio: string;
   isDelivery = false;
   selectedDelivery: Delivery
   mostrarPrecios = false;
+  cantidadControl = new FormControl();
+  modoConsulta = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private dialogData: VentaTouchData,
@@ -288,25 +292,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       let response: AdicionarCajaResponse = res;
       if (res == "salir") {
         this.tabService.removeTab(this.tabService.currentIndex);
-        // } else if (response?.caja != null) {
-        //   this.cajaService?.selectedCaja = response?.caja;
-        //   if (response?.conteoApertura == null) {
-        //     this.dialogoService.confirm('Atención', 'Esta caja no posee conteo inicial. Desea realizar el conteo inicial?').subscribe(dialogRes => {
-        //       if(dialogRes){
-        //         this.openSelectCajaDialog()
-        //       } else {
-        //         this.tabService.removeTab(this.tabService.currentIndex)
-        //       }
-        //     })
-        //   }
-        //   if (response?.conteoCierre != null) {
-        //     this.cajaService?.selectedCaja = null;
-        //     this.openSelectCajaDialog();
-        //   }
-        //   this.isDialogOpen = false;
-        // } else {
-        //   this.openSelectCajaDialog();
-        // }
+      } else if(res == 'consulta') {
+        this.modoConsulta = true;
+        this.isDialogOpen = false;
       } else {
         if (this.cajaService.selectedCaja?.conteoApertura == null) {
           this.dialogoService.confirm('Atención', 'Esta caja no posee conteo inicial. Desea realizar el conteo inicial?').subscribe(dialogRes => {
@@ -379,6 +367,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         data: {
           productos,
           descripcion,
+          cantidad: this.cantidadControl.value
         },
       })
       .afterClosed().pipe(untilDestroyed(this))
@@ -395,20 +384,24 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           this.addItem(item);
         }
         this.dialogReference = undefined;
+        this.clearBuscadorSub.next()
         this.buscadorFocusSub.next()
+        this.clearBuscadorSub.next()
       });
   }
 
   calcularTotales() {
     this.totalGs = 0;
+    if(this.selectedItemList.length == 0) this.descuentoGs = 0;
     this.selectedItemList.forEach((item) => {
       this.totalGs += Math.round(+item.cantidad * +item?.precio);
+      this.descuentoGs += item.valorDescuento;
     });
   }
 
   addItem(item: VentaItem, index?) {
     item.precio = item?.precioVenta?.precio;
-    let cantidad = item.cantidad;
+    let cantidad:number = +item.cantidad;
     if (item.producto.balanza != true) {
       if (!isInt(cantidad)) {
         cantidad = 1;
@@ -712,6 +705,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onPagoClick() {
+    if(this.modoConsulta) return;
     this.isDialogOpen = true;
     this.mostrarPrecios = false
     if (this.selectedItemList?.length > 0) {
@@ -772,7 +766,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               })
             } else {
               this.onSaveVenta(venta, cobro, response.ticket == true, ventaCredito?.toInput(), ventaCreditoCuotaInputList).subscribe(ventaRes => {
-                console.log(ventaRes);
               })
             }
             this.dialogReference = undefined;
@@ -800,6 +793,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onTicketClick(ticket?: boolean) {
+    if(this.modoConsulta) return;
     this.disableCobroRapido = true;
     //guardar la compra, si la compra se guardo con exito, imprimir ticket y resetForm()
     let venta = new Venta();
@@ -850,9 +844,9 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onSaveVenta(venta, cobro, ticket, ventaCreditoInput?, ventaCreditoCuotaInputList?): Observable<Venta> {
-    this.cargandoService.openDialog();
+    if(this.modoConsulta) return;
     return new Observable(obs => {
-      this.ventaTouchServive.onSaveVenta(venta, cobro, ticket || ventaCreditoInput != null, ventaCreditoInput, ventaCreditoCuotaInputList).pipe(untilDestroyed(this)).subscribe((res) => {
+      this.ventaTouchServive.onSaveVenta(venta, cobro, ticket || ventaCreditoInput != null, ventaCreditoInput, ventaCreditoCuotaInputList, !this.filteredPrecios.includes('EXPO')).pipe(untilDestroyed(this)).subscribe((res) => {
         this.cargandoService.closeDialog();
         if (res.id != null) {
           this.notificacionSnackbar.notification$.next({
@@ -875,6 +869,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onDeliveryClick() {
+    if(this.modoConsulta) return;
     this.isDialogOpen = true;
     if (this.selectedDelivery == null) {
       this.selectedDelivery = new Delivery;
@@ -958,6 +953,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   openUtilitarios() {
+    if(this.modoConsulta) return;
     this.isDialogOpen = true;
     this.dialogReference = this.dialog
       .open(UtilitariosDialogComponent, {
@@ -983,6 +979,10 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         this.dialogReference = undefined;
         this.buscadorFocusSub.next()
       });
+  }
+
+  updateCantidad(cantidad: number){
+    this.cantidadControl.setValue(cantidad);
   }
 
   // @HostListener("document:keydown", ["$event"]) onKeydownHandler(

@@ -6,7 +6,8 @@ import { SelectBilletesResponseData } from '../seleccionar-billetes-touch/selecc
 
 export class SelectProductosData {
   descripcion: string;
-  productos: Producto[]
+  productos: Producto[];
+  cantidad?: number;
 }
 
 export class SelectProductosResponseData {
@@ -35,8 +36,6 @@ export class SelectProductosDialogComponent implements OnInit {
   ngOnInit(): void {
     if(this.data.productos?.length > 0){
       this.productos = this.data.productos;
-      console.log(this.productos);
-      
       if(this.productos.length == 1){
         this.onProductoClick(this.productos[0])
       }
@@ -47,7 +46,8 @@ export class SelectProductosDialogComponent implements OnInit {
     this.matDialog.open(ProductoCategoriaDialogComponent, {
       data: {
         presentaciones: producto?.presentaciones,
-        producto
+        producto,
+        cantidad: this.data?.cantidad
       },
       width: '90%'
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {

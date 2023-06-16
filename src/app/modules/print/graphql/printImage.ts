@@ -5,6 +5,6 @@ import { printImage } from './graphql-query';
 @Injectable({
   providedIn: 'root',
 })
-export class PrintImageGQL extends Query<Boolean> {
+export class PrintImageGQL extends Query<boolean> {
   document = printImage;
 }

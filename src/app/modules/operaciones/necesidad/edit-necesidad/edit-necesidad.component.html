@@ -3,7 +3,7 @@
     <div fxLayout="row">
       <div fxFlex="50">
         <div fxLayout="column" fxLayoutGap="10px">
-          <mat-card fxFlex fxLayout="column">
+          <mat-card appearance="outlined" fxFlex fxLayout="column">
             <div style="text-align: center;">Datos de Necesidad</div>
             <div fxFlex fxLayout="row">
               <div fxFlex="40" *ngIf="isSucursalesDataReady">
@@ -32,21 +32,21 @@
             <div style="text-align: center;">Seleccionar Producto</div>
             <div fxLayout="row" fxAlignLayout="start center">
               <div fxFlex="20">
-                <mat-form-field  appearance="legacy" style="width: 50%;">
+                <mat-form-field style="width: 50%;">
                   <mat-label>Código</mat-label>
                   <input #codigoProducto formControlName="codigoProducto" matInput placeholder="Código" autocomplete="off" (keydown)="onCodigoKeyEvent($event)">
                   <!-- <mat-hint>Código del producto</mat-hint> -->
                 </mat-form-field>
               </div>
               <div fxFlex="40">
-                <mat-form-field appearance="legacy" style="width: 90%;">
+                <mat-form-field style="width: 90%;">
                   <mat-label>Producto</mat-label>
                   <input formControlName="producto" matInput placeholder="Producto" autocomplete="not" (input)="openDialog($event)" oninput="this.value = this.value.toUpperCase()">
                   <!-- <mat-hint>Código del producto</mat-hint> -->
                 </mat-form-field>
               </div>
               <div fxFlex="20">
-                <mat-form-field appearance="legacy" style="width: 50%;">
+                <mat-form-field style="width: 50%;">
                   <mat-label>Cantidad</mat-label>
                   <input  #cantidadProducto formControlName="cantidadProducto" matInput placeholder="Cantidad" autocomplete="off" (keydown)="onCantidadConfirm($event.key)">
                   <!-- <mat-hint>Código del producto</mat-hint> -->

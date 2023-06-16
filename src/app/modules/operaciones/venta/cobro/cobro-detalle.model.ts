@@ -18,7 +18,7 @@ export class CobroDetalle {
     usuario: Usuario
     identificadorTransaccion: string
     sucursalId: number;
-
+    
     toInput(): CobroDetalleInput {
         let input = new CobroDetalleInput()
         input.id = this.id;

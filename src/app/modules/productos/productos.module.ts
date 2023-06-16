@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FlexLayoutModule } from '@angular/flex-layout';
+import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { ProductoComponent } from './producto/edit-producto/producto.component';
 import { ListProductoComponent } from './producto/list-producto/list-producto.component';

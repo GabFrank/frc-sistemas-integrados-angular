@@ -1,5 +1,44 @@
-<app-generic-list titulo="Gastos" (adicionar)="onAdd()" (filtrar)="onFilter()">
-  <div filtros></div>
+<app-generic-list
+  [data]="dataSource.data"
+  (cargarMasDatos)="cargarMasDatos()"
+  [isLastPage]="isLastPage || isSearching"
+  (filtrar)="onFiltrar()"
+  (resetFiltro)="resetFiltro()"
+>
+  <div filtros>
+    <div
+      fxLayout="row wrap"
+      fxLayoutAlign="start center"
+      fxLayoutGap="10px"
+      style="width: 100%"
+    >
+      <div fxFlex="15%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Id del gasto</mat-label>
+          <input type="text" matInput [formControl]="idGastoControl" />
+        </mat-form-field>
+      </div>
+      <div fxFlex="25%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Sucursal de Origen</mat-label>
+          <mat-select [formControl]="sucOrigenControl">
+            <mat-option
+              *ngFor="let sucursal of sucursalList"
+              [value]="sucursal"
+            >
+              {{ sucursal.id }} - {{ sucursal.nombre }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="15%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Id de la caja</mat-label>
+          <input type="text" matInput [formControl]="idCajaControl" />
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
   <div table style="width: 100%" fxLayoutGap="20px">
     <table
       mat-table
@@ -21,110 +60,97 @@
           *matCellDef="let gasto"
           style="text-align: center; width: 5%"
         >
-          {{ gasto.id }}
+          {{ gasto?.id }}
         </td>
       </ng-container>
 
-      <!-- Name Column -->
-      <ng-container matColumnDef="responsable">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 20%"
-        >
-          Responsable
+      <ng-container matColumnDef="sucursal">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Sucursal
         </th>
-        <td
-          mat-cell
-          *matCellDef="let gasto"
-          style="text-align: center; width: 20%"
-        >
-          {{ gasto?.responsable?.persona?.nombre | uppercase }}
+        <td mat-cell *matCellDef="let gasto" style="text-align: center">
+          {{ gasto?.sucursal?.nombre | titlecase }}
         </td>
       </ng-container>
 
-      <ng-container matColumnDef="tigoGasto">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 20%"
-        >
-          Tipo
-        </th>
-        <td
-          mat-cell
-          *matCellDef="let gasto"
-          style="text-align: center; width: 20%"
-        >
-          {{ gasto?.tipoGasto?.descripcion | uppercase }}
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="descripcion">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 15%"
-        >
-          Descripción
-        </th>
-        <td
-          mat-cell
-          *matCellDef="let gasto"
-          style="text-align: center; width: 15%"
-        >
-          {{ gasto?.observacion | uppercase }}
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="valorGs">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center;"
-        >
+      <ng-container matColumnDef="retiroGs">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
           Guaranies
         </th>
-        <td
-          mat-cell
-          *matCellDef="let gasto"
-          style="text-align: center;"
-        >
-          {{ gasto?.valorGs | number: '1.0-0' }}
+        <td mat-cell *matCellDef="let gasto" style="text-align: center">
+          {{ gasto?.retiroGs | number : "1.0-0" }}
         </td>
       </ng-container>
 
-      <ng-container matColumnDef="valorRs">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center;"
-        >
+      <ng-container matColumnDef="retiroRs">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
           Reales
         </th>
-        <td
-          mat-cell
-          *matCellDef="let gasto"
-          style="text-align: center;"
-        >
-          {{ gasto?.valorRs | number: '1.0-2' }}
+        <td mat-cell *matCellDef="let gasto" style="text-align: center">
+          {{ gasto?.retiroRs | number : "1.2-2" }}
         </td>
       </ng-container>
 
-      <ng-container matColumnDef="valorDs">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center;"
-        >
+      <ng-container matColumnDef="retiroDs">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
           Dolares
         </th>
-        <td
-          mat-cell
-          *matCellDef="let gasto"
-          style="text-align: center;"
-        >
-          {{ gasto?.valorDs | number: '1.0-2' }}
+        <td mat-cell *matCellDef="let gasto" style="text-align: center">
+          {{ gasto?.retiroDs | number : "1.2-2" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="caja">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Caja
+        </th>
+        <td mat-cell *matCellDef="let gasto" style="text-align: center">
+          <span>{{ gasto?.caja?.id }}</span>
+          <button
+            mat-icon-button
+            matTooltip="Ir a caja"
+            (click)="onIrACaja(gasto.cajaSalida)"
+          >
+            <mat-icon style="color: rgb(0, 128, 255); font-size: 0.9em"
+              >launch</mat-icon
+            >
+          </button>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="observacion">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 30;">
+          Obs
+        </th>
+        <td mat-cell *matCellDef="let gasto" matTooltip="gasto?.observacion" style="text-align: center; width: 30">
+          {{ gasto?.observacion | uppercase}}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="responsable">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Responsable
+        </th>
+        <td mat-cell *matCellDef="let gasto" style="text-align: center">
+          {{ gasto?.responsable?.persona?.nombre | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="usuario">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Cajero
+        </th>
+        <td mat-cell *matCellDef="let gasto" style="text-align: center">
+          {{ gasto?.usuario?.nickname | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="creadoEn">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Fecha
+        </th>
+        <td mat-cell *matCellDef="let gasto" style="text-align: center">
+          {{ gasto?.creadoEn | date : "short" }}
         </td>
       </ng-container>
 
@@ -149,7 +175,7 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="onAdd(gasto, i, true)">
+            <button mat-menu-item (click)="onAdd(gasto, i)">
               Editar
             </button>
           </mat-menu>
@@ -168,9 +194,7 @@
         >
           <div
             class="example-gasto-detail"
-            [@detailExpand]="
-              gasto == expandedGasto ? 'expanded' : 'collapsed'
-            "
+            [@detailExpand]="gasto == expandedGasto ? 'expanded' : 'collapsed'"
             style="text-align: center"
             fxLayout="column"
             fxLayoutAlign="start start"
@@ -178,17 +202,10 @@
         </td>
       </ng-container>
 
-      <tr
-        mat-header-row
-        *matHeaderRowDef="displayedColumns; sticky: true"
-      ></tr>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
       <tr
         mat-row
-        *matRowDef="
-          let row;
-          columns: displayedColumns;
-          let i = dataIndex
-        "
+        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
       ></tr>
       <tr
         mat-row

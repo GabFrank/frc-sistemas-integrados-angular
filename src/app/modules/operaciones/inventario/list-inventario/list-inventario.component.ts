@@ -61,7 +61,6 @@ export class ListInventarioComponent implements OnInit {
       .subscribe(res => {
         if (res != null) {
           this.dataSource.data = res;
-          console.log(res)
         }
       })
   }
@@ -76,7 +75,6 @@ export class ListInventarioComponent implements OnInit {
           this.cargandoService.closeDialog()
           if (res != null) {
             this.selectedInventario = res;
-            console.log(res)
             this.dataSource.data = updateDataSource(this.dataSource.data, res, index)
           }
         })

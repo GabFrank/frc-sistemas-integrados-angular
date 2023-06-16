@@ -4,7 +4,7 @@
     <div fxLayout="row">
       <div fxFlex>
         <form [formGroup]="formGroup">
-        <mat-form-field appearance="legacy" style="width: 80%;">
+        <mat-form-field style="width: 80%;">
           <mat-label>Ingresar texto</mat-label>
           <input matInput placeholder="Buscar Producto" autocomplete="off" formControlName="buscarControl" (input)="onBuscarChange()" oninput="this.value = this.value.toUpperCase()" (keydown)="keydownEvent($event)">
         </mat-form-field>

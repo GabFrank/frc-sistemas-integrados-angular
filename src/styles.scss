@@ -1,42 +1,35 @@
-@use '~@angular/material' as mat;
+@use '@angular/material' as mat;
 @import url('https://unpkg.com/bootstrap@3.3.7/dist/css/bootstrap.min.css');
 
-@import '~material-design-icons-iconfont/dist/material-design-icons.css';
+@import 'material-design-icons-iconfont/dist/material-design-icons.css';
 
+@include mat.legacy-core();
 @include mat.core();
 
 $angular-primary: mat.define-palette(mat.$red-palette, 500, 100, 700);
 $angular-accent: mat.define-palette(mat.$green-palette, 600, 100, 600);
 $angular-warn: mat.define-palette(mat.$red-palette, 500, 100, 700);
 
-$angular-default-theme: mat.define-light-theme(
-  (
-    color: (
-      primary: $angular-primary,
-      accent: $angular-accent,
-      warn: $angular-warn,
-    ),
-  )
-);
+$angular-default-theme: mat.define-light-theme((color: (primary: $angular-primary,
+        accent: $angular-accent,
+        warn: $angular-warn,
+      ),
+    ));
 
-.accent{
+.accent {
   color: white !important
 }
 
 @include mat.all-component-themes($angular-default-theme);
 
-$angular-dark-theme: mat.define-dark-theme(
-  (
-    color: (
-      primary: $angular-primary,
-      accent: $angular-accent,
-      warn: $angular-warn,
-    ),
-  )
-);
+$angular-dark-theme: mat.define-dark-theme((color: (primary: $angular-primary,
+        accent: $angular-accent,
+        warn: $angular-warn,
+      )));
 
 .darkMode {
   @include mat.all-component-colors($angular-dark-theme);
+  @include mat.all-legacy-component-themes($angular-dark-theme); // this is the important line
 }
 
 html {
@@ -44,23 +37,27 @@ html {
 }
 
 body {
- height: 100%;
- font-family: Roboto, "Helvetica Neue", sans-serif;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  color: white !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 
-.cdk-global-scrollblock{
+.cdk-global-scrollblock {
   position: static !important;
   width: initial !important;
   overflow-y: inherit !important;
 }
 
-.mat-row:hover {
-  background-color: mat.get-color-from-palette($angular-accent)
-  ;
+.mat-mdc-row:hover {
+  background-color: mat.get-color-from-palette($angular-accent);
 }
-.mat-row::selection {
-  background-color: mat.get-color-from-palette($angular-accent)
-  ;
+
+.mat-mdc-row::selection {
+  background-color: mat.get-color-from-palette($angular-accent);
 }
 
 button {
@@ -104,7 +101,7 @@ input::selection {
   display: flex;
   align-items: center;
   flex-direction: column;
-} 
+}
 
 .timeline-point {
   display: flex;
@@ -120,6 +117,7 @@ input::selection {
   border: 2px solid rgb(0, 143, 64);
   background-color: rgb(0, 143, 64);
 }
+
 .timeline-track {
   flex-grow: 1;
   background-color: #dee2ef;
@@ -136,6 +134,7 @@ input::selection {
   font-style: bold;
   padding-left: 5px;
 }
+
 .timeline-user {
   font-size: 14px;
   font-style: italic;
@@ -177,4 +176,114 @@ input::selection {
 
 ::-webkit-scrollbar {
   display: none;
+}
+
+.warn {
+  --mdc-snackbar-container-color: #f57c00 !important;
+  --mdc-snackbar-supporting-text-color: white !important;
+}
+
+.success {
+  --mdc-snackbar-container-color: #43a047 !important;
+  --mdc-snackbar-supporting-text-color: white !important;
+}
+
+.info {
+  --mdc-snackbar-container-color: #54c5f8 !important;
+  --mdc-snackbar-supporting-text-color: white !important;
+}
+
+.neutral {
+  --mdc-snackbar-container-color: #757575 !important;
+  --mdc-snackbar-supporting-text-color: white !important;
+}
+
+.danger {
+  --mdc-snackbar-container-color: #f44336 !important;
+  --mdc-snackbar-supporting-text-color: white !important;
+}
+
+.mat-card {
+  color: white !important;
+}
+
+.mat-mdc-form-field-infix {
+  height: 40px !important;
+}
+
+.mdc-text-field--filled {
+  background-color: rgba(32, 32, 32, 0) !important;
+}
+
+.mdc-text-field--focused {
+  background-color: inherit !important;
+}
+
+.mat-mdc-form-field-flex {
+  height: 3em !important;
+}
+
+.mat-mdc-form-field-focus-overlay {
+  background-color: inherit !important;
+}
+
+.mat-mdc-form-field-subscript-wrapper {
+  height: 0px !important;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+input {
+  text-transform: uppercase !important;
+}
+
+.mat-form-field-appearance-outline.mat-focused {
+  background-color: inherit !important;
+}
+
+.mat-mdc-tab-group {
+  height: 100% !important;
+}
+
+.mat-mdc-tab-body-wrapper {
+  height: 100% !important;
+}
+
+.btn-success-flat {
+  color: #43a047;
+}
+
+.btn-warn-flat {
+  color: #f57c00;
+}
+
+.btn-danger-flat {
+  color: #f44336;
+}
+
+.mat-option {
+  font-size: medium;
+}
+
+.mat-select {
+  font-size: medium;
+}
+
+.mat-card {
+  padding: 10px;
+}
+
+@media print {
+  body[data-pdfjsprinting] #printContainer .printedPage {
+    display: block !important;
+  }
 }

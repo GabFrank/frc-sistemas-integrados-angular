@@ -1,5 +1,5 @@
 {
-  "asar": false,
+  "asar": true,
   "directories": {
     "output": "release/"
   },
@@ -8,12 +8,9 @@
     "!**/*.ts",
     "!*.map",
     "!package.json",
-    "!package-lock.json"
-  ],
-  "extraResources": [
+    "!package-lock.json",
     {
-      "from": "dist",
-      "to": "app",
+      "from": "../dist",
       "filter": ["**/*"]
     }
   ],
@@ -37,19 +34,20 @@
     "include": "app/installer.nsh",
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
-    "shortcutName": "FRC"
+    "shortcutName": "FRC",
+    "artifactName": "FRC.${ext}"
   },
   "portable": {
-    "splashImage": "dist/assets/logo_inicio.bmp"
+    "splashImage": "dist/assets/icons/electron.bmp"
   },
   "mac": {
-    "icon": "./app/icons/logo_inicio.png",
+    "icon": "dist/assets/icons",
     "target": ["dmg"]
   },
   "linux": {
     "icon": "./app/icons/logo_inicio.png",
     "target": ["AppImage"],
-    "category": "Utility"
-  },
-  "afterAllArtifactBuild": "./afterAllArtifactBuild.js"
+    "category": "Utility",
+    "artifactName": "FRC.${ext}"
+  }
 }

@@ -101,7 +101,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 })
 export class ProductoComponent implements OnInit, OnDestroy {
   @Input() data;
-  
+
   @ViewChildren("fileInput") fileInputList: any;
   @ViewChild("stepper", { static: false }) stepper: MatStepper;
   @ViewChild("codigoInput", { static: false }) codigoInput: ElementRef;
@@ -262,7 +262,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         this.datosGeneralesControl.controls.ingrediente.setValue(false)
         this.datosGeneralesControl.controls.esAlcoholico.setValue(false)
         this.datosGeneralesControl.controls.promocion.setValue(false)
-        this.datosGeneralesControl.controls.vencimiento.setValue(false)                                 
+        this.datosGeneralesControl.controls.vencimiento.setValue(false)
       }
     })
 
@@ -270,7 +270,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
   cargarProducto(id) {
     this.productoService.getProducto(id).pipe(untilDestroyed(this)).subscribe((res) => {
-      this.selectedProducto = res;      
+      this.selectedProducto = res;
       this.selectedSubfamilia = this.selectedProducto?.subfamilia;
       this.selectedFamilia = this.selectedSubfamilia?.familia;
       setTimeout(() => {
@@ -318,7 +318,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
       if(this.selectedProducto?.envase!=null){
         this.onSelectEnvase(this.selectedProducto.envase)
       }
-      
+
       // this.codigoService.onGettipoPresentacionsPorProductoId(res.id).subscribe((res) => {
       //   this.codigosList = res.data.data;
       //   this.codigoDataSource.data = this.codigosList;
@@ -803,7 +803,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onPresentacionRowClick(row: Presentacion) {
-    this.selectedPresentacion = row;    
+    this.selectedPresentacion = row;
     let data = new AdicionarPresentacionData();
     data.producto = this.selectedProducto;
     data.presentacion = row;
@@ -826,7 +826,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
   onPresentacionSelect(row: Presentacion) {
     this.selectedPresentacion = row;
-    console.log(row);
     if (row != null) {
       this.codigoService
         .onGetCodigosPorPresentacionId(this.selectedPresentacion.id).pipe(untilDestroyed(this))
@@ -879,7 +878,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
   //fin funciones de presentacion
 
   //adicionar codigo y precio
-  onAddCodigo(index?, presentacionIndex?) {    
+  onAddCodigo(index?, presentacionIndex?) {
     this.selectedPresentacion.producto = this.selectedProducto;
     let data = new AdicionarCodigoData();
     data.codigo = this.selectedCodigo;
@@ -992,13 +991,11 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onDeletePrecio(precio: PrecioPorSucursal, precioIndex) {
-    // this.cargandoDialog.openDialog()
-    // this.precioPorSucursalService.onDelete(precio).pipe(untilDestroyed(this)).subscribe((res) => {
-    //   this.cargandoDialog.closeDialog()
-    //   if (res) {
-    //     this.getPresentacionPorProductoId(this.selectedProducto.id);
-    //   }
-    // });
+    this.precioPorSucursalService.onDelete(precio).pipe(untilDestroyed(this)).subscribe((res) => {
+      if (res) {
+        this.getPresentacionPorProductoId(this.selectedProducto.id);
+      }
+    });
   }
 
   //"could not execute statement; SQL [n/a]; constraint [presentacion_producto_fk]; nested exception is org.hibernate.exception.ConstraintViolationException: could not execute statement"
@@ -1008,7 +1005,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
     this.changeDetectorRefs.detectChanges();
   }
 
-  onSearchEnvase(){ 
+  onSearchEnvase(){
     this.matDialog.open(SearchEnvaseDialogComponent, {
       data: {
         producto: this.selectedProducto

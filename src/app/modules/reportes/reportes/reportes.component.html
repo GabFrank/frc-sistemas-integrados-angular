@@ -36,11 +36,13 @@
   </div>
   <div fxFlex="80%" style="width: 100%; height: 100%">
     <ngx-extended-pdf-viewer
+      class="custom-viewer"
       [base64Src]="selectedReporte?.pdf"
       height="100%"
       [filenameForDownload]="selectedReporte?.nombre"
       [textLayer]="true"
       [(page)]="currentPage"
+      [minifiedJSLibraries]="false"
     ></ngx-extended-pdf-viewer>
   </div>
 </div>

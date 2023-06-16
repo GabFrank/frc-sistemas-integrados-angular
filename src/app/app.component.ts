@@ -64,7 +64,7 @@ export class AppComponent implements OnInit, OnDestroy {
             horizontalPosition: "center",
             duration: res.duracion * 1000,
             verticalPosition: "top",
-            panelClass: [res.color],
+            panelClass: res.color?.toString()
           });
         }
         setTimeout(() => {
@@ -90,7 +90,7 @@ export class AppComponent implements OnInit, OnDestroy {
     //       }
     //     }
     //   })
-    
+
   }
 
   /**
@@ -101,8 +101,7 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.overlay.getContainerElement().classList.add("darkMode");
     this.matDialog.open(LoginComponent, {
-      width: "500px",
-      height: "500px",
+      width: "70%",
       disableClose: false,
     }).afterClosed().subscribe(res => {
       if(!res){
@@ -153,7 +152,7 @@ export class AppComponent implements OnInit, OnDestroy {
         if(this.keyPressed=='Control')
         this.matDialog.open(SearchBarDialogComponent, {
           data: null,
-          width: '70%'
+          width: '50%'
         })
         break;
       default:
@@ -178,5 +177,6 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     //Called once, before the instance is destroyed.
     //Add 'implements OnDestroy' to the class.
+
   }
 }

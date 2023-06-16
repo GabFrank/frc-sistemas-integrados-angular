@@ -8,17 +8,14 @@ import {
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import {
   MAT_DIALOG_DATA,
-  MatDialogRef,
   MatDialog,
+  MatDialogRef,
 } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
-import { Color } from "highcharts";
 import {
   CurrencyMask,
   stringToCantidad,
-  stringToDecimal,
-  stringToInteger,
-  stringToUnknown,
+  stringToInteger
 } from "../../../../commons/core/utils/numbersUtils";
 import { MainService } from "../../../../main.service";
 import {
@@ -133,8 +130,6 @@ export class AdicionarItemDialogComponent implements OnInit {
 
     if (this.data.pedidoItem != null) {
       this.cargarPedidoItem(this.data.pedidoItem);
-    } else {
-      console.log('nuevo pedido item')
     }
   }
 
@@ -150,7 +145,7 @@ export class AdicionarItemDialogComponent implements OnInit {
         this.cantidadUnidadControl.setValue(pedidoItem.cantidad);
         this.precioPorUnidadControl.setValue(pedidoItem.precioUnitario);
         this.precioPorPresentacionControl.setValue(
-          (
+          +(
             pedidoItem.precioUnitario * pedidoItem.presentacion.cantidad
           ).toFixed(0)
         );
@@ -342,7 +337,7 @@ export class AdicionarItemDialogComponent implements OnInit {
       this.precioPorPresentacionControl.value > 0
     ) {
       this.precioPorUnidadControl.setValue(
-        (
+        +(
           this.precioPorPresentacionControl.value /
           this.selectedPresentacion.cantidad
         ).toFixed(3)

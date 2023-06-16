@@ -1,51 +1,66 @@
-
 .card-grid-producto {
-    background-color: '#212121 !important';
+  background-color: "#212121 !important";
 }
 
 .valor-principal {
-    font-weight: bold;
+  font-weight: bold;
 }
 
-.cambios{
-    margin-bottom: 0px !important;
+.cambios {
+  margin-bottom: 0px !important;
 }
 
-th, td {
-    color: black;
+th,
+td {
+  color: black;
 }
 
 td {
-    font-size: 1.2em;
+  font-size: 1.2em;
 }
 
-.table{
-    padding: 1px;
-    margin-top: 1px;
-    background-color: white;
+.table {
+  padding: 1px;
+  margin-top: 1px;
+  background-color: white;
 }
 
-.card-table-container{
-    width: 90%;
-    background-color: white;
+.card-table-container {
+  width: 90%;
+  background-color: white;
 }
 
 .bottom-action-button {
-    /* overflow-x: hidden !important;
+  /* overflow-x: hidden !important;
     overflow-y: hidden !important; */
-    white-space: pre-wrap !important;
-    text-align: center;
-    /* padding-left: 5px;
+  white-space: pre-wrap !important;
+  text-align: center;
+  /* padding-left: 5px;
     padding-right: 5px;
     padding-top: 5%;
     padding-bottom: 0; */
 }
 
 ::ng-deep snack-bar-container.deliveryBackground {
-    background: #212121 !important;
-    color: white !important;    
+  background: #212121 !important;
+  color: white !important;
 }
 
+.component-wrapper {
+  position: relative;
+}
 
-
-
+.component-wrapper::before {
+  content: "Modo consulta";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 70px;
+  color: rgb(54 54 54 / 9%);
+  pointer-events: none;
+  z-index: 99;
+  width: 100%;
+  text-align: center;
+  font-weight: bolder;
+}

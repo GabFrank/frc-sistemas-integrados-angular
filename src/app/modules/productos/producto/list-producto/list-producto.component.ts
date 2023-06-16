@@ -1,15 +1,16 @@
 import {
-  trigger,
+  animate,
   state,
   style,
   transition,
-  animate,
+  trigger,
 } from "@angular/animations";
 import {
   AfterViewInit,
   Component,
   ElementRef,
   HostListener,
+  Injector,
   OnInit,
   ViewChild,
 } from "@angular/core";
@@ -17,18 +18,17 @@ import { FormControl } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { MatPaginator } from "@angular/material/paginator";
 import { MatTableDataSource } from "@angular/material/table";
-import { PrintService } from "../../../print/print.service";
+import { GenericCrudService } from "../../../../generics/generic-crud.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
-import { TabData, TabService } from "../../../../layouts/tab/tab.service";
+import { TabService } from "../../../../layouts/tab/tab.service";
 import { CargandoDialogComponent } from "../../../../shared/components/cargando-dialog/cargando-dialog.component";
+import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
+import { PrintService } from "../../../print/print.service";
+import { ReporteService } from "../../../reportes/reporte.service";
+import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
 import { ProductoComponent } from "../edit-producto/producto.component";
 import { Producto } from "../producto.model";
 import { ProductoService } from "../producto.service";
-import { MainService } from "../../../../main.service";
-import { GenericCrudService } from "../../../../generics/generic-crud.service";
-import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
-import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
-import { ReporteService } from "../../../reportes/reporte.service";
 
 interface ProductoDatasource {
   id: number;
@@ -100,15 +100,18 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     "precio",
   ];
 
+  private service: ProductoService;
+
   constructor(
-    public service: ProductoService,
+    private injector: Injector,
     private tabService: TabService,
     private matDialog: MatDialog,
     private printService: PrintService,
-    private genericService: GenericCrudService,
     private cargandoDialog: CargandoDialogService,
     private reporteService: ReporteService
-  ) {}
+  ) {
+    setTimeout(() => this.service = injector.get(ProductoService));
+  }
 
   ngOnInit(): void {
     // subscripcion a los datos de productos
@@ -131,7 +134,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     this.dataSource.paginator = this.paginator;
   }
 
-  createForm() {}
+  createForm() { }
 
   onSearchProducto(text: string, offset?: number) {
     this.isSearching = true;
@@ -139,17 +142,14 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       clearTimeout(this.onSearchTimer);
     }
     if (text == "" || text == null || text == " ") {
-      console.log("text is ", text);
       this.dataSource != undefined ? (this.dataSource.data = []) : null;
       this.isSearching = false;
     } else {
       this.onSearchTimer = setTimeout(() => {
         this.service.onSearch(text, offset).pipe(untilDestroyed(this)).subscribe((res) => {
           if (offset == null) {
-            console.log("offset es nulo");
             this.dataSource.data = res;
           } else {
-            console.log("offset es: ", offset);
             const arr = [...this.dataSource.data.concat(res)];
             this.dataSource.data = arr;
           }
@@ -162,7 +162,6 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   onRowClick(row) {
     let ref = this.matDialog.open(CargandoDialogComponent);
     this.service.getProducto(row.id).pipe(untilDestroyed(this)).subscribe((res) => {
-      console.log(res);
       if (res != null) {
         if (this.menuState === "in") {
           this.selectedProducto = res;
@@ -218,7 +217,6 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   keyEvent(event: KeyboardEvent) {
     let key = event.key;
     let isNumber = (+key).toString() === key;
-    console.log(key);
     switch (key) {
       case "Enter":
         // if (this.selectedProducto != null) {
@@ -253,7 +251,6 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   }
 
   arrowUpEvent() {
-    console.log(this.selectedRowIndex, this.paginator.pageSize);
     if (this.selectedRowIndex > 0) {
       // if(this.selectedRowIndex-1 == this.paginator.pageSize){
       //   this.paginator.nextPage()
@@ -266,11 +263,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   }
 
   arrowDownEvent() {
-    console.log(
-      this.selectedRowIndex,
-      this.paginator.pageSize,
-      this.dataSource?.data.length - 1
-    );
+
     if (this.selectedRowIndex < this.dataSource?.data.length - 1) {
       if (this.selectedRowIndex + 1 == this.paginator.pageSize) {
         this.paginator.nextPage();
@@ -283,7 +276,6 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   }
 
   printProducto() {
-    console.log("imprimiendo...");
     this.service.onPrintProductoPorId(this.selectedProducto.id);
   }
 
@@ -291,12 +283,16 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     this.onSearchProducto(this.buscarField.value, this.dataSource.data.length);
   }
 
-  onExportProductos(){
+  onExportProductos() {
     this.cargandoDialog.openDialog(false, "Generando Reporte...")
     this.service.onExportarReporte(this.buscarField.value).pipe(untilDestroyed(this)).subscribe(res => {
       this.cargandoDialog.closeDialog()
-      this.reporteService.onAdd('Producto-'+new Date().toLocaleTimeString(), res);
+      this.reporteService.onAdd('Producto-' + new Date().toLocaleTimeString(), res);
       this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListProductoComponent))
     })
+  }
+
+  onReporte() {
+    // this.service.onImprimirReporteLucroPorProducto();
   }
 }

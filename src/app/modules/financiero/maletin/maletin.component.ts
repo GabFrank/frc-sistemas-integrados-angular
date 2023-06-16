@@ -26,7 +26,7 @@ export class MaletinComponent implements OnInit {
   constructor(
     private maletinService: MaletinService,
     public windowInfoService: WindowInfoService,
-  ) { 
+  ) {
     this.headerHeight = windowInfoService.innerTabHeight * 0.2;
     this.tableHeight = windowInfoService.innerTabHeight * 0.8;
     this.containerHeight = windowInfoService.innerTabHeight;
@@ -35,7 +35,6 @@ export class MaletinComponent implements OnInit {
   ngOnInit(): void {
     this.maletinService.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
       if(res!=null){
-        console.log(res)
         this.maletinDataSource.data = res;
       }
     })

@@ -8,13 +8,11 @@
   <div filtros fxLayout="column" style="width: 100%; height: 100%">
     <div fxLayout="row wrap" fxLayoutGap="10px">
       <mat-form-field fxFlex="10">
-        <mat-label>Id</mat-label>
-        <input matInput [formControl]="idControl" type="number" />
+        <input placeholder="Id" matInput [formControl]="idControl" type="number" />
       </mat-form-field>
 
       <mat-form-field>
-        <mat-label>Sucursal de Origen</mat-label>
-        <mat-select [formControl]="sucOrigenControl">
+        <mat-select placeholder="Sucursal de Origen" [formControl]="sucOrigenControl">
           <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
             {{ sucursal.id }} - {{ sucursal.nombre }}
           </mat-option>

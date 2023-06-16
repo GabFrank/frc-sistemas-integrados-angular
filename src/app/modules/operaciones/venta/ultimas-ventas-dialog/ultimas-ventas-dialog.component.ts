@@ -84,7 +84,6 @@ export class UltimasVentasDialogComponent implements OnInit {
   }
 
   onBuscarPorCodigo() {
-    console.log(this.codigoVentaControl.value != null);
     if (this.codigoVentaControl.value != null) {
       this.cargandoService.openDialog();
       this.ventaService
@@ -137,7 +136,6 @@ export class UltimasVentasDialogComponent implements OnInit {
     this.ventaService.onReimprimirVenta(id).pipe(untilDestroyed(this)).subscribe((res) => {
       this.cargandoService.closeDialog();
       if (res != null) {
-        console.log("exito");
       }
     });
   }

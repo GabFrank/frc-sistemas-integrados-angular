@@ -62,6 +62,9 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   ventaSub: Subscription;
   searchTimer;
 
+  vencimientoControl = new FormControl(getLastDayOfNextMonth())
+  today = new Date();
+
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: AddVentaCreditoData,
     private dialogRef: MatDialogRef<AddVentaCreditoDialogComponent>,
@@ -77,7 +80,6 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   ngOnInit(): void {
     if (this.data?.valor != null) {
       this.total = this.data?.valor;
-      this.addItem(this.total)
     }
     this.cuotasControl.disable()
     this.interesControl.disable()
@@ -90,7 +92,6 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
         }
         if (this.nombreClienteControl.valid) {
           this.searchTimer = setTimeout(() => {
-            console.log('on search');
             this.onSearch()
           }, 500);
         } else {
@@ -102,9 +103,12 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   }
 
   ngAfterViewInit(): void {
-    this.container.nativeElement.addEventListener('keydown', (e) => {
-      console.log(e);
 
+    setTimeout(() => {
+      this.nombreInput.nativeElement.focus();
+    }, 500);
+
+    this.container.nativeElement.addEventListener('keydown', (e) => {
       if (!this.isDialogOpen && this.total <= this.selectedCliente?.saldo) {
         switch (e.key) {
           case "F1":
@@ -143,7 +147,6 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   onSearch() {
     if (this.nombreClienteControl.valid) {
       if (isNaN(this.nombreClienteControl.value) == false) {
-        console.log('is numero');
         this.clienteService.onGetByPersonaIdFromServer(this.nombreClienteControl.value).subscribe(res => {
           if (res != null) {
             this.onClienteSelect(res)
@@ -152,7 +155,6 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
           }
         })
       } else {
-        console.log('not a numero');
         this.onSearchByNombre()
       }
 
@@ -209,7 +211,7 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
     item.activo = true;
     item.parcial = false;
     item.valor = valor;
-    item.vencimiento = dateToString(getLastDayOfNextMonth())
+    item.vencimiento = dateToString(this.vencimientoControl.value)
     this.dataSource.data = updateDataSource(this.dataSource.data, item)
   }
 
@@ -232,6 +234,7 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   }
 
   onConfirmVentaCredito() {
+    this.addItem(this.total)
     let ventaCredito = new VentaCredito()
     ventaCredito.cantidadCuotas = this.cuotasControl.value;
     ventaCredito.cliente = this.selectedCliente;
@@ -239,6 +242,7 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
     ventaCredito.sucursal = this.mainService?.sucursalActual;
     ventaCredito.tipoConfirmacion = this.tipoConfirmacion;
     ventaCredito.valorTotal = this.total;
+    ventaCredito.usuario = this.mainService.usuarioActual;
     if (ventaCredito.valorTotal <= this.selectedCliente?.saldo) {
       this.dialogRef.close({ ventaCredito: ventaCredito, itens: this.dataSource.data })
     } else {

@@ -1,28 +1,12 @@
-<div #container fxLayout="column" style="height: 100%; width: 100%" fxLayoutGap="10px">
+<div #container fxLayout="column" style="height: 100%; width: 100%; padding: 10px" fxLayoutGap="10px">
   <div fxFlex="5" style="text-align: center">
     <h4>Adicionar venta a crédito</h4>
   </div>
   <div fxFlex="90" style="height: 100%" fxLayout="row" fxLayoutGap="10px">
     <div fxFlex="80%" fxLayout="column">
       <div fxFlex="10" fxLayout="row" fxLayoutGap="10px">
-        <!-- <div fxFlex="10">
-          <mat-form-field style="width: 95%">
-            <mat-label>Id</mat-label>
-            <input
-              #idInput
-              type="text"
-              matInput
-              [formControl]="idClienteControl"
-              (keydown.enter)="buscarPersonaPorId()"
-              (keydown.tab)="buscarPersonaPorId(); $event.preventDefault()"
-              (keydown.arrowUp)="$event.preventDefault()"
-              (keydown.arrowDown)="$event.preventDefault()"
-            />
-          </mat-form-field>
-        </div> -->
         <div fxFlex="100">
           <mat-form-field style="width: 100%">
-            <mat-label>Nombre del cliente</mat-label>
             <input
               #nombreInput
               type="text"
@@ -30,7 +14,9 @@
               [formControl]="nombreClienteControl"
               oninput="this.value == ' ' ? this.value = '': null"
               [matAutocomplete]="autoCliente"
+              style="padding-left: 20px;"
             />
+            <span matTextPrefix>Nombre del cliente: </span>
             <mat-autocomplete
               #autoCliente="matAutocomplete"
               (optionSelected)="onClienteSelect($event.option.value)"
@@ -77,6 +63,22 @@
               min="0"
               [formControl]="interesControl"
             />
+          </mat-form-field>
+        </div>
+        <div fxFlex="25%">
+          <mat-form-field style="width: 90%">
+            <mat-label>Vencimiento</mat-label>
+            <input
+              matInput
+              [matDatepicker]="picker"
+              [formControl]="vencimientoControl"
+              [min]="today"
+            />
+            <mat-datepicker-toggle
+              matSuffix
+              [for]="picker"
+            ></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
           </mat-form-field>
         </div>
       </div>
@@ -174,6 +176,7 @@
         </table>
       </div>
       <mat-card
+        appearance="outlined"
         fxFlex="10%"
         fxLayout="row"
         fxLayoutAlign="center center"

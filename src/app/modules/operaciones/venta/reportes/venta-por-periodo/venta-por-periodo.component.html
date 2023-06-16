@@ -31,15 +31,15 @@
                 [for]="picker"
               ></mat-datepicker-toggle>
               <mat-date-range-picker #picker></mat-date-range-picker>
-    
+
               <mat-error
                 *ngIf="
-                  fechaFormGroup.controls.inicio.hasError('matStartDateInvalid')
+                fechaInicialControl.hasError('matStartDateInvalid')
                 "
                 >Fecha inicial inválida</mat-error
               >
               <mat-error
-                *ngIf="fechaFormGroup.controls.fin.hasError('matEndDateInvalid')"
+                *ngIf="fechaFinalControl.hasError('matEndDateInvalid')"
                 >Fecha final inválida</mat-error
               >
             </mat-form-field>
@@ -81,7 +81,7 @@
           Estado
         </th>
         <td
-          mat-cell 
+          mat-cell
           *matCellDef="let caja"
           style="text-align: center; width: 15%"
         >

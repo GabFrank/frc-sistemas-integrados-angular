@@ -50,7 +50,6 @@ export class ListMovimientoStockComponent implements OnInit {
   ngOnInit(): void {
 
     this.resetFilters();
-    this.onGetMovimientos();
     this.productoIdControl.disable()
   }
 
@@ -94,7 +93,7 @@ export class ListMovimientoStockComponent implements OnInit {
     ayer.setHours(0);
     ayer.setMinutes(0);
     ayer.setSeconds(0);
-  
+
     console.log(hoy, ayer);
     this.inicioControl.setValue(ayer);
     this.finControl.setValue(hoy);
@@ -108,7 +107,7 @@ export class ListMovimientoStockComponent implements OnInit {
     }
     this.movimientosDataSource.data = movimientoList;
   }
-  
+
   onSelectProducto(producto){
     this.selectedProducto = producto;
     this.productoIdControl.setValue(this.selectedProducto.id)

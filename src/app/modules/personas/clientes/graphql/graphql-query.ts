@@ -56,6 +56,35 @@ export const clientePorPersonaDocumento = gql
     }
   }`
 
+export const clienteConFiltros = gql
+  `query($texto: String, $tipo: TipoCliente, $page: Int, $size: Int){
+    data : onSearchWithFilters(texto: $texto, tipo: $tipo page: $page, size: $size){
+        id
+        persona{
+          id
+          nombre
+          apodo
+          telefono
+          email
+          direccion
+          documento
+          nacimiento
+        }
+        nombre
+        credito
+        saldo
+        tipo
+        contactos{
+          id
+          telefono
+        }
+        creadoEn
+        usuarioId {
+          nickname
+        }
+    }
+  }`
+
 export const clienteSearchByPersonaId = gql
   `query($id: ID){
   data : clientePorPersonaId(id: $id){
@@ -122,9 +151,16 @@ export const clienteQuery = gql
       persona{
         id
         nombre
+        apodo
+        telefono
+        email
+        direccion
+        documento
+        nacimiento
       }
       nombre
       credito
+      tipo
       contactos{
         id
         telefono
@@ -136,6 +172,28 @@ export const saveCliente = gql
   `mutation saveCliente($entity:ClienteInput!){
       data: saveCliente(cliente:$entity){
         id
+        persona{
+          id
+          nombre
+          apodo
+          telefono
+          email
+          direccion
+          documento
+          nacimiento
+        }
+        nombre
+        credito
+        saldo
+        tipo
+        contactos{
+          id
+          telefono
+        }
+        creadoEn
+        usuarioId {
+          nickname
+        }
       }
     }`
 

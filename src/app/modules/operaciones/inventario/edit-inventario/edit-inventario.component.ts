@@ -62,7 +62,6 @@ export class EditInventarioComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    console.log(this.data)
     if (this.data?.tabData?.id == null) {
       setTimeout(() => {
         this.matDialog.open(CreateInventarioDialogComponent, {
@@ -87,7 +86,6 @@ export class EditInventarioComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         if (res != null) {
-          console.log(res)
           this.selectedInventario = res;
         }
       })

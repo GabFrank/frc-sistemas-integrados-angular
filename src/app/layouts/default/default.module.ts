@@ -5,7 +5,7 @@ import { RouterModule } from '@angular/router';
 import { SharedModule } from '../../shared/shared.module';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MaterialModule } from '../../commons/core/material.module';
-import { FlexLayoutModule } from '@angular/flex-layout';
+import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { BootstrapModule } from '../../commons/core/bootstrap.module';
 import { TabService } from '../tab/tab.service';
 import { TabContentComponent } from './tab-content/tab-content.component';

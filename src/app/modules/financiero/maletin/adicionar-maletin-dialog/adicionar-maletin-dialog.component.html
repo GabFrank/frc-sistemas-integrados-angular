@@ -1,97 +1,104 @@
-<div>
-  <div>
-    <div fxLayout="column" fxLayoutAlign="start">
-      <div fxFlex style="width: 100%; text-align: center">
-        <h3 *ngIf="selectedMaletin?.id != null">Editar Maletin</h3>
-        <h3 *ngIf="selectedMaletin?.id == null">Nuevo Maletin</h3>
-      </div>
-      <div fxFlex fxLayout="row">
-          <div fxFlex="10%">
-            <mat-form-field style="width: 90%">
-                <mat-label>Id</mat-label>
-                <input
-                  type="text"
-                  matInput
-                  [formControl]="idControl"
-                  autocomplete="off"
-                  oninput="this.value == ' ' ? this.value = '': null"
-                />
-              </mat-form-field> 
-          </div>
-        <div fxFlex="70%">
-          <mat-form-field style="width: 90%">
-            <mat-label>código</mat-label>
-            <input
-              type="text"
-              matInput
-              [formControl]="descripcionControl"
-              autocomplete="off"
-              oninput="this.value == ' ' ? this.value = '': null"
-            />
-          </mat-form-field>
-        </div>
-        <div fxFlex="20%">
-            <section>
-                <mat-slide-toggle
-                    color="primary"
-                    [checked]="activoControl.value"
-                    [formControl]="activoControl"
-                    >
-                  {{activoControl.value ? 'Activo' : 'Inactivo'}}
-                </mat-slide-toggle>
-              </section>
-        </div>
-      </div>
-      <div fxFlex fxLayout="row">
-        <div fxFlex="50%">
-          <mat-form-field style="width: 90%">
-            <mat-label>Creado En</mat-label>
-            <input
-              type="text"
-              matInput
-              [formControl]="creadoEnControl"
-              autocomplete="off"
-            />
-          </mat-form-field>
-        </div>
-        <div fxFlex="50">
-        <mat-form-field style="width: 90%">
-            <mat-label>Creado Por</mat-label>
-            <input
-                type="text"
-                matInput
-                [formControl]="usuarioControl"
-                autocomplete="off"
-            />
-            </mat-form-field>
-        </div>
-      </div>
-      <br />
-      <div fxFlex fxLayout="row">
-        <div fxFlex="50%" style="text-align: center">
-          <button
-            style="width: 70%"
-            mat-raised-button
-            color="accent"
-            [disabled]="!descripcionControl.valid"
-            (click)="onSave()"
-            type="button"
-          >
-            Guardar
-          </button>
-        </div>
-        <div fxFlex="50%" style="text-align: center">
-          <button
-            style="width: 70%"
-            mat-raised-button
-            color="primary"
-            (click)="onCancel()"
-            type="button"
-          >
-            Cancelar
-          </button>
-        </div>
-      </div>
+<div fxLayout="column" fxLayoutAlign="start" style="padding: 10px">
+  <div fxFlex style="width: 100%; text-align: center">
+    <h3 *ngIf="selectedMaletin?.id != null">Editar Maletin</h3>
+    <h3 *ngIf="selectedMaletin?.id == null">Nuevo Maletin</h3>
+  </div>
+  <div fxFlex fxLayout="row" fxLayoutAlign="start center">
+    <div fxFlex="10%">
+      <mat-form-field style="width: 90%">
+        <mat-label>Id</mat-label>
+        <input
+          type="text"
+          matInput
+          [formControl]="idControl"
+          autocomplete="off"
+          oninput="this.value == ' ' ? this.value = '': null"
+        />
+      </mat-form-field>
+    </div>
+    <div fxFlex="50%">
+      <mat-form-field style="width: 90%">
+        <mat-label>código</mat-label>
+        <input
+          type="text"
+          matInput
+          [formControl]="descripcionControl"
+          autocomplete="off"
+          oninput="this.value == ' ' ? this.value = '': null"
+        />
+      </mat-form-field>
+    </div>
+    <div fxFlex="20%">
+      <section>
+        <mat-slide-toggle
+          color="primary"
+          [checked]="activoControl.value"
+          [formControl]="activoControl"
+        >
+          {{ activoControl.value ? "Activo" : "Inactivo" }}
+        </mat-slide-toggle>
+      </section>
+    </div>
+    <div fxFlex="20%">
+      <section>
+        <mat-slide-toggle
+          color="primary"
+          [checked]="abiertoControl.value"
+          [formControl]="abiertoControl"
+        >
+          {{ abiertoControl.value ? "Abierto" : "Cerrado" }}
+        </mat-slide-toggle>
+      </section>
+    </div>
+  </div>
+  <div fxFlex fxLayout="row">
+    <div fxFlex="50%">
+      <mat-form-field style="width: 90%">
+        <mat-label>Creado En</mat-label>
+        <input
+          type="text"
+          matInput
+          [formControl]="creadoEnControl"
+          autocomplete="off"
+        />
+      </mat-form-field>
+    </div>
+    <div fxFlex="50">
+      <mat-form-field style="width: 90%">
+        <mat-label>Creado Por</mat-label>
+        <input
+          type="text"
+          matInput
+          [formControl]="usuarioControl"
+          autocomplete="off"
+        />
+      </mat-form-field>
+    </div>
+  </div>
+  <br />
+  <div fxFlex fxLayout="row">
+    <div fxFlex="50%" style="text-align: center">
+      <button
+        style="width: 70%"
+        mat-raised-button
+        color="accent"
+        [disabled]="!descripcionControl.valid"
+        (click)="onSave()"
+        type="button"
+      >
+        Guardar
+      </button>
+    </div>
+    <div fxFlex="50%" style="text-align: center">
+      <button
+        style="width: 70%"
+        mat-raised-button
+        color="primary"
+        (click)="onCancel()"
+        type="button"
+      >
+        Cancelar
+      </button>
     </div>
   </div>
 </div>

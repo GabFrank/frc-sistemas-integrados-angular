@@ -1,0 +1,229 @@
+<app-generic-list
+  [data]="dataSource.data"
+  (cargarMasDatos)="cargarMasDatos()"
+  [isLastPage]="isLastPage || isSearching"
+  (filtrar)="onFiltrar()"
+  (resetFiltro)="resetFiltro()"
+  (adicionar)="onNewCliente()"
+  [isAdicionar]="true"
+>
+  <div filtros>
+    <div
+      fxLayout="row wrap"
+      fxLayoutAlign="start center"
+      fxLayoutGap="10px"
+      style="width: 100%"
+    >
+      <div fxFlex="40%">
+        <mat-form-field style="width: 90%">
+          <mat-label>Nombre, código o documento</mat-label>
+          <input
+            #buscar
+            type="text"
+            matInput
+            [formControl]="buscarControl"
+            (keyup.enter)="onFiltrar()"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%" >
+          <mat-label>Tipo</mat-label>
+          <mat-select [formControl]="tipoClienteControl" name="tipoCliente">
+            <mat-option [value]="null"> Todas </mat-option>
+            <mat-option *ngFor="let tipo of tipoClienteList" [value]="tipo">
+              {{ tipo | titlecase }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <!-- <div fxFlex="10">
+        <mat-checkbox
+          [formControl]="creditoControl"
+          labelPosition="before"
+          [indeterminate]="creditoControl.value == null"
+        >
+          Crédito
+        </mat-checkbox>
+      </div>
+
+      <div fxFlex="10" *ngIf="creditoControl.value == true">
+        <mat-checkbox
+          [formControl]="deudaControl"
+          labelPosition="before"
+          [indeterminate]="deudaControl.value == null"
+        >
+          Deuda
+        </mat-checkbox>
+      </div> -->
+    </div>
+  </div>
+  <div table>
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      multiTemplateDataRows
+      class="mat-elevation-z8"
+      style="width: 100%"
+    >
+      <ng-container matColumnDef="id" style="width: 5%">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 5%"
+        >
+          Id
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let cliente"
+          style="text-align: center; width: 5%"
+        >
+          {{ cliente?.id }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="tipo">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Tipo
+        </th>
+        <td mat-cell *matCellDef="let cliente" style="text-align: center">
+          {{ cliente?.tipo | enumToString }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="nombre">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Nombre
+        </th>
+        <td mat-cell *matCellDef="let cliente" style="text-align: center">
+          {{ cliente?.persona?.nombre | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="credito">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Crédito
+        </th>
+        <td mat-cell *matCellDef="let cliente" style="text-align: center">
+          {{ cliente?.credito | number : "1.0-0" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="saldo">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Saldo
+        </th>
+        <td mat-cell *matCellDef="let cliente" style="text-align: center">
+          {{ cliente?.saldo | number : "1.0-0" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="deuda">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Deuda
+        </th>
+        <td mat-cell *matCellDef="let cliente" style="text-align: center">
+          {{ cliente?.credito - cliente?.saldo | number : "1.0-0" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="contactos">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Adicionales
+        </th>
+        <td mat-cell *matCellDef="let cliente" style="text-align: center"></td>
+      </ng-container>
+
+      <ng-container matColumnDef="telefono">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Teléfono
+        </th>
+        <td mat-cell *matCellDef="let cliente" style="text-align: center">
+          {{ cliente?.persona?.telefono }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="usuario">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Creado por
+        </th>
+        <td mat-cell *matCellDef="let cliente" style="text-align: center">
+          {{ cliente?.usuarioId?.nickname | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 5%; text-align: center"
+        >
+          ...
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let cliente; let i = index"
+          style="text-align: center; width: 5%"
+        >
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button
+              mat-menu-item
+              (click)="onEditCliente(cliente, i)"
+              *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)"
+            >
+              Editar
+            </button>
+            <button
+              mat-menu-item
+              (click)="onVerMovimiento(cliente, i)"
+              *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)"
+            >
+              Ver movimientos
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <mat-divider></mat-divider>
+
+      <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let cliente"
+          [attr.colspan]="displayedColumns.length"
+          class="expanded"
+        >
+          <div
+            class="example-cliente-detail"
+            [@detailExpand]="
+              cliente == expandedCliente ? 'expanded' : 'collapsed'
+            "
+            style="text-align: center"
+            fxLayout="column"
+            fxLayoutAlign="start start"
+          ></div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: ['expandedDetail']"
+        class="example-detail-row"
+      ></tr>
+    </table>
+  </div>
+</app-generic-list>

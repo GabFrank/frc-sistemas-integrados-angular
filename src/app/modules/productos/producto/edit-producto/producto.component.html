@@ -5,6 +5,7 @@
 >
   <div fxFlex="20" *ngIf="!isDialog">
     <mat-card
+      appearance="outlined"
       fxLayout="column"
       fxLayoutGap="10px"
       style="width: 100%; height: 100%"
@@ -141,6 +142,7 @@
               style="padding-bottom: 10px; width: 200px; height: 200px"
             >
               <mat-card
+                appearance="outlined"
                 [class]="
                   selectedFamilia?.id == item?.id
                     ? 'seleccionado'
@@ -188,6 +190,7 @@
               style="padding-bottom: 10px; width: 200px; height: 200px"
             >
               <mat-card
+                appearance="outlined"
                 style="height: 100%; text-align: center"
                 fxLayout="column"
                 fxLayoutAlign="center center"
@@ -243,6 +246,7 @@
               style="padding-bottom: 10px"
             >
               <mat-card
+                appearance="outlined"
                 [class]="
                   selectedSubfamilia?.id == item?.id
                     ? 'seleccionado'
@@ -270,6 +274,7 @@
             </div>
             <div fxFlex="15" style="padding-bottom: 10px">
               <mat-card
+                appearance="outlined"
                 style="height: 100%; text-align: center"
                 fxLayout="column"
                 fxLayoutAlign="center center"
@@ -833,7 +838,7 @@
                     style="width: 100%; padding-bottom: 20px"
                     fxLayoutGap="20px"
                   >
-                    <mat-card fxFlex="40%">
+                    <mat-card appearance="outlined" fxFlex="40%">
                       <div style="text-align: center">
                         <h4>Códigos</h4>
                       </div>
@@ -932,7 +937,7 @@
                         </button>
                       </div>
                     </mat-card>
-                    <mat-card fxFlex="40%">
+                    <mat-card appearance="outlined" fxFlex="40%">
                       <div style="text-align: center">
                         <h4>Precios</h4>
                       </div>
@@ -1025,7 +1030,7 @@
                         </button>
                       </div>
                     </mat-card>
-                    <mat-card>
+                    <mat-card appearance="outlined">
                       <div style="text-align: center">
                         <h4>Imagen</h4>
                       </div>

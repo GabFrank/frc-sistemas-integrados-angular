@@ -1,135 +1,202 @@
-<div fxLayout="column" style="width: 100%;" [style.height.px]="containerHeight">
-    <div fxLayout="column" fxFlex="20">
-        <div fxFlex="15%" style="width: 100%; text-align: center;">
-            <h3>Maletines</h3>
-        </div>
-        <mat-card fxLayout="row" fxFlex="85%" style="width: 100%; background-color: rgb(32, 32, 32);">
-            <div fxFlex="90%"> 
-                <div fxLayout="row" fxFlex>
-                    
-                </div>
-            </div>
-            <div fxFlex="10%" fxLayout="column" fxLayoutAlign="start space-between" style="height: 100%;">
-                <div fxFlex="33" >
-                    <button mat-raised-button color="primary" (click)="onFiltrar()" style="width: 100%;">Filtrar</button>
-                </div>
-                <div fxFlex="33">
-                    <button mat-raised-button color="primary" (click)="onFiltrar()" style="width: 100%;">Limpiar Filtro</button>
-                </div>
-                <div fxFlex="33">
-                    <button mat-raised-button color="primary" (click)="onAdd()" style="width: 100%;">+ Adicionar</button>
-                </div>
-            </div>
-        </mat-card>
-    </div>
-    <div fxFlex="80" >
-        <div [style.height.px]="tableHeight" style="overflow-y: auto">
-          <table
-            mat-table
-            [dataSource]="dataSource"
-            multiTemplateDataRows
-            class="mat-elevation-z8"
-            style="width: 100%;"
-          >
-            <ng-container matColumnDef="id" style="width: 5%;">
-              <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%;">Id</th>
-              <td mat-cell *matCellDef="let maletin" style="text-align: center;  width: 5%;">{{ maletin.id }}</td>
-            </ng-container>
-    
-            <!-- Name Column -->
-            <ng-container matColumnDef="descripcion">
-              <th mat-header-cell *matHeaderCellDef style="text-align: center;  width: 20%;">Código</th>
-              <td mat-cell *matCellDef="let maletin" style="text-align: center;  width: 20%;">
-                {{ maletin?.descripcion | uppercase }}
-              </td>
-            </ng-container>
+<app-generic-list
+  [data]="dataSource.data"
+  (cargarMasDatos)="cargarMasDatos()"
+  [isLastPage]="isLastPage || isSearching"
+  (filtrar)="onFiltrar()"
+  (resetFiltro)="resetFiltro()"
+>
+  <div filtros></div>
+  <div table>
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      multiTemplateDataRows
+      class="mat-elevation-z8"
+      style="width: 100%"
+    >
+      <ng-container matColumnDef="id" style="width: 5%">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 5%"
+        >
+          Id
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let maletin"
+          style="text-align: center; width: 5%"
+        >
+          {{ maletin.id }}
+        </td>
+      </ng-container>
 
-            <ng-container matColumnDef="sucursalActual">
-              <th mat-header-cell *matHeaderCellDef style="text-align: center;  width: 20%;">Sucursal</th>
-              <td mat-cell *matCellDef="let maletin" style="text-align: center;  width: 20%;">
-                {{ maletin?.cajaActual?.sucursal?.nombre | titlecase }}
-              </td>
-            </ng-container>
-    
-            <ng-container matColumnDef="activo">
-              <th mat-header-cell *matHeaderCellDef style="text-align: center;  width: 20%;">Abierto</th>
-              <td mat-cell *matCellDef="let maletin" style="text-align: center;  width: 20%;">
-                {{ maletin?.abierto == true ? 'Si' : 'No' }}
-              </td>
-            </ng-container>
-    
-            <ng-container matColumnDef="creadoEn">
-              <th mat-header-cell *matHeaderCellDef style="text-align: center;  width: 15%;">Últ. movimiento</th>
-              <td mat-cell *matCellDef="let maletin" style="text-align: center;  width: 15%;">
-                {{ maletin?.cajaActual?.fechaCierre != null ? maletin?.cajaActual?.fechaCierre : maletin?.cajaActual?.fechaApertura | date: 'short' }}
-              </td>
-            </ng-container>
-    
-            <ng-container matColumnDef="usuario">
-              <th mat-header-cell *matHeaderCellDef style="text-align: center;  width: 20%;">Últ. responsable</th>
-              <td mat-cell *matCellDef="let maletin" style="text-align: center;  width: 20%;">
-                {{ maletin?.cajaActual?.usuario?.persona?.nombre | uppercase }}
-              </td>
-            </ng-container>
-    
-            <ng-container matColumnDef="acciones">
-              <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center;">...</th>
-              <td mat-cell *matCellDef="let maletin;let i = dataIndex" style="text-align: center; width: 5%">
-                <button
-                  mat-icon-button
-                  [matMenuTriggerFor]="menu"
-                  (click)="$event.stopPropagation()"
-                >
-                  <mat-icon>more_vert</mat-icon>
-                </button>
-                <mat-menu #menu="matMenu">
-                  <button mat-menu-item (click)="onAdd(maletin, i)">
-                    Editar
-                  </button>
-                </mat-menu>
-              </td>
-            </ng-container>
-    
-            <mat-divider></mat-divider>
-    
-            <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
-            <ng-container matColumnDef="expandedDetail">
-              <td
-                mat-cell
-                *matCellDef="let maletin"
-                [attr.colspan]="displayedColumns.length"
-                class="expanded"
-              >
-                <div
-                  class="example-maletin-detail"
-                  [@detailExpand]="
-                    maletin == expandedMaletin ? 'expanded' : 'collapsed'
-                  "
-                  style="text-align: center"
-                  fxLayout="column"
-                  fxLayoutAlign="start start"
-                ></div>
-              </td>
-            </ng-container>
-    
-            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-            <tr
-              mat-row
-              *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
-            ></tr>
-            <tr
-              mat-row
-              *matRowDef="let row; columns: ['expandedDetail']"
-              class="example-detail-row"
-            ></tr>
-          </table>
-          <mat-paginator #paginator [length]="resultsLength" [pageSizeOptions]="[10, 25, 100]"></mat-paginator>
-          <!-- <br />
-          <div style="text-align: center">
-            <button mat-fab color="primary">
-              <mat-icon>add</mat-icon>
-            </button>
-          </div> -->
-        </div>
-      </div>
-</div>
+      <!-- Name Column -->
+      <ng-container matColumnDef="descripcion">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 20%"
+        >
+          Código
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let maletin"
+          style="text-align: center; width: 20%"
+        >
+          {{ maletin?.descripcion | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="sucursalActual">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 20%"
+        >
+          Sucursal
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let maletin"
+          style="text-align: center; width: 20%"
+        >
+          {{ maletin?.cajaActual?.sucursal?.nombre | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="cajaActual">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Caja actual
+        </th>
+        <td mat-cell *matCellDef="let maletin" style="text-align: center">
+          <span>{{ maletin?.cajaActual?.id }}</span>
+          <button
+            mat-icon-button
+            matTooltip="Ir a caja"
+            (click)="onIrACaja(maletin?.cajaActual)"
+          >
+            <mat-icon style="color: rgb(0, 128, 255); font-size: 0.9em"
+              >launch</mat-icon
+            >
+          </button>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="activo">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 20%"
+        >
+          Abierto
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let maletin"
+          style="text-align: center; width: 20%"
+        >
+          {{ maletin?.abierto == true ? "Si" : "No" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="creadoEn">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 15%"
+        >
+          Últ. movimiento
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let maletin"
+          style="text-align: center; width: 15%"
+        >
+          {{
+            maletin?.cajaActual?.fechaCierre != null
+              ? maletin?.cajaActual?.fechaCierre
+              : (maletin?.cajaActual?.fechaApertura | date : "short")
+          }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="usuario">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 20%"
+        >
+          Últ. responsable
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let maletin"
+          style="text-align: center; width: 20%"
+        >
+          {{ maletin?.cajaActual?.usuario?.persona?.nombre | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 5%; text-align: center"
+        >
+          ...
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let maletin; let i = dataIndex"
+          style="text-align: center; width: 5%"
+        >
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onAdd(maletin, i)">Editar</button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <mat-divider></mat-divider>
+
+      <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+      <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let maletin"
+          [attr.colspan]="displayedColumns.length"
+          class="expanded"
+        >
+          <div
+            class="example-maletin-detail"
+            [@detailExpand]="
+              maletin == expandedMaletin ? 'expanded' : 'collapsed'
+            "
+            style="text-align: center"
+            fxLayout="column"
+            fxLayoutAlign="start start"
+          ></div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+      ></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: ['expandedDetail']"
+        class="example-detail-row"
+      ></tr>
+    </table>
+  </div>
+</app-generic-list>

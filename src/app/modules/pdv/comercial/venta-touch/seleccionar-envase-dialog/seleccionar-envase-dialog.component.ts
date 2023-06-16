@@ -33,8 +33,6 @@ export class SeleccionarEnvaseDialogComponent implements OnInit {
     if (data.envase != null) {
       productoService.onGetProductoPorId(data.envase.id).pipe(untilDestroyed(this)).subscribe((res) => {
         if (res != null) {
-          console.log(res);
-          
           this.selectedEnvase = res;
         }
       });

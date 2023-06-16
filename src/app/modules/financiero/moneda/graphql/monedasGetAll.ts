@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
 import { Moneda } from '../moneda.model';
-import { monedaQuery, monedasQuery } from './graphql-query';
+import { monedasQuery } from './graphql-query';
 
 export interface Response {
   data: Moneda[];

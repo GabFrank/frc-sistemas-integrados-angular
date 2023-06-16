@@ -40,6 +40,7 @@ export const personasSearch = gql`
       telefono
       socialMedia
       creadoEn
+      email
       usuario {
         id
         persona {

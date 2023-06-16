@@ -9,10 +9,10 @@ export class NecesidadItem {
   producto: Producto;
   autogenerado: boolean
   cantidadSugerida: number;
-  modificado: Boolean
+  modificado: boolean
   cantidad: number;
-  frio: Boolean
-  observacion: String
+  frio: boolean
+  observacion: string
   estado: NecesidadItemEstado;
   creadoEn: Date
   usuario: Usuario;

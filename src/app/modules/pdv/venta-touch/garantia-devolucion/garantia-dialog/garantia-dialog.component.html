@@ -40,7 +40,7 @@
     <div fxFlex style="width: 100%; text-align: center">
       <h3>Devolución de envases</h3>
     </div>
-    <mat-card fxFlex="45%" style="background-color: rgb(32, 32, 32)">
+    <mat-card appearance="outlined" fxFlex="45%" style="background-color: rgb(32, 32, 32)">
       <h4>Envases disponibles</h4>
       <table style="width: 100%" mat-table [dataSource]="dataSource">
         <!--- Note that these columns can be defined in any order.
@@ -147,7 +147,7 @@
         <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
       </table>
     </mat-card>
-    <mat-card fxFlex="45%" style="background-color: rgb(32, 32, 32)">
+    <mat-card appearance="outlined" fxFlex="45%" style="background-color: rgb(32, 32, 32)">
       <h4>Envases a devolver</h4>
       <table style="width: 100%" mat-table [dataSource]="addedDataSource">
         <!--- Note that these columns can be defined in any order.

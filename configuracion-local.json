@@ -10,7 +10,7 @@
     "factura": "factura"
   },
   "local": "Caja 1",
-  "precios": "EXPO",
+  "precios": "EXPO, EXPO-DEPOSITO",
   "modo": "NOT",
   "pdvId": 1
 }

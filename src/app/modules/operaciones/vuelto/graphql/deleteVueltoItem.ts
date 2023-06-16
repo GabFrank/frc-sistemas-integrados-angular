@@ -5,6 +5,6 @@ import { deleteVueltoItemQuery } from './graphql-query';
 @Injectable({
   providedIn: 'root',
 })
-export class DeleteVueltoItemGQL extends Mutation<Boolean> {
+export class DeleteVueltoItemGQL extends Mutation<boolean> {
   document = deleteVueltoItemQuery;
 }

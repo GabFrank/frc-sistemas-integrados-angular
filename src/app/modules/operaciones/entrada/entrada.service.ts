@@ -152,7 +152,6 @@ export class EntradaService {
             if (res.errors == null) {
               obs.next(res.data);
             } else {
-              console.log(res.errors[0].message);
               this.notificacionService.notification$.next({
                 texto: "Ups!, algo salio mal: " + res.errors[0].message,
                 duracion: 3,
@@ -195,7 +194,6 @@ export class EntradaService {
           obs.next(true)
         } else {
           obs.next(false)
-          console.log(res.errors[0].message)
         }
       })
     })

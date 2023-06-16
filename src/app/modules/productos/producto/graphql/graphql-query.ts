@@ -55,7 +55,7 @@ export const productosExistenciaCostoQuery = gql`
     data: productos {
       id
       descripcion
-      
+
     }
   }
 `;
@@ -64,14 +64,14 @@ export const productosExistenciaCostoSearch = gql`
   query ($texto: String) {
     data: productoSearch(texto: $texto) {
       id
-      
+
     }
   }
 `;
 
 export const productoSearchPdv = gql`
-  query ($texto: String, $offset: Int, $isEnvase: Boolean) {
-    data: productoSearch(texto: $texto, offset: $offset, isEnvase: $isEnvase) {
+  query ($texto: String, $offset: Int, $isEnvase: Boolean, $activo: Boolean) {
+    data: productoSearch(texto: $texto, offset: $offset, isEnvase: $isEnvase, activo: $activo) {
       id
       balanza
       descripcion
@@ -332,6 +332,7 @@ export const productoQuery = gql`
         descripcion
         principal
         cantidad
+        activo
         codigos {
           id
           codigo
@@ -499,7 +500,7 @@ export const productoParaPedidoQuery = gql`
         ultimoPrecioCompra
         ultimoPrecioVenta
         costoMedio
-        moneda { 
+        moneda {
           id
           denominacion
           cambio
@@ -567,5 +568,18 @@ export const findByPdvGrupoProductoQuery = gql`
         }
       }
     }
+  }
+`;
+
+export const lucroPorProductoQuery = gql`
+  query lucroPorProducto($fechaInicio: String, $fechaFin: String, $sucursalIdList: [Int], $usuarioId: ID!, $usuarioIdList:[ID], $productoIdList:[ID]) {
+    data: lucroPorProducto(
+      fechaInicio: $fechaInicio,
+      fechaFin: $fechaFin,
+      sucursalIdList: $sucursalIdList,
+      usuarioId: $usuarioId,
+      usuarioIdList: $usuarioIdList,
+      productoIdList: $productoIdList
+      )
   }
 `;

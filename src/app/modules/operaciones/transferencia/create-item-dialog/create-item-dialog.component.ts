@@ -78,7 +78,6 @@ export class CreateItemDialogComponent implements OnInit {
 
     setTimeout(() => {
       this.cantidadInput.nativeElement.select()
-      console.log(this.cantidadInput)
     }, 500);
   }
 

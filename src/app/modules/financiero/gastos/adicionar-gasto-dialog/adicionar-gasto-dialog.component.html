@@ -4,7 +4,7 @@
     fxLayout="column"
     fxLayoutGap="10px"
     fxLayoutAlign="space-between start"
-    style="background-color: rgb(32, 32, 32); height: auto"
+    style="background-color: rgb(32, 32, 32); height: auto; padding: 10px"
   >
     <div
       fxFlex
@@ -33,7 +33,7 @@
       <br />
     </div>
     <button
-      style="width: 100%"
+      style="width: 100%; margin: 10px"
       color="primary"
       mat-raised-button
       (click)="goTo('salir')"
@@ -148,7 +148,11 @@
           <mat-card
             fxFlex="50%"
             fxLayout="column"
-            style="width: 100%; background-color: rgb(32, 32, 32)"
+            style="
+              width: 100%;
+              background-color: rgb(32, 32, 32);
+              padding: 10px;
+            "
           >
             <div style="text-align: center">Retirado</div>
             <div fxFlex>
@@ -197,7 +201,11 @@
           <mat-card
             fxFlex="50%"
             fxLayout="column"
-            style="width: 100%; background-color: rgb(32, 32, 32)"
+            style="
+              width: 100%;
+              background-color: rgb(32, 32, 32);
+              padding: 10px;
+            "
           >
             <div style="text-align: center">Vuelto</div>
             <div fxFlex>
@@ -240,7 +248,7 @@
           </mat-card>
         </div>
         <br />
-        <div fxFlex>
+        <div style="height: 35px">
           <app-boton
             #guardarBtn
             (clickEvent)="isVuelto != true ? onGuardar() : onSaveVuelto()"
@@ -255,7 +263,7 @@
           </app-boton>
         </div>
         <br />
-        <div fxFlex>
+        <div style="height: 35px">
           <button
             style="width: 100%; height: 100%; font-size: 1.2em"
             mat-raised-button

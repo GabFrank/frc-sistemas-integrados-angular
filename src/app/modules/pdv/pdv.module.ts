@@ -1,6 +1,6 @@
 import { CommonModule } from "@angular/common";
 import { NgModule } from "@angular/core";
-import { FlexLayoutModule } from "@angular/flex-layout";
+import { FlexLayoutModule } from "ngx-flexible-layout";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { BootstrapModule } from "../../commons/core/bootstrap.module";
 import { MaterialModule } from "../../commons/core/material.module";
@@ -35,6 +35,8 @@ import { GarantiaDevolucionDialogComponent } from './venta-touch/garantia-devolu
 import { DevolucionDialogComponent } from './venta-touch/garantia-devolucion/devolucion-dialog/devolucion-dialog.component';
 import { EditCantidadEnvasesDialogComponent } from './venta-touch/garantia-devolucion/garantia-dialog/edit-cantidad-envases-dialog/edit-cantidad-envases-dialog.component';
 import { GarantiaDialogComponent } from './venta-touch/garantia-devolucion/garantia-dialog/garantia-dialog.component';
+import { Ng2FittextModule } from "ng2-fittext";
+import { DynamicFontSizeDirective } from "../../shared/directives/dynamic-font-size.directive";
 
 @NgModule({
   declarations: [
@@ -69,6 +71,7 @@ import { GarantiaDialogComponent } from './venta-touch/garantia-devolucion/garan
     ListDeliveryComponent,
     DeliveryOpcionesDialogComponent,
     EditDeliveryDialogComponent,
+    DynamicFontSizeDirective
   ],
   imports: [
     CommonModule,
@@ -77,7 +80,8 @@ import { GarantiaDialogComponent } from './venta-touch/garantia-devolucion/garan
     FormsModule,
     MaterialModule,
     SharedModule,
-    BootstrapModule
+    BootstrapModule,
+    Ng2FittextModule
   ],
 })
 export class PdvModule {}

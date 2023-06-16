@@ -40,7 +40,6 @@ export class ReportesComponent implements OnInit, OnDestroy {
   onSelectReporte(reporte: ReporteData, i) {
     this.selectedReporte = reporte;
     this.reporteList[i].currentPage = this.currentPage;
-    console.log(this.reporteList);
   }
 
   onClose(i) {

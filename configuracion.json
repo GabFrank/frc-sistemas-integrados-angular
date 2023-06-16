@@ -1,71 +1,107 @@
 {
-    "repositoryUrl": "https://github.com/GabFrank/franco-system-frontend-general.git",
-    "sucursales": [
-        {
-            "id": 0,
-            "nombre": "Servidor",
-            "ip": "150.136.137.98",
-            "port": "8081"
-        },
-        {
-            "id": 1,
-            "nombre": "Central",
-            "ip": "172.25.0.10",
-            "port": "8082"
-        },
-        {
-            "id": 6,
-            "nombre": "Calle 10",
-            "ip": "172.25.0.190",
-            "port": "8082"
-        },
-        {
-            "id": 10,
-            "nombre": "Katuete 2",
-            "ip": "172.25.0.3",
-            "port": "8082"
-        },
-        {
-            "id": 11,
-            "nombre": "Puente Kyjha 1",
-            "ip": "172.25.0.21",
-            "port": "8082"
-        },
-        {
-            "id": 13,
-            "nombre": "Deposito Acuario",
-            "ip": "172.25.0.11",
-            "port": "8082"
-        },
-        {
-            "id": 4,
-            "nombre": "Suc. Industrial",
-            "ip": "172.25.106.87",
-            "port": "8082"
-        },
-        {
-            "id": 14,
-            "nombre": "Suc. Canindeyu",
-            "ip": "172.25.164.10",
-            "port": "8082"
-        },
-        {
-            "id": 15,
-            "nombre": "Suc. San Pedro",
-            "ip": "172.25.0.60",
-            "port": "8082"
-        },
-        {
-            "id": 0,
-            "nombre": "Farmacia",
-            "ip": "158.101.114.87",
-            "port": "8081"
-        },
-        {
-            "id": 2,
-            "nombre": "Farmacia Calle 10",
-            "ip": "192.168.100.243",
-            "port": "8082"
-        }
-    ]
+  "repositoryUrl": "https://github.com/GabFrank/franco-system-frontend-general.git",
+  "sucursales": [
+    {
+      "id": 0,
+      "nombre": "Servidor",
+      "ip": "150.136.137.98",
+      "port": "8081"
+    },
+    {
+      "id": 1,
+      "nombre": "Central",
+      "ip": "172.25.0.2",
+      "port": "8082"
+    },
+    {
+      "id": 3,
+      "nombre": "Rotonda",
+      "ip": "172.25.0.23",
+      "port": "8082"
+    },
+    {
+      "id": 5,
+      "nombre": "Km5",
+      "ip": "172.25.0.5",
+      "port": "8082"
+    },
+    {
+      "id": 6,
+      "nombre": "Calle 10",
+      "ip": "172.25.0.190",
+      "port": "8082"
+    },
+    {
+      "id": 4,
+      "nombre": "Suc. Industrial",
+      "ip": "172.25.106.87",
+      "port": "8082"
+    },
+    {
+      "id": 7,
+      "nombre": "Suc. Katuete 1",
+      "ip": "172.25.0.7",
+      "port": "8082"
+    },
+    {
+      "id": 8,
+      "nombre": "Suc. Paloma",
+      "ip": "172.25.0.8",
+      "port": "8082"
+    },
+    {
+      "id": 9,
+      "nombre": "Suc. NE San Antonio",
+      "ip": "172.25.0.9",
+      "port": "8082"
+    },
+    {
+      "id": 10,
+      "nombre": "Katuete 2",
+      "ip": "172.25.0.3",
+      "port": "8082"
+    },
+    {
+      "id": 11,
+      "nombre": "Puente Kyjha",
+      "ip": "172.25.0.21",
+      "port": "8082"
+    },
+    {
+      "id": 12,
+      "nombre": "Suc. NE Centro",
+      "ip": "172.25.0.12",
+      "port": "8082"
+    },
+    {
+      "id": 13,
+      "nombre": "Deposito Acuario",
+      "ip": "172.25.0.11",
+      "port": "8082"
+    },
+    {
+      "id": 14,
+      "nombre": "Suc. Canindeyu",
+      "ip": "172.25.164.10",
+      "port": "8082"
+    },
+    {
+      "id": 15,
+      "nombre": "Suc. San Pedro",
+      "ip": "172.25.0.60",
+      "port": "8082"
+    },
+    {
+      "id": 0,
+      "nombre": "Farmacia",
+      "ip": "158.101.114.87",
+      "port": "8081"
+    },
+    {
+      "id": 2,
+      "nombre": "Farmacia Calle 10",
+      "ip": "192.168.100.243",
+      "port": "8082"
+    }
+  ]
 }

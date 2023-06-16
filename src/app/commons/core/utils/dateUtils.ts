@@ -20,3 +20,15 @@ export const mask = {
     showMask : true,
     mask: [/\d/, /\d/, '/', /\d/, /\d/, '/',/\d/, /\d/,/\d/, /\d/]
 };
+
+export function combineDateTime(date: Date, time: string): Date {
+    const timeParts = time.split(':');
+    const hours = parseInt(timeParts[0]);
+    const minutes = parseInt(timeParts[1]);
+  
+    const combinedDate = new Date(date);
+    combinedDate.setHours(hours);
+    combinedDate.setMinutes(minutes);
+  
+    return combinedDate;
+  }

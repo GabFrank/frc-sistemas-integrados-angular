@@ -45,3 +45,14 @@ function eliminarNoDigitos(ruc: string): string {
     }
     return toRet;
 }
+
+export function removeSecondDigito(ruc: string): string {
+  if (ruc != null && ruc.includes('-')) {
+      let aux = ruc.replace('-', '');
+      if(aux.includes('-')){
+          return ruc.substring(0, ruc.length - 2)
+      }
+  } else {
+      return ruc;
+  }
+}

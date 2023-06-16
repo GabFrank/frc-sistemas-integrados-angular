@@ -5,7 +5,7 @@ export class Zona {
     id: number;
     sector: Sector;
     descripcion: string;
-    activo: number;
+    activo: boolean;
     usuario: Usuario;
     creadoEn: Date;
 
@@ -24,7 +24,7 @@ export class ZonaInput {
     id: number;
     sectorId: number;
     descripcion: string;
-    activo: number;
+    activo: boolean;
     usuarioId: number;
     creadoEn: Date;
 }

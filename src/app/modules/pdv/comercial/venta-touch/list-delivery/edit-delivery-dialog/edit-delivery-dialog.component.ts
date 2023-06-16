@@ -21,6 +21,7 @@ import { Cliente } from '../../../../../personas/clientes/cliente.model';
 import { ClienteService } from '../../../../../personas/clientes/cliente.service';
 import { DescuentoDialogData, DescuentoDialogComponent } from '../../pago-touch/descuento-dialog/descuento-dialog.component';
 import { VentaService } from '../../../../../operaciones/venta/venta.service';
+import { Venta } from '../../../../../operaciones/venta/venta.model';
 
 export interface EditDeliveryDialogData {
   delivery: Delivery;
@@ -577,12 +578,10 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   }
 
   onDeleteItem(item: CobroDetalle, i) {
-    console.log(item);
     if (item?.id != null) {
       this.ventaService.onDeleteCobroDetalle(item.id, item.sucursalId).subscribe(res => {
         if (res) {
           this.valorParcialPagado -= item.valor * item.moneda.cambio;
-          console.log(this.selectedDelivery.venta.valorTotal, this.selectedPrecio.valor, this.valorParcialPagado);
 
           this.saldoControl.setValue(
             ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado)
@@ -607,7 +606,6 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
       })
     } else {
       this.valorParcialPagado -= item.valor * item.moneda.cambio;
-      console.log(this.selectedDelivery.venta.valorTotal, this.selectedPrecio.valor, this.valorParcialPagado);
 
       this.saldoControl.setValue(
         ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado)
@@ -635,18 +633,22 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   onGuardar() {
     if (this.telefonoControl.valid) {
       let delivery = new Delivery()
+      let venta = new Venta()
+      let cobro = new Cobro()
       if (this.data.delivery != null) Object.assign(delivery, this.data?.delivery)
+      if (delivery?.venta != null) Object.assign(venta, delivery.venta)
+      if (venta?.cobro != null) Object.assign(cobro, venta.cobro)
       delivery.telefono = this.telefonoControl.value;
       delivery.precio = this.selectedPrecio;
       delivery.direccion = this.direccionControl.value;
-      delivery.venta.cliente = this.selectedCliente;
+      venta.cliente = this.selectedCliente;
 
       if (delivery?.venta?.cobro == null) {
-        delivery.venta.cobro = new Cobro()
-        delivery.venta.cobro.cobroDetalleList = this.cobroItemList;
+        cobro = new Cobro()
+        cobro.cobroDetalleList = this.cobroItemList;
       }
 
-      this.deliveryService.onSaveDeliveryAndVenta(delivery.toInput(), delivery?.venta?.toInput(), delivery?.venta?.toItemInputList(), delivery?.venta?.cobro.toInput(), delivery?.venta?.cobro.toItemInputList()).subscribe(res => {
+      this.deliveryService.onSaveDeliveryAndVenta(delivery.toInput(), venta?.toInput(), venta?.toItemInputList(), cobro?.toInput(), cobro?.toItemInputList()).subscribe(res => {
         if (res != null) {
           delivery.id = res.id;
           delivery.venta = res.venta;

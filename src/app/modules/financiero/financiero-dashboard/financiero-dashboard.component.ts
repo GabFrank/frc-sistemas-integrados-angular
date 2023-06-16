@@ -9,6 +9,8 @@ import { MatDialog } from "@angular/material/dialog";
 import { MainService } from "../../../main.service";
 import { ROLES } from "../../personas/roles/roles.enum";
 import { NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
+import { ListRetiroComponent } from "../retiro/list-retiro/list-retiro.component";
+import { ListGastosComponent } from "../gastos/list-gastos/list-gastos.component";
 
 interface FinancieroItemDashboard {
   titulo: string;
@@ -42,6 +44,30 @@ export class FinancieroDashboardComponent implements OnInit {
       )
     ) {
       this.tabService.addTab(new Tab(ListFacturaLegalComponent, 'Lista de facturas', null, FinancieroDashboardComponent))
+    } else {
+      this.notificacionService.openWarn('No tenés acceso a esta opción. ')
+    }
+  }
+
+  onListRetiros() {
+    if (
+      this.mainService.usuarioActual?.roles.includes(
+        ROLES.ANALISIS_CONTABLE
+      )
+    ) {
+      this.tabService.addTab(new Tab(ListRetiroComponent, 'Lista de retiros', null, FinancieroDashboardComponent))
+    } else {
+      this.notificacionService.openWarn('No tenés acceso a esta opción. ')
+    }
+  }
+
+  onListGastos() {
+    if (
+      this.mainService.usuarioActual?.roles.includes(
+        ROLES.ANALISIS_CONTABLE
+      )
+    ) {
+      this.tabService.addTab(new Tab(ListGastosComponent, 'Lista de gastos', null, FinancieroDashboardComponent))
     } else {
       this.notificacionService.openWarn('No tenés acceso a esta opción. ')
     }

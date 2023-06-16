@@ -1,4 +1,4 @@
-import { Injectable } from "@angular/core";
+import { Injectable, Input } from "@angular/core";
 import { Observable } from "rxjs";
 import { MainService } from "../../../main.service";
 import {
@@ -14,12 +14,15 @@ import { environment } from "../../../../environments/environment";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { RetiroPorCajaSalidaIdGQL } from "./graphql/retiroPorCajaSalidaId";
 import { ReimprimirRetiroGQL } from "./graphql/reimprimirRetiro";
+import { FilterRetirosGQL } from "./graphql/filterRetiros";
+import { Tab } from "../../../layouts/tab/tab.model";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
 export class RetiroService {
+
   constructor(
     private saveRetiro: SaveRetiroGQL,
     private notificacionBar: NotificacionSnackbarService,
@@ -27,20 +30,35 @@ export class RetiroService {
     private cargandoDialog: CargandoDialogService,
     private crudService: GenericCrudService,
     private retiroPorCajaId: RetiroPorCajaSalidaIdGQL,
-    private reimprimirRetiro: ReimprimirRetiroGQL
+    private reimprimirRetiro: ReimprimirRetiroGQL,
+    private filterRetiro: FilterRetirosGQL
   ) { }
 
   onGePorCajaSalidaId(id: number): Observable<Retiro[]> {
     return this.crudService.onGetById(this.retiroPorCajaId, id);
   }
 
-  onReimprimirRetiro(id: number, sucId?: number): Observable<Boolean> {
+  onReimprimirRetiro(id: number, sucId?: number): Observable<boolean> {
     if (sucId == null) {
       return this.crudService.onCustomQuery(this.reimprimirRetiro, {
         id, printerName: environment['printers']['ticket'],
         local: environment['local']
       })
     }
+  }
+
+  onFilterRetiro(id?: number, cajaId?: number, sucId?: number, responsableId?: number, cajeroId?: number, page?: number, size?: number): Observable<Retiro[]> {
+    return this.crudService.onCustomQuery(
+      this.filterRetiro, {
+      id,
+      cajaId,
+      sucId,
+      responsableId,
+      cajeroId,
+      page,
+      size
+    }, true
+    )
   }
 
   onSave(retiro: Retiro): Observable<any> {
@@ -78,7 +96,6 @@ export class RetiroService {
               color: NotificacionColor.danger,
               duracion: 5,
             });
-            console.log(res);
             obs.next(null);
           }
         });

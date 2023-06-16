@@ -78,8 +78,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
   observacionControl = new FormControl(null);
   activoControl = new FormControl(true);
   estadoControl = new FormControl(true);
-  fechaAperturaControl = new FormControl(true);
-  fechaCierreControl = new FormControl(true);
+  fechaAperturaControl = new FormControl();
+  fechaCierreControl = new FormControl();
   creadoEnControl = new FormControl();
   conteoAperturaControl = new FormControl();
   conteoCierreControl = new FormControl();
@@ -130,7 +130,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
           this.cargarDatos();
           this.deliveryService.onDeliveryPorCajaIdAndEstado(this.selectedCaja.id, [DeliveryEstado.ABIERTO, DeliveryEstado.EN_CAMINO, DeliveryEstado.PARA_ENTREGA]).subscribe((deliveryRes: Delivery[]) => {
             console.log(deliveryRes);
-            
+
             if (deliveryRes.length > 0) this.isDeliveryAbierto = true
           })
         }

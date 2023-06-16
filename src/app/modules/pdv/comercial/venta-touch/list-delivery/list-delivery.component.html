@@ -1,14 +1,15 @@
 <div
   fxLayout="row"
-  style="width: 100%; height: 100%; padding-bottom: 10px"
+  style="width: 100%; height: 100%; padding: 10px"
   fxLayoutGap="10px"
   fxLayoutAlign="center start"
   #container
 >
   <div fxFlex="70%" style="height: 100%">
     <div fxLayout="column" fxLayoutGap="10px" style="width: 100%; height: 100%">
-      <div style="font-size: 1.5em; text-align: center">Lista de deliverys</div>
+      <div fxFlex style="font-size: 1.5em; text-align: center">Lista de deliverys</div>
       <div
+        fxFlex
         fxLayout="row"
         style="width: 100%"
         fxLayoutGap="10px"
@@ -40,18 +41,18 @@
             </mat-select>
           </mat-form-field>
         </div>
-        <div fxFlex="10">
+        <div fxFlex="10" style="height: 100%;">
           <app-boton
             nombre="Buscar"
             (clickEvent)="onFiltrarDeliverys()"
           ></app-boton>
         </div>
       </div>
-      <div fxFlex="70%">
+      <div fxFlex="70%" style="height: 100%; overflow-y: auto;">
         <table
           mat-table
           [dataSource]="dataSource"
-          style="width: 100%; background-color: rgb(32, 32, 32)"
+          style="width: 100%; background-color: rgb(32, 32, 32);"
           #table
         >
           <!-- Position Column -->

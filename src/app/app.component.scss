@@ -1,29 +1,4 @@
-::ng-deep snack-bar-container.warn {
-  background: #f57c00 !important;
-  color: white !important;
-}
-
-::ng-deep snack-bar-container.success {
-  background: #43a047 !important;
-  color: white !important;
-}
-
-::ng-deep snack-bar-container.info {
-  background: #54c5f8 !important;
-  color: white !important;
-}
-
-::ng-deep snack-bar-container.neutral {
-  background: #757575 !important;
-  color: white !important;
-}
-
-::ng-deep snack-bar-container.danger {
-  background: #f44336 !important;
-  color: white !important;
-}
-
-::ng-deep .mat-simple-snackbar {
+::ng-deep .mat-mdc-simple-snack-bar {
   font-size: 150% !important;
   justify-content: center !important;
 }
@@ -48,13 +23,8 @@ input::-webkit-inner-spin-button {
   text-align: start;
 }
 
-::ng-deep .cdk-global-scrollblock{
+::ng-deep .cdk-global-scrollblock {
   position: static !important;
   width: initial !important;
   overflow-y: inherit !important;
 }
-
-
-
-
-

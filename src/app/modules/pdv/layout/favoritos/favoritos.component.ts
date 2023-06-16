@@ -78,6 +78,6 @@ export class FavoritosComponent implements OnInit {
   }
 
   actualizar() {
-    this.buscarPdvCategoria()
+    this.pdvCategoriaService.onRefresh()
   }
 }

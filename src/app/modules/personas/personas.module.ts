@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FlexLayoutModule } from '@angular/flex-layout';
+import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { ListPersonaComponent } from './persona/list-persona/list-persona.component';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { PersonaComponent } from './persona/persona/persona.component';
@@ -23,6 +23,8 @@ import { FuncionarioDashboardComponent } from './funcionarios/funcionario-dashbo
 import { PersonasDashboardComponent } from './personas-dashboard/personas-dashboard.component';
 import { AddClienteDialogComponent } from './clientes/add-cliente-dialog/add-cliente-dialog.component';
 import { AdicionarProveedorDialogComponent } from './proveedor/adicionar-proveedor-dialog/adicionar-proveedor-dialog.component';
+import { ClienteDashboardComponent } from './clientes/cliente-dashboard/cliente-dashboard.component';
+import { ListClientesComponent } from './clientes/list-clientes/list-clientes.component';
 
 
 @NgModule({
@@ -32,18 +34,20 @@ import { AdicionarProveedorDialogComponent } from './proveedor/adicionar-proveed
     PersonaDetalleDialogoComponent,
     BuscarPersonaDialogComponent,
     AdicionarPersonaDialogComponent,
-    UsuarioComponent, ListUsuarioComponent, 
+    UsuarioComponent, ListUsuarioComponent,
     AdicionarUsuarioDialogComponent,
-    EditProveedorComponent, 
+    EditProveedorComponent,
     ListProveedorComponent,
     ListFuncioarioComponent,
-    AdicionarFuncionarioDialogComponent, 
-    ListPreRegistroFuncionarioComponent, 
+    AdicionarFuncionarioDialogComponent,
+    ListPreRegistroFuncionarioComponent,
     FuncionarioWizardComponent,
     FuncionarioDashboardComponent,
     PersonasDashboardComponent,
     AddClienteDialogComponent,
-    AdicionarProveedorDialogComponent
+    AdicionarProveedorDialogComponent,
+    ClienteDashboardComponent,
+    ListClientesComponent
   ],
   imports: [
     CommonModule,
@@ -52,7 +56,7 @@ import { AdicionarProveedorDialogComponent } from './proveedor/adicionar-proveed
     FormsModule,
     MaterialModule,
     SharedModule
-  ], 
+  ],
   providers: [
     { provide: MAT_DIALOG_DATA, useValue: {} },
     { provide: MatDialogRef, useValue: {} }

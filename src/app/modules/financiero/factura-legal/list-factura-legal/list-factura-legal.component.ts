@@ -13,6 +13,7 @@ import { AddFacturaLegalDialogComponent } from '../add-factura-legal-dialog/add-
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 import { BdcWalkService, TaskList } from 'bdc-walkthrough';
+import { removeSecondDigito } from '../../../../commons/core/utils/rucUtils';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -86,17 +87,17 @@ export class ListFacturaLegalComponent implements OnInit {
     private cargandoService: CargandoDialogService,
     private matDialog: MatDialog,
     public bdcWalkService: BdcWalkService
-  ) { 
-    
+  ) {
+
   }
 
-  iniciarTutorial(){
+  iniciarTutorial() {
     this.bdcWalkService.disableAll(false)
     this.bdcWalkService.reset('factura')
     this.bdcWalkService.setTaskCompleted('inicio', 1)
   }
 
-  onFinalizar(){
+  onFinalizar() {
     this.bdcWalkService.reset('factura')
     this.bdcWalkService.disableAll(true)
   }
@@ -131,8 +132,6 @@ export class ListFacturaLegalComponent implements OnInit {
       let fechaFin = dateToString(this.fechaFinControl.value)
       this.facturaService.onGetAllFacturasLegales(fechaInicio, fechaFin, this.toSucursalesId(this.sucursalControl.value), this.rucControl.value != null ? `%${this.rucControl.value?.toUpperCase()}%` : null, this.nombreControl.value != null ? `%${this.nombreControl.value?.toUpperCase()}%` : null, this.iva5Control.value, this.iva10Control.value).subscribe(res => {
         this.dataSource.data = res;
-        console.log(res);
-
         res?.length > 0 ? this.calcularResumen() : null;
       })
     }
@@ -146,6 +145,7 @@ export class ListFacturaLegalComponent implements OnInit {
     this.totalEnGs = 0;
     this.dataSource.data?.forEach(f => {
       this.totalEnGs += f?.totalFinal;
+      f.ruc = removeSecondDigito(f.ruc)
     })
 
   }
@@ -216,7 +216,7 @@ export class ListFacturaLegalComponent implements OnInit {
     // }).afterClosed().subscribe(res => {
     //   if (res != null) {
     //     this.facturaItemDataSource.data = updateDataSource(this.facturaItemDataSource.data, res, i)
-    //     // this.dataSource.data = updateDataSource(this.dataSource.data, this.facturaItemDataSource.data, i)       
+    //     // this.dataSource.data = updateDataSource(this.dataSource.data, this.facturaItemDataSource.data, i)
     //   }
     // })
   }
@@ -231,7 +231,7 @@ export class ListFacturaLegalComponent implements OnInit {
     // }).afterClosed().subscribe(res => {
     //   if (res != null) {
     //     this.facturaItemDataSource.data = updateDataSource(this.facturaItemDataSource.data, res)
-    //     // this.dataSource.data = updateDataSource(this.dataSource.data, this.facturaItemDataSource.data, i)       
+    //     // this.dataSource.data = updateDataSource(this.dataSource.data, this.facturaItemDataSource.data, i)
     //   }
     // })
   }
@@ -247,9 +247,20 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   exportarExcel() {
+    let filename = 'frc_';
+    let sucursalesNames: Sucursal[] = this.sucursalControl.value;
+
+    sucursalesNames.forEach(s => {
+      filename += s.nombre.replace(/[. ]/g, "_");
+    })
+
     let fechaInicio = dateToString(this.fechaInicioControl.value)
     let fechaFin = dateToString(this.fechaFinControl.value)
-    this.facturaService.exportarExcel(fechaInicio, fechaFin, this.toSucursalesId(this.sucursalControl.value), this.rucControl.value != null ? `%${this.rucControl.value?.toUpperCase()}%` : null, this.nombreControl.value != null ? `%${this.nombreControl.value?.toUpperCase()}%` : null, this.iva5Control.value, this.iva10Control.value);
+    this.facturaService.exportarExcel(fechaInicio, fechaFin, this.toSucursalesId(this.sucursalControl.value), this.rucControl.value != null ? `%${this.rucControl.value?.toUpperCase()}%` : null, this.nombreControl.value != null ? `%${this.nombreControl.value?.toUpperCase()}%` : null, this.iva5Control.value, this.iva10Control.value, (filename + new Date().toLocaleDateString()).trim().toLowerCase());
+  }
+
+  onImprimir(factura: FacturaLegal, i) {
+    this.facturaService.onReimprimirFactura(factura.id, factura.sucursalId)
   }
 
 }

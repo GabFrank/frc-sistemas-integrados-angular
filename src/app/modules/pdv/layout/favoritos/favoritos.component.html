@@ -2,7 +2,7 @@
   <div
     fxFlex
     fxLayout="row"
-    style="width: 100%; height: 100%"
+    style="width: 100%; height: 100%; padding: 10px"
     fxLayoutAlign="start center"
   >
     <div
@@ -29,17 +29,22 @@
       </div>
     </div>
     <div fxFlex="10">
-      <mat-icon style="cursor: pointer;" (click)="actualizar()">refresh</mat-icon>
+      <mat-icon
+        style="cursor: pointer"
+        class="highlight-hover"
+        (click)="actualizar()"
+        >refresh</mat-icon
+      >
     </div>
   </div>
 
-  <div fxFlex style="text-align: center">
+  <div style="text-align: center">
     <h4 style="margin-bottom: 0">
       {{ selectedPdvCategoria?.descripcion }}
     </h4>
   </div>
   <div
-    fxFlex="85"
+    fxFlexFill
     fxLayout="row wrap"
     fxLayoutAlign="start start"
     fxLayoutGap="5px"
@@ -50,6 +55,7 @@
       *ngFor="let grupo of selectedPdvCategoria?.grupos; let i = index"
     >
       <mat-card
+        appearance="outlined"
         *ngIf="grupo.pdvGruposProductos[0]?.producto != null"
         style="
           padding: 0;

@@ -18,7 +18,7 @@ export class VentaItem {
     valorTotal: number;
     sucursalId: number;
     valorDescuento: number = 0;
-    activo: Boolean
+    activo: boolean
 
     toInput(): VentaItemInput{
         let input = new VentaItemInput()
@@ -55,5 +55,5 @@ export class VentaItemInput {
     usuarioId: number;
     sucursalId: number;
     valorDescuento: number;
-    activo: Boolean
+    activo: boolean
 }

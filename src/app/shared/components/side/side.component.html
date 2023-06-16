@@ -1,8 +1,8 @@
-<mat-nav-list style="min-width: 300px;">
+<mat-nav-list style="min-width: 300px">
   <div class="profile-card">
     <div class="header"></div>
-    <h3 style="margin-bottom: 0px; padding: 5px;">
-      {{ mainService?.usuarioActual?.persona?.nombre }}
+    <h3 style="margin-bottom: 0px; padding: 5px">
+      {{ mainService?.usuarioActual?.persona?.nombre | titlecase }}
     </h3>
     <div style="text-align: center; width: 100%">
       <mat-icon
@@ -30,12 +30,16 @@
 
   <mat-divider></mat-divider>
 
-  <mat-accordion *ngIf="!mainService?.isServidor && mainService?.usuarioActual!=null">
+  <mat-accordion
+    *ngIf="!mainService?.isServidor && mainService?.usuarioActual != null"
+  >
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> PDV </mat-panel-title>
       </mat-expansion-panel-header>
-      <a mat-list-item (click)="onItemClick('pdv-venta-touch')">Punto de Venta</a>
+      <a mat-list-item (click)="onItemClick('pdv-venta-touch')"
+        >Punto de Venta</a
+      >
       <a mat-list-item (click)="onItemClick('pdv-venta-ultimas-cajas')"
         >Últimas cajas</a
       >
@@ -52,7 +56,7 @@
           <mat-expansion-panel-header>
             <mat-panel-title> Compras </mat-panel-title>
           </mat-expansion-panel-header>
-          <a mat-list-item (click)="onItemClick('list-pedido')">Pedidos</a>
+          <!-- <a mat-list-item (click)="onItemClick('list-pedido')">Pedidos</a> -->
           <!-- <a mat-list-item (click)="onItemClick('list-movimiento')">Movimientos</a> -->
         </mat-expansion-panel>
       </mat-accordion>
@@ -61,12 +65,12 @@
           <mat-expansion-panel-header>
             <mat-panel-title> Gestión de Stock </mat-panel-title>
           </mat-expansion-panel-header>
-          <a mat-list-item (click)="onItemClick('list-entrada-salida')"
+          <!-- <a mat-list-item (click)="onItemClick('list-entrada-salida')"
             >Entrada/Salida</a
-          >
-          <a mat-list-item (click)="onItemClick('list-movimiento')"
+          > -->
+          <!-- <a mat-list-item (click)="onItemClick('list-movimiento')"
             >Movimientos</a
-          >
+          > -->
           <a mat-list-item (click)="onItemClick('list-transferencias')"
             >Transferencias</a
           >
@@ -81,11 +85,13 @@
             <mat-panel-title> Venta </mat-panel-title>
           </mat-expansion-panel-header>
           <a mat-list-item (click)="onItemClick('list-caja')">Cajas</a>
-          <a mat-list-item (click)="onItemClick('delivery-dashboard')">Delivery</a>
+          <a mat-list-item (click)="onItemClick('delivery-dashboard')"
+            >Delivery</a
+          >
           <!-- <a mat-list-item (click)="onItemClick('list-movimiento')">Movimientos</a> -->
         </mat-expansion-panel>
       </mat-accordion>
-      <a [hidden]="true" mat-list-item (click)="onItemClick('list-necesidad')"
+      <!-- <a [hidden]="true" mat-list-item (click)="onItemClick('list-necesidad')"
         >Necesidad</a
       >
       <a [hidden]="true" mat-list-item (click)="onItemClick('list-pedido')"
@@ -93,7 +99,7 @@
       >
       <a [hidden]="true" mat-list-item (click)="onItemClick('list-compra')"
         >Compras</a
-      >
+      > -->
     </mat-expansion-panel>
   </mat-accordion>
 
@@ -106,6 +112,7 @@
       <a mat-list-item (click)="onItemClick('finanzas-dashboard')">Dashboard</a>
       <a mat-list-item (click)="onItemClick('list-gastos')">Gastos</a>
       <a mat-list-item (click)="onItemClick('list-maletin')">Maletines</a>
+      <a mat-list-item (click)="onItemClick('lucro-por-producto')" *ngIf="mainService.usuarioActual?.roles.includes('ADMIN')">Lucro por producto</a>
     </mat-expansion-panel>
   </mat-accordion>
 
@@ -136,6 +143,7 @@
       <mat-expansion-panel-header>
         <mat-panel-title> R.R.H.H. </mat-panel-title>
       </mat-expansion-panel-header>
+      <a mat-list-item (click)="onItemClick('clientes-dashboard')">Clientes</a>
       <a mat-list-item (click)="onItemClick('list-usuario')">Usuarios</a>
       <a mat-list-item (click)="onItemClick('funcionario-dashboard')"
         >Funcionarios</a
@@ -171,7 +179,20 @@
       </mat-expansion-panel-header>
     </mat-expansion-panel>
   </mat-accordion> -->
-  <app-boton *ngIf="mainService?.usuarioActual != null" nombre="Salir" (clickEvent)="onLogout()"></app-boton>
-  <app-boton color="accent" *ngIf="mainService?.usuarioActual == null" nombre="Entrar" (clickEvent)="onLogin()"></app-boton>
+  <div style="padding: 10px; height: 60px;">
+    <app-boton
+      *ngIf="mainService?.usuarioActual != null"
+      nombre="Salir"
+      (clickEvent)="onLogout()"
+      style="height: 100% !important;"
+    ></app-boton>
+    <app-boton
+      color="accent"
+      *ngIf="mainService?.usuarioActual == null"
+      nombre="Entrar"
+      (clickEvent)="onLogin()"
+      style="height: 100% !important;"
+    ></app-boton>
+  </div>
   <!-- <h3 matSubheader>Pages</h3> -->
 </mat-nav-list>

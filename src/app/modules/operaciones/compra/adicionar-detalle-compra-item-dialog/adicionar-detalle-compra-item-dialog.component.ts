@@ -65,9 +65,7 @@ export class AdicionarDetalleCompraItemDialogComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.data.compraItem != null) {
-      this.cargarDatos(this.data.compraItem)
-      console.log(this.data.compraItem)
-      
+      this.cargarDatos(this.data.compraItem);
     }
   }
 
@@ -98,7 +96,7 @@ export class AdicionarDetalleCompraItemDialogComponent implements OnInit {
       if(res!=null){
         this.matDialogRef.close(this.selectedCompraItem)
       }
-    })  
+    })
   }
 
   onCancelar() {

@@ -29,10 +29,47 @@ export const ventaCreditosQuery = gql
     }
   }`
 
+export const ventaCreditoPorClienteQuery = gql
+  `query($id: ID!, $estado: EstadoVentaCredito, $page: Int, $size: Int){
+    data: ventaCreditoPorCliente(id: $id, estado: $estado, page: $page, size: $size){
+      id
+      sucursal {
+        id
+        nombre
+      }
+      venta {
+        id
+        usuario {
+          nickname
+          persona {
+            nombre
+          }
+        }
+        sucursalId
+      }
+      cliente {
+        id
+      }
+      tipoConfirmacion
+      cantidadCuotas
+      valorTotal
+      saldoTotal
+      plazoEnDias
+      interesPorDia
+      interesMoraDia
+      estado
+      creadoEn
+      usuario {
+        id
+        nickname
+      }
+    }
+  }`
+
 
 export const ventaCreditoQuery = gql
-  `query($id: ID!){
-    data: ventaCredito(id: $id){
+  `query($id: ID!, $sucId: ID!){
+    data: ventaCredito(id: $id, sucId: $sucId){
       id
       sucursal {
         id
@@ -67,8 +104,18 @@ export const saveVentaCredito = gql
     }`
 
 export const deleteVentaCreditoQuery = gql
-  ` mutation deleteVentaCredito($id: ID!){
-    deleteVentaCredito(id: $id)
+  ` mutation deleteVentaCredito($id: ID!, $sucID: ID!){
+    deleteVentaCredito(id: $id, sucId: $sucId)
+}`
+
+export const cobrarVentaCreditoQuery = gql
+  ` mutation cobrarVentaCredito($ventaCreditoInputList: [VentaCreditoInput], $cobroList: [CobroDetalleInput]){
+    cobrarVentaCredito(ventaCreditoInputList: $ventaCreditoInputList, cobroList: $cobroList)
+}`
+
+export const imprimirVentaCreditoQuery = gql
+  ` query imprimirVentaCredito($id: ID!, $sucId: ID!, $printerName: String){
+    imprimirVentaCredito(id: $id, sucId: $sucId, printerName: $printerName)
 }`
 
 export const ventaCreditoAuthSubQuery = gql
@@ -81,4 +128,17 @@ export const ventaCreditoAuthSubQuery = gql
     }
   }`
 
+export const cancelarVentaCreditoQuery = gql
+  ` mutation cancelarVentaCredito($id: ID!, $sucId: ID!){
+    data: cancelarVentaCredito(id: $id, sucId: $sucId)
+}`
 
+export const finalizarVentaCreditoQuery = gql
+  ` mutation finalizarVentaCredito($id: ID!, $sucId: ID!){
+    data: finalizarVentaCredito(id: $id, sucId: $sucId)
+}`
+
+export const imprimirReciboQuery = gql
+  ` query imprimirRecibo($clienteId: ID!, $ventaCreditoInputList: [VentaCreditoInput]!, $usuarioId: ID!){
+    data: imprimirRecibo(clienteId: $clienteId, ventaCreditoInputList: $ventaCreditoInputList, usuarioId: $usuarioId)
+}`

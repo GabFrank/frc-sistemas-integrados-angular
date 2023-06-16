@@ -253,8 +253,6 @@ export class EditPedidoComponent implements OnInit {
 
     if (this.data?.tabData != null) {
       this.cargarPedido(+this.data?.tabData["data"].id);
-    } else {
-      console.log("nuevo pedido");
     }
 
     setTimeout(() => {
@@ -268,7 +266,6 @@ export class EditPedidoComponent implements OnInit {
     this.pedidoService.onGetPedidoInfoCompleta(id).pipe(untilDestroyed(this)).subscribe((res) => {
       this.isEditar = true;
       if (res != null) {
-        console.log(res);
         this.selectedPedido = new Pedido();
         Object.assign(this.selectedPedido, res);
         this.onProveedorSelect(this.selectedPedido.proveedor);
@@ -281,13 +278,10 @@ export class EditPedidoComponent implements OnInit {
           this.addItem(p);
         });
         this.detalleForm.disable();
-        console.log(res);
         this.notaRecepcionService
           .onGetNotaRecepcionPorPedidoId(this.selectedPedido.id).pipe(untilDestroyed(this))
           .subscribe((res2) => {
-            console.log(res2);
             if (res != null) {
-              console.log(res2);
               this.dataSourceNotaRecepcion.data = res2;
             }
           });
@@ -480,7 +474,6 @@ export class EditPedidoComponent implements OnInit {
                     this.compraService
                       .onSaveCompra(compra.toInput()).pipe(untilDestroyed(this))
                       .subscribe((res2) => {
-                        console.log(res2);
                         if (res2 != null) {
                           this.cargandoDialog.closeDialog();
                           this.selectedPedido.compra = res2;
@@ -616,7 +609,6 @@ export class EditPedidoComponent implements OnInit {
   }
 
   onAdicionarNotaPedido() {
-    console.log(this.selectedPedido);
     this.matDialog
       .open(AdicionarNotaRecepcionDialogComponent, {
         data: {
@@ -679,7 +671,6 @@ export class EditPedidoComponent implements OnInit {
     this.compraService
       .onSaveCompraItem(compraItem.toInput()).pipe(untilDestroyed(this))
       .subscribe((res) => {
-        console.log(res);
         this.cargandoDialog.closeDialog();
         if (res != null) {
           item.compraItem.verificado = true;
@@ -729,7 +720,6 @@ export class EditPedidoComponent implements OnInit {
             let notaRecepcion =
               this.dataSourceNotaRecepcion.data[notaRecepcionIndex];
             notaRecepcion.pedidoItemList[pedidoItemIndex] = item;
-            console.log(notaRecepcion);
             this.dataSourceNotaRecepcion.data = updateDataSource(
               this.dataSourceNotaRecepcion.data,
               notaRecepcion,

@@ -18,15 +18,23 @@
           (clickEvent)="onListFacturas()"
         ></app-boton>
       </div>
-      <!-- <div fxFlex="30%" style="height: 250px">
+      <div fxFlex="25%" style="height: 200px">
         <app-boton
-          nombre="Nueva Transferencia"
-          icon="move_up"
+          nombre="Lista de retiros"
+          icon="currency_exchange"
           [iconSize]="4"
-          (clickEvent)="onNuevaTransferencia()"
+          (clickEvent)="onListRetiros()"
         ></app-boton>
       </div>
-      <div fxFlex="30%" style="height: 250px">
+      <div fxFlex="25%" style="height: 200px">
+        <app-boton
+          nombre="Lista de gastos"
+          icon="paid"
+          [iconSize]="4"
+          (clickEvent)="onListGastos()"
+        ></app-boton>
+      </div>
+      <!-- <div fxFlex="30%" style="height: 250px">
         <app-boton
           nombre="Configurar Transferencias"
           icon="tune"
@@ -36,4 +44,3 @@
     </div>
   </div>
 </div>
-

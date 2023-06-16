@@ -76,5 +76,9 @@ export class SeleccionarCajaDialogComponent implements OnInit {
     this.dialogRef.close('salir')
   }
 
+  consulta(){
+    this.dialogRef.close('consulta')
+  }
+
 
 }

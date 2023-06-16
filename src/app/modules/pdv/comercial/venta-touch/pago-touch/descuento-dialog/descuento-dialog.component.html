@@ -1,26 +1,30 @@
-<div fxLayout="column" fxLayoutGap="10px" style="width: 400px">
+<div fxLayout="column" fxLayoutGap="10px" style="width: 400px; padding: 10px">
   <div fxFlex style="width: 100%; text-align: center">
     <h3>Descuento</h3>
   </div>
   <div fxFlex>
     <mat-form-field style="width: 100%">
-      <mat-label>Porcentaje (%)</mat-label>
       <input
         #porcentaje
         matInput
-        type="number"
+        type="text"
         [formControl]="porcentajeDescuento"
         autocomplete="off"
         (keyup.enter)="onGuardar(); $event.stopPropagation()"
         (keyup)="onKeyUp(4, porcentajeDescuento.value)"
         style="text-align: end"
+        currencyMask
+        [options]="currencyOptionsNoGuarani"
       />
-      <span matSuffix>% &nbsp;</span>
+      <span matTextPrefix>Porcentaje (%)</span>
+      <span matTextSuffix>%</span>
+      <mat-error *ngIf="porcentajeDescuento.invalid">
+        Valor no permitido
+      </mat-error>
     </mat-form-field>
   </div>
   <div fxFlex>
     <mat-form-field style="width: 100%">
-      <mat-label>Valor en Guaranies</mat-label>
       <input
         matInput
         type="text"
@@ -31,11 +35,11 @@
         (keyup.enter)="onGuardar()"
         (keyup)="onKeyUp(1, valorDescuentoGsControl.value)"
       />
+      <span matTextPrefix>Valor en Guaranies</span>
     </mat-form-field>
   </div>
   <div fxFlex>
     <mat-form-field style="width: 100%">
-      <mat-label>Valor en Reales</mat-label>
       <input
         matInput
         type="text"
@@ -46,11 +50,11 @@
         (keyup.enter)="onGuardar(); $event.stopPropagation()"
         (keyup)="onKeyUp(2, valorDescuentoRsControl.value)"
       />
+      <span matTextPrefix>Valor en Reales</span>
     </mat-form-field>
   </div>
   <div fxFlex>
     <mat-form-field style="width: 100%">
-      <mat-label>Valor en Dolares</mat-label>
       <input
         matInput
         type="text"
@@ -61,20 +65,23 @@
         (keyup.enter)="onGuardar(); $event.stopPropagation()"
         (keyup)="onKeyUp(3, valorDescuentoDsControl.value)"
       />
+      <span matTextPrefix>Valor en Dolares</span>
     </mat-form-field>
   </div>
-  <div fxFlex>
+  <div fxFlex style="height: 35px">
     <app-boton
       nombre="Cancelar"
       color="primary"
       (clickEvent)="onCancelar()"
+      style="height: 35px"
     ></app-boton>
   </div>
-  <div fxFlex>
+  <div fxFlex style="height: 35px">
     <app-boton
       nombre="Aceptar"
       color="accent"
       (clickEvent)="onGuardar()"
+      style="height: 35px"
     ></app-boton>
   </div>
 </div>

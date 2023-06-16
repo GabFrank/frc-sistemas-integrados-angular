@@ -36,6 +36,9 @@ export class BuscadorComponent implements OnInit {
   @Input()
   focusEvent: Observable<void>;
 
+  @Input()
+  clearBuscadorEvent: Observable<void>;
+
   @Output()
   dialogEvent = new EventEmitter;
 
@@ -44,6 +47,9 @@ export class BuscadorComponent implements OnInit {
 
   @Output()
   crearItemEvent = new EventEmitter;
+
+  @Output()
+  cantidadEvent = new EventEmitter;
 
   @Input()
   openSearchEvent: Observable<void>
@@ -84,6 +90,19 @@ export class BuscadorComponent implements OnInit {
       .subscribe(res => {
         this.onEnterPress()
       })
+
+    this.buscadorControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res: string) => {
+      if (res?.includes('*')) {
+        let multiIndex = this.buscadorControl.value?.indexOf('*')
+        if (multiIndex > -1) {
+          this.cantidadEvent.emit(+this.buscadorControl.value?.slice(0, multiIndex));
+        }
+      }
+    })
+
+    this.clearBuscadorEvent.pipe(untilDestroyed(this)).subscribe(res => {
+      this.buscadorControl.setValue(null);
+    })
   }
 
   buscarProductoDialog() {
@@ -91,7 +110,6 @@ export class BuscadorComponent implements OnInit {
     let prefix;
     if (codigo != null && codigo.length > 7) {
       prefix = codigo.substring(0, 2)
-      console.log(prefix)
     }
 
     let data: PdvSearchProductoData = {
@@ -120,7 +138,6 @@ export class BuscadorComponent implements OnInit {
         item.presentacion = response.presentacion;
         item.precioVenta = response.precio;
         item.precio = item.precioVenta?.precio;
-        console.log(item)
         this.addItemEvent.emit(item);
       }
       this.dialogReference = undefined;
@@ -167,12 +184,11 @@ export class BuscadorComponent implements OnInit {
         { fetchPolicy: "no-cache", errorPolicy: "all" }
       ).pipe(untilDestroyed(this))
       .subscribe((res) => {
-        if (res.errors == null) {          
+        if (res.errors == null) {
           producto = res.data.data;
-          console.log(producto);
           if (producto != null) {
             this.isAudio ? this.beepService.beep() : null;
-            if(this.mostrarPrecios){
+            if (this.mostrarPrecios) {
               this.dialog.open(ProductoCategoriaDialogComponent, {
                 data: {
                   presentaciones: producto?.presentaciones,
@@ -181,20 +197,21 @@ export class BuscadorComponent implements OnInit {
                 width: '90%'
               }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
                 let respuesta: SelectProductosResponseData = new SelectProductosResponseData;
-                let productoCategoriaResponse : ProductoCategoriaResponseData = res;
-                if(productoCategoriaResponse?.presentacion!=null && productoCategoriaResponse.precio!=null){
+                let productoCategoriaResponse: ProductoCategoriaResponseData = res;
+                if (productoCategoriaResponse?.presentacion != null && productoCategoriaResponse.precio != null) {
                   respuesta.producto = producto;
                   respuesta.data = productoCategoriaResponse;
-                  this.crearItemEvent.emit({presentacion:productoCategoriaResponse?.presentacion, precio:productoCategoriaResponse.precio, producto: producto, texto: texto, cantidad: productoCategoriaResponse.cantidad });
+                  this.crearItemEvent.emit({ presentacion: productoCategoriaResponse?.presentacion, precio: productoCategoriaResponse.precio, producto: producto, texto: texto, cantidad: productoCategoriaResponse.cantidad });
                   this.buscadorControl.setValue(null);
-                  this.cantidadControl.setValue(1)                } 
+                  this.cantidadControl.setValue(1)
+                }
               })
             } else {
               this.crearItemEvent.emit({ producto: producto, texto: texto, cantidad: this.cantidadControl.value });
               this.buscadorControl.setValue(null);
               this.cantidadControl.setValue(1)
             }
-            
+
           } else {
             this.isAudio ? this.beepService.boop() : null;
             this.buscarProductoDialog();

@@ -58,15 +58,6 @@ export class TransferenciaService {
       printerName: environment['printers']['ticket'],
     }).subscribe(res => {
       if (res != null) {
-        // const byteCharacters = atob(res);
-        // const byteNumbers = new Array(byteCharacters.length);
-        // for (let i = 0; i < byteCharacters.length; i++) {
-        //   byteNumbers[i] = byteCharacters.charCodeAt(i);
-        // }
-        // const byteArray = new Uint8Array(byteNumbers);
-        // const pdfBlob = new Blob([byteArray], { type: 'application/pdf' });
-        // const pdfUrl = URL.createObjectURL(pdfBlob);
-        // window.open(pdfUrl, '_blank');
         this.reporteService.onAdd('Transferencia '+ id, res)
         this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListProductoComponent))
       }

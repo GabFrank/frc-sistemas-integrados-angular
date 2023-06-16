@@ -15,6 +15,8 @@ import { DeliveryService } from '../delivery-dialog/delivery.service';
 import { DeliveryPresupuestoDialogComponent } from '../delivery-presupuesto-dialog/delivery-presupuesto-dialog.component';
 import { DeliveryOpcionesDialogComponent } from './delivery-opciones-dialog/delivery-opciones-dialog.component';
 import { EditDeliveryDialogComponent } from './edit-delivery-dialog/edit-delivery-dialog.component';
+import { VentaService } from '../../../../operaciones/venta/venta.service';
+import { CajaService } from '../../../../financiero/pdv/caja/caja.service';
 
 export interface ListDeliveryData {
   delivery?: Delivery;
@@ -66,7 +68,8 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
     private deliveryService: DeliveryService,
     private matDialog: MatDialog,
     private matDialogRef: MatDialogRef<ListDeliveryComponent>,
-    @Inject(MAT_DIALOG_DATA) private data: ListDeliveryData
+    @Inject(MAT_DIALOG_DATA) private data: ListDeliveryData,
+    private cajaService: CajaService
   ) {
     if (data.delivery != null) {
       this.selectedDelivery = data.delivery;
@@ -82,28 +85,23 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.newBtn.onGetFocus()
-    this.deliveryService.onGetDeliverysByEstadoList([DeliveryEstado.ABIERTO, DeliveryEstado.EN_CAMINO, DeliveryEstado.PARA_ENTREGA]).subscribe(res => {
+    this.deliveryService.onGetDeliverysByEstadoList([DeliveryEstado.ABIERTO, DeliveryEstado.EN_CAMINO, DeliveryEstado.PARA_ENTREGA], this.cajaService?.selectedCaja?.id).subscribe(res => {
       this.dataSource.data = res;
       this.calcularDuracion()
       // verificar si hay algun delivery seleccionado al iniciar el dialogo, si es asi, buscar el index y dar focus al row correspondiente
       if (res.length > 0) {
         if (this.selectedDelivery?.id != null) { // hay delivery seleccionado anteriormente
-          console.log('el id no es null');
 
         } else if (this.selectedDelivery?.venta?.ventaItemList?.length > 0) { // el delivery es nuevo y tiene itens
-          console.log('venta item list es mayor a 0');
           this.onNuevoDelivery()
         } else {
-          console.log('venta item list es 0');
         }
       } else if (this.selectedDelivery?.venta?.ventaItemList?.length > 0) { // el delivery es nuevo y tiene itens
-        console.log('venta item list es mayor a 0');
         this.onNuevoDelivery()
       }
     })
 
     this.container.nativeElement.addEventListener('keydown', (e) => {
-      console.log(e);
       if (!this.isDialogOpen) {
         switch (e.key) {
           case "F12":
@@ -111,7 +109,6 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
           case "F11":
             break;
           case "F10":
-            console.log('f10 carajo');
 
             this.onNuevoDelivery()
             break;
@@ -149,19 +146,16 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onFiltrarDeliverys() {
     if (this.selectedEstadosControl.value.length > 0) {
-      this.deliveryService.onGetDeliverysByEstadoList(this.selectedEstadosControl.value).subscribe(res => {
+      this.deliveryService.onGetDeliverysByEstadoList(this.selectedEstadosControl.value, this.cajaService?.selectedCaja?.id).subscribe(res => {
         this.dataSource.data = res;
         this.calcularDuracion()
         // verificar si hay algun delivery seleccionado al iniciar el dialogo, si es asi, buscar el index y dar focus al row correspondiente
         if (res.length > 0) {
           if (this.selectedDelivery?.id != null) { // hay delivery seleccionado anteriormente
-            console.log('el id no es null');
 
           } else if (this.selectedDelivery?.venta?.ventaItemList?.length > 0) { // el delivery es nuevo y tiene itens
-            console.log('venta item list es mayor a 0');
             this.onNuevoDelivery()
           } else {
-            console.log('venta item list es 0');
           }
         }
       })
@@ -193,10 +187,8 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onDeliveryClick(row, index) {
-    console.log(index);
     this.calcularVueltoSub.next(null)
     if (this.selectedDelivery == row) {
-      console.log(this.selectedDelivery);
       this.matDialog.open(DeliveryOpcionesDialogComponent, {
         width: '90%',
         data: this.selectedDelivery
@@ -259,7 +251,11 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     }).afterClosed().subscribe(res => {
       if (res != null && res['delivery'] != null) {
-        this.dataSource.data = updateDataSource(this.dataSource.data, res['delivery'])
+        if (delivery != null) {
+          this.dataSource.data = updateDataSourceWithId(this.dataSource.data, res['delivery'], delivery.id)
+        } else {
+          this.dataSource.data = updateDataSource(this.dataSource.data, res['delivery'])
+        }
         this.selectedDelivery = res['delivery']
         this.onDeliveryClick(this.selectedDelivery, null);
         this.calcularDuracion()
@@ -291,19 +287,19 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
     this.presupuesto.copyToClipboard()
   }
 
-  onVer(e){
+  onVer(e) {
 
   }
 
-  onFinalizar(e){
+  onFinalizar(e) {
 
   }
 
-  onVuelto(e){
+  onVuelto(e) {
 
   }
 
-  onSalir() {    
+  onSalir() {
     this.matDialogRef.close()
   }
 

@@ -53,7 +53,7 @@
       </div>
       <div fxLayout="row">
         <div fxFlex="80">
-          <mat-form-field appearance="legacy" style="width: 95%">
+          <mat-form-field style="width: 95%">
             <mat-label>Ingresar texto</mat-label>
             <input
               #buscarInput
@@ -65,26 +65,6 @@
               (keydown)="keydownEvent($event.key)"
             />
           </mat-form-field>
-        </div>
-        <div fxFlex="20" *ngIf="data?.mostrarOpciones != false">
-          <button
-            type="button"
-            mat-raised-button
-            [color]="mostrarTipoPrecios ? 'accent' : 'primary'"
-            (click)="mostrarTipoPrecios = true"
-          >
-            Mostrar opciones (F1)
-          </button>
-        </div>
-        <div fxFlex="20%" *ngIf="data?.mostrarOpciones != false">
-          <button
-            type="button"
-            mat-raised-button
-            color="primary"
-            (click)="abrirProductoDialog()"
-          >
-            + Producto
-          </button>
         </div>
       </div>
       <div class="table-container" fxLayout="row">
@@ -136,7 +116,7 @@
                   Ver
                 </button>
                 <div *ngIf="producto?.stockPorProducto != null">
-                  {{ producto?.stockPorProducto | number: "1.0-2" }}
+                  {{ producto?.stockPorProducto | number : "1.0-2" }}
                 </div>
               </td>
             </ng-container>
@@ -201,115 +181,135 @@
                     fxLayoutAlign="start start"
                     fxLayoutGap="5px"
                   >
-                    <div
-                      fxFlex
+                    <ng-container
                       *ngFor="
                         let presentacion of producto.presentaciones;
                         let i = index
                       "
-                      #presentacionCard
-                      fxLayout="row wrap"
-                      fxLayoutGap="20px"
-                      fxLayoutAlign="start center"
-                      style="width: 100%;"
                     >
-                      <div>
-                        <mat-card
-                          [class.selectedCard]="
-                            presentacion?.id == selectedPresentacion?.id
-                          "
-                          [class.highlight]="selectedPresentacionRowIndex == i"
-                          
-                          style="
-                            padding: 0;
-                            margin: 0;
-                            margin-top: 5px;
-                            background-color: #f44336;
-                            width: 125px;
-                            height: 125px;
-                          "
-                          (click)="
-                            mostrarTipoPrecios
-                              ? onMostrarTipoPrecios(presentacion)
-                              : onPresentacionClick(presentacion, producto, presentacion?.precios[0])
-                          "
-                        >
-                          <div
-                            fxLayout="column"
-                            fxLayoutAlign="start space-around"
-                            fxLayoutGap="5px"
-                          >
-                            <div>
-                              <img
-                                [src]="
-                                  presentacion?.imagenPrincipal != null
-                                    ? presentacion.imagenPrincipal
-                                    : 'assets/no-image.png'
-                                "
-                                style="
-                                  width: 100%;
-                                  height: 100%;
-                                  object-fit: contain;
-                                "
-                              />
-                            </div>
-                          </div>
-                        </mat-card>
-                        <div style="text-align: center; font-weight: bold">
-                          <div>
-                           Cantidad: {{ presentacion.cantidad | number: "1.0-2" }}
-                          </div>
-                        </div>
-                      </div>
-
                       <div
                         fxFlex
-                        *ngFor="
-                          let precio of presentacion.precios;
-                          let i = index
-                        "
+                        *ngIf="presentacion?.activo == true"
+                        #presentacionCard
+                        fxLayout="row wrap"
+                        fxLayoutGap="20px"
+                        fxLayoutAlign="start center"
+                        style="width: 100%"
                       >
-                        <mat-card
-                          style="
-                            padding-top: 10px;
-                            margin: 0;
-                            margin-top: 5px;
-                            background-color: #f44336;
-                            height: 100px;
-                            width: 100px;
-                          "
-                          [style.background-color]="
-                            selectedPresentacion == presentacion
-                              ? '#43A047'
-                              : '#f44336'
-                          "
-                          (click)="
-                            selectedPrecio = precio;
-                            onPresentacionClick(presentacion, producto, precio)
-                          "
-                        >
-                          <div
-                            fxLayout="column"
-                            fxLayoutAlign="center center"
-                            fxLayoutGap="10px"
+                        <div>
+                          <mat-card
+                            appearance="outlined"
+                            [class.selectedCard]="
+                              presentacion?.id == selectedPresentacion?.id
+                            "
+                            [class.highlight]="
+                              selectedPresentacionRowIndex == i
+                            "
+                            style="
+                              padding: 0;
+                              margin: 0;
+                              margin-top: 5px;
+                              background-color: #f44336;
+                              width: 125px;
+                              height: 125px;
+                            "
+                            (click)="
+                              mostrarTipoPrecios
+                                ? onMostrarTipoPrecios(presentacion)
+                                : onPresentacionClick(
+                                    presentacion,
+                                    producto,
+                                    presentacion?.precios[0]
+                                  )
+                            "
                           >
                             <div
-                              fxFlex
-                              style="text-align: center; font-size: 1em"
+                              fxLayout="column"
+                              fxLayoutAlign="start space-around"
+                              fxLayoutGap="5px"
                             >
-                              {{ precio?.tipoPrecio?.descripcion | uppercase }}
-                              ({{ precio?.tipoPrecio?.id }})
+                              <div>
+                                <img
+                                  [src]="
+                                    presentacion?.imagenPrincipal != null
+                                      ? presentacion.imagenPrincipal
+                                      : 'assets/no-image.png'
+                                  "
+                                  style="
+                                    width: 100%;
+                                    height: 100%;
+                                    object-fit: contain;
+                                  "
+                                />
+                              </div>
                             </div>
-                            <div style="text-align: center; font-size: 1em">
-                              {{ precio?.precio | number: "1.0-0" }}
+                          </mat-card>
+                          <div style="text-align: center; font-weight: bold">
+                            <div>
+                              Cantidad:
+                              {{ presentacion.cantidad | number : "1.0-2" }}
                             </div>
                           </div>
-                        </mat-card>
+                        </div>
+                        <ng-container
+                          *ngFor="
+                            let precio of presentacion.precios;
+                            let i = index
+                          "
+                        >
+                          <div fxFlex *ngIf="precio?.activo == true">
+                            <mat-card
+                              appearance="outlined"
+                              style="
+                                padding-top: 10px;
+                                margin: 0;
+                                margin-top: 5px;
+                                background-color: #f44336;
+                                height: 100px;
+                                width: 100px;
+                              "
+                              [style.background-color]="
+                                selectedPresentacion == presentacion
+                                  ? '#43A047'
+                                  : '#f44336'
+                              "
+                              (click)="
+                                selectedPrecio = precio;
+                                onPresentacionClick(
+                                  presentacion,
+                                  producto,
+                                  precio
+                                )
+                              "
+                            >
+                              <div
+                                fxLayout="column"
+                                fxLayoutAlign="center center"
+                                fxLayoutGap="10px"
+                              >
+                                <div
+                                  fxFlex
+                                  style="text-align: center; font-size: 1em"
+                                >
+                                  {{
+                                    precio?.tipoPrecio?.descripcion | uppercase
+                                  }}
+                                  ({{ precio?.tipoPrecio?.id }})
+                                </div>
+                                <div style="text-align: center; font-size: 1em">
+                                  {{ precio?.precio | number : "1.0-0" }}
+                                </div>
+                              </div>
+                            </mat-card>
+                          </div>
+                        </ng-container>
+                        <div style="width: 100%; text-align: center">
+                          <mat-divider
+                            style="width: 90%; height: 100%"
+                          ></mat-divider>
+                        </div>
                       </div>
-                      <div style="width: 100%; text-align: center;">
-                        <mat-divider style="width: 90%; height: 100%;"></mat-divider>
-                      </div>
-                    </div>
+                    </ng-container>
                   </div>
                   <div fxFlex>
                     <mat-spinner
@@ -329,9 +329,13 @@
               #tableRows
               mat-row
               *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
-              (click)="expandedProducto = null; highlight(i);tableKeyDownEvent('Enter', i)"
+              (click)="
+                expandedProducto = null;
+                highlight(i);
+                tableKeyDownEvent('Enter', i)
+              "
               tabindex="999"
-              (keydown)="tableKeyDownEvent($event.key, selectedRowIndex);"
+              (keydown)="tableKeyDownEvent($event.key, selectedRowIndex)"
             ></tr>
             <tr
               mat-row

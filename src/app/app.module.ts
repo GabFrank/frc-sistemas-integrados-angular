@@ -5,11 +5,8 @@ import {
 } from "@angular/common";
 import { HttpClientModule } from "@angular/common/http";
 import localePY from "@angular/common/locales/es-PY";
-import { APP_INITIALIZER, LOCALE_ID, NgModule } from "@angular/core";
-import { AngularFireModule } from "@angular/fire";
-import { AngularFirestoreModule } from "@angular/fire/firestore";
-import { AngularFireStorageModule } from "@angular/fire/storage";
-import { FlexLayoutModule } from "@angular/flex-layout";
+import { APP_INITIALIZER, CUSTOM_ELEMENTS_SCHEMA, LOCALE_ID, NgModule } from "@angular/core";
+import { FlexLayoutModule } from "ngx-flexible-layout";
 import { MAT_DATE_LOCALE } from "@angular/material/core";
 import { BrowserModule } from "@angular/platform-browser";
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
@@ -24,10 +21,8 @@ import { setContext } from "@apollo/client/link/context";
 import { onError } from "@apollo/client/link/error";
 import { WebSocketLink } from "@apollo/client/link/ws";
 import { getMainDefinition } from "@apollo/client/utilities";
-import { APOLLO_OPTIONS } from "apollo-angular";
+import { APOLLO_OPTIONS, ApolloModule } from "apollo-angular";
 import { HttpLink } from "apollo-angular/http";
-import { NgxElectronModule } from 'ngx-electron';
-import { IConfig, NgxMaskModule } from "ngx-mask";
 import { NgxSpinnerModule } from "ngx-spinner";
 import { BehaviorSubject } from "rxjs";
 import { SubscriptionClient } from "subscriptions-transport-ws";
@@ -36,15 +31,13 @@ import { AppRoutingModule } from "./app-routing.module";
 import { AppComponent } from "./app.component";
 import { BootstrapModule } from "./commons/core/bootstrap.module";
 import { MaterialModule } from "./commons/core/material.module";
-import { MatRowKeyboardSelectionDirective } from "./commons/core/utils/mat-row-keyboard-selection.directive";
 import { DefaultModule } from "./layouts/default/default.module";
 import { DetailPopupComponent } from "./layouts/detail-popup/detail-popup.component";
 import { MainService } from "./main.service";
 import { ModulesModule } from "./modules/modules.module";
 import { FormatNumberPipe } from "./pipes/format-number.pipe";
-import { BdcWalkModule } from 'bdc-walkthrough';
-import { MAT_DIALOG_DEFAULT_OPTIONS } from "@angular/material/dialog";
-import { NoopScrollStrategy } from "@angular/cdk/overlay";
+import { SharedModule } from "./shared/shared.module";
+import { SucursalService } from "./modules/empresarial/sucursal/sucursal.service";
 
 export const errorObs = new BehaviorSubject<any>(null);
 export const connectionStatusSub = new BehaviorSubject<any>(null);
@@ -145,8 +138,17 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
 //   }
 // }
 
+const customFetch = (uri, options) => {
+  const { timeout = 10000 } = options; // Set the default timeout in milliseconds, e.g., 10 seconds
+  return Promise.race([
+    fetch(uri, options),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Request timeout')), timeout)
+    ),
+  ]);
+};
+
 registerLocaleData(localePY);
-export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
 export function appInit(appConfigService: MainService) {
   return () => appConfigService.load();
@@ -165,20 +167,19 @@ export function appInit(appConfigService: MainService) {
     RouterModule,
     AppRoutingModule,
     HttpClientModule,
-    NgxMaskModule.forRoot(),
-    AngularFirestoreModule,
-    AngularFireStorageModule,
     NgxSpinnerModule,
-    NgxElectronModule,
-    AngularFireModule.initializeApp(environment.firebaseConfig)],
+    SharedModule,
+    ApolloModule
+  ],
   providers: [
     [
       MainService,
+      SucursalService,
       {
         provide: APP_INITIALIZER,
         useFactory: appInit,
         deps: [MainService],
-        multi: true,
+        multi: true
       },
     ],
     {
@@ -221,8 +222,8 @@ export function appInit(appConfigService: MainService) {
           basic,
           auth,
           httpLink.create({
-            uri: url2,
-          }),
+            uri: url2
+          })
         ]);
 
         const wsClient = new SubscriptionClient(wUri,
@@ -240,17 +241,17 @@ export function appInit(appConfigService: MainService) {
 
         wsClient.onConnected(() => {
           connectionStatusSub.next(true);
-          console.log("websocket connected!!");
+          // console.log("websocket connected!!");
         });
         wsClient.onDisconnected(() => {
           if (connectionStatusSub.value != false) {
             connectionStatusSub.next(false);
           }
-          console.log("websocket disconnected!!");
+          // console.log("websocket disconnected!!");
         });
         wsClient.onReconnected(() => {
           connectionStatusSub.next(true);
-          console.log("websocket reconnected!!");
+          // console.log("websocket reconnected!!");
         });
 
         // Create a WebSocket link:
@@ -299,7 +300,7 @@ export function appInit(appConfigService: MainService) {
     { provide: MAT_DATE_LOCALE, useValue: "es-PY" },
     // { provide: MAT_DIALOG_DEFAULT_OPTIONS, useValue: { scrollStrategy: new NoopScrollStrategy() } }
   ],
-  bootstrap: [AppComponent],
+  bootstrap: [AppComponent]
 })
 export class AppModule {
   constructor() {

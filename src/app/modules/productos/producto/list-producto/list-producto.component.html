@@ -41,6 +41,16 @@
             Nuevo
           </button>
         </div>
+        <div fxFlex="20%">
+          <button
+            type="button"
+            mat-raised-button
+            color="primary"
+            (click)="onReporte()"
+          >
+            Reporte
+          </button>
+        </div>
       </div>
       <div fxFlex="70" style="overflow-y: scroll">
         <table
@@ -129,6 +139,7 @@
           ></tr>
         </table>
         <mat-card
+          appearance="outlined"
           *ngIf="isSearching"
           style="display: flex; justify-content: center; align-items: center"
         >
@@ -145,6 +156,7 @@
     </div>
 
     <mat-card
+      appearance="outlined"
       style="background-color: rgb(32, 32, 32) !important;"
       fxLayout="column"
       fxLayoutAlign="start"
