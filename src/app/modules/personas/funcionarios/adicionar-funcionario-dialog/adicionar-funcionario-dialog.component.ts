@@ -1,26 +1,36 @@
-import { Component, Inject, OnInit } from '@angular/core';
-import { FormControl, FormGroup } from '@angular/forms';
-import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dialog';
-import { NotificacionColor, NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
-import { Cargo } from '../../../empresarial/cargo/cargo.model';
+import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
-import { AdicionarPersonaDialogComponent } from '../../persona/adicionar-persona-dialog/adicionar-persona-dialog.component';
-import { BuscarPersonaData, BuscarPersonaDialogComponent } from '../../persona/buscar-persona-dialog/buscar-persona-dialog.component';
-import { Persona } from '../../persona/persona.model';
-import { PersonaService } from '../../persona/persona.service';
-import { PersonaComponent } from '../../persona/persona/persona.component';
-import { AdicionarUsuarioDialogComponent } from '../../usuarios/adicionar-usuario-dialog/adicionar-usuario-dialog.component';
-import { Usuario } from '../../usuarios/usuario.model';
-import { UsuarioService } from '../../usuarios/usuario.service';
-import { FuncionarioInput } from '../funcionario-input.model';
 import { Funcionario } from '../funcionario.model';
-import { FuncionarioService } from '../funcionario.service';
 
 export class AdicionarFuncionarioDialogData {
   funcionario: Funcionario;
 }
 
+export interface Marcacion {
+  fecha: string;
+  sucursal: string;
+  tipo: string;
+}
+
+import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { CurrencyMask } from '../../../../commons/core/utils/numbersUtils';
+import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../shared/components/search-list-dialog/search-list-dialog.component';
+import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
+import { PersonaSearchGQL } from '../../persona/graphql/personaSearch';
+import { Persona } from '../../persona/persona.model';
+import { FuncionarioService } from '../funcionario.service';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { AdicionarPersonaDialogComponent } from '../../persona/adicionar-persona-dialog/adicionar-persona-dialog.component';
+import { MonedaService } from '../../../financiero/moneda/moneda.service';
+import { catchError, combineLatest, forkJoin, of } from 'rxjs';
+import { Moneda } from '../../../financiero/moneda/moneda.model';
+import { ClienteService } from '../../clientes/cliente.service';
+import { Cliente } from '../../clientes/cliente.model';
+import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { MatSelect } from '@angular/material/select';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -30,191 +40,245 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 })
 export class AdicionarFuncionarioDialogComponent implements OnInit {
 
-  formGroup: FormGroup;
-
-  idControl = new FormControl()
-  creditoControl = new FormControl()
-  fechaIngresoControl = new FormControl()
-  sueldoControl = new FormControl()
-  fasePruebaControl = new FormControl()
-  diaristaControl = new FormControl()
-  creadoEnControl = new FormControl()
-  usuarioControl = new FormControl()
-  cargoControl = new FormControl()
-  sucursalControl = new FormControl()
-  supervisadoPorControl = new FormControl()
-  activoControl = new FormControl()
+  @ViewChild('sucursalSelect', {read: MatSelect}) sucursalSelect: MatSelect;
 
   selectedFuncionario: Funcionario;
   selectedPersona: Persona;
-  selectedSucursal: Sucursal;
-  selectedCargo: Cargo;
-  selectedResponsable: Funcionario;
-  selectedUsuario: Usuario;
+  selectedSupervisadoPor: Funcionario;
+  selectedCliente: Cliente;
 
-  cargoList: Cargo[];
+  sucursalControl = new FormControl(null, Validators.required)
+  cargoControl = new FormControl(null)
+  fechaIngresoControl = new FormControl(null)
+  isCreditoControl = new FormControl(true)
+  creditoControl = new FormControl(0)
+  sueldoControl = new FormControl(null)
+  bonus = new FormControl(null)
+  fasePruebaControl = new FormControl(true)
+  diaristaControl = new FormControl(false)
+  supervisadoPorControl = new FormControl(null)
+  activoControl = new FormControl(true)
+
+  formGroup: FormGroup;
+
+  monedaList: Moneda[];
   sucursalList: Sucursal[];
-  funcionarioList: Funcionario[];
+  supervisadoPorList: Funcionario[] = []
+  cargoList: any[];
+  marcacionesDataSource = new MatTableDataSource<Marcacion>([])
 
-  today = new Date()
+  currencyMask = new CurrencyMask();
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: AdicionarFuncionarioDialogData,
-    private matDialogRef: MatDialogRef<AdicionarFuncionarioDialogComponent>,
-    private matDialog: MatDialog,
-    private notificacionBar: NotificacionSnackbarService,
-    private usuarioService: UsuarioService,
+    private sucursalService: SucursalService,
     private funcionarioService: FuncionarioService,
-    private personaService: PersonaService
+    @Inject(MAT_DIALOG_DATA) private data: AdicionarFuncionarioDialogData,
+    private personaSearch: PersonaSearchGQL,
+    private dialog: MatDialog,
+    private matDialogRef: MatDialogRef<AdicionarFuncionarioDialogComponent>,
+    private dialogoService: DialogosService,
+    private monedaService: MonedaService,
+    private clienteService: ClienteService
   ) {
-    if(data?.funcionario != null){
-      this.selectedFuncionario = data.funcionario;
-      personaService.onGetPersona(this.selectedFuncionario.persona.id).pipe(untilDestroyed(this)).subscribe(res => {
-        if(res!=null){
-          this.selectedPersona = res;
-        }
-      })
-      usuarioService.onGetUsuarioPorPersonaId(this.selectedFuncionario.persona.id).pipe(untilDestroyed(this)).subscribe(res => {
-        if(res!=null){
-          this.selectedUsuario = res;
-        }
-      })
-      this.cargarDatos()
-    }
+
   }
 
   ngOnInit(): void {
 
-    //ini arrays
-    this.cargoList = []
-    this.sucursalList = []
-    this.funcionarioList = []
-
-    this.createForm()
-  }
-
-  cargarDatos(){
-    this.idControl.setValue(this.selectedFuncionario.id)
-    this.activoControl.setValue(this.selectedFuncionario.activo)
-    this.diaristaControl.setValue(this.selectedFuncionario.diarista)
-    this.fasePruebaControl.setValue(this.selectedFuncionario.fasePrueba)
-    this.sucursalControl.setValue(this.selectedFuncionario.sueldo)
-    this.creditoControl.setValue(this.selectedFuncionario.credito)
-    this.activoControl.setValue(this.selectedFuncionario.activo)
-    this.cargoControl.setValue(this.selectedFuncionario?.cargo?.id)
-    this.sucursalControl.setValue(this.selectedFuncionario?.sucursal?.id)
-    this.fechaIngresoControl.setValue(this.selectedFuncionario?.fechaIngreso)
-    this.supervisadoPorControl.setValue(this.selectedFuncionario?.supervisadoPor?.id)
-  }
-
-  onSearchPersona(){
-    this.matDialog.open(BuscarPersonaDialogComponent, {
-      autoFocus: true,
-      restoreFocus: true,
-      height: '90%',
-      width: '100%'
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      if(res!=null){
-        if(res.isFuncionario){
-          this.notificacionBar.notification$.next( {
-            texto: 'Esta persona ya está registrada como funcionario',
-            color: NotificacionColor.warn,
-            duracion: 3
-          })
-        } else {
-          this.selectedPersona = res;
-          this.usuarioService.onGetUsuarioPorPersonaId(this.selectedPersona.id).pipe(untilDestroyed(this)).subscribe(res => {
-            if(res!=null){
-              this.selectedUsuario = res;
-            }
-          })
-        }
-      } else {
-        this.selectedPersona = null;
-        this.selectedUsuario = null;
-      }
+    this.formGroup = new FormGroup({
+      sucursalControl: this.sucursalControl,
+      cargoControl: this.cargoControl,
+      fechaIngresoControl: this.fechaIngresoControl,
+      creditoControl: this.creditoControl,
+      sueldoControl: this.sueldoControl,
+      fasePruebaControl: this.fasePruebaControl,
+      diaristaControl: this.diaristaControl,
+      supervisadoPorControl: this.supervisadoPorControl,
+      activoControl: this.activoControl
     })
+
+    setTimeout(() => {
+
+      forkJoin(
+        {
+          sucResult: this.sucursalService.onGetAllSucursales(),
+          monedaResult: this.monedaService.onGetAll()
+        }
+      ).subscribe((res) => {
+        this.sucursalList = res['sucResult'].filter(s => s.deposito == true);
+        this.monedaList = res['monedaResult'];
+
+        if (this.data.funcionario == null) {
+          this.onBuscarPersona();
+        } else {
+          this.funcionarioService.onGetFuncionarioById(this.data.funcionario.id)
+            .pipe(untilDestroyed(this))
+            .subscribe(res => {
+              if (res != null) {
+                this.onSelectFuncionario(res);
+                this.clienteService.onGetByPersonaId(res.persona.id).pipe(untilDestroyed(this)).subscribe(clienteRes => {
+                  if (clienteRes != null) {
+                    this.selectedCliente = clienteRes;
+                  }
+                })
+              }
+            });
+        }
+      });
+
+      // this.sucursalService.onGetAllSucursales().pipe(untilDestroyed(this)).subscribe(res => {
+      //   this.sucursalList = res.filter(s => s.deposito == true);
+      // })
+
+      // if (this.data.funcionario == null) {
+      //   this.onBuscarPersona()
+      // } else {
+      //   this.funcionarioService.onGetFuncionarioById(this.data.funcionario.id).pipe(untilDestroyed(this)).subscribe(res => {
+      //     if (res != null) {
+      //       this.onSelectFuncionario(res);
+      //     }
+      //   })
+      // }
+
+      this.cargoList = [
+        {
+          id: 1,
+          descripcion: 'Cajero'
+        },
+        {
+          id: 2,
+          descripcion: 'Ayudante de caja'
+        }
+      ]
+    }, 0);
   }
 
-  onAddPersona(){
-    this.matDialog.open(AdicionarPersonaDialogComponent, {
-      autoFocus: true,
-      restoreFocus: true,
-      width: '50%'
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      if(res!=null){
-        this.selectedPersona = res;
-        this.usuarioService.onGetUsuarioPorPersonaId(this.selectedPersona.id).pipe(untilDestroyed(this)).subscribe(res => {
-          if(res!=null){
-            this.selectedUsuario = res;
+  onBuscarPersona() {
+    let tableData: TableData[] = [
+      {
+        id: 'id',
+        nombre: 'Id'
+      },
+      {
+        id: 'nombre',
+        nombre: 'Nombre'
+      },
+      {
+        id: 'documento',
+        nombre: 'Documento'
+      }
+    ]
+    let data: SearchListtDialogData = {
+      query: this.personaSearch,
+      tableData: tableData,
+      titulo: 'Buscar persona',
+      search: true,
+      isAdicionar: true
+    }
+    this.dialog.open(SearchListDialogComponent, {
+      data: data,
+      width: '60%',
+      height: '80%'
+    }).afterClosed().subscribe((resPersona: Persona | any) => {
+      if ((resPersona) != null && !resPersona?.adicionar) {
+        this.funcionarioService.onGetFuncionarioPorPersona(resPersona?.id).pipe(untilDestroyed(this)).subscribe(resFuncionario => {
+          if (resFuncionario != null) {
+            this.dialogoService.confirm('Atención!!', 'Ya existe un funcionario vinculado a esta persona, desea abrir los datos?').pipe(untilDestroyed(this)).subscribe(resDialogo => {
+              if (resDialogo) {
+                this.onSelectFuncionario(resFuncionario);
+              }
+            })
+          } else {
+            this.selectedPersona = resPersona;
+            setTimeout(() => {
+              this.sucursalSelect.focus()
+            }, 500);
           }
         })
-      } else {
+      } else if (resPersona?.adicionar) {
         this.selectedPersona = null;
-        this.selectedUsuario = null;
+        this.onEditarPersona()
+      } else {
+        this.matDialogRef.close()
       }
     })
   }
 
-  onAddUsuario(){
-    this.matDialog.open(AdicionarUsuarioDialogComponent, {
-      data: {
-        personaId: this.selectedPersona.id,
-        usuario: this.selectedUsuario
-      },
-      autoFocus: true,
-      restoreFocus: true,
-      width: '30%'
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      if(res!=null){
-        this.selectedUsuario = res;
+  onSelectFuncionario(funcionario: Funcionario) {
+    if (funcionario != null) {
+      this.selectedFuncionario = new Funcionario();
+      Object.assign(this.selectedFuncionario, funcionario)
+      this.selectedPersona = funcionario.persona;
+      this.sucursalControl.setValue(this.sucursalList.find(s => s.id == funcionario?.sucursal?.id))
+      this.cargoControl.setValue(funcionario?.cargo)
+      this.fechaIngresoControl.setValue(funcionario?.fechaIngreso != null ? new Date(funcionario?.fechaIngreso) : null)
+      this.isCreditoControl.setValue(funcionario?.credito != null)
+      this.creditoControl.setValue(funcionario?.credito)
+      this.sueldoControl.setValue(funcionario?.sueldo)
+      this.fasePruebaControl.setValue(funcionario?.fasePrueba)
+      this.diaristaControl.setValue(funcionario?.diarista)
+      this.supervisadoPorControl.setValue(funcionario?.supervisadoPor)
+      this.activoControl.setValue(funcionario?.activo)
+    }
+  }
+
+
+  handleCargoSelectionChange(e) {
+
+  }
+
+  handleSupervisadoPorSelectionChange(e) {
+    this.selectedSupervisadoPor = e;
+  }
+
+  supervisadoPorTimer;
+  handleSupervisadoPorInputChange(e) {
+    if (e?.length > 0) {
+      if (this.supervisadoPorTimer != null) {
+        clearTimeout(this.supervisadoPorTimer)
+      }
+      setTimeout(() => {
+        this.funcionarioService.onFuncionarioSearch(e).pipe(untilDestroyed(this)).subscribe(res => {
+          if (res != null) {
+            this.supervisadoPorList = res;
+          }
+        })
+      }, 500);
+    }
+  }
+
+  onSave() {
+    if(this.selectedFuncionario == null) this.selectedFuncionario = new Funcionario();
+    this.selectedFuncionario.activo = this.activoControl.value;
+    this.selectedFuncionario.credito = this.creditoControl.value;
+    this.selectedFuncionario.diarista = this.diaristaControl.value;
+    this.selectedFuncionario.fasePrueba = this.fasePruebaControl.value;
+    this.selectedFuncionario.fechaIngreso = this.fechaIngresoControl.value;
+    this.selectedFuncionario.sucursal = this.sucursalControl.value;
+    this.selectedFuncionario.sueldo = this.sueldoControl.value;
+    this.selectedFuncionario.persona = this.selectedPersona;
+    this.selectedFuncionario.supervisadoPor = this.supervisadoPorControl.value;
+    this.selectedFuncionario.cargo = this.cargoControl.value;
+    this.funcionarioService.onSaveFuncionario(this.selectedFuncionario.toInput()).pipe(untilDestroyed(this)).subscribe(res => {
+      if (res != null) {
+
       }
     })
   }
 
-  createForm(){
-    this.diaristaControl.setValue(false)
-    this.activoControl.setValue(true)
-    this.fasePruebaControl.setValue(true)
-  }
-
-  onSearchCargo(){
-
-  }
-
-  onSearchSucursal(){
-
-  }
-
-  onCancelar(){
+  onCancel(){
     this.matDialogRef.close()
   }
 
-  onGuardar(){
-    let input = new FuncionarioInput;
-    if(this.selectedFuncionario!=null){
-      input.id = this.selectedFuncionario.id;
-      input.personaId = this.selectedFuncionario.persona.id;
-      input.creadoEn = this.selectedFuncionario.creadoEn;
-      input.usuarioId = this.selectedFuncionario?.usuario?.id;
-    } else {
-      input.personaId = this.selectedPersona.id;
-    }
-    input.cargoId = this.selectedCargo?.id;
-    input.credito = this.creditoControl.value;
-    input.sucursalId = this.selectedSucursal?.id;
-    input.sueldo = this.sueldoControl.value;
-    input.fechaIngreso = this.fechaIngresoControl.value;
-    input.diarista = this.diaristaControl.value;
-    input.fasePrueba = this.fasePruebaControl.value;
-    input.activo = this.activoControl.value;
-    input.supervisadoPorId = this.selectedResponsable?.id;
-    input.personaId != null ? this.funcionarioService.onSaveFuncionario(input).pipe(untilDestroyed(this)).subscribe(res => {
-      if(res!=null){
-        this.selectedFuncionario = res;
-        this.matDialogRef.close(this.selectedFuncionario)
-      }
-    }) : null;
+  onEditarPersona() {
+    this.dialog.open(AdicionarPersonaDialogComponent, {
+      data: {
+        persona: this.selectedPersona
+      },
+      width: '60%',
+    }).afterClosed().subscribe(res => {
+      if (res?.id != null) this.selectedPersona = res;
+      if (this.selectedPersona == null) this.matDialogRef.close(null)
+    })
   }
-
 }

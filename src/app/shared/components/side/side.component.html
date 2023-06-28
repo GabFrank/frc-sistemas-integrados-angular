@@ -56,7 +56,7 @@
           <mat-expansion-panel-header>
             <mat-panel-title> Compras </mat-panel-title>
           </mat-expansion-panel-header>
-          <!-- <a mat-list-item (click)="onItemClick('list-pedido')">Pedidos</a> -->
+          <a mat-list-item (click)="onItemClick('compras-dashboard')">Compras</a>
           <!-- <a mat-list-item (click)="onItemClick('list-movimiento')">Movimientos</a> -->
         </mat-expansion-panel>
       </mat-accordion>
@@ -109,8 +109,10 @@
         <mat-panel-title> Financiero </mat-panel-title>
       </mat-expansion-panel-header>
       <a mat-list-item (click)="onItemClick('list-cotizacion')">Cotización</a>
-      <a mat-list-item (click)="onItemClick('finanzas-dashboard')">Dashboard</a>
+      <!-- <a mat-list-item (click)="onItemClick('finanzas-dashboard')">Dashboard</a> -->
       <a mat-list-item (click)="onItemClick('list-gastos')">Gastos</a>
+      <a mat-list-item (click)="onItemClick('list-retiros')">Retiros</a>
+      <a mat-list-item (click)="onItemClick('list-facturas')">Facturas</a>
       <a mat-list-item (click)="onItemClick('list-maletin')">Maletines</a>
       <a mat-list-item (click)="onItemClick('lucro-por-producto')" *ngIf="mainService.usuarioActual?.roles.includes('ADMIN')">Lucro por producto</a>
     </mat-expansion-panel>
@@ -119,14 +121,9 @@
   <mat-accordion *ngIf="mainService?.isServidor">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
-        <mat-panel-title> Conceptos </mat-panel-title>
+        <mat-panel-title> Productos </mat-panel-title>
       </mat-expansion-panel-header>
       <a mat-list-item (click)="onItemClick('list-producto')">Productos</a>
-      <a mat-list-item (click)="onItemClick('list-cliente')">Clientes</a>
-      <a mat-list-item (click)="onItemClick('list-funcionario')"
-        >Funcionarios</a
-      >
-      <a mat-list-item (click)="onItemClick('list-proveedor')">Proveedores</a>
     </mat-expansion-panel>
   </mat-accordion>
 

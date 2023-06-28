@@ -97,7 +97,7 @@ export class ListRetiroComponent implements OnInit {
   }
 
   onFiltrar() {
-    this.retiroService.onFilterRetiro(this.idRetiroControl.value, this.idCajaControl.value, this.sucOrigenControl.value?.id, null, null, this.page, this.size).subscribe(res => {
+    this.retiroService.onFilterRetiro(this.idRetiroControl.value, this.idCajaControl.value, this.sucOrigenControl.value?.id, null, null, this.page, this.size).subscribe(res => {      
       if(this.page > 0){
         let arr: any[] = [...this.dataSource.data]
         arr = arr.concat(res)

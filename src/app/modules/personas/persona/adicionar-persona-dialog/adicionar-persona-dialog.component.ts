@@ -60,7 +60,7 @@ export class AdicionarPersonaDialogComponent implements OnInit {
       this.idControl.setValue(this.selectedPersona.id)
       this.nombreControl.setValue(this.selectedPersona.nombre)
       this.apodoControl.setValue(this.selectedPersona?.apodo)
-      this.nacimientoControl.setValue(this.selectedPersona?.nacimiento)
+      this.nacimientoControl.setValue(this.selectedPersona?.nacimiento != null ? new Date(this.selectedPersona?.nacimiento) : null);
       this.documentoControl.setValue(this.selectedPersona?.documento)
       this.emailControl.setValue(this.selectedPersona?.email)
       this.direccionControl.setValue(this.selectedPersona?.direccion)
@@ -99,24 +99,20 @@ export class AdicionarPersonaDialogComponent implements OnInit {
   }
 
   onSave() {
-    let input = new PersonaInput;
-    if (this.selectedPersona != null) {
-      input.id = this.selectedPersona.id
-      input.creadoEn = this.selectedPersona.creadoEn;
-      input.usuarioId = this.selectedPersona?.usuario.id
-    }
-    input.nombre = this.nombreControl.value;
-    input.apodo = this.apodoControl.value;
-    input.direccion = this.direccionControl.value;
-    input.documento = this.documentoControl.value;
-    input.email = this.emailControl.value;
-    input.nacimiento = this.nacimientoControl.value;
-    input.telefono = this.telefonoControl.value;
-    input.ciudadId = this.selectedCiudad?.id;
-    input.direccion = this.direccionControl.value;
-    input.sexo = this.sexoControl.value;
+    let persona = new Persona();
+    Object.assign(persona, this.selectedPersona)
+    persona.nombre = this.nombreControl.value;
+    persona.apodo = this.apodoControl.value;
+    persona.direccion = this.direccionControl.value;
+    persona.documento = this.documentoControl.value;
+    persona.email = this.emailControl.value;
+    persona.nacimiento = this.nacimientoControl.value;
+    persona.telefono = this.telefonoControl.value;
+    persona.ciudad = this.selectedCiudad;
+    persona.direccion = this.direccionControl.value;
+    persona.sexo = this.sexoControl.value;
 
-    this.personaService.onSavePersona(input).pipe(untilDestroyed(this)).subscribe(res => {
+    this.personaService.onSavePersona(persona.toInput()).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
         this.selectedPersona = res;
         this.matDialogRef.close(this.selectedPersona)

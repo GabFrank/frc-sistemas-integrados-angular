@@ -26,9 +26,9 @@ export class CopiarAClipboardDirective {
 
   @HostListener('click')
   onClick(): void {
-    const textToCopy = (this.value === undefined || this.value === null
+    let textToCopy: string = (this.value === undefined || this.value === null
       || this.value == '') ? this.elementRef.nativeElement.textContent : this.value;
-
+    textToCopy = textToCopy.trim();
     navigator.clipboard.writeText(textToCopy)
       .then(() => {
         this.showNotification('Copiado: ' + textToCopy);

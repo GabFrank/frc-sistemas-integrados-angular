@@ -14,7 +14,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { Component, ElementRef, HostListener, Input, OnInit, ViewChild } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { CreateItemDialogComponent } from '../create-item-dialog/create-item-dialog.component';
-import { CurrencyMask, updateDataSource, updateDataSourceInsertFirst, updateDataSourceWithId } from '../../../../commons/core/utils/numbersUtils';
+import { CurrencyMask, stringToInteger, updateDataSource, updateDataSourceInsertFirst, updateDataSourceWithId } from '../../../../commons/core/utils/numbersUtils';
 import { EtapaTransferencia, TipoTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem } from '../transferencia.model';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { SelectionModel } from '@angular/cdk/collections';
@@ -231,13 +231,23 @@ export class EditTransferenciaComponent implements OnInit {
     this.matDialog.open(SeleccionarSucursalDialogComponent, {
       width: '80%',
       height: '70%',
-      disableClose: false
+      disableClose: false,
+      data: {
+        sucursalOrigen: this.selectedTransferencia?.sucursalOrigen,
+        sucursalDestino: this.selectedTransferencia?.sucursalDestino
+      }
     }).afterClosed().subscribe(async res => {
       this.isDialogOpen = false;
       if (res != null) {
         this.selectedTransferencia.sucursalOrigen = res['sucursalOrigen']
         this.selectedTransferencia.sucursalDestino = res['sucursalDestino']
         this.codigoInput.nativeElement.focus()
+        if (this.selectedTransferencia?.id != null) {
+          this.transferenciaService.onSaveTransferencia(this.selectedTransferencia.toInput()).pipe(untilDestroyed(this)).subscribe(saveTransferenciaRes => {
+            this.selectedTransferencia.sucursalOrigen = saveTransferenciaRes.sucursalOrigen;
+            this.selectedTransferencia.sucursalDestino = saveTransferenciaRes.sucursalDestino;
+          })
+        }
       }
     })
   }
@@ -251,7 +261,8 @@ export class EditTransferenciaComponent implements OnInit {
         .subscribe(res => {
           this.cargandoService.closeDialog()
           if (res != null) {
-            this.selectedTransferencia = res;
+            this.selectedTransferencia = new Transferencia();
+            Object.assign(this.selectedTransferencia, res)
             this.getTransferenciaItemList()
             this.isOrigen = this.selectedTransferencia?.sucursalOrigen?.id == this.mainService?.sucursalActual?.id;
             this.isDestino = this.selectedTransferencia?.sucursalDestino?.id == this.mainService?.sucursalActual?.id;
@@ -484,7 +495,7 @@ export class EditTransferenciaComponent implements OnInit {
         this.codigoControl.setValue(item?.presentacionPreTransferencia?.producto?.codigoPrincipal)
       }
       this.cantidadPresentacionControl.setValue(item.cantidadPreTransferencia);
-      this.vencimientoControl.setValue(new Date(item.vencimientoPreTransferencia))
+      this.vencimientoControl.setValue(item.vencimientoPreTransferencia != null ? new Date(item.vencimientoPreTransferencia) : null)
       this.matSelect.focus()
       this.matSelect.open()
     })
@@ -717,25 +728,55 @@ export class EditTransferenciaComponent implements OnInit {
       this.productoService.onGetProductoPorCodigo(text).subscribe(res => {
         if (res != null) {
           this.selectedProducto = res;
-          this.precioUnidadControl.setValue(this.selectedProducto?.costo?.ultimoPrecioCompra)
-          if (this.selectedProducto?.presentaciones?.length == 1) {
-            this.presentacionControl.setValue(this.selectedProducto.presentaciones[0])
-            if (!this.isPesable) {
-              this.cantidadPresentacionControl.setValue(1)
-              this.cantidadUnidadControl.setValue(this.presentacionControl.value?.cantidad)
-            }
-            if (this.selectedProducto.balanza) {
-              this.vencimientoInput.nativeElement.select()
-            } else {
-              this.cantPresentacionInput.nativeElement.select()
-            }
-          } else if (this.selectedProducto?.presentaciones?.length > 1) {
-            this.presentacionControl.setValue(this.selectedProducto.presentaciones[0])
-            this.matSelect.focus()
-            this.matSelect.open()
-          } else {
+          let foundItem = this.dataSource.data?.find(t => t.presentacionPreTransferencia?.producto?.id == this.selectedProducto?.id)
+          if (foundItem != null) {
+            this.dialogoService.confirm("Ya existe un producto cargado en la lista", "Desea editar el item?").subscribe(dialogRes => {
+              if (dialogRes) {
+                this.onEditItem(foundItem);
+              } else {
+                this.precioUnidadControl.setValue(this.selectedProducto?.costo?.ultimoPrecioCompra)
+                if (this.selectedProducto?.presentaciones?.length == 1) {
+                  this.presentacionControl.setValue(this.selectedProducto.presentaciones[0])
+                  if (!this.isPesable) {
+                    this.cantidadPresentacionControl.setValue(1)
+                    this.cantidadUnidadControl.setValue(this.presentacionControl.value?.cantidad)
+                  }
+                  if (this.selectedProducto.balanza) {
+                    this.vencimientoInput.nativeElement.select()
+                  } else {
+                    this.cantPresentacionInput.nativeElement.select()
+                  }
+                } else if (this.selectedProducto?.presentaciones?.length > 1) {
+                  this.presentacionControl.setValue(this.selectedProducto.presentaciones[0])
+                  this.matSelect.focus()
+                  this.matSelect.open()
+                } else {
 
+                }
+              }
+            })
+          } else {
+            this.precioUnidadControl.setValue(this.selectedProducto?.costo?.ultimoPrecioCompra)
+            if (this.selectedProducto?.presentaciones?.length == 1) {
+              this.presentacionControl.setValue(this.selectedProducto.presentaciones[0])
+              if (!this.isPesable) {
+                this.cantidadPresentacionControl.setValue(1)
+                this.cantidadUnidadControl.setValue(this.presentacionControl.value?.cantidad)
+              }
+              if (this.selectedProducto.balanza) {
+                this.vencimientoInput.nativeElement.select()
+              } else {
+                this.cantPresentacionInput.nativeElement.select()
+              }
+            } else if (this.selectedProducto?.presentaciones?.length > 1) {
+              this.presentacionControl.setValue(this.selectedProducto.presentaciones[0])
+              this.matSelect.focus()
+              this.matSelect.open()
+            } else {
+
+            }
           }
+
         } else {
           this.onAddItem(this.codigoControl.value)
         }
@@ -889,5 +930,17 @@ export class EditTransferenciaComponent implements OnInit {
 
   onCantidadItensFocusOut() {
     this.onRefresh()
+  }
+
+  onCantidadPresentacionFocusOut() {
+    if (this.cantidadPresentacionControl.value > 1000) {
+      this.dialogoService.confirm('Atención!!', 'La cantidad ingresada es: ' + stringToInteger(this.cantidadPresentacionControl.value?.toString()), 'Desea continuar?').subscribe(res => {
+        if (!res) {
+          this.cantPresentacionInput.nativeElement.select();
+        } else {
+          this.vencimientoInput.nativeElement.focus();
+        }
+      })
+    }
   }
 }

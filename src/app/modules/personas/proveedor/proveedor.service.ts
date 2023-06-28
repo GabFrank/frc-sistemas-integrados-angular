@@ -4,6 +4,7 @@ import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { ProveedoresSearchByPersonaGQL } from './graphql/proveedorSearchByPersona';
 import { SaveProveedorGQL } from './graphql/saveProveedor';
 import { Proveedor } from './proveedor.model';
+import { ProveedorByIdGQL } from './graphql/proveedorById';
 
 @Injectable({
   providedIn: 'root'
@@ -12,8 +13,9 @@ export class ProveedorService {
 
   constructor(
     private genericService: GenericCrudService,
-    private proveedorSearch: ProveedoresSearchByPersonaGQL,
-    private saveProveedor: SaveProveedorGQL
+    public proveedorSearch: ProveedoresSearchByPersonaGQL,
+    private saveProveedor: SaveProveedorGQL,
+    private proveedorPorId: ProveedorByIdGQL
   ) { }
 
   onSearch(text: string): Observable<Proveedor[]> {
@@ -22,5 +24,9 @@ export class ProveedorService {
 
   onSave(input): Observable<Proveedor[]> {
     return this.genericService.onSave(this.saveProveedor, input)
+  }
+
+  onGetPorId(id: number): Observable<Proveedor>{
+    return this.genericService.onGetById(this.proveedorPorId, id);
   }
 }

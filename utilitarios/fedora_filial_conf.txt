@@ -20,10 +20,10 @@ sudo /usr/pgsql-13/bin/postgresql-13-setup initdb
 sudo systemctl enable --now postgresql-13
 sudo firewall-cmd --add-service=postgresql --permanent
 sudo firewall-cmd --reload
---  agregar listen_addresses = '*' y
+--  agregar lineas de configuracion a postgresql
 sudo sh -c "echo 'host all all 0.0.0.0/0 md5' >> /var/lib/pgsql/13/data/pg_hba.conf"
 sudo sh -c "echo 'host all all 10.10.10.0/24 md5' >> /var/lib/pgsql/13/data/pg_hba.conf"
-sudo sh -c "echo \"listen_addresses = \'*\'\" >> /var/lib/pgsql/13/data/postgresql.conf"
+sudo sh -c "echo \"listen_addresses = '*'\">> /var/lib/pgsql/13/data/postgresql.conf"
 sudo sh -c "echo 'port=5551' >> /var/lib/pgsql/13/data/postgresql.conf"
 sudo systemctl restart postgresql-13
 -- crear superusuario
@@ -72,6 +72,7 @@ mkdir /home/franco/FRC/postgres
 mkdir /home/franco/FRC/resources
 mkdir /home/franco/FRC/resources/images
 -- copiar los archivos necesarios usando ssh y scp
+<<<<<<< HEAD
 sudo scp franco@172.25.0.7:/home/franco/FRC/configuracion.json /home/franco/FRC/
 sudo scp franco@172.25.0.7:/home/franco/FRC/configuracion-local.json /home/franco/FRC/
 sudo scp franco@172.25.0.7:/home/franco/FRC/frc.png /home/franco/FRC/
@@ -82,6 +83,18 @@ sudo scp franco@172.25.0.7:/home/franco/FRC/frc-server/application.properties /h
 sudo scp franco@172.25.0.7:/home/franco/FRC/frc-server/application.yml /home/franco/FRC/frc-server/
 sudo scp franco@172.25.0.7:/home/franco/FRC/resources/images/logo.png /home/franco/FRC/resources/images/
 sudo scp franco@172.25.0.7:/usr/share/applications/frc.desktop /usr/share/applications/
+=======
+scp franco@172.25.0.2:/home/franco/FRC/configuracion.json /home/franco/FRC/
+scp franco@172.25.0.2:/home/franco/FRC/configuracion-local.json /home/franco/FRC/
+scp franco@172.25.0.2:/home/franco/FRC/frc.png /home/franco/FRC/
+scp franco@172.25.0.2:/home/franco/FRC/FRC.AppImage /home/franco/FRC/
+scp franco@172.25.0.2:/home/franco/FRC/pos/posprinterinstall_integrated.tar.gz /home/franco/FRC/pos/
+scp franco@172.25.0.2:/home/franco/FRC/frc-server/frc-server.jar /home/franco/FRC/frc-server/
+scp franco@172.25.0.2:/home/franco/FRC/frc-server/application.properties /home/franco/FRC/frc-server/
+scp franco@172.25.0.2:/home/franco/FRC/frc-server/application.yml /home/franco/FRC/frc-server/
+scp franco@172.25.0.2:/home/franco/FRC/resources/images/logo.png /home/franco/FRC/resources/images/
+sudo scp franco@172.25.0.2:/usr/share/applications/frc.desktop /usr/share/applications/
+>>>>>>> 7cf3f27... cambios en compras ok
 
 -- instalar nuestro servicio
 -- crear el servicio
@@ -110,7 +123,7 @@ sudo systemctl enable frc
 -- configurar gnome
 -- instalar Gnome shell integration
 -- instalar la extension dock from dash
-sudo dnf install gnome-tweaks -y && gnome-tweaks
+sudo dnf install gnome-tweaks -y
 --ir a Barras de titulo de las ventanas -> Maximizar y Minimizar
 -- instalar cups
 sudo dnf install cups -y
@@ -146,4 +159,123 @@ sudo rpm --import https://keys.anydesk.com/repos/RPM-GPG-KEY
 sudo dnf install anydesk
 
 -- aumentar el tamanho de disco 
+<<<<<<< HEAD
 https://gist.github.com/181192/cf7eb42a25538ccdb8d0bb7dd57cf236
+=======
+https://gist.github.com/181192/cf7eb42a25538ccdb8d0bb7dd57cf236
+
+-- instalar impresora para pronet
+1 - crear el archivo del servicio
+sudo tee /usr/local/bin/print_service.sh << "EOF" > /dev/null
+#!/bin/bash
+TARGET_DIR=/home/franco/Descargas
+MAX_FILES=20
+PRINTER_NAME=pronet
+
+LOGFILE=/var/log/print_service.log
+echo "$(date): Print service started" >> $LOGFILE
+
+while true; do
+    for file in "$TARGET_DIR"/impresion*.txt; do
+        if [ ! -f "$file" ]; then
+            echo "$(date): No files found to process" >> $LOGFILE
+            continue
+        fi
+
+        echo "$(date): Found file $file" >> $LOGFILE
+
+        lsof -p $$ > /dev/null with lsof "$file" > /dev/null
+        if [ $? -eq 0 ]; then
+            echo "$(date): File $file is still being written" >> $LOGFILE
+            continue
+        fi
+
+        echo "$(date): File $file is ready for processing" >> $LOGFILE
+
+	perl -pe 's/\\n/\n/g; s/\\x([0-9A-Fa-f]{2})/chr(hex($1))/ge' "$file" | lpr -P "$PRINTER_NAME"
+
+        mv "$file" "$TARGET_DIR/printed$(date +%s).txt"
+
+        echo "$(date): File $file has been printed and moved" >> $LOGFILE
+
+        ls -1tr "$TARGET_DIR"/*.txt | head -n -"$MAX_FILES" | xargs -d '\n' rm -f --
+
+        echo "$(date): Old files have been removed" >> $LOGFILE
+    done
+    sleep 1
+done
+EOF
+
+2 - dar permisos al archivo 
+sudo chmod +x /usr/local/bin/print_service.sh
+
+3 - crear el servicio
+sudo tee /etc/systemd/system/print.service << "EOF" > /dev/null
+[Unit]
+Description=Print Service
+
+[Service]
+ExecStart=/usr/local/bin/print_service.sh
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+4 - Recargar e iniciar
+sudo systemctl daemon-reload
+sudo systemctl enable print.service
+sudo systemctl start print.service
+
+
+suc 4 ok
+- 07-10 al 07-14
+- 07-25 al 07-31
+
+suc 7 ok
+- 07-20
+- 07-24 al 07-31
+
+suc 8 ok
+- 07-19 al 07-31
+
+suc 9 ok
+- 07-27
+- 07-20
+
+suc 10 ok
+- 07-19
+
+suc 11 OK
+- 07-26 a 07-31
+- 07-14
+
+suc 12
+- 07-19
+
+134.000.000
+tarjeta  = 
+230000
+75000
+515000
+832000
+890000
+474000
+638000
+484000
+39000 
+639500
+
+
+convenio = 
+35000 
+   0 
+896000
+351000
+122000
+179000
+174000
+67000 
+257500
+391500 
+
+>>>>>>> 3d6c31f... solucion de varios problemas ok

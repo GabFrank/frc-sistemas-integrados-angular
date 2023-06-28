@@ -1,10 +1,74 @@
 <app-generic-list
   [data]="dataSource.data"
-  (cargarMasDatos)="cargarMasDatos()"
-  [isLastPage]="isLastPage || isSearching"
+  style="height: 100%"
+  [isAdicionar]="true"
+  (adicionar)="onAddFuncionario()"
+  (filtrar)="onFiltrar()"
+  (resetFiltro)="onResetFiltro()"
 >
-  <div filtros></div>
-  <div table>
+  <div filtros>
+    <div fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="25%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Nombre o nickname</mat-label>
+          <input
+            type="text"
+            matInput
+            [formControl]="nombreControl"
+            (keyup.enter)="onFiltrar()"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="25%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Sucursal</mat-label>
+          <mat-select
+            #sucursalSelect
+            [formControl]="sucursalControl"
+            multiple
+            (keyup.enter)="onFiltrar()"
+          >
+            <mat-select-trigger>
+              {{(sucursalControl.value?.[0]?.nombre || '')}}
+              <span
+                *ngIf="(sucursalControl.value?.length || 0) > 1"
+                class="example-additional-selection"
+              >
+                (+{{ (sucursalControl.value?.length || 0) - 1 }}
+                {{ sucursalControl.value?.length === 2 ? "otro" : "otros" }})
+              </span>
+            </mat-select-trigger>
+            <div
+              style="
+                width: 100%;
+                text-align: end;
+                padding-right: 10px;
+                padding-top: 10px;
+                font-size: 0.8em;
+                color: white;
+              "
+            >
+              <mat-icon
+                (click)="sucursalSelect.close()"
+                class="highlight-hover-danger"
+                >clear</mat-icon
+              >
+            </div>
+            <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal"
+              >{{ sucursal?.id }} -
+              {{ sucursal?.nombre | titlecase }}</mat-option
+            >
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+  <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
     <table
       mat-table
       [dataSource]="dataSource"
@@ -191,5 +255,13 @@
         class="example-detail-row"
       ></tr>
     </table>
+    <mat-paginator
+      itemsPerPageLabel="Itens por pagina"
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)"
+      [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
   </div>
 </app-generic-list>

@@ -64,7 +64,7 @@ export class ListMaletinComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.maletinService.onGetAll(0, 50).subscribe(res => {
+    this.maletinService.onGetAll(0, 100).subscribe(res => {
       if (res != null) {
         this.dataSource.data = res;
       }

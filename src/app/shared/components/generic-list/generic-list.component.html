@@ -1,5 +1,5 @@
 <div fxLayout="row" style="width: 100%" fxLayoutAlign="center start">
-  <div fxLayout="column" style="width: 95%" [style.height.px]="containerHeight">
+  <div fxLayout="column" style="width: 95%;" [style.height.px]="containerHeight">
     <div fxLayout="column">
       <div fxFlex="15%" style="width: 100%; text-align: center">
         <h3>{{ titulo }}</h3>
@@ -69,11 +69,11 @@
       </mat-card>
     </div>
     <div fxFlex="80" style="overflow-y: auto">
-      <div fxLayout="column">
+      <div fxLayout="column" style="height: 100%;">
         <ng-content select="[table]"></ng-content>
         <div style="width: 100%" fxLayout="row" fxLayoutAlign="center center">
           <button
-            *ngIf="data?.length > 0"
+            *ngIf="data?.length > 0 && isCargarMas"
             mat-button
             color="accent"
             (click)="onCargarMasDatos()"

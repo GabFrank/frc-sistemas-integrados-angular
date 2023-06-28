@@ -1,0 +1,54 @@
+<div
+  fxLayout="row"
+  style="width: 100%; height: 80%"
+  fxLayoutAlign="center center"
+>
+  <div fxFlex="60" fxLayout="column">
+    <div
+      fxFlex
+      fxLayout="row wrap"
+      fxLayoutAlign="start start"
+      fxLayoutGap="10px"
+    >
+      <div fxFlex="25%" style="height: 200px">
+        <app-boton
+          nombre="Lista de Pedidos"
+          icon="receipt_long"
+          [iconSize]="4"
+          (clickEvent)="onListPedidos()"
+        ></app-boton>
+      </div>
+      <div fxFlex="25%" style="height: 200px">
+        <app-boton
+          nombre="Lista de compras"
+          icon="currency_exchange"
+          [iconSize]="4"
+          (clickEvent)="onListCompras()"
+        ></app-boton>
+      </div>
+      <div fxFlex="25%" style="height: 200px">
+        <app-boton
+          nombre="Nuevo Pedido"
+          icon="paid"
+          [iconSize]="4"
+          (clickEvent)="onNewPedido()"
+        ></app-boton>
+      </div>
+      <div fxFlex="25%" style="height: 200px">
+        <app-boton
+          nombre="Lista de Proveedores"
+          icon="paid"
+          [iconSize]="4"
+          (clickEvent)="onListProveedores()"
+        ></app-boton>
+      </div>
+      <!-- <div fxFlex="30%" style="height: 250px">
+        <app-boton
+          nombre="Configurar Transferencias"
+          icon="tune"
+          [iconSize]="4"
+        ></app-boton>
+      </div> -->
+    </div>
+  </div>
+</div>

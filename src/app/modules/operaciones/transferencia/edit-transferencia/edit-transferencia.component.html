@@ -131,12 +131,12 @@
         </div>
         <div fxFlex="15%">
           <button
-            *ngIf="isPreTransferenciaCreacion"
+            *ngIf="isPreTransferenciaCreacion || isPreTransferenciaOrigen || isPreparacionMercaderia"
             style="width: 100%"
             mat-raised-button
             (click)="selectSucursales()"
           >
-            Selec. Sucursales
+            {{selectedTransferencia?.id == null ? 'Selec. Sucursales' : 'Cambiar Sucursales'}}
           </button>
         </div>
         <div fxFlex="15%" *ngIf="false">
@@ -326,6 +326,7 @@
                 [formControl]="cantidadPresentacionControl"
                 (keyup.enter)="onCantidadPresentacionEnter()"
                 (keyup.tab)="onCantidadPresentacionEnter()"
+                (focusout)="onCantidadPresentacionFocusOut()"
               />
             </mat-form-field>
           </div>
@@ -490,21 +491,16 @@
       <ng-container matColumnDef="producto">
         <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
         <td mat-cell *matCellDef="let item" style="width: 30%">
-          <span copiarAClipboard>{{
-            item?.presentacionPreTransferencia?.producto?.id
-          }}</span>
+          <span copiarAClipboard>{{item?.presentacionPreTransferencia?.producto?.id}}</span>
           -
-          <span copiarAClipboard>{{
-            item?.presentacionPreTransferencia?.producto?.descripcion
-              | uppercase
-          }}</span>
+          <span copiarAClipboard>{{item?.presentacionPreTransferencia?.producto?.descripcion|uppercase}}</span>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="codigo">
         <th mat-header-cell *matHeaderCellDef>Cod. Barra</th>
         <td mat-cell *matCellDef="let item" copiarAClipboard>
-          {{ item?.presentacionPreTransferencia?.producto?.codigoPrincipal }}
+          {{item?.presentacionPreTransferencia?.producto?.codigoPrincipal}}
         </td>
       </ng-container>
 

@@ -5,3 +5,7 @@ input {
 .selected {
     background-color: #43a047;
 }
+
+tr:focus {
+    outline: none;
+}

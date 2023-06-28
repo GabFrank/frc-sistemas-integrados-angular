@@ -27,6 +27,9 @@ import { CargandoDialogService } from '../cargando-dialog/cargando-dialog.servic
 import { CambioComponent } from './../../../modules/financiero/cambio/cambio.component';
 import { InventarioDashboardComponent } from './../../../modules/operaciones/inventario/inventario-dashboard/inventario-dashboard.component';
 import { TransferenciaComponent } from './../../../modules/operaciones/transferencia/transferencia.component';
+import { CompraDashboardComponent } from "../../../modules/operaciones/compra/compra-dashboard/compra-dashboard.component";
+import { ListRetiroComponent } from "../../../modules/financiero/retiro/list-retiro/list-retiro.component";
+import { ListFacturaLegalComponent } from "../../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component";
 
 @Component({
   selector: "app-side",
@@ -213,9 +216,7 @@ export class SideComponent implements OnInit {
         break;
       case "list-gastos":
         if (
-          this.mainService.usuarioActual?.roles.includes(
-            "ANALISIS-FINANCIERO"
-          )
+          this.mainService.usuarioActual?.roles.includes(ROLES.ANALISIS_DE_CAJA)
         ) {
           this.tabService.addTab(
             new Tab(ListGastosComponent, "Gastos", null, null)
@@ -281,6 +282,29 @@ export class SideComponent implements OnInit {
         this.tabService.addTab(
           new Tab(LucroPorProductoComponent, "Lucro por producto", null, null)
         );
+        break;
+      case "compras-dashboard":
+        this.tabService.addTab(
+          new Tab(CompraDashboardComponent, "Compras", null, null)
+        );
+        break;
+      case "list-retiros":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ANALISIS_DE_CAJA)
+        ) {
+          this.tabService.addTab(
+            new Tab(ListRetiroComponent, "Lista de retiros", null, null)
+          );
+        }
+        break;
+      case "list-facturas":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ANALISIS_DE_CAJA)
+        ) {
+          this.tabService.addTab(
+            new Tab(ListFacturaLegalComponent, "Lista de facturas", null, null)
+          );
+        }
         break;
     }
   }

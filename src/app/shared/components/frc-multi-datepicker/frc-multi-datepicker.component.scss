@@ -1,0 +1,6 @@
+::ng-deep .mat-calendar-body-cell.selected > .mat-calendar-body-cell-content,
+::ng-deep .mat-calendar-body-cell.selected:hover > .mat-calendar-body-cell-content,
+::ng-deep .mat-calendar-body-cell.selected > .mat-calendar-body-cell-content:hover {
+  background-color: #43a047 !important;
+  color: #fff !important;
+}

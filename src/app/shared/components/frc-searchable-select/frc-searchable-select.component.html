@@ -1,0 +1,42 @@
+<div *ngIf="isLoading">Loading...</div>
+
+<mat-form-field style="width: 100%" *ngIf="!isLoading">
+  <mat-label>{{titulo}}</mat-label>
+  <mat-select
+    #matSelect
+    [formControl]="control"
+    (selectionChange)="onSelectionChange($event)"
+    [placeholder]="titulo"
+    [multiple]="isMultiple"
+  >
+    <mat-option>
+      <ngx-mat-select-search
+        [formControl]="filterControl"
+        [placeholderLabel]="titulo"
+        noEntriesFoundLabel="Item no encontrado"
+      ></ngx-mat-select-search>
+      <span
+        ngxMatSelectNoEntriesFound
+        *ngIf="filterControl.valid && filteredList?.length == 0 && isAdicionar"
+      >
+        <app-boton
+          nombre="Adicionar"
+          style="height: 100%; width: 100%"
+        ></app-boton>
+      </span>
+    </mat-option>
+
+    <mat-option
+      *ngFor="let item of filteredList"
+      [value]="item"
+      style="width: 100%"
+    >
+      <ng-container
+        style="width: 100%"
+        *ngTemplateOutlet="itemTemplate; context: { $implicit: item }"
+      ></ng-container>
+    </mat-option>
+  </mat-select>
+</mat-form-field>
+
+<ng-content></ng-content>

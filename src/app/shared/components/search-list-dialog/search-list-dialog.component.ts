@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from "@angular/core";
+import { AfterViewInit, Component, ElementRef, Inject, OnInit, QueryList, ViewChild, ViewChildren } from "@angular/core";
 import { FormControl } from "@angular/forms";
 import { MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
@@ -22,9 +22,11 @@ export class SearchListtDialogData {
   inicialSearch?= false;
   inicialData?: any;
   texto?: string;
+  isAdicionar?: boolean;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { SelectionModel } from "@angular/cdk/collections";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -32,7 +34,11 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
   templateUrl: "./search-list-dialog.component.html",
   styleUrls: ["./search-list-dialog.component.scss"],
 })
-export class SearchListDialogComponent implements OnInit {
+export class SearchListDialogComponent implements OnInit, AfterViewInit {
+
+  @ViewChildren('tableRows', { read: ElementRef }) tableRows: QueryList<ElementRef>;
+  @ViewChild('container', { read: ElementRef }) container: ElementRef;
+
   dataSource = new MatTableDataSource<any>([]);
   buscarControl = new FormControl("");
   displayedColumns = []
@@ -55,11 +61,42 @@ export class SearchListDialogComponent implements OnInit {
     if (this.data?.inicialSearch) {
       if (this.data?.texto != null) {
         this.buscarControl.setValue(this.data.texto)
-
       }
       setTimeout(() => {
         this.onSearch();
       }, 500);
+    }
+
+  }
+
+  ngAfterViewInit(): void {
+    this.container.nativeElement.addEventListener("keydown", (e) => {
+      if (e.key == 'ArrowUp') {
+        this.onArrowDown(true)
+      } else if (e.key == 'ArrowDown') {
+        this.onArrowDown(false)
+      }
+    });
+
+    // this.tableRows.changes.subscribe(() => {
+    //   this.focusRow(0); // Whenever the rows change, reset the focus to the first row
+    // });
+  }
+
+  onArrowDown(up: boolean): void {
+    if (this.dataSource.data?.length > 0) {
+      let currentIndex = this.dataSource.data.indexOf(this.selectedItem);
+      if (currentIndex === -1) {
+        this.selectedItem = this.dataSource.data[0];
+        currentIndex = 0;
+      } else {
+        currentIndex = up ? currentIndex - 1 : currentIndex + 1;
+        if (currentIndex < 0) currentIndex = 0;
+        if (currentIndex >= this.dataSource.data.length)
+          currentIndex = this.dataSource.data.length - 1;
+        this.selectedItem = this.dataSource.data[currentIndex];
+      }
+      this.tableRows.toArray()[currentIndex].nativeElement.focus();
     }
   }
 
@@ -91,4 +128,10 @@ export class SearchListDialogComponent implements OnInit {
   onCancelar() {
     this.matDialogRef.close()
   }
+
+  onAdicionar() {
+    this.matDialogRef.close({adicionar: true})
+  }
+
+
 }

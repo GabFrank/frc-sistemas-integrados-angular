@@ -3,6 +3,11 @@ import { BehaviorSubject } from 'rxjs';
 import { CargandoDialogService } from './../../shared/components/cargando-dialog/cargando-dialog.service';
 import { Tab } from './tab.model';
 import { LucroPorProductoComponent } from '../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.component';
+import { CompraDashboardComponent } from '../../modules/operaciones/compra/compra-dashboard/compra-dashboard.component';
+import { ListPedidoComponent } from '../../modules/operaciones/pedido/list-pedido/list-pedido.component';
+import { EditPedidoComponent } from '../../modules/operaciones/pedido/edit-pedido/edit-pedido.component';
+import { ListFuncioarioComponent } from '../../modules/personas/funcionarios/list-funcioario/list-funcioario.component';
+import { ListTransferenciaComponent } from '../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -36,7 +41,7 @@ export class TabService implements OnInit {
       // new Tab(VentaTouchComponent, 'Venta', null, null),
     ];
 
-    // this.addTab(new Tab(EditTransferenciaComponent, 'Transferencia 19', new TabData(19), null))
+    // this.addTab(new Tab(ListTransferenciaComponent, 'Lista de transferencia', null, null))
     this.tabSub.next(this.tabs);
 
     // this.productoService.getProducto(1152).subscribe(res => {
@@ -45,7 +50,7 @@ export class TabService implements OnInit {
     // })
   }
   ngOnInit(): void {
-    // this.addTab(new Tab(LucroPorProductoComponent, 'Lucro por producto', null, null))
+    // this.addTab(new Tab(CompraDashboardComponent, 'Compras', null, null))
   }
 
 
@@ -150,3 +155,7 @@ export class TabService implements OnInit {
     this.removeTab(this.currentIndex)
   }
 }
+
+// conteo -> conteo moneda -> caja -> gastos -> retiros -> retiro detalle -> 
+// cobro -> cobro detalle -> venta -> venta_item -> factura legal -> factura legal item
+
