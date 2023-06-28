@@ -147,7 +147,7 @@ export class ListCajaComponent implements OnInit {
   }
 
   onFilter() {
-    if (this.codigoControl.valid) {
+    if (this.codigoControl.value != null && !isNaN(this.codigoControl.value)) {
       this.fechaInicioControl.setValue(null)
       this.fechaFinalControl.setValue(null)
       this.cajaService.onGetById(this.codigoControl.value, this.selectedSucursal?.id).pipe(untilDestroyed(this)).subscribe(res => {

@@ -46,11 +46,8 @@ export class ListMaletinComponent implements OnInit {
   resultsLength = 0;
   dataSource = new MatTableDataSource<Maletin>(null);
 
-
   isLastPage = false;
   isSearching = false;
-
-
 
   constructor(
     private maletinService: MaletinService,

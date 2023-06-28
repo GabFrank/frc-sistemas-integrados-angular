@@ -86,21 +86,33 @@
       "port": "8082"
     },
     {
-      "id": 15,
-      "nombre": "Suc. San Pedro",
-      "ip": "172.25.0.60",
+      "id": 17,
+      "nombre": "Suc. Petropar CTY",
+      "ip": "172.25.0.162",
       "port": "8082"
     },
     {
       "id": 0,
-      "nombre": "Farmacia",
+      "nombre": "Farmacia Servidor",
       "ip": "158.101.114.87",
       "port": "8081"
+    },
+    {
+      "id": 1,
+      "nombre": "Farmacia Central",
+      "ip": "192.168.100.188",
+      "port": "8082"
     },
     {
       "id": 2,
       "nombre": "Farmacia Calle 10",
       "ip": "192.168.100.243",
+      "port": "8082"
+    },
+    {
+      "id": 3,
+      "nombre": "Farmacia Itaipu",
+      "ip": "192.168.100.125",
       "port": "8082"
     }
   ]

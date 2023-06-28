@@ -72,20 +72,20 @@ mkdir /home/franco/FRC/postgres
 mkdir /home/franco/FRC/resources
 mkdir /home/franco/FRC/resources/images
 -- copiar los archivos necesarios usando ssh y scp
-sudo scp franco@172.25.0.7:/home/franco/FRC/configuracion.json /home/franco/FRC/
-sudo scp franco@172.25.0.7:/home/franco/FRC/configuracion-local.json /home/franco/FRC/
-sudo scp franco@172.25.0.7:/home/franco/FRC/frc.png /home/franco/FRC/
-sudo scp franco@172.25.0.7:/home/franco/FRC/FRC.AppImage /home/franco/FRC/
-sudo scp franco@172.25.0.7:/home/franco/FRC/pos/posprinterinstall_integrated.tar.gz /home/franco/FRC/pos/
-sudo scp franco@172.25.0.7:/home/franco/FRC/frc-server/frc-server.jar /home/franco/FRC/frc-server/
-sudo scp franco@172.25.0.7:/home/franco/FRC/frc-server/application.properties /home/franco/FRC/frc-server/
-sudo scp franco@172.25.0.7:/home/franco/FRC/frc-server/application.yml /home/franco/FRC/frc-server/
-sudo scp franco@172.25.0.7:/home/franco/FRC/resources/images/logo.png /home/franco/FRC/resources/images/
-sudo scp franco@172.25.0.7:/usr/share/applications/frc.desktop /usr/share/applications/
+sudo scp franco@192.168.100.125:/home/franco/FRC/configuracion.json /home/franco/FRC/
+sudo scp franco@192.168.100.125:/home/franco/FRC/configuracion-local.json /home/franco/FRC/
+sudo scp franco@192.168.100.125:/home/franco/FRC/frc.png /home/franco/FRC/
+sudo scp franco@192.168.100.125:/home/franco/FRC/FRC.AppImage /home/franco/FRC/
+sudo scp franco@192.168.100.125:/home/franco/FRC/pos/posprinterinstall_integrated.tar.gz /home/franco/FRC/pos/
+sudo scp franco@192.168.100.125:/home/franco/FRC/frc-server/frc-server.jar /home/franco/FRC/frc-server/
+sudo scp franco@192.168.100.125:/home/franco/FRC/frc-server/application.properties /home/franco/FRC/frc-server/
+sudo scp franco@192.168.100.125:/home/franco/FRC/frc-server/application.yml /home/franco/FRC/frc-server/
+sudo scp franco@192.168.100.125:/home/franco/FRC/resources/images/logo.png /home/franco/FRC/resources/images/
+sudo scp franco@192.168.100.125:/usr/share/applications/frc.desktop /usr/share/applications/
 
 -- instalar nuestro servicio
 -- crear el servicio
-sudo vim /etc/systemd/system/frc.service
+sudo tee /etc/systemd/system/frc.service << "EOF" > /dev/null
 [Unit]
 Description=FRC Sistemas Integrados
 After=network.target
@@ -99,7 +99,7 @@ SuccessExitStatus=143
 
 [Install]
 WantedBy=multi-user.target
-
+EOF
 -- recargar systemctl
 sudo systemctl daemon-reload
 -- iniciar el servicio
@@ -124,7 +124,7 @@ sudo usermod --append --groups lpadmin franco
 -- configurar impresora en red con CUPS
 -- primero compartir la impresora en la maquina y agregar el usuario franco
 - instalar samba en fedora (si la impresora esta en una maquina windows)
-sudo dnf install samba samba-client
+sudo dnf install samba samba-client -y
 - verificar si nos aparece la impresora en la maquina que tiene cups
 smbclient -L //192.168.0.6 -U franco%franco
 - si aparece,ir a la interface web de cups e instalar una nueva impresora samba
@@ -147,3 +147,65 @@ sudo dnf install anydesk
 
 -- aumentar el tamanho de disco 
 https://gist.github.com/181192/cf7eb42a25538ccdb8d0bb7dd57cf236
+
+-- instalar impresora para pronet
+1 - crear el archivo del servicio
+sudo tee /usr/local/bin/print_service.sh << "EOF" > /dev/null
+#!/bin/bash
+TARGET_DIR=/home/franco/Descargas
+MAX_FILES=20
+PRINTER_NAME=pronet
+
+LOGFILE=/var/log/print_service.log
+echo "$(date): Print service started" >> $LOGFILE
+
+while true; do
+    for file in "$TARGET_DIR"/impresion*.txt; do
+        if [ ! -f "$file" ]; then
+            echo "$(date): No files found to process" >> $LOGFILE
+            continue
+        fi
+
+        echo "$(date): Found file $file" >> $LOGFILE
+
+        lsof -p $$ > /dev/null with lsof "$file" > /dev/null
+        if [ $? -eq 0 ]; then
+            echo "$(date): File $file is still being written" >> $LOGFILE
+            continue
+        fi
+
+        echo "$(date): File $file is ready for processing" >> $LOGFILE
+
+	perl -pe 's/\\n/\n/g; s/\\x([0-9A-Fa-f]{2})/chr(hex($1))/ge' "$file" | lpr -P "$PRINTER_NAME"
+
+        mv "$file" "$TARGET_DIR/printed$(date +%s).txt"
+
+        echo "$(date): File $file has been printed and moved" >> $LOGFILE
+
+        ls -1tr "$TARGET_DIR"/*.txt | head -n -"$MAX_FILES" | xargs -d '\n' rm -f --
+
+        echo "$(date): Old files have been removed" >> $LOGFILE
+    done
+    sleep 1
+done
+EOF
+
+2 - dar permisos al archivo 
+sudo chmod +x /usr/local/bin/print_service.sh
+
+3 - crear el servicio
+sudo tee /etc/systemd/system/print.service << "EOF" > /dev/null
+[Unit]
+Description=Print Service
+
+[Service]
+ExecStart=/usr/local/bin/print_service.sh
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+4 - Recargar e iniciar
+sudo systemctl daemon-reload
+sudo systemctl enable print.service
+sudo systemctl start print.service

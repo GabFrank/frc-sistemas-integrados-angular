@@ -36,6 +36,9 @@ export const facturaLegalesQuery = gql`
         totalFinal
         creadoEn
         sucursalId
+        sucursal {
+          nombre
+        }
     }
   }
 `;

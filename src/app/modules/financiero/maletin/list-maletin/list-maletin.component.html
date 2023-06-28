@@ -4,6 +4,8 @@
   [isLastPage]="isLastPage || isSearching"
   (filtrar)="onFiltrar()"
   (resetFiltro)="resetFiltro()"
+  (adicionar)="onAdd()"
+  [isAdicionar]="true"
 >
   <div filtros></div>
   <div table>
