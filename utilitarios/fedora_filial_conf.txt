@@ -144,6 +144,9 @@ gpgkey=https://keys.anydesk.com/repos/RPM-GPG-KEY
 EOF
 sudo rpm --import https://keys.anydesk.com/repos/RPM-GPG-KEY
 sudo dnf install anydesk
+sudo vim /etc/gdm/custom.conf
+descomentar esta linea -> WaylandEnable=false
+agregar esta linea debajo de daemon: DefaultSession=gnome-xorg.desktop
 
 -- aumentar el tamanho de disco 
 https://gist.github.com/181192/cf7eb42a25538ccdb8d0bb7dd57cf236
