@@ -638,6 +638,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   onConvenioClick() {
     this.isDialogOpen = true;
     this.setFormaPago('CONVENIO')
+    if(this.formGroup?.controls?.saldo?.value == 0) return this.notificacionSnackbar.openWarn('El valor no puede ser 0.')
     this.matDialog.open(AddVentaCreditoDialogComponent, { width: '100%', height: '80%', data: { valor: this.formGroup?.controls?.saldo?.value } }).afterClosed()
       .subscribe(res => {
         if (res?.ventaCredito != null) {
@@ -681,5 +682,15 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     //Called once, before the instance is destroyed.
     //Add 'implements OnDestroy' to the class.
     this.formaPagoSub.unsubscribe();
+  }
+
+  onValorEnter(){
+    if (!this.isDialogOpen) {
+      if (this.formGroup.controls.saldo.value == 0) {
+        this.onFinalizar(null, null, false);
+      } else {
+        this.addCobroDetalle();
+      }
+    }
   }
 }

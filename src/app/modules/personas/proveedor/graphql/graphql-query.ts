@@ -8,9 +8,11 @@ export const proveedoresQuery = gql
         id
         nombre
       }
-      vendedorList{
+      vendedores{
         id
-        nombrePersona
+        persona {
+          nombre
+        }
       }
       credito
       tipoCredito
@@ -28,12 +30,14 @@ export const proveedoresSearchByPersona = gql
       persona{
         id
         nombre
+        documento
       }
       vendedores{
         id
         persona{
           id
           nombre
+          documento
         }
       }
       credito
@@ -56,7 +60,9 @@ export const proveedoresSearchByProveedor = gql
       }
       vendedores{
         id
-        nombrePersona
+        persona {
+          nombre
+        }
       }
       credito
       tipoCredito
@@ -75,9 +81,11 @@ export const proveedoresPorProveedor = gql
         id
         nombre
       }
-      vendedorList{
+      vendedores{
         id
-        nombrePersona
+        persona {
+          nombre
+        }
       }
       credito
       tipoCredito
@@ -90,15 +98,19 @@ export const proveedoresPorProveedor = gql
 
 export const proveedorQuery = gql
   `query($id: ID!){
-    proveedor(id: $id){
+    data: proveedor(id: $id){
       id
       persona{
         id
         nombre
+        documento
       }
-      vendedorList{
+      vendedores{
         id
-        nombrePersona
+        persona {
+          nombre
+          documento
+        }
       }
       credito
       tipoCredito

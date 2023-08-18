@@ -33,15 +33,15 @@
         </mat-form-field>
       </div>
       <div fxFlex="80" style="width: 100%; overflow-y: scroll">
-        <mat-selection-list [multiple]="false">
-          <mat-list-option
+        <mat-list>
+          <mat-list-item
             *ngFor="let sucursal of filteredOrigenSucursalList"
             (click)="onOrigenChange(sucursal)"
-            [value]="selectedSucursalOrigen"
+            [class.selected]="sucursal == selectedSucursalOrigen"
           >
             {{ sucursal?.id }} - {{ sucursal?.nombre | uppercase }}
-          </mat-list-option>
-        </mat-selection-list>
+          </mat-list-item>
+        </mat-list>
       </div>
     </mat-card>
     <mat-card
@@ -64,14 +64,15 @@
         </mat-form-field>
       </div>
       <div fxFlex="80" style="width: 100%; overflow-y: scroll">
-        <mat-selection-list [multiple]="false">
-          <mat-list-option
+        <mat-list>
+          <mat-list-item
             *ngFor="let sucursal of filteredDestinoSucursalList"
             (click)="onDestinoChange(sucursal)"
+            [class.selected]="sucursal == selectedSucursalDestino"
           >
             {{ sucursal?.id }} - {{ sucursal?.nombre | uppercase }}
-          </mat-list-option>
-        </mat-selection-list>
+          </mat-list-item>
+        </mat-list>
       </div>
     </mat-card>
   </div>

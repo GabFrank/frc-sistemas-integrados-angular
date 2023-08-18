@@ -13,6 +13,7 @@ export const sucursalesQuery = gql
       usuario{
         id
       }
+      deposito
     }
   }`;
 

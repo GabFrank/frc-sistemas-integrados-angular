@@ -501,6 +501,7 @@
                 : currencyOptionsNoGuarani
             "
             autocomplete="off"
+            (keydown.enter)="onValorEnter(); $event.stopPropagation()"
           />
           <button
             type="button"

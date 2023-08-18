@@ -1,4 +1,9 @@
-<app-generic-list titulo="Pedidos" (adicionar)="onAdd()" (filtrar)="onFilter()">
+<app-generic-list
+  titulo="Pedidos"
+  (adicionar)="onAdd()"
+  (filtrar)="onFilter()"
+  [isAdicionar]="true"
+>
   <div filtros></div>
   <div table>
     <table
@@ -83,7 +88,7 @@
           *matCellDef="let pedido"
           style="text-align: center; width: 10%"
         >
-          {{ pedido?.estado | enumToString | titlecase}}
+          {{ pedido?.estado | enumToString | titlecase }}
         </td>
       </ng-container>
 
@@ -100,7 +105,7 @@
           *matCellDef="let pedido"
           style="text-align: center; width: 10%"
         >
-          {{ pedido?.valorTotal | number: "1.0-0" }}
+          {{ pedido?.valorTotal | number : "1.0-0" }}
         </td>
       </ng-container>
 

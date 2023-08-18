@@ -1,8 +1,8 @@
 import { SelectionModel } from '@angular/cdk/collections';
-import { AfterViewInit, Component, ElementRef, Inject, OnDestroy, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, Inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { MatRow, MatTableDataSource } from '@angular/material/table';
+import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy } from '@ngneat/until-destroy';
 import { BehaviorSubject } from 'rxjs';
 import { updateDataSource, updateDataSourceWithId } from '../../../../../commons/core/utils/numbersUtils';
@@ -34,7 +34,6 @@ export interface ListDeliveryData {
 })
 export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
 
-  @ViewChildren(MatRow) matRowList: QueryList<MatRow>;
   @ViewChild('presupuesto', { read: DeliveryPresupuestoDialogComponent }) presupuesto: DeliveryPresupuestoDialogComponent;
   @ViewChild('newBtn', { read: BotonComponent }) newBtn: BotonComponent;
   @ViewChild('container', { read: ElementRef }) container: ElementRef;

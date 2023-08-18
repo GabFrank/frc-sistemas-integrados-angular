@@ -46,7 +46,7 @@ export class SucursalService {
     this.cargandoService.openDialog(false, 'Buscando...')
     return new Observable((obs) => {
       this.sucursalPorId
-        .fetch({ id}, { fetchPolicy: "no-cache", errorPolicy: "all"}).pipe(untilDestroyed(this))
+        .fetch({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.cargandoService.closeDialog()
           this.isLoading = false;
@@ -70,7 +70,8 @@ export class SucursalService {
           this.notificacionBar.openWarn('Problema al realizar esta operación')
           this.cargandoService.closeDialog()
         });
-    });  }
+    });
+  }
 
   onGetAllSucursales(): Observable<Sucursal[]> {
     return new Observable((obs) => {
@@ -86,6 +87,7 @@ export class SucursalService {
         .subscribe((res) => {
           if (res.errors == null) {
             obs.next(res.data["data"]);
+            obs.complete()
           } else {
             this.notificacionBar.notification$.next({
               texto: "Ups! algo salio mal: " + res.errors[0].message,

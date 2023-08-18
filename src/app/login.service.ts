@@ -5,7 +5,6 @@ import {
 } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
-import { StorageMap } from "@ngx-pwa/local-storage";
 import { environment } from "../environments/environment";
 import { MainService } from "./main.service";
 import { Usuario } from "./modules/personas/usuarios/usuario.model";
@@ -36,7 +35,6 @@ export class LoginService {
     private usuarioService: UsuarioService,
     public mainService: MainService,
     private matDialog: MatDialog,
-    private localStorage = StorageMap
   ) {}
 
   login(nickname, password): Observable<LoginResponse> {
@@ -71,6 +69,7 @@ export class LoginService {
                           error: null,
                         };
                         obs.next(response);
+                        obs.complete()
                       } else {
                       }
                     });

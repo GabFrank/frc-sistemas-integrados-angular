@@ -23,7 +23,6 @@ import { SelectProductosResponseData } from '../../comercial/venta-touch/select-
 export class BuscadorComponent implements OnInit {
 
   @ViewChild('buscadorInput', { static: false }) buscadorInput: ElementRef;
-  @ViewChild('cantidadInput', { static: false }) cantidadInput: ElementRef;
 
   @Input()
   selectedTipoPrecio;
@@ -93,17 +92,12 @@ export class BuscadorComponent implements OnInit {
       })
 
     this.buscadorControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res: string) => {
-      if (res != null) this.buscadorControl.setValue(res?.replace(',', '.'), { emitEvent: false });
       if (res?.includes('*')) {
         let multiIndex = this.buscadorControl.value?.indexOf('*')
         if (multiIndex > -1) {
           this.cantidadEvent.emit(+this.buscadorControl.value?.slice(0, multiIndex));
         }
       }
-    })
-
-    this.cantidadControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res: string) => {
-      if (res != null) this.buscadorControl.setValue(res?.replace(',', '.'));
     })
 
     this.clearBuscadorEvent.pipe(untilDestroyed(this)).subscribe(res => {
@@ -230,7 +224,6 @@ export class BuscadorComponent implements OnInit {
         }
         this.setFocusToInput()
       });
-    this.cantidadEvent.emit(1)
   }
 
   setFocusToInput() {

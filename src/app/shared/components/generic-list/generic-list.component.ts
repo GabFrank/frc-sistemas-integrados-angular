@@ -65,6 +65,9 @@ export class GenericListComponent implements OnInit {
   
   @Input()
   isLastPage = false;
+
+  @Input()
+  isCargarMas = false;
   
   headerHeight;
   tableHeight;

@@ -6,10 +6,15 @@ import { CargandoDialogService } from './../../../../shared/components/cargando-
 import { SucursalService } from './../../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from './../../../empresarial/sucursal/sucursal.model';
 import { MatDialog } from '@angular/material/dialog';
-import { Component, Inject, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, Inject, OnInit } from '@angular/core';
 import { untilDestroyed, UntilDestroy } from '@ngneat/until-destroy';
 import { animate, trigger, state, style, transition } from '@angular/animations';
 import { comparatorLike } from '../../../../commons/core/utils/string-utils';
+
+export interface SeleccionarSucursalDialogData {
+  sucursalOrigen?: Sucursal
+  sucursalDestino?: Sucursal
+}
 
 @UntilDestroy()
 @Component({
@@ -45,8 +50,11 @@ export class SeleccionarSucursalDialogComponent implements OnInit {
   iconState: string = "in";
   buscarOrigenControl = new FormControl()
   buscarDestinoControl = new FormControl()
+  sucursalOrigenControl = new FormControl([])
+  sucursalDestinoControl = new FormControl([])
 
   constructor(
+    @Inject(MAT_DIALOG_DATA) private data: SeleccionarSucursalDialogData,
     private matDialoRef: MatDialogRef<SeleccionarSucursalDialogComponent>,
     private cargandoService: CargandoDialogService,
     private matDialog: MatDialog, private sucursalService: SucursalService,
@@ -66,6 +74,12 @@ export class SeleccionarSucursalDialogComponent implements OnInit {
           } else {
             this.filteredOrigenSucursalList = this.sucursalList;
           }
+          if(this.data?.sucursalOrigen!=null){
+            this.onOrigenChange(this.sucursalList?.find(s => s.id == this.data.sucursalOrigen?.id));
+          }
+          if(this.data?.sucursalDestino!=null){
+            this.onDestinoChange(this.sucursalList?.find(s => s.id == this.data.sucursalDestino?.id))
+          }
         }
         this.cargandoService.closeDialog()
       })
@@ -82,10 +96,12 @@ export class SeleccionarSucursalDialogComponent implements OnInit {
   onOrigenChange(e: Sucursal) {
     this.selectedSucursalOrigen = e;
     this.filteredDestinoSucursalList = this.sucursalList.filter(s => s.id != e.id)
+    this.sucursalOrigenControl.setValue([e])
   }
 
   onDestinoChange(e: Sucursal) {
     this.selectedSucursalDestino = e;
+    this.sucursalDestinoControl.setValue([e])
   }
 
   onOrigenFilter() {

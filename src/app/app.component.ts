@@ -24,6 +24,23 @@ import { CargandoDialogService } from './shared/components/cargando-dialog/carga
 import { WindowInfoService } from "./shared/services/window-info.service";
 import { SearchBarDialogComponent } from './shared/widgets/search-bar-dialog/search-bar-dialog.component';
 
+export class Pageable {
+  getPageNumber: number;
+  getPageSize: number;
+}
+
+export class PageInfo<T> {
+  getTotalPages: number;
+  getTotalElements: number;
+  getNumberOfElements: number;
+  isFirst: boolean;
+  isLast: boolean;
+  hasNext: boolean;
+  hasPrevious: boolean;
+  getPageable: Pageable;
+  getContent: T[];
+}
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-root",
@@ -104,41 +121,41 @@ export class AppComponent implements OnInit, OnDestroy {
       width: "70%",
       disableClose: false,
     }).afterClosed().subscribe(res => {
-      if(!res){
+      if (!res) {
         this.configService.isConfigured()
-        .pipe(untilDestroyed(this))
-        .subscribe(res => {
-          if(!res){
-            this.matDialog.open(ConfigurarServidorDialogComponent, {
-              width: "80%",
-              height: "500px",
-              disableClose: true
-            })
-          }
-        })
+          .pipe(untilDestroyed(this))
+          .subscribe(res => {
+            if (!res) {
+              this.matDialog.open(ConfigurarServidorDialogComponent, {
+                width: "80%",
+                height: "500px",
+                disableClose: true
+              })
+            }
+          })
       }
     });
 
     connectionStatusSub
-    .pipe(untilDestroyed(this))
-    .subscribe((res) => {
-      if (res == true) {
-        this.notificationService.notification$.next({
-          texto: "Servidor Online!!",
-          color: NotificacionColor.success,
-          duracion: 6,
-        });
-        clearInterval(this.timer);
-      } else if (res == false) {
-        this.timer = setInterval(() => {
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res == true) {
           this.notificationService.notification$.next({
-            texto: "Servidor Offline!!",
-            color: NotificacionColor.danger,
-            duracion: 1,
+            texto: "Servidor Online!!",
+            color: NotificacionColor.success,
+            duracion: 6,
           });
-        }, 3000);
-      }
-    });
+          clearInterval(this.timer);
+        } else if (res == false) {
+          this.timer = setInterval(() => {
+            this.notificationService.notification$.next({
+              texto: "Servidor Offline!!",
+              color: NotificacionColor.danger,
+              duracion: 1,
+            });
+          }, 3000);
+        }
+      });
   }
 
   @HostListener("document:keydown", ["$event"]) onKeydownHandler(
@@ -149,11 +166,11 @@ export class AppComponent implements OnInit, OnDestroy {
         this.keyPressed = 'Control'
         break;
       case " ":
-        if(this.keyPressed=='Control')
-        this.matDialog.open(SearchBarDialogComponent, {
-          data: null,
-          width: '50%'
-        })
+        if (this.keyPressed == 'Control')
+          this.matDialog.open(SearchBarDialogComponent, {
+            data: null,
+            width: '50%'
+          })
         break;
       default:
         break;

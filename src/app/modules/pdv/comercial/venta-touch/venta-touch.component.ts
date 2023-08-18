@@ -292,7 +292,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       let response: AdicionarCajaResponse = res;
       if (res == "salir") {
         this.tabService.removeTab(this.tabService.currentIndex);
-      } else if (res == 'consulta') {
+      } else if(res == 'consulta') {
         this.modoConsulta = true;
         this.isDialogOpen = false;
       } else {
@@ -388,12 +388,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         this.buscadorFocusSub.next()
         this.clearBuscadorSub.next()
       });
-    this.cantidadControl.setValue(1)
   }
 
   calcularTotales() {
     this.totalGs = 0;
-    if (this.selectedItemList.length == 0) this.descuentoGs = 0;
+    if(this.selectedItemList.length == 0) this.descuentoGs = 0;
     this.selectedItemList.forEach((item) => {
       this.totalGs += Math.round(+item.cantidad * +item?.precio);
       this.descuentoGs += item.valorDescuento;
@@ -402,7 +401,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   addItem(item: VentaItem, index?) {
     item.precio = item?.precioVenta?.precio;
-    let cantidad: number = +item.cantidad;
+    let cantidad:number = +item.cantidad;
     if (item.producto.balanza != true) {
       if (!isInt(cantidad)) {
         cantidad = 1;
@@ -680,7 +679,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       this.addItem(item);
     }
     this.buscadorFocusSub.next()
-    this.cantidadControl.setValue(1);
   }
 
   cambiarTipoPrecio(tipo) {
@@ -707,7 +705,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onPagoClick() {
-    if (this.modoConsulta) return;
+    if(this.modoConsulta) return;
     this.isDialogOpen = true;
     this.mostrarPrecios = false
     if (this.selectedItemList?.length > 0) {
@@ -795,7 +793,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onTicketClick(ticket?: boolean) {
-    if (this.modoConsulta) return;
+    if(this.modoConsulta) return;
     this.disableCobroRapido = true;
     //guardar la compra, si la compra se guardo con exito, imprimir ticket y resetForm()
     let venta = new Venta();
@@ -846,7 +844,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onSaveVenta(venta, cobro, ticket, ventaCreditoInput?, ventaCreditoCuotaInputList?): Observable<Venta> {
-    if (this.modoConsulta) return;
+    if(this.modoConsulta) return;
     return new Observable(obs => {
       this.ventaTouchServive.onSaveVenta(venta, cobro, ticket || ventaCreditoInput != null, ventaCreditoInput, ventaCreditoCuotaInputList, !this.filteredPrecios.includes('EXPO')).pipe(untilDestroyed(this)).subscribe((res) => {
         this.cargandoService.closeDialog();
@@ -871,7 +869,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onDeliveryClick() {
-    if (this.modoConsulta) return;
+    if(this.modoConsulta) return;
     this.isDialogOpen = true;
     if (this.selectedDelivery == null) {
       this.selectedDelivery = new Delivery;
@@ -955,7 +953,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   openUtilitarios() {
-    if (this.modoConsulta) return;
+    if(this.modoConsulta) return;
     this.isDialogOpen = true;
     this.dialogReference = this.dialog
       .open(UtilitariosDialogComponent, {
@@ -983,7 +981,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       });
   }
 
-  updateCantidad(cantidad: number) {
+  updateCantidad(cantidad: number){
     this.cantidadControl.setValue(cantidad);
   }
 

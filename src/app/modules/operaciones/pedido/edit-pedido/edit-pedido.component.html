@@ -1,1412 +1,808 @@
-<div
-  fxLayout="column"
-  style="width: 100% !important; height: 90%"
-  fxLayoutAlign="start center"
->
-  <div fxFlex fxLayout="row" style="width: 100%; height: 100%">
-    <mat-card
-      appearance="outlined"
-      fxFlex="20%"
-      style="background-color: rgb(32, 32, 32); height: 100%"
-      fxLayout="column"
-    >
-      <div
-        fxFlex="90%"
-        fxLayout="column"
-        fxLayoutAlign="start start"
-        fxLayoutGap="10px"
-      >
-        <div style="width: 100%" fxFlexAlign="start">
-          <button
-            type="button"
-            [color]="stepper.selectedIndex == 0 ? 'accent' : 'primary'"
-            mat-raised-button
-            style="width: 100%"
-            (click)="goTo('detalle-pedido')"
-          >
-            Detalle Pedido
-          </button>
-        </div>
-        <div style="width: 100%" fxFlexAlign="start">
-          <button
-            type="button"
-            [color]="
-              stepper.selectedIndex == 1
-                ? 'accent'
-                : dataSource.data.length > 0
-                ? 'primary'
-                : ''
-            "
-            mat-raised-button
-            style="width: 100%"
-            (click)="goTo('recepcion-nota')"
-            [disabled]="dataSource.data.length <= 0"
-          >
-            Recepción de nota
-          </button>
-        </div>
-        <div style="width: 100%" fxFlexAlign="start">
-          <button
-            type="button"
-            [disabled]="dataSourceNotaRecepcion.data.length <= 0"
-            [color]="
-              stepper.selectedIndex == 2
-                ? 'accent'
-                : dataSourceNotaRecepcion.data.length > 0
-                ? 'primary'
-                : ''
-            "
-            mat-raised-button
-            style="width: 100%"
-            (click)="goTo('recepcion-mercaderia')"
-          >
-            Recepción de mercaderia
-          </button>
-        </div>
-        <div style="width: 100%" fxFlexAlign="start">
-          <button
-            type="button"
-            [color]="
-              stepper.selectedIndex == 3
-                ? 'accent'
-                : dataSource.data.length <= 0 ||
-                  dataSource.data.length - getCantidadItensVerificados() == 0
-                ? 'primary'
-                : ''
-            "
-            mat-raised-button
-            style="width: 100%"
-            (click)="goTo('detalle-compra')"
-            [disabled]="
-              dataSource.data.length <= 0 ||
-              dataSource.data.length - getCantidadItensVerificados() != 0
-            "
-          >
-            Resumen Compra
-          </button>
-        </div>
+<div class="cards" fxLayout="column" fxLayoutGap="10px" fxFlexFill>
+  <div fxFlex fxLayout="column" fxLayoutGap="10px" class="cards fondo">
+    <div fxFlex="50" fxLayout="row" fxLayoutGap="10px" class="cards">
+      <div fxFlex="25" fxLayout="row" fxLayoutAlign="start center">
+        <mat-form-field style="width: 100%">
+          <mat-label>Proveedor</mat-label>
+          <input
+            #proveedorInput
+            type="text"
+            matInput
+            [formControl]="buscarProveedorControl"
+            (keyup.enter)="onBuscarProveedor()"
+          />
+          <span matTextSuffix>
+            <mat-icon
+              (click)="onBuscarProveedor(); $event.stopPropagation()"
+              class="highlight-hover"
+              >search</mat-icon
+            >
+            <mat-icon
+              *ngIf="selectedProveedor != null"
+              (click)="onClearProveedor()"
+              class="highlight-hover-danger"
+              >clear</mat-icon
+            >
+          </span>
+        </mat-form-field>
       </div>
-      <!-- <div fxFlex="10%" fxLayoutAlign="end" style="width: 100%">
-        <div fxFlex fxFlexAlign="end">
-          <button color="primary" mat-raised-button style="width: 100%">
-            Salir
-          </button>
-        </div>
-      </div> -->
-    </mat-card>
-    <mat-card
-      appearance="outlined"
-      fxFlex="80%"
-      style="background-color: rgb(32, 32, 32); height: 100%"
-    >
-      <mat-stepper linear #stepper style="width: 100%; height: 100%">
-        <mat-step style="width: 100%; height: 100% !important">
-          <form
-            fxLayout="column"
-            [formGroup]="detalleForm"
-            style="width: 100%; height: 70vh"
+      <div fxFlex="25" fxLayout="row" fxLayoutAlign="start center">
+        <mat-form-field style="width: 100%">
+          <mat-label>Vendedor</mat-label>
+          <input
+            #vendedorInput
+            type="text"
+            matInput
+            [formControl]="buscarVendedorControl"
+            (keyup.enter)="onBuscarVendedor()"
+          />
+          <span matTextSuffix>
+            <mat-icon (click)="onBuscarVendedor()" class="highlight-hover"
+              >search</mat-icon
+            >
+            <mat-icon
+              *ngIf="selectedVendedor != null"
+              (click)="onClearVendedor()"
+              class="highlight-hover-danger"
+              >clear</mat-icon
+            >
+          </span>
+        </mat-form-field>
+      </div>
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Sucursal de influencia</mat-label>
+          <mat-select
+            #sucursalSelect
+            [formControl]="sucursalInfluenciaControl"
+            multiple
           >
+            <mat-select-trigger>
+              {{(sucursalInfluenciaControl.value?.[0]?.nombre || '')}}
+              <span
+                *ngIf="(sucursalInfluenciaControl.value?.length || 0) > 1"
+                class="example-additional-selection"
+              >
+                (+{{ (sucursalInfluenciaControl.value?.length || 0) - 1 }}
+                {{
+                  sucursalInfluenciaControl.value?.length === 2
+                    ? "otro"
+                    : "otros"
+                }})
+              </span>
+            </mat-select-trigger>
             <div
-              fxFlex
-              fxLayout="row"
-              style="width: 100%"
-              fxLayoutAlign="space-between start"
-              *ngIf="selectedPedido != null"
-            >
-              <div fxFlex="20" fxFlexAlign="start">
-                ID: {{ selectedPedido?.id }}
-              </div>
-              <div fxFlex="50" fxFlexAlign="start">
-                Responsable:
-                {{ selectedPedido?.usuario?.persona?.nombre | uppercase }}
-              </div>
-              <div fxFlex="20" fxFlexAlign="start">
-                Fecha: {{ selectedPedido?.creadoEn }}
-              </div>
-            </div>
-            <div
-              fxFlex
-              fxLayout="row"
-              style="width: 100%"
-              fxLayoutAlign="space-between start"
-            >
-              <div
-                fxFlex="50"
-                fxLayout="row"
-                fxLayoutAlign="start center"
-                fxLayoutGap="10px"
-              >
-                <mat-form-field fxFlex="90" style="width: 100%">
-                  <mat-label>Proveedor</mat-label>
-                  <input
-                    #proveedorInput
-                    type="text"
-                    matInput
-                    [formControl]="proveedorControl"
-                    oninput="this.value == ' ' ? this.value = '': null"
-                    [matAutocomplete]="autoProveedor"
-                    (keyup.enter)="onProveedorEnter()"
-                    (keyup.tab)="onProveedorEnter()"
-                  />
-                  <mat-autocomplete
-                    #autoProveedor="matAutocomplete"
-                    (optionSelected)="onProveedorSelect($event.option.value)"
-                    (closed)="onProveedorAutocompleteClose()"
-                  >
-                    <mat-option
-                      *ngFor="let proveedor of proveedorList"
-                      [value]="proveedor"
-                    >
-                      {{ proveedor.id }} -
-                      {{ proveedor?.persona?.nombre | uppercase }}
-                    </mat-option>
-                  </mat-autocomplete>
-                </mat-form-field>
-                <mat-icon
-                  fxFlex="10"
-                  class="highlight-hover"
-                  (click)="onAddProveedor()"
-                  >add_circle</mat-icon
-                >
-              </div>
-              <div
-                fxFlex="50"
-                fxLayout="row"
-                fxLayoutAlign="start center"
-                fxLayoutGap="10px"
-              >
-                <mat-form-field style="width: 100%">
-                  <mat-label>Vendedor</mat-label>
-                  <mat-select
-                    #vendedorInput
-                    [formControl]="vendedorControl"
-                    name="vendedor"
-                    (keyup.enter)="onVendedorEnter()"
-                  >
-                    <mat-option
-                      *ngFor="let vendedor of selectedProveedor?.vendedores"
-                      [value]="vendedor"
-                    >
-                      {{ vendedor?.persona?.nombre | titlecase }}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
-                <mat-icon fxFlex="10" class="highlight-hover"
-                  >add_circle</mat-icon
-                >
-              </div>
-            </div>
-            <div fxFlex fxLayout="row" fxLayoutAlign="space-between start">
-              <div fxFlex>
-                <mat-form-field>
-                  <mat-label>Forma de Pago</mat-label>
-                  <mat-select [formControl]="formaPagoControl" name="formaPago">
-                    <mat-option
-                      #formaPagoInput
-                      *ngFor="let formaPago of formaPagoList"
-                      [value]="formaPago"
-                      (keyup.enter)="onFormaPagoEnter()"
-                    >
-                      {{ formaPago.id }} -
-                      {{ formaPago.descripcion | uppercase }}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
-              </div>
-              <div fxFlex>
-                <mat-form-field>
-                  <mat-label>Moneda</mat-label>
-                  <mat-select [formControl]="monedaControl" name="moneda">
-                    <mat-option
-                      #monedaInput
-                      *ngFor="let moneda of monedaList"
-                      [value]="selectedMoneda"
-                      (keyup.enter)="onMonedaEnter()"
-                    >
-                      {{ moneda.id }} - {{ moneda.denominacion | uppercase }}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
-              </div>
-              <div fxFlex="10" fxFlexAlign="center">
-                <mat-checkbox [formControl]="creditoControl"
-                  >Crédito</mat-checkbox
-                >
-              </div>
-              <div fxFlex *ngIf="creditoControl.value">
-                <mat-form-field style="width: 90%">
-                  <mat-label>Plazo en días</mat-label>
-                  <input
-                    matInput
-                    #plazoInput
-                    type="number"
-                    [formControl]="plazoCreditoControl"
-                    min="1"
-                    (keyup.enter)="onPlazoEnter()"
-                  />
-                </mat-form-field>
-              </div>
-              <div fxFlex fxFlexAlign="start">
-                <mat-form-field>
-                  <mat-label>Fecha de entrega</mat-label>
-                  <input
-                    matInput
-                    #fechaInput
-                    [matDatepicker]="picker"
-                    [formControl]="fechaEntregaControl"
-                    (keyup.enter)="onFechaEntregaEnter()"
-                  />
-                  <mat-datepicker-toggle
-                    matSuffix
-                    [for]="picker"
-                  ></mat-datepicker-toggle>
-                  <mat-datepicker #picker></mat-datepicker>
-                </mat-form-field>
-              </div>
-            </div>
-            <mat-card
-              appearance="outlined"
-              fxLayout="column"
-              fxLayoutGap="10px"
-              fxFlex="90"
-              fxFlexFill
-              style="background-color: rgb(32, 32, 32); height: 100%"
-            >
-              <div
-                fxFlex="5"
-                fxLayout="row"
-                fxLayoutAlign="end center"
-                fxLayoutGap="15px"
-              >
-                <div fxFlex="5" *ngIf="selectedPedido != null">
-                  <mat-icon color="primary" style="cursor: pointer"
-                    >delete</mat-icon
-                  >
-                </div>
-                <div fxFlex="5" *ngIf="selectedPedido != null && !isEditar">
-                  <mat-icon
-                    color="primary"
-                    (click)="onEditar()"
-                    style="cursor: pointer"
-                    >edit</mat-icon
-                  >
-                </div>
-                <div fxFlex="15">
-                  <button
-                    type="button"
-                    style="width: 90%"
-                    color="primary"
-                    mat-raised-button
-                    (click)="onAdicionar()"
-                    [disabled]="
-                      selectedProveedor == null ||
-                      (selectedPedido?.estado != null &&
-                        selectedPedido?.estado != 'ABIERTO')
-                    "
-                  >
-                    Adicionar +
-                  </button>
-                </div>
-                <div fxFlex="15">
-                  <button
-                    type="button"
-                    style="width: 90%"
-                    color="accent"
-                    mat-raised-button
-                    (click)="onGuardar()"
-                    [disabled]="
-                      selectedProveedor == null ||
-                      dataSource.data.length == 0 ||
-                      isEditar
-                    "
-                  >
-                    Guardar
-                  </button>
-                </div>
-              </div>
-              <div fxFlex="85">
-                <table
-                  style="width: 100%"
-                  mat-table
-                  [dataSource]="dataSource"
-                  multiTemplateDataRows
-                >
-                  <ng-container matColumnDef="producto">
-                    <th mat-header-cell *matHeaderCellDef style="width: 40%">
-                      Producto
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let pedidoItem; let i = index"
-                      style="width: 30%"
-                    >
-                      {{ pedidoItem?.producto?.descripcion | uppercase }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="presentacion">
-                    <th
-                      mat-header-cell
-                      *matHeaderCellDef
-                      style="width: 10%; text-align: center"
-                    >
-                      Presentación
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let pedidoItem; let i = index"
-                      style="width: 10%; text-align: center"
-                    >
-                      {{ pedidoItem?.presentacion?.cantidad }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="cantidad">
-                    <th
-                      mat-header-cell
-                      *matHeaderCellDef
-                      style="width: 10%; text-align: center"
-                    >
-                      Cant. por presentación
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let pedidoItem; let i = index"
-                      style="width: 10%; text-align: center"
-                    >
-                      {{
-                        pedidoItem?.cantidad /
-                          pedidoItem?.presentacion?.cantidad | number: "1.0-2"
-                      }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="precioUnitario">
-                    <th
-                      mat-header-cell
-                      *matHeaderCellDef
-                      style="width: 10%; text-align: center"
-                    >
-                      Precio
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let pedidoItem; let i = index"
-                      style="width: 10%; text-align: center"
-                    >
-                      {{
-                        pedidoItem?.precioUnitario * pedidoItem?.cantidad
-                          | number: "1.0-2"
-                      }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="descuentoUnitario">
-                    <th
-                      mat-header-cell
-                      *matHeaderCellDef
-                      style="width: 10%; text-align: center"
-                    >
-                      Descuento
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let pedidoItem; let i = index"
-                      style="width: 10%; text-align: center"
-                    >
-                      {{
-                        pedidoItem?.descuentoUnitario * pedidoItem?.cantidad
-                          | number: "1.0-3"
-                      }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="valorTotal">
-                    <th
-                      mat-header-cell
-                      *matHeaderCellDef
-                      style="width: 15%; text-align: center"
-                    >
-                      Total
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let pedidoItem; let i = index"
-                      style="width: 15%; text-align: center"
-                    >
-                      {{ pedidoItem?.valorTotal | number: "1.0-0" }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="acciones">
-                    <th
-                      mat-header-cell
-                      *matHeaderCellDef
-                      style="width: 10%; text-align: center"
-                    >
-                      ...
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let pedidoItem; let i = index"
-                      style="width: 10%; text-align: center"
-                    >
-                      <button
-                        type="button"
-                        mat-icon-button
-                        [matMenuTriggerFor]="menu"
-                        (click)="$event.stopPropagation()"
-                      >
-                        <mat-icon>more_vert</mat-icon>
-                      </button>
-                      <mat-menu #menu="matMenu">
-                        <button
-                          type="button"
-                          mat-menu-item
-                          (click)="openItem(pedidoItem)"
-                        >
-                          Ir a item
-                        </button>
-                        <button
-                          type="button"
-                          mat-menu-item
-                          (click)="deleteItem(pedidoItem)"
-                        >
-                          Eliminar
-                        </button>
-                      </mat-menu>
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="expandedDetail">
-                    <td
-                      mat-cell
-                      *matCellDef="let pedidoItem"
-                      [attr.colspan]="columnsToDisplay.length"
-                    >
-                      <div
-                        class="example-pedidoItem-detail"
-                        [@detailExpand]="
-                          pedidoItem == expandedPedidoItem
-                            ? 'expanded'
-                            : 'collapsed'
-                        "
-                      ></div>
-                    </td>
-                  </ng-container>
-
-                  <tr
-                    mat-header-row
-                    *matHeaderRowDef="columnsToDisplay; sticky: true"
-                  ></tr>
-                  <tr
-                    mat-row
-                    *matRowDef="let pedidoItem; columns: columnsToDisplay"
-                    class="example-pedidoItem-row"
-                    [class.example-expanded-row]="
-                      expandedPedidoItem === pedidoItem
-                    "
-                    (click)="
-                      expandedPedidoItem =
-                        expandedPedidoItem === pedidoItem ? null : pedidoItem
-                    "
-                  ></tr>
-                  <tr
-                    mat-row
-                    *matRowDef="let row; columns: ['expandedDetail']"
-                    class="example-detail-row"
-                  ></tr>
-                </table>
-              </div>
-              <mat-card
-                appearance="outlined"
-                fxFlex="10"
-                fxLayout="row"
-                fxLayoutAlign="space-between center"
-              >
-                <div fxFlex="20">Cant. items: {{ dataSource.data.length }}</div>
-                <div fxFlex="20%">
-                  Descuento items: {{ getDescuento() | number: "1.0-0" }}
-                </div>
-                <div fxFlex="20%">
-                  Descuento general:
-                  {{ descuentoControl.value | number: "1.0-0" }}
-                </div>
-                <div fxFlex="20%">
-                  Valor total: {{ getValorTotal() | number: "1.0-0" }}
-                </div>
-              </mat-card>
-            </mat-card>
-          </form>
-        </mat-step>
-        <mat-step style="width: 100%; height: 100% !important">
-          <div
-            fxLayout="column"
-            style="width: 100%; height: 70vh"
-            fxLayoutAlign="start start"
-            fxLayoutGap="10px"
-          >
-            <div
-              fxFlex
-              fxLayout="row"
-              style="width: 100%; height: 70vh"
-              fxLayoutAlign="space-between start"
-            >
-              <div fxFlex="25" fxFlexAlign="start">
-                ID: {{ selectedPedido?.id }}
-              </div>
-              <div fxFlex="25" fxFlexAlign="start">
-                Fecha: {{ selectedPedido?.creadoEn }}
-              </div>
-              <div fxFlex="50" fxFlexAlign="start">
-                Responsable:
-                {{ selectedPedido?.usuario?.persona?.nombre | uppercase }}
-              </div>
-            </div>
-            <div fxFlex="1%" style="width: 70%">
-              <mat-divider></mat-divider>
-            </div>
-            <div
-              fxFlex
-              fxLayout="row"
-              style="width: 100%"
-              fxLayoutAlign="space-between start"
-            >
-              <div fxFlex="50" fxFlexAlign="start">
-                Proveedor: {{ selectedProveedor?.persona?.nombre | uppercase }}
-              </div>
-              <div fxFlex="50" fxFlexAlign="start">
-                Vendedor:
-                {{ selectedVendedor?.persona?.nombre | uppercase }}
-              </div>
-            </div>
-            <div fxFlex="1%">
-              <mat-divider></mat-divider>
-            </div>
-            <div
-              fxFlex
-              fxLayout="row"
-              style="width: 100%"
-              fxLayoutAlign="space-between start"
-            >
-              <div fxFlex="50" fxFlexAlign="start">
-                Forma de pago: {{ selectedFormaPago?.descripcion | uppercase }}
-              </div>
-              <div fxFlex="50" fxFlexAlign="start">
-                Moneda: {{ selectedMoneda?.denominacion | uppercase }}
-              </div>
-
-              <div fxFlex="50" fxFlexAlign="start">
-                Crédito: {{ selectedPedido?.plazoCredito > 1 ? "Si" : "No" }}
-              </div>
-
-              <div
-                *ngIf="selectedPedido?.plazoCredito > 1"
-                fxFlex="50"
-                fxFlexAlign="start"
-              >
-                Plazo: {{ selectedPedido?.plazoCredito }}
-              </div>
-            </div>
-            <mat-card
-              appearance="outlined"
-              fxLayout="column"
-              fxLayoutGap="10px"
-              fxFlex="90"
-              fxFlexFill
-              style="background-color: rgb(32, 32, 32); height: 100%"
-            >
-              <div
-                fxFlex="5"
-                fxLayout="row"
-                fxLayoutAlign="end center"
-                fxLayoutGap="15px"
-              >
-                <div fxFlex="5" *ngIf="selectedPedido != null">
-                  <mat-icon color="primary" style="cursor: pointer"
-                    >delete</mat-icon
-                  >
-                </div>
-                <div fxFlex="5" *ngIf="selectedPedido != null && !isEditar">
-                  <mat-icon
-                    color="primary"
-                    (click)="onEditar()"
-                    style="cursor: pointer"
-                    >edit</mat-icon
-                  >
-                </div>
-                <div fxFlex="15">
-                  <button
-                    type="button"
-                    style="width: 90%"
-                    color="primary"
-                    mat-raised-button
-                    (click)="onAdicionarNotaPedido()"
-                    [disabled]="selectedPedido == null"
-                  >
-                    Adicionar +
-                  </button>
-                </div>
-              </div>
-              <div fxFlex="85" style="height: 500px">
-                <table
-                  style="width: 100%; max-height: 50vh"
-                  mat-table
-                  [dataSource]="dataSourceNotaRecepcion"
-                  multiTemplateDataRows
-                >
-                  <ng-container matColumnDef="id">
-                    <th mat-header-cell *matHeaderCellDef style="width: 10%">
-                      Id
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 10%"
-                    >
-                      {{ notaRecepcion?.id }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="tipo">
-                    <th mat-header-cell *matHeaderCellDef style="width: 10%">
-                      Tipo
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 10%"
-                    >
-                      {{ notaRecepcion?.documento?.descripcion | uppercase }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="numero">
-                    <th mat-header-cell *matHeaderCellDef style="width: 10%">
-                      Número
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 10%"
-                    >
-                      {{ notaRecepcion?.numero }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="valor">
-                    <th mat-header-cell *matHeaderCellDef style="width: 10%">
-                      Valor
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 10%"
-                    >
-                      {{ notaRecepcion?.valor | number: "1.0-0" }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="descuento">
-                    <th mat-header-cell *matHeaderCellDef style="width: 10%">
-                      Descuento
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 10%"
-                    >
-                      {{ notaRecepcion?.descuento | number: "1.0-2" }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="valorFinal">
-                    <th mat-header-cell *matHeaderCellDef style="width: 10%">
-                      Valor final
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 10%"
-                    >
-                      {{
-                        notaRecepcion?.valor - notaRecepcion?.descuento
-                          | number: "1.0-0"
-                      }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="cantItens">
-                    <th mat-header-cell *matHeaderCellDef style="width: 10%">
-                      Cant. Itens
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 10%"
-                    >
-                      {{
-                        notaRecepcion?.pedidoItemList != null
-                          ? notaRecepcion?.pedidoItemList.length
-                          : 0
-                      }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="responsable">
-                    <th mat-header-cell *matHeaderCellDef style="width: 20%">
-                      Responsable
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 20%"
-                    >
-                      {{
-                        notaRecepcion?.usuario?.persona?.nombre.substring(0, 30)
-                          | uppercase
-                      }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="acciones">
-                    <th mat-header-cell *matHeaderCellDef style="width: 10%">
-                      ...
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 10%"
-                    >
-                      <button
-                        type="button"
-                        mat-icon-button
-                        [matMenuTriggerFor]="menu"
-                        (click)="$event.stopPropagation()"
-                      >
-                        <mat-icon>more_vert</mat-icon>
-                      </button>
-                      <mat-menu #menu="matMenu">
-                        <button
-                          type="button"
-                          mat-menu-item
-                          (click)="openNotaRecepcion(notaRecepcion, i)"
-                        >
-                          Ir a item
-                        </button>
-                        <button
-                          type="button"
-                          mat-menu-item
-                          (click)="deleteItemNotaRecepcion(notaRecepcion, i)"
-                        >
-                          Eliminar
-                        </button>
-                      </mat-menu>
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="expandedDetail">
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion"
-                      [attr.colspan]="columnsToDisplayNotaRecepcion.length"
-                    >
-                      <div
-                        class="example-notaRecepcion-detail"
-                        [@detailExpand]="
-                          notaRecepcion == expandedPedidoItem
-                            ? 'expanded'
-                            : 'collapsed'
-                        "
-                      ></div>
-                    </td>
-                  </ng-container>
-
-                  <tr
-                    mat-header-row
-                    *matHeaderRowDef="
-                      columnsToDisplayNotaRecepcion;
-                      sticky: true
-                    "
-                  ></tr>
-                  <tr
-                    mat-row
-                    *matRowDef="
-                      let notaRecepcion;
-                      columns: columnsToDisplayNotaRecepcion
-                    "
-                    class="example-notaRecepcion-row"
-                    [class.example-expanded-row]="
-                      expandedNotaRecepcion === notaRecepcion
-                    "
-                    (click)="
-                      expandedNotaRecepcion =
-                        expandedNotaRecepcion === notaRecepcion
-                          ? null
-                          : notaRecepcion
-                    "
-                  ></tr>
-                  <tr
-                    mat-row
-                    *matRowDef="let row; columns: ['expandedDetail']"
-                    class="example-detail-row"
-                  ></tr>
-                </table>
-              </div>
-              <mat-card
-                appearance="outlined"
-                fxFlex
-                fxLayout="row"
-                fxLayoutAlign="space-between center"
-              >
-                <div fxFlex="20">
-                  Cant. notas: {{ dataSourceNotaRecepcion.data.length }}
-                </div>
-                <div fxFlex="20%">
-                  Total itens: {{ dataSource.data.length | number: "1.0-0" }}
-                </div>
-                <div fxFlex="20%">
-                  Itens cargados:
-                  {{ getCantidadItensCargados() | number: "1.0-0" }}
-                </div>
-
-                <div fxFlex="20%">
-                  Falta cargar:
-                  {{
-                    dataSource.data.length - getCantidadItensCargados()
-                      | number: "1.0-0"
-                  }}
-                </div>
-              </mat-card>
-            </mat-card>
-          </div>
-        </mat-step>
-        <mat-step style="width: 100%; height: 100% !important">
-          <div style="width: 100%; height: 70vh">
-            <mat-card
-              appearance="outlined"
-              fxLayout="column"
-              fxLayoutGap="10px"
-              fxFlexFill
               style="
-                background-color: rgb(32, 32, 32);
-                height: 70vh;
                 width: 100%;
+                text-align: end;
+                padding-right: 10px;
+                padding-top: 10px;
+                font-size: 0.8em;
+                color: white;
               "
             >
+              <mat-icon
+                (click)="sucursalInfluenciaSelect.close()"
+                class="highlight-hover-danger"
+                >clear</mat-icon
+              >
+            </div>
+            <mat-option [value]="null">Todas</mat-option>
+            <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal"
+              >{{ sucursal?.id }} -
+              {{ sucursal?.nombre | titlecase }}</mat-option
+            >
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Suc. de entrega por defecto</mat-label>
+          <mat-select
+            #sucursalEntregaSelect
+            [formControl]="sucursalEntregaControl"
+            multiple
+          >
+            <mat-select-trigger>
+              {{(sucursalEntregaControl.value?.[0]?.nombre || '')}}
+              <span
+                *ngIf="(sucursalEntregaControl.value?.length || 0) > 1"
+                class="example-additional-selection"
+              >
+                (+{{ (sucursalEntregaControl.value?.length || 0) - 1 }}
+                {{
+                  sucursalEntregaControl.value?.length === 2 ? "otro" : "otros"
+                }})
+              </span>
+            </mat-select-trigger>
+
+            <mat-option [value]="null">Todas</mat-option>
+            <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal"
+              >{{ sucursal?.id }} -
+              {{ sucursal?.nombre | titlecase }}</mat-option
+            >
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="10%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Tipo de boleta</mat-label>
+          <mat-select #tipoBoletaSelect [formControl]="tipoBoletaControl">
+            <mat-select-trigger>
+              {{ tipoBoletaControl?.value }}
+            </mat-select-trigger>
+            <mat-option
+              *ngFor="let tipoBoleta of tipoBoletaList"
+              [value]="tipoBoleta"
+            >
+              {{ tipoBoleta }}</mat-option
+            >
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+    <div fxFlex="50" fxLayout="row" fxLayoutGap="10px" class="cards">
+      <div fxFlex="70" fxLayoutAlign="start center" fxLayoutGap="10px">
+        <div
+          fxFlex="20"
+          style="color: black; font-size: 100%; text-align: center"
+        >
+          <frc-searchable-select
+            #formaPagoSelect
+            titulo="Forma de Pago"
+            [list]="formaPagoList"
+            (selectionChanged)="handleFormaPagoSelectionChange($event)"
+            [compareFields]="['id', 'descripcion']"
+            [isAutoSelect]="true"
+          >
+            <ng-template let-item>
+              {{ item.id }} - {{ item.descripcion }}
+            </ng-template>
+          </frc-searchable-select>
+        </div>
+        <div
+          fxFlex="20"
+          style="color: black; font-size: 100%; text-align: center"
+        >
+          <frc-searchable-select
+            #monedaSelect
+            titulo="Moneda"
+            [list]="monedas"
+            (selectionChanged)="handleMonedaSelectionChange($event)"
+            [isAutoSelect]="true"
+            [compareFields]="['id', 'denominacion']"
+          >
+            <ng-template let-item style="width: 100%">
+              <span
+                style="width: 100%; display: block"
+                [matTooltip]="item.simbolo"
+              >
+                {{ item.id }} - {{ item.denominacion }}
+              </span>
+            </ng-template>
+          </frc-searchable-select>
+        </div>
+        <div
+          fxFlex="20"
+          *ngIf="
+            selectedFormaPago?.descripcion === 'CONVENIO' ||
+            selectedFormaPago?.descripcion === 'CHEQUE'
+          "
+        >
+          <mat-form-field style="width: 100%">
+            <mat-label>Dias de crédito</mat-label>
+            <input
+              #diasCreditoInput
+              type="text"
+              matInput
+              [formControl]="diasCreditoControl"
+              style="text-align: center"
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="20">
+          <frc-multi-datepicker
+            [initialDates]="initialDates"
+            (datesChanged)="handleDatesChanged($event)"
+          ></frc-multi-datepicker>
+        </div>
+
+        <button
+          fxFlex="20"
+          mat-button
+          [matMenuTriggerFor]="menu"
+          (click)="$event.stopPropagation()"
+        >
+          Mas opciónes
+        </button>
+        <mat-menu #menu="matMenu">
+          <button mat-menu-item (click)="onMasOpciones()">
+            Algo especifico
+          </button>
+        </mat-menu>
+      </div>
+      <div fxFlex="30" fxLayoutAlign="end center" fxLayoutGap="10px">
+        <app-boton
+          fxFlex="50"
+          nombre="Cancelar"
+          color="warn"
+          style="height: 80%"
+        ></app-boton>
+        <app-boton
+          fxFlex="50"
+          nombre="Guardar"
+          color="accent"
+          style="height: 80%"
+        ></app-boton>
+      </div>
+    </div>
+  </div>
+
+  <div
+    fxFlex
+    fxLayout="row"
+    fxLayoutGap="10px"
+    class="cards fondo"
+    fxLayoutGap="10px"
+    fxLayoutAlign="start center"
+  >
+    <div
+      fxLayout="column"
+      fxFlex="10"
+      style="width: 1005; height: 100%"
+      fxLayoutAlign="start center"
+    >
+      <div fxFlex>
+        <img
+          [src]="
+            presentacionControl.value?.imagenPrincipal != null
+              ? presentacionControl.value.imagenPrincipal
+              : 'assets/no-image.png'
+          "
+          alt="producto"
+          style="height: 70px; width: 70px; object-fit: contain"
+          [frcPrevisualizarImagen]="
+            presentacionControl.value?.imagenPrincipal != null
+              ? presentacionControl.value.imagenPrincipal
+              : 'assets/no-image.png'
+          "
+        />
+      </div>
+      <div fxFlex>
+        {{ selectedProducto?.codigoPrincipal }}
+      </div>
+    </div>
+    <mat-form-field fxFlex="30" style="width: 100%">
+      <mat-label>Código de barra o descripción del producto</mat-label>
+      <input
+        #codigoInput
+        matInput
+        type="text"
+        [formControl]="codigoControl"
+        (keyup.enter)="onSearchPorCodigo()"
+        (keyup.tab)="onSearchPorCodigo()"
+        (focusin)="onCodigoFocus()"
+      />
+    </mat-form-field>
+    <div fxFlex="12">
+      <mat-form-field style="width: 100%; text-align: center">
+        <mat-label>Presentación</mat-label>
+        <mat-select #presentacionSelect [formControl]="presentacionControl">
+          <mat-option
+            *ngFor="let presentacion of selectedProducto?.presentaciones"
+            [value]="presentacion"
+          >
+            {{ presentacion?.cantidad | number : "1.0-3" }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <div fxFlex="10">
+      <mat-form-field
+        style="width: 100%"
+        matTooltip="Cantidad por presentación"
+      >
+        <mat-label>Cant. por present.</mat-label>
+        <input
+          #cantidadPresentacionInput
+          type="text"
+          matInput
+          [formControl]="cantidadPresentacionControl"
+          style="text-align: center"
+          (keyup.enter)="precioPorPresentacion.select()"
+          currencyMask
+          [options]="currencyMask.currencyOptionsGuarani"
+        />
+      </mat-form-field>
+    </div>
+    <div fxFlex="10">
+      <mat-form-field style="width: 100%" matTooltip="Cantidad por unidad">
+        <mat-label>Cant. por unid.</mat-label>
+        <input
+          #cantidadUnidadInput
+          type="text"
+          matInput
+          [formControl]="cantidadUnidadControl"
+          style="text-align: center"
+          readonly
+          [tabindex]="-1"
+        />
+      </mat-form-field>
+    </div>
+    <div fxFlex="10">
+      <mat-form-field style="width: 100%">
+        <mat-label>Precio por present.</mat-label>
+        <input
+          #precioPorPresentacion
+          type="text"
+          matInput
+          [formControl]="precioPorPresentacionControl"
+          style="text-align: center"
+          currencyMask
+          [options]="
+            selectedMoneda?.denominacion?.includes('GUARANI')
+              ? currencyMask.currencyOptionsGuarani
+              : currencyMask.currencyOptionsNoGuarani
+          "
+          (keyup.enter)="precioUnitario.select()"
+        />
+      </mat-form-field>
+    </div>
+    <div fxFlex="10">
+      <mat-form-field style="width: 100%">
+        <mat-label>Precio Unit.</mat-label>
+        <input
+          #precioUnitario
+          type="text"
+          matInput
+          [formControl]="precioUnitarioControl"
+          style="text-align: center"
+          currencyMask
+          [options]="
+            selectedMoneda?.denominacion?.includes('GUARANI')
+              ? currencyMask.currencyOptionsGuarani
+              : currencyMask.currencyOptionsNoGuarani
+          "
+        />
+      </mat-form-field>
+    </div>
+    <div fxFlex="3" style="width: 100%; text-align: center">
+      <mat-icon
+        class="highlight-hover"
+        (click)="onSaveItem()"
+        style="font-size: 2em"
+        >save</mat-icon
+      >
+    </div>
+
+    <div fxFlex="3" style="width: 100%; text-align: center">
+      <mat-icon
+        class="highlight-hover-danger"
+        (click)="onClearItem()"
+        style="font-size: 2em"
+        >clear</mat-icon
+      >
+    </div>
+  </div>
+  <div fxFlex="75" fxLayout="row" fxLayoutGap="10px">
+    <div fxFlex="35" fxLayout="column" fxLayoutGap="10px">
+      <div class="cards fondo" fxFlex="50">
+        <div style="width: 100%; text-align: center; font-size: small">
+          Productos del Proveedor
+        </div>
+        <table
+          mat-table
+          [dataSource]="productosProveedorDataSource"
+          multiTemplateDataRows
+          class="mat-elevation-z8"
+          style="width: 100%"
+        >
+          <ng-container matColumnDef="codigo" style="width: 5%">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center">
+              Código de barra
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let productoProveedor"
+              style="text-align: center"
+            >
+              {{ productoProveedor.producto.codigo }}
+            </td>
+          </ng-container>
+
+          <!-- Name Column -->
+          <ng-container matColumnDef="descripcion">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center">
+              Descripción
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let productoProveedor"
+              style="text-align: center"
+            >
+              {{ productoProveedor?.producto.descripcion }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="stock">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center">
+              Stock
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let productoProveedor"
+              style="text-align: center"
+              frcCustomTooltip
+              [contentTemplate]="stockTemplate"
+              [tooltipData]="productoProveedor"
+            >
+              {{ productoProveedor?.stockTotal }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="sugerido">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center">
+              Sugerido
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let productoProveedor"
+              style="text-align: center"
+            >
+              {{ productoProveedor?.sugeridoTotal }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="expandedDetail">
+            <td
+              mat-cell
+              *matCellDef="let productoProveedor"
+              [attr.colspan]="productoProveedorDisplayedColumns.length"
+            >
               <div
-                fxFlex="5"
-                fxLayout="row"
-                fxLayoutAlign="end center"
-                fxLayoutGap="15px"
+                class="example-element-detail"
+                [@detailExpand]="
+                  productoProveedor == expandedProductoProveedor
+                    ? 'expanded'
+                    : 'collapsed'
+                "
+                style="text-align: center"
+                fxLayout="column"
+                fxLayoutAlign="start start"
               >
-                <!-- <div fxFlex="5" *ngIf="selectedPedido != null">
-                  <mat-icon color="primary" style="cursor: pointer"
-                    >delete</mat-icon
+                <div style="display: flex; flex-direction: column">
+                  <span>Tool tip {{ productoProveedor?.proveedor }}</span>
+                  <div
+                    *ngFor="let stock of productoProveedor?.stockPorSucursal"
                   >
-                </div>
-                <div fxFlex="5" *ngIf="selectedPedido != null && !isEditar">
-                  <mat-icon
-                    color="primary"
-                    (click)="onEditar()"
-                    style="cursor: pointer"
-                    >edit</mat-icon
-                  >
-                </div>
-                <div fxFlex="15">
-                  <button
-                    style="width: 90%"
-                    color="primary"
-                    mat-raised-button
-                    (click)="onAdicionar()"
-                    [disabled]="selectedProveedor == null"
-                  >
-                    Adicionar +
-                  </button>
-                </div> -->
-                <div fxFlex="15">
-                  <button
-                    type="button"
-                    style="width: 90%"
-                    color="accent"
-                    mat-raised-button
-                  >
-                    Confirmar todo
-                  </button>
+                    {{ stock?.sucursal }} : {{ stock?.stock }}
+                  </div>
                 </div>
               </div>
-              <div fxFlex="90" style="overflow-y: auto">
-                <table
-                  style="width: 100%; max-height: 65vh"
-                  mat-table
-                  [dataSource]="dataSourceNotaRecepcion"
-                  multiTemplateDataRows
-                >
-                  <ng-container matColumnDef="id">
-                    <th mat-header-cell *matHeaderCellDef style="width: 10%">
-                      Id
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 10%"
-                    >
-                      {{ notaRecepcion?.id }}
-                    </td>
-                  </ng-container>
+            </td>
+          </ng-container>
 
-                  <ng-container matColumnDef="tipo">
-                    <th mat-header-cell *matHeaderCellDef style="width: 10%">
-                      Tipo
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 10%"
-                    >
-                      {{ notaRecepcion?.documento?.descripcion | uppercase }}
-                    </td>
-                  </ng-container>
+          <tr
+            mat-header-row
+            *matHeaderRowDef="productoProveedorDisplayedColumns; sticky: true"
+          ></tr>
+          <tr
+            mat-row
+            *matRowDef="
+              let element;
+              columns: productoProveedorDisplayedColumns;
+              let i = dataIndex
+            "
+            class="example-element-row"
+            [class.example-expanded-row]="expandedProductoProveedor === element"
+            (click)="
+              expandedProductoProveedor =
+                expandedProductoProveedor === element ? null : element
+            "
+          ></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: ['expandedDetail']"
+            class="example-detail-row"
+          ></tr>
+        </table>
+      </div>
+      <div class="cards fondo" fxFlex="50">
+        <div style="width: 100%; text-align: center; font-size: small">
+          Histórico de precios
+        </div>
+        <table
+          mat-table
+          [dataSource]="historicoPrecioDataSource"
+          multiTemplateDataRows
+          class="mat-elevation-z8"
+          style="width: 100%"
+        >
+          <ng-container matColumnDef="fecha" style="width: 5%">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center">
+              Fecha
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let historicoPrecio"
+              style="text-align: center"
+            >
+              {{ historicoPrecio.id }}
+            </td>
+          </ng-container>
 
-                  <ng-container matColumnDef="numero">
-                    <th mat-header-cell *matHeaderCellDef style="width: 10%">
-                      Número
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 10%"
-                    >
-                      {{ notaRecepcion?.numero }}
-                    </td>
-                  </ng-container>
+          <!-- Name Column -->
+          <ng-container matColumnDef="presentacion">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center">
+              Presentacion
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let historicoPrecio"
+              style="text-align: center"
+            >
+              <span>{{ historicoPrecio?.presentacion?.cantidad }}</span>
+              <span>{{
+                historicoPrecio?.presentacion?.tipoPresentacion?.descripcion
+                  | uppercase
+              }}</span>
+            </td>
+          </ng-container>
 
-                  <ng-container matColumnDef="valor">
-                    <th mat-header-cell *matHeaderCellDef style="width: 10%">
-                      Valor
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 10%"
-                    >
-                      {{ notaRecepcion?.valor | number: "1.0-0" }}
-                    </td>
-                  </ng-container>
+          <ng-container matColumnDef="cantidad">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center">
+              Cantidad
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let historicoPrecio"
+              style="text-align: center"
+            >
+              {{ historicoPrecio?.cantidad }}
+            </td>
+          </ng-container>
 
-                  <ng-container matColumnDef="descuento">
-                    <th mat-header-cell *matHeaderCellDef style="width: 10%">
-                      Descuento
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 10%"
-                    >
-                      {{ notaRecepcion?.descuento | number: "1.0-2" }}
-                    </td>
-                  </ng-container>
+          <ng-container matColumnDef="precio">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center">
+              Precio
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let historicoPrecio"
+              style="text-align: center"
+            >
+              {{ historicoPrecio?.precio }}
+            </td>
+          </ng-container>
 
-                  <ng-container matColumnDef="valorFinal">
-                    <th mat-header-cell *matHeaderCellDef style="width: 10%">
-                      Valor final
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 10%"
-                    >
-                      {{
-                        notaRecepcion?.valor - notaRecepcion?.descuento
-                          | number: "1.0-0"
-                      }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="cantItens">
-                    <th mat-header-cell *matHeaderCellDef style="width: 10%">
-                      Cant. Itens
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 10%"
-                    >
-                      {{
-                        notaRecepcion?.pedidoItemList != null
-                          ? notaRecepcion?.pedidoItemList.length
-                          : 0
-                      }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="responsable">
-                    <th mat-header-cell *matHeaderCellDef style="width: 20%">
-                      Responsable
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 20%"
-                    >
-                      {{
-                        notaRecepcion?.usuario?.persona?.nombre.substring(0, 30)
-                          | uppercase
-                      }}
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="acciones">
-                    <th mat-header-cell *matHeaderCellDef style="width: 10%">
-                      ...
-                    </th>
-                    <td
-                      mat-cell
-                      *matCellDef="let notaRecepcion; let i = index"
-                      style="width: 10%"
-                    >
-                      <button
-                        type="button"
-                        mat-icon-button
-                        [matMenuTriggerFor]="menu"
-                        (click)="$event.stopPropagation()"
-                      >
-                        <mat-icon>more_vert</mat-icon>
-                      </button>
-                      <mat-menu #menu="matMenu">
-                        <button
-                          type="button"
-                          mat-menu-item
-                          (click)="openNotaRecepcion(notaRecepcion, i)"
-                        >
-                          Ir a item
-                        </button>
-                        <button
-                          type="button"
-                          mat-menu-item
-                          (click)="deleteItemNotaRecepcion(notaRecepcion, i)"
-                        >
-                          Eliminar
-                        </button>
-                      </mat-menu>
-                    </td>
-                  </ng-container>
-
-                  <ng-container matColumnDef="expandedDetail">
-                    <td
-                      mat-cell
-                      *matCellDef="
-                        let notaRecepcion;
-                        let notaRecepcionIndex = dataIndex
-                      "
-                      [attr.colspan]="
-                        columnsToDisplayMercaderiaRecepcion.length
-                      "
-                    >
-                      <div
-                        class="example-element-detail"
-                        [@detailExpand]="
-                          notaRecepcion == expandedNotaRecepcion
-                            ? 'expanded'
-                            : 'collapsed'
-                        "
-                      >
-                        <div fxLayout="column" style="width: 100%">
-                          <div
-                            fxFlex
-                            fxLayout="row"
-                            fxLayoutGap="10px"
-                            *ngFor="
-                              let item of notaRecepcion.pedidoItemList;
-                              let pedidoItemIndex = index
-                            "
-                            style="height: 15vh"
-                          >
-                            <div
-                              fxFlex="5%"
-                              fxLayout="column"
-                              fxLayoutAlign="center center"
-                            >
-                              <div fxFlex="25%" fxFlexAlign="center">ID</div>
-                              <div fxFlex="25%" fxFlexAlign="center">
-                                {{ item.id }}
-                              </div>
-                            </div>
-                            <div fxFlex="20%">
-                              <div
-                                fxLayout="column"
-                                fxLayoutAlign="start space-around"
-                                fxLayoutGap="5px"
-                              >
-                                <div style="text-align: center">
-                                  <img
-                                    [src]="
-                                      item.presentacion?.imagenPrincipal != null
-                                        ? item.presentacion.imagenPrincipal
-                                        : 'assets/no-image.png'
-                                    "
-                                    style="
-                                      width: 15vh;
-                                      height: 12vh;
-                                      object-fit: contain;
-                                    "
-                                  />
-                                </div>
-                                <div
-                                  style="text-align: center; font-weight: bold"
-                                >
-                                  <div>
-                                    ({{
-                                      item.presentacion.cantidad
-                                        | number: "1.0-2"
-                                    }})
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div
-                              fxFlex="20%"
-                              fxLayout="column"
-                              fxLayoutAlign="center center"
-                            >
-                              <div
-                                fxFlex="20%"
-                                fxFlexAlign="center"
-                                style="text-align: center"
-                              >
-                                Cant. por unidad
-                              </div>
-                              <div fxFle="25" style="width: 100%">
-                                <table style="border: 1px solid white">
-                                  <tr style="text-align: center">
-                                    <th>Pedido</th>
-                                    <th>Recibido</th>
-                                  </tr>
-                                  <tr style="text-align: center">
-                                    <td>
-                                      {{ item.cantidad | number: "1.0-2" }}
-                                    </td>
-                                    <td>
-                                      {{
-                                        item?.compraItem?.cantidad * 1
-                                          | number: "1.0-2"
-                                      }}
-                                    </td>
-                                  </tr>
-                                </table>
-                              </div>
-                            </div>
-                            <div
-                              fxFlex="20%"
-                              fxLayout="column"
-                              fxLayoutAlign="center center"
-                            >
-                              <div
-                                fxFlex="20%"
-                                fxFlexAlign="center"
-                                style="text-align: center"
-                              >
-                                Cant. por presentación
-                              </div>
-                              <div fxFle="25" style="width: 100%">
-                                <table style="border: 1px solid white">
-                                  <tr style="text-align: center">
-                                    <th>Pedido</th>
-                                    <th>Recibido</th>
-                                  </tr>
-                                  <tr
-                                    style="text-align: center"
-                                    [style.background-color]="
-                                      item?.cantidad !=
-                                      item?.compraItem?.cantidad
-                                        ? '#f57c00'
-                                        : 'black'
-                                    "
-                                  >
-                                    <td>
-                                      {{
-                                        item.cantidad /
-                                          item?.presentacion?.cantidad
-                                          | number: "1.0-2"
-                                      }}
-                                    </td>
-                                    <td>
-                                      {{
-                                        item?.compraItem?.cantidad /
-                                          item?.presentacion?.cantidad
-                                          | number: "1.0-2"
-                                      }}
-                                    </td>
-                                  </tr>
-                                </table>
-                              </div>
-                            </div>
-                            <div
-                              fxFlex="10%"
-                              fxLayout="column"
-                              fxLayoutAlign="center center"
-                            >
-                              <div
-                                fxFlex="20%"
-                                fxFlexAlign="center"
-                                style="text-align: center"
-                              >
-                                Vencimiento
-                              </div>
-                              <div
-                                fxFle="25"
-                                style="width: 100%; text-align: center"
-                              >
-                                {{ item?.compraItem?.vencimiento }}
-                              </div>
-                            </div>
-                            <div
-                              fxFlex="10%"
-                              fxLayout="column"
-                              fxLayoutAlign="center center"
-                            >
-                              <div
-                                fxFlex="20%"
-                                fxFlexAlign="center"
-                                style="text-align: center"
-                              >
-                                Lote
-                              </div>
-                              <div
-                                fxFle="25"
-                                style="width: 100%; text-align: center"
-                              >
-                                {{
-                                  item?.compraItem?.lote?.toString() | uppercase
-                                }}
-                              </div>
-                            </div>
-                            <div
-                              fxFlex="20%"
-                              fxLayout="column"
-                              fxLayoutAlign="center center"
-                              fxLayoutGap="20px"
-                            >
-                              <div
-                                fxFlex="25%"
-                                fxFlexAlign="center"
-                                style="text-align: center"
-                              >
-                                <button
-                                  type="button"
-                                  mat-raised-button
-                                  color="primary"
-                                  (click)="
-                                    onModificarItem(
-                                      item,
-                                      pedidoItemIndex,
-                                      notaRecepcionIndex
-                                    )
-                                  "
-                                >
-                                  Modificar
-                                </button>
-                              </div>
-                              <div
-                                fxFlex="25%"
-                                fxFlexAlign="center"
-                                style="text-align: center"
-                              >
-                                <button
-                                  type="button"
-                                  *ngIf="item?.compraItem.verificado != true"
-                                  mat-raised-button
-                                  color="accent"
-                                  (click)="
-                                    onConfirmarItem(
-                                      item,
-                                      pedidoItemIndex,
-                                      notaRecepcionIndex
-                                    )
-                                  "
-                                >
-                                  Confirmar
-                                </button>
-                                <mat-icon
-                                  *ngIf="item?.compraItem.verificado == true"
-                                  color="accent"
-                                  >check_circle</mat-icon
-                                >
-                              </div>
-                            </div>
-                            <div
-                              *ngIf="expandedNotaRecepcion === notaRecepcion"
-                              fxFlex="1%"
-                            >
-                              <mat-divider></mat-divider>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                  </ng-container>
-
-                  <tr
-                    mat-header-row
-                    *matHeaderRowDef="
-                      columnsToDisplayMercaderiaRecepcion;
-                      sticky: true
-                    "
-                  ></tr>
-                  <tr
-                    mat-row
-                    *matRowDef="
-                      let notaRecepcion;
-                      columns: columnsToDisplayMercaderiaRecepcion
-                    "
-                    class="example-element-row"
-                    [class.example-expanded-row]="
-                      expandedNotaRecepcion === notaRecepcion
-                    "
-                    (click)="
-                      expandedNotaRecepcion =
-                        expandedNotaRecepcion === notaRecepcion
-                          ? null
-                          : notaRecepcion
-                    "
-                  ></tr>
-                  <tr
-                    mat-row
-                    *matRowDef="let row; columns: ['expandedDetail']"
-                    class="example-detail-row"
-                  ></tr>
-                </table>
-              </div>
-              <mat-card
-                appearance="outlined"
-                fxFlex
-                fxLayout="row"
-                fxLayoutAlign="space-between center"
+          <ng-container matColumnDef="menu">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="width: 5%; text-align: center"
+            >
+              ...
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let historicoPrecio; let i = index"
+              style="text-align: center; width: 5%"
+            >
+              <button
+                mat-icon-button
+                [matMenuTriggerFor]="menu"
+                (click)="$event.stopPropagation()"
               >
-                <div fxFlex="20">
-                  Cant. notas: {{ dataSourceNotaRecepcion.data.length }}
-                </div>
-                <div fxFlex="20%">
-                  Total itens: {{ dataSource.data.length | number: "1.0-0" }}
-                </div>
-                <div fxFlex="20%">
-                  Itens verificados:
-                  {{ getCantidadItensVerificados() | number: "1.0-0" }}
-                </div>
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu">
+                <!-- <button mat-menu-item (click)="onDelete(historicoPrecio, i)">
+              Eliminar
+            </button> -->
+              </mat-menu>
+            </td>
+          </ng-container>
 
-                <div fxFlex="20%">
-                  Falta verificar:
-                  {{
-                    dataSource.data.length - getCantidadItensVerificados()
-                      | number: "1.0-0"
-                  }}
-                </div>
-              </mat-card>
-            </mat-card>
-          </div>
-        </mat-step>
-        <mat-step style="width: 100%"> </mat-step>
-      </mat-stepper>
-    </mat-card>
+          <mat-divider></mat-divider>
+
+          <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+          <!-- <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let historicoPrecio"
+          [attr.colspan]="historicoPrecioDisplayedColumns.length"
+          class="expanded"
+        >
+          <div
+            class="example-historicoPrecio-detail"
+            [@detailExpand]="
+              historicoPrecio == expandedhistoricoPrecio ? 'expanded' : 'collapsed'
+            "
+            style="text-align: center"
+            fxLayout="column"
+            fxLayoutAlign="start start"
+          ></div>
+        </td>
+      </ng-container> -->
+
+          <tr
+            mat-header-row
+            *matHeaderRowDef="historicoPrecioDisplayedColumns; sticky: true"
+          ></tr>
+          <tr
+            mat-row
+            *matRowDef="
+              let row;
+              columns: historicoPrecioDisplayedColumns;
+              let i = dataIndex
+            "
+          ></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: ['expandedDetail']"
+            class="example-detail-row"
+          ></tr>
+        </table>
+      </div>
+    </div>
+    <div fxFlex="65" class="cards fondo">
+      <div style="width: 100%; text-align: center; font-size: small">
+        Itens del pedido
+      </div>
+      <table
+        mat-table
+        [dataSource]="pedidoDataSource"
+        multiTemplateDataRows
+        class="mat-elevation-z8"
+        style="width: 100%"
+      >
+        <ng-container matColumnDef="codigo" style="width: 5%">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">
+            Código de barra
+          </th>
+          <td mat-cell *matCellDef="let pedido" style="text-align: center">
+            {{ pedido.codigo }}
+          </td>
+        </ng-container>
+
+        <!-- Name Column -->
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">
+            Descripción
+          </th>
+          <td mat-cell *matCellDef="let pedido" style="text-align: center">
+            <span>{{ pedido?.producto?.descripcion | uppercase }}</span>
+            <span>{{ pedido?.producto?.descripcionFactura | uppercase }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="presentacion">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">
+            Presentación
+          </th>
+          <td mat-cell *matCellDef="let pedido" style="text-align: center">
+            {{
+              pedido?.presentacion?.tipoPresentacion?.descripcion | uppercase
+            }}
+            ({{ pedido?.presentacion?.tipoPresentacion?.cantidad }})
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="cantidad">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">
+            Cantidad
+          </th>
+          <td mat-cell *matCellDef="let pedido" style="text-align: center">
+            {{ pedido?.cantidad }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="precioUnitario">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">
+            Precio U.
+          </th>
+          <td mat-cell *matCellDef="let pedido" style="text-align: center">
+            {{ pedido?.precioUnitario }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="precioPresentacion">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center">
+            Precio P.
+          </th>
+          <td mat-cell *matCellDef="let pedido" style="text-align: center">
+            {{ pedido?.precioPresentacion }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="menu">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            style="width: 5%; text-align: center"
+          >
+            ...
+          </th>
+          <td
+            mat-cell
+            *matCellDef="let pedido; let i = index"
+            style="text-align: center; width: 5%"
+          >
+            <button
+              mat-icon-button
+              [matMenuTriggerFor]="menu"
+              (click)="$event.stopPropagation()"
+            >
+              <mat-icon class="highlight-hover">more_vert</mat-icon>
+            </button>
+            <mat-menu #menu="matMenu">
+              <!-- <button mat-menu-item (click)="onDelete(pedido, i)">
+              Eliminar
+            </button> -->
+            </mat-menu>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="delete">
+          <th mat-header-cell *matHeaderCellDef style="text-align: center"></th>
+          <td mat-cell *matCellDef="let pedido" style="text-align: center">
+            <mat-icon
+              style="text-align: center; font-size: 2em"
+              class="highlight-hover-danger"
+              >clear</mat-icon
+            >
+          </td>
+        </ng-container>
+
+        <mat-divider></mat-divider>
+
+        <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+        <ng-container matColumnDef="expandedDetail">
+          <td
+            mat-cell
+            *matCellDef="let pedido"
+            [attr.colspan]="pedidoDisplayedColumns.length"
+            class="expanded"
+          >
+            <div
+              class="example-pedido-detail"
+              [@detailExpand]="
+                pedido == expandedPedido ? 'expanded' : 'collapsed'
+              "
+              style="text-align: center"
+              fxLayout="column"
+              fxLayoutAlign="start start"
+            ></div>
+          </td>
+        </ng-container>
+
+        <tr
+          mat-header-row
+          *matHeaderRowDef="pedidoDisplayedColumns; sticky: true"
+        ></tr>
+        <tr
+          mat-row
+          *matRowDef="
+            let row;
+            columns: pedidoDisplayedColumns;
+            let i = dataIndex
+          "
+        ></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: ['expandedDetail']"
+          class="example-detail-row"
+        ></tr>
+      </table>
+    </div>
   </div>
 </div>
+
+<ng-template #stockTemplate let-tooltipData>
+  <div style="display: flex; flex-direction: column">
+    <span>Tool tip {{ tooltipData?.proveedor }}</span>
+    <div *ngFor="let stock of tooltipData?.stockPorSucursal">
+      {{ stock?.sucursal }} : {{ stock?.stock }}
+    </div>
+  </div>
+</ng-template>

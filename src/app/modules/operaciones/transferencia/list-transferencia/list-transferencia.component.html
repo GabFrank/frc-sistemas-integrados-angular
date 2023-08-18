@@ -11,7 +11,7 @@
         <input placeholder="Id" matInput [formControl]="idControl" type="number" />
       </mat-form-field>
 
-      <mat-form-field>
+      <mat-form-field fxFlex="25">
         <mat-select placeholder="Sucursal de Origen" [formControl]="sucOrigenControl">
           <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
             {{ sucursal.id }} - {{ sucursal.nombre }}
@@ -19,7 +19,7 @@
         </mat-select>
       </mat-form-field>
 
-      <mat-form-field>
+      <mat-form-field fxFlex="25">
         <mat-label>Sucursal de Destino</mat-label>
         <mat-select [formControl]="sucDestinoControl">
           <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
@@ -28,7 +28,7 @@
         </mat-select>
       </mat-form-field>
 
-      <mat-form-field>
+      <mat-form-field fxFlex="25">
         <mat-label>Estado</mat-label>
         <mat-select [formControl]="estadoControl">
           <mat-option *ngFor="let estado of estadoList" [value]="estado">
@@ -37,7 +37,7 @@
         </mat-select>
       </mat-form-field>
 
-      <mat-form-field>
+      <mat-form-field fxFlex="25">
         <mat-label>Etapa</mat-label>
         <mat-select [formControl]="etapaControl">
           <mat-option *ngFor="let etapa of etapaList" [value]="etapa">
@@ -46,7 +46,7 @@
         </mat-select>
       </mat-form-field>
 
-      <mat-form-field>
+      <mat-form-field fxFlex="25">
         <mat-label>Rango de fecha</mat-label>
         <mat-date-range-input
           [formGroup]="fechaFormGroup"

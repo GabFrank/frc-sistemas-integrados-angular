@@ -43,6 +43,7 @@ export class GenericCrudService {
           this.isLoading = false
           if (res.errors == null) {
             obs.next(res.data["data"]);
+            obs.complete();
           } else {
             this.notificacionSnackBar.notification$.next({
               texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
@@ -65,6 +66,7 @@ export class GenericCrudService {
           this.isLoading = false
           if (res.errors == null) {
             obs.next(res.data["data"]);
+            obs.complete();
           } else {
             this.notificacionSnackBar.notification$.next({
               texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
@@ -87,6 +89,7 @@ export class GenericCrudService {
           this.isLoading = false
           if (res.errors == null) {
             obs.next(res.data["data"]);
+            obs.complete();
           } else {
             this.notificacionSnackBar.notification$.next({
               texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
@@ -109,6 +112,7 @@ export class GenericCrudService {
           this.isLoading = false
           if (res.errors == null) {
             obs.next(res.data["data"]);
+            obs.complete();
           } else {
             this.notificacionSnackBar.notification$.next({
               texto: "Ups! Algo salió mal: " + res.errors[0].message + res,
@@ -131,6 +135,7 @@ export class GenericCrudService {
           this.isLoading = false;
           if (res.errors == null) {
             obs.next(res.data["data"]);
+            obs.complete();
             if (res.data["data"] == null && res.data["error"] == false) {
               this.notificacionSnackBar.notification$.next({
                 texto: "Item no encontrado",
@@ -163,6 +168,7 @@ export class GenericCrudService {
           this.isLoading = false;
           if (res.errors == null) {
             obs.next(res.data["data"]);
+            obs.complete();
           } else {
             this.notificacionSnackBar.notification$.next({
               texto: "Ups! Algo salió mal: " + res.errors[0].message,
@@ -189,6 +195,7 @@ export class GenericCrudService {
           this.cargandoService.closeDialog()
           if (res.errors == null) {
             obs.next(res.data["data"]);
+            obs.complete();
             this.notificacionSnackBar.notification$.next({
               texto: "Guardado con éxito",
               duracion: 2,
@@ -221,6 +228,7 @@ export class GenericCrudService {
           this.cargandoService.closeDialog()
           if (res.errors == null) {
             obs.next(res.data["data"]);
+            obs.complete();
             this.notificacionSnackBar.notification$.next({
               texto: "Guardado con éxito",
               duracion: 2,
@@ -267,6 +275,7 @@ export class GenericCrudService {
                 color: NotificacionColor.success,
               });
               obs.next(true);
+              obs.complete();
             } else {
               {
                 this.notificacionSnackBar.notification$.next({
@@ -305,6 +314,7 @@ export class GenericCrudService {
                       color: NotificacionColor.success,
                     });
                     obs.next(true);
+                    obs.complete();
                   } else {
                     {
                       this.notificacionSnackBar.notification$.next({
@@ -315,6 +325,7 @@ export class GenericCrudService {
                         color: NotificacionColor.danger,
                       });
                       obs.next(null);
+                      obs.complete();
                     }
                   }
                 });
@@ -354,6 +365,7 @@ export class GenericCrudService {
                 color: NotificacionColor.success,
               });
               obs.next(true);
+              obs.complete();
             } else {
               {
                 this.notificacionSnackBar.notification$.next({
@@ -392,6 +404,7 @@ export class GenericCrudService {
                       color: NotificacionColor.success,
                     });
                     obs.next(true);
+                    obs.complete();
                   } else {
                     {
                       this.notificacionSnackBar.notification$.next({
@@ -402,6 +415,7 @@ export class GenericCrudService {
                         color: NotificacionColor.danger,
                       });
                       obs.next(null);
+                      obs.complete();
                     }
                   }
                 });
@@ -441,6 +455,7 @@ export class GenericCrudService {
         .subscribe((res) => {
           if (res.errors == null) {
             obs.next(res.data["data"]);
+            obs.complete();
           } else {
             this.notificacionSnackBar.notification$.next({
               texto: "Ups! Algo salió mal: " + res.errors[0].message,
@@ -481,8 +496,10 @@ export class GenericCrudService {
             });
             if (error) {
               obs.next({ data: res.data['data'] });
+              obs.complete();
             } else {
               obs.next(res.data['data']);
+              obs.complete();
             }
           } else {
             this.notificacionBar.notification$.next({
@@ -491,9 +508,11 @@ export class GenericCrudService {
               duracion: 5,
             });
             if (error) {
-              obs.next({ error: res.errors })
+              obs.next({ error: res.errors });
+              obs.complete();
             } else {
               obs.next(null);
+              obs.complete();
             }
           }
         });

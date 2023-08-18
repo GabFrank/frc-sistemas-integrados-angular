@@ -55,20 +55,13 @@ export class ListPedidoComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit(): void {
-    this.onGetAll()
 
-    this.actualizarSub = this.pedidoService.actualizarSub.pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) {
-        this.onGetAll()
-      }
-    })
   }
 
   onGetAll() {
     this.pedidoService.onGetAll().pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         this.dataSource.data = res;
-        // this.openPedido(this.dataSource.data[0])
       }
     });
   }
@@ -84,6 +77,5 @@ export class ListPedidoComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.actualizarSub.unsubscribe();
   }
 }

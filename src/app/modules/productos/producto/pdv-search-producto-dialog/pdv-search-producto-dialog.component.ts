@@ -143,12 +143,9 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     this.productoDetailList = [];
 
     if (this.data.conservarUltimaBusqueda == true) {
+
       this.formGroup.get("buscarControl").setValue(this.productoService.lastSearchText);
     }
-
-    this.formGroup.get('cantidad').valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
-      if (res != null) this.formGroup.get('cantidad').setValue(res?.replace(',', '.'), {emitEvent: false});
-    })
   }
 
   ngAfterViewInit(): void {

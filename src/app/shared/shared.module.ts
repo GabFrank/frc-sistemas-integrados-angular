@@ -37,6 +37,12 @@ import { IConfig, provideEnvironmentNgxMask } from 'ngx-mask';
 import { Ng2FittextModule } from 'ng2-fittext';
 import { DynamicFontSizeDirective } from './directives/dynamic-font-size.directive';
 import { CopiarAClipboardDirective } from './directives/copiar-a-clipboard.directive';
+import { BootstrapModule } from '../commons/core/bootstrap.module';
+import { FrcSearchableSelectComponent } from './components/frc-searchable-select/frc-searchable-select.component';
+import { FrcMultiDatepickerComponent } from './components/frc-multi-datepicker/frc-multi-datepicker.component';
+import { PrevisualizarImgenDirective } from './directives/previsualizar-imagen.directive';
+import { FrcToolTipRendererDirective } from './directives/frc-tool-tip-renderer.directive';
+import { CustomToolTipComponent } from './components/frc-custom-tool-tip/frc-custom-tool-tip.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -65,7 +71,12 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     SearchBarDialogComponent,
     TimelineComponent,
     DigitarContrasenaDialogComponent,
-    CopiarAClipboardDirective
+    CopiarAClipboardDirective,
+    FrcSearchableSelectComponent,
+    FrcMultiDatepickerComponent,
+    PrevisualizarImgenDirective,
+    FrcToolTipRendererDirective,
+    CustomToolTipComponent
   ],
   imports: [
     CommonModule,
@@ -78,7 +89,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     ImageCropperModule,
     NgxPanZoomModule,
     NgxQRCodeModule,
-    Ng2FittextModule
+    Ng2FittextModule,
+    BootstrapModule
   ],
   exports: [
     HeaderComponent,
@@ -95,7 +107,12 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     BotonComponent,
     TimelineComponent,
     DigitarContrasenaDialogComponent,
-    CopiarAClipboardDirective
+    CopiarAClipboardDirective,
+    FrcSearchableSelectComponent,
+    FrcMultiDatepickerComponent,
+    PrevisualizarImgenDirective,
+    FrcToolTipRendererDirective,
+    CustomToolTipComponent
   ],
   providers: [NgxImageCompressService, provideEnvironmentNgxMask(options)]
 })
