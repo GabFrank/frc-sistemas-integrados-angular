@@ -55,7 +55,7 @@ export class ClienteService {
   }
 
   onSearchConFiltros(texto: string, tipo: TipoCliente, page, size): Observable<Cliente[]> {
-    return this.genericService.onCustomQuery(this.searchWithFilters, { texto, tipo, page, size }, true);
+    return this.genericService.onCustomQuery(this.searchWithFilters, { texto, tipo, page, size }, false);
   }
 
   onGetByPersonaIdFromServer(id: number): Observable<Cliente> {

@@ -29,7 +29,7 @@ export class NotificacionSnackbarService {
     this.notification$.next({
       texto: "Guardado con éxito",
       color: NotificacionColor.success,
-      duracion: 2,
+      duracion: 2
     });
   }
 

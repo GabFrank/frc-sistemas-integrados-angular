@@ -138,6 +138,7 @@ export class BuscadorComponent implements OnInit {
         item.presentacion = response.presentacion;
         item.precioVenta = response.precio;
         item.precio = item.precioVenta?.precio;
+        item.precioCosto = response?.producto?.costo?.ultimoPrecioCompra;
         this.addItemEvent.emit(item);
       }
       this.dialogReference = undefined;

@@ -103,9 +103,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     })
   }
 
-  onFiltrar() {
-    console.log(this.pageIndex, this.pageSize);
-    
+  onFiltrar() {    
     let sucursalIdList = [];
     this.sucursalControl.value?.forEach(s => {
       if (s != null) {

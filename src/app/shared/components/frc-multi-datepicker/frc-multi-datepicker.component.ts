@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { MatDatepicker } from '@angular/material/datepicker';
+import { MatDatepicker, MatDatepickerToggle } from '@angular/material/datepicker';
 import { dateToString } from '../../../commons/core/utils/dateUtils';
 
 /**
@@ -29,8 +29,8 @@ import { dateToString } from '../../../commons/core/utils/dateUtils';
   styleUrls: ['./frc-multi-datepicker.component.scss']
 })
 export class FrcMultiDatepickerComponent implements OnInit {
-
   @ViewChild('picker') picker: MatDatepicker<Date>;
+  @ViewChild('pickerToogle') pickerToogle: MatDatepickerToggle<Date>;
 
   @Input() initialDates: Date[] = [];
   @Input() titulo: string = 'Fecha(s)'
@@ -96,6 +96,11 @@ export class FrcMultiDatepickerComponent implements OnInit {
 
   emitDates() {
     this.datesChanged.emit(this.selectedDates);
+  }
+
+  onInputFocus(){
+    this.picker.open()
+    this.pickerToogle._button.focus()
   }
 
 }

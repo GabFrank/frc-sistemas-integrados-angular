@@ -35,3 +35,32 @@ tr.example-detail-row {
   overflow: hidden;
   display: flex;
 }
+
+mat-icon:focus {
+  outline: none;
+  /* Change as desired */
+  color: #43a047;
+}
+
+.btn-more-options:focus {
+  outline: none;
+  color: #43a047;
+}
+
+mat-icon {
+  transition: transform 0.3s ease-in-out;
+}
+
+.mat-mdc-icon-button:focus {
+  --mat-mdc-button-persistent-ripple-color: none;
+}
+
+.resize-hover {
+  width: 5px;
+  cursor: col-resize;
+}
+
+.resize-hover-h {
+  height: 5px;
+  cursor: row-resize;
+}

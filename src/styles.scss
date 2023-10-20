@@ -181,6 +181,7 @@ input::selection {
 .warn {
   --mdc-snackbar-container-color: #f57c00 !important;
   --mdc-snackbar-supporting-text-color: white !important;
+  --mdc-snackbar-container-bottom: 30px;
 }
 
 .success {
@@ -188,19 +189,27 @@ input::selection {
   --mdc-snackbar-supporting-text-color: white !important;
 }
 
+::ng-deep .cdk-overlay-pane:has(mat-mdc-simple-snack-bar) {
+  position: fixed !important;
+  bottom: 30% !important; /* Adjust this value as needed */
+}
+
 .info {
   --mdc-snackbar-container-color: #54c5f8 !important;
   --mdc-snackbar-supporting-text-color: white !important;
+  --mdc-snackbar-container-bottom: 30px;
 }
 
 .neutral {
   --mdc-snackbar-container-color: #757575 !important;
   --mdc-snackbar-supporting-text-color: white !important;
+  --mdc-snackbar-container-bottom: 30px;
 }
 
 .danger {
   --mdc-snackbar-container-color: #f44336 !important;
   --mdc-snackbar-supporting-text-color: white !important;
+  --mdc-snackbar-container-bottom: 30px;
 }
 
 .mat-card {
@@ -282,8 +291,19 @@ input {
   padding: 10px;
 }
 
+.sub-descripcion {
+  font-size: 0.8em;
+  color: rgb(171 171 171);
+  text-align: start;
+  margin-top: -5px;
+}
+
 @media print {
   body[data-pdfjsprinting] #printContainer .printedPage {
     display: block !important;
   }
+}
+
+.mat-snack-bar-container {
+  bottom: 30%; /* Adjust this value as needed */
 }

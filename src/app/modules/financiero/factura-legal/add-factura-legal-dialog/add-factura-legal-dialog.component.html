@@ -13,8 +13,7 @@
     fxLayoutAlign="start center"
   >
     <div fxFlex="20%">
-      <mat-form-field>
-        <!-- <mat-label>RUC</mat-label> -->
+      <mat-form-field style="width: 95%;">
         <input
           #rucInput
           type="text"
@@ -25,7 +24,9 @@
           style="text-align: center"
         />
         <span matTextPrefix>RUC:</span>
-        <span matTextSuffix>{{ digitoVerificador }}</span>
+        <span matTextSuffix style="width: 30px;">
+          <div>{{ digitoVerificador }}</div>
+        </span>
       </mat-form-field>
     </div>
     <div fxFlex="70%">

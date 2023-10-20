@@ -1,7 +1,7 @@
 docker run --name frc-server -v "C:\FRC\docker\pg-data\:/var/lib/postgresql/data" -p 5551:5432 -e POSTGRES_USER=franco -e POSTGRES_PASSWORD=franco -d --restart=always postgres:9.5
 sudo docker run --name  -v "/Users/gabfranck/workspace/franco-systems/bd/docker-volume2/:/var/lib/postgresql/data" -p 3333:5432 -e POSTGRES_USER=franco -e POSTGRES_PASSWORD=franco postgres:9.5
 -- servidor rabbit
-docker run --name rabbit-server -e RABBITMQ_DEFAULT_USER=franco -e RABBITMQ_DEFAULT_PASS=franco -p 5672:5672 -p 15672:15672 -d --restart=always rabbitmq:3-management
+docker run --name rabbit-server -v "/home/franco/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf" -e RABBITMQ_DEFAULT_USER=franco -e RABBITMQ_DEFAULT_PASS=franco -p 5673:5673 -p 15673:15673 -d --restart=always rabbitmq:3.12.4-management
 
 backup and restore: https://www.tecmint.com/backup-and-restore-postgresql-database/#:~:text=Backup%20a%20Single%20PostgreSQL%20Database&text=To%20back%20up%2C%20a%20PostgreSQL,plain%2Dtext%20SQL%20script%20file.
 
@@ -10,10 +10,12 @@ restart cron
 
 -- comando para hacer backup de base de datos
 pg_dump -U franco -W central > central_servidor_26_01_23.sql
+pg_dump -U franco -W central -p 5551 > bkp_central.sql
 pg_dump -s -U franco -W general > bkp_filial_dev_25_10_22_schema_only.sql
 pg_dump -U franco -W general > katuete_19_04_23.sql
 -- comando para hacer restore de base de datos
 psql -U franco -W general -p 5551 < dbb.sql
+psql -U franco -W -p 5551 -d bodega < dbb.sql
 -- comando para copiar archivos en docker
 docker cp filial1:/bkp_servidor_dev_24_10_22_schema_only.sql /Users/gabfranck/workspace/franco-systems/bd
 docker cp frc-server:/canindeyu_bkp_13_01_23.sql /
@@ -186,3 +188,6 @@ Add-LocalGroupMember -Group "Administradores" -Member "franco"
 -- Habilitar un puerto en el firewall 
 sudo firewall-cmd --add-port=3000/tcp --permanent
 sudo firewall-cmd --reload
+
+-- 
+

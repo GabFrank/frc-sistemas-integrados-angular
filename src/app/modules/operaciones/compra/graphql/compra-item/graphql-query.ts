@@ -39,6 +39,7 @@ export const compraItemPorProductoId = gql
       observacion
       lote
       estado
+      creadoEn
       compra{
         id
         estado

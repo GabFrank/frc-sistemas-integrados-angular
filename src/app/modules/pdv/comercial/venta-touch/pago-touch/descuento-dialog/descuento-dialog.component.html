@@ -1,11 +1,20 @@
-<div fxLayout="column" fxLayoutGap="10px" style="width: 400px; padding: 10px">
+<div fxLayout="column" fxLayoutGap="10px" style="width: 450px; padding: 10px">
   <div fxFlex style="width: 100%; text-align: center">
     <h3>Descuento</h3>
   </div>
   <div fxFlex>
+    <section>
+      <mat-radio-group fxLayout="column">
+        <mat-radio-button *ngIf="porcentaje >= 5" value="5" (change)="onKeyUp(1, descuento5)">5% con redondeo: {{descuento5 | number: '1.0-0'}}</mat-radio-button>
+        <mat-radio-button *ngIf="porcentaje >= 10" value="5" (change)="onKeyUp(1, descuento10)">10% con redondeo: {{descuento10 | number: '1.0-0'}}</mat-radio-button>
+        <mat-radio-button *ngIf="porcentaje >= 15" value="5" (change)="onKeyUp(1, descuento15)">15% con redondeo: {{descuento15 | number: '1.0-0'}}</mat-radio-button>
+      </mat-radio-group>
+    </section>
+  </div>
+  <div fxFlex>
     <mat-form-field style="width: 100%">
       <input
-        #porcentaje
+        #porcentajeInput
         matInput
         type="text"
         [formControl]="porcentajeDescuento"
@@ -16,7 +25,7 @@
         currencyMask
         [options]="currencyOptionsNoGuarani"
       />
-      <span matTextPrefix>Porcentaje (%)</span>
+      <span matTextPrefix>Porcentaje de descuento</span>
       <span matTextSuffix>%</span>
       <mat-error *ngIf="porcentajeDescuento.invalid">
         Valor no permitido
@@ -35,7 +44,7 @@
         (keyup.enter)="onGuardar()"
         (keyup)="onKeyUp(1, valorDescuentoGsControl.value)"
       />
-      <span matTextPrefix>Valor en Guaranies</span>
+      <span matTextPrefix>Descuento en Guaranies</span>
     </mat-form-field>
   </div>
   <div fxFlex>
@@ -50,7 +59,7 @@
         (keyup.enter)="onGuardar(); $event.stopPropagation()"
         (keyup)="onKeyUp(2, valorDescuentoRsControl.value)"
       />
-      <span matTextPrefix>Valor en Reales</span>
+      <span matTextPrefix>Descuento en Reales</span>
     </mat-form-field>
   </div>
   <div fxFlex>
@@ -65,7 +74,7 @@
         (keyup.enter)="onGuardar(); $event.stopPropagation()"
         (keyup)="onKeyUp(3, valorDescuentoDsControl.value)"
       />
-      <span matTextPrefix>Valor en Dolares</span>
+      <span matTextPrefix>Descuento en Dolares</span>
     </mat-form-field>
   </div>
   <div fxFlex style="height: 35px">

@@ -79,7 +79,7 @@ export class VentaService {
             ticket,
             printerName: environment['printers']['ticket'],
             local: environment['local'],
-            pdvId: isFactura == false ? null : environment['pdvId'],
+            pdvId: environment['pdvId'],
             ventaCreditoInput,
             ventaCreditoCuotaInputList
           },
@@ -89,7 +89,11 @@ export class VentaService {
           }
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {
-          obs.next(res.data["data"]);
+          if(res.errors!=null){
+            this.notificacionBar.openWarn(res.errors[0].message)
+          } else {
+            obs.next(res.data["data"]);
+          }
         });
     });
   }

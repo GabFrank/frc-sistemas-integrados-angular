@@ -250,9 +250,10 @@
       fxLayout="column"
       fxFlex="10"
       style="width: 1005; height: 100%"
-      fxLayoutAlign="start center"
+      fxLayoutAlign="center center"
+      fxLayoutGap="10px"
     >
-      <div fxFlex>
+      <div fxFlex style="background-color: rgb(50, 50, 50)">
         <img
           [src]="
             presentacionControl.value?.imagenPrincipal != null
@@ -260,7 +261,7 @@
               : 'assets/no-image.png'
           "
           alt="producto"
-          style="height: 70px; width: 70px; object-fit: contain"
+          style="height: 100px; width: 100px; object-fit: contain"
           [frcPrevisualizarImagen]="
             presentacionControl.value?.imagenPrincipal != null
               ? presentacionControl.value.imagenPrincipal
@@ -363,36 +364,104 @@
               ? currencyMask.currencyOptionsGuarani
               : currencyMask.currencyOptionsNoGuarani
           "
+          (keyup.enter)="saveIcon._elementRef.nativeElement.focus()"
+          (focusin)="precioUnitario.select()"
         />
+        <mat-hint
+          class="btn-success-flat"
+          *ngIf="
+            this.selectedProducto?.costo?.ultimoPrecioCompra >
+            precioUnitarioControl.value
+          "
+          >El costo ha bajado</mat-hint
+        >
+        <mat-hint
+          class="btn-danger-flat"
+          *ngIf="
+            this.selectedProducto?.costo?.ultimoPrecioCompra <
+            precioUnitarioControl.value
+          "
+          >El costo ha aumentado</mat-hint
+        >
       </mat-form-field>
     </div>
     <div fxFlex="3" style="width: 100%; text-align: center">
       <mat-icon
+        #saveIcon
+        tabindex="0"
         class="highlight-hover"
         (click)="onSaveItem()"
         style="font-size: 2em"
+        (keyup.ArrowLeft)="precioUnitario.focus()"
+        (keyup.ArrowRight)="moreOptions._elementRef.nativeElement.focus()"
         >save</mat-icon
       >
     </div>
 
     <div fxFlex="3" style="width: 100%; text-align: center">
+      <button
+        class="btn-more-options"
+        #moreOptions
+        mat-icon-button
+        [matMenuTriggerFor]="menuItem"
+        (keyup.ArrowLeft)="saveIcon._elementRef.nativeElement.focus()"
+        (keyup.ArrowRight)="clearIcon._elementRef.nativeElement.focus()"
+        (click)="$event.stopPropagation()"
+      >
+        <mat-icon>more_vert</mat-icon>
+      </button>
+      <mat-menu #menuItem="matMenu">
+        <button mat-menu-item>Pactar vencimiento</button>
+        <button mat-menu-item>Planificar precio</button>
+        <button mat-menu-item>Planificar entrega</button>
+      </mat-menu>
+    </div>
+
+    <div fxFlex="3" style="width: 100%; text-align: center">
       <mat-icon
+        #clearIcon
+        tabindex="1"
         class="highlight-hover-danger"
         (click)="onClearItem()"
         style="font-size: 2em"
+        (keyup.ArrowLeft)="moreOptions._elementRef.nativeElement.focus()"
         >clear</mat-icon
       >
     </div>
   </div>
-  <div fxFlex="75" fxLayout="row" fxLayoutGap="10px">
-    <div fxFlex="35" fxLayout="column" fxLayoutGap="10px">
-      <div class="cards fondo" fxFlex="50">
+  <div
+    fxFlex="75"
+    fxLayout="row"
+    mwlResizable
+    (resizeStart)="onResizeStart($event)"
+    (resizeEnd)="onResizeEnd($event)"
+    fxLayoutGap="2px"
+  >
+    <div [fxFlex]="col1" fxLayout="column" fxLayoutGap="2px">
+      <div class="cards fondo" [fxFlex]="r1">
         <div style="width: 100%; text-align: center; font-size: small">
           Productos del Proveedor
         </div>
+        <mat-form-field style="width: 100%; font-size: 1em">
+          <input
+            type="text"
+            placeholder="Buscar producto"
+            matInput
+            [formControl]="buscarProductoProveedor"
+            (keyup)="onBuscarProductoProveedor()"
+          />
+          <span matTextSuffix>
+            <mat-icon>search</mat-icon>
+          </span>
+        </mat-form-field>
         <table
           mat-table
-          [dataSource]="productosProveedorDataSource"
+          [dataSource]="
+            buscarProductoProveedor.value == null ||
+            buscarProductoProveedor.value == ''
+              ? productosProveedorDataSource
+              : filteredProductosProveedorDataSource
+          "
           multiTemplateDataRows
           class="mat-elevation-z8"
           style="width: 100%"
@@ -406,7 +475,7 @@
               *matCellDef="let productoProveedor"
               style="text-align: center"
             >
-              {{ productoProveedor.producto.codigo }}
+              {{ productoProveedor.producto.codigoPrincipal }}
             </td>
           </ng-container>
 
@@ -418,9 +487,10 @@
             <td
               mat-cell
               *matCellDef="let productoProveedor"
-              style="text-align: center"
+              style="text-align: start"
             >
               {{ productoProveedor?.producto.descripcion }}
+              <div class="sub-descripcion">{{productoProveedor?.producto.descripcionFactura}}</div>
             </td>
           </ng-container>
 
@@ -470,15 +540,56 @@
                 fxLayout="column"
                 fxLayoutAlign="start start"
               >
-                <div style="display: flex; flex-direction: column">
+                <!-- <div style="display: flex; flex-direction: column">
                   <span>Tool tip {{ productoProveedor?.proveedor }}</span>
                   <div
                     *ngFor="let stock of productoProveedor?.stockPorSucursal"
                   >
                     {{ stock?.sucursal }} : {{ stock?.stock }}
                   </div>
-                </div>
+                </div> -->
               </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="menu">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="width: 5%; text-align: center"
+            >
+              ...
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let compraItem; let i = index"
+              style="text-align: center; width: 5%"
+            >
+              <button
+                mat-icon-button
+                [matMenuTriggerFor]="menu"
+                (click)="$event.stopPropagation()"
+              >
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item [matMenuTriggerFor]="noPedir">No pedir</button>
+                <button mat-menu-item [matMenuTriggerFor]="borrar">Borrar item</button>
+
+                <mat-menu #noPedir="matMenu">
+                  <button mat-menu-item>No me interesa</button>
+                  <button mat-menu-item>Stock suficiente</button>
+                  <button mat-menu-item>En falta</button>
+                  <button mat-menu-item>Precio</button>
+                  <button mat-menu-item>Vencimiento corto</button>
+                  <button mat-menu-item>Defectuoso</button>
+                </mat-menu>
+                
+                <mat-menu #borrar="matMenu">
+                  <button mat-menu-item>Proveedor ya no posee</button>
+                  <button mat-menu-item>Producto descontinuado</button>
+                </mat-menu>
+              </mat-menu>
             </td>
           </ng-container>
 
@@ -499,21 +610,27 @@
               expandedProductoProveedor =
                 expandedProductoProveedor === element ? null : element
             "
+            (click)="onProductoProveedorItemClick(element, i)"
           ></tr>
           <tr
             mat-row
-            *matRowDef="let row; columns: ['expandedDetail']"
+            *matRowDef="let row; let i = index; columns: ['expandedDetail']"
             class="example-detail-row"
           ></tr>
         </table>
       </div>
-      <div class="cards fondo" fxFlex="50">
+      <div
+        class="resize-hover-h"
+        mwlResizeHandle
+        [resizeEdges]="{ top: true }"
+      ></div>
+      <div class="cards fondo" [fxFlex]="r2">
         <div style="width: 100%; text-align: center; font-size: small">
-          Histórico de precios
+          Histórico de compras
         </div>
         <table
           mat-table
-          [dataSource]="historicoPrecioDataSource"
+          [dataSource]="historicoCompraItemDataSource"
           multiTemplateDataRows
           class="mat-elevation-z8"
           style="width: 100%"
@@ -524,10 +641,10 @@
             </th>
             <td
               mat-cell
-              *matCellDef="let historicoPrecio"
+              *matCellDef="let compraItem"
               style="text-align: center"
             >
-              {{ historicoPrecio.id }}
+              {{ compraItem.creadoEn }}
             </td>
           </ng-container>
 
@@ -538,14 +655,14 @@
             </th>
             <td
               mat-cell
-              *matCellDef="let historicoPrecio"
+              *matCellDef="let compraItem"
               style="text-align: center"
             >
-              <span>{{ historicoPrecio?.presentacion?.cantidad }}</span>
-              <span>{{
-                historicoPrecio?.presentacion?.tipoPresentacion?.descripcion
+              <span>{{ compraItem?.presentacion?.cantidad }}</span>
+              <!-- <span>{{
+                compraItem?.presentacion?.tipoPresentacion?.descripcion
                   | uppercase
-              }}</span>
+              }}</span> -->
             </td>
           </ng-container>
 
@@ -555,10 +672,10 @@
             </th>
             <td
               mat-cell
-              *matCellDef="let historicoPrecio"
+              *matCellDef="let compraItem"
               style="text-align: center"
             >
-              {{ historicoPrecio?.cantidad }}
+              {{ compraItem?.cantidad }}
             </td>
           </ng-container>
 
@@ -568,10 +685,13 @@
             </th>
             <td
               mat-cell
-              *matCellDef="let historicoPrecio"
+              *matCellDef="let compraItem"
               style="text-align: center"
             >
-              {{ historicoPrecio?.precio }}
+              {{
+                compraItem?.precioUnitario - compraItem?.descuentoUnitario
+                  | number : "1.0-0"
+              }}
             </td>
           </ng-container>
 
@@ -585,7 +705,7 @@
             </th>
             <td
               mat-cell
-              *matCellDef="let historicoPrecio; let i = index"
+              *matCellDef="let compraItem; let i = index"
               style="text-align: center; width: 5%"
             >
               <button
@@ -596,7 +716,7 @@
                 <mat-icon>more_vert</mat-icon>
               </button>
               <mat-menu #menu="matMenu">
-                <!-- <button mat-menu-item (click)="onDelete(historicoPrecio, i)">
+                <!-- <button mat-menu-item (click)="onDelete(compraItem, i)">
               Eliminar
             </button> -->
               </mat-menu>
@@ -609,14 +729,14 @@
           <!-- <ng-container matColumnDef="expandedDetail">
         <td
           mat-cell
-          *matCellDef="let historicoPrecio"
-          [attr.colspan]="historicoPrecioDisplayedColumns.length"
+          *matCellDef="let compraItem"
+          [attr.colspan]="compraItemDisplayedColumns.length"
           class="expanded"
         >
           <div
-            class="example-historicoPrecio-detail"
+            class="example-compraItem-detail"
             [@detailExpand]="
-              historicoPrecio == expandedhistoricoPrecio ? 'expanded' : 'collapsed'
+              compraItem == expandedcompraItem ? 'expanded' : 'collapsed'
             "
             style="text-align: center"
             fxLayout="column"
@@ -627,13 +747,13 @@
 
           <tr
             mat-header-row
-            *matHeaderRowDef="historicoPrecioDisplayedColumns; sticky: true"
+            *matHeaderRowDef="compraItemDisplayedColumns; sticky: true"
           ></tr>
           <tr
             mat-row
             *matRowDef="
               let row;
-              columns: historicoPrecioDisplayedColumns;
+              columns: compraItemDisplayedColumns;
               let i = dataIndex
             "
           ></tr>
@@ -645,7 +765,12 @@
         </table>
       </div>
     </div>
-    <div fxFlex="65" class="cards fondo">
+    <div
+      class="resize-hover"
+      mwlResizeHandle
+      [resizeEdges]="{ right: true }"
+    ></div>
+    <div [fxFlex]="col2" class="cards fondo">
       <div style="width: 100%; text-align: center; font-size: small">
         Itens del pedido
       </div>
