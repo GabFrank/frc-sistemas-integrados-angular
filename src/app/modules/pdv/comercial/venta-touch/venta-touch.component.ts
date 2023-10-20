@@ -381,6 +381,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           item.precio = respuesta.data?.precio?.precio;
           item.producto = respuesta.producto;
           item.cantidad = respuesta.data.cantidad;
+          item.precioCosto = respuesta?.producto?.costo?.ultimoPrecioCompra;
           this.addItem(item);
         }
         this.dialogReference = undefined;
@@ -399,7 +400,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
-  addItem(item: VentaItem, index?) {
+  addItem(item: VentaItem, index?) {    
     item.precio = item?.precioVenta?.precio;
     let cantidad:number = +item.cantidad;
     if (item.producto.balanza != true) {
@@ -520,6 +521,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     item.cantidad = cantidad;
     if (item.cantidad > 0) this.ultimoAdicionado.push(item);
     this.selectedTipoPrecio = this.tiposPrecios[0];
+    this.cantidadControl.setValue(1)
   }
 
   removeItem(event: any) {
@@ -629,6 +631,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     let precio = eventData['precio'];
     item.cantidad = cantidad;
     item.producto = producto;
+    item.precioCosto = producto?.costo?.costoMedio;
 
     if (selectedPresentacion == null) {
       if (texto != null) {
@@ -679,6 +682,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       this.addItem(item);
     }
     this.buscadorFocusSub.next()
+    this.cantidadControl.setValue(1);
   }
 
   cambiarTipoPrecio(tipo) {
@@ -792,7 +796,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.totalGs = 0;
   }
 
-  onTicketClick(ticket?: boolean) {
+  onTicketClick(ticket?: boolean) {    
     if(this.modoConsulta) return;
     this.disableCobroRapido = true;
     //guardar la compra, si la compra se guardo con exito, imprimir ticket y resetForm()
@@ -846,7 +850,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   onSaveVenta(venta, cobro, ticket, ventaCreditoInput?, ventaCreditoCuotaInputList?): Observable<Venta> {
     if(this.modoConsulta) return;
     return new Observable(obs => {
-      this.ventaTouchServive.onSaveVenta(venta, cobro, ticket || ventaCreditoInput != null, ventaCreditoInput, ventaCreditoCuotaInputList, !this.filteredPrecios.includes('EXPO')).pipe(untilDestroyed(this)).subscribe((res) => {
+      this.ventaTouchServive.onSaveVenta(venta, cobro, ticket || ventaCreditoInput != null, ventaCreditoInput, ventaCreditoCuotaInputList, ticket == true).pipe(untilDestroyed(this)).subscribe((res) => {
         this.cargandoService.closeDialog();
         if (res.id != null) {
           this.notificacionSnackbar.notification$.next({

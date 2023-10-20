@@ -40,6 +40,9 @@ export const pdvCategoriaSearch = gql`
             garantia
             combo
             promocion
+            costo {
+              ultimoPrecioCompra
+            }
             envase {
               id
               descripcion
@@ -140,7 +143,6 @@ export const deletePdvCategoriaQuery = gql`
   }
 `;
 
-
 export const pdvGruposProductosPorGrupoIdQuery = gql`
   query ($id: ID!) {
     data: pdvGruposProductosPorGrupoId(id: $id) {
@@ -156,6 +158,10 @@ export const pdvGruposProductosPorGrupoIdQuery = gql`
         envase {
           id
           descripcion
+        }
+        costo {
+          costoMedio
+          ultimoPrecioCompra
         }
         presentaciones {
           id
@@ -183,7 +189,7 @@ export const pdvGruposProductosPorGrupoIdQuery = gql`
         }
         imagenPrincipal
       }
-      
+
       activo
     }
   }

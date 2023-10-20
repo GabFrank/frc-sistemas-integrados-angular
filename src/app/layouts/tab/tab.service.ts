@@ -8,6 +8,8 @@ import { ListPedidoComponent } from '../../modules/operaciones/pedido/list-pedid
 import { EditPedidoComponent } from '../../modules/operaciones/pedido/edit-pedido/edit-pedido.component';
 import { ListFuncioarioComponent } from '../../modules/personas/funcionarios/list-funcioario/list-funcioario.component';
 import { ListTransferenciaComponent } from '../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
+import { ListClientesComponent } from '../../modules/personas/clientes/list-clientes/list-clientes.component';
+import { ListInventarioComponent } from '../../modules/operaciones/inventario/list-inventario/list-inventario.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -41,7 +43,9 @@ export class TabService implements OnInit {
       // new Tab(VentaTouchComponent, 'Venta', null, null),
     ];
 
-    // this.addTab(new Tab(ListTransferenciaComponent, 'Lista de transferencia', null, null))
+    // this.addTab(new Tab(ListPedidoComponent, 'Lista de pedidos', null, null))
+    // this.addTab(new Tab(ListInventarioComponent, 'Reporte de inventarios', null, null))
+    // this.addTab(new Tab(LucroPorProductoComponent, 'Reporte de inventarios', null, null))
     this.tabSub.next(this.tabs);
 
     // this.productoService.getProducto(1152).subscribe(res => {
@@ -49,10 +53,10 @@ export class TabService implements OnInit {
     //   this.addTab(new Tab(ProductoComponent, 'Nuevo Producto', { data: res }))
     // })
   }
+  
   ngOnInit(): void {
     // this.addTab(new Tab(CompraDashboardComponent, 'Compras', null, null))
   }
-
 
   // Horario especial
 

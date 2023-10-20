@@ -39,7 +39,7 @@ export interface AdicionarCajaResponse {
   conteoCierre?: Conteo;
 }
 
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { MainService } from "../../../../../main.service";
 import { FacturaLegalService } from "../../../factura-legal/factura-legal.service";
 import { DeliveryService } from "../../../../pdv/comercial/venta-touch/delivery-dialog/delivery.service";
@@ -103,6 +103,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
 
   isDeliveryAbierto = false;
 
+  verificarMaletinTimeout = null;
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarCajaData,
     private matDialogRef: MatDialogRef<AdicionarCajaDialogComponent>,
@@ -123,18 +125,27 @@ export class AdicionarCajaDialogComponent implements OnInit {
     this.creadoEnControl.disable();
     this.usuarioControl.disable();
     if (this.data?.caja != null) {
-      this.cajaService.onGetById(this.data.caja.id, this.data.caja.sucursalId).pipe(untilDestroyed(this)).subscribe((res) => {
-        if (res != null) {
-          this.selectedCaja = res;
-          this.isCierre = this.selectedCaja?.conteoCierre != null;
-          this.cargarDatos();
-          this.deliveryService.onDeliveryPorCajaIdAndEstado(this.selectedCaja.id, [DeliveryEstado.ABIERTO, DeliveryEstado.EN_CAMINO, DeliveryEstado.PARA_ENTREGA]).subscribe((deliveryRes: Delivery[]) => {
-            console.log(deliveryRes);
+      this.cajaService
+        .onGetById(this.data.caja.id, this.data.caja.sucursalId)
+        .pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          if (res != null) {
+            this.selectedCaja = res;
+            this.isCierre = this.selectedCaja?.conteoCierre != null;
+            this.cargarDatos();
+            this.deliveryService
+              .onDeliveryPorCajaIdAndEstado(this.selectedCaja.id, [
+                DeliveryEstado.ABIERTO,
+                DeliveryEstado.EN_CAMINO,
+                DeliveryEstado.PARA_ENTREGA,
+              ])
+              .subscribe((deliveryRes: Delivery[]) => {
+                console.log(deliveryRes);
 
-            if (deliveryRes.length > 0) this.isDeliveryAbierto = true
-          })
-        }
-      });
+                if (deliveryRes.length > 0) this.isDeliveryAbierto = true;
+              });
+          }
+        });
     } else {
     }
 
@@ -170,7 +181,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
   cargarDatos() {
     if (this.selectedCaja?.maletin != null)
       this.maletinService
-        .onGetPorId(this.selectedCaja?.maletin?.id).pipe(untilDestroyed(this))
+        .onGetPorId(this.selectedCaja?.maletin?.id)
+        .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
             this.selectedMaletin = res;
@@ -211,35 +223,42 @@ export class AdicionarCajaDialogComponent implements OnInit {
   }
 
   verificarMaletin() {
-    this.maletinService
-      .onGetPorDescripcion(this.descripcionMaletinControl.value).pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          let maletinEncontrado: Maletin = res;
-          if (maletinEncontrado.abierto == true) {
-            this.notificacionBar.notification$.next({
-              texto: "Este maletin ya esta siendo utilizado",
-              color: NotificacionColor.warn,
-              duracion: 3,
-            });
-            this.seleccionarMaletin(null);
-          } else {
-            this.notificacionBar.notification$.next({
-              texto: "Maletin verificado correctamente",
-              color: NotificacionColor.success,
-              duracion: 2,
-            });
-            this.seleccionarMaletin(maletinEncontrado);
-          }
-        } else {
-          this.notificacionBar.notification$.next({
-            texto: "No existe un maletin registrado con ese código",
-            color: NotificacionColor.danger,
-            duracion: 3,
+    if (this.verificarMaletinTimeout == null) {
+      this.verificarMaletinTimeout = setTimeout(() => {
+        this.maletinService
+          .onGetPorDescripcion(this.descripcionMaletinControl.value)
+          .pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            if (res != null) {
+              let maletinEncontrado: Maletin = res;
+              if (maletinEncontrado.abierto == true) {
+                this.notificacionBar.notification$.next({
+                  texto: "Este maletin ya esta siendo utilizado",
+                  color: NotificacionColor.warn,
+                  duracion: 3,
+                });
+                this.seleccionarMaletin(null);
+              } else {
+                this.notificacionBar.notification$.next({
+                  texto: "Maletin verificado correctamente",
+                  color: NotificacionColor.success,
+                  duracion: 2,
+                });
+                this.seleccionarMaletin(maletinEncontrado);
+              }
+            } else {
+              this.notificacionBar.notification$.next({
+                texto: "No existe un maletin registrado con ese código",
+                color: NotificacionColor.danger,
+                duracion: 3,
+              });
+              this.seleccionarMaletin(null);
+            }
           });
-          this.seleccionarMaletin(null);
-        }
-      });
+          clearTimeout(this.verificarMaletinTimeout)
+          this.verificarMaletinTimeout = null;
+      }, 1000);
+    }
   }
 
   sinMaletin() {
@@ -249,7 +268,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
         autoFocus: true,
         restoreFocus: true,
       })
-      .afterClosed().pipe(untilDestroyed(this))
+      .afterClosed()
+      .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.notificacionBar.notification$.next({
@@ -319,7 +339,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
     } else {
       this.selectedConteoCierre = response.conteo;
       if (!this.isCierre) {
-        this.goTo('imprimir')
+        this.goTo("imprimir");
         this.isCierre = true;
       }
     }
@@ -364,7 +384,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
         break;
       case "cierre":
         if (this.isDeliveryAbierto) {
-          this.notificacionBar.openWarn("Posee deliverys sin concluir")
+          this.notificacionBar.openWarn("Posee deliverys sin concluir");
         } else {
           this.stepper.selectedIndex = 1;
           this.stepper.selectedIndex = 2;
@@ -373,10 +393,15 @@ export class AdicionarCajaDialogComponent implements OnInit {
 
         break;
       case "imprimir":
-        if (this.selectedCaja != null) this.cajaService.onImprimirBalance(this.selectedCaja?.id, this.selectedCaja?.sucursalId)
+        if (this.selectedCaja != null)
+          this.cajaService.onImprimirBalance(
+            this.selectedCaja?.id,
+            this.selectedCaja?.sucursalId
+          );
         break;
       case "imprimir-factura":
-        if (this.selectedCaja != null) this.facturaService.onImprimirFacturasPorCaja(this.selectedCaja?.id)
+        if (this.selectedCaja != null)
+          this.facturaService.onImprimirFacturasPorCaja(this.selectedCaja?.id);
         break;
       case "salir":
         this.matDialogRef.close();
@@ -387,20 +412,21 @@ export class AdicionarCajaDialogComponent implements OnInit {
   }
 
   crearNuevaCaja() {
-    this.cargandoDialog.openDialog(true, 'Creando caja...')
+    this.cargandoDialog.openDialog(true, "Creando caja...");
     setTimeout(() => {
-      let input = new PdvCajaInput;
+      let input = new PdvCajaInput();
       input.maletinId = this.selectedMaletin.id;
       input.activo = true;
-      this.cajaService.onSave(input)
+      this.cajaService
+        .onSave(input)
         .pipe(untilDestroyed(this))
-        .subscribe(res => {
-          this.cargandoDialog.closeDialog()
+        .subscribe((res) => {
+          this.cargandoDialog.closeDialog();
           if (res != null) {
             this.selectedCaja = res;
             this.cajaService.selectedCaja = this.selectedCaja;
           }
-        })
+        });
     }, 1000);
   }
 }

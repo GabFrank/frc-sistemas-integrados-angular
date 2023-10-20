@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { CargandoDialogService } from './cargando-dialog.service';
 
 @Component({
   selector: 'app-cargando-dialog',
@@ -9,8 +10,8 @@ export class CargandoDialogComponent implements OnInit {
 
 
   constructor(
-  ) {
-  }
+    public cargandoService: CargandoDialogService
+  ) {}
 
   ngOnInit(): void {
 

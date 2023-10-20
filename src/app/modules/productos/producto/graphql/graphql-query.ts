@@ -20,6 +20,9 @@ export const productosQuery = gql`
           descripcion
         }
       }
+      costo {
+        ultimoPrecioCompra
+      }
       presentaciones {
         id
         principal
@@ -55,7 +58,6 @@ export const productosExistenciaCostoQuery = gql`
     data: productos {
       id
       descripcion
-
     }
   }
 `;
@@ -64,14 +66,18 @@ export const productosExistenciaCostoSearch = gql`
   query ($texto: String) {
     data: productoSearch(texto: $texto) {
       id
-
     }
   }
 `;
 
 export const productoSearchPdv = gql`
   query ($texto: String, $offset: Int, $isEnvase: Boolean, $activo: Boolean) {
-    data: productoSearch(texto: $texto, offset: $offset, isEnvase: $isEnvase, activo: $activo) {
+    data: productoSearch(
+      texto: $texto
+      offset: $offset
+      isEnvase: $isEnvase
+      activo: $activo
+    ) {
       id
       balanza
       descripcion
@@ -147,7 +153,9 @@ export const productosSearch = gql`
       promocion
       vencimiento
       diasVencimiento
-
+      costo {
+        ultimoPrecioCompra
+      }
       tipoConservacion
       subfamilia {
         id
@@ -264,6 +272,7 @@ export const productoPorCodigoQuery = gql`
           activo
         }
       }
+      codigoPrincipal
     }
   }
 `;
@@ -285,7 +294,9 @@ export const productoPorProveedor = gql`
       promocion
       vencimiento
       diasVencimiento
-
+      costo {
+        ultimoPrecioCompra
+      }
       tipoConservacion
       subfamilia {
         id
@@ -407,7 +418,9 @@ export const saveProducto = gql`
       promocion
       vencimiento
       diasVencimiento
-
+      costo {
+        ultimoPrecioCompra
+      }
       tipoConservacion
       subfamilia {
         id
@@ -532,6 +545,9 @@ export const findByPdvGrupoProductoQuery = gql`
       iva
       stock
       isEnvase
+      costo {
+        ultimoPrecioCompra
+      }
       envase {
         id
         descripcion
@@ -572,14 +588,21 @@ export const findByPdvGrupoProductoQuery = gql`
 `;
 
 export const lucroPorProductoQuery = gql`
-  query lucroPorProducto($fechaInicio: String, $fechaFin: String, $sucursalIdList: [Int], $usuarioId: ID!, $usuarioIdList:[ID], $productoIdList:[ID]) {
+  query lucroPorProducto(
+    $fechaInicio: String
+    $fechaFin: String
+    $sucursalIdList: [Int]
+    $usuarioId: ID!
+    $usuarioIdList: [ID]
+    $productoIdList: [ID]
+  ) {
     data: lucroPorProducto(
-      fechaInicio: $fechaInicio,
-      fechaFin: $fechaFin,
-      sucursalIdList: $sucursalIdList,
-      usuarioId: $usuarioId,
-      usuarioIdList: $usuarioIdList,
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      sucursalIdList: $sucursalIdList
+      usuarioId: $usuarioId
+      usuarioIdList: $usuarioIdList
       productoIdList: $productoIdList
-      )
+    )
   }
 `;

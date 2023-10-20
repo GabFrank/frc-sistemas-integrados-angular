@@ -20,6 +20,7 @@ export class CargandoDialogService {
   cargandoTextSub = new BehaviorSubject<string>(null);
   dialogCount = 0;
   dialogRef: MatDialogRef<any>;
+  showCerrarButton = false;
 
   public dialogSub: Subject<boolean> = new Subject<boolean>();
 
@@ -53,5 +54,9 @@ export class CargandoDialogService {
         this.spinnerService.hide()
       }
     }, 500);
+  }
+
+  onShowCerrarButtom(){
+    this.showCerrarButton = true;
   }
 }

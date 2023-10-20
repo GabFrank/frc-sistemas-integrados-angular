@@ -23,12 +23,20 @@
         {{ isDev && isLocalhost ? "DEV" : null }}
         <div style="font-size: medium; padding-top: -10px;">v{{ appVersion }}</div>
       </span> -->
-      <div style="position: relative; text-align: center;">
-        <span style="padding-left: 20px; display: inline-block;">
+      <div style="position: relative; text-align: center">
+        <span style="padding-left: 20px; display: inline-block">
           BODEGA FRANCO {{ mainService?.sucursalActual?.nombre | uppercase }}
-          {{ isDev && isLocalhost ? 'DEV' : null }}
+          {{ isDev && isLocalhost ? "DEV" : null }}
         </span>
-        <span style="position: absolute; bottom: -20px; left: 0; width: 100%; font-size: small;">
+        <span
+          style="
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            width: 100%;
+            font-size: small;
+          "
+        >
           FRC Sistemas Informáticos v{{ appVersion }}
         </span>
       </div>

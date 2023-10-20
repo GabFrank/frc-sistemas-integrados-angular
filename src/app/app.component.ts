@@ -23,6 +23,7 @@ import {
 import { CargandoDialogService } from './shared/components/cargando-dialog/cargando-dialog.service';
 import { WindowInfoService } from "./shared/services/window-info.service";
 import { SearchBarDialogComponent } from './shared/widgets/search-bar-dialog/search-bar-dialog.component';
+import { DialogoNuevasFuncionesComponent } from "./shared/components/dialogo-nuevas-funciones/dialogo-nuevas-funciones.component";
 
 export class Pageable {
   getPageNumber: number;
@@ -69,7 +70,7 @@ export class AppComponent implements OnInit, OnDestroy {
     public mainService: MainService,
     public genericService: GenericCrudService,
     private configService: ConfiguracionService,
-    private cargandoService: CargandoDialogService
+    public cargandoService: CargandoDialogService
   ) {
     this.innerHeight = windowInfo.innerHeight + "px";
     notificationService.notification$
@@ -80,7 +81,7 @@ export class AppComponent implements OnInit, OnDestroy {
           this.snackBarRef = snackBar.open(res.texto, null, {
             horizontalPosition: "center",
             duration: res.duracion * 1000,
-            verticalPosition: "top",
+            verticalPosition: "bottom",
             panelClass: res.color?.toString()
           });
         }
@@ -116,6 +117,7 @@ export class AppComponent implements OnInit, OnDestroy {
    *    si la respuesta es false, abre el dialogo de configuracion de servidor
    */
   ngOnInit(): void {
+
     this.overlay.getContainerElement().classList.add("darkMode");
     this.matDialog.open(LoginComponent, {
       width: "70%",
@@ -156,6 +158,7 @@ export class AppComponent implements OnInit, OnDestroy {
           }, 3000);
         }
       });
+
   }
 
   @HostListener("document:keydown", ["$event"]) onKeydownHandler(

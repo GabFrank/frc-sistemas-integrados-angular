@@ -1,34 +1,32 @@
-import { LoginService } from './../../../modules/login/login.service';
-import { SearchBarDialogComponent } from './../../widgets/search-bar-dialog/search-bar-dialog.component';
 import {
   Component,
-  OnInit,
-  Output,
   EventEmitter,
   OnDestroy,
+  OnInit,
+  Output,
 } from "@angular/core";
 import { FormControl } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { Router } from "@angular/router";
-import { Observable, of, Subscription } from "rxjs";
+import { Observable, Subscription } from "rxjs";
 import { connectionStatusSub } from "../../../app.module";
 import { ElectronService } from "../../../commons/core/electron/electron.service";
 import { TabService } from "../../../layouts/tab/tab.service";
 import { MainService } from "../../../main.service";
 import { CargandoDialogService } from "../cargando-dialog/cargando-dialog.service";
+import { LoginService } from "./../../../modules/login/login.service";
+import { SearchBarDialogComponent } from "./../../widgets/search-bar-dialog/search-bar-dialog.component";
 
+import { isDevMode } from "@angular/core";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { LoginComponent } from '../../../modules/login/login.component';
-import { TipoEntidad } from '../../../generics/tipo-entidad.enum';
-import { QrData, QrCodeComponent } from '../../qr-code/qr-code.component';
-import { Actualizacion } from '../../../modules/configuracion/actualizacion/actualizacion.model';
-import { ActualizacionService } from '../../../modules/configuracion/actualizacion/actualizacion.service';
-import { ConfiguracionService } from '../../../modules/configuracion/configuracion.service';
-import { ConfigurarServidorDialogComponent } from '../../../modules/configuracion/configurar-servidor-dialog/configurar-servidor-dialog.component';
-import { environment } from '../../../../environments/environment';
-import { DialogosService } from '../dialogos/dialogos.service';
-import { ROLES } from '../../../modules/personas/roles/roles.enum';
-import { isDevMode } from '@angular/core';
+import { environment } from "../../../../environments/environment";
+import { TipoEntidad } from "../../../generics/tipo-entidad.enum";
+import { ActualizacionService } from "../../../modules/configuracion/actualizacion/actualizacion.service";
+import { ConfiguracionService } from "../../../modules/configuracion/configuracion.service";
+import { ConfigurarServidorDialogComponent } from "../../../modules/configuracion/configurar-servidor-dialog/configurar-servidor-dialog.component";
+import { ROLES } from "../../../modules/personas/roles/roles.enum";
+import { QrCodeComponent, QrData } from "../../qr-code/qr-code.component";
+import { DialogosService } from "../dialogos/dialogos.service";
 
 // import { ApolloConfigService } from '../../../apollo-config.service';
 
@@ -40,14 +38,14 @@ import { isDevMode } from '@angular/core';
 })
 export class HeaderComponent implements OnInit, OnDestroy {
   isDev = isDevMode();
-  isLocalhost = localStorage.getItem('ip') == 'localhost';
+  isLocalhost = localStorage.getItem("ip") == "localhost";
   status = false;
   statusObs: Observable<any>;
   serverIpAddress = "";
   editServerIp = false;
   serverIpControl = new FormControl();
   statusSub: Subscription;
-  sucursalList: any[]
+  sucursalList: any[];
   readonly ROLES = ROLES;
   @Output() toogleSideBarEvent: EventEmitter<any> = new EventEmitter();
   appVersion = null;
@@ -63,8 +61,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private actualizacionService: ActualizacionService,
     private configService: ConfiguracionService,
     private dialogoService: DialogosService
-  ) {
-  }
+  ) {}
 
   ngOnInit(): void {
     this.statusSub = connectionStatusSub
@@ -73,10 +70,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.status = res;
       });
 
-    this.sucursalList = environment['sucursales'];
+    this.sucursalList = environment["sucursales"];
 
     this.appVersion = this.electronService.getAppVersion();
-
   }
 
   toogleSideBar() {
@@ -92,12 +88,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
     localStorage.removeItem("usuarioId");
     this.mainService.usuarioActual = null;
     this.mainService.logged = false;
-    this.tabService.removeAllTabs()
-    this.electronService.relaunch()
+    this.tabService.removeAllTabs();
+    this.electronService.relaunch();
   }
 
   onLogin() {
-    this.electronService.relaunch()
+    this.electronService.relaunch();
   }
 
   ngOnDestroy(): void {
@@ -109,8 +105,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
   onSearch() {
     this.matDialog.open(SearchBarDialogComponent, {
       data: null,
-      width: '50%'
-    })
+      width: "50%",
+    });
   }
 
   removeServer() {
@@ -120,54 +116,60 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   createQrCode() {
     let codigo: QrData = {
-      'sucursalId': this.mainService.sucursalActual.id,
-      'tipoEntidad': TipoEntidad.SUCURSAL,
-      'idOrigen': null,
-      'idCentral': null,
-      'componentToOpen': null
-    }
-    this.matDialog.open(QrCodeComponent, {
-      data: {
-        codigo: codigo,
-        nombre: 'Sucursal'
-      }
-    }).afterClosed().subscribe(res => {
-
-    })
+      sucursalId: this.mainService.sucursalActual.id,
+      tipoEntidad: TipoEntidad.SUCURSAL,
+      idOrigen: null,
+      idCentral: null,
+      componentToOpen: null,
+    };
+    this.matDialog
+      .open(QrCodeComponent, {
+        data: {
+          codigo: codigo,
+          nombre: "Sucursal",
+        },
+      })
+      .afterClosed()
+      .subscribe((res) => {});
   }
 
   onGetConfiguracion() {
-    this.configService.isConfigured()
+    this.configService
+      .isConfigured()
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
+      .subscribe((res) => {
         if (!res) {
           this.matDialog.open(ConfigurarServidorDialogComponent, {
             width: "80%",
             height: "500px",
-            disableClose: true
-          })
+            disableClose: true,
+          });
         }
-      })
+      });
   }
 
   cambiarSucursal(sucursal) {
     if (sucursal != null) {
-      this.dialogoService.confirm('Atención!!', 'Realmente quieres cambiar de sucursal?').subscribe(res => {
-        if (res) {
-          localStorage.setItem('ip', sucursal['ip'])
-          localStorage.setItem('port', sucursal['port'])
-          localStorage.setItem('centralIp', environment['serverCentralIp'])
-          localStorage.setItem('centralPort', environment['serverCentralPort']+"")
-          this.electronService.relaunch()
-        }
-      })
+      this.dialogoService
+        .confirm("Atención!!", "Realmente quieres cambiar de sucursal?")
+        .subscribe((res) => {
+          if (res) {
+            localStorage.setItem("ip", sucursal["ip"]);
+            localStorage.setItem("port", sucursal["port"]);
+            localStorage.setItem("centralIp", environment["serverCentralIp"]);
+            localStorage.setItem(
+              "centralPort",
+              environment["serverCentralPort"] + ""
+            );
+            this.electronService.relaunch();
+          }
+        });
     }
   }
 
   onDevMode(server) {
-    localStorage.setItem('ip', 'localhost')
-    localStorage.setItem('port', server ? '8081' : '8082')
-    this.electronService.relaunch()
+    localStorage.setItem("ip", "localhost");
+    localStorage.setItem("port", server ? "8081" : "8082");
+    this.electronService.relaunch();
   }
-
 }

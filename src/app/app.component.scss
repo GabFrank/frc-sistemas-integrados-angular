@@ -28,3 +28,8 @@ input::-webkit-inner-spin-button {
   width: initial !important;
   overflow-y: inherit !important;
 }
+
+:host ::ng-deep .cdk-overlay-pane:has(mat-mdc-simple-snack-bar) {
+  position: fixed !important;
+  bottom: 30% !important; /* Adjust this value as needed */
+}

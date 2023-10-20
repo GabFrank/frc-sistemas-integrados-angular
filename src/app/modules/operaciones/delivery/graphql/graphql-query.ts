@@ -26,6 +26,8 @@ export const deliverysQuery = gql`
       }
       precio {
         id
+        descripcion
+        valor
       }
     }
   }
@@ -57,6 +59,8 @@ export const deliverysSubsUltimos10Query = gql`
       }
       precio {
         id
+        descripcion
+        valor
       }
     }
   }
@@ -88,6 +92,8 @@ export const deliverysUltimos10Query = gql`
       }
       precio {
         id
+        descripcion
+        valor
       }
     }
   }
@@ -119,6 +125,8 @@ export const deliverysSearch = gql`
       }
       precio {
         id
+        descripcion
+        valor
       }
     }
   }
@@ -150,6 +158,8 @@ export const deliverysByEstado = gql`
       }
       precio {
         id
+        descripcion
+        valor
       }
     }
   }
@@ -182,6 +192,7 @@ export const deliverysByEstadoList = gql`
       }
       precio {
         id
+        descripcion
         valor
       }
       valor
@@ -267,6 +278,7 @@ export const deliveryPorCajaIdAndEstadoQuery = gql`
       }
       precio {
         id
+        descripcion
         valor
       }
       valor
@@ -302,6 +314,8 @@ export const deliverysByEstadoNotIn = gql`
       }
       precio {
         id
+        descripcion
+        valor
       }
     }
   }
@@ -425,6 +439,8 @@ export const deliveryQuery = gql`
       }
       precio {
         id
+        descripcion
+        valor
       }
       sucursalId
     }
@@ -552,6 +568,8 @@ export const saveDelivery = gql`
       }
       precio {
         id
+        descripcion
+        valor
       }
       sucursalId
     }
@@ -584,6 +602,8 @@ export const saveDeliveryAndVentaQuery = gql`
       }
       precio {
         id
+        descripcion
+        valor
       }
       venta {
         id

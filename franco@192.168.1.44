@@ -1,0 +1,229 @@
+--cambiar teclado a br-abnt2
+localectl set-keymap br-abnt2
+-- instalar entorno grafico: gnome
+sudo dnf update -y
+sudo dnf install @gnome-desktop -y
+sudo systemctl set-default graphical.target
+sudo reboot
+
+-- instalar terminator
+sudo dnf install terminator
+
+-- instalar chrome
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
+
+-- instalar postgres 13
+sudo dnf module reset postgresql -y
+sudo dnf install https://download.postgresql.org/pub/repos/yum/reporpms/F-37-x86_64/pgdg-fedora-repo-latest.noarch.rpm -y
+sudo dnf install postgresql13-server postgresql13 -y
+sudo /usr/pgsql-13/bin/postgresql-13-setup initdb
+sudo systemctl enable --now postgresql-13
+sudo firewall-cmd --add-service=postgresql --permanent
+sudo firewall-cmd --reload
+--  agregar lineas de configuracion a postgresql
+sudo sh -c "echo 'host all all 0.0.0.0/0 md5' >> /var/lib/pgsql/13/data/pg_hba.conf"
+sudo sh -c "echo 'host all all 10.10.10.0/24 md5' >> /var/lib/pgsql/13/data/pg_hba.conf"
+sudo sh -c "echo \"listen_addresses = '*'\">> /var/lib/pgsql/13/data/postgresql.conf"
+sudo sh -c "echo 'port=5551' >> /var/lib/pgsql/13/data/postgresql.conf"
+sudo systemctl restart postgresql-13
+-- crear superusuario
+sudo -u postgres psql -p 5551 -c "CREATE USER franco WITH SUPERUSER PASSWORD 'franco'"
+sudo -u postgres psql -p 5551 -c "CREATE DATABASE general WITH OWNER franco"
+-- instalar zerotier-one
+sudo dnf copr enable atim/zerotier-one -y
+sudo dnf install zerotier-one -y
+sudo systemctl start zerotier-one.service
+sudo systemctl enable zerotier-one.service
+sudo zerotier-cli join b6079f73c6af6767
+-- instalar rabbitmq
+sudo dnf install rabbitmq-server -y
+sudo systemctl start rabbitmq-server
+sudo systemctl enable rabbitmq-server
+sudo rabbitmq-plugins enable rabbitmq_management
+sudo rabbitmq-plugins enable rabbitmq_shovel
+sudo rabbitmq-plugins enable rabbitmq_shovel_management
+sudo rabbitmqctl add_user franco franco
+sudo rabbitmqctl set_user_tags franco administrator
+sudo rabbitmqctl set_permissions -p / franco ".*" ".*" ".*"
+rabbitmq-plugins enable rabbitmq_management
+rabbitmq-plugins enable rabbitmq_shovel
+rabbitmq-plugins enable rabbitmq_shovel_management
+rabbitmqctl add_user franco franco
+rabbitmqctl set_user_tags franco administrator
+rabbitmqctl set_permissions -p / franco ".*" ".*" ".*"
+-- instalar java -y
+sudo dnf install java -y
+-- abrir puertos necesarios
+sudo firewall-cmd --add-port=15672/tcp --permanent
+sudo firewall-cmd --add-port=5672/tcp --permanent
+sudo firewall-cmd --add-port=5671/tcp --permanent
+sudo firewall-cmd --add-port=8082/tcp --permanent
+sudo firewall-cmd --add-port=80/tcp --permanent
+sudo firewall-cmd --add-port=443/tcp --permanent
+sudo firewall-cmd --add-port=6568/tcp --permanent
+sudo firewall-cmd --add-port=7070/tcp --permanent
+sudo firewall-cmd --add-port=631/tcp --permanent
+sudo firewall-cmd --add-port=5551/tcp --permanent
+sudo firewall-cmd --add-port=5673/tcp --permanent
+sudo firewall-cmd --add-port=15673/tcp --permanent
+sudo firewall-cmd --reload
+-- crear las carpetas para el servidor
+mkdir /home/franco/FRC
+mkdir /home/franco/FRC/pos
+mkdir /home/franco/FRC/frc-server
+mkdir /home/franco/FRC/postgres
+mkdir /home/franco/FRC/resources
+mkdir /home/franco/FRC/resources/images
+-- copiar los archivos necesarios usando ssh y scp
+scp franco@172.25.0.2:/home/franco/FRC/configuracion.json /home/franco/FRC/
+scp franco@172.25.0.2:/home/franco/FRC/configuracion-local.json /home/franco/FRC/
+scp franco@172.25.0.2:/home/franco/FRC/frc.png /home/franco/FRC/
+scp franco@172.25.0.2:/home/franco/FRC/FRC.AppImage /home/franco/FRC/
+scp franco@172.25.0.2:/home/franco/FRC/pos/posprinterinstall_integrated.tar.gz /home/franco/FRC/pos/
+scp franco@172.25.0.2:/home/franco/FRC/frc-server/frc-server.jar /home/franco/FRC/frc-server/
+scp franco@172.25.0.2:/home/franco/FRC/frc-server/application.properties /home/franco/FRC/frc-server/
+scp franco@172.25.0.2:/home/franco/FRC/frc-server/application.yml /home/franco/FRC/frc-server/
+scp franco@172.25.0.2:/home/franco/FRC/resources/images/logo.png /home/franco/FRC/resources/images/
+sudo scp franco@172.25.0.2:/usr/share/applications/frc.desktop /usr/share/applications/
+
+-- instalar nuestro servicio
+-- crear el servicio
+sudo vim /etc/systemd/system/frc.service
+[Unit]
+Description=FRC Sistemas Integrados
+After=network.target
+
+[Service]
+Type=simple
+User=franco
+WorkingDirectory=/home/franco/FRC/frc-server/
+ExecStart=/usr/bin/java -jar /home/franco/FRC/frc-server/frc-server.jar
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
+
+-- recargar systemctl
+sudo systemctl daemon-reload
+-- iniciar el servicio
+sudo systemctl start frc && journalctl -f -u frc
+-- habilitar el servicio
+sudo systemctl enable frc
+
+-- configurar gnome
+-- instalar Gnome shell integration
+-- instalar la extension dock from dash
+sudo dnf install gnome-tweaks -y
+--ir a Barras de titulo de las ventanas -> Maximizar y Minimizar
+-- instalar cups
+sudo dnf install cups -y
+sudo systemctl start cups
+sudo systemctl enable cups
+sudo cupsctl --remote-any
+sudo cupsctl WebInterface=yes
+sudo groupadd lpadmin
+sudo usermod --append --groups lpadmin franco
+
+-- configurar impresora en red con CUPS
+-- primero compartir la impresora en la maquina y agregar el usuario franco
+- instalar samba en fedora (si la impresora esta en una maquina windows)
+sudo dnf install samba samba-client
+- verificar si nos aparece la impresora en la maquina que tiene cups
+smbclient -L //192.168.0.6 -U franco%franco
+- si aparece,ir a la interface web de cups e instalar una nueva impresora samba
+smb://franco:franco@192.168.0.6/ticket-5
+-- el driver a utilizar puede ser pos x
+tar xvf /home/franco/FRC/pos/posprinterinstall_integrated.tar.gz
+sudo sh /home/franco/FRC/posprinterinstall_integrated/setup.sh
+-- tutorial en:
+https://github.com/GabFrank/franco-system-backend-filial/releases/download/2.2.17/posprinterinstall_integrated.tar.gz
+
+-- instalando anydesk
+sudo tee /etc/yum.repos.d/anydesk.repo << "EOF" > /dev/null
+[anydesk]
+name=AnyDesk Stable
+baseurl=http://rpm.anydesk.com/centos/${basearch}/
+gpgkey=https://keys.anydesk.com/repos/RPM-GPG-KEY
+EOF
+sudo rpm --import https://keys.anydesk.com/repos/RPM-GPG-KEY
+sudo dnf install anydesk
+
+-- aumentar el tamanho de disco 
+https://gist.github.com/181192/cf7eb42a25538ccdb8d0bb7dd57cf236
+
+-- instalar impresora para pronet
+1 - crear el archivo del servicio
+sudo tee /usr/local/bin/print_service.sh << "EOF" > /dev/null
+#!/bin/bash
+TARGET_DIR=/home/franco/Descargas
+MAX_FILES=20
+PRINTER_NAME=pronet
+
+LOGFILE=/var/log/print_service.log
+echo "$(date): Print service started" >> $LOGFILE
+
+while true; do
+    for file in "$TARGET_DIR"/impresion*.txt; do
+        if [ ! -f "$file" ]; then
+            echo "$(date): No files found to process" >> $LOGFILE
+            continue
+        fi
+
+        echo "$(date): Found file $file" >> $LOGFILE
+
+        lsof -p $$ > /dev/null with lsof "$file" > /dev/null
+        if [ $? -eq 0 ]; then
+            echo "$(date): File $file is still being written" >> $LOGFILE
+            continue
+        fi
+
+        echo "$(date): File $file is ready for processing" >> $LOGFILE
+
+	perl -pe 's/\\n/\n/g; s/\\x([0-9A-Fa-f]{2})/chr(hex($1))/ge' "$file" | lpr -P "$PRINTER_NAME"
+
+        mv "$file" "$TARGET_DIR/printed$(date +%s).txt"
+
+        echo "$(date): File $file has been printed and moved" >> $LOGFILE
+
+        ls -1tr "$TARGET_DIR"/*.txt | head -n -"$MAX_FILES" | xargs -d '\n' rm -f --
+
+        echo "$(date): Old files have been removed" >> $LOGFILE
+    done
+    sleep 1
+done
+EOF
+
+2 - dar permisos al archivo 
+sudo chmod +x /usr/local/bin/print_service.sh
+
+3 - crear el servicio
+sudo tee /etc/systemd/system/print.service << "EOF" > /dev/null
+[Unit]
+Description=Print Service
+
+[Service]
+ExecStart=/usr/local/bin/print_service.sh
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+4 - Recargar e iniciar
+sudo systemctl daemon-reload
+sudo systemctl enable print.service
+sudo systemctl start print.service
+
+
+https://donfrancobs.com.py/?code=
+AQBqa7KtO16lVb-a-VFwQTp49N5_oWpM3ixZNi90nZNgLuKsLC1zkzHXENSHN5LYWt9W6vRy6kUR7GmhnEkzUU9CyCRdmurRmyBbUeHvqd0qVWClxGbr3ZLckTjklgsI48ORRyjMNsYtx7sT3fK5yazRk7FmC5RfsIR6HzLAMyKlPGkg3DY818hkw54H02XKhz8pYr8xlsJ-oD6gTKP69IodgLj-WtvA7oFnfw2u4o8LHQ#/
+
+-- Update rabbitmq
+sudo dnf update -y
+curl -s https://packagecloud.io/install/repositories/rabbitmq/rabbitmq-server/script.rpm.sh | sudo bash
+curl -s https://packagecloud.io/install/repositories/rabbitmq/erlang/script.rpm.sh | sudo bash
+sudo dnf makecache -y --disablerepo='*' --enablerepo='rabbitmq_rabbitmq-server'
+sudo dnf install rabbitmq-server-3.11.23-1.el8.noarch
+sudo rabbitmqctl enable_feature_flag all
+sudo dnf install rabbitmq-server-3.12.4-1.el8.noarch
+--- Borrar el /var y dejar solo /run
+sudo vim /usr/lib/tmpfiles.d/rabbitmq-server.conf 

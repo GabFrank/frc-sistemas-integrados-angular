@@ -3,6 +3,7 @@ import { VentaItem } from "../../operaciones/venta/venta-item.model"
 import { Venta } from "../../operaciones/venta/venta.model"
 import { Cliente } from "../../personas/clientes/cliente.model"
 import { Usuario } from "../../personas/usuarios/usuario.model"
+import { Presentacion } from "../../productos/presentacion/presentacion.model"
 import { PdvCaja } from "../pdv/caja/caja.model"
 import { TimbradoDetalle } from "../timbrado/timbrado.modal"
 
@@ -81,6 +82,7 @@ export class FacturaLegalInput {
 
 export class FacturaLegalItem {
     id: number
+    presentacion: Presentacion;
     facturaLegal: FacturaLegal
     ventaItem: VentaItem
     cantidad: number
@@ -103,12 +105,14 @@ export class FacturaLegalItem {
         input.iva = this.iva
         input.creadoEn = this.creadoEn
         input.usuarioId = this.usuario?.id
+        input.presentacionId = this.presentacion?.id;
         return input;
     }
 }
 
 export class FacturaLegalItemInput {
     id: number
+    presentacionId: number;
     facturaLegalId: number
     ventaItemId: number
     cantidad: number

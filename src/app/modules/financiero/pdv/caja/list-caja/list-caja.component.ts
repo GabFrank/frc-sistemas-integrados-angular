@@ -78,7 +78,7 @@ export class ListCajaComponent implements OnInit {
   ];
 
   fechaFormGroup: FormGroup;
-  codigoControl = new FormControl();
+  codigoControl = new FormControl(null, [Validators.required]);
   fechaInicioControl = new FormControl();
   fechaFinalControl = new FormControl();
   estadoControl = new FormControl();

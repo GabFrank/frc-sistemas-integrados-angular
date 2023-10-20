@@ -87,7 +87,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     this.cargarDatos()
 
     this.rucControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
-      if (this.rucControl.value?.length > 6) {
+      if (this.rucControl.value?.length > 4) {
         this.digitoVerificador = getDigitoVerificadorString(this.rucControl.value);
       } else {
         this.digitoVerificador = ''
@@ -107,7 +107,8 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
         facturaItem.descripcion = v.producto.descripcionFactura;
         facturaItem.precioUnitario = v.precio;
         facturaItem.total = v.cantidad * v.precio;
-        facturaItem.iva
+        facturaItem.iva;
+        facturaItem.presentacion = v.presentacion;
         facturaItemList.push(facturaItem)
       })
       this.cantidadHojas = Math.floor(facturaItemList.length / 7) + 1;

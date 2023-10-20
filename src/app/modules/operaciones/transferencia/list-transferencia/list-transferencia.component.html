@@ -8,11 +8,19 @@
   <div filtros fxLayout="column" style="width: 100%; height: 100%">
     <div fxLayout="row wrap" fxLayoutGap="10px">
       <mat-form-field fxFlex="10">
-        <input placeholder="Id" matInput [formControl]="idControl" type="number" />
+        <input
+          placeholder="Id"
+          matInput
+          [formControl]="idControl"
+          type="number"
+        />
       </mat-form-field>
 
       <mat-form-field fxFlex="25">
-        <mat-select placeholder="Sucursal de Origen" [formControl]="sucOrigenControl">
+        <mat-select
+          placeholder="Sucursal de Origen"
+          [formControl]="sucOrigenControl"
+        >
           <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
             {{ sucursal.id }} - {{ sucursal.nombre }}
           </mat-option>
@@ -108,7 +116,12 @@
       <div fxFlex="10%">En Recepción</div>
     </div>
   </div>
-  <div table style="width: 100%" fxLayoutGap="20px">
+  <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
     <table
       mat-table
       [dataSource]="dataSource"
@@ -351,5 +364,13 @@
         class="example-detail-row"
       ></tr>
     </table>
+    <mat-paginator
+      itemsPerPageLabel="Itens por pagina"
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)"
+      [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
   </div>
 </app-generic-list>

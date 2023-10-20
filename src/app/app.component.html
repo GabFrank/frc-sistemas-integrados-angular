@@ -1,5 +1,10 @@
-<div #container class="mat-app-background darkMode" style="height: 100%" [style.cursor]="genericService.isLoading ? 'progress': 'auto'">
-    <router-outlet></router-outlet>
+<div
+  #container
+  class="mat-app-background darkMode"
+  style="height: 100%"
+  [style.cursor]="genericService.isLoading ? 'progress' : 'auto'"
+>
+  <router-outlet></router-outlet>
 </div>
 
 <ngx-spinner
@@ -8,5 +13,7 @@
   color="#fff"
   type="ball-newton-cradle"
   [fullScreen]="true"
-  ><p style="color: white">Cargando...</p></ngx-spinner
+  fxLayout="column"
 >
+  <p style="color: white">Cargando...</p>
+</ngx-spinner>

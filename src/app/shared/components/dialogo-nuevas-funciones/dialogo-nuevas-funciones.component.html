@@ -1,0 +1,27 @@
+<div fxLayout="column">
+  <div
+    style="background-color: rgb(32, 32, 32); padding: 20px"
+    fxLayout="column"
+  >
+    <h2>{{ data.titulo }} - Versión: {{ data.version }}</h2>
+  </div>
+  <div style="padding: 10px; white-space: break-spaces;">
+    <h3>{{ data.mensaje }}</h3>
+  </div>
+  <div style="padding: 10px; color: rgb(184, 184, 184);">
+    <h4>Para volver a acceder a este diálogo, presionar en el boton de ayuda.</h4>
+  </div>
+  <div
+    style="width: 100%; padding-bottom: 20px"
+    fxLayout="row"
+    fxLayoutAlign="center center"
+  >
+    <div style="width: 120px; height: 45px">
+      <app-boton
+        style="width: 60px"
+        nombre="Entendido"
+        (clickEvent)="onClose()"
+      ></app-boton>
+    </div>
+  </div>
+</div>

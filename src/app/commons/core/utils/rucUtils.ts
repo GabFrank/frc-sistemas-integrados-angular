@@ -7,7 +7,7 @@ export function getDigitoVerificadorString(ruc: string): string {
 }
 
 function getDigitoVerificadorWithBase(ruc: string, base: number): number | null {
-    if (ruc.length < 6) return null;
+    if (ruc.length < 5) return null;
     let k = 2;
     let total = 0;
     const alRevez = invertirCadena(eliminarNoDigitos(ruc));

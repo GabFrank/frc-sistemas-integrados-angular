@@ -24,6 +24,7 @@ import { TabService } from '../../../layouts/tab/tab.service';
 import { Tab } from '../../../layouts/tab/tab.model';
 import { ListProductoComponent } from '../../productos/producto/list-producto/list-producto.component';
 import { ReportesComponent } from '../../reportes/reportes/reportes.component';
+import { PageInfo } from '../../../app.component';
 
 @UntilDestroy()
 @Injectable({
@@ -77,7 +78,7 @@ export class TransferenciaService {
     return this.genericCrudService.onGetById(this.getTransferencia, id);
   }
 
-  onGetTransferenciaItensPorTransferenciaId(id, page?, size?): Observable<TransferenciaItem[]> {
+  onGetTransferenciaItensPorTransferenciaId(id, page?, size?): Observable<PageInfo<TransferenciaItem>> {
     return this.genericCrudService.onGetById(this.transferenciaItemPorTransferenciaId, id, page, size);
   }
 
@@ -193,7 +194,7 @@ export class TransferenciaService {
     creadoDesde?: string,
     creadoHasta?: string,
     page?: number,
-    size?: number) {
+    size?: number): Observable<PageInfo<Transferencia>> {
     return this.genericCrudService.onCustomQuery(this.getTransferenciasWithFiler, {
       sucursalOrigenId,
       sucursalDestinoId,

@@ -12,6 +12,7 @@
     [formControl]="displayDateControl"
     readonly
     [matTooltip]="displayDateControl.value"
+    (focusin)="onInputFocus()"
   />
   <mat-icon
     *ngIf="displayDateControl.value"
@@ -20,6 +21,6 @@
     class="highlight-hover-danger"
     >close</mat-icon
   >
-  <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+  <mat-datepicker-toggle #pickerToogle matSuffix [for]="picker"></mat-datepicker-toggle>
   <mat-datepicker #picker [dateClass]="dateClass"></mat-datepicker>
 </mat-form-field>

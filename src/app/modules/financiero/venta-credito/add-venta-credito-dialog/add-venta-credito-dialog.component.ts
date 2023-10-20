@@ -181,6 +181,8 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   }
 
   onClienteSelect(e) {
+    console.log(e);
+    
     if (e?.id != null) {
       this.selectedCliente = e;
       this.nombreClienteControl.setValue(

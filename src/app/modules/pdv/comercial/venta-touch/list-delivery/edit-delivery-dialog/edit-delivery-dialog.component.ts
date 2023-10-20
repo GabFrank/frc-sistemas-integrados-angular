@@ -148,7 +148,8 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     if (this.selectedDelivery?.id != null) {
       this.telefonoControl.setValue(this.selectedDelivery.telefono)
       this.direccionControl.setValue(this.selectedDelivery.direccion)
-      this.selectedDelivery?.venta?.cliente != null ? this.onClienteSelect(this.selectedDelivery?.venta?.cliente) : null
+      this.selectedDelivery?.venta?.cliente != null ? this.onClienteSelect(this.selectedDelivery?.venta?.cliente) : null;
+      this.selectedDelivery?.precio != null ? this.onPrecioSelect(this.selectedDelivery.precio) : null;
     }
   }
 
@@ -156,7 +157,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     this.deliveryService.onGetPreciosDelivery().subscribe(res => {
       this.precioList = res;
       if (this.precioList.length > 0) {
-        this.onPrecioSelect(this.precioList[0])
+        if(this.selectedPrecio==null) this.onPrecioSelect(this.precioList[0])
         this.vueltoControl.setValue(this.selectedDelivery.venta.valorTotal + this.selectedPrecio?.valor)
         this.saldoControl.setValue(this.selectedDelivery.venta.valorTotal + this.selectedPrecio?.valor)
         this.calcularVueltoPara()

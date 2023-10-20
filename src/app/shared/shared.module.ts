@@ -43,6 +43,8 @@ import { FrcMultiDatepickerComponent } from './components/frc-multi-datepicker/f
 import { PrevisualizarImgenDirective } from './directives/previsualizar-imagen.directive';
 import { FrcToolTipRendererDirective } from './directives/frc-tool-tip-renderer.directive';
 import { CustomToolTipComponent } from './components/frc-custom-tool-tip/frc-custom-tool-tip.component';
+import { ResizableModule } from 'angular-resizable-element';
+import { DialogoNuevasFuncionesComponent } from './components/dialogo-nuevas-funciones/dialogo-nuevas-funciones.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -76,7 +78,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     FrcMultiDatepickerComponent,
     PrevisualizarImgenDirective,
     FrcToolTipRendererDirective,
-    CustomToolTipComponent
+    CustomToolTipComponent,
+    DialogoNuevasFuncionesComponent
   ],
   imports: [
     CommonModule,
@@ -90,7 +93,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     NgxPanZoomModule,
     NgxQRCodeModule,
     Ng2FittextModule,
-    BootstrapModule
+    BootstrapModule,
   ],
   exports: [
     HeaderComponent,
@@ -112,7 +115,9 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     FrcMultiDatepickerComponent,
     PrevisualizarImgenDirective,
     FrcToolTipRendererDirective,
-    CustomToolTipComponent
+    CustomToolTipComponent,
+    ResizableModule,
+    DialogoNuevasFuncionesComponent
   ],
   providers: [NgxImageCompressService, provideEnvironmentNgxMask(options)]
 })
