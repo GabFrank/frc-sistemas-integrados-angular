@@ -116,9 +116,11 @@ export class AppComponent implements OnInit, OnDestroy {
    * 2 - Abrimos el dialogo de login, si la respuesta es true el dialogo desaparece
    *    si la respuesta es false, abre el dialogo de configuracion de servidor
    */
-  ngOnInit(): void {
-
+  async ngOnInit(): Promise<void> {
+    console.log('on init de la app');
+    
     this.overlay.getContainerElement().classList.add("darkMode");
+    await this.mainService.load();
     this.matDialog.open(LoginComponent, {
       width: "70%",
       disableClose: false,

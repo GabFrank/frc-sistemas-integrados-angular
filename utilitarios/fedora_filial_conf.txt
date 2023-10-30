@@ -262,24 +262,28 @@ sudo update-desktop-database
 sudo chmod a+rwx /home/franco/FRC/FRC.AppImage
 sudo update-desktop-database
 
-central ok
-rotonda ok
-industrial ok
-km5 ok
-calle 10 ok
-katuete 1 ok
-paloma ok
-san antonio ok
-katuete 2 ok
-puente ok
-plaza ok
-deposito ok
-canindeyu ok
-petropar sdg 
-petropar cty ok
-curuguaty 2 ok
-curuguaty 3 ok
+-- configurar internet en rescue mode:
+ip link set dev <interface_name> up
+ip addr add <ip_address>/<netmask> dev <intesrface_name>
+ip route add default via <gateway_ip_address>
+sudo systemd-resolve --interface wlp2s0 --set-dns 8.8.8.8 --set-domain yourdomain.local
+date -s "YYYY-MM-DD HH:MM:SS" //configurar hora para hacer dnf uptade
 
-farma-central ok
-farma suc 2
-farma suc 3
+curl -X POST "http://localhost:8081/send-notification?topic=gold" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subject": "some subject",
+    "content": "Some long content",
+    "image": "https://somedomain.com/example.jpg",
+    "data": {
+      "key1": "Value 1",
+      "key2": "Value 2",
+      "key3": "Value 3",
+      "key4": "Value 4"
+    }
+  }'
+
+  curl -X POST "http://localhost:8081/send-notification?topic=gold" \
+     -H "Content-Type: application/json" \
+     --data '{"title":"Some Title","body":"Some Body Content"}' \
+     "https://oauth2.googleapis.com/token"

@@ -10,6 +10,7 @@ import { ClientesSearchByPersonaGQL } from './graphql/clienteSearchByPersona';
 import { ClientesSearchByPersonaIdGQL } from './graphql/clienteSearchByPersonaId';
 import { ClientesSearchConFiltrosGQL } from './graphql/clienteWithFilters';
 import { SaveClienteGQL } from './graphql/saveCliente';
+import { PageInfo } from '../../../app.component';
 
 @Injectable({
   providedIn: 'root'
@@ -54,7 +55,7 @@ export class ClienteService {
     return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto);
   }
 
-  onSearchConFiltros(texto: string, tipo: TipoCliente, page, size): Observable<Cliente[]> {
+  onSearchConFiltros(texto: string, tipo: TipoCliente, page, size): Observable<PageInfo<Cliente>> {
     return this.genericService.onCustomQuery(this.searchWithFilters, { texto, tipo, page, size }, false);
   }
 

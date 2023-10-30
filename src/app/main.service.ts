@@ -98,11 +98,11 @@ export class MainService implements OnDestroy {
   }
 
   load(): Promise<boolean> {
-    let res;
+    let res;    
     this.sucursalService.onGetSucursalActual()
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        if (res != null) {
+        if (res != null) {          
           this.sucursalActual = res;
           if (this.sucursalActual?.id == 0) {
             this.isServidor = true;

@@ -27,6 +27,10 @@ import { ConfigurarServidorDialogComponent } from "../../../modules/configuracio
 import { ROLES } from "../../../modules/personas/roles/roles.enum";
 import { QrCodeComponent, QrData } from "../../qr-code/qr-code.component";
 import { DialogosService } from "../dialogos/dialogos.service";
+import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
+import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
+import { resolve } from "path";
+import { rejects } from "assert";
 
 // import { ApolloConfigService } from '../../../apollo-config.service';
 
@@ -60,7 +64,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private loginService: LoginService,
     private actualizacionService: ActualizacionService,
     private configService: ConfiguracionService,
-    private dialogoService: DialogosService
+    private dialogoService: DialogosService,
+    private usuarioService: UsuarioService
   ) {}
 
   ngOnInit(): void {
@@ -82,7 +87,19 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }, 300);
   }
 
-  onLogout() {
+  async onLogout() {
+    let inicioSesion = new InicioSesion();
+    Object.assign(inicioSesion, this.mainService.usuarioActual.inicioSesion);
+    inicioSesion.horaFin = new Date();  
+    if(inicioSesion != null && inicioSesion?.sucursal != null){
+      await new Promise((resolve, rejects) => {
+        this.usuarioService
+          .onSaveInicioSesion(inicioSesion.toInput())
+          .subscribe((res) => {
+            resolve(res);
+          });
+      }); 
+    }  
     this.cargandoDialogService.openDialog();
     localStorage.removeItem("token");
     localStorage.removeItem("usuarioId");

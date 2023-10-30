@@ -5,7 +5,7 @@ import {
   transition,
   animate,
 } from "@angular/animations";
-import { Component, Input, OnInit } from "@angular/core";
+import { Component, Input, OnInit, ViewChild } from "@angular/core";
 import { MatTableDataSource } from "@angular/material/table";
 import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
@@ -26,6 +26,9 @@ import { FormaPago } from "../../../financiero/forma-pago/forma-pago.model";
 import { FormaPagoService } from "../../../financiero/forma-pago/forma-pago.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { ListRetiroComponent } from "../../../financiero/retiro/list-retiro/list-retiro.component";
+import { PageInfo } from "../../../../app.component";
+import { MatPaginator, PageEvent } from "@angular/material/paginator";
+import { MatSort } from "@angular/material/sort";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -44,6 +47,10 @@ import { ListRetiroComponent } from "../../../financiero/retiro/list-retiro/list
   ],
 })
 export class ListVentaComponent implements OnInit {
+
+  @ViewChild(MatPaginator) paginator: MatPaginator;
+  @ViewChild(MatSort) sort: MatSort;
+  
   @Input()
   data: Tab;
 
@@ -69,8 +76,14 @@ export class ListVentaComponent implements OnInit {
   ventaEstadoList = Object.keys(VentaEstado)
   estadoControl = new FormControl(null)
   filterChanged = true;
-  page = 0;
-  size = 20;
+
+  length = 25;
+  pageSize = 25;
+  pageIndex = 0;
+  pageEvent: PageEvent;
+  orderById = null;
+  orderByNombre = null;
+  selectedPageInfo: PageInfo<Venta>;
 
   form: FormGroup;
 
@@ -85,6 +98,13 @@ export class ListVentaComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+
+    setTimeout(() => {
+      this.paginator._changePageSize(this.paginator.pageSizeOptions[1])
+      this.pageSize = this.paginator.pageSizeOptions[1]
+      this.onFiltrar()
+    }, 0);
+
     if (this.data?.tabData?.data != null) {
       this.selectedCaja = this.data.tabData.data;
       this.cajaService.onGetById(this.selectedCaja.id, this.selectedCaja.sucursalId).subscribe(res => {
@@ -131,17 +151,14 @@ export class ListVentaComponent implements OnInit {
   }
 
    onGetVentas() {
-    this.cargandoService.openDialog()
-    this.isCargando = true;
-    if(this.filterChanged) this.ventaDataSource.data = [];
-    this.page = Math.floor(this.ventaDataSource.data.length / this.size);
-    this.ventaService.onSearch(this.selectedCaja.id, this.page, this.size, true, this.selectedCaja.sucursalId, this.formaPagoControl.value, this.estadoControl.value, this.modoControl.value).pipe(untilDestroyed(this)).subscribe((res) => {
-      this.cargandoService.closeDialog()
-      this.isCargando = false;
+    // this.cargandoService.openDialog()
+    // this.isCargando = true;
+    this.ventaService.onSearch(this.selectedCaja.id, this.pageIndex, this.pageSize, true, this.selectedCaja.sucursalId, this.formaPagoControl.value, this.estadoControl.value, this.modoControl.value).pipe(untilDestroyed(this)).subscribe((res) => {
+      // this.cargandoService.closeDialog()
+      // this.isCargando = false;
       if (res != null) {
-        this.filterChanged = false;
-        this.isLastPage = res.length < 19;
-        this.ventaDataSource.data = this.ventaDataSource.data.concat(res);
+        this.selectedPageInfo = res;
+        this.ventaDataSource.data = res.getContent;
       }
     });
   }
@@ -265,4 +282,11 @@ export class ListVentaComponent implements OnInit {
     tabData.data = {caja: this.selectedCaja, sucursal: this.selectedCaja.sucursal};
     this.tabService.addTab(new Tab(ListRetiroComponent, 'Retiros de caja ' + this.selectedCaja.id, tabData, ListVentaComponent))
   }
+
+  handlePageEvent(e: PageEvent) {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.onFiltrar();
+  }
+
 }

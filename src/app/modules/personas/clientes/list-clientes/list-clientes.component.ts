@@ -13,6 +13,9 @@ import { ROLES } from '../../roles/roles.enum';
 import { MatDialog } from '@angular/material/dialog';
 import { updateDataSource, updateDataSourceWithId } from '../../../../commons/core/utils/numbersUtils';
 import { ListVentaCreditoComponent } from '../../../financiero/venta-credito/list-venta-credito/list-venta-credito.component';
+import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatSort } from '@angular/material/sort';
+import { PageInfo } from '../../../../app.component';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -32,6 +35,8 @@ import { ListVentaCreditoComponent } from '../../../financiero/venta-credito/lis
 })
 export class ListClientesComponent implements OnInit {
 
+  @ViewChild(MatPaginator) paginator: MatPaginator;
+  @ViewChild(MatSort) sort: MatSort;
   @ViewChild(MatTable) table: MatTable<any>;
 
   readonly ROLES = ROLES;
@@ -59,9 +64,15 @@ export class ListClientesComponent implements OnInit {
   isSearching = false;
   expandedCliente: Cliente;
   timer;
-  page = 0;
-  size = 20;
   tipoClienteList = Object.keys(TipoCliente)
+
+  length = 25;
+  pageSize = 25;
+  pageIndex = 0;
+  pageEvent: PageEvent;
+  orderById = null;
+  orderByNombre = null;
+  selectedPageInfo: PageInfo<Cliente>;
 
 
   constructor(
@@ -74,8 +85,14 @@ export class ListClientesComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    setTimeout(() => {
+      this.paginator._changePageSize(this.paginator.pageSizeOptions[1])
+      this.pageSize = this.paginator.pageSizeOptions[1]
+      this.onFiltrar()
+    }, 0);
+
     this.buscarControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
-      this.page = 0;
+      this.pageIndex = 0;
       if (this.timer != null) {
         clearTimeout(this.timer);
       }
@@ -89,25 +106,19 @@ export class ListClientesComponent implements OnInit {
     })
   }
 
-  cargarMasDatos() {
-    this.page++;
-    this.onFiltrar()
-  }
-
   onFiltrar() {
-    this.clienteService.onSearchConFiltros(this.buscarControl.value, this.tipoClienteControl.value, this.page, this.size).pipe(untilDestroyed(this)).subscribe(res => {
-      this.isLastPage = false;
-      if (this.page > 0) {
-        this.dataSource.data = this.dataSource.data.concat(res)
-      } else {
-        this.dataSource.data = res;
+    this.clienteService.onSearchConFiltros(this.buscarControl.value, this.tipoClienteControl.value, this.pageIndex, this.pageSize).pipe(untilDestroyed(this)).subscribe(res => {
+      if(res!=null){
+        this.selectedPageInfo = res;
+        this.dataSource.data = this.selectedPageInfo?.getContent;
       }
-      if (res?.length < this.size) this.isLastPage = true;
     })
   }
 
   resetFiltro() {
-    this.page = 0;
+    this.pageIndex = 0;
+    this.dataSource.data = [];
+    this.selectedPageInfo = null;
     this.buscarControl.setValue(null)
   }
 
@@ -140,6 +151,12 @@ export class ListClientesComponent implements OnInit {
 
   onVerMovimiento(cliente, i) {
     this.tabService.addTab(new Tab(ListVentaCreditoComponent, "V. credito de " + cliente.persona.nombre, new TabData(cliente.id), ListClientesComponent))
+  }
+
+  handlePageEvent(e: PageEvent) {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.onFiltrar();
   }
 
 }

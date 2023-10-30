@@ -371,7 +371,12 @@
           </div>
         </div>
       </div>
-      <div table>
+      <div
+        table
+        style="height: 100%; background-color: rgb(70, 70, 70)"
+        fxLayout="column"
+        fxLayoutAlign="space-between start"
+      >
         <table
           mat-table
           [dataSource]="ventaDataSource"
@@ -444,7 +449,7 @@
               mat-cell
               *matCellDef="let venta"
               style="text-align: center; width: 20%"
-              [ngClass]="{'cancelada': venta?.estado == 'CANCELADA'}"
+              [ngClass]="{ cancelada: venta?.estado == 'CANCELADA' }"
             >
               {{ venta?.estado | enumToString | titlecase }}
             </td>
@@ -764,6 +769,14 @@
             class="example-detail-row"
           ></tr>
         </table>
+        <mat-paginator
+          itemsPerPageLabel="Itens por pagina"
+          [pageSizeOptions]="[15, 25, 50, 100]"
+          (page)="handlePageEvent($event)"
+          [length]="selectedPageInfo?.getTotalElements"
+          style="width: 100%"
+          showFirstLastButtons
+        ></mat-paginator>
       </div>
     </app-generic-list>
   </div>

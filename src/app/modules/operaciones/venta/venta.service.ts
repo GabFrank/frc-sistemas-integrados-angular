@@ -25,6 +25,7 @@ import { SaveVentaItemGQL } from "./graphql/saveVentaItem";
 import { SaveCobroDetalleGQL } from "./graphql/saveCobroDetalle";
 import { DeleteCobroDetalleGQL } from "./graphql/deleteCobroDetalle";
 import { DeleteVentaItemGQL } from "./graphql/deleteVentaItem";
+import { PageInfo } from "../../../app.component";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -196,38 +197,47 @@ export class VentaService {
     });
   }
 
-  onSearch(id, page?, size?, asc?, sucId?, formaPago?, estado?, isDelivery?): Observable<Venta[]> {
-    this.genericService.isLoading = true;
-    if (page == null) page = 0;
-    if (size == null) size = 20;
-    if (asc == null) asc = true;
-    return new Observable((obs) => {
-      this.ventasPorCajaId
-        .fetch(
-          {
-            id,
-            page,
-            size,
-            asc,
-            sucId,
-            formaPago,
-            estado,
-            isDelivery
-          },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        ).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.genericService.isLoading = false;
-          if (res.errors == null) {
-            obs.next(res.data.data);
-          } else {
-            obs.next(null);
-          }
-        });
+  onSearch(id, page?, size?, asc?, sucId?, formaPago?, estado?, isDelivery?): Observable<PageInfo<Venta>> {
+    return this.genericService.onCustomQuery(this.ventasPorCajaId, {
+      id,
+      page,
+      size,
+      asc,
+      sucId,
+      formaPago,
+      estado,
+      isDelivery
     });
+    // if (page == null) page = 0;
+    // if (size == null) size = 20;
+    // if (asc == null) asc = true;
+    // return new Observable((obs) => {
+    //   this.ventasPorCajaId
+    //     .fetch(
+    //       {
+    //         id,
+    //         page,
+    //         size,
+    //         asc,
+    //         sucId,
+    //         formaPago,
+    //         estado,
+    //         isDelivery
+    //       },
+    //       {
+    //         fetchPolicy: "no-cache",
+    //         errorPolicy: "all",
+    //       }
+    //     ).pipe(untilDestroyed(this))
+    //     .subscribe((res) => {
+    //       this.genericService.isLoading = false;
+    //       if (res.errors == null) {
+    //         obs.next(res.data.data);
+    //       } else {
+    //         obs.next(null);
+    //       }
+    //     });
+    // });
   }
 
   onGetPorId(id, sucId?): Observable<Venta> {

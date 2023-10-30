@@ -68,7 +68,7 @@ export class UltimasVentasDialogComponent implements OnInit {
       .onSearch(this.data.caja.id, 0, 20, false).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
-          this.dataSource.data = res;
+          this.dataSource.data = res.getContent;
         }
       });
   }
@@ -78,7 +78,7 @@ export class UltimasVentasDialogComponent implements OnInit {
       .onSearch(this.data.caja.id, this.dataSource.data.length).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
-          this.dataSource.data = res;
+          this.dataSource.data = res.getContent;
         }
       });
   }

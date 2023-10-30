@@ -147,4 +147,30 @@ export class SucursalService {
         );
     });
   }
+
+  getSucursalActualAdmin(): Observable<any> {
+    return new Observable((obs) => {
+      let httpBody = {
+        nickname: "ADMIN",
+        password: "ADMIN",
+      };
+      let httpResponse = this.http
+        .post(
+          `http://${environment['ip']}:${environment['port']}/public/sucursal-actual`,
+          httpBody,
+          this.httpOptions
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe(
+          (res) => {
+            console.log(res);
+            
+            obs.next(res)
+          },
+          (error) => {
+            obs.next(error);
+          }
+        );
+    });
+  }
 }
