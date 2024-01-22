@@ -139,7 +139,15 @@
           <app-boton
             (clickEvent)="exportarExcel()"
             nombre="Exportar a excel"
-            [disableExpression]="dataSource.data.length < 1"
+            [disableExpression]="fechaInicioControl.invalid || sucursalControl.value?.length != 1"
+          >
+          </app-boton>
+        </div>
+        <div>
+          <app-boton
+            (clickEvent)="exportarExcel(true)"
+            nombre="Exportar a excel"
+            [disableExpression]="fechaInicioControl.invalid"
           >
           </app-boton>
         </div>
@@ -156,48 +164,53 @@
       <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
         <div fxFlex="60%">Cantidad de facturas:</div>
         <div fxFlex="40%" style="text-align: end">
-          {{ cantidadFacturas }}
+          {{ selectedResumenFacturas?.cantFacturas }}
         </div>
       </div>
       <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
         <div fxFlex="60%">Nro. inicio:</div>
         <div fxFlex="40%" style="text-align: end">
-          {{ numeroInicioFactura || "-" }}
+          {{ selectedResumenFacturas?.minNumero || "-" }}
         </div>
       </div>
       <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
         <div fxFlex="60%">Nro. fin:</div>
         <div fxFlex="40%" style="text-align: end">
-          {{ numeroFinFactura || "-" }}
+          {{ selectedResumenFacturas?.maxNumero || "-" }}
         </div>
       </div>
       <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
         <div fxFlex="60%">Total en Gs:</div>
         <div fxFlex="40%" style="text-align: end">
-          {{ totalEnGs | number : "1.0-0" }}
+          {{ selectedResumenFacturas?.totalFinal | number : "1.0-0" }}
         </div>
       </div>
       <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
         <div fxFlex="60%">Total exentas:</div>
         <div fxFlex="40%" style="text-align: end">
-          {{ total0 | number : "1.0-0" }}
+          {{ selectedResumenFacturas?.total0 | number : "1.0-0" }}
         </div>
       </div>
       <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
         <div fxFlex="60%">Total iva 5%:</div>
         <div fxFlex="40%" style="text-align: end">
-          {{ total5 | number : "1.0-0" }}
+          {{ selectedResumenFacturas?.total5 | number : "1.0-0" }}
         </div>
       </div>
       <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
         <div fxFlex="60%">Total iva 10%:</div>
         <div fxFlex="40%" style="text-align: end">
-          {{ total10 | number : "1.0-0" }}
+          {{ selectedResumenFacturas?.total10 | number : "1.0-0" }}
         </div>
       </div>
     </div>
   </div>
-  <div table>
+  <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
     <table
       mat-table
       [dataSource]="dataSource"
@@ -245,7 +258,7 @@
           Ruc
         </th>
         <td mat-cell *matCellDef="let factura" style="text-align: center">
-          {{ factura?.ruc | titlecase }}
+          {{ factura?.ruc }}
         </td>
       </ng-container>
 
@@ -429,6 +442,14 @@
         class="example-detail-row"
       ></tr>
     </table>
+    <mat-paginator
+      itemsPerPageLabel="Itens por pagina"
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)"
+      [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
   </div>
 </app-generic-list>
 

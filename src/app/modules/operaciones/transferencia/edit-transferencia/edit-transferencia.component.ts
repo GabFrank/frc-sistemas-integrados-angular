@@ -948,6 +948,7 @@ export class EditTransferenciaComponent implements OnInit {
       this.productoService.onGetProductoPorCodigo(text).subscribe((res) => {
         if (res != null) {
           this.selectedProducto = res;
+          this.isPesable = this.selectedProducto.balanza == true;
           let foundItem = this.dataSource.data?.find(
             (t) =>
               t.presentacionPreTransferencia?.producto?.id ==
@@ -1241,3 +1242,6 @@ export class EditTransferenciaComponent implements OnInit {
     this.getTransferenciaItemList();
   }
 }
+
+
+

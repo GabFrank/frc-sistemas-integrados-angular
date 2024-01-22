@@ -25,6 +25,7 @@ import { Tab } from '../../../layouts/tab/tab.model';
 import { ListProductoComponent } from '../../productos/producto/list-producto/list-producto.component';
 import { ReportesComponent } from '../../reportes/reportes/reportes.component';
 import { PageInfo } from '../../../app.component';
+import { GetTransferenciaItemGQL } from './graphql/getTransferenciaItem';
 
 @UntilDestroy()
 @Injectable({
@@ -49,7 +50,8 @@ export class TransferenciaService {
     private getTransferenciasWithFiler: GetTransferenciasWithFilterGQL,
     private imprimirTransferencia: ImprimirTransferenciaGQL,
     private reporteService: ReporteService,
-    private tabService: TabService
+    private tabService: TabService,
+    private getTransferenciaItem: GetTransferenciaItemGQL
   ) { }
 
   onImprimirTransferencia(id, ticket?) {
@@ -208,6 +210,10 @@ export class TransferenciaService {
       page,
       size
     });
+  }
+
+  onGetTransferenciaItem(id: number): Observable<TransferenciaItem> {
+    return this.genericCrudService.onGetById(this.getTransferenciaItem, id);
   }
 }
 

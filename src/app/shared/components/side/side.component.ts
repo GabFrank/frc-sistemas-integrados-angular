@@ -315,21 +315,23 @@ export class SideComponent implements OnInit {
   async onLogout() {
     let inicioSesion = new InicioSesion();
     Object.assign(inicioSesion, this.mainService.usuarioActual.inicioSesion);
-    inicioSesion.horaFin = new Date();    
-    await new Promise((resolve, rejects) => {
-      this.usuarioService
-        .onSaveInicioSesion(inicioSesion.toInput())
-        .subscribe((res) => {
-          resolve(res);
-        });
-    });  
+    inicioSesion.horaFin = new Date();  
+    if(inicioSesion != null && inicioSesion?.sucursal != null){
+      await new Promise((resolve, rejects) => {
+        this.usuarioService
+          .onSaveInicioSesion(inicioSesion.toInput())
+          .subscribe((res) => {
+            resolve(res);
+          });
+      }); 
+    }  
     this.cargandoDialogService.openDialog();
     localStorage.removeItem("token");
     localStorage.removeItem("usuarioId");
     this.mainService.usuarioActual = null;
     this.mainService.logged = false;
-    this.tabService.removeAllTabs()
-    this.electronService.relaunch()
+    this.tabService.removeAllTabs();
+    this.electronService.relaunch();
   }
 
   onLogin() {

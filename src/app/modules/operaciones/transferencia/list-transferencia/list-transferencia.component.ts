@@ -144,6 +144,10 @@ export class ListTransferenciaComponent implements OnInit {
     if (this.fechaInicioControl.value == null)
       this.fechaInicioControl.setValue(unaSemanaAtras);
     if (this.idControl.value == null) {
+      let fechaInicio: Date = this.fechaInicioControl.value;
+      let fechaFin: Date = this.fechaFinControl.value;
+      fechaInicio.setHours(0, 0, 0);
+      fechaFin.setHours(23, 59, 59);
       this.transferenciaService
         .onGetTransferenciasWithFilters(
           this.sucOrigenControl.value?.id,

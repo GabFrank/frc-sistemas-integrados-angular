@@ -14,9 +14,12 @@ import { VentaItem, VentaItemInput } from "./venta-item.model";
 import { SaveVentaItemListGQL } from "./venta-item/graphql/saveVentaItemList";
 import { Venta, VentaInput } from "./venta.model";
 import { VentaPorPeriodoGQL } from "./graphql/ventaPorPeriodo";
-import { NotificacionColor, NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
+import {
+  NotificacionColor,
+  NotificacionSnackbarService,
+} from "../../../notificacion-snackbar.service";
 
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { environment } from "../../../../environments/environment";
 import { DeleteVentaGQL } from "./graphql/deleteVenta";
 import { ImprimirPagareGQL } from "./graphql/imprimirPagare";
@@ -26,6 +29,7 @@ import { SaveCobroDetalleGQL } from "./graphql/saveCobroDetalle";
 import { DeleteCobroDetalleGQL } from "./graphql/deleteCobroDetalle";
 import { DeleteVentaItemGQL } from "./graphql/deleteVentaItem";
 import { PageInfo } from "../../../app.component";
+import { VentaItemPorIdGQL } from "./graphql/ventaItemPorId";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -49,12 +53,20 @@ export class VentaService {
     private countVenta: CountVentaGQL,
     private saveVentaItemQuery: SaveVentaItemGQL,
     private saveCobroDetalleQuery: SaveCobroDetalleGQL,
-    private deleteCobroDetalle: DeleteCobroDetalleGQL
-  ) { }
+    private deleteCobroDetalle: DeleteCobroDetalleGQL,
+    private ventaItemPorId: VentaItemPorIdGQL
+  ) {}
 
   // $venta:VentaInput!, $venteItemList: [VentaItemInput], $cobro: CobroInput, $cobroDetalleList: [CobroDetalleInput]
 
-  onSaveVenta(venta: Venta, cobro: Cobro, ticket, ventaCreditoInput?, ventaCreditoCuotaInputList?, isFactura?: boolean): Observable<Venta> {
+  onSaveVenta(
+    venta: Venta,
+    cobro: Cobro,
+    ticket,
+    ventaCreditoInput?,
+    ventaCreditoCuotaInputList?,
+    isFactura?: boolean
+  ): Observable<Venta> {
     let ventaItemInputList: VentaItemInput[] = [];
     let cobroDetalleInputList: CobroDetalleInput[] = [];
     let ventaInput: VentaInput = venta.toInput();
@@ -78,20 +90,21 @@ export class VentaService {
             cobro: cobroInput,
             cobroDetalleList: cobroDetalleInputList,
             ticket,
-            printerName: environment['printers']['ticket'],
-            local: environment['local'],
-            pdvId: environment['pdvId'],
+            printerName: environment["printers"]["ticket"],
+            local: environment["local"],
+            pdvId: environment["pdvId"],
             ventaCreditoInput,
-            ventaCreditoCuotaInputList
+            ventaCreditoCuotaInputList,
           },
           {
             errorPolicy: "all",
             fetchPolicy: "no-cache",
           }
-        ).pipe(untilDestroyed(this))
+        )
+        .pipe(untilDestroyed(this))
         .subscribe((res) => {
-          if(res.errors!=null){
-            this.notificacionBar.openWarn(res.errors[0].message)
+          if (res.errors != null) {
+            this.notificacionBar.openWarn(res.errors[0].message);
           } else {
             obs.next(res.data["data"]);
           }
@@ -104,13 +117,14 @@ export class VentaService {
       this.saveVenta
         .mutate(
           {
-            ventaInput: ventaInput
+            ventaInput: ventaInput,
           },
           {
             errorPolicy: "all",
             fetchPolicy: "no-cache",
           }
-        ).pipe(untilDestroyed(this))
+        )
+        .pipe(untilDestroyed(this))
         .subscribe((res) => {
           obs.next(res.data["data"]);
         });
@@ -118,11 +132,26 @@ export class VentaService {
   }
 
   onDeleteVenta(id): Observable<boolean> {
-    return this.genericService.onDelete(this.deleteVenta, id, null, null, false, false);
+    return this.genericService.onDelete(
+      this.deleteVenta,
+      id,
+      null,
+      null,
+      false,
+      false
+    );
   }
 
   onDeleteVentaItem(id, sucId): Observable<boolean> {
-    return this.genericService.onDeleteWithSucId(this.deleteVentaItem, id, sucId, null, null, false, false);
+    return this.genericService.onDeleteWithSucId(
+      this.deleteVentaItem,
+      id,
+      sucId,
+      null,
+      null,
+      false,
+      false
+    );
   }
 
   onReimprimirVenta(id): Observable<boolean> {
@@ -131,14 +160,15 @@ export class VentaService {
         .mutate(
           {
             id,
-            printerName: environment['printers']['ticket'],
-            local: environment['local']
+            printerName: environment["printers"]["ticket"],
+            local: environment["local"],
           },
           {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
           }
-        ).pipe(untilDestroyed(this))
+        )
+        .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             obs.next(res.data.data);
@@ -156,14 +186,15 @@ export class VentaService {
           {
             id,
             itens,
-            printerName: environment['printers']['ticket'],
-            local: environment['local']
+            printerName: environment["printers"]["ticket"],
+            local: environment["local"],
           },
           {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
           }
-        ).pipe(untilDestroyed(this))
+        )
+        .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             obs.next(res.data.data);
@@ -180,13 +211,14 @@ export class VentaService {
         .mutate(
           {
             id,
-            sucId
+            sucId,
           },
           {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
           }
-        ).pipe(untilDestroyed(this))
+        )
+        .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res.errors == null) {
             obs.next(res.data.data);
@@ -197,7 +229,16 @@ export class VentaService {
     });
   }
 
-  onSearch(id, page?, size?, asc?, sucId?, formaPago?, estado?, isDelivery?): Observable<PageInfo<Venta>> {
+  onSearch(
+    id,
+    page?,
+    size?,
+    asc?,
+    sucId?,
+    formaPago?,
+    estado?,
+    isDelivery?
+  ): Observable<PageInfo<Venta>> {
     return this.genericService.onCustomQuery(this.ventasPorCajaId, {
       id,
       page,
@@ -206,7 +247,7 @@ export class VentaService {
       sucId,
       formaPago,
       estado,
-      isDelivery
+      isDelivery,
     });
     // if (page == null) page = 0;
     // if (size == null) size = 20;
@@ -241,26 +282,39 @@ export class VentaService {
   }
 
   onGetPorId(id, sucId?): Observable<Venta> {
-    return this.genericService.onGetById(this.ventaPorId, id, null, null, false, sucId);
+    return this.genericService.onGetById(
+      this.ventaPorId,
+      id,
+      null,
+      null,
+      false,
+      sucId
+    );
   }
 
   onGetVentasPorPeriodo(inicio: string, fin: string, sucId?): Observable<any> {
     return new Observable((obs) => {
-      this.ventaPorPeriodo.fetch({ inicio, fin, sucId }, {
-        fetchPolicy: "no-cache",
-        errorPolicy: "all",
-      }).pipe(untilDestroyed(this)).subscribe(res => {
-        if (res.errors == null) {
-          obs.next(res.data.data)
-        } else {
-          obs.next(null)
-          this.notificacionBar.notification$.next({
-            texto: 'Ocurrio algún problema: ',
-            color: NotificacionColor.warn,
-            duracion: 2
-          })
-        }
-      })
+      this.ventaPorPeriodo
+        .fetch(
+          { inicio, fin, sucId },
+          {
+            fetchPolicy: "no-cache",
+            errorPolicy: "all",
+          }
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          if (res.errors == null) {
+            obs.next(res.data.data);
+          } else {
+            obs.next(null);
+            this.notificacionBar.notification$.next({
+              texto: "Ocurrio algún problema: ",
+              color: NotificacionColor.warn,
+              duracion: 2,
+            });
+          }
+        });
     });
   }
 
@@ -272,11 +326,34 @@ export class VentaService {
     return this.genericService.onSave(this.saveVentaItemQuery, ventaItemInput);
   }
 
-  onSaveCobroDetalle(cobroDetalleInput: CobroDetalleInput): Observable<CobroDetalle> {
-    return this.genericService.onSave(this.saveCobroDetalleQuery, cobroDetalleInput);
+  onSaveCobroDetalle(
+    cobroDetalleInput: CobroDetalleInput
+  ): Observable<CobroDetalle> {
+    return this.genericService.onSave(
+      this.saveCobroDetalleQuery,
+      cobroDetalleInput
+    );
   }
 
   onDeleteCobroDetalle(id, sucId): Observable<boolean> {
-    return this.genericService.onDeleteWithSucId(this.deleteCobroDetalle, id, sucId, null, null, false)
+    return this.genericService.onDeleteWithSucId(
+      this.deleteCobroDetalle,
+      id,
+      sucId,
+      null,
+      null,
+      false
+    );
+  }
+
+  onGetVentaItemPorId(id, sucId): Observable<VentaItem> {
+    return this.genericService.onGetById(
+      this.ventaItemPorId,
+      id,
+      null,
+      null,
+      null,
+      sucId
+    );
   }
 }

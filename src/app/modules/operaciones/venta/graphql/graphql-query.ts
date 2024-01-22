@@ -315,3 +315,16 @@ export const deleteCobroDetalleQuery = gql`
     deleteCobroDetalle(id: $id, sucId: $sucId)
   }
 `;
+
+export const ventaItemQuery = gql`
+  query ($id: ID!, $sucId: ID) {
+    data: ventaItem(id: $id, sucId: $sucId) {
+      id
+      sucursalId
+      venta {
+        id
+        sucursalId
+      }
+    }
+  }
+`;

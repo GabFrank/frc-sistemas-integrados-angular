@@ -82,6 +82,9 @@ import { CompraDashboardComponent } from './compra/compra-dashboard/compra-dashb
     InventarioModule,
     EmpresarialModule
   ],
+  exports: [
+    EditPedidoComponent
+  ],
   providers:[
     { provide: LOCALE_ID, useValue: 'es-PY' } ,
   ]

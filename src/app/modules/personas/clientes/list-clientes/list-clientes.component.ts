@@ -150,7 +150,9 @@ export class ListClientesComponent implements OnInit {
   }
 
   onVerMovimiento(cliente, i) {
-    this.tabService.addTab(new Tab(ListVentaCreditoComponent, "V. credito de " + cliente.persona.nombre, new TabData(cliente.id), ListClientesComponent))
+    console.log(cliente);
+    
+    this.tabService.addTab(new Tab(ListVentaCreditoComponent, "V. credito de " + cliente.persona.nombre, new TabData(cliente.id, cliente), ListClientesComponent))
   }
 
   handlePageEvent(e: PageEvent) {

@@ -55,6 +55,7 @@ import { CompraService } from "../../compra/compra.service";
 import { CompraItem } from "../../compra/compra-item.model";
 import { ProductoProveedorService } from "../../../productos/producto-proveedor/producto-proveedor.service";
 import { ProductoProveedor } from "../../../productos/producto-proveedor/producto-proveedor.model";
+import { PageEvent } from "@angular/material/paginator";
 
 export interface ProductoDelProveedor {
   id: number;
@@ -160,10 +161,8 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     "descripcion",
     "stock",
     "sugerido",
-    "menu"
+    "menu",
   ];
-  pageProductoProveedor = 0;
-  sizeProductoProveedor = 20;
 
   //datos de tabla de historico de precios
   expandedcompraItem: any;
@@ -209,6 +208,14 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   col2 = 65;
   r1 = 50;
   r2 = 50;
+
+  productoProveedorPageIndex = 0;
+  productoProveedorPageSize = 10;
+  selectedProductoProveedorPage: PageInfo<ProductoProveedor>;
+
+  compraItemPageIndex = 0;
+  compraItemPageSize = 10;
+  selectedcompraItemPage: PageInfo<CompraItem>;
 
   constructor(
     private proveedorService: ProveedorService,
@@ -391,11 +398,12 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       this.productoProveedorService
         .getByProveedorId(
           proveedor.id,
-          this.pageProductoProveedor,
-          this.sizeProductoProveedor
+          this.productoProveedorPageIndex,
+          this.productoProveedorPageSize
         )
         .pipe(untilDestroyed(this))
         .subscribe((res: PageInfo<ProductoProveedor>) => {
+          this.selectedProductoProveedorPage = res;
           this.productosProveedorDataSource.data = res.getContent;
         });
     } else {
@@ -406,10 +414,24 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     }
   }
 
+  onFiltrarProductoProveedor() {
+    this.productoProveedorService
+      .getByProveedorId(
+        this.selectedProveedor.id,
+        this.productoProveedorPageIndex,
+        this.productoProveedorPageSize
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe((res: PageInfo<ProductoProveedor>) => {
+        this.selectedProductoProveedorPage = res;
+        this.productosProveedorDataSource.data = res.getContent;
+      });
+  }
+
   onClearProveedor() {
     this.onSelectProveedor(null);
-    this.productosProveedorDataSource.data = []
-    this.historicoCompraItemDataSource.data = []
+    this.productosProveedorDataSource.data = [];
+    this.historicoCompraItemDataSource.data = [];
   }
 
   /*
@@ -573,7 +595,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       }
       this.productoService.onGetProductoPorCodigo(text).subscribe((res) => {
         if (res != null) {
-          this.onSelectProducto(res)
+          this.onSelectProducto(res);
         } else {
           this.onAddItem(this.codigoControl.value);
         }
@@ -707,9 +729,15 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       .getProducto(productoProveedor.producto.id)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        if(res!=null){
+        if (res != null) {
           this.onSelectProducto(res);
         }
       });
+  }
+
+  productoProveedorHandlePageEvent(e: PageEvent) {
+    this.productoProveedorPageIndex = e.pageIndex;
+    this.productoProveedorPageSize = e.pageSize;
+    this.onFiltrarProductoProveedor();
   }
 }

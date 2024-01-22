@@ -45,6 +45,9 @@ import { FrcToolTipRendererDirective } from './directives/frc-tool-tip-renderer.
 import { CustomToolTipComponent } from './components/frc-custom-tool-tip/frc-custom-tool-tip.component';
 import { ResizableModule } from 'angular-resizable-element';
 import { DialogoNuevasFuncionesComponent } from './components/dialogo-nuevas-funciones/dialogo-nuevas-funciones.component';
+import { NumericOnlyDirective } from './directives/numeric-only.directive';
+import { NoSpacesDirective } from './directives/no-spaces.directive';
+import { LettersOnlyDirective } from './directives/letters-only.directive';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -79,7 +82,10 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     PrevisualizarImgenDirective,
     FrcToolTipRendererDirective,
     CustomToolTipComponent,
-    DialogoNuevasFuncionesComponent
+    DialogoNuevasFuncionesComponent,
+    NumericOnlyDirective,
+    NoSpacesDirective,
+    LettersOnlyDirective
   ],
   imports: [
     CommonModule,
@@ -117,7 +123,10 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     FrcToolTipRendererDirective,
     CustomToolTipComponent,
     ResizableModule,
-    DialogoNuevasFuncionesComponent
+    DialogoNuevasFuncionesComponent,
+    NumericOnlyDirective,
+    NoSpacesDirective,
+    LettersOnlyDirective
   ],
   providers: [NgxImageCompressService, provideEnvironmentNgxMask(options)]
 })

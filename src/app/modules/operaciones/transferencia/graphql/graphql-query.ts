@@ -774,3 +774,115 @@ export const transferenciaItemPorTransferenciaIdQuery = gql`
     }
   }
 `;
+
+export const transferenciaItemQuery = gql`
+  query ($id: ID!) {
+    data: transferenciaItem(id: $id) {
+      id
+      transferencia {
+        id
+        sucursalOrigen {
+          id
+          nombre
+        }
+        sucursalDestino {
+          id
+          nombre
+        }
+      }
+      presentacionPreTransferencia {
+        id
+        producto {
+          id
+          descripcion
+          descripcionFactura
+          codigoPrincipal
+          costo {
+            costoMedio
+            ultimoPrecioCompra
+          }
+        }
+        cantidad
+        imagenPrincipal
+        precioPrincipal {
+          precio
+        }
+      }
+      presentacionPreparacion {
+        id
+        producto {
+          id
+          descripcion
+          descripcionFactura
+          codigoPrincipal
+          costo {
+            costoMedio
+            ultimoPrecioCompra
+          }
+        }
+        cantidad
+        imagenPrincipal
+        precioPrincipal {
+          precio
+        }
+      }
+      presentacionTransporte {
+        id
+        producto {
+          id
+          descripcion
+          codigoPrincipal
+          costo {
+            costoMedio
+            ultimoPrecioCompra
+          }
+        }
+        cantidad
+        imagenPrincipal
+        precioPrincipal {
+          precio
+        }
+      }
+      presentacionRecepcion {
+        id
+        producto {
+          id
+          descripcion
+          codigoPrincipal
+          costo {
+            costoMedio
+            ultimoPrecioCompra
+          }
+        }
+        cantidad
+        imagenPrincipal
+        precioPrincipal {
+          precio
+        }
+      }
+      cantidadPreTransferencia
+      cantidadPreparacion
+      cantidadTransporte
+      cantidadRecepcion
+      observacionPreTransferencia
+      observacionPreparacion
+      observacionTransporte
+      observacionRecepcion
+      vencimientoPreTransferencia
+      vencimientoPreparacion
+      vencimientoTransporte
+      vencimientoRecepcion
+      motivoModificacionPreTransferencia
+      motivoModificacionPreparacion
+      motivoModificacionTransporte
+      motivoModificacionRecepcion
+      motivoRechazoPreTransferencia
+      motivoRechazoPreparacion
+      motivoRechazoTransporte
+      motivoRechazoRecepcion
+      activo
+      poseeVencimiento
+      creadoEn
+    }
+  }
+`;

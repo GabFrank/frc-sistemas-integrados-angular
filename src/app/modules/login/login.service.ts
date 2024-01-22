@@ -19,12 +19,15 @@ import { Observable } from "rxjs";
 import { InicioSesion } from "../configuracion/models/inicio-sesion.model";
 import { DeviceDetectorService } from "ngx-device-detector";
 import { generateUUID } from "../../commons/core/utils/string-utils";
+import { ElectronService } from "../../commons/core/electron/electron.service";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
 })
 export class LoginService {
+  appVersion = null;
+
   httpOptions = {
     headers: new HttpHeaders({
       Accept: "application/json",
@@ -36,7 +39,8 @@ export class LoginService {
     private http: HttpClient,
     private usuarioService: UsuarioService,
     public mainService: MainService,
-    private deviceDetector: DeviceDetectorService
+    private deviceDetector: DeviceDetectorService,
+    private electronService: ElectronService
   ) {}
 
   login(nickname, password): Observable<LoginResponse> {
@@ -66,7 +70,7 @@ export class LoginService {
                     .subscribe((res) => {
                       if (res?.id != null) {
                         console.log(res);
-                        
+
                         this.mainService.usuarioActual = res;
                         let inicioSesion = new InicioSesion();
                         inicioSesion.usuario = res;
@@ -81,7 +85,7 @@ export class LoginService {
                           deviceId = uuid;
                         }
                         inicioSesion.idDispositivo = deviceId;
-                        
+
                         if (
                           res?.inicioSesion != null &&
                           res?.inicioSesion?.idDispositivo == deviceId &&
@@ -89,11 +93,13 @@ export class LoginService {
                         ) {
                           console.log("Dispositivo conocido encontrado");
                         } else {
-                          console.log("Nuevo disposito encontrado");
+                          if (this.mainService)
+                            console.log("Nuevo disposito encontrado");
                           this.usuarioService
                             .onSaveInicioSesion(inicioSesion.toInput())
                             .subscribe((res) => {
                               console.log(res);
+                              this.mainService.usuarioActual.inicioSesion = res;
                             });
                         }
 

@@ -1021,4 +1021,10 @@ export class ProductoComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
       this.isEnvaseSub.unsubscribe()
   }
+
+  onImprimirCodigoDeBarra(codigo){    
+    console.log(codigo);
+    
+    this.productoService.onImprimirCodigo(codigo).subscribe(res => console.log(res));
+  }
 }

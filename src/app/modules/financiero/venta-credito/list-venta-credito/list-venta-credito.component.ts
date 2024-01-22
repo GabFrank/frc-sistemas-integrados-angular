@@ -49,6 +49,13 @@ import {
 import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
 import { SelectionModel } from "@angular/cdk/collections";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
+import { stringToTime } from "../../../../commons/core/utils/string-utils";
+import {
+  dateToString,
+  getFirstDayOfMonths,
+} from "../../../../commons/core/utils/dateUtils";
+import { PageInfo } from "../../../../app.component";
+import { PageEvent } from "@angular/material/paginator";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -104,11 +111,16 @@ export class ListVentaCreditoComponent implements OnInit {
   selection = new SelectionModel<any>(true, []);
 
   fechaFormGroup: FormGroup;
-  fechaInicioControl = new FormControl();
-  fechaFinalControl = new FormControl();
+  fechaInicioControl = new FormControl(getFirstDayOfMonths(0));
+  fechaFinalControl = new FormControl(new Date());
+  horaInicioControl = new FormControl("00:00");
+  horaFinalControl = new FormControl("23:59");
 
   isAbiertos = false;
   isConcluidos = false;
+
+  selectedPageInfo: PageInfo<VentaCredito>;
+
 
   constructor(
     private dialogRef: MatDialogRef<ListVentaCreditoComponent>,
@@ -140,27 +152,30 @@ export class ListVentaCreditoComponent implements OnInit {
 
     this.isLastPage = true;
     if (this.data?.tabData?.id != null) {
-      this.clienteService
-        .onGetById(this.data.tabData.id)
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res != null) {
-            this.selectedCliente = res;
-            this.ventaCreditoService
-              .onGetPorCliente(
-                this.selectedCliente.id,
-                EstadoVentaCredito.ABIERTO,
-                this.page,
-                this.size
-              )
-              .pipe(untilDestroyed(this))
-              .subscribe((res) => {
-                if (res != null) {
-                  this.dataSource.data = res;
-                }
-              });
-          }
-        });
+      console.log(this.data?.tabData);
+      this.selectedCliente = this.data?.tabData.data;
+      this.onFiltrar();
+      // this.clienteService
+      //   .onGetById(this.data.tabData.id)
+      //   .pipe(untilDestroyed(this))
+      //   .subscribe((res) => {
+      //     if (res != null) {
+      //       this.selectedCliente = res;
+      //       this.ventaCreditoService
+      //         .onGetPorCliente(
+      //           this.selectedCliente.id,
+      //           EstadoVentaCredito.ABIERTO,
+      //           this.page,
+      //           this.size
+      //         )
+      //         .pipe(untilDestroyed(this))
+      //         .subscribe((res) => {
+      //           if (res != null) {
+      //             this.dataSource.data = res;
+      //           }
+      //         });
+      //     }
+      //   });
     }
 
     this.selection.changed.pipe(untilDestroyed(this)).subscribe((res) => {
@@ -217,29 +232,32 @@ export class ListVentaCreditoComponent implements OnInit {
   }
 
   onFiltrar() {
+    let fechaInicial: Date = this.fechaInicioControl.value;
+    let fechaFin: Date = this.fechaFinalControl.value;
+    let horaInicial: Date = stringToTime(this.horaInicioControl.value);
+    let horaFinal: Date = stringToTime(this.horaFinalControl.value);
+    fechaInicial.setHours(horaInicial.getHours());
+    fechaInicial.setMinutes(horaInicial.getMinutes());
+    fechaInicial.setSeconds(horaInicial.getSeconds());
+    fechaFin.setHours(horaFinal.getHours());
+    fechaFin.setMinutes(horaFinal.getMinutes());
+    fechaFin.setSeconds(horaFinal.getSeconds());
+
     this.isAbiertos = false;
     this.isConcluidos = false;
     this.ventaCreditoService
       .onGetPorCliente(
         this.selectedCliente.id,
+        dateToString(fechaInicial),
+        dateToString(fechaFin),
         this.estadoControl.value,
         this.page,
-        this.size
+        this.estadoControl.value == EstadoVentaCredito.ABIERTO ? 1000 : this.size
       )
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        if (res != null) {
-          this.isLastPage = false;
-          if (
-            this.estadoControl.value != EstadoVentaCredito.ABIERTO &&
-            this.page > 0
-          ) {
-            this.dataSource.data = this.dataSource.data.concat(res);
-          } else {
-            this.dataSource.data = res;
-          }
-          if (res?.length < this.size) this.isLastPage = true;
-        }
+        this.selectedPageInfo = res;
+        this.dataSource.data = res.getContent;  
       });
     this.verificarEstados();
   }
@@ -459,5 +477,11 @@ export class ListVentaCreditoComponent implements OnInit {
           });
         }
       });
+  }
+
+  handlePageEvent(e: PageEvent) {
+    this.page = e.pageIndex;
+    this.size = e.pageSize;
+    this.onFiltrar();
   }
 }

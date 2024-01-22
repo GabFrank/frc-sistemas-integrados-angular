@@ -606,3 +606,9 @@ export const lucroPorProductoQuery = gql`
     )
   }
 `;
+
+export const imprimirCodigoBarraQuery = gql`
+  query imprimirCodigoBarra($codigoId: Int) {
+    data: imprimirCodigoBarra(codigoId: $codigoId)
+  }
+`;

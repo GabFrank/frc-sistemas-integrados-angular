@@ -434,6 +434,13 @@ export const inventarioProductoItemWithFilterQuery = gql`
         id
         inventarioProducto {
           id
+          inventario {
+            id
+            sucursal {
+              id
+              nombre
+            }
+          }
         }
         zona {
           id
@@ -486,5 +493,37 @@ export const reporteInventarioQuery = gql`
       tipoOrder: $tipoOrder
       nickname: $nickname
     )
+  }
+`;
+
+export const inventarioProductoItemQuery = gql`
+  query ($id: ID!) {
+    data: inventarioProductoItem(id: $id) {
+      id
+      inventarioProducto {
+        id
+      }
+      zona {
+        id
+      }
+      presentacion {
+        id
+        cantidad
+        producto {
+          id
+          descripcion
+          codigoPrincipal
+        }
+      }
+      cantidad
+      cantidadFisica
+      vencimiento
+      estado
+      creadoEn
+      usuario {
+        id
+        nickname
+      }
+    }
   }
 `;

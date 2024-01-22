@@ -16,5 +16,6 @@ export class MovimientoStock {
     estado: boolean;
     creadoEn: Date;
     usuario: Usuario;
+    data: any;
 }
 

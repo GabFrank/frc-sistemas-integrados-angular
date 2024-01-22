@@ -1,37 +1,33 @@
-import { GetInventarioAbiertoPorSucursalGQL } from "./graphql/getInventarioAbiertoPorSucursal";
-import { GetInventarioPorUsuarioGQL } from "./graphql/getInventarioPorUsuario";
-import { inventarioPorUsuarioQuery } from "./graphql/graphql-query";
-import { UntilDestroy } from "@ngneat/until-destroy";
 import { Injectable } from "@angular/core";
-import { untilDestroyed } from "@ngneat/until-destroy";
+import { UntilDestroy } from "@ngneat/until-destroy";
 import { Observable } from "rxjs";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { Tab } from "../../../layouts/tab/tab.model";
+import { TabService } from "../../../layouts/tab/tab.service";
 import { MainService } from "../../../main.service";
-import {
-  NotificacionSnackbarService,
-  NotificacionColor,
-} from "../../../notificacion-snackbar.service";
+import { NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
 import { DialogosService } from "../../../shared/components/dialogos/dialogos.service";
+import { ReporteService } from "../../reportes/reporte.service";
+import { ReportesComponent } from "../../reportes/reportes/reportes.component";
 import { DeleteInventarioGQL } from "./graphql/deleteInventario";
 import { DeleteInventarioProductoGQL } from "./graphql/deleteInventarioProducto";
 import { DeleteInventarioProductoItemGQL } from "./graphql/deleteInventarioProductoItem";
 import { GetInventarioGQL } from "./graphql/getInventario";
+import { GetInventarioAbiertoPorSucursalGQL } from "./graphql/getInventarioAbiertoPorSucursal";
 import { GetInventarioPorFechaGQL } from "./graphql/getInventarioPorFecha";
+import { GetInventarioPorUsuarioGQL } from "./graphql/getInventarioPorUsuario";
+import { GetInventarioProductoItemGQL } from "./graphql/getInventarioProductoItem";
+import { InventarioProductoItemWithFiltersGQL } from "./graphql/getInventarioProductoItemWithFilters";
+import { reporteInventarioGQL } from "./graphql/getReporteInventario";
 import { SaveInventarioGQL } from "./graphql/saveInventario";
 import { SaveInventarioProductoGQL } from "./graphql/saveInventarioProducto";
 import { SaveInventarioProductoItemGQL } from "./graphql/saveInventarioProductoItem";
 import {
   Inventario,
-  InventarioEstado,
   InventarioProducto,
+  InventarioProductoItem,
 } from "./inventario.model";
-import { InventarioProductoItemWithFiltersGQL } from "./graphql/getInventarioProductoItemWithFilters";
-import { reporteInventarioGQL } from "./graphql/getReporteInventario";
-import { ReporteService } from "../../reportes/reporte.service";
-import { TabService } from "../../../layouts/tab/tab.service";
 import { ListInventarioComponent } from "./list-inventario/list-inventario.component";
-import { Tab } from "../../../layouts/tab/tab.model";
-import { ReportesComponent } from "../../reportes/reportes/reportes.component";
 
 @UntilDestroy()
 @Injectable({
@@ -57,6 +53,7 @@ export class InventarioService {
     private reporteInventario: reporteInventarioGQL,
     private reporteService: ReporteService,
     private tabService: TabService,
+    private getInventarioProductoItem: GetInventarioProductoItemGQL
   ) {}
 
   onGetInventarioPorFecha(inicio, fin) {
@@ -176,7 +173,7 @@ export class InventarioService {
           sucursalIdList,
           usuarioIdList,
           productoIdList,
-          'nickname': this.mainService.usuarioActual.nickname,
+          nickname: this.mainService.usuarioActual.nickname,
         },
         true
       )
@@ -184,9 +181,21 @@ export class InventarioService {
         if (res != null) {
           this.reporteService.onAdd("Inventario Producto " + Date.now(), res);
           this.tabService.addTab(
-            new Tab(ReportesComponent, "Reportes", null, ListInventarioComponent)
+            new Tab(
+              ReportesComponent,
+              "Reportes",
+              null,
+              ListInventarioComponent
+            )
           );
         }
       });
+  }
+
+  onGetInventarioProductoItem(id: number): Observable<InventarioProductoItem> {
+    return this.genericCrudService.onGetById(
+      this.getInventarioProductoItem,
+      id
+    );
   }
 }

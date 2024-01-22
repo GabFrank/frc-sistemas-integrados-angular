@@ -41,6 +41,17 @@ import { UsuarioSearchGQL } from "../../../personas/usuarios/graphql/usuarioSear
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { PageInfo } from "../../../../app.component";
 import { PageEvent } from "@angular/material/paginator";
+import { Time } from "@angular/common";
+import { stringToTime } from "../../../../commons/core/utils/string-utils";
+import { StockPorTipoMovimientoDto } from "../graphql/getStockPorTipoMovimientoByFilters";
+import { TabService } from "../../../../layouts/tab/tab.service";
+import { Tab } from "../../../../layouts/tab/tab.model";
+import { ListVentaComponent } from "../../venta/list-venta/list-venta.component";
+import { VentaService } from "../../venta/venta.service";
+import { TransferenciaService } from "../../transferencia/transferencia.service";
+import { InventarioService } from "../../inventario/inventario.service";
+import { Venta } from "../../venta/venta.model";
+import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -67,7 +78,7 @@ export class ListMovimientoStockComponent implements OnInit {
   expandedMovimiento: MovimientoStock;
   displayedColumns = [
     "id",
-    "producto",
+    "sucursal",
     "cantidad",
     "tipo",
     "estado",
@@ -99,7 +110,20 @@ export class ListMovimientoStockComponent implements OnInit {
   isPesable = false;
   page = 0;
   size = 20;
-  selectedPageInfo: PageInfo<MovimientoStock>
+  selectedPageInfo: PageInfo<MovimientoStock>;
+
+  stockTotal = 0;
+  stockPorRangoFecha = 0;
+  stockPorTipoMovimiento: StockPorTipoMovimientoDto[];
+  totalRecibidoGs = 0;
+  totalRecibido = 0;
+  totalRecibidoRs = 0;
+  totalDescuento = 0;
+  totalRecibidoDs = 0;
+  totalAumento = 0;
+  totalFinal = 0;
+
+  loading = false;
 
   constructor(
     private service: MovimientoStockService,
@@ -110,7 +134,11 @@ export class ListMovimientoStockComponent implements OnInit {
     private dialog: MatDialog,
     private usuarioSearch: UsuarioSearchGQL,
     private usuarioService: UsuarioService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private tabService: TabService,
+    private ventaService: VentaService,
+    private transferenciaService: TransferenciaService,
+    private inventarioService: InventarioService
   ) {
     this.tableHeight = windowInfoService.innerHeight * 0.6;
   }
@@ -148,18 +176,81 @@ export class ListMovimientoStockComponent implements OnInit {
     });
   }
 
+  onGetResumen() {
+    this.sucursalIdList = this.toEntityId(
+      this.sucursalControl.value,
+      this.sucursalList
+    );
+    if (this.tipoMovimientoControl.value?.find((i) => i == "Todas") != null) {
+      this.tipoMovimientoControl.setValue(null);
+    }
+    let fechaInicial: Date = this.fechaInicioControl.value;
+    let fechaFin: Date = this.fechaFinalControl.value;
+    let horaInicial: Date = stringToTime(this.horaInicioControl.value);
+    let horaFinal: Date = stringToTime(this.horaFinalControl.value);
+    fechaInicial.setHours(horaInicial.getHours());
+    fechaInicial.setMinutes(horaInicial.getMinutes());
+    fechaInicial.setSeconds(horaInicial.getSeconds());
+    fechaFin.setHours(horaFinal.getHours());
+    fechaFin.setMinutes(horaFinal.getMinutes());
+    fechaFin.setSeconds(horaFinal.getSeconds());
+
+    this.onGetMovimientos();
+
+    this.service
+      .onGetStockPorFiltros(
+        dateToString(fechaInicial),
+        dateToString(fechaFin),
+        this.sucursalIdList,
+        this.selectedProducto?.id,
+        this.tipoMovimientoControl.value,
+        this.selectedUsuario?.id
+      )
+      .subscribe((res) => {
+        console.log(res);
+        this.stockTotal = res;
+      });
+
+    this.service
+      .onGetStockPorTipoMovimiento(
+        dateToString(fechaInicial),
+        dateToString(fechaFin),
+        this.sucursalIdList,
+        this.selectedProducto?.id,
+        this.tipoMovimientoControl.value,
+        this.selectedUsuario?.id
+      )
+      .subscribe((res: StockPorTipoMovimientoDto[]) => {
+        console.log(res);
+        res.forEach((t) => {
+          this.stockPorRangoFecha += t.stock;
+        });
+        this.stockPorTipoMovimiento = res;
+      });
+  }
+
   onGetMovimientos() {
     this.sucursalIdList = this.toEntityId(
       this.sucursalControl.value,
       this.sucursalList
     );
-    if(this.tipoMovimientoControl.value?.find(i => i == 'Todas') != null){
+    if (this.tipoMovimientoControl.value?.find((i) => i == "Todas") != null) {
       this.tipoMovimientoControl.setValue(null);
     }
+    let fechaInicial: Date = this.fechaInicioControl.value;
+    let fechaFin: Date = this.fechaFinalControl.value;
+    let horaInicial: Date = stringToTime(this.horaInicioControl.value);
+    let horaFinal: Date = stringToTime(this.horaFinalControl.value);
+    fechaInicial.setHours(horaInicial.getHours());
+    fechaInicial.setMinutes(horaInicial.getMinutes());
+    fechaInicial.setSeconds(horaInicial.getSeconds());
+    fechaFin.setHours(horaFinal.getHours());
+    fechaFin.setMinutes(horaFinal.getMinutes());
+    fechaFin.setSeconds(horaFinal.getSeconds());
     this.service
       .onGetMovimientoStockPorFiltros(
-        dateToString(this.fechaInicioControl.value),
-        dateToString(this.fechaFinalControl.value),
+        dateToString(fechaInicial),
+        dateToString(fechaFin),
         this.sucursalIdList,
         this.selectedProducto?.id,
         this.tipoMovimientoControl.value,
@@ -171,21 +262,21 @@ export class ListMovimientoStockComponent implements OnInit {
         this.selectedPageInfo = res;
         this.dataSource.data = res.getContent;
         console.log(res.getContent);
-        
       });
   }
   onReferenciaClick(movimiento: MovimientoStock) {
     console.log(movimiento);
-    this.matDialog.open(
-      this.service.getTipoMovimientoComponent(movimiento.tipoMovimiento),
-      {
-        data: {
-          id: movimiento.referencia,
-        },
-        width: "80%",
-        height: "80%",
-      }
-    );
+    switch (movimiento.tipoMovimiento) {
+      case TipoMovimiento.VENTA:
+        break;
+      case TipoMovimiento.AJUSTE:
+        break;
+      case TipoMovimiento.TRANSFERENCIA:
+        break;
+
+      default:
+        break;
+    }
   }
 
   resetFilters() {}
@@ -203,7 +294,6 @@ export class ListMovimientoStockComponent implements OnInit {
     //   this.onSearchPorCodigo();
     // }
     this.onSearchPorCodigo();
-
   }
 
   onSearchPorCodigo() {
@@ -270,7 +360,11 @@ export class ListMovimientoStockComponent implements OnInit {
   }
 
   onFiltrar() {
-    this.onGetMovimientos();
+    this.dataSource.data = [];
+    this.stockPorRangoFecha = 0;
+    this.stockTotal = 0;
+    this.stockPorTipoMovimiento = [];
+    this.onGetResumen();
   }
 
   resetFiltro() {}
@@ -362,5 +456,107 @@ export class ListMovimientoStockComponent implements OnInit {
     this.page = e.pageIndex;
     this.size = e.pageSize;
     this.onFiltrar();
+  }
+
+  onClickRow(movimiento: MovimientoStock, index: number) {
+    if (movimiento.data == null) {
+      switch (movimiento.tipoMovimiento) {
+        case TipoMovimiento.VENTA:
+          //esta buscando por venta pero deberia de ser venta item,
+          //la referencia es venta item
+          this.ventaService
+            .onGetVentaItemPorId(movimiento.referencia, movimiento.sucursalId)
+            .subscribe((ventaItem) => {
+              if (ventaItem != null) {
+                this.ventaService
+                  .onGetPorId(ventaItem.venta.id, ventaItem.sucursalId)
+                  .subscribe((venta) => {
+                    movimiento.data = {};
+                    movimiento.data["venta"] = venta;
+                    movimiento.data["totales"] = this.getTotales(venta);
+                    console.log(movimiento.data);
+                  });
+              } else {
+              }
+            });
+          break;
+        case TipoMovimiento.TRANSFERENCIA:
+          this.transferenciaService
+            .onGetTransferenciaItem(movimiento.referencia)
+            .subscribe((res) => {
+              if (res != null) {
+                console.log(res);
+
+                movimiento.data = res;
+              }
+            });
+          break;
+
+        case TipoMovimiento.AJUSTE:          
+          this.inventarioService
+            .onGetInventarioProductoItem(movimiento.referencia)
+            .subscribe((res) => {
+              if (res != null) {
+                console.log(res);
+                movimiento.data = res;
+              }
+            });
+          break;
+
+        default:
+          break;
+      }
+      if (movimiento.data != null) {
+        this.dataSource.data = updateDataSource(
+          this.dataSource.data,
+          movimiento,
+          index
+        );
+      }
+    }
+  }
+
+  getTotales(venta: Venta) {
+    this.totalRecibidoGs = 0;
+    this.totalRecibidoRs = 0;
+    this.totalRecibidoDs = 0;
+    this.totalAumento = 0;
+    this.totalDescuento = 0;
+    this.totalFinal = 0;
+    this.totalRecibido = 0;
+
+    venta?.cobro?.cobroDetalleList.forEach((res) => {
+      if (res.moneda.denominacion == "GUARANI") {
+        if (res.pago || res.vuelto) {
+          this.totalRecibidoGs += res.valor;
+          this.totalRecibido += res.valor;
+          this.totalFinal += res.valor;
+        } else if (res.aumento) {
+          this.totalAumento += res.valor;
+          this.totalFinal += res.valor;
+        } else if (res.descuento) this.totalDescuento += res.valor;
+      } else if (res.moneda.denominacion == "REAL") {
+        if (res.pago || res.vuelto) {
+          this.totalRecibidoRs += res.valor;
+          this.totalRecibido += res.valor * res.cambio;
+          this.totalFinal += res.valor * res.cambio;
+        }
+      } else if (res.moneda.denominacion == "DOLAR") {
+        if (res.pago || res.vuelto) {
+          this.totalRecibidoDs += res.valor;
+          this.totalRecibido += res.valor * res.cambio;
+          this.totalFinal += res.valor * res.cambio;
+        }
+      }
+    });
+    return {
+      totalRecibidoGs: this.totalRecibidoGs,
+      totalRecibidoRs: this.totalRecibidoRs,
+      totalRecibidoDs: this.totalRecibidoDs,
+      totalAumento: this.totalAumento,
+      totalDescuento: this.totalDescuento,
+      totalFinal: this.totalFinal,
+      totalRecibido: this.totalRecibido,
+    };
   }
 }

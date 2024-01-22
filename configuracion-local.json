@@ -6,7 +6,7 @@
   "ipCentralDefault": "172.25.0.1",
   "puertoCentralDefault": "8081",
   "printers": {
-    "ticket": "ticket",
+    "ticket": "TICKET_ADM",
     "factura": "factura"
   },
   "local": "Caja 1",

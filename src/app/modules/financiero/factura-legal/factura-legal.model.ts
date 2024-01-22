@@ -123,3 +123,13 @@ export class FacturaLegalItemInput {
     creadoEn: Date
     usuarioId: number
 }
+
+export class ResumenFacturasDto {
+    cantFacturas: number
+    maxNumero: number
+    minNumero: number
+    totalFinal: number
+    total5: number
+    total10: number
+    total0: number
+}

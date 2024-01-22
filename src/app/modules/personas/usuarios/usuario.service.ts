@@ -125,7 +125,7 @@ export class UsuarioService {
     return this.genericService.onGetByTexto(this.verificarUsuario, texto)
   }
 
-  onSaveInicioSesion(entity: InicioSesionInput): Observable<PageInfo<InicioSesion>>{
+  onSaveInicioSesion(entity: InicioSesionInput): Observable<InicioSesion>{
     return this.genericService.onSave(this.saveInicioSesion, entity);
   }
 }

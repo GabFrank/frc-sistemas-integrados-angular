@@ -31,11 +31,7 @@
             [rangePicker]="picker"
             style="font-size: 1.2em; width: 100%"
           >
-            <input
-              matStartDate
-              formControlName="inicio"
-              placeholder="Inicio"
-            />
+            <input matStartDate formControlName="inicio" placeholder="Inicio" />
             <input
               matEndDate
               formControlName="fin"
@@ -61,6 +57,28 @@
           >
         </mat-form-field>
       </div>
+      <div fxFlex="7%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Inicio Hora</mat-label>
+          <input
+            matInput
+            [formControl]="horaInicioControl"
+            type="time"
+            placeholder="Hora inicio"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="7%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Fin Hora</mat-label>
+          <input
+            matInput
+            [formControl]="horaFinalControl"
+            type="time"
+            placeholder="Hora fin"
+          />
+        </mat-form-field>
+      </div>
     </div>
     <div
       fxLayout="row wrap"
@@ -76,7 +94,10 @@
           ></app-boton>
         </div>
         <div fxFlex="20%">
-          <app-boton nombre="Cobrar selección" (clickEvent)="onCobrarSeleccion()"></app-boton>
+          <app-boton
+            nombre="Cobrar selección"
+            (clickEvent)="onCobrarSeleccion()"
+          ></app-boton>
         </div>
         <div fxFlex="20%" *ngIf="false">
           <app-boton nombre="Cobrar vencidos"></app-boton>
@@ -98,7 +119,12 @@
       <!-- Concluidos -->
     </div>
   </div>
-  <div table>
+  <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
     <table
       mat-table
       [dataSource]="dataSource"
@@ -403,7 +429,7 @@
         (click)="
           expandedVentaCredito =
             expandedVentaCredito === element ? null : element;
-          onClickRow(element, i);
+          onClickRow(element, i)
         "
       ></tr>
       <tr
@@ -412,5 +438,13 @@
         class="example-detail-row"
       ></tr>
     </table>
+    <mat-paginator
+      itemsPerPageLabel="Itens por pagina"
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)"
+      [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
   </div>
 </app-generic-list>

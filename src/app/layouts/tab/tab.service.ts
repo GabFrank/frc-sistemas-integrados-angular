@@ -3,6 +3,13 @@ import { BehaviorSubject } from 'rxjs';
 import { ListClientesComponent } from '../../modules/personas/clientes/list-clientes/list-clientes.component';
 import { CargandoDialogService } from './../../shared/components/cargando-dialog/cargando-dialog.service';
 import { Tab } from './tab.model';
+import { ListMovimientoStockComponent } from '../../modules/operaciones/movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
+import { ListInventarioComponent } from '../../modules/operaciones/inventario/list-inventario/list-inventario.component';
+import { EditCompraComponent } from '../../modules/operaciones/compra/edit-compra/edit-compra.component';
+import { EditPedidoComponent } from '../../modules/operaciones/pedido/edit-pedido/edit-pedido.component';
+import { ListTransferenciaComponent } from '../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
+import { ListProductoComponent } from '../../modules/productos/producto/list-producto/list-producto.component';
+import { ListFacturaLegalComponent } from '../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -36,15 +43,10 @@ export class TabService implements OnInit {
       // new Tab(VentaTouchComponent, 'Venta', null, null),
     ];
 
-    // this.addTab(new Tab(ListPedidoComponent, 'Lista de pedidos', null, null))
-    // this.addTab(new Tab(ListClientesComponent, 'Lista de clientes', null, null))
-    // this.addTab(new Tab(ListMovimientoStockComponent, 'Movimiento de stock', null, null))
+    // this.addTab(new Tab(ListTransferenciaComponent, 'Lista de transferencias', null, null))
+    // this.addTab(new Tab(ListProductoComponent, 'Lista de productos', null, null))
+    this.addTab(new Tab(ListFacturaLegalComponent, 'Lista de facturas', null, null))
     this.tabSub.next(this.tabs);
-
-    // this.productoService.getProducto(1152).subscribe(res => {
-    //   console.log(res)
-    //   this.addTab(new Tab(ProductoComponent, 'Nuevo Producto', { data: res }))
-    // })
   }
   
   ngOnInit(): void {

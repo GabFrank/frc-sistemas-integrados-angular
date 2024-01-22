@@ -15,6 +15,8 @@ import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { GetMovimientoStockPorFiltrosGQL } from "./graphql/getMovimientoStockByFilters";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { PageInfo } from "../../../app.component";
+import { GetStockPorFiltrosGQL } from "./graphql/getStockByFilters";
+import { GetStockPorTipoMovimientoByFiltersGQL, StockPorTipoMovimientoDto } from "./graphql/getStockPorTipoMovimientoByFilters";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -26,7 +28,9 @@ export class MovimientoStockService {
     private notificacionBar: NotificacionSnackbarService,
     private getStockPorProducto: GetStockPorProductoGQL,
     private getMovimientoStockPorFilters: GetMovimientoStockPorFiltrosGQL,
-    private genericService: GenericCrudService
+    private genericService: GenericCrudService,
+    private getStockWithFilters: GetStockPorFiltrosGQL,
+    private getStockPorTipoMovimiento: GetStockPorTipoMovimientoByFiltersGQL
   ) {}
 
   onGetMovimientosPorFecha(
@@ -119,4 +123,40 @@ export class MovimientoStockService {
       size,
     });
   }
+
+  onGetStockPorFiltros(
+    inicio: String,
+    fin: String,
+    sucursalList: number[],
+    productoId: number,
+    tipoMovimientoList: TipoMovimiento[],
+    usuarioId: number
+  ): Observable<number>{
+    return this.genericService.onCustomQuery(this.getStockWithFilters, {
+      inicio,
+      fin,
+      sucursalList,
+      productoId,
+      tipoMovimientoList,
+      usuarioId})
+  }
+
+  onGetStockPorTipoMovimiento(
+    inicio: String,
+    fin: String,
+    sucursalList: number[],
+    productoId: number,
+    tipoMovimientoList: TipoMovimiento[],
+    usuarioId: number
+  ): Observable<StockPorTipoMovimientoDto[]>{
+    return this.genericService.onCustomQuery(this.getStockPorTipoMovimiento, {
+      inicio,
+      fin,
+      sucursalList,
+      productoId,
+      tipoMovimientoList,
+      usuarioId})
+  }
+
+
 }

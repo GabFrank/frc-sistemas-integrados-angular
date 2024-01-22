@@ -91,9 +91,9 @@ scp franco@172.25.0.2:/home/franco/FRC/configuracion-local.json /home/franco/FRC
 scp franco@172.25.0.2:/home/franco/FRC/frc.png /home/franco/FRC/
 scp franco@172.25.0.2:/home/franco/FRC/FRC.AppImage /home/franco/FRC/
 scp franco@172.25.0.2:/home/franco/FRC/pos/posprinterinstall_integrated.tar.gz /home/franco/FRC/pos/
-scp franco@172.25.0.2:/home/franco/FRC/frc-server/frc-server.jar /home/franco/FRC/frc-server/
-scp franco@172.25.0.2:/home/franco/FRC/frc-server/application.properties /home/franco/FRC/frc-server/
-scp franco@172.25.0.2:/home/franco/FRC/frc-server/application.yml /home/franco/FRC/frc-server/
+scp franco@172.25.1.1:/home/franco/FRC/frc-server/frc-server.jar /home/franco/FRC/frc-server/
+scp franco@172.25.1.1:/home/franco/FRC/frc-server/application.properties /home/franco/FRC/frc-server/
+scp franco@172.25.1.1:/home/franco/FRC/frc-server/application.yml /home/franco/FRC/frc-server/
 scp franco@172.25.0.2:/home/franco/FRC/resources/images/logo.png /home/franco/FRC/resources/images/
 sudo scp franco@172.25.0.2:/usr/share/applications/frc.desktop /usr/share/applications/
 sudo chmod a+rwx /home/franco/FRC/FRC.AppImage
@@ -101,7 +101,7 @@ sudo update-desktop-database
 
 -- instalar nuestro servicio
 -- crear el servicio
-sudo tee /etc/systemd/system/frc-farmacia.service << "EOF" > /dev/null
+sudo tee /etc/systemd/system/frc-server.service << "EOF" > /dev/null
 [Unit]
 Description=FRC Sistemas Integrados
 After=network.target
@@ -109,8 +109,8 @@ After=network.target
 [Service]
 Type=simple
 User=franco
-WorkingDirectory=/home/franco/farma/FRC/frc-server/
-ExecStart=/usr/bin/java -jar /home/franco/frc-server.jar
+WorkingDirectory=/home/franco/FRC/frc-server/
+ExecStart=/usr/bin/java -jar /home/franco/FRC/frc-server.jar
 SuccessExitStatus=143
 
 [Install]
@@ -145,7 +145,7 @@ sudo dnf install samba samba-client
 - verificar si nos aparece la impresora en la maquina que tiene cups
 smbclient -L //192.168.0.6 -U franco%franco
 - si aparece,ir a la interface web de cups e instalar una nueva impresora samba
-smb://franco:franco@192.168.0.6/ticket-5
+smb://franco:franco@172.25.0.22/TICKET_ADM
 -- el driver a utilizar puede ser pos x
 tar xvf /home/franco/FRC/pos/posprinterinstall_integrated.tar.gz
 sudo sh /home/franco/FRC/posprinterinstall_integrated/setup.sh
@@ -180,6 +180,50 @@ DefaultSession=gnome-xorg.desktop
 vgs
 --- aumentar particion
 lvresize -L +5G --resizefs /dev/mapper/fedora-root
+
+-- Crear el archivo de self update:
+sudo tee /home/franco/FRC/frc-server/selfUpdate.sh << "EOF" > /dev/null
+#!/bin/bash
+
+SERVICE_NAME=frc
+NEW_JAR_PATH=/home/franco/FRC/frc-server/frc-server-update.jar
+CURRENT_JAR_PATH=/home/franco/FRC/frc-server/frc-server.jar
+BACKUP_JAR_PATH=/home/franco/FRC/frc-server/frc-server-backup.jar
+
+# Backup the current jar
+mv "$CURRENT_JAR_PATH" "$BACKUP_JAR_PATH"
+
+# Replace with the new jar
+mv "$NEW_JAR_PATH" "$CURRENT_JAR_PATH"
+
+# Try to start the service
+/bin/sudo /bin/systemctl restart "$SERVICE_NAME" && journalctl -f -u "$SERVICE_NAME"
+
+echo "Update completed."
+
+EOF
+
+curl -LO https://github.com/GabFrank/franco-system-backend-filial/releases/download/2.4.0/frc-server.jar
+curl -LO https://github.com/GabFrank/franco-system-backend-filial/releases/download/2.4.0/selfUpdate.sh
+sudo chmod 777 selfUpdate.sh
+sudo sudo chmod a+rwx selfUpdate.sh
+
+sudo tee -a /etc/sudoers << "EOF" > /dev/null
+franco ALL=(ALL) ALL
+root ALL=(ALL) ALL
+franco ALL=(ALL) NOPASSWD: /bin/systemctl start frc, /bin/systemctl stop frc, /bin/systemctl restart frc, /bin/mv /home/franco/FRC/*
+EOF
+
+sudo tee -a /home/franco/FRC/frc-server/application.properties << "EOF" > /dev/null
+jarPath=/home/franco/FRC/frc-server
+EOF
+
+echo jarPath=C:\FRC\frc-server >> C:\FRC\frc-server\application.properties
+
+https://github.com/GabFrank/frc-sistemas-integrados-angular/releases/download/2.1.32/FRC.AppImage
+sudo chmod a+rwx /home/franco/FRC/FRC.AppImage
+sudo update-desktop-database
+
 
 -- instalar impresora para pronet
 1 - crear el archivo del servicio
@@ -254,7 +298,7 @@ sudo nmcli con mod 'enp2s0' ipv4.dns 8.8.8.8,8.8.4.4
 scp franco@172.25.0.2:/home/franco/FRC/frc-server/application.properties /root/bodega/FRC/frc-server/
 scp franco@172.25.0.2:/home/franco/FRC/frc-server/application.yml /root/bodega/FRC/frc-server/
 
-echo franco123 | anydesk --set-password	
+echo franco123 | sudo anydesk --set-password	
 
 -- para hacer refresh en las apps del desktop de fedora
 sudo update-desktop-database
