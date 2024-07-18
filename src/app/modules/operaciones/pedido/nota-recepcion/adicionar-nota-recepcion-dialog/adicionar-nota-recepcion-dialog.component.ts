@@ -65,14 +65,18 @@ export class AdicionarNotaRecepcionDialogComponent implements OnInit {
   @ViewChild("tipoMatSelect", { static: false })
   tipoMatSelect: MatSelect;
 
+  tipoBoletaList: any[] = ["LEGAL", "COMUN", "AMBAS"];
+
   selectedNotaRecepcion: NotaRecepcion;
   selectedPedido: Pedido;
   selectedDocumento: Documento;
   numeroControl = new FormControl(null, Validators.required);
   timbradoControl = new FormControl();
-  documentoControl = new FormControl(null, Validators.required);
+  documentoControl = new FormControl(null);
+  fechaControl = new FormControl(new Date(), Validators.required);
+  tipoBoletaControl = new FormControl(this.tipoBoletaList[0], Validators.required);
   formGroup: FormGroup;
-  isEditar = false;
+  isEditing = false;
 
   documentoList: Documento[];
 
@@ -105,33 +109,22 @@ export class AdicionarNotaRecepcionDialogComponent implements OnInit {
   ngOnInit(): void {
     this.formGroup = new FormGroup({
       numero: this.numeroControl,
-      timbrado: this.timbradoControl,
-      documento: this.documentoControl,
+      fecha: this.fechaControl,
+      tipoBoleta: this.tipoBoletaControl,
     });
 
-    this.documentoList = [];
-    this.documentoService.onGetDocumentos().pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res != null) {
-        this.documentoList = res;
-        this.onSelectDocumento(this.documentoList[0]);
-      }
-    });
-
-    setTimeout(() => {
-      this.tipoMatSelect._elementRef.nativeElement.focus();
-    }, 200);
-
-    if (this.data.pedido != null) {
+    if(this.data?.pedido != null){
       this.selectedPedido = this.data.pedido;
     }
 
-    if (this.data.notaRecepcion != null) {
+    if (this.data?.notaRecepcion != null) {
       this.cargarDatos();
     }
   }
 
   cargarDatos() {
-    this.isEditar = true;
+    console.log("Cargando datos")
+    this.isEditing = true;
     if (this.data.notaRecepcion != null) {
       this.selectedNotaRecepcion = this.data.notaRecepcion;
       this.onSelectDocumento(this.selectedNotaRecepcion.documento);
@@ -150,16 +143,16 @@ export class AdicionarNotaRecepcionDialogComponent implements OnInit {
   }
 
   onSelectItens() {
-    if (this.selectedNotaRecepcion == null) {
-      this.onGuardarNota().pipe(untilDestroyed(this)).subscribe((res) => {
-        if (res) {
-          this.openAddNotaItemDialog();
-        } else {
-        }
-      });
-    } else {
-      this.openAddNotaItemDialog();
-    }
+    // if (this.selectedNotaRecepcion == null) {
+    //   this.onGuardarNota().pipe(untilDestroyed(this)).subscribe((res) => {
+    //     if (res) {
+    //       this.openAddNotaItemDialog();
+    //     } else {
+    //     }
+    //   });
+    // } else {
+    //   this.openAddNotaItemDialog();
+    // }
   }
 
   openAddNotaItemDialog() {
@@ -218,32 +211,8 @@ export class AdicionarNotaRecepcionDialogComponent implements OnInit {
     }
   }
 
-  onGuardarNota(): Observable<boolean> {
-    return new Observable((obs) => {
-      let nota = new NotaRecepcion();
-      if (this.selectedNotaRecepcion != null) {
-        nota.id = this.selectedNotaRecepcion.id;
-        nota.creadoEn = this.selectedNotaRecepcion.creadoEn;
-        nota.usuario = this.selectedNotaRecepcion.usuario;
-      }
-      nota.pedido = this.selectedPedido;
-      nota.numero = this.numeroControl.value;
-      nota.documento = this.selectedDocumento;
-      nota.timbrado = this.timbradoControl.value;
-      this.notaRecepcionService
-        .onSaveNotaRecepcion(nota.toInput()).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res != null) {
-            nota.id = res.id;
-            this.selectedNotaRecepcion = nota;
-            this.isEditar = false;
-            obs.next(true);
-          } else {
-            obs.next(true);
-            this.isEditar = true;
-          }
-        });
-    });
+  onGuardarNota() {
+
   }
 
   onGuardarItem(nuevaLista: SelectedItem[]) {}
@@ -309,10 +278,26 @@ export class AdicionarNotaRecepcionDialogComponent implements OnInit {
   }
 
   onVolver() {
-    this.matDialogRef.close(this.dataSource.data);
+    this.matDialogRef.close(this.selectedNotaRecepcion);
   }
 
   onEditar() {}
+
+  onSave(){
+    if(this.selectedNotaRecepcion == null){
+      this.selectedNotaRecepcion = new NotaRecepcion();
+      this.selectedNotaRecepcion.pedido = this.selectedPedido;
+    }
+    this.selectedNotaRecepcion.numero = this.numeroControl.value;
+    this.selectedNotaRecepcion.fecha = this.fechaControl.value;
+    this.selectedNotaRecepcion.tipoBoleta = this.tipoBoletaControl.value?.toString();
+    this.notaRecepcionService.onSaveNotaRecepcion(this.selectedNotaRecepcion.toInput()).pipe(untilDestroyed(this)).subscribe(res => {
+      if(res != null){
+        this.isEditing = false;
+        this.formGroup.disable();
+      }
+    })
+  }
 
 
 }

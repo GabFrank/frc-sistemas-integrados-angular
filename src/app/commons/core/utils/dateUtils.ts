@@ -3,6 +3,8 @@ import { formatDate } from "@angular/common";
 export function dateToString(date: Date, format?: string): string {
   if (date != null) {
     return formatDate(date, format || "yyyy-MM-dd HH:mm", "en-Us");
+  } else {
+    return null;
   }
 }
 

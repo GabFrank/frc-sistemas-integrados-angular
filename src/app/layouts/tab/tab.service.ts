@@ -10,6 +10,8 @@ import { EditPedidoComponent } from '../../modules/operaciones/pedido/edit-pedid
 import { ListTransferenciaComponent } from '../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
 import { ListProductoComponent } from '../../modules/productos/producto/list-producto/list-producto.component';
 import { ListFacturaLegalComponent } from '../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component';
+import { ListPedidoComponent } from '../../modules/operaciones/pedido/list-pedido/list-pedido.component';
+import { EditTransferenciaComponent } from '../../modules/operaciones/transferencia/edit-transferencia/edit-transferencia.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -43,9 +45,10 @@ export class TabService implements OnInit {
       // new Tab(VentaTouchComponent, 'Venta', null, null),
     ];
 
-    // this.addTab(new Tab(ListTransferenciaComponent, 'Lista de transferencias', null, null))
-    // this.addTab(new Tab(ListProductoComponent, 'Lista de productos', null, null))
-    this.addTab(new Tab(ListFacturaLegalComponent, 'Lista de facturas', null, null))
+    this.addTab(new Tab(EditTransferenciaComponent, 'Transferencia 56', new TabData(56, {id: 56}), null))
+    // this.addTab(new Tab(EditPedidoComponent, 'Nuevo pedido'))
+    // this.addTab(new Tab(EditPedidoComponent, 'Nuevo pedido', new TabData(9, {id: 9}), null))
+    // this.addTab(new Tab(ListFacturaLegalComponent, 'Lista de facturas', null, null))
     this.tabSub.next(this.tabs);
   }
   
@@ -152,6 +155,10 @@ export class TabService implements OnInit {
 
   removeCurrentTab() {
     this.removeTab(this.currentIndex)
+  }
+
+  changeCurrentTabName(name:string){
+    this.tabs[this.currentIndex].title = name;
   }
 }
 

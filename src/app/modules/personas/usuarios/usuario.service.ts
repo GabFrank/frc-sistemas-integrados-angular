@@ -17,7 +17,7 @@ import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { VerificarUsuarioGQL } from "./graphql/verificarUsuario";
 import { UsuariosGQL } from "./graphql/usuariosQuery";
 import { UsuarioPorPersonaIdGQL } from "./graphql/usuarioPorPersonaId";
-import { InicioSesion, InicioSesionInput } from "../../configuracion/models/inicio-sesion.model";
+import { InicioSesion, InicioSesionInput } from "../../configuracion/inicio-sesion/inicio-sesion.model";
 import { PageInfo } from "../../../app.component";
 import { SaveInicioSesionGQL } from "./graphql/saveInicioSesion";
 

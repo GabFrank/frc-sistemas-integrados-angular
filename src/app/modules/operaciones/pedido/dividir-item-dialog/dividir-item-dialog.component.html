@@ -1,0 +1,323 @@
+<div
+  fxLayout="column"
+  fxLayoutAlign="space-between start"
+  fxLayoutGap="10px"
+  style="width: 100%; padding: 15px; height: 100%"
+>
+  <div style="width: 100%; text-align: center">Dividir Item</div>
+
+  <div fxFlex="20" fxLayout="row" style="width: 100%">
+    <div
+      fxLayout="row"
+      fxLayoutGap="10px"
+      fxLayoutGap="10px"
+      fxLayoutAlign="start center"
+      style="width: 100%"
+    >
+      <div
+        fxLayout="column"
+        fxFlex="10"
+        style="width: 1005; height: 100%"
+        fxLayoutAlign="space-between center"
+        fxLayoutGap="10px"
+      >
+        <div fxFlex style="background-color: rgb(50, 50, 50)">
+          <img
+            [src]="
+              selectedPedidoItem?.presentacion?.imagenPrincipal != null
+                ? selectedPedidoItem?.presentacion?.imagenPrincipal
+                : 'assets/no-image.png'
+            "
+            alt="producto"
+            style="height: 100px; width: 100px; object-fit: contain"
+            [frcPrevisualizarImagen]="
+              selectedPedidoItem?.presentacion?.imagenPrincipal != null
+                ? selectedPedidoItem?.presentacion?.imagenPrincipal
+                : 'assets/no-image.png'
+            "
+          />
+        </div>
+        <div fxFlex>
+          {{ selectedProducto?.codigoPrincipal }}
+        </div>
+      </div>
+
+      <div fxFlex="20" fxLayout="column">
+        <div class="titulo-center">Producto</div>
+        <div class="subtitulo-center">
+          {{ selectedProducto?.descripcion }}
+        </div>
+      </div>
+      <div fxFlex="10" fxLayout="column">
+        <div class="titulo-center">Presentación</div>
+        <div class="subtitulo-center">
+          {{ selectedPedidoItem?.presentacion?.cantidad | number : "1.0-2" }}
+        </div>
+      </div>
+      <div fxFlex="10" fxLayout="column">
+        <div class="titulo-center">Cant. por presentación</div>
+        <div class="subtitulo-center">
+          {{ selectedPedidoItem?.cantidad | number : "1.0-2" }}
+        </div>
+      </div>
+      <div fxFlex="10" fxLayout="column">
+        <div class="titulo-center">Cant. por unidad</div>
+        <div class="subtitulo-center">
+          {{
+            selectedPedidoItem?.cantidad *
+              selectedPedidoItem?.presentacion?.cantidad | number : "1.0-2"
+          }}
+        </div>
+      </div>
+      <div fxFlex="10" fxLayout="column">
+        <div class="titulo-center">Precio unitario</div>
+        <div class="subtitulo-center">
+          {{ selectedPedidoItem?.precioUnitario | number : "1.0-2" }}
+        </div>
+      </div>
+      <div fxFlex="10" fxLayout="column">
+        <div class="titulo-center">Desc. por presentación</div>
+        <div class="subtitulo-center">
+          {{ selectedPedidoItem?.descuentoUnitario | number : "1.0-2" }}
+        </div>
+      </div>
+      <div fxFlex="10" fxLayout="column">
+        <div class="titulo-center">Total</div>
+        <div class="subtitulo-center">
+          {{
+            (selectedPedidoItem?.precioUnitario -
+              selectedPedidoItem?.descuentoUnitario) *
+              selectedPedidoItem?.cantidad *
+              selectedPedidoItem?.presentacion?.cantidad | number : "1.0-2"
+          }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    #scrollContainer
+    fxFlex="50"
+    style="
+      width: 100%;
+      height: 250px !important;
+      background-color: rgb(32, 32, 32);
+      overflow-y: auto;
+    "
+  >
+    <div
+      fxLayout="row"
+      fxLayoutGap="10px"
+      style="width: 100%; margin-bottom: 10px"
+      *ngFor="let formGroup of presentacionControl; let forIndex = index"
+    >
+      <div fxFlex="15" fxLayout="column" fxLayoutAlign="end center">
+        Item: {{ 1 + forIndex }}
+      </div>
+      <div fxFlex="10">
+        <mat-form-field style="width: 100%; text-align: center">
+          <mat-label>Presentación</mat-label>
+          <mat-select
+            #presentacionSelect
+            [formControl]="presentacionControl[forIndex]"
+          >
+            <mat-option
+              *ngFor="let presentacion of presentacionList"
+              [value]="presentacion"
+              style="text-align: center"
+            >
+              {{ presentacion?.cantidad | number : "1.0-3" }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="15">
+        <mat-form-field
+          style="width: 100%"
+          matTooltip="Cantidad por presentación"
+        >
+          <mat-label>Cant. por present.</mat-label>
+          <input
+            #cantidadPresentacionInput
+            type="text"
+            matInput
+            [formControl]="cantidadPresentacionControl[forIndex]"
+            style="text-align: center"
+            (keyup.enter)="precioPorPresentacion.select()"
+            currencyMask
+            [options]="currencyMask.currencyOptionsGuarani"
+          />
+          <mat-error
+            *ngIf="cantidadPresentacionControl[forIndex].hasError('error')"
+            >Cantidad inválida</mat-error
+          >
+        </mat-form-field>
+      </div>
+      <div fxFlex="10">
+        <mat-form-field style="width: 100%" matTooltip="Cantidad por unidad">
+          <mat-label>Cant. por unid.</mat-label>
+          <input
+            #cantidadUnidadInput
+            type="text"
+            matInput
+            [formControl]="cantidadUnidadControl[forIndex]"
+            style="text-align: center"
+            readonly
+            [tabindex]="-1"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="10">
+        <mat-form-field style="width: 100%">
+          <mat-label>Precio por present.</mat-label>
+          <input
+            #precioPorPresentacion
+            type="text"
+            matInput
+            [formControl]="precioPorPresentacionControl[forIndex]"
+            style="text-align: center"
+            currencyMask
+            [options]="
+              selectedPedido?.moneda?.denominacion?.includes('GUARANI')
+                ? currencyMask.currencyOptionsGuarani
+                : currencyMask.currencyOptionsNoGuarani
+            "
+            (keyup.enter)="precioUnitario.select()"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="10">
+        <mat-form-field style="width: 100%">
+          <mat-label>Precio Unit.</mat-label>
+          <input
+            #precioUnitario
+            type="text"
+            matInput
+            [formControl]="precioUnitarioControl[forIndex]"
+            style="text-align: center"
+            currencyMask
+            [options]="
+              selectedPedido?.moneda?.denominacion?.includes('GUARANI')
+                ? currencyMask.currencyOptionsGuarani
+                : currencyMask.currencyOptionsNoGuarani
+            "
+            (keyup.enter)="descuentoInput.select()"
+            (focusin)="precioUnitario.select()"
+          />
+        </mat-form-field>
+      </div>
+
+      <div fxFlex="10">
+        <mat-form-field style="width: 100%">
+          <mat-label>Desc. por present.</mat-label>
+          <input
+            #descuentoInput
+            type="text"
+            matInput
+            [formControl]="descuentoPresentacionControl[forIndex]"
+            style="text-align: center"
+            currencyMask
+            [options]="
+              selectedPedido?.moneda?.denominacion?.includes('GUARANI')
+                ? currencyMask.currencyOptionsGuarani
+                : currencyMask.currencyOptionsNoGuarani
+            "
+            matTooltip="Descuento por presentación"
+            (focusout)="
+              valorTotalControl[forIndex].setValue(
+                valorTotalControl[forIndex].value -
+                  descuentoPresentacionControl[forIndex].value *
+                    cantidadPresentacionControl[forIndex].value
+              )
+            "
+          />
+        </mat-form-field>
+      </div>
+
+      <div fxFlex="10">
+        <mat-form-field style="width: 100%">
+          <mat-label>Total</mat-label>
+          <input
+            type="text"
+            matInput
+            [formControl]="valorTotalControl[forIndex]"
+            style="text-align: center"
+            currencyMask
+            [options]="
+              selectedPedido?.moneda?.denominacion?.includes('GUARANI')
+                ? currencyMask.currencyOptionsGuarani
+                : currencyMask.currencyOptionsNoGuarani
+            "
+            tabindex="-1"
+            readonly
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="5" style="width: 100%; text-align: center">
+        <button
+          *ngIf="presentacionControl?.length - 1 == forIndex"
+          mat-icon-button
+          style="text-align: center"
+          class="highlight-hover"
+          (click)="onAddItem()"
+        >
+          <mat-icon>add_circle</mat-icon>
+        </button>
+      </div>
+      <div fxFlex="5" style="width: 100%; text-align: center">
+        <button
+          *ngIf="forIndex > 1"
+          mat-icon-button
+          class="highlight-hover-danger"
+          style="text-align: center"
+          (click)="onDeleteItem(forIndex)"
+        >
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div
+    fxFlex="20"
+    fxLayout="column"
+    fxLayoutAlign="center center"
+    style="width: 100%"
+  >
+    <div
+      fxLayout="row"
+      fxFlexAlign="start center"
+      fxLayoutGap="10px"
+      style="width: 100%"
+    >
+      <div fxFlex="50"></div>
+      <div fxFlex="20" fxLayout="column" fxLayoutAlign="center center">
+        <div class="titulo-center">Cant. de itens</div>
+        <div class="subtitulo-center">
+          {{ presentacionControl.length }}
+        </div>
+      </div>
+      <div fxFlex="20" fxLayout="column" fxLayoutAlign="center center">
+        <div class="titulo-center">Cant. total por unidad</div>
+        <div class="subtitulo-center">
+          {{ cantidadParcial }}
+        </div>
+      </div>
+      <div fxFlex="20" fxLayout="column" fxLayoutAlign="center center">
+        <div class="titulo-center">Total</div>
+        <div class="subtitulo-center">
+          {{
+            cantidadParcial *
+              (selectedPedidoItem?.precioUnitario -
+                selectedPedidoItem?.descuentoUnitario) | number : "1.0-2"
+          }}
+        </div>
+      </div>
+      <div fxFlex="10">
+        <app-boton color="warn" nombre="Cancelar"></app-boton>
+      </div>
+      <div fxFlex="10">
+        <app-boton color="accent" nombre="Aceptar" [disableExpression]="cantidadParcial != cantidadPorUnidad"></app-boton>
+      </div>
+    </div>
+  </div>
+</div>

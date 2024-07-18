@@ -25,6 +25,7 @@ import { Conteo } from "../conteo.model";
 
 export class AdicionarConteoData {
   conteo?: Conteo;
+  sucId?: number;
 }
 
 export interface AdicionarConteoResponse {
@@ -54,6 +55,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
   @Input() focus: Observable<Conteo>;
   @Input() apertura: boolean;
   @Input() cajaId;
+  @Input() sucursalId;
   @Input() nombreBoton: string;
 
   @Output()
@@ -149,9 +151,6 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
   }
 
   cargarDatos() {
-    this.gsFormGroup.disable()
-    this.rsFormGroup.disable()
-    this.dsFormGroup.disable()
     this.cargandoDialog.openDialog(null, 'Cargando datos...')
     this.totalGs = 0;
     this.totalDs = 0;
@@ -189,6 +188,9 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
       this.onGetConteoMoneda.emit(response);
     }, 500);
     this.cargandoDialog.closeDialog()
+    this.gsFormGroup.disable()
+    this.rsFormGroup.disable()
+    this.dsFormGroup.disable()
   }
 
   createForm() {
@@ -335,6 +337,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
     conteo.totalGs = this.totalGs;
     conteo.totalRs = this.totalRs;
     conteo.totalDs = this.totalDs;
+    conteo.sucursalId = this.sucursalId;
     conteo.conteoMonedaList = conteoMonedaList;
     let texto = "Confirmar datos de apertura de caja";
     if (!apertura) texto = "Confirmar datos de cierre de caja";
@@ -347,7 +350,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
       .subscribe((res) => {
         if (res) {
           this.conteoService
-            .onSave(conteo, this.cajaId, apertura)
+            .onSave(conteo, this.cajaId, apertura )
             .pipe(untilDestroyed(this))
             .subscribe((res) => {
               if (res != null) {

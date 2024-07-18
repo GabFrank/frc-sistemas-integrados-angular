@@ -14,7 +14,7 @@ wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
 
 -- instalar postgres 13
 sudo dnf module reset postgresql -y
-sudo dnf install https://download.postgresql.org/pub/repos/yum/reporpms/F-37-x86_64/pgdg-fedora-repo-latest.noarch.rpm -y
+sudo dnf install https://download.postgresql.org/pub/repos/yum/reporpms/F-38-x86_64/pgdg-fedora-repo-latest.noarch.rpm -y
 sudo dnf install postgresql13-server postgresql13 -y
 sudo /usr/pgsql-13/bin/postgresql-13-setup initdb
 sudo systemctl enable --now postgresql-13
@@ -34,6 +34,12 @@ sudo -u postgres psql -p 5551 -c "CREATE DATABASE general WITH OWNER franco"
 sudo -u postgres psql -p 5551 -c "CREATE DATABASE bodega WITH OWNER franco"
 sudo -u postgres psql -p 5551 -c "drop DATABASE farmacia"
 sudo -u postgres psql -p 5551 -c "CREATE DATABASE farmacia WITH OWNER franco"
+
+sudo -u postgres psql -p 5551 -c "select * from pg_stat_replication;"
+CREATE SUBSCRIPTION filial14sub
+CONNECTION 'host=172.25.1.14 port=5551 dbname=general user=franco password=franco'
+PUBLICATION filial14pub;
+
 -- instalar zerotier-one
 sudo dnf copr enable atim/zerotier-one -y
 sudo dnf install zerotier-one -y
@@ -86,22 +92,22 @@ mkdir /home/franco/FRC/postgres
 mkdir /home/franco/FRC/resources
 mkdir /home/franco/FRC/resources/images
 -- copiar los archivos necesarios usando ssh y scp
-scp franco@172.25.0.2:/home/franco/FRC/configuracion.json /home/franco/FRC/
-scp franco@172.25.0.2:/home/franco/FRC/configuracion-local.json /home/franco/FRC/
-scp franco@172.25.0.2:/home/franco/FRC/frc.png /home/franco/FRC/
-scp franco@172.25.0.2:/home/franco/FRC/FRC.AppImage /home/franco/FRC/
-scp franco@172.25.0.2:/home/franco/FRC/pos/posprinterinstall_integrated.tar.gz /home/franco/FRC/pos/
+scp franco@172.25.1.1:/home/franco/FRC/configuracion.json /home/franco/FRC/
+scp franco@172.25.1.1:/home/franco/FRC/configuracion-local.json /home/franco/FRC/
+scp franco@172.25.1.1:/home/franco/FRC/frc.png /home/franco/FRC/
+scp franco@172.25.1.1:/home/franco/FRC/FRC.AppImage /home/franco/FRC/
+scp franco@172.25.1.1:/home/franco/FRC/pos/posprinterinstall_integrated.tar.gz /home/franco/FRC/pos/
 scp franco@172.25.1.1:/home/franco/FRC/frc-server/frc-server.jar /home/franco/FRC/frc-server/
 scp franco@172.25.1.1:/home/franco/FRC/frc-server/application.properties /home/franco/FRC/frc-server/
 scp franco@172.25.1.1:/home/franco/FRC/frc-server/application.yml /home/franco/FRC/frc-server/
-scp franco@172.25.0.2:/home/franco/FRC/resources/images/logo.png /home/franco/FRC/resources/images/
-sudo scp franco@172.25.0.2:/usr/share/applications/frc.desktop /usr/share/applications/
+scp franco@172.25.1.1:/home/franco/FRC/resources/images/logo.png /home/franco/FRC/resources/images/
+sudo scp franco@172.25.1.1:/usr/share/applications/frc.desktop /usr/share/applications/
 sudo chmod a+rwx /home/franco/FRC/FRC.AppImage
 sudo update-desktop-database
 
 -- instalar nuestro servicio
 -- crear el servicio
-sudo tee /etc/systemd/system/frc-server.service << "EOF" > /dev/null
+sudo tee /etc/systemd/system/frc.service << "EOF" > /dev/null
 [Unit]
 Description=FRC Sistemas Integrados
 After=network.target
@@ -110,7 +116,7 @@ After=network.target
 Type=simple
 User=franco
 WorkingDirectory=/home/franco/FRC/frc-server/
-ExecStart=/usr/bin/java -jar /home/franco/FRC/frc-server.jar
+ExecStart=/usr/bin/java -jar /home/franco/FRC/frc-server/frc-server.jar
 SuccessExitStatus=143
 
 [Install]
@@ -331,3 +337,9 @@ curl -X POST "http://localhost:8081/send-notification?topic=gold" \
      -H "Content-Type: application/json" \
      --data '{"title":"Some Title","body":"Some Body Content"}' \
      "https://oauth2.googleapis.com/token"
+
+
+cuando se crea un item de transferencia, todavia no modifica el stock
+solamente cuando confirme el item en la preparacion de mercaderia, ese item saldra del stock
+en la preparacion de mercaderia, se puede modificar la cantidad, entonces
+tambien debera modificar la cantidad del movimiento

@@ -16,7 +16,7 @@ export interface LoginResponse {
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { Observable } from "rxjs";
-import { InicioSesion } from "../configuracion/models/inicio-sesion.model";
+import { InicioSesion } from "../configuracion/inicio-sesion/inicio-sesion.model";
 import { DeviceDetectorService } from "ngx-device-detector";
 import { generateUUID } from "../../commons/core/utils/string-utils";
 import { ElectronService } from "../../commons/core/electron/electron.service";

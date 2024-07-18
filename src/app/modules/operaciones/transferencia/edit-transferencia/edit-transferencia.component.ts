@@ -98,6 +98,8 @@ export class EditTransferenciaComponent implements OnInit {
   @ViewChild("monedaVueltoInput", { static: false })
   monedaVueltoInput: ElementRef;
 
+  @ViewChild("filtroProductoInput", { static: false }) filtroProductoInput: ElementRef;
+  
   @Input()
   data: Tab;
 
@@ -185,6 +187,9 @@ export class EditTransferenciaComponent implements OnInit {
   monedaSub: Subscription;
   monedaTimer;
 
+  //filtro de productos
+  filtroProductosOpen = false;
+  filtroProductoControl = new FormControl(null);
   constructor(
     private matDialog: MatDialog,
     public mainService: MainService,
@@ -271,14 +276,14 @@ export class EditTransferenciaComponent implements OnInit {
         data: {
           id: 123,
           componente: EditTransferenciaComponent,
-          titulo: 'Nuevas funciones en esta pantalla de transferencias',
+          titulo: "Nuevas funciones en esta pantalla de transferencias",
           mensaje: `
           1 - A partir de ahora tenemos paginación en la tabla, ya no será utilizado el botón cargar más. Podes seleccionar la cantidad de itens para mostrar en la lista y navegar con los controles que estan en la barra inferior de la lista.\n
           2 - Al pasar productos pesables, el sistema no avisará sobre productos duplicados. Verificar atentamente para no pasar dos veces el mismo producto.
-          `
+          `,
         },
-        width: '60%'
-      })
+        width: "60%",
+      });
     }, 1000);
   }
 
@@ -324,33 +329,58 @@ export class EditTransferenciaComponent implements OnInit {
       .subscribe(async (res) => {
         this.isDialogOpen = false;
         if (res != null) {
-          this.selectedTransferencia.sucursalOrigen = res["sucursalOrigen"];
-          this.selectedTransferencia.sucursalDestino = res["sucursalDestino"];
-          this.codigoInput.nativeElement.focus();
-          if (this.selectedTransferencia?.id != null) {
-            this.transferenciaService
-              .onSaveTransferencia(this.selectedTransferencia.toInput())
-              .pipe(untilDestroyed(this))
-              .subscribe((saveTransferenciaRes) => {
-                this.selectedTransferencia.sucursalOrigen =
-                  saveTransferenciaRes.sucursalOrigen;
-                this.selectedTransferencia.sucursalDestino =
-                  saveTransferenciaRes.sucursalDestino;
-              });
-          }
+          let auxTransf = new Transferencia();
+          Object.assign(auxTransf, this.selectedTransferencia);
+
+          auxTransf.sucursalOrigen = res["sucursalOrigen"];
+          auxTransf.sucursalDestino = res["sucursalDestino"];
+          // this.codigoInput.nativeElement.focus();
+          // if (this.selectedTransferencia?.id != null) {
+          this.transferenciaService
+            .onSaveTransferencia(auxTransf.toInput())
+            .pipe(untilDestroyed(this))
+            .subscribe((saveTransferenciaRes) => {
+              this.selectedTransferencia.sucursalOrigen =
+                saveTransferenciaRes.sucursalOrigen;
+              this.selectedTransferencia.sucursalDestino =
+                saveTransferenciaRes.sucursalDestino;
+              this.selectedTransferencia.id = saveTransferenciaRes.id;
+              this.tabService.changeCurrentTabName(
+                "Transferencia " + this.selectedTransferencia.id
+              );
+            });
+          // }
+        } else {
+          this.dialogoService
+            .confirm(
+              "Atención!!",
+              "Para iniciar una transferencia debes de seleccionar las sucursales de origen y destino",
+              null,
+              null,
+              true,
+              "Selec. sucursales",
+              "Salir"
+            )
+            .subscribe((res2) => {
+              if (res2 == true) {
+                this.selectSucursales();
+              } else {
+                this.tabService.removeCurrentTab();
+              }
+            });
         }
       });
   }
 
   cargarDatos() {
-    this.cargandoService.openDialog(false, "Cargando datos");
+    // this.cargandoService.openDialog(false, "Cargando datos");
     let id = this.data.tabData["id"];
     if (id != null) {
       this.transferenciaService
         .onGetTransferencia(id)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
-          this.cargandoService.closeDialog();
+          // this.cargandoService.closeDialog();
           if (res != null) {
             this.selectedTransferencia = new Transferencia();
             Object.assign(this.selectedTransferencia, res);
@@ -599,7 +629,8 @@ export class EditTransferenciaComponent implements OnInit {
               this.dataSource.data,
               res
             );
-            if(this.pageSize == this.dataSource.data?.length) this.dataSource.data.pop();
+            if (this.pageSize == this.dataSource.data?.length)
+              this.dataSource.data.pop();
             this.paginator.length = this.paginator.length + 1;
           }
         }
@@ -1241,7 +1272,37 @@ export class EditTransferenciaComponent implements OnInit {
     this.pageSize = e.pageSize;
     this.getTransferenciaItemList();
   }
+
+  abrirFiltroProductos() {
+    this.filtroProductosOpen = !this.filtroProductosOpen;
+    if(!this.filtroProductosOpen){
+      this.getTransferenciaItemList();
+    } else {
+      setTimeout(() => {
+        this.focusFilterProductoInput()
+      }, 100);
+    }
+  }
+
+  focusFilterProductoInput(){
+    this.filtroProductoInput.nativeElement.focus();
+  }
+
+  onFilterProducto() {
+    let texto: string = this.filtroProductoControl.value;
+    if (texto != null && texto.trim().length > 0) {
+      this.transferenciaService.onGetTransferenciaItensPorTransferenciaIdWithFilter(
+        null,
+        texto,
+        this.pageIndex,
+        this.pageSize
+      ).pipe(untilDestroyed(this)).subscribe((res: PageInfo<TransferenciaItem>) => {
+        if (res != null) {
+          this.selectedPageInfo = res;
+          this.dataSource.data = res.getContent;
+        }
+      });
+    }
+  }
+
 }
-
-
-

@@ -17,10 +17,8 @@ class DialogData {
 })
 export class CargandoDialogService {
 
-  cargandoTextSub = new BehaviorSubject<string>(null);
-  dialogCount = 0;
-  dialogRef: MatDialogRef<any>;
-  showCerrarButton = false;
+  private dialogRequests: Map<number, { timer: any, texto: string, botonText?: string, showCerrarButton: boolean, abortController: AbortController }> = new Map();
+  private requestIdCounter: number = 0;
 
   public dialogSub: Subject<boolean> = new Subject<boolean>();
 
@@ -28,35 +26,56 @@ export class CargandoDialogService {
     private matDialog: MatDialog,
     private spinnerService: NgxSpinnerService,
     private notificacionService: NotificacionSnackbarService
-  ) {
+  ) {}
+
+  openDialog(disable?: boolean, texto?: string, duracion?: number, botonDelay?: number, botonText?: string): { requestId: number, signal: AbortSignal } {
+    this.spinnerService.show();
+
+    const requestId = this.requestIdCounter++;
+    const abortController = new AbortController();
+    const timer = setTimeout(() => {
+      this.closeDialog(requestId);
+      this.notificacionService.openWarn('Tiempo de espera superado');
+    }, duracion || 60000); // Default duration 60 seconds
+
+    this.dialogRequests.set(requestId, {
+      timer,
+      texto: texto || '',
+      botonText: botonText || 'Cerrar',
+      showCerrarButton: disable !== undefined ? !disable : true,
+      abortController
+    });
+    // console.log(`Dialog opened: requestId=${requestId}, signal=${abortController.signal}`);
+    return { requestId, signal: abortController.signal };
   }
 
-  openDialog(disable?: boolean, texto?: string, duracion?: number) {
-    this.dialogCount++;
-    this.spinnerService.show()
+  closeDialog(requestId?: number) {
+    if (requestId === null || requestId === undefined) {
+      // Close the next open dialog
+      const nextRequestId = this.dialogRequests.keys().next().value;
+      if (nextRequestId !== undefined) {
+        requestId = nextRequestId;
+      }
+    }
 
-    if (duracion != null) {
-      setTimeout(() => {
-        if (this.dialogCount > 0) {
-          this.closeDialog()
-          this.notificacionService.openWarn('Tiempo de espera superado')
-        }
-      }, duracion);
+    const request = this.dialogRequests.get(requestId);
+    if (request) {
+      clearTimeout(request.timer);
+      request.abortController.abort();
+      // console.log(`Request aborted: requestId=${requestId}`);
+      this.dialogRequests.delete(requestId);
+
+      if (this.dialogRequests.size === 0) {
+        this.spinnerService.hide();
+      }
     }
   }
 
-  closeDialog() {
-    setTimeout(() => {
-      if (this.dialogCount > 1) {
-        this.dialogCount--;
-      } else if (this.dialogCount == 1) {
-        this.dialogCount--;
-        this.spinnerService.hide()
-      }
-    }, 500);
-  }
-
-  onShowCerrarButtom(){
-    this.showCerrarButton = true;
+  onShowCerrarButton(requestId: number) {
+    const request = this.dialogRequests.get(requestId);
+    if (request) {
+      request.showCerrarButton = true;
+      this.dialogRequests.set(requestId, request); // Update the entry
+    }
   }
 }

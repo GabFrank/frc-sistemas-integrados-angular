@@ -15,7 +15,7 @@ export class ProductoProveedorService {
     private productoProveedorPorProveedorId: ProductoProveedorPorProveedorIdGQL
   ) { }
 
-  getByProveedorId(id: number, page: number, size: number): Observable<PageInfo<ProductoProveedor>> {
-    return this.genericService.onGetById(this.productoProveedorPorProveedorId, id, page, size);
+  getByProveedorId(id: number, texto: string, page: number, size: number): Observable<PageInfo<ProductoProveedor>> {
+    return this.genericService.onCustomQuery(this.productoProveedorPorProveedorId, {id,texto, page, size});
   }
 }

@@ -48,8 +48,7 @@
           <button
             style="width: 100%"
             mat-raised-button
-            *ngIf="selectedConteoApertura != null"
-            (click)="goTo('imprimir-factura')"
+            [disabled]="true"
           >
             Imprimir vía tributaria
           </button>
@@ -244,6 +243,7 @@
               [apertura]="true"
               nombreBoton="Abrir Caja"
               [cajaId]="selectedCaja?.id"
+              [sucursalId]="selectedCaja?.sucursalId"
               [events]="siguienteSubject.asObservable()"
               [conteo]="conteoAperturaSubject.asObservable()"
               [focus]="focusToAPerturaSub.asObservable()"

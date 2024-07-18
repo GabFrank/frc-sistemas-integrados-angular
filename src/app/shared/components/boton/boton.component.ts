@@ -11,6 +11,9 @@ export interface BotonData {
   expression: boolean
 }
 
+type Color = 'primary' | 'accent' | 'warn' | 'danger'; // Add more as needed
+
+
 @UntilDestroy()
 @Component({
   selector: 'app-boton',
@@ -28,7 +31,7 @@ export class BotonComponent implements OnInit {
   disableExpression: boolean;
 
   @Input()
-  color = 'primary';
+  color: Color = 'primary';
 
   @Input()
   icon;
@@ -44,6 +47,9 @@ export class BotonComponent implements OnInit {
 
   @Input()
   sufix;
+
+  @Input()
+  delay = 0;
   
   temporaryDisable = false;
 
@@ -56,6 +62,8 @@ export class BotonComponent implements OnInit {
   @Input()
   focusEvent = new BehaviorSubject<boolean>(false);
 
+  showButton = true;
+
   constructor() { }
 
   ngOnInit(): void {
@@ -66,6 +74,13 @@ export class BotonComponent implements OnInit {
     })
 
     if(Number(this.nombre) == +this.nombre) this.isNumber = true;
+
+    if(this.delay!=null){      
+      this.showButton = false;
+      setTimeout(() => {        
+        this.showButton = true;
+      }, this.delay);
+    }
   }
 
   onClick() {

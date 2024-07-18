@@ -131,10 +131,15 @@ export const savePedidoItem = gql`
       producto {
         id
         descripcion
+        codigoPrincipal
       }
       presentacion {
         id
         cantidad
+      }
+      pedido {
+        descuento
+        valorTotal
       }
       precioUnitario
       descuentoUnitario

@@ -20,7 +20,7 @@ import {
 import { setContext } from "@apollo/client/link/context";
 import { onError } from "@apollo/client/link/error";
 import { WebSocketLink } from "@apollo/client/link/ws";
-import { getMainDefinition } from "@apollo/client/utilities";
+import { getMainDefinition, Observable } from "@apollo/client/utilities";
 import { APOLLO_OPTIONS, ApolloModule } from "apollo-angular";
 import { HttpLink } from "apollo-angular/http";
 import { NgxSpinnerModule } from "ngx-spinner";
@@ -38,13 +38,22 @@ import { ModulesModule } from "./modules/modules.module";
 import { FormatNumberPipe } from "./pipes/format-number.pipe";
 import { SharedModule } from "./shared/shared.module";
 import { SucursalService } from "./modules/empresarial/sucursal/sucursal.service";
+import { GraphQLError } from "graphql";
+import { GraphQLErrors } from "@apollo/client/errors";
 
 export const errorObs = new BehaviorSubject<any>(null);
 export const connectionStatusSub = new BehaviorSubject<any>(null);
 
+export interface GraphQLResponse<T> {
+  data: T | null | undefined;
+  errors: any | null;
+}
+
 // error handling
 const errorLink = onError(({ graphQLErrors, networkError }) => {
   console.log(graphQLErrors, networkError);
+
+  
   // if (graphQLErrors)
   //   graphQLErrors.map(({ message, locations, path }) =>
   //     errorObs.next({message, locations, path})
@@ -55,6 +64,46 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
 
   // if (networkError) console.log(`[Network error]: ${networkError}`);
 });
+
+const createAbortableLink = () => {
+  return new ApolloLink((operation, forward) => {
+    const controller = new AbortController();
+    const signal = controller.signal;
+
+    // Log the creation of the controller and signal
+    // console.log(`AbortController created with signal:`, signal);
+
+    // Set the signal in the operation context
+    operation.setContext({ fetchOptions: { signal } });
+
+    return new Observable(observer => {
+      const subscription = forward(operation).subscribe({
+        next: result => {
+          // console.log('Received result:', result);
+          observer.next(result);
+        },
+        error: error => {
+          // console.error('Received error:', error);
+          observer.error(error);
+        },
+        complete: () => {
+          // console.log('Request completed');
+          observer.complete();
+        }
+      });
+
+      return () => {
+        // Log when the abort is called
+        // console.log('Aborting request with signal:', signal);
+        controller.abort();
+        subscription.unsubscribe();
+      };
+    });
+  });
+};
+
+export const abortableLink = createAbortableLink();
+
 
 // export function createNamed(httpLink: HttpLink): Record<string, ApolloClientOptions<any>> {
 //   const url = `http://localhost:8081/graphql`;
@@ -259,7 +308,7 @@ export function appInit(appConfigService: MainService) {
         const ws2 = new WebSocketLink(wsClient2);
         // using the ability to split links, you can send data to each link
         // depending on what kind of operation is being sent
-        const link = errorLink.concat(
+        const link = abortableLink.concat(errorLink.concat(
           split(
             // split based on operation type
 
@@ -281,7 +330,7 @@ export function appInit(appConfigService: MainService) {
               http
             )
           )
-        );
+        ));
 
         return {
           link,

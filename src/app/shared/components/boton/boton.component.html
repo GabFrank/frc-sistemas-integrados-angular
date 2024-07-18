@@ -8,6 +8,7 @@
     [disabled]="disableExpression || temporaryDisable"
     (click)="onClick()"
     [class.warn]="color?.includes('warn')"
+    *ngIf="showButton"
   >
     <!-- <div
       fxLayout="column"

@@ -43,6 +43,7 @@ import { NgxMatSelectSearchModule } from 'ngx-mat-select-search';
 import { EnumToStringPipe } from './utils/pipes/enum-to-string';
 import { TimeDiffPipe } from './utils/pipes/time-diff';
 import { BdcWalkModule } from 'bdc-walkthrough';
+import { NgxChartsModule } from '@swimlane/ngx-charts';
 
 @NgModule({
   imports: [],
@@ -95,7 +96,8 @@ import { BdcWalkModule } from 'bdc-walkthrough';
     NgxMatSelectSearchModule,
     EnumToStringPipe,
     TimeDiffPipe,
-    BdcWalkModule
+    BdcWalkModule,
+    NgxChartsModule
     ]
 })
 export class MaterialModule { }

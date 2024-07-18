@@ -123,7 +123,7 @@ export class FacturaLegalService {
     return this.genericService.onCustomQuery(this.generarExcelFacturas, {
       fechaInicio,
       fechaFin,
-      sucId
+      sucId,
     });
   }
 
@@ -135,7 +135,7 @@ export class FacturaLegalService {
     return this.genericService.onCustomQuery(this.generarExcelFacturasZip, {
       fechaInicio,
       fechaFin,
-      sucId
+      sucId,
     });
   }
 
@@ -155,7 +155,10 @@ export class FacturaLegalService {
       ruc,
       nombre,
       iva5,
-      iva10
+      iva10,
     });
   }
 }
+
+
+

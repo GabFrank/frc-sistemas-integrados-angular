@@ -252,8 +252,8 @@ export const deliverysByEstadoList = gql`
 `;
 
 export const deliveryPorCajaIdAndEstadoQuery = gql`
-  query deliveryPorCajaIdAndEstados($id: ID!, $estadoList: [DeliveryEstado]!) {
-    data: deliveryPorCajaIdAndEstados(id: $id, estadoList: $estadoList) {
+  query deliveryPorCajaIdAndEstados($id: ID!, $estadoList: [DeliveryEstado]!, $sucId: Int) {
+    data: deliveryPorCajaIdAndEstados(id: $id, estadoList: $estadoList, sucId: $sucId) {
       id
       creadoEn
       entregador {

@@ -886,3 +886,126 @@ export const transferenciaItemQuery = gql`
     }
   }
 `;
+
+
+export const transferenciaItensPorTransferenciaIdWithFilter = gql`
+  query ($id: ID, $name: String, $page:Int = 0, $size:Int = 10) {
+    data: transferenciaItensPorTransferenciaIdWithFilter(
+      id: $id
+      name: $name
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getPageable {
+        getPageNumber
+        getPageSize
+      }
+      getContent {
+        id
+        transferencia {
+          id
+        }
+        presentacionPreTransferencia {
+          id
+          producto {
+            id
+            descripcion
+            descripcionFactura
+            codigoPrincipal
+            costo {
+              costoMedio
+              ultimoPrecioCompra
+            }
+          }
+          cantidad
+          imagenPrincipal
+          precioPrincipal {
+            precio
+          }
+        }
+        presentacionPreparacion {
+          id
+          producto {
+            id
+            descripcion
+            descripcionFactura
+            codigoPrincipal
+            costo {
+              costoMedio
+              ultimoPrecioCompra
+            }
+          }
+          cantidad
+          imagenPrincipal
+          precioPrincipal {
+            precio
+          }
+        }
+        presentacionTransporte {
+          id
+          producto {
+            id
+            descripcion
+            codigoPrincipal
+            costo {
+              costoMedio
+              ultimoPrecioCompra
+            }
+          }
+          cantidad
+          imagenPrincipal
+          precioPrincipal {
+            precio
+          }
+        }
+        presentacionRecepcion {
+          id
+          producto {
+            id
+            descripcion
+            codigoPrincipal
+            costo {
+              costoMedio
+              ultimoPrecioCompra
+            }
+          }
+          cantidad
+          imagenPrincipal
+          precioPrincipal {
+            precio
+          }
+        }
+        cantidadPreTransferencia
+        cantidadPreparacion
+        cantidadTransporte
+        cantidadRecepcion
+        observacionPreTransferencia
+        observacionPreparacion
+        observacionTransporte
+        observacionRecepcion
+        vencimientoPreTransferencia
+        vencimientoPreparacion
+        vencimientoTransporte
+        vencimientoRecepcion
+        motivoModificacionPreTransferencia
+        motivoModificacionPreparacion
+        motivoModificacionTransporte
+        motivoModificacionRecepcion
+        motivoRechazoPreTransferencia
+        motivoRechazoPreparacion
+        motivoRechazoTransporte
+        motivoRechazoRecepcion
+        activo
+        poseeVencimiento
+        creadoEn
+      }
+    }
+  }
+`;

@@ -34,7 +34,7 @@
     (click)="dialogRef.close(true)"
     autofocus
   >
-    Si
+    {{this.data.btn1Name}}
   </button>
 
   <button
@@ -47,8 +47,8 @@
     (keydown)="cancelKeydownEvent($event)"
     (click)="dialogRef.close(false)"
   >
-    No
-  </button>
+  {{this.data.btn2Name}}
+</button>
 </div>
 
 <div *ngIf="!data.action" matDialogActions fxLayoutAlign="center center">

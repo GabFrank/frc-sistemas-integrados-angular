@@ -48,7 +48,9 @@ export class FrcSearchableSelectComponent implements OnInit, OnChanges {
   @Input() compareFields: any[] = []; //campos a comparar en el filtro
   @Input() initialValue: boolean = true; //valor inicial
   @Input() isMultiple: boolean = false; //multiple seleccion
+  @Input() currentData: any; //valor actual
   @Input() isFilter: boolean = true; //si el filtro sera realizado en el componte, si es un campo de busqueda en el servidor, desactivar filtro
+  @Input() disabled = false; //desactivar el componente si es true
 
   filteredList: any[];
   isLoading: boolean = true;
@@ -72,6 +74,19 @@ export class FrcSearchableSelectComponent implements OnInit, OnChanges {
         this.selectionChanged.emit(this.filteredList[0]);
       }
       // this.filterList();
+    }
+
+    if(changes['currentData'] && !changes['currentData'].firstChange){
+      this.control.setValue(this.currentData);
+      this.selectionChanged.emit(this.currentData);
+    }
+
+    if(changes['disabled'] && !changes['disabled'].firstChange){
+      if(this.disabled){
+        this.control.disable();
+      } else {
+        this.control.enable();
+      }
     }
   }
 

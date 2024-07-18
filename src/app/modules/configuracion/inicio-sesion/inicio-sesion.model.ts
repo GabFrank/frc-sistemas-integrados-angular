@@ -1,7 +1,7 @@
 import { dateToString } from "../../../commons/core/utils/dateUtils";
 import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
 import { Usuario } from "../../personas/usuarios/usuario.model";
-import { TipoDispositivo } from "./enums/tipo-dispositivo.model";
+import { TipoDispositivo } from "./tipo-dispositivo.model";
 
 export class InicioSesion {
   id: number;

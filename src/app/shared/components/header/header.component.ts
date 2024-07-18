@@ -28,7 +28,7 @@ import { ROLES } from "../../../modules/personas/roles/roles.enum";
 import { QrCodeComponent, QrData } from "../../qr-code/qr-code.component";
 import { DialogosService } from "../dialogos/dialogos.service";
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
-import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
+import { InicioSesion } from "../../../modules/configuracion/inicio-sesion/inicio-sesion.model";
 import { resolve } from "path";
 import { rejects } from "assert";
 

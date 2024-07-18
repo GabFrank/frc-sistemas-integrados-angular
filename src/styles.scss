@@ -170,6 +170,17 @@ input::selection {
   color: #f57c00;
 }
 
+.subtitulo {
+  width: 100%;
+  text-align: start;
+}
+
+.subtitulo-center {
+  width: 100%;
+  text-align: center;
+}
+
+
 .required-field::after {
   content: "*";
 }
@@ -191,7 +202,8 @@ input::selection {
 
 ::ng-deep .cdk-overlay-pane:has(mat-mdc-simple-snack-bar) {
   position: fixed !important;
-  bottom: 30% !important; /* Adjust this value as needed */
+  bottom: 30% !important;
+  /* Adjust this value as needed */
 }
 
 .info {
@@ -305,5 +317,6 @@ input {
 }
 
 .mat-snack-bar-container {
-  bottom: 30%; /* Adjust this value as needed */
+  bottom: 30%;
+  /* Adjust this value as needed */
 }

@@ -201,4 +201,8 @@ export class AppComponent implements OnInit, OnDestroy {
     //Add 'implements OnDestroy' to the class.
 
   }
+
+  onCerrarCargando(){
+    this.cargandoService.closeDialog();
+  }
 }

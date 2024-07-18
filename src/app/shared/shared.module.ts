@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, DecimalPipe } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { RouterModule } from '@angular/router';
@@ -48,6 +48,9 @@ import { DialogoNuevasFuncionesComponent } from './components/dialogo-nuevas-fun
 import { NumericOnlyDirective } from './directives/numeric-only.directive';
 import { NoSpacesDirective } from './directives/no-spaces.directive';
 import { LettersOnlyDirective } from './directives/letters-only.directive';
+import { ShowAfterDelayDirective } from './directives/show-after-delay.directive';
+import { FormattedTooltipDirective } from './directives/formatted-tooltip.directive';
+import { MatTooltip } from '@angular/material/tooltip';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -85,7 +88,9 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     DialogoNuevasFuncionesComponent,
     NumericOnlyDirective,
     NoSpacesDirective,
-    LettersOnlyDirective
+    LettersOnlyDirective,
+    ShowAfterDelayDirective,
+    FormattedTooltipDirective
   ],
   imports: [
     CommonModule,
@@ -126,8 +131,10 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     DialogoNuevasFuncionesComponent,
     NumericOnlyDirective,
     NoSpacesDirective,
-    LettersOnlyDirective
+    LettersOnlyDirective,
+    ShowAfterDelayDirective,
+    FormattedTooltipDirective
   ],
-  providers: [NgxImageCompressService, provideEnvironmentNgxMask(options)]
+  providers: [NgxImageCompressService, provideEnvironmentNgxMask(options), DecimalPipe, MatTooltip]
 })
 export class SharedModule { }

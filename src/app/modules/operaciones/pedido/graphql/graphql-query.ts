@@ -17,6 +17,7 @@ export const pedidosQuery = gql`
       estado
       moneda {
         denominacion
+        simbolo
       }
       plazoCredito
       creadoEn
@@ -50,6 +51,7 @@ export const pedidosResumidoQuery = gql`
       moneda {
         id
         denominacion
+        simbolo
       }
       plazoCredito
       creadoEn
@@ -82,6 +84,7 @@ export const pedidosSearch = gql`
       estado
       moneda {
         denominacion
+        simbolo
       }
       plazoCredito
       creadoEn
@@ -111,6 +114,7 @@ export const pedidoQuery = gql`
       estado
       moneda {
         denominacion
+        simbolo
       }
       plazoCredito
       creadoEn
@@ -128,7 +132,7 @@ export const pedidoQuery = gql`
 
 export const savePedido = gql`
   mutation savePedido($entity: PedidoInput!) {
-    data: savePedido(pedido: $entity) {
+    data: savePedido(entity: $entity) {
       id
     }
   }
@@ -196,33 +200,6 @@ export const filterPedidosQuery = gql`
       nombreUsuario
       descuento
       valorTotal
-      pedidoItens {
-        id
-        producto {
-          id
-          descripcion
-          descripcionFactura
-        }
-        precioUnitario
-        descuentoUnitario
-        bonificacion
-        bonificacionDetalle
-        estado
-        vencimiento
-        creadoEn
-        pedidoItemSucursales {
-          id
-          sucursal {
-            id
-            nombre
-          }
-          sucursalEntrega {
-            id
-            nombre
-          }
-          cantidad
-        }
-      }
     }
   }
 `;
@@ -231,6 +208,7 @@ export const pedidoInfoCompletaQuery = gql`
   query ($id: ID!) {
     data: pedido(id: $id) {
       id
+      cantPedidoItem
       compra {
         id
         estado
@@ -266,7 +244,53 @@ export const pedidoInfoCompletaQuery = gql`
       }
       descuento
       valorTotal
-      pedidoItens {
+      tipoBoleta
+      sucursalInfluenciaList {
+        id
+        sucursal {
+          id
+          nombre
+        }
+      }
+      sucursalEntregaList {
+        id
+        sucursal {
+          id
+          nombre
+        }
+      }
+      fechaEntregaList {
+        fechaEntrega
+      }
+      notaRecepcionList {
+        id
+        numero
+        tipoBoleta
+        cantidadItens
+        valor
+        pedido {
+          id
+        }
+        compra {
+          id
+        }
+      }
+    }
+  }
+`;
+
+// pedidoItemPorPedidoIdSobrante
+export const pedidoItemPorPedidoIdSobranteQuery = gql`
+  query ($id: ID!, $page: Int, $size: Int) {
+    data: pedidoItemPorPedidoIdSobrante(id: $id, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
         id
         producto {
           id
@@ -274,15 +298,15 @@ export const pedidoInfoCompletaQuery = gql`
           presentaciones {
             id
             cantidad
-            imagenPrincipal
           }
-        }
-        notaRecepcion {
-          id
+          codigoPrincipal
         }
         presentacion {
           id
           cantidad
+        }
+        pedido {
+          id
         }
         precioUnitario
         descuentoUnitario
@@ -298,52 +322,86 @@ export const pedidoInfoCompletaQuery = gql`
   }
 `;
 
-// pedidoItemPorPedidoIdSobrante
-export const pedidoItemPorPedidoIdSobranteQuery = gql`
-  query ($id: ID!) {
-    data: pedidoItemPorPedidoIdSobrante(id: $id) {
-      id
-      producto {
+export const pedidoItemPorNotaRecepcionQuery = gql`
+  query ($id: ID!, $page: Int, $size: Int) {
+    data: pedidoItemPorNotaRecepcion(id: $id, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
         id
-        descripcion
-        presentaciones {
+        producto {
           id
-          cantidad
+          descripcion
+          presentaciones {
+            id
+            cantidad
+          }
+          codigoPrincipal
         }
-      }
-      presentacion {
-        id
-        cantidad
-      }
-      compraItem {
-        id
-        cantidad
-        verificado
-        lote
-        vencimiento
         presentacion {
           id
           cantidad
         }
-        producto {
-          id
-        }
-        pedidoItem {
+        pedido {
           id
         }
         precioUnitario
         descuentoUnitario
+        bonificacion
+        bonificacionDetalle
         estado
+        vencimiento
+        creadoEn
+        cantidad
+        valorTotal
       }
-      precioUnitario
-      descuentoUnitario
-      bonificacion
-      bonificacionDetalle
-      estado
-      vencimiento
-      creadoEn
-      cantidad
-      valorTotal
+    }
+  }
+`;
+
+export const pedidoItemPorPedidoPageQuery = gql`
+  query ($id: ID!, $page: Int, $size: Int) {
+    data: pedidoItemPorPedidoPage(id: $id, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        producto {
+          id
+          descripcion
+          presentaciones {
+            id
+            cantidad
+          }
+          codigoPrincipal
+        }
+        presentacion {
+          id
+          cantidad
+        }
+        pedido {
+          id
+        }
+        precioUnitario
+        descuentoUnitario
+        bonificacion
+        bonificacionDetalle
+        estado
+        vencimiento
+        creadoEn
+        cantidad
+        valorTotal
+      }
     }
   }
 `;
@@ -361,3 +419,37 @@ export const updateNotaRecepcionQuery = gql`
     }
   }
 `;
+
+export const addPedidoItemListToNotaRecepcionQuery = gql`
+  mutation addPedidoItemListToNotaRecepcion(
+    $notaRecepcion: ID
+    $pedidoItemIdList: [ID]
+  ) {
+    data: addPedidoItemListToNotaRecepcion(
+      notaRecepcion: $notaRecepcion
+      pedidoItemIdList: $pedidoItemIdList
+    )
+  }
+`;
+
+export const savePedidoFull = gql`
+  mutation savePedidoFull(
+    $entity: PedidoInput!
+    $fechaEntregaList: [String]
+    $sucursalEntregaList: [Int]
+    $sucursalInfluenciaList: [Int]
+    $usuarioId: Int
+  ) {
+    data: savePedidoFull(
+      entity: $entity
+      fechaEntregaList: $fechaEntregaList
+      sucursalEntregaList: $sucursalEntregaList
+      sucursalInfluenciaList: $sucursalInfluenciaList
+      usuarioId: $usuarioId
+    ) {
+      id
+    }
+  }
+`;
+
+// pedido:PedidoInput!, fechaEntregaList: [String], sucursalEntregaList: [Int], sucursalInfluenciaList: [Int], usuarioId: Int

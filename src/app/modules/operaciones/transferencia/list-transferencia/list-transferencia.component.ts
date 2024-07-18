@@ -28,6 +28,7 @@ import { CargandoDialogService } from "./../../../../shared/components/cargando-
 import { TransferenciaService } from "./../transferencia.service";
 import { MatDialog } from "@angular/material/dialog";
 import { DialogoNuevasFuncionesComponent } from "../../../../shared/components/dialogo-nuevas-funciones/dialogo-nuevas-funciones.component";
+import { interval } from "rxjs";
 
 @UntilDestroy()
 @Component({
@@ -126,6 +127,10 @@ export class ListTransferenciaComponent implements OnInit {
         width: '60%'
       })
     }, 1000);
+
+    interval(300000).pipe(untilDestroyed(this)).subscribe(()=> {
+      this.onFilter();      
+    });
   }
 
   onGetTransferencias() {
