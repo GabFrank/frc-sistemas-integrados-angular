@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { Mutation, Query } from "apollo-angular";
-import { InicioSesion } from "../../../configuracion/inicio-sesion/inicio-sesion.model";
 import { saveInicioSesionGQL } from "./graphql-query";
+import { InicioSesion } from "../../../configuracion/models/inicio-sesion.model";
 
 export interface Response {
   data: InicioSesion;

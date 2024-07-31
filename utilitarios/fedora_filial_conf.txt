@@ -13,6 +13,11 @@ sudo dnf install terminator
 wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
 
 -- instalar postgres 13
+--nueva forma
+sudo dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/F-38-x86_64/pgdg-fedora-repo-latest.noarch.rpm
+sudo dnf -qy module disable postgresql
+sudo dnf install -y postgresql13 postgresql13-server
+
 sudo dnf module reset postgresql -y
 sudo dnf install https://download.postgresql.org/pub/repos/yum/reporpms/F-38-x86_64/pgdg-fedora-repo-latest.noarch.rpm -y
 sudo dnf install postgresql13-server postgresql13 -y
@@ -152,6 +157,7 @@ sudo dnf install samba samba-client
 smbclient -L //192.168.0.6 -U franco%franco
 - si aparece,ir a la interface web de cups e instalar una nueva impresora samba
 smb://franco:franco@172.25.0.22/TICKET_ADM
+smb://bodegafranco:franco@192.168.1.119/ticket4
 -- el driver a utilizar puede ser pos x
 tar xvf /home/franco/FRC/pos/posprinterinstall_integrated.tar.gz
 sudo sh /home/franco/FRC/posprinterinstall_integrated/setup.sh

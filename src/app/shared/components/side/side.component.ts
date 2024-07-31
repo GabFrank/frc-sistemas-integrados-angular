@@ -31,7 +31,7 @@ import { CompraDashboardComponent } from "../../../modules/operaciones/compra/co
 import { ListRetiroComponent } from "../../../modules/financiero/retiro/list-retiro/list-retiro.component";
 import { ListFacturaLegalComponent } from "../../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component";
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
-import { InicioSesion } from "../../../modules/configuracion/inicio-sesion/inicio-sesion.model";
+import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
 
 @Component({
   selector: "app-side",

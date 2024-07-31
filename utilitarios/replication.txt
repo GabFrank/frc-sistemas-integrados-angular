@@ -110,3 +110,5 @@ Lista de entidades que se necesitan modificar la propagacion
 - usuario grupo
 - usuario role
 - 
+
+

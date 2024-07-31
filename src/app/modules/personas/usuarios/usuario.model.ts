@@ -1,4 +1,4 @@
-import { InicioSesion } from '../../configuracion/inicio-sesion/inicio-sesion.model';
+import { InicioSesion } from '../../configuracion/models/inicio-sesion.model';
 import { Persona } from '../persona/persona.model';
 import { UsuarioInput } from './usuario-input.model';
 
