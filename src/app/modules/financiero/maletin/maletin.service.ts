@@ -32,8 +32,8 @@ export class MaletinService {
     return this.genericCrud.onGetAll(this.getAllMaletines, page, size)
   }
 
-  onGetPorId(id): Observable<any>{
-    return this.genericCrud.onGetById(this.getMaletinPorId, id)
+  onGetPorId(id, sucursalId): Observable<any>{
+    return this.genericCrud.onCustomQuery(this.getMaletinPorId, {id, sucursalId})
   }
 
   onGetPorDescripcion(texto): Observable<any>{

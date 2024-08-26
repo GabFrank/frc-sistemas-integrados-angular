@@ -58,6 +58,7 @@ export class ListGastosComponent implements OnInit {
   sucOrigenControl = new FormControl()
   idCajaControl = new FormControl()
   idGastoControl = new FormControl()
+  descripcionControl = new FormControl()
   formGroup : FormGroup;
 
   constructor(
@@ -71,7 +72,8 @@ export class ListGastosComponent implements OnInit {
     this.formGroup = new FormGroup({
       idCajaControl: this.idCajaControl,
       idRetiroControl: this.idGastoControl,
-      sucursalControl: this.sucOrigenControl
+      sucursalControl: this.sucOrigenControl,
+      descripcionControl: this.descripcionControl
     })
 
     this.formGroup.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
@@ -101,7 +103,7 @@ export class ListGastosComponent implements OnInit {
   }
 
   onFiltrar() {
-    this.gastoService.onFilterGasto(this.idGastoControl.value, this.idCajaControl.value, this.sucOrigenControl.value?.id, null, this.page, this.size+1).subscribe(res => {
+    this.gastoService.onFilterGasto(this.idGastoControl.value, this.idCajaControl.value, this.sucOrigenControl.value?.id, null, this.descripcionControl.value, this.page, this.size+1).subscribe(res => {
       if(this.page > 0){
         let arr: any[] = [...this.dataSource.data]
         arr = arr.concat(res)

@@ -151,7 +151,7 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
   }
 
   cargarDatos() {
-    this.cargandoDialog.openDialog(null, 'Cargando datos...')
+    let rId = this.cargandoDialog.openDialog(null, 'Cargando datos...')
     this.totalGs = 0;
     this.totalDs = 0;
     this.totalRs = 0;
@@ -187,10 +187,10 @@ export class AdicionarConteoDialogComponent implements OnInit, OnDestroy {
       };
       this.onGetConteoMoneda.emit(response);
     }, 500);
-    this.cargandoDialog.closeDialog()
     this.gsFormGroup.disable()
     this.rsFormGroup.disable()
     this.dsFormGroup.disable()
+    this.cargandoDialog.closeDialog(rId.requestId)
   }
 
   createForm() {

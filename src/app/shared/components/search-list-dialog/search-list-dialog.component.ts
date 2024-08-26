@@ -23,6 +23,7 @@ export class SearchListtDialogData {
   inicialData?: any;
   texto?: string;
   isAdicionar?: boolean;
+  queryData?: any;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -43,6 +44,7 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
   buscarControl = new FormControl("");
   displayedColumns = []
   selectedItem;
+  queryData;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: SearchListtDialogData,
@@ -54,6 +56,9 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     })
     if (data?.inicialData != null) {
       this.dataSource.data = data.inicialData;
+    }
+    if(data?.queryData != null){
+      this.queryData = data.queryData;
     }
   }
 
@@ -107,8 +112,13 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
   onSearch() {
     let text = this.buscarControl.value;
     if (text != null) text = text.toUpperCase()
+    if( this.queryData!=null && text != null){
+      this.queryData.texto = text;
+    } else {
+      this.queryData = {texto: text}
+    }
     this.genericCrudService
-      .onGetByTexto(this.data.query, text).pipe(untilDestroyed(this))
+      .onCustomQuery(this.data.query, this.queryData).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.dataSource.data = res;

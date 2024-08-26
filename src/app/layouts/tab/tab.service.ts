@@ -12,6 +12,10 @@ import { ListProductoComponent } from '../../modules/productos/producto/list-pro
 import { ListFacturaLegalComponent } from '../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component';
 import { ListPedidoComponent } from '../../modules/operaciones/pedido/list-pedido/list-pedido.component';
 import { EditTransferenciaComponent } from '../../modules/operaciones/transferencia/edit-transferencia/edit-transferencia.component';
+import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
+import { ListGastosComponent } from '../../modules/financiero/gastos/list-gastos/list-gastos.component';
+import { ListMaletinComponent } from '../../modules/financiero/maletin/list-maletin/list-maletin.component';
+import { ListCajaComponent } from '../../modules/financiero/pdv/caja/list-caja/list-caja.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -45,10 +49,10 @@ export class TabService implements OnInit {
       // new Tab(VentaTouchComponent, 'Venta', null, null),
     ];
 
-    this.addTab(new Tab(EditTransferenciaComponent, 'Transferencia 56', new TabData(56, {id: 56}), null))
-    // this.addTab(new Tab(EditPedidoComponent, 'Nuevo pedido'))
+    // this.addTab(new Tab(EditTransferenciaComponent, 'Transferencia 56', new TabData(56, {id: 56}), null))
+    // this.addTab(new Tab(VentaTouchComponent, 'Venta'))
     // this.addTab(new Tab(EditPedidoComponent, 'Nuevo pedido', new TabData(9, {id: 9}), null))
-    // this.addTab(new Tab(ListFacturaLegalComponent, 'Lista de facturas', null, null))
+    this.addTab(new Tab(ListCajaComponent, 'Lista de maletines', null, null))
     this.tabSub.next(this.tabs);
   }
   
@@ -112,7 +116,7 @@ export class TabService implements OnInit {
   }
 
   public addTab(tab: Tab): void {
-    this.cargandoService.openDialog()
+    let rId = this.cargandoService.openDialog()
     const duplicado = this.tabs.findIndex(x => x.title == tab.title);
     if (duplicado == -1) {
       tab.id = this.tabs.length + 1;
@@ -124,7 +128,7 @@ export class TabService implements OnInit {
       this.setTabActive(duplicado);
     }
     setTimeout(() => {
-      this.cargandoService.closeDialog()
+      this.cargandoService.closeDialog(rId.requestId)
       // this.tabSub.next(this.tabs);
     }, 500);
   }

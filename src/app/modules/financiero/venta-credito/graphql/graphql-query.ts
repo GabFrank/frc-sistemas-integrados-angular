@@ -190,25 +190,35 @@ export const findWithFiltersQuery = gql`
     $fechaInicio: String
     $fechaFin: String
     $estado: EstadoVentaCredito
-    $page: Int
-    $size: Int
+    $cobro: Boolean
   ) {
     data: findWithFilters(
       id: $id
       fechaInicio: $fechaInicio
       fechaFin: $fechaFin
       estado: $estado
-      page: $page
-      size: $size
+      cobro: $cobro
     ) {
-      getTotalPages
-      getTotalElements
-      getNumberOfElements
-      isFirst
-      isLast
-      hasNext
-      hasPrevious
-      getContent {
+      # getTotalPages
+      # getTotalElements
+      # getNumberOfElements
+      # isFirst
+      # isLast
+      # hasNext
+      # hasPrevious
+      # getMultiPageableList {
+      #   tenantId
+      #   offset
+      #   page
+      #   totalElements
+      #   lastOffset
+      #   lastTotalElement
+      # }
+      # getPageable {
+      #   getPageNumber
+      #   getPageSize
+      # }
+      # getContent {
         id
         sucursal {
           id
@@ -240,7 +250,8 @@ export const findWithFiltersQuery = gql`
           id
           nickname
         }
-      }
+        fechaCobro
+      # }
     }
   }
 `;

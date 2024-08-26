@@ -16,17 +16,11 @@ export const maletinsQuery = gql`
       }
       cajaActual {
         id
-        fechaApertura
-        fechaCierre
-        sucursal {
-          nombre
-        }
-        usuario {
-          id
-          persona {
-            nombre
-          }
-        }
+        sucursalId
+      }
+      sucursal {
+        id
+        nombre
       }
     }
   }
@@ -69,8 +63,8 @@ export const maletinsQuery = gql`
 // `;
 
 export const maletinQuery = gql`
-  query ($id: ID!) {
-    data: maletin(id: $id) {
+  query ($id: ID!, $sucursalId: ID!) {
+    data: maletin(id: $id, sucursalId: $sucursalId) {
       id
       descripcion
       activo
@@ -118,8 +112,8 @@ export const maletinPorDescripcionQuery = gql`
 `;
 
 export const searchMaletinQuery = gql`
-  query ($texto: String) {
-    data: searchMaletin(texto: $texto) {
+  query ($texto: String, $sucId:ID) {
+    data: searchMaletin(texto: $texto, sucId: $sucId) {
       id
       descripcion
       activo
@@ -160,6 +154,10 @@ export const saveMaletin = gql`
         persona {
           nombre
         }
+      }
+      sucursal {
+        id
+        nombre
       }
     }
   }

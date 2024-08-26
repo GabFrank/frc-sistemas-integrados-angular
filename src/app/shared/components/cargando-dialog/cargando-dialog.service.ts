@@ -18,7 +18,7 @@ class DialogData {
 export class CargandoDialogService {
 
   private dialogRequests: Map<number, { timer: any, texto: string, botonText?: string, showCerrarButton: boolean, abortController: AbortController }> = new Map();
-  private requestIdCounter: number = 0;
+  public requestIdCounter: number = 0;
 
   public dialogSub: Subject<boolean> = new Subject<boolean>();
 
@@ -77,5 +77,20 @@ export class CargandoDialogService {
       request.showCerrarButton = true;
       this.dialogRequests.set(requestId, request); // Update the entry
     }
+  }
+
+  getRequestIdCounter(): number {
+    return this.requestIdCounter;
+  }
+
+  closeAll(){
+    this.dialogRequests.forEach(request => {
+      clearTimeout(request.timer);
+      request.abortController.abort();
+    });
+    this.dialogRequests.clear();
+    this.spinnerService.hide();
+    this.dialogSub.next(false);
+    this.dialogSub.complete();
   }
 }

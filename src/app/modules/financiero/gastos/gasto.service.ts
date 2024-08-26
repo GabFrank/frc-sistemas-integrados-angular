@@ -62,13 +62,14 @@ export class GastoService {
     return this.genericService.onSaveCustom(this.saveVuelto, data, false);
   }
 
-  onFilterGasto(id?: number, cajaId?: number, sucId?: number, responsableId?: number, page?: number, size?: number): Observable<Gasto[]> {
+  onFilterGasto(id?: number, cajaId?: number, sucId?: number, responsableId?: number, descripcion?: string, page?: number, size?: number): Observable<Gasto[]> {
     return this.genericService.onCustomQuery(
       this.filterGasto, {
       id,
       cajaId,
       sucId,
       responsableId,
+      descripcion,
       page,
       size
     }, true

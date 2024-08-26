@@ -53,6 +53,8 @@ import { stringToTime } from "../../../../commons/core/utils/string-utils";
 import {
   dateToString,
   getFirstDayOfMonths,
+  getLastDayOfMonths,
+  getLastDayOfNMonth,
 } from "../../../../commons/core/utils/dateUtils";
 import { PageInfo } from "../../../../app.component";
 import { PageEvent } from "@angular/material/paginator";
@@ -82,7 +84,11 @@ export class ListVentaCreditoComponent implements OnInit {
   dataSource = new MatTableDataSource<VentaCredito>([]);
   selectedVentaCredito: VentaCredito;
   estadoControl = new FormControl(EstadoVentaCredito.ABIERTO);
+  fechaControl = new FormControl(true);
+  filtrarPorControl = new FormControl();
   selectedCliente: Cliente;
+  totalGeneral = 0;
+  totalParcial = 0;
 
   displayedColumns = [
     "select",
@@ -91,18 +97,21 @@ export class ListVentaCreditoComponent implements OnInit {
     "valorTotal",
     "fecha",
     "estado",
+    "fechaCobro",
     "venta",
     "tipoConfirmacion",
     "creadoPor",
     "acciones",
   ];
 
+  filtrarPorFechaList = ["Venta", "Cobro"];
+
   isLastPage = false;
   isSearching = false;
   expandedVentaCredito: VentaCredito;
 
   page = 0;
-  size = 20;
+  size = 5;
 
   loading = false;
 
@@ -111,8 +120,8 @@ export class ListVentaCreditoComponent implements OnInit {
   selection = new SelectionModel<any>(true, []);
 
   fechaFormGroup: FormGroup;
-  fechaInicioControl = new FormControl(getFirstDayOfMonths(0));
-  fechaFinalControl = new FormControl(new Date());
+  fechaInicioControl = new FormControl(getFirstDayOfMonths(-1));
+  fechaFinalControl = new FormControl(getLastDayOfMonths(0));
   horaInicioControl = new FormControl("00:00");
   horaFinalControl = new FormControl("23:59");
 
@@ -120,7 +129,6 @@ export class ListVentaCreditoComponent implements OnInit {
   isConcluidos = false;
 
   selectedPageInfo: PageInfo<VentaCredito>;
-
 
   constructor(
     private dialogRef: MatDialogRef<ListVentaCreditoComponent>,
@@ -145,6 +153,8 @@ export class ListVentaCreditoComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.filtrarPorControl.setValue(this.filtrarPorFechaList[0]);
+
     this.fechaFormGroup = new FormGroup({
       inicio: this.fechaInicioControl,
       fin: this.fechaFinalControl,
@@ -152,8 +162,8 @@ export class ListVentaCreditoComponent implements OnInit {
 
     this.isLastPage = true;
     if (this.data?.tabData?.id != null) {
-      console.log(this.data?.tabData);
       this.selectedCliente = this.data?.tabData.data;
+
       this.onFiltrar();
       // this.clienteService
       //   .onGetById(this.data.tabData.id)
@@ -181,6 +191,24 @@ export class ListVentaCreditoComponent implements OnInit {
     this.selection.changed.pipe(untilDestroyed(this)).subscribe((res) => {
       this.verificarEstados();
     });
+
+    this.fechaControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) {
+          this.fechaFormGroup.enable();
+        } else {
+          this.fechaFormGroup.disable();
+        }
+      });
+
+    this.filtrarPorControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res == "Cobro") {
+          this.estadoControl.setValue(EstadoVentaCredito.FINALIZADO);
+        }
+      });
   }
 
   verificarEstados() {
@@ -192,6 +220,7 @@ export class ListVentaCreditoComponent implements OnInit {
       this.isConcluidos = false;
     }
 
+    this.totalParcial = 0;
     this.selection.selected.forEach((s: VentaCredito) => {
       if (s.estado != EstadoVentaCredito.ABIERTO) {
         this.isAbiertos = false;
@@ -199,6 +228,7 @@ export class ListVentaCreditoComponent implements OnInit {
       if (s.estado != EstadoVentaCredito.FINALIZADO) {
         this.isConcluidos = false;
       }
+      this.totalParcial += s.valorTotal;
     });
   }
 
@@ -231,7 +261,15 @@ export class ListVentaCreditoComponent implements OnInit {
     this.onFiltrar();
   }
 
-  onFiltrar() {
+  onBuscar() {
+    this.page = 0;
+    this.size = 15;
+    this.selectedPageInfo = null;
+    this.dataSource.data = [];
+    this.onFiltrar();
+  }
+
+  async onFiltrar() {
     let fechaInicial: Date = this.fechaInicioControl.value;
     let fechaFin: Date = this.fechaFinalControl.value;
     let horaInicial: Date = stringToTime(this.horaInicioControl.value);
@@ -245,21 +283,23 @@ export class ListVentaCreditoComponent implements OnInit {
 
     this.isAbiertos = false;
     this.isConcluidos = false;
-    this.ventaCreditoService
-      .onGetPorCliente(
-        this.selectedCliente.id,
-        dateToString(fechaInicial),
-        dateToString(fechaFin),
-        this.estadoControl.value,
-        this.page,
-        this.estadoControl.value == EstadoVentaCredito.ABIERTO ? 1000 : this.size
-      )
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        this.selectedPageInfo = res;
-        this.dataSource.data = res.getContent;  
-      });
-    this.verificarEstados();
+
+    return new Promise<void>((resolve) => {
+      this.ventaCreditoService
+        .onGetPorCliente(
+          this.selectedCliente.id,
+          this.fechaControl.value ? dateToString(fechaInicial) : null,
+          this.fechaControl.value ? dateToString(fechaFin) : null,
+          this.estadoControl.value,
+          this.filtrarPorControl.value == "Venta" ? false : true
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          this.dataSource.data = res;
+          this.verificarEstados();
+          resolve();
+        });
+    });
   }
 
   resetFiltro() {
@@ -378,8 +418,11 @@ export class ListVentaCreditoComponent implements OnInit {
       .subscribe((res) => {});
   }
 
-  onCobrarTodo() {
+  async onCobrarTodo() {
     this.selection.clear();
+    this.estadoControl.setValue(EstadoVentaCredito.ABIERTO);
+    this.fechaControl.setValue(false);
+    await this.onFiltrar();
     this.dataSource.data.forEach((row) => this.selection.select(row));
     this.onFinalizarSeleccionados();
   }
@@ -470,7 +513,11 @@ export class ListVentaCreditoComponent implements OnInit {
       .subscribe((res) => {
         if (res == true) {
           const observables = this.selection.selected.map((s: VentaCredito) =>
-            this.onFinalizar(s, null, false)
+            this.onFinalizar(s, null, false).subscribe(finalizarRes => {
+              if(finalizarRes){
+                
+              }
+            })
           );
           forkJoin(observables).subscribe((results) => {
             this.verificarEstados();
@@ -480,8 +527,15 @@ export class ListVentaCreditoComponent implements OnInit {
   }
 
   handlePageEvent(e: PageEvent) {
+    let lastPage = this.selectedPageInfo?.getPageable?.getPageNumber;
+    let lastSize = this.selectedPageInfo?.getPageable?.getPageSize;
     this.page = e.pageIndex;
     this.size = e.pageSize;
+
+    if (lastSize != undefined && lastSize != this.size) {
+      this.page = 0;
+      this.selectedPageInfo.getMultiPageableList = null;
+    }
     this.onFiltrar();
   }
 }

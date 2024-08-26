@@ -652,6 +652,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           cobroDetalle.moneda = this.monedas.find(m => m.denominacion == 'GUARANI');
           cobroDetalle.valor = this.formGroup?.controls?.saldo?.value
           this.cobroDetalleList.push(cobroDetalle);
+          this.facturado = !res?.factura;
           this.onFinalizar(ventaCredito, res['itens'])
         }
       });

@@ -42,8 +42,10 @@ export async function createWindow(): Promise<BrowserWindow> {
       allowRunningInsecureContent: (serve),
       contextIsolation: false,  // false if you want to run e2e test with Spectron
     },
+    fullscreen: true
   });
 
+  win.setFullScreen(true);
   win.webContents.setZoomFactor(1)
   win.webContents
     .executeJavaScript('localStorage.getItem("zoomLevel");', true)

@@ -90,6 +90,7 @@ export class VentaService {
             cobro: cobroInput,
             cobroDetalleList: cobroDetalleInputList,
             ticket,
+            facturar: isFactura,
             printerName: environment["printers"]["ticket"],
             local: environment["local"],
             pdvId: environment["pdvId"],
@@ -237,7 +238,8 @@ export class VentaService {
     sucId?,
     formaPago?,
     estado?,
-    isDelivery?
+    isDelivery?,
+    monedaId?
   ): Observable<PageInfo<Venta>> {
     return this.genericService.onCustomQuery(this.ventasPorCajaId, {
       id,
@@ -248,6 +250,7 @@ export class VentaService {
       formaPago,
       estado,
       isDelivery,
+      monedaId
     });
     // if (page == null) page = 0;
     // if (size == null) size = 20;

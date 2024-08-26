@@ -269,7 +269,7 @@
             <div style="width: 100%; text-align: center">Producto</div>
             <div style="color: white; font-size: medium">
               {{ selectedProducto?.id }}
-              <span *ngIf="selectedProducto.id !== undefined"> - </span>
+              <span *ngIf="selectedProducto?.id !== undefined"> - </span>
               {{ selectedProducto?.descripcion | uppercase }}
             </div>
             <div style="color: rgb(177, 177, 177); font-size: small">

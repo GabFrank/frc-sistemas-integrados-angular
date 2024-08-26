@@ -136,6 +136,7 @@ export const saveVenta = gql`
     $cobro: CobroInput
     $cobroDetalleList: [CobroDetalleInput]
     $ticket: Boolean
+    $facturar: Boolean
     $printerName: String
     $local: String
     $pdvId: Int
@@ -148,6 +149,7 @@ export const saveVenta = gql`
       cobro: $cobro
       cobroDetalleList: $cobroDetalleList
       ticket: $ticket
+      facturar: $facturar
       printerName: $printerName
       local: $local
       pdvId: $pdvId
@@ -223,6 +225,7 @@ export const ventasPorCajaIdQuery = gql`
     $formaPago: ID
     $estado: VentaEstado
     $isDelivery: Boolean
+    $monedaId: Int
   ) {
     data: ventasPorCajaId(
       id: $id
@@ -233,6 +236,7 @@ export const ventasPorCajaIdQuery = gql`
       formaPago: $formaPago
       estado: $estado
       isDelivery: $isDelivery
+      monedaId: $monedaId
     ) {
       getTotalPages
       getTotalElements

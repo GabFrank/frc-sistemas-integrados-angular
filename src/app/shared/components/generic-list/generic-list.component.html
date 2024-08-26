@@ -18,13 +18,14 @@
           *ngIf="isMenu"
           [fxFlex]="isMenu ? '10%' : '0%'"
           fxLayout="column"
-          fxLayoutAlign="space-between space-between"
+          fxLayoutAlign="start center"
           style="height: 100%"
           fxLayoutGap="5px"
         >
-          <div fxFlex="33">
+          <div class="boton">
             <ng-content select="[buscar]"></ng-content>
-            <button
+            <app-boton (clickEvent)="onFiltrar()" [disableExpression]="disableFilter" [bdcWalkTriggerFor]="buscarTrigger" nombre="Buscar"></app-boton>
+            <!-- <button
               mat-raised-button
               color="primary"
               (click)="onFiltrar()"
@@ -33,37 +34,40 @@
               [bdcWalkTriggerFor]="buscarTrigger"
             >
               Buscar
-            </button>
+            </button> -->
           </div>
-          <div fxFlex="33">
-            <button
+          <div class="boton">
+            <app-boton (clickEvent)="onResetFiltro()" nombre="Limpiar Filtro"></app-boton>
+            <!-- <button
               mat-raised-button
               color="primary"
               (click)="onResetFiltro()"
               style="width: 100%"
             >
               Limpiar Filtro
-            </button>
+            </button> -->
           </div>
-          <div fxFlex="33" *ngIf="isAdicionar">
-            <button
+          <div *ngIf="isAdicionar" class="boton">
+            <app-boton (clickEvent)="onAdd()" nombre="+ Adicionar"></app-boton>
+            <!-- <button
               mat-raised-button
               color="primary"
               (click)="onAdd()"
               style="width: 100%"
             >
               + Adicionar
-            </button>
+            </button> -->
           </div>
-          <div fxFlex="33" *ngIf="isCustom">
-            <button
+          <div *ngIf="isCustom" class="boton">
+            <app-boton (clickEvent)="onCustomFunc()" [nombre]="customName"></app-boton>
+            <!-- <button
               mat-raised-button
               color="primary"
               (click)="onCustomFunc()"
               style="width: 100%"
             >
               {{ customName }}
-            </button>
+            </button> -->
           </div>
         </div>
       </mat-card>

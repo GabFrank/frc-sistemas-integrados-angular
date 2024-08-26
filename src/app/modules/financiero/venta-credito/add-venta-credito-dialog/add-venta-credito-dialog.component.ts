@@ -56,6 +56,7 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   nombreClienteControl = new FormControl(null, [Validators.required, Validators.minLength(1)])
   cuotasControl = new FormControl(1, [Validators.required])
   interesControl = new FormControl(0, [Validators.required])
+  facturaControl = new FormControl(false);
   dataSource = new MatTableDataSource<VentaCreditoCuotaInput>([])
   displayedColumns = ['id', 'vencimiento', 'valor', 'acciones']
   total = 0;
@@ -246,7 +247,7 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
     ventaCredito.valorTotal = this.total;
     ventaCredito.usuario = this.mainService.usuarioActual;
     if (ventaCredito.valorTotal <= this.selectedCliente?.saldo) {
-      this.dialogRef.close({ ventaCredito: ventaCredito, itens: this.dataSource.data })
+      this.dialogRef.close({ ventaCredito: ventaCredito, itens: this.dataSource.data, factura: this.facturaControl.value })
     } else {
       this.notificacionService.openWarn('No posee saldo suficiente. Verifique en el aplicativo.')
     }

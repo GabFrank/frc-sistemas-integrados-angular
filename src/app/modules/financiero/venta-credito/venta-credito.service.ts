@@ -40,8 +40,8 @@ export class VentaCreditoService {
     private tabService: TabService
   ) { }
 
-  onGetPorCliente(id: number, fechaInicio: string, fechaFin: string, estado: EstadoVentaCredito, page, size): Observable<PageInfo<VentaCredito>> {
-    return this.genericService.onCustomQuery(this.ventaCreditoPorCliente, { id, fechaInicio, fechaFin, estado, page, size }, true);
+  onGetPorCliente(id: number, fechaInicio: string, fechaFin: string, estado: EstadoVentaCredito, cobro: boolean): Observable<VentaCredito[]> {
+    return this.genericService.onCustomQuery(this.ventaCreditoPorCliente, { id, fechaInicio, fechaFin, estado, cobro }, true);
   }
 
   onSave(input: VentaCreditoInput, itens: VentaCreditoCuotaInput[]): Observable<any> {

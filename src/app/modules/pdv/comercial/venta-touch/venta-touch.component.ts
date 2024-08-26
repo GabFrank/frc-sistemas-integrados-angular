@@ -183,7 +183,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.cajaService.onGetByUsuarioIdAndAbierto(this.mainService.usuarioActual.id)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
-        if (res != null) {
+        if (res != null) {          
           this.cajaService.selectedCaja = res;
 
           if (this.cajaService.selectedCaja == null || this.cajaService.selectedCaja?.conteoApertura == null) {
@@ -275,6 +275,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   openSelectCajaDialog() {
+    console.log('entrando en openSelectCajaDialog');
+    
     this.isDialogOpen = true;
     this.selectCajaDialog = this.matDialog.open(
       SeleccionarCajaDialogComponent,
@@ -769,7 +771,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 this.calcularTotales()
               })
             } else {
-              this.onSaveVenta(venta, cobro, response.ticket == true, ventaCredito?.toInput(), ventaCreditoCuotaInputList).subscribe(ventaRes => {
+              this.onSaveVenta(venta, cobro, response.ticket == true, !response?.facturado, ventaCredito?.toInput(), ventaCreditoCuotaInputList).subscribe(ventaRes => {
               })
             }
             this.dialogReference = undefined;
@@ -847,10 +849,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.buscadorFocusSub.next()
   }
 
-  onSaveVenta(venta, cobro, ticket, ventaCreditoInput?, ventaCreditoCuotaInputList?): Observable<Venta> {
+  onSaveVenta(venta, cobro, ticket, facturar?, ventaCreditoInput?, ventaCreditoCuotaInputList?): Observable<Venta> {
+    if(facturar == null) {
+      facturar = (ticket == true);
+    }
     if(this.modoConsulta) return;
     return new Observable(obs => {
-      this.ventaTouchServive.onSaveVenta(venta, cobro, ticket || ventaCreditoInput != null, ventaCreditoInput, ventaCreditoCuotaInputList, ticket == true).pipe(untilDestroyed(this)).subscribe((res) => {
+      this.ventaTouchServive.onSaveVenta(venta, cobro, ticket || ventaCreditoInput != null, ventaCreditoInput, ventaCreditoCuotaInputList, facturar).pipe(untilDestroyed(this)).subscribe((res) => {
         this.cargandoService.closeDialog();
         if (res.id != null) {
           this.notificacionSnackbar.notification$.next({

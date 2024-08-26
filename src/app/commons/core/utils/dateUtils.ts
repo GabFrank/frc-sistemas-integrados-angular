@@ -19,6 +19,17 @@ export function getLastDayOfNextMonth() {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0);
 }
 
+export function getFirstDayOfNMonth(month: number) {
+  const date = new Date();
+
+  return new Date(date.getFullYear(), date.getMonth() + month, 1);
+}
+
+export function getLastDayOfNMonth(month: number) {
+  const date = new Date();
+  return new Date(date.getFullYear(), date.getMonth() + month, 0);
+}
+
 export function getFirstDayOfCurrentWeek() {
   const currentDate = new Date();
   const currentDayOfWeek = currentDate.getDay(); // 0 for Sunday, 1 for Monday, and so on
