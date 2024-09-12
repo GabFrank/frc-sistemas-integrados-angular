@@ -110,7 +110,8 @@ export enum EstadoVentaCredito {
     ABIERTO = 'ABIERTO',
     FINALIZADO = 'FINALIZADO',
     EN_MORA = 'EN_MORA',
-    INCOBRABLE = 'INCOBRABLE'
+    INCOBRABLE = 'INCOBRABLE',
+    CANCELADO = 'CANCELADO'
 }
 
 export class VentaCreditoQRAuthUpdate {

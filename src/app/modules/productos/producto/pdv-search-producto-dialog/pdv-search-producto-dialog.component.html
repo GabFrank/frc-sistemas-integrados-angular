@@ -100,24 +100,46 @@
               matColumnDef="existencia"
             >
               <th mat-header-cell *matHeaderCellDef style="text-align: center">
-                Existencia
+                {{
+                  isTransferencia ? "Existencia origen / destino" : "Existencia"
+                }}
               </th>
               <td
                 mat-cell
                 *matCellDef="let producto; let id = index"
-                style="text-align: center"
+                style="text-align: center; height: inherit"
+                [fxLayout]=" isTransferencia ? 'row' : 'column'"
+                fxLayoutAlign="center center"
               >
                 <button
                   type="button"
                   *ngIf="producto?.stockPorProducto == null"
                   mat-flat-button
                   (click)="mostrarStock(producto); $event.stopPropagation()"
+                  style="text-align: center; width: 100%;"
+                  [fxFlex]="100"
                 >
                   Ver
                 </button>
-                <div *ngIf="producto?.stockPorProducto != null">
+                <span
+                  [attr.fxFlex]=" isTransferencia ? '49' : null"
+                  *ngIf="producto?.stockPorProducto != null"
+                  style="text-align: center; width: 100%"
+                >
                   {{ producto?.stockPorProducto | number : "1.0-2" }}
-                </div>
+                </span>
+                <span
+                  fxFlex="2"
+                  *ngIf="producto?.stockPorProductoDestino != null"
+                  >/</span
+                >
+                <span
+                  fxFlex="49"
+                  *ngIf="producto?.stockPorProductoDestino != null"
+                  style="text-align: center"
+                >
+                  {{ producto?.stockPorProductoDestino | number : "1.0-2" }}
+                </span>
               </td>
             </ng-container>
 

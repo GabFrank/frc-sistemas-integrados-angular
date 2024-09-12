@@ -194,7 +194,7 @@ export class ListCajaComponent implements OnInit {
     this.tabService.addTab(
       new Tab(
         ListVentaComponent,
-        "Ventas de caja " + caja.id,
+        "Ventas de la caja " + caja.id,
         data,
         ListCajaComponent
       )

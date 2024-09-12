@@ -27,6 +27,7 @@ export class FacturaLegal {
     totalParcial5:number
     totalParcial10:number
     totalFinal:number
+    descuento:number
     usuario: Usuario
     creadoEn: Date
     sucursalId: number
@@ -54,6 +55,7 @@ export class FacturaLegal {
         input.usuarioId = this.usuario?.id
         input.viaTributaria = this.viaTributaria
         input.sucursalId = this.sucursalId
+        input.descuento = this.descuento
         return input;
     }
 }
@@ -77,6 +79,7 @@ export class FacturaLegalInput {
     totalParcial10: number
     viaTributaria: boolean
     totalFinal: number
+    descuento: number
     usuarioId: number
 }
 

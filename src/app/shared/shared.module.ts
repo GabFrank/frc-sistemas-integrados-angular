@@ -52,6 +52,7 @@ import { ShowAfterDelayDirective } from './directives/show-after-delay.directive
 import { FormattedTooltipDirective } from './directives/formatted-tooltip.directive';
 import { MatTooltip } from '@angular/material/tooltip';
 import { AutoFitTextDirective } from './directives/auto-fit-text-directive.directive';
+import { NgxSpinnerModule } from 'ngx-spinner';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -135,7 +136,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     NoSpacesDirective,
     LettersOnlyDirective,
     ShowAfterDelayDirective,
-    FormattedTooltipDirective
+    FormattedTooltipDirective,
+    NgxSpinnerModule,
   ],
   providers: [NgxImageCompressService, provideEnvironmentNgxMask(options), DecimalPipe, MatTooltip]
 })

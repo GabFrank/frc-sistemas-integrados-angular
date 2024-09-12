@@ -516,6 +516,7 @@ export class EditTransferenciaComponent implements OnInit {
       mostrarOpciones: false,
       mostrarStock: true,
       conservarUltimaBusqueda: true,
+      transferencia: this.selectedTransferencia
     };
     this.matDialog
       .open(PdvSearchProductoDialogComponent, {

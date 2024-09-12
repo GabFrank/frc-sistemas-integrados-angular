@@ -27,11 +27,20 @@ export const clientesSearchByPersona = gql`
         nombre
         direccion
       }
+      tipo
       nombre
       credito
+      creadoEn
+      usuario {
+        id
+      }
       saldo
-      tipo
       codigo
+      sucursal {
+        id
+      }
+      tributa
+      verificadoSet
       contactos {
         id
         telefono
@@ -49,8 +58,21 @@ export const clientePorPersonaDocumento = gql`
         nombre
         direccion
       }
+      tipo
       nombre
+      documento
       credito
+      creadoEn
+      usuario {
+        id
+      }
+      saldo
+      codigo
+      sucursal {
+        id
+      }
+      tributa
+      verificadoSet
       contactos {
         id
         telefono
@@ -89,14 +111,21 @@ export const clienteConFiltros = gql`
         nombre
         credito
         saldo
+        codigo
         tipo
         contactos {
           id
           telefono
         }
         creadoEn
-        usuarioId {
+        usuario {
+          id
           nickname
+        }
+        tributa
+        verificadoSet
+        sucursal {
+          id
         }
       }
     }
@@ -211,9 +240,7 @@ export const saveCliente = gql`
         telefono
       }
       creadoEn
-      usuarioId {
-        nickname
-      }
+      
     }
   }
 `;
@@ -221,5 +248,19 @@ export const saveCliente = gql`
 export const deleteClienteQuery = gql`
   mutation deleteCliente($id: ID!) {
     deleteCliente(id: $id)
+  }
+`;
+
+export const consultaRuc = gql`
+  query ($ruc: String) {
+    data: consultaRuc(ruc: $ruc) {
+      procesamientoCorrecto
+      mensajeProcesamiento
+      ruc
+      dv
+      estado
+      nombre
+      direccion
+    }
   }
 `;

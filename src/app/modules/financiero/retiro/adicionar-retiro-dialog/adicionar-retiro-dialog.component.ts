@@ -105,21 +105,46 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
       }
       if (res != null && res.length != 0) {
         this.timer = setTimeout(() => {
-          this.funcionarioService.onFuncionarioSearch(res).pipe(untilDestroyed(this)).subscribe((response) => {
-            this.funcionarioList = response;
-            if (this.funcionarioList.length == 1) {
-              this.onResponsableSelect(this.funcionarioList[0]);
-              this.onResponsableAutocompleteClose();
-            } else {
-              this.onResponsableAutocompleteClose();
-              this.onResponsableSelect(null);
-            }
-          });
-        }, 500);
+          this.onResponsableSearch();
+        }, 1000);
       } else {
         this.funcionarioList = [];
       }
     })
+  }
+
+  onResponsableSearch(){
+    if (this.responsableControl.valid) {
+      if (isNaN(this.responsableControl.value) == false) {
+        this.funcionarioService
+          .onGetFuncionarioPorPersona(this.responsableControl.value)
+          .subscribe((res) => {
+            if (res != null) {
+              this.onResponsableSelect(res);
+            } else {
+              this.onResponsableSearchByTexto();
+            }
+          });
+      } else {
+        this.onResponsableSearchByTexto();
+      }
+    }
+  }
+
+  onResponsableSearchByTexto(){
+    this.funcionarioService
+    .onFuncionarioSearch(this.responsableControl.value)
+    .pipe(untilDestroyed(this))
+    .subscribe((response) => {
+      this.funcionarioList = response;
+      if (this.funcionarioList.length == 1) {
+        this.onResponsableSelect(this.funcionarioList[0]);
+        this.onResponsableAutocompleteClose();
+      } else {
+        this.onResponsableAutocompleteClose();
+        this.onResponsableSelect(null);
+      }
+    });
   }
 
   onResponsableSelect(e) {
@@ -130,6 +155,9 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
         " - " +
         this.selectedResponsable?.persona?.nombre
       );
+    }
+    if(e != null && this.responsableInput != null){
+      this.responsableInput.nativeElement.select();
     }
   }
 

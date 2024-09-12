@@ -33,7 +33,7 @@ type Color = "primary" | "accent" | "warn" | "danger"; // Add more as needed
 })
 export class BotonComponent implements OnInit, AfterViewInit {
   @ViewChild("btn", { static: false }) btn: MatButton;
-  @ViewChild('textContent', { static: true }) textContent: ElementRef;
+  @ViewChild('textContent', { static: false }) textContent: ElementRef;
 
   @Input()
   nombre;
@@ -61,6 +61,9 @@ export class BotonComponent implements OnInit, AfterViewInit {
 
   @Input()
   delay = 0;
+
+  @Input()
+  basic = false;
 
   temporaryDisable = false;
 
@@ -98,23 +101,23 @@ export class BotonComponent implements OnInit, AfterViewInit {
   }
 
   private adjustFontSize(): void {
-    const element = this.textContent.nativeElement;
-    const button = this.btn?._elementRef?.nativeElement;
+    // const element = this.textContent?.nativeElement;
+    // const button = this.btn?._elementRef?.nativeElement;
 
-    let fontSize = parseInt(window.getComputedStyle(element).fontSize, 8);
+    // let fontSize = parseInt(window.getComputedStyle(element).fontSize, 8);
 
-    // Start with a large font size and decrease until it fits the button width
-    while (element.scrollWidth > button.clientWidth && fontSize > 8) {
-      fontSize -= 1;
-      this.renderer.setStyle(element, 'fontSize', `${fontSize}px`);
-    }
+    // // Start with a large font size and decrease until it fits the button width
+    // while (element.scrollWidth > button.clientWidth && fontSize > 8) {
+    //   fontSize -= 1;
+    //   this.renderer.setStyle(element, 'fontSize', `${fontSize}px`);
+    // }
 
-    // If the text still overflows, allow it to wrap to the next line
-    if (element.scrollWidth > button.clientWidth) {
-      this.renderer.setStyle(element, 'white-space', 'normal');
-    } else {
-      this.renderer.setStyle(element, 'white-space', 'nowrap');
-    }
+    // // If the text still overflows, allow it to wrap to the next line
+    // if (element.scrollWidth > button.clientWidth) {
+    //   this.renderer.setStyle(element, 'white-space', 'normal');
+    // } else {
+    //   this.renderer.setStyle(element, 'white-space', 'nowrap');
+    // }
   }
 
   onClick() {
@@ -128,6 +131,6 @@ export class BotonComponent implements OnInit, AfterViewInit {
   }
 
   onGetFocus() {
-    this.btn.focus();
+    this.btn?.focus();
   }
 }

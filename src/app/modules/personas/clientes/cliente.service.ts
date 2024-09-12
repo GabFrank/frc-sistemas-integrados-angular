@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { ApolloBase } from 'apollo-angular';
 import { Observable } from 'rxjs';
-import { GenericCrudService } from './../../../generics/generic-crud.service';
+import { GenericCrudService, QueryError } from './../../../generics/generic-crud.service';
 import { Cliente, ClienteInput, TipoCliente } from './cliente.model';
 import { ClienteByIdGQL } from './graphql/clienteById';
 import { ClientePersonaDocumentoGQL } from './graphql/clientePorPersonaDocumento';
@@ -11,6 +11,9 @@ import { ClientesSearchByPersonaIdGQL } from './graphql/clienteSearchByPersonaId
 import { ClientesSearchConFiltrosGQL } from './graphql/clienteWithFilters';
 import { SaveClienteGQL } from './graphql/saveCliente';
 import { PageInfo } from '../../../app.component';
+import { ConsultaRucGQL } from './graphql/consultaRuc';
+import { RucResponse } from '../../../shared/services/ruc.service';
+import { NotificacionColor } from '../../../notificacion-snackbar.service';
 
 @Injectable({
   providedIn: 'root'
@@ -27,12 +30,19 @@ export class ClienteService {
     private getClientePorPersonaId: ClientesSearchByPersonaIdGQL,
     private getClientePorPersonaIdFromServer: ClientePersonaIdFromServerGQL,
     private searchWithFilters: ClientesSearchConFiltrosGQL,
-    private saveCliente: SaveClienteGQL
+    private saveCliente: SaveClienteGQL,
+    private consultaRuc: ConsultaRucGQL
   ) {
   }
 
   onSaveCliente(input: ClienteInput): Observable<Cliente> {
-    return this.genericService.onSave(this.saveCliente, input, null, null, true);
+    let errorConf: QueryError = {
+      networkError: {
+        show: false,
+        propagate: true
+      }
+    }
+    return this.genericService.onSave(this.saveCliente, input, null, null, true, errorConf);
   }
 
   onGetClientePorPersonaDocumento(texto: string): Observable<Cliente> {
@@ -65,6 +75,16 @@ export class ClienteService {
 
   onSearchFromServer(texto: string): Observable<Cliente[]> {
     return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto, true, 10000);
+  }
+
+  onConsultaRuc(ruc:string): Observable<RucResponse>{
+    let errorConf: QueryError = {
+      networkError: {
+        show: false,
+        propagate: true
+      }
+    }
+    return this.genericService.onCustomQuery(this.consultaRuc, {ruc}, errorConf)
   }
 
 }

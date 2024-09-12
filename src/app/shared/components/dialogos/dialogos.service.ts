@@ -16,12 +16,13 @@ export class DialogosService {
     this.dialogRef = this.dialog.open(DialogosComponent, {
       autoFocus: false,
       restoreFocus: true,
+      minHeight: "200px",
       data: {
         title,
         message1,
         message2,
         listMessages,
-        action,
+        action: action == null ? true : action,
         btn1Name,
         btn2Name
       }

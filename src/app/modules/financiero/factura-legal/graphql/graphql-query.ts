@@ -48,6 +48,7 @@ export const facturaLegalesQuery = gql`
         totalFinal
         creadoEn
         sucursalId
+        descuento
       }
     }
   }
@@ -116,6 +117,7 @@ export const facturaLegalesFullInfoQuery = gql`
         totalParcial5
         totalParcial10
         totalFinal
+        descuento
         creadoEn
         sucursal {
           id
@@ -178,6 +180,7 @@ export const facturaLegalQuery = gql`
       totalParcial5
       totalParcial10
       totalFinal
+      descuento
       creadoEn
       sucursal {
         nombre
@@ -322,4 +325,5 @@ export const generarExcelFacturasZipQuery = gql`
     )
   }
 `;
+
 

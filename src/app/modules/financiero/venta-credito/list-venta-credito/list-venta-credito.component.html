@@ -18,7 +18,7 @@
           <mat-select [formControl]="estadoControl" name="estado">
             <mat-option [value]="null"> Todas </mat-option>
             <mat-option *ngFor="let estado of estadoList" [value]="estado">
-              {{ estado | titlecase }}
+              {{ estado | enumToString }}
             </mat-option>
           </mat-select>
         </mat-form-field>

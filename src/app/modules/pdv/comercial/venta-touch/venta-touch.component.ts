@@ -275,8 +275,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   openSelectCajaDialog() {
-    console.log('entrando en openSelectCajaDialog');
-    
     this.isDialogOpen = true;
     this.selectCajaDialog = this.matDialog.open(
       SeleccionarCajaDialogComponent,

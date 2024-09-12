@@ -16,6 +16,7 @@ import { RetiroPorCajaSalidaIdGQL } from "./graphql/retiroPorCajaSalidaId";
 import { ReimprimirRetiroGQL } from "./graphql/reimprimirRetiro";
 import { FilterRetirosGQL } from "./graphql/filterRetiros";
 import { Tab } from "../../../layouts/tab/tab.model";
+import { PageInfo } from "../../../app.component";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -47,7 +48,7 @@ export class RetiroService {
     }
   }
 
-  onFilterRetiro(id?: number, cajaId?: number, sucId?: number, responsableId?: number, cajeroId?: number, page?: number, size?: number): Observable<Retiro[]> {
+  onFilterRetiro(id?: number, cajaId?: number, sucId?: number, responsableId?: number, cajeroId?: number, page?: number, size?: number): Observable<PageInfo<Retiro>> {
     return this.crudService.onCustomQuery(
       this.filterRetiro, {
       id,

@@ -7,7 +7,7 @@
     <h2>Factura legal</h2>
   </div>
   <div
-    fxFlex="10"
+    fxFlex
     fxLayout="row"
     fxLayoutGap="10px"
     fxLayoutAlign="start center"
@@ -24,9 +24,15 @@
           (keydown.tab)="buscarCliente(); $event.preventDefault()"
           style="text-align: center"
         />
-        <span matTextPrefix>RUC:</span>
-        <span matTextSuffix style="width: 30px">
-          <div>{{ digitoVerificador }}</div>
+        <span matTextPrefix>{{
+          tributaControl.value == true ? "RUC:" : "Cédula"
+        }}</span>
+        <span
+          *ngIf="tributaControl.value == true"
+          matTextSuffix
+          style="display: block; width: 30px"
+        >
+          {{ digitoVerificador }}
         </span>
       </mat-form-field>
     </div>
@@ -41,7 +47,9 @@
           [formControl]="clienteDescripcionControl"
           (keyup.enter)="onSaveCliente()"
         />
-        <span matTextPrefix style="padding-right: 20px">Razon Social:</span>
+        <span matTextPrefix style="padding-right: 20px">{{
+          tributaControl.value == true ? "Razon Social:" : "Nombre:"
+        }}</span>
       </mat-form-field>
     </div>
     <div fxFlex="10%" fxLayout="row" fxLayoutAlign="space-around center">
@@ -52,28 +60,45 @@
     </div>
   </div>
   <div
-    fxFlex="10"
+    fxFlex
     fxLayout="row"
     fxLayoutGap="10px"
     fxLayoutAlign="start center"
   >
-    <div fxFlex="70%">
+    <div fxFlex="50%">
       <mat-form-field style="width: 100%">
         <mat-label>Dirección</mat-label>
         <input type="text" matInput [formControl]="direccionControl" />
       </mat-form-field>
     </div>
-    <div
-      fxFlex="30%"
-      fxLayout="row"
-      fxLayoutAlign="center center"
-      fxLayoutGap="10px"
+    <mat-checkbox
+      fxFlex
+      [checked]="tributaControl.value == true"
+      (change)="tributaControl.setValue(!tributaControl.value)"
+      >RUC</mat-checkbox
     >
+    <mat-checkbox
+      fxFlex
+      [checked]="tributaControl.value == false"
+      (change)="tributaControl.setValue(!tributaControl.value)"
+      >Cédula</mat-checkbox
+    >
+    <div fxFlex fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="10px">
       <div fxFlex style="text-align: center">
         <mat-slide-toggle [formControl]="creditoControl"
           >{{ creditoControl.value == false ? "Contado" : "Crédito" }}
         </mat-slide-toggle>
       </div>
+    </div>
+    <div fxFlex>
+      <app-boton
+        [basic]="true"
+        nombre="Verificar RUC"
+        (clickEvent)="
+          selectedCliente.verificadoSet = false; setCliente(selectedCliente)
+        "
+        [disableExpression]="selectedCliente?.id == null"
+      ></app-boton>
     </div>
   </div>
   <div
@@ -95,7 +120,7 @@
       ></app-boton>
     </div>
   </div>
-  <div fxFlex="50" style="width: 100%">
+  <div fxFlex="70" style="width: 100%">
     <table
       mat-table
       [dataSource]="dataSource"
@@ -209,26 +234,60 @@
       ></tr>
     </table>
   </div>
-  <mat-card
+  <div fxFlex fxLayout="row" fxLayoutAlign="end center">
+    <div fxFlex="30" fxLayout="column">
+      <div fxLayout="row">
+        <h5 fxFlex="50">Total parcial:</h5>
+        <h5 fxFlex="50" style="text-align: end">
+          {{ totalFinalControl.value | number : "1.0-0" }}
+        </h5>
+      </div>
+      <div fxLayout="row">
+        <h5 fxFlex="50">Descuento:</h5>
+        <h5 fxFlex="50" style="text-align: end">
+          {{ (data?.descuento || 0) | number : "1.0-0" }}
+        </h5>
+      </div>
+      <hr class="custom-line">
+      <div fxLayout="row">
+        <h3 fxFlex="50">Total final:</h3>
+        <h3 fxFlex="50" style="text-align: end">
+          {{ totalFinalControl.value - (data?.descuento || 0) | number : "1.0-0" }}
+        </h3>
+      </div>
+    </div>
+  </div>
+  <!-- <mat-card
     fxFlex="10"
     fxLayout="row"
     style="width: 100%; background-color: rgb(32, 32, 32); padding: 10px"
   >
     <div fxFlex="70%" fxLayout="column">
       <div fxFlex="50">Cantidad de itens: {{ dataSource?.data?.length }}</div>
-      <!-- <div fxFlex="50">Cantidad de hojas: {{ cantidadHojas }}</div> -->
     </div>
-    <div fxFlex="30">
+    <div fxFlex="30" fxLayout="column">
       <div fxLayout="row">
-        <h2 fxFlex="50">Total en Gs:</h2>
-        <h2 fxFlex="50" style="text-align: end">
+        <h5 fxFlex="50">Total parcial:</h5>
+        <h5 fxFlex="50" style="text-align: end">
           {{ totalFinalControl.value | number : "1.0-0" }}
-        </h2>
+        </h5>
+      </div>
+      <div fxLayout="row">
+        <h5 fxFlex="50">Descuento:</h5>
+        <h5 fxFlex="50" style="text-align: end">
+          {{ totalFinalControl.value | number : "1.0-0" }}
+        </h5>
+      </div>
+      <div fxLayout="row">
+        <h3 fxFlex="50">Total final:</h3>
+        <h3 fxFlex="50" style="text-align: end">
+          {{ totalFinalControl.value | number : "1.0-0" }}
+        </h3>
       </div>
     </div>
-  </mat-card>
+  </mat-card> -->
   <div
-    fxFlex="10"
+    fxFlex
     fxLayout="row"
     fxLayoutAlign="center center"
     fxLayoutGap="10px"

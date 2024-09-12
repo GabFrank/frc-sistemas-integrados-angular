@@ -48,7 +48,6 @@ export class SeleccionarCajaDialogComponent implements OnInit {
   }
 
   abrirCaja() {
-    this.cargandoDialog.openDialog()
     setTimeout(() => {
       this.matDialog.open(AdicionarCajaDialogComponent, {
         data: {
@@ -60,6 +59,7 @@ export class SeleccionarCajaDialogComponent implements OnInit {
         autoFocus: true,
         restoreFocus: true
       }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+        this.dialogRef.close()
       })
     }, 1000);
   }

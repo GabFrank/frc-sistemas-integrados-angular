@@ -82,7 +82,7 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
-    this.newBtn.onGetFocus()
+    this.newBtn?.onGetFocus()
     this.deliveryService.onGetDeliverysByEstadoList([DeliveryEstado.ABIERTO, DeliveryEstado.EN_CAMINO, DeliveryEstado.PARA_ENTREGA], this.cajaService?.selectedCaja?.id).subscribe(res => {
       this.dataSource.data = res;
       this.calcularDuracion()

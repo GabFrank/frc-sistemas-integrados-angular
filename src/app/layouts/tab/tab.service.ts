@@ -16,6 +16,9 @@ import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/ven
 import { ListGastosComponent } from '../../modules/financiero/gastos/list-gastos/list-gastos.component';
 import { ListMaletinComponent } from '../../modules/financiero/maletin/list-maletin/list-maletin.component';
 import { ListCajaComponent } from '../../modules/financiero/pdv/caja/list-caja/list-caja.component';
+import { ListDeliveryComponent } from '../../modules/pdv/comercial/venta-touch/list-delivery/list-delivery.component';
+import { PresentacionComponent } from '../../modules/productos/presentacion/presentacion.component';
+import { ProductoComponent } from '../../modules/productos/producto/edit-producto/producto.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -51,8 +54,8 @@ export class TabService implements OnInit {
 
     // this.addTab(new Tab(EditTransferenciaComponent, 'Transferencia 56', new TabData(56, {id: 56}), null))
     // this.addTab(new Tab(VentaTouchComponent, 'Venta'))
-    // this.addTab(new Tab(EditPedidoComponent, 'Nuevo pedido', new TabData(9, {id: 9}), null))
-    this.addTab(new Tab(ListCajaComponent, 'Lista de maletines', null, null))
+    this.addTab(new Tab(ProductoComponent, 'Nuevo producto', null, null))
+    // this.addTab(new Tab(VentaTouchComponent, 'Venta', null, null))
     this.tabSub.next(this.tabs);
   }
   

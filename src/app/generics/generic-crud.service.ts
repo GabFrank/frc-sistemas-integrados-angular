@@ -12,6 +12,38 @@ import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { dateToString } from "../commons/core/utils/dateUtils";
 import { CargandoDialogService } from "../shared/components/cargando-dialog/cargando-dialog.service";
 
+/**
+ * Interfaz para gestionar el manejo de errores en una solicitud GraphQL.
+ * Esta interfaz permite configurar cómo se deben mostrar y propagar
+ * los errores tanto a nivel de GraphQL como de red.
+ *
+ * Propiedades:
+ *
+ * - graphError:
+ *   - Configuración para manejar los errores relacionados con GraphQL.
+ *   - show: Indica si se debe mostrar el error (booleano).
+ *   - color: Define el color de la notificación cuando se muestra el error (NotificacionColor).
+ *   - propagate: Indica si se debe propagar el error para su manejo en otros niveles (booleano).
+ *
+ * - networkError:
+ *   - Configuración para manejar los errores de red.
+ *   - show: Indica si se debe mostrar el error de red (booleano).
+ *   - color: Define el color de la notificación para errores de red (NotificacionColor).
+ *   - propagate: Indica si se debe propagar el error de red (booleano).
+ */
+export interface QueryError {
+  graphError?: {
+    show?: boolean;
+    color?: NotificacionColor;
+    propagate?: boolean;
+  };
+  networkError?: {
+    show?: boolean;
+    color?: NotificacionColor;
+    propagate?: boolean;
+  };
+}
+
 @UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
@@ -33,7 +65,10 @@ export class GenericCrudService {
 
   onGetAll(gql: Query, page?, size?, servidor?): Observable<any> {
     this.isLoading = true;
-    const { requestId, signal } = this.cargandoService.openDialog(false, "Buscando...");
+    const { requestId, signal } = this.cargandoService.openDialog(
+      false,
+      "Buscando..."
+    );
     return new Observable((obs) => {
       gql
         .fetch(
@@ -41,7 +76,10 @@ export class GenericCrudService {
           {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
-            context: { clientName: servidor == true ? "servidor" : null, fetchOptions: { signal }},
+            context: {
+              clientName: servidor == true ? "servidor" : null,
+              fetchOptions: { signal },
+            },
           }
         )
         .pipe(untilDestroyed(this))
@@ -62,24 +100,30 @@ export class GenericCrudService {
     });
   }
 
-  onCustomQuery(gql: Query, data, servidor?): Observable<any> {
+  onCustomQuery(gql: Query, data, servidor?, errorConf?): Observable<any> {
     console.log("Entrando en custom query");
 
     this.isLoading = true;
-    const { requestId, signal } = this.cargandoService.openDialog(false, "Buscando...");
+    const { requestId, signal } = this.cargandoService.openDialog(
+      false,
+      "Buscando..."
+    );
     return new Observable((obs) => {
       gql
         .fetch(data, {
           fetchPolicy: "no-cache",
           errorPolicy: "all",
-          context: { clientName: servidor == true ? "servidor" : null, fetchOptions: { signal }},
+          context: {
+            clientName: servidor == true ? "servidor" : null,
+            fetchOptions: { signal },
+          },
         })
         .pipe(
           untilDestroyed(this),
           timeout(300000) // Adjust as per your needs
         )
-        .subscribe(
-          (res) => {
+        .subscribe({
+          next: (res) => {
             this.cargandoService.closeDialog(requestId);
             this.isLoading = false;
             if (res.errors == null) {
@@ -93,31 +137,40 @@ export class GenericCrudService {
               });
             }
           },
-          (error) => {
-            {
-              console.log("Entrando en el error");
-              this.cargandoService.closeDialog(requestId);
-              this.isLoading = false;
+          error: (error) => {
+            this.isLoading = false;
+            this.cargandoService.closeDialog(requestId);
+            if (errorConf?.networkError?.show == true) {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ocurrio un error en la red",
-                color: NotificacionColor.warn,
+                texto: "Error de red",
+                color:
+                  errorConf?.networkError?.color || NotificacionColor.danger,
                 duracion: 3,
               });
             }
-          }
-        );
+            if (errorConf?.networkError?.propagate == true) {
+              obs.error(error);
+            }
+          },
+        });
     });
   }
 
   onCustomMutation(gql: Mutation, data, servidor?): Observable<any> {
     this.isLoading = true;
-    const { requestId, signal } = this.cargandoService.openDialog(false, "Guardando...");
+    const { requestId, signal } = this.cargandoService.openDialog(
+      false,
+      "Guardando..."
+    );
     return new Observable((obs) => {
       gql
         .mutate(data, {
           fetchPolicy: "no-cache",
           errorPolicy: "all",
-          context: { clientName: servidor == true ? "servidor" : null, fetchOptions: { signal }},
+          context: {
+            clientName: servidor == true ? "servidor" : null,
+            fetchOptions: { signal },
+          },
         })
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
@@ -146,19 +199,22 @@ export class GenericCrudService {
     this.isLoading = true;
     let requestId: number | null = null;
     let signal: AbortSignal | undefined;
-  
+
     if (cargando == true) {
       const result = this.cargandoService.openDialog(false, "Buscando...");
       requestId = result.requestId;
       signal = result.signal;
     }
-  
+
     return new Observable((obs) => {
       gql
         .subscribe(data, {
           fetchPolicy: "no-cache",
           errorPolicy: "all",
-          context: { clientName: servidor == true ? "servidor" : null, fetchOptions: { signal }},
+          context: {
+            clientName: servidor == true ? "servidor" : null,
+            fetchOptions: { signal },
+          },
         })
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
@@ -191,7 +247,11 @@ export class GenericCrudService {
     duracion?
   ): Observable<T> {
     this.isLoading = true;
-    const { requestId, signal } = this.cargandoService.openDialog(false, "Buscando...", duracion);
+    const { requestId, signal } = this.cargandoService.openDialog(
+      false,
+      "Buscando...",
+      duracion
+    );
     return new Observable((obs) => {
       gql
         .fetch(
@@ -199,7 +259,10 @@ export class GenericCrudService {
           {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
-            context: { clientName: servidor == true ? "servidor" : null, fetchOptions: { signal }},
+            context: {
+              clientName: servidor == true ? "servidor" : null,
+              fetchOptions: { signal },
+            },
           }
         )
         .pipe(untilDestroyed(this))
@@ -242,7 +305,11 @@ export class GenericCrudService {
     duracion?
   ): Observable<any> {
     this.isLoading = true;
-    const { requestId, signal } = this.cargandoService.openDialog(false, "Buscando...", duracion);
+    const { requestId, signal } = this.cargandoService.openDialog(
+      false,
+      "Buscando...",
+      duracion
+    );
     return new Observable((obs) => {
       gql
         .fetch(
@@ -250,7 +317,10 @@ export class GenericCrudService {
           {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
-            context: { clientName: servidor == true ? "servidor" : null, fetchOptions: { signal }},
+            context: {
+              clientName: servidor == true ? "servidor" : null,
+              fetchOptions: { signal },
+            },
           }
         )
         .pipe(untilDestroyed(this))
@@ -276,13 +346,17 @@ export class GenericCrudService {
     input,
     printerName?: string,
     local?: string,
-    servidor?
+    servidor?,
+    errorConf?: QueryError
   ): Observable<T> {
     this.isLoading = true;
     if (input?.usuarioId == null) {
       input.usuarioId = this.mainService.usuarioActual.id;
     }
-    const { requestId, signal } = this.cargandoService.openDialog(false, "Guardando...");
+    const { requestId, signal } = this.cargandoService.openDialog(
+      false,
+      "Guardando..."
+    );
     return new Observable((obs) => {
       gql
         .mutate(
@@ -290,46 +364,72 @@ export class GenericCrudService {
           {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
-            context: { clientName: servidor == true ? "servidor" : null, fetchOptions: { signal }},
+            context: {
+              clientName: servidor == true ? "servidor" : null,
+              fetchOptions: { signal },
+            },
           }
         )
         .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.isLoading = false;
-          this.cargandoService.closeDialog(requestId);
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-            obs.complete();
-            this.notificacionSnackBar.notification$.next({
-              texto: "Guardado con éxito",
-              duracion: 2,
-              color: NotificacionColor.success,
-            });
-          } else {
-            this.notificacionSnackBar.notification$.next({
-              texto:
-                "Ups! Algo salió mal en operacion: " + res.errors[0].message,
-              color: NotificacionColor.danger,
-              duracion: 5,
-            });
-            if (res.data["data"] != null) {
+        .subscribe({
+          next: (res) => {
+            this.isLoading = false;
+            this.cargandoService.closeDialog(requestId);
+            if (res.errors == null) {
               obs.next(res.data["data"]);
               obs.complete();
+              this.notificacionSnackBar.notification$.next({
+                texto: "Guardado con éxito",
+                duracion: 2,
+                color: NotificacionColor.success,
+              });
+            } else {
+              this.notificacionSnackBar.notification$.next({
+                texto:
+                  "Ups! Algo salió mal en operacion: " + res.errors[0].message,
+                color: NotificacionColor.danger,
+                duracion: 5,
+              });
+              if (res?.data["data"] != null) {
+                obs.next(res.data["data"]);
+                obs.complete();
+              }
             }
-          }
+          },
+          error: (error) => {
+            this.isLoading = false;
+            this.cargandoService.closeDialog(requestId);
+            if (errorConf?.networkError?.show == true) {
+              this.notificacionSnackBar.notification$.next({
+                texto: "Error de red",
+                color:
+                  errorConf?.networkError?.color || NotificacionColor.danger,
+                duracion: 3,
+              });
+            }
+            if (errorConf?.networkError?.propagate == true) {
+              obs.error(error);
+            }
+          },
         });
     });
   }
 
   onSaveCustom<T>(gql: Mutation, data, servidor?): Observable<T> {
     this.isLoading = true;
-    const { requestId, signal } = this.cargandoService.openDialog(false, "Guardando...");
+    const { requestId, signal } = this.cargandoService.openDialog(
+      false,
+      "Guardando..."
+    );
     return new Observable((obs) => {
       gql
         .mutate(data, {
           fetchPolicy: "no-cache",
           errorPolicy: "all",
-          context: { clientName: servidor == true ? "servidor" : null, fetchOptions: { signal } },
+          context: {
+            clientName: servidor == true ? "servidor" : null,
+            fetchOptions: { signal },
+          },
         })
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
@@ -367,7 +467,10 @@ export class GenericCrudService {
   ): Observable<any> {
     return new Observable((obs) => {
       if (showDialog == false) {
-        const { requestId, signal } = this.cargandoService.openDialog(false, "Eliminando...");
+        const { requestId, signal } = this.cargandoService.openDialog(
+          false,
+          "Eliminando..."
+        );
         gql
           .mutate(
             {
@@ -375,7 +478,10 @@ export class GenericCrudService {
             },
             {
               errorPolicy: "all",
-              context: { clientName: servidor == true ? "servidor" : null, fetchOptions: { signal } },
+              context: {
+                clientName: servidor == true ? "servidor" : null,
+                fetchOptions: { signal },
+              },
             }
           )
           .pipe(untilDestroyed(this))
@@ -407,7 +513,10 @@ export class GenericCrudService {
           .confirm("Atención!!", "Realemente desea eliminar este " + titulo)
           .pipe(untilDestroyed(this))
           .subscribe((res1) => {
-            const { requestId, signal } = this.cargandoService.openDialog(false, "Eliminando...");
+            const { requestId, signal } = this.cargandoService.openDialog(
+              false,
+              "Eliminando..."
+            );
             if (res1) {
               gql
                 .mutate(
@@ -417,7 +526,8 @@ export class GenericCrudService {
                   {
                     errorPolicy: "all",
                     context: {
-                      clientName: servidor == true ? "servidor" : null, fetchOptions: { signal }
+                      clientName: servidor == true ? "servidor" : null,
+                      fetchOptions: { signal },
                     },
                   }
                 )
@@ -463,7 +573,10 @@ export class GenericCrudService {
   ): Observable<any> {
     return new Observable((obs) => {
       if (showDialog == false) {
-        const { requestId, signal } = this.cargandoService.openDialog(false, "Eliminando...");
+        const { requestId, signal } = this.cargandoService.openDialog(
+          false,
+          "Eliminando..."
+        );
         gql
           .mutate(
             {
@@ -472,7 +585,10 @@ export class GenericCrudService {
             },
             {
               errorPolicy: "all",
-              context: { clientName: servidor == true ? "servidor" : null, fetchOptions: { signal }},
+              context: {
+                clientName: servidor == true ? "servidor" : null,
+                fetchOptions: { signal },
+              },
             }
           )
           .pipe(untilDestroyed(this))
@@ -504,7 +620,10 @@ export class GenericCrudService {
           .confirm("Atención!!", "Realemente desea eliminar este " + titulo)
           .pipe(untilDestroyed(this))
           .subscribe((res1) => {
-            const { requestId, signal } = this.cargandoService.openDialog(false, "Eliminando...");
+            const { requestId, signal } = this.cargandoService.openDialog(
+              false,
+              "Eliminando..."
+            );
             if (res1) {
               gql
                 .mutate(
@@ -514,7 +633,8 @@ export class GenericCrudService {
                   {
                     errorPolicy: "all",
                     context: {
-                      clientName: servidor == true ? "servidor" : null, fetchOptions: { signal }
+                      clientName: servidor == true ? "servidor" : null,
+                      fetchOptions: { signal },
                     },
                   }
                 )
@@ -578,7 +698,10 @@ export class GenericCrudService {
         fin = hoy;
       }
     }
-    const { requestId, signal } = this.cargandoService.openDialog(false, "Eliminando...");
+    const { requestId, signal } = this.cargandoService.openDialog(
+      false,
+      "Eliminando..."
+    );
     return new Observable((obs) => {
       gql
         .fetch(
@@ -586,7 +709,10 @@ export class GenericCrudService {
           {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
-            context: { clientName: servidor == true ? "servidor" : null, fetchOptions: { signal }},
+            context: {
+              clientName: servidor == true ? "servidor" : null,
+              fetchOptions: { signal },
+            },
           }
         )
         .pipe(untilDestroyed(this))
@@ -630,7 +756,10 @@ export class GenericCrudService {
           {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
-            context: { clientName: servidor == true ? "servidor" : null, fetchOptions: { signal }},
+            context: {
+              clientName: servidor == true ? "servidor" : null,
+              fetchOptions: { signal },
+            },
           }
         )
         .pipe(untilDestroyed(this))

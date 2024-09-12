@@ -16,17 +16,9 @@ export class PrecioDeliveryComponent implements OnInit {
   displayedColumns: string[] = ['id', 'descripcion', 'valor', 'activo', 'creadoEn', 'usuario'];
 
   constructor(private formBuilder: FormBuilder, private precioDelivery: DeliveryService) {
-    this.createForm();
   }
   ngOnInit(): void {
   }
 
-  createForm() {
-    this.precioDeliveryForm = this.formBuilder.group({
-      descripcion: ['', Validators.required],
-      valor: [0, [Validators.required, Validators.min(1)]],
-      activo: [true]
-    });
-  }
 
 }

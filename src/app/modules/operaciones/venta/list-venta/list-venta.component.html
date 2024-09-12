@@ -284,8 +284,20 @@
       </mat-expansion-panel>
       <mat-expansion-panel>
         <mat-expansion-panel-header>
-          <mat-panel-title> Gastos </mat-panel-title>
-        </mat-expansion-panel-header>
+          <mat-panel-title>
+            <div>
+              <span>Gastos</span>
+              <button
+                mat-icon-button
+                matTooltip="Ir a gastos"
+                (click)="onGoToGastos()"
+              >
+                <mat-icon style="color: rgb(0, 128, 255); font-size: 0.9em"
+                  >launch</mat-icon
+                >
+              </button>
+            </div>
+          </mat-panel-title>        </mat-expansion-panel-header>
         <div fxLayout="column" style="width: 100%">
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Guaranies:</div>

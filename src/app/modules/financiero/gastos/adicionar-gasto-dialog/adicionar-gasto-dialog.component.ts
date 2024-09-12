@@ -4,7 +4,7 @@ import {
   Inject,
   OnDestroy,
   OnInit,
-  ViewChild
+  ViewChild,
 } from "@angular/core";
 import { FormControl } from "@angular/forms";
 import { MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
@@ -13,12 +13,12 @@ import { MatTableDataSource } from "@angular/material/table";
 import { Subscription } from "rxjs";
 import {
   orderByIdDesc,
-  replaceObject
+  replaceObject,
 } from "../../../../commons/core/utils/arraysUtil";
 import {
   CurrencyMask,
   stringToDecimal,
-  stringToInteger
+  stringToInteger,
 } from "../../../../commons/core/utils/numbersUtils";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
@@ -35,7 +35,7 @@ export class AdicionarGastoData {
   caja: PdvCaja;
 }
 
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { MainService } from "../../../../main.service";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { FamiliasSearchGQL } from "../../../productos/familia/graphql/familiasSearch";
@@ -59,7 +59,17 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
 
   isVuelto = false;
 
-  displayedColumns = ["id", "responsable", "tipo", "valorGs", "valorRs", "valorDs", "vuelto", "creadoEn", "acciones"];
+  displayedColumns = [
+    "id",
+    "responsable",
+    "tipo",
+    "valorGs",
+    "valorRs",
+    "valorDs",
+    "vuelto",
+    "creadoEn",
+    "acciones",
+  ];
 
   dataSource = new MatTableDataSource<Gasto>(null);
 
@@ -112,17 +122,22 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   ) {
     if (data?.caja != null) {
       this.selectedCaja = data.caja;
-      gastoService.onGetByCajaId(this.selectedCaja.id).pipe(untilDestroyed(this)).subscribe((res) => {
-        if (res != null) {
-          this.gastoList = orderByIdDesc<Gasto>(res);
-          this.dataSource.data = this.gastoList;
-        }
-      });
-      this.cajaService.onCajaBalancePorId(this.selectedCaja.id).subscribe(res => {
-        if (res != null) {
-          this.selectedCaja.balance = res;
-        }
-      })
+      gastoService
+        .onGetByCajaId(this.selectedCaja.id)
+        .pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          if (res != null) {
+            this.gastoList = orderByIdDesc<Gasto>(res);
+            this.dataSource.data = this.gastoList;
+          }
+        });
+      this.cajaService
+        .onCajaBalancePorId(this.selectedCaja.id)
+        .subscribe((res) => {
+          if (res != null) {
+            this.selectedCaja.balance = res;
+          }
+        });
     }
   }
 
@@ -131,88 +146,69 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     this.autorizadoPorList = [];
     this.tipoGastoList = [];
 
-    this.responsableSub = this.responsableControl.valueChanges.pipe(untilDestroyed(this)).subscribe(
-      (res) => {
+    this.responsableSub = this.responsableControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
         if (res == "") this.selectedResponsable = null;
         if (this.responsableTimer != null) {
           clearTimeout(this.responsableTimer);
         }
         if (res != null && res.length != 0) {
           this.responsableTimer = setTimeout(() => {
-            this.funcionarioService
-              .onFuncionarioSearch(res).pipe(untilDestroyed(this))
-              .subscribe((response) => {
-                this.responsableList = response;
-                if (this.responsableList.length == 1) {
-                  this.onResponsableSelect(this.responsableList[0]);
-                  this.onResponsableAutocompleteClose();
-                } else {
-                  this.onResponsableAutocompleteClose();
-                  this.onResponsableSelect(null);
-                }
-              });
-          }, 500);
+            this.onFuncionarioSearch();
+          }, 1000);
         } else {
           this.responsableList = [];
         }
-      }
-    );
+      });
 
-    this.autorizadoPorSub = this.autorizadoPorControl.valueChanges.pipe(untilDestroyed(this)).subscribe(
-      (res) => {
+    this.autorizadoPorSub = this.autorizadoPorControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
         if (res == "") this.selectedAutorizadoPor = null;
         if (this.autorizadoPorTimer != null) {
           clearTimeout(this.autorizadoPorTimer);
         }
         if (res != null && res.length != 0) {
-          this.autorizadoPorTimer = setTimeout(() => {
-            this.funcionarioService
-              .onFuncionarioSearch(res).pipe(untilDestroyed(this))
+          this.autorizadoPorTimer = setTimeout(() => {}, 500);
+        } else {
+          this.autorizadoPorList = [];
+        }
+      });
+
+    this.tipoGastoSub = this.tipoGastoControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res == "") this.selectedTipoGasto = null;
+        if (this.tipoGastoTimer != null) {
+          clearTimeout(this.tipoGastoTimer);
+        }
+        if (res != null && res.length != 0) {
+          this.tipoGastoTimer = setTimeout(() => {
+            this.tipoGastoService
+              .onSearch(res)
+              .pipe(untilDestroyed(this))
               .subscribe((response) => {
-                this.autorizadoPorList = response;
-                if (this.autorizadoPorList.length == 1) {
-                  this.onAutorizadoPorSelect(this.autorizadoPorList[0]);
-                  this.onAutorizadoPorAutocompleteClose();
+                this.tipoGastoList = response;
+                if (this.tipoGastoList.length == 1) {
+                  this.onTipoGastoSelect(this.tipoGastoList[0]);
+                  this.onTipoGastoAutocompleteClose();
                 } else {
-                  this.onAutorizadoPorAutocompleteClose();
-                  this.onAutorizadoPorSelect(null);
+                  this.onTipoGastoAutocompleteClose();
+                  this.onTipoGastoSelect(null);
                 }
               });
           }, 500);
         } else {
-          this.autorizadoPorList = [];
+          this.tipoGastoList = [];
         }
-      }
-    );
-
-    this.tipoGastoSub = this.tipoGastoControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res == "") this.selectedTipoGasto = null;
-      if (this.tipoGastoTimer != null) {
-        clearTimeout(this.tipoGastoTimer);
-      }
-      if (res != null && res.length != 0) {
-        this.tipoGastoTimer = setTimeout(() => {
-          this.tipoGastoService.onSearch(res).pipe(untilDestroyed(this)).subscribe((response) => {
-            this.tipoGastoList = response;
-            if (this.tipoGastoList.length == 1) {
-              this.onTipoGastoSelect(this.tipoGastoList[0]);
-              this.onTipoGastoAutocompleteClose();
-            } else {
-              this.onTipoGastoAutocompleteClose();
-              this.onTipoGastoSelect(null);
-            }
-          });
-        }, 500);
-      } else {
-        this.tipoGastoList = [];
-      }
-    });
+      });
 
     this.guaraniVueltoControl.disable();
     this.realVueltoControl.disable();
     this.dolarVueltoControl.disable();
     setTimeout(() => {
-      this.responsableInput.nativeElement.focus()
+      this.responsableInput.nativeElement.focus();
     }, 500);
   }
 
@@ -221,10 +217,45 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       this.selectedResponsable = e;
       this.responsableControl.setValue(
         this.selectedResponsable?.id +
-        " - " +
-        this.selectedResponsable?.persona?.nombre
+          " - " +
+          this.selectedResponsable?.persona?.nombre
       );
+      this.responsableInput?.nativeElement?.select();
     }
+  }
+
+  onFuncionarioSearch() {
+    if (this.responsableControl.valid) {
+      if (isNaN(this.responsableControl.value) == false) {
+        this.funcionarioService
+          .onGetFuncionarioPorPersona(this.responsableControl.value)
+          .subscribe((res) => {
+            if (res != null) {
+              this.onResponsableSelect(res);
+            } else {
+              this.onSearchFuncionarioPorNombre();
+            }
+          });
+      } else {
+        this.onSearchFuncionarioPorNombre();
+      }
+    }
+  }
+
+  onSearchFuncionarioPorNombre() {
+    this.funcionarioService
+      .onFuncionarioSearch(this.responsableControl.value)
+      .pipe(untilDestroyed(this))
+      .subscribe((response) => {
+        this.responsableList = response;
+        if (this.responsableList.length == 1) {
+          this.onResponsableSelect(this.responsableList[0]);
+          this.onResponsableAutocompleteClose();
+        } else {
+          this.onResponsableAutocompleteClose();
+          this.onResponsableSelect(null);
+        }
+      });
   }
 
   onTipoGastoAutocompleteClose() {
@@ -259,15 +290,15 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       this.selectedAutorizadoPor = e;
       this.autorizadoPorControl.setValue(
         this.selectedAutorizadoPor?.id +
-        " - " +
-        this.selectedAutorizadoPor?.persona?.nombre
+          " - " +
+          this.selectedAutorizadoPor?.persona?.nombre
       );
     }
   }
 
   onAutorizadoPorAutocompleteClose() {
     setTimeout(() => {
-      this.autorizadoPorInput.nativeElement.select();
+      this.autorizadoPorInput?.nativeElement?.select();
     }, 100);
   }
 
@@ -276,10 +307,13 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
       if (this.selectedResponsable != null && this.verficarValores()) {
         this.dialogService
           .confirm("Confirmar valores de gasto", null, null, [
-            `Guaranies: ${stringToInteger(this.guaraniControl.value.toString())}`,
+            `Guaranies: ${stringToInteger(
+              this.guaraniControl.value.toString()
+            )}`,
             `Reales: ${stringToDecimal(this.realControl.value.toString())}`,
             `Dolares: ${stringToDecimal(this.dolarControl.value.toString())}`,
-          ]).pipe(untilDestroyed(this))
+          ])
+          .pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (res) {
               let gasto = new Gasto();
@@ -303,51 +337,85 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
               } else {
                 gasto.finalizado = false;
               }
-              this.gastoService.onSave(gasto).pipe(untilDestroyed(this)).subscribe((gastoResponse) => {
-                this.cargandoDialog.closeDialog();
-                if (gastoResponse != null) {
-                  this.gastoList.push(gastoResponse as Gasto);
-                  this.dataSource.data = orderByIdDesc<Gasto>(this.gastoList);
-                  this.goTo("lista-gastos");
-                }
-                this.onCancelar()
-              });
-
+              this.gastoService
+                .onSave(gasto)
+                .pipe(untilDestroyed(this))
+                .subscribe((gastoResponse) => {
+                  this.cargandoDialog.closeDialog();
+                  if (gastoResponse != null) {
+                    this.gastoList.push(gastoResponse as Gasto);
+                    this.dataSource.data = orderByIdDesc<Gasto>(this.gastoList);
+                    this.goTo("lista-gastos");
+                  }
+                  this.onCancelar();
+                });
             }
           });
       }
     } else {
-      this.onSaveVuelto()
+      this.onSaveVuelto();
     }
-
   }
 
   onSaveVuelto() {
-    if(this.guaraniVueltoControl.value > this.guaraniControl.value || this.realVueltoControl.value > this.realControl.value || this.dolarVueltoControl.value > this.dolarControl.value) {
-      this.notificacionService.openWarn("Vuelto mayor a retiro")
+    if (
+      this.guaraniVueltoControl.value > this.guaraniControl.value ||
+      this.realVueltoControl.value > this.realControl.value ||
+      this.dolarVueltoControl.value > this.dolarControl.value
+    ) {
+      this.notificacionService.openWarn("Vuelto mayor a retiro");
       return;
     }
-    if (this.selectedGasto?.sucursalVuelto == null || (this.selectedGasto?.sucursalVuelto != null && this.selectedGasto?.sucursalVuelto?.id == this.mainService?.sucursalActual?.id)) {
+    if (
+      this.selectedGasto?.sucursalVuelto == null ||
+      (this.selectedGasto?.sucursalVuelto != null &&
+        this.selectedGasto?.sucursalVuelto?.id ==
+          this.mainService?.sucursalActual?.id)
+    ) {
       this.dialogService
         .confirm("Confirmar valores de gasto", null, null, [
-          `Guaranies: ${stringToInteger(this.guaraniControl.value.toString())} ${this.guaraniVueltoControl.value != null ? ' - Vuelto: ' + stringToInteger(this.guaraniVueltoControl.value.toString()) : ''}`,
-          `Reales: ${stringToDecimal(this.realControl.value.toString())}  ${this.realVueltoControl.value != null ? ' - Vuelto: ' + stringToDecimal(this.realVueltoControl.value.toString()) : ''}`,
-          `Dolares: ${stringToDecimal(this.dolarControl.value.toString())}  ${this.dolarVueltoControl.value != null ? ' - Vuelto: ' + stringToDecimal(this.dolarVueltoControl.value.toString()) : ''}`,
-        ]).pipe(untilDestroyed(this))
+          `Guaranies: ${stringToInteger(
+            this.guaraniControl.value.toString()
+          )} ${
+            this.guaraniVueltoControl.value != null
+              ? " - Vuelto: " +
+                stringToInteger(this.guaraniVueltoControl.value.toString())
+              : ""
+          }`,
+          `Reales: ${stringToDecimal(this.realControl.value.toString())}  ${
+            this.realVueltoControl.value != null
+              ? " - Vuelto: " +
+                stringToDecimal(this.realVueltoControl.value.toString())
+              : ""
+          }`,
+          `Dolares: ${stringToDecimal(this.dolarControl.value.toString())}  ${
+            this.dolarVueltoControl.value != null
+              ? " - Vuelto: " +
+                stringToDecimal(this.dolarVueltoControl.value.toString())
+              : ""
+          }`,
+        ])
+        .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res) {
-            this.gastoService.onSaveVuelto({ id: this.selectedGasto.id, valorGs: this.guaraniVueltoControl.value, valorRs: this.realVueltoControl.value, valorDs: this.dolarVueltoControl.value })
-              .pipe(untilDestroyed(this)).subscribe(res => {
-                if (res != null) {
-                  this.ngOnInit()
-                }
+            this.gastoService
+              .onSaveVuelto({
+                id: this.selectedGasto.id,
+                valorGs: this.guaraniVueltoControl.value,
+                valorRs: this.realVueltoControl.value,
+                valorDs: this.dolarVueltoControl.value,
               })
+              .pipe(untilDestroyed(this))
+              .subscribe((res) => {
+                if (res != null) {
+                  this.ngOnInit();
+                }
+              });
           }
         });
     } else {
-      this.notificacionService.openWarn("No se puede guardar este gasto")
+      this.notificacionService.openWarn("No se puede guardar este gasto");
     }
-
   }
 
   onCancelar() {
@@ -375,25 +443,28 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     this.realControl.enable();
     this.dolarControl.enable();
     setTimeout(() => {
-      this.responsableInput.nativeElement.focus()
+      this.responsableInput.nativeElement.focus();
     }, 0);
   }
 
   onFinalizar(gasto: Gasto) {
-    this.cargandoDialog.openDialog()
+    this.cargandoDialog.openDialog();
     let newGasto = new Gasto();
     Object.assign(newGasto, gasto);
     if (newGasto != null && newGasto.finalizado != true) {
       newGasto.finalizado = true;
-      this.gastoService.onSave(newGasto).pipe(untilDestroyed(this)).subscribe((res) => {
-        this.cargandoDialog.closeDialog()
-        if (res != null) {
-          this.gastoList = replaceObject<Gasto>(this.gastoList, res);
-          this.dataSource.data = this.gastoList;
-          this.onCancelar()
-          this.goTo('lista-gastos')
-        }
-      });
+      this.gastoService
+        .onSave(newGasto)
+        .pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          this.cargandoDialog.closeDialog();
+          if (res != null) {
+            this.gastoList = replaceObject<Gasto>(this.gastoList, res);
+            this.dataSource.data = this.gastoList;
+            this.onCancelar();
+            this.goTo("lista-gastos");
+          }
+        });
     }
   }
 
@@ -411,19 +482,28 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
     this.isVuelto = true;
   }
 
-  onGastoClick(gasto: Gasto) { }
+  onGastoClick(gasto: Gasto) {}
 
   verficarValores(): boolean {
-    if (this.guaraniControl.value > (this.selectedCaja.balance.diferenciaGs * -1)) {
-      this.notificacionService.openWarn("El monto en guaraníes es mayor a lo que tiene en caja")
+    if (
+      this.guaraniControl.value >
+      this.selectedCaja.balance.diferenciaGs * -1
+    ) {
+      this.notificacionService.openWarn(
+        "El monto en guaraníes es mayor a lo que tiene en caja"
+      );
       return false;
     }
-    if (this.realControl.value > (this.selectedCaja.balance.diferenciaRs * -1)) {
-      this.notificacionService.openWarn("El monto en reales es mayor a lo que tiene en caja")
+    if (this.realControl.value > this.selectedCaja.balance.diferenciaRs * -1) {
+      this.notificacionService.openWarn(
+        "El monto en reales es mayor a lo que tiene en caja"
+      );
       return false;
     }
-    if (this.dolarControl.value > (this.selectedCaja.balance.diferenciaDs * -1)) {
-      this.notificacionService.openWarn("El monto en dolares es mayor a lo que tiene en caja")
+    if (this.dolarControl.value > this.selectedCaja.balance.diferenciaDs * -1) {
+      this.notificacionService.openWarn(
+        "El monto en dolares es mayor a lo que tiene en caja"
+      );
       return false;
     }
     return true;
@@ -489,6 +569,6 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   }
 
   onReimprimir(gasto: Gasto) {
-    this.gastoService.onReimprimir(gasto.id).subscribe().unsubscribe()
+    this.gastoService.onReimprimir(gasto.id).subscribe().unsubscribe();
   }
 }

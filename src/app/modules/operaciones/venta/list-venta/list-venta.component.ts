@@ -33,6 +33,7 @@ import { MatDialog } from "@angular/material/dialog";
 import { AdicionarCajaDialogComponent } from "../../../financiero/pdv/caja/adicionar-caja-dialog/adicionar-caja-dialog.component";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
+import { ListGastosComponent } from "../../../financiero/gastos/list-gastos/list-gastos.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -113,23 +114,16 @@ export class ListVentaComponent implements OnInit {
 
   ngOnInit(): void {
     this.monedaList = this.monedaService.monedaList;
-    
-    setTimeout(() => {
-      this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
-      this.pageSize = this.paginator.pageSizeOptions[1];
-      this.onFiltrar();
-    }, 0);
 
     if (this.data?.tabData?.data != null) {
       this.selectedCaja = this.data.tabData.data;
-      console.log(this.selectedCaja);
 
       this.cajaService
         .onGetById(this.selectedCaja.id, this.selectedCaja.sucursalId)
         .subscribe((res) => {
           if (res != null) {
             this.selectedCaja = res;
-            this.onFiltrar()
+            this.onFiltrar();
           }
         });
     } else {
@@ -152,23 +146,22 @@ export class ListVentaComponent implements OnInit {
   }
 
   onFiltrar() {
-    if (this.isLastPage) this.ventaDataSource.data = [];
-    if (this.idVentaControl.value != null) {
-      this.ventaService
-        .onGetPorId(this.idVentaControl.value, this.selectedCaja?.sucursalId)
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res != null && res?.caja?.id == this.selectedCaja?.id) {
-            this.ventaDataSource.data = [];
-            this.ventaDataSource.data = updateDataSource(
-              this.ventaDataSource.data,
-              res
-            );
-          }
-        });
-    } else {
-      this.onGetVentas();
-    }
+    // if (this.idVentaControl.value != null) {
+    //   this.ventaService
+    //     .onGetPorId(this.idVentaControl.value, this.selectedCaja?.sucursalId)
+    //     .pipe(untilDestroyed(this))
+    //     .subscribe((res) => {
+    //       if (res != null && res?.caja?.id == this.selectedCaja?.id) {
+    //         this.ventaDataSource.data = [];
+    //         this.ventaDataSource.data = updateDataSource(
+    //           this.ventaDataSource.data,
+    //           res
+    //         );
+    //       }
+    //     });
+    // } else {
+    this.onGetVentas();
+    // }
   }
 
   onFilterChange() {
@@ -310,7 +303,13 @@ export class ListVentaComponent implements OnInit {
                   venta,
                   index
                 );
-                this.ngOnInit();
+                this.cajaService
+                  .onGetById(this.selectedCaja.id, this.selectedCaja.sucursalId)
+                  .subscribe((res) => {
+                    if (res != null) {
+                      this.selectedCaja = res;
+                    }
+                  });
               } else {
                 this.notificacionService.openAlgoSalioMal(
                   "Ups! No se pudo cancelar la venta. "
@@ -345,13 +344,38 @@ export class ListVentaComponent implements OnInit {
     );
   }
 
+  onGoToGastos() {
+    let tabData: TabData = new TabData();
+    tabData.data = {
+      caja: this.selectedCaja,
+      sucursal: this.selectedCaja.sucursal,
+    };
+    this.tabService.addTab(
+      new Tab(
+        ListGastosComponent,
+        "Gastos de caja " + this.selectedCaja.id,
+        tabData,
+        ListVentaComponent
+      )
+    );
+  }
+
   handlePageEvent(e: PageEvent) {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
     this.onFiltrar();
   }
 
-  abrirConteo(){
-    this.tabService.addTab(new Tab(AdicionarCajaDialogComponent, 'Conteo de caja ' + this.selectedCaja.id + ' de ' + this.selectedCaja.sucursal.nombre, new TabData(this.selectedCaja.id, this.selectedCaja)));
+  abrirConteo() {
+    this.tabService.addTab(
+      new Tab(
+        AdicionarCajaDialogComponent,
+        "Conteo de caja " +
+          this.selectedCaja.id +
+          " de " +
+          this.selectedCaja.sucursal.nombre,
+        new TabData(this.selectedCaja.id, this.selectedCaja)
+      )
+    );
   }
 }

@@ -13,28 +13,58 @@ mat-list-item:hover {
 }
 
 
-::ng-deep ngx-extended-pdf-viewer {
-  .printedPage {
-    page-break-after: always;
-    page-break-inside: avoid;
-    height: 100%;
-    width: 100%;
-    display: block !important;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-}
+// ::ng-deep ngx-extended-pdf-viewer {
+//   .printedPage {
+//     page-break-after: always;
+//     page-break-inside: avoid;
+//     height: 100%;
+//     width: 100%;
+//     // display: block !important;
+//     flex-direction: column;
+//     justify-content: center;
+//     align-items: center;
+//   }
+// }
 
-.custom-viewer {
-  ::ng-deep .printedPage {
-    page-break-after: always;
-    page-break-inside: avoid;
-    height: 100%;
-    width: 100%;
-    display: block !important;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-}
+// .custom-viewer {
+//   ::ng-deep .printedPage {
+//     page-break-after: always;
+//     page-break-inside: avoid;
+//     height: 100%;
+//     width: 100%;
+//     display: block !important;
+//     flex-direction: column;
+//     justify-content: center;
+//     align-items: center;
+//   }
+// }
+
+// .custom-viewer {
+//   ::ng-deep .printedPage {
+//     height: 100%;
+//     width: 100%;
+//     page-break-after: always;
+//     page-break-inside: avoid;
+//   }
+// }
+
+// @media print {
+//   ::ng-deep ngx-extended-pdf-viewer .printedPage {
+//     flex-direction: unset;
+//     justify-content: unset;
+//     align-items: unset;
+//     display: block !important;
+//   }
+// }
+
+// @media print {
+//   ::ng-deep ngx-extended-pdf-viewer {
+//     height: auto !important;
+//   }
+
+//   ::ng-deep ngx-extended-pdf-viewer .printedPage {
+//     page-break-after: always;
+//   }
+// }
+
+// #printContainer { position: absolute; }

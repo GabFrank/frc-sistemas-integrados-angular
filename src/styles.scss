@@ -314,9 +314,21 @@ input {
   body[data-pdfjsprinting] #printContainer .printedPage {
     display: block !important;
   }
+
+  #printContainer {
+    position: static;
+  }
 }
 
 .mat-snack-bar-container {
   bottom: 30%;
   /* Adjust this value as needed */
+}
+
+@media print {
+  html.cdk-global-scrollblock {
+    width: initial;
+    position: initial;
+    overflow-y: initial;
+  }
 }

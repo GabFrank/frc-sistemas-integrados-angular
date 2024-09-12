@@ -113,6 +113,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
 
   verificarMaletinTimeout = null;
 
+  isTab = false;
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data2: AdicionarCajaData,
     private matDialogRef: MatDialogRef<AdicionarCajaDialogComponent>,
@@ -132,6 +134,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
     this.idControl.disable();
     this.creadoEnControl.disable();
     this.usuarioControl.disable();
+
+    if(this.data != null) this.isTab = true;
     
     let auxData: PdvCaja = this.data2?.caja != null ? this.data2?.caja : (this.data?.tabData?.data != null ? this.data?.tabData?.data : null);
     if (auxData != null) {

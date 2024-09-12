@@ -185,6 +185,8 @@ export class ListFacturaLegalComponent implements OnInit {
             this.selectedResumenFacturas = res;
           }
         });
+       console.log('hola');
+        
     }
   }
 
@@ -339,7 +341,7 @@ export class ListFacturaLegalComponent implements OnInit {
     let filename = "frc_";
     let sucursalesNames: Sucursal[] = this.sucursalControl.value;
 
-    if (sucursalesNames.length != 1 && todos==false) {
+    if (sucursalesNames.length != 1 && todos == false) {
       return null;
     }
     let fechaFinDate: Date = this.fechaFinControl.value;
@@ -347,61 +349,70 @@ export class ListFacturaLegalComponent implements OnInit {
     let fechaInicio = dateToString(this.fechaInicioControl.value);
     let fechaFin = dateToString(fechaFinDate);
 
-    !todos ? this.facturaService
-      .onGenerarExcelFacturas(fechaInicio, fechaFin, sucursalesNames[0].id)
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null && res == "") return null;
-        const byteCharacters = atob(res);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
+    !todos
+      ? this.facturaService
+          .onGenerarExcelFacturas(fechaInicio, fechaFin, sucursalesNames[0].id)
+          .pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            if (res != null && res == "") return null;
+            const byteCharacters = atob(res);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
 
-        // Create a Blob from the byte array
-        const blob = new Blob([byteArray], {
-          type: "application/vnd.ms-excel",
-        });
+            // Create a Blob from the byte array
+            const blob = new Blob([byteArray], {
+              type: "application/vnd.ms-excel",
+            });
 
-        let url = window.URL.createObjectURL(blob);
-        let a = document.createElement('a');
-        document.body.appendChild(a);
-        a.setAttribute('style', 'display: none');
-        a.href = url;
-        a.download = `${sucursalesNames[0]?.nombre.replace(' ', '_').toLowerCase()}_${fechaInicio.substring(0, 10)}.xlsx`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-        a.remove();
-        
-      }) :
-      this.facturaService
-      .onGenerarExcelFacturasZip(fechaInicio, fechaFin, this.toSucursalesId(this.sucursalControl.value))
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null && res == "") return null;
-        const byteCharacters = atob(res);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
+            let url = window.URL.createObjectURL(blob);
+            let a = document.createElement("a");
+            document.body.appendChild(a);
+            a.setAttribute("style", "display: none");
+            a.href = url;
+            a.download = `${sucursalesNames[0]?.nombre
+              .replace(" ", "_")
+              .toLowerCase()}_${fechaInicio.substring(0, 10)}.xlsx`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+          })
+      : this.facturaService
+          .onGenerarExcelFacturasZip(
+            fechaInicio,
+            fechaFin,
+            this.toSucursalesId(this.sucursalControl.value)
+          )
+          .pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            if (res != null && res == "") return null;
+            const byteCharacters = atob(res);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
 
-        // Create a Blob from the byte array
-        const blob = new Blob([byteArray], {
-          type: "application/zip",
-        });
+            // Create a Blob from the byte array
+            const blob = new Blob([byteArray], {
+              type: "application/zip",
+            });
 
-        let url = window.URL.createObjectURL(blob);
-        let a = document.createElement('a');
-        document.body.appendChild(a);
-        a.setAttribute('style', 'display: none');
-        a.href = url;
-        a.download = `facturas-bodega-franco-${fechaInicio.substring(0, 10)}.zip`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-        a.remove();
-      });
+            let url = window.URL.createObjectURL(blob);
+            let a = document.createElement("a");
+            document.body.appendChild(a);
+            a.setAttribute("style", "display: none");
+            a.href = url;
+            a.download = `facturas-bodega-franco-${fechaInicio.substring(
+              0,
+              10
+            )}.zip`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+          });
   }
 
   onImprimir(factura: FacturaLegal, i) {

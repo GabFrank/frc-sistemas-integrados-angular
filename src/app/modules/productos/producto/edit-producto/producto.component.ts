@@ -3,7 +3,7 @@ import {
   state,
   style,
   transition,
-  trigger
+  trigger,
 } from "@angular/animations";
 import { Clipboard } from "@angular/cdk/clipboard";
 import {
@@ -16,38 +16,42 @@ import {
   OnDestroy,
   OnInit,
   ViewChild,
-  ViewChildren
+  ViewChildren,
 } from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import {
   MatDialog,
   MatDialogRef,
-  MAT_DIALOG_DATA
+  MAT_DIALOG_DATA,
 } from "@angular/material/dialog";
 import { MatStepper } from "@angular/material/stepper";
 import { MatTable, MatTableDataSource } from "@angular/material/table";
 import { DomSanitizer } from "@angular/platform-browser";
 import { NgxImageCompressService } from "ngx-image-compress";
 import { Subscription } from "rxjs";
-import { CurrencyMask, updateDataSource } from "../../../../commons/core/utils/numbersUtils";
+import {
+  CurrencyMask,
+  updateDataSource,
+} from "../../../../commons/core/utils/numbersUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabService } from "../../../../layouts/tab/tab.service";
 import { MainService } from "../../../../main.service";
 import {
-  NotificacionColor, NotificacionSnackbarService
+  NotificacionColor,
+  NotificacionSnackbarService,
 } from "../../../../notificacion-snackbar.service";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { CortarImagenDialogComponent } from "../../../../shared/cortar-imagen-dialog/cortar-imagen-dialog.component";
 import {
   VizualizarImagenData,
-  VizualizarImagenDialogComponent
+  VizualizarImagenDialogComponent,
 } from "../../../../shared/images/vizualizar-imagen-dialog/vizualizar-imagen-dialog.component";
 import { QrCodeComponent } from "../../../../shared/qr-code/qr-code.component";
 import { ListCompraComponent } from "../../../operaciones/compra/list-compra/list-compra.component";
 import {
   AdicionarCodigoData,
-  AdicionarCodigoDialogComponent
+  AdicionarCodigoDialogComponent,
 } from "../../codigo/adicionar-codigo-dialog/adicionar-codigo-dialog.component";
 import { Codigo } from "../../codigo/codigo.model";
 import { CodigoService } from "../../codigo/codigo.service";
@@ -57,13 +61,13 @@ import { Familia } from "../../familia/familia.model";
 import { FamiliaService } from "../../familia/familia.service";
 import {
   AdicionarPrecioDialogComponent,
-  AdicionarPrecioPorSucursalData
+  AdicionarPrecioPorSucursalData,
 } from "../../precio-por-sucursal/adicionar-precio-dialog/adicionar-precio-dialog.component";
 import { PrecioPorSucursal } from "../../precio-por-sucursal/precio-por-sucursal.model";
 import { PrecioPorSucursalService } from "../../precio-por-sucursal/precio-por-sucursal.service";
 import {
   AdicionarPresentacionComponent,
-  AdicionarPresentacionData
+  AdicionarPresentacionData,
 } from "../../presentacion/adicionar-presentacion/adicionar-presentacion.component";
 import { Presentacion } from "../../presentacion/presentacion.model";
 import { PresentacionService } from "../../presentacion/presentacion.service";
@@ -81,7 +85,8 @@ export class ProductoDialogData {
   isDialog = true;
 }
 
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { PageInfo } from "../../../../app.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -101,7 +106,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 })
 export class ProductoComponent implements OnInit, OnDestroy {
   @Input() data;
-
+  @ViewChild("filtroFamiliaInput") filtroFamiliaInput: ElementRef;
   @ViewChildren("fileInput") fileInputList: any;
   @ViewChild("stepper", { static: false }) stepper: MatStepper;
   @ViewChild("codigoInput", { static: false }) codigoInput: ElementRef;
@@ -126,6 +131,24 @@ export class ProductoComponent implements OnInit, OnDestroy {
   selectedFamilia: Familia = null;
   selectedSubfamilia: Subfamilia = null;
   filteredFamilias = [];
+  familiaDataSource = new MatTableDataSource<Familia>([]);
+  subfamilia = new MatTableDataSource<Subfamilia>([]);
+  familiaColumnsToDisplay = ["id", "nombre", "activo", "accion"];
+  subfamiliaColumnsToDisplay = [
+    "id",
+    "nombre",
+    "descripcion",
+    "activo",
+    "accion",
+  ];
+  filtroFamiliaOpen = false;
+  filtroFamiliaControl = new FormControl("");
+  expandedElementFamilia: Familia;
+  expandedElementSubfamilia: Subfamilia;
+  selectedFamiliaPageInfo: PageInfo<Familia>;
+  selectedSubfamiliaPageInfo: PageInfo<Subfamilia>;
+  familiaPageIndex = 0;
+  familiaPageSize = 25;
 
   //presentaciones
   presentacionesList: Presentacion[];
@@ -198,7 +221,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
   btnGuardarPrecio = false;
   btnNuevoPrecio = false;
   imagenPrincipal = null;
-  selectedEnvase : Producto;
+  selectedEnvase: Producto;
   isEnvaseSub: Subscription;
 
   constructor(
@@ -227,15 +250,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.familiaService.familiaBS.pipe(untilDestroyed(this)).subscribe((res) => {
-      this.familiasList = res;
-      if (this.selectedFamilia != null) {
-        this.selectedFamilia = this.familiasList.find(
-          (f) => f.id == this.selectedFamilia.id
-        );
-        this.subfamiliasList = this.selectedFamilia.subfamilias;
-      }
-    });
+    this.onSearchFamilia();
 
     // inicializar arrays
     this.codigosList = [];
@@ -255,90 +270,108 @@ export class ProductoComponent implements OnInit, OnDestroy {
       }
     }, 200);
 
-    this.isEnvaseSub = this.datosGeneralesControl.controls.isEnvase.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
-      if(res==true){
-        this.datosGeneralesControl.controls.balanza.setValue(false)
-        this.datosGeneralesControl.controls.garantia.setValue(false)
-        this.datosGeneralesControl.controls.ingrediente.setValue(false)
-        this.datosGeneralesControl.controls.esAlcoholico.setValue(false)
-        this.datosGeneralesControl.controls.promocion.setValue(false)
-        this.datosGeneralesControl.controls.vencimiento.setValue(false)
-      }
-    })
+    this.isEnvaseSub = this.datosGeneralesControl.controls.isEnvase.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res == true) {
+          this.datosGeneralesControl.controls.balanza.setValue(false);
+          this.datosGeneralesControl.controls.garantia.setValue(false);
+          this.datosGeneralesControl.controls.ingrediente.setValue(false);
+          this.datosGeneralesControl.controls.esAlcoholico.setValue(false);
+          this.datosGeneralesControl.controls.promocion.setValue(false);
+          this.datosGeneralesControl.controls.vencimiento.setValue(false);
+        }
+      });
+  }
 
+  onSearchFamilia() {
+    this.familiaService
+      .onSearchFamilia(
+        this.filtroFamiliaControl.value,
+        this.familiaPageIndex,
+        this.familiaPageSize
+      )
+      .subscribe((res: PageInfo<Familia>) => {
+        if (res != null) {
+          this.selectedFamiliaPageInfo = res;
+          this.familiaDataSource.data = res.getContent;
+        }
+      });
   }
 
   cargarProducto(id) {
-    this.productoService.getProducto(id).pipe(untilDestroyed(this)).subscribe((res) => {
-      this.selectedProducto = res;
-      this.selectedSubfamilia = this.selectedProducto?.subfamilia;
-      this.selectedFamilia = this.selectedSubfamilia?.familia;
-      setTimeout(() => {
-        this.seleccionarFamilia(this.selectedFamilia);
+    this.productoService
+      .getProducto(id)
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        this.selectedProducto = res;
+        this.selectedSubfamilia = this.selectedProducto?.subfamilia;
+        this.selectedFamilia = this.selectedSubfamilia?.familia;
         setTimeout(() => {
-          this.seleccionarSubfamilia(this.selectedSubfamilia);
+          this.seleccionarFamilia(this.selectedFamilia);
+          setTimeout(() => {
+            this.seleccionarSubfamilia(this.selectedSubfamilia);
+          }, 500);
         }, 500);
-      }, 500);
-      this.datosGeneralesControl.controls.descripcion.setValue(
-        this.selectedProducto?.descripcion
-      );
-      this.datosGeneralesControl.controls.descripcionFactura.setValue(
-        this.selectedProducto?.descripcionFactura
-      );
-      this.datosGeneralesControl.controls.iva.setValue(
-        `${this.selectedProducto.iva}`
-      );
-      this.datosGeneralesControl.controls.balanza.setValue(
-        this.selectedProducto.balanza
-      );
-      this.datosGeneralesControl.controls.garantia.setValue(
-        this.selectedProducto.garantia
-      );
-      this.datosGeneralesControl.controls.tiempoGarantia.setValue(
-        this.selectedProducto.tiempoGarantia
-      );
-      this.datosGeneralesControl.controls.vencimiento.setValue(
-        this.selectedProducto.vencimiento
-      );
-      this.datosGeneralesControl.controls.ingrediente.setValue(
-        this.selectedProducto.ingrediente
-      );
-      this.datosGeneralesControl.controls.stock.setValue(
-        this.selectedProducto.stock
-      );
-      this.datosGeneralesControl.controls.cambiable.setValue(
-        this.selectedProducto.cambiable
-      );
-      this.datosGeneralesControl.controls.tipoConservacion.setValue(
-        this.selectedProducto.tipoConservacion
-      );
-      this.datosGeneralesControl.controls.diasVencimiento.setValue(
-        this.selectedProducto.diasVencimiento
-      );
-      if(this.selectedProducto?.envase!=null){
-        this.onSelectEnvase(this.selectedProducto.envase)
-      }
+        this.datosGeneralesControl.controls.descripcion.setValue(
+          this.selectedProducto?.descripcion
+        );
+        this.datosGeneralesControl.controls.descripcionFactura.setValue(
+          this.selectedProducto?.descripcionFactura
+        );
+        this.datosGeneralesControl.controls.iva.setValue(
+          `${this.selectedProducto.iva}`
+        );
+        this.datosGeneralesControl.controls.balanza.setValue(
+          this.selectedProducto.balanza
+        );
+        this.datosGeneralesControl.controls.garantia.setValue(
+          this.selectedProducto.garantia
+        );
+        this.datosGeneralesControl.controls.tiempoGarantia.setValue(
+          this.selectedProducto.tiempoGarantia
+        );
+        this.datosGeneralesControl.controls.vencimiento.setValue(
+          this.selectedProducto.vencimiento
+        );
+        this.datosGeneralesControl.controls.ingrediente.setValue(
+          this.selectedProducto.ingrediente
+        );
+        this.datosGeneralesControl.controls.stock.setValue(
+          this.selectedProducto.stock
+        );
+        this.datosGeneralesControl.controls.cambiable.setValue(
+          this.selectedProducto.cambiable
+        );
+        this.datosGeneralesControl.controls.tipoConservacion.setValue(
+          this.selectedProducto.tipoConservacion
+        );
+        this.datosGeneralesControl.controls.diasVencimiento.setValue(
+          this.selectedProducto.diasVencimiento
+        );
+        if (this.selectedProducto?.envase != null) {
+          this.onSelectEnvase(this.selectedProducto.envase);
+        }
 
-      // this.codigoService.onGettipoPresentacionsPorProductoId(res.id).subscribe((res) => {
-      //   this.codigosList = res.data.data;
-      //   this.codigoDataSource.data = this.codigosList;
-      // });
-      // this.precioPorSucursalService
-      //   .onGetPorProductoId(res.id)
-      //   .subscribe((res) => {
-      //     this.precioList = res.data.data;
-      //     this.precioDataSource.data = this.precioList;
-      //   });
+        // this.codigoService.onGettipoPresentacionsPorProductoId(res.id).subscribe((res) => {
+        //   this.codigosList = res.data.data;
+        //   this.codigoDataSource.data = this.codigosList;
+        // });
+        // this.precioPorSucursalService
+        //   .onGetPorProductoId(res.id)
+        //   .subscribe((res) => {
+        //     this.precioList = res.data.data;
+        //     this.precioDataSource.data = this.precioList;
+        //   });
 
+        this.getPresentacionPorProductoId(res.id);
 
-      this.getPresentacionPorProductoId(res.id);
-
-      this.loadImagenPrincipal();
-      this.cargandoDialog.closeDialog();
-      setTimeout(() => {
-        this.stepper.next();
-      }, 1000);
-    });
+        this.loadImagenPrincipal();
+        this.cargandoDialog.closeDialog();
+        setTimeout(() => {
+          this.stepper.next();
+        }, 1000);
+      });
   }
 
   createForm() {
@@ -374,9 +407,9 @@ export class ProductoComponent implements OnInit, OnDestroy {
       precio3: new FormControl(null),
       isEnvase: new FormControl(null),
       poseeEnvase: new FormControl(null),
-      envase: new FormControl(null)
+      envase: new FormControl(null),
     });
-    this.datosGeneralesControl.controls.envase.disable()
+    this.datosGeneralesControl.controls.envase.disable();
 
     this.imagenesControl = new FormGroup({
       imagenPrincipal: new FormControl(null),
@@ -417,11 +450,9 @@ export class ProductoComponent implements OnInit, OnDestroy {
     }
   }
 
-  onSelectEnvase(envase: Producto){
-    this.datosGeneralesControl.controls.envase.setValue(
-      envase.descripcion
-    );
-    this.selectedEnvase = envase
+  onSelectEnvase(envase: Producto) {
+    this.datosGeneralesControl.controls.envase.setValue(envase.descripcion);
+    this.selectedEnvase = envase;
     this.datosGeneralesControl.controls.poseeEnvase.setValue(true);
   }
 
@@ -449,7 +480,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         tipoConservacion,
         subfamiliaId,
         isEnvase,
-        envaseId
+        envaseId,
       } = this.datosGeneralesControl.value;
       let productoInput = new ProductoInput();
       productoInput = {
@@ -472,7 +503,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         tipoConservacion,
         subfamiliaId,
         isEnvase,
-        envaseId
+        envaseId,
       };
       if (this.selectedProducto != null) {
         productoInput.id = this.selectedProducto.id;
@@ -483,17 +514,20 @@ export class ProductoComponent implements OnInit, OnDestroy {
       productoInput.descripcionFactura =
         productoInput?.descripcionFactura.toUpperCase();
       productoInput.subfamiliaId = this.selectedSubfamilia.id;
-      productoInput.envaseId = this.selectedEnvase?.id
-      this.productoService.onSaveProducto(productoInput).pipe(untilDestroyed(this)).subscribe((res) => {
-        if (res != null) {
-          this.selectedProducto = res;
-        } else {
-          this.stepper.previous();
-          setTimeout(() => {
-            this.nombreInput.nativeElement.focus();
-          }, 100);
-        }
-      });
+      productoInput.envaseId = this.selectedEnvase?.id;
+      this.productoService
+        .onSaveProducto(productoInput)
+        .pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          if (res != null) {
+            this.selectedProducto = res;
+          } else {
+            this.stepper.previous();
+            setTimeout(() => {
+              this.nombreInput.nativeElement.focus();
+            }, 100);
+          }
+        });
     }
   }
   // funciones datos generales
@@ -556,7 +590,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
           codigo: this.codigoImagenQr,
         },
       })
-      .afterClosed().pipe(untilDestroyed(this))
+      .afterClosed()
+      .pipe(untilDestroyed(this))
       .subscribe((res) => {
         let objectUrl = URL.createObjectURL(res);
         this.imagenPrincipal = this.sanitizer.bypassSecurityTrustUrl(objectUrl);
@@ -565,7 +600,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
         reader.onloadend = () => {
           let base64data = reader.result;
           this.presentacionService.onImageSave(
-            base64data.toString(),`${this.selectedProducto.id}.jpg`
+            base64data.toString(),
+            `${this.selectedProducto.id}.jpg`
           );
         };
       });
@@ -578,12 +614,13 @@ export class ProductoComponent implements OnInit, OnDestroy {
       .open(AddFamiliaDialogComponent, {
         width: "500px",
       })
-      .afterClosed().pipe(untilDestroyed(this))
+      .afterClosed()
+      .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           setTimeout(() => {
+            this.familiaDataSource.data = updateDataSource(this.familiaDataSource.data, res)
             this.selectedFamilia = res;
-            // this.seleccionarFamilia(res)
           }, 500);
         }
       });
@@ -597,7 +634,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
           familiaId: this.selectedFamilia.id,
         },
       })
-      .afterClosed().pipe(untilDestroyed(this))
+      .afterClosed()
+      .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           setTimeout(() => {
@@ -617,7 +655,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
         },
         width: "500px",
       })
-      .afterClosed().pipe(untilDestroyed(this))
+      .afterClosed()
+      .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
         }
@@ -654,14 +693,13 @@ export class ProductoComponent implements OnInit, OnDestroy {
           height: "50%",
           disableClose: false,
         })
-        .afterClosed().pipe(untilDestroyed(this))
+        .afterClosed()
+        .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
             this.presentacionService
-              .onImageSave(
-                res,
-                `${this.selectedPresentacion.id}.jpg`
-              ).pipe(untilDestroyed(this))
+              .onImageSave(res, `${this.selectedPresentacion.id}.jpg`)
+              .pipe(untilDestroyed(this))
               .subscribe((res2) => {
                 if (res2 != null) {
                   let presentacionIndex =
@@ -687,68 +725,68 @@ export class ProductoComponent implements OnInit, OnDestroy {
     });
   }
 
-  @HostListener("window:keyup", ["$event"])
-  keyEvent(event: KeyboardEvent) {
-    let key = event.key;
-    let isNumber = (+key).toString() === key;
+  // @HostListener("window:keyup", ["$event"])
+  // keyEvent(event: KeyboardEvent) {
+  //   let key = event.key;
+  //   let isNumber = (+key).toString() === key;
 
-    switch (this.stepper.selectedIndex) {
-      case 0:
-        if (isNumber) {
-          if (this.familiasList.length >= +key) {
-            this.seleccionarFamilia(this.familiasList[+key - 1]);
-          }
-        } else {
-          if (key == "Enter") {
-            // if (this.selectedFamilia != null) {
-            //   this.stepper.next();
-            // }
-          }
-        }
-        break;
-      case 1:
-        if (isNumber) {
-          if (this.subfamiliasList.length >= +key) {
-            this.seleccionarSubfamilia(this.subfamiliasList[+key - 1]);
-          }
-        } else {
-          if (key == "Enter") {
-            // if (this.selectedSubfamilia != null) {
-            //   this.stepper.next();
-            // }
-          }
-        }
-        break;
-      case 2:
-        if (key == "Enter") {
-          // if (this.datosGeneralesControl.valid) {
-          //   this.onProductoSave();
-          //   this.stepper.next();
-          // }
-        }
-        break;
-      case 3:
-        if (key == "Enter") {
-        }
-        break;
-      case 3:
-        if (key == "Enter") {
-        }
-        break;
-      case 4:
-        if (key == "Enter") {
-        }
-        break;
-      case 5:
-        // if (key == "Enter") {
-        //   this.onFinalizar();
-        // }
-        break;
+  //   switch (this.stepper.selectedIndex) {
+  //     case 0:
+  //       if (isNumber) {
+  //         if (this.familiasList.length >= +key) {
+  //           this.seleccionarFamilia(this.familiasList[+key - 1]);
+  //         }
+  //       } else {
+  //         if (key == "Enter") {
+  //           // if (this.selectedFamilia != null) {
+  //           //   this.stepper.next();
+  //           // }
+  //         }
+  //       }
+  //       break;
+  //     case 1:
+  //       if (isNumber) {
+  //         if (this.subfamiliasList.length >= +key) {
+  //           this.seleccionarSubfamilia(this.subfamiliasList[+key - 1]);
+  //         }
+  //       } else {
+  //         if (key == "Enter") {
+  //           // if (this.selectedSubfamilia != null) {
+  //           //   this.stepper.next();
+  //           // }
+  //         }
+  //       }
+  //       break;
+  //     case 2:
+  //       if (key == "Enter") {
+  //         // if (this.datosGeneralesControl.valid) {
+  //         //   this.onProductoSave();
+  //         //   this.stepper.next();
+  //         // }
+  //       }
+  //       break;
+  //     case 3:
+  //       if (key == "Enter") {
+  //       }
+  //       break;
+  //     case 3:
+  //       if (key == "Enter") {
+  //       }
+  //       break;
+  //     case 4:
+  //       if (key == "Enter") {
+  //       }
+  //       break;
+  //     case 5:
+  //       // if (key == "Enter") {
+  //       //   this.onFinalizar();
+  //       // }
+  //       break;
 
-      default:
-        break;
-    }
-  }
+  //     default:
+  //       break;
+  //   }
+  // }
 
   copyToClip(text) {
     this.copyToClipService.copy(text);
@@ -770,15 +808,16 @@ export class ProductoComponent implements OnInit, OnDestroy {
   @ViewChild("precioTable") precioTable: MatTable<PrecioPorSucursalService>;
 
   getPresentacionPorProductoId(id) {
-    this.cargandoDialog.openDialog()
+    this.cargandoDialog.openDialog();
     this.isPresentacionLoading = true;
     this.presentacionService
-      .onGetPresentacionesPorProductoId(id).pipe(untilDestroyed(this))
+      .onGetPresentacionesPorProductoId(id)
+      .pipe(untilDestroyed(this))
       .subscribe((data) => {
         this.presentacionesList = data;
         this.presentacionesDataSource.data = [...this.presentacionesList];
         this.isPresentacionLoading = false;
-        this.cargandoDialog.closeDialog()
+        this.cargandoDialog.closeDialog();
       });
   }
 
@@ -791,7 +830,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
         width: "50%",
         disableClose: true,
       })
-      .afterClosed().pipe(untilDestroyed(this))
+      .afterClosed()
+      .pipe(untilDestroyed(this))
       .subscribe((res) => {
         let presentacion = new Presentacion();
         presentacion = res as Presentacion;
@@ -813,7 +853,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
         width: "50%",
         disableClose: true,
       })
-      .afterClosed().pipe(untilDestroyed(this))
+      .afterClosed()
+      .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res?.id != null) {
           this.presentacionesList[
@@ -828,13 +869,15 @@ export class ProductoComponent implements OnInit, OnDestroy {
     this.selectedPresentacion = row;
     if (row != null) {
       this.codigoService
-        .onGetCodigosPorPresentacionId(this.selectedPresentacion.id).pipe(untilDestroyed(this))
+        .onGetCodigosPorPresentacionId(this.selectedPresentacion.id)
+        .pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.selectedPresentacionCodigoDataSource.data = res.data.data;
           this.precioPorSucursalService
             .onGetPrecioPorSurursalPorPresentacionId(
               this.selectedPresentacion.id
-            ).pipe(untilDestroyed(this))
+            )
+            .pipe(untilDestroyed(this))
             .subscribe((res2) => {
               this.selectedPresentacionPrecioDataSource.data = res2.data.data;
             });
@@ -854,7 +897,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
         height: "80%",
         width: "80%",
       })
-      .afterClosed().pipe(untilDestroyed(this))
+      .afterClosed()
+      .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           let presentacionIndex = this.presentacionesDataSource.data.findIndex(
@@ -867,7 +911,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
   onDeletePresentacion(presentacion: Presentacion) {
     this.presentacionService
-      .onDeletePresentacion(presentacion).pipe(untilDestroyed(this))
+      .onDeletePresentacion(presentacion)
+      .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res) {
           this.getPresentacionPorProductoId(this.selectedProducto.id);
@@ -889,17 +934,34 @@ export class ProductoComponent implements OnInit, OnDestroy {
         width: "50%",
         disableClose: true,
       })
-      .afterClosed().pipe(untilDestroyed(this))
+      .afterClosed()
+      .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
-          this.codigoDataSource.data = updateDataSource(this.codigoDataSource.data, res, index)
-          let presentacion = this.presentacionesDataSource.data[presentacionIndex];
-          if(res.principal){
+          this.codigoDataSource.data = updateDataSource(
+            this.codigoDataSource.data,
+            res,
+            index
+          );
+          let presentacion =
+            this.presentacionesDataSource.data[presentacionIndex];
+          if (res.principal) {
             presentacion.codigoPrincipal = res;
-            this.presentacionesDataSource.data = updateDataSource(this.presentacionesDataSource.data, presentacion, presentacionIndex)
-          } else if(presentacion?.codigoPrincipal!=null && presentacion?.codigoPrincipal?.id == res.id) {
+            this.presentacionesDataSource.data = updateDataSource(
+              this.presentacionesDataSource.data,
+              presentacion,
+              presentacionIndex
+            );
+          } else if (
+            presentacion?.codigoPrincipal != null &&
+            presentacion?.codigoPrincipal?.id == res.id
+          ) {
             presentacion.codigoPrincipal = null;
-            this.presentacionesDataSource.data = updateDataSource(this.presentacionesDataSource.data, presentacion, presentacionIndex)
+            this.presentacionesDataSource.data = updateDataSource(
+              this.presentacionesDataSource.data,
+              presentacion,
+              presentacionIndex
+            );
           }
           // let presentacionId = res.presentacion.id;
           // if (presentacionId != null) {
@@ -951,17 +1013,34 @@ export class ProductoComponent implements OnInit, OnDestroy {
         width: "50%",
         disableClose: true,
       })
-      .afterClosed().pipe(untilDestroyed(this))
+      .afterClosed()
+      .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
-          this.precioDataSource.data = updateDataSource(this.precioDataSource.data, res, index)
-          let presentacion = this.presentacionesDataSource.data[presentacionIndex];
-          if(res.principal){
+          this.precioDataSource.data = updateDataSource(
+            this.precioDataSource.data,
+            res,
+            index
+          );
+          let presentacion =
+            this.presentacionesDataSource.data[presentacionIndex];
+          if (res.principal) {
             presentacion.precioPrincipal = res;
-            this.presentacionesDataSource.data = updateDataSource(this.presentacionesDataSource.data, presentacion, presentacionIndex)
-          } else if(presentacion?.precioPrincipal!=null && presentacion?.precioPrincipal?.id == res.id) {
+            this.presentacionesDataSource.data = updateDataSource(
+              this.presentacionesDataSource.data,
+              presentacion,
+              presentacionIndex
+            );
+          } else if (
+            presentacion?.precioPrincipal != null &&
+            presentacion?.precioPrincipal?.id == res.id
+          ) {
             presentacion.precioPrincipal = null;
-            this.presentacionesDataSource.data = updateDataSource(this.presentacionesDataSource.data, presentacion, presentacionIndex)
+            this.presentacionesDataSource.data = updateDataSource(
+              this.presentacionesDataSource.data,
+              presentacion,
+              presentacionIndex
+            );
           }
           // let presentacionId = res.presentacion.id;
           // if (presentacionId != null) {
@@ -991,11 +1070,14 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onDeletePrecio(precio: PrecioPorSucursal, precioIndex) {
-    this.precioPorSucursalService.onDelete(precio).pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res) {
-        this.getPresentacionPorProductoId(this.selectedProducto.id);
-      }
-    });
+    this.precioPorSucursalService
+      .onDelete(precio)
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) {
+          this.getPresentacionPorProductoId(this.selectedProducto.id);
+        }
+      });
   }
 
   //"could not execute statement; SQL [n/a]; constraint [presentacion_producto_fk]; nested exception is org.hibernate.exception.ConstraintViolationException: could not execute statement"
@@ -1005,26 +1087,85 @@ export class ProductoComponent implements OnInit, OnDestroy {
     this.changeDetectorRefs.detectChanges();
   }
 
-  onSearchEnvase(){
-    this.matDialog.open(SearchEnvaseDialogComponent, {
-      data: {
-        producto: this.selectedProducto
-      },
-      width: '70%',
-    }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-      if(res!=null){
-        this.onSelectEnvase(res);
-      }
-    })
+  onSearchEnvase() {
+    this.matDialog
+      .open(SearchEnvaseDialogComponent, {
+        data: {
+          producto: this.selectedProducto,
+        },
+        width: "70%",
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res != null) {
+          this.onSelectEnvase(res);
+        }
+      });
   }
 
   ngOnDestroy(): void {
-      this.isEnvaseSub.unsubscribe()
+    this.isEnvaseSub.unsubscribe();
   }
 
-  onImprimirCodigoDeBarra(codigo){    
+  onImprimirCodigoDeBarra(codigo) {
     console.log(codigo);
+
+    this.productoService
+      .onImprimirCodigo(codigo)
+      .subscribe((res) => console.log(res));
+  }
+
+  onFilterFamilia() {
+    this.onSearchFamilia();
+  }
+
+  abrirFiltroFamilia() {
+    console.log('entro en abrir filtro');
     
-    this.productoService.onImprimirCodigo(codigo).subscribe(res => console.log(res));
+    this.filtroFamiliaOpen = !this.filtroFamiliaOpen;
+    if (!this.filtroFamiliaOpen) {
+      this.onSearchFamilia();
+    } else {
+      setTimeout(() => {
+        this.focusFilterFamiliaInput();
+      }, 100);
+    }
+  }
+
+  focusFilterFamiliaInput() {
+    this.filtroFamiliaInput.nativeElement.focus();
+  }
+
+  onEditFamilia(familia: Familia, index) {
+    this.matDialog
+      .open(AddFamiliaDialogComponent, {
+        data: {
+          familia,
+        },
+        width: "500px",
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res != null) {
+          this.familiaDataSource.data = updateDataSource(
+            this.familiaDataSource.data,
+            res,
+            index
+          );
+        }
+      });
+  }
+  onDeleteFamilia(familia: Familia, index) {}
+
+  handleFamiliaPageEvent(e) {
+    this.familiaPageIndex = e.pageIndex;
+    this.familiaPageSize = e.pageSize;
+    this.onSearchFamilia();
+  }
+
+  print(p) {
+    console.log(p);
   }
 }

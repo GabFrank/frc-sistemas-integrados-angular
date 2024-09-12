@@ -615,11 +615,21 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   onFactura() {
     this.isDialogOpen = true
     let venta = new Venta;
+    let descuento = 0;
+    this.cobroDetalleList?.forEach(c => {
+      if(c.descuento){
+        descuento += c.valor * c.moneda.cambio;
+      }
+      if(c.aumento){
+        descuento -= c.valor * c.moneda.cambio;
+      }
+    })
     venta.totalGs = this.formGroup.get("valorTotal").value;
     this.matDialog.open(AddFacturaLegalDialogComponent, {
       data: {
         venta,
-        ventaItemList: this.data.itemList
+        ventaItemList: this.data.itemList,
+        descuento
       },
       width: '100%',
       height: '80vh'

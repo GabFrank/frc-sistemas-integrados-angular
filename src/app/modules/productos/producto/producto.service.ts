@@ -39,6 +39,7 @@ import { Tab } from "../../../layouts/tab/tab.model";
 import { ReportesComponent } from "../../reportes/reportes/reportes.component";
 import { ImprimirCodigoBarraGQL } from "./graphql/imprimirCodigoBarra";
 import { Codigo } from "../codigo/codigo.model";
+import { ProductoStockGQL } from "./graphql/productoStock";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -70,7 +71,8 @@ export class ProductoService {
     private reporteLucroPorProducto: ReporteLucroPorProductoGQL,
     private reporteService: ReporteService,
     private tabService: TabService,
-    private imprimirCodigo: ImprimirCodigoBarraGQL
+    private imprimirCodigo: ImprimirCodigoBarraGQL,
+    private productoPorSucursalStock: ProductoStockGQL
   ) {
     this.productosList = [];
     // getAllProductos.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
@@ -80,6 +82,10 @@ export class ProductoService {
     //     console.log(this.productosList)
     //   }
     // })
+  }
+
+  onGetStockPorProductoAndSucursal(proId, sucId){
+    return this.genericService.onCustomQuery(this.productoPorSucursalStock, {proId, sucId});
   }
 
   onGetProductoPorCodigo(texto): Observable<Producto> {
