@@ -54,8 +54,9 @@ tr.example-detail-row {
 }
 
 .example-element-detail {
-  height: 500px;
+  min-height: 300px;
   overflow-y: auto;
+  background-color: rgb(74, 74, 74);
 }
 
 .example-element-detail-familia {

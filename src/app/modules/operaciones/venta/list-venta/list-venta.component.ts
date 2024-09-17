@@ -90,8 +90,8 @@ export class ListVentaComponent implements OnInit {
   estadoControl = new FormControl(null);
   filterChanged = true;
 
-  length = 25;
-  pageSize = 25;
+  length = 15;
+  pageSize = 15;
   pageIndex = 0;
   pageEvent: PageEvent;
   orderById = null;

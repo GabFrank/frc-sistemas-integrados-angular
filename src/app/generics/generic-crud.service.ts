@@ -390,9 +390,10 @@ export class GenericCrudService {
                 color: NotificacionColor.danger,
                 duracion: 5,
               });
-              if (res?.data["data"] != null) {
+              if (res?.data != null && res?.data["data"] != null) {
                 obs.next(res.data["data"]);
-                obs.complete();
+              } else {
+                obs.error(res.errors);
               }
             }
           },

@@ -20,6 +20,7 @@ export interface AddFamiliaData {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { GraphQLError } from 'graphql';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -117,14 +118,16 @@ export class AddFamiliaDialogComponent implements OnInit {
       this.descripcionControl.value?.toUpperCase();
     this.familiaInput.activo = true;
     this.familiaInput.icono = this.iconoControl.value;
-    this.familiaService.onSaveFamilia(this.familiaInput).subscribe((res) => {
-      if (res != null) {
-        this.dialogRef.close(res);
-        this.notificationBar.notification$.next({
-          texto: 'Guardado con éxito',
-          color: NotificacionColor.success,
-          duracion: 2,
-        });
+    this.familiaService.onSaveFamilia(this.familiaInput).subscribe({
+      next: (res) => {
+        if (res != null) {
+          this.dialogRef.close(res);
+          this.notificationBar.notification$.next({
+            texto: 'Guardado con éxito',
+            color: NotificacionColor.success,
+            duracion: 2,
+          });
+        }
       }
     });
   }

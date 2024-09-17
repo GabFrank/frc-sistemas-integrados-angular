@@ -16,11 +16,11 @@ import {
 } from "@angular/core";
 import { FormControl } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
-import { MatPaginator } from "@angular/material/paginator";
+import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatTableDataSource } from "@angular/material/table";
 import { GenericCrudService } from "../../../../generics/generic-crud.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
-import { TabService } from "../../../../layouts/tab/tab.service";
+import { TabData, TabService } from "../../../../layouts/tab/tab.service";
 import { CargandoDialogComponent } from "../../../../shared/components/cargando-dialog/cargando-dialog.component";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { PrintService } from "../../../print/print.service";
@@ -38,7 +38,20 @@ interface ProductoDatasource {
   precio3: number;
 }
 
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { ROLES } from "../../../personas/roles/roles.enum";
+import { MainService } from "../../../../main.service";
+import { PageInfo } from "../../../../app.component";
+import { CodigoService } from "../../codigo/codigo.service";
+import { Subfamilia } from "../../sub-familia/sub-familia.model";
+import { SubFamiliaService } from "../../sub-familia/sub-familia.service";
+import {
+  SearchListDialogComponent,
+  SearchListtDialogData,
+  TableData,
+} from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
+import { SubfamiliasSearchGQL } from "../../sub-familia/graphql/subfamiliasSearch";
+import { SearchSubfamiliaByDescripcionGQL } from "../../sub-familia/graphql/searchByDescripcion";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -46,59 +59,58 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
   templateUrl: "./list-producto.component.html",
   styleUrls: ["./list-producto.component.css"],
   animations: [
-    trigger("slideInOut", [
-      state(
-        "in",
-        style({
-          transform: "translate3d(0,0,0)",
-        })
+    trigger("detailExpand", [
+      state("collapsed", style({ height: "0px", minHeight: "0" })),
+      state("expanded", style({ height: "*" })),
+      transition(
+        "expanded <=> collapsed",
+        animate("225ms cubic-bezier(0.4, 0.0, 0.2, 1)")
       ),
-      state(
-        "out",
-        style({
-          transform: "translate3d(100%, 0, 0)",
-        })
-      ),
-      transition("in => out", animate("400ms ease-in-out")),
-      transition("out => in", animate("400ms ease-in-out")),
     ]),
   ],
 })
 export class ListProductoComponent implements OnInit, AfterViewInit {
+  readonly ROLES = ROLES;
+
   @ViewChild(MatPaginator) paginator: MatPaginator;
-  @ViewChild("buscarInput", { static: true }) buscarInput: ElementRef;
+  @ViewChild("filtroProductoInput") filtroProductoInput: ElementRef;
 
   // la fuente de datos de la tabla
   dataSource = new MatTableDataSource();
 
   //controladores
-  buscarField = new FormControl("");
+  filtroProductoControl = new FormControl("");
+  filtroCodigoControl = new FormControl(false);
+  activoControl = new FormControl(null);
+  stockControl = new FormControl(null);
+  balanzaControl = new FormControl(null);
+  subfamiliaControl = new FormControl(null);
+  vencimientoControl = new FormControl(null);
 
   //producto seleccionado
   selectedProducto = new Producto();
-
   selectedRowIndex;
-
   menuState: string = "out";
-
   isSearching = false;
-
   onSearchTimer;
-
   imagenPrincipal = null;
-
-  displayedColumnsId: string[] = [
-    "id",
-    "descripcion",
-    "codigo",
-    "precio",
-  ];
   displayedColumns: string[] = [
     "id",
     "descripcion",
-    "codigo",
-    "precio",
+    "codigoPrincipal",
+    "costoMedio",
+    "costoUltCompra",
+    "precioPrincipal",
+    "activo",
+    "acciones",
   ];
+  expandedProducto: Producto;
+  pageIndex = 0;
+  pageSize = 15;
+  selectedPageInfo: PageInfo<Producto>;
+
+  //subfamilia
+  selectedSubfamilia: Subfamilia;
 
   private service: ProductoService;
 
@@ -108,191 +120,157 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     private matDialog: MatDialog,
     private printService: PrintService,
     private cargandoDialog: CargandoDialogService,
-    private reporteService: ReporteService
+    private reporteService: ReporteService,
+    public mainService: MainService,
+    private codigoService: CodigoService,
+    private searchSubfamilia: SearchSubfamiliaByDescripcionGQL
   ) {
-    setTimeout(() => this.service = injector.get(ProductoService));
+    setTimeout(() => (this.service = injector.get(ProductoService)));
   }
 
   ngOnInit(): void {
     // subscripcion a los datos de productos
-
     //listener para el campo buscar
     // this.buscarField.valueChanges.subscribe((res) => {
     //   this.onSearchChange(res);
     // });
-
-    this.buscarField.valueChanges.pipe(untilDestroyed(this)).subscribe((value) => {
-      if (value != null) this.onSearchProducto(value);
-    });
-
-    setTimeout(() => {
-      this.buscarInput.nativeElement.focus();
-    }, 100);
+    // this.buscarField.valueChanges
+    //   .pipe(untilDestroyed(this))
+    //   .subscribe((value) => {
+    //     if (value != null) this.onSearchProducto(value);
+    //   });
   }
 
   ngAfterViewInit(): void {
-    this.dataSource.paginator = this.paginator;
+    setTimeout(() => {
+      this.filtroProductoInput.nativeElement.focus();
+    }, 500);
+
+    console.log(this.mainService.usuarioActual.roles);
   }
 
-  createForm() { }
+  createForm() {}
 
-  onSearchProducto(text: string, offset?: number) {
+  onSearchProducto() {
     this.isSearching = true;
-    if (this.onSearchTimer != null) {
-      clearTimeout(this.onSearchTimer);
-    }
-    if (text == "" || text == null || text == " ") {
-      this.dataSource != undefined ? (this.dataSource.data = []) : null;
-      this.isSearching = false;
-    } else {
-      this.onSearchTimer = setTimeout(() => {
-        this.service.onSearch(text, offset).pipe(untilDestroyed(this)).subscribe((res) => {
-          if (offset == null) {
-            this.dataSource.data = res;
-          } else {
-            const arr = [...this.dataSource.data.concat(res)];
-            this.dataSource.data = arr;
-          }
-          this.isSearching = false;
-        });
-      }, 1000);
-    }
+    console.log(this.selectedSubfamilia?.id);
+
+    this.service
+      .onSearchWithFilters(
+        this.filtroCodigoControl.value == false
+          ? this.filtroProductoControl.value
+          : null,
+        this.filtroCodigoControl.value == true
+          ? this.filtroProductoControl.value
+          : null,
+        this.activoControl.value,
+        this.stockControl.value,
+        this.balanzaControl.value,
+        this.selectedSubfamilia?.id,
+        this.vencimientoControl.value,
+        this.pageIndex,
+        this.pageSize
+      )
+      .subscribe((res) => {
+        this.selectedPageInfo = res;
+        this.dataSource.data = res.getContent;
+        this.isSearching = false;
+      });
   }
 
   onRowClick(row) {
-    let ref = this.matDialog.open(CargandoDialogComponent);
-    this.service.getProducto(row.id).pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res != null) {
-        if (this.menuState === "in") {
-          this.selectedProducto = res;
-          this.menuState = "out";
-          setTimeout(() => {
-            this.menuState = "in";
-            this.imagenPrincipal = res.imagenPrincipal;
-            ref.close();
-          }, 500);
-        } else {
-          this.menuState = "in";
-          setTimeout(() => {
-            this.imagenPrincipal = res.imagenPrincipal;
-            this.selectedProducto = res;
-            ref.close();
-          }, 500);
+    this.selectedProducto = row;
+    this.expandedProducto = this.selectedProducto;
+  }
+
+  onEditProducto(producto, i) {
+    if (producto == null) {
+      this.tabService.addTab(
+        new Tab(
+          ProductoComponent,
+          "Nuevo Producto",
+          null,
+          ListProductoComponent
+        )
+      );
+    } else {
+      this.tabService.addTab(
+        new Tab(
+          ProductoComponent,
+          producto.descripcion,
+          new TabData(null, {id: producto.id}),
+          ListProductoComponent
+        )
+      );
+    }
+  }
+
+  onVerMovimiento(producto: Producto, i) {}
+
+  handlePageEvent(e: PageEvent) {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.onFiltrar();
+  }
+
+  onFiltrar() {
+    this.onSearchProducto();
+  }
+  resetFiltro() {}
+  onAddProducto() {
+    this.onEditProducto(null, null);
+  }
+
+  toogleCheck(formControl: FormControl) {
+    if (formControl.value == null) {
+      formControl.setValue(true);
+    } else if (formControl.value == true) {
+      formControl.setValue(false);
+    } else {
+      formControl.setValue(null);
+    }
+  }
+
+  onBuscarSubfamilia() {
+    let tableData: TableData[] = [
+      {
+        id: "id",
+        nombre: "Id",
+      },
+      {
+        id: "nombre",
+        nombre: "Familia",
+        nested: true,
+        nestedId: "familia",
+        nestedColumnId: "familia",
+      },
+      {
+        id: "nombre",
+        nombre: "Nombre",
+      },
+    ];
+    let data: SearchListtDialogData = {
+      query: this.searchSubfamilia,
+      tableData: tableData,
+      titulo: "Buscar subfamilia",
+      search: true,
+      queryData: { texto: this.subfamiliaControl.value },
+      inicialSearch: true,
+      paginator: true,
+    };
+    this.matDialog
+      .open(SearchListDialogComponent, {
+        data: data,
+        width: "60%",
+        height: "80%",
+      })
+      .afterClosed()
+      .subscribe((res: Subfamilia | any) => {
+        if (res != null) {
+          this.selectedSubfamilia = res;
+          this.subfamiliaControl.setValue(res.nombre);
         }
-      } else {
-        ref.close();
-      }
-    });
+      });
   }
-
-  openProductos(tipo) {
-    switch (tipo) {
-      case "new":
-        this.tabService.addTab(
-          new Tab(
-            ProductoComponent,
-            "Nuevo Producto",
-            null,
-            ListProductoComponent
-          )
-        );
-        break;
-      case "edit":
-        this.tabService.addTab(
-          new Tab(
-            ProductoComponent,
-            this.selectedProducto.descripcion,
-            { data: this.selectedProducto },
-            ListProductoComponent
-          )
-        );
-        break;
-
-      default:
-        break;
-    }
-  }
-
-  @HostListener("window:keyup", ["$event"])
-  keyEvent(event: KeyboardEvent) {
-    let key = event.key;
-    let isNumber = (+key).toString() === key;
-    switch (key) {
-      case "Enter":
-        // if (this.selectedProducto != null) {
-        //   this.openProductos("edit");
-        // } else {
-        //   // this.openProductos('new')
-        // }
-        break;
-      case "ArrowRight":
-        // if (this.paginator.pageIndex < this.paginator.length) {
-        //   this.paginator.nextPage();
-        // }
-        break;
-      case "ArrowLeft":
-        // if (this.paginator.pageIndex > 0) {
-        //   this.paginator.previousPage();
-        // }
-        break;
-      case "ArrowDown":
-        // if (this.selectedRowIndex == null && this.dataSource.data.length > 0) {
-        //   this.highlight(this.dataSource.data[0], 0);
-        // }
-        break;
-      default:
-        break;
-    }
-  }
-
-  highlight(row: any, i?) {
-    this.onRowClick(row);
-    this.selectedRowIndex = i;
-  }
-
-  arrowUpEvent() {
-    if (this.selectedRowIndex > 0) {
-      // if(this.selectedRowIndex-1 == this.paginator.pageSize){
-      //   this.paginator.nextPage()
-      // }
-      this.selectedRowIndex--;
-      var nextrow = this.dataSource.data[this.selectedRowIndex];
-      // this.expandedProducto = nextrow;
-    }
-    this.highlight(nextrow, this.selectedRowIndex);
-  }
-
-  arrowDownEvent() {
-
-    if (this.selectedRowIndex < this.dataSource?.data.length - 1) {
-      if (this.selectedRowIndex + 1 == this.paginator.pageSize) {
-        this.paginator.nextPage();
-      }
-      this.selectedRowIndex++;
-      var nextrow = this.dataSource.data[this.selectedRowIndex];
-      // this.expandedProducto = nextrow;
-    }
-    this.highlight(nextrow, this.selectedRowIndex);
-  }
-
-  printProducto() {
-    this.service.onPrintProductoPorId(this.selectedProducto.id);
-  }
-
-  cargarMasDatos() {
-    this.onSearchProducto(this.buscarField.value, this.dataSource.data.length);
-  }
-
-  onExportProductos() {
-    this.cargandoDialog.openDialog(false, "Generando Reporte...")
-    this.service.onExportarReporte(this.buscarField.value).pipe(untilDestroyed(this)).subscribe(res => {
-      this.cargandoDialog.closeDialog()
-      this.reporteService.onAdd('Producto-' + new Date().toLocaleTimeString(), res);
-      this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListProductoComponent))
-    })
-  }
-
-  onReporte() {
-    // this.service.onImprimirReporteLucroPorProducto();
-  }
+  onClearSubfamilia() {}
 }

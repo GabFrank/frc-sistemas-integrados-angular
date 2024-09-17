@@ -87,3 +87,83 @@ export function combineDateTime(date: Date, time: string): Date {
 
   return combinedDate;
 }
+
+export function validarFecha(dateString: string): boolean {
+  // Regex for the first pattern (dd/mm/yyyy)
+  const longDatePattern = /^\d{2}\/\d{2}\/\d{4}$/;
+  // Regex for the second pattern (dd/mm/yy)
+  const shortDatePattern = /^\d{2}\/\d{2}\/\d{2}$/;  
+
+  // Check if it matches the long date pattern (dd/mm/yyyy)
+  if (longDatePattern.test(dateString)) {
+    
+    const [day, month, year] = dateString.split('/').map(Number);
+    const parsedDate = new Date(year, month - 1, day);
+    
+    if (isValidDate(parsedDate, day, month, year)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  
+  // Check if it matches the short date pattern (dd/mm/yy)
+  else if (shortDatePattern.test(dateString)) {
+    const [day, month, shortYear] = dateString.split('/').map(Number);
+    // Convert short year to full year (assume 21st century for '24', i.e., 2024)
+    const fullYear = shortYear < 50 ? 2000 + shortYear : 1900 + shortYear;
+    const parsedDate = new Date(fullYear, month - 1, day);
+
+    if (isValidDate(parsedDate, day, month, fullYear)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  // If no pattern matches, throw an error
+  else {
+    return false;
+  }
+}
+
+// Helper function to check if the parsed date is valid by verifying the year, month, and day
+export function isValidDate(date: Date, day: number, month: number, year: number): boolean {
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  );
+}
+
+export function parseShortDate(dateString: string | null): Date | null {
+  // Return null if the string is null
+  if (!dateString) {
+    return null;
+  }
+
+  // Regex for validating the date format dd/mm/yy
+  const shortDatePattern = /^\d{2}\/\d{2}\/\d{2}$/;
+
+  // Check if the dateString matches the pattern
+  if (shortDatePattern.test(dateString)) {
+    const [day, month, shortYear] = dateString.split('/').map(Number);
+    
+    // Convert the short year to a full year (assuming 21st century for values < 50)
+    const fullYear = shortYear < 50 ? 2000 + shortYear : 1900 + shortYear;
+
+    // Create and return the Date object
+    const parsedDate = new Date(fullYear, month - 1, day);
+
+    // Validate that the created date is valid
+    if (isValidDate(parsedDate, day, month, fullYear)) {
+      return parsedDate;
+    } else {
+      throw new Error('Invalid date value');
+    }
+  }
+
+  // If format does not match, throw an error
+  throw new Error('Invalid date format');
+}
+

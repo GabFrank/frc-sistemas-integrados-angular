@@ -38,6 +38,9 @@ export class Producto {
   isEnvase: boolean;
   envase: Producto
   stockPorProductoDestino?: any;
+  precioPrincipal: number;
+  activo: boolean
+  creadoEn: Date
 }
 
 export class ExistenciaCostoPorSucursal {

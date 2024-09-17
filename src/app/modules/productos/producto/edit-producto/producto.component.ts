@@ -87,6 +87,7 @@ export class ProductoDialogData {
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { PageInfo } from "../../../../app.component";
+import { dateToString } from "../../../../commons/core/utils/dateUtils";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -107,6 +108,7 @@ import { PageInfo } from "../../../../app.component";
 export class ProductoComponent implements OnInit, OnDestroy {
   @Input() data;
   @ViewChild("filtroFamiliaInput") filtroFamiliaInput: ElementRef;
+  @ViewChild("filtroSubfamiliaInput") filtroSubfamiliaInput: ElementRef;
   @ViewChildren("fileInput") fileInputList: any;
   @ViewChild("stepper", { static: false }) stepper: MatStepper;
   @ViewChild("codigoInput", { static: false }) codigoInput: ElementRef;
@@ -132,23 +134,23 @@ export class ProductoComponent implements OnInit, OnDestroy {
   selectedSubfamilia: Subfamilia = null;
   filteredFamilias = [];
   familiaDataSource = new MatTableDataSource<Familia>([]);
-  subfamilia = new MatTableDataSource<Subfamilia>([]);
+  subfamiliaDataSource = new MatTableDataSource<Subfamilia>([]);
   familiaColumnsToDisplay = ["id", "nombre", "activo", "accion"];
-  subfamiliaColumnsToDisplay = [
-    "id",
-    "nombre",
-    "descripcion",
-    "activo",
-    "accion",
-  ];
+  subfamiliaColumnsToDisplay = ["id", "nombre", "activo", "accion"];
   filtroFamiliaOpen = false;
   filtroFamiliaControl = new FormControl("");
+  filtroSubfamiliaOpen = false;
+  filtroSubfamiliaControl = new FormControl("");
   expandedElementFamilia: Familia;
   expandedElementSubfamilia: Subfamilia;
   selectedFamiliaPageInfo: PageInfo<Familia>;
   selectedSubfamiliaPageInfo: PageInfo<Subfamilia>;
   familiaPageIndex = 0;
-  familiaPageSize = 25;
+  familiaPageSize = 15;
+  subfamiliaPageIndex = 0;
+  subfamiliaPageSize = 15;
+  familiaControl = new FormControl(null, [Validators.required]);
+  subfamiliaControl = new FormControl(null, [Validators.required]);
 
   //presentaciones
   presentacionesList: Presentacion[];
@@ -250,8 +252,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.onSearchFamilia();
-
     // inicializar arrays
     this.codigosList = [];
     this.precioList = [];
@@ -262,11 +262,14 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
     setTimeout(() => {
       if (this.data?.tabData?.data.id != null) {
+        console.log('log 1');
         this.cargarProducto(this.data.tabData.data.id);
       } else if (this.dialogData?.producto != null) {
+        console.log('log 2')
         this.cargarProducto(this.dialogData.producto.id);
       } else {
-        this.cargandoDialog.closeDialog();
+        console.log('log 3');
+        this.onSearchFamilia();
       }
     }, 200);
 
@@ -285,6 +288,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onSearchFamilia() {
+    this.onFamiliaSelect(null);
     this.familiaService
       .onSearchFamilia(
         this.filtroFamiliaControl.value,
@@ -295,6 +299,29 @@ export class ProductoComponent implements OnInit, OnDestroy {
         if (res != null) {
           this.selectedFamiliaPageInfo = res;
           this.familiaDataSource.data = res.getContent;
+          if (res.getContent?.length == 1) {
+            this.onFamiliaSelect(res.getContent[0]);
+          }
+        }
+      });
+  }
+
+  onSearchSubfamilia() {
+    this.onSubfamiliaSelect(null);
+    this.subfamiliaService
+      .onSearchSubfamilia(
+        this.selectedFamilia.id,
+        this.filtroSubfamiliaControl.value,
+        this.subfamiliaPageIndex,
+        this.subfamiliaPageSize
+      )
+      .subscribe((res: PageInfo<Subfamilia>) => {
+        if (res != null) {
+          this.selectedSubfamiliaPageInfo = res;
+          this.subfamiliaDataSource.data = res.getContent;
+          if (res.getContent?.length == 1) {
+            this.onSubfamiliaSelect(res.getContent[0]);
+          }
         }
       });
   }
@@ -305,14 +332,19 @@ export class ProductoComponent implements OnInit, OnDestroy {
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.selectedProducto = res;
-        this.selectedSubfamilia = this.selectedProducto?.subfamilia;
-        this.selectedFamilia = this.selectedSubfamilia?.familia;
-        setTimeout(() => {
-          this.seleccionarFamilia(this.selectedFamilia);
+        if (this.selectedProducto.subfamilia != null) {
+          console.log('log 4');
+          this.selectedSubfamilia = this.selectedProducto?.subfamilia;
+          this.selectedFamilia = this.selectedSubfamilia?.familia;
+          this.familiaDataSource.data = [this.selectedFamilia];
+          this.subfamiliaDataSource.data = [this.selectedSubfamilia];
+          this.onFamiliaSelect(this.selectedFamilia);
+          this.onSubfamiliaSelect(this.selectedSubfamilia);
           setTimeout(() => {
-            this.seleccionarSubfamilia(this.selectedSubfamilia);
+            this.stepper.next();
+            this.stepper.next();
           }, 500);
-        }, 500);
+        }
         this.datosGeneralesControl.controls.descripcion.setValue(
           this.selectedProducto?.descripcion
         );
@@ -349,34 +381,27 @@ export class ProductoComponent implements OnInit, OnDestroy {
         this.datosGeneralesControl.controls.diasVencimiento.setValue(
           this.selectedProducto.diasVencimiento
         );
+        this.datosGeneralesControl.controls.activo.setValue(
+          this.selectedProducto.activo
+        );
         if (this.selectedProducto?.envase != null) {
           this.onSelectEnvase(this.selectedProducto.envase);
         }
 
-        // this.codigoService.onGettipoPresentacionsPorProductoId(res.id).subscribe((res) => {
-        //   this.codigosList = res.data.data;
-        //   this.codigoDataSource.data = this.codigosList;
-        // });
-        // this.precioPorSucursalService
-        //   .onGetPorProductoId(res.id)
-        //   .subscribe((res) => {
-        //     this.precioList = res.data.data;
-        //     this.precioDataSource.data = this.precioList;
-        //   });
-
         this.getPresentacionPorProductoId(res.id);
 
         this.loadImagenPrincipal();
-        this.cargandoDialog.closeDialog();
         setTimeout(() => {
           this.stepper.next();
-        }, 1000);
+        }, 500);
       });
   }
 
   createForm() {
-    this.tipoProductoControl = new FormGroup({});
-    this.categoriaControl = new FormGroup({});
+    this.tipoProductoControl = new FormGroup({ familia: this.familiaControl });
+    this.categoriaControl = new FormGroup({
+      subfamilia: this.subfamiliaControl,
+    });
     this.datosGeneralesControl = new FormGroup({
       descripcion: new FormControl(null, Validators.required),
       descripcionFactura: new FormControl(null),
@@ -408,6 +433,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
       isEnvase: new FormControl(null),
       poseeEnvase: new FormControl(null),
       envase: new FormControl(null),
+      activo: new FormControl(true)
     });
     this.datosGeneralesControl.controls.envase.disable();
 
@@ -481,6 +507,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
         subfamiliaId,
         isEnvase,
         envaseId,
+        activo,
+        creadoEn
       } = this.datosGeneralesControl.value;
       let productoInput = new ProductoInput();
       productoInput = {
@@ -504,9 +532,12 @@ export class ProductoComponent implements OnInit, OnDestroy {
         subfamiliaId,
         isEnvase,
         envaseId,
+        activo,
+        creadoEn
       };
       if (this.selectedProducto != null) {
         productoInput.id = this.selectedProducto.id;
+        productoInput.creadoEn = dateToString(this.selectedProducto.creadoEn)
       }
       productoInput.descripcion = productoInput?.descripcion.toUpperCase();
       if (productoInput?.descripcionFactura == null)
@@ -534,14 +565,11 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
   //funciones de codigos
 
-  seleccionarFamilia(tipo) {
-    this.cargandoDialog.openDialog();
-    this.selectedFamilia = this.familiasList?.find((f) => f.id == tipo.id);
-    this.subfamiliasList = this.selectedFamilia?.subfamilias;
+  nextFamilia() {
+    this.familiaControl.setValue(this.selectedFamilia);
+    this.onFilterSubfamilia();
     setTimeout(() => {
-      // this.filtrarFamilias();
       this.stepper.next();
-      this.cargandoDialog.closeDialog();
     }, 500);
   }
 
@@ -619,7 +647,10 @@ export class ProductoComponent implements OnInit, OnDestroy {
       .subscribe((res) => {
         if (res != null) {
           setTimeout(() => {
-            this.familiaDataSource.data = updateDataSource(this.familiaDataSource.data, res)
+            this.familiaDataSource.data = updateDataSource(
+              this.familiaDataSource.data,
+              res
+            );
             this.selectedFamilia = res;
           }, 500);
         }
@@ -808,7 +839,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
   @ViewChild("precioTable") precioTable: MatTable<PrecioPorSucursalService>;
 
   getPresentacionPorProductoId(id) {
-    this.cargandoDialog.openDialog();
     this.isPresentacionLoading = true;
     this.presentacionService
       .onGetPresentacionesPorProductoId(id)
@@ -817,7 +847,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
         this.presentacionesList = data;
         this.presentacionesDataSource.data = [...this.presentacionesList];
         this.isPresentacionLoading = false;
-        this.cargandoDialog.closeDialog();
       });
   }
 
@@ -931,7 +960,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
     this.matDialog
       .open(AdicionarCodigoDialogComponent, {
         data,
-        width: "50%",
+        minWidth: '400px',
         disableClose: true,
       })
       .afterClosed()
@@ -1010,7 +1039,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
     this.matDialog
       .open(AdicionarPrecioDialogComponent, {
         data,
-        width: "50%",
+        minWidth: '400px',
         disableClose: true,
       })
       .afterClosed()
@@ -1121,8 +1150,8 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   abrirFiltroFamilia() {
-    console.log('entro en abrir filtro');
-    
+    console.log("entro en abrir filtro");
+
     this.filtroFamiliaOpen = !this.filtroFamiliaOpen;
     if (!this.filtroFamiliaOpen) {
       this.onSearchFamilia();
@@ -1154,6 +1183,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
             res,
             index
           );
+          this.onFamiliaSelect(res);
         }
       });
   }
@@ -1163,6 +1193,72 @@ export class ProductoComponent implements OnInit, OnDestroy {
     this.familiaPageIndex = e.pageIndex;
     this.familiaPageSize = e.pageSize;
     this.onSearchFamilia();
+  }
+
+  onFamiliaSelect(familia) {
+    this.selectedFamilia = familia;
+    this.expandedElementFamilia = familia;
+  }
+
+  onFilterSubfamilia() {
+    this.onSearchSubfamilia();
+  }
+
+  abrirFiltroSubfamilia() {
+    this.filtroSubfamiliaOpen = !this.filtroSubfamiliaOpen;
+    if (!this.filtroSubfamiliaOpen) {
+      this.onSearchSubfamilia();
+    } else {
+      setTimeout(() => {
+        this.focusFilterSubfamiliaInput();
+      }, 100);
+    }
+  }
+
+  focusFilterSubfamiliaInput() {
+    this.filtroSubfamiliaInput.nativeElement.focus();
+  }
+
+  onEditSubfamilia(subfamilia: Subfamilia, index) {
+    this.matDialog
+      .open(AddSubfamiliaDialogComponent, {
+        data: {
+          subfamilia,
+        },
+        width: "500px",
+      })
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res != null) {
+          this.subfamiliaDataSource.data = updateDataSource(
+            this.subfamiliaDataSource.data,
+            res,
+            index
+          );
+          this.onSubfamiliaSelect(res);
+        }
+      });
+  }
+  onDeleteSubfamilia(familia: Familia, index) {}
+
+  handleSubfamiliaPageEvent(e) {
+    this.subfamiliaPageIndex = e.pageIndex;
+    this.subfamiliaPageSize = e.pageSize;
+    this.onSearchSubfamilia();
+  }
+
+  onSubfamiliaSelect(e) {
+    this.selectedSubfamilia = e;
+    this.expandedElementSubfamilia = e;
+  }
+
+  nextSubfamilia() {
+    this.subfamiliaControl.setValue(this.selectedSubfamilia);
+    this.stepper.next();
+    setTimeout(() => {
+      this.nombreInput.nativeElement.focus();
+    }, 500);
   }
 
   print(p) {

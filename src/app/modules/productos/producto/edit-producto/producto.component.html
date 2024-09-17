@@ -8,33 +8,27 @@
       appearance="outlined"
       fxLayout="column"
       fxLayoutGap="10px"
-      style="width: 100%; height: 100%"
+      style="width: 100%; height: 100%; padding: 20px"
     >
-      <div fxFlex="5" style="text-align: center; color: #f57c00">Resumen</div>
-      <div
-        fxFlex="10"
-        fxLayout="column"
-        fxLayoutAlign="space-around start"
-        style="width: 100%"
-      >
-        <div fxFlex style="text-align: start; color: #f57c00">Familia:</div>
-        <div fxFlex style="text-align: right">
-          {{ selectedFamilia?.nombre }}
-        </div>
+      <div fxFlex="5" style="text-align: center; color: #f57c00">
+        <h3>Resumen del producto</h3>
       </div>
       <div
-        fxFlex="10"
-        fxLayout="column"
-        fxLayoutAlign="space-around start"
-        style="width: 100%"
+        style="width: 100%; text-align: center"
       >
-        <div fxFlex style="text-align: start; color: #f57c00">Subfamilia:</div>
-        <div fxFlex style="text-align: right">
-          {{ selectedSubfamilia?.nombre }}
+        <div
+          *ngIf="imagenPrincipal != null"
+          style="text-align: center; width: 100%"
+        >
+          <img
+            [src]="imagenPrincipal"
+            alt="imagen principal mini"
+            style="width: 100px; height: 100px; object-fit: contain; border-radius: 50%"
+          />
         </div>
       </div>
+      <br>
       <div
-        fxFlex="10"
         fxLayout="column"
         fxLayoutAlign="space-around start"
         style="width: 100%"
@@ -45,78 +39,115 @@
         </div>
       </div>
       <div
-        fxFlex="5"
-        fxLayout="row"
-        fxLayoutAlign="space-around start"
-        style="width: 100%"
-      >
-        <div fxFlex="30" style="text-align: start; color: #f57c00">
-          Pesable:
-        </div>
-        <div fxFlex="70" style="text-align: right">
-          {{
-            datosGeneralesControl.controls.balanza.value != false ? "Si" : "No"
-          }}
-        </div>
-      </div>
-      <div
-        fxFlex="5"
-        fxLayout="row"
-        fxLayoutAlign="space-around start"
-        style="width: 100%"
-      >
-        <div fxFlex="30" style="text-align: start; color: #f57c00">Stock:</div>
-        <div fxFlex="70" style="text-align: right">
-          {{
-            datosGeneralesControl.controls.stock.value != false ? "Si" : "No"
-          }}
-        </div>
-      </div>
-      <div
-        fxFlex="5"
-        fxLayout="row"
-        fxLayoutAlign="space-around start"
-        style="width: 100%"
-      >
-        <div fxFlex="50" style="text-align: start; color: #f57c00">
-          Código Principal:
-        </div>
-        <div fxFlex="50" style="text-align: right">
-          {{ isCodigoPrincipal != false ? "Si" : "No" }}
-        </div>
-      </div>
-      <div
-        fxFlex="5"
-        fxLayout="row"
-        fxLayoutAlign="space-around start"
-        style="width: 100%"
-      >
-        <div fxFlex="50" style="text-align: start; color: #f57c00">
-          Código Caja:
-        </div>
-        <div fxFlex="50" style="text-align: right">
-          {{ isCodigoCaja != false ? "Si" : "No" }}
-        </div>
-      </div>
-      <div
-        fxFlex="30"
         fxLayout="column"
         fxLayoutAlign="space-around start"
         style="width: 100%"
       >
-        <div fxFlex="20" style="text-align: start; color: #f57c00">
-          Imagen Principal:
+        <div fxFlex style="text-align: start; color: #f57c00">Familia:</div>
+        <div fxFlex style="text-align: right">
+          {{ selectedFamilia?.nombre }}
+        </div>
+      </div>
+      <div
+        fxLayout="column"
+        fxLayoutAlign="space-around start"
+        style="width: 100%"
+      >
+        <div fxFlex style="text-align: start; color: #f57c00">Subfamilia:</div>
+        <div fxFlex style="text-align: right">
+          {{ selectedSubfamilia?.nombre }}
+        </div>
+      </div>
+      <div
+        fxLayout="row"
+        fxLayoutAlign="space-around start"
+        style="width: 100%"
+      >
+        <div
+          fxFlex="50"
+          fxLayout="column"
+          fxLayoutAlign="space-around start"
+          style="width: 100%"
+        >
+          <div fxFlex style="text-align: start; color: #f57c00">
+            Movimienta stock:
+          </div>
+          <div fxFlex style="text-align: right">
+            {{
+              datosGeneralesControl.controls.stock.value == true ? "Si" : "No"
+            }}
+          </div>
         </div>
         <div
-          *ngIf="imagenPrincipal != null"
-          fxFlex="80"
-          style="text-align: center; width: 100%"
+          fxFlex="50"
+          fxLayout="column"
+          fxLayoutAlign="space-around start"
+          style="width: 100%"
         >
-          <img
-            [src]="imagenPrincipal"
-            alt="imagen principal mini"
-            style="width: 100px; height: 100px; object-fit: contain"
-          />
+          <div fxFlex style="text-align: start; color: #f57c00">Pesable:</div>
+          <div fxFlex style="text-align: right">
+            {{
+              datosGeneralesControl.controls.balanza.value == true ? "Si" : "No"
+            }}
+          </div>
+        </div>
+      </div>
+
+      <div
+        fxLayout="column"
+        fxLayoutAlign="space-around start"
+        style="width: 100%"
+      >
+        <div fxFlex style="text-align: start; color: #f57c00">
+          Código Principal:
+        </div>
+        <div fxFlex style="text-align: start">
+          {{ selectedProducto?.codigoPrincipal || "No posee" }}
+        </div>
+      </div>
+
+      <div
+        fxLayout="column"
+        fxLayoutAlign="space-around start"
+        style="width: 100%"
+      >
+        <div fxFlex style="text-align: start; color: #f57c00">
+          Precio venta:
+        </div>
+        <div fxFlex style="text-align: start">
+          {{
+            (selectedProducto?.precioPrincipal | number : "1.0-2") || "No posee"
+          }}
+        </div>
+      </div>
+
+      <div
+        fxLayout="column"
+        fxLayoutAlign="space-around start"
+        style="width: 100%"
+      >
+        <div fxFlex style="text-align: start; color: #f57c00">Costo medio:</div>
+        <div fxFlex style="text-align: start">
+          {{
+            (selectedProducto?.costo?.costoMedio | number : "1.0-2") ||
+              "No posee"
+          }}
+        </div>
+      </div>
+
+      <div
+        fxLayout="column"
+        fxLayoutAlign="space-around start"
+        style="width: 100%"
+      >
+        <div fxFlex style="text-align: start; color: #f57c00">
+          Costo ult. compra:
+        </div>
+        <div fxFlex style="text-align: start">
+          {{
+            (selectedProducto?.costo?.ultimoPrecioCompra | number : "1.0-2") ||
+              "No posee"
+          }}
         </div>
       </div>
     </mat-card>
@@ -132,6 +163,7 @@
       fxFlexFill
       [stepControl]="tipoProductoControl"
       [editable]="true"
+      [completed]="selectedFamilia?.id != null"
       style="width: 100%; height: 100%"
     >
       <form [formGroup]="tipoProductoControl" style="width: 100%; height: 100%">
@@ -148,7 +180,7 @@
               height: 100%;
               overflow-y: auto;
               background-color: rgb(52, 52, 52);
-              padding: 10px
+              padding: 10px;
             "
           >
             <table
@@ -184,27 +216,54 @@
                               matInput
                               type="text"
                               [formControl]="filtroFamiliaControl"
-                              (keyup.enter)="onFilterFamilia(); $event.stopPropagation();"
+                              (keyup.enter)="
+                                onFilterFamilia(); $event.stopPropagation()
+                              "
                               (focusin)="filtroFamiliaInput.select()"
                             />
                           </mat-form-field>
                         </div>
                       </span>
                     </div>
-                    <div fxFlex="20" fxLayout="row">
+                    <div fxFlex="30" fxLayout="row">
                       <span>
-                        <button mat-icon-button (click)="filtroFamiliaOpen ? null : abrirFiltroFamilia()">
+                        <button
+                          matTooltip="Abrir buscador"
+                          mat-icon-button
+                          (click)="
+                            filtroFamiliaOpen ? null : abrirFiltroFamilia()
+                          "
+                        >
                           <mat-icon>search</mat-icon>
                         </button>
                       </span>
                       <span *ngIf="filtroFamiliaOpen">
-                        <button mat-icon-button (click)="abrirFiltroFamilia()">
+                        <button
+                          matTooltip="Limpiar buscador"
+                          mat-icon-button
+                          (click)="abrirFiltroFamilia()"
+                        >
                           <mat-icon>clear</mat-icon>
                         </button>
                       </span>
                       <span>
-                        <button mat-icon-button (click)="addFamilia()">
+                        <button
+                          matTooltip="Crear nueva familia"
+                          mat-icon-button
+                          (click)="addFamilia()"
+                        >
                           <mat-icon>add_circle</mat-icon>
+                        </button>
+                      </span>
+                      <span>
+                        <button
+                          matTooltip="Recargar lista"
+                          mat-icon-button
+                          (click)="
+                            filtroFamiliaControl.setValue(''); onFilterFamilia()
+                          "
+                        >
+                          <mat-icon>refresh</mat-icon>
                         </button>
                       </span>
                     </div>
@@ -254,7 +313,10 @@
                     <mat-icon>more_vert</mat-icon>
                   </button>
                   <mat-menu #menu="matMenu">
-                    <button mat-menu-item (click)="onEditFamilia(item, itemIndex)">
+                    <button
+                      mat-menu-item
+                      (click)="onEditFamilia(item, itemIndex)"
+                    >
                       Editar
                     </button>
                     <button
@@ -283,8 +345,10 @@
                         ? 'expanded'
                         : 'collapsed'
                     "
+                    fxLayout="row"
+                    fxLayoutAlign="start center"
                   >
-                    <mat-chip-set>
+                    <mat-chip-set style="padding: 20px">
                       <mat-chip
                         *ngFor="let item of element?.descripcion?.split(',')"
                       >
@@ -327,13 +391,13 @@
             style="width: 100%"
             showFirstLastButtons
           ></mat-paginator>
-          <br>
+          <br />
           <div
             style="width: 100%"
             fxLayout="row"
             fxLayoutAlign="space-between center"
           >
-            <div fxFlex="30" style="text-align: center;">
+            <div fxFlex="30" style="text-align: center">
               <button
                 type="button"
                 style="width: 100px; padding-right: 10px"
@@ -344,12 +408,12 @@
                 Atras
               </button>
             </div>
-            <div fxFlex="30" style="text-align: center;">
+            <div fxFlex="30" style="text-align: center">
               <button
                 type="button"
                 style="width: 100px; padding-right: 10px"
                 mat-raised-button
-                matStepperNext
+                (click)="nextFamilia()"
                 [disabled]="selectedFamilia == null"
                 [class.selectedRow]="selectedFamilia != null"
               >
@@ -358,195 +422,267 @@
             </div>
           </div>
         </div>
-        <!-- <div
-          style="height: 100%; overflow: scroll;"
-          fxLayout="column"
-          fxLayoutAlign="space-between start"
-        >
-          <div fxLayout="row wrap" fxLayoutGap="10px">
-            <div
-              fxFlex="19"
-              *ngFor="let item of familiasList; let i = index"
-              style="padding-bottom: 10px; width: 150px; height: 150px"
-            >
-              <mat-card
-                appearance="outlined"
-                [class]="
-                  selectedFamilia?.id == item?.id
-                    ? 'seleccionado'
-                    : 'noSeleccionado'
-                "
-                style="height: 100%; text-align: center"
-                (click)="seleccionarFamilia(item)"
-                (contextmenu)="onFamiliaRightClick(item, $event)"
-                matStepperNext
-                fxLayout="column"
-                fxLayoutAlign="space-around"
-              >
-                <h3 fxFlex="20" style="height: 20px">
-                  {{ item.nombre }} - ({{ i + 1 }})
-                </h3>
-                <div fxFlex="30" fxLayout="row" fxLayoutAlign="center center">
-                  <div fxFlex style="text-align: center">
-                    <mat-icon
-                      style="
-                        width: 100%;
-                        height: 100%;
-                        font-size: 3.5em;
-                        cursor: pointer;
-                      "
-                      >{{ item.icono }}</mat-icon
-                    >
-                  </div>
-                </div>
-                <mat-card-content fxFlex="50">
-                  <p
-                    style="
-                      font-size: 0.8em;
-                      text-align: justify;
-                      text-transform: uppercase;
-                      overflow-y: scroll;
-                    "
-                  >
-                    {{ item?.descripcion | uppercase }}
-                  </p>
-                </mat-card-content>
-              </mat-card>
-            </div>
-            <div
-              fxFlex="19"
-              style="padding-bottom: 10px; width: 150px; height: 150px"
-            >
-              <mat-card
-                appearance="outlined"
-                style="height: 100%; text-align: center"
-                fxLayout="column"
-                fxLayoutAlign="center center"
-                (click)="addFamilia()"
-              >
-                <div fxFlex fxLayout="row" fxLayoutAlign="center center">
-                  <div fxFlex style="text-align: center">
-                    <mat-icon
-                      matTooltip="Agregar una familia"
-                      style="
-                        width: 100%;
-                        height: 100%;
-                        font-size: 5em;
-                        cursor: pointer;
-                      "
-                      >add_circle_outline</mat-icon
-                    >
-                  </div>
-                </div>
-                <div fxFlex="20">
-                  <h3>Adicionar</h3>
-                </div>
-              </mat-card>
-            </div>
-          </div>
-          <div style="width: 100%; text-align: center">
-            <button
-              type="button"
-              style="width: 100px; padding-right: 10px"
-              mat-raised-button
-              matStepperNext
-              [disabled]="selectedFamilia == null"
-            >
-              Siguiente
-            </button>
-          </div>
-        </div> -->
       </form>
     </mat-step>
     <mat-step
       [stepControl]="categoriaControl"
-      [aria-labelledby]="selectedFamilia == null ? 'disabled_Resi' : null"
-      [completed]="selectedProducto?.id != null"
+      [editable]="true"
+      [completed]="selectedSubfamilia?.id != null"
     >
-      <form [formGroup]="categoriaControl">
-        <ng-template matStepLabel>Subfamilia</ng-template>
-        <div style="height: 500px">
-          <div fxLayout="row wrap" fxLayoutGap="10px">
-            <div
-              fxFlex="15"
-              *ngFor="let item of subfamiliasList; let i = index"
-              style="padding-bottom: 10px"
+      <form [formGroup]="categoriaControl" style="width: 100%; height: 100%">
+        <ng-template matStepLabel>Familia</ng-template>
+        <div
+          table
+          style="height: 100%; background-color: rgb(70, 70, 70)"
+          fxLayout="column"
+          fxLayoutAlign="space-between start"
+        >
+          <div
+            style="
+              width: 100%;
+              height: 100%;
+              overflow-y: auto;
+              background-color: rgb(52, 52, 52);
+              padding: 10px;
+            "
+          >
+            <table
+              mat-table
+              [dataSource]="subfamiliaDataSource"
+              multiTemplateDataRows
+              class="mat-elevation-z8"
             >
-              <mat-card
-                appearance="outlined"
-                [class]="
-                  selectedSubfamilia?.id == item?.id
-                    ? 'seleccionado'
-                    : 'noSeleccionado'
+              <ng-container matColumnDef="id">
+                <th mat-header-cell *matHeaderCellDef>Id</th>
+                <td mat-cell *matCellDef="let item" copiarAClipboard>
+                  {{ item?.id }}
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="nombre">
+                <th mat-header-cell *matHeaderCellDef style="width: 70%">
+                  <div fxLayout="row" fxLayoutAlign="start space-between">
+                    <div
+                      fxFlex="70"
+                      fxLayout="column"
+                      fxLayoutAlign="center start"
+                    >
+                      <span *ngIf="!filtroSubfamiliaOpen"> Nombre </span>
+                      <span *ngIf="filtroSubfamiliaOpen" style="width: 100%">
+                        <div>
+                          <mat-form-field
+                            style="width: 100%"
+                            appearance="outline"
+                            class="shrinking-mat-form-field"
+                          >
+                            <input
+                              #filtroSubfamiliaInput
+                              matInput
+                              type="text"
+                              [formControl]="filtroSubfamiliaControl"
+                              (keyup.enter)="
+                                onFilterSubfamilia(); $event.stopPropagation()
+                              "
+                              (focusin)="filtroSubfamiliaInput.select()"
+                            />
+                          </mat-form-field>
+                        </div>
+                      </span>
+                    </div>
+                    <div fxFlex="30" fxLayout="row">
+                      <span>
+                        <button
+                          matTooltip="Abrir buscador"
+                          mat-icon-button
+                          (click)="
+                            filtroSubfamiliaOpen
+                              ? null
+                              : abrirFiltroSubfamilia()
+                          "
+                        >
+                          <mat-icon>search</mat-icon>
+                        </button>
+                      </span>
+                      <span *ngIf="filtroFamiliaOpen">
+                        <button
+                          matTooltip="Limpiar buscador"
+                          mat-icon-button
+                          (click)="abrirFiltroSubfamilia()"
+                        >
+                          <mat-icon>clear</mat-icon>
+                        </button>
+                      </span>
+                      <span>
+                        <button
+                          matTooltip="Crear nueva subfamilia"
+                          mat-icon-button
+                          (click)="addSubfamilia()"
+                        >
+                          <mat-icon>add_circle</mat-icon>
+                        </button>
+                      </span>
+                      <span>
+                        <button
+                          matTooltip="Recargar lista"
+                          mat-icon-button
+                          (click)="
+                            filtroSubfamiliaControl.setValue('');
+                            onFilterSubfamilia()
+                          "
+                        >
+                          <mat-icon>refresh</mat-icon>
+                        </button>
+                      </span>
+                    </div>
+                  </div>
+                </th>
+                <td mat-cell *matCellDef="let item" style="width: 50%">
+                  <span> {{ item?.nombre | titlecase }}</span>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="activo">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  style="text-align: center"
+                >
+                  Activo
+                </th>
+                <td mat-cell *matCellDef="let item" style="text-align: center">
+                  {{ item?.activo == true ? "Si" : "No" }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="accion">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  style="width: 5%; text-align: center"
+                ></th>
+                <td
+                  mat-cell
+                  *matCellDef="let item; let itemIndex = dataIndex"
+                  style="width: 5%; text-align: center"
+                >
+                  <button
+                    mat-icon-button
+                    [matMenuTriggerFor]="menu"
+                    (click)="$event.stopPropagation()"
+                  >
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                  <mat-menu #menu="matMenu">
+                    <button
+                      mat-menu-item
+                      (click)="onEditSubfamilia(item, itemIndex)"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      mat-menu-item
+                      (click)="onDeleteSubfamilia(item, itemIndex)"
+                      style="color: red"
+                    >
+                      Eliminar
+                    </button>
+                  </mat-menu>
+                </td>
+              </ng-container>
+
+              <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+              <ng-container matColumnDef="expandedDetail">
+                <td
+                  mat-cell
+                  *matCellDef="let element"
+                  [attr.colspan]="subfamiliaColumnsToDisplay.length"
+                  style="padding: 0px"
+                >
+                  <div
+                    class="example-element-detail-familia"
+                    [@detailExpand]="
+                      element == expandedElementSubfamilia
+                        ? 'expanded'
+                        : 'collapsed'
+                    "
+                    fxLayout="row"
+                    fxLayoutAlign="start center"
+                  >
+                    <div style="padding: 20px">
+                      {{
+                        element?.descripcion || "No posee descripción"
+                          | titlecase
+                      }}
+                    </div>
+                  </div>
+                </td>
+              </ng-container>
+
+              <tr
+                mat-header-row
+                *matHeaderRowDef="subfamiliaColumnsToDisplay"
+              ></tr>
+              <tr
+                mat-row
+                *matRowDef="let element; columns: subfamiliaColumnsToDisplay"
+                [class.example-expanded-row]="
+                  expandedElementSubfamilia?.id === element?.id
                 "
-                style="height: 100%; text-align: center"
-                (click)="seleccionarSubfamilia(item)"
+                [class.selectedRow]="
+                  expandedElementSubfamilia?.id === element?.id
+                "
+                (click)="
+                  expandedElementSubfamilia =
+                    expandedElementSubfamilia?.id === element?.id
+                      ? null
+                      : element;
+                  selectedSubfamilia = element
+                "
+              ></tr>
+              <tr
+                mat-row
+                *matRowDef="let row; columns: ['expandedDetail']"
+                class="example-detail-row"
+              ></tr>
+            </table>
+          </div>
+          <mat-paginator
+            itemsPerPageLabel="Itens por pagina"
+            [pageSizeOptions]="[15, 25, 50, 100]"
+            (page)="handleSubfamiliaPageEvent($event)"
+            [length]="selectedSubfamiliaPageInfo?.getTotalElements"
+            style="width: 100%"
+            showFirstLastButtons
+          ></mat-paginator>
+          <br />
+          <div
+            style="width: 100%"
+            fxLayout="row"
+            fxLayoutAlign="space-between center"
+          >
+            <div fxFlex="30" style="text-align: center">
+              <button
+                type="button"
+                style="width: 100px; padding-right: 10px"
+                mat-raised-button
                 matStepperNext
+                [disabled]="true"
               >
-                <h3 style="height: 35px">{{ item.nombre }} - ({{ i + 1 }})</h3>
-                <div fxLayout="row" fxLayoutAlign="center center">
-                  <div fxFlex style="text-align: center">
-                    <mat-icon
-                      style="
-                        width: 100%;
-                        height: 100%;
-                        font-size: 3em;
-                        cursor: pointer;
-                      "
-                      >{{ item.icono }}</mat-icon
-                    >
-                  </div>
-                </div>
-              </mat-card>
+                Atras
+              </button>
             </div>
-            <div fxFlex="15" style="padding-bottom: 10px">
-              <mat-card
-                appearance="outlined"
-                style="height: 100%; text-align: center"
-                fxLayout="column"
-                fxLayoutAlign="center center"
-                (click)="addSubfamilia()"
+            <div fxFlex="30" style="text-align: center">
+              <button
+                type="button"
+                style="width: 100px; padding-right: 10px"
+                mat-raised-button
+                (click)="nextSubfamilia()"
+                [disabled]="selectedSubfamilia == null"
+                [class.selectedRow]="selectedSubfamilia != null"
               >
-                <div fxFlex fxLayout="row" fxLayoutAlign="center center">
-                  <div fxFlex style="text-align: center">
-                    <mat-icon
-                      matTooltip="Agregar una subfamilia"
-                      style="
-                        width: 100%;
-                        height: 100%;
-                        font-size: 3em;
-                        cursor: pointer;
-                      "
-                      >add_circle_outline</mat-icon
-                    >
-                  </div>
-                </div>
-                <div fxFlex="20">
-                  <h3>Adicionar</h3>
-                </div>
-              </mat-card>
+                Siguiente
+              </button>
             </div>
           </div>
-        </div>
-
-        <div style="width: 100%; text-align: center">
-          <button
-            style="width: 100px; margin-right: 10px"
-            mat-raised-button
-            matStepperPrevious
-            type="button"
-          >
-            Atras
-          </button>
-          <button
-            [disabled]="selectedSubfamilia == null"
-            style="width: 100px; margin-right: 10px"
-            mat-raised-button
-            matStepperNext
-            type="button"
-          >
-            Siguiente
-          </button>
         </div>
       </form>
     </mat-step>
@@ -556,749 +692,883 @@
       [aria-labelledby]="selectedSubfamilia == null ? 'disabled_Resi' : null"
       [completed]="selectedProducto?.id != null"
     >
-      <form [formGroup]="datosGeneralesControl">
+      <form [formGroup]="datosGeneralesControl" style="height: 100%">
         <ng-template matStepLabel>Datos generales</ng-template>
-        <div fxLayout="column" style="height: 500px">
-          <div fxFlex="10">
-            <mat-form-field style="width: 100%">
-              <mat-label>Nombre del Producto</mat-label>
-              <input
-                #nombreInput
-                noSpaces
-                type="text"
-                matInput
-                formControlName="descripcion"
-                placeholder="Ej. COCA COLA LATA 355 ML"
-                autocomplete="off"
-              />
-              <mat-error
-                *ngIf="
-                  datosGeneralesControl.controls.descripcion!.hasError(
-                    'required'
-                  )
-                "
-              >
-                El nombre es
-                <strong>obligatorio</strong>
-              </mat-error>
-            </mat-form-field>
-          </div>
-          <div fxFlex="10">
-            <mat-form-field style="width: 100%">
-              <mat-label>Descripción en Factura</mat-label>
-              <input
-                type="text"
-                matInput
-                formControlName="descripcionFactura"
-                placeholder="Ej. COCA COLA LATA"
-                autocomplete="off"
-                (focusout)="onDescripcionFacturaOut()"
-              />
-            </mat-form-field>
-          </div>
+        <div
+          table
+          style="height: 100%; width: 100%"
+          fxLayout="column"
+          fxLayoutAlign="space-between start"
+        >
           <div
-            fxFlex="65"
             fxLayout="column"
-            fxLayoutGap="10px"
-            style="height: 500px; overflow-y: scroll"
+            style="
+              height: 100%;
+              width: 100%;
+              background-color: rgb(52, 52, 52);
+              padding: 10px;
+            "
           >
-            <div fxFlex="10" fxLayout="row" *ngIf="selectedFamilia?.id != 2">
-              <div fxFlex="30" matTooltip="El producto tiene precio por kilo.">
-                Es pesable?
-              </div>
-              <div fxFlex="15">
-                <mat-slide-toggle formControlName="balanza">{{
-                  datosGeneralesControl.controls.balanza.value == true
-                    ? "Si"
-                    : "No"
-                }}</mat-slide-toggle>
-              </div>
-            </div>
-            <div fxFlex="10" fxLayout="row" fxLayoutAlign="start center">
-              <div
-                fxFlex="30"
-                matTooltip="Podrás realizar control de stock del producto."
-              >
-                Movimienta stock?
-              </div>
-              <div fxFlex="15">
-                <mat-slide-toggle formControlName="stock">{{
-                  datosGeneralesControl.controls.stock.value == true
-                    ? "Si"
-                    : "No"
-                }}</mat-slide-toggle>
-              </div>
-            </div>
-            <div fxFlex="10" fxLayout="row" fxLayoutAlign="start center">
-              <div
-                fxFlex="30"
-                matTooltip="El producto genera una garantia que se puede efectivizar. Ej:. Un envase retornable de coca cola."
-              >
-                Posee garantía?
-              </div>
-              <div fxFlex="10">
-                <mat-slide-toggle formControlName="garantia">{{
-                  datosGeneralesControl.controls.garantia.value == true
-                    ? "Si"
-                    : "No"
-                }}</mat-slide-toggle>
-              </div>
-              <div
-                fxFlex="20"
-                *ngIf="datosGeneralesControl.controls.garantia.value"
-              >
-                Días de garantía:
-              </div>
-              <mat-form-field
-                fxFlex="10"
-                *ngIf="datosGeneralesControl.controls.garantia.value"
-              >
+            <div fxFlex="10">
+              <mat-form-field style="width: 100%">
+                <mat-label>Nombre del Producto</mat-label>
                 <input
-                  placeholder="Días"
-                  type="number"
+                  #nombreInput
+                  noSpaces
+                  type="text"
                   matInput
-                  formControlName="tiempoGarantia"
+                  formControlName="descripcion"
+                  placeholder="Ej. COCA COLA LATA 355 ML"
+                  autocomplete="off"
+                />
+                <mat-error
+                  *ngIf="
+                    datosGeneralesControl.controls.descripcion!.hasError(
+                      'required'
+                    )
+                  "
+                >
+                  El nombre es
+                  <strong>obligatorio</strong>
+                </mat-error>
+              </mat-form-field>
+            </div>
+            <div fxFlex="10">
+              <mat-form-field style="width: 100%">
+                <mat-label>Descripción en Factura</mat-label>
+                <input
+                  type="text"
+                  matInput
+                  formControlName="descripcionFactura"
+                  placeholder="Ej. COCA COLA LATA"
+                  autocomplete="off"
+                  (focusout)="onDescripcionFacturaOut()"
                 />
               </mat-form-field>
             </div>
-            <div fxFlex="10" fxLayout="row" fxLayoutAlign="start center">
+            <div
+              fxFlex="65"
+              fxLayout="column"
+              fxLayoutGap="10px"
+              style="height: 500px; overflow-y: scroll"
+            >
+            <div fxFlex="10" fxLayout="row">
               <div
                 fxFlex="30"
-                matTooltip="El producto tiene fecha de vencimiento."
+                matTooltip=""
               >
-                Posee vencimiento?
-              </div>
-              <div fxFlex="10">
-                <mat-slide-toggle formControlName="vencimiento">{{
-                  datosGeneralesControl.controls.vencimiento.value == true
-                    ? "Si"
-                    : "No"
-                }}</mat-slide-toggle>
-              </div>
-              <div
-                fxFlex="20"
-                *ngIf="datosGeneralesControl.controls.vencimiento.value"
-              >
-                Reportar en días:
-              </div>
-              <mat-form-field
-                fxFlex="10"
-                *ngIf="datosGeneralesControl.controls.vencimiento.value"
-              >
-                <input
-                  placeholder="Días"
-                  type="number"
-                  matInput
-                  formControlName="diasVencimiento"
-                />
-              </mat-form-field>
-            </div>
-            <div fxFlex="10" fxLayout="row" *ngIf="selectedFamilia?.id != 2">
-              <div fxFlex="30" matTooltip="El producto tiene precio por kilo.">
-                Es Envase?
+                Activo
               </div>
               <div fxFlex="15">
-                <mat-slide-toggle formControlName="isEnvase">{{
-                  datosGeneralesControl.controls.isEnvase.value == true
+                <mat-slide-toggle formControlName="activo">{{
+                  datosGeneralesControl.controls.activo.value == true
                     ? "Si"
                     : "No"
                 }}</mat-slide-toggle>
               </div>
             </div>
-            <div fxFlex="10" fxLayout="row" fxLayoutAlign="start center">
-              <div
-                fxFlex="30"
-                matTooltip="El producto tiene fecha de vencimiento."
-              >
-                Posee Envase?
+              <div fxFlex="10" fxLayout="row">
+                <div
+                  fxFlex="30"
+                  matTooltip="El producto tiene precio por kilo."
+                >
+                  Es pesable?
+                </div>
+                <div fxFlex="15">
+                  <mat-slide-toggle formControlName="balanza">{{
+                    datosGeneralesControl.controls.balanza.value == true
+                      ? "Si"
+                      : "No"
+                  }}</mat-slide-toggle>
+                </div>
               </div>
-              <div fxFlex="10">
-                <mat-slide-toggle formControlName="poseeEnvase">{{
-                  datosGeneralesControl.controls.poseeEnvase.value == true
-                    ? "Si"
-                    : "No"
-                }}</mat-slide-toggle>
+              <div fxFlex="10" fxLayout="row" fxLayoutAlign="start center">
+                <div
+                  fxFlex="30"
+                  matTooltip="Podrás realizar control de stock del producto."
+                >
+                  Movimienta stock?
+                </div>
+                <div fxFlex="15">
+                  <mat-slide-toggle formControlName="stock">{{
+                    datosGeneralesControl.controls.stock.value == true
+                      ? "Si"
+                      : "No"
+                  }}</mat-slide-toggle>
+                </div>
               </div>
-              <div
-                fxFlex="20"
-                *ngIf="datosGeneralesControl.controls.poseeEnvase.value == true"
-              >
-                Envase:
-              </div>
-              <div
-                fxFlex="30"
-                *ngIf="datosGeneralesControl.controls.poseeEnvase.value == true"
-              >
-                <mat-form-field style="width: 95%">
+              <div fxFlex="10" fxLayout="row" fxLayoutAlign="start center">
+                <div
+                  fxFlex="30"
+                  matTooltip="El producto genera una garantia que se puede efectivizar. Ej:. Un envase retornable de coca cola."
+                >
+                  Posee garantía?
+                </div>
+                <div fxFlex="10">
+                  <mat-slide-toggle formControlName="garantia">{{
+                    datosGeneralesControl.controls.garantia.value == true
+                      ? "Si"
+                      : "No"
+                  }}</mat-slide-toggle>
+                </div>
+                <div
+                  fxFlex="20"
+                  *ngIf="datosGeneralesControl.controls.garantia.value"
+                >
+                  Días de garantía:
+                </div>
+                <mat-form-field
+                  fxFlex="10"
+                  *ngIf="datosGeneralesControl.controls.garantia.value"
+                >
                   <input
-                    placeholder="Descripción"
-                    type="text"
+                    placeholder="Días"
+                    type="number"
                     matInput
-                    formControlName="envase"
+                    formControlName="tiempoGarantia"
                   />
                 </mat-form-field>
               </div>
-
-              <div
-                fxFlex="10%"
-                *ngIf="datosGeneralesControl.controls.poseeEnvase.value == true"
-              >
-                <button
-                  mat-raised-button
-                  color="primary"
-                  (click)="onSearchEnvase()"
-                  matTooltip="Buscar envase"
+              <div fxFlex="10" fxLayout="row" fxLayoutAlign="start center">
+                <div
+                  fxFlex="30"
+                  matTooltip="El producto tiene fecha de vencimiento."
                 >
-                  <mat-icon>search</mat-icon>
-                </button>
-              </div>
-            </div>
-            <div fxFlex="10" fxLayout="row" fxLayoutAlign="start center">
-              <div
-                fxFlex="30"
-                matTooltip="El producto posee cambio por parte del proveedor. Ej.: Un yougurt que esta por vencer, el proveedor puede cambiar por otro"
-              >
-                Cambiable?
-              </div>
-              <div fxFlex="15">
-                <mat-slide-toggle formControlName="cambiable">{{
-                  datosGeneralesControl.controls.cambiable.value == true
-                    ? "Si"
-                    : "No"
-                }}</mat-slide-toggle>
-              </div>
-            </div>
-            <div fxFlex="10" fxLayout="row" fxLayoutAlign="start center">
-              <div fxFlex="30">Posee alcohol?</div>
-              <div fxFlex="15">
-                <mat-slide-toggle formControlName="esAlcoholico">{{
-                  datosGeneralesControl.controls.esAlcoholico.value == true
-                    ? "Si"
-                    : "No"
-                }}</mat-slide-toggle>
-              </div>
-            </div>
-            <div fxFlex="10" fxLayout="row" fxLayoutAlign="start center">
-              <div
-                fxFlex="30"
-                matTooltip="Como se debe conservar el producto. Ej.: Una cerveza es enfriable, un helado es congelable."
-              >
-                Tipo de conservación
-              </div>
-              <div fxFlex="15">
-                <mat-form-field>
-                  <mat-select
-                    formControlName="tipoConservacion"
-                    name="tipoConservacion"
-                  >
-                    <mat-option
-                      *ngFor="let tipo of tipoConservacionList"
-                      [value]="tipo"
-                    >
-                      {{ tipo.replace("_", " ") | titlecase }}
-                    </mat-option>
-                  </mat-select>
+                  Posee vencimiento?
+                </div>
+                <div fxFlex="10">
+                  <mat-slide-toggle formControlName="vencimiento">{{
+                    datosGeneralesControl.controls.vencimiento.value == true
+                      ? "Si"
+                      : "No"
+                  }}</mat-slide-toggle>
+                </div>
+                <div
+                  fxFlex="20"
+                  *ngIf="datosGeneralesControl.controls.vencimiento.value"
+                >
+                  Reportar en días:
+                </div>
+                <mat-form-field
+                  fxFlex="10"
+                  *ngIf="datosGeneralesControl.controls.vencimiento.value"
+                >
+                  <input
+                    placeholder="Días"
+                    type="number"
+                    matInput
+                    formControlName="diasVencimiento"
+                  />
                 </mat-form-field>
               </div>
-            </div>
-            <div fxFlex="10" fxLayout="row">
-              <section fxFlex="50" fxLayout="row">
-                <label fxFlex="15">IVA:</label>
-                <mat-radio-group
-                  formControlName="iva"
-                  fxFlex="85"
-                  fxLayout="row"
+              <div fxFlex="10" fxLayout="row" *ngIf="selectedFamilia?.id != 2">
+                <div
+                  fxFlex="30"
+                  matTooltip="El producto tiene precio por kilo."
                 >
-                  <mat-radio-button
-                    class="example-margin"
-                    value="10"
-                    fxFlex="30"
-                    >10%</mat-radio-button
+                  Es Envase?
+                </div>
+                <div fxFlex="15">
+                  <mat-slide-toggle formControlName="isEnvase">{{
+                    datosGeneralesControl.controls.isEnvase.value == true
+                      ? "Si"
+                      : "No"
+                  }}</mat-slide-toggle>
+                </div>
+              </div>
+              <div fxFlex="10" fxLayout="row" fxLayoutAlign="start center">
+                <div
+                  fxFlex="30"
+                  matTooltip="El producto tiene fecha de vencimiento."
+                >
+                  Posee Envase?
+                </div>
+                <div fxFlex="10">
+                  <mat-slide-toggle formControlName="poseeEnvase">{{
+                    datosGeneralesControl.controls.poseeEnvase.value == true
+                      ? "Si"
+                      : "No"
+                  }}</mat-slide-toggle>
+                </div>
+                <div
+                  fxFlex="20"
+                  *ngIf="
+                    datosGeneralesControl.controls.poseeEnvase.value == true
+                  "
+                >
+                  Envase:
+                </div>
+                <div
+                  fxFlex="30"
+                  *ngIf="
+                    datosGeneralesControl.controls.poseeEnvase.value == true
+                  "
+                >
+                  <mat-form-field style="width: 95%">
+                    <input
+                      placeholder="Descripción"
+                      type="text"
+                      matInput
+                      formControlName="envase"
+                    />
+                  </mat-form-field>
+                </div>
+
+                <div
+                  fxFlex="10%"
+                  *ngIf="
+                    datosGeneralesControl.controls.poseeEnvase.value == true
+                  "
+                >
+                  <button
+                    mat-raised-button
+                    color="primary"
+                    (click)="onSearchEnvase()"
+                    matTooltip="Buscar envase"
                   >
-                  <mat-radio-button class="example-margin" value="5" fxFlex="30"
-                    >5%</mat-radio-button
+                    <mat-icon>search</mat-icon>
+                  </button>
+                </div>
+              </div>
+              <div fxFlex="10" fxLayout="row" fxLayoutAlign="start center">
+                <div
+                  fxFlex="30"
+                  matTooltip="El producto posee cambio por parte del proveedor. Ej.: Un yougurt que esta por vencer, el proveedor puede cambiar por otro"
+                >
+                  Cambiable?
+                </div>
+                <div fxFlex="15">
+                  <mat-slide-toggle formControlName="cambiable">{{
+                    datosGeneralesControl.controls.cambiable.value == true
+                      ? "Si"
+                      : "No"
+                  }}</mat-slide-toggle>
+                </div>
+              </div>
+              <div fxFlex="10" fxLayout="row" fxLayoutAlign="start center">
+                <div fxFlex="30">Posee alcohol?</div>
+                <div fxFlex="15">
+                  <mat-slide-toggle formControlName="esAlcoholico">{{
+                    datosGeneralesControl.controls.esAlcoholico.value == true
+                      ? "Si"
+                      : "No"
+                  }}</mat-slide-toggle>
+                </div>
+              </div>
+              <div fxFlex="10" fxLayout="row" fxLayoutAlign="start center">
+                <div
+                  fxFlex="30"
+                  matTooltip="Como se debe conservar el producto. Ej.: Una cerveza es enfriable, un helado es congelable."
+                >
+                  Tipo de conservación
+                </div>
+                <div fxFlex="15">
+                  <mat-form-field>
+                    <mat-select
+                      formControlName="tipoConservacion"
+                      name="tipoConservacion"
+                    >
+                      <mat-option
+                        *ngFor="let tipo of tipoConservacionList"
+                        [value]="tipo"
+                      >
+                        {{ tipo.replace("_", " ") | titlecase }}
+                      </mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              </div>
+              <div fxFlex="10" fxLayout="row">
+                <section fxFlex="50" fxLayout="row">
+                  <label fxFlex="15">IVA:</label>
+                  <mat-radio-group
+                    formControlName="iva"
+                    fxFlex="85"
+                    fxLayout="row"
                   >
-                  <mat-radio-button class="example-margin" value="0" fxFlex="30"
-                    >Exento</mat-radio-button
-                  >
-                </mat-radio-group>
-              </section>
+                    <mat-radio-button
+                      class="example-margin"
+                      value="10"
+                      fxFlex="30"
+                      >10%</mat-radio-button
+                    >
+                    <mat-radio-button
+                      class="example-margin"
+                      value="5"
+                      fxFlex="30"
+                      >5%</mat-radio-button
+                    >
+                    <mat-radio-button
+                      class="example-margin"
+                      value="0"
+                      fxFlex="30"
+                      >Exento</mat-radio-button
+                    >
+                  </mat-radio-group>
+                </section>
+              </div>
             </div>
           </div>
-        </div>
-        <div style="width: 100%; text-align: center">
-          <button
-            style="width: 100px; margin-right: 10px"
-            mat-raised-button
-            matStepperPrevious
-            type="button"
+          <br />
+          <div
+            style="width: 100%"
+            fxLayout="row"
+            fxLayoutAlign="space-between center"
           >
-            Atras
-          </button>
-          <button
-            style="width: 100px; margin-right: 10px"
-            mat-raised-button
-            matStepperNext
-            type="button"
-            [disabled]="
-              datosGeneralesControl.controls.descripcion.value == null ||
-              datosGeneralesControl.controls.descripcion.value == ''
-            "
-            (click)="onProductoSave()"
-          >
-            Siguiente
-          </button>
+            <div fxFlex="30" style="text-align: center">
+              <button
+                style="width: 100px; margin-right: 10px"
+                mat-raised-button
+                matStepperPrevious
+                type="button"
+              >
+                Atras
+              </button>
+            </div>
+            <div fxFlex="30" style="text-align: center">
+              <button
+                style="width: 100px; margin-right: 10px"
+                mat-raised-button
+                matStepperNext
+                type="button"
+                [disabled]="
+                  datosGeneralesControl.controls.descripcion.value == null ||
+                  datosGeneralesControl.controls.descripcion.value == ''
+                "
+                [class.selectedRow]="datosGeneralesControl.valid"
+                (click)="onProductoSave()"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
         </div>
       </form>
     </mat-step>
     <mat-step
       [stepControl]="presentacionControl"
       [editable]="true"
-      [completed]="selectedProducto?.id != null"
+      [completed]="selectedProducto?.presentaciones?.length > 0"
     >
-      <form [formGroup]="presentacionControl">
+      <form [formGroup]="presentacionControl" style="height: 100%">
         <ng-template matStepLabel>Presentaciones</ng-template>
+
         <div
-          fxLayout="row"
+          table
+          style="height: 100%; background-color: rgb(70, 70, 70)"
+          fxLayout="column"
           fxLayoutAlign="space-between start"
-          style="width: 100%; height: 100%"
         >
           <div
-            fxFlex="90"
-            fxLayout="row"
-            style="width: 100%"
-            fxLayoutGap="10px"
+            style="
+              width: 100%;
+              height: 100%;
+              overflow-y: auto;
+              background-color: rgb(52, 52, 52);
+              padding: 10px;
+            "
           >
-            <!-- <mat-form-field style="width: 50%">
-              <mat-label>Buscar presentaciones</mat-label>
-              <input
-                #buscarPresentacionInput
-                type="text"
-                matInput
-                formControlName="buscarPresentacion"
-                placeholder="Buscar"
-                autocomplete="off"
-              />
-            </mat-form-field> -->
-            <div fxFlex="25" fxLayout="column">
-              <div class="title" fxFlex="50">Costo medio</div>
-              <div class="item" fxFlex="50">
-                {{ selectedProducto?.costo?.costoMedio | number : "1.0-2" }}
-              </div>
-            </div>
-            <div fxFlex="25" fxLayout="column">
-              <div class="title" fxFlex="50">Última compra</div>
-              <div class="item" fxFlex="50">
-                {{
-                  selectedProducto?.costo?.ultimoPrecioCompra | number : "1.0-2"
-                }}
-              </div>
-            </div>
-            <div fxFlex="25" fxLayout="column">
-              <div class="title" fxFlex="50">Modif. en</div>
-              <div class="item" fxFlex="50">
-                {{ selectedProducto?.costo?.creadoEn | date : "short" }}
-              </div>
-            </div>
-          </div>
-          <div fxFlex="10">
-            <button
-              mat-raised-button
-              color="primary"
-              (click)="onAdicionarPresentacion()"
-              type="button"
+            <div
+              fxLayout="row"
+              fxLayoutAlign="space-between center"
+              style="width: 100%; height: 50px; padding: 20px"
             >
-              Adicionar
-            </button>
-          </div>
-        </div>
-        <div fxLayout="column" style="height: 100%; overflow-y: scroll">
-          <div *ngIf="isPresentacionLoading">
-            <mat-spinner></mat-spinner>
-          </div>
-          <table
-            fxFlex="90"
-            mat-table
-            #presentacionTable
-            [dataSource]="presentacionesDataSource"
-            multiTemplateDataRows
-            class="mat-elevation-z8"
-            *ngIf="!isPresentacionLoading"
-          >
-            <ng-container matColumnDef="id">
-              <th mat-header-cell *matHeaderCellDef>Id</th>
-              <td mat-cell *matCellDef="let element">{{ element.id }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="descripcion">
-              <th mat-header-cell *matHeaderCellDef>Descripción</th>
-              <td mat-cell *matCellDef="let element">
-                {{ element?.descripcion | uppercase }}
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="cantidad">
-              <th mat-header-cell *matHeaderCellDef style="text-align: center">
-                Cantidad
-              </th>
-              <td mat-cell *matCellDef="let element" style="text-align: center">
-                {{ element.cantidad }}
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="codigoPrincipal">
-              <th mat-header-cell *matHeaderCellDef style="text-align: center">
-                Código principal
-              </th>
-              <td mat-cell *matCellDef="let element" style="text-align: center">
-                {{ element?.codigoPrincipal?.codigo }}
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="precioPrincipal">
-              <th mat-header-cell *matHeaderCellDef style="text-align: center">
-                Precio principal
-              </th>
-              <td mat-cell *matCellDef="let element" style="text-align: center">
-                {{ element?.precioPrincipal?.precio | number : "1.0-0" }}
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="tipoPresentacion">
-              <th mat-header-cell *matHeaderCellDef style="text-align: center">
-                Tipo
-              </th>
-              <td mat-cell *matCellDef="let element" style="text-align: center">
-                {{ element?.tipoPresentacion?.descripcion | uppercase }}
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="principal">
-              <th mat-header-cell *matHeaderCellDef style="text-align: center">
-                Principal
-              </th>
-              <td mat-cell *matCellDef="let element" style="text-align: center">
-                {{ element?.principal ? "Si" : "No" }}
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="activo">
-              <th mat-header-cell *matHeaderCellDef style="text-align: center">
-                Activo
-              </th>
-              <td mat-cell *matCellDef="let element" style="text-align: center">
-                {{ element?.activo ? "Si" : "No" }}
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="accion">
-              <th mat-header-cell *matHeaderCellDef style="width: 5%"></th>
-              <td
-                mat-cell
-                *matCellDef="let element; let i = dataIndex"
-                style="width: 5%; text-align: center"
-                (click)="
-                  selectedPresentacion == expandedPresentacion
-                    ? $event.stopPropagation()
-                    : null
-                "
+              <div
+                fxFlex="90"
+                fxLayout="row"
+                style="width: 100%"
+                fxLayoutGap="10px"
               >
-                <button mat-icon-button [matMenuTriggerFor]="menu">
-                  <mat-icon>more_vert</mat-icon>
+                <div fxFlex="25" fxLayout="column">
+                  <div class="title" fxFlex="50">Costo medio</div>
+                  <div class="item" fxFlex="50">
+                    {{ selectedProducto?.costo?.costoMedio | number : "1.0-2" }}
+                  </div>
+                </div>
+                <div fxFlex="25" fxLayout="column">
+                  <div class="title" fxFlex="50">Última compra</div>
+                  <div class="item" fxFlex="50">
+                    {{
+                      selectedProducto?.costo?.ultimoPrecioCompra
+                        | number : "1.0-2"
+                    }}
+                  </div>
+                </div>
+                <div fxFlex="25" fxLayout="column">
+                  <div class="title" fxFlex="50">Modif. en</div>
+                  <div class="item" fxFlex="50">
+                    {{ selectedProducto?.costo?.creadoEn | date : "short" }}
+                  </div>
+                </div>
+              </div>
+              <div fxFlex="10">
+                <button
+                  mat-raised-button
+                  color="primary"
+                  (click)="onAdicionarPresentacion()"
+                  type="button"
+                  style="margin-bottom: 10px"
+                >
+                  Adicionar
                 </button>
-                <mat-menu #menu="matMenu" xPosition="before">
-                  <!-- <button mat-menu-item (click)="onActualizar(element, i)">
+              </div>
+            </div>
+            <div *ngIf="isPresentacionLoading">
+              <mat-spinner></mat-spinner>
+            </div>
+            <table
+              mat-table
+              #presentacionTable
+              [dataSource]="presentacionesDataSource"
+              multiTemplateDataRows
+              class="mat-elevation-z8"
+              *ngIf="!isPresentacionLoading"
+            >
+              <ng-container matColumnDef="id">
+                <th mat-header-cell *matHeaderCellDef>Id</th>
+                <td mat-cell *matCellDef="let element">{{ element.id }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="descripcion">
+                <th mat-header-cell *matHeaderCellDef>Descripción</th>
+                <td mat-cell *matCellDef="let element">
+                  {{ element?.descripcion | uppercase }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="cantidad">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  style="text-align: center"
+                >
+                  Cantidad
+                </th>
+                <td
+                  mat-cell
+                  *matCellDef="let element"
+                  style="text-align: center"
+                >
+                  {{ element.cantidad }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="codigoPrincipal">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  style="text-align: center"
+                >
+                  Código principal
+                </th>
+                <td
+                  mat-cell
+                  *matCellDef="let element"
+                  style="text-align: center"
+                >
+                  {{ element?.codigoPrincipal?.codigo }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="precioPrincipal">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  style="text-align: center"
+                >
+                  Precio principal
+                </th>
+                <td
+                  mat-cell
+                  *matCellDef="let element"
+                  style="text-align: center"
+                >
+                  {{ element?.precioPrincipal?.precio | number : "1.0-0" }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="tipoPresentacion">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  style="text-align: center"
+                >
+                  Tipo
+                </th>
+                <td
+                  mat-cell
+                  *matCellDef="let element"
+                  style="text-align: center"
+                >
+                  {{ element?.tipoPresentacion?.descripcion | uppercase }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="principal">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  style="text-align: center"
+                >
+                  Principal
+                </th>
+                <td
+                  mat-cell
+                  *matCellDef="let element"
+                  style="text-align: center"
+                >
+                  {{ element?.principal ? "Si" : "No" }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="activo">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  style="text-align: center"
+                >
+                  Activo
+                </th>
+                <td
+                  mat-cell
+                  *matCellDef="let element"
+                  style="text-align: center"
+                >
+                  {{ element?.activo ? "Si" : "No" }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="accion">
+                <th mat-header-cell *matHeaderCellDef style="width: 5%"></th>
+                <td
+                  mat-cell
+                  *matCellDef="let element; let i = dataIndex"
+                  style="width: 5%; text-align: center"
+                  (click)="
+                    selectedPresentacion == expandedPresentacion
+                      ? $event.stopPropagation()
+                      : null
+                  "
+                >
+                  <button mat-icon-button [matMenuTriggerFor]="menu">
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                  <mat-menu #menu="matMenu" xPosition="before">
+                    <!-- <button mat-menu-item (click)="onActualizar(element, i)">
                     <mat-icon style="color: red">clear</mat-icon>
                     <span>Eliminar</span>
                   </button> -->
-                  <button
-                    mat-menu-item
-                    (click)="onPresentacionRowClick(element)"
-                  >
-                    <mat-icon style="color: green">edit</mat-icon>
-                    <span>Editar</span>
-                  </button>
-                  <button mat-menu-item (click)="onDeletePresentacion(element)">
-                    <mat-icon style="color: red">clear</mat-icon>
-                    <span>Eliminar</span>
-                  </button>
-                  <button
-                    mat-menu-item
-                    (click)="selectedCodigo = null; onAddCodigo(null, i)"
-                  >
-                    <mat-icon>add_circle_outline</mat-icon>
-                    <span>Código</span>
-                  </button>
-                  <button mat-menu-item (click)="onAddPrecio(null, i)">
-                    <mat-icon>add_circle_outline</mat-icon>
-                    <span>Precio</span>
-                  </button>
-                  <button
-                    mat-menu-item
-                    (click)="onImprimirCodigoDeBarra(element?.codigoPrincipal)"
-                  >
-                    <mat-icon> barcode_scanner</mat-icon>
-                    <span>Imprimir</span>
-                  </button>
-                </mat-menu>
-              </td>
-            </ng-container>
+                    <button
+                      mat-menu-item
+                      (click)="onPresentacionRowClick(element)"
+                    >
+                      <mat-icon style="color: green">edit</mat-icon>
+                      <span>Editar</span>
+                    </button>
+                    <button
+                      mat-menu-item
+                      (click)="onDeletePresentacion(element)"
+                    >
+                      <mat-icon style="color: red">clear</mat-icon>
+                      <span>Eliminar</span>
+                    </button>
+                    <button
+                      mat-menu-item
+                      (click)="selectedCodigo = null; onAddCodigo(null, i)"
+                    >
+                      <mat-icon>add_circle_outline</mat-icon>
+                      <span>Código</span>
+                    </button>
+                    <button mat-menu-item (click)="onAddPrecio(null, i)">
+                      <mat-icon>add_circle_outline</mat-icon>
+                      <span>Precio</span>
+                    </button>
+                    <button
+                      mat-menu-item
+                      (click)="
+                        onImprimirCodigoDeBarra(element?.codigoPrincipal)
+                      "
+                    >
+                      <mat-icon> barcode_scanner</mat-icon>
+                      <span>Imprimir</span>
+                    </button>
+                  </mat-menu>
+                </td>
+              </ng-container>
 
-            <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
-            <ng-container matColumnDef="expandedDetail">
-              <td
-                mat-cell
-                *matCellDef="let element; let presentacionIndex = dataIndex"
-                [attr.colspan]="presentacionColumnsToDisplay.length"
-              >
-                <div
-                  class="example-element-detail"
-                  [@detailExpand]="
-                    element == expandedPresentacion ? 'expanded' : 'collapsed'
-                  "
+              <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
+              <ng-container matColumnDef="expandedDetail">
+                <td
+                  mat-cell
+                  *matCellDef="let element; let presentacionIndex = dataIndex"
+                  [attr.colspan]="presentacionColumnsToDisplay.length"
+                  style="padding: 0px"
                 >
                   <div
-                    fxLayout="row"
-                    style="width: 100%; padding-bottom: 20px"
-                    fxLayoutGap="20px"
+                    class="example-element-detail"
+                    [@detailExpand]="
+                      element == expandedPresentacion ? 'expanded' : 'collapsed'
+                    "
                   >
-                    <mat-card appearance="outlined" fxFlex="40%">
-                      <div style="text-align: center">
-                        <h4>Códigos</h4>
-                      </div>
-                      <table
-                        mat-table
-                        #codigoTable
-                        [dataSource]="codigoDataSource"
-                        class="mat-elevation-z8"
-                        style="background-color: rgb(43, 43, 43)"
-                      >
-                        <!--- Note that these columns can be defined in any order.
+                    <div
+                      fxLayout="row"
+                      style="width: 100%; padding: 10px; padding-top: 20px"
+                      fxLayoutGap="20px"
+                      fxLayoutAlign="start start"
+                    >
+                      <mat-card fxFlex="40%">
+                        <div style="text-align: center">
+                          <h4 style="padding: 5px; margin-bottom: 0px">
+                            Códigos
+                          </h4>
+                        </div>
+                        <table
+                          mat-table
+                          #codigoTable
+                          [dataSource]="codigoDataSource"
+                          class="mat-elevation-z8"
+                          style="background-color: rgb(43, 43, 43)"
+                        >
+                          <!--- Note that these columns can be defined in any order.
                             The actual rendered columns are set as a property on the row definition" -->
 
-                        <!-- Position Column -->
-                        <ng-container matColumnDef="id">
-                          <th mat-header-cell *matHeaderCellDef>Id</th>
-                          <td mat-cell *matCellDef="let element">
-                            {{ element.id }}
-                          </td>
-                        </ng-container>
+                          <!-- Position Column -->
+                          <ng-container matColumnDef="id">
+                            <th mat-header-cell *matHeaderCellDef>Id</th>
+                            <td mat-cell *matCellDef="let element">
+                              {{ element.id }}
+                            </td>
+                          </ng-container>
 
-                        <!-- Name Column -->
-                        <ng-container matColumnDef="codigo">
-                          <th mat-header-cell *matHeaderCellDef>Código</th>
-                          <td mat-cell *matCellDef="let element">
-                            {{ element?.codigo }}
-                          </td>
-                        </ng-container>
+                          <!-- Name Column -->
+                          <ng-container matColumnDef="codigo">
+                            <th mat-header-cell *matHeaderCellDef>Código</th>
+                            <td
+                              mat-cell
+                              *matCellDef="let element"
+                              copiarAClipboard
+                            >
+                              {{ element?.codigo }}
+                            </td>
+                          </ng-container>
 
-                        <!-- Weight Column -->
-                        <ng-container matColumnDef="principal">
-                          <th mat-header-cell *matHeaderCellDef>Principal</th>
-                          <td mat-cell *matCellDef="let element">
-                            {{ element?.principal == true ? "Si" : "No" }}
-                          </td>
-                        </ng-container>
+                          <!-- Weight Column -->
+                          <ng-container matColumnDef="principal">
+                            <th mat-header-cell *matHeaderCellDef>Principal</th>
+                            <td mat-cell *matCellDef="let element">
+                              {{ element?.principal == true ? "Si" : "No" }}
+                            </td>
+                          </ng-container>
 
-                        <ng-container matColumnDef="activo">
-                          <th mat-header-cell *matHeaderCellDef>Activo</th>
-                          <td mat-cell *matCellDef="let element">
-                            {{ element?.activo == true ? "Si" : "No" }}
-                          </td>
-                        </ng-container>
+                          <ng-container matColumnDef="activo">
+                            <th mat-header-cell *matHeaderCellDef>Activo</th>
+                            <td mat-cell *matCellDef="let element">
+                              {{ element?.activo == true ? "Si" : "No" }}
+                            </td>
+                          </ng-container>
 
-                        <ng-container matColumnDef="eliminar">
-                          <th
-                            mat-header-cell
-                            *matHeaderCellDef
-                            style="width: 5%"
-                          ></th>
-                          <td
-                            mat-cell
-                            *matCellDef="let element; let codigoIndex = index"
-                            style="width: 5%"
+                          <ng-container matColumnDef="eliminar">
+                            <th
+                              mat-header-cell
+                              *matHeaderCellDef
+                              style="width: 5%"
+                            ></th>
+                            <td
+                              mat-cell
+                              *matCellDef="let element; let codigoIndex = index"
+                              style="width: 5%"
+                            >
+                              <!-- <mat-icon
+                                style="color: white; cursor: pointer"
+                                (click)="
+                                  onImprimirCodigoDeBarra(element);
+                                  $event.stopPropagation()
+                                "
+                                >barcode_scanner</mat-icon
+                              > -->
+                              <mat-icon
+                                style="color: red; cursor: pointer"
+                                (click)="
+                                  onDeleteCodigo(element, codigoIndex);
+                                  $event.stopPropagation()
+                                "
+                                >clear</mat-icon
+                              >
+                            </td>
+                          </ng-container>
+
+                          <tr
+                            mat-header-row
+                            *matHeaderRowDef="codigoColumnsToDisplay"
+                          ></tr>
+                          <tr
+                            mat-row
+                            *matRowDef="
+                              let row;
+                              columns: codigoColumnsToDisplay;
+                              let codigoIndex = index
+                            "
+                            (click)="
+                              onEditCodigo(row, codigoIndex, presentacionIndex)
+                            "
+                          ></tr>
+                        </table>
+                        <br />
+                        <div>
+                          <button
+                            mat-mini-fab
+                            color="primary"
+                            aria-label="adicionar codigo"
+                            (click)="
+                              selectedCodigo = null;
+                              onAddCodigo(null, presentacionIndex)
+                            "
+                            type="button"
                           >
-                            <mat-icon
-                              style="color: white; cursor: pointer"
-                              (click)="
-                                onImprimirCodigoDeBarra(element);
-                                $event.stopPropagation()
-                              "
-                              >barcode_scanner</mat-icon
-                            >
-                            <mat-icon
-                              style="color: red; cursor: pointer"
-                              (click)="
-                                onDeleteCodigo(element, codigoIndex);
-                                $event.stopPropagation()
-                              "
-                              >clear</mat-icon
-                            >
-                          </td>
-                        </ng-container>
-
-                        <tr
-                          mat-header-row
-                          *matHeaderRowDef="codigoColumnsToDisplay"
-                        ></tr>
-                        <tr
-                          mat-row
-                          *matRowDef="
-                            let row;
-                            columns: codigoColumnsToDisplay;
-                            let codigoIndex = index
-                          "
-                          (click)="
-                            onEditCodigo(row, codigoIndex, presentacionIndex)
-                          "
-                        ></tr>
-                      </table>
-                      <br />
-                      <div>
-                        <button
-                          mat-fab
-                          color="primary"
-                          aria-label="adicionar codigo"
-                          (click)="
-                            selectedCodigo = null;
-                            onAddCodigo(null, presentacionIndex)
-                          "
-                          type="button"
+                            <mat-icon>add</mat-icon>
+                          </button>
+                        </div>
+                        <br />
+                      </mat-card>
+                      <mat-card appearance="outlined" fxFlex="40%">
+                        <div style="text-align: center">
+                          <h4 style="padding: 5px; margin-bottom: 0px">
+                            Precios
+                          </h4>
+                        </div>
+                        <table
+                          mat-table
+                          [dataSource]="precioDataSource"
+                          class="mat-elevation-z8"
+                          style="background-color: rgb(43, 43, 43)"
                         >
-                          <mat-icon>add</mat-icon>
-                        </button>
-                      </div>
-                    </mat-card>
-                    <mat-card appearance="outlined" fxFlex="40%">
-                      <div style="text-align: center">
-                        <h4>Precios</h4>
-                      </div>
-                      <table
-                        mat-table
-                        [dataSource]="precioDataSource"
-                        class="mat-elevation-z8"
-                        style="background-color: rgb(43, 43, 43)"
-                      >
-                        <!--- Note that these columns can be defined in any order.
+                          <!--- Note that these columns can be defined in any order.
                             The actual rendered columns are set as a property on the row definition" -->
 
-                        <!-- Position Column -->
-                        <ng-container matColumnDef="id">
-                          <th mat-header-cell *matHeaderCellDef>Id</th>
-                          <td mat-cell *matCellDef="let element">
-                            {{ element.id }}
-                          </td>
-                        </ng-container>
+                          <!-- Position Column -->
+                          <ng-container matColumnDef="id">
+                            <th mat-header-cell *matHeaderCellDef>Id</th>
+                            <td mat-cell *matCellDef="let element">
+                              {{ element.id }}
+                            </td>
+                          </ng-container>
 
-                        <!-- Name Column -->
-                        <ng-container matColumnDef="tipoPrecio">
-                          <th mat-header-cell *matHeaderCellDef>Tipo Precio</th>
-                          <td mat-cell *matCellDef="let element">
-                            {{ element?.tipoPrecio?.descripcion | uppercase }}
-                          </td>
-                        </ng-container>
+                          <!-- Name Column -->
+                          <ng-container matColumnDef="tipoPrecio">
+                            <th mat-header-cell *matHeaderCellDef>
+                              Tipo Precio
+                            </th>
+                            <td mat-cell *matCellDef="let element">
+                              {{ element?.tipoPrecio?.descripcion | uppercase }}
+                            </td>
+                          </ng-container>
 
-                        <!-- Weight Column -->
-                        <ng-container matColumnDef="precio">
-                          <th mat-header-cell *matHeaderCellDef>Precio</th>
-                          <td mat-cell *matCellDef="let element">
-                            {{ element.precio }}
-                          </td>
-                        </ng-container>
+                          <!-- Weight Column -->
+                          <ng-container matColumnDef="precio">
+                            <th mat-header-cell *matHeaderCellDef>Precio</th>
+                            <td mat-cell *matCellDef="let element">
+                              {{ element.precio }}
+                            </td>
+                          </ng-container>
 
-                        <ng-container matColumnDef="principal">
-                          <th mat-header-cell *matHeaderCellDef>Principal</th>
-                          <td mat-cell *matCellDef="let element">
-                            {{ element?.principal == true ? "Si" : "No" }}
-                          </td>
-                        </ng-container>
+                          <ng-container matColumnDef="principal">
+                            <th mat-header-cell *matHeaderCellDef>Principal</th>
+                            <td mat-cell *matCellDef="let element">
+                              {{ element?.principal == true ? "Si" : "No" }}
+                            </td>
+                          </ng-container>
 
-                        <ng-container matColumnDef="eliminar">
-                          <th mat-header-cell *matHeaderCellDef></th>
-                          <td
-                            mat-cell
-                            *matCellDef="let element; let precioIndex = index"
-                          >
-                            <mat-icon
-                              style="color: red; cursor: pointer"
-                              (click)="
-                                onDeletePrecio(element, precioIndex);
-                                $event.stopPropagation()
-                              "
-                              >clear</mat-icon
+                          <ng-container matColumnDef="eliminar">
+                            <th mat-header-cell *matHeaderCellDef></th>
+                            <td
+                              mat-cell
+                              *matCellDef="let element; let precioIndex = index"
                             >
-                          </td>
-                        </ng-container>
+                              <mat-icon
+                                style="color: red; cursor: pointer"
+                                (click)="
+                                  onDeletePrecio(element, precioIndex);
+                                  $event.stopPropagation()
+                                "
+                                >clear</mat-icon
+                              >
+                            </td>
+                          </ng-container>
 
-                        <tr
-                          mat-header-row
-                          *matHeaderRowDef="precioColumnsToDisplay"
-                        ></tr>
-                        <tr
-                          mat-row
-                          *matRowDef="
-                            let row;
-                            columns: precioColumnsToDisplay;
-                            let precioIndex = index
+                          <tr
+                            mat-header-row
+                            *matHeaderRowDef="precioColumnsToDisplay"
+                          ></tr>
+                          <tr
+                            mat-row
+                            *matRowDef="
+                              let row;
+                              columns: precioColumnsToDisplay;
+                              let precioIndex = index
+                            "
+                            (click)="
+                              onEditPrecio(row, precioIndex, presentacionIndex)
+                            "
+                          ></tr>
+                        </table>
+                        <br />
+                        <div>
+                          <button
+                            mat-mini-fab
+                            color="primary"
+                            aria-label="adicionar codigo"
+                            (click)="
+                              selectedPrecio = null;
+                              onAddPrecio(null, presentacionIndex)
+                            "
+                            type="button"
+                          >
+                            <mat-icon>add</mat-icon>
+                          </button>
+                        </div>
+                        <br />
+                      </mat-card>
+                      <mat-card appearance="outlined">
+                        <div style="text-align: center">
+                          <h4>Imagen</h4>
+                        </div>
+                        <div
+                          style="
+                            width: 200px;
+                            height: 200px;
+                            background-color: rgb(43, 43, 43);
+                            display: none;
                           "
-                          (click)="
-                            onEditPrecio(row, precioIndex, presentacionIndex)
-                          "
-                        ></tr>
-                      </table>
-                      <br />
-                      <div>
-                        <button
-                          mat-fab
-                          color="primary"
-                          aria-label="adicionar codigo"
-                          (click)="
-                            selectedPrecio = null;
-                            onAddPrecio(null, presentacionIndex)
-                          "
-                          type="button"
                         >
-                          <mat-icon>add</mat-icon>
-                        </button>
-                      </div>
-                    </mat-card>
-                    <mat-card appearance="outlined">
-                      <div style="text-align: center">
-                        <h4>Imagen</h4>
-                      </div>
-                      <div
-                        style="
-                          width: 200px;
-                          height: 200px;
-                          background-color: rgb(43, 43, 43);
-                          display: none;
-                        "
-                      >
-                        <input
-                          #fileInput
-                          type="file"
-                          accept="image/*"
-                          (change)="onFileInput($event)"
-                        />
-                      </div>
-                      <div>
-                        <img
-                          [src]="
-                            element?.imagenPrincipal != ''
-                              ? element?.imagenPrincipal
-                              : 'assets/no-image.png'
-                          "
-                          [alt]="element?.imagenPrincipal"
-                          style="width: 200px; height: 200px; object-fit: cover"
-                          (click)="
-                            element?.imagenPrincipal == null
-                              ? fileInput.click()
-                              : onImageClick(element)
-                          "
-                        />
-                      </div>
-                      <br />
-                      <!-- <div>
+                          <input
+                            #fileInput
+                            type="file"
+                            accept="image/*"
+                            (change)="onFileInput($event)"
+                          />
+                        </div>
+                        <div>
+                          <img
+                            [src]="
+                              element?.imagenPrincipal != ''
+                                ? element?.imagenPrincipal
+                                : 'assets/no-image.png'
+                            "
+                            [alt]="element?.imagenPrincipal"
+                            style="
+                              width: 200px;
+                              height: 200px;
+                              object-fit: cover;
+                            "
+                            (click)="
+                              element?.imagenPrincipal == null
+                                ? fileInput.click()
+                                : onImageClick(element)
+                            "
+                          />
+                        </div>
+                        <br />
+                        <!-- <div>
                         <button
                           type="button"
                           mat-raised-button
@@ -1316,54 +1586,65 @@
                           }}
                         </button>
                       </div> -->
-                    </mat-card>
+                      </mat-card>
+                    </div>
                   </div>
-                </div>
-              </td>
-            </ng-container>
+                </td>
+              </ng-container>
 
-            <tr
-              mat-header-row
-              *matHeaderRowDef="presentacionColumnsToDisplay"
-            ></tr>
-            <tr
-              mat-row
-              *matRowDef="let element; columns: presentacionColumnsToDisplay"
-              class="example-element-row"
-              [class.example-expanded-row]="expandedPresentacion === element"
-              [class.selectedRow]="expandedPresentacion === element"
-              (click)="
-                expandedPresentacion =
-                  expandedPresentacion === element ? null : element;
-                onPresentacionSelect(expandedPresentacion);
-                codigoDataSource.data = element.codigos;
-                precioDataSource.data = element.precios
-              "
-            ></tr>
-            <tr
-              mat-row
-              *matRowDef="let row; columns: ['expandedDetail']"
-              class="example-detail-row"
-            ></tr>
-          </table>
-        </div>
-        <div style="width: 100%; text-align: center">
-          <button
-            style="width: 100px; margin-right: 10px"
-            mat-raised-button
-            matStepperPrevious
-            type="button"
+              <tr
+                mat-header-row
+                *matHeaderRowDef="presentacionColumnsToDisplay"
+              ></tr>
+              <tr
+                mat-row
+                *matRowDef="let element; columns: presentacionColumnsToDisplay"
+                class="example-element-row"
+                [class.example-expanded-row]="expandedPresentacion === element"
+                [class.selectedRow]="expandedPresentacion === element"
+                (click)="
+                  expandedPresentacion =
+                    expandedPresentacion === element ? null : element;
+                  onPresentacionSelect(expandedPresentacion);
+                  codigoDataSource.data = element.codigos;
+                  precioDataSource.data = element.precios
+                "
+              ></tr>
+              <tr
+                mat-row
+                *matRowDef="let row; columns: ['expandedDetail']"
+                class="example-detail-row"
+              ></tr>
+            </table>
+          </div>
+          <br />
+          <div
+            fxFlex
+            style="width: 100%"
+            fxLayout="row"
+            fxLayoutAlign="space-between center"
           >
-            Atras
-          </button>
-          <button
-            style="width: 100px; margin-right: 10px"
-            mat-raised-button
-            type="button"
-            (click)="onFinalizar()"
-          >
-            Nuevo producto
-          </button>
+            <div fxFlex="30" style="text-align: center">
+              <button
+                style="width: 100px; margin-right: 10px"
+                mat-raised-button
+                matStepperPrevious
+                type="button"
+              >
+                Atras
+              </button>
+            </div>
+            <div fxFlex="30" style="text-align: center">
+              <button
+                style="width: 150px; margin-right: 10px"
+                mat-raised-button
+                type="button"
+                (click)="onFinalizar()"
+              >
+                Nuevo Producto
+              </button>
+            </div>
+          </div>
         </div>
       </form>
     </mat-step>

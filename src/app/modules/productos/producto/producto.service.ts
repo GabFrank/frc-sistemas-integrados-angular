@@ -40,6 +40,8 @@ import { ReportesComponent } from "../../reportes/reportes/reportes.component";
 import { ImprimirCodigoBarraGQL } from "./graphql/imprimirCodigoBarra";
 import { Codigo } from "../codigo/codigo.model";
 import { ProductoStockGQL } from "./graphql/productoStock";
+import { PageInfo } from "../../../app.component";
+import { SearchProductoWithFiltersGQL } from "./graphql/searchWithFilters";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -72,7 +74,8 @@ export class ProductoService {
     private reporteService: ReporteService,
     private tabService: TabService,
     private imprimirCodigo: ImprimirCodigoBarraGQL,
-    private productoPorSucursalStock: ProductoStockGQL
+    private productoPorSucursalStock: ProductoStockGQL,
+    private searchWithFilters: SearchProductoWithFiltersGQL
   ) {
     this.productosList = [];
     // getAllProductos.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
@@ -82,6 +85,10 @@ export class ProductoService {
     //     console.log(this.productosList)
     //   }
     // })
+  }
+
+  onSearchWithFilters(texto: string, codigo: string, activo, stock, balanza, subfamilia, vencimiento, page, size): Observable<PageInfo<Producto>>{
+    return this.genericService.onCustomQuery(this.searchWithFilters, {texto, codigo, activo, stock, balanza, subfamilia, vencimiento, page, size});
   }
 
   onGetStockPorProductoAndSucursal(proId, sucId){

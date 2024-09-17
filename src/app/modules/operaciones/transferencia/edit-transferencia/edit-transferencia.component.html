@@ -366,18 +366,30 @@
               <input
                 matInput
                 #vencimientoInput
+                [formControl]="vencimientoControl"
+                (input)="onDateInput($event)"
+                placeholder="dd/mm/yy"
+                maxlength="8"
+                (keyup.enter)="onVencimientoEnter(vencimientoControl.value)"
+              />
+
+              <!-- <mat-label>Vencimiento</mat-label>
+              <input
+                matInput
+                #vencimientoInput
                 [matDatepicker]="picker"
                 [formControl]="vencimientoControl"
-                (keyup.enter)="onVencimientoEnter()"
+                (keyup.enter)="onVencimientoEnter(vencimientoControl.value)"
               />
               <mat-datepicker-toggle
                 matSuffix
                 [for]="picker"
+                [tabIndex]="-1"
               ></mat-datepicker-toggle>
               <mat-datepicker
                 #picker
                 (closed)="onDatepickerClosed()"
-              ></mat-datepicker>
+              ></mat-datepicker> -->
             </mat-form-field>
           </div>
           <div fxFlex style="width: 100%; text-align: center">
@@ -739,7 +751,8 @@
               </span>
             </div>
           </div>
-        </th>        <td mat-cell *matCellDef="let item" style="width: 30%">
+        </th>
+        <td mat-cell *matCellDef="let item" style="width: 30%">
           {{ item?.presentacionPreTransferencia?.producto?.id }} -
           {{
             item?.presentacionPreTransferencia?.producto?.descripcion
@@ -1212,7 +1225,8 @@
               </span>
             </div>
           </div>
-        </th>        <td mat-cell *matCellDef="let item" style="width: 30%">
+        </th>
+        <td mat-cell *matCellDef="let item" style="width: 30%">
           {{ item?.presentacionPreTransferencia?.producto?.id }} -
           {{
             item?.presentacionPreTransferencia?.producto?.descripcion
