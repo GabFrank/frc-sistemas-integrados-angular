@@ -46,6 +46,7 @@ export const codigoQuery = gql`
   }
 `;
 
+
 export const saveCodigo = gql`
   mutation saveCodigo($entity: CodigoInput!) {
     data: saveCodigo(codigo: $entity) {

@@ -21,4 +21,6 @@ export class ProductoInput {
   subfamiliaId: number;
   isEnvase: boolean;
   envaseId: number;
+  activo: boolean
+  creadoEn: String
 }

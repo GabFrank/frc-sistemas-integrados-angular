@@ -1,6 +1,5 @@
 <app-generic-list
   [data]="dataSource.data"
-  (cargarMasDatos)="cargarMasDatos()"
   [isLastPage]="isLastPage || isSearching"
   (filtrar)="onFiltrar()"
   (resetFiltro)="resetFiltro()"
@@ -37,9 +36,20 @@
           <input type="text" matInput [formControl]="idCajaControl" />
         </mat-form-field>
       </div>
+      <div fxFlex="35%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Descripción</mat-label>
+          <input type="text" matInput [formControl]="descripcionControl" />
+        </mat-form-field>
+      </div>
     </div>
   </div>
-  <div table style="width: 100%" fxLayoutGap="20px">
+  <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
     <table
       mat-table
       [dataSource]="dataSource"
@@ -119,11 +129,20 @@
       </ng-container>
 
       <ng-container matColumnDef="observacion">
-        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 30;">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 30"
+        >
           Obs
         </th>
-        <td mat-cell *matCellDef="let gasto" [matTooltip]="gasto?.observacion" style="text-align: center; width: 30">
-          {{ gasto?.observacion | uppercase}}
+        <td
+          mat-cell
+          *matCellDef="let gasto"
+          [matTooltip]="gasto?.observacion"
+          style="text-align: center; width: 30"
+        >
+          {{ gasto?.observacion | uppercase }}
         </td>
       </ng-container>
 
@@ -175,9 +194,7 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="onAdd(gasto, i)">
-              Editar
-            </button>
+            <button mat-menu-item (click)="onAdd(gasto, i)">Editar</button>
           </mat-menu>
         </td>
       </ng-container>
@@ -213,5 +230,13 @@
         class="example-detail-row"
       ></tr>
     </table>
+    <mat-paginator
+      itemsPerPageLabel="Itens por pagina"
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)"
+      [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
   </div>
 </app-generic-list>

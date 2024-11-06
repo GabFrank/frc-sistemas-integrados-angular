@@ -11,6 +11,7 @@ export interface TableData {
   width?: string
   nested?: boolean
   nestedId?: string
+  nestedColumnId?: string
 }
 
 export class SearchListtDialogData {
@@ -23,10 +24,14 @@ export class SearchListtDialogData {
   inicialData?: any;
   texto?: string;
   isAdicionar?: boolean;
+  queryData?: any;
+  paginator?: boolean;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { SelectionModel } from "@angular/cdk/collections";
+import { PageInfo } from "../../../app.component";
+import { PageEvent } from "@angular/material/paginator";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -43,6 +48,11 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
   buscarControl = new FormControl("");
   displayedColumns = []
   selectedItem;
+  queryData: {texto, page?, size?};
+  selectedPageInfo: PageInfo<any>;
+  pageIndex = 0;
+  pageSize = 15;
+
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: SearchListtDialogData,
@@ -54,6 +64,12 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     })
     if (data?.inicialData != null) {
       this.dataSource.data = data.inicialData;
+    }
+    if(data?.queryData != null){
+      this.queryData = data.queryData;
+    }
+    if(data?.queryData?.texto != null){
+      this.buscarControl.setValue(data?.queryData?.texto)
     }
   }
 
@@ -107,11 +123,25 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
   onSearch() {
     let text = this.buscarControl.value;
     if (text != null) text = text.toUpperCase()
+    if( this.queryData!=null && text != null){
+      this.queryData.texto = text;
+    } else {
+      this.queryData = {texto: text}
+    }
+    if(this.data?.paginator == true){
+      this.queryData.page = this.pageIndex;
+      this.queryData.size = this.pageSize;
+    }
     this.genericCrudService
-      .onGetByTexto(this.data.query, text).pipe(untilDestroyed(this))
+      .onCustomQuery(this.data.query, this.queryData).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
-          this.dataSource.data = res;
+          if(this.data?.paginator == true){
+            this.selectedPageInfo = res;
+            this.dataSource.data = this.selectedPageInfo?.getContent;
+          } else {
+            this.dataSource.data = res;
+          }
         }
       });
   }
@@ -131,6 +161,12 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
 
   onAdicionar() {
     this.matDialogRef.close({adicionar: true})
+  }
+
+  handlePageEvent(e: PageEvent) {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.onSearch();
   }
 
 

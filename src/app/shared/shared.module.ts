@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, DecimalPipe } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { RouterModule } from '@angular/router';
@@ -45,6 +45,14 @@ import { FrcToolTipRendererDirective } from './directives/frc-tool-tip-renderer.
 import { CustomToolTipComponent } from './components/frc-custom-tool-tip/frc-custom-tool-tip.component';
 import { ResizableModule } from 'angular-resizable-element';
 import { DialogoNuevasFuncionesComponent } from './components/dialogo-nuevas-funciones/dialogo-nuevas-funciones.component';
+import { NumericOnlyDirective } from './directives/numeric-only.directive';
+import { NoSpacesDirective } from './directives/no-spaces.directive';
+import { LettersOnlyDirective } from './directives/letters-only.directive';
+import { ShowAfterDelayDirective } from './directives/show-after-delay.directive';
+import { FormattedTooltipDirective } from './directives/formatted-tooltip.directive';
+import { MatTooltip } from '@angular/material/tooltip';
+import { AutoFitTextDirective } from './directives/auto-fit-text-directive.directive';
+import { NgxSpinnerModule } from 'ngx-spinner';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -79,7 +87,13 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     PrevisualizarImgenDirective,
     FrcToolTipRendererDirective,
     CustomToolTipComponent,
-    DialogoNuevasFuncionesComponent
+    DialogoNuevasFuncionesComponent,
+    NumericOnlyDirective,
+    NoSpacesDirective,
+    LettersOnlyDirective,
+    ShowAfterDelayDirective,
+    FormattedTooltipDirective,
+    AutoFitTextDirective
   ],
   imports: [
     CommonModule,
@@ -117,8 +131,14 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     FrcToolTipRendererDirective,
     CustomToolTipComponent,
     ResizableModule,
-    DialogoNuevasFuncionesComponent
+    DialogoNuevasFuncionesComponent,
+    NumericOnlyDirective,
+    NoSpacesDirective,
+    LettersOnlyDirective,
+    ShowAfterDelayDirective,
+    FormattedTooltipDirective,
+    NgxSpinnerModule,
   ],
-  providers: [NgxImageCompressService, provideEnvironmentNgxMask(options)]
+  providers: [NgxImageCompressService, provideEnvironmentNgxMask(options), DecimalPipe, MatTooltip]
 })
 export class SharedModule { }

@@ -367,30 +367,6 @@ export const transferenciaWithFiltersQuery = gql`
         etapa
         observacion
         creadoEn
-        usuarioPreTransferencia {
-          id
-          persona {
-            nombre
-          }
-        }
-        usuarioPreparacion {
-          id
-          persona {
-            nombre
-          }
-        }
-        usuarioTransporte {
-          id
-          persona {
-            nombre
-          }
-        }
-        usuarioRecepcion {
-          id
-          persona {
-            nombre
-          }
-        }
       }
     }
   }
@@ -658,6 +634,241 @@ export const transferenciaItemPorTransferenciaIdQuery = gql`
   query ($id: ID!, $page: Int, $size: Int) {
     data: transferenciaItensPorTransferenciaId(
       id: $id
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getPageable {
+        getPageNumber
+        getPageSize
+      }
+      getContent {
+        id
+        transferencia {
+          id
+        }
+        presentacionPreTransferencia {
+          id
+          producto {
+            id
+            descripcion
+            descripcionFactura
+            codigoPrincipal
+            costo {
+              costoMedio
+              ultimoPrecioCompra
+            }
+          }
+          cantidad
+          imagenPrincipal
+          precioPrincipal {
+            precio
+          }
+        }
+        presentacionPreparacion {
+          id
+          producto {
+            id
+            descripcion
+            descripcionFactura
+            codigoPrincipal
+            costo {
+              costoMedio
+              ultimoPrecioCompra
+            }
+          }
+          cantidad
+          imagenPrincipal
+          precioPrincipal {
+            precio
+          }
+        }
+        presentacionTransporte {
+          id
+          producto {
+            id
+            descripcion
+            codigoPrincipal
+            costo {
+              costoMedio
+              ultimoPrecioCompra
+            }
+          }
+          cantidad
+          imagenPrincipal
+          precioPrincipal {
+            precio
+          }
+        }
+        presentacionRecepcion {
+          id
+          producto {
+            id
+            descripcion
+            codigoPrincipal
+            costo {
+              costoMedio
+              ultimoPrecioCompra
+            }
+          }
+          cantidad
+          imagenPrincipal
+          precioPrincipal {
+            precio
+          }
+        }
+        cantidadPreTransferencia
+        cantidadPreparacion
+        cantidadTransporte
+        cantidadRecepcion
+        observacionPreTransferencia
+        observacionPreparacion
+        observacionTransporte
+        observacionRecepcion
+        vencimientoPreTransferencia
+        vencimientoPreparacion
+        vencimientoTransporte
+        vencimientoRecepcion
+        motivoModificacionPreTransferencia
+        motivoModificacionPreparacion
+        motivoModificacionTransporte
+        motivoModificacionRecepcion
+        motivoRechazoPreTransferencia
+        motivoRechazoPreparacion
+        motivoRechazoTransporte
+        motivoRechazoRecepcion
+        activo
+        poseeVencimiento
+        creadoEn
+      }
+    }
+  }
+`;
+
+export const transferenciaItemQuery = gql`
+  query ($id: ID!) {
+    data: transferenciaItem(id: $id) {
+      id
+      transferencia {
+        id
+        sucursalOrigen {
+          id
+          nombre
+        }
+        sucursalDestino {
+          id
+          nombre
+        }
+      }
+      presentacionPreTransferencia {
+        id
+        producto {
+          id
+          descripcion
+          descripcionFactura
+          codigoPrincipal
+          costo {
+            costoMedio
+            ultimoPrecioCompra
+          }
+        }
+        cantidad
+        imagenPrincipal
+        precioPrincipal {
+          precio
+        }
+      }
+      presentacionPreparacion {
+        id
+        producto {
+          id
+          descripcion
+          descripcionFactura
+          codigoPrincipal
+          costo {
+            costoMedio
+            ultimoPrecioCompra
+          }
+        }
+        cantidad
+        imagenPrincipal
+        precioPrincipal {
+          precio
+        }
+      }
+      presentacionTransporte {
+        id
+        producto {
+          id
+          descripcion
+          codigoPrincipal
+          costo {
+            costoMedio
+            ultimoPrecioCompra
+          }
+        }
+        cantidad
+        imagenPrincipal
+        precioPrincipal {
+          precio
+        }
+      }
+      presentacionRecepcion {
+        id
+        producto {
+          id
+          descripcion
+          codigoPrincipal
+          costo {
+            costoMedio
+            ultimoPrecioCompra
+          }
+        }
+        cantidad
+        imagenPrincipal
+        precioPrincipal {
+          precio
+        }
+      }
+      cantidadPreTransferencia
+      cantidadPreparacion
+      cantidadTransporte
+      cantidadRecepcion
+      observacionPreTransferencia
+      observacionPreparacion
+      observacionTransporte
+      observacionRecepcion
+      vencimientoPreTransferencia
+      vencimientoPreparacion
+      vencimientoTransporte
+      vencimientoRecepcion
+      motivoModificacionPreTransferencia
+      motivoModificacionPreparacion
+      motivoModificacionTransporte
+      motivoModificacionRecepcion
+      motivoRechazoPreTransferencia
+      motivoRechazoPreparacion
+      motivoRechazoTransporte
+      motivoRechazoRecepcion
+      activo
+      poseeVencimiento
+      creadoEn
+    }
+  }
+`;
+
+
+export const transferenciaItensPorTransferenciaIdWithFilter = gql`
+  query ($id: ID, $name: String, $page:Int = 0, $size:Int = 10) {
+    data: transferenciaItensPorTransferenciaIdWithFilter(
+      id: $id
+      name: $name
       page: $page
       size: $size
     ) {

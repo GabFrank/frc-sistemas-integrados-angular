@@ -5,7 +5,7 @@
     <div fxFlex="50">
       <mat-form-field style="width: 90%" class="form-element">
         <mat-label class="required-field">Nombre</mat-label>
-        <input matInput [formControl]="nombreControl" (keyup.enter)="onBuscarPersona()"/>
+        <input lettersOnly noSpaces matInput [formControl]="nombreControl" (keyup.enter)="onBuscarPersona()"/>
         <mat-icon class="icon" matSuffix (click)="onBuscarPersona()"
           >search</mat-icon
         >
@@ -18,7 +18,7 @@
     <div fxFlex="50" fxFlexAlign="space-around center">
       <mat-form-field style="width: 90%" class="form-element">
         <mat-label class="required-field">Alias</mat-label>
-        <input matInput [formControl]="apodoControl" />
+        <input noSpaces matInput [formControl]="apodoControl" />
       </mat-form-field>
     </div>
   </div>
@@ -30,8 +30,9 @@
         class="form-element"
         style="width: 50%"
       >
-        <mat-label class="required-field">C.I / RUC</mat-label>
+        <mat-label class="required-field">C.I / RUC (Sin digito verificador)</mat-label>
         <input
+          numericOnly
           matInput
           [formControl]="documentoControl"
           class="required-field"

@@ -6,6 +6,8 @@ import { DialogosService } from '../../../../shared/components/dialogos/dialogos
 import { MatDialog } from '@angular/material/dialog';
 import { PrecioDelivery } from '../precio-delivery.model';
 import { PrecioDeliveryComponent } from '../precio-delivery/precio-delivery.component';
+import { ListDeliveryComponent } from '../../../pdv/comercial/venta-touch/list-delivery/list-delivery.component';
+import { Tab } from '../../../../layouts/tab/tab.model';
 
 interface DeliveryItemDashboard {
   titulo: string;
@@ -34,9 +36,7 @@ export class DeliveryDashboardComponent implements OnInit {
   onInfoGenerales() { }
 
   onDeliveryPrecio() { 
-    this.matDialog.open(PrecioDeliveryComponent, {
-      width: '600px',
-    })
+    this.tabService.addTab(new Tab(PrecioDeliveryComponent, null, null, null));
   }
 
 }

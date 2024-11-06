@@ -7,12 +7,16 @@ import { PedidoEstado } from './pedido-enums';
 import { Vendedor } from '../../../personas/vendedor/vendedor.model';
 import { NotaRecepcion } from '../nota-recepcion/nota-recepcion.model';
 import { Compra } from '../../compra/compra.model';
+import { PedidoFechaEntrega } from '../pedido-fecha-entrega/pedido-fecha-entrega.model';
+import { PedidoSucursalEntrega } from '../pedido-sucursal-entrega/pedido-sucursal-entrega.model';
+import { PedidoSucursalInfluencia } from '../pedido-sucursal-influencia/pedido-sucursal-influencia.model';
 
 export class Pedido {
   id: number;
   compra: Compra;
   proveedor: Proveedor;
   vendedor: Vendedor;
+  tipoBoleta: string;
   fechaDeEntrega: Date;
   formaPago: FormaPago;
   estado: PedidoEstado;
@@ -24,6 +28,10 @@ export class Pedido {
   pedidoItens: PedidoItem[];
   valorTotal: number;
   notaRecepcionList: NotaRecepcion[] = []
+  fechaEntregaList: PedidoFechaEntrega[]
+  sucursalEntregaList: PedidoSucursalEntrega[]
+  sucursalInfluenciaList: PedidoSucursalInfluencia[]
+  cantPedidoItem: number;
 
   toInput(): PedidoInput{
     let input = new PedidoInput();
@@ -31,7 +39,7 @@ export class Pedido {
     input.proveedorId = this.proveedor?.id
     input.vendedorId = this.vendedor?.id
     input.creadoEn = this.creadoEn;
-    input.descuento = this.descuento;
+    input.tipoBoleta = this.tipoBoleta;
     input.estado = this.estado;
     input.fechaDeEntrega = this.fechaDeEntrega;
     input.formaPagoId = this.formaPago?.id
@@ -40,7 +48,7 @@ export class Pedido {
     input.valorTotal = this.valorTotal;
     input.usuarioId = this.usuario?.id
     input.pedidoItemInputList = []
-    this.pedidoItens.forEach(p => {
+    this.pedidoItens?.forEach(p => {
       let aux = new PedidoItem;
       Object.assign(aux, p);
       input.pedidoItemInputList.push(aux.toInput())
@@ -54,6 +62,7 @@ export class PedidoInput {
   id: number;
   proveedorId: number;
   vendedorId: number;
+  tipoBoleta: string;
   fechaDeEntrega: Date;
   formaPagoId: number;
   estado: PedidoEstado;
@@ -61,7 +70,6 @@ export class PedidoInput {
   plazoCredito: number;
   creadoEn: Date;
   usuarioId: number;
-  descuento: number;
   valorTotal: number;
   pedidoItemInputList: PedidoItemInput[]
 }

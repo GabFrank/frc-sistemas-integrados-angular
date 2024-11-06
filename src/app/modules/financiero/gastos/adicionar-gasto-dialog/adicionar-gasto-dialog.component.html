@@ -62,6 +62,7 @@
               oninput="this.value == ' ' ? this.value = '': null"
               [matAutocomplete]="autoResponsable"
               (keyup.enter)="tipoGastoInput.select()"
+              (focusin)="this.responsableInput.select()"
             />
             <mat-autocomplete
               #autoResponsable="matAutocomplete"

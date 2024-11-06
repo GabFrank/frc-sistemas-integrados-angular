@@ -269,7 +269,7 @@
             <div style="width: 100%; text-align: center">Producto</div>
             <div style="color: white; font-size: medium">
               {{ selectedProducto?.id }}
-              {{ selectedProducto != null ? " - " : "" }}
+              <span *ngIf="selectedProducto?.id !== undefined"> - </span>
               {{ selectedProducto?.descripcion | uppercase }}
             </div>
             <div style="color: rgb(177, 177, 177); font-size: small">
@@ -366,18 +366,30 @@
               <input
                 matInput
                 #vencimientoInput
+                [formControl]="vencimientoControl"
+                (input)="onDateInput($event)"
+                placeholder="dd/mm/yy"
+                maxlength="8"
+                (keyup.enter)="onVencimientoEnter(vencimientoControl.value)"
+              />
+
+              <!-- <mat-label>Vencimiento</mat-label>
+              <input
+                matInput
+                #vencimientoInput
                 [matDatepicker]="picker"
                 [formControl]="vencimientoControl"
-                (keyup.enter)="onVencimientoEnter()"
+                (keyup.enter)="onVencimientoEnter(vencimientoControl.value)"
               />
               <mat-datepicker-toggle
                 matSuffix
                 [for]="picker"
+                [tabIndex]="-1"
               ></mat-datepicker-toggle>
               <mat-datepicker
                 #picker
                 (closed)="onDatepickerClosed()"
-              ></mat-datepicker>
+              ></mat-datepicker> -->
             </mat-form-field>
           </div>
           <div fxFlex style="width: 100%; text-align: center">
@@ -501,7 +513,44 @@
       class="mat-elevation-z8"
     >
       <ng-container matColumnDef="producto">
-        <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
+        <th mat-header-cell *matHeaderCellDef style="width: 30%">
+          <div fxLayout="row" fxLayoutAlign="start space-between">
+            <div fxFlex="90" fxLayout="column" fxLayoutAlign="center start">
+              <span *ngIf="!filtroProductosOpen"> Producto </span>
+              <span *ngIf="filtroProductosOpen" style="width: 100%">
+                <div>
+                  <mat-form-field
+                    style="width: 100%"
+                    appearance="outline"
+                    class="shrinking-mat-form-field"
+                  >
+                    <input
+                      #filtroProductoInput
+                      matInput
+                      type="text"
+                      [formControl]="filtroProductoControl"
+                      (keyup.enter)="onFilterProducto()"
+                      (keyup.tab)="onSearchPorCodigo()"
+                      (focusin)="filtroProductoInput.select()"
+                    />
+                  </mat-form-field>
+                </div>
+              </span>
+            </div>
+            <div fxFlex="10">
+              <span *ngIf="!filtroProductosOpen">
+                <button mat-icon-button (click)="abrirFiltroProductos()">
+                  <mat-icon>search</mat-icon>
+                </button>
+              </span>
+              <span *ngIf="filtroProductosOpen">
+                <button mat-icon-button (click)="abrirFiltroProductos()">
+                  <mat-icon>clear</mat-icon>
+                </button>
+              </span>
+            </div>
+          </div>
+        </th>
         <td mat-cell *matCellDef="let item" style="width: 30%">
           <span copiarAClipboard>{{
             item?.presentacionPreTransferencia?.producto?.id
@@ -665,7 +714,44 @@
       class="mat-elevation-z8"
     >
       <ng-container matColumnDef="producto">
-        <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
+        <th mat-header-cell *matHeaderCellDef style="width: 30%">
+          <div fxLayout="row" fxLayoutAlign="start space-between">
+            <div fxFlex="90" fxLayout="column" fxLayoutAlign="center start">
+              <span *ngIf="!filtroProductosOpen"> Producto </span>
+              <span *ngIf="filtroProductosOpen" style="width: 100%">
+                <div>
+                  <mat-form-field
+                    style="width: 100%"
+                    appearance="outline"
+                    class="shrinking-mat-form-field"
+                  >
+                    <input
+                      #filtroProductoInput
+                      matInput
+                      type="text"
+                      [formControl]="filtroProductoControl"
+                      (keyup.enter)="onFilterProducto()"
+                      (keyup.tab)="onSearchPorCodigo()"
+                      (focusin)="filtroProductoInput.select()"
+                    />
+                  </mat-form-field>
+                </div>
+              </span>
+            </div>
+            <div fxFlex="10">
+              <span *ngIf="!filtroProductosOpen">
+                <button mat-icon-button (click)="abrirFiltroProductos()">
+                  <mat-icon>search</mat-icon>
+                </button>
+              </span>
+              <span *ngIf="filtroProductosOpen">
+                <button mat-icon-button (click)="abrirFiltroProductos()">
+                  <mat-icon>clear</mat-icon>
+                </button>
+              </span>
+            </div>
+          </div>
+        </th>
         <td mat-cell *matCellDef="let item" style="width: 30%">
           {{ item?.presentacionPreTransferencia?.producto?.id }} -
           {{
@@ -874,7 +960,44 @@
       class="mat-elevation-z8"
     >
       <ng-container matColumnDef="producto">
-        <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
+        <th mat-header-cell *matHeaderCellDef style="width: 30%">
+          <div fxLayout="row" fxLayoutAlign="start space-between">
+            <div fxFlex="90" fxLayout="column" fxLayoutAlign="center start">
+              <span *ngIf="!filtroProductosOpen"> Producto </span>
+              <span *ngIf="filtroProductosOpen" style="width: 100%">
+                <div>
+                  <mat-form-field
+                    style="width: 100%"
+                    appearance="outline"
+                    class="shrinking-mat-form-field"
+                  >
+                    <input
+                      #filtroProductoInput
+                      matInput
+                      type="text"
+                      [formControl]="filtroProductoControl"
+                      (keyup.enter)="onFilterProducto()"
+                      (keyup.tab)="onSearchPorCodigo()"
+                      (focusin)="filtroProductoInput.select()"
+                    />
+                  </mat-form-field>
+                </div>
+              </span>
+            </div>
+            <div fxFlex="10">
+              <span *ngIf="!filtroProductosOpen">
+                <button mat-icon-button (click)="abrirFiltroProductos()">
+                  <mat-icon>search</mat-icon>
+                </button>
+              </span>
+              <span *ngIf="filtroProductosOpen">
+                <button mat-icon-button (click)="abrirFiltroProductos()">
+                  <mat-icon>clear</mat-icon>
+                </button>
+              </span>
+            </div>
+          </div>
+        </th>
         <td mat-cell *matCellDef="let item" style="width: 30%">
           {{ item?.presentacionPreTransferencia?.producto?.id }} -
           {{
@@ -1065,7 +1188,44 @@
       class="mat-elevation-z8"
     >
       <ng-container matColumnDef="producto">
-        <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
+        <th mat-header-cell *matHeaderCellDef style="width: 30%">
+          <div fxLayout="row" fxLayoutAlign="start space-between">
+            <div fxFlex="90" fxLayout="column" fxLayoutAlign="center start">
+              <span *ngIf="!filtroProductosOpen"> Producto </span>
+              <span *ngIf="filtroProductosOpen" style="width: 100%">
+                <div>
+                  <mat-form-field
+                    style="width: 100%"
+                    appearance="outline"
+                    class="shrinking-mat-form-field"
+                  >
+                    <input
+                      #filtroProductoInput
+                      matInput
+                      type="text"
+                      [formControl]="filtroProductoControl"
+                      (keyup.enter)="onFilterProducto()"
+                      (keyup.tab)="onSearchPorCodigo()"
+                      (focusin)="filtroProductoInput.select()"
+                    />
+                  </mat-form-field>
+                </div>
+              </span>
+            </div>
+            <div fxFlex="10">
+              <span *ngIf="!filtroProductosOpen">
+                <button mat-icon-button (click)="abrirFiltroProductos()">
+                  <mat-icon>search</mat-icon>
+                </button>
+              </span>
+              <span *ngIf="filtroProductosOpen">
+                <button mat-icon-button (click)="abrirFiltroProductos()">
+                  <mat-icon>clear</mat-icon>
+                </button>
+              </span>
+            </div>
+          </div>
+        </th>
         <td mat-cell *matCellDef="let item" style="width: 30%">
           {{ item?.presentacionPreTransferencia?.producto?.id }} -
           {{

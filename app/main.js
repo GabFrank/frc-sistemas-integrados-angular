@@ -28,7 +28,7 @@ const { ipcMain } = require('electron');
 let instanceCount = 0;
 // Initialize remote module
 require("@electron/remote/main").initialize();
-let win = null;
+let win;
 const args = process.argv.slice(1), serve = args.some(val => val === '--serve');
 function createWindow() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -95,7 +95,7 @@ function createWindow() {
             // Dereference the window object, usually you would store window
             // in an array if your app supports multi windows, this is the time
             // when you should delete the corresponding element.
-            win = null;
+            // win = null;
             electron_1.app.quit();
         });
         win.webContents.on("did-fail-load", () => {

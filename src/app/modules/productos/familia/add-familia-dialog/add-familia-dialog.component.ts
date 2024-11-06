@@ -20,6 +20,7 @@ export interface AddFamiliaData {
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { GraphQLError } from 'graphql';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -58,21 +59,14 @@ export class AddFamiliaDialogComponent implements OnInit {
   ngOnInit(): void {
     this.createForm();
     this.loadData();
-    this.familiaService.onCountFamilia().pipe(untilDestroyed(this)).subscribe((res) => {
-      for (let index = 0; index < res + 1; index++) {
-        this.listPos.push(index + 1);
-      }
-    });
   }
 
   createForm() {
-    this.formGroup = new FormGroup({});
-    this.formGroup.addControl('id', this.idControl);
-    this.formGroup.addControl('nombre', this.nombreControl);
-    this.formGroup.addControl('descripcion', this.descripcionControl);
-    this.formGroup.addControl('activo', this.activoControl);
-    this.formGroup.addControl('posicion', this.posicionControl);
-    this.formGroup.addControl('icono', this.iconoControl);
+    this.formGroup = new FormGroup({
+      nombre: this.nombreControl,
+      descripcion: this.descripcionControl,
+      activo: this.activoControl
+    });
   }
 
   loadData() {
@@ -124,14 +118,16 @@ export class AddFamiliaDialogComponent implements OnInit {
       this.descripcionControl.value?.toUpperCase();
     this.familiaInput.activo = true;
     this.familiaInput.icono = this.iconoControl.value;
-    this.familiaService.onSaveFamilia(this.familiaInput).subscribe((res) => {
-      if (res != null) {
-        this.dialogRef.close(res);
-        this.notificationBar.notification$.next({
-          texto: 'Guardado con éxito',
-          color: NotificacionColor.success,
-          duracion: 2,
-        });
+    this.familiaService.onSaveFamilia(this.familiaInput).subscribe({
+      next: (res) => {
+        if (res != null) {
+          this.dialogRef.close(res);
+          this.notificationBar.notification$.next({
+            texto: 'Guardado con éxito',
+            color: NotificacionColor.success,
+            duracion: 2,
+          });
+        }
       }
     });
   }

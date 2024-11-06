@@ -10,6 +10,9 @@ import { SubfamiliaInput } from './graphql/subfamilia-input.model';
 import { Subfamilia } from './sub-familia.model';
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { SubfamiliasSearchGQL } from './graphql/subfamiliasSearch';
+import { SearchSubfamiliaByDescripcionGQL } from './graphql/searchByDescripcion';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -26,7 +29,11 @@ export class SubFamiliaService {
     private deleteSubfamilia: DeleteSubfamiliaGQL,
     private countSubfamilia: CountSubfamiliaGQL,
     public mainService: MainService,
-    private familiaService: FamiliaService
+    private familiaService: FamiliaService,
+    private genericService: GenericCrudService,
+    private subfamiliaSearch: SubfamiliasSearchGQL,
+    private searchByDescripcion: SearchSubfamiliaByDescripcionGQL
+
     ) {
     this.onGetSubfamilias()
   }
@@ -61,6 +68,14 @@ export class SubFamiliaService {
       })
     })
     
+  }
+
+  onSearchSubfamilia(familiaId, texto, page, size){
+    return this.genericService.onCustomQuery(this.subfamiliaSearch, {familiaId, texto, page, size});
+  }
+
+  onSearchSubfamiliaSinFamiliaId(texto, page, size){
+    return this.genericService.onCustomQuery(this.subfamiliaSearch, {texto, page, size});
   }
 
 

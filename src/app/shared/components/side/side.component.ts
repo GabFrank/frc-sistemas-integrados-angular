@@ -30,6 +30,8 @@ import { TransferenciaComponent } from './../../../modules/operaciones/transfere
 import { CompraDashboardComponent } from "../../../modules/operaciones/compra/compra-dashboard/compra-dashboard.component";
 import { ListRetiroComponent } from "../../../modules/financiero/retiro/list-retiro/list-retiro.component";
 import { ListFacturaLegalComponent } from "../../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component";
+import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
+import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
 
 @Component({
   selector: "app-side",
@@ -46,7 +48,8 @@ export class SideComponent implements OnInit {
     private matDialog: MatDialog,
     private cargandoDialogService: CargandoDialogService,
     private electronService: ElectronService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private usuarioService: UsuarioService
   ) {
 
   }
@@ -309,17 +312,32 @@ export class SideComponent implements OnInit {
     }
   }
 
-  onLogout() {
-    this.cargandoDialogService.openDialog();
+  async onLogout() {
+    let inicioSesion = new InicioSesion();
+    Object.assign(inicioSesion, this.mainService.usuarioActual.inicioSesion);
+    inicioSesion.horaFin = new Date();  
+    if(inicioSesion != null && inicioSesion?.sucursal != null){
+      await new Promise((resolve, rejects) => {
+        this.usuarioService
+          .onSaveInicioSesion(inicioSesion.toInput())
+          .subscribe((res) => {
+            resolve(res);
+          });
+      }); 
+    }  
     localStorage.removeItem("token");
     localStorage.removeItem("usuarioId");
     this.mainService.usuarioActual = null;
     this.mainService.logged = false;
-    this.tabService.removeAllTabs()
-    this.electronService.relaunch()
+    this.tabService.removeAllTabs();
+    this.electronService.relaunch();
   }
 
   onLogin() {
+    this.electronService.relaunch()
+  }
+
+  onReiniciar(){
     this.electronService.relaunch()
   }
 }

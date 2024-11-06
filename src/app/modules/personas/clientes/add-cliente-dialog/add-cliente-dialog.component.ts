@@ -129,7 +129,8 @@ export class AddClienteDialogComponent implements OnInit {
       height: '80%'
     }).afterClosed().subscribe((res: Persona) => {
       if ((res) != null) {
-        this.selectedPersona = res;
+        this.selectedPersona = new Persona;
+        Object.assign(this.selectedPersona, res);
         if (res?.isCliente == true) {
           this.notificacionService.openWarn('Ya existe un cliente registrado con este documento')
           this.clienteService.onGetByPersonaId(res.id).pipe(untilDestroyed(this)).subscribe((res2: Cliente) => {

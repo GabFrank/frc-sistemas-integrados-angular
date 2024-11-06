@@ -13,6 +13,8 @@ import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { ListVentaComponent } from '../../../operaciones/venta/list-venta/list-venta.component';
 import { PdvCaja } from '../../pdv/caja/caja.model';
+import { PageInfo } from '../../../../app.component';
+import { PageEvent } from '@angular/material/paginator';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -51,14 +53,16 @@ export class ListGastosComponent implements OnInit {
     'retiroDs',
     'creadoEn'
   ]
-  page = 0;
-  size = 20;
+  pageIndex = 0;
+  pageSize = 15;
 
   sucursalList: Sucursal[]
   sucOrigenControl = new FormControl()
   idCajaControl = new FormControl()
   idGastoControl = new FormControl()
+  descripcionControl = new FormControl()
   formGroup : FormGroup;
+  selectedPageInfo: PageInfo<Gasto>;
 
   constructor(
     private gastoService: GastoService,
@@ -71,48 +75,28 @@ export class ListGastosComponent implements OnInit {
     this.formGroup = new FormGroup({
       idCajaControl: this.idCajaControl,
       idRetiroControl: this.idGastoControl,
-      sucursalControl: this.sucOrigenControl
-    })
-
-    this.formGroup.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
-      this.page = 0;
-      this.isLastPage = true;
+      sucursalControl: this.sucOrigenControl,
+      descripcionControl: this.descripcionControl
     })
 
     this.sucursalService.onGetAllSucursales().subscribe(res => {
       this.sucursalList = res.filter(s => s.id != 0)
       this.sucOrigenControl.setValue(this.sucursalList.find(s => s.id == this.data?.tabData?.data?.sucursal?.id))
       this.idCajaControl.setValue(this.data?.tabData?.data?.caja?.id);
+      this.onFiltrar();
     })
 
-    // this.gastoService.onFilterGasto(null, this.data?.tabData?.data?.caja?.id, this.data?.tabData?.data?.sucursal?.id, null, this.page, this.size).subscribe(res => {
-    //   this.dataSource.data = res;
-    //   if (this.dataSource.data?.length == this.size) {
-    //     this.isLastPage = false;
-    //   } else {
-    //     this.isLastPage = true;
-    //   }
-    // })
   }
 
   cargarMasDatos() {
-    this.page++;
-    this.onFiltrar()
+
   }
 
   onFiltrar() {
-    this.gastoService.onFilterGasto(this.idGastoControl.value, this.idCajaControl.value, this.sucOrigenControl.value?.id, null, this.page, this.size+1).subscribe(res => {
-      if(this.page > 0){
-        let arr: any[] = [...this.dataSource.data]
-        arr = arr.concat(res)
-        this.dataSource.data = arr;
-      } else {
-        this.dataSource.data = res;
-      }
-      if(res.length < this.size){
-        this.isLastPage = true;
-      } else {
-        this.isLastPage = false;
+    this.gastoService.onFilterGasto(this.idGastoControl.value, this.idCajaControl.value, this.sucOrigenControl.value?.id, null, this.descripcionControl.value, this.pageIndex, this.pageSize).subscribe((res: PageInfo<Gasto>) => {
+      if(res!=null){
+        this.selectedPageInfo = res;
+        this.dataSource.data = this.selectedPageInfo.getContent;
       }
     })
   }
@@ -125,11 +109,17 @@ export class ListGastosComponent implements OnInit {
   }
 
   onIrACaja(cajaSalida: PdvCaja) {
-    this.tabService.addTab(new Tab(ListVentaComponent, 'Venta de la caja ' + cajaSalida.id, new TabData(null, cajaSalida), ListGastosComponent))
+    this.tabService.addTab(new Tab(ListVentaComponent, 'Ventas de la caja ' + this.selectedGasto.caja.id, new TabData(null, this.selectedGasto.caja), ListGastosComponent))
   }
 
   onAdd(gasto, i){
 
+  }
+
+  handlePageEvent(e: PageEvent) {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.onFiltrar();
   }
 
 }

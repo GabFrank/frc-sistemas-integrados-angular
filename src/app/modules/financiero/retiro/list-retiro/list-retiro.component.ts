@@ -11,6 +11,8 @@ import { TabData, TabService } from '../../../../layouts/tab/tab.service';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { ListVentaComponent } from '../../../operaciones/venta/list-venta/list-venta.component';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { PageInfo } from '../../../../app.component';
+import { PageEvent } from '@angular/material/paginator';
 
 @UntilDestroy({checkProperties: true})
 @Component({
@@ -49,15 +51,16 @@ export class ListRetiroComponent implements OnInit {
     'creadoEn',
     'usuario'
   ]
-  page = 0;
-  size = 20;
+  pageIndex = 0;
+  pageSize = 15;
 
   sucursalList: Sucursal[]
   sucOrigenControl = new FormControl()
   idCajaControl = new FormControl()
   idRetiroControl = new FormControl()
   formGroup : FormGroup;
-
+  selectedPageInfo: PageInfo<Retiro>;
+  
   constructor(
     private retiroService: RetiroService,
     private sucursalService: SucursalService,
@@ -71,44 +74,19 @@ export class ListRetiroComponent implements OnInit {
       sucursalControl: this.sucOrigenControl
     })
 
-    this.formGroup.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
-      this.page = 0;
-      this.isLastPage = true;
-    })
     this.sucursalService.onGetAllSucursales().subscribe(res => {
       this.sucursalList = res.filter(s => s.id != 0)
       this.sucOrigenControl.setValue(this.sucursalList.find(s => s.id == this.data?.tabData?.data?.sucursal?.id))
       this.idCajaControl.setValue(this.data?.tabData?.data?.caja?.id);
+      this.onFiltrar();
     })
-
-    // this.retiroService.onFilterRetiro(null, this.data?.tabData?.data?.caja?.id, this.data?.tabData?.data?.sucursal?.id, null, null, this.page, this.size).subscribe(res => {
-    //   this.dataSource.data = res;
-    //   if(this.dataSource.data?.length == this.size){
-    //     this.isLastPage = false;
-    //   } else {
-    //     this.isLastPage = true;
-    //   }
-    // })
-  }
-
-  cargarMasDatos() {
-    this.page++;
-    this.onFiltrar()
   }
 
   onFiltrar() {
-    this.retiroService.onFilterRetiro(this.idRetiroControl.value, this.idCajaControl.value, this.sucOrigenControl.value?.id, null, null, this.page, this.size).subscribe(res => {      
-      if(this.page > 0){
-        let arr: any[] = [...this.dataSource.data]
-        arr = arr.concat(res)
-        this.dataSource.data = arr;
-      } else {
-        this.dataSource.data = res;
-      }
-      if(res.length < this.size){
-        this.isLastPage = true;
-      } else {
-        this.isLastPage = false;
+    this.retiroService.onFilterRetiro(this.idRetiroControl.value, this.idCajaControl.value, this.sucOrigenControl.value?.id, null, null, this.pageIndex, this.pageSize).subscribe(res => {      
+      if(res!=null){
+        this.selectedPageInfo = res;
+        this.dataSource.data = this.selectedPageInfo.getContent;
       }
     })
   }
@@ -122,7 +100,13 @@ export class ListRetiroComponent implements OnInit {
   }
 
   onIrACaja(cajaSalida: PdvCaja){
-    this.tabService.addTab(new Tab(ListVentaComponent, 'Venta de la caja ' + cajaSalida.id, new TabData(null, cajaSalida), ListRetiroComponent))
+    this.tabService.addTab(new Tab(ListVentaComponent, 'Ventas de la caja ' + cajaSalida.id, new TabData(null, cajaSalida), ListRetiroComponent))
+  }
+
+  handlePageEvent(e: PageEvent) {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.onFiltrar();
   }
 
 }

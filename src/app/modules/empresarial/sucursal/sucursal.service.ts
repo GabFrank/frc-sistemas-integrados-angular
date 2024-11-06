@@ -37,40 +37,13 @@ export class SucursalService {
     private injector: Injector,
     private sucursalPorId: SucursalByIdGQL,
     private cargandoService: CargandoDialogService,
-    private notificacionSnackBar: NotificacionSnackbarService
+    private notificacionSnackBar: NotificacionSnackbarService,
+    private genericService: GenericCrudService
   ) {
   }
 
   onGetSucursal(id): Observable<Sucursal> {
-    this.isLoading = true;
-    this.cargandoService.openDialog(false, 'Buscando...')
-    return new Observable((obs) => {
-      this.sucursalPorId
-        .fetch({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.cargandoService.closeDialog()
-          this.isLoading = false;
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-            if (res.data["data"] == null && res.data["error"] == false) {
-              this.notificacionSnackBar.notification$.next({
-                texto: "Item no encontrado",
-                color: NotificacionColor.warn,
-                duracion: 2,
-              });
-            }
-          } else {
-            this.notificacionSnackBar.notification$.next({
-              texto: "Ups! Algo salió mal: " + res.errors[0].message,
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
-          }
-        }, (err) => {
-          this.notificacionBar.openWarn('Problema al realizar esta operación')
-          this.cargandoService.closeDialog()
-        });
-    });
+    return this.genericService.onCustomQuery(this.sucursalPorId, {id});
   }
 
   onGetAllSucursales(): Observable<Sucursal[]> {
@@ -139,6 +112,32 @@ export class SucursalService {
         .pipe(untilDestroyed(this))
         .subscribe(
           (res) => {
+            obs.next(res)
+          },
+          (error) => {
+            obs.next(error);
+          }
+        );
+    });
+  }
+
+  getSucursalActualAdmin(): Observable<any> {
+    return new Observable((obs) => {
+      let httpBody = {
+        nickname: "ADMIN",
+        password: "ADMIN",
+      };
+      let httpResponse = this.http
+        .post(
+          `http://${environment['ip']}:${environment['port']}/public/sucursal-actual`,
+          httpBody,
+          this.httpOptions
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe(
+          (res) => {
+            console.log(res);
+            
             obs.next(res)
           },
           (error) => {

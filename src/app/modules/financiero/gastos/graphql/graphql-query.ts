@@ -1,8 +1,8 @@
 import gql from "graphql-tag";
 
 export const gastosQuery = gql`
-  query ($sucId: ID){
-    data: gastos (sucId: $sucId) {
+  query ($sucId: ID) {
+    data: gastos(sucId: $sucId) {
       id
       sucursalId
       responsable {
@@ -193,7 +193,7 @@ export const gastoQuery = gql`
 
 export const reimprimirQuery = gql`
   query ($id: ID!, $printerName: String, $sucId: ID) {
-    data: reimprimirGasto(id: $id, printerName: $printerName, sucId: $sucId) 
+    data: reimprimirGasto(id: $id, printerName: $printerName, sucId: $sucId)
   }
 `;
 
@@ -202,12 +202,8 @@ export const saveGasto = gql`
     $entity: GastoInput!
     $printerName: String
     $local: String
-    ) {
-    data: saveGasto(
-      entity: $entity
-      printerName: $printerName
-      local: $local
-      ) {
+  ) {
+    data: saveGasto(entity: $entity, printerName: $printerName, local: $local) {
       id
       responsable {
         id
@@ -255,12 +251,17 @@ export const saveGasto = gql`
 
 export const saveVueltoGasto = gql`
   mutation saveVueltoGasto(
-    $id: ID!,
-    $valorGs: Float,
-    $valorRs: Float,
-    $valorDs: Float,
+    $id: ID!
+    $valorGs: Float
+    $valorRs: Float
+    $valorDs: Float
+  ) {
+    data: saveVueltoGasto(
+      id: $id
+      valorGs: $valorGs
+      valorRs: $valorRs
+      valorDs: $valorDs
     ) {
-    data: saveVueltoGasto(id:$id, valorGs:$valorGs, valorRs:$valorRs, valorDs:$valorDs) {
       id
       sucursalId
       responsable {
@@ -306,7 +307,6 @@ export const saveVueltoGasto = gql`
     }
   }
 `;
-
 
 export const deleteGastoQuery = gql`
   mutation deleteGasto($id: ID!, $sucId: ID) {
@@ -366,30 +366,55 @@ export const gastosPorCajaIdQuery = gql`
 `;
 
 export const filterGastosQuery = gql`
-  query ($id:ID, $cajaId:ID, $sucId:ID, $responsableId:ID, $page:Int, $size:Int) {
-    data: filterGastos(id:$id, cajaId:$cajaId, sucId:$sucId, responsableId:$responsableId, page:$page, size:$size) {
-      id
-      sucursal {
+  query (
+    $id: ID
+    $cajaId: ID
+    $sucId: ID
+    $responsableId: ID
+    $descripcion: String
+    $page: Int
+    $size: Int
+  ) {
+    data: filterGastos(
+      id: $id
+      cajaId: $cajaId
+      sucId: $sucId
+      responsableId: $responsableId
+      descripcion: $descripcion
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
         id
-        nombre
-      }
-      caja {
-        id
-        sucursalId
-      }
-      responsable {
-        persona {
+        sucursal {
+          id
           nombre
         }
+        caja {
+          id
+          sucursalId
+        }
+        responsable {
+          persona {
+            nombre
+          }
+        }
+        tipoGasto {
+          descripcion
+        }
+        observacion
+        retiroGs
+        retiroRs
+        retiroDs
+        creadoEn
       }
-      tipoGasto {
-        descripcion
-      }
-      observacion
-      retiroGs
-      retiroRs
-      retiroDs
-      creadoEn
     }
   }
 `;

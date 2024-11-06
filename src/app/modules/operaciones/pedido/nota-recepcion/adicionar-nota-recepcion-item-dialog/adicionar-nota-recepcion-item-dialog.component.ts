@@ -80,18 +80,18 @@ export class AdicionarNotaRecepcionItemDialogComponent implements OnInit {
 
   //sobrantes son los itens del pedido que aun no fueron vinculados a una nota
   getSobrantes() {
-    this.pedidoService
-      .onGetPedidoItemSobrantes(this.selectedNotaRecepcion.pedido.id).pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          res.forEach((e) => {
-            let item = new SelectedItem();
-            item.pedidoItem = e;
-            item.selected = false;
-            this.dataSource.data = updateDataSource(this.dataSource.data, item);
-          });
-        }
-      });
+    // this.pedidoService
+    //   .onGetPedidoItemSobrantes(this.selectedNotaRecepcion.pedido.id).pipe(untilDestroyed(this))
+    //   .subscribe((res) => {
+    //     if (res != null) {
+    //       res.forEach((e) => {
+    //         let item = new SelectedItem();
+    //         item.pedidoItem = e;
+    //         item.selected = false;
+    //         this.dataSource.data = updateDataSource(this.dataSource.data, item);
+    //       });
+    //     }
+    //   });
   }
 
   setAll(checked) {

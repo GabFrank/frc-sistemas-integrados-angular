@@ -1,6 +1,5 @@
 <app-generic-list
   [data]="dataSource.data"
-  (cargarMasDatos)="cargarMasDatos()"
   [isLastPage]="isLastPage || isSearching"
   (filtrar)="onFiltrar()"
   (resetFiltro)="resetFiltro()"
@@ -39,7 +38,12 @@
       </div>
     </div>
   </div>
-  <div table>
+  <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
     <table
       mat-table
       [dataSource]="dataSource"
@@ -209,5 +213,13 @@
         class="example-detail-row"
       ></tr>
     </table>
+    <mat-paginator
+      itemsPerPageLabel="Itens por pagina"
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)"
+      [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
   </div>
 </app-generic-list>

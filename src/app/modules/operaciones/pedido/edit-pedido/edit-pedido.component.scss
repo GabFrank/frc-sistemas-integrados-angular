@@ -64,3 +64,24 @@ mat-icon {
   height: 5px;
   cursor: row-resize;
 }
+
+.selected-row {
+  background-color: #43a047;
+  color: white
+}
+
+.selected-row:hover {
+  background-color: #337a36;
+  color: white
+}
+
+.titulo {
+  text-align: center;
+  font-size: small;
+}
+
+.subtitulo {
+  color: rgb(197, 197, 197);
+  font-size: medium;
+  text-align: center;
+}

@@ -27,8 +27,8 @@ export const productoProveedorPorProductoId = gql`
 `;
 
 export const productoProveedorPorProveedorId = gql`
-  query ($id: ID!, $page: Int, $size: Int) {
-    data: productoProveedorPorProveedorId(id: $id, page: $page, size: $size) {
+  query ($id: ID!, $texto: String, $page: Int, $size: Int) {
+    data: productoProveedorPorProveedorId(id: $id, texto: $texto, page: $page, size: $size) {
       getTotalPages
       getTotalElements
       getNumberOfElements

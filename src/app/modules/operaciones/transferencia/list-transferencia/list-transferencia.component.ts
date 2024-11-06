@@ -28,6 +28,7 @@ import { CargandoDialogService } from "./../../../../shared/components/cargando-
 import { TransferenciaService } from "./../transferencia.service";
 import { MatDialog } from "@angular/material/dialog";
 import { DialogoNuevasFuncionesComponent } from "../../../../shared/components/dialogo-nuevas-funciones/dialogo-nuevas-funciones.component";
+import { interval } from "rxjs";
 
 @UntilDestroy()
 @Component({
@@ -126,6 +127,10 @@ export class ListTransferenciaComponent implements OnInit {
         width: '60%'
       })
     }, 1000);
+
+    interval(300000).pipe(untilDestroyed(this)).subscribe(()=> {
+      this.onFilter();      
+    });
   }
 
   onGetTransferencias() {
@@ -144,6 +149,10 @@ export class ListTransferenciaComponent implements OnInit {
     if (this.fechaInicioControl.value == null)
       this.fechaInicioControl.setValue(unaSemanaAtras);
     if (this.idControl.value == null) {
+      let fechaInicio: Date = this.fechaInicioControl.value;
+      let fechaFin: Date = this.fechaFinControl.value;
+      fechaInicio.setHours(0, 0, 0);
+      fechaFin.setHours(23, 59, 59);
       this.transferenciaService
         .onGetTransferenciasWithFilters(
           this.sucOrigenControl.value?.id,
@@ -153,8 +162,8 @@ export class ListTransferenciaComponent implements OnInit {
           this.etapaControl.value,
           null,
           null,
-          dateToString(this.fechaInicioControl.value),
-          dateToString(this.fechaFinControl.value),
+          dateToString(fechaInicio),
+          dateToString(fechaFin),
           this.pageIndex,
           this.pageSize
         )
@@ -189,26 +198,26 @@ export class ListTransferenciaComponent implements OnInit {
   }
 
   onRowClick(transferencia: Transferencia, index) {
-    this.expandedTransferencia = transferencia;
-    this.cargandoService.openDialog();
-    if (transferencia?.transferenciaItemList == null) {
-      this.transferenciaService
-        .onGetTransferencia(transferencia.id)
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.cargandoService.closeDialog();
-          if (res != null) {
-            this.selectedTransferencia = res;
-            this.dataSource.data = updateDataSource(
-              this.dataSource.data,
-              res,
-              index
-            );
-          }
-        });
-    } else {
-      this.cargandoService.closeDialog();
-    }
+    // this.expandedTransferencia = transferencia;
+    // this.cargandoService.openDialog();
+    // if (transferencia?.transferenciaItemList == null) {
+    //   this.transferenciaService
+    //     .onGetTransferencia(transferencia.id)
+    //     .pipe(untilDestroyed(this))
+    //     .subscribe((res) => {
+    //       this.cargandoService.closeDialog();
+    //       if (res != null) {
+    //         this.selectedTransferencia = res;
+    //         this.dataSource.data = updateDataSource(
+    //           this.dataSource.data,
+    //           res,
+    //           index
+    //         );
+    //       }
+    //     });
+    // } else {
+    //   this.cargandoService.closeDialog();
+    // }
   }
 
   onEdit(transferencia: Transferencia, index) {

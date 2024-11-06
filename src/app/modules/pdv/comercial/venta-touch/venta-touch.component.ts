@@ -1,13 +1,18 @@
 import {
   AfterViewInit,
   Component,
-  ElementRef, Inject,
+  ElementRef,
+  Inject,
   Input,
   OnDestroy,
   OnInit,
-  ViewChild
+  ViewChild,
 } from "@angular/core";
-import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from "@angular/material/dialog";
+import {
+  MAT_DIALOG_DATA,
+  MatDialog,
+  MatDialogRef,
+} from "@angular/material/dialog";
 import { Observable, Subject, Subscription } from "rxjs";
 import { isInt } from "../../../../commons/core/utils/numbersUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
@@ -24,7 +29,7 @@ import { AllTiposPreciosGQL } from "../../../../modules/productos/tipo-precio/gr
 import { TipoPrecio } from "../../../../modules/productos/tipo-precio/tipo-precio.model";
 import {
   NotificacionColor,
-  NotificacionSnackbarService
+  NotificacionSnackbarService,
 } from "../../../../notificacion-snackbar.service";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
@@ -40,7 +45,7 @@ import { Venta } from "../../../operaciones/venta/venta.model";
 import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 import {
   PagoResponseData,
-  PagoTouchComponent
+  PagoTouchComponent,
 } from "./pago-touch/pago-touch.component";
 import { PdvCategoria } from "./pdv-categoria/pdv-categoria.model";
 import { PdvGrupo } from "./pdv-grupo/pdv-grupo.model";
@@ -48,7 +53,7 @@ import { SeleccionarCajaDialogComponent } from "./seleccionar-caja-dialog/selecc
 import { SeleccionarEnvaseDialogComponent } from "./seleccionar-envase-dialog/seleccionar-envase-dialog.component";
 import {
   SelectProductosDialogComponent,
-  SelectProductosResponseData
+  SelectProductosResponseData,
 } from "./select-productos-dialog/select-productos-dialog.component";
 import { UtilitariosDialogComponent } from "./utilitarios-dialog/utilitarios-dialog.component";
 import { VentaTouchService } from "./venta-touch.service";
@@ -79,18 +84,26 @@ export interface VentaTouchData {
   venta: Venta;
 }
 
-
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { environment } from "../../../../../environments/environment";
-import { VentaCredito, VentaCreditoCuotaInput } from "../../../financiero/venta-credito/venta-credito.model";
+import {
+  VentaCredito,
+  VentaCreditoCuotaInput,
+} from "../../../financiero/venta-credito/venta-credito.model";
 import { VentaCreditoService } from "../../../financiero/venta-credito/venta-credito.service";
 import { Delivery } from "../../../operaciones/delivery/delivery.model";
 import { DeliveryEstado } from "../../../operaciones/delivery/enums";
 import { VentaEstado } from "../../../operaciones/venta/enums/venta-estado.enums";
 import { VentaService } from "../../../operaciones/venta/venta.service";
 import { DeliveryService } from "./delivery-dialog/delivery.service";
-import { ListDeliveryComponent, ListDeliveryData } from "./list-delivery/list-delivery.component";
-import { DescuentoDialogComponent, DescuentoDialogData } from "./pago-touch/descuento-dialog/descuento-dialog.component";
+import {
+  ListDeliveryComponent,
+  ListDeliveryData,
+} from "./list-delivery/list-delivery.component";
+import {
+  DescuentoDialogComponent,
+  DescuentoDialogData,
+} from "./pago-touch/descuento-dialog/descuento-dialog.component";
 import { FormControl } from "@angular/forms";
 
 @UntilDestroy({ checkProperties: true })
@@ -100,8 +113,7 @@ import { FormControl } from "@angular/forms";
   styleUrls: ["./venta-touch.component.css"],
 })
 export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
-
-  @ViewChild('container', { read: ElementRef }) container: ElementRef;
+  @ViewChild("container", { read: ElementRef }) container: ElementRef;
 
   @Input() data: Tab;
 
@@ -136,7 +148,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   filteredPrecios: string[];
   modoPrecio: string;
   isDelivery = false;
-  selectedDelivery: Delivery
+  selectedDelivery: Delivery;
   mostrarPrecios = false;
   cantidadControl = new FormControl();
   modoConsulta = false;
@@ -167,8 +179,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
     this.isDialogOpen = false;
-    this.filteredPrecios = environment['precios']
-    this.modoPrecio = environment['modo']
+    this.filteredPrecios = environment["precios"];
+    this.modoPrecio = environment["modo"];
   }
 
   ngOnInit(): void {
@@ -180,62 +192,64 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       this.isAuxiliar = this.data?.tabData?.data?.auxiliar;
     }, 0);
 
-    this.cajaService.onGetByUsuarioIdAndAbierto(this.mainService.usuarioActual.id)
+    this.cajaService
+      .onGetByUsuarioIdAndAbierto(this.mainService.usuarioActual.id)
       .pipe(untilDestroyed(this))
-      .subscribe(res => {
+      .subscribe((res) => {
         if (res != null) {
           this.cajaService.selectedCaja = res;
 
-          if (this.cajaService.selectedCaja == null || this.cajaService.selectedCaja?.conteoApertura == null) {
-            this.openSelectCajaDialog()
+          if (
+            this.cajaService.selectedCaja == null ||
+            this.cajaService.selectedCaja?.conteoApertura == null
+          ) {
+            this.openSelectCajaDialog();
           }
         } else {
-          this.openSelectCajaDialog()
+          this.openSelectCajaDialog();
         }
-      })
+      });
 
     setTimeout(() => {
-      this.buscadorFocusSub.next()
+      this.buscadorFocusSub.next();
     }, 3000);
 
     this.selectedItemList = this.itemList;
 
     if (this.dialogData?.venta) {
       this.selectedVenta = this.dialogData?.venta;
-      this.totalGs = this.selectedVenta?.totalGs
+      this.totalGs = this.selectedVenta?.totalGs;
       this.selectedItemList = this.selectedVenta?.ventaItemList;
     }
-
-
   }
 
   ngAfterViewInit(): void {
-    this.tabService.tabSub.pipe(untilDestroyed(this)).subscribe(res => {
+    this.tabService.tabSub.pipe(untilDestroyed(this)).subscribe((res) => {
       setTimeout(() => {
-        if (this.tabService?.currentTab()?.title == 'Venta') {
-          this.buscadorFocusSub.next()
+        if (this.tabService?.currentTab()?.title == "Venta") {
+          this.buscadorFocusSub.next();
         }
       }, 500);
-    })
+    });
 
-    this.container.nativeElement.addEventListener('keydown', (e) => {
+    this.container.nativeElement.addEventListener("keydown", (e) => {
       if (!this.isDialogOpen) {
         switch (e.key) {
           case "F12":
             if (this.itemList.length > 0) {
-              this.onPagoClick()
+              this.onPagoClick();
             }
             break;
           case "F11":
             if (this.itemList.length > 0 && !this.disableCobroRapido) {
-              this.onTicketClick(true)
+              this.onTicketClick(true);
             }
             break;
           case "F10":
-            this.onDeliveryClick()
+            this.onDeliveryClick();
             break;
           case "F9":
-            this.buscadorOpenSearch.next()
+            this.buscadorOpenSearch.next();
             break;
           case "F8":
             this.onTicketClick(false);
@@ -251,19 +265,19 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           case "F3":
             break;
           case "F2":
-            this.pdvAuxiliarClick()
+            this.pdvAuxiliarClick();
             break;
           case "F1":
-            this.openUtilitarios()
+            this.openUtilitarios();
             break;
           case "Escape":
-            if (this.selectedItemList.length > 0) this.removeItem({})
+            if (this.selectedItemList.length > 0) this.removeItem({});
             break;
           default:
             break;
         }
       }
-    })
+    });
   }
 
   getFormaPagos() {
@@ -286,32 +300,40 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     );
     this.dialogReference = this.selectCajaDialog;
-    this.selectCajaDialog.afterClosed().pipe(untilDestroyed(this)).subscribe((res) => {
-      this.selectCajaDialog = null
-      this.isDialogOpen = false;
-      let response: AdicionarCajaResponse = res;
-      if (res == "salir") {
-        this.tabService.removeTab(this.tabService.currentIndex);
-      } else if(res == 'consulta') {
-        this.modoConsulta = true;
+    this.selectCajaDialog
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        this.selectCajaDialog = null;
         this.isDialogOpen = false;
-      } else {
-        if (this.cajaService.selectedCaja?.conteoApertura == null) {
-          this.dialogoService.confirm('Atención', 'Esta caja no posee conteo inicial. Desea realizar el conteo inicial?').subscribe(dialogRes => {
-            if (dialogRes) {
-              this.openSelectCajaDialog()
-            } else {
-              this.tabService.removeTab(this.tabService.currentIndex)
-            }
-          })
+        let response: AdicionarCajaResponse = res;
+        if (res == "salir") {
+          this.tabService.removeTab(this.tabService.currentIndex);
+        } else if (res == "consulta") {
+          this.modoConsulta = true;
+          this.isDialogOpen = false;
+        } else {
+          if (this.cajaService.selectedCaja?.conteoApertura == null) {
+            this.dialogoService
+              .confirm(
+                "Atención",
+                "Esta caja no posee conteo inicial. Desea realizar el conteo inicial?"
+              )
+              .subscribe((dialogRes) => {
+                if (dialogRes) {
+                  this.openSelectCajaDialog();
+                } else {
+                  this.tabService.removeTab(this.tabService.currentIndex);
+                }
+              });
+          }
+          if (this.cajaService.selectedCaja?.conteoCierre != null) {
+            this.cajaService.selectedCaja = null;
+            this.openSelectCajaDialog();
+          }
+          this.isDialogOpen = false;
         }
-        if (this.cajaService.selectedCaja?.conteoCierre != null) {
-          this.cajaService.selectedCaja = null;
-          this.openSelectCajaDialog();
-        }
-        this.isDialogOpen = false;
-      }
-    });
+      });
   }
 
   closeSelectCajaDialog() {
@@ -321,36 +343,42 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   setPrecios() {
-    this.getMonedas.fetch(null, { errorPolicy: "all" }).pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res.errors == null) {
-        this.monedas = res.data.data;
-        this.cambioRs = this.monedas.find(
-          (m) => m.denominacion == "REAL"
-        )?.cambio;
-        this.cambioDs = this.monedas.find(
-          (m) => m.denominacion == "DOLAR"
-        )?.cambio;
-        this.cambioArg = this.monedas.find(
-          (m) => m.denominacion == "PESO ARG"
-        )?.cambio;
-        return true;
-      }
-    });
+    this.getMonedas
+      .fetch(null, { errorPolicy: "all" })
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res.errors == null) {
+          this.monedas = res.data.data;
+          this.cambioRs = this.monedas.find(
+            (m) => m.denominacion == "REAL"
+          )?.cambio;
+          this.cambioDs = this.monedas.find(
+            (m) => m.denominacion == "DOLAR"
+          )?.cambio;
+          this.cambioArg = this.monedas.find(
+            (m) => m.denominacion == "PESO ARG"
+          )?.cambio;
+          return true;
+        }
+      });
   }
 
   buscarTiposPrecios() {
-    this.getTiposPrecios.fetch().pipe(untilDestroyed(this)).subscribe((res) => {
-      if (!res.errors) {
-        this.tiposPrecios = res.data.data;
-        this.selectedTipoPrecio = this.tiposPrecios[0];
-      } else {
-        this.notificacionSnackbar.notification$.next({
-          texto: "No fue posible cargar tipos de precios",
-          color: NotificacionColor.warn,
-          duracion: 3,
-        });
-      }
-    });
+    this.getTiposPrecios
+      .fetch()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (!res.errors) {
+          this.tiposPrecios = res.data.data;
+          this.selectedTipoPrecio = this.tiposPrecios[0];
+        } else {
+          this.notificacionSnackbar.notification$.next({
+            texto: "No fue posible cargar tipos de precios",
+            color: NotificacionColor.warn,
+            duracion: 3,
+          });
+        }
+      });
   }
 
   onGridCardClick(grupo: PdvGrupo) {
@@ -367,10 +395,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         data: {
           productos,
           descripcion,
-          cantidad: this.cantidadControl.value
+          cantidad: this.cantidadControl.value,
         },
       })
-      .afterClosed().pipe(untilDestroyed(this))
+      .afterClosed()
+      .pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.isDialogOpen = false;
         let respuesta: SelectProductosResponseData = res;
@@ -385,24 +414,24 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           this.addItem(item);
         }
         this.dialogReference = undefined;
-        this.clearBuscadorSub.next()
-        this.buscadorFocusSub.next()
-        this.clearBuscadorSub.next()
+        this.clearBuscadorSub.next();
+        this.buscadorFocusSub.next();
+        this.clearBuscadorSub.next();
       });
   }
 
   calcularTotales() {
     this.totalGs = 0;
-    if(this.selectedItemList.length == 0) this.descuentoGs = 0;
+    if (this.selectedItemList.length == 0) this.descuentoGs = 0;
     this.selectedItemList.forEach((item) => {
       this.totalGs += Math.round(+item.cantidad * +item?.precio);
       this.descuentoGs += item.valorDescuento;
     });
   }
 
-  addItem(item: VentaItem, index?) {    
+  addItem(item: VentaItem, index?) {
     item.precio = item?.precioVenta?.precio;
-    let cantidad:number = +item.cantidad;
+    let cantidad: number = +item.cantidad;
     if (item.producto.balanza != true) {
       if (!isInt(cantidad)) {
         cantidad = 1;
@@ -415,13 +444,18 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       );
     }
     if (item.precioVenta == null) {
-      if (this.filteredPrecios == null || this.modoPrecio == 'NOT') {
+      if (this.filteredPrecios == null || this.modoPrecio == "NOT") {
         item.precioVenta = item.presentacion.precios?.find(
           (p) => p.principal == true && p.activo == true
         );
-      } else if (this.modoPrecio?.includes('MIXTO') || this.modoPrecio?.includes('ONLY')) {
+      } else if (
+        this.modoPrecio?.includes("MIXTO") ||
+        this.modoPrecio?.includes("ONLY")
+      ) {
         item.precioVenta = item?.presentacion?.precios.find(
-          (p) => this.filteredPrecios.includes(p.tipoPrecio?.descripcion) && p.activo == true
+          (p) =>
+            this.filteredPrecios.includes(p.tipoPrecio?.descripcion) &&
+            p.activo == true
         );
       }
     }
@@ -441,13 +475,18 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     if (presentacionCaja != null) {
       Object.assign(item2, item);
       item2.presentacion = presentacionCaja;
-      if (this.filteredPrecios == null || this.modoPrecio == 'NOT') {
+      if (this.filteredPrecios == null || this.modoPrecio == "NOT") {
         item2.precioVenta = item2.presentacion?.precios?.find(
           (precio) => precio?.principal == true && precio.activo == true
         );
-      } else if (this.modoPrecio?.includes('MIXTO') || this.modoPrecio?.includes('ONLY')) {
+      } else if (
+        this.modoPrecio?.includes("MIXTO") ||
+        this.modoPrecio?.includes("ONLY")
+      ) {
         item2.precioVenta = item2.presentacion?.precios?.find(
-          (p) => this.filteredPrecios.includes(p.tipoPrecio?.descripcion) && p.activo == true
+          (p) =>
+            this.filteredPrecios.includes(p.tipoPrecio?.descripcion) &&
+            p.activo == true
         );
       }
 
@@ -486,7 +525,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               },
               disableClose: true,
             })
-            .afterClosed().pipe(untilDestroyed(this))
+            .afterClosed()
+            .pipe(untilDestroyed(this))
             .subscribe((envaseRes) => {
               this.isDialogOpen = false;
               this.dialogReference = undefined;
@@ -498,20 +538,23 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         if (this.isDelivery == true) {
           item.venta = this.selectedDelivery.venta;
           item.activo = true;
-          this.ventaService.onSaveVentaItem(item.toInput()).subscribe(ventaItemRes => {
-            if (ventaItemRes != null) {
-              item.id = ventaItemRes.id;
-              item.sucursalId = ventaItemRes.sucursalId
-              this.selectedItemList.push(item);
-              this.calcularTotales();
-              let venta = new Venta();
-              Object.assign(venta, this.selectedDelivery.venta)
-              venta.totalGs = this.totalGs;
-              venta.totalRs = this.totalGs / this.cambioRs;
-              venta.totalDs = this.totalGs / this.cambioDs;
-              this.ventaService.onSaveVenta2(venta.toInput()).subscribe();
-            }
-          })
+          this.ventaService
+            .onSaveVentaItem(item.toInput())
+            .subscribe((ventaItemRes) => {
+              if (ventaItemRes != null) {
+                item.id = ventaItemRes.id;
+                item.sucursalId = ventaItemRes.sucursalId;
+                this.selectedItemList.push(item);
+                this.calcularTotales();
+                let venta = new Venta();
+                Object.assign(venta, this.selectedDelivery.venta);
+                venta.totalGs = this.totalGs;
+                venta.totalRs = this.totalGs / this.cambioRs;
+                venta.totalDs = this.totalGs / this.cambioDs;
+                venta.delivery = this.selectedDelivery;
+                this.ventaService.onSaveVenta2(venta.toInput()).subscribe();
+              }
+            });
         } else {
           this.selectedItemList.push(item);
         }
@@ -521,114 +564,128 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     item.cantidad = cantidad;
     if (item.cantidad > 0) this.ultimoAdicionado.push(item);
     this.selectedTipoPrecio = this.tiposPrecios[0];
-    this.cantidadControl.setValue(1)
+    this.cantidadControl.setValue(1);
   }
 
   removeItem(event: any) {
-    this.mostrarPrecios = false
-    let item = event['item']
-    let index = event['i']
+    this.mostrarPrecios = false;
+    let item = event["item"];
+    let index = event["i"];
 
     if (item == null && index == null) {
       this.dialogReference = this.confirmDialogService
-        .confirm("Atención!!", "Realmente desea eliminar la lista de itens?").pipe(untilDestroyed(this))
+        .confirm("Atención!!", "Realmente desea eliminar la lista de itens?")
+        .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res) {
             if (this.isDelivery) {
               if (this.isAuxiliar) {
                 this.itemList2.forEach((itm, index2) => {
-                  this.ventaService.onDeleteVentaItem(itm.id, itm.sucursalId).subscribe(res => {
-                    if (res) {
-                      this.itemList2.splice(index, index2);
-                      this.calcularTotales();
-                      let venta = new Venta();
-                      Object.assign(venta, this.selectedDelivery.venta)
-                      venta.totalGs = this.totalGs;
-                      venta.totalRs = this.totalGs / this.cambioRs;
-                      venta.totalDs = this.totalGs / this.cambioDs;
-                      this.ventaService.onSaveVenta2(venta.toInput()).subscribe();
-                    }
-                  })
-                })
+                  this.ventaService
+                    .onDeleteVentaItem(itm.id, itm.sucursalId)
+                    .subscribe((res) => {
+                      if (res) {
+                        this.itemList2.splice(index, index2);
+                        this.calcularTotales();
+                        let venta = new Venta();
+                        Object.assign(venta, this.selectedDelivery.venta);
+                        venta.totalGs = this.totalGs;
+                        venta.totalRs = this.totalGs / this.cambioRs;
+                        venta.totalDs = this.totalGs / this.cambioDs;
+                        venta.delivery = this.selectedDelivery;
+                        this.ventaService
+                          .onSaveVenta2(venta.toInput())
+                          .subscribe();
+                      }
+                    });
+                });
               } else {
                 this.itemList.forEach((itm, index2) => {
-                  this.ventaService.onDeleteVentaItem(itm.id, itm.sucursalId).subscribe(res => {
-                    if (res) {
-                      this.itemList.splice(index, index2);
-                      this.calcularTotales();
-                      let venta = new Venta();
-                      Object.assign(venta, this.selectedDelivery.venta)
-                      venta.totalGs = this.totalGs;
-                      venta.totalRs = this.totalGs / this.cambioRs;
-                      venta.totalDs = this.totalGs / this.cambioDs;
-                      this.ventaService.onSaveVenta2(venta.toInput()).subscribe();
-                    }
-                  })
-                })
+                  this.ventaService
+                    .onDeleteVentaItem(itm.id, itm.sucursalId)
+                    .subscribe((res) => {
+                      if (res) {
+                        this.itemList.splice(index, index2);
+                        this.calcularTotales();
+                        let venta = new Venta();
+                        Object.assign(venta, this.selectedDelivery.venta);
+                        venta.totalGs = this.totalGs;
+                        venta.totalRs = this.totalGs / this.cambioRs;
+                        venta.totalDs = this.totalGs / this.cambioDs;
+                        venta.delivery = this.selectedDelivery;
+                        this.ventaService
+                          .onSaveVenta2(venta.toInput())
+                          .subscribe();
+                      }
+                    });
+                });
               }
               this.selectedItemList = [];
               this.calcularTotales();
             } else {
               if (this.isAuxiliar) {
-                this.itemList2 = []
+                this.itemList2 = [];
               } else {
-                this.itemList = []
+                this.itemList = [];
               }
               this.selectedItemList = [];
               this.calcularTotales();
             }
-
           }
           this.dialogReference = undefined;
         });
     } else {
       if (item?.id != null && item?.sucursalId != null) {
-        this.ventaService.onDeleteVentaItem(item.id, item.sucursalId).subscribe(res => {
-          if (res) {
-            this.selectedItemList.splice(index, 1);
-            this.calcularTotales();
-          }
-        })
+        this.ventaService
+          .onDeleteVentaItem(item.id, item.sucursalId)
+          .subscribe((res) => {
+            if (res) {
+              this.selectedItemList.splice(index, 1);
+              this.calcularTotales();
+            }
+          });
       } else {
         this.selectedItemList.splice(index, 1);
         this.calcularTotales();
       }
-
     }
   }
 
   editItem(event: any) {
-    let item = new VentaItem;
-    this.mostrarPrecios = false
-    Object.assign(item, event['item'])
-    let index = event['i']
+    let item = new VentaItem();
+    this.mostrarPrecios = false;
+    Object.assign(item, event["item"]);
+    let index = event["i"];
 
     let data: DescuentoDialogData = {
       valorTotal: item.precioVenta.precio,
       saldo: 0,
       cambioDs: this.cambioDs,
-      cambioRs: this.cambioRs
-    }
-    this.matDialog.open(DescuentoDialogComponent, {
-      data: data
-    }).afterClosed().subscribe(res => {
-      if (res > 0) {
-        item.valorDescuento = res;
-        this.selectedItemList[index] = item;
-        this.calcularTotales()
-      }
-    })
+      cambioRs: this.cambioRs,
+    };
+    this.matDialog
+      .open(DescuentoDialogComponent, {
+        data: data,
+      })
+      .afterClosed()
+      .subscribe((res) => {
+        if (res > 0) {
+          item.valorDescuento = res;
+          this.selectedItemList[index] = item;
+          this.calcularTotales();
+        }
+      });
   }
 
   crearItem(eventData: any, index?) {
-    this.mostrarPrecios = false
-    let producto = eventData['producto']
-    let texto = eventData['texto']
-    let cantidad = eventData['cantidad']
+    this.mostrarPrecios = false;
+    let producto = eventData["producto"];
+    let texto = eventData["texto"];
+    let cantidad = eventData["cantidad"];
     let item: VentaItem = new VentaItem();
     let selectedCodigo: Codigo;
-    let selectedPresentacion = eventData['presentacion'];
-    let precio = eventData['precio'];
+    let selectedPresentacion = eventData["presentacion"];
+    let precio = eventData["precio"];
     item.cantidad = cantidad;
     item.producto = producto;
     item.precioCosto = producto?.costo?.costoMedio;
@@ -650,17 +707,22 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         );
       }
     } else {
-      item.presentacion = selectedPresentacion
+      item.presentacion = selectedPresentacion;
     }
 
     if (precio == null) {
-      if (this.filteredPrecios == null || this.modoPrecio == 'NOT') {
+      if (this.filteredPrecios == null || this.modoPrecio == "NOT") {
         item.precioVenta = item?.presentacion?.precios?.find(
           (p) => p.principal == true && p.activo == true
         );
-      } else if (this.modoPrecio?.includes('MIXTO') || this.modoPrecio?.includes('ONLY')) {
+      } else if (
+        this.modoPrecio?.includes("MIXTO") ||
+        this.modoPrecio?.includes("ONLY")
+      ) {
         item.precioVenta = item?.presentacion?.precios?.find(
-          (p) => this.filteredPrecios.includes(p.tipoPrecio?.descripcion) && p.activo == true
+          (p) =>
+            this.filteredPrecios.includes(p.tipoPrecio?.descripcion) &&
+            p.activo == true
         );
         if (item.precioVenta == null) {
           item.precioVenta = item?.presentacion?.precios?.find(
@@ -669,7 +731,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         }
       }
     } else {
-      item.precioVenta = precio
+      item.precioVenta = precio;
     }
 
     if (item.presentacion == null || item.precioVenta == null) {
@@ -681,7 +743,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     } else {
       this.addItem(item);
     }
-    this.buscadorFocusSub.next()
+    this.buscadorFocusSub.next();
     this.cantidadControl.setValue(1);
   }
 
@@ -692,31 +754,31 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   pdvAuxiliarClick() {
     if (this.isDelivery) {
       this.isDelivery = false;
-      this.selectedItemList = []
-      this.calcularTotales()
+      this.selectedItemList = [];
+      this.calcularTotales();
     } else {
       if (!this.isAuxiliar) {
         this.isAuxiliar = true;
         this.selectedItemList = this.itemList2;
-        this.calcularTotales()
+        this.calcularTotales();
       } else {
         this.isAuxiliar = false;
         this.selectedItemList = this.itemList;
-        this.calcularTotales()
+        this.calcularTotales();
       }
     }
-    this.buscadorFocusSub.next()
+    this.buscadorFocusSub.next();
   }
 
   onPagoClick() {
-    if(this.modoConsulta) return;
+    if (this.modoConsulta) return;
     this.isDialogOpen = true;
-    this.mostrarPrecios = false
+    this.mostrarPrecios = false;
     if (this.selectedItemList?.length > 0) {
       let descuento = 0;
-      this.selectedItemList.forEach(vi => {
+      this.selectedItemList.forEach((vi) => {
         descuento += vi.cantidad * vi.valorDescuento;
-      })
+      });
       this.dialogReference = this.dialog
         .open(PagoTouchComponent, {
           autoFocus: true,
@@ -725,16 +787,16 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             valor: this.totalGs,
             itemList: this.selectedItemList,
             descuento: descuento,
-            delivery: this.selectedDelivery
+            delivery: this.selectedDelivery,
           },
           width: "90vw",
           height: "80vh",
         })
-        .afterClosed().pipe(untilDestroyed(this))
+        .afterClosed()
+        .pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.isDialogOpen = false;
           if (res != null) {
-            this.cargandoService.openDialog();
             let response: PagoResponseData = res;
             let venta = new Venta();
             venta.totalGs = this.totalGs;
@@ -750,43 +812,67 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             if (response.cobroDetalleList != null) {
               response.cobroDetalleList.forEach((cobroDetalle) => {
                 if (cobroDetalle.descuento) {
-                  cobro.totalGs -= cobroDetalle.valor
+                  cobro.totalGs -= cobroDetalle.valor;
                 }
                 if (cobroDetalle.aumento)
                   cobroDetalle.valor = cobroDetalle.valor * -1;
                 cobro.cobroDetalleList.push(cobroDetalle);
               });
             }
-            this.cargandoService.closeDialog();
-            let ventaCredito: VentaCredito = res['ventaCredito'];
-            let ventaCreditoCuotaInputList: VentaCreditoCuotaInput[] = res['itens']
+            let ventaCredito: VentaCredito = res["ventaCredito"];
+            let ventaCreditoCuotaInputList: VentaCreditoCuotaInput[] =
+              res["itens"];
             if (ventaCredito != null) venta.cliente = ventaCredito.cliente;
             if (this.isDelivery) {
-              this.deliveryService.onSaveDeliveryEstado(this.selectedDelivery.id, DeliveryEstado.CONCLUIDO).subscribe(delRes => {
+              venta.id = this.selectedDelivery.venta.id;
+              venta.ventaItemList = this.selectedDelivery.venta.ventaItemList;
+              cobro.id = this.selectedDelivery.venta.cobro.id;
+              venta.cobro = cobro;
+              venta.delivery = this.selectedDelivery;
+              
+              this.ventaService.onSaveVentaDelivery(venta.toInput(), this.selectedDelivery.toInput(), cobro.toItemInputList(), ventaCredito != null ? ventaCredito.toInput() : null, ventaCredito != null ? ventaCreditoCuotaInputList : null).subscribe(ventaDeliveryRes => {
+                this.resetForm();
+                this.calcularTotales();  
                 this.isDelivery = false;
-                this.selectedDelivery = null;
-                this.resetForm()
-                this.calcularTotales()
+                this.selectedDelivery = null;              
               })
+
+              // this.onSaveVenta(
+              //   venta,
+              //   cobro,
+              //   response.ticket == true,
+              //   !response?.facturado,
+              //   ventaCredito?.toInput(),
+              //   ventaCreditoCuotaInputList
+              // ).subscribe((ventaRes) => {
+              //   this.resetForm();
+              //   this.calcularTotales();
+              // });
             } else {
-              this.onSaveVenta(venta, cobro, response.ticket == true, ventaCredito?.toInput(), ventaCreditoCuotaInputList).subscribe(ventaRes => {
-              })
+              this.onSaveVenta(
+                venta,
+                cobro,
+                response.ticket == true,
+                !response?.facturado,
+                ventaCredito?.toInput(),
+                ventaCreditoCuotaInputList
+              ).subscribe((ventaRes) => {});
             }
             this.dialogReference = undefined;
           } else if (this.isDelivery) {
             this.isDelivery = false;
             this.selectedDelivery = null;
-            this.resetForm()
-            this.calcularTotales()
+            this.resetForm();
+            this.calcularTotales();
           }
-          this.buscadorFocusSub.next()
+          this.buscadorFocusSub.next();
         });
     }
   }
 
   resetForm() {
     if (!this.isAuxiliar) {
-      this.itemList = []
+      this.itemList = [];
       this.selectedItemList = this.itemList;
     } else {
       this.itemList2 = [];
@@ -796,8 +882,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     this.totalGs = 0;
   }
 
-  onTicketClick(ticket?: boolean) {    
-    if(this.modoConsulta) return;
+  onTicketClick(ticket?: boolean) {
+    if (this.modoConsulta) return;
     this.disableCobroRapido = true;
     //guardar la compra, si la compra se guardo con exito, imprimir ticket y resetForm()
     let venta = new Venta();
@@ -824,12 +910,14 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     cobroDetalle.pago = true;
     cobroDetalle.valor = this.totalGs;
     cobro.cobroDetalleList = [cobroDetalle];
-    this.selectedItemList.forEach(vi => {
+    this.selectedItemList.forEach((vi) => {
       descuento += vi.valorDescuento;
-    })
+    });
     if (descuento > 0) {
       let cobroDetalleDesc = new CobroDetalle();
-      cobroDetalleDesc.moneda = this.monedas.find((m) => m.denominacion == "GUARANI");
+      cobroDetalleDesc.moneda = this.monedas.find(
+        (m) => m.denominacion == "GUARANI"
+      );
       cobroDetalleDesc.cambio = cobroDetalleDesc.moneda.cambio;
       cobroDetalleDesc.formaPago = this.formaPagoList.find(
         (f) => f.descripcion == "EFECTIVO"
@@ -844,39 +932,59 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     // cobroDetalle.
     this.onSaveVenta(venta, cobro, ticket).subscribe().unsubscribe();
     this.disableCobroRapido = false;
-    this.buscadorFocusSub.next()
+    this.buscadorFocusSub.next();
   }
 
-  onSaveVenta(venta, cobro, ticket, ventaCreditoInput?, ventaCreditoCuotaInputList?): Observable<Venta> {
-    if(this.modoConsulta) return;
-    return new Observable(obs => {
-      this.ventaTouchServive.onSaveVenta(venta, cobro, ticket || ventaCreditoInput != null, ventaCreditoInput, ventaCreditoCuotaInputList, ticket == true).pipe(untilDestroyed(this)).subscribe((res) => {
-        this.cargandoService.closeDialog();
-        if (res.id != null) {
-          this.notificacionSnackbar.notification$.next({
-            color: NotificacionColor.success,
-            texto: "Venta guardada con éxito",
-            duracion: 2,
-          });
-          this.resetForm();
-          obs.next(res)
-        } else {
-          this.notificacionSnackbar.notification$.next({
-            color: NotificacionColor.danger,
-            texto: "Ups! Ocurrió un problema al guardar",
-            duracion: 3,
-          });
-          obs.next(null)
-        }
-      });
-    })
+  onSaveVenta(
+    venta: Venta,
+    cobro,
+    ticket,
+    facturar?,
+    ventaCreditoInput?,
+    ventaCreditoCuotaInputList?
+  ): Observable<Venta> {
+    if (facturar == null) {
+      facturar = ticket == true;
+    }
+    if (this.isDelivery) venta.delivery = this.selectedDelivery;
+    if (this.modoConsulta) return;
+    return new Observable((obs) => {
+      this.ventaTouchServive
+        .onSaveVenta(
+          venta,
+          cobro,
+          ticket || ventaCreditoInput != null,
+          ventaCreditoInput,
+          ventaCreditoCuotaInputList,
+          facturar
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          if (res.id != null) {
+            this.notificacionSnackbar.notification$.next({
+              color: NotificacionColor.success,
+              texto: "Venta guardada con éxito",
+              duracion: 2,
+            });
+            this.resetForm();
+            obs.next(res);
+          } else {
+            this.notificacionSnackbar.notification$.next({
+              color: NotificacionColor.danger,
+              texto: "Ups! Ocurrió un problema al guardar",
+              duracion: 3,
+            });
+            obs.next(null);
+          }
+        });
+    });
   }
 
   onDeliveryClick() {
-    if(this.modoConsulta) return;
+    if (this.modoConsulta) return;
     this.isDialogOpen = true;
     if (this.selectedDelivery == null) {
-      this.selectedDelivery = new Delivery;
+      this.selectedDelivery = new Delivery();
       let venta = new Venta();
       venta.caja = this.cajaService?.selectedCaja;
       venta.estado = VentaEstado.ABIERTA;
@@ -894,70 +1002,75 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       cambioRs: this.cambioRs,
       cambioDs: this.cambioDs,
       monedaList: this.monedas,
-      formaPagoList: this.formaPagoList
-    }
-    this.matDialog.open(ListDeliveryComponent, {
-      width: '100vw',
-      maxWidth: '99vw',
-      height: '80vh',
-      data: data,
-      autoFocus: false
-    }).afterClosed().subscribe(res => {
-      if (res != null) {
-        if (res['delivery'] != null) {
-          this.selectedDelivery = new Delivery;
-          Object.assign(this.selectedDelivery, res['delivery']);
-          this.isDelivery = true;
-        }
-        switch (res['role']) {
-          case 'para-entrega':
-            this.isDelivery = false;
-            this.selectedDelivery = null;
-            this.resetForm()
-            this.calcularTotales()
-            break;
-          case 'edit':
-            if (this.selectedDelivery != null) {
-              this.isDelivery = true;
-              this.selectedItemList = []
-              if (this.selectedDelivery.venta != null) {
-                this.ventaService.onGetPorId(this.selectedDelivery.venta.id).subscribe(ventaRes => {
-                  if (ventaRes != null) {
-                    this.selectedDelivery.venta = ventaRes;
-                    this.selectedItemList = this.selectedDelivery.venta.ventaItemList;
-                    this.calcularTotales()
-                  }
-                })
+      formaPagoList: this.formaPagoList,
+    };
+    this.matDialog
+      .open(ListDeliveryComponent, {
+        width: "100vw",
+        maxWidth: "99vw",
+        height: "80vh",
+        data: data,
+        autoFocus: false,
+      })
+      .afterClosed()
+      .subscribe((res) => {
+        if (res != null) {
+          if (res["delivery"] != null) {
+            this.selectedDelivery = new Delivery();
+            Object.assign(this.selectedDelivery, res["delivery"]);
+            this.isDelivery = true;
+          }
+          switch (res["role"]) {
+            case "para-entrega":
+              this.isDelivery = false;
+              this.selectedDelivery = null;
+              this.resetForm();
+              this.calcularTotales();
+              break;
+            case "edit":
+              if (this.selectedDelivery != null) {
+                this.isDelivery = true;
+                this.selectedItemList = [];
+                if (this.selectedDelivery.venta != null) {
+                  this.ventaService
+                    .onGetPorId(this.selectedDelivery.venta.id)
+                    .subscribe((ventaRes) => {
+                      if (ventaRes != null) {
+                        this.selectedDelivery.venta = ventaRes;
+                        this.selectedItemList =
+                          this.selectedDelivery.venta.ventaItemList;
+                        this.calcularTotales();
+                      }
+                    });
+                }
               }
-            }
-            break;
-          case 'finalizar':
-            this.selectedItemList = this.selectedDelivery.venta.ventaItemList;
-            this.calcularTotales()
-            this.onPagoClick();
-            break;
-          default:
-            this.isDelivery = false;
-            this.selectedDelivery = null;
-            this.resetForm()
-            this.calcularTotales()
-            break;
+              break;
+            case "finalizar":
+              this.selectedItemList = this.selectedDelivery.venta.ventaItemList;
+              this.calcularTotales();
+              this.onPagoClick();
+              break;
+            default:
+              this.isDelivery = false;
+              this.selectedDelivery = null;
+              this.resetForm();
+              this.calcularTotales();
+              break;
+          }
+        } else {
+          this.isDelivery = false;
+          this.selectedDelivery = null;
+          this.resetForm();
+          this.calcularTotales();
         }
-      } else {
-        this.isDelivery = false;
-        this.selectedDelivery = null;
-        this.resetForm()
-        this.calcularTotales()
-      }
-      this.isDialogOpen = false;
-    })
+        this.isDialogOpen = false;
+      });
   }
 
-  ngOnDestroy(): void {
-  }
+  ngOnDestroy(): void {}
 
   openUtilitarios() {
-    if(this.modoConsulta) return;
+    if (this.modoConsulta) return;
     this.isDialogOpen = true;
     this.dialogReference = this.dialog
       .open(UtilitariosDialogComponent, {
@@ -969,7 +1082,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         restoreFocus: true,
         autoFocus: true,
       })
-      .afterClosed().pipe(untilDestroyed(this))
+      .afterClosed()
+      .pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.isDialogOpen = false;
         if (this.cajaService?.selectedCaja != null) {
@@ -981,11 +1095,11 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           }
         }
         this.dialogReference = undefined;
-        this.buscadorFocusSub.next()
+        this.buscadorFocusSub.next();
       });
   }
 
-  updateCantidad(cantidad: number){
+  updateCantidad(cantidad: number) {
     this.cantidadControl.setValue(cantidad);
   }
 
@@ -1094,7 +1208,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   // }
 }
 
-
 /*
 - quitar papas rusticas
 - burger especiales son: Sr. Miyagi, Tentation, Chicken (ya tenes todos los precios vd)
@@ -1103,4 +1216,3 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 - Quitar los adicionales para milanesa napolitana y bife a caballo
 
 */
-

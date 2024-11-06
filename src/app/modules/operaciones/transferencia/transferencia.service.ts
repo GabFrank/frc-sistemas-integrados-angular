@@ -14,7 +14,6 @@ import { GenericCrudService } from './../../../generics/generic-crud.service';
 import { Injectable } from '@angular/core';
 import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaInput, TipoTransferencia } from './transferencia.model';
 import { DeleteTransferenciaGQL } from './graphql/deleteTransferencia';
-import { GetTransferenciaItensPorTransferenciaIdGQL } from './graphql/getTransferenciaItensPorTransferenciaId';
 import { GetTransferenciasPorUsuarioGQL } from './graphql/getTransferenciasPorUsuario';
 import { GetTransferenciasWithFilterGQL } from './graphql/getTransferenciasWithFilter';
 import { ImprimirTransferenciaGQL } from './graphql/imprimirTransferencia';
@@ -25,6 +24,9 @@ import { Tab } from '../../../layouts/tab/tab.model';
 import { ListProductoComponent } from '../../productos/producto/list-producto/list-producto.component';
 import { ReportesComponent } from '../../reportes/reportes/reportes.component';
 import { PageInfo } from '../../../app.component';
+import { GetTransferenciaItemGQL } from './graphql/getTransferenciaItem';
+import { GetTransferenciaItensPorTransferenciaIdGQL } from './graphql/getTransferenciaItensPorTransferenciaIdWithFilter';
+import { GetTransferenciaItensPorTransferenciaIdWithFilterGQL } from './graphql/getTransferenciaItensPorTransferenciaId';
 
 @UntilDestroy()
 @Injectable({
@@ -45,11 +47,13 @@ export class TransferenciaService {
     private getTransferenciasPorFecha: GetTransferenciaPorFechaGQL,
     private mainService: MainService,
     private transferenciaItemPorTransferenciaId: GetTransferenciaItensPorTransferenciaIdGQL,
+    private transferenciaItemPorTransferenciaIdWithFilter: GetTransferenciaItensPorTransferenciaIdWithFilterGQL,
     private transferenciasPorUsuario: GetTransferenciasPorUsuarioGQL,
     private getTransferenciasWithFiler: GetTransferenciasWithFilterGQL,
     private imprimirTransferencia: ImprimirTransferenciaGQL,
     private reporteService: ReporteService,
-    private tabService: TabService
+    private tabService: TabService,
+    private getTransferenciaItem: GetTransferenciaItemGQL
   ) { }
 
   onImprimirTransferencia(id, ticket?) {
@@ -82,7 +86,7 @@ export class TransferenciaService {
     return this.genericCrudService.onGetById(this.transferenciaItemPorTransferenciaId, id, page, size);
   }
 
-  onSaveTransferencia(input): Observable<Transferencia> {
+  onSaveTransferencia(input, responseOnError?:boolean): Observable<Transferencia> {
     input.usuarioPreTransferenciaId = this.mainService.usuarioActual.id;
     return this.genericCrudService.onSave(this.saveTransferencia, input);
   }
@@ -209,5 +213,15 @@ export class TransferenciaService {
       size
     });
   }
+
+  onGetTransferenciaItem(id: number): Observable<TransferenciaItem> {
+    return this.genericCrudService.onGetById(this.getTransferenciaItem, id);
+  }
+
+  onGetTransferenciaItensPorTransferenciaIdWithFilter(id?, texto?, page?, size?) {
+    return this.genericCrudService.onCustomQuery(this.transferenciaItemPorTransferenciaIdWithFilter, {id, name: texto, page, size});
+ 
+  }
+  
 }
 

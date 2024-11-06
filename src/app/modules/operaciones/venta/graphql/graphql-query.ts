@@ -1,8 +1,8 @@
 import gql from "graphql-tag";
 
 export const ventasQuery = gql`
-    query ($sucId: ID){
-    data: ventas (sucId: $sucId) {
+  query ($sucId: ID) {
+    data: ventas(sucId: $sucId) {
       id
       sucursalId
       cliente {
@@ -101,7 +101,7 @@ export const ventaQuery = gql`
       totalDs
       cobro {
         id
-        cobroDetalleList{
+        cobroDetalleList {
           id
           moneda {
             denominacion
@@ -136,10 +136,11 @@ export const saveVenta = gql`
     $cobro: CobroInput
     $cobroDetalleList: [CobroDetalleInput]
     $ticket: Boolean
+    $facturar: Boolean
     $printerName: String
-    $local: String,
+    $local: String
     $pdvId: Int
-    $ventaCreditoInput: VentaCreditoInput, 
+    $ventaCreditoInput: VentaCreditoInput
     $ventaCreditoCuotaInputList: [VentaCreditoCuotaInput]
   ) {
     data: saveVenta(
@@ -147,13 +148,34 @@ export const saveVenta = gql`
       ventaItemList: $ventaItemList
       cobro: $cobro
       cobroDetalleList: $cobroDetalleList
-      ticket: $ticket,
-      printerName: $printerName,
-      local: $local,
-      pdvId: $pdvId,
+      ticket: $ticket
+      facturar: $facturar
+      printerName: $printerName
+      local: $local
+      pdvId: $pdvId
       ventaCreditoInput: $ventaCreditoInput
       ventaCreditoCuotaInputList: $ventaCreditoCuotaInputList
-    ){
+    ) {
+      id
+    }
+  }
+`;
+
+export const saveVentaDelivery = gql`
+  mutation saveVentaDelivery(
+    $ventaInput: VentaInput!
+    $deliveryInput: DeliveryInput!
+    $cobroDetalleList: [CobroDetalleInput]
+    $ventaCreditoInput: VentaCreditoInput
+    $ventaCreditoCuotaInputList: [VentaCreditoCuotaInput]
+  ) {
+    data: saveVentaDelivery(
+      ventaInput: $ventaInput
+      deliveryInput: $deliveryInput
+      cobroDetalleList: $cobroDetalleList
+      ventaCreditoInput: $ventaCreditoInput
+      ventaCreditoCuotaInputList: $ventaCreditoCuotaInputList
+    ) {
       id
     }
   }
@@ -179,71 +201,94 @@ export const cancelarVentaQuery = gql`
 
 export const imprimirPagareQuery = gql`
   mutation imprimirPagare(
-    $id: ID!,
-    $itens: [VentaCreditoCuotaInput]!,
-    $printerName: String,
-    $local: String,
+    $id: ID!
+    $itens: [VentaCreditoCuotaInput]!
+    $printerName: String
+    $local: String
     $sucId: ID
-    ) {
+  ) {
     data: imprimirPagare(
       id: $id
       itens: $itens
-      printerName: $printerName,
-      local: $local,
+      printerName: $printerName
+      local: $local
       sucId: $sucId
-      )
+    )
   }
 `;
 
 export const reimprimirVentaQuery = gql`
   mutation reimprimirVenta(
     $id: ID!
-    $printerName: String,
-    $local: String,
+    $printerName: String
+    $local: String
     $sucId: ID
-    ) {
+  ) {
     data: reimprimirVenta(
       id: $id
-      printerName: $printerName,
-      local: $local,
+      printerName: $printerName
+      local: $local
       sucId: $sucId
-      )
+    )
   }
 `;
 
 //ventasPorCajaId
 
 export const ventasPorCajaIdQuery = gql`
-  query ($id: ID!, $page: Int, $size: Int, $asc: Boolean, $sucId: ID, $formaPago: ID, $estado: VentaEstado, $isDelivery: Boolean) {
-    data: ventasPorCajaId(id: $id, page: $page,size: $size,asc: $asc, sucId: $sucId, formaPago: $formaPago, estado: $estado, isDelivery: $isDelivery) {
-      id
-      delivery {
+  query (
+    $idVenta: ID
+    $idCaja: ID!
+    $page: Int
+    $size: Int
+    $asc: Boolean
+    $sucId: ID
+    $formaPago: ID
+    $estado: VentaEstado
+    $isDelivery: Boolean
+    $monedaId: Int
+  ) {
+    data: ventasPorCajaId(
+      idVenta: $idVenta
+      idCaja: $idCaja
+      page: $page
+      size: $size
+      asc: $asc
+      sucId: $sucId
+      formaPago: $formaPago
+      estado: $estado
+      isDelivery: $isDelivery
+      monedaId: $monedaId
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
         id
-        precio {
-          valor
+        sucursalId
+        cliente {
+          id
+          persona {
+            nombre
+          }
+        }
+        estado
+        creadoEn
+        totalGs
+        totalRs
+        totalDs
+        delivery {
+          id
+          precio {
+            valor
+          }
+          estado
         }
       }
-      sucursalId
-      cliente {
-        id
-        persona {
-          nombre
-        }
-      }
-      formaPago {
-        id
-        descripcion
-      }
-      estado
-      creadoEn
-      usuario {
-        id
-      }
-      valorDescuento
-      valorTotal
-      totalGs
-      totalRs
-      totalDs
     }
   }
 `;
@@ -261,30 +306,23 @@ export const ventaPorPeriodoQuery = gql`
 `;
 
 export const countVentaQuery = gql`
-  {data: countVenta}
-`
+  {
+    data: countVenta
+  }
+`;
 
 export const saveVentaItemQuery = gql`
-  mutation saveVentaItem(
-    $entity: VentaItemInput!
-  ) {
-    data: saveVentaItem(
-      entity: $entity
-    ){
+  mutation saveVentaItem($entity: VentaItemInput!) {
+    data: saveVentaItem(entity: $entity) {
       id
       sucursalId
     }
   }
 `;
 
-
 export const saveCobroDetalleQuery = gql`
-  mutation saveCobroDetalle(
-    $entity: CobroDetalleInput!
-  ) {
-    data: saveCobroDetalle(
-      entity: $entity
-    ){
+  mutation saveCobroDetalle($entity: CobroDetalleInput!) {
+    data: saveCobroDetalle(entity: $entity) {
       id
     }
   }
@@ -296,3 +334,15 @@ export const deleteCobroDetalleQuery = gql`
   }
 `;
 
+export const ventaItemQuery = gql`
+  query ($id: ID!, $sucId: ID) {
+    data: ventaItem(id: $id, sucId: $sucId) {
+      id
+      sucursalId
+      venta {
+        id
+        sucursalId
+      }
+    }
+  }
+`;

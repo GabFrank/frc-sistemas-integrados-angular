@@ -64,11 +64,7 @@ export class ListMaletinComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.maletinService.onGetAll(0, 100).subscribe(res => {
-      if (res != null) {
-        this.dataSource.data = res;
-      }
-    })
+    this.onFiltrar()
   }
 
   rowSelectedEvent(e) {
@@ -80,7 +76,7 @@ export class ListMaletinComponent implements OnInit {
         maletin
       },
       disableClose: true,
-      width: '50%',
+      width: '70%',
       autoFocus: true,
       restoreFocus: true
     }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
@@ -98,7 +94,11 @@ export class ListMaletinComponent implements OnInit {
 
   }
   onFiltrar() {
-
+    this.maletinService.onGetAll().subscribe(res => {
+      if (res != null) {
+        this.dataSource.data = res;
+      }
+    })
   }
   resetFiltro() {
 

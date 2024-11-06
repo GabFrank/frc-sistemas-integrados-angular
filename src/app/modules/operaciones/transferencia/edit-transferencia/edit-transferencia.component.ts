@@ -65,6 +65,12 @@ import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { PageInfo } from "../../../../app.component";
 import { DialogoNuevasFuncionesComponent } from "../../../../shared/components/dialogo-nuevas-funciones/dialogo-nuevas-funciones.component";
 import { ListTransferenciaComponent } from "../list-transferencia/list-transferencia.component";
+import {
+  dateToString,
+  parseShortDate,
+  validarFecha,
+} from "../../../../commons/core/utils/dateUtils";
+import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -97,6 +103,9 @@ export class EditTransferenciaComponent implements OnInit {
   @ViewChild("monedaInput", { static: false }) monedaInput: ElementRef;
   @ViewChild("monedaVueltoInput", { static: false })
   monedaVueltoInput: ElementRef;
+
+  @ViewChild("filtroProductoInput", { static: false })
+  filtroProductoInput: ElementRef;
 
   @Input()
   data: Tab;
@@ -185,6 +194,9 @@ export class EditTransferenciaComponent implements OnInit {
   monedaSub: Subscription;
   monedaTimer;
 
+  //filtro de productos
+  filtroProductosOpen = false;
+  filtroProductoControl = new FormControl(null);
   constructor(
     private matDialog: MatDialog,
     public mainService: MainService,
@@ -194,7 +206,8 @@ export class EditTransferenciaComponent implements OnInit {
     private monedaService: MonedaService,
     private tabService: TabService,
     private presentacionService: PresentacionService,
-    private dialogoService: DialogosService
+    private dialogoService: DialogosService,
+    private notificacionService: NotificacionSnackbarService
   ) {}
 
   ngOnInit(): void {
@@ -234,10 +247,12 @@ export class EditTransferenciaComponent implements OnInit {
     }, 1000);
 
     setTimeout(() => {
-      this.monedaList = this.monedaService.monedaList;
-      this.monedaList?.length > 0
-        ? this.onMonedaSelect(this.monedaList[0])
-        : null;
+      this.monedaService.onGetAll().subscribe((data: Moneda[]) => {
+        this.monedaList = data;
+        this.monedaList?.length > 0
+          ? this.onMonedaSelect(this.monedaList[0])
+          : null;
+      });
     }, 1000);
 
     // this.monedaSub = this.monedaControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
@@ -271,14 +286,14 @@ export class EditTransferenciaComponent implements OnInit {
         data: {
           id: 123,
           componente: EditTransferenciaComponent,
-          titulo: 'Nuevas funciones en esta pantalla de transferencias',
+          titulo: "Nuevas funciones en esta pantalla de transferencias",
           mensaje: `
           1 - A partir de ahora tenemos paginación en la tabla, ya no será utilizado el botón cargar más. Podes seleccionar la cantidad de itens para mostrar en la lista y navegar con los controles que estan en la barra inferior de la lista.\n
           2 - Al pasar productos pesables, el sistema no avisará sobre productos duplicados. Verificar atentamente para no pasar dos veces el mismo producto.
-          `
+          `,
         },
-        width: '60%'
-      })
+        width: "60%",
+      });
     }, 1000);
   }
 
@@ -324,33 +339,58 @@ export class EditTransferenciaComponent implements OnInit {
       .subscribe(async (res) => {
         this.isDialogOpen = false;
         if (res != null) {
-          this.selectedTransferencia.sucursalOrigen = res["sucursalOrigen"];
-          this.selectedTransferencia.sucursalDestino = res["sucursalDestino"];
-          this.codigoInput.nativeElement.focus();
-          if (this.selectedTransferencia?.id != null) {
-            this.transferenciaService
-              .onSaveTransferencia(this.selectedTransferencia.toInput())
-              .pipe(untilDestroyed(this))
-              .subscribe((saveTransferenciaRes) => {
-                this.selectedTransferencia.sucursalOrigen =
-                  saveTransferenciaRes.sucursalOrigen;
-                this.selectedTransferencia.sucursalDestino =
-                  saveTransferenciaRes.sucursalDestino;
-              });
-          }
+          let auxTransf = new Transferencia();
+          Object.assign(auxTransf, this.selectedTransferencia);
+
+          auxTransf.sucursalOrigen = res["sucursalOrigen"];
+          auxTransf.sucursalDestino = res["sucursalDestino"];
+          // this.codigoInput.nativeElement.focus();
+          // if (this.selectedTransferencia?.id != null) {
+          this.transferenciaService
+            .onSaveTransferencia(auxTransf.toInput())
+            .pipe(untilDestroyed(this))
+            .subscribe((saveTransferenciaRes) => {
+              this.selectedTransferencia.sucursalOrigen =
+                saveTransferenciaRes.sucursalOrigen;
+              this.selectedTransferencia.sucursalDestino =
+                saveTransferenciaRes.sucursalDestino;
+              this.selectedTransferencia.id = saveTransferenciaRes.id;
+              this.tabService.changeCurrentTabName(
+                "Transferencia " + this.selectedTransferencia.id
+              );
+            });
+          // }
+        } else {
+          this.dialogoService
+            .confirm(
+              "Atención!!",
+              "Para iniciar una transferencia debes de seleccionar las sucursales de origen y destino",
+              null,
+              null,
+              true,
+              "Selec. sucursales",
+              "Salir"
+            )
+            .subscribe((res2) => {
+              if (res2 == true) {
+                this.selectSucursales();
+              } else {
+                this.tabService.removeCurrentTab();
+              }
+            });
         }
       });
   }
 
   cargarDatos() {
-    this.cargandoService.openDialog(false, "Cargando datos");
+    // this.cargandoService.openDialog(false, "Cargando datos");
     let id = this.data.tabData["id"];
     if (id != null) {
       this.transferenciaService
         .onGetTransferencia(id)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
-          this.cargandoService.closeDialog();
+          // this.cargandoService.closeDialog();
           if (res != null) {
             this.selectedTransferencia = new Transferencia();
             Object.assign(this.selectedTransferencia, res);
@@ -486,6 +526,7 @@ export class EditTransferenciaComponent implements OnInit {
       mostrarOpciones: false,
       mostrarStock: true,
       conservarUltimaBusqueda: true,
+      transferencia: this.selectedTransferencia,
     };
     this.matDialog
       .open(PdvSearchProductoDialogComponent, {
@@ -599,7 +640,8 @@ export class EditTransferenciaComponent implements OnInit {
               this.dataSource.data,
               res
             );
-            if(this.pageSize == this.dataSource.data?.length) this.dataSource.data.pop();
+            if (this.pageSize == this.dataSource.data?.length)
+              this.dataSource.data.pop();
             this.paginator.length = this.paginator.length + 1;
           }
         }
@@ -649,7 +691,7 @@ export class EditTransferenciaComponent implements OnInit {
         );
         this.vencimientoControl.setValue(
           item.vencimientoPreTransferencia != null
-            ? new Date(item.vencimientoPreTransferencia)
+            ? dateToString(item.vencimientoPreTransferencia, "dd/MM/yy")
             : null
         );
         this.matSelect.focus();
@@ -948,6 +990,7 @@ export class EditTransferenciaComponent implements OnInit {
       this.productoService.onGetProductoPorCodigo(text).subscribe((res) => {
         if (res != null) {
           this.selectedProducto = res;
+          this.isPesable = this.selectedProducto.balanza == true;
           let foundItem = this.dataSource.data?.find(
             (t) =>
               t.presentacionPreTransferencia?.producto?.id ==
@@ -1061,15 +1104,15 @@ export class EditTransferenciaComponent implements OnInit {
       if (
         this.selectedProducto != null &&
         this.presentacionControl.valid &&
-        this.cantidadPresentacionControl.valid &&
-        (this.vencimientoControl.value == null ||
-          this.vencimientoControl.value >= new Date())
+        this.cantidadPresentacionControl.valid
       ) {
         let item = new TransferenciaItem();
         Object.assign(item, this.selectedTransferenciaItem);
         item.activo = true;
         item.cantidadPreTransferencia = this.cantidadPresentacionControl.value;
-        item.vencimientoPreTransferencia = this.vencimientoControl.value;
+        item.vencimientoPreTransferencia = parseShortDate(
+          this.vencimientoControl.value
+        );
         item.transferencia = this.selectedTransferencia;
         item.presentacionPreTransferencia = this.presentacionControl.value;
         item.poseeVencimiento = this.vencimientoControl.value != null;
@@ -1083,15 +1126,15 @@ export class EditTransferenciaComponent implements OnInit {
         if (
           this.selectedProducto != null &&
           this.presentacionControl.valid &&
-          this.cantidadPresentacionControl.valid &&
-          (this.vencimientoControl.value == null ||
-            this.vencimientoControl.value >= new Date())
+          this.cantidadPresentacionControl.valid
         ) {
           let item = new TransferenciaItem();
           item.activo = true;
           item.cantidadPreTransferencia =
             this.cantidadPresentacionControl.value;
-          item.vencimientoPreTransferencia = this.vencimientoControl.value;
+          item.vencimientoPreTransferencia = parseShortDate(
+            this.vencimientoControl.value
+          );
           item.transferencia = this.selectedTransferencia;
           item.presentacionPreTransferencia = this.presentacionControl.value;
           item.poseeVencimiento = this.vencimientoControl.value != null;
@@ -1103,9 +1146,16 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onVencimientoEnter(date?: string) {
-    if (date != null && this.vencimientoControl.value == null)
-      this.vencimientoControl.setValue(new Date(date));
-
+    if (date != null) {
+      let validDate = validarFecha(date);
+      if (!validDate) {
+        this.vencimientoInput.nativeElement.select();
+        this.notificacionService.openWarn(
+          "Fecha invalida, favor voler a verificar"
+        );
+        return;
+      }
+    }
     if (
       this.selectedTransferencia.sucursalOrigen?.nombre?.includes("COMPRAS")
     ) {
@@ -1117,22 +1167,20 @@ export class EditTransferenciaComponent implements OnInit {
         if (
           this.selectedProducto != null &&
           this.presentacionControl.valid &&
-          this.cantidadPresentacionControl.valid &&
-          (this.vencimientoControl.value == null ||
-            this.vencimientoControl.value >= new Date())
+          this.cantidadPresentacionControl.valid
         ) {
           let item = new TransferenciaItem();
           Object.assign(item, this.selectedTransferenciaItem);
           item.activo = true;
           item.cantidadPreTransferencia =
             this.cantidadPresentacionControl.value;
-          item.vencimientoPreTransferencia =
-            this.vencimientoControl.value != null
-              ? new Date(this.vencimientoControl.value)
-              : null;
+          item.vencimientoPreTransferencia = parseShortDate(
+            this.vencimientoControl.value
+          );
           item.transferencia = this.selectedTransferencia;
           item.presentacionPreTransferencia = this.presentacionControl.value;
           item.poseeVencimiento = this.vencimientoControl.value != null;
+          console.log(item);
           this.onSaveTransferenciaItem(item);
           this.onClear();
         }
@@ -1151,16 +1199,34 @@ export class EditTransferenciaComponent implements OnInit {
             item.activo = true;
             item.cantidadPreTransferencia =
               this.cantidadPresentacionControl.value;
-            item.vencimientoPreTransferencia = this.vencimientoControl.value;
+            item.vencimientoPreTransferencia = parseShortDate(
+              this.vencimientoControl.value
+            );
             item.transferencia = this.selectedTransferencia;
             item.presentacionPreTransferencia = this.presentacionControl.value;
             item.poseeVencimiento = this.vencimientoControl.value != null;
+            console.log(item);
+
             this.onSaveTransferenciaItem(item);
             this.onClear();
           }
         });
       }
     }
+  }
+
+  onDateInput(event: any): void {
+    let input = event.target.value.replace(/\D/g, ""); // Remove any non-digit characters
+
+    if (input.length > 2 && input.length <= 4) {
+      // Add slash after day
+      input = `${input.slice(0, 2)}/${input.slice(2)}`;
+    } else if (input.length > 4) {
+      // Add slashes after day and month
+      input = `${input.slice(0, 2)}/${input.slice(2, 4)}/${input.slice(4, 6)}`;
+    }
+
+    this.vencimientoControl.setValue(input, { emitEvent: false }); // Update the form control without emitting an event
   }
 
   onCodigoFocus() {
@@ -1239,5 +1305,42 @@ export class EditTransferenciaComponent implements OnInit {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
     this.getTransferenciaItemList();
+  }
+
+  abrirFiltroProductos() {
+    this.filtroProductosOpen = !this.filtroProductosOpen;
+    if (!this.filtroProductosOpen) {
+      this.getTransferenciaItemList();
+    } else {
+      setTimeout(() => {
+        this.focusFilterProductoInput();
+      }, 100);
+    }
+  }
+
+  focusFilterProductoInput() {
+    this.filtroProductoInput.nativeElement.focus();
+  }
+
+  onFilterProducto() {
+    let texto: string = this.filtroProductoControl.value;
+    if (texto != null && texto.trim().length > 0) {
+      this.transferenciaService
+        .onGetTransferenciaItensPorTransferenciaIdWithFilter(
+          this.selectedTransferencia.id,
+          texto,
+          this.pageIndex,
+          this.pageSize
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe((res: PageInfo<TransferenciaItem>) => {
+          if (res != null) {
+            console.log(res.getContent);
+
+            this.selectedPageInfo = res;
+            this.dataSource.data = res.getContent;
+          }
+        });
+    }
   }
 }

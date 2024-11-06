@@ -8,12 +8,11 @@ import { Funcionario } from '../funcionario.model';
 import { FuncionarioService } from '../funcionario.service';
 
 
+import { FormControl, Validators } from '@angular/forms';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSort, Sort } from '@angular/material/sort';
+import { MatSort } from '@angular/material/sort';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { PageInfo } from '../../../../app.component';
-import { FuncionarioWizardComponent } from '../funcionario-wizard/funcionario-wizard.component';
-import { FormControl, Validators } from '@angular/forms';
 import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { AdicionarFuncionarioDialogComponent } from '../adicionar-funcionario-dialog/adicionar-funcionario-dialog.component';
@@ -49,11 +48,11 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
   pageEvent: PageEvent;
   orderById = null;
   orderByNombre = null;
+  selectedPageInfo: PageInfo<Funcionario>;
 
   dataSource = new MatTableDataSource<Funcionario>([]);
   expandedFuncionario: Funcionario;
   displayedColumns: string[] = ['id', 'nombre', 'sucursal', 'cargo', 'supervisadoPor', 'telefono', 'nickname', 'acciones'];
-  selectedPageInfo: PageInfo<Funcionario>;
 
   sucursalList: Sucursal[];
 

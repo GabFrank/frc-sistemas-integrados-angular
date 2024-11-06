@@ -9,7 +9,6 @@ import {
 import { UsuarioInput } from "./usuario-input.model";
 import { MainService } from "../../../main.service";
 import { SaveUsuarioGQL } from "./graphql/saveUsuario";
-import { UsuarioPorPersonaIdGQL } from "./graphql/usuarioPorPersonnaId";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { Observable } from "rxjs";
@@ -17,6 +16,10 @@ import { DeleteUsuarioGQL } from "./graphql/deleteUsuario";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { VerificarUsuarioGQL } from "./graphql/verificarUsuario";
 import { UsuariosGQL } from "./graphql/usuariosQuery";
+import { UsuarioPorPersonaIdGQL } from "./graphql/usuarioPorPersonaId";
+import { PageInfo } from "../../../app.component";
+import { SaveInicioSesionGQL } from "./graphql/saveInicioSesion";
+import { InicioSesion, InicioSesionInput } from "../../configuracion/models/inicio-sesion.model";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -35,7 +38,9 @@ export class UsuarioService {
     private deleteUsuario: DeleteUsuarioGQL,
     private injector: Injector,
     private verificarUsuario: VerificarUsuarioGQL,
-    private getUsuarios: UsuariosGQL
+    private getUsuarios: UsuariosGQL,
+    private saveInicioSesion: SaveInicioSesionGQL
+
   ) // private mainService: MainService
   {
     setTimeout(() => this.genericService = injector.get(GenericCrudService));
@@ -46,25 +51,7 @@ export class UsuarioService {
   }
 
   onGetUsuario(id: number): Observable<any> {
-    return new Observable((obs) => {
-      this.getUsuario
-        .fetch(
-          {
-            id,
-          },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        ).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res?.errors == null) {
-            obs.next(res?.data.data);
-          } else {
-            obs.next(res.errors);
-          }
-        });
-    });
+    return this.genericService.onCustomQuery(this.getUsuario, {id});
   }
 
   onGetUsuarioPorPersonaId(id: number): Observable<any> {
@@ -118,5 +105,9 @@ export class UsuarioService {
 
   onVerificarUsuario(texto): Observable<boolean>{
     return this.genericService.onGetByTexto(this.verificarUsuario, texto)
+  }
+
+  onSaveInicioSesion(entity: InicioSesionInput): Observable<InicioSesion>{
+    return this.genericService.onSave(this.saveInicioSesion, entity);
   }
 }

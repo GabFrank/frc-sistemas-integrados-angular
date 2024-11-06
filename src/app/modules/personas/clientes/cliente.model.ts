@@ -1,3 +1,4 @@
+import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
 import { Contacto } from '../../general/contactos/contacto';
 import { Persona } from '../persona/persona.model';
 import { Usuario } from '../usuarios/usuario.model';
@@ -13,6 +14,10 @@ export class Cliente {
   usuario: Usuario;
   saldo: number;
   codigo: string;
+  sucursal: Sucursal;
+  tributa: boolean
+  verificadoSet: boolean
+  direccion: string;
 
   toInput(): ClienteInput {
     let input = new ClienteInput;
@@ -23,8 +28,14 @@ export class Cliente {
     input.usuarioId = this.usuario?.id
     input.tipo = this.tipo
     input.codigo = this.codigo
+    input.tributa = this.tributa
+    input.verificadoSet = this.verificadoSet
+    input.nombre = this.nombre
+    input.saldo = this.saldo
+    input.direccion = this.direccion;
+    input.documento = this.documento;
     return input;
-  }s
+  }
 }
 
 export class ClienteInput {
@@ -32,10 +43,17 @@ export class ClienteInput {
   tipo: TipoCliente
   personaId: number;
   nombre: string;
+  documento: string;
   credito: number;
   creadoEn: Date;
-  codigo: string;
   usuarioId: number;
+  saldo: number;
+  codigo: string;
+  sucursalId: number;
+  tributa: boolean
+  verificadoSet: boolean
+  direccion: string;
+
 }
 
 export enum TipoCliente {

@@ -2,7 +2,7 @@ import gql from "graphql-tag";
 
 export const cajasQuery = gql`
   query ($sucId: ID) {
-  data: cajas(sucId: $sucId) {
+    data: cajas(sucId: $sucId) {
       id
       sucursalId
       sucursal {
@@ -121,35 +121,71 @@ export const balancePorFecha = gql`
 export const balancePorCajaIdQuery = gql`
   query ($id: ID!) {
     data: balancePorCajaId(id: $id) {
-        totalGeneral
-        totalVentaGs
-        totalVentaRs
-        totalVentaDs
-        totalTarjeta
-        totalCredito
-        totalRetiroGs
-        totalRetiroRs
-        totalRetiroDs
-        totalGastoGs
-        totalGastoRs
-        totalGastoDs
-        totalAperGs
-        totalAperRs
-        totalAperDs
-        totalCierreGs
-        totalCierreRs
-        totalCierreDs
-        totalDescuento
-        totalAumento
-        totalCanceladasGs
-        totalCanceladasRs
-        totalCanceladasDs
-        vueltoGs
-        vueltoRs
-        vueltoDs
-        diferenciaGs
-        diferenciaRs
-        diferenciaDs
+      totalGeneral
+      totalVentaGs
+      totalVentaRs
+      totalVentaDs
+      totalTarjeta
+      totalCredito
+      totalRetiroGs
+      totalRetiroRs
+      totalRetiroDs
+      totalGastoGs
+      totalGastoRs
+      totalGastoDs
+      totalAperGs
+      totalAperRs
+      totalAperDs
+      totalCierreGs
+      totalCierreRs
+      totalCierreDs
+      totalDescuento
+      totalAumento
+      totalCanceladasGs
+      totalCanceladasRs
+      totalCanceladasDs
+      vueltoGs
+      vueltoRs
+      vueltoDs
+      diferenciaGs
+      diferenciaRs
+      diferenciaDs
+    }
+  }
+`;
+
+export const balancePorCajaIAndSucursalIdQuery = gql`
+  query ($id: ID!, $sucId: ID!) {
+    data: balancePorCajaIdAndSucursalId(id: $id, sucId: $sucId) {
+      totalGeneral
+      totalVentaGs
+      totalVentaRs
+      totalVentaDs
+      totalTarjeta
+      totalCredito
+      totalRetiroGs
+      totalRetiroRs
+      totalRetiroDs
+      totalGastoGs
+      totalGastoRs
+      totalGastoDs
+      totalAperGs
+      totalAperRs
+      totalAperDs
+      totalCierreGs
+      totalCierreRs
+      totalCierreDs
+      totalDescuento
+      totalAumento
+      totalCanceladasGs
+      totalCanceladasRs
+      totalCanceladasDs
+      vueltoGs
+      vueltoRs
+      vueltoDs
+      diferenciaGs
+      diferenciaRs
+      diferenciaDs
     }
   }
 `;
@@ -215,38 +251,63 @@ export const cajaQuery = gql`
           cantidad
         }
       }
-      balance {
-        totalGeneral
-        totalVentaGs
-        totalVentaRs
-        totalVentaDs
-        totalTarjeta
-        totalCredito
-        totalRetiroGs
-        totalRetiroRs
-        totalRetiroDs
-        totalGastoGs
-        totalGastoRs
-        totalGastoDs
-        totalAperGs
-        totalAperRs
-        totalAperDs
-        totalCierreGs
-        totalCierreRs
-        totalCierreDs
-        totalDescuento
-        totalAumento
-        totalCanceladasGs
-        totalCanceladasRs
-        totalCanceladasDs
-        vueltoGs
-        vueltoRs
-        vueltoDs
-        diferenciaGs
-        diferenciaRs
-        diferenciaDs
+    }
+  }
+`;
+
+export const cajaSimpleQuery = gql`
+  query ($id: ID!, $sucId: ID) {
+    data: pdvCaja(id: $id, sucId: $sucId) {
+      id
+      sucursal {
+        id
+        nombre
+      }
+      sucursalId
+      activo
+      estado
+      tuvoProblema
+      fechaApertura
+      fechaCierre
+      observacion
+      maletin {
+        id
+        descripcion
+      }
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      conteoApertura {
+        id
+        totalGs
+        totalRs
+        totalDs
+      }
+      conteoCierre {
+        id
+        totalGs
+        totalRs
+        totalDs
+      }
+      verificado
+      verificadoPor {
+        id
+        persona {
+          id
+          nombre
+        }
       }
     }
+  }
+`;
+
+export const verificarCajaQuery = gql`
+  query ($cajaId:ID!, $sucursalId: ID!, $usuarioId:ID!, $verificado: Boolean) {
+    data: verificarCaja(cajaId: $cajaId, sucursalId: $sucursalId, usuarioId: $usuarioId, verificado: $verificado)
   }
 `;
 
@@ -390,16 +451,79 @@ export const imprimirBalanceQuery = gql`
   query imprimirBalance(
     $id: ID!
     $printerName: String
-    $local: String,
+    $local: String
     $sucId: ID
-    ) {
+  ) {
     imprimirBalance(
       id: $id
       printerName: $printerName
       local: $local
       sucId: $sucId
-      ) {
+    ) {
       id
+    }
+  }
+`;
+
+export const cajasWithFilters = gql`
+  query (
+    $cajaId: ID
+    $estado: PdvCajaEstado
+    $maletinId: ID
+    $cajeroId: ID
+    $fechaInicio: String
+    $fechaFin: String
+    $sucId: ID
+    $verificado: Boolean,
+    $page: Int
+    $size: Int
+  ) {
+    data: cajasWithFilters(
+      cajaId: $cajaId
+      estado: $estado
+      maletinId: $maletinId
+      cajeroId: $cajeroId
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      sucId: $sucId
+      verificado: $verificado
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        sucursal {
+          id
+          nombre
+        }
+        sucursalId
+        descripcion
+        activo
+        estado
+        tuvoProblema
+        fechaApertura
+        fechaCierre
+        observacion
+        verificado
+        maletin {
+          id
+          descripcion
+        }
+        creadoEn
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+      }
     }
   }
 `;

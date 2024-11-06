@@ -1,4 +1,4 @@
-docker run --name frc-server -v "C:\FRC\docker\pg-data\:/var/lib/postgresql/data" -p 5551:5432 -e POSTGRES_USER=franco -e POSTGRES_PASSWORD=franco -d --restart=always postgres:9.5
+docker run --name frc-server -v "C:/FRC/docker/pg-data:/var/lib/postgresql/data" -p 5551:5432 -e POSTGRES_USER=franco -e POSTGRES_PASSWORD=franco -d --restart=always postgres:16
 sudo docker run --name  -v "/Users/gabfranck/workspace/franco-systems/bd/docker-volume2/:/var/lib/postgresql/data" -p 3333:5432 -e POSTGRES_USER=franco -e POSTGRES_PASSWORD=franco postgres:9.5
 -- servidor rabbit
 docker run --name rabbit-server -v "/home/franco/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf" -e RABBITMQ_DEFAULT_USER=franco -e RABBITMQ_DEFAULT_PASS=franco -p 5673:5673 -p 15673:15673 -d --restart=always rabbitmq:3.12.4-management

@@ -2,6 +2,7 @@
   titulo="Cajas"
   (adicionar)="onAdd()"
   (filtrar)="onFilter()"
+  (resetFiltro)="onResetFilter()"
   style="height: 95%"
 >
   <div filtros fxLayout="column" style="width: 100%; height: 100%">
@@ -25,20 +26,28 @@
         </mat-form-field>
       </div>
       <div fxFlex="30%">
-        <mat-form-field style="width: 100%" class="shrinking-mat-form-field">
-          <mat-label>Situación</mat-label>
-          <mat-select [formControl]="estadoControl" multiple>
-            <mat-select-trigger>
-              <span *ngFor="let estado of estadoControl.value; let i = index"
-                >{{ estado }}
-                <span *ngIf="estadoControl.value?.length - 1 > i">, </span>
-              </span>
-            </mat-select-trigger>
-            <mat-option *ngFor="let estado of estadoList" [value]="estado">{{
-              estado
-            }}</mat-option>
-          </mat-select>
-        </mat-form-field>
+        <mat-label>Verificado</mat-label>
+        <mat-checkbox
+          [checked]="verificadoControl.value == true"
+          [indeterminate]="verificadoControl.value == null"
+          (click)="
+            verificadoControl.setValue(
+              verificadoControl.value === null
+                ? true
+                : verificadoControl.value === true
+                ? false
+                : null
+            )
+          "
+        >
+          {{
+            verificadoControl.value == null
+              ? "Todos"
+              : verificadoControl.value == true
+              ? "Si"
+              : "No"
+          }}
+        </mat-checkbox>
       </div>
       <div fxFlex="8%"></div>
       <div fxFlex="25%">
@@ -111,6 +120,7 @@
             matInput
             [formControl]="codigoMaletinControl"
             style="text-align: end"
+            readonly
           />
         </mat-form-field>
       </div>
@@ -121,6 +131,7 @@
             matInput
             [formControl]="maletinControl"
             (keyup.enter)="onMaletinSearch()"
+            readonly
           />
         </mat-form-field>
       </div>
@@ -134,13 +145,19 @@
         <mat-icon (click)="onMaletinSearch()" style="cursor: pointer"
           >search</mat-icon
         >
+        <mat-icon
+          *ngIf="selectedMaletin != null"
+          (click)="onSelectMaletin(null)"
+          style="cursor: pointer"
+          >clear</mat-icon
+        >
         <!-- </button> -->
       </div>
-      <div fxFlex="30%">
+      <!-- <div fxFlex="30%">
         <button mat-raised-button (click)="getBalance()">
           Generar balance
         </button>
-      </div>
+      </div> -->
     </div>
     <div
       fxFlex
@@ -157,6 +174,7 @@
             matInput
             [formControl]="codigoCajeroControl"
             style="text-align: end"
+            readonly
           />
         </mat-form-field>
       </div>
@@ -167,6 +185,7 @@
             matInput
             [formControl]="cajeroControl"
             (keyup.enter)="onCajeroEnter()"
+            readonly
           />
         </mat-form-field>
       </div>
@@ -177,8 +196,14 @@
           color="primary"
           (click)="onCajeroSearch()"
         > -->
-        <mat-icon (click)="onProductoSearch()" style="cursor: pointer"
+        <mat-icon (click)="onCajeroEnter()" style="cursor: pointer"
           >search</mat-icon
+        >
+        <mat-icon
+          *ngIf="selectedCajero != null"
+          (click)="onClearCajero()"
+          style="cursor: pointer"
+          >clear</mat-icon
         >
         <!-- </button> -->
       </div>
@@ -191,7 +216,7 @@
             matInput
             [formControl]="sucursalCodigoControl"
             (keyup.enter)="onSucursalSearchById(sucursalCodigoControl.value)"
-            style="text-align: center;"
+            style="text-align: center"
           />
         </mat-form-field>
       </div>
@@ -219,7 +244,12 @@
       </div>
     </div>
   </div>
-  <div table style="width: 100%" fxLayoutGap="20px">
+  <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
     <table
       mat-table
       [dataSource]="dataSource"
@@ -347,6 +377,23 @@
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="verificado">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 15%"
+        >
+          Verificado
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let caja"
+          style="text-align: center; width: 15%"
+        >
+          {{ caja?.verificado ? "Si" : "No" }}
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="usuario">
         <th
           mat-header-cell
@@ -415,6 +462,7 @@
       <tr
         mat-row
         *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+        [class.verificado]="row?.verificado == true"
       ></tr>
       <tr
         mat-row
@@ -422,7 +470,15 @@
         class="example-detail-row"
       ></tr>
     </table>
-    <br />
+    <mat-paginator
+      itemsPerPageLabel="Itens por pagina"
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)"
+      [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
+    <!-- <br />
     <div [hidden]="dataSource.data.length == 0" style="text-align: center">
       <button
         type="button"
@@ -433,6 +489,6 @@
       >
         <mat-icon>add</mat-icon>
       </button>
-    </div>
+    </div> -->
   </div>
 </app-generic-list>

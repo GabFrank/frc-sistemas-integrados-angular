@@ -31,7 +31,6 @@ export class LoginComponent implements OnInit {
     private loginService: LoginService,
     private dialogRef: MatDialogRef<LoginComponent>,
     public mainService: MainService,
-    private cargandoDialogService: CargandoDialogService
   ) { }
 
   ngOnInit(): void {
@@ -58,11 +57,9 @@ export class LoginComponent implements OnInit {
 
   onEntrar() {
     if (this.nicknameControl.valid && this.passwordControl.valid) {
-      this.cargandoDialogService.openDialog();
       this.loginService
         .login(this.nicknameControl.value, this.passwordControl.value)
         .subscribe((res) => {
-          this.cargandoDialogService.closeDialog();
           if (res.usuario != null) {
             this.mainService.authenticationSub.next(true);
             this.mainService.load()

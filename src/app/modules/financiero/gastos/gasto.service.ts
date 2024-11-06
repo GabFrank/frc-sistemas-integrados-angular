@@ -12,6 +12,7 @@ import { ReimprimirGastoGQL } from './graphql/reimprimirGasto';
 import { SaveGastoGQL } from './graphql/saveGasto';
 import { SaveVueltoGastoGQL } from './graphql/saveVuelto';
 import { FilterGastosGQL } from './graphql/filterGastos';
+import { PageInfo } from '../../../app.component';
 
 @Injectable({
   providedIn: 'root'
@@ -62,13 +63,14 @@ export class GastoService {
     return this.genericService.onSaveCustom(this.saveVuelto, data, false);
   }
 
-  onFilterGasto(id?: number, cajaId?: number, sucId?: number, responsableId?: number, page?: number, size?: number): Observable<Gasto[]> {
+  onFilterGasto(id?: number, cajaId?: number, sucId?: number, responsableId?: number, descripcion?: string, page?: number, size?: number): Observable<PageInfo<Gasto>> {
     return this.genericService.onCustomQuery(
       this.filterGasto, {
       id,
       cajaId,
       sucId,
       responsableId,
+      descripcion,
       page,
       size
     }, true

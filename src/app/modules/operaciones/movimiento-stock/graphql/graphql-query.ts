@@ -110,3 +110,102 @@ export const stockPorProductoQuery = gql`
     data: stockPorProducto(id: $id)
   }
 `;
+
+export const findMovimientoStockByFiltersQuery = gql`
+  query (
+    $inicio: String
+    $fin: String
+    $sucursalList: [Int]
+    $productoId: Int
+    $tipoMovimientoList: [TipoMovimiento]
+    $usuarioId: Int
+    $page: Int
+    $size: Int
+  ) {
+    data: findMovimientoStockByFilters(
+      inicio: $inicio
+      fin: $fin
+      sucursalList: $sucursalList
+      productoId: $productoId
+      tipoMovimientoList: $tipoMovimientoList
+      usuarioId: $usuarioId
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        producto {
+          id
+          descripcion
+        }
+        tipoMovimiento
+        referencia
+        creadoEn
+        usuario {
+          id
+          nickname
+        }
+        cantidad
+        estado
+        proveedor {
+          id
+        }
+        sucursalId
+        sucursal {
+          id
+          nombre
+        }
+      }
+    }
+  }
+`;
+
+export const findStockWithFiltersQuery = gql`
+  query (
+    $inicio: String
+    $fin: String
+    $sucursalList: [Int]
+    $productoId: Int
+    $tipoMovimientoList: [TipoMovimiento]
+    $usuarioId: Int
+  ) {
+    data: findStockWithFilters(
+      inicio: $inicio
+      fin: $fin
+      sucursalList: $sucursalList
+      productoId: $productoId
+      tipoMovimientoList: $tipoMovimientoList
+      usuarioId: $usuarioId
+    )
+  }
+`;
+
+export const findStockPorTipoMovimientoQuery = gql`
+  query (
+    $inicio: String
+    $fin: String
+    $sucursalList: [Int]
+    $productoId: Int
+    $tipoMovimientoList: [TipoMovimiento]
+    $usuarioId: Int
+  ) {
+    data: findStockPorTipoMovimiento(
+      inicio: $inicio
+      fin: $fin
+      sucursalList: $sucursalList
+      productoId: $productoId
+      tipoMovimientoList: $tipoMovimientoList
+      usuarioId: $usuarioId
+    ){
+      tipoMovimiento
+      stock
+    }
+  }
+`;

@@ -228,14 +228,14 @@
         <th
           mat-header-cell
           *matHeaderCellDef
-          style="text-align: center; width: 25%"
+          style="text-align: center; width: 20%"
         >
           Descripción
         </th>
         <td
           mat-cell
           *matCellDef="let inventarioProductoItem"
-          style="text-align: start; width: 25%"
+          style="text-align: start; width: 20%"
         >
           <span
             style="padding-right: 5px"
@@ -277,14 +277,14 @@
         <th
           mat-header-cell
           *matHeaderCellDef
-          style="text-align: center; width: 15%"
+          style="text-align: center; width: 10%"
         >
           Código de barras
         </th>
         <td
           mat-cell
           *matCellDef="let inventarioProductoItem"
-          style="text-align: center; width: 15%"
+          style="text-align: center; width: 10%"
           [copiarAClipboard]="
             inventarioProductoItem.presentacion?.producto?.codigoPrincipal
           "
@@ -307,8 +307,8 @@
           *matCellDef="let inventarioProductoItem"
           style="text-align: center; width: 10%"
         >
-          {{ inventarioProductoItem?.cantidad | number : "1.0-2" }}
-        </td>
+        {{ inventarioProductoItem?.cantidadFisica }}
+      </td>
       </ng-container>
 
       <ng-container matColumnDef="cantidadFisica">
@@ -324,7 +324,7 @@
           *matCellDef="let inventarioProductoItem"
           style="text-align: center; width: 10%"
         >
-          {{ inventarioProductoItem?.cantidadFisica }}
+          {{ inventarioProductoItem?.cantidad | number : "1.0-2" }}
         </td>
       </ng-container>
 
@@ -425,6 +425,29 @@
           style="text-align: center; width: 10%"
         >
           {{ inventarioProductoItem?.creadoEn | date : "short" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="sucursal">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 10%"
+        >
+          Sucursal
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let inventarioProductoItem"
+          style="text-align: center; width: 10%"
+          [matTooltip]="inventarioProductoItem?.inventarioProducto?.inventario?.sucursal
+          ?.nombre"
+          style="text-overflow: ellipsis;"
+        >
+          {{
+            inventarioProductoItem?.inventarioProducto?.inventario?.sucursal
+              ?.nombre | titlecase
+          }}
         </td>
       </ng-container>
 

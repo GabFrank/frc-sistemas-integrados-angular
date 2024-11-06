@@ -33,6 +33,7 @@ import { TabData, TabService } from "../../../../layouts/tab/tab.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { ProductoComponent } from "../../../productos/producto/edit-producto/producto.component";
 import { PageEvent } from "@angular/material/paginator";
+import { stringToTime } from "../../../../commons/core/utils/string-utils";
 
 export interface OrderList {
   nombre: string;
@@ -80,8 +81,8 @@ export class ListInventarioComponent implements OnInit {
   today = new Date();
   fechaInicioControl = new FormControl();
   fechaFinalControl = new FormControl();
-  horaInicioControl = new FormControl("07:00");
-  horaFinalControl = new FormControl("06:59");
+  horaInicioControl = new FormControl("00:00");
+  horaFinalControl = new FormControl("23:59");
 
   sucursalControl = new FormControl();
   sucursalList: Sucursal[];
@@ -104,6 +105,7 @@ export class ListInventarioComponent implements OnInit {
     "texto", //explicito diciendo (falta, sobra)
     "usuario",
     "creadoEn",
+    "sucursal"
   ];
 
   orderList: OrderList[] = [
@@ -186,10 +188,22 @@ export class ListInventarioComponent implements OnInit {
       if (productoIdList == null) productoIdList = [];
       productoIdList.push(p.id);
     });
+
+    let fechaInicial: Date = this.fechaInicioControl.value;
+    let fechaFin: Date = this.fechaFinalControl.value;
+    let horaInicial: Date = stringToTime(this.horaInicioControl.value);
+    let horaFinal: Date = stringToTime(this.horaFinalControl.value);
+    fechaInicial.setHours(horaInicial.getHours());
+    fechaInicial.setMinutes(horaInicial.getMinutes());
+    fechaInicial.setSeconds(horaInicial.getSeconds());
+    fechaFin.setHours(horaFinal.getHours());
+    fechaFin.setMinutes(horaFinal.getMinutes());
+    fechaFin.setSeconds(horaFinal.getSeconds());
+    
     this.inventarioService
       .onGetInventarioProductoItemWithFilters(
-        dateToString(this.fechaInicioControl.value),
-        dateToString(this.fechaFinalControl.value),
+        dateToString(fechaInicial),
+        dateToString(fechaFin),
         this.pageIndex,
         this.pageSize,
         this.ordenarPorControl.value?.value,
@@ -200,6 +214,8 @@ export class ListInventarioComponent implements OnInit {
       )
       .pipe(untilDestroyed(this))
       .subscribe((res: PageInfo<InventarioProductoItem>) => {
+        console.log(res.getContent);
+        
         this.selectedPageInfo = res;
         this.dataSource.data = res.getContent;
       });

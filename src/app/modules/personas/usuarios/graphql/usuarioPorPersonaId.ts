@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Query } from 'apollo-angular';
 import { Usuario } from '../usuario.model';
-import { usuarioPorPersonaIdQuery, usuarioQuery } from './graphql-query';
+import { usuarioPorPersonaIdQuery } from './graphql-query';
 
 export interface Response {
   data: Usuario;

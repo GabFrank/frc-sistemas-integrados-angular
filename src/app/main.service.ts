@@ -15,6 +15,7 @@ import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { IpcRenderer } from "electron";
 import { ActualizacionService } from "./modules/configuracion/actualizacion/actualizacion.service";
 import { SucursalService } from "./modules/empresarial/sucursal/sucursal.service";
+import { MonedaService } from "./modules/financiero/moneda/moneda.service";
 
 @UntilDestroy()
 @Injectable({
@@ -46,7 +47,7 @@ export class MainService implements OnDestroy {
   // isUserLoggerSub = new BehaviorSubject<boolean>(false);
 
   constructor(
-    private getMonedas: MonedasGetAllGQL,
+    // private getMonedas: MonedasGetAllGQL,
     public sucursalService: SucursalService,
     private usuarioService: UsuarioService
   ) {
@@ -98,23 +99,15 @@ export class MainService implements OnDestroy {
   }
 
   load(): Promise<boolean> {
-    let res;
+    let res;    
     this.sucursalService.onGetSucursalActual()
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        if (res != null) {
+        if (res != null) {          
           this.sucursalActual = res;
           if (this.sucursalActual?.id == 0) {
             this.isServidor = true;
           }
-        }
-      });
-    this.getMonedas
-      .fetch()
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res.errors == null) {
-          this.monedas = res.data.data;
         }
       });
     return res;

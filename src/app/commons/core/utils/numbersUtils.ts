@@ -58,6 +58,8 @@ export function isInt(n) {
 }
 
 export function updateDataSource(dataSourceData: any[], value?: any, index?: number | null): any[] {
+  console.log(dataSourceData, value, index);
+  
   let newArray: any[] = [...dataSourceData];
   if (index != null) {
     if (value != null) {

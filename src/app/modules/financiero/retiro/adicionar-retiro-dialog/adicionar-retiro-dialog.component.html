@@ -75,6 +75,7 @@
               oninput="this.value == ' ' ? this.value = '': null"
               [matAutocomplete]="auto"
               (keyup.enter)="obs.select()"
+              (focusin)="this.responsableInput.select()"
             />
             <mat-autocomplete
               #auto="matAutocomplete"

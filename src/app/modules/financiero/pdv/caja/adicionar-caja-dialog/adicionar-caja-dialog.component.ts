@@ -3,6 +3,7 @@ import {
   ElementRef,
   HostListener,
   Inject,
+  Input,
   OnInit,
   ViewChild,
 } from "@angular/core";
@@ -45,6 +46,7 @@ import { FacturaLegalService } from "../../../factura-legal/factura-legal.servic
 import { DeliveryService } from "../../../../pdv/comercial/venta-touch/delivery-dialog/delivery.service";
 import { DeliveryEstado } from "../../../../operaciones/delivery/enums";
 import { Delivery } from "../../../../operaciones/delivery/delivery.model";
+import { Tab } from "../../../../../layouts/tab/tab.model";
 
 @UntilDestroy()
 @Component({
@@ -53,11 +55,17 @@ import { Delivery } from "../../../../operaciones/delivery/delivery.model";
   styleUrls: ["./adicionar-caja-dialog.component.scss"],
 })
 export class AdicionarCajaDialogComponent implements OnInit {
+
+  @Input()
+  data: Tab;
+  
   @ViewChild("stepper", { static: false }) stepper: MatStepper;
   @ViewChild("codigoMaletinInput", { static: false })
   codigoMaletinInput: ElementRef;
 
   @ViewChild("siguienteBtn", { static: false })
+
+  
   siguienteBtn: MatButton;
 
   conetoMonedaList: ConteoMoneda[];
@@ -105,8 +113,10 @@ export class AdicionarCajaDialogComponent implements OnInit {
 
   verificarMaletinTimeout = null;
 
+  isTab = false;
+
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: AdicionarCajaData,
+    @Inject(MAT_DIALOG_DATA) public data2: AdicionarCajaData,
     private matDialogRef: MatDialogRef<AdicionarCajaDialogComponent>,
     private cajaService: CajaService,
     private maletinService: MaletinService,
@@ -117,16 +127,22 @@ export class AdicionarCajaDialogComponent implements OnInit {
     private facturaService: FacturaLegalService,
     private deliveryService: DeliveryService
   ) {
-    // this.cargarMonedas();
+
   }
 
   ngOnInit(): void {
     this.idControl.disable();
     this.creadoEnControl.disable();
     this.usuarioControl.disable();
-    if (this.data?.caja != null) {
+
+    if(this.data != null) this.isTab = true;
+    
+    let auxData: PdvCaja = this.data2?.caja != null ? this.data2?.caja : (this.data?.tabData?.data != null ? this.data?.tabData?.data : null);
+    if (auxData != null) {
+      console.log(auxData);
+      
       this.cajaService
-        .onGetById(this.data.caja.id, this.data.caja.sucursalId)
+        .onGetById(auxData?.id, auxData.sucursalId)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
@@ -138,10 +154,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
                 DeliveryEstado.ABIERTO,
                 DeliveryEstado.EN_CAMINO,
                 DeliveryEstado.PARA_ENTREGA,
-              ])
+              ], this.selectedCaja.sucursal.id)
               .subscribe((deliveryRes: Delivery[]) => {
-                console.log(deliveryRes);
-
                 if (deliveryRes.length > 0) this.isDeliveryAbierto = true;
               });
           }
@@ -181,7 +195,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
   cargarDatos() {
     if (this.selectedCaja?.maletin != null)
       this.maletinService
-        .onGetPorId(this.selectedCaja?.maletin?.id)
+        .onGetPorId(this.selectedCaja?.maletin?.id, this.selectedCaja.sucursal.id)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
@@ -300,10 +314,10 @@ export class AdicionarCajaDialogComponent implements OnInit {
     switch (this.stepper.selectedIndex) {
       case 0:
         this.stepper.next();
-        this.cargandoDialog.openDialog();
+        let dialog = this.cargandoDialog.openDialog();
         setTimeout(() => {
           // this.gs500Input.nativeElement.focus()
-          this.cargandoDialog.closeDialog();
+          this.cargandoDialog.closeDialog(dialog.requestId);
         }, 500);
         this.siguienteSubject.next(0);
         break;
@@ -412,7 +426,6 @@ export class AdicionarCajaDialogComponent implements OnInit {
   }
 
   crearNuevaCaja() {
-    this.cargandoDialog.openDialog(true, "Creando caja...");
     setTimeout(() => {
       let input = new PdvCajaInput();
       input.maletinId = this.selectedMaletin.id;
@@ -421,7 +434,6 @@ export class AdicionarCajaDialogComponent implements OnInit {
         .onSave(input)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
-          this.cargandoDialog.closeDialog();
           if (res != null) {
             this.selectedCaja = res;
             this.cajaService.selectedCaja = this.selectedCaja;

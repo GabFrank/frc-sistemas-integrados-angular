@@ -1,3 +1,4 @@
+import { dateToString } from "../../../../commons/core/utils/dateUtils"
 import { Documento } from "../../../financiero/documento/documento.model"
 import { Usuario } from "../../../personas/usuarios/usuario.model"
 import { Compra } from "../../compra/compra.model"
@@ -9,14 +10,17 @@ export class NotaRecepcion {
     pedido: Pedido
     compra: Compra
     documento: Documento
+    tipoBoleta: string
     valor: number
     descuento: number
     pagado: boolean
     numero: number
     timbrado: number
     creadoEn: Date
+    fecha: Date
     usuario: Usuario
     pedidoItemList: PedidoItem[] = [];
+    cantidadItens: number;
 
     toInput(): NotaRecepcionInput {
         let input = new NotaRecepcionInput;
@@ -27,10 +31,12 @@ export class NotaRecepcion {
         input.valor = this.valor
         input.descuento = this.descuento
         input.documentoId = this.documento?.id
-        input.creadoEn = this.creadoEn
         input.usuarioId = this.usuario?.id
         input.pedidoId = this.pedido?.id
         input.compraId = this.compra?.id
+        input.tipoBoleta = this.tipoBoleta
+        input.fecha = dateToString(this.fecha)
+        input.creadoEn = dateToString(this.creadoEn)
         return input;
     }
 }
@@ -40,11 +46,13 @@ export class NotaRecepcionInput {
     pedidoId: number
     compraId: number
     documentoId: number
+    tipoBoleta: string
     valor: number
     descuento: number
     pagado: boolean
     numero: number
     timbrado: number
-    creadoEn: Date
+    creadoEn: string
+    fecha: string
     usuarioId: number
 }

@@ -47,8 +47,8 @@ export class DeliveryService {
   ) {
   }
 
-  onDeliveryPorCajaIdAndEstado(id: number, estadoList: DeliveryEstado[]): Observable<Delivery[]> {
-    return this.genericService.onCustomQuery(this.deliveryPorCajaIdAndEstado, { id: id, estadoList: estadoList });
+  onDeliveryPorCajaIdAndEstado(id: number, estadoList: DeliveryEstado[], sucId): Observable<Delivery[]> {
+    return this.genericService.onCustomQuery(this.deliveryPorCajaIdAndEstado, { id: id, estadoList: estadoList, sucId });
   }
 
   onGetById(id): Observable<Delivery> {

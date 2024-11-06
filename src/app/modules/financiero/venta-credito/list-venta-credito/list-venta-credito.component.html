@@ -2,40 +2,54 @@
   [data]="dataSource.data"
   (cargarMasDatos)="cargarMasDatos()"
   [isLastPage]="isLastPage || isSearching"
-  (filtrar)="onFiltrar()"
+  (filtrar)="onBuscar()"
   (resetFiltro)="resetFiltro()"
 >
   <div filtros>
     <div
-      fxLayout="row wrap"
-      fxLayoutAlign="start center"
+      fxLayout="row "
+      fxLayoutAlign="start start"
       fxLayoutGap="10px"
       style="width: 100%"
     >
-      <div fxFlex="20%">
+      <div fxFlex="20%" style="text-align: center">
         <mat-form-field style="width: 100%">
           <mat-label>Estado</mat-label>
           <mat-select [formControl]="estadoControl" name="estado">
             <mat-option [value]="null"> Todas </mat-option>
             <mat-option *ngFor="let estado of estadoList" [value]="estado">
-              {{ estado | titlecase }}
+              {{ estado | enumToString }}
             </mat-option>
           </mat-select>
         </mat-form-field>
       </div>
-      <div fxFlex="25%">
+      <div fxFlex="20%" style="text-align: center">
+        <mat-form-field style="width: 100%">
+          <mat-label>Filtrar por fecha</mat-label>
+          <mat-select [formControl]="filtrarPorControl" name="filtrarPorFecha">
+            <mat-option *ngFor="let fecha of filtrarPorFechaList" [value]="fecha">
+              {{ fecha | titlecase }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        <!-- <div class="floating-label-slide-toggle">
+          <mat-slide-toggle
+            [formControl]="fechaControl"
+            class="custom-slide-toggle"
+          >
+            Filtrar por fecha
+          </mat-slide-toggle>
+        </div> -->
+      </div>
+      <div fxFlex="20%" style="text-align: center">
         <mat-form-field style="width: 100%">
           <mat-label>Rango de fecha</mat-label>
           <mat-date-range-input
             [formGroup]="fechaFormGroup"
             [rangePicker]="picker"
-            style="font-size: 1.2em; width: 100%"
+            style="width: 100%"
           >
-            <input
-              matStartDate
-              formControlName="inicio"
-              placeholder="Inicio"
-            />
+            <input matStartDate formControlName="inicio" placeholder="Inicio" />
             <input
               matEndDate
               formControlName="fin"
@@ -61,44 +75,105 @@
           >
         </mat-form-field>
       </div>
+      <div fxFlex="20%" style="text-align: center" fxLayout="row">
+        <div fxFlex="50%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Inicio Hora</mat-label>
+            <input
+              matInput
+              [formControl]="horaInicioControl"
+              type="time"
+              placeholder="Hora inicio"
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="50%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Fin Hora</mat-label>
+            <input
+              matInput
+              [formControl]="horaFinalControl"
+              type="time"
+              placeholder="Hora fin"
+            />
+          </mat-form-field>
+        </div>
+      </div>
     </div>
+
     <div
-      fxLayout="row wrap"
-      fxLayoutAlign="start center"
+      fxLayout="row"
+      fxLayoutAlign="start end"
       fxLayoutGap="10px"
-      style="width: 100%"
+      style="width: 100%; margin-top: 10px"
     >
-      <ng-container *ngIf="isAbiertos">
-        <div fxFlex="20%">
+      <ng-container>
+        <div fxFlex="15%">
           <app-boton
             (clickEvent)="onCobrarTodo()"
             nombre="Cobrar todo"
+            [disableExpression]="(selectedCliente?.credito == selectedCliente?.saldo)"
           ></app-boton>
         </div>
-        <div fxFlex="20%">
-          <app-boton nombre="Cobrar selección" (clickEvent)="onCobrarSeleccion()"></app-boton>
+        <div fxFlex="15%">
+          <app-boton
+            nombre="Cobrar selección"
+            (clickEvent)="onCobrarSeleccion()"
+            [disableExpression]="
+              selection?.selected?.length == 0 || !isAbiertos
+            "
+          ></app-boton>
         </div>
-        <div fxFlex="20%" *ngIf="false">
+        <!-- <div fxFlex="20%" *ngIf="false">
           <app-boton nombre="Cobrar vencidos"></app-boton>
         </div>
         <div fxFlex="20%" *ngIf="false">
           <app-boton nombre="Otro valor"></app-boton>
-        </div>
+        </div> -->
       </ng-container>
 
-      <ng-container *ngIf="isConcluidos">
+      <ng-container>
         <div fxFlex="20%">
           <app-boton
             (clickEvent)="onImprimirRecibo()"
             nombre="Imprimir recibo"
+            [disableExpression]="!isConcluidos"
           ></app-boton>
         </div>
       </ng-container>
 
+      <div
+        fxFlex="15%"
+        style="text-align: center"
+        fxLayout="column"
+        fxLayoutAlign="end center"
+      >
+        <div fxFlex="50%">Deuda Total:</div>
+        <div fxFlex="50%">
+          {{
+            selectedCliente?.credito - selectedCliente?.saldo | number : "1.0-2"
+          }}
+        </div>
+      </div>
+      <div
+        fxFlex="25%"
+        style="text-align: center"
+        fxLayout="column"
+        fxLayoutAlign="end center"
+      >
+        <div fxFlex="50%">Total (Itens seleccionados):</div>
+        <div fxFlex="50%">{{ totalParcial | number : "1.0-2" }}</div>
+      </div>
+
       <!-- Concluidos -->
     </div>
   </div>
-  <div table>
+  <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
     <table
       mat-table
       [dataSource]="dataSource"
@@ -177,6 +252,15 @@
         </th>
         <td mat-cell *matCellDef="let ventaCredito" style="text-align: center">
           {{ ventaCredito?.creadoEn | date : "short" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="fechaCobro">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Fecha Cobro
+        </th>
+        <td mat-cell *matCellDef="let ventaCredito" style="text-align: center">
+          {{ ventaCredito?.fechaCobro | date : "short" }}
         </td>
       </ng-container>
 
@@ -403,7 +487,7 @@
         (click)="
           expandedVentaCredito =
             expandedVentaCredito === element ? null : element;
-          onClickRow(element, i);
+          onClickRow(element, i)
         "
       ></tr>
       <tr
@@ -412,5 +496,13 @@
         class="example-detail-row"
       ></tr>
     </table>
+    <!-- <mat-paginator
+      itemsPerPageLabel="Itens por pagina"
+      [pageSizeOptions]="[5, 15, 25, 50, 100]"
+      (page)="handlePageEvent($event)"
+      [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator> -->
   </div>
 </app-generic-list>

@@ -1,6 +1,10 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, ViewChild } from "@angular/core";
 import { MatTableDataSource } from "@angular/material/table";
-import { FacturaLegal, FacturaLegalItem } from "../factura-legal.model";
+import {
+  FacturaLegal,
+  FacturaLegalItem,
+  ResumenFacturasDto,
+} from "../factura-legal.model";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
@@ -20,6 +24,8 @@ import {
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { BdcWalkService, TaskList } from "bdc-walkthrough";
 import { removeSecondDigito } from "../../../../commons/core/utils/rucUtils";
+import { MatPaginator, PageEvent } from "@angular/material/paginator";
+import { PageInfo } from "../../../../app.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -38,6 +44,8 @@ import { removeSecondDigito } from "../../../../commons/core/utils/rucUtils";
   ],
 })
 export class ListFacturaLegalComponent implements OnInit {
+  @ViewChild(MatPaginator) paginator: MatPaginator;
+
   selectedSucursal: Sucursal;
   sucursalList: Sucursal[];
   sucursalIdList: number[];
@@ -49,6 +57,14 @@ export class ListFacturaLegalComponent implements OnInit {
   iva5Control = new FormControl(true);
   iva10Control = new FormControl(true);
   fechaFormGroup: FormGroup;
+
+  length = 25;
+  pageSize = 25;
+  pageIndex = 0;
+  pageEvent: PageEvent;
+  orderById = null;
+  orderByNombre = null;
+  selectedPageInfo: PageInfo<FacturaLegal>;
 
   today = new Date();
   cantidadFacturas = 0;
@@ -89,6 +105,8 @@ export class ListFacturaLegalComponent implements OnInit {
     "total",
   ];
 
+  selectedResumenFacturas: ResumenFacturasDto;
+
   constructor(
     private sucursalService: SucursalService,
     private facturaService: FacturaLegalService,
@@ -109,6 +127,12 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    setTimeout(() => {
+      this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
+      this.pageSize = this.paginator.pageSizeOptions[1];
+      this.onFilter();
+    }, 0);
+
     this.fechaFormGroup = new FormGroup({
       inicio: this.fechaInicioControl,
       fin: this.fechaFinControl,
@@ -134,11 +158,16 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   onFilter() {
+    this.onGetFacturas();
+    this.onGetResumen();
+  }
+
+  onGetResumen() {
     if (this.fechaFormGroup.valid && this.sucursalControl.valid) {
       let fechaInicio = dateToString(this.fechaInicioControl.value);
       let fechaFin = dateToString(this.fechaFinControl.value);
       this.facturaService
-        .onGetAllFacturasLegales(
+        .onGetResumenFacturas(
           fechaInicio,
           fechaFin,
           this.toSucursalesId(this.sucursalControl.value),
@@ -152,8 +181,38 @@ export class ListFacturaLegalComponent implements OnInit {
           this.iva10Control.value
         )
         .subscribe((res) => {
-          this.dataSource.data = res;
-          res?.length > 0 ? this.calcularResumen() : null;
+          if (res != null) {
+            this.selectedResumenFacturas = res;
+          }
+        });
+       console.log('hola');
+        
+    }
+  }
+
+  onGetFacturas() {
+    if (this.fechaFormGroup.valid && this.sucursalControl.valid) {
+      let fechaInicio = dateToString(this.fechaInicioControl.value);
+      let fechaFin = dateToString(this.fechaFinControl.value);
+      this.facturaService
+        .onGetAllFacturasLegales(
+          this.pageIndex,
+          this.pageSize,
+          fechaInicio,
+          fechaFin,
+          this.toSucursalesId(this.sucursalControl.value),
+          this.rucControl.value != null
+            ? `%${this.rucControl.value?.toUpperCase()}%`
+            : null,
+          this.nombreControl.value != null
+            ? `%${this.nombreControl.value?.toUpperCase()}%`
+            : null,
+          this.iva5Control.value,
+          this.iva10Control.value
+        )
+        .subscribe((res) => {
+          this.selectedPageInfo = res;
+          this.dataSource.data = this.selectedPageInfo?.getContent;
         });
     }
   }
@@ -172,7 +231,9 @@ export class ListFacturaLegalComponent implements OnInit {
       this.total0 += f.ivaParcial0;
       this.total5 += f.ivaParcial5;
       this.total10 += f.ivaParcial10;
-      f.ruc = removeSecondDigito(f.ruc);
+      let ruc = removeSecondDigito(f.ruc);
+      console.log(ruc);
+      f.ruc = ruc;
     });
   }
 
@@ -272,35 +333,95 @@ export class ListFacturaLegalComponent implements OnInit {
     this.sucursalControl.setValue(null);
     this.nombreControl.setValue(null);
     this.rucControl.setValue(null);
+    this.selectedResumenFacturas = null;
+    this.dataSource.data = [];
   }
 
-  exportarExcel() {
+  exportarExcel(todos?: Boolean) {
     let filename = "frc_";
     let sucursalesNames: Sucursal[] = this.sucursalControl.value;
 
-    sucursalesNames.forEach((s) => {
-      filename += s.nombre.replace(/[. ]/g, "_");
-    });
-
+    if (sucursalesNames.length != 1 && todos == false) {
+      return null;
+    }
+    let fechaFinDate: Date = this.fechaFinControl.value;
+    fechaFinDate.setHours(23, 59, 59, 59);
     let fechaInicio = dateToString(this.fechaInicioControl.value);
-    let fechaFin = dateToString(this.fechaFinControl.value);
-    this.facturaService.exportarExcel(
-      fechaInicio,
-      fechaFin,
-      this.toSucursalesId(this.sucursalControl.value),
-      this.rucControl.value != null
-        ? `%${this.rucControl.value?.toUpperCase()}%`
-        : null,
-      this.nombreControl.value != null
-        ? `%${this.nombreControl.value?.toUpperCase()}%`
-        : null,
-      this.iva5Control.value,
-      this.iva10Control.value,
-      (filename + new Date().toLocaleDateString()).trim().toLowerCase()
-    );
+    let fechaFin = dateToString(fechaFinDate);
+
+    !todos
+      ? this.facturaService
+          .onGenerarExcelFacturas(fechaInicio, fechaFin, sucursalesNames[0].id)
+          .pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            if (res != null && res == "") return null;
+            const byteCharacters = atob(res);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+
+            // Create a Blob from the byte array
+            const blob = new Blob([byteArray], {
+              type: "application/vnd.ms-excel",
+            });
+
+            let url = window.URL.createObjectURL(blob);
+            let a = document.createElement("a");
+            document.body.appendChild(a);
+            a.setAttribute("style", "display: none");
+            a.href = url;
+            a.download = `${sucursalesNames[0]?.nombre
+              .replace(" ", "_")
+              .toLowerCase()}_${fechaInicio.substring(0, 10)}.xlsx`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+          })
+      : this.facturaService
+          .onGenerarExcelFacturasZip(
+            fechaInicio,
+            fechaFin,
+            this.toSucursalesId(this.sucursalControl.value)
+          )
+          .pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            if (res != null && res == "") return null;
+            const byteCharacters = atob(res);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+
+            // Create a Blob from the byte array
+            const blob = new Blob([byteArray], {
+              type: "application/zip",
+            });
+
+            let url = window.URL.createObjectURL(blob);
+            let a = document.createElement("a");
+            document.body.appendChild(a);
+            a.setAttribute("style", "display: none");
+            a.href = url;
+            a.download = `facturas-bodega-franco-${fechaInicio.substring(
+              0,
+              10
+            )}.zip`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+          });
   }
 
   onImprimir(factura: FacturaLegal, i) {
     this.facturaService.onReimprimirFactura(factura.id, factura.sucursalId);
+  }
+
+  handlePageEvent(e: PageEvent) {
+    this.pageIndex = e.pageIndex;
+    this.pageSize = e.pageSize;
+    this.onGetFacturas();
   }
 }

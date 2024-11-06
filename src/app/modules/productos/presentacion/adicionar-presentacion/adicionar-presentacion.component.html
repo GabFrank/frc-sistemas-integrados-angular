@@ -1,4 +1,4 @@
-<div style="padding: 10px;">
+<div style="padding: 10px">
   <form [formGroup]="formGroup">
     <div fxLayout="column" fxLayoutAlign="start">
       <div fxFlex style="width: 100%; text-align: center">
@@ -50,7 +50,7 @@
           </mat-form-field>
         </div>
       </div>
-      <div fxFlex fxLayout="row">
+      <div fxLayout="row" style="height: 50px !important; padding-left: 20px">
         <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center">
           <mat-label fxFlex="30">Principal</mat-label>
           <mat-slide-toggle fxFlex formControlName="principal">
@@ -70,23 +70,23 @@
           <button
             style="width: 70%"
             mat-raised-button
-            color="accent"
-            [disabled]="!formGroup.valid"
-            (click)="onSave()"
+            color="primary"
+            (click)="onCancelar()"
             type="button"
           >
-            Guardar
+            Cancelar
           </button>
         </div>
         <div fxFlex="50%" style="text-align: center">
           <button
             style="width: 70%"
             mat-raised-button
-            color="primary"
-            (click)="onCancelar()"
+            color="accent"
+            [disabled]="!formGroup.valid"
+            (click)="onSave()"
             type="button"
           >
-            Cancelar
+            Guardar
           </button>
         </div>
       </div>

@@ -131,8 +131,9 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     private matDialogRef: MatDialogRef<EditDeliveryDialogComponent>,
     private clienteService: ClienteService,
     private matDialog: MatDialog,
-    private ventaService: VentaService
+    private ventaService: VentaService,
   ) {
+    
     this.selectedDelivery = data?.delivery;
 
     this.cambioRs = data?.cambioRs;

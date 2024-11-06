@@ -1,4 +1,4 @@
-<div fxLayout="column" fxLayoutAlign="start" style="height: 100%; padding: 20px;">
+<div fxLayout="column" fxLayoutAlign="start" style="height: 90%; padding: 20px;">
   <div fxFlex="5" style="width: 100%; text-align: center; font-size: large;">
     <h3 *ngIf="selectedCaja?.id != null">Editar Caja</h3>
     <h3 *ngIf="selectedCaja?.id == null">Nueva Caja</h3>
@@ -48,8 +48,7 @@
           <button
             style="width: 100%"
             mat-raised-button
-            *ngIf="selectedConteoApertura != null"
-            (click)="goTo('imprimir-factura')"
+            [disabled]="true"
           >
             Imprimir vía tributaria
           </button>
@@ -128,7 +127,7 @@
         </div>
       </div>
       <div fxFlex="30%" fxLayout="column" fxLayoutAlign="end" style="padding: 10px;">
-        <div fxFlex="10">
+        <div fxFlex="10" *ngIf="!isTab">
           <button
             style="width: 100%"
             color="primary"
@@ -244,6 +243,7 @@
               [apertura]="true"
               nombreBoton="Abrir Caja"
               [cajaId]="selectedCaja?.id"
+              [sucursalId]="selectedCaja?.sucursalId"
               [events]="siguienteSubject.asObservable()"
               [conteo]="conteoAperturaSubject.asObservable()"
               [focus]="focusToAPerturaSub.asObservable()"

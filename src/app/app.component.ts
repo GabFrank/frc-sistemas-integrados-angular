@@ -20,9 +20,9 @@ import {
   NotificacionColor,
   NotificacionSnackbarService,
 } from "./notificacion-snackbar.service";
-import { CargandoDialogService } from './shared/components/cargando-dialog/cargando-dialog.service';
+import { CargandoDialogService } from "./shared/components/cargando-dialog/cargando-dialog.service";
 import { WindowInfoService } from "./shared/services/window-info.service";
-import { SearchBarDialogComponent } from './shared/widgets/search-bar-dialog/search-bar-dialog.component';
+import { SearchBarDialogComponent } from "./shared/widgets/search-bar-dialog/search-bar-dialog.component";
 import { DialogoNuevasFuncionesComponent } from "./shared/components/dialogo-nuevas-funciones/dialogo-nuevas-funciones.component";
 
 export class Pageable {
@@ -40,6 +40,16 @@ export class PageInfo<T> {
   hasPrevious: boolean;
   getPageable: Pageable;
   getContent: T[];
+  getMultiPageableList?: [MultiPageable]
+}
+
+export class MultiPageable {
+  tenantId: number;
+  page: number;
+  offset: number;
+  totalElements: number;
+  lastOffset: number;
+  lastTotalElement: number;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -82,7 +92,7 @@ export class AppComponent implements OnInit, OnDestroy {
             horizontalPosition: "center",
             duration: res.duracion * 1000,
             verticalPosition: "bottom",
-            panelClass: res.color?.toString()
+            panelClass: res.color?.toString(),
           });
         }
         setTimeout(() => {
@@ -108,7 +118,6 @@ export class AppComponent implements OnInit, OnDestroy {
     //       }
     //     }
     //   })
-
   }
 
   /**
@@ -116,49 +125,52 @@ export class AppComponent implements OnInit, OnDestroy {
    * 2 - Abrimos el dialogo de login, si la respuesta es true el dialogo desaparece
    *    si la respuesta es false, abre el dialogo de configuracion de servidor
    */
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    console.log("on init de la app");
 
     this.overlay.getContainerElement().classList.add("darkMode");
-    this.matDialog.open(LoginComponent, {
-      width: "70%",
-      disableClose: false,
-    }).afterClosed().subscribe(res => {
-      if (!res) {
-        this.configService.isConfigured()
-          .pipe(untilDestroyed(this))
-          .subscribe(res => {
-            if (!res) {
-              this.matDialog.open(ConfigurarServidorDialogComponent, {
-                width: "80%",
-                height: "500px",
-                disableClose: true
-              })
-            }
-          })
-      }
-    });
-
-    connectionStatusSub
-      .pipe(untilDestroyed(this))
+    await this.mainService.load();
+    this.matDialog
+      .open(LoginComponent, {
+        width: "70%",
+        disableClose: false,
+      })
+      .afterClosed()
       .subscribe((res) => {
-        if (res == true) {
-          this.notificationService.notification$.next({
-            texto: "Servidor Online!!",
-            color: NotificacionColor.success,
-            duracion: 6,
-          });
-          clearInterval(this.timer);
-        } else if (res == false) {
-          this.timer = setInterval(() => {
-            this.notificationService.notification$.next({
-              texto: "Servidor Offline!!",
-              color: NotificacionColor.danger,
-              duracion: 1,
+        if (!res) {
+          this.configService
+            .isConfigured()
+            .pipe(untilDestroyed(this))
+            .subscribe((res) => {
+              if (!res) {
+                this.matDialog.open(ConfigurarServidorDialogComponent, {
+                  width: "80%",
+                  height: "500px",
+                  disableClose: true,
+                });
+              }
             });
-          }, 3000);
         }
       });
 
+    connectionStatusSub.pipe(untilDestroyed(this)).subscribe((res) => {
+      if (res == true) {
+        this.notificationService.notification$.next({
+          texto: "Servidor Online!!",
+          color: NotificacionColor.success,
+          duracion: 6,
+        });
+        clearInterval(this.timer);
+      } else if (res == false) {
+        this.timer = setInterval(() => {
+          this.notificationService.notification$.next({
+            texto: "Servidor Offline!!",
+            color: NotificacionColor.danger,
+            duracion: 1,
+          });
+        }, 3000);
+      }
+    });
   }
 
   @HostListener("document:keydown", ["$event"]) onKeydownHandler(
@@ -166,14 +178,14 @@ export class AppComponent implements OnInit, OnDestroy {
   ) {
     switch (event.key) {
       case "Control":
-        this.keyPressed = 'Control'
+        this.keyPressed = "Control";
         break;
       case " ":
-        if (this.keyPressed == 'Control')
+        if (this.keyPressed == "Control")
           this.matDialog.open(SearchBarDialogComponent, {
             data: null,
-            width: '50%'
-          })
+            width: "50%",
+          });
         break;
       default:
         break;
@@ -197,6 +209,9 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     //Called once, before the instance is destroyed.
     //Add 'implements OnDestroy' to the class.
+  }
 
+  onCerrarCargando() {
+    this.cargandoService.closeAll();
   }
 }

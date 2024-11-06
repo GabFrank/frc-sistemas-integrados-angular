@@ -8,7 +8,9 @@ export class AdicionarMaletinData {
   maletin?: Maletin;
 }
 
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
+import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -24,51 +26,59 @@ export class AdicionarMaletinDialogComponent implements OnInit {
   creadoEnControl = new FormControl();
   usuarioControl = new FormControl();
   selectedMaletin: Maletin;
+  sucursalControl = new FormControl(null, [Validators.required]);
+  sucursalList: Sucursal[] = null;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarMaletinData,
     private matDialogRef: MatDialogRef<AdicionarMaletinDialogComponent>,
-    private maletinService: MaletinService
+    private maletinService: MaletinService,
+    private sucursalService: SucursalService
   ) {
     if (data?.maletin != null) {
       this.selectedMaletin = data.maletin;
-      this.cargarDatos()
+      this.cargarDatos();
     }
   }
 
   ngOnInit(): void {
-    this.idControl.disable()
-    this.creadoEnControl.disable()
-    this.usuarioControl.disable()
+    this.idControl.disable();
+    this.creadoEnControl.disable();
+    this.usuarioControl.disable();
+    this.sucursalService
+      .onGetAllSucursales()
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        this.sucursalList = res;
+      });
   }
 
   cargarDatos() {
-    this.idControl.setValue(this.selectedMaletin.id)
-    this.descripcionControl.setValue(this.selectedMaletin.descripcion)
-    this.activoControl.setValue(this.selectedMaletin.activo)
-    this.abiertoControl.setValue(this.selectedMaletin.abierto)
-    this.creadoEnControl.setValue(this.selectedMaletin.creadoEn)
-    this.usuarioControl.setValue(this.selectedMaletin.usuario.persona.nombre)
+    this.idControl.setValue(this.selectedMaletin.id);
+    this.descripcionControl.setValue(this.selectedMaletin.descripcion);
+    this.activoControl.setValue(this.selectedMaletin.activo);
+    this.abiertoControl.setValue(this.selectedMaletin.abierto);
+    this.creadoEnControl.setValue(this.selectedMaletin.creadoEn);
+    this.usuarioControl.setValue(this.selectedMaletin.usuario.persona.nombre);
   }
 
   onSave() {
-    let input = new MaletinInput();
+    let maletin = new Maletin();
     if (this.selectedMaletin != null) {
-      input.id = this.selectedMaletin.id;
-      input.creadoEn = this.selectedMaletin.creadoEn;
-      input.usuarioId = this.selectedMaletin.usuario.id;
+      Object.assign(this.selectedMaletin, maletin);
     }
-    input.descripcion = this.descripcionControl.value;
-    input.activo = this.activoControl.value;
-    input.abierto = this.abiertoControl.value;
-    this.maletinService.onSave(input).subscribe(res => {
+    maletin.abierto = this.abiertoControl.value;
+    maletin.activo = this.activoControl.value;
+    maletin.descripcion = this.descripcionControl.value;
+    maletin.sucursal = this.sucursalControl.value;
+    this.maletinService.onSave(maletin.toInput()).subscribe((res) => {
       if (res != null) {
-        this.matDialogRef.close(res)
+        this.matDialogRef.close(res);
       }
-    })
+    });
   }
 
   onCancel() {
-    this.matDialogRef.close()
+    this.matDialogRef.close();
   }
 }

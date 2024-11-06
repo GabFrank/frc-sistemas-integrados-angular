@@ -1,11 +1,16 @@
 import {
   HashLocationStrategy,
   LocationStrategy,
-  registerLocaleData
+  registerLocaleData,
 } from "@angular/common";
 import { HttpClientModule } from "@angular/common/http";
 import localePY from "@angular/common/locales/es-PY";
-import { APP_INITIALIZER, CUSTOM_ELEMENTS_SCHEMA, LOCALE_ID, NgModule } from "@angular/core";
+import {
+  APP_INITIALIZER,
+  CUSTOM_ELEMENTS_SCHEMA,
+  LOCALE_ID,
+  NgModule,
+} from "@angular/core";
 import { FlexLayoutModule } from "ngx-flexible-layout";
 import { MAT_DATE_LOCALE } from "@angular/material/core";
 import { BrowserModule } from "@angular/platform-browser";
@@ -15,12 +20,12 @@ import {
   ApolloClientOptions,
   ApolloLink,
   InMemoryCache,
-  split
+  split,
 } from "@apollo/client/core";
 import { setContext } from "@apollo/client/link/context";
 import { onError } from "@apollo/client/link/error";
 import { WebSocketLink } from "@apollo/client/link/ws";
-import { getMainDefinition } from "@apollo/client/utilities";
+import { getMainDefinition, Observable } from "@apollo/client/utilities";
 import { APOLLO_OPTIONS, ApolloModule } from "apollo-angular";
 import { HttpLink } from "apollo-angular/http";
 import { NgxSpinnerModule } from "ngx-spinner";
@@ -38,112 +43,79 @@ import { ModulesModule } from "./modules/modules.module";
 import { FormatNumberPipe } from "./pipes/format-number.pipe";
 import { SharedModule } from "./shared/shared.module";
 import { SucursalService } from "./modules/empresarial/sucursal/sucursal.service";
+import { GraphQLError } from "graphql";
+import { GraphQLErrors } from "@apollo/client/errors";
 
 export const errorObs = new BehaviorSubject<any>(null);
 export const connectionStatusSub = new BehaviorSubject<any>(null);
 
+export interface GraphQLResponse<T> {
+  data: T | null | undefined;
+  errors: any | null;
+}
+
 // error handling
 const errorLink = onError(({ graphQLErrors, networkError }) => {
-  console.log(graphQLErrors, networkError);
-  // if (graphQLErrors)
-  //   graphQLErrors.map(({ message, locations, path }) =>
-  //     errorObs.next({message, locations, path})
-  //     console.log(
-  //       `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`,
-  //     ),
-  //   );
+  if (graphQLErrors) {
+    graphQLErrors.forEach(({ message, locations, path }) => {
+      console.error(
+        `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`
+      );
+    });
+  }
 
-  // if (networkError) console.log(`[Network error]: ${networkError}`);
+  if (networkError) {
+    console.error(`[Network error]: ${networkError}`);
+    // You can handle the network error here
+    // E.g., display a notification or perform some logic
+  }
 });
 
-// export function createNamed(httpLink: HttpLink): Record<string, ApolloClientOptions<any>> {
-//   const url = `http://localhost:8081/graphql`;
-//   const wUri = `ws://${environment['serverIp']}:${environment['serverPort']}/subscriptions`;
+const createAbortableLink = () => {
+  return new ApolloLink((operation, forward) => {
+    const controller = new AbortController();
+    const signal = controller.signal;
 
-//   const wsClient = new SubscriptionClient(wUri, {
-//     reconnect: true,
-//   });
+    // Log the creation of the controller and signal
+    // console.log(`AbortController created with signal:`, signal);
 
+    // Set the signal in the operation context
+    operation.setContext({ fetchOptions: { signal } });
 
-//   wsClient.onConnected(() => {
-//     connectionStatusSub.next(true);
-//     console.log("websocket connected!!");
-//   });
-//   wsClient.onDisconnected(() => {
-//     if (connectionStatusSub.value != false) {
-//       connectionStatusSub.next(false);
-//     }
-//     console.log("websocket disconnected!!");
-//   });
-//   wsClient.onReconnected(() => {
-//     connectionStatusSub.next(true);
-//     console.log("websocket reconnected!!");
-//   });
+    return new Observable((observer) => {
+      const subscription = forward(operation).subscribe({
+        next: (result) => {
+          // console.log('Received result:', result);
+          observer.next(result);
+        },
+        error: (error) => {
+          // console.error('Received error:', error);
+          observer.error(error);
+        },
+        complete: () => {
+          // console.log('Request completed');
+          observer.complete();
+        },
+      });
 
-//   const basic = setContext((operation, context) => ({
-//     // headers: {
-//     //   Accept: 'charset=utf-8'
-//     // }
-//   }));
+      return () => {
+        // Log when the abort is called
+        // console.log('Aborting request with signal:', signal);
+        controller.abort();
+        subscription.unsubscribe();
+      };
+    });
+  });
+};
 
-//   const auth = setContext((operation, context) => {
-//     const token = localStorage.getItem("token");
-//     if (token === null) {
-//       return {};
-//     } else {
-//       return {
-//         headers: {
-//           Authorization: `Token ${token}`,
-//         },
-//       };
-//     }
-//   });
-
-//   // Create an http link:
-//   const http = ApolloLink.from([
-//     basic,
-//     auth,
-//     httpLink.create({
-//       uri: url,
-//     }),
-//   ]);
-
-//   // Create a WebSocket link:
-//   // const ws = new WebSocketLink(wsClient);
-
-//   // using the ability to split links, you can send data to each link
-//   // depending on what kind of operation is being sent
-//   const link = errorLink.concat(
-//     split(
-//       // split based on operation type
-
-//       ({ query }) => {
-//         const definition = getMainDefinition(query);
-//         return (
-//           definition.kind === "OperationDefinition" &&
-//           definition.operation === "subscription"
-//         );
-//       },
-//       // ws,
-//       http
-//     )
-//   );
-
-//   return {
-//     servidor: {
-//       name: 'servidor',
-//       link,
-//       cache: new InMemoryCache(),
-//     }
-//   }
-// }
+export const abortableLink = createAbortableLink();
 
 const customFetch = (uri, options) => {
   const { timeout = 10000 } = options; // Set the default timeout in milliseconds, e.g., 10 seconds
   return Promise.race([
     fetch(uri, options),
     new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Request timeout')), timeout)
+      setTimeout(() => reject(new Error("Request timeout")), timeout)
     ),
   ]);
 };
@@ -167,9 +139,8 @@ export function appInit(appConfigService: MainService) {
     RouterModule,
     AppRoutingModule,
     HttpClientModule,
-    NgxSpinnerModule,
     SharedModule,
-    ApolloModule
+    ApolloModule,
   ],
   providers: [
     [
@@ -179,16 +150,16 @@ export function appInit(appConfigService: MainService) {
         provide: APP_INITIALIZER,
         useFactory: appInit,
         deps: [MainService],
-        multi: true
+        multi: true,
       },
     ],
     {
       provide: APOLLO_OPTIONS,
       useFactory(httpLink: HttpLink): ApolloClientOptions<any> {
-        const url = `http://${environment['serverIp']}:${environment['serverPort']}/graphql`;
-        const url2 = `http://${environment['serverCentralIp']}:${environment['serverCentralPort']}/graphql`;
-        const wUri = `ws://${environment['serverIp']}:${environment['serverPort']}/subscriptions`;
-        const wUri2 = `ws://${environment['serverCentralIp']}:${environment['serverCentralPort']}/subscriptions`;
+        const url = `http://${environment["serverIp"]}:${environment["serverPort"]}/graphql`;
+        const url2 = `http://${environment["serverCentralIp"]}:${environment["serverCentralPort"]}/graphql`;
+        const wUri = `ws://${environment["serverIp"]}:${environment["serverPort"]}/subscriptions`;
+        const wUri2 = `ws://${environment["serverCentralIp"]}:${environment["serverCentralPort"]}/subscriptions`;
 
         const basic = setContext((operation, context) => ({
           // headers: {
@@ -222,22 +193,18 @@ export function appInit(appConfigService: MainService) {
           basic,
           auth,
           httpLink.create({
-            uri: url2
-          })
+            uri: url2,
+          }),
         ]);
 
-        const wsClient = new SubscriptionClient(wUri,
-          {
-            reconnect: true
-          }
-        );
+        const wsClient = new SubscriptionClient(wUri, {
+          reconnect: true,
+        });
 
-        const wsClient2 = new SubscriptionClient(wUri2,
-          {
-            reconnect: true,
-            lazy: true
-          }
-        );
+        const wsClient2 = new SubscriptionClient(wUri2, {
+          reconnect: true,
+          lazy: true,
+        });
 
         wsClient.onConnected(() => {
           connectionStatusSub.next(true);
@@ -259,26 +226,28 @@ export function appInit(appConfigService: MainService) {
         const ws2 = new WebSocketLink(wsClient2);
         // using the ability to split links, you can send data to each link
         // depending on what kind of operation is being sent
-        const link = errorLink.concat(
-          split(
-            // split based on operation type
+        const link = abortableLink.concat(
+          errorLink.concat(
+            split(
+              // split based on operation type
 
-            ({ query }) => {
-              const definition = getMainDefinition(query);
-              return (
-                definition.kind === "OperationDefinition" &&
-                definition.operation === "subscription"
-              );
-            },
-            ApolloLink.split(
-              operation => operation.getContext().clientName === 'servidor',
-              ws2,
-              ws
-            ),
-            ApolloLink.split(
-              operation => operation.getContext().clientName === 'servidor',
-              http2,
-              http
+              ({ query }) => {
+                const definition = getMainDefinition(query);
+                return (
+                  definition.kind === "OperationDefinition" &&
+                  definition.operation === "subscription"
+                );
+              },
+              ApolloLink.split(
+                (operation) => operation.getContext().clientName === "servidor",
+                ws2,
+                ws
+              ),
+              ApolloLink.split(
+                (operation) => operation.getContext().clientName === "servidor",
+                http2,
+                http
+              )
             )
           )
         );
@@ -300,10 +269,8 @@ export function appInit(appConfigService: MainService) {
     { provide: MAT_DATE_LOCALE, useValue: "es-PY" },
     // { provide: MAT_DIALOG_DEFAULT_OPTIONS, useValue: { scrollStrategy: new NoopScrollStrategy() } }
   ],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
 })
 export class AppModule {
-  constructor() {
-
-  }
+  constructor() {}
 }

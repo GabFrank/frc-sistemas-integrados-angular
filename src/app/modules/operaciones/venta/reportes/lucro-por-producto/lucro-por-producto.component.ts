@@ -46,8 +46,8 @@ export class LucroPorProductoComponent implements OnInit {
   today = new Date();
   fechaInicioControl = new FormControl();
   fechaFinalControl = new FormControl();
-  horaInicioControl = new FormControl("07:00");
-  horaFinalControl = new FormControl("06:59");
+  horaInicioControl = new FormControl("00:00");
+  horaFinalControl = new FormControl("23:59");
   selectedSucursal: Sucursal;
   sucursalList: Sucursal[];
   sucursalIdList: number[];

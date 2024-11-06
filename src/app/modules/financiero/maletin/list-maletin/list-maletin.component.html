@@ -4,6 +4,8 @@
   [isLastPage]="isLastPage || isSearching"
   (filtrar)="onFiltrar()"
   (resetFiltro)="resetFiltro()"
+  [isAdicionar]="true"
+  (adicionar)="onAdd()"
 >
   <div filtros></div>
   <div table>
@@ -62,7 +64,7 @@
           *matCellDef="let maletin"
           style="text-align: center; width: 20%"
         >
-          {{ maletin?.cajaActual?.sucursal?.nombre | titlecase }}
+          {{ maletin?.sucursal?.nombre | titlecase }}
         </td>
       </ng-container>
 
@@ -71,16 +73,18 @@
           Caja actual
         </th>
         <td mat-cell *matCellDef="let maletin" style="text-align: center">
-          <span>{{ maletin?.cajaActual?.id }}</span>
-          <button
-            mat-icon-button
-            matTooltip="Ir a caja"
-            (click)="onIrACaja(maletin?.cajaActual)"
-          >
-            <mat-icon style="color: rgb(0, 128, 255); font-size: 0.9em"
-              >launch</mat-icon
+          <ng-container *ngIf="maletin?.cajaActual != null">
+            <span>{{ maletin?.cajaActual?.id }}</span>
+            <button
+              mat-icon-button
+              matTooltip="Ir a caja"
+              (click)="onIrACaja(maletin?.cajaActual)"
             >
-          </button>
+              <mat-icon style="color: rgb(0, 128, 255); font-size: 0.9em"
+                >launch</mat-icon
+              >
+            </button>
+          </ng-container>
         </td>
       </ng-container>
 

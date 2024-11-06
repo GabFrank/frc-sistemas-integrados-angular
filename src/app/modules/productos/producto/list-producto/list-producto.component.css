@@ -1,7 +1,16 @@
-.titulos {
-    color: white;
+table {
+  width: 100%;
 }
 
-.highlight{
-    background: #42A948; /* green */
-  }
+tr.example-detail-row {
+  height: 0;
+}
+
+input {
+  text-transform: uppercase;
+}
+
+.selectedRow {
+  background-color: #38853c;
+}
+

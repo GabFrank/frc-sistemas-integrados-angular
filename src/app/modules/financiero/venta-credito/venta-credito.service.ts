@@ -1,25 +1,24 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { dateToString } from '../../../commons/core/utils/dateUtils';
+import { environment } from '../../../../environments/environment';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { Tab } from '../../../layouts/tab/tab.model';
+import { TabService } from '../../../layouts/tab/tab.service';
+import { CobroDetalleInput } from '../../operaciones/venta/cobro/cobro-detalle.model';
+import { ListVentaComponent } from '../../operaciones/venta/list-venta/list-venta.component';
+import { ReporteService } from '../../reportes/reporte.service';
+import { ReportesComponent } from '../../reportes/reportes/reportes.component';
+import { CancelarVentaCreditoGQL } from './graphql/cancelarVentaCredito';
+import { CobrarVentaCreditoGQL } from './graphql/cobrarVentaCredito';
+import { FinalizarVentaCreditoGQL } from './graphql/finalizarVentaCredito';
+import { ReporteCobroVentaCreditoGQL } from './graphql/imprimirReporteCobro';
+import { ImprimirVentaCreditoGQL } from './graphql/imprimirVentaCredito';
 import { SaveVentaCreditoByIdGQL } from './graphql/saveVentaCredito';
+import { VentaCreditoPorClienteGQL } from './graphql/ventaCreditoPorCliente';
 import { VentaCreditoByIdGQL } from './graphql/ventaCreditoPorId';
 import { VentaCreditoQrSubAuthGQL } from './graphql/ventaCreditoQrSub';
 import { EstadoVentaCredito, VentaCredito, VentaCreditoCuotaInput, VentaCreditoInput } from './venta-credito.model';
-import { VentaCreditoPorClienteGQL } from './graphql/ventaCreditoPorCliente';
-import { ImprimirVentaCreditoGQL } from './graphql/imprimirVentaCredito';
-import { environment } from '../../../../environments/environment';
-import { CobrarVentaCreditoGQL } from './graphql/cobrarVentaCredito';
-import { CobroDetalle, CobroDetalleInput } from '../../operaciones/venta/cobro/cobro-detalle.model';
-import { untilDestroyed } from '@ngneat/until-destroy';
-import { FinalizarVentaCreditoGQL } from './graphql/finalizarVentaCredito';
-import { CancelarVentaCreditoGQL } from './graphql/cancelarVentaCredito';
-import { ReporteCobroVentaCreditoGQL } from './graphql/imprimirReporteCobro';
-import { ReporteService } from '../../reportes/reporte.service';
-import { TabService } from '../../../layouts/tab/tab.service';
-import { ListVentaComponent } from '../../operaciones/venta/list-venta/list-venta.component';
-import { Tab } from '../../../layouts/tab/tab.model';
-import { ReportesComponent } from '../../reportes/reportes/reportes.component';
+import { PageInfo } from '../../../app.component';
 
 @Injectable({
   providedIn: 'root'
@@ -41,8 +40,8 @@ export class VentaCreditoService {
     private tabService: TabService
   ) { }
 
-  onGetPorCliente(id: number, estado: EstadoVentaCredito, page, size): Observable<VentaCredito[]> {
-    return this.genericService.onCustomQuery(this.ventaCreditoPorCliente, { id, estado, page, size }, true);
+  onGetPorCliente(id: number, fechaInicio: string, fechaFin: string, estado: EstadoVentaCredito, cobro: boolean): Observable<VentaCredito[]> {
+    return this.genericService.onCustomQuery(this.ventaCreditoPorCliente, { id, fechaInicio, fechaFin, estado, cobro }, true);
   }
 
   onSave(input: VentaCreditoInput, itens: VentaCreditoCuotaInput[]): Observable<any> {

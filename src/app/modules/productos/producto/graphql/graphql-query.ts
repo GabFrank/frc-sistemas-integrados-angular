@@ -169,6 +169,50 @@ export const productosSearch = gql`
   }
 `;
 
+export const searchProductoWithFilters = gql`
+  query (
+    $texto: String
+    $codigo: String
+    $activo: Boolean
+    $stock: Boolean
+    $balanza: Boolean
+    $subfamilia: Int
+    $vencimiento: Boolean
+    $page: Int
+    $size: Int
+  ) {
+    data: searchProductoWithFilters(
+      texto: $texto
+      codigo: $codigo
+      activo: $activo
+      stock: $stock
+      balanza: $balanza
+      subfamilia: $subfamilia
+      vencimiento: $vencimiento
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        descripcion
+        costo {
+          costoMedio
+          ultimoPrecioCompra
+        }
+        precioPrincipal
+        codigoPrincipal
+      }
+    }
+  }
+`;
+
 export const productoStock = gql`
   query ($proId: ID!, $sucId: ID!) {
     data: productoPorSucursalStock(proId: $proId, sucId: $sucId)
@@ -326,16 +370,32 @@ export const productoQuery = gql`
       iva
       stock
       isEnvase
+      codigoPrincipal
+      precioPrincipal
+      activo
+      creadoEn
       envase {
         id
         descripcion
       }
       subfamilia {
         id
+        nombre
         descripcion
+        activo
+        creadoEn
+        usuario {
+          id
+        }
         familia {
           id
+          nombre
           descripcion
+          activo
+          creadoEn
+          usuario {
+            id
+          }
         }
       }
       presentaciones {
@@ -604,5 +664,11 @@ export const lucroPorProductoQuery = gql`
       usuarioIdList: $usuarioIdList
       productoIdList: $productoIdList
     )
+  }
+`;
+
+export const imprimirCodigoBarraQuery = gql`
+  query imprimirCodigoBarra($codigoId: Int) {
+    data: imprimirCodigoBarra(codigoId: $codigoId)
   }
 `;

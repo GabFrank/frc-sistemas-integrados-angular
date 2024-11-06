@@ -28,7 +28,17 @@
         />
       </mat-form-field>
     </div>
-    <div fxFlex="20%">
+    <div fxFlex="30%">
+      <mat-form-field style="width: 100%">
+        <mat-label>Sucursal</mat-label>
+        <mat-select [formControl]="sucursalControl">
+          <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
+            {{ sucursal.id }} - {{ sucursal.nombre }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <div fxFlex="15%" style="text-align: center">
       <section>
         <mat-slide-toggle
           color="primary"
@@ -39,7 +49,7 @@
         </mat-slide-toggle>
       </section>
     </div>
-    <div fxFlex="20%">
+    <div fxFlex="15%" style="text-align: center">
       <section>
         <mat-slide-toggle
           color="primary"
@@ -82,7 +92,7 @@
         style="width: 70%"
         mat-raised-button
         color="accent"
-        [disabled]="!descripcionControl.valid"
+        [disabled]="!descripcionControl.valid || !sucursalControl.valid"
         (click)="onSave()"
         type="button"
       >

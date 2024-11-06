@@ -194,3 +194,19 @@ export const pdvGruposProductosPorGrupoIdQuery = gql`
     }
   }
 `;
+
+export const pdvGruposProductosPorGrupoIdSimpleQuery = gql`
+  query ($id: ID!) {
+    data: pdvGruposProductosPorGrupoId(id: $id) {
+      id
+      producto {
+        id
+        descripcion
+        descripcionFactura
+        imagenPrincipal
+        activo
+      }
+      activo
+    }
+  }
+`;
