@@ -51,25 +51,7 @@ export class UsuarioService {
   }
 
   onGetUsuario(id: number): Observable<any> {
-    return new Observable((obs) => {
-      this.getUsuario
-        .fetch(
-          {
-            id,
-          },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        ).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res?.errors == null) {
-            obs.next(res?.data.data);
-          } else {
-            obs.next(res.errors);
-          }
-        });
-    });
+    return this.genericService.onCustomQuery(this.getUsuario, {id});
   }
 
   onGetUsuarioPorPersonaId(id: number): Observable<any> {

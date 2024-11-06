@@ -30,6 +30,12 @@ import { DeleteCobroDetalleGQL } from "./graphql/deleteCobroDetalle";
 import { DeleteVentaItemGQL } from "./graphql/deleteVentaItem";
 import { PageInfo } from "../../../app.component";
 import { VentaItemPorIdGQL } from "./graphql/ventaItemPorId";
+import { SaveVentaDeliveryGQL } from "./graphql/saveVentaDelivery";
+import {
+  VentaCreditoInput,
+  VentaCreditoCuotaInput,
+} from "../../financiero/venta-credito/venta-credito.model";
+import { DeliveryInput } from "../delivery/graphql/delivery-input.model";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -54,10 +60,35 @@ export class VentaService {
     private saveVentaItemQuery: SaveVentaItemGQL,
     private saveCobroDetalleQuery: SaveCobroDetalleGQL,
     private deleteCobroDetalle: DeleteCobroDetalleGQL,
-    private ventaItemPorId: VentaItemPorIdGQL
+    private ventaItemPorId: VentaItemPorIdGQL,
+    private saveVentaDelivery: SaveVentaDeliveryGQL
   ) {}
 
   // $venta:VentaInput!, $venteItemList: [VentaItemInput], $cobro: CobroInput, $cobroDetalleList: [CobroDetalleInput]
+
+  onSaveVentaDelivery(
+    ventaInput: VentaInput,
+    deliveryInput: DeliveryInput,
+    cobroDetalleList?: CobroDetalleInput[],
+    ventaCreditoInput?: VentaCreditoInput,
+    ventaCreditoCuotaInputList?: VentaCreditoCuotaInput[]
+  ) {
+    console.log(
+      ventaInput,
+      deliveryInput,
+      cobroDetalleList,
+      ventaCreditoInput,
+      ventaCreditoCuotaInputList
+    );
+
+    return this.genericService.onCustomMutation(this.saveVentaDelivery, {
+      ventaInput,
+      deliveryInput,
+      cobroDetalleList,
+      ventaCreditoInput,
+      ventaCreditoCuotaInputList,
+    });
+  }
 
   onSaveVenta(
     venta: Venta,
@@ -76,41 +107,57 @@ export class VentaService {
     cobroInput.usuarioId = this.mainService?.usuarioActual?.id;
 
     venta.ventaItemList.forEach((e) => {
-      ventaItemInputList.push(e.toInput());
+      let aux = new VentaItem();
+      ventaItemInputList.push(Object.assign(aux, e).toInput());
     });
     cobro.cobroDetalleList.forEach((e) => {
-      cobroDetalleInputList.push(e.toInput());
+      let aux = new CobroDetalle();
+      cobroDetalleInputList.push(Object.assign(aux, e).toInput());
     });
-    return new Observable((obs) => {
-      this.saveVenta
-        .mutate(
-          {
-            ventaInput: ventaInput,
-            ventaItemList: ventaItemInputList,
-            cobro: cobroInput,
-            cobroDetalleList: cobroDetalleInputList,
-            ticket,
-            facturar: isFactura,
-            printerName: environment["printers"]["ticket"],
-            local: environment["local"],
-            pdvId: environment["pdvId"],
-            ventaCreditoInput,
-            ventaCreditoCuotaInputList,
-          },
-          {
-            errorPolicy: "all",
-            fetchPolicy: "no-cache",
-          }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors != null) {
-            this.notificacionBar.openWarn(res.errors[0].message);
-          } else {
-            obs.next(res.data["data"]);
-          }
-        });
+
+    return this.genericService.onCustomMutation(this.saveVenta, {
+      ventaInput: ventaInput,
+      ventaItemList: ventaItemInputList,
+      cobro: cobroInput,
+      cobroDetalleList: cobroDetalleInputList,
+      ticket,
+      facturar: isFactura,
+      printerName: environment["printers"]["ticket"],
+      local: environment["local"],
+      pdvId: environment["pdvId"],
+      ventaCreditoInput,
+      ventaCreditoCuotaInputList,
     });
+    // return new Observable((obs) => {
+    //   this.saveVenta
+    //     .mutate(
+    //       {
+    //         ventaInput: ventaInput,
+    //         ventaItemList: ventaItemInputList,
+    //         cobro: cobroInput,
+    //         cobroDetalleList: cobroDetalleInputList,
+    //         ticket,
+    //         facturar: isFactura,
+    //         printerName: environment["printers"]["ticket"],
+    //         local: environment["local"],
+    //         pdvId: environment["pdvId"],
+    //         ventaCreditoInput,
+    //         ventaCreditoCuotaInputList,
+    //       },
+    //       {
+    //         errorPolicy: "all",
+    //         fetchPolicy: "no-cache",
+    //       }
+    //     )
+    //     .pipe(untilDestroyed(this))
+    //     .subscribe((res) => {
+    //       if (res.errors != null) {
+    //         this.notificacionBar.openWarn(res.errors[0].message);
+    //       } else {
+    //         obs.next(res.data["data"]);
+    //       }
+    //     });
+    // });
   }
 
   onSaveVenta2(ventaInput?: VentaInput): Observable<Venta> {
@@ -231,7 +278,8 @@ export class VentaService {
   }
 
   onSearch(
-    id,
+    idVenta,
+    idCaja,
     page?,
     size?,
     asc?,
@@ -242,7 +290,8 @@ export class VentaService {
     monedaId?
   ): Observable<PageInfo<Venta>> {
     return this.genericService.onCustomQuery(this.ventasPorCajaId, {
-      id,
+      idVenta,
+      idCaja,
       page,
       size,
       asc,
@@ -250,7 +299,7 @@ export class VentaService {
       formaPago,
       estado,
       isDelivery,
-      monedaId
+      monedaId,
     });
     // if (page == null) page = 0;
     // if (size == null) size = 20;
@@ -284,14 +333,17 @@ export class VentaService {
     // });
   }
 
-  onGetPorId(id, sucId?): Observable<Venta> {
+  onGetPorId(id, sucId?, silentLoad?): Observable<Venta> {
     return this.genericService.onGetById(
       this.ventaPorId,
       id,
       null,
       null,
       false,
-      sucId
+      sucId,
+      null,
+      null,
+      silentLoad
     );
   }
 

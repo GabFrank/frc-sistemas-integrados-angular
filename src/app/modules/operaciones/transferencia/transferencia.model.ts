@@ -65,7 +65,7 @@ export class Transferencia {
   toInput(): TransferenciaInput {
     let input = new TransferenciaInput;
     input.id = this.id;
-    input.creadoEn = this.creadoEn;
+    input.creadoEn = dateToString(this.creadoEn);
     input.estado = this.estado;
     input.tipo = this.tipo;
     input.observacion = this.observacion;
@@ -92,7 +92,7 @@ export class TransferenciaInput {
   usuarioPreTransferenciaId: number;
   usuarioPreparacionId: number;
   usuarioRecepcionId: number;
-  creadoEn: Date;
+  creadoEn: string;
 }
 
 export class TransferenciaItem {

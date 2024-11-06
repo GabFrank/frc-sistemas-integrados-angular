@@ -199,13 +199,13 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       this.dataSource != undefined ? (this.dataSource.data = []) : null;
       this.isSearching = false;
     } else {
-      if (text.length == 13 && text.substring(0, 2) == "20") {
-        isPesable = true;
-        codigo = text.substring(2, 7);
-        peso = +text.substring(7, 12) / 1000;
-        text = codigo;
-        this.formGroup.get("cantidad").setValue(peso);
-      }
+      // if (text.length == 13 && text.substring(0, 2) == "20") {
+      //   isPesable = true;
+      //   codigo = text.substring(2, 7);
+      //   peso = +text.substring(7, 12) / 1000;
+      //   text = codigo;
+      //   this.formGroup.get("cantidad").setValue(peso);
+      // }
       this.onSearchTimer = setTimeout(() => {
         this.productoService
           .onSearch(text, offset, true)

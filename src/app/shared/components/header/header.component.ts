@@ -100,7 +100,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
           });
       }); 
     }  
-    this.cargandoDialogService.openDialog();
     localStorage.removeItem("token");
     localStorage.removeItem("usuarioId");
     this.mainService.usuarioActual = null;

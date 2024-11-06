@@ -530,6 +530,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   onFinalizar(ventaCredito?: VentaCredito, itens?: VentaCreditoCuotaInput[], ticket?: boolean) {
     let response: PagoResponseData = { cobroDetalleList: this.cobroDetalleList, facturado: this.facturado, ventaCredito: ventaCredito, itens: itens, ticket: ticket, cliente: this.selectedCliente };
     this.dialogRef.close(response);
+    
   }
 
   onDeleteItem(item: CobroDetalle, i) {
@@ -663,6 +664,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           cobroDetalle.valor = this.formGroup?.controls?.saldo?.value
           this.cobroDetalleList.push(cobroDetalle);
           this.facturado = !res?.factura;
+          this.selectedCliente = ventaCredito.cliente;
+          console.log(ventaCredito, res['itens']);
           this.onFinalizar(ventaCredito, res['itens'])
         }
       });

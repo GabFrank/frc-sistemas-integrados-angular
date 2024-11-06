@@ -40,6 +40,7 @@ export class Venta {
         input.totalDs = this.totalDs;
         input.sucursalId = this.sucursalId;
         input.cobroId = this.cobro?.id;
+        input.deliveryId = this.delivery?.id;
         return input;
     }
 
@@ -67,6 +68,7 @@ export class VentaInput {
     totalDs: number;
     sucursalId: number;
     cobroId: number;
+    deliveryId: number;
 }
 
 export class VentaPorPeriodo {

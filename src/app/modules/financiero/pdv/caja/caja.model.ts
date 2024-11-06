@@ -20,6 +20,8 @@ export class PdvCaja {
     balance: CajaBalance
     sucursalId: number;
     sucursal: Sucursal;
+    verificado: boolean;
+    verificadoPor: Usuario;
 
     constructor(id, sucId){
         this.id = id;
@@ -42,6 +44,8 @@ export class PdvCajaInput {
     conteoAperturaId: number
     conteoCierreId: number
     sucursalId: number;
+    verificado: boolean;
+    verificadoPorId: number;
 }
 
 export  enum PdvCajaEstado {

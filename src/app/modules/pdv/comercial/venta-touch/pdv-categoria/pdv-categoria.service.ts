@@ -10,6 +10,7 @@ import { PdvCategoriaInput } from './pdv-categoria-input.model';
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { PdvCategoria } from './pdv-categoria.model';
+import { GruposProductosPorGrupoIdSimpleGQL } from './graphql/getGrupoProductosSimple';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -25,12 +26,13 @@ export class PdvCategoriaService implements OnDestroy {
     private saveCategoria: SavePdvCategoriaGQL,
     private notificacionService: NotificacionSnackbarService,
     private genericService: GenericCrudService,
-    private getGruposProductosPorGrupoId: GruposProductosPorGrupoIdGQL
+    private getGruposProductosPorGrupoId: GruposProductosPorGrupoIdGQL,
+    private getGruposProductosPorGrupoIdSimple: GruposProductosPorGrupoIdSimpleGQL
   ) {
     this.cargarCategorias()
-    this.timer = setInterval(() => {
-      this.cargarCategorias()
-    }, 900000);
+    // this.timer = setInterval(() => {
+    //   this.cargarCategorias()
+    // }, 900000);
   }
 
   cargarCategorias() {
@@ -60,7 +62,7 @@ export class PdvCategoriaService implements OnDestroy {
   }
 
   onGetCategorias(): Observable<PdvCategoria[]> {
-    return this.genericService.onGetAll(this.getCategorias);
+    return this.genericService.onCustomQuery(this.getCategorias, {}, null, null, true);
   }
 
   onRefresh() {
@@ -111,6 +113,10 @@ export class PdvCategoriaService implements OnDestroy {
   }
 
   onGetGrupoProductosPorGrupoId(id): Observable<PdvGruposProductos[]> {
-    return this.genericService.onGetById(this.getGruposProductosPorGrupoId, id)
+    return this.genericService.onGetById(this.getGruposProductosPorGrupoId, id, null, null, null, null, null, null, true)
+  }
+
+  onGetGrupoProductosPorGrupoIdSimple(id): Observable<PdvGruposProductos[]> {
+    return this.genericService.onGetById(this.getGruposProductosPorGrupoIdSimple, id, null, null, null, null, null, null, true)
   }
 }

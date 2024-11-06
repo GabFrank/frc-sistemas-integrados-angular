@@ -154,6 +154,42 @@ export const balancePorCajaIdQuery = gql`
   }
 `;
 
+export const balancePorCajaIAndSucursalIdQuery = gql`
+  query ($id: ID!, $sucId: ID!) {
+    data: balancePorCajaIdAndSucursalId(id: $id, sucId: $sucId) {
+      totalGeneral
+      totalVentaGs
+      totalVentaRs
+      totalVentaDs
+      totalTarjeta
+      totalCredito
+      totalRetiroGs
+      totalRetiroRs
+      totalRetiroDs
+      totalGastoGs
+      totalGastoRs
+      totalGastoDs
+      totalAperGs
+      totalAperRs
+      totalAperDs
+      totalCierreGs
+      totalCierreRs
+      totalCierreDs
+      totalDescuento
+      totalAumento
+      totalCanceladasGs
+      totalCanceladasRs
+      totalCanceladasDs
+      vueltoGs
+      vueltoRs
+      vueltoDs
+      diferenciaGs
+      diferenciaRs
+      diferenciaDs
+    }
+  }
+`;
+
 export const cajaQuery = gql`
   query ($id: ID!, $sucId: ID) {
     data: pdvCaja(id: $id, sucId: $sucId) {
@@ -215,38 +251,63 @@ export const cajaQuery = gql`
           cantidad
         }
       }
-      balance {
-        totalGeneral
-        totalVentaGs
-        totalVentaRs
-        totalVentaDs
-        totalTarjeta
-        totalCredito
-        totalRetiroGs
-        totalRetiroRs
-        totalRetiroDs
-        totalGastoGs
-        totalGastoRs
-        totalGastoDs
-        totalAperGs
-        totalAperRs
-        totalAperDs
-        totalCierreGs
-        totalCierreRs
-        totalCierreDs
-        totalDescuento
-        totalAumento
-        totalCanceladasGs
-        totalCanceladasRs
-        totalCanceladasDs
-        vueltoGs
-        vueltoRs
-        vueltoDs
-        diferenciaGs
-        diferenciaRs
-        diferenciaDs
+    }
+  }
+`;
+
+export const cajaSimpleQuery = gql`
+  query ($id: ID!, $sucId: ID) {
+    data: pdvCaja(id: $id, sucId: $sucId) {
+      id
+      sucursal {
+        id
+        nombre
+      }
+      sucursalId
+      activo
+      estado
+      tuvoProblema
+      fechaApertura
+      fechaCierre
+      observacion
+      maletin {
+        id
+        descripcion
+      }
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      conteoApertura {
+        id
+        totalGs
+        totalRs
+        totalDs
+      }
+      conteoCierre {
+        id
+        totalGs
+        totalRs
+        totalDs
+      }
+      verificado
+      verificadoPor {
+        id
+        persona {
+          id
+          nombre
+        }
       }
     }
+  }
+`;
+
+export const verificarCajaQuery = gql`
+  query ($cajaId:ID!, $sucursalId: ID!, $usuarioId:ID!, $verificado: Boolean) {
+    data: verificarCaja(cajaId: $cajaId, sucursalId: $sucursalId, usuarioId: $usuarioId, verificado: $verificado)
   }
 `;
 
@@ -413,6 +474,7 @@ export const cajasWithFilters = gql`
     $fechaInicio: String
     $fechaFin: String
     $sucId: ID
+    $verificado: Boolean,
     $page: Int
     $size: Int
   ) {
@@ -424,6 +486,7 @@ export const cajasWithFilters = gql`
       fechaInicio: $fechaInicio
       fechaFin: $fechaFin
       sucId: $sucId
+      verificado: $verificado
       page: $page
       size: $size
     ) {
@@ -448,6 +511,7 @@ export const cajasWithFilters = gql`
         fechaApertura
         fechaCierre
         observacion
+        verificado
         maletin {
           id
           descripcion

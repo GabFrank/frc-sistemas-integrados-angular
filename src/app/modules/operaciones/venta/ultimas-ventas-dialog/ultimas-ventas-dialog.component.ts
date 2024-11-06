@@ -65,7 +65,7 @@ export class UltimasVentasDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.ventaService
-      .onSearch(this.data.caja.id, 0, 20, false).pipe(untilDestroyed(this))
+      .onSearch(null, this.data.caja.id, 0, 20, false).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.dataSource.data = res.getContent;
@@ -75,13 +75,14 @@ export class UltimasVentasDialogComponent implements OnInit {
 
   buscarVentas() {
     this.ventaService
-      .onSearch(this.data.caja.id, this.dataSource.data.length).pipe(untilDestroyed(this))
+      .onSearch(null, this.data.caja.id, this.dataSource.data.length).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.dataSource.data = res.getContent;
         }
       });
   }
+
 
   onBuscarPorCodigo() {
     if (this.codigoVentaControl.value != null) {

@@ -74,6 +74,7 @@ export class ListCajaComponent implements OnInit {
   displayedColumns = [
     "id",
     "sucursal",
+    "verificado",
     "maletin",
     "activo",
     "fechaApertura",
@@ -93,6 +94,7 @@ export class ListCajaComponent implements OnInit {
   codigoProductoControl = new FormControl();
   productoControl = new FormControl();
   activoControl = new FormControl();
+  verificadoControl = new FormControl();
   codigoMaletinControl = new FormControl();
   sucursalControl = new FormControl();
   sucursalCodigoControl = new FormControl();
@@ -163,6 +165,7 @@ export class ListCajaComponent implements OnInit {
         this.fechaInicioControl.value,
         this.fechaFinalControl.value,
         this.selectedSucursal.id,
+        this.verificadoControl.value,
         this.pageIndex,
         this.pageSize
       )

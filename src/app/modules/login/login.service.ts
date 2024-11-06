@@ -69,8 +69,6 @@ export class LoginService {
                     .pipe(untilDestroyed(this))
                     .subscribe((res) => {
                       if (res?.id != null) {
-                        console.log(res);
-
                         this.mainService.usuarioActual = res;
                         let inicioSesion = new InicioSesion();
                         inicioSesion.usuario = res;

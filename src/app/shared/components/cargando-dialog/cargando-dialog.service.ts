@@ -29,6 +29,8 @@ export class CargandoDialogService {
   ) {}
 
   openDialog(disable?: boolean, texto?: string, duracion?: number, botonDelay?: number, botonText?: string): { requestId: number, signal: AbortSignal } {
+    // console.trace('Method called');
+
     this.spinnerService.show();
 
     const requestId = this.requestIdCounter++;

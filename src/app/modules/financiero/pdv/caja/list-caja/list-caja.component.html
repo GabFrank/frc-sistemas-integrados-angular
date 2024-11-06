@@ -26,20 +26,28 @@
         </mat-form-field>
       </div>
       <div fxFlex="30%">
-        <mat-form-field style="width: 100%" class="shrinking-mat-form-field">
-          <mat-label>Situación</mat-label>
-          <mat-select [formControl]="estadoControl" multiple>
-            <mat-select-trigger>
-              <span *ngFor="let estado of estadoControl.value; let i = index"
-                >{{ estado }}
-                <span *ngIf="estadoControl.value?.length - 1 > i">, </span>
-              </span>
-            </mat-select-trigger>
-            <mat-option *ngFor="let estado of estadoList" [value]="estado">{{
-              estado
-            }}</mat-option>
-          </mat-select>
-        </mat-form-field>
+        <mat-label>Verificado</mat-label>
+        <mat-checkbox
+          [checked]="verificadoControl.value == true"
+          [indeterminate]="verificadoControl.value == null"
+          (click)="
+            verificadoControl.setValue(
+              verificadoControl.value === null
+                ? true
+                : verificadoControl.value === true
+                ? false
+                : null
+            )
+          "
+        >
+          {{
+            verificadoControl.value == null
+              ? "Todos"
+              : verificadoControl.value == true
+              ? "Si"
+              : "No"
+          }}
+        </mat-checkbox>
       </div>
       <div fxFlex="8%"></div>
       <div fxFlex="25%">
@@ -137,7 +145,10 @@
         <mat-icon (click)="onMaletinSearch()" style="cursor: pointer"
           >search</mat-icon
         >
-        <mat-icon *ngIf="selectedMaletin!=null" (click)="onSelectMaletin(null)" style="cursor: pointer"
+        <mat-icon
+          *ngIf="selectedMaletin != null"
+          (click)="onSelectMaletin(null)"
+          style="cursor: pointer"
           >clear</mat-icon
         >
         <!-- </button> -->
@@ -188,7 +199,10 @@
         <mat-icon (click)="onCajeroEnter()" style="cursor: pointer"
           >search</mat-icon
         >
-        <mat-icon *ngIf="selectedCajero!=null" (click)="onClearCajero()" style="cursor: pointer"
+        <mat-icon
+          *ngIf="selectedCajero != null"
+          (click)="onClearCajero()"
+          style="cursor: pointer"
           >clear</mat-icon
         >
         <!-- </button> -->
@@ -363,6 +377,23 @@
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="verificado">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 15%"
+        >
+          Verificado
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let caja"
+          style="text-align: center; width: 15%"
+        >
+          {{ caja?.verificado ? "Si" : "No" }}
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="usuario">
         <th
           mat-header-cell
@@ -431,6 +462,7 @@
       <tr
         mat-row
         *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+        [class.verificado]="row?.verificado == true"
       ></tr>
       <tr
         mat-row

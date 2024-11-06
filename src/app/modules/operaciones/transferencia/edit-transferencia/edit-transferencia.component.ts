@@ -247,10 +247,12 @@ export class EditTransferenciaComponent implements OnInit {
     }, 1000);
 
     setTimeout(() => {
-      this.monedaList = this.monedaService.monedaList;
-      this.monedaList?.length > 0
-        ? this.onMonedaSelect(this.monedaList[0])
-        : null;
+      this.monedaService.onGetAll().subscribe((data: Moneda[]) => {
+        this.monedaList = data;
+        this.monedaList?.length > 0
+          ? this.onMonedaSelect(this.monedaList[0])
+          : null;
+      });
     }, 1000);
 
     // this.monedaSub = this.monedaControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
@@ -689,7 +691,7 @@ export class EditTransferenciaComponent implements OnInit {
         );
         this.vencimientoControl.setValue(
           item.vencimientoPreTransferencia != null
-            ? dateToString(item.vencimientoPreTransferencia, 'dd/MM/yy')
+            ? dateToString(item.vencimientoPreTransferencia, "dd/MM/yy")
             : null
         );
         this.matSelect.focus();
@@ -1108,7 +1110,9 @@ export class EditTransferenciaComponent implements OnInit {
         Object.assign(item, this.selectedTransferenciaItem);
         item.activo = true;
         item.cantidadPreTransferencia = this.cantidadPresentacionControl.value;
-        item.vencimientoPreTransferencia = parseShortDate(this.vencimientoControl.value)
+        item.vencimientoPreTransferencia = parseShortDate(
+          this.vencimientoControl.value
+        );
         item.transferencia = this.selectedTransferencia;
         item.presentacionPreTransferencia = this.presentacionControl.value;
         item.poseeVencimiento = this.vencimientoControl.value != null;
@@ -1128,7 +1132,9 @@ export class EditTransferenciaComponent implements OnInit {
           item.activo = true;
           item.cantidadPreTransferencia =
             this.cantidadPresentacionControl.value;
-          item.vencimientoPreTransferencia = parseShortDate(this.vencimientoControl.value)
+          item.vencimientoPreTransferencia = parseShortDate(
+            this.vencimientoControl.value
+          );
           item.transferencia = this.selectedTransferencia;
           item.presentacionPreTransferencia = this.presentacionControl.value;
           item.poseeVencimiento = this.vencimientoControl.value != null;
@@ -1146,10 +1152,9 @@ export class EditTransferenciaComponent implements OnInit {
         this.vencimientoInput.nativeElement.select();
         this.notificacionService.openWarn(
           "Fecha invalida, favor voler a verificar"
-        )
-        return ;
-      } 
-
+        );
+        return;
+      }
     }
     if (
       this.selectedTransferencia.sucursalOrigen?.nombre?.includes("COMPRAS")
@@ -1162,16 +1167,16 @@ export class EditTransferenciaComponent implements OnInit {
         if (
           this.selectedProducto != null &&
           this.presentacionControl.valid &&
-          this.cantidadPresentacionControl.valid &&
-          (this.vencimientoControl.value == null ||
-            this.vencimientoControl.value >= new Date())
+          this.cantidadPresentacionControl.valid
         ) {
           let item = new TransferenciaItem();
           Object.assign(item, this.selectedTransferenciaItem);
           item.activo = true;
           item.cantidadPreTransferencia =
             this.cantidadPresentacionControl.value;
-          item.vencimientoPreTransferencia = parseShortDate(this.vencimientoControl.value)
+          item.vencimientoPreTransferencia = parseShortDate(
+            this.vencimientoControl.value
+          );
           item.transferencia = this.selectedTransferencia;
           item.presentacionPreTransferencia = this.presentacionControl.value;
           item.poseeVencimiento = this.vencimientoControl.value != null;
@@ -1194,7 +1199,9 @@ export class EditTransferenciaComponent implements OnInit {
             item.activo = true;
             item.cantidadPreTransferencia =
               this.cantidadPresentacionControl.value;
-            item.vencimientoPreTransferencia = parseShortDate(this.vencimientoControl.value);
+            item.vencimientoPreTransferencia = parseShortDate(
+              this.vencimientoControl.value
+            );
             item.transferencia = this.selectedTransferencia;
             item.presentacionPreTransferencia = this.presentacionControl.value;
             item.poseeVencimiento = this.vencimientoControl.value != null;

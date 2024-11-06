@@ -325,7 +325,6 @@ export class SideComponent implements OnInit {
           });
       }); 
     }  
-    this.cargandoDialogService.openDialog();
     localStorage.removeItem("token");
     localStorage.removeItem("usuarioId");
     this.mainService.usuarioActual = null;
@@ -335,6 +334,10 @@ export class SideComponent implements OnInit {
   }
 
   onLogin() {
+    this.electronService.relaunch()
+  }
+
+  onReiniciar(){
     this.electronService.relaunch()
   }
 }

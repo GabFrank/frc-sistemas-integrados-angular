@@ -100,27 +100,7 @@ export class ProductoService {
   }
 
   onSearch(texto, offset?, activo?): Observable<Producto[]> {
-    return new Observable((obs) => {
-      this.productoSearch
-        .fetch(
-          {
-            texto,
-            offset,
-            activo,
-          },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data.data);
-          } else {
-          }
-        });
-    });
+    return this.genericService.onCustomQuery(this.productoSearch, {texto, offset, isEnvase: false, activo})
   }
 
   onEnvaseSearch(texto, offset?, isEnvase?: boolean): Observable<Producto[]> {

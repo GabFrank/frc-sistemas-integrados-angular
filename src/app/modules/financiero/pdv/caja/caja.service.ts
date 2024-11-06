@@ -21,6 +21,9 @@ import { environment } from "../../../../../environments/environment";
 import { BalancePorCajaIdGQL } from "./graphql/imprimirBalance copy";
 import { CajasWithFiltersGQL } from "./graphql/cajaWithFilters";
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
+import { BalancePorCajaIdAndSucursalIdGQL } from "./graphql/balancePorCajaIdAndSucursalId";
+import { CajaSimplePorIdGQL } from "./graphql/cajaSimplePorId";
+import { VerificarCajaGQL } from "./graphql/verificarCaja";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -34,13 +37,16 @@ export class CajaService {
     private cajasPorFecha: CajasPorFechaGQL,
     private onSaveCaja: SaveCajaGQL,
     private cajaPorId: CajaPorIdGQL,
+    private cajaSimplePorId: CajaSimplePorIdGQL,
     private deleteCaja: DeleteCajaGQL,
     private cajaPorUsuarioIdAndAbierto: CajaPorUsuarioIdAndAbiertoGQL,
     private imprimirBalance: ImprimirBalanceGQL,
     private mainService: MainService,
     private balancePorFecha: BalancePorFechaGQL,
     private balancePorCajaId: BalancePorCajaIdGQL,
-    private cajasWithFilters: CajasWithFiltersGQL
+    private cajasWithFilters: CajasWithFiltersGQL,
+    private balancePorCajaIdAndSucursalId: BalancePorCajaIdAndSucursalIdGQL,
+    private verificarCaja: VerificarCajaGQL
   ) {}
 
   // onGetAll(): Observable<any> {
@@ -51,6 +57,10 @@ export class CajaService {
     return this.genericService.onGetById(this.balancePorCajaId, id);
   }
 
+  onCajaBalancePorIdAndSucursalId(id: number, sucId: number): Observable<CajaBalance> {
+    return this.genericService.onCustomQuery(this.balancePorCajaIdAndSucursalId, {id, sucId}, null, null, true);
+  }
+
   onGetCajasWithFilters(
     cajaId: number,
     estado: PdvCajaEstado,
@@ -59,6 +69,7 @@ export class CajaService {
     fechaInicio: Date,
     fechaFin: Date,
     sucId: number,
+    verificado: boolean,
     page: number,
     size: number
   ){
@@ -70,6 +81,7 @@ export class CajaService {
       fechaInicio: dateToString(fechaInicio),
       fechaFin: dateToString(fechaFin),
       sucId,
+      verificado,
       page,
       size
     });
@@ -121,14 +133,27 @@ export class CajaService {
     return this.genericService.onSave(this.onSaveCaja, input);
   }
 
-  onGetById(id, sucId?): Observable<any> {
+  onGetById(id, sucId?, silentLoad?): Observable<any> {
     return this.genericService.onGetById(
       this.cajaPorId,
       id,
       null,
       null,
       null,
-      sucId
+      sucId,
+      null
+    );
+  }
+
+  onGetByIdSimp(id, sucId?, silentLoad?): Observable<any> {
+    return this.genericService.onGetById(
+      this.cajaSimplePorId,
+      id,
+      null,
+      null,
+      null,
+      sucId,
+      null
     );
   }
 
@@ -163,5 +188,9 @@ export class CajaService {
       )
       .pipe(untilDestroyed(this))
       .subscribe((res) => {});
+  }
+
+  onVerificarCaja(cajaId, sucursalId, usuarioId, verificado){
+    return this.genericService.onCustomQuery(this.verificarCaja, {cajaId, sucursalId, usuarioId, verificado})
   }
 }

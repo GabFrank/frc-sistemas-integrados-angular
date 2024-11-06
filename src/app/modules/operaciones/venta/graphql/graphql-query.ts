@@ -161,6 +161,26 @@ export const saveVenta = gql`
   }
 `;
 
+export const saveVentaDelivery = gql`
+  mutation saveVentaDelivery(
+    $ventaInput: VentaInput!
+    $deliveryInput: DeliveryInput!
+    $cobroDetalleList: [CobroDetalleInput]
+    $ventaCreditoInput: VentaCreditoInput
+    $ventaCreditoCuotaInputList: [VentaCreditoCuotaInput]
+  ) {
+    data: saveVentaDelivery(
+      ventaInput: $ventaInput
+      deliveryInput: $deliveryInput
+      cobroDetalleList: $cobroDetalleList
+      ventaCreditoInput: $ventaCreditoInput
+      ventaCreditoCuotaInputList: $ventaCreditoCuotaInputList
+    ) {
+      id
+    }
+  }
+`;
+
 export const deleteVentaQuery = gql`
   mutation deleteVenta($id: ID!, $sucId: ID) {
     deleteVenta(id: $id, sucId: $sucId)
@@ -217,7 +237,8 @@ export const reimprimirVentaQuery = gql`
 
 export const ventasPorCajaIdQuery = gql`
   query (
-    $id: ID!
+    $idVenta: ID
+    $idCaja: ID!
     $page: Int
     $size: Int
     $asc: Boolean
@@ -228,7 +249,8 @@ export const ventasPorCajaIdQuery = gql`
     $monedaId: Int
   ) {
     data: ventasPorCajaId(
-      id: $id
+      idVenta: $idVenta
+      idCaja: $idCaja
       page: $page
       size: $size
       asc: $asc
@@ -247,12 +269,6 @@ export const ventasPorCajaIdQuery = gql`
       hasPrevious
       getContent {
         id
-        delivery {
-          id
-          precio {
-            valor
-          }
-        }
         sucursalId
         cliente {
           id
@@ -260,20 +276,18 @@ export const ventasPorCajaIdQuery = gql`
             nombre
           }
         }
-        formaPago {
-          id
-          descripcion
-        }
         estado
         creadoEn
-        usuario {
-          id
-        }
-        valorDescuento
-        valorTotal
         totalGs
         totalRs
         totalDs
+        delivery {
+          id
+          precio {
+            valor
+          }
+          estado
+        }
       }
     }
   }

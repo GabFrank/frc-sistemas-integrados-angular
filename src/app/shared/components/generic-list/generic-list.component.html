@@ -1,14 +1,13 @@
 <div fxLayout="row" style="width: 100%" fxLayoutAlign="center start">
-  <div fxLayout="column" style="width: 95%;" [style.height.px]="containerHeight">
+  <div fxLayout="column" style="width: 100%;" [style.height.px]="containerHeight">
     <div fxLayout="column">
-      <div fxFlex="15%" style="width: 100%; text-align: center">
-        <h3>{{ titulo }}</h3>
-        <br />
+      <div style="width: 100%; text-align: center">
+        <h3 style="margin: 0px">{{ titulo }}</h3>
       </div>
       <mat-card
         appearance="outlined"
         fxLayout="row"
-        fxFlex="85%"
+        fxFlex="100%"
         style="width: 100%; background-color: rgb(32, 32, 32); padding: 10px"
       >
         <div [fxFlex]="!isMenu ? '100%' : '90%'">

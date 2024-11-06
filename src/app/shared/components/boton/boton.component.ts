@@ -42,7 +42,7 @@ export class BotonComponent implements OnInit, AfterViewInit {
   disableExpression: boolean;
 
   @Input()
-  color: Color = "primary";
+  color: any = "primary";
 
   @Input()
   icon;

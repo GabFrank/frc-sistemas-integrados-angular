@@ -1,4 +1,4 @@
-<div class="container" style="width: 70vw; height: 100%">
+<div class="container" style="width: 70vw; height: 100%; padding: 10px">
   <form [formGroup]="formGroup">
     <div fxLayout="column">
       <div style="text-align: center">
@@ -7,14 +7,14 @@
       <div
         fxFlex
         fxLayout="row"
-        fxLayoutAlign="space-around start"
-        fxLayoutGap="10px"
+        fxLayoutAlign="space-around center"
+        fxLayoutGap="5px"
         style="width: 100%"
         *ngIf="data?.mostrarOpciones == true"
       >
         <div fxFlex="10%">
           <mat-form-field style="width: 80%">
-            <mat-label>Cantidad</mat-label>
+            <!-- <mat-label>Cantidad</mat-label> -->
             <input
               #cantidad
               formControlName="cantidad"
@@ -39,20 +39,23 @@
             {{ i }}
           </button>
         </div>
-        <div fxFlex="9">
-          <button
+        <div fxFlex="8">
+          <button color="primary" style="width: 45px; height: 45px;" (click)="formGroup.controls.cantidad.setValue(1)" mat-fab aria-label="Example icon button with a delete icon">
+            <mat-icon>clear</mat-icon>
+          </button>
+          <!-- <button
             type="button"
             mat-raised-button
             color="primary"
-            style="font-size: 1.5em; width: 1.5em; height: 1.5em"
+            style="font-size: 2em; width: 2em; height: 2em"
             (click)="formGroup.controls.cantidad.setValue(1)"
           >
             <mat-icon>clear</mat-icon>
-          </button>
+          </button> -->
         </div>
       </div>
       <div fxLayout="row">
-        <div fxFlex="80">
+        <div fxFlex="100">
           <mat-form-field style="width: 95%">
             <mat-label>Ingresar texto</mat-label>
             <input
@@ -108,7 +111,7 @@
                 mat-cell
                 *matCellDef="let producto; let id = index"
                 style="text-align: center; height: inherit"
-                [fxLayout]=" isTransferencia ? 'row' : 'column'"
+                [fxLayout]="isTransferencia ? 'row' : 'column'"
                 fxLayoutAlign="center center"
               >
                 <button
@@ -116,13 +119,13 @@
                   *ngIf="producto?.stockPorProducto == null"
                   mat-flat-button
                   (click)="mostrarStock(producto); $event.stopPropagation()"
-                  style="text-align: center; width: 100%;"
+                  style="text-align: center; width: 100%"
                   [fxFlex]="100"
                 >
                   Ver
                 </button>
                 <span
-                  [attr.fxFlex]=" isTransferencia ? '49' : null"
+                  [attr.fxFlex]="isTransferencia ? '49' : null"
                   *ngIf="producto?.stockPorProducto != null"
                   style="text-align: center; width: 100%"
                 >
@@ -333,7 +336,12 @@
                       </div>
                     </ng-container>
                   </div>
-                  <div fxFlex>
+                  <div
+                    fxFlex
+                    fxLayout="row"
+                    fxLayoutAlign="center center"
+                    style="width: 100%"
+                  >
                     <mat-spinner
                       *ngIf="producto.presentaciones == null"
                     ></mat-spinner>

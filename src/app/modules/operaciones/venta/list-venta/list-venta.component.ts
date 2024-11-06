@@ -34,6 +34,8 @@ import { AdicionarCajaDialogComponent } from "../../../financiero/pdv/caja/adici
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { ListGastosComponent } from "../../../financiero/gastos/list-gastos/list-gastos.component";
+import { Conteo } from "../../../financiero/conteo/conteo.model";
+import { MainService } from "../../../../main.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -61,10 +63,11 @@ export class ListVentaComponent implements OnInit {
   ventaDataSource = new MatTableDataSource<Venta>([]);
   ventaDisplayedColumns = [
     "id",
-    "modo",
+    "cliente",
     "fecha",
     "estado",
     "total",
+    "modo",
     "acciones",
   ];
   expandedVenta: Venta;
@@ -97,8 +100,8 @@ export class ListVentaComponent implements OnInit {
   orderById = null;
   orderByNombre = null;
   selectedPageInfo: PageInfo<Venta>;
-
   form: FormGroup;
+  isLoading = false;
 
   constructor(
     private cajaService: CajaService,
@@ -109,21 +112,25 @@ export class ListVentaComponent implements OnInit {
     private formaPagoService: FormaPagoService,
     private tabService: TabService,
     private matDialog: MatDialog,
-    private monedaService: MonedaService
+    private monedaService: MonedaService,
+    private mainService: MainService
   ) {}
 
   ngOnInit(): void {
-    this.monedaList = this.monedaService.monedaList;
+    this.monedaService.onGetAll().subscribe((data: Moneda[]) => {
+      this.monedaList = data;
+    });
 
     if (this.data?.tabData?.data != null) {
       this.selectedCaja = this.data.tabData.data;
 
       this.cajaService
-        .onGetById(this.selectedCaja.id, this.selectedCaja.sucursalId)
+        .onGetByIdSimp(this.selectedCaja.id, this.selectedCaja.sucursalId, true)
         .subscribe((res) => {
           if (res != null) {
             this.selectedCaja = res;
             this.onFiltrar();
+            this.onGetBalance();
           }
         });
     } else {
@@ -164,6 +171,19 @@ export class ListVentaComponent implements OnInit {
     // }
   }
 
+  onGetBalance() {
+    this.isLoading = true;
+    this.cajaService
+      .onCajaBalancePorIdAndSucursalId(
+        this.selectedCaja.id,
+        this.selectedCaja?.sucursal?.id
+      )
+      .subscribe((res) => {
+        this.isLoading = false;
+        if (res != null) this.selectedCaja.balance = res;
+      });
+  }
+
   onFilterChange() {
     this.filterChanged = true;
   }
@@ -173,6 +193,7 @@ export class ListVentaComponent implements OnInit {
     // this.isCargando = true;
     this.ventaService
       .onSearch(
+        this.idVentaControl.value,
         this.selectedCaja.id,
         this.pageIndex,
         this.pageSize,
@@ -198,13 +219,21 @@ export class ListVentaComponent implements OnInit {
     if (venta.ventaItemList == null) {
       this.loading = true;
       this.ventaService
-        .onGetPorId(venta.id, venta?.sucursalId)
+        .onGetPorId(venta.id, venta?.sucursalId, true)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.loading = false;
           if (res != null) {
-            this.ventaDataSource.data[index].ventaItemList = res.ventaItemList;
-            this.ventaDataSource.data[index].cobro = res.cobro;
+            let selectedVenta = this.ventaDataSource.data[index];
+            selectedVenta.cobro = res.cobro;
+            selectedVenta.isDelivery = res.isDelivery;
+            selectedVenta.delivery = res.delivery;
+            selectedVenta.ventaItemList = res.ventaItemList;
+            this.ventaDataSource.data = updateDataSource(
+              this.ventaDataSource.data,
+              venta,
+              index
+            );
             this.getTotales(venta);
           }
         });
@@ -247,7 +276,6 @@ export class ListVentaComponent implements OnInit {
       }
     });
   }
-
   getCobroTotal(lista: CobroDetalle[], moneda: string): number {
     let total = 0;
     lista?.forEach((c) => {
@@ -297,19 +325,17 @@ export class ListVentaComponent implements OnInit {
                 this.notificacionService.openSucess(
                   "Venta cancelada con éxito"
                 );
-                venta.estado = VentaEstado.CANCELADA;
+                if (venta.estado == VentaEstado.CANCELADA) {
+                  venta.estado = VentaEstado.CONCLUIDA;
+                } else {
+                  venta.estado = VentaEstado.CANCELADA;
+                }
                 this.ventaDataSource.data = updateDataSource(
                   this.ventaDataSource.data,
                   venta,
                   index
                 );
-                this.cajaService
-                  .onGetById(this.selectedCaja.id, this.selectedCaja.sucursalId)
-                  .subscribe((res) => {
-                    if (res != null) {
-                      this.selectedCaja = res;
-                    }
-                  });
+                this.onGetBalance();
               } else {
                 this.notificacionService.openAlgoSalioMal(
                   "Ups! No se pudo cancelar la venta. "
@@ -377,5 +403,38 @@ export class ListVentaComponent implements OnInit {
         new TabData(this.selectedCaja.id, this.selectedCaja)
       )
     );
+  }
+
+  onVerificado() {
+    let verificado = this.selectedCaja?.verificado;
+    let texto =
+      verificado != true
+        ? "Al marcar esta caja como verificada usted está afirmando que realizó todos los procesos de verificación"
+        : "Al anular la verificación esta caja volvera a tener el estatus de no verificado";
+    this.dialogoService
+      .confirm("Atención!!", texto, "Desea continuar?")
+      .subscribe((res) => {
+        if (res) {
+          if (verificado) {
+            verificado = false;
+          } else {
+            verificado = true;
+          }
+          this.cajaService
+            .onVerificarCaja(
+              this.selectedCaja?.id,
+              this.selectedCaja?.sucursalId,
+              this.mainService?.usuarioActual?.id,
+              verificado
+            )
+            .subscribe((resVerif) => {
+              if (resVerif) {
+                this.selectedCaja.verificado = resVerif;
+                this.selectedCaja.verificadoPor =
+                  this.mainService?.usuarioActual;
+              }
+            });
+        }
+      });
   }
 }

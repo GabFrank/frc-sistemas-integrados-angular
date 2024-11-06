@@ -1,75 +1,137 @@
 <div
-  style="width: 100%; height: 95%; padding-right: 20px"
+  style="width: 100%; height: 100%; padding: 5px"
   fxLayout="row"
-  fxLayoutGap="20px"
+  fxLayoutGap="10px"
 >
-  <mat-card
-    appearance="outlined"
-    fxFlex="20%"
-    fxLayout="column"
-    fxLayoutAlign="start start"
-    style="background-color: rgb(32, 32, 32); overflow-y: auto"
-    fxLayoutGap="10px"
-  >
-    <div fxFlex="5" fxLayout="row" style="width: 100%">
-      <div fxFlex>ID: {{ selectedCaja?.id }}</div>
-      <div fxFlex>
-        Estado: {{ selectedCaja?.estado | enumToString | titlecase }}
-      </div>
-    </div>
-    <div fxFlex="5">
-      Cajero: {{ selectedCaja?.usuario?.persona?.nombre | uppercase }}
-    </div>
-    <div fxFlex="5">
-      <app-boton nombre="Abrir conteo" (clickEvent)="abrirConteo()"></app-boton>
-    </div>
-    <mat-accordion [multi]="true" fxFlex style="width: 100%">
-      <mat-expansion-panel [expanded]="true">
-        <mat-expansion-panel-header>
-          <mat-panel-title> Apertura </mat-panel-title>
-        </mat-expansion-panel-header>
-        <div fxLayout="column" style="width: 100%">
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Fecha:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.fechaApertura }}
-            </div>
-          </div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Guaranies:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalAperGs | number : "1.0-0" }}
-            </div>
-          </div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Reales:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalAperRs | number : "1.2-2" }}
-            </div>
-          </div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Dolares:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalAperDs | number : "1.2-2" }}
-            </div>
-          </div>
+  <div fxFlex="25%" style="text-align: center; overflow: auto">
+    <h4 style="margin: 0px">Resumen de cajas</h4>
+    <mat-card
+      appearance="outlined"
+      fxLayout="column"
+      fxLayoutAlign="start start"
+      style="background-color: rgb(32, 32, 32); overflow-y: auto; padding: 10px"
+      fxLayoutGap="10px"
+    >
+      <div
+        fxLayout="column"
+        fxLayoutAlign="space-around start"
+        style="width: 100%"
+      >
+        <div fxFlex style="text-align: start; color: #f57c00">Id:</div>
+        <div fxFlex style="text-align: left">
+          {{ selectedCaja?.id }}
         </div>
-      </mat-expansion-panel>
-      <mat-expansion-panel [expanded]="true">
-        <mat-expansion-panel-header>
-          <mat-panel-title> Total ventas </mat-panel-title>
-        </mat-expansion-panel-header>
-        <div fxLayout="column" style="width: 100%">
-          <div fxFlex style="width: 100%; text-align: center">
-            Total General
-          </div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Guaranies:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalGeneral | number : "1.0-0" }}
+      </div>
+      <div
+        fxLayout="column"
+        fxLayoutAlign="space-around start"
+        style="width: 100%"
+      >
+        <div fxFlex style="text-align: start; color: #f57c00">Cajero:</div>
+        <div fxFlex style="text-align: left">
+          {{ selectedCaja?.usuario?.persona?.nombre | uppercase }}
+        </div>
+      </div>
+      <div
+        fxLayout="column"
+        fxLayoutAlign="space-around start"
+        style="width: 100%"
+      >
+        <div fxFlex style="text-align: start; color: #f57c00">Maletín:</div>
+        <div fxFlex style="text-align: left">
+          {{ selectedCaja?.maletin?.descripcion | uppercase }}
+        </div>
+      </div>
+      <div
+        fxLayout="column"
+        fxLayoutAlign="space-around start"
+        style="width: 100%"
+      >
+        <div fxFlex style="text-align: start; color: #f57c00">Verificado:</div>
+        <div fxFlex style="text-align: left">
+          {{ selectedCaja?.verificado == true ? "Si" : "No" }}
+        </div>
+      </div>
+      <div
+        fxLayout="column"
+        fxLayoutAlign="space-around start"
+        style="width: 100%"
+        *ngIf="selectedCaja?.verificado == true"
+      >
+        <div fxFlex style="text-align: start; color: #f57c00">
+          Verificado por:
+        </div>
+        <div fxFlex style="text-align: left">
+          {{ selectedCaja?.verificadoPor?.persona?.nombre }}
+        </div>
+      </div>
+      <mat-accordion [multi]="true" fxFlex style="width: 100%">
+        <mat-expansion-panel [expanded]="true">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <div fxLayout="row" fxLayoutAlign="start center">
+                <span>Apertura</span>
+                <button
+                  mat-icon-button
+                  matTooltip="Ir a conteo"
+                  (click)="abrirConteo()"
+                >
+                  <mat-icon style="color: rgb(0, 128, 255); font-size: 0.9em"
+                    >launch</mat-icon
+                  >
+                </button>
+              </div>
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <div fxLayout="column" style="width: 100%">
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Fecha:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.fechaApertura }}
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.conteoApertura?.totalGs | number : "1.0-0" }}
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Reales:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.conteoApertura?.totalRs | number : "1.2-2" }}
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Dolares:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.conteoApertura?.totalDs | number : "1.2-2" }}
+              </div>
             </div>
           </div>
-          <!-- <div fxFlex fxLayout="row">
+        </mat-expansion-panel>
+        <mat-expansion-panel [expanded]="true">
+          <mat-expansion-panel-header>
+            <mat-panel-title> Total ventas </mat-panel-title>
+          </mat-expansion-panel-header>
+          <div *ngIf="isLoading && selectedCaja?.balance?.totalGeneral == null">
+            <mat-spinner style="width: 100%; height: 50px"></mat-spinner>
+          </div>
+          <div
+            *ngIf="!isLoading && selectedCaja?.balance?.totalGeneral != null"
+            fxLayout="column"
+            style="width: 100%"
+          >
+            <div fxFlex style="width: 100%; text-align: center">
+              Total General
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalGeneral | number : "1.0-0" }}
+              </div>
+            </div>
+            <!-- <div fxFlex fxLayout="row">
             <div fxFlex="50%">Reales:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
               {{ selectedCaja?.balance?.totalVentaRs | number: "1.2-2" }}
@@ -81,35 +143,35 @@
               {{ selectedCaja?.balance?.totalVentaDs | number: "1.2-2" }}
             </div>
           </div> -->
-          <div fxFlex style="width: 100%; text-align: center">Efectivo</div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Guaranies:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{
-                selectedCaja?.balance?.totalGeneral -
-                  selectedCaja?.balance?.totalTarjeta -
-                  selectedCaja?.balance?.totalCredito | number : "1.0-0"
-              }}
+            <div fxFlex style="width: 100%; text-align: center">Efectivo</div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{
+                  selectedCaja?.balance?.totalGeneral -
+                    selectedCaja?.balance?.totalTarjeta -
+                    selectedCaja?.balance?.totalCredito | number : "1.0-0"
+                }}
+              </div>
             </div>
-          </div>
-          <div fxFlex style="width: 100%; text-align: center">Tarjeta</div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Guaranies:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalTarjeta | number : "1.0-0" }}
+            <div fxFlex style="width: 100%; text-align: center">Tarjeta</div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalTarjeta | number : "1.0-0" }}
+              </div>
             </div>
-          </div>
-          <div fxFlex style="width: 100%; text-align: center">Crédito</div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Guaranies:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalCredito | number : "1.0-0" }}
+            <div fxFlex style="width: 100%; text-align: center">Crédito</div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalCredito | number : "1.0-0" }}
+              </div>
             </div>
-          </div>
-          <div fxFlex style="padding-top: 5px; padding-bottom: 5px">
-            <mat-divider></mat-divider>
-          </div>
-          <!-- <div fxFlex style="width: 100%; text-align: center">Total</div>
+            <div fxFlex style="padding-top: 5px; padding-bottom: 5px">
+              <mat-divider></mat-divider>
+            </div>
+            <!-- <div fxFlex style="width: 100%; text-align: center">Total</div>
           <div fxFlex fxLayout="row">
             <div fxFlex="50%">Guaranies:</div>
             <div fxFlex="50%" style="width: 100%; text-align: end">
@@ -135,85 +197,92 @@
           <div fxFlex style="padding-top: 5px; padding-bottom: 5px">
             <mat-divider></mat-divider>
           </div> -->
-          <div fxFlex style="width: 100%; text-align: center">Diferencia</div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Guaranies:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.diferenciaGs | number : "1.0-0" }}
+            <div fxFlex style="width: 100%; text-align: center">Diferencia</div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.diferenciaGs | number : "1.0-0" }}
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Reales:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.diferenciaRs | number : "1.2-2" }}
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Dolares:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.diferenciaDs | number : "1.2-2" }}
+              </div>
             </div>
           </div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Reales:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.diferenciaRs | number : "1.2-2" }}
+        </mat-expansion-panel>
+        <mat-expansion-panel [expanded]="true">
+          <mat-expansion-panel-header>
+            <mat-panel-title> Cierre </mat-panel-title>
+          </mat-expansion-panel-header>
+          <div fxLayout="column" style="width: 100%">
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Fecha:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.fechaCierre }}
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.conteoCierre?.totalGs | number : "1.0-0" }}
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Reales:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.conteoCierre?.totalRs | number : "1.2-2" }}
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Dolares:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.conteoCierre?.totalDs | number : "1.2-2" }}
+              </div>
             </div>
           </div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Dolares:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.diferenciaDs | number : "1.2-2" }}
+        </mat-expansion-panel>
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title> Descuento/Aumento </mat-panel-title>
+          </mat-expansion-panel-header>
+          <div *ngIf="isLoading && selectedCaja?.balance?.totalGeneral == null">
+            <mat-spinner style="width: 100%; height: 50px"></mat-spinner>
+          </div>
+          <div
+            *ngIf="!isLoading && selectedCaja?.balance?.totalGeneral != null"
+            fxLayout="column"
+            style="width: 100%"
+          >
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Descuento:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalDescuento | number : "1.0-0" }}
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Aumento:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalAumento | number : "1.0-0" }}
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Canceladas:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalCanceladas | number : "1.0-0" }}
+              </div>
             </div>
           </div>
-        </div>
-      </mat-expansion-panel>
-      <mat-expansion-panel [expanded]="true">
-        <mat-expansion-panel-header>
-          <mat-panel-title> Cierre </mat-panel-title>
-        </mat-expansion-panel-header>
-        <div fxLayout="column" style="width: 100%">
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Fecha:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.fechaCierre }}
-            </div>
-          </div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Guaranies:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalCierreGs | number : "1.0-0" }}
-            </div>
-          </div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Reales:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalCierreRs | number : "1.2-2" }}
-            </div>
-          </div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Dolares:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalCierreDs | number : "1.2-2" }}
-            </div>
-          </div>
-        </div>
-      </mat-expansion-panel>
-      <mat-expansion-panel>
-        <mat-expansion-panel-header>
-          <mat-panel-title> Descuento/Aumento </mat-panel-title>
-        </mat-expansion-panel-header>
-        <div fxLayout="column" style="width: 100%">
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Descuento:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalDescuento | number : "1.0-0" }}
-            </div>
-          </div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Aumento:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalAumento | number : "1.0-0" }}
-            </div>
-          </div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Canceladas:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalCanceladas | number : "1.0-0" }}
-            </div>
-          </div>
-        </div>
-      </mat-expansion-panel>
-      <!-- <mat-expansion-panel> -->
-      <!-- <mat-expansion-panel-header>
+        </mat-expansion-panel>
+        <!-- <mat-expansion-panel> -->
+        <!-- <mat-expansion-panel-header>
           <mat-panel-title> Apertura </mat-panel-title>
         </mat-expansion-panel-header>
         <div fxLayout="column" style="width: 100%">
@@ -244,91 +313,117 @@
         </div>
       </mat-expansion-panel> -->
 
-      <mat-expansion-panel>
-        <mat-expansion-panel-header>
-          <mat-panel-title>
-            <div>
-              <span>Retiros</span>
-              <button
-                mat-icon-button
-                matTooltip="Ir a retiros"
-                (click)="onGoToRetiros()"
-              >
-                <mat-icon style="color: rgb(0, 128, 255); font-size: 0.9em"
-                  >launch</mat-icon
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <div fxLayout="row" fxLayoutAlign="start center">
+                <span>Retiros</span>
+                <button
+                  mat-icon-button
+                  matTooltip="Ir a retiros"
+                  (click)="onGoToRetiros()"
                 >
-              </button>
+                  <mat-icon style="color: rgb(0, 128, 255); font-size: 0.9em"
+                    >launch</mat-icon
+                  >
+                </button>
+              </div>
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <div *ngIf="isLoading && selectedCaja?.balance?.totalGeneral == null">
+            <mat-spinner style="width: 100%; height: 50px"></mat-spinner>
+          </div>
+          <div
+            *ngIf="!isLoading && selectedCaja?.balance?.totalGeneral != null"
+            fxLayout="column"
+            style="width: 100%"
+          >
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalRetiroGs | number : "1.0-0" }}
+              </div>
             </div>
-          </mat-panel-title>
-        </mat-expansion-panel-header>
-        <div fxLayout="column" style="width: 100%">
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Guaranies:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalRetiroGs | number : "1.0-0" }}
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Reales:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalRetiroRs | number : "1.2-2" }}
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Dolares:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalRetiroDs | number : "1.2-2" }}
+              </div>
             </div>
           </div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Reales:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalRetiroRs | number : "1.2-2" }}
-            </div>
-          </div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Dolares:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalRetiroDs | number : "1.2-2" }}
-            </div>
-          </div>
-        </div>
-      </mat-expansion-panel>
-      <mat-expansion-panel>
-        <mat-expansion-panel-header>
-          <mat-panel-title>
-            <div>
-              <span>Gastos</span>
-              <button
-                mat-icon-button
-                matTooltip="Ir a gastos"
-                (click)="onGoToGastos()"
-              >
-                <mat-icon style="color: rgb(0, 128, 255); font-size: 0.9em"
-                  >launch</mat-icon
+        </mat-expansion-panel>
+        <mat-expansion-panel>
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <div fxLayout="row" fxLayoutAlign="start center">
+                <span>Gastos</span>
+                <button
+                  mat-icon-button
+                  matTooltip="Ir a gastos"
+                  (click)="onGoToGastos()"
                 >
-              </button>
+                  <mat-icon style="color: rgb(0, 128, 255); font-size: 0.9em"
+                    >launch</mat-icon
+                  >
+                </button>
+              </div>
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <div *ngIf="isLoading && selectedCaja?.balance?.totalGeneral == null">
+            <mat-spinner style="width: 100%; height: 50px"></mat-spinner>
+          </div>
+          <div
+            *ngIf="!isLoading && selectedCaja?.balance?.totalGeneral != null"
+            fxLayout="column"
+            style="width: 100%"
+          >
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Guaranies:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalGastoGs | number : "1.0-0" }}
+              </div>
             </div>
-          </mat-panel-title>        </mat-expansion-panel-header>
-        <div fxLayout="column" style="width: 100%">
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Guaranies:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalGastoGs | number : "1.0-0" }}
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Reales:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalGastoRs | number : "1.2-2" }}
+              </div>
+            </div>
+            <div fxFlex fxLayout="row">
+              <div fxFlex="50%">Dolares:</div>
+              <div fxFlex="50%" style="width: 100%; text-align: end">
+                {{ selectedCaja?.balance?.totalGastoDs | number : "1.2-2" }}
+              </div>
             </div>
           </div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Reales:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalGastoRs | number : "1.2-2" }}
-            </div>
-          </div>
-          <div fxFlex fxLayout="row">
-            <div fxFlex="50%">Dolares:</div>
-            <div fxFlex="50%" style="width: 100%; text-align: end">
-              {{ selectedCaja?.balance?.totalGastoDs | number : "1.2-2" }}
-            </div>
-          </div>
-        </div>
-      </mat-expansion-panel>
-    </mat-accordion>
-  </mat-card>
-  <div fxFlex="80%" fxLayout="column" style="width: 95%; height: 95%">
+        </mat-expansion-panel>
+      </mat-accordion>
+    </mat-card>
+  </div>
+  <div
+    fxFlex="75%"
+    fxLayout="column"
+    style="width: 100%; height: 100%; text-align: center"
+  >
+    <h4 style="margin: 0px">Lista de ventas</h4>
     <app-generic-list
-      titulo="Lista de versiones"
       (filtrar)="onFiltrar()"
       (resetFiltro)="onResetFiltro()"
       [data]="ventaDataSource.data"
       (cargarMasDatos)="onGetVentas()"
       [isLastPage]="isLastPage"
+      [isCustom]="true"
+      [customName]="
+        selectedCaja?.verificado == true ? 'Anular verif.' : 'Verificar'
+      "
+      (customFunction)="onVerificado()"
+      style="width: 100%"
     >
       <div filtros>
         <div
@@ -414,34 +509,37 @@
             <th
               mat-header-cell
               *matHeaderCellDef
-              style="text-align: center; width: 5%"
+              style="text-align: center; width: 15%"
             >
               Id
             </th>
             <td
               mat-cell
               *matCellDef="let venta"
-              style="text-align: center; width: 5%"
+              style="text-align: center; width: 15%"
             >
-              {{ venta.id }}
+              {{ venta.id | number: '1.0-2'}}
             </td>
           </ng-container>
 
-          <ng-container matColumnDef="modo">
+          <ng-container matColumnDef="cliente">
             <th
               mat-header-cell
               *matHeaderCellDef
-              style="text-align: center; width: 20%"
+              style="text-align: center; width: 25%"
             >
-              Modo
+              Cliente
             </th>
             <td
               mat-cell
               *matCellDef="let venta"
-              style="text-align: center; width: 20%"
-              [class.is-delivery]="venta?.delivery != null"
+              style="text-align: start; width: 25%;"
             >
-              {{ venta?.delivery == null ? "Local" : "Delivery" }}
+              {{
+                venta?.cliente == null
+                  ? "Sin nombre"
+                  : venta?.cliente?.persona.nombre
+              }}
             </td>
           </ng-container>
 
@@ -450,14 +548,14 @@
             <th
               mat-header-cell
               *matHeaderCellDef
-              style="text-align: center; width: 20%"
+              style="text-align: center; width: 15%"
             >
               Fecha
             </th>
             <td
               mat-cell
               *matCellDef="let venta"
-              style="text-align: center; width: 20%"
+              style="text-align: center; width: 15%"
             >
               {{ venta?.creadoEn }}
             </td>
@@ -467,14 +565,14 @@
             <th
               mat-header-cell
               *matHeaderCellDef
-              style="text-align: center; width: 20%"
+              style="text-align: center; width: 10%"
             >
               Estado
             </th>
             <td
               mat-cell
               *matCellDef="let venta"
-              style="text-align: center; width: 20%"
+              style="text-align: center; width: 10%"
               [ngClass]="{ cancelada: venta?.estado == 'CANCELADA' }"
             >
               {{ venta?.estado | enumToString | titlecase }}
@@ -501,6 +599,35 @@
             </td>
           </ng-container>
 
+          <ng-container matColumnDef="modo">
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              style="width: 5%; text-align: center"
+            >
+              Modo
+            </th>
+            <td
+              mat-cell
+              *matCellDef="let venta; let i = dataIndex"
+              style="text-align: center; width: 5%"
+            >
+            <ng-container *ngIf=" venta?.delivery == null; else elseTemplate">
+              <mat-icon matTooltip="Venta en local">
+                store
+              </mat-icon>
+            </ng-container>
+            <ng-template #elseTemplate>
+              <mat-icon class="is-delivery" matTooltip="Venta por delivery">
+                two_wheeler
+              </mat-icon>
+            </ng-template>
+            
+              
+              
+            </td>
+          </ng-container>
+
           <ng-container matColumnDef="acciones">
             <th
               mat-header-cell
@@ -523,7 +650,7 @@
               </button>
               <mat-menu #menu="matMenu">
                 <button mat-menu-item (click)="onCancelarVenta(venta, i)">
-                  Cancelar
+                  {{ venta?.estado == "CANCELADA" ? "Habilitar" : "Cancelar" }}
                 </button>
               </mat-menu>
             </td>
@@ -552,7 +679,12 @@
                     background-color: rgb(32, 32, 32);
                   "
                 >
-                  <div *ngIf="loading" style="text-align: center; width: 100%">
+                  <div
+                    fxLayout="row"
+                    fxLayoutAlign="center center"
+                    *ngIf="loading"
+                    style="text-align: center"
+                  >
                     <mat-spinner></mat-spinner>
                   </div>
                   <div

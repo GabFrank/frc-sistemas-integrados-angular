@@ -1,0 +1,167 @@
+- Comenzar por las sucursales
+-- actualizar servidor filial: 
+
+-- actualizar a fedora 39
+gsettings set org.gnome.desktop.a11y.applications screen-keyboard-enabled false
+sudo dnf upgrade --refresh
+sudo dnf install dnf-plugin-system-upgrade
+sudo dnf system-upgrade download --releasever=39
+sudo dnf system-upgrade reboot
+
+-- eliminar repo de zero tier y postgres
+sudo dnf config-manager --disable copr:copr.fedorainfracloud.org:atim:zerotier-one
+sudo dnf config-manager --disable pgdg*
+sudo dnf config-manager --disable anydesk
+sudo rm -f /etc/yum.repos.d/copr:copr.fedorainfracloud.org_atim_zerotier-one.repo
+sudo rm -f /etc/yum.repos.d/pgdg*.repo
+sudo rm -f /etc/yum.repos.d/AnyDesk-Fedora.repo
+sudo dnf clean all
+
+ 
+-- instalar docker en fedora
+sudo dnf update -y
+sudo dnf install dnf-plugins-core
+sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+sudo dnf install -y docker-ce docker-ce-cli containerd.io --allowerasing
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo mkdir /var/lib/pgsql/16/
+sudo mkdir /var/lib/pgsql/16/data/
+sudo docker run --name postgres -v "/var/lib/pgsql/16/data/:/var/lib/postgresql/data" -p 5551:5432 -e POSTGRES_USER=franco -e POSTGRES_PASSWORD=franco -d --restart=always postgres:16
+sudo docker run --name postgres13 -v "/var/lib/pgsql/13/data/:/var/lib/postgresql/data" -p 5552:5551 -e POSTGRES_USER=franco -e POSTGRES_PASSWORD=franco -d --restart=always postgres:13
+sudo sh -c "echo 'host all all 0.0.0.0/0 md5' >> /var/lib/pgsql/16/data/pg_hba.conf"
+sudo sh -c "echo 'host all all 10.10.10.0/24 md5' >> /var/lib/pgsql/16/data/pg_hba.conf"
+sudo sh -c "echo 'local all franco peer' >> /var/lib/pgsql/16/data/pg_hba.conf"
+sudo sh -c "echo 'local all franco md5' >> /var/lib/pgsql/16/data/pg_hba.conf"
+sudo sh -c "echo \"listen_addresses = '*'\">> /var/lib/pgsql/16/data/postgresql.conf"
+sudo sh -c "echo 'logging_collector = off' >> /var/lib/pgsql/16/data/postgresql.conf"
+sudo sh -c "echo 'wal_level = logical' >> /var/lib/pgsql/16/data/postgresql.conf"
+sudo docker restart postgres
+sudo -u franco psql -p 5551 -c "CREATE DATABASE general WITH OWNER franco"
+sudo -u franco psql -p 5551 -c "CREATE USER postgres WITH SUPERUSER PASSWORD 'postgres'"
+
+- primero actualizar postgres 16
+sudo dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/F-39-x86_64/pgdg-fedora-repo-latest.noarch.rpm
+sudo dnf -qy module disable postgresql
+sudo dnf install -y postgresql16 postgresql16-server postgresql16-contrib
+sudo /usr/pgsql-16/bin/postgresql-16-setup initdb
+sudo /usr/bin/postgresql-setup --initdb
+
+-- para windows
+docker run --name postgres -v "C:\FRC\docker\pg-data:/var/lib/postgresql/data" -p 5551:5432 -e POSTGRES_USER=franco -e POSTGRES_PASSWORD=franco -d --restart=always postgres:16
+
+host all all 0.0.0.0/0 md5
+host all all 10.10.10.0/24 md5
+local all franco peer
+local all franco md5
+
+sudo firewall-cmd --add-service=postgresql --permanent
+sudo firewall-cmd --reload
+
+-- hacer backup y restaurar
+pg_dump -v -U franco -W -p 5551 -d general > /home/franco/FRC/bkp.sql
+sudo systemctl stop postgresql-13
+sudo systemctl disable postgresql-13
+--  agregar lineas de configuracion a postgresql
+sudo sh -c "echo 'host all all 0.0.0.0/0 md5' >> /var/lib/pgsql/16/data/pg_hba.conf"
+sudo sh -c "echo 'host all all 10.10.10.0/24 md5' >> /var/lib/pgsql/16/data/pg_hba.conf"
+sudo sh -c "echo 'local all franco peer' >> /var/lib/pgsql/16/data/pg_hba.conf"
+sudo sh -c "echo 'local all franco md5' >> /var/lib/pgsql/16/data/pg_hba.conf"
+sudo sh -c "echo \"listen_addresses = '*'\">> /var/lib/pgsql/16/data/postgresql.conf"
+sudo sh -c "echo 'logging_collector = off' >> /var/lib/pgsql/16/data/postgresql.conf"
+sudo sh -c "echo 'wal_level = logical' >> /var/lib/pgsql/16/data/postgresql.conf"
+sudo sh -c "echo 'port=5551' >> /var/lib/pgsql/16/data/postgresql.conf"
+sudo systemctl restart postgresql-16
+sudo -u franco psql -p 5551 -h 172.25.1.8 -c "CREATE DATABASE general WITH OWNER franco"
+sudo -u franco psql -p 5551 -h 172.25.1.8 -c "CREATE USER postgres WITH SUPERUSER PASSWORD 'postgres'"
+sudo -u postgres psql -p 5551 -c "CREATE USER franco WITH SUPERUSER PASSWORD 'franco'"
+sudo -u postgres psql -p 5551 -c "CREATE DATABASE general WITH OWNER franco"
+psql -U franco -W -p 5551 -d general < /home/franco/FRC/bkp.sql
+
+-- agregar el servicio frc si es que usamos docker
+sudo vim /etc/systemd/system/frc.service
+After=docker.service
+Requires=docker.service
+
+-- parar rabit y actualizar servidor
+sudo systemctl stop rabbitmq-server.service && sudo systemctl disable rabbitmq-server.service
+sudo systemctl stop frc
+rm /home/franco/FRC/frc-server/frc-server.jar
+curl -L -o /home/franco/FRC/frc-server/frc-server.jar https://github.com/GabFrank/franco-system-backend-filial/releases/download/v3.0.0/frc-server.jar
+sudo systemctl start frc && journalctl -f -u frc
+2 - actualizar el app
+rm /home/franco/FRC/FRC.AppImage
+curl -L -o /home/franco/FRC/FRC.AppImage https://github.com/GabFrank/frc-sistemas-integrados-angular/releases/download/3.0.0/FRC.AppImage
+sudo chmod a+rwx /home/franco/FRC/FRC.AppImage
+sudo update-desktop-database
+
+-- actualizar servidor central: 
+- primero actualizar postgres 16
+
+sudo dnf install -y postgresql16 postgresql16-server postgresql16-contrib
+sudo /usr/pgsql-16/bin/postgresql-16-setup initdb
+sudo systemctl enable --now postgresql-16
+sudo firewall-cmd --add-service=postgresql --permanent
+sudo firewall-cmd --reload
+
+-- hacer backup y restaurar
+pg_dump -v -U franco -W -p 5551 -d bodega > /home/franco/bodega/FRC/bkp.sql
+sudo systemctl stop postgresql-13
+sudo systemctl disable postgresql-13
+--  agregar lineas de configuracion a postgresql
+sudo sh -c "echo 'host all all 0.0.0.0/0 md5' >> /var/liib/pgsql/16/data/pg_hba.conf"
+sudo sh -c "echo 'host all all 10.10.10.0/24 md5' >> /var/lib/pgsql/16/data/pg_hba.conf"
+sudo sh -c "echo 'local all franco peer' >> /var/lib/pgsql/16/data/pg_hba.conf"
+sudo sh -c "echo 'local all franco md5' >> /var/lib/pgsql/16/data/pg_hba.conf"
+sudo sh -c "echo \"listen_addresses = '*'\">> /var/lib/pgsql/16/data/postgresql.conf"
+sudo sh -c "echo 'wal_level = logical' >> /var/lib/pgsql/16/data/postgresql.conf"
+sudo sh -c "echo 'port=5551' >> /var/lib/pgsql/16/data/postgresql.conf"
+sudo sh -c "echo 'logging_collector = off' >> /var/lib/pgsql/16/data/postgresql.conf"
+sudo systemctl restart postgresql-16
+sudo -u postgres psql -p 5551 -c "CREATE USER franco WITH SUPERUSER PASSWORD 'franco'"
+sudo -u postgres psql -p 5551 -c "CREATE DATABASE bodega WITH OWNER franco"
+sudo -u postgres psql -p 5551 -c "CREATE DATABASE farmacia WITH OWNER franco"
+psql -U franco -W -p 5551 -d bodega < /home/franco/bodega/FRC/bkp.sql
+
+-- parar rabit y actualizar servidor
+sudo systemctl stop frc-bodega
+sudo systemctl stop frc-farmacia
+sudo rm /home/franco/bodega/FRC/frc-server/frc-server.jar
+curl -L -o /home/franco/bodega/FRC/frc-server/frc-server.jar https://github.com/GabFrank/franco-system-backend-servidor/releases/download/3.0.1/frc-server.jar
+sudo systemctl start frc-bodega && journalctl -f -u frc-bodega
+
+sudo systemctl stop frc-farmacia
+sudo rm /home/franco/farma/FRC/frc-server/frc-server.jar
+curl -L -o /home/franco/farma/FRC/frc-server/frc-server.jar https://github.com/GabFrank/franco-system-backend-servidor/releases/download/3.0.1/frc-server.jar
+sudo systemctl start frc-farmacia && journalctl -f -u frc-farmacia
+
+
+
+sudo systemctl stop frc
+rm /home/franco/FRC/frc-server/frc-server.jar
+curl -L -o /home/franco/FRC/frc-server/frc-server.jar https://github.com/GabFrank/franco-system-backend-filial/releases/download/2.4.0/frc-server.jar
+sudo systemctl start frc && journalctl -f -u frc
+2 - actualizar el app
+rm /home/franco/FRC/FRC.AppImage
+scp franco@172.25.1.1:/home/franco/FRC/FRC.AppImage /home/franco/FRC/
+sudo chmod a+rwx /home/franco/FRC/FRC.AppImage
+sudo update-desktop-database
+
+
+sudo sh -c "echo 'host all all 0.0.0.0/0 md5' >> /var/lib/pgsql/data/pg_hba.conf"
+sudo sh -c "echo 'host all all 10.10.10.0/24 md5' >> /var/lib/pgsql/data/pg_hba.conf"
+sudo sh -c "echo 'local all franco peer' >> /var/lib/pgsql/data/pg_hba.conf"
+sudo sh -c "echo 'local all franco md5' >> /var/lib/pgsql/data/pg_hba.conf"
+sudo sh -c "echo \"listen_addresses = '*'\">> /var/lib/pgsql/data/postgresql.conf"
+sudo sh -c "echo 'port=5551' >> /var/lib/pgsql/data/postgresql.conf"
+sudo sh -c "echo 'logging_collector = off' >> /var/lib/pgsql/data/postgresql.conf"
+sudo sh -c "echo 'wal_level = logical' >> /var/lib/pgsql/data/postgresql.conf"
+
+docker run -d \
+  --name postgres13 \
+  -e POSTGRES_USER=franco \
+  -e POSTGRES_PASSWORD=franco \
+  -v /var/lib/pgsql/13/data:/var/lib/postgresql/data \
+  -p 5551:5551 \
+  --restart=always \
+  postgres:13

@@ -222,5 +222,6 @@ export class TransferenciaService {
     return this.genericCrudService.onCustomQuery(this.transferenciaItemPorTransferenciaIdWithFilter, {id, name: texto, page, size});
  
   }
+  
 }
 

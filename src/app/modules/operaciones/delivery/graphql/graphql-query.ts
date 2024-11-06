@@ -1,4 +1,4 @@
-import gql from 'graphql-tag';
+import gql from "graphql-tag";
 
 export const deliverysQuery = gql`
   query {
@@ -35,7 +35,7 @@ export const deliverysQuery = gql`
 
 export const deliverysSubsUltimos10Query = gql`
   subscription deliverys {
-    deliverys{
+    deliverys {
       id
       entregador {
         id
@@ -252,8 +252,16 @@ export const deliverysByEstadoList = gql`
 `;
 
 export const deliveryPorCajaIdAndEstadoQuery = gql`
-  query deliveryPorCajaIdAndEstados($id: ID!, $estadoList: [DeliveryEstado]!, $sucId: Int) {
-    data: deliveryPorCajaIdAndEstados(id: $id, estadoList: $estadoList, sucId: $sucId) {
+  query deliveryPorCajaIdAndEstados(
+    $id: ID!
+    $estadoList: [DeliveryEstado]!
+    $sucId: Int
+  ) {
+    data: deliveryPorCajaIdAndEstados(
+      id: $id
+      estadoList: $estadoList
+      sucId: $sucId
+    ) {
       id
       creadoEn
       entregador {
@@ -282,11 +290,18 @@ export const deliveryPorCajaIdAndEstadoQuery = gql`
         valor
       }
       valor
+      venta {
+        cliente {
+          persona {
+            id
+            nombre
+          }
+        }
+        valorTotal
+      }
     }
   }
 `;
-
-
 
 export const deliverysByEstadoNotIn = gql`
   query ($estado: DeliveryEstado) {
@@ -325,70 +340,37 @@ export const deliveryQuery = gql`
   query ($id: ID!) {
     data: delivery(id: $id) {
       id
+      creadoEn
+      entregador {
+        id
+        persona {
+          nombre
+        }
+      }
+      direccion
+      telefono
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      estado
+      valor
+      barrio {
+        id
+      }
       precio {
         id
+        descripcion
         valor
       }
+      valor
       venta {
         id
         sucursalId
-        caja {
-          id
-        }
-        cliente {
-          id
-          persona {
-            id
-            nombre
-          }
-        }
-        formaPago {
-          id
-        }
-        estado
         creadoEn
-        usuario {
-          id
-        }
-        valorDescuento
-        valorTotal
-        totalGs
-        totalRs
-        totalDs
-        delivery {
-          id
-        }
-        ventaItemList {
-          id
-          sucursalId
-          venta {
-            id
-          }
-          producto {
-            id
-          }
-          presentacion {
-            id
-          }
-          cantidad
-          precioCosto
-          precioVenta {
-            id
-          }
-          precio
-          valorDescuento
-          unidadMedida
-          creadoEn
-          usuario {
-            id
-          }
-          valorTotal
-        }
-        valorDescuento
-        valorTotal
-        totalGs
-        totalRs
-        totalDs
         cobro {
           id
           cobroDetalleList {
@@ -411,38 +393,36 @@ export const deliveryQuery = gql`
             valor
           }
         }
-      }
-      entregador {
-        id
-        persona {
-          nombre
+        ventaItemList {
+          id
+          producto {
+            id
+            descripcion
+          }
+          presentacion {
+            id
+            cantidad
+          }
+          cantidad
+          precio
+          valorDescuento
+          precioVenta {
+            id
+            tipoPrecio {
+              descripcion
+            }
+          }
+          sucursalId
+          precioCosto
         }
-      }
-      vehiculo
-      direccion
-      telefono
-      creadoEn
-      usuario {
-        id
-        persona {
-          nombre
+        cliente {
+          persona {
+            id
+            nombre
+          }
         }
+        valorTotal
       }
-      estado
-      valor
-      barrio {
-        id
-        descripcion
-        precioDelivery {
-          valor
-        }
-      }
-      precio {
-        id
-        descripcion
-        valor
-      }
-      sucursalId
     }
   }
 `;
@@ -577,8 +557,20 @@ export const saveDelivery = gql`
 `;
 
 export const saveDeliveryAndVentaQuery = gql`
-  mutation saveDeliveryAndVenta($deliveryInput:DeliveryInput!, $ventaInput:VentaInput, $ventaItemInputList:[VentaItemInput], $cobroInput:CobroInput, $cobroDetalleInputList:[CobroDetalleInput]) {
-    data: saveDeliveryAndVenta(deliveryInput: $deliveryInput, ventaInput: $ventaInput, ventaItemInputList: $ventaItemInputList, cobroInput: $cobroInput, cobroDetalleInputList: $cobroDetalleInputList) {
+  mutation saveDeliveryAndVenta(
+    $deliveryInput: DeliveryInput!
+    $ventaInput: VentaInput
+    $ventaItemInputList: [VentaItemInput]
+    $cobroInput: CobroInput
+    $cobroDetalleInputList: [CobroDetalleInput]
+  ) {
+    data: saveDeliveryAndVenta(
+      deliveryInput: $deliveryInput
+      ventaInput: $ventaInput
+      ventaItemInputList: $ventaItemInputList
+      cobroInput: $cobroInput
+      cobroDetalleInputList: $cobroDetalleInputList
+    ) {
       id
       entregador {
         id
@@ -704,8 +696,20 @@ export const deleteDeliveryQuery = gql`
 `;
 
 export const saveDeliveryEstadoQuery = gql`
-  mutation saveDeliveryEstado($deliveryId: Int!, $deliveryEstado: DeliveryEstado!, $printerName: String, $local: String, $pdvId: Int) {
-    data: saveDeliveryEstado(deliveryId: $deliveryId, deliveryEstado: $deliveryEstado, printerName: $printerName, local: $local, pdvId: $pdvId){
+  mutation saveDeliveryEstado(
+    $deliveryId: Int!
+    $deliveryEstado: DeliveryEstado!
+    $printerName: String
+    $local: String
+    $pdvId: Int
+  ) {
+    data: saveDeliveryEstado(
+      deliveryId: $deliveryId
+      deliveryEstado: $deliveryEstado
+      printerName: $printerName
+      local: $local
+      pdvId: $pdvId
+    ) {
       estado
     }
   }

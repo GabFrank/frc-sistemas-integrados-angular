@@ -367,30 +367,6 @@ export const transferenciaWithFiltersQuery = gql`
         etapa
         observacion
         creadoEn
-        usuarioPreTransferencia {
-          id
-          persona {
-            nombre
-          }
-        }
-        usuarioPreparacion {
-          id
-          persona {
-            nombre
-          }
-        }
-        usuarioTransporte {
-          id
-          persona {
-            nombre
-          }
-        }
-        usuarioRecepcion {
-          id
-          persona {
-            nombre
-          }
-        }
       }
     }
   }
