@@ -20,6 +20,12 @@
       "port": "8082"
     },
     {
+      "id": 3,
+      "nombre": "Rotonda",
+      "ip": "172.25.1.3",
+      "port": "8082"
+    },
+    {
       "id": 4,
       "nombre": "Industrial",
       "ip": "172.25.1.4",
@@ -35,6 +41,12 @@
       "id": 7,
       "nombre": "Katuete 1",
       "ip": "172.25.1.7",
+      "port": "8082"
+    },
+    {
+      "id": 22,
+      "nombre": "Canindeyu 2",
+      "ip": "172.25.1.22",
       "port": "8082"
     }
   ]

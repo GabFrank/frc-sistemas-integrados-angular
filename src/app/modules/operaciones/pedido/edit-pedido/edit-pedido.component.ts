@@ -77,6 +77,7 @@ import { SelectionModel } from "@angular/cdk/collections";
 import { extractIds } from "../../../../commons/core/utils/arraysUtil";
 import { Color, ScaleType } from "@swimlane/ngx-charts";
 import { DividirItemDialogComponent } from "../dividir-item-dialog/dividir-item-dialog.component";
+import { AdicionarProveedorDialogComponent } from "../../../personas/proveedor/adicionar-proveedor-dialog/adicionar-proveedor-dialog.component";
 
 export interface ProductoDelProveedor {
   id: number;
@@ -143,7 +144,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   pedidoItemFormGroup: FormGroup;
   idControl = new FormControl(null);
   buscarProveedorControl = new FormControl(null, Validators.required);
-  buscarVendedorControl = new FormControl(null, Validators.required);
+  buscarVendedorControl = new FormControl(null);
   sucursalInfluenciaControl = new FormControl(null);
   sucursalEntregaControl = new FormControl(null);
   tipoBoletaControl = new FormControl("LEGAL");
@@ -634,6 +635,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       search: true,
       texto: this.buscarProveedorControl.value,
       inicialSearch: this.buscarProveedorControl.valid,
+      isAdicionar: true,
     };
     this.dialog
       .open(SearchListDialogComponent, {
@@ -644,7 +646,22 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       .afterClosed()
       .subscribe((res: Proveedor) => {
         if (res != null) {
-          this.onSelectProveedor(res);
+          if (res["adicionar"] == true) {
+            console.log(res);
+
+            this.matDialog
+              .open(AdicionarProveedorDialogComponent, {
+                width: "600px",
+              })
+              .afterClosed()
+              .subscribe((proveedorRes) => {
+                if (proveedorRes?.id != null) {
+                  this.onSelectProveedor(proveedorRes);
+                }
+              });
+          } else if (res?.id != null) {
+            this.onSelectProveedor(res);
+          }
         }
       });
   }
@@ -740,6 +757,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       texto: this.buscarVendedorControl.value,
       inicialSearch: false,
       inicialData: this.vendedorList,
+      isAdicionar: true,
     };
     this.dialog
       .open(SearchListDialogComponent, {
@@ -749,9 +767,20 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       })
       .afterClosed()
       .subscribe((res: Vendedor) => {
-        if (res != null) {
-          this.onSelectVendedor(res);
-        }
+        // if (res != null) {
+        //   if(res['adicionar']==true){
+        //     console.log(res);
+        //     this.matDialog.open(Addven, {
+        //       width: '600px'
+        //     }).afterClosed().subscribe(proveedorRes => {
+        //       if(proveedorRes?.id != null){
+        //         this.onSelectProveedor(proveedorRes);
+        //       }
+        //     })
+        //   } else if(res?.id != null) {
+        //     this.onSelectProveedor(res);
+        //   }
+        // }
       });
   }
 
@@ -805,9 +834,17 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
 
   onMonedaAutoClosed() {}
 
-  onSaveItem() {
+  async onSaveItem() {
+    if (this.selectedPedido?.id == null) {
+      await this.onGuardar();
+      this.savePedidoItem();
+    } else {
+      this.savePedidoItem();
+    }
+  }
+
+  savePedidoItem() {
     let newData = true;
-    if (this.selectedPedido?.id == null) return null;
     if (this.selectedPedidoItem == null) {
       this.selectedPedidoItem = new PedidoItem();
     } else {
@@ -855,6 +892,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       });
   }
   onClearItem() {
+    this.selectedPedidoItem = null;
     this.selectedProducto = null;
     this.codigoControl.setValue(null);
     this.presentacionControl.setValue(null);
@@ -864,6 +902,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     this.precioUnitarioControl.setValue(0);
     this.valorTotalControl.setValue(0);
     this.descuentoPresentacionControl.setValue(0);
+    this.codigoInput.nativeElement.focus();
   }
 
   handleFormaPagoSelectionChange(value) {
@@ -1075,37 +1114,46 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   /*
   Metodo para guardar el pedido
   */
-  onGuardar() {
-    if (this.selectedPedido == null) {
-      this.selectedPedido = new Pedido();
-      this.selectedPedido.estado = PedidoEstado.ABIERTO;
-      this.selectedPedido.usuario = this.mainService.usuarioActual;
-    }
-    this.selectedPedido.proveedor = this.selectedProveedor;
-    this.selectedPedido.vendedor = this.selectedVendedor;
-    this.selectedPedido.moneda = this.selectedMoneda;
-    this.selectedPedido.formaPago = this.selectedFormaPago;
-    this.selectedPedido.plazoCredito = this.diasCreditoControl.value;
-    this.selectedPedido.tipoBoleta = this.tipoBoletaControl.value;
+  async onGuardar() {
+    return new Promise((resolve, reject) => {
+      if (this.selectedPedido == null) {
+        this.selectedPedido = new Pedido();
+        this.selectedPedido.estado = PedidoEstado.ABIERTO;
+        this.selectedPedido.usuario = this.mainService.usuarioActual;
+      }
+      this.selectedPedido.proveedor = this.selectedProveedor;
+      this.selectedPedido.vendedor = this.selectedVendedor;
+      this.selectedPedido.moneda = this.selectedMoneda;
+      this.selectedPedido.formaPago = this.selectedFormaPago;
+      this.selectedPedido.plazoCredito = this.diasCreditoControl.value;
+      this.selectedPedido.tipoBoleta = this.tipoBoletaControl.value;
 
-    this.pedidoService
-      .onSaveFull(
-        this.selectedPedido.toInput(),
-        this.fechaEntregaControl.value?.map((entity: Date) =>
-          dateToString(entity)
-        ),
-        this.sucursalEntregaControl.value?.map((entity: Sucursal) => entity.id),
-        this.sucursalInfluenciaControl.value?.map(
-          (entity: Sucursal) => entity.id
-        ),
-        this.mainService.usuarioActual.id
-      )
-      .pipe(untilDestroyed(this))
-      .subscribe((pedidoRes) => {
-        if (pedidoRes != null) {
-          this.cambiarEstado(false);
-        }
-      });
+      this.pedidoService
+        .onSaveFull(
+          this.selectedPedido.toInput(),
+          this.fechaEntregaControl.value?.map((entity: Date) =>
+            dateToString(entity)
+          ),
+          this.sucursalEntregaControl.value?.map(
+            (entity: Sucursal) => entity.id
+          ),
+          this.sucursalInfluenciaControl.value?.map(
+            (entity: Sucursal) => entity.id
+          ),
+          this.mainService.usuarioActual.id
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe((pedidoRes) => {
+          if (pedidoRes != null) {
+            this.selectedPedido = pedidoRes;
+            this.idControl.setValue(this.selectedPedido.id);
+            this.cambiarEstado(false);
+            resolve(pedidoRes);
+          } else {
+            reject(null);
+          }
+        });
+    });
   }
 
   onCancelar() {
@@ -1403,21 +1451,30 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     });
   }
 
-  onFinalizarRecepcion() {
+  onFinalizarRecepcion() {}
 
-  }
-
-  onDividirItem(pedidoItem: PedidoItem, index: number){   
+  onDividirItem(pedidoItem: PedidoItem, index: number) {
     console.log(pedidoItem);
-    
+
     this.dialog.open(DividirItemDialogComponent, {
-      width: '70%',
-      height: '40%',
+      width: "70%",
+      height: "40%",
       data: {
         pedido: this.selectedPedido,
-        pedidoItem: pedidoItem
+        pedidoItem: pedidoItem,
+      },
+    });
+  }
+
+  onSetSucEntrega() {
+    if (this.sucursalInfluenciaControl.value != null) {
+      let sucInfluenciaList: Sucursal[] = this.sucursalInfluenciaControl.value;
+      if (sucInfluenciaList.length == 1) {
+        this.sucursalEntregaControl.setValue(
+          this.sucursalInfluenciaControl.value
+        );
       }
-    })
+    }
   }
 }
 

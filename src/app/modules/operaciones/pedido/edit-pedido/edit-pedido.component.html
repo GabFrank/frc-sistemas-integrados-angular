@@ -10,6 +10,7 @@
             type="text"
             matInput
             [formControl]="idControl"
+            readonly
           />
         </mat-form-field>
       </div>
@@ -62,7 +63,7 @@
         </mat-form-field>
       </div>
       <div fxFlex="20%">
-        <mat-form-field style="width: 100%">
+        <mat-form-field style="width: 100%" (focusout)="onSetSucEntrega()">
           <mat-label>Sucursal de influencia</mat-label>
           <mat-select
             #sucursalSelect
@@ -317,7 +318,7 @@
   </div>
 
   <div
-    fxFlex="10"
+    fxFlex
     fxLayout="row"
     fxLayoutGap="10px"
     fxLayoutGap="10px"
@@ -530,11 +531,17 @@
       <button mat-icon-button [disabled]="selectedPedido?.estado == 'ACTIVO'">
         <mat-icon
           #saveIcon
-          [tabindex]="selectedPedido?.estado == 'ABIERTO' ? 0 : null"
+          [tabindex]="
+            selectedPedido?.estado == 'ABIERTO' || selectedPedido == null
+              ? 0
+              : null
+          "
           class="highlight-hover"
-          (click)="selectedPedido?.estado == 'ABIERTO' ? onSaveItem() : null"
+          (click)="(selectedPedido?.estado == 'ABIERTO' || selectedPedido == null) ? onSaveItem() : null"
           (keyup.enter)="
-            selectedPedido?.estado == 'ABIERTO' ? onSaveItem() : null
+            selectedPedido?.estado == 'ABIERTO' || selectedPedido == null
+              ? onSaveItem()
+              : null
           "
           (keyup.ArrowLeft)="descuentoInput.select()"
           (keyup.ArrowRight)="moreOptions._elementRef.nativeElement.focus()"
@@ -564,12 +571,10 @@
     </div>
 
     <div fxFlex="3" style="width: 100%; text-align: center">
-      <button mat-icon-button [disabled]="selectedPedido?.estado == 'ACTIVO'">
+      <button mat-icon-button (click)="onClearItem()">
         <mat-icon
-          tabindex="0"
           #clearIcon
           class="highlight-hover-danger"
-          (click)="onClearItem()"
           (keyup.ArrowLeft)="moreOptions._elementRef.nativeElement.focus()"
           >clear</mat-icon
         >

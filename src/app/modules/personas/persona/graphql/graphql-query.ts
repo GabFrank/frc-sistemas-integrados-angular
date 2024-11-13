@@ -55,6 +55,36 @@ export const personasSearch = gql`
   }
 `;
 
+export const personaPorDocumento = gql`
+  query ($texto: String) {
+    data: personaPorDocumento(texto: $texto) {
+      id
+      nombre
+      apodo
+      nacimiento
+      documento
+      sexo
+      direccion
+      telefono
+      socialMedia
+      creadoEn
+      email
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      isFuncionario
+      isCliente
+      isProveedor
+      isUsuario
+    }
+  }
+`;
+
+
+
 export const personaQuery = gql`
   query ($id: ID!) {
     data: persona(id: $id) {

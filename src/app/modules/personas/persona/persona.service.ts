@@ -15,6 +15,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { DeletePersonaGQL } from "./graphql/deletePersona";
 import { PersonasGQL } from "./graphql/personasQuery";
+import { PersonaPorDocumentoGQL } from "./graphql/personaPorDocumento";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -28,7 +29,8 @@ export class PersonaService {
     private getPersona: PersonaPorIdGQL,
     private genericService: GenericCrudService,
     private deletePersona: DeletePersonaGQL,
-    private getPersonas: PersonasGQL
+    private getPersonas: PersonasGQL,
+    private personaPorDocumento: PersonaPorDocumentoGQL
   ) {}
 
   onGetAll(page): Observable<Persona[]>{
@@ -37,6 +39,10 @@ export class PersonaService {
 
   onSearch(texto): Observable<Persona[]> {
     return this.genericService.onGetByTexto(this.searchPersona, texto)
+  }
+
+  onGetPorDocumento(texto): Observable<Persona> {
+    return this.genericService.onCustomQuery(this.personaPorDocumento, {texto})
   }
 
   onSavePersona(input: PersonaInput): Observable<any> {
