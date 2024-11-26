@@ -22,6 +22,7 @@ import { SavePedidoFullGQL } from "./graphql/savePedidoFull";
 import { PedidoItemPorPedidoPageGQL } from "./graphql/pedido-item-por-pedido-page";
 import { AddPedidoItemListToNotaRecepcionGQL } from "./graphql/add-item-list-to-nota-recepcion";
 import { PedidoItemPorNotaRecepcionGQL } from "./graphql/pedido-item-por-nota-recepcion";
+import { PedidoInfoDetalleGQL } from "./graphql/pedidoInfoDetalle";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -44,11 +45,16 @@ export class PedidoService {
     private notificacionBar: NotificacionSnackbarService,
     private pedidoItemPorPedidoPage: PedidoItemPorPedidoPageGQL,
     private addPedidoItemListToNotaRecepcion: AddPedidoItemListToNotaRecepcionGQL,
-    private pedidoItemPorNotaRecepcion: PedidoItemPorNotaRecepcionGQL
+    private pedidoItemPorNotaRecepcion: PedidoItemPorNotaRecepcionGQL,
+    private getPedidoInfoDetalle: PedidoInfoDetalleGQL
   ) {}
 
   onGetPedidoInfoCompleta(id): Observable<Pedido> {
     return this.genericService.onGetById(this.getPedidoPorId, id);
+  }
+
+  onGetPedidoInfoDetalle(id): Observable<Pedido> {
+    return this.genericService.onGetById(this.getPedidoInfoDetalle, id);
   }
 
   onSaveFull(

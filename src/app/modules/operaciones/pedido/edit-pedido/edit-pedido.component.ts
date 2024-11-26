@@ -78,6 +78,9 @@ import { extractIds } from "../../../../commons/core/utils/arraysUtil";
 import { Color, ScaleType } from "@swimlane/ngx-charts";
 import { DividirItemDialogComponent } from "../dividir-item-dialog/dividir-item-dialog.component";
 import { AdicionarProveedorDialogComponent } from "../../../personas/proveedor/adicionar-proveedor-dialog/adicionar-proveedor-dialog.component";
+import { MatCheckboxChange } from "@angular/material/checkbox";
+import { EditarPedidpItemDialogComponent } from "../editar-pedidp-item-dialog/editar-pedidp-item-dialog.component";
+import { NotaRecepcionService } from "../nota-recepcion/nota-recepcion.service";
 
 export interface ProductoDelProveedor {
   id: number;
@@ -151,6 +154,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   diasCreditoControl = new FormControl(null);
   fechaEntregaControl = new FormControl(null);
   fechaEntregaDisplayControl = new FormControl(null);
+  productoIdControl = new FormControl(null);
   codigoControl = new FormControl(null, Validators.required);
   descripcionControl = new FormControl(null);
   presentacionControl = new FormControl(null);
@@ -202,6 +206,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   pedidoDataSource = new MatTableDataSource<any>([]);
   pedidoItemNotaRecepcionDataSource = new MatTableDataSource<any>([]);
   pedidoDisplayedColumns = [
+    "id",
     "codigo",
     "descripcion",
     "presentacion",
@@ -211,9 +216,9 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     // "descuentoPresentacion",
     "total",
     "menu",
-    "delete",
   ];
   pedidoItemNotaRecepcionDisplayedColumns = [
+    "id",
     "codigo",
     "descripcion",
     "presentacion",
@@ -324,7 +329,8 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     private productoProveedorService: ProductoProveedorService,
     private pedidoService: PedidoService,
     private mainService: MainService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private notaRecepcionService: NotaRecepcionService
   ) {
     this.color = {
       name: "primary",
@@ -381,6 +387,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
               this.onCargarDatos(pedidoRes);
             });
         }
+        console.log(monedas[2].cambio);
       },
       error: (error) => {
         // Handle errors
@@ -535,7 +542,8 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
 
     if (this.selectedPedido.estado == PedidoEstado.ABIERTO) {
       this.pedidoItemFormGroup.enable();
-    } else {
+    } else if (this.selectedPedido.estado == PedidoEstado.ACTIVO) {
+      this.pedidoDisplayedColumns.push("check");
       this.pedidoItemFormGroup.disable();
     }
 
@@ -565,6 +573,8 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       .onGetPedidoItemPorNotaRecepcion(id, this.page, this.size)
       .pipe(untilDestroyed(this))
       .subscribe((res: PageInfo<PedidoItem>) => {
+        this.selectedNotaRecepcion.pedidoItemList = res.getContent;
+        this.notaRecepcionDataSource.data = updateDataSourceWithId(this.notaRecepcionDataSource.data, this.selectedNotaRecepcion, this.selectedNotaRecepcion.id)
         this.selectedPedidoItemNotaRecepcionPage = res;
         this.pedidoItemNotaRecepcionDataSource.data = res.getContent;
       });
@@ -837,7 +847,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   async onSaveItem() {
     if (this.selectedPedido?.id == null) {
       await this.onGuardar();
-      this.savePedidoItem();
+      await this.savePedidoItem();
     } else {
       this.savePedidoItem();
     }
@@ -847,17 +857,21 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     let newData = true;
     if (this.selectedPedidoItem == null) {
       this.selectedPedidoItem = new PedidoItem();
+      this.selectedPedidoItem.usuarioCreacion = this.selectedPedido?.usuario;
     } else {
       newData = false;
     }
     this.selectedPedidoItem.pedido = this.selectedPedido;
     this.selectedPedidoItem.producto = this.selectedProducto;
-    this.selectedPedidoItem.presentacion = this.presentacionControl.value;
-    this.selectedPedidoItem.cantidad = this.cantidadPresentacionControl.value;
-    this.selectedPedidoItem.precioUnitario = this.precioUnitarioControl.value;
-    this.selectedPedidoItem.descuentoUnitario =
+    this.selectedPedidoItem.presentacionCreacion =
+      this.presentacionControl.value;
+    this.selectedPedidoItem.cantidadCreacion =
+      this.cantidadPresentacionControl.value;
+    this.selectedPedidoItem.precioUnitarioCreacion =
+      this.precioUnitarioControl.value;
+    this.selectedPedidoItem.descuentoUnitarioCreacion =
       this.descuentoPresentacionControl.value /
-      this.selectedPedidoItem.presentacion.cantidad;
+      this.selectedPedidoItem.presentacionCreacion.cantidad;
     this.selectedPedidoItem.valorTotal =
       this.cantidadPresentacionControl.value *
       (this.precioPorPresentacionControl.value -
@@ -872,6 +886,8 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
         if (pedidoItemRes != null) {
           this.onClearItem();
           if (newData) {
+            if (this.selectedPedidoItemPage == null)
+              this.selectedPedidoItemPage = new PageInfo<PedidoItem>();
             this.selectedPedidoItemPage.getContent.unshift(pedidoItemRes);
             this.selectedPedidoItemPage.getNumberOfElements++;
             this.selectedPedidoItemPage.getTotalElements++;
@@ -933,40 +949,43 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   onMasOpciones() {}
 
   onSearchPorCodigo() {
-    if (this.codigoControl.valid) {
-      let text = this.codigoControl.value;
-      this.isPesable = false;
-      let peso;
-      let codigo;
-      if (text.length == 13 && text.substring(0, 2) == "20") {
-        this.isPesable = true;
-        codigo = text.substring(2, 7);
-        peso = +text.substring(7, 12) / 1000;
-        text = codigo;
-        this.cantidadUnidadControl.enable();
-        this.cantidadPresentacionControl.setValue(peso);
-        this.cantidadUnidadControl.setValue(peso);
-        this.cantidadPresentacionControl.disable();
-        this.cantidadUnidadControl.disable();
-        this.presentacionControl.disable();
-      } else {
-        this.cantidadPresentacionControl.enable();
-        this.presentacionControl.enable();
-      }
-      this.productoService.onGetProductoPorCodigo(text).subscribe((res) => {
-        if (res != null) {
-          this.onSelectProducto(res);
+    setTimeout(() => {
+      if (this.codigoControl.valid) {
+        let text = this.codigoControl.value;
+        this.isPesable = false;
+        let peso;
+        let codigo;
+        if (text.length == 13 && text.substring(0, 2) == "20") {
+          this.isPesable = true;
+          codigo = text.substring(2, 7);
+          peso = +text.substring(7, 12) / 1000;
+          text = codigo;
+          this.cantidadUnidadControl.enable();
+          this.cantidadPresentacionControl.setValue(peso);
+          this.cantidadUnidadControl.setValue(peso);
+          this.cantidadPresentacionControl.disable();
+          this.cantidadUnidadControl.disable();
+          this.presentacionControl.disable();
         } else {
-          this.onAddItem(this.codigoControl.value);
+          this.cantidadPresentacionControl.enable();
+          this.presentacionControl.enable();
         }
-      });
-    } else {
-      this.onAddItem();
-    }
+        this.productoService.onGetProductoPorCodigo(text).subscribe((res) => {
+          if (res != null) {
+            this.onSelectProducto(res);
+          } else {
+            this.onAddItem(this.codigoControl.value);
+          }
+        });
+      } else {
+        this.onAddItem();
+      }
+    }, 100);
   }
 
   onSelectProducto(producto: Producto, openPresentacion = true) {
     this.selectedProducto = producto;
+    this.productoIdControl.setValue(this.selectedProducto.id);
     this.onSearchCompraItems(this.selectedProducto);
     this.codigoControl.setValue(
       `${this.selectedProducto?.id} - ${this.selectedProducto?.descripcion}`
@@ -1034,14 +1053,13 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
         let response: PdvSearchProductoResponseData = res;
         this.selectedProducto = response.producto;
         this.onSearchCompraItems(this.selectedProducto);
-        this.codigoControl.setValue(
-          `${this.selectedProducto?.id} - ${this.selectedProducto?.descripcion}`
-        );
+        this.codigoControl.setValue(this.selectedProducto?.descripcion);
         this.precioUnitarioControl.setValue(
           this.selectedProducto?.costo?.ultimoPrecioCompra
         );
         this.presentacionControl.setValue(response.presentacion);
         this.cantidadPresentacionControl.setValue(1);
+        this.productoIdControl.setValue(this.selectedProducto.id);
         // let codigo = response.presentacion?.codigoPrincipal?.codigo;
         // if (codigo == null) codigo = response.producto.codigoPrincipal;
         // this.codigoControl.setValue(codigo)
@@ -1145,7 +1163,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
         .pipe(untilDestroyed(this))
         .subscribe((pedidoRes) => {
           if (pedidoRes != null) {
-            this.selectedPedido = pedidoRes;
+            this.selectedPedido.id = pedidoRes.id;
             this.idControl.setValue(this.selectedPedido.id);
             this.cambiarEstado(false);
             resolve(pedidoRes);
@@ -1193,29 +1211,29 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     Object.assign(this.selectedPedidoItem, item);
     this.selectedProducto = item.producto;
     this.codigoControl.setValue(this.selectedProducto.codigoPrincipal);
-    this.cantidadPresentacionControl.setValue(item.cantidad);
+    this.cantidadPresentacionControl.setValue(item.cantidadCreacion);
     this.cantidadUnidadControl.setValue(
-      item.cantidad * item.presentacion.cantidad
+      item.cantidadCreacion * item.presentacionCreacion.cantidad
     );
     this.precioPorPresentacionControl.setValue(
-      item.precioUnitario * item.presentacion.cantidad
+      item.precioUnitarioCreacion * item.presentacionCreacion.cantidad
     );
-    this.precioUnitarioControl.setValue(item.precioUnitario);
+    this.precioUnitarioControl.setValue(item.precioUnitarioCreacion);
     this.descuentoPresentacionControl.setValue(
-      item.presentacion.cantidad * item.descuentoUnitario
+      item.presentacionCreacion.cantidad * item.descuentoUnitarioCreacion
     );
     setTimeout(() => {
       this.presentacionControl.setValue(
         this.selectedProducto?.presentaciones?.find(
-          (p) => p.id == item.presentacion.id
+          (p) => p.id == item.presentacionCreacion.id
         ),
         { emitEvent: false }
       );
       this.codigoInput.nativeElement.select();
       this.valorTotalControl.setValue(
-        (item.precioUnitario - item.descuentoUnitario) *
-          item.presentacion.cantidad *
-          item.cantidad
+        (item.precioUnitarioCreacion - item.descuentoUnitarioCreacion) *
+          item.presentacionCreacion.cantidad *
+          item.cantidadCreacion
       );
     }, 100);
   }
@@ -1239,10 +1257,11 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
           this.selectedPedidoItemPage.getTotalElements--;
           this.selectedPedido.descuento =
             this.selectedPedido.descuento -
-            pedidoItem?.descuentoUnitario * pedidoItem?.cantidad;
+            pedidoItem?.descuentoUnitarioCreacion *
+              pedidoItem?.cantidadCreacion;
           this.selectedPedido.valorTotal =
             this.selectedPedido.valorTotal -
-            pedidoItem?.precioUnitario * pedidoItem?.cantidad;
+            pedidoItem?.precioUnitarioCreacion * pedidoItem?.cantidadCreacion;
         }
       });
   }
@@ -1278,9 +1297,11 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       .pipe(untilDestroyed(this))
       .subscribe((res: Pedido) => {
         if (res != null) {
-          this.selectedPedido.estado = aux.estado;
+          this.selectedPedido = res;
+          this.totalItensAgregados = 0;
           this.pedidoItemFormGroup.disable();
           this.buscarPedidoItemSobrantes();
+          this.pedidoDisplayedColumns.push("check");
         }
       });
   }
@@ -1299,6 +1320,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     let aux = new Pedido();
     Object.assign(aux, this.selectedPedido);
     aux.estado = PedidoEstado.ABIERTO;
+    this.pedidoDisplayedColumns.pop();
     this.pedidoService
       .onSave(aux.toInput())
       .pipe(untilDestroyed(this))
@@ -1310,28 +1332,55 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       });
   }
 
-  onAgregarNota() {
+  onAgregarNota(nuevo?) {
     this.dialog
       .open(AdicionarNotaRecepcionDialogComponent, {
         data: {
           pedido: this.selectedPedido,
+          notaRecepcion: !nuevo ? this.selectedNotaRecepcion : null,
+          notaRecepcionList: this.notaRecepcionDataSource.data,
         },
         height: "60%",
       })
       .afterClosed()
       .subscribe((res) => {
         if (res?.id != null) {
-          this.notaRecepcionDataSource.data = updateDataSource(
+          this.selectedNotaRecepcion = res;
+          this.notaRecepcionDataSource.data = updateDataSourceWithId(
             this.notaRecepcionDataSource.data,
-            res
+            res,
+            this.selectedNotaRecepcion?.id
           );
+        } else if (res?.nuevo) {
+          this.selectedNotaRecepcion = null;
+          this.onAgregarNota();
         }
       });
   }
 
   onNotaRecepcionClick(notaRecepcion: NotaRecepcion, index) {
     this.selectedNotaRecepcion = notaRecepcion;
-    this.buscarPedidoItensPorNotaRecepcion(notaRecepcion.id);
+    if (this.selectedNotaRecepcion.pedidoItemList == null) {
+      this.buscarPedidoItensPorNotaRecepcion(notaRecepcion.id);
+    } else {
+      this.pedidoItemNotaRecepcionDataSource.data = this.selectedNotaRecepcion.pedidoItemList;
+    }
+
+  }
+
+  onRefreshNotaRecepcion(notaRecepcion: NotaRecepcion) {
+    this.notaRecepcionService
+      .onGetNotaRecepcion(notaRecepcion.id)
+      .subscribe((res) => {
+        if (res != null) {
+          this.selectedNotaRecepcion.valor = res.valor;
+          this.notaRecepcionDataSource.data = updateDataSourceWithId(
+            this.notaRecepcionDataSource.data,
+            this.selectedNotaRecepcion,
+            this.selectedNotaRecepcion.id
+          );
+        }
+      });
   }
 
   isAllSelected() {
@@ -1372,6 +1421,18 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     }
   }
 
+  onChangePedidoItemSelection(
+    pedidoItem: PedidoItem,
+    e: MatCheckboxChange,
+    index
+  ) {
+    if (e.checked) {
+      this.onAddPedidoItemToNota(pedidoItem, index);
+    } else {
+      this.onDeleteItemFromNota(pedidoItem, index);
+    }
+  }
+
   onAddPedidoItemToNota(pedidoItem: PedidoItem, index) {
     if (this.selectedNotaRecepcion == null) {
       return null;
@@ -1389,16 +1450,20 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
             let aux = this.pedidoItemNotaRecepcionDataSource.data;
             aux.unshift(pedidoItem);
             this.pedidoItemNotaRecepcionDataSource.data = aux;
-            this.pedidoDataSource.data = updateDataSource(
+            this.pedidoDataSource.data = updateDataSourceWithId(
               this.pedidoDataSource.data,
               null,
-              index
+              pedidoItem.id
             );
             this.selectedNotaRecepcion.cantidadItens++;
             this.totalItensAgregados++;
             this.onUpdateChart();
             this.selectedNotaRecepcion.valor =
               this.selectedNotaRecepcion.valor + pedidoItem.valorTotal;
+            if (this.pedidoDataSource.data.length == 0) {
+              this.pedidoDisplayedColumns.shift();
+              this.isAddingItensToNota = false;
+            }
           }
         });
     }
@@ -1419,13 +1484,15 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
         .subscribe((res) => {
           if (res) {
             let aux = this.pedidoDataSource.data;
+            pedidoItem.notaRecepcion = null;
             aux.unshift(pedidoItem);
             this.pedidoDataSource.data = aux;
-            this.pedidoItemNotaRecepcionDataSource.data = updateDataSource(
-              this.pedidoItemNotaRecepcionDataSource.data,
-              null,
-              index
-            );
+            this.pedidoItemNotaRecepcionDataSource.data =
+              updateDataSourceWithId(
+                this.pedidoItemNotaRecepcionDataSource.data,
+                null,
+                pedidoItem.id
+              );
             this.selectedNotaRecepcion.cantidadItens--;
             this.totalItensAgregados--;
             this.onUpdateChart();
@@ -1451,19 +1518,44 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     });
   }
 
-  onFinalizarRecepcion() {}
+  onFinalizarRecepcionDeNota() {}
 
   onDividirItem(pedidoItem: PedidoItem, index: number) {
     console.log(pedidoItem);
 
-    this.dialog.open(DividirItemDialogComponent, {
-      width: "70%",
-      height: "40%",
-      data: {
-        pedido: this.selectedPedido,
-        pedidoItem: pedidoItem,
-      },
-    });
+    this.dialog
+      .open(DividirItemDialogComponent, {
+        width: "70%",
+        height: "50%",
+        data: {
+          pedido: this.selectedPedido,
+          pedidoItem: pedidoItem,
+        },
+      })
+      .afterClosed()
+      .subscribe((dividirRes: PedidoItem[]) => {
+        if (dividirRes != null && dividirRes.length > 0) {
+          dividirRes.forEach((p) => {
+            if (p?.notaRecepcion?.id != null) {
+              this.selectedNotaRecepcion.pedidoItemList =
+                updateDataSourceWithId(
+                  this.selectedNotaRecepcion.pedidoItemList,
+                  p,
+                  p.id
+                );
+              this.pedidoItemNotaRecepcionDataSource.data =
+                this.selectedNotaRecepcion.pedidoItemList;
+            } else {
+              this.pedidoDataSource.data = updateDataSourceWithId(
+                this.pedidoDataSource.data,
+                p,
+                p.id
+              );
+            }
+          });
+          this.actualizarDetalle();
+        }
+      });
   }
 
   onSetSucEntrega() {
@@ -1475,6 +1567,64 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
         );
       }
     }
+  }
+
+  onCheckPedidoNotaRecepcion(pedido, i) {
+    this.onAddPedidoItemToNota(pedido, i);
+  }
+
+  /*
+  Esta funcion sirve para modificar un item en la etapa de recepcion de nota
+  Abrira un cuadro de dialogo en donde mostrara las opciones de modificacion
+  */
+  onModificarItem(p, cancelar?, reabrir?, width = "60%") {
+    this.matDialog
+      .open(EditarPedidpItemDialogComponent, {
+        width: width,
+        data: { pedido: this.selectedPedido, pedidoItem: p, rechazar: cancelar, reabrir: reabrir },
+      })
+      .afterClosed()
+      .subscribe((res) => {
+        if (res?.id != null) {
+          if (res?.notaRecepcion != null) {
+            console.log(this.selectedNotaRecepcion.pedidoItemList);
+            this.selectedNotaRecepcion.pedidoItemList = updateDataSourceWithId(
+              this.selectedNotaRecepcion.pedidoItemList,
+              res,
+              res.id
+            );
+            console.log(this.selectedNotaRecepcion.pedidoItemList);
+            this.pedidoItemNotaRecepcionDataSource.data =
+              this.selectedNotaRecepcion.pedidoItemList;
+          } else {
+            this.pedidoDataSource.data = updateDataSourceWithId(
+              this.pedidoDataSource.data,
+              res,
+              res.id
+            );
+          }
+          this.actualizarDetalle();
+        }
+      });
+  }
+
+  onRechazarItem(p) {
+    this.onModificarItem(p, true, false, "50%")
+  }
+  
+  onReabrirItem(p){
+    this.onModificarItem(p, false, true, "50%")
+  }
+
+  actualizarDetalle() {
+    this.pedidoService
+      .onGetPedidoInfoDetalle(this.selectedPedido.id)
+      .subscribe((res) => {
+        this.selectedPedido.valorTotal = res.valorTotal;
+        this.selectedPedido.cantPedidoItem = res.cantPedidoItem;
+        this.selectedPedido.cantPedidoItemSinNota = res.cantPedidoItemSinNota;
+      });
+    this.onRefreshNotaRecepcion(this.selectedNotaRecepcion);
   }
 }
 

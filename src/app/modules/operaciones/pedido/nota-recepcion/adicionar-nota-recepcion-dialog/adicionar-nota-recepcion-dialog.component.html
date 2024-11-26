@@ -4,14 +4,23 @@
   fxLayoutGap="10px"
 >
   <div fxFlex="5" style="width: 100%; text-align: center; padding: 10px">
-    Nota de recepción prueba
+    {{
+      selectedNotaRecepcion?.id == null
+        ? "Nueva nota de recepción"
+        : "Nota de recepción: "
+    }}
+    {{ selectedNotaRecepcion?.id }}
   </div>
   <div fxFlex="10">
     <div fxLayout="row" style="width: 100%" fxLayoutGap="10px">
       <div fxFlex="20%">
         <mat-form-field>
           <mat-label>Tipo de boleta</mat-label>
-          <mat-select #tipoBoletaSelect [formControl]="tipoBoletaControl">
+          <mat-select
+            #tipoBoletaSelect
+            [formControl]="tipoBoletaControl"
+            (selectionChange)="tipoBoletaSelect.close(); numeroInput.focus();"
+          >
             <mat-select-trigger>
               {{ tipoBoletaControl?.value }}
             </mat-select-trigger>
@@ -32,14 +41,31 @@
             matInput
             type="number"
             [formControl]="numeroControl"
-            (keyup.enter)="onNumeroEnter()"
+            (keyup.enter)="sameNumeroNota ? numeroInput.select() : onNumeroEnter()"
           />
+          <mat-hint
+          class="btn-success-flat"
+          *ngIf="
+            sameNumeroNota
+          "
+          >El número de nota ya fué registrado</mat-hint
+        >
         </mat-form-field>
       </div>
       <div fxFlex="20">
         <mat-form-field>
           <mat-label>Fecha</mat-label>
           <input
+            matInput
+            #fechaInput
+            [formControl]="fechaControl"
+            (input)="onDateInput($event)"
+            placeholder="dd/mm/yy"
+            maxlength="8"
+            (keyup.enter)="onFechaEnter()"
+          />
+          <!-- <input
+            #fechaInput
             matInput
             [matDatepicker]="picker"
             [formControl]="fechaControl"
@@ -48,40 +74,44 @@
             matSuffix
             [for]="picker"
           ></mat-datepicker-toggle>
-          <mat-datepicker #picker></mat-datepicker>
+          <mat-datepicker #picker></mat-datepicker> -->
         </mat-form-field>
       </div>
       <div fxFlex="20"></div>
       <div fxFlex="20" fxLayout="row" style="width: 100%" fxLayoutGap="10px">
         <div fxFlex="30">
           <button
+            #editBtn
             mat-icon-button
-            [disabled]="!isEditing"
-            [tabindex]="!isEditing ? -1 : 0"
-            #editIcon
+            [disabled]="isEditing"
+            [tabindex]="!isEditing ? 0 : -1"
+            (keyup.ArrowRight)="deleteBtn.focus()"
+            (click)="onEdit()"
           >
-            <mat-icon>edit</mat-icon>
+            <mat-icon class="warn">edit</mat-icon>
           </button>
         </div>
         <div fxFlex="30">
           <button
+            #saveBtn
             mat-icon-button
-            color="accent"
-            [disabled]="isEditing || formGroup.invalid"
-            [tabindex]="isEditing ? -1 : 0"
+            [disabled]="!isEditing || formGroup.invalid || sameNumeroNota"
+            [tabindex]="isEditing ? 0 : -1"
             (click)="onSave()"
           >
-            <mat-icon>save</mat-icon>
+            <mat-icon class="success">save</mat-icon>
           </button>
         </div>
         <div fxFlex="30">
           <button
+            #deleteBtn
             mat-icon-button
-            color="primary"
-            [disabled]="selectedNotaRecepcion?.id == null"
-            [tabindex]="selectedNotaRecepcion?.id == null ? -1 : 0"
+            [disabled]="(selectedNotaRecepcion?.id == null || isEditing)"
+            [tabindex]="(selectedNotaRecepcion?.id == null || isEditing) ? -1 : 0"
+            (keyup.ArrowLeft)="editBtn.focus()"
+            (click)="onDelete()"
           >
-            <mat-icon>delete</mat-icon>
+            <mat-icon class="danger">delete</mat-icon>
           </button>
         </div>
       </div>
@@ -91,19 +121,15 @@
     appearance="outlined"
     fxLayout="column"
     fxLayoutGap="10px"
-    fxFlex="0"
-    fxFlexFill
+    fxFlex="80"
     style="background-color: rgb(32, 32, 32); height: 100%"
   >
-    <div
+    <!-- <div
       fxFlex="5"
       fxLayout="row"
       fxLayoutAlign="end center"
       fxLayoutGap="15px"
     >
-      <div fxFlex="5" *ngIf="selectedNotaRecepcion != null">
-        <mat-icon color="primary" style="cursor: pointer">delete</mat-icon>
-      </div>
       <div fxFlex="5" *ngIf="selectedNotaRecepcion != null && !isEditing">
         <mat-icon color="primary" (click)="onEditar()" style="cursor: pointer"
           >edit</mat-icon
@@ -130,7 +156,7 @@
           Volver
         </button>
       </div>
-    </div>
+    </div> -->
     <div fxFlex style="width: 100%">
       <table
         style="width: 100%"
@@ -240,4 +266,22 @@
       </table>
     </div>
   </mat-card>
+  <div
+    fxFlex="10"
+    fxLayout="row"
+    fxLayoutAlign="center center"
+    fxLayoutGap="20px"
+    style="width: 100%"
+  >
+    <div fxFlex="30">
+      <app-boton nombre="Nueva nota" (clickEvent)="onVolver(true)"></app-boton>
+    </div>
+    <div fxFlex="30">
+      <app-boton
+        nombre="Atrás"
+        color="primary"
+        (clickEvent)="onVolver()"
+      ></app-boton>
+    </div>
+  </div>
 </div>

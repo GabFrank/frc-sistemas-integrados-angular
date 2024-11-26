@@ -11,7 +11,7 @@ export class NotaRecepcion {
     compra: Compra
     documento: Documento
     tipoBoleta: string
-    valor: number
+    valor: number = 0;
     descuento: number
     pagado: boolean
     numero: number
@@ -20,7 +20,7 @@ export class NotaRecepcion {
     fecha: Date
     usuario: Usuario
     pedidoItemList: PedidoItem[] = [];
-    cantidadItens: number;
+    cantidadItens: number = 0;
 
     toInput(): NotaRecepcionInput {
         let input = new NotaRecepcionInput;

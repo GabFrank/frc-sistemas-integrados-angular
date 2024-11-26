@@ -115,11 +115,12 @@
         Item: {{ 1 + forIndex }}
       </div>
       <div fxFlex="10">
-        <mat-form-field style="width: 100%; text-align: center">
+        <mat-form-field #presentacionSelect style="width: 100%; text-align: center">
           <mat-label>Presentación</mat-label>
           <mat-select
             #presentacionSelect
             [formControl]="presentacionControl[forIndex]"
+            (keydown.enter)="onPresentacionChange(forIndex)"
           >
             <mat-option
               *ngFor="let presentacion of presentacionList"
@@ -143,7 +144,7 @@
             matInput
             [formControl]="cantidadPresentacionControl[forIndex]"
             style="text-align: center"
-            (keyup.enter)="precioPorPresentacion.select()"
+            (keyup.enter)="onCantidadPresentacionEnter(forIndex)"
             currencyMask
             [options]="currencyMask.currencyOptionsGuarani"
           />
@@ -255,6 +256,7 @@
       </div>
       <div fxFlex="5" style="width: 100%; text-align: center">
         <button
+          #addBtn
           *ngIf="presentacionControl?.length - 1 == forIndex"
           mat-icon-button
           style="text-align: center"
@@ -313,10 +315,20 @@
         </div>
       </div>
       <div fxFlex="10">
-        <app-boton color="warn" nombre="Cancelar"></app-boton>
+        <app-boton
+          color="warn"
+          nombre="Cancelar"
+          (clickEvent)="onCancelar()"
+        ></app-boton>
       </div>
       <div fxFlex="10">
-        <app-boton color="accent" nombre="Aceptar" [disableExpression]="cantidadParcial != cantidadPorUnidad"></app-boton>
+        <app-boton
+          #saveBtn
+          color="accent"
+          nombre="Aceptar"
+          [disableExpression]="cantidadParcial != cantidadPorUnidad"
+          (clickEvent)="onGuardar()"
+        ></app-boton>
       </div>
     </div>
   </div>

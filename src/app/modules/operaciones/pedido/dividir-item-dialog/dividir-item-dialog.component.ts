@@ -1,6 +1,14 @@
-import { Component, ElementRef, Inject, OnInit, ViewChild } from "@angular/core";
+import {
+  Component,
+  ElementRef,
+  Inject,
+  OnInit,
+  QueryList,
+  ViewChild,
+  ViewChildren,
+} from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
-import { MAT_DIALOG_DATA } from "@angular/material/dialog";
+import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { CurrencyMask } from "../../../../commons/core/utils/numbersUtils";
 import { Presentacion } from "../../../productos/presentacion/presentacion.model";
 import { Producto } from "../../../productos/producto/producto.model";
@@ -9,6 +17,12 @@ import { Pedido } from "../edit-pedido/pedido.model";
 import { ProductoService } from "../../../productos/producto/producto.service";
 import { PedidoService } from "../pedido.service";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { forkJoin, map } from "rxjs";
+import { BotonComponent } from "../../../../shared/components/boton/boton.component";
+import { MatIconButton } from "@angular/material/button";
+import { MatIcon } from "@angular/material/icon";
+import { MatSelect } from "@angular/material/select";
+import { MatInput } from "@angular/material/input";
 
 export interface DividirItemDialogData {
   pedidoItem: PedidoItem;
@@ -23,10 +37,14 @@ export interface DividirItemDialogData {
   styleUrls: ["./dividir-item-dialog.component.scss"],
 })
 export class DividirItemDialogComponent implements OnInit {
+  @ViewChild("scrollContainer") private scrollContainer: ElementRef;
+  @ViewChild("saveBtn", { read: BotonComponent }) saveBtn: BotonComponent;
+  @ViewChildren("addBtn") addBtn: QueryList<MatIconButton>;
+  @ViewChildren("presentacionSelect") presentacionSelect: QueryList<MatSelect>;
+  @ViewChildren("cantidadPresentacionInput")
+  cantidadPresentacionInput: QueryList<MatInput>;
 
-  @ViewChild('scrollContainer') private scrollContainer: ElementRef;
-
-  cantidadParcial = 0
+  cantidadParcial = 0;
   cantidadPorUnidad = 0;
   precioTotal = 0;
   cantObservables = 0;
@@ -83,7 +101,8 @@ export class DividirItemDialogComponent implements OnInit {
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: DividirItemDialogData,
     private productoService: ProductoService,
-    private pedidoService: PedidoService
+    private pedidoService: PedidoService,
+    private dialogRef: MatDialogRef<DividirItemDialogComponent>
   ) {}
 
   ngOnInit(): void {
@@ -125,22 +144,22 @@ export class DividirItemDialogComponent implements OnInit {
     this.descripcionControl[0].setValue(this.selectedProducto.descripcion);
     this.presentacionControl[0].setValue(
       this.presentacionList?.find(
-        (p) => p.id === this.selectedPedidoItem.presentacion.id
+        (p) => p.id === this.selectedPedidoItem.presentacionCreacion.id
       )
     );
     this.presentacionControl[1].setValue(this.presentacionControl[0].value);
     this.cantidadPresentacionControl[0].setValue(
-      this.selectedPedidoItem.cantidad
+      this.selectedPedidoItem.cantidadCreacion
     );
     this.cantidadUnidadControl[0].setValue(
-      this.selectedPedidoItem.cantidad *
-        this.selectedPedidoItem.presentacion.cantidad
+      this.selectedPedidoItem.cantidadCreacion *
+        this.selectedPedidoItem.presentacionCreacion.cantidad
     );
     this.cantidadPorUnidad = this.cantidadUnidadControl[0].value;
 
     this.precioPorPresentacionControl[0].setValue(
-      this.selectedPedidoItem.precioUnitario *
-        this.selectedPedidoItem.presentacion.cantidad
+      this.selectedPedidoItem.precioUnitarioCreacion *
+        this.selectedPedidoItem.presentacionCreacion.cantidad
     );
     this.precioPorPresentacionControl[1].setValue(
       this.precioPorPresentacionControl[0].value
@@ -149,15 +168,15 @@ export class DividirItemDialogComponent implements OnInit {
     this.precioPorPresentacionControl[1].disable();
 
     this.precioUnitarioControl[0].setValue(
-      this.selectedPedidoItem.precioUnitario
+      this.selectedPedidoItem.precioUnitarioCreacion
     );
     this.precioUnitarioControl[1].setValue(this.precioUnitarioControl[0].value);
     this.precioUnitarioControl[0].disable();
     this.precioUnitarioControl[1].disable();
 
     this.descuentoPresentacionControl[0].setValue(
-      this.selectedPedidoItem.presentacion.cantidad *
-        this.selectedPedidoItem?.descuentoUnitario
+      this.selectedPedidoItem.presentacionCreacion.cantidad *
+        this.selectedPedidoItem?.descuentoUnitarioCreacion
     );
     this.descuentoPresentacionControl[1].setValue(
       this.descuentoPresentacionControl[0].value
@@ -166,9 +185,10 @@ export class DividirItemDialogComponent implements OnInit {
     this.descuentoPresentacionControl[1].disable();
 
     this.valorTotalControl[0].setValue(
-      this.selectedPedidoItem.cantidad *
-        this.selectedPedidoItem.presentacion.cantidad *
-        (this.selectedPedidoItem.precioUnitario - this.selectedPedidoItem.descuentoUnitario)
+      this.selectedPedidoItem.cantidadCreacion *
+        this.selectedPedidoItem.presentacionCreacion.cantidad *
+        (this.selectedPedidoItem.precioUnitarioCreacion -
+          this.selectedPedidoItem.descuentoUnitarioCreacion)
     );
 
     this.precioTotal = this.valorTotalControl[0].value;
@@ -209,8 +229,8 @@ export class DividirItemDialogComponent implements OnInit {
             { emitEvent: false }
           );
           this.valorTotalControl[index].setValue(
-            (this.selectedPedidoItem.precioUnitario -
-              this.selectedPedidoItem.descuentoUnitario) *
+            (this.selectedPedidoItem.precioUnitarioCreacion -
+              this.selectedPedidoItem.descuentoUnitarioCreacion) *
               this.cantidadUnidadControl[index].value
           );
           this.verificarCantidades();
@@ -227,8 +247,8 @@ export class DividirItemDialogComponent implements OnInit {
             { emitEvent: false }
           );
           this.valorTotalControl[index].setValue(
-            (this.selectedPedidoItem.precioUnitario -
-              this.selectedPedidoItem.descuentoUnitario) *
+            (this.selectedPedidoItem.precioUnitarioCreacion -
+              this.selectedPedidoItem.descuentoUnitarioCreacion) *
               this.cantidadUnidadControl[index].value
           );
           this.verificarCantidades();
@@ -275,7 +295,7 @@ export class DividirItemDialogComponent implements OnInit {
     this.precioUnitarioControl.splice(index, 1);
     this.descuentoPresentacionControl.splice(index, 1);
     this.valorTotalControl.splice(index, 1);
-    this.verificarCantidades()
+    this.verificarCantidades();
   }
 
   scrollToTop(): void {
@@ -285,5 +305,74 @@ export class DividirItemDialogComponent implements OnInit {
   scrollToBottom(): void {
     const element = this.scrollContainer.nativeElement;
     element.scrollTop = element.scrollHeight;
+  }
+
+  onGuardar() {
+    let pedidoItemList: PedidoItem[] = [];
+    let newPedidoItem = new PedidoItem();
+    Object.assign(newPedidoItem, this.selectedPedidoItem);
+    newPedidoItem.presentacionCreacion = this.presentacionControl[0].value;
+    newPedidoItem.cantidadCreacion = this.cantidadPresentacionControl[0].value;
+    newPedidoItem.valorTotal = this.valorTotalControl[0].value;
+    pedidoItemList.push(newPedidoItem);
+    this.cantidadPresentacionControl.forEach((value, index) => {
+      if (this.cantidadPresentacionControl[index].value > 0 && index > 0) {
+        let auxPedidoItem = new PedidoItem();
+        Object.assign(auxPedidoItem, this.selectedPedidoItem);
+        auxPedidoItem.id = null;
+        auxPedidoItem.creadoEn = null;
+        auxPedidoItem.usuarioCreacion = null;
+        auxPedidoItem.notaRecepcion = null;
+        auxPedidoItem.presentacionCreacion = this.presentacionControl[index].value;
+        auxPedidoItem.cantidadCreacion = this.cantidadPresentacionControl[index].value;
+        auxPedidoItem.valorTotal = this.valorTotalControl[index].value;
+        pedidoItemList.push(auxPedidoItem);
+      }
+    });
+
+    console.log(pedidoItemList);
+    
+
+    if (pedidoItemList?.length > 1) {
+      const saveItemObservables = pedidoItemList.map((pi, index) =>
+        this.pedidoService.onSaveItem(pi.toInput()).pipe(
+          // Map each response back to its index
+          map((response) => ({ index, response }))
+        )
+      );
+    
+      forkJoin(saveItemObservables).subscribe({
+        next: (responses) => {
+          // Update pedidoItemList with the responses at the correct index
+          responses.forEach(({ index, response }) => {
+            pedidoItemList[index] = response;
+          });
+          this.dialogRef.close(pedidoItemList);
+        },
+        error: (err) => {
+          console.error("Error saving items", err);
+          // Handle errors if necessary
+        }
+      });
+    }
+  }
+
+  onCancelar() {
+    this.dialogRef.close();
+  }
+
+  onCantidadPresentacionEnter(index: number) {
+    if (index == this.presentacionControl.length - 1) {
+      if (this.cantidadParcial != this.cantidadPorUnidad) {
+        this.addBtn.last._elementRef.nativeElement.focus();
+      } else {
+        this.saveBtn.btn.focus();
+      }
+    }
+  }
+
+  onPresentacionChange(index) {
+    // this.presentacionSelect.get(index).close();
+    // this.cantidadPresentacionInput.get(index).focus();
   }
 }

@@ -347,10 +347,13 @@ export class GenericCrudService {
     printerName?: string,
     local?: string,
     servidor?,
-    errorConf?: QueryError
+    errorConf?: QueryError,
+    usuarioId?: number
   ): Observable<T> {
     this.isLoading = true;
-    if (input?.usuarioId == null) {
+    if(usuarioId != null && input?.usuarioId == null){
+      input['usuarioId'] = this.mainService.usuarioActual.id;
+    } else if ('usuarioId' in input && input?.usuarioId == null) {
       input.usuarioId = this.mainService.usuarioActual.id;
     }
     const { requestId, signal } = this.cargandoService.openDialog(

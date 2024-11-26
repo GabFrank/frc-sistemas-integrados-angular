@@ -26,10 +26,13 @@
     ],
     "useDefineForClassFields": false
   },
-  "exclude": [
-    "node_modules",
-    "release"
-  ],
+  // "exclude": [
+  //   "node_modules",
+  //   "release",
+  //   "dist",
+  //   ".angular"
+  // ],
+  "include": ["src/**/*.ts", "src/**/*.html"],
   "angularCompilerOptions": {
     "strictTemplates": true,
     "fullTemplateTypeCheck": true,

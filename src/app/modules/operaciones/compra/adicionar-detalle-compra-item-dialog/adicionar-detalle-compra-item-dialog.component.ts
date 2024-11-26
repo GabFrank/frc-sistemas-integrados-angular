@@ -145,9 +145,9 @@ export class AdicionarDetalleCompraItemDialogComponent implements OnInit {
 
   onComparar(compraItem: CompraItem, pedidoItem: PedidoItem): boolean {
     if (
-      (compraItem.precioUnitario != pedidoItem?.precioUnitario ||
-      compraItem.descuentoUnitario != pedidoItem?.descuentoUnitario ||
-      compraItem.cantidad != pedidoItem?.cantidad)
+      (compraItem.precioUnitario != pedidoItem?.precioUnitarioCreacion ||
+      compraItem.descuentoUnitario != pedidoItem?.descuentoUnitarioCreacion ||
+      compraItem.cantidad != pedidoItem?.cantidadCreacion)
     ) {
       return true;
     } else {

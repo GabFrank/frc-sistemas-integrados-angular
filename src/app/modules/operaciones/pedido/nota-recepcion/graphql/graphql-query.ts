@@ -133,6 +133,7 @@ export const saveNotaRecepcion = gql`
   mutation saveNotaRecepcion($entity: NotaRecepcionInput!) {
     data: saveNotaRecepcion(entity: $entity) {
       id
+      valor
     }
   }
 `;

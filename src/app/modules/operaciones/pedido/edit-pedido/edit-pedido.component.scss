@@ -85,3 +85,8 @@ mat-icon {
   font-size: medium;
   text-align: center;
 }
+
+/* Custom styles for white-on-hover class */
+.white-on-hover-button:hover .white-on-hover {
+  color: white !important; /* Ensures the hover color is applied */
+}

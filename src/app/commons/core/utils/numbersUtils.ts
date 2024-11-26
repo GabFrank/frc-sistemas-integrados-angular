@@ -82,14 +82,22 @@ export function updateDataSource(dataSourceData: any[], value?: any, index?: num
 
 export function updateDataSourceWithId(arr, value, id?): any[] {
   if (id != null) {
+    if(arr == null) arr = [];
     let index = arr.findIndex(e => e.id == id);
     if (index != -1) {
-      arr[index] = value;
+      if(value!=null){
+        arr[index] = value;
+      } else {
+        arr.splice(index, 1);
+      }
+      return arr;
     } else {
       arr.unshift(value);
+      return arr;
     }
+  } else {
+    updateDataSource(arr, value)
   }
-  return arr;
 }
 
 export function updateDataSourceInsertFirst(arr: any[], value): any[] {

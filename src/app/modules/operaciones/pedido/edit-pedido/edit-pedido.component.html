@@ -10,7 +10,7 @@
             type="text"
             matInput
             [formControl]="idControl"
-            readonly
+            [readonly]="true"
           />
         </mat-form-field>
       </div>
@@ -307,7 +307,7 @@
           color="accent"
           style="height: 80%"
           [disableExpression]="selectedPedido == null"
-          (clickEvent)="onFinalizarRecepcion()"
+          (clickEvent)="onFinalizarRecepcionDeNota()"
           *ngIf="
             selectedPedido?.estado == 'ACTIVO' &&
             selectedPedido?.cantPedidoItem == totalItensAgregados
@@ -354,6 +354,20 @@
         {{ selectedProducto?.codigoPrincipal }}
       </div>
     </div>
+    <mat-form-field
+      *ngIf="selectedProducto?.id != null"
+      fxFlex="5"
+      style="width: 100%"
+    >
+      <mat-label>Id</mat-label>
+      <input
+        #idInput
+        matInput
+        type="text"
+        [formControl]="productoIdControl"
+        [readonly]="true"
+      />
+    </mat-form-field>
     <mat-form-field fxFlex="20" style="width: 100%">
       <mat-label>Código de barra o descripción del producto</mat-label>
       <input
@@ -412,7 +426,7 @@
         />
       </mat-form-field>
     </div>
-    <div fxFlex="10">
+    <div fxFlex="8">
       <mat-form-field style="width: 100%">
         <mat-label>Precio por present.</mat-label>
         <input
@@ -431,7 +445,7 @@
         />
       </mat-form-field>
     </div>
-    <div fxFlex="10">
+    <div fxFlex="8">
       <mat-form-field style="width: 100%">
         <mat-label>Precio Unit.</mat-label>
         <input
@@ -467,13 +481,13 @@
           {{
             (precioUnitarioControl.value * 100) /
               this.selectedProducto?.costo?.ultimoPrecioCompra -
-              100 | number : "1.0-2"
+              100 | number : "1.0-0"
           }}%</mat-hint
         >
       </mat-form-field>
     </div>
 
-    <div fxFlex="10">
+    <div fxFlex="8">
       <mat-form-field style="width: 100%">
         <mat-label>Desc. por present.</mat-label>
         <input
@@ -537,7 +551,11 @@
               : null
           "
           class="highlight-hover"
-          (click)="(selectedPedido?.estado == 'ABIERTO' || selectedPedido == null) ? onSaveItem() : null"
+          (click)="
+            selectedPedido?.estado == 'ABIERTO' || selectedPedido == null
+              ? onSaveItem()
+              : null
+          "
           (keyup.enter)="
             selectedPedido?.estado == 'ABIERTO' || selectedPedido == null
               ? onSaveItem()
@@ -633,6 +651,22 @@
                 class="mat-elevation-z8"
                 style="width: 100%"
               >
+                <ng-container matColumnDef="id" style="width: 5%">
+                  <th
+                    mat-header-cell
+                    *matHeaderCellDef
+                    style="text-align: center"
+                  >
+                    class="ion-hide-md-up"
+                  </th>
+                  <td
+                    mat-cell
+                    *matCellDef="let productoProveedor"
+                    style="text-align: center"
+                  >
+                    {{ productoProveedor.producto.id }}
+                  </td>
+                </ng-container>
                 <ng-container matColumnDef="codigo" style="width: 5%">
                   <th
                     mat-header-cell
@@ -905,7 +939,7 @@
                     *matCellDef="let notaRecepcion"
                     style="text-align: center"
                   >
-                    {{ notaRecepcion?.cantidadItens }}
+                    {{ notaRecepcion?.cantidadItens || 0 }}
                   </td>
                 </ng-container>
 
@@ -922,7 +956,7 @@
                     *matCellDef="let notaRecepcion"
                     style="text-align: center"
                   >
-                    {{ notaRecepcion?.valor | number : "1.0-2" }}
+                    {{ notaRecepcion?.valor || 0 | number : "1.0-0" }}
                   </td>
                 </ng-container>
 
@@ -988,12 +1022,12 @@
                       mat-icon-button
                       [matMenuTriggerFor]="menu"
                       (click)="$event.stopPropagation()"
-                      *ngIf="!isAddingItensToNota"
+                      [disabled]="isAddingItensToNota"
                     >
                       <mat-icon>more_vert</mat-icon>
                     </button>
                     <mat-menu #menu="matMenu">
-                      <button
+                      <!-- <button
                         mat-menu-item
                         (click)="
                           onEnableAddingItemToNota();
@@ -1001,8 +1035,15 @@
                         "
                       >
                         Agregar productos
+                      </button> -->
+                      <button
+                        mat-menu-item
+                        (click)="
+                          selectedNotaRecepcion = notaRecepcion; onAgregarNota()
+                        "
+                      >
+                        Editar
                       </button>
-                      <button mat-menu-item>Editar</button>
                       <button mat-menu-item>Eliminar</button>
                     </mat-menu>
                   </td>
@@ -1051,7 +1092,7 @@
                   type="button"
                   mat-fab
                   color="primary"
-                  (click)="onAgregarNota()"
+                  (click)="onAgregarNota(true)"
                   [disabled]="isAddingItensToNota"
                 >
                   <mat-icon>add</mat-icon>
@@ -1254,7 +1295,7 @@
             <div class="subtitulo">
               {{
                 selectedPedido?.valorTotal - selectedPedido?.descuento
-                  | number : "1.0-2"
+                  | number : "1.0-0"
               }}
             </div>
           </div>
@@ -1363,6 +1404,15 @@
               </td>
             </ng-container>
 
+            <ng-container matColumnDef="id" style="width: 5%">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center">
+                Id
+              </th>
+              <td mat-cell *matCellDef="let pedido" style="text-align: center">
+                {{ pedido?.producto?.id }}
+              </td>
+            </ng-container>
+
             <ng-container matColumnDef="codigo" style="width: 5%">
               <th mat-header-cell *matHeaderCellDef style="text-align: center">
                 Código de barra
@@ -1390,7 +1440,7 @@
                 Presentación
               </th>
               <td mat-cell *matCellDef="let pedido" style="text-align: center">
-                {{ pedido?.presentacion?.cantidad | number : "1.0-2" }}
+                {{ pedido?.presentacion?.cantidad | number : "1.0-0" }}
               </td>
             </ng-container>
 
@@ -1413,7 +1463,7 @@
                 >
                   {{
                     pedido?.precioUnitario - pedido?.descuentoUnitario
-                      | number : "1.0-2"
+                      | number : "1.0-0"
                   }}
                   <div
                     class="sub-descripcion"
@@ -1436,12 +1486,12 @@
                       }
                     ]"
                   >
-                    {{ pedido?.precioUnitario | number : "1.0-2" }}
+                    {{ pedido?.precioUnitario | number : "1.0-0" }}
                   </div>
                 </ng-container>
 
                 <ng-template #elsePrecioUnitTemplate>
-                  {{ pedido?.precioUnitario | number : "1.0-2" }}
+                  {{ pedido?.precioUnitario | number : "1.0-0" }}
                 </ng-template>
               </td>
             </ng-container>
@@ -1457,7 +1507,7 @@
                   {{
                     pedido?.presentacion?.cantidad *
                       (pedido?.precioUnitario - pedido?.descuentoUnitario)
-                      | number : "1.0-2"
+                      | number : "1.0-0"
                   }}
                   <div
                     class="sub-descripcion"
@@ -1486,7 +1536,7 @@
                   >
                     {{
                       pedido?.presentacion?.cantidad * pedido?.precioUnitario
-                        | number : "1.0-2"
+                        | number : "1.0-0"
                     }}
                   </div>
                 </ng-container>
@@ -1494,7 +1544,7 @@
                 <ng-template #elsePrecioPresTemplate>
                   {{
                     pedido?.presentacion?.cantidad * pedido?.precioUnitario
-                      | number : "1.0-2"
+                      | number : "1.0-0"
                   }}
                 </ng-template>
               </td>
@@ -1511,7 +1561,7 @@
                   {{
                     pedido?.presentacion?.cantidad *
                       (pedido?.precioUnitario - pedido?.descuentoUnitario) *
-                      pedido?.cantidad | number : "1.0-2"
+                      pedido?.cantidad | number : "1.0-0"
                   }}
                   <div
                     class="sub-descripcion"
@@ -1543,7 +1593,7 @@
                     {{
                       pedido?.presentacion?.cantidad *
                         pedido?.precioUnitario *
-                        pedido?.cantidad | number : "1.0-2"
+                        pedido?.cantidad | number : "1.0-0"
                     }}
                   </div>
                 </ng-container>
@@ -1552,7 +1602,7 @@
                   {{
                     pedido?.presentacion?.cantidad *
                       pedido?.precioUnitario *
-                      pedido?.cantidad | number : "1.0-2"
+                      pedido?.cantidad | number : "1.0-0"
                   }}
                 </ng-template>
               </td>
@@ -1580,8 +1630,16 @@
                   <mat-icon class="highlight-hover">more_vert</mat-icon>
                 </button>
                 <mat-menu #menu="matMenu">
-                  <button mat-menu-item>Solicitar modificación</button>
-                  <button mat-menu-item (click)="onDividirItem(pedido, i)">
+                  <button *ngIf="pedido?.cancelado != true" mat-menu-item (click)="onModificarItem(pedido)">
+                    Modificar item
+                  </button>
+                  <button *ngIf="pedido?.cancelado != true" mat-menu-item (click)="onRechazarItem(pedido)">
+                    Rechazar item
+                  </button>
+                  <button *ngIf="pedido?.cancelado" mat-menu-item (click)="onReabrirItem(pedido)">
+                    Reabrir item
+                  </button>
+                  <button *ngIf="pedido?.cancelado != true" mat-menu-item (click)="onDividirItem(pedido, i)">
                     Dividir item
                   </button>
                 </mat-menu>
@@ -1654,6 +1712,7 @@
               [class.selected-row]="
                 selectedPedidoItemNotaRecepcion?.id === row?.id
               "
+              [class.fondo-danger]="row.cancelado"
             ></tr>
             <tr
               mat-row
@@ -1716,13 +1775,25 @@
                 >
                 </mat-checkbox>
               </th>
-              <td mat-cell *matCellDef="let row">
+              <td mat-cell *matCellDef="let row; let i = index">
                 <mat-checkbox
                   (click)="$event.stopPropagation()"
-                  (change)="$event ? selection.toggle(row) : null"
+                  (change)="
+                    $event ? selection.toggle(row) : null;
+                    onChangePedidoItemSelection(row, $event, i)
+                  "
                   [checked]="selection.isSelected(row)"
                 >
                 </mat-checkbox>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="id" style="width: 5%">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center">
+                Id
+              </th>
+              <td mat-cell *matCellDef="let pedido" style="text-align: center">
+                {{ pedido?.producto?.id }}
               </td>
             </ng-container>
 
@@ -1753,7 +1824,7 @@
                 Presentación
               </th>
               <td mat-cell *matCellDef="let pedido" style="text-align: center">
-                {{ pedido?.presentacion?.cantidad | number : "1.0-2" }}
+                {{ pedido?.presentacion?.cantidad | number : "1.0-0" }}
               </td>
             </ng-container>
 
@@ -1776,7 +1847,7 @@
                 >
                   {{
                     pedido?.precioUnitario - pedido?.descuentoUnitario
-                      | number : "1.0-2"
+                      | number : "1.0-0"
                   }}
                   <div
                     class="sub-descripcion"
@@ -1799,12 +1870,12 @@
                       }
                     ]"
                   >
-                    {{ pedido?.precioUnitario | number : "1.0-2" }}
+                    {{ pedido?.precioUnitario | number : "1.0-0" }}
                   </div>
                 </ng-container>
 
                 <ng-template #elsePrecioUnitTemplate>
-                  {{ pedido?.precioUnitario | number : "1.0-2" }}
+                  {{ pedido?.precioUnitario | number : "1.0-0" }}
                 </ng-template>
               </td>
             </ng-container>
@@ -1820,7 +1891,7 @@
                   {{
                     pedido?.presentacion?.cantidad *
                       (pedido?.precioUnitario - pedido?.descuentoUnitario)
-                      | number : "1.0-2"
+                      | number : "1.0-0"
                   }}
                   <div
                     class="sub-descripcion"
@@ -1849,7 +1920,7 @@
                   >
                     {{
                       pedido?.presentacion?.cantidad * pedido?.precioUnitario
-                        | number : "1.0-2"
+                        | number : "1.0-0"
                     }}
                   </div>
                 </ng-container>
@@ -1857,7 +1928,7 @@
                 <ng-template #elsePrecioPresTemplate>
                   {{
                     pedido?.presentacion?.cantidad * pedido?.precioUnitario
-                      | number : "1.0-2"
+                      | number : "1.0-0"
                   }}
                 </ng-template>
               </td>
@@ -1874,7 +1945,7 @@
                   {{
                     pedido?.presentacion?.cantidad *
                       (pedido?.precioUnitario - pedido?.descuentoUnitario) *
-                      pedido?.cantidad | number : "1.0-2"
+                      pedido?.cantidad | number : "1.0-0"
                   }}
                   <div
                     class="sub-descripcion"
@@ -1906,7 +1977,7 @@
                     {{
                       pedido?.presentacion?.cantidad *
                         pedido?.precioUnitario *
-                        pedido?.cantidad | number : "1.0-2"
+                        pedido?.cantidad | number : "1.0-0"
                     }}
                   </div>
                 </ng-container>
@@ -1915,7 +1986,7 @@
                   {{
                     pedido?.presentacion?.cantidad *
                       pedido?.precioUnitario *
-                      pedido?.cantidad | number : "1.0-2"
+                      pedido?.cantidad | number : "1.0-0"
                   }}
                 </ng-template>
               </td>
@@ -1943,17 +2014,23 @@
                   <mat-icon class="highlight-hover">more_vert</mat-icon>
                 </button>
                 <mat-menu #menu="matMenu">
-                  <button mat-menu-item (click)="onEditItem(pedido, i)">
-                    Editar
+                  <button *ngIf="pedido?.cancelado != true" mat-menu-item (click)="onModificarItem(pedido)">
+                    Modificar item
                   </button>
-                  <button mat-menu-item (click)="onDividirItem(pedido, i)">
-                    Dividir Item
+                  <button *ngIf="pedido?.cancelado != true" mat-menu-item (click)="onRechazarItem(pedido)">
+                    Rechazar item
+                  </button>
+                  <button *ngIf="pedido?.cancelado" mat-menu-item (click)="onReabrirItem(pedido)">
+                    Reabrir item
+                  </button>
+                  <button *ngIf="pedido?.cancelado != true" mat-menu-item (click)="onDividirItem(pedido, i)">
+                    Dividir item
                   </button>
                 </mat-menu>
               </td>
             </ng-container>
 
-            <ng-container matColumnDef="delete">
+            <ng-container matColumnDef="check">
               <th
                 mat-header-cell
                 *matHeaderCellDef
@@ -1966,13 +2043,14 @@
               >
                 <button
                   mat-icon-button
-                  [disabled]="selectedPedido?.estado == 'ACTIVO'"
+                  [disabled]="selectedNotaRecepcion?.id == null"
+                  class="white-on-hover-button"
+                  (click)="onCheckPedidoNotaRecepcion(pedido, i)"
                 >
                   <mat-icon
+                    class="success white-on-hover"
                     style="text-align: center"
-                    class="highlight-hover-danger"
-                    (click)="onDeleteItem(pedido, i)"
-                    >clear</mat-icon
+                    >check</mat-icon
                   >
                 </button>
               </td>
@@ -2011,6 +2089,7 @@
                 columns: pedidoDisplayedColumns;
                 let i = dataIndex
               "
+              [class]="row.cancelado ? 'fondo-danger' : 'none'"
               (dblclick)="
                 selectedPedido?.estado == 'ACTIVO' ||
                 selectedPedido?.estado == 'EN_RECEPCION_NOTA'
@@ -2054,17 +2133,17 @@
           </div>
 
           <div fxFlex="25" style="padding: 5px">
-            Descuento: {{ selectedPedido?.descuento | number : "1.0-2" }}
+            Descuento: {{ selectedPedido?.descuento | number : "1.0-0" }}
           </div>
           <div fxFlex="25" style="padding: 5px">
             Total sin descuento:
-            {{ selectedPedido?.valorTotal | number : "1.0-2" }}
+            {{ selectedPedido?.valorTotal | number : "1.0-0" }}
           </div>
           <div fxFlex="25" style="padding: 5px">
             Total con descuento:
             {{
               selectedPedido?.valorTotal - selectedPedido?.descuento
-                | number : "1.0-2"
+                | number : "1.0-0"
             }}
           </div>
         </div>

@@ -38,6 +38,7 @@ import { UltimasVentasDialogComponent } from './venta/ultimas-ventas-dialog/ulti
 import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { CompraDashboardComponent } from './compra/compra-dashboard/compra-dashboard.component';
 import { DividirItemDialogComponent } from './pedido/dividir-item-dialog/dividir-item-dialog.component';
+import { EditarPedidpItemDialogComponent } from './pedido/editar-pedidp-item-dialog/editar-pedidp-item-dialog.component';
 
 @NgModule({
   declarations: [
@@ -73,6 +74,7 @@ import { DividirItemDialogComponent } from './pedido/dividir-item-dialog/dividir
     LucroPorProductoComponent,
     CompraDashboardComponent,
     DividirItemDialogComponent,
+    EditarPedidpItemDialogComponent,
   ],
   imports: [
     CommonModule,

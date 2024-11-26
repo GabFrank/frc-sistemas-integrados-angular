@@ -134,6 +134,74 @@ export const savePedido = gql`
   mutation savePedido($entity: PedidoInput!) {
     data: savePedido(entity: $entity) {
       id
+      cantPedidoItem
+      compra {
+        id
+        estado
+      }
+      proveedor {
+        id
+        persona {
+          nombre
+        }
+      }
+      vendedor {
+        id
+        persona {
+          nombre
+        }
+      }
+      formaPago {
+        id
+        descripcion
+      }
+      estado
+      moneda {
+        id
+        denominacion
+      }
+      plazoCredito
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      descuento
+      valorTotal
+      tipoBoleta
+      sucursalInfluenciaList {
+        id
+        sucursal {
+          id
+          nombre
+        }
+      }
+      sucursalEntregaList {
+        id
+        sucursal {
+          id
+          nombre
+        }
+      }
+      fechaEntregaList {
+        fechaEntrega
+      }
+      notaRecepcionList {
+        id
+        numero
+        tipoBoleta
+        fecha
+        cantidadItens
+        valor
+        pedido {
+          id
+        }
+        compra {
+          id
+        }
+      }
     }
   }
 `;
@@ -266,6 +334,7 @@ export const pedidoInfoCompletaQuery = gql`
         id
         numero
         tipoBoleta
+        fecha
         cantidadItens
         valor
         pedido {
@@ -275,6 +344,18 @@ export const pedidoInfoCompletaQuery = gql`
           id
         }
       }
+    }
+  }
+`;
+
+export const pedidoInfoDetallesQuery = gql`
+  query ($id: ID!) {
+    data: pedido(id: $id) {
+      id
+      cantPedidoItem
+      descuento
+      valorTotal
+      cantPedidoItemSinNota
     }
   }
 `;
@@ -301,22 +382,66 @@ export const pedidoItemPorPedidoIdSobranteQuery = gql`
           }
           codigoPrincipal
         }
-        presentacion {
+        presentacionCreacion {
           id
           cantidad
         }
         pedido {
           id
         }
-        precioUnitario
-        descuentoUnitario
+        precioUnitarioCreacion
+        descuentoUnitarioCreacion
         bonificacion
         bonificacionDetalle
         estado
-        vencimiento
+        vencimientoCreacion
         creadoEn
-        cantidad
+        cantidadCreacion
         valorTotal
+        precioUnitarioRecepcionNota
+        descuentoUnitarioRecepcionNota
+        vencimientoRecepcionNota
+        presentacionRecepcionNota {
+          id
+          cantidad
+        }
+        cantidadRecepcionNota
+        precioUnitarioRecepcionProducto
+        descuentoUnitarioRecepcionProducto
+        vencimientoRecepcionProducto
+        presentacionRecepcionProducto {
+          id
+          cantidad
+        }
+        cantidadRecepcionProducto
+        usuarioRecepcionNota {
+          id
+        }
+        usuarioRecepcionProducto {
+          id
+        }
+        obsCreacion
+        obsRecepcionNota
+        obsRecepcionProducto
+        autorizacionRecepcionNota
+        autorizacionRecepcionProducto
+        autorizadoPorRecepcionNota {
+          id
+        }
+        autorizadoPorRecepcionProducto {
+          id
+        }
+        motivoModificacionRecepcionNota
+        motivoModificacionRecepcionProducto
+        cancelado
+        verificadoRecepcionNota
+        verificadoRecepcionProducto
+        precioUnitario
+        cantidad
+        presentacion {
+          id
+          cantidad
+        }
       }
     }
   }
@@ -343,22 +468,71 @@ export const pedidoItemPorNotaRecepcionQuery = gql`
           }
           codigoPrincipal
         }
-        presentacion {
+        presentacionCreacion {
           id
           cantidad
         }
         pedido {
           id
         }
-        precioUnitario
-        descuentoUnitario
+        notaRecepcion {
+          id
+        }
+        precioUnitarioCreacion
+        descuentoUnitarioCreacion
         bonificacion
         bonificacionDetalle
         estado
-        vencimiento
+        vencimientoCreacion
         creadoEn
-        cantidad
+        cantidadCreacion
         valorTotal
+        precioUnitarioRecepcionNota
+        descuentoUnitarioRecepcionNota
+        vencimientoRecepcionNota
+        presentacionRecepcionNota {
+          id
+          cantidad
+        }
+        cantidadRecepcionNota
+        precioUnitarioRecepcionProducto
+        descuentoUnitarioRecepcionProducto
+        vencimientoRecepcionProducto
+        presentacionRecepcionProducto {
+          id
+          cantidad
+        }
+        cantidadRecepcionProducto
+        usuarioRecepcionNota {
+          id
+        }
+        usuarioRecepcionProducto {
+          id
+        }
+        obsCreacion
+        obsRecepcionNota
+        obsRecepcionProducto
+        autorizacionRecepcionNota
+        autorizacionRecepcionProducto
+        autorizadoPorRecepcionNota {
+          id
+        }
+        autorizadoPorRecepcionProducto {
+          id
+        }
+        motivoModificacionRecepcionNota
+        motivoModificacionRecepcionProducto
+        motivoRechazoRecepcionNota
+        motivoRechazoRecepcionProducto
+        cancelado
+        verificadoRecepcionNota
+        verificadoRecepcionProducto
+        precioUnitario
+        cantidad
+        presentacion {
+          id
+          cantidad
+        }
       }
     }
   }
@@ -385,22 +559,71 @@ export const pedidoItemPorPedidoPageQuery = gql`
           }
           codigoPrincipal
         }
-        presentacion {
+        presentacionCreacion {
           id
           cantidad
         }
         pedido {
           id
         }
-        precioUnitario
-        descuentoUnitario
+        notaRecepcion {
+          id
+        }
+        precioUnitarioCreacion
+        descuentoUnitarioCreacion
         bonificacion
         bonificacionDetalle
         estado
-        vencimiento
+        vencimientoCreacion
         creadoEn
-        cantidad
+        cantidadCreacion
         valorTotal
+        precioUnitarioRecepcionNota
+        descuentoUnitarioRecepcionNota
+        vencimientoRecepcionNota
+        presentacionRecepcionNota {
+          id
+          cantidad
+        }
+        cantidadRecepcionNota
+        precioUnitarioRecepcionProducto
+        descuentoUnitarioRecepcionProducto
+        vencimientoRecepcionProducto
+        presentacionRecepcionProducto {
+          id
+          cantidad
+        }
+        cantidadRecepcionProducto
+        usuarioRecepcionNota {
+          id
+        }
+        usuarioRecepcionProducto {
+          id
+        }
+        obsCreacion
+        obsRecepcionNota
+        obsRecepcionProducto
+        autorizacionRecepcionNota
+        autorizacionRecepcionProducto
+        autorizadoPorRecepcionNota {
+          id
+        }
+        autorizadoPorRecepcionProducto {
+          id
+        }
+        motivoModificacionRecepcionNota
+        motivoModificacionRecepcionProducto
+        motivoRechazoRecepcionNota
+        motivoRechazoRecepcionProducto
+        cancelado
+        verificadoRecepcionNota
+        verificadoRecepcionProducto
+        precioUnitario
+        cantidad
+        presentacion {
+          id
+          cantidad
+        }
       }
     }
   }

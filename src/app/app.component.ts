@@ -31,15 +31,15 @@ export class Pageable {
 }
 
 export class PageInfo<T> {
-  getTotalPages: number;
-  getTotalElements: number;
-  getNumberOfElements: number;
-  isFirst: boolean;
-  isLast: boolean;
-  hasNext: boolean;
-  hasPrevious: boolean;
+  getTotalPages: number = 0;
+  getTotalElements: number = 0;
+  getNumberOfElements: number = 0;
+  isFirst: boolean = true;
+  isLast: boolean = true;
+  hasNext: boolean = false;
+  hasPrevious: boolean = false;
   getPageable: Pageable;
-  getContent: T[];
+  getContent: T[] = [];
   getMultiPageableList?: [MultiPageable]
 }
 

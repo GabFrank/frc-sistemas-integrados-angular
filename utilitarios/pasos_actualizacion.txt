@@ -139,7 +139,7 @@ sudo systemctl start frc-farmacia && journalctl -f -u frc-farmacia
 
 sudo systemctl stop frc
 rm /home/franco/FRC/frc-server/frc-server.jar
-curl -L -o /home/franco/FRC/frc-server/frc-server.jar https://github.com/GabFrank/franco-system-backend-filial/releases/download/2.4.0/frc-server.jar
+curl -L -o /home/franco/FRC/frc-server/frc-server.jar https://github.com/GabFrank/franco-system-backend-filial/releases/download/3.0.1/frc-server.jar
 sudo systemctl start frc && journalctl -f -u frc
 2 - actualizar el app
 rm /home/franco/FRC/FRC.AppImage
