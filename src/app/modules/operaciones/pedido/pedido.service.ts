@@ -23,6 +23,7 @@ import { PedidoItemPorPedidoPageGQL } from "./graphql/pedido-item-por-pedido-pag
 import { AddPedidoItemListToNotaRecepcionGQL } from "./graphql/add-item-list-to-nota-recepcion";
 import { PedidoItemPorNotaRecepcionGQL } from "./graphql/pedido-item-por-nota-recepcion";
 import { PedidoInfoDetalleGQL } from "./graphql/pedidoInfoDetalle";
+import { FinalizarPedidoGQL } from "./graphql/finalizarPedido";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -46,7 +47,8 @@ export class PedidoService {
     private pedidoItemPorPedidoPage: PedidoItemPorPedidoPageGQL,
     private addPedidoItemListToNotaRecepcion: AddPedidoItemListToNotaRecepcionGQL,
     private pedidoItemPorNotaRecepcion: PedidoItemPorNotaRecepcionGQL,
-    private getPedidoInfoDetalle: PedidoInfoDetalleGQL
+    private getPedidoInfoDetalle: PedidoInfoDetalleGQL,
+    private finalizarPedido: FinalizarPedidoGQL
   ) {}
 
   onGetPedidoInfoCompleta(id): Observable<Pedido> {
@@ -100,7 +102,11 @@ export class PedidoService {
     });
   }
 
-  onGetPedidoItemPorNotaRecepcion(id, page, size): Observable<PageInfo<PedidoItem>> {
+  onGetPedidoItemPorNotaRecepcion(
+    id,
+    page,
+    size
+  ): Observable<PageInfo<PedidoItem>> {
     return this.genericService.onCustomQuery(this.pedidoItemPorNotaRecepcion, {
       id,
       page,
@@ -161,5 +167,12 @@ export class PedidoService {
         pedidoItemIdList,
       }
     );
+  }
+
+  onFinalizarPedido(id, estado) {
+    return this.genericService.onCustomMutation(this.finalizarPedido, {
+      id,
+      estado,
+    });
   }
 }

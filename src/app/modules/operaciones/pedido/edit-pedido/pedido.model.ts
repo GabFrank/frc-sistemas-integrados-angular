@@ -33,6 +33,7 @@ export class Pedido {
   sucursalInfluenciaList: PedidoSucursalInfluencia[]
   cantPedidoItem: number;
   cantPedidoItemSinNota: number;
+  cantPedidoItemCancelados: number = 0;
 
   toInput(): PedidoInput{
     let input = new PedidoInput();

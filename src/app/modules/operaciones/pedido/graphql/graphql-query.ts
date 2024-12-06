@@ -135,6 +135,7 @@ export const savePedido = gql`
     data: savePedido(entity: $entity) {
       id
       cantPedidoItem
+      cantPedidoItemCancelados
       compra {
         id
         estado
@@ -277,6 +278,7 @@ export const pedidoInfoCompletaQuery = gql`
     data: pedido(id: $id) {
       id
       cantPedidoItem
+      cantPedidoItemCancelados
       compra {
         id
         estado
@@ -356,6 +358,7 @@ export const pedidoInfoDetallesQuery = gql`
       descuento
       valorTotal
       cantPedidoItemSinNota
+      cantPedidoItemCancelados
     }
   }
 `;
@@ -433,6 +436,8 @@ export const pedidoItemPorPedidoIdSobranteQuery = gql`
         }
         motivoModificacionRecepcionNota
         motivoModificacionRecepcionProducto
+        motivoRechazoRecepcionNota
+        motivoRechazoRecepcionProducto
         cancelado
         verificadoRecepcionNota
         verificadoRecepcionProducto
@@ -671,6 +676,15 @@ export const savePedidoFull = gql`
       usuarioId: $usuarioId
     ) {
       id
+    }
+  }
+`;
+
+export const finalizarPedido = gql`
+  mutation finalizarPedido($id: ID, $estado: PedidoEstado) {
+    data: finalizarPedido(id: $id, estado: $estado){
+      id
+      estado
     }
   }
 `;

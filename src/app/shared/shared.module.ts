@@ -1,4 +1,4 @@
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { CommonModule, DatePipe, DecimalPipe, TitleCasePipe } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { RouterModule } from '@angular/router';
@@ -53,6 +53,8 @@ import { FormattedTooltipDirective } from './directives/formatted-tooltip.direct
 import { MatTooltip } from '@angular/material/tooltip';
 import { AutoFitTextDirective } from './directives/auto-fit-text-directive.directive';
 import { NgxSpinnerModule } from 'ngx-spinner';
+import { DataDisplayComponent } from './data-display/data-display.component';
+import { EnumToStringPipe } from '../commons/core/utils/pipes/enum-to-string';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -93,7 +95,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     LettersOnlyDirective,
     ShowAfterDelayDirective,
     FormattedTooltipDirective,
-    AutoFitTextDirective
+    AutoFitTextDirective,
+    DataDisplayComponent
   ],
   imports: [
     CommonModule,
@@ -138,7 +141,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     ShowAfterDelayDirective,
     FormattedTooltipDirective,
     NgxSpinnerModule,
+    DataDisplayComponent
   ],
-  providers: [NgxImageCompressService, provideEnvironmentNgxMask(options), DecimalPipe, MatTooltip]
+  providers: [NgxImageCompressService, provideEnvironmentNgxMask(options), DecimalPipe, MatTooltip, TitleCasePipe, DatePipe, EnumToStringPipe]
 })
 export class SharedModule { }

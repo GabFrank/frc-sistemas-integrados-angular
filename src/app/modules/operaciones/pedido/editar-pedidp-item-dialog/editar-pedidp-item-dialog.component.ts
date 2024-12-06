@@ -167,7 +167,7 @@ export class EditarPedidpItemDialogComponent implements OnInit {
       this.obsControl.setValue(this.data.pedidoItem?.obsRecepcionNota);
       this.calcularTotal();
       setTimeout(() => {
-        this.codigoInput.nativeElement.select();
+        this.codigoInput?.nativeElement.select();
       }, 500);
     }
   }

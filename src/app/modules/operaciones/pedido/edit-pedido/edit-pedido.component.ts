@@ -81,6 +81,7 @@ import { AdicionarProveedorDialogComponent } from "../../../personas/proveedor/a
 import { MatCheckboxChange } from "@angular/material/checkbox";
 import { EditarPedidpItemDialogComponent } from "../editar-pedidp-item-dialog/editar-pedidp-item-dialog.component";
 import { NotaRecepcionService } from "../nota-recepcion/nota-recepcion.service";
+import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 
 export interface ProductoDelProveedor {
   id: number;
@@ -233,6 +234,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   selection = new SelectionModel<PedidoItem>(true, []);
   selectionNotaRecepcion = new SelectionModel<PedidoItem>(true, []);
   selectedPedidoItemNotaRecepcion: PedidoItem;
+  selectedPedidoItemSobrante: PedidoItem;
   selectedPedidoItemNotaRecepcionPage: PageInfo<PedidoItem>;
   pedidoItemNotaRecepcionPageIndex = 0;
   pedidoItemNotaRecepcionPageSize = 10;
@@ -311,7 +313,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   color: Color;
 
   colorScheme = {
-    domain: ["#43a047", "#363636"],
+    domain: ["#43a047", "#f44336", "#363636"],
   };
 
   constructor(
@@ -330,7 +332,8 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     private pedidoService: PedidoService,
     private mainService: MainService,
     private cdr: ChangeDetectorRef,
-    private notaRecepcionService: NotaRecepcionService
+    private notaRecepcionService: NotaRecepcionService,
+    private dialogoService: DialogosService
   ) {
     this.color = {
       name: "primary",
@@ -394,69 +397,47 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       },
     });
 
-    this.cantidadPresentacionControl.valueChanges
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (!isNaN(+res)) {
-          if (this.presentacionControl?.value?.cantidad != null) {
-            this.cantidadUnidadControl.setValue(
-              res * this.presentacionControl?.value?.cantidad
-            );
-          }
-        }
-      });
-
-    this.precioPorPresentacionControl.valueChanges
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (!isNaN(+res)) {
-          if (this.presentacionControl?.value?.cantidad != null) {
-            this.precioUnitarioControl.setValue(
-              res / this.presentacionControl?.value?.cantidad,
-              { emitEvent: false }
-            );
-            this.valorTotalControl.setValue(
-              this.precioPorPresentacionControl.value *
-                this.cantidadPresentacionControl.value
-            );
-          }
-        }
-      });
-
-    this.precioUnitarioControl.valueChanges
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (!isNaN(+res)) {
-          if (this.presentacionControl?.value?.cantidad != null) {
-            this.precioPorPresentacionControl.setValue(
-              res * this.presentacionControl?.value?.cantidad,
-              { emitEvent: false }
-            );
-            this.valorTotalControl.setValue(
-              this.precioPorPresentacionControl.value *
-                this.cantidadPresentacionControl.value
-            );
-          }
-        }
-      });
-
-    this.presentacionControl.valueChanges
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        let aux = this.precioUnitarioControl.value;
-        this.precioUnitarioControl.setValue(aux);
-      });
-
-    this.fechaEntregaControl.valueChanges.subscribe((res) => {
-      // console.log(res);
+    this.presentacionControl.valueChanges.subscribe((data) => {
+      this.calcularTotal();
     });
 
-    // this.descuentoPresentacionControl.valueChanges.subscribe(res => {
-    //   this.valorTotalControl.setValue(this.valorTotalControl.value - this.descuentoPresentacionControl.value);
-    // })
+    this.cantidadPresentacionControl.valueChanges.subscribe((data) => {
+      this.calcularTotal();
+    });
+
+    this.precioPorPresentacionControl.valueChanges.subscribe((data) => {
+      this.calcularTotal();
+    });
+
+    this.descuentoPresentacionControl.valueChanges.subscribe((data) => {
+      this.calcularTotal();
+    });
+  }
+
+  calcularTotal() {
+    if (this.selectedProducto != null) {
+      this.cantidadUnidadControl.setValue(
+        this.presentacionControl?.value?.cantidad *
+          this.cantidadPresentacionControl?.value,
+        { emitEvent: false }
+      );
+      this.precioPorPresentacionControl.setValue(
+        (this.precioUnitarioControl.value || 0) *
+          this.presentacionControl.value?.cantidad,
+        { emitEvent: false }
+      );
+      this.valorTotalControl.setValue(
+        (this.precioPorPresentacionControl.value -
+          this.descuentoPresentacionControl.value) *
+          this.cantidadPresentacionControl.value,
+        { emitEvent: false }
+      );
+    }
   }
 
   onCargarDatos(pedido: Pedido) {
+    console.log(pedido);
+
     this.selectedPedido = new Pedido();
     Object.assign(this.selectedPedido, pedido);
 
@@ -505,18 +486,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       this.totalItensAgregados = this.totalItensAgregados + res.cantidadItens;
     });
 
-    if (this.selectedPedido?.cantPedidoItem > 0) {
-      if (this.totalItensAgregados > 0) {
-        this.single.push({
-          name: "Agregado",
-          value: this.totalItensAgregados,
-        });
-      }
-      this.single.push({
-        name: "Falta",
-        value: this.selectedPedido?.cantPedidoItem - this.totalItensAgregados,
-      });
-    }
+    this.onUpdateChart();
 
     this.tipoBoletaControl.setValue(
       this.tipoBoletaList.find((tipo) => tipo.toString() == pedido.tipoBoleta)
@@ -542,12 +512,16 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
 
     if (this.selectedPedido.estado == PedidoEstado.ABIERTO) {
       this.pedidoItemFormGroup.enable();
-    } else if (this.selectedPedido.estado == PedidoEstado.ACTIVO) {
+    } else if (this.selectedPedido.estado == PedidoEstado.EN_RECEPCION_NOTA) {
       this.pedidoDisplayedColumns.push("check");
       this.pedidoItemFormGroup.disable();
     }
 
     this.onBuscarItens(pedido);
+
+    setTimeout(() => {
+      this.codigoInput.nativeElement.focus();
+    }, 500);
   }
 
   onBuscarItens(pedido: Pedido) {
@@ -573,8 +547,14 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       .onGetPedidoItemPorNotaRecepcion(id, this.page, this.size)
       .pipe(untilDestroyed(this))
       .subscribe((res: PageInfo<PedidoItem>) => {
+        console.log(res.getContent);
+
         this.selectedNotaRecepcion.pedidoItemList = res.getContent;
-        this.notaRecepcionDataSource.data = updateDataSourceWithId(this.notaRecepcionDataSource.data, this.selectedNotaRecepcion, this.selectedNotaRecepcion.id)
+        this.notaRecepcionDataSource.data = updateDataSourceWithId(
+          this.notaRecepcionDataSource.data,
+          this.selectedNotaRecepcion,
+          this.selectedNotaRecepcion.id
+        );
         this.selectedPedidoItemNotaRecepcionPage = res;
         this.pedidoItemNotaRecepcionDataSource.data = res.getContent;
       });
@@ -1289,21 +1269,60 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
 
   historicoComprasHandlePageEvent($event: PageEvent) {}
   onFinalizar() {
-    let aux = new Pedido();
-    Object.assign(aux, this.selectedPedido);
-    aux.estado = PedidoEstado.ACTIVO;
-    this.pedidoService
-      .onSave(aux.toInput())
-      .pipe(untilDestroyed(this))
-      .subscribe((res: Pedido) => {
-        if (res != null) {
-          this.selectedPedido = res;
-          this.totalItensAgregados = 0;
-          this.pedidoItemFormGroup.disable();
-          this.buscarPedidoItemSobrantes();
-          this.pedidoDisplayedColumns.push("check");
-        }
-      });
+    switch (this.selectedPedido?.estado) {
+      case PedidoEstado.ABIERTO:
+        let aux = new Pedido();
+        Object.assign(aux, this.selectedPedido);
+        aux.estado = PedidoEstado.ACTIVO;
+        this.pedidoService
+          .onSave(aux.toInput())
+          .pipe(untilDestroyed(this))
+          .subscribe((res: Pedido) => {
+            if (res != null) {
+              this.selectedPedido = res;
+              this.totalItensAgregados = 0;
+              this.pedidoItemFormGroup.disable();
+              this.buscarPedidoItemSobrantes();
+              this.pedidoDisplayedColumns.push("check");
+            }
+          });
+        break;
+      case PedidoEstado.ACTIVO:
+        this.onCambiarEstado(PedidoEstado.EN_RECEPCION_NOTA);
+        break;
+      case PedidoEstado.EN_RECEPCION_NOTA:
+        this.dialogoService
+          .confirm(
+            "Atención!!",
+            "Deseas finalizar esta etapa?",
+            "Esta acción se puede deshacer"
+          )
+          .subscribe((dialogRes) => {
+            if (dialogRes) {
+              this.onCambiarEstado(PedidoEstado.EN_RECEPCION_MERCADERIA);
+            }
+          });
+        break;
+      case PedidoEstado.EN_RECEPCION_MERCADERIA:
+        this.dialogoService
+          .confirm(
+            "Atención!!",
+            "Deseas finalizar esta etapa?",
+            "Esta acción se puede deshacer"
+          )
+          .subscribe((dialogRes) => {
+            if (dialogRes) {
+              this.onCambiarEstado(PedidoEstado.CONCLUIDO);
+            }
+          });
+        break;
+      case PedidoEstado.CONCLUIDO:
+        break;
+      case PedidoEstado.CANCELADO:
+        break;
+      default:
+        break;
+    }
   }
 
   buscarPedidoItemSobrantes() {
@@ -1351,6 +1370,9 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
             res,
             this.selectedNotaRecepcion?.id
           );
+          if (this.selectedPedido.estado == PedidoEstado.ACTIVO) {
+            this.onCambiarEstado(PedidoEstado.EN_RECEPCION_NOTA);
+          }
         } else if (res?.nuevo) {
           this.selectedNotaRecepcion = null;
           this.onAgregarNota();
@@ -1363,24 +1385,27 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     if (this.selectedNotaRecepcion.pedidoItemList == null) {
       this.buscarPedidoItensPorNotaRecepcion(notaRecepcion.id);
     } else {
-      this.pedidoItemNotaRecepcionDataSource.data = this.selectedNotaRecepcion.pedidoItemList;
+      this.pedidoItemNotaRecepcionDataSource.data =
+        this.selectedNotaRecepcion.pedidoItemList;
     }
-
   }
 
   onRefreshNotaRecepcion(notaRecepcion: NotaRecepcion) {
-    this.notaRecepcionService
-      .onGetNotaRecepcion(notaRecepcion.id)
-      .subscribe((res) => {
-        if (res != null) {
-          this.selectedNotaRecepcion.valor = res.valor;
-          this.notaRecepcionDataSource.data = updateDataSourceWithId(
-            this.notaRecepcionDataSource.data,
-            this.selectedNotaRecepcion,
-            this.selectedNotaRecepcion.id
-          );
-        }
-      });
+    if (notaRecepcion != null) {
+      this.notaRecepcionService
+        .onGetNotaRecepcion(notaRecepcion.id)
+        .subscribe((res) => {
+          if (res != null) {
+            this.selectedNotaRecepcion.valor = res.valor;
+            this.notaRecepcionDataSource.data = updateDataSourceWithId(
+              this.notaRecepcionDataSource.data,
+              this.selectedNotaRecepcion,
+              this.selectedNotaRecepcion.id
+            );
+            this.onUpdateChart();
+          }
+        });
+    }
   }
 
   isAllSelected() {
@@ -1505,20 +1530,48 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   }
 
   onUpdateChart() {
+    console.log("Agregado", this.totalItensAgregados || 0);
+    console.log(
+      "Cancelado",
+      this.selectedPedido?.cantPedidoItemCancelados || 0
+    );
+    console.log(
+      "Falta",
+      this.selectedPedido?.cantPedidoItem -
+        this.totalItensAgregados -
+        this.selectedPedido?.cantPedidoItemCancelados || 0
+    );
+
     this.single = [];
-    if (this.totalItensAgregados > 0) {
-      this.single.push({
-        name: "Agregado",
-        value: this.totalItensAgregados,
-      });
-    }
+    this.single.push({
+      name: "Agregado",
+      value: this.totalItensAgregados || 0,
+    });
+
+    this.single.push({
+      name: "Cancelado",
+      value: this.selectedPedido?.cantPedidoItemCancelados || 0,
+    });
+
     this.single.push({
       name: "Falta",
-      value: this.selectedPedido?.cantPedidoItem - this.totalItensAgregados,
+      value:
+        this.selectedPedido?.cantPedidoItem -
+          this.totalItensAgregados -
+          this.selectedPedido?.cantPedidoItemCancelados || 0,
     });
   }
 
-  onFinalizarRecepcionDeNota() {}
+  onCambiarEstado(estado: PedidoEstado) {
+    this.pedidoService
+      .onFinalizarPedido(this.selectedPedido.id, estado)
+      .subscribe((res) => {
+        if (res?.id != null) {
+          console.log(res);
+          this.selectedPedido.estado = res.estado;
+        }
+      });
+  }
 
   onDividirItem(pedidoItem: PedidoItem, index: number) {
     console.log(pedidoItem);
@@ -1581,7 +1634,12 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     this.matDialog
       .open(EditarPedidpItemDialogComponent, {
         width: width,
-        data: { pedido: this.selectedPedido, pedidoItem: p, rechazar: cancelar, reabrir: reabrir },
+        data: {
+          pedido: this.selectedPedido,
+          pedidoItem: p,
+          rechazar: cancelar,
+          reabrir: reabrir,
+        },
       })
       .afterClosed()
       .subscribe((res) => {
@@ -1609,22 +1667,56 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   }
 
   onRechazarItem(p) {
-    this.onModificarItem(p, true, false, "50%")
+    this.onModificarItem(p, true, false, "50%");
   }
-  
-  onReabrirItem(p){
-    this.onModificarItem(p, false, true, "50%")
+
+  onReabrirItem(p) {
+    this.onModificarItem(p, false, true, "50%");
   }
 
   actualizarDetalle() {
     this.pedidoService
       .onGetPedidoInfoDetalle(this.selectedPedido.id)
       .subscribe((res) => {
+        console.log(res);
+
         this.selectedPedido.valorTotal = res.valorTotal;
         this.selectedPedido.cantPedidoItem = res.cantPedidoItem;
         this.selectedPedido.cantPedidoItemSinNota = res.cantPedidoItemSinNota;
+        this.selectedPedido.cantPedidoItemCancelados =
+          res.cantPedidoItemCancelados;
+        this.totalItensAgregados =
+          this.selectedPedido.cantPedidoItem -
+          this.selectedPedido.cantPedidoItemSinNota;
+        this.onUpdateChart();
       });
-    this.onRefreshNotaRecepcion(this.selectedNotaRecepcion);
+    if (this.selectedNotaRecepcion != null)
+      this.onRefreshNotaRecepcion(this.selectedNotaRecepcion);
+  }
+
+  onVolverEtapa() {
+    switch (this.selectedPedido.estado) {
+      case PedidoEstado.EN_RECEPCION_NOTA:
+        this.dialogoService
+          .confirm("Atención!!", "Deseas retroceder esta etapa?")
+          .subscribe((dialogRes) => {
+            if (dialogRes) {
+              this.onCambiarEstado(PedidoEstado.ACTIVO);
+            }
+          });
+        break;
+      case PedidoEstado.EN_RECEPCION_MERCADERIA:
+        this.dialogoService
+          .confirm("Atención!!", "Deseas retroceder esta etapa?")
+          .subscribe((dialogRes) => {
+            if (dialogRes) {
+              this.onCambiarEstado(PedidoEstado.EN_RECEPCION_NOTA);
+            }
+          });
+        break;
+      default:
+        break;
+    }
   }
 }
 

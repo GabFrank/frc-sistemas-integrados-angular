@@ -226,7 +226,7 @@
           ></frc-multi-datepicker>
         </div>
 
-        <button
+        <!-- <button
           fxFlex="20"
           mat-button
           [matMenuTriggerFor]="menu"
@@ -238,7 +238,20 @@
           <button mat-menu-item (click)="onMasOpciones()">
             Algo especifico
           </button>
-        </mat-menu>
+        </mat-menu> -->
+
+        <div fxFlex="20">
+          <app-data-display
+            *ngIf="selectedPedido?.estado"
+            titulo="Estado"
+            [valor]="selectedPedido?.estado"
+            customPipe="enumToString"
+            [horizontal]="true"
+          ></app-data-display>
+          <!-- <div class="titulo">
+            Estado: <span class="subtitulo">{{selectedPedido?.estado | enumToString}}</span>
+          </div> -->
+        </div>
       </div>
       <div fxFlex="30" fxLayoutAlign="end center" fxLayoutGap="10px">
         <app-boton
@@ -261,7 +274,6 @@
               style="height: 80%"
               [disableExpression]="
                 selectedProveedor == null ||
-                selectedVendedor == null ||
                 sucursalEntregaControl.value == null ||
                 sucursalInfluenciaControl.value == null
               "
@@ -284,35 +296,60 @@
 
         <app-boton
           fxFlex="30"
-          nombre="Finalizar"
-          color="accent"
-          style="height: 80%"
-          [disableExpression]="selectedPedido == null"
-          (clickEvent)="onFinalizar()"
-          *ngIf="selectedPedido?.estado == 'ABIERTO'"
-        ></app-boton>
-        <app-boton
-          fxFlex="30"
           nombre="Reabrir"
           color="accent"
           style="height: 80%"
           [disableExpression]="selectedPedido == null"
           (clickEvent)="onReabrir()"
-          *ngIf="selectedPedido?.estado == 'ACTIVO'"
+          *ngIf="
+            selectedPedido?.estado == 'ACTIVO' ||
+            selectedPedido?.estado == 'EN_RECEPCION_NOTA' ||
+            selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA'
+          "
         ></app-boton>
 
         <app-boton
           fxFlex="30"
-          nombre="Finalizar"
+          nombre="Retroceder Etapa"
           color="accent"
           style="height: 80%"
           [disableExpression]="selectedPedido == null"
-          (clickEvent)="onFinalizarRecepcionDeNota()"
+          (clickEvent)="onVolverEtapa()"
           *ngIf="
-            selectedPedido?.estado == 'ACTIVO' &&
-            selectedPedido?.cantPedidoItem == totalItensAgregados
+            selectedPedido?.estado == 'EN_RECEPCION_NOTA' ||
+            selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA'
           "
         ></app-boton>
+
+        <app-boton
+          fxFlex="30"
+          nombre="Avanazar Etapa"
+          color="accent"
+          style="height: 80%"
+          [disableExpression]="
+            selectedPedido == null ||
+            (selectedPedido?.estado == 'ABIERTO' &&
+              pedidoDataSource?.data?.length == 0)
+          "
+          (clickEvent)="onFinalizar()"
+          *ngIf="
+            selectedPedido?.estado == 'ABIERTO' ||
+            selectedPedido?.estado == 'EN_RECEPCION_NOTA' ||
+            selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA'
+          "
+        ></app-boton>
+
+        <!-- <app-boton
+          fxFlex="30"
+          nombre="Recepción Nota"
+          color="accent"
+          style="height: 80%"
+          [disableExpression]="selectedPedido == null"
+          (clickEvent)="onIniciar()"
+          *ngIf="
+          selectedPedido.estado == 'ACTIVO'
+          "
+        ></app-boton> -->
       </div>
     </div>
   </div>
@@ -542,7 +579,15 @@
     </div>
 
     <div fxFlex="3" style="width: 100%; text-align: center">
-      <button mat-icon-button [disabled]="selectedPedido?.estado == 'ACTIVO'">
+      <button
+        mat-icon-button
+        [disabled]="selectedPedido?.estado == 'ACTIVO'"
+        (click)="
+          selectedPedido?.estado == 'ABIERTO' || selectedPedido == null
+            ? onSaveItem()
+            : null
+        "
+      >
         <mat-icon
           #saveIcon
           [tabindex]="
@@ -551,11 +596,6 @@
               : null
           "
           class="highlight-hover"
-          (click)="
-            selectedPedido?.estado == 'ABIERTO' || selectedPedido == null
-              ? onSaveItem()
-              : null
-          "
           (keyup.enter)="
             selectedPedido?.estado == 'ABIERTO' || selectedPedido == null
               ? onSaveItem()
@@ -872,7 +912,11 @@
           style="height: 100%"
           fxLayout="column"
           fxLayoutAlign="space-between start"
-          *ngIf="selectedPedido?.estado == 'ACTIVO'"
+          *ngIf="
+            selectedPedido?.estado == 'ACTIVO' ||
+            selectedPedido?.estado == 'EN_RECEPCION_NOTA' ||
+            selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA'
+          "
         >
           <div style="width: 100%; text-align: center; font-size: small">
             Lista de notas
@@ -1022,7 +1066,7 @@
                       mat-icon-button
                       [matMenuTriggerFor]="menu"
                       (click)="$event.stopPropagation()"
-                      [disabled]="isAddingItensToNota"
+                      [disabled]="isAddingItensToNota || selectedPedido?.estado != 'EN_RECEPCION_NOTA'"
                     >
                       <mat-icon>more_vert</mat-icon>
                     </button>
@@ -1093,7 +1137,7 @@
                   mat-fab
                   color="primary"
                   (click)="onAgregarNota(true)"
-                  [disabled]="isAddingItensToNota"
+                  [disabled]="isAddingItensToNota && selectedPedido?.estado != 'ACTIVO' && selectedPedido?.estado != 'EN_RECEPCION_NOTA'"
                 >
                   <mat-icon>add</mat-icon>
                 </button>
@@ -1270,7 +1314,8 @@
       <div
         *ngIf="
           selectedPedido?.estado == 'ACTIVO' ||
-          selectedPedido?.estado == 'EN_RECEPCION_NOTA'
+          selectedPedido?.estado == 'EN_RECEPCION_NOTA' ||
+          selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA'
         "
         style="height: 100%"
         fxLayout="column"
@@ -1329,10 +1374,20 @@
                 </div>
               </div>
               <div fxFlex="33" fxLayout="column" class="titulo">
+                Cant. Itens cancelados:
+                <div class="subtitulo">
+                  {{
+                    selectedPedido?.cantPedidoItemCancelados | number : "1.0-0"
+                  }}
+                </div>
+              </div>
+              <div fxFlex="33" fxLayout="column" class="titulo">
                 Falta:
                 <div class="subtitulo">
                   {{
-                    selectedPedido?.cantPedidoItem - totalItensAgregados
+                    selectedPedido?.cantPedidoItem -
+                      totalItensAgregados -
+                      selectedPedido?.cantPedidoItemCancelados
                       | number : "1.0-0"
                   }}
                 </div>
@@ -1363,7 +1418,8 @@
       <div
         *ngIf="
           selectedPedido?.estado == 'ACTIVO' ||
-          selectedPedido?.estado == 'EN_RECEPCION_NOTA'
+          selectedPedido?.estado == 'EN_RECEPCION_NOTA' ||
+          selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA'
         "
         [fxFlex]="50"
         style="height: 100%"
@@ -1440,7 +1496,7 @@
                 Presentación
               </th>
               <td mat-cell *matCellDef="let pedido" style="text-align: center">
-                {{ pedido?.presentacion?.cantidad | number : "1.0-0" }}
+                {{ pedido?.presentacionRecepcionNota?.cantidad | number : "1.0-0" }}
               </td>
             </ng-container>
 
@@ -1459,10 +1515,10 @@
               </th>
               <td mat-cell *matCellDef="let pedido" style="text-align: center">
                 <ng-container
-                  *ngIf="pedido?.descuentoUnitario; else elsePrecioUnitTemplate"
+                  *ngIf="pedido?.descuentoUnitarioRecepcionNota; else elsePrecioUnitTemplate"
                 >
                   {{
-                    pedido?.precioUnitario - pedido?.descuentoUnitario
+                    pedido?.precioUnitariRecepcionNota - pedido?.descuentoUnitarioRecepcionNota
                       | number : "1.0-0"
                   }}
                   <div
@@ -1478,20 +1534,20 @@
                     [formattedTooltip]="[
                       {
                         prefix: 'Precio sin descuento:',
-                        amount: pedido?.precioUnitario
+                        amount: pedido?.precioUnitarioRecepcionNota
                       },
                       {
                         prefix: 'Descuento unitario:',
-                        amount: pedido?.descuentoUnitario
+                        amount: pedido?.descuentoUnitarioRecepcionNota
                       }
                     ]"
                   >
-                    {{ pedido?.precioUnitario | number : "1.0-0" }}
+                    {{ pedido?.precioUnitarioRecepcionNota | number : "1.0-0" }}
                   </div>
                 </ng-container>
 
                 <ng-template #elsePrecioUnitTemplate>
-                  {{ pedido?.precioUnitario | number : "1.0-0" }}
+                  {{ pedido?.precioUnitarioRecepcionNota | number : "1.0-0" }}
                 </ng-template>
               </td>
             </ng-container>
@@ -1502,11 +1558,11 @@
               </th>
               <td mat-cell *matCellDef="let pedido" style="text-align: center">
                 <ng-container
-                  *ngIf="pedido?.descuentoUnitario; else elsePrecioPresTemplate"
+                  *ngIf="pedido?.descuentoUnitarioRecepcionNota; else elsePrecioPresTemplate"
                 >
                   {{
-                    pedido?.presentacion?.cantidad *
-                      (pedido?.precioUnitario - pedido?.descuentoUnitario)
+                    pedido?.presentacionRecepcionNota?.cantidad *
+                      (pedido?.precioUnitarioRecepcionNota - pedido?.descuentoUnitarioRecepcionNota)
                       | number : "1.0-0"
                   }}
                   <div
@@ -1523,19 +1579,19 @@
                       {
                         prefix: 'Precio sin descuento:',
                         amount:
-                          pedido?.presentacion?.cantidad *
-                          pedido?.precioUnitario
+                          pedido?.presentacionRecepcionNota?.cantidad *
+                          pedido?.precioUnitarioRecepcionNota
                       },
                       {
                         prefix: 'Desc. por presentación:',
                         amount:
-                          pedido?.presentacion?.cantidad *
-                          pedido?.descuentoUnitario
+                          pedido?.presentacionRecepcionNota?.cantidad *
+                          pedido?.descuentoUnitarioRecepcionNota
                       }
                     ]"
                   >
                     {{
-                      pedido?.presentacion?.cantidad * pedido?.precioUnitario
+                      pedido?.presentacionRecepcionNota?.cantidad * pedido?.precioUnitarioRecepcionNota
                         | number : "1.0-0"
                     }}
                   </div>
@@ -1543,7 +1599,7 @@
 
                 <ng-template #elsePrecioPresTemplate>
                   {{
-                    pedido?.presentacion?.cantidad * pedido?.precioUnitario
+                    pedido?.presentacionRecepcionNota?.cantidad * pedido?.precioUnitarioRecepcionNota
                       | number : "1.0-0"
                   }}
                 </ng-template>
@@ -1556,12 +1612,12 @@
               </th>
               <td mat-cell *matCellDef="let pedido" style="text-align: center">
                 <ng-container
-                  *ngIf="pedido?.descuentoUnitario; else elseTotalTemplate"
+                  *ngIf="pedido?.descuentoUnitarioRecepcionNota; else elseTotalTemplate"
                 >
                   {{
-                    pedido?.presentacion?.cantidad *
-                      (pedido?.precioUnitario - pedido?.descuentoUnitario) *
-                      pedido?.cantidad | number : "1.0-0"
+                    pedido?.presentacionRecepcionNota?.cantidad *
+                      (pedido?.precioUnitarioRecepcionNota - pedido?.descuentoUnitarioRecepcionNota) *
+                      pedido?.cantidadRecepcionNota | number : "1.0-0"
                   }}
                   <div
                     class="sub-descripcion"
@@ -1577,32 +1633,32 @@
                       {
                         prefix: 'Precio sin descuento:',
                         amount:
-                          pedido?.presentacion?.cantidad *
-                          pedido?.precioUnitario *
-                          pedido?.cantidad
+                          pedido?.presentacionRecepcionNota?.cantidad *
+                          pedido?.precioUnitarioRecepcionNota *
+                          pedido?.cantidadRecepcionNota
                       },
                       {
                         prefix: 'Descuento total:',
                         amount:
-                          pedido?.presentacion?.cantidad *
-                          pedido?.descuentoUnitario *
-                          pedido?.cantidad
+                          pedido?.presentacionRecepcionNota?.cantidad *
+                          pedido?.descuentoUnitarioRecepcionNota *
+                          pedido?.cantidadRecepcionNota
                       }
                     ]"
                   >
                     {{
-                      pedido?.presentacion?.cantidad *
-                        pedido?.precioUnitario *
-                        pedido?.cantidad | number : "1.0-0"
+                      pedido?.presentacionRecepcionNota?.cantidad *
+                        pedido?.precioUnitarioRecepcionNota *
+                        pedido?.cantidadRecepcionNota | number : "1.0-0"
                     }}
                   </div>
                 </ng-container>
 
                 <ng-template #elseTotalTemplate>
                   {{
-                    pedido?.presentacion?.cantidad *
-                      pedido?.precioUnitario *
-                      pedido?.cantidad | number : "1.0-0"
+                    pedido?.presentacionRecepcionNota?.cantidad *
+                      pedido?.precioUnitarioRecepcionNota *
+                      pedido?.cantidadRecepcionNota | number : "1.0-0"
                   }}
                 </ng-template>
               </td>
@@ -1625,21 +1681,37 @@
                   mat-icon-button
                   [matMenuTriggerFor]="menu"
                   (click)="$event.stopPropagation()"
-                  [disabled]="isAddingItensToNota"
+                  [disabled]="isAddingItensToNota || selectedPedido?.estado != 'EN_RECEPCION_NOTA'"
                 >
                   <mat-icon class="highlight-hover">more_vert</mat-icon>
                 </button>
                 <mat-menu #menu="matMenu">
-                  <button *ngIf="pedido?.cancelado != true" mat-menu-item (click)="onModificarItem(pedido)">
+                  <button
+                    *ngIf="pedido?.cancelado != true"
+                    mat-menu-item
+                    (click)="onModificarItem(pedido)"
+                  >
                     Modificar item
                   </button>
-                  <button *ngIf="pedido?.cancelado != true" mat-menu-item (click)="onRechazarItem(pedido)">
+                  <button
+                    *ngIf="pedido?.cancelado != true"
+                    mat-menu-item
+                    (click)="onRechazarItem(pedido)"
+                  >
                     Rechazar item
                   </button>
-                  <button *ngIf="pedido?.cancelado" mat-menu-item (click)="onReabrirItem(pedido)">
+                  <button
+                    *ngIf="pedido?.cancelado"
+                    mat-menu-item
+                    (click)="onReabrirItem(pedido)"
+                  >
                     Reabrir item
                   </button>
-                  <button *ngIf="pedido?.cancelado != true" mat-menu-item (click)="onDividirItem(pedido, i)">
+                  <button
+                    *ngIf="pedido?.cancelado != true"
+                    mat-menu-item
+                    (click)="onDividirItem(pedido, i)"
+                  >
                     Dividir item
                   </button>
                 </mat-menu>
@@ -1661,6 +1733,7 @@
                   mat-icon-button
                   class="highlight-hover-danger"
                   (click)="onDeleteItemFromNota(pedido, i)"
+                  [disabled]="selectedPedido?.estado != 'EN_RECEPCION_NOTA'"
                 >
                   <mat-icon
                     style="text-align: center"
@@ -1680,21 +1753,61 @@
                 *matCellDef="let pedido"
                 [attr.colspan]="pedidoItemNotaRecepcionDisplayedColumns.length"
                 class="expanded"
+                style="background-color: rgb(50, 50, 50)"
               >
                 <div
-                  class="example-pedido-detail"
+                  class="example-element-detail"
                   [@detailExpand]="
-                    pedido == expandedPedidoItemNotaRecepcion
+                    pedido == selectedPedidoItemNotaRecepcion
                       ? 'expanded'
                       : 'collapsed'
                   "
-                  style="text-align: center"
-                  fxLayout="column"
-                  fxLayoutAlign="start start"
-                ></div>
+                >
+                  <div
+                    style="text-align: center; margin: 20px"
+                    fxLayout="column"
+                    fxLayoutAlign="start start"
+                  >
+                    <div
+                      fxLayout="row"
+                      fxLayoutAlign="start center"
+                      fxLayoutGap="20px"
+                    >
+                      <app-data-display
+                        *ngIf="pedido?.vencimientoCreacion"
+                        titulo="Vencimiento"
+                        [valor]="pedido?.vencimientoCreacion"
+                        customPipe="date: 'short'"
+                      ></app-data-display>
+
+                      <app-data-display
+                        *ngIf="pedido?.observacionCreacion"
+                        titulo="Observacion"
+                        [valor]="pedido?.observacionCreacion"
+                      ></app-data-display>
+                    </div>
+                    <div
+                      *ngIf="pedido?.cancelado"
+                      fxLayout="row"
+                      fxLayoutAlign="start center"
+                      fxLayoutGap="20px"
+                    >
+                      <app-data-display
+                        titulo="Motivo cancelacion"
+                        [valor]="pedido?.motivoRechazoRecepcionNota?.toString()"
+                        customPipe="titlecase"
+                      ></app-data-display>
+
+                      <app-data-display
+                        titulo="Vencimiento"
+                        [valor]="pedido?.vencimientoCreacion"
+                        customPipe="date: 'short'"
+                      ></app-data-display>
+                    </div>
+                  </div>
+                </div>
               </td>
             </ng-container>
-
             <tr
               mat-header-row
               *matHeaderRowDef="
@@ -1713,6 +1826,7 @@
                 selectedPedidoItemNotaRecepcion?.id === row?.id
               "
               [class.fondo-danger]="row.cancelado"
+              (click)="selectedPedidoItemNotaRecepcion = row"
             ></tr>
             <tr
               mat-row
@@ -2014,16 +2128,32 @@
                   <mat-icon class="highlight-hover">more_vert</mat-icon>
                 </button>
                 <mat-menu #menu="matMenu">
-                  <button *ngIf="pedido?.cancelado != true" mat-menu-item (click)="onModificarItem(pedido)">
+                  <button
+                    *ngIf="pedido?.cancelado != true"
+                    mat-menu-item
+                    (click)="onModificarItem(pedido)"
+                  >
                     Modificar item
                   </button>
-                  <button *ngIf="pedido?.cancelado != true" mat-menu-item (click)="onRechazarItem(pedido)">
+                  <button
+                    *ngIf="pedido?.cancelado != true"
+                    mat-menu-item
+                    (click)="onRechazarItem(pedido)"
+                  >
                     Rechazar item
                   </button>
-                  <button *ngIf="pedido?.cancelado" mat-menu-item (click)="onReabrirItem(pedido)">
+                  <button
+                    *ngIf="pedido?.cancelado"
+                    mat-menu-item
+                    (click)="onReabrirItem(pedido)"
+                  >
                     Reabrir item
                   </button>
-                  <button *ngIf="pedido?.cancelado != true" mat-menu-item (click)="onDividirItem(pedido, i)">
+                  <button
+                    *ngIf="pedido?.cancelado != true"
+                    mat-menu-item
+                    (click)="onDividirItem(pedido, i)"
+                  >
                     Dividir item
                   </button>
                 </mat-menu>
@@ -2067,14 +2197,50 @@
                 class="expanded"
               >
                 <div
-                  class="example-pedido-detail"
+                  class="example-element-detail"
                   [@detailExpand]="
-                    pedido == expandedPedido ? 'expanded' : 'collapsed'
+                    pedido == selectedPedidoItemSobrante
+                      ? 'expanded'
+                      : 'collapsed'
                   "
-                  style="text-align: center"
-                  fxLayout="column"
-                  fxLayoutAlign="start start"
-                ></div>
+                >
+                  <div
+                    style="text-align: center; margin: 20px"
+                    fxLayout="column"
+                    fxLayoutAlign="start start"
+                  >
+                    <div
+                      fxLayout="row"
+                      fxLayoutAlign="start center"
+                      fxLayoutGap="20px"
+                    >
+                      <app-data-display
+                        *ngIf="pedido?.vencimientoCreacion"
+                        titulo="Vencimiento"
+                        [valor]="pedido?.vencimientoCreacion"
+                        customPipe="date: 'short'"
+                      ></app-data-display>
+
+                      <app-data-display
+                        *ngIf="pedido?.observacionCreacion"
+                        titulo="Observacion"
+                        [valor]="pedido?.observacionCreacion"
+                      ></app-data-display>
+                    </div>
+                    <div
+                      *ngIf="pedido?.cancelado"
+                      fxLayout="row"
+                      fxLayoutAlign="start center"
+                      fxLayoutGap="20px"
+                    >
+                      <app-data-display
+                        titulo="Motivo cancelacion"
+                        [valor]="pedido?.motivoRechazoRecepcionNota?.toString()"
+                        customPipe="titlecase"
+                      ></app-data-display>
+                    </div>
+                  </div>
+                </div>
               </td>
             </ng-container>
 
@@ -2096,7 +2262,7 @@
                   ? onAddPedidoItemToNota(row, i)
                   : onEditItem(row, i)
               "
-              (click)="selection.toggle(row)"
+              (click)="selectedPedidoItemSobrante = row"
               [class.selected-row]="selectedPedidoItem?.id === row?.id"
             ></tr>
             <tr
