@@ -34,6 +34,7 @@ import {
 } from "../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
 import { MatSelect } from "@angular/material/select";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
+import { PedidoEstado } from "../edit-pedido/pedido-enums";
 
 export class EditarPedidpItemDialogData {
   pedido: Pedido;
@@ -103,11 +104,13 @@ export class EditarPedidpItemDialogComponent implements OnInit {
     }
 
     if (this.data?.pedidoItem != null) {
+      this.selectedPedido = this.data.pedido;
       this.selectedPedidoItem = this.data.pedidoItem;
       this.cargarDatos(
         this.selectedPedidoItem.producto,
-        this.selectedPedidoItem.presentacionCreacion
+        this.selectedPedidoItem.presentacion
       );
+
       if (this.data?.reabrir) {
         this.selectedPedidoItem.cancelado = false;
         this.selectedPedidoItem.motivoRechazoRecepcionNota = null;
@@ -146,25 +149,51 @@ export class EditarPedidpItemDialogComponent implements OnInit {
         this.presentacionList.find((p) => p.id === presentacion.id)
       );
       this.cantidadPresentacionControl.setValue(
-        this.selectedPedidoItem.cantidadCreacion || 0
+        this.selectedPedidoItem.cantidad || 0
       );
       this.precioUnitarioControl.setValue(
         producto?.costo?.ultimoPrecioCompra ||
-          this.selectedPedidoItem.precioUnitarioCreacion ||
+          this.selectedPedidoItem.precioUnitario ||
           0
       );
       this.descuentoPresentacionControl.setValue(
         this.selectedPedidoItem.descuentoUnitario *
           this.presentacionControl.value.cantidad || 0
       );
-      this.motivoModificacionControl.setValue(
-        this.selectedPedidoItem?.motivoModificacionRecepcionNota?.split(",") ||
-          []
-      );
-      this.motivoRechazoControl.setValue(
-        this.selectedPedidoItem?.motivoRechazoRecepcionNota?.split(",") || []
-      );
-      this.obsControl.setValue(this.data.pedidoItem?.obsRecepcionNota);
+      switch (this.selectedPedido.estado) {
+        case PedidoEstado.EN_RECEPCION_NOTA:
+          if (this.selectedPedidoItem?.verificadoRecepcionNota) {
+            this.motivoModificacionControl.setValue(
+              this.selectedPedidoItem?.motivoModificacionRecepcionNota?.split(
+                ","
+              ) || []
+            );
+            this.motivoRechazoControl.setValue(
+              this.selectedPedidoItem?.motivoRechazoRecepcionNota?.split(",") ||
+                []
+            );
+            this.obsControl.setValue(this.data.pedidoItem?.obsRecepcionNota);
+          }
+          break;
+        case PedidoEstado.EN_RECEPCION_MERCADERIA:
+          if (this.selectedPedidoItem?.verificadoRecepcionProducto) {
+            this.motivoModificacionControl.setValue(
+              this.selectedPedidoItem?.motivoModificacionRecepcionProducto?.split(
+                ","
+              ) || []
+            );
+            this.motivoRechazoControl.setValue(
+              this.selectedPedidoItem?.motivoRechazoRecepcionProducto?.split(
+                ","
+              ) || []
+            );
+            this.obsControl.setValue(
+              this.data.pedidoItem?.obsRecepcionProducto
+            );
+          }
+          break;
+      }
+
       this.calcularTotal();
       setTimeout(() => {
         this.codigoInput?.nativeElement.select();
@@ -260,25 +289,88 @@ export class EditarPedidpItemDialogComponent implements OnInit {
     Object.assign(auxPedidoItem, this.selectedPedidoItem);
     this.selectedPedidoItem = auxPedidoItem;
     this.selectedPedidoItem.producto = this.selectedProducto;
-    this.selectedPedidoItem.presentacionCreacion =
-      this.presentacionControl.value;
-    this.selectedPedidoItem.cantidadCreacion =
-      this.cantidadPresentacionControl.value;
-    this.selectedPedidoItem.precioUnitarioCreacion =
-      this.precioUnitarioControl.value;
-    this.selectedPedidoItem.descuentoUnitarioCreacion =
-      this.descuentoPresentacionControl.value /
-      this.selectedPedidoItem.presentacionCreacion.cantidad;
-    this.selectedPedidoItem.valorTotal =
-      this.cantidadPresentacionControl.value *
-      (this.precioPorPresentacionControl.value -
-        this.descuentoPresentacionControl.value);
-    this.selectedPedidoItem.motivoRechazoRecepcionNota =
-      this.motivoRechazoControl.value;
-    this.selectedPedidoItem.motivoModificacionRecepcionNota =
-      this.motivoModificacionControl.value?.toString();
-    this.selectedPedidoItem.obsRecepcionNota =
-      this.obsControl.value?.toUpperCase();
+
+    switch (this.selectedPedido.estado) {
+      case PedidoEstado.ABIERTO:
+      case PedidoEstado.ACTIVO:
+        this.selectedPedidoItem.presentacionCreacion =
+          this.presentacionControl.value;
+        this.selectedPedidoItem.cantidadCreacion =
+          this.cantidadPresentacionControl.value;
+        this.selectedPedidoItem.precioUnitarioCreacion =
+          this.precioUnitarioControl.value;
+        this.selectedPedidoItem.descuentoUnitarioCreacion =
+          this.descuentoPresentacionControl.value /
+          this.selectedPedidoItem.presentacionCreacion.cantidad;
+        this.selectedPedidoItem.valorTotal =
+          this.cantidadPresentacionControl.value *
+          (this.precioPorPresentacionControl.value -
+            this.descuentoPresentacionControl.value);
+        break;
+
+      case PedidoEstado.EN_RECEPCION_NOTA:
+        if (this.selectedPedidoItem?.verificadoRecepcionNota) {
+          this.selectedPedidoItem.presentacionRecepcionNota =
+            this.presentacionControl.value;
+          this.selectedPedidoItem.cantidadRecepcionNota =
+            this.cantidadPresentacionControl.value;
+          this.selectedPedidoItem.precioUnitarioRecepcionNota =
+            this.precioUnitarioControl.value;
+          this.selectedPedidoItem.descuentoUnitarioRecepcionNota =
+            this.descuentoPresentacionControl.value /
+            this.selectedPedidoItem.presentacionRecepcionNota.cantidad;
+          this.selectedPedidoItem.valorTotal =
+            this.cantidadPresentacionControl.value *
+            (this.precioPorPresentacionControl.value -
+              this.descuentoPresentacionControl.value);
+          this.selectedPedidoItem.motivoRechazoRecepcionNota =
+            this.motivoRechazoControl.value;
+          this.selectedPedidoItem.motivoModificacionRecepcionNota =
+            this.motivoModificacionControl.value?.toString();
+          this.selectedPedidoItem.obsRecepcionNota =
+            this.obsControl.value?.toUpperCase();
+        } else {
+          this.selectedPedidoItem.presentacionCreacion =
+            this.presentacionControl.value;
+          this.selectedPedidoItem.cantidadCreacion =
+            this.cantidadPresentacionControl.value;
+          this.selectedPedidoItem.precioUnitarioCreacion =
+            this.precioUnitarioControl.value;
+          this.selectedPedidoItem.descuentoUnitarioCreacion =
+            this.descuentoPresentacionControl.value /
+            this.selectedPedidoItem.presentacionCreacion.cantidad;
+          this.selectedPedidoItem.valorTotal =
+            this.cantidadPresentacionControl.value *
+            (this.precioPorPresentacionControl.value -
+              this.descuentoPresentacionControl.value);
+        }
+        break;
+
+      case PedidoEstado.EN_RECEPCION_MERCADERIA:
+        if (this.selectedPedidoItem?.verificadoRecepcionProducto) {
+          this.selectedPedidoItem.presentacionRecepcionProducto =
+            this.presentacionControl.value;
+          this.selectedPedidoItem.cantidadRecepcionProducto =
+            this.cantidadPresentacionControl.value;
+          this.selectedPedidoItem.precioUnitarioRecepcionProducto =
+            this.precioUnitarioControl.value;
+          this.selectedPedidoItem.descuentoUnitarioRecepcionProducto =
+            this.descuentoPresentacionControl.value /
+            this.selectedPedidoItem.presentacionRecepcionProducto.cantidad;
+          this.selectedPedidoItem.valorTotal =
+            this.cantidadPresentacionControl.value *
+            (this.precioPorPresentacionControl.value -
+              this.descuentoPresentacionControl.value);
+          this.selectedPedidoItem.motivoRechazoRecepcionProducto =
+            this.motivoRechazoControl.value;
+          this.selectedPedidoItem.motivoModificacionRecepcionProducto =
+            this.motivoModificacionControl.value?.toString();
+          this.selectedPedidoItem.obsRecepcionProducto =
+            this.obsControl.value?.toUpperCase();
+        }
+        break;
+    }
+
     this.pedidoService
       .onSaveItem(this.selectedPedidoItem.toInput())
       .subscribe((pedidoItemRes) => {
@@ -297,10 +389,23 @@ export class EditarPedidpItemDialogComponent implements OnInit {
       )
       .subscribe((res) => {
         if (res) {
-          this.selectedPedidoItem.motivoRechazoRecepcionNota =
-            this.motivoRechazoControl.value?.toString();
-          this.selectedPedidoItem.obsRecepcionNota =
-            this.obsControl.value?.toUpperCase();
+          switch (this.selectedPedido.estado) {
+            case PedidoEstado.EN_RECEPCION_NOTA:
+              this.selectedPedidoItem.motivoRechazoRecepcionNota =
+                this.motivoRechazoControl.value?.toString();
+              this.selectedPedidoItem.obsRecepcionNota =
+                this.obsControl.value?.toUpperCase();
+                this.selectedPedidoItem.verificadoRecepcionNota = true;
+              break;
+            case PedidoEstado.EN_RECEPCION_MERCADERIA:
+              this.selectedPedidoItem.motivoRechazoRecepcionProducto =
+                this.motivoRechazoControl.value?.toString();
+              this.selectedPedidoItem.obsRecepcionProducto =
+                this.obsControl.value?.toUpperCase();
+                this.selectedPedidoItem.verificadoRecepcionProducto = true;
+              break;
+          }
+
           this.selectedPedidoItem.cancelado = true;
           this.onSaveItem();
         }

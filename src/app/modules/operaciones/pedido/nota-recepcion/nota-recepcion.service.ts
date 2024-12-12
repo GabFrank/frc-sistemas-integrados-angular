@@ -6,6 +6,8 @@ import { NotaRecepcionPorIdGQL } from "./graphql/getNotaRecepcionPorId";
 import { NotaRecepcionPorPedidoIdGQL } from "./graphql/notaRecepcionPorPedidoId";
 import { SaveNotaRecepcionGQL } from "./graphql/saveNotaRecepcion";
 import { NotaRecepcion, NotaRecepcionInput } from "./nota-recepcion.model";
+import { PageInfo } from "../../../../app.component";
+import { NotaRecepcionPorIdAndNumeroGQL } from "./graphql/getNotaRecepcionPorIdAndNumero";
 
 
 @Injectable({
@@ -18,6 +20,7 @@ export class NotaRecepcionService {
     private getnotaRecepcionPorPedidoId: NotaRecepcionPorPedidoIdGQL,
     private saveNotaRecepcion: SaveNotaRecepcionGQL,
     private deleteNotaRecepcion: DeleteNotaRecepcionGQL,
+    private notaRecepcionPorPedidoAndNumero: NotaRecepcionPorIdAndNumeroGQL
   ) {}
 
   onGetNotaRecepcion(id): Observable<NotaRecepcion> {
@@ -31,6 +34,9 @@ export class NotaRecepcionService {
   }
   onDeleteNotaRecepcion(id): Observable<boolean> {
     return this.genericService.onDelete(this.deleteNotaRecepcion, id);
+  }
+  onGetNotaRecepcionPorPedidoIdAndNumero(id, numero, page, size): Observable<PageInfo<NotaRecepcion>> {
+    return this.genericService.onCustomQuery(this.notaRecepcionPorPedidoAndNumero, {id, numero, page, size});
   }
 
 }

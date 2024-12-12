@@ -88,5 +88,35 @@ mat-icon {
 
 /* Custom styles for white-on-hover class */
 .white-on-hover-button:hover .white-on-hover {
-  color: white !important; /* Ensures the hover color is applied */
+  color: white !important;
+  /* Ensures the hover color is applied */
+}
+
+.shrinking-mat-form-field {
+  height: 30px !important;
+
+  ::ng-deep .mat-mdc-form-field-infix {
+    transform: translateY(-10px) !important;
+  }
+
+  ::ng-deep .mat-mdc-input-element {
+    font-size: 15px;
+  }
+
+  ::ng-deep.mat-mdc-form-field-text-prefix {
+    transform: translateY(-10px) !important;
+    font-size: small;
+  }
+
+  ::ng-deep.mat-form-field-infix {
+    top: 0em !important;
+  }
+
+  ::ng-deep.mat-form-field-suffix {
+    top: 0em !important;
+  }
+
+  ::ng-deep.mat-mdc-text-field-wrapper {
+    height: 30px;
+  }
 }

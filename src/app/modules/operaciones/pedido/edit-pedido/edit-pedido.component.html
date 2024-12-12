@@ -1066,7 +1066,10 @@
                       mat-icon-button
                       [matMenuTriggerFor]="menu"
                       (click)="$event.stopPropagation()"
-                      [disabled]="isAddingItensToNota || selectedPedido?.estado != 'EN_RECEPCION_NOTA'"
+                      [disabled]="
+                        isAddingItensToNota ||
+                        selectedPedido?.estado != 'EN_RECEPCION_NOTA'
+                      "
                     >
                       <mat-icon>more_vert</mat-icon>
                     </button>
@@ -1137,7 +1140,11 @@
                   mat-fab
                   color="primary"
                   (click)="onAgregarNota(true)"
-                  [disabled]="isAddingItensToNota && selectedPedido?.estado != 'ACTIVO' && selectedPedido?.estado != 'EN_RECEPCION_NOTA'"
+                  [disabled]="
+                    isAddingItensToNota &&
+                    selectedPedido?.estado != 'ACTIVO' &&
+                    selectedPedido?.estado != 'EN_RECEPCION_NOTA'
+                  "
                 >
                   <mat-icon>add</mat-icon>
                 </button>
@@ -1426,8 +1433,62 @@
         fxLayout="column"
         fxLayoutAlign="start start"
       >
-        <div style="width: 100%; text-align: center; font-size: small">
-          Itens de la nota de recepción
+        <div
+          fxLayout="row"
+          fxLayoutAlign="start center"
+          style="
+            width: 100%;
+            text-align: center;
+            font-size: small;
+            margin-bottom: 5px;
+          "
+        >
+          <div
+            fxFlex="33"
+            fxLayout="row"
+            fxLayoutAlign="start center"
+            fxLayoutGap="10px"
+            style="width: 100%"
+          >
+            <mat-form-field
+              style="width: 100%"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+            >
+              <input
+                #filtroItensNotaRecepcionInput
+                matInput
+                type="text"
+                [formControl]="filtroItensNotaRecepcionControl"
+                (keyup.enter)="
+                  onFilterItensNotaRecepcion();
+                  filtroItensNotaRecepcionInput.select()
+                "
+                (focusin)="filtroItensNotaRecepcionInput.select()"
+                placeholder="Nombre del producto"
+                [readonly]="selectedNotaRecepcion == null"
+              />
+            </mat-form-field>
+            <mat-icon
+              (click)="onFilterItensNotaRecepcion()"
+              [ngClass]="{ disable: selectedNotaRecepcion == null }"
+              class="highlight-hover"
+              >search</mat-icon
+            >
+            <mat-icon
+              *ngIf="selectedProveedor != null"
+              (click)="onClearFilterNotaRecepcion()"
+              [ngClass]="{
+                disable:
+                  selectedNotaRecepcion == null ||
+                  filtroItensNotaRecepcionControl.value == null
+              }"
+              class="highlight-hover-danger"
+              >clear</mat-icon
+            >
+          </div>
+          <div fxFlex="33">Itens de la nota de recepción</div>
+          <div fxFlex="33"></div>
         </div>
         <div fxFlex="90" style="width: 100%; background-color: rgb(70, 70, 70)">
           <table
@@ -1496,7 +1557,9 @@
                 Presentación
               </th>
               <td mat-cell *matCellDef="let pedido" style="text-align: center">
-                {{ pedido?.presentacionRecepcionNota?.cantidad | number : "1.0-0" }}
+                {{
+                  pedido?.presentacionRecepcionNota?.cantidad | number : "1.0-0"
+                }}
               </td>
             </ng-container>
 
@@ -1515,11 +1578,14 @@
               </th>
               <td mat-cell *matCellDef="let pedido" style="text-align: center">
                 <ng-container
-                  *ngIf="pedido?.descuentoUnitarioRecepcionNota; else elsePrecioUnitTemplate"
+                  *ngIf="
+                    pedido?.descuentoUnitarioRecepcionNota;
+                    else elsePrecioUnitTemplate
+                  "
                 >
                   {{
-                    pedido?.precioUnitariRecepcionNota - pedido?.descuentoUnitarioRecepcionNota
-                      | number : "1.0-0"
+                    pedido?.precioUnitariRecepcionNota -
+                      pedido?.descuentoUnitarioRecepcionNota | number : "1.0-0"
                   }}
                   <div
                     class="sub-descripcion"
@@ -1558,11 +1624,15 @@
               </th>
               <td mat-cell *matCellDef="let pedido" style="text-align: center">
                 <ng-container
-                  *ngIf="pedido?.descuentoUnitarioRecepcionNota; else elsePrecioPresTemplate"
+                  *ngIf="
+                    pedido?.descuentoUnitarioRecepcionNota;
+                    else elsePrecioPresTemplate
+                  "
                 >
                   {{
                     pedido?.presentacionRecepcionNota?.cantidad *
-                      (pedido?.precioUnitarioRecepcionNota - pedido?.descuentoUnitarioRecepcionNota)
+                      (pedido?.precioUnitarioRecepcionNota -
+                        pedido?.descuentoUnitarioRecepcionNota)
                       | number : "1.0-0"
                   }}
                   <div
@@ -1591,16 +1661,16 @@
                     ]"
                   >
                     {{
-                      pedido?.presentacionRecepcionNota?.cantidad * pedido?.precioUnitarioRecepcionNota
-                        | number : "1.0-0"
+                      pedido?.presentacionRecepcionNota?.cantidad *
+                        pedido?.precioUnitarioRecepcionNota | number : "1.0-0"
                     }}
                   </div>
                 </ng-container>
 
                 <ng-template #elsePrecioPresTemplate>
                   {{
-                    pedido?.presentacionRecepcionNota?.cantidad * pedido?.precioUnitarioRecepcionNota
-                      | number : "1.0-0"
+                    pedido?.presentacionRecepcionNota?.cantidad *
+                      pedido?.precioUnitarioRecepcionNota | number : "1.0-0"
                   }}
                 </ng-template>
               </td>
@@ -1612,11 +1682,15 @@
               </th>
               <td mat-cell *matCellDef="let pedido" style="text-align: center">
                 <ng-container
-                  *ngIf="pedido?.descuentoUnitarioRecepcionNota; else elseTotalTemplate"
+                  *ngIf="
+                    pedido?.descuentoUnitarioRecepcionNota;
+                    else elseTotalTemplate
+                  "
                 >
                   {{
                     pedido?.presentacionRecepcionNota?.cantidad *
-                      (pedido?.precioUnitarioRecepcionNota - pedido?.descuentoUnitarioRecepcionNota) *
+                      (pedido?.precioUnitarioRecepcionNota -
+                        pedido?.descuentoUnitarioRecepcionNota) *
                       pedido?.cantidadRecepcionNota | number : "1.0-0"
                   }}
                   <div
@@ -1681,7 +1755,10 @@
                   mat-icon-button
                   [matMenuTriggerFor]="menu"
                   (click)="$event.stopPropagation()"
-                  [disabled]="isAddingItensToNota || selectedPedido?.estado != 'EN_RECEPCION_NOTA'"
+                  [disabled]="
+                    isAddingItensToNota ||
+                    selectedPedido?.estado != 'EN_RECEPCION_NOTA'
+                  "
                 >
                   <mat-icon class="highlight-hover">more_vert</mat-icon>
                 </button>
@@ -1732,7 +1809,7 @@
                 <button
                   mat-icon-button
                   class="highlight-hover-danger"
-                  (click)="onDeleteItemFromNota(pedido, i)"
+                  (click)="onDeleteItemFromNota(pedido)"
                   [disabled]="selectedPedido?.estado != 'EN_RECEPCION_NOTA'"
                 >
                   <mat-icon
@@ -1869,8 +1946,61 @@
         fxLayout="column"
         fxLayoutAlign="start start"
       >
-        <div style="width: 100%; text-align: center; font-size: small">
-          Lista de productos
+        <div
+          fxLayout="row"
+          fxLayoutAlign="start center"
+          style="
+            width: 100%;
+            text-align: center;
+            font-size: small;
+            margin-bottom: 5px;
+          "
+        >
+          <div
+            fxFlex="33"
+            fxLayout="row"
+            fxLayoutAlign="start center"
+            fxLayoutGap="10px"
+            style="width: 100%"
+          >
+            <mat-form-field
+              style="width: 100%"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+            >
+              <input
+                #filtroPedidoItensSobrantesInput
+                matInput
+                type="text"
+                [formControl]="filtroPedidoItensSobrantesControl"
+                (keyup.enter)="
+                  onFilterPedidoItensSobrantes();
+                  filtroPedidoItensSobrantesInput.select()
+                "
+                (focusin)="filtroPedidoItensSobrantesInput.select()"
+                placeholder="Nombre del producto"
+              />
+            </mat-form-field>
+            <mat-icon
+              (click)="onFilterItensNotaRecepcion()"
+              [ngClass]="{ disable: selectedNotaRecepcion == null }"
+              class="highlight-hover"
+              >search</mat-icon
+            >
+            <mat-icon
+              *ngIf="selectedProveedor != null"
+              (click)="onClearFilterNotaRecepcion()"
+              [ngClass]="{
+                disable:
+                  selectedNotaRecepcion == null ||
+                  filtroItensNotaRecepcionControl.value == null
+              }"
+              class="highlight-hover-danger"
+              >clear</mat-icon
+            >
+          </div>
+          <div fxFlex="33">Lista de productos</div>
+          <div fxFlex="33"></div>
         </div>
         <div fxFlex="90" style="width: 100%; background-color: rgb(70, 70, 70)">
           <table
@@ -1880,28 +2010,6 @@
             class="mat-elevation-z8"
             style="width: 100%"
           >
-            <ng-container matColumnDef="select">
-              <th mat-header-cell *matHeaderCellDef>
-                <mat-checkbox
-                  (change)="$event ? masterToggle() : null"
-                  [checked]="selection.hasValue() && isAllSelected()"
-                  [indeterminate]="selection.hasValue() && !isAllSelected()"
-                >
-                </mat-checkbox>
-              </th>
-              <td mat-cell *matCellDef="let row; let i = index">
-                <mat-checkbox
-                  (click)="$event.stopPropagation()"
-                  (change)="
-                    $event ? selection.toggle(row) : null;
-                    onChangePedidoItemSelection(row, $event, i)
-                  "
-                  [checked]="selection.isSelected(row)"
-                >
-                </mat-checkbox>
-              </td>
-            </ng-container>
-
             <ng-container matColumnDef="id" style="width: 5%">
               <th mat-header-cell *matHeaderCellDef style="text-align: center">
                 Id
@@ -2175,7 +2283,7 @@
                   mat-icon-button
                   [disabled]="selectedNotaRecepcion?.id == null"
                   class="white-on-hover-button"
-                  (click)="onCheckPedidoNotaRecepcion(pedido, i)"
+                  (click)="onAddPedidoItemToNota(pedido)"
                 >
                   <mat-icon
                     class="success white-on-hover"
@@ -2259,7 +2367,7 @@
               (dblclick)="
                 selectedPedido?.estado == 'ACTIVO' ||
                 selectedPedido?.estado == 'EN_RECEPCION_NOTA'
-                  ? onAddPedidoItemToNota(row, i)
+                  ? onAddPedidoItemToNota(row)
                   : onEditItem(row, i)
               "
               (click)="selectedPedidoItemSobrante = row"

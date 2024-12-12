@@ -3,6 +3,7 @@ import { Query } from 'apollo-angular';
 import { Pedido } from '../edit-pedido/pedido.model';
 import { pedidoItemQuery } from '../pedido-itens/graphql/graphql-query';
 import { filterPedidosQuery } from './graphql-query';
+import { PageInfo } from '../../../../app.component';
 
 export interface Response {
   data: Pedido[];
@@ -11,6 +12,6 @@ export interface Response {
 @Injectable({
   providedIn: 'root',
 })
-export class FilterPedidosGQL extends Query<Response> {
+export class FilterPedidosGQL extends Query<PageInfo<Pedido>> {
   document = filterPedidosQuery;
 }

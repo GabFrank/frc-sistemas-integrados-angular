@@ -20,10 +20,12 @@ import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { PageInfo } from "../../../app.component";
 import { SavePedidoFullGQL } from "./graphql/savePedidoFull";
 import { PedidoItemPorPedidoPageGQL } from "./graphql/pedido-item-por-pedido-page";
-import { AddPedidoItemListToNotaRecepcionGQL } from "./graphql/add-item-list-to-nota-recepcion";
+import { AddPedidoItemToNotaRecepcionGQL } from "./graphql/add-item-list-to-nota-recepcion";
 import { PedidoItemPorNotaRecepcionGQL } from "./graphql/pedido-item-por-nota-recepcion";
 import { PedidoInfoDetalleGQL } from "./graphql/pedidoInfoDetalle";
 import { FinalizarPedidoGQL } from "./graphql/finalizarPedido";
+import { FilterPedidosGQL } from "./graphql/filterPedidos";
+import { PedidoEstado } from "./edit-pedido/pedido-enums";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -45,10 +47,11 @@ export class PedidoService {
     private updateNotaRecepcionId: UpdateNotaRecepcionIdGQL,
     private notificacionBar: NotificacionSnackbarService,
     private pedidoItemPorPedidoPage: PedidoItemPorPedidoPageGQL,
-    private addPedidoItemListToNotaRecepcion: AddPedidoItemListToNotaRecepcionGQL,
+    private addPedidoItemToNotaRecepcion: AddPedidoItemToNotaRecepcionGQL,
     private pedidoItemPorNotaRecepcion: PedidoItemPorNotaRecepcionGQL,
     private getPedidoInfoDetalle: PedidoInfoDetalleGQL,
-    private finalizarPedido: FinalizarPedidoGQL
+    private finalizarPedido: FinalizarPedidoGQL,
+    private filterPedidos: FilterPedidosGQL
   ) {}
 
   onGetPedidoInfoCompleta(id): Observable<Pedido> {
@@ -75,6 +78,31 @@ export class PedidoService {
       usuarioId,
     });
   }
+  onFilterPedidos(
+    estado: PedidoEstado,
+    sucursalId: number,
+    inicio: string,
+    fin: string,
+    proveedorId: number,
+    vendedorId: number,
+    formaPagoId: number,
+    productoId: number,
+    page: number,
+    size: number
+  ): Observable<PageInfo<Pedido>> {
+    return this.genericService.onCustomQuery(this.filterPedidos, {
+      estado,
+      sucursalId,
+      inicio,
+      fin,
+      proveedorId,
+      vendedorId,
+      formaPagoId,
+      productoId,
+      page,
+      size
+    })
+  }
 
   onSave(input: PedidoInput): Observable<Pedido> {
     return this.genericService.onSave<Pedido>(this.savePedido, input);
@@ -94,23 +122,26 @@ export class PedidoService {
     return this.genericService.onSave(this.savePedidoItem, input);
   }
 
-  onGetPedidoItemSobrantes(id, page, size): Observable<PageInfo<PedidoItem>> {
+  onGetPedidoItemSobrantes(id, page, size, texto?): Observable<PageInfo<PedidoItem>> {
     return this.genericService.onCustomQuery(this.getPedidoItemSobrantes, {
       id,
       page,
       size,
+      texto
     });
   }
 
   onGetPedidoItemPorNotaRecepcion(
     id,
     page,
-    size
+    size,
+    texto?
   ): Observable<PageInfo<PedidoItem>> {
     return this.genericService.onCustomQuery(this.pedidoItemPorNotaRecepcion, {
       id,
       page,
       size,
+      texto
     });
   }
 
@@ -118,11 +149,12 @@ export class PedidoService {
     return this.genericService.onGetById(this.pedidoItemPorId, id);
   }
 
-  onGetPedidoItemPorPedido(id, page, size): Observable<PageInfo<PedidoItem>> {
+  onGetPedidoItemPorPedido(id, page, size, texto?): Observable<PageInfo<PedidoItem>> {
     return this.genericService.onCustomQuery(this.pedidoItemPorPedidoPage, {
       id,
       page,
       size,
+      texto
     });
   }
 
@@ -156,15 +188,15 @@ export class PedidoService {
     });
   }
 
-  onAddPedidoItemListToNotaRecepcion(
+  onAddPedidoItemToNotaRecepcion(
     notaRecepcionId: number,
-    pedidoItemIdList: number[]
+    pedidoItemId: number
   ) {
     return this.genericService.onCustomMutation(
-      this.addPedidoItemListToNotaRecepcion,
+      this.addPedidoItemToNotaRecepcion,
       {
         notaRecepcion: notaRecepcionId,
-        pedidoItemIdList,
+        pedidoItemId,
       }
     );
   }

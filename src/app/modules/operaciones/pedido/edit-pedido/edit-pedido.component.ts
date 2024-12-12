@@ -19,7 +19,7 @@ import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import { MatDatepicker } from "@angular/material/datepicker";
 import { MatDialog } from "@angular/material/dialog";
-import { PageEvent } from "@angular/material/paginator";
+import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatSelect } from "@angular/material/select";
 import { MatTableDataSource } from "@angular/material/table";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
@@ -166,7 +166,9 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   precioUnitarioControl = new FormControl(null);
   monedaControl = new FormControl(null);
   buscarProductoProveedor = new FormControl();
-
+  filtroItensNotaRecepcionControl = new FormControl();
+  filtroPedidoItensSobrantesControl = new FormControl();
+  filtroNotaRecepcionControl = new FormControl();
   selectedMoneda: Moneda;
   selectedFormaPago: FormaPago;
 
@@ -238,6 +240,9 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   selectedPedidoItemNotaRecepcionPage: PageInfo<PedidoItem>;
   pedidoItemNotaRecepcionPageIndex = 0;
   pedidoItemNotaRecepcionPageSize = 10;
+  selectedNotaRecepcionPage: PageInfo<NotaRecepcion>;
+  notaRecepcionPageIndex = 0;
+  notaRecepcionPageSize = 10;
   //datos de fecha de entrega
   initialDates: Date[] = []; // Example initial dates
 
@@ -436,8 +441,6 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   }
 
   onCargarDatos(pedido: Pedido) {
-    console.log(pedido);
-
     this.selectedPedido = new Pedido();
     Object.assign(this.selectedPedido, pedido);
 
@@ -479,8 +482,6 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
         sucursalEntregaList?.map((s2) => s2.id)?.includes(s.id)
       )
     );
-
-    this.notaRecepcionDataSource.data = pedido?.notaRecepcionList;
 
     this.notaRecepcionDataSource.data.forEach((res) => {
       this.totalItensAgregados = this.totalItensAgregados + res.cantidadItens;
@@ -532,6 +533,15 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     }
   }
 
+  onBuscarNotaRecepcion(texto?){
+    this.notaRecepcionService.onGetNotaRecepcionPorPedidoIdAndNumero(this.selectedPedido.id, texto, this.notaRecepcionPageIndex, this.notaRecepcionPageSize).subscribe(res => {
+      if(res != null){
+        this.selectedNotaRecepcionPage = res;
+        this.notaRecepcionDataSource.data = res.getContent;
+      }
+    })
+  }
+
   buscarPedidoItens() {
     this.pedidoService
       .onGetPedidoItemPorPedido(this.selectedPedido.id, this.page, this.size)
@@ -547,14 +557,6 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       .onGetPedidoItemPorNotaRecepcion(id, this.page, this.size)
       .pipe(untilDestroyed(this))
       .subscribe((res: PageInfo<PedidoItem>) => {
-        console.log(res.getContent);
-
-        this.selectedNotaRecepcion.pedidoItemList = res.getContent;
-        this.notaRecepcionDataSource.data = updateDataSourceWithId(
-          this.notaRecepcionDataSource.data,
-          this.selectedNotaRecepcion,
-          this.selectedNotaRecepcion.id
-        );
         this.selectedPedidoItemNotaRecepcionPage = res;
         this.pedidoItemNotaRecepcionDataSource.data = res.getContent;
       });
@@ -1105,6 +1107,11 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     this.pedidoItemNotaRecepcionPageSize = e.pageSize;
   }
 
+  notaRecepcionHandlePageEvent(e: PageEvent) {
+    this.notaRecepcionPageIndex = e.pageIndex;
+    this.notaRecepcionPageSize = e.pageSize;
+  }
+
   onRepetirPedido(compraItem: CompraItem, index) {
     // this.presentacionControl.setValue(this.selectedProducto.presentaciones.find(p => p.id == compraItem.presentacion.id))
   }
@@ -1380,14 +1387,10 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       });
   }
 
-  onNotaRecepcionClick(notaRecepcion: NotaRecepcion, index) {
+  onNotaRecepcionClick(notaRecepcion: NotaRecepcion, index?) {
+    this.filtroItensNotaRecepcionControl.setValue(null);
     this.selectedNotaRecepcion = notaRecepcion;
-    if (this.selectedNotaRecepcion.pedidoItemList == null) {
-      this.buscarPedidoItensPorNotaRecepcion(notaRecepcion.id);
-    } else {
-      this.pedidoItemNotaRecepcionDataSource.data =
-        this.selectedNotaRecepcion.pedidoItemList;
-    }
+    this.buscarPedidoItensPorNotaRecepcion(notaRecepcion.id);
   }
 
   onRefreshNotaRecepcion(notaRecepcion: NotaRecepcion) {
@@ -1426,107 +1429,64 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     this.isAddingItensToNota = true;
   }
 
-  onDisableAddItemToNota() {
-    let selectedPedidoItemList: PedidoItem[] = this.selection.selected;
-    if (selectedPedidoItemList?.length > 0) {
-      this.pedidoService
-        .onAddPedidoItemListToNotaRecepcion(
-          this.selectedNotaRecepcion.id,
-          extractIds(selectedPedidoItemList)
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res) {
+  onAddPedidoItemToNota(pedidoItem: PedidoItem) {
+    console.log(pedidoItem);
+
+    this.pedidoService
+      .onAddPedidoItemToNotaRecepcion(
+        this.selectedNotaRecepcion.id,
+        pedidoItem.id
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) {
+          this.selectedPedidoItem = res;
+          let aux = this.pedidoItemNotaRecepcionDataSource.data;
+          aux.unshift(this.selectedPedidoItem);
+          this.pedidoItemNotaRecepcionDataSource.data = aux;
+          this.pedidoDataSource.data = updateDataSourceWithId(
+            this.pedidoDataSource.data,
+            null,
+            this.selectedPedidoItem.id
+          );
+          this.selectedNotaRecepcion.cantidadItens++;
+          this.totalItensAgregados++;
+          this.onUpdateChart();
+          this.selectedNotaRecepcion.valor =
+            this.selectedNotaRecepcion.valor +
+            this.selectedPedidoItem.valorTotal;
+          if (this.pedidoDataSource.data.length == 0) {
             this.pedidoDisplayedColumns.shift();
             this.isAddingItensToNota = false;
-            this.selection.clear();
-            this.buscarPedidoItemSobrantes();
           }
-        });
-    }
+        }
+      });
   }
 
-  onChangePedidoItemSelection(
-    pedidoItem: PedidoItem,
-    e: MatCheckboxChange,
-    index
-  ) {
-    if (e.checked) {
-      this.onAddPedidoItemToNota(pedidoItem, index);
-    } else {
-      this.onDeleteItemFromNota(pedidoItem, index);
-    }
-  }
+  onDeleteItemFromNota(pedidoItem: PedidoItem) {
+    this.pedidoService
+      .onAddPedidoItemToNotaRecepcion(null, pedidoItem.id)
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) {
+          this.selectedPedidoItem = res;
+          let aux = this.pedidoDataSource.data;
+          aux.unshift(this.selectedPedidoItem);
+          this.pedidoDataSource.data = aux;
+          this.pedidoItemNotaRecepcionDataSource.data = updateDataSourceWithId(
+            this.pedidoItemNotaRecepcionDataSource.data,
+            null,
+            this.selectedPedidoItem.id
+          );
+          this.selectedNotaRecepcion.cantidadItens--;
+          this.totalItensAgregados--;
+          this.onUpdateChart();
 
-  onAddPedidoItemToNota(pedidoItem: PedidoItem, index) {
-    if (this.selectedNotaRecepcion == null) {
-      return null;
-    }
-    let selectedPedidoItemList: PedidoItem[] = [pedidoItem];
-    if (selectedPedidoItemList?.length > 0) {
-      this.pedidoService
-        .onAddPedidoItemListToNotaRecepcion(
-          this.selectedNotaRecepcion.id,
-          extractIds(selectedPedidoItemList)
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res) {
-            let aux = this.pedidoItemNotaRecepcionDataSource.data;
-            aux.unshift(pedidoItem);
-            this.pedidoItemNotaRecepcionDataSource.data = aux;
-            this.pedidoDataSource.data = updateDataSourceWithId(
-              this.pedidoDataSource.data,
-              null,
-              pedidoItem.id
-            );
-            this.selectedNotaRecepcion.cantidadItens++;
-            this.totalItensAgregados++;
-            this.onUpdateChart();
-            this.selectedNotaRecepcion.valor =
-              this.selectedNotaRecepcion.valor + pedidoItem.valorTotal;
-            if (this.pedidoDataSource.data.length == 0) {
-              this.pedidoDisplayedColumns.shift();
-              this.isAddingItensToNota = false;
-            }
-          }
-        });
-    }
-  }
-
-  onDeleteItemFromNota(pedidoItem: PedidoItem, index: number) {
-    if (this.selectedNotaRecepcion == null) {
-      return null;
-    }
-    let selectedPedidoItemList: PedidoItem[] = [pedidoItem];
-    if (selectedPedidoItemList?.length > 0) {
-      this.pedidoService
-        .onAddPedidoItemListToNotaRecepcion(
-          null,
-          extractIds(selectedPedidoItemList)
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res) {
-            let aux = this.pedidoDataSource.data;
-            pedidoItem.notaRecepcion = null;
-            aux.unshift(pedidoItem);
-            this.pedidoDataSource.data = aux;
-            this.pedidoItemNotaRecepcionDataSource.data =
-              updateDataSourceWithId(
-                this.pedidoItemNotaRecepcionDataSource.data,
-                null,
-                pedidoItem.id
-              );
-            this.selectedNotaRecepcion.cantidadItens--;
-            this.totalItensAgregados--;
-            this.onUpdateChart();
-
-            this.selectedNotaRecepcion.valor =
-              this.selectedNotaRecepcion.valor - pedidoItem.valorTotal;
-          }
-        });
-    }
+          this.selectedNotaRecepcion.valor =
+            this.selectedNotaRecepcion.valor -
+            this.selectedPedidoItem.valorTotal;
+        }
+      });
   }
 
   onUpdateChart() {
@@ -1622,10 +1582,6 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     }
   }
 
-  onCheckPedidoNotaRecepcion(pedido, i) {
-    this.onAddPedidoItemToNota(pedido, i);
-  }
-
   /*
   Esta funcion sirve para modificar un item en la etapa de recepcion de nota
   Abrira un cuadro de dialogo en donde mostrara las opciones de modificacion
@@ -1645,15 +1601,13 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       .subscribe((res) => {
         if (res?.id != null) {
           if (res?.notaRecepcion != null) {
-            console.log(this.selectedNotaRecepcion.pedidoItemList);
-            this.selectedNotaRecepcion.pedidoItemList = updateDataSourceWithId(
-              this.selectedNotaRecepcion.pedidoItemList,
-              res,
-              res.id
-            );
-            console.log(this.selectedNotaRecepcion.pedidoItemList);
             this.pedidoItemNotaRecepcionDataSource.data =
-              this.selectedNotaRecepcion.pedidoItemList;
+              updateDataSourceWithId(
+                this.pedidoItemNotaRecepcionDataSource.data,
+                res,
+                res.id
+              );
+            this.onRefreshNotaRecepcion(res.notaRecepcion);
           } else {
             this.pedidoDataSource.data = updateDataSourceWithId(
               this.pedidoDataSource.data,
@@ -1717,6 +1671,78 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       default:
         break;
     }
+  }
+
+  onFilterItensNotaRecepcion() {
+    let texto: string = this.filtroItensNotaRecepcionControl.value;
+    if (texto != null && texto.trim() != "") {
+      this.pedidoService
+        .onGetPedidoItemPorNotaRecepcion(
+          this.selectedNotaRecepcion.id,
+          this.productoProveedorPageIndex,
+          this.productoProveedorPageSize,
+          texto
+        )
+        .subscribe((res) => {
+          if (res != null) {
+            this.selectedPedidoItemNotaRecepcionPage = res;
+            this.pedidoItemNotaRecepcionDataSource.data = res.getContent;
+          }
+        });
+    }
+  }
+
+  onClearFilterNotaRecepcion() {
+    this.filtroItensNotaRecepcionControl.setValue(null);
+    this.onNotaRecepcionClick(this.selectedNotaRecepcion);
+  }
+
+  onFilterPedidoItensSobrantes() {
+    let texto: string = this.filtroPedidoItensSobrantesControl.value;
+    if (texto != null && texto.trim() != "") {
+      this.pedidoService
+        .onGetPedidoItemSobrantes(
+          this.selectedPedido.id,
+          this.page,
+          this.size,
+          texto
+        )
+        .subscribe((res) => {
+          if (res != null) {
+            this.selectedPedidoItemPage = res;
+            this.pedidoDataSource.data = res.getContent;
+          }
+        });
+    }
+  }
+
+  onClearPedidoItensSobrantes() {
+    this.filtroPedidoItensSobrantesControl.setValue(null);
+    this.pedidoService
+      .onGetPedidoItemSobrantes(
+        this.selectedPedido.id,
+        this.page,
+        this.size,
+        null
+      )
+      .subscribe((res) => {
+        if (res != null) {
+          this.selectedPedidoItemPage = res;
+          this.pedidoDataSource.data = res.getContent;
+        }
+      });
+  }
+
+  onFilterNotaRecepcion() {
+    let texto: string = this.filtroPedidoItensSobrantesControl.value;
+    if (texto != null && texto.trim() != "") {
+      this.onBuscarNotaRecepcion(texto);
+    }
+  }
+
+  onClearNotaRecepcion() {
+    this.filtroNotaRecepcionControl.setValue(null);
+    this.onBuscarNotaRecepcion();
   }
 }
 

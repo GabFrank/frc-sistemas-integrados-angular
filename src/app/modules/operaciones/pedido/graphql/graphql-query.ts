@@ -221,8 +221,10 @@ export const filterPedidosQuery = gql`
     $fin: String
     $proveedorId: Int
     $vendedorId: Int
-    $formaPago: FormaPago
+    $formaPagoId: Int
     $productoId: Int
+    $page: Int
+    $size: Int
   ) {
     data: filterPedidos(
       estado: $estado
@@ -231,44 +233,59 @@ export const filterPedidosQuery = gql`
       fin: $fin
       proveedorId: $proveedorId
       vendedorId: $vendedorId
-      formaPago: $formaPago
+      formaPagoId: $formaPagoId
       productoId: $productoId
+      page: $page
+      size: $size
     ) {
-      id
-      proveedor {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
         id
-        persona {
-          nombre
+        cantPedidoItem
+        cantPedidoItemCancelados
+        compra {
+          id
+          estado
         }
-      }
-      vendedor {
-        id
-        persona {
-          nombre
+        proveedor {
+          id
+          persona {
+            nombre
+          }
         }
-      }
-      nombreProveedor
-      formaPago {
-        id
-        descripcion
-      }
-      estado
-      moneda {
-        id
-        denominacion
-        simbolo
-      }
-      plazoCredito
-      creadoEn
-      usuario {
-        id
-        persona {
-          nombre
+        vendedor {
+          id
+          persona {
+            nombre
+          }
         }
+        formaPago {
+          id
+          descripcion
+        }
+        estado
+        moneda {
+          id
+          denominacion
+        }
+        plazoCredito
+        creadoEn
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+        descuento
+        valorTotal
+        tipoBoleta
       }
-      nombreUsuario
-      descuento
-      valorTotal
     }
   }
 `;
@@ -332,20 +349,6 @@ export const pedidoInfoCompletaQuery = gql`
       fechaEntregaList {
         fechaEntrega
       }
-      notaRecepcionList {
-        id
-        numero
-        tipoBoleta
-        fecha
-        cantidadItens
-        valor
-        pedido {
-          id
-        }
-        compra {
-          id
-        }
-      }
     }
   }
 `;
@@ -365,8 +368,8 @@ export const pedidoInfoDetallesQuery = gql`
 
 // pedidoItemPorPedidoIdSobrante
 export const pedidoItemPorPedidoIdSobranteQuery = gql`
-  query ($id: ID!, $page: Int, $size: Int) {
-    data: pedidoItemPorPedidoIdSobrante(id: $id, page: $page, size: $size) {
+  query ($id: ID!, $page: Int, $size: Int, $texto: String) {
+    data: pedidoItemPorPedidoIdSobrante(id: $id, page: $page, size: $size, texto: $texto) {
       getTotalPages
       getTotalElements
       getNumberOfElements
@@ -453,8 +456,8 @@ export const pedidoItemPorPedidoIdSobranteQuery = gql`
 `;
 
 export const pedidoItemPorNotaRecepcionQuery = gql`
-  query ($id: ID!, $page: Int, $size: Int) {
-    data: pedidoItemPorNotaRecepcion(id: $id, page: $page, size: $size) {
+  query ($id: ID!, $page: Int, $size: Int, $texto: String) {
+    data: pedidoItemPorNotaRecepcion(id: $id, page: $page, size: $size, , texto: $texto) {
       getTotalPages
       getTotalElements
       getNumberOfElements
@@ -544,8 +547,8 @@ export const pedidoItemPorNotaRecepcionQuery = gql`
 `;
 
 export const pedidoItemPorPedidoPageQuery = gql`
-  query ($id: ID!, $page: Int, $size: Int) {
-    data: pedidoItemPorPedidoPage(id: $id, page: $page, size: $size) {
+  query ($id: ID!, $page: Int, $size: Int, $texto: String) {
+    data: pedidoItemPorPedidoPage(id: $id, page: $page, size: $size, , texto: $texto) {
       getTotalPages
       getTotalElements
       getNumberOfElements
@@ -648,15 +651,88 @@ export const updateNotaRecepcionQuery = gql`
   }
 `;
 
-export const addPedidoItemListToNotaRecepcionQuery = gql`
-  mutation addPedidoItemListToNotaRecepcion(
+export const addPedidoItemToNotaRecepcionQuery = gql`
+  mutation addPedidoItemToNotaRecepcion(
     $notaRecepcion: ID
-    $pedidoItemIdList: [ID]
+    $pedidoItemId: ID!
   ) {
-    data: addPedidoItemListToNotaRecepcion(
+    data: addPedidoItemToNotaRecepcion(
       notaRecepcion: $notaRecepcion
-      pedidoItemIdList: $pedidoItemIdList
-    )
+      pedidoItemId: $pedidoItemId
+    ) {
+      id
+      producto {
+        id
+        descripcion
+        presentaciones {
+          id
+          cantidad
+        }
+        codigoPrincipal
+      }
+      presentacionCreacion {
+        id
+        cantidad
+      }
+      pedido {
+        id
+      }
+      precioUnitarioCreacion
+      descuentoUnitarioCreacion
+      bonificacion
+      bonificacionDetalle
+      estado
+      vencimientoCreacion
+      creadoEn
+      cantidadCreacion
+      valorTotal
+      precioUnitarioRecepcionNota
+      descuentoUnitarioRecepcionNota
+      vencimientoRecepcionNota
+      presentacionRecepcionNota {
+        id
+        cantidad
+      }
+      cantidadRecepcionNota
+      precioUnitarioRecepcionProducto
+      descuentoUnitarioRecepcionProducto
+      vencimientoRecepcionProducto
+      presentacionRecepcionProducto {
+        id
+        cantidad
+      }
+      cantidadRecepcionProducto
+      usuarioRecepcionNota {
+        id
+      }
+      usuarioRecepcionProducto {
+        id
+      }
+      obsCreacion
+      obsRecepcionNota
+      obsRecepcionProducto
+      autorizacionRecepcionNota
+      autorizacionRecepcionProducto
+      autorizadoPorRecepcionNota {
+        id
+      }
+      autorizadoPorRecepcionProducto {
+        id
+      }
+      motivoModificacionRecepcionNota
+      motivoModificacionRecepcionProducto
+      motivoRechazoRecepcionNota
+      motivoRechazoRecepcionProducto
+      cancelado
+      verificadoRecepcionNota
+      verificadoRecepcionProducto
+      precioUnitario
+      cantidad
+      presentacion {
+        id
+        cantidad
+      }
+    }
   }
 `;
 
@@ -682,7 +758,7 @@ export const savePedidoFull = gql`
 
 export const finalizarPedido = gql`
   mutation finalizarPedido($id: ID, $estado: PedidoEstado) {
-    data: finalizarPedido(id: $id, estado: $estado){
+    data: finalizarPedido(id: $id, estado: $estado) {
       id
       estado
     }

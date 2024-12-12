@@ -87,14 +87,14 @@ export const notaRecepcionPorPedidoIdQuery = gql`
           verificado
           lote
           vencimiento
-          presentacion{
+          presentacion {
             id
             cantidad
           }
-          producto{
+          producto {
             id
           }
-          pedidoItem{
+          pedidoItem {
             id
           }
           precioUnitario
@@ -144,4 +144,91 @@ export const deleteNotaRecepcionQuery = gql`
   }
 `;
 
-// buscarSobrantes
+export const notaRecepcionPorPedidoIdAndNumeroQuery = gql`
+  query ($id: ID!, $numero: Int, $page: Int, $size: Int) {
+    data: notaRecepcionPorPedidoIdAndNumero(
+      id: $id
+      numero: $numero
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        pedido {
+          id
+        }
+        compra {
+          id
+        }
+        documento {
+          id
+          descripcion
+          activo
+        }
+        valor
+        descuento
+        pagado
+        numero
+        timbrado
+        creadoEn
+        pedidoItemList {
+          id
+          producto {
+            id
+            descripcion
+          }
+          compraItem {
+            id
+            cantidad
+            verificado
+            lote
+            vencimiento
+            presentacion {
+              id
+              cantidad
+            }
+            producto {
+              id
+            }
+            pedidoItem {
+              id
+            }
+            precioUnitario
+            descuentoUnitario
+            estado
+          }
+          notaRecepcion {
+            id
+          }
+          presentacion {
+            id
+            cantidad
+            imagenPrincipal
+          }
+          precioUnitario
+          descuentoUnitario
+          bonificacion
+          bonificacionDetalle
+          estado
+          vencimiento
+          creadoEn
+          cantidad
+          valorTotal
+        }
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+      }
+    }
+  }
+`;

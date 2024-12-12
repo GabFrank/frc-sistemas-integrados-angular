@@ -2,7 +2,7 @@ import { Injectable } from "@angular/core";
 import { Mutation } from "apollo-angular";
 import { PedidoItem } from "../edit-pedido/pedido-item.model";
 import {
-  addPedidoItemListToNotaRecepcionQuery
+  addPedidoItemToNotaRecepcionQuery
 } from "./graphql-query";
 
 export interface Response {
@@ -12,6 +12,6 @@ export interface Response {
 @Injectable({
   providedIn: "root",
 })
-export class AddPedidoItemListToNotaRecepcionGQL extends Mutation<Response> {
-  document = addPedidoItemListToNotaRecepcionQuery;
+export class AddPedidoItemToNotaRecepcionGQL extends Mutation<Response> {
+  document = addPedidoItemToNotaRecepcionQuery;
 }
