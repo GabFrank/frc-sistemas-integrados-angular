@@ -511,12 +511,27 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
 
     // console.log(this.selectedPedido);
 
-    if (this.selectedPedido.estado == PedidoEstado.ABIERTO) {
-      this.pedidoItemFormGroup.enable();
-    } else if (this.selectedPedido.estado == PedidoEstado.EN_RECEPCION_NOTA) {
-      this.pedidoDisplayedColumns.push("check");
-      this.pedidoItemFormGroup.disable();
+    switch (this.selectedPedido.estado) {
+      case PedidoEstado.ABIERTO:
+        this.pedidoItemFormGroup.enable();
+        break;
+      case PedidoEstado.EN_RECEPCION_NOTA:
+        this.pedidoDisplayedColumns.push("check");
+        this.pedidoItemFormGroup.disable();
+        break;
+      case PedidoEstado.EN_RECEPCION_MERCADERIA:
+        this.notaRecepcionDisplayedColumns.pop();
+        this.notaRecepcionDisplayedColumns.pop();
+        this.notaRecepcionDisplayedColumns.push(
+          "cantidadItemVerificadoRecepcionMercaderia",
+          "cantidadItemPorVerificarRecepcionMercaderia"
+        );
+        this.pedidoDisplayedColumns.push("check");
+        this.pedidoItemFormGroup.disable();
+        break;
     }
+
+    this.onBuscarNotaRecepcion();
 
     this.onBuscarItens(pedido);
 
@@ -526,20 +541,31 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   }
 
   onBuscarItens(pedido: Pedido) {
-    if (pedido.estado === PedidoEstado.ABIERTO) {
-      this.buscarPedidoItens();
-    } else {
-      this.buscarPedidoItemSobrantes();
+    switch (pedido.estado) {
+      case PedidoEstado.ABIERTO:
+        this.buscarPedidoItens();
+        break;
+      case PedidoEstado.EN_RECEPCION_NOTA:
+      case PedidoEstado.ACTIVO:
+        this.buscarPedidoItemSobrantes();
+        break;
     }
   }
 
-  onBuscarNotaRecepcion(texto?){
-    this.notaRecepcionService.onGetNotaRecepcionPorPedidoIdAndNumero(this.selectedPedido.id, texto, this.notaRecepcionPageIndex, this.notaRecepcionPageSize).subscribe(res => {
-      if(res != null){
-        this.selectedNotaRecepcionPage = res;
-        this.notaRecepcionDataSource.data = res.getContent;
-      }
-    })
+  onBuscarNotaRecepcion(texto?) {
+    this.notaRecepcionService
+      .onGetNotaRecepcionPorPedidoIdAndNumero(
+        this.selectedPedido.id,
+        texto,
+        this.notaRecepcionPageIndex,
+        this.notaRecepcionPageSize
+      )
+      .subscribe((res) => {
+        if (res != null) {
+          this.selectedNotaRecepcionPage = res;
+          this.notaRecepcionDataSource.data = res.getContent;
+        }
+      });
   }
 
   buscarPedidoItens() {
@@ -553,13 +579,21 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   }
 
   buscarPedidoItensPorNotaRecepcion(id) {
-    this.pedidoService
-      .onGetPedidoItemPorNotaRecepcion(id, this.page, this.size)
-      .pipe(untilDestroyed(this))
-      .subscribe((res: PageInfo<PedidoItem>) => {
-        this.selectedPedidoItemNotaRecepcionPage = res;
-        this.pedidoItemNotaRecepcionDataSource.data = res.getContent;
-      });
+    switch (this.selectedPedido.estado) {
+      case PedidoEstado.EN_RECEPCION_NOTA:
+        this.pedidoService
+          .onGetPedidoItemPorNotaRecepcion(id, this.page, this.size)
+          .pipe(untilDestroyed(this))
+          .subscribe((res: PageInfo<PedidoItem>) => {
+            this.selectedPedidoItemNotaRecepcionPage = res;
+            this.pedidoItemNotaRecepcionDataSource.data = res.getContent;
+          });
+        break;
+      case PedidoEstado.EN_RECEPCION_MERCADERIA:
+        this.buscarPedidoItemNotaRecepcionVerificado(true);
+        this.buscarPedidoItemNotaRecepcionVerificado(false);
+        break;
+    }
   }
 
   ngAfterViewInit(): void {
@@ -826,7 +860,9 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
 
   onMonedaAutoClosed() {}
 
-  async onSaveItem() {
+  async onSaveItem(texto?) {
+    console.log(texto);
+
     if (this.selectedPedido?.id == null) {
       await this.onGuardar();
       await this.savePedidoItem();
@@ -886,6 +922,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
 
           this.selectedPedido.valorTotal = pedidoItemRes.pedido.valorTotal;
           this.selectedPedido.descuento = pedidoItemRes.pedido.descuento;
+          this.actualizarDetalle();
         }
       });
   }
@@ -1230,6 +1267,8 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   }
 
   onDeleteItem(pedidoItem: PedidoItem, index: number) {
+    console.log(index);
+
     this.pedidoService
       .onDeletePedidoItem(pedidoItem.id)
       .pipe(untilDestroyed(this))
@@ -1339,6 +1378,27 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       .subscribe((res2: PageInfo<PedidoItem>) => {
         this.selectedPedidoItemPage = res2;
         this.pedidoDataSource.data = this.selectedPedidoItemPage.getContent;
+      });
+  }
+
+  buscarPedidoItemNotaRecepcionVerificado(verificado?) {
+    this.pedidoService
+      .onGetPedidoItemPorNotaRecepcion(
+        this.selectedNotaRecepcion?.id,
+        this.notaRecepcionPageIndex,
+        this.notaRecepcionPageSize,
+        this.filtroItensNotaRecepcionControl.value,
+        verificado
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe((res: PageInfo<PedidoItem>) => {
+        if (!verificado) {
+          this.selectedPedidoItemNotaRecepcionPage = res;
+          this.pedidoItemNotaRecepcionDataSource.data = res.getContent;
+        } else {
+          this.selectedPedidoItemPage = res;
+          this.pedidoDataSource.data = res.getContent;
+        }
       });
   }
 
@@ -1692,14 +1752,28 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     }
   }
 
-  onClearFilterNotaRecepcion() {
+  onClearFilterPedidoItensNotaRecepcion() {
     this.filtroItensNotaRecepcionControl.setValue(null);
     this.onNotaRecepcionClick(this.selectedNotaRecepcion);
   }
 
   onFilterPedidoItensSobrantes() {
     let texto: string = this.filtroPedidoItensSobrantesControl.value;
-    if (texto != null && texto.trim() != "") {
+    if (this.selectedPedido.estado == "ABIERTO") {
+      this.pedidoService
+        .onGetPedidoItemPorPedido(
+          this.selectedPedido.id,
+          this.page,
+          this.size,
+          texto
+        )
+        .subscribe((res) => {
+          if (res != null) {
+            this.selectedPedidoItemPage = res;
+            this.pedidoDataSource.data = res.getContent;
+          }
+        });
+    } else {
       this.pedidoService
         .onGetPedidoItemSobrantes(
           this.selectedPedido.id,
@@ -1718,31 +1792,67 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
 
   onClearPedidoItensSobrantes() {
     this.filtroPedidoItensSobrantesControl.setValue(null);
-    this.pedidoService
-      .onGetPedidoItemSobrantes(
-        this.selectedPedido.id,
-        this.page,
-        this.size,
-        null
-      )
-      .subscribe((res) => {
-        if (res != null) {
-          this.selectedPedidoItemPage = res;
-          this.pedidoDataSource.data = res.getContent;
-        }
-      });
+    this.onFilterPedidoItensSobrantes();
   }
 
   onFilterNotaRecepcion() {
-    let texto: string = this.filtroPedidoItensSobrantesControl.value;
+    let texto: string = this.filtroNotaRecepcionControl.value;
     if (texto != null && texto.trim() != "") {
       this.onBuscarNotaRecepcion(texto);
     }
   }
 
-  onClearNotaRecepcion() {
+  onClearFilterNotaRecepcion() {
     this.filtroNotaRecepcionControl.setValue(null);
     this.onBuscarNotaRecepcion();
+  }
+
+  onVerificarRecepcionProducto(
+    pedidoItem: PedidoItem,
+    verificar: boolean,
+    index
+  ) {
+    this.pedidoService
+      .onVerificarItemRecepcionProducto(pedidoItem.id, verificar)
+      .subscribe((res) => {
+        if (res != null) {
+          if (verificar) {
+            this.pedidoItemNotaRecepcionDataSource.data = updateDataSource(
+              this.pedidoItemNotaRecepcionDataSource.data,
+              null,
+              index
+            );
+            this.pedidoDataSource.data = updateDataSource(
+              this.pedidoDataSource.data,
+              res
+            );
+            this.selectedNotaRecepcion
+              .cantidadItensVerificadoRecepcionMercaderia++;
+            this.notaRecepcionDataSource.data = updateDataSourceWithId(
+              this.notaRecepcionDataSource.data,
+              this.selectedNotaRecepcion,
+              this.selectedNotaRecepcion?.id
+            );
+          } else {
+            this.pedidoDataSource.data = updateDataSource(
+              this.pedidoDataSource.data,
+              null,
+              index
+            );
+            this.pedidoItemNotaRecepcionDataSource.data = updateDataSource(
+              this.pedidoItemNotaRecepcionDataSource.data,
+              res
+            );
+            this.selectedNotaRecepcion
+              .cantidadItensVerificadoRecepcionMercaderia--;
+            this.notaRecepcionDataSource.data = updateDataSourceWithId(
+              this.notaRecepcionDataSource.data,
+              this.selectedNotaRecepcion,
+              this.selectedNotaRecepcion?.id
+            );
+          }
+        }
+      });
   }
 }
 

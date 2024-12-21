@@ -583,10 +583,19 @@
         mat-icon-button
         [disabled]="selectedPedido?.estado == 'ACTIVO'"
         (click)="
+          $event.stopPropagation();
           selectedPedido?.estado == 'ABIERTO' || selectedPedido == null
-            ? onSaveItem()
+            ? onSaveItem('on click')
             : null
         "
+        (keyup.enter)="
+          $event.stopPropagation();
+          selectedPedido?.estado == 'ABIERTO' || selectedPedido == null
+            ? onSaveItem('enter')
+            : null
+        "
+        (keyup.ArrowLeft)="descuentoInput.select()"
+        (keyup.ArrowRight)="moreOptions._elementRef.nativeElement.focus()"
       >
         <mat-icon
           #saveIcon
@@ -595,14 +604,9 @@
               ? 0
               : null
           "
+          (click)="$event.stopPropagation()"
+          (keyup)="$event.stopPropagation()"
           class="highlight-hover"
-          (keyup.enter)="
-            selectedPedido?.estado == 'ABIERTO' || selectedPedido == null
-              ? onSaveItem()
-              : null
-          "
-          (keyup.ArrowLeft)="descuentoInput.select()"
-          (keyup.ArrowRight)="moreOptions._elementRef.nativeElement.focus()"
           >save</mat-icon
         >
       </button>
@@ -651,12 +655,18 @@
     (resizeEnd)="onResizeEnd($event)"
     fxLayoutGap="2px"
   >
-    <div [fxFlex]="col1" fxLayout="column" fxLayoutGap="2px">
+    <div
+      [fxFlex]="col1"
+      fxLayout="column"
+      fxLayoutGap="2px"
+      class="cards"
+      style="height: 100%"
+    >
       <div [fxFlex]="r1" style="overflow-y: auto">
         <div
           style="height: 100%"
           fxLayout="column"
-          fxLayoutAlign="space-between start"
+          fxLayoutAlign="start start"
           *ngIf="
             selectedPedido?.estado == 'ABIERTO' ||
             selectedPedido?.estado == null
@@ -679,7 +689,11 @@
           </mat-form-field>
           <div
             class="cards fondo"
-            style="height: 100%; background-color: rgb(70, 70, 70)"
+            style="
+              height: 100%;
+              background-color: rgb(70, 70, 70);
+              overflow: auto;
+            "
             fxLayout="column"
             fxLayoutAlign="start start"
           >
@@ -821,7 +835,7 @@
                   </th>
                   <td
                     mat-cell
-                    *matCellDef="let compraItem; let i = index"
+                    *matCellDef="let compraItem; let i = dataIndex"
                     style="text-align: center; width: 5%"
                   >
                     <button
@@ -862,6 +876,7 @@
                     productoProveedorDisplayedColumns;
                     sticky: true
                   "
+                  style="height: 2em !important;"
                 ></tr>
                 <tr
                   mat-row
@@ -911,117 +926,227 @@
         <div
           style="height: 100%"
           fxLayout="column"
-          fxLayoutAlign="space-between start"
+          fxLayoutAlign="start start"
           *ngIf="
             selectedPedido?.estado == 'ACTIVO' ||
             selectedPedido?.estado == 'EN_RECEPCION_NOTA' ||
             selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA'
           "
         >
-          <div style="width: 100%; text-align: center; font-size: small">
-            Lista de notas
-          </div>
           <div
-            class="cards fondo"
-            style="height: 100%; background-color: rgb(70, 70, 70)"
-            fxLayout="column"
-            fxLayoutAlign="start start"
+            fxLayout="row"
+            fxLayoutAlign="start center"
+            style="
+              width: 100%;
+              text-align: center;
+              font-size: small;
+              margin-bottom: 5px;
+            "
           >
-            <div fxFlex="100" style="width: 100%">
-              <table
-                mat-table
-                [dataSource]="notaRecepcionDataSource"
-                multiTemplateDataRows
-                class="mat-elevation-z8"
+            <div
+              fxFlex="33"
+              fxLayout="row"
+              fxLayoutAlign="start center"
+              fxLayoutGap="10px"
+              style="width: 100%"
+            >
+              <mat-form-field
                 style="width: 100%"
+                appearance="outline"
+                class="shrinking-mat-form-field"
               >
-                <ng-container matColumnDef="numero" style="width: 5%">
-                  <th
-                    mat-header-cell
-                    *matHeaderCellDef
-                    style="text-align: center"
-                  >
-                    Número
-                  </th>
-                  <td
-                    mat-cell
-                    *matCellDef="let notaRecepcion"
-                    style="text-align: center"
-                  >
-                    {{ notaRecepcion.numero | number : "1.0-0" }}
-                  </td>
-                </ng-container>
+                <input
+                  #filtroNotaRecepcionInput
+                  matInput
+                  type="text"
+                  [formControl]="filtroNotaRecepcionControl"
+                  (keyup.enter)="
+                    onFilterNotaRecepcion(); filtroNotaRecepcionInput.select()
+                  "
+                  (focusin)="filtroNotaRecepcionInput.select()"
+                  placeholder="Nûmero de nota"
+                />
+              </mat-form-field>
+              <mat-icon
+                (click)="onFilterNotaRecepcion()"
+                class="highlight-hover"
+                >search</mat-icon
+              >
+              <mat-icon
+                (click)="onClearFilterNotaRecepcion()"
+                class="highlight-hover-danger"
+                >clear</mat-icon
+              >
+            </div>
+            <div
+              fxFlex="33"
+              style="width: 100%; text-align: center; font-size: small"
+            >
+              Lista de notas
+            </div>
+            <div fxFlex="33" fxLayout="row" fxLayoutAlign="end center">
+              <button
+                mat-button
+                color="accent"
+                (click)="onAgregarNota(true)"
+                [disabled]="
+                  isAddingItensToNota &&
+                  selectedPedido?.estado != 'ACTIVO' &&
+                  selectedPedido?.estado != 'EN_RECEPCION_NOTA'
+                "
+              >
+                Agregar nota
+              </button>
+            </div>
+          </div>
 
-                <!-- Name Column -->
-                <ng-container matColumnDef="tipoBoleta">
-                  <th
-                    mat-header-cell
-                    *matHeaderCellDef
-                    style="text-align: center"
-                  >
-                    Tipo boleta
-                  </th>
-                  <td
-                    mat-cell
-                    *matCellDef="let notaRecepcion"
-                    style="text-align: center"
-                  >
-                    {{ notaRecepcion?.tipoBoleta }}
-                  </td>
-                </ng-container>
+          <div
+            fxFlex="90"
+            style="
+              width: 100%;
+              background-color: rgb(70, 70, 70);
+              overflow: auto;
+            "
+          >
+            <table
+              mat-table
+              [dataSource]="notaRecepcionDataSource"
+              multiTemplateDataRows
+              class="mat-elevation-z8"
+              style="width: 100%"
+            >
+              <ng-container matColumnDef="numero" style="width: 5%">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  style="text-align: center"
+                >
+                  Número
+                </th>
+                <td
+                  mat-cell
+                  *matCellDef="let notaRecepcion"
+                  style="text-align: center"
+                >
+                  {{ notaRecepcion.numero | number : "1.0-0" }}
+                </td>
+              </ng-container>
 
-                <ng-container matColumnDef="cantidadItem">
-                  <th
-                    mat-header-cell
-                    *matHeaderCellDef
-                    style="text-align: center"
-                  >
-                    Cant. Itens
-                  </th>
-                  <td
-                    mat-cell
-                    *matCellDef="let notaRecepcion"
-                    style="text-align: center"
-                  >
-                    {{ notaRecepcion?.cantidadItens || 0 }}
-                  </td>
-                </ng-container>
+              <!-- Name Column -->
+              <ng-container matColumnDef="tipoBoleta">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  style="text-align: center"
+                >
+                  Tipo boleta
+                </th>
+                <td
+                  mat-cell
+                  *matCellDef="let notaRecepcion"
+                  style="text-align: center"
+                >
+                  {{ notaRecepcion?.tipoBoleta }}
+                </td>
+              </ng-container>
 
-                <ng-container matColumnDef="valorTotal">
-                  <th
-                    mat-header-cell
-                    *matHeaderCellDef
-                    style="text-align: center"
-                  >
-                    Total
-                  </th>
-                  <td
-                    mat-cell
-                    *matCellDef="let notaRecepcion"
-                    style="text-align: center"
-                  >
-                    {{ notaRecepcion?.valor || 0 | number : "1.0-0" }}
-                  </td>
-                </ng-container>
+              <ng-container matColumnDef="cantidadItem">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  style="text-align: center"
+                >
+                  Cant. Itens
+                </th>
+                <td
+                  mat-cell
+                  *matCellDef="let notaRecepcion"
+                  style="text-align: center"
+                >
+                  {{ notaRecepcion?.cantidadItens || 0 }}
+                </td>
+              </ng-container>
 
-                <ng-container matColumnDef="expandedDetail">
-                  <td
-                    mat-cell
-                    *matCellDef="let notaRecepcion"
-                    [attr.colspan]="notaRecepcionDisplayedColumns.length"
+              <ng-container
+                matColumnDef="cantidadItemVerificadoRecepcionMercaderia"
+              >
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  style="text-align: center"
+                >
+                  Verificados
+                </th>
+                <td
+                  mat-cell
+                  *matCellDef="let notaRecepcion"
+                  style="text-align: center"
+                >
+                  {{
+                    notaRecepcion?.cantidadItensVerificadoRecepcionMercaderia ||
+                      0
+                  }}
+                </td>
+              </ng-container>
+
+              <ng-container
+                matColumnDef="cantidadItemPorVerificarRecepcionMercaderia"
+              >
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  style="text-align: center"
+                >
+                  Por verificar
+                </th>
+                <td
+                  mat-cell
+                  *matCellDef="let notaRecepcion"
+                  style="text-align: center"
+                >
+                  {{
+                    notaRecepcion?.cantidadItens -
+                      notaRecepcion?.cantidadItensVerificadoRecepcionMercaderia ||
+                      0
+                  }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="valorTotal">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  style="text-align: center"
+                >
+                  Total
+                </th>
+                <td
+                  mat-cell
+                  *matCellDef="let notaRecepcion"
+                  style="text-align: center"
+                >
+                  {{ notaRecepcion?.valor || 0 | number : "1.0-0" }}
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="expandedDetail">
+                <td
+                  mat-cell
+                  *matCellDef="let notaRecepcion"
+                  [attr.colspan]="notaRecepcionDisplayedColumns.length"
+                >
+                  <div
+                    class="example-element-detail"
+                    [@detailExpand]="
+                      notaRecepcion == expandedProductoProveedor
+                        ? 'expanded'
+                        : 'collapsed'
+                    "
+                    style="text-align: center"
+                    fxLayout="column"
+                    fxLayoutAlign="start start"
                   >
-                    <div
-                      class="example-element-detail"
-                      [@detailExpand]="
-                        notaRecepcion == expandedProductoProveedor
-                          ? 'expanded'
-                          : 'collapsed'
-                      "
-                      style="text-align: center"
-                      fxLayout="column"
-                      fxLayoutAlign="start start"
-                    >
-                      <!-- <div style="display: flex; flex-direction: column">
+                    <!-- <div style="display: flex; flex-direction: column">
                     <span>Tool tip {{ productoProveedor?.proveedor }}</span>
                     <div
                       *ngFor="let stock of productoProveedor?.stockPorSucursal"
@@ -1029,24 +1154,24 @@
                       {{ stock?.sucursal }} : {{ stock?.stock }}
                     </div>
                   </div> -->
-                    </div>
-                  </td>
-                </ng-container>
+                  </div>
+                </td>
+              </ng-container>
 
-                <ng-container matColumnDef="menu">
-                  <th
-                    mat-header-cell
-                    *matHeaderCellDef
-                    style="width: 5%; text-align: center"
-                  >
-                    ...
-                  </th>
-                  <td
-                    mat-cell
-                    *matCellDef="let notaRecepcion; let i = index"
-                    style="text-align: center; width: 5%"
-                  >
-                    <!-- <button
+              <ng-container matColumnDef="menu">
+                <th
+                  mat-header-cell
+                  *matHeaderCellDef
+                  style="width: 5%; text-align: center"
+                >
+                  ...
+                </th>
+                <td
+                  mat-cell
+                  *matCellDef="let notaRecepcion; let i = index"
+                  style="text-align: center; width: 5%"
+                >
+                  <!-- <button
                       mat-menu-item
                       (click)="onDisableAddItemToNota()"
                       *ngIf="isAddingItensToNota"
@@ -1062,19 +1187,19 @@
                       Agregar
                     </button> -->
 
-                    <button
-                      mat-icon-button
-                      [matMenuTriggerFor]="menu"
-                      (click)="$event.stopPropagation()"
-                      [disabled]="
-                        isAddingItensToNota ||
-                        selectedPedido?.estado != 'EN_RECEPCION_NOTA'
-                      "
-                    >
-                      <mat-icon>more_vert</mat-icon>
-                    </button>
-                    <mat-menu #menu="matMenu">
-                      <!-- <button
+                  <button
+                    mat-icon-button
+                    [matMenuTriggerFor]="menu"
+                    (click)="$event.stopPropagation()"
+                    [disabled]="
+                      isAddingItensToNota ||
+                      selectedPedido?.estado != 'EN_RECEPCION_NOTA'
+                    "
+                  >
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                  <mat-menu #menu="matMenu">
+                    <!-- <button
                         mat-menu-item
                         (click)="
                           onEnableAddingItemToNota();
@@ -1083,74 +1208,57 @@
                       >
                         Agregar productos
                       </button> -->
-                      <button
-                        mat-menu-item
-                        (click)="
-                          selectedNotaRecepcion = notaRecepcion; onAgregarNota()
-                        "
-                      >
-                        Editar
-                      </button>
-                      <button mat-menu-item>Eliminar</button>
-                    </mat-menu>
-                  </td>
-                </ng-container>
+                    <button
+                      mat-menu-item
+                      (click)="
+                        selectedNotaRecepcion = notaRecepcion; onAgregarNota()
+                      "
+                    >
+                      Editar
+                    </button>
+                    <button mat-menu-item>Eliminar</button>
+                  </mat-menu>
+                </td>
+              </ng-container>
 
-                <tr
-                  mat-header-row
-                  *matHeaderRowDef="notaRecepcionDisplayedColumns; sticky: true"
-                ></tr>
-                <tr
-                  mat-row
-                  *matRowDef="
-                    let element;
-                    columns: notaRecepcionDisplayedColumns;
-                    let i = dataIndex
-                  "
-                  class="example-element-row"
-                  [class.example-expanded-row]="
-                    expandedNotaRecepcionProveedor === element
-                  "
-                  [class.selected-row]="
-                    selectedNotaRecepcion?.id === element?.id
-                  "
-                  (click)="
-                    expandedNotaRecepcionProveedor =
-                      expandedNotaRecepcionProveedor === element
-                        ? null
-                        : element
-                  "
-                  (click)="onNotaRecepcionClick(element, i)"
-                ></tr>
-                <tr
-                  mat-row
-                  *matRowDef="
-                    let row;
-                    let i = index;
-                    columns: ['expandedDetail']
-                  "
-                  class="example-detail-row"
-                ></tr>
-              </table>
-              <div style="width: 100%; text-align: center; padding: 10px">
-                <button
-                  matTooltip="Agregar nota"
-                  type="button"
-                  type="button"
-                  mat-fab
-                  color="primary"
-                  (click)="onAgregarNota(true)"
-                  [disabled]="
-                    isAddingItensToNota &&
-                    selectedPedido?.estado != 'ACTIVO' &&
-                    selectedPedido?.estado != 'EN_RECEPCION_NOTA'
-                  "
-                >
-                  <mat-icon>add</mat-icon>
-                </button>
-              </div>
-            </div>
+              <tr
+                mat-header-row
+                *matHeaderRowDef="notaRecepcionDisplayedColumns; sticky: true"
+                style="height: 2em !important"
+              ></tr>
+              <tr
+                mat-row
+                *matRowDef="
+                  let element;
+                  columns: notaRecepcionDisplayedColumns;
+                  let i = dataIndex
+                "
+                class="example-element-row"
+                [class.example-expanded-row]="
+                  expandedNotaRecepcionProveedor === element
+                "
+                [class.selected-row]="selectedNotaRecepcion?.id === element?.id"
+                (click)="
+                  expandedNotaRecepcionProveedor =
+                    expandedNotaRecepcionProveedor === element ? null : element
+                "
+                (click)="onNotaRecepcionClick(element, i)"
+              ></tr>
+              <tr
+                mat-row
+                *matRowDef="let row; let i = index; columns: ['expandedDetail']"
+                class="example-detail-row"
+              ></tr>
+            </table>
           </div>
+          <mat-paginator
+            itemsPerPageLabel="Itens por pagina"
+            [pageSizeOptions]="[15, 25, 50, 100]"
+            (page)="notaRecepcionHandlePageEvent($event)"
+            [length]="selectedNotaRecepcionPage?.getTotalElements"
+            style="width: 100%"
+            showFirstLastButtons
+          ></mat-paginator>
         </div>
       </div>
       <div
@@ -1168,7 +1276,7 @@
           Histórico de compras
         </div>
         <div
-          style="height: 95%; background-color: rgb(70, 70, 70)"
+          style="height: 95%; background-color: rgb(70, 70, 70); overflow: auto"
           fxLayout="column"
           fxLayoutAlign="start start"
         >
@@ -1292,6 +1400,7 @@
               <tr
                 mat-header-row
                 *matHeaderRowDef="compraItemDisplayedColumns; sticky: true"
+                style="height: 2em !important"
               ></tr>
               <tr
                 mat-row
@@ -1321,8 +1430,7 @@
       <div
         *ngIf="
           selectedPedido?.estado == 'ACTIVO' ||
-          selectedPedido?.estado == 'EN_RECEPCION_NOTA' ||
-          selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA'
+          selectedPedido?.estado == 'EN_RECEPCION_NOTA'
         "
         style="height: 100%"
         fxLayout="column"
@@ -1346,7 +1454,7 @@
             Total con descuento:
             <div class="subtitulo">
               {{
-                selectedPedido?.valorTotal - selectedPedido?.descuento
+                selectedPedido?.valorTotal - (selectedPedido?.descuento || 0)
                   | number : "1.0-0"
               }}
             </div>
@@ -1476,7 +1584,6 @@
               >search</mat-icon
             >
             <mat-icon
-              *ngIf="selectedProveedor != null"
               (click)="onClearFilterNotaRecepcion()"
               [ngClass]="{
                 disable:
@@ -1487,10 +1594,21 @@
               >clear</mat-icon
             >
           </div>
-          <div fxFlex="33">Itens de la nota de recepción</div>
+          <div fxFlex="33">
+            {{
+              selectedPedido?.estado == "EN_RECEPCION_NOTA"
+                ? "Itens de la nota de recepción"
+                : selectedPedido?.estado == "EN_RECEPCION_MERCADERIA"
+                ? "Productos por verificar"
+                : ""
+            }}
+          </div>
           <div fxFlex="33"></div>
         </div>
-        <div fxFlex="90" style="width: 100%; background-color: rgb(70, 70, 70)">
+        <div
+          fxFlex="90"
+          style="width: 100%; background-color: rgb(70, 70, 70); overflow: auto"
+        >
           <table
             mat-table
             [dataSource]="pedidoItemNotaRecepcionDataSource"
@@ -1584,7 +1702,7 @@
                   "
                 >
                   {{
-                    pedido?.precioUnitariRecepcionNota -
+                    pedido?.precioUnitarioRecepcionNota -
                       pedido?.descuentoUnitarioRecepcionNota | number : "1.0-0"
                   }}
                   <div
@@ -1748,7 +1866,7 @@
               </th>
               <td
                 mat-cell
-                *matCellDef="let pedido; let i = index"
+                *matCellDef="let pedido; let i = dataIndex"
                 style="text-align: center; width: 5%"
               >
                 <button
@@ -1757,7 +1875,8 @@
                   (click)="$event.stopPropagation()"
                   [disabled]="
                     isAddingItensToNota ||
-                    selectedPedido?.estado != 'EN_RECEPCION_NOTA'
+                    (selectedPedido?.estado != 'EN_RECEPCION_NOTA' &&
+                      selectedPedido?.estado != 'EN_RECEPCION_MERCADERIA')
                   "
                 >
                   <mat-icon class="highlight-hover">more_vert</mat-icon>
@@ -1778,14 +1897,20 @@
                     Rechazar item
                   </button>
                   <button
-                    *ngIf="pedido?.cancelado"
+                    *ngIf="
+                      pedido?.cancelado &&
+                      selectedPedido?.estado == 'EN_RECEPCION_NOTA'
+                    "
                     mat-menu-item
                     (click)="onReabrirItem(pedido)"
                   >
                     Reabrir item
                   </button>
                   <button
-                    *ngIf="pedido?.cancelado != true"
+                    *ngIf="
+                      pedido?.cancelado != true &&
+                      selectedPedido?.estado == 'EN_RECEPCION_NOTA'
+                    "
                     mat-menu-item
                     (click)="onDividirItem(pedido, i)"
                   >
@@ -1807,6 +1932,7 @@
                 style="text-align: center"
               >
                 <button
+                  *ngIf="selectedPedido?.estado != 'EN_RECEPCION_MERCADERIA'"
                   mat-icon-button
                   class="highlight-hover-danger"
                   (click)="onDeleteItemFromNota(pedido)"
@@ -1816,6 +1942,18 @@
                     style="text-align: center"
                     class="highlight-hover-danger"
                     >clear</mat-icon
+                  >
+                </button>
+                <button
+                  *ngIf="selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA'"
+                  mat-icon-button
+                  class="success white-on-hover-button"
+                  (click)="onVerificarRecepcionProducto(pedido, true, i)"
+                >
+                  <mat-icon
+                    style="text-align: center"
+                    class="success white-on-hover"
+                    >check</mat-icon
                   >
                 </button>
               </td>
@@ -1891,6 +2029,7 @@
                 pedidoItemNotaRecepcionDisplayedColumns;
                 sticky: true
               "
+              style="height: 2em !important"
             ></tr>
             <tr
               mat-row
@@ -1989,7 +2128,7 @@
             >
             <mat-icon
               *ngIf="selectedProveedor != null"
-              (click)="onClearFilterNotaRecepcion()"
+              (click)="onClearPedidoItensSobrantes()"
               [ngClass]="{
                 disable:
                   selectedNotaRecepcion == null ||
@@ -1999,10 +2138,23 @@
               >clear</mat-icon
             >
           </div>
-          <div fxFlex="33">Lista de productos</div>
+          <div fxFlex="33">
+            {{
+              selectedPedido?.estado == "ABIERTO"
+                ? "Lista de productos"
+                : selectedPedido?.estado == "EN_RECEPCION_NOTA"
+                ? "Productos sin nota"
+                : selectedPedido?.estado == "EN_RECEPCION_MERCADERIA"
+                ? "Productos verificados"
+                : ""
+            }}
+          </div>
           <div fxFlex="33"></div>
         </div>
-        <div fxFlex="90" style="width: 100%; background-color: rgb(70, 70, 70)">
+        <div
+          fxFlex="90"
+          style="width: 100%; background-color: rgb(70, 70, 70); overflow: auto"
+        >
           <table
             mat-table
             [dataSource]="pedidoDataSource"
@@ -2224,14 +2376,17 @@
               </th>
               <td
                 mat-cell
-                *matCellDef="let pedido; let i = index"
+                *matCellDef="let pedido; let i = dataIndex"
                 style="text-align: center; width: 5%"
               >
                 <button
                   mat-icon-button
                   [matMenuTriggerFor]="menu"
                   (click)="$event.stopPropagation()"
-                  [disabled]="isAddingItensToNota"
+                  [disabled]="
+                    isAddingItensToNota ||
+                    selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA'
+                  "
                 >
                   <mat-icon class="highlight-hover">more_vert</mat-icon>
                 </button>
@@ -2244,25 +2399,41 @@
                     Modificar item
                   </button>
                   <button
-                    *ngIf="pedido?.cancelado != true"
+                    *ngIf="
+                      pedido?.cancelado != true &&
+                      selectedPedido?.estado != 'ABIERTO'
+                    "
                     mat-menu-item
                     (click)="onRechazarItem(pedido)"
                   >
                     Rechazar item
                   </button>
                   <button
-                    *ngIf="pedido?.cancelado"
+                    *ngIf="
+                      pedido?.cancelado && selectedPedido?.estado != 'ABIERTO'
+                    "
                     mat-menu-item
                     (click)="onReabrirItem(pedido)"
                   >
                     Reabrir item
                   </button>
                   <button
-                    *ngIf="pedido?.cancelado != true"
+                    *ngIf="
+                      pedido?.cancelado != true &&
+                      selectedPedido?.estado == 'ACTIVO' &&
+                      selectedPedido?.estado == 'EN_RECEPCION_NOTA'
+                    "
                     mat-menu-item
                     (click)="onDividirItem(pedido, i)"
                   >
                     Dividir item
+                  </button>
+                  <button
+                    *ngIf="selectedPedido?.estado == 'ABIERTO'"
+                    mat-menu-item
+                    (click)="onDeleteItem(pedido, i)"
+                  >
+                    <span style="color: rgb(255, 53, 53)">Eliminar item</span>
                   </button>
                 </mat-menu>
               </td>
@@ -2280,6 +2451,7 @@
                 style="text-align: center"
               >
                 <button
+                  *ngIf="selectedPedido?.estado == 'EN_RECEPCION_NOTA'"
                   mat-icon-button
                   [disabled]="selectedNotaRecepcion?.id == null"
                   class="white-on-hover-button"
@@ -2289,6 +2461,19 @@
                     class="success white-on-hover"
                     style="text-align: center"
                     >check</mat-icon
+                  >
+                </button>
+                <button
+                  *ngIf="selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA'"
+                  mat-icon-button
+                  [disabled]="selectedNotaRecepcion?.id == null"
+                  class="highlight-hover-danger"
+                  (click)="onVerificarRecepcionProducto(pedido, false, i)"
+                >
+                  <mat-icon
+                    class="highlight-hover-danger"
+                    style="text-align: center"
+                    >clear</mat-icon
                   >
                 </button>
               </td>
@@ -2355,6 +2540,7 @@
             <tr
               mat-header-row
               *matHeaderRowDef="pedidoDisplayedColumns; sticky: true"
+              style="height: 2em !important;"
             ></tr>
             <tr
               mat-row
@@ -2407,7 +2593,7 @@
           </div>
 
           <div fxFlex="25" style="padding: 5px">
-            Descuento: {{ selectedPedido?.descuento | number : "1.0-0" }}
+            Descuento: {{ selectedPedido?.descuento || 0 | number : "1.0-0" }}
           </div>
           <div fxFlex="25" style="padding: 5px">
             Total sin descuento:
@@ -2416,7 +2602,7 @@
           <div fxFlex="25" style="padding: 5px">
             Total con descuento:
             {{
-              selectedPedido?.valorTotal - selectedPedido?.descuento
+              selectedPedido?.valorTotal - (selectedPedido?.descuento || 0)
                 | number : "1.0-0"
             }}
           </div>

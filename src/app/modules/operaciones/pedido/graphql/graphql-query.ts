@@ -369,7 +369,12 @@ export const pedidoInfoDetallesQuery = gql`
 // pedidoItemPorPedidoIdSobrante
 export const pedidoItemPorPedidoIdSobranteQuery = gql`
   query ($id: ID!, $page: Int, $size: Int, $texto: String) {
-    data: pedidoItemPorPedidoIdSobrante(id: $id, page: $page, size: $size, texto: $texto) {
+    data: pedidoItemPorPedidoIdSobrante(
+      id: $id
+      page: $page
+      size: $size
+      texto: $texto
+    ) {
       getTotalPages
       getTotalElements
       getNumberOfElements
@@ -456,8 +461,20 @@ export const pedidoItemPorPedidoIdSobranteQuery = gql`
 `;
 
 export const pedidoItemPorNotaRecepcionQuery = gql`
-  query ($id: ID!, $page: Int, $size: Int, $texto: String) {
-    data: pedidoItemPorNotaRecepcion(id: $id, page: $page, size: $size, , texto: $texto) {
+  query (
+    $id: ID!
+    $page: Int
+    $size: Int
+    $texto: String
+    $verificado: Boolean
+  ) {
+    data: pedidoItemPorNotaRecepcion(
+      id: $id
+      page: $page
+      size: $size
+      texto: $texto
+      verificado: $verificado
+    ) {
       getTotalPages
       getTotalElements
       getNumberOfElements
@@ -548,7 +565,12 @@ export const pedidoItemPorNotaRecepcionQuery = gql`
 
 export const pedidoItemPorPedidoPageQuery = gql`
   query ($id: ID!, $page: Int, $size: Int, $texto: String) {
-    data: pedidoItemPorPedidoPage(id: $id, page: $page, size: $size, , texto: $texto) {
+    data: pedidoItemPorPedidoPage(
+      id: $id
+      page: $page
+      size: $size
+      texto: $texto
+    ) {
       getTotalPages
       getTotalElements
       getNumberOfElements
@@ -766,3 +788,85 @@ export const finalizarPedido = gql`
 `;
 
 // pedido:PedidoInput!, fechaEntregaList: [String], sucursalEntregaList: [Int], sucursalInfluenciaList: [Int], usuarioId: Int
+
+export const verificarRecepcionProductoQuery = gql`
+  mutation verificarRecepcionProducto($pedidoItemId: ID!, $verificar: Boolean!) {
+    data: verificarRecepcionProducto(
+      pedidoItemId: $pedidoItemId
+      verificar: $verificar
+    ) {
+      id
+      producto {
+        id
+        descripcion
+        presentaciones {
+          id
+          cantidad
+        }
+        codigoPrincipal
+      }
+      presentacionCreacion {
+        id
+        cantidad
+      }
+      pedido {
+        id
+      }
+      precioUnitarioCreacion
+      descuentoUnitarioCreacion
+      bonificacion
+      bonificacionDetalle
+      estado
+      vencimientoCreacion
+      creadoEn
+      cantidadCreacion
+      valorTotal
+      precioUnitarioRecepcionNota
+      descuentoUnitarioRecepcionNota
+      vencimientoRecepcionNota
+      presentacionRecepcionNota {
+        id
+        cantidad
+      }
+      cantidadRecepcionNota
+      precioUnitarioRecepcionProducto
+      descuentoUnitarioRecepcionProducto
+      vencimientoRecepcionProducto
+      presentacionRecepcionProducto {
+        id
+        cantidad
+      }
+      cantidadRecepcionProducto
+      usuarioRecepcionNota {
+        id
+      }
+      usuarioRecepcionProducto {
+        id
+      }
+      obsCreacion
+      obsRecepcionNota
+      obsRecepcionProducto
+      autorizacionRecepcionNota
+      autorizacionRecepcionProducto
+      autorizadoPorRecepcionNota {
+        id
+      }
+      autorizadoPorRecepcionProducto {
+        id
+      }
+      motivoModificacionRecepcionNota
+      motivoModificacionRecepcionProducto
+      motivoRechazoRecepcionNota
+      motivoRechazoRecepcionProducto
+      cancelado
+      verificadoRecepcionNota
+      verificadoRecepcionProducto
+      precioUnitario
+      cantidad
+      presentacion {
+        id
+        cantidad
+      }
+    }
+  }
+`;

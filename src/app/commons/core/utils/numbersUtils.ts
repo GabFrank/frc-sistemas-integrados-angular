@@ -57,9 +57,7 @@ export function isInt(n) {
   return n % 1 === 0;
 }
 
-export function updateDataSource(dataSourceData: any[], value?: any, index?: number | null): any[] {
-  console.log(dataSourceData, value, index);
-  
+export function updateDataSource(dataSourceData: any[], value?: any, index?: number | null): any[] {  
   let newArray: any[] = [...dataSourceData];
   if (index != null) {
     if (value != null) {

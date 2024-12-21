@@ -323,6 +323,20 @@ sudo systemctl daemon-reload
 sudo systemctl enable print.service
 sudo systemctl start print.service
 
+-- rotar log del servicio print
+sudo vim /etc/logrotate.d/print_service
+/var/log/print_service.log {
+    size 2M                # Rotate when the log file reaches 2MB
+    create                 # Create a new empty log file after rotation
+    rotate 5               # Keep up to 5 old log files
+    compress               # Compress rotated logs (e.g., gzip)
+    delaycompress          # Delay compression for one cycle
+    missingok              # Don't throw an error if the log file is missing
+    notifempty             # Do not rotate if the log file is empty
+}
+
+sudo systemctl enable logrotate.timer
+sudo systemctl start logrotate.timer
 
 https://donfrancobs.com.py/?code=
 AQBqa7KtO16lVb-a-VFwQTp49N5_oWpM3ixZNi90nZNgLuKsLC1zkzHXENSHN5LYWt9W6vRy6kUR7GmhnEkzUU9CyCRdmurRmyBbUeHvqd0qVWClxGbr3ZLckTjklgsI48ORRyjMNsYtx7sT3fK5yazRk7FmC5RfsIR6HzLAMyKlPGkg3DY818hkw54H02XKhz8pYr8xlsJ-oD6gTKP69IodgLj-WtvA7oFnfw2u4o8LHQ#/

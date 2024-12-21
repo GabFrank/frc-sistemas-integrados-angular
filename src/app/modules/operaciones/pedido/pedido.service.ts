@@ -26,6 +26,7 @@ import { PedidoInfoDetalleGQL } from "./graphql/pedidoInfoDetalle";
 import { FinalizarPedidoGQL } from "./graphql/finalizarPedido";
 import { FilterPedidosGQL } from "./graphql/filterPedidos";
 import { PedidoEstado } from "./edit-pedido/pedido-enums";
+import { VerificarItemRecepcionProductoGQL } from "./graphql/verificar-item-recepcion-producto";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -51,7 +52,8 @@ export class PedidoService {
     private pedidoItemPorNotaRecepcion: PedidoItemPorNotaRecepcionGQL,
     private getPedidoInfoDetalle: PedidoInfoDetalleGQL,
     private finalizarPedido: FinalizarPedidoGQL,
-    private filterPedidos: FilterPedidosGQL
+    private filterPedidos: FilterPedidosGQL,
+    private verificarRecepcionProducto: VerificarItemRecepcionProductoGQL
   ) {}
 
   onGetPedidoInfoCompleta(id): Observable<Pedido> {
@@ -100,8 +102,8 @@ export class PedidoService {
       formaPagoId,
       productoId,
       page,
-      size
-    })
+      size,
+    });
   }
 
   onSave(input: PedidoInput): Observable<Pedido> {
@@ -122,12 +124,17 @@ export class PedidoService {
     return this.genericService.onSave(this.savePedidoItem, input);
   }
 
-  onGetPedidoItemSobrantes(id, page, size, texto?): Observable<PageInfo<PedidoItem>> {
+  onGetPedidoItemSobrantes(
+    id,
+    page,
+    size,
+    texto?
+  ): Observable<PageInfo<PedidoItem>> {
     return this.genericService.onCustomQuery(this.getPedidoItemSobrantes, {
       id,
       page,
       size,
-      texto
+      texto,
     });
   }
 
@@ -135,13 +142,15 @@ export class PedidoService {
     id,
     page,
     size,
-    texto?
+    texto?,
+    verificado?
   ): Observable<PageInfo<PedidoItem>> {
     return this.genericService.onCustomQuery(this.pedidoItemPorNotaRecepcion, {
       id,
       page,
       size,
-      texto
+      texto,
+      verificado,
     });
   }
 
@@ -149,12 +158,17 @@ export class PedidoService {
     return this.genericService.onGetById(this.pedidoItemPorId, id);
   }
 
-  onGetPedidoItemPorPedido(id, page, size, texto?): Observable<PageInfo<PedidoItem>> {
+  onGetPedidoItemPorPedido(
+    id,
+    page,
+    size,
+    texto?
+  ): Observable<PageInfo<PedidoItem>> {
     return this.genericService.onCustomQuery(this.pedidoItemPorPedidoPage, {
       id,
       page,
       size,
-      texto
+      texto,
     });
   }
 
@@ -206,5 +220,15 @@ export class PedidoService {
       id,
       estado,
     });
+  }
+
+  onVerificarItemRecepcionProducto(pedidoItemId, verificar) {
+    return this.genericService.onCustomMutation(
+      this.verificarRecepcionProducto,
+      {
+        pedidoItemId,
+        verificar,
+      }
+    );
   }
 }

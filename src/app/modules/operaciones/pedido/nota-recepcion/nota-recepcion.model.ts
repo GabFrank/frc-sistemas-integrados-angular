@@ -21,6 +21,7 @@ export class NotaRecepcion {
     usuario: Usuario
     pedidoItemList: PedidoItem[] = [];
     cantidadItens: number = 0;
+    cantidadItensVerificadoRecepcionMercaderia: number = 0;
 
     toInput(): NotaRecepcionInput {
         let input = new NotaRecepcionInput;

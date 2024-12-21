@@ -63,13 +63,13 @@ SELECT subname, pid, received_lsn - replay_lsn AS replication_lag
 FROM pg_stat_subscription;
 
 -- script para crear subscription para el servidor
-CREATE SUBSCRIPTION filial4_sub
-CONNECTION 'dbname=filial4 host=host.docker.internal user=franco password=franco port=5553'
-PUBLICATION filial4_pub WITH (copy_data = false, origin = 'none');
+CREATE SUBSCRIPTION filial24_sub
+CONNECTION 'dbname=general host=172.25.1.24 user=franco password=franco port=5551'
+PUBLICATION filial24_pub WITH (copy_data = false, origin = 'none');
 
 -- script para crear subscription para la filial
 CREATE SUBSCRIPTION central_filial24_sub
-CONNECTION 'dbname=bodega host=172.15.1.200 user=franco password=franco port=5551'
+CONNECTION 'dbname=bodega host=172.25.1.200 user=franco password=franco port=5551'
 PUBLICATION central_filial24_pub WITH (copy_data = false, origin = 'none');
 
 CREATE SUBSCRIPTION filial24_central_sub
