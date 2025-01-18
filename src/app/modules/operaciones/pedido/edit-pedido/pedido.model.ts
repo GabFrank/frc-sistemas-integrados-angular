@@ -34,6 +34,10 @@ export class Pedido {
   cantPedidoItem: number;
   cantPedidoItemSinNota: number;
   cantPedidoItemCancelados: number = 0;
+  cantNotas: number;
+  cantNotasPagadas: number;
+  cantNotasCanceladas: number;
+  pagado: boolean;
 
   toInput(): PedidoInput{
     let input = new PedidoInput();

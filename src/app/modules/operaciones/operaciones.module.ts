@@ -39,6 +39,9 @@ import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { CompraDashboardComponent } from './compra/compra-dashboard/compra-dashboard.component';
 import { DividirItemDialogComponent } from './pedido/dividir-item-dialog/dividir-item-dialog.component';
 import { EditarPedidpItemDialogComponent } from './pedido/editar-pedidp-item-dialog/editar-pedidp-item-dialog.component';
+import { PagoGeneralComponent } from './pago/pago-general/pago-general.component';
+import { PagoGeneralListComponent } from './pago/pago-general-list/pago-general-list.component';
+import { PagoPedidoDialogComponent } from './pedido/pago-pedido-dialog/pago-pedido-dialog.component';
 
 @NgModule({
   declarations: [
@@ -75,6 +78,9 @@ import { EditarPedidpItemDialogComponent } from './pedido/editar-pedidp-item-dia
     CompraDashboardComponent,
     DividirItemDialogComponent,
     EditarPedidpItemDialogComponent,
+    PagoGeneralComponent,
+    PagoGeneralListComponent,
+    PagoPedidoDialogComponent,
   ],
   imports: [
     CommonModule,
@@ -87,7 +93,9 @@ import { EditarPedidpItemDialogComponent } from './pedido/editar-pedidp-item-dia
     EmpresarialModule
   ],
   exports: [
-    EditPedidoComponent
+    EditPedidoComponent,
+    PagoGeneralComponent,
+    PagoGeneralListComponent
   ],
   providers:[
     { provide: LOCALE_ID, useValue: 'es-PY' } ,

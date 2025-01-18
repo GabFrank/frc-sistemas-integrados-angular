@@ -1,0 +1,26 @@
+Creacion del pedido 
+- Enviar al proveedor el pdf del pedido o el id del pedido para luego poder diferenciar 
+en caso de que se haga varios pedidos con un mismo proveedor
+- Recepcion de nota
+Si el proveedor tiene el id del pedido entonces se busca por id en la lista
+si no entonces se busca en la lista
+- Recepcion de producto
+se puede recibir mas de una nota a la vez
+si los productos de la nota coinciden se necesita sumar las cantidades
+va a generar una sola lista
+el producto se puede confirmar unicamente utilizando codigo de barras
+si el codigo de barras no existe o esta dañado se debe de indicar
+una vez terminada la recepcion, se genera una solicitud de pago
+- Solicitud de pago
+Si el pago es en efectivo y es en una sucursal
+Salir dos botones, pago local, pago tesoreria
+primer paso agregar fuente:
+el usuario puede agregar mas de una fuente de pago (caja abierta, maletin, retiro)
+cada fuente de pago tiene diferentes datos para cargar en el formulario
+indicar el valor que se va a retirar de cada fuente
+una vez alcanzado el valor total se habilita la opcion de enviar la solicitud de pago 
+al administrativo
+el adminisitrativo recibe la solicitud de pago y si confirma se habilita el pago 
+si el pago es local, crear una opcion en utilitarios para imprimir un recibo interno
+si el pago es para tesoreria, imprimir una orden de pago
+

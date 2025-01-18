@@ -16,6 +16,7 @@ import { EnumToStringPipe } from "../../commons/core/utils/pipes/enum-to-string"
 })
 export class DataDisplayComponent implements OnChanges {
   @Input() titulo!: string;
+  @Input() tituloAlign = 'start'
   @Input() valor!: any;
   @Input() customPipe: string = "titlecase";
   @Input() horizontal: boolean = false; // Horizontal layout flag

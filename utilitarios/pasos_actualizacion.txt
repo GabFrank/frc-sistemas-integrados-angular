@@ -60,6 +60,7 @@ sudo firewall-cmd --reload
 
 -- hacer backup y restaurar
 pg_dump -v -U franco -W -p 5551 -d general > /home/franco/FRC/bkp.sql
+pg_dump -v -U franco -W -p 5551 -d bodega > bkp_bodega_06_01_25.sql
 sudo systemctl stop postgresql-13
 sudo systemctl disable postgresql-13
 --  agregar lineas de configuracion a postgresql
@@ -87,8 +88,9 @@ Requires=docker.service
 sudo systemctl stop rabbitmq-server.service && sudo systemctl disable rabbitmq-server.service
 sudo systemctl stop frc
 rm /home/franco/FRC/frc-server/frc-server.jar
-curl -L -o /home/franco/FRC/frc-server/frc-server.jar https://github.com/GabFrank/franco-system-backend-filial/releases/download/v3.0.0/frc-server.jar
-sudo systemctl start frc && journalctl -f -u frc
+curl -L -o /home/franco/bodega/FRC/frc-server/frc-server.jar https://github.com/GabFrank/franco-system-backend-servidor/releases/download/3.0.3/frc-server.jar
+curl -L -o frc-server.jar https://github.com/GabFrank/franco-system-backend-servidor/releases/download/3.0.2/frc-server.jar
+sudo systemctl start frc-bodega && journalctl -f -u frc-bodega
 2 - actualizar el app
 rm /home/franco/FRC/FRC.AppImage
 curl -L -o /home/franco/FRC/FRC.AppImage https://github.com/GabFrank/frc-sistemas-integrados-angular/releases/download/3.0.0/FRC.AppImage

@@ -14,7 +14,7 @@ export class DialogoData {
   public message1?: string;
   public message2?: string;
   public listMessages?: string[];
-  public action?: boolean = true;
+  public action?: boolean;
   public btn1Name?: string = 'Si';
   public btn2Name?: string = 'No';
 }

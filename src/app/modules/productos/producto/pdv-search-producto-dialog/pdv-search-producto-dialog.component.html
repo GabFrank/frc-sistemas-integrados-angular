@@ -365,7 +365,7 @@
                 tableKeyDownEvent('Enter', i)
               "
               tabindex="999"
-              (keydown)="tableKeyDownEvent($event.key, selectedRowIndex)"
+              (keydown)="tableKeyDownEvent($event.key, selectedRowIndex); $event.stopPropagation(); $event.preventDefault();"
             ></tr>
             <tr
               mat-row

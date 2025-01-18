@@ -2,9 +2,138 @@
   titulo="Pedidos"
   (adicionar)="onAdd()"
   (filtrar)="onFiltrar()"
+  (resetFiltro)="onResetFiltro()"
   [isAdicionar]="true"
 >
-  <div filtros></div>
+  <div filtros fxLayout="column" fxLayoutGap="10px">
+    <div fxLayout="row" fxLayoutGap="10px">
+      <mat-form-field fxFlex="10">
+        <mat-label>Id del pedido</mat-label>
+        <input
+          matInput
+          [formControl]="idPedidoControl"
+          type="number"
+          (keyup.enter)="onFiltrar()"
+        />
+      </mat-form-field>
+      <mat-form-field fxFlex="10">
+        <mat-label>Número de nota</mat-label>
+        <input
+          matInput
+          [formControl]="numeroDeNotaRecepcionControl"
+          type="number"
+          (keyup.enter)="onFiltrar()"
+        />
+      </mat-form-field>
+      <div fxFlex="30" fxLayout="row" fxLayoutAlign="start center">
+        <mat-form-field style="width: 100%">
+          <mat-label>Proveedor</mat-label>
+          <input
+            #proveedorInput
+            type="text"
+            matInput
+            [formControl]="buscarProveedorControl"
+            (keyup.enter)="onBuscarProveedor()"
+          />
+          <span matTextSuffix>
+            <mat-icon
+              (click)="onBuscarProveedor(); $event.stopPropagation()"
+              class="highlight-hover"
+              >search</mat-icon
+            >
+            <mat-icon
+              *ngIf="selectedProveedor != null"
+              (click)="onClearProveedor()"
+              class="highlight-hover-danger"
+              >clear</mat-icon
+            >
+          </span>
+        </mat-form-field>
+      </div>
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Rango de fecha</mat-label>
+          <mat-date-range-input
+            [formGroup]="fechaFormGroup"
+            [rangePicker]="picker"
+            style="width: 100%"
+          >
+            <input
+              matStartDate
+              formControlName="inicio"
+              placeholder="Inicio"
+              [max]="today"
+            />
+            <input
+              matEndDate
+              formControlName="fin"
+              placeholder="Fin"
+              [max]="fechaInicioControl.value"
+            />
+          </mat-date-range-input>
+          <mat-datepicker-toggle
+            matSuffix
+            [for]="picker"
+          ></mat-datepicker-toggle>
+          <mat-date-range-picker #picker></mat-date-range-picker>
+
+          <mat-error
+            *ngIf="
+              fechaFormGroup.controls.inicio.hasError('matStartDateInvalid')
+            "
+            >Fecha inicial inválida</mat-error
+          >
+          <mat-error
+            *ngIf="fechaFormGroup.controls.fin.hasError('matEndDateInvalid')"
+            >Fecha final inválida</mat-error
+          >
+        </mat-form-field>
+      </div>
+      <div fxFlex="7%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Inicio Hora</mat-label>
+          <input
+            matInput
+            [formControl]="horaInicioControl"
+            type="time"
+            placeholder="Hora inicio"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="7%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Fin Hora</mat-label>
+          <input
+            matInput
+            [formControl]="horaFinalControl"
+            type="time"
+            placeholder="Hora fin"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="30">
+        <mat-form-field>
+          <mat-label>Estado</mat-label>
+          <mat-select [formControl]="estadoControl">
+            <mat-option *ngFor="let estado of estadoList" [value]="estado">
+              {{ estado | enumToString }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+    <div fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="15">
+        <app-boton
+          nombre="Solicitar pago"
+          color="primary"
+          style="height: 80%"
+          *ngIf="isValidForPago"
+          (clickEvent)="irAPago()"
+        ></app-boton>
+      </div>
+    </div>
+  </div>
   <div
     table
     style="height: 100%; background-color: rgb(70, 70, 70)"
@@ -18,6 +147,26 @@
       class="mat-elevation-z8"
       style="width: 100%"
     >
+      <ng-container matColumnDef="select">
+        <th mat-header-cell *matHeaderCellDef>
+          <mat-checkbox
+            (change)="$event ? masterToggle() : null"
+            [checked]="selectionPedido.hasValue() && isAllSelected"
+            [indeterminate]="selectionPedido.hasValue() && !isAllSelected"
+          >
+          </mat-checkbox>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          <mat-checkbox
+            (click)="$event.stopPropagation()"
+            (change)="
+              $event ? selectionPedido.toggle(row) : null; checkIfValidForPago()
+            "
+            [checked]="selectionPedido.isSelected(row)"
+          >
+          </mat-checkbox>
+        </td>
+      </ng-container>
       <ng-container matColumnDef="id" style="width: 5%">
         <th
           mat-header-cell
@@ -59,7 +208,7 @@
           *matCellDef="let pedido"
           style="width: 10%; text-align: center"
         >
-          {{ pedido?.creadoEn | date }}
+          {{ pedido?.creadoEn | date : "dd/MM/yyyy HH:mm" }}
         </td>
       </ng-container>
 
@@ -86,7 +235,7 @@
           *matHeaderCellDef
           style="width: 10%; text-align: center"
         >
-          Estado
+          Etapa
         </th>
         <td
           mat-cell
@@ -94,6 +243,24 @@
           style="text-align: center; width: 10%"
         >
           {{ pedido?.estado | enumToString | titlecase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="pagado">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 10%; text-align: center"
+        >
+          Estado
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          style="text-align: center; width: 10%"
+          [style.background-color]="pedido?.pagado ? '#43a047' : null"
+        >
+          {{ pedido?.pagado ? "Pagado" : "Falta pagar" }}
         </td>
       </ng-container>
 

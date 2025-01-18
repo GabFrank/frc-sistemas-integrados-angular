@@ -255,7 +255,7 @@
       </div>
       <div fxFlex="30" fxLayoutAlign="end center" fxLayoutGap="10px">
         <app-boton
-          fxFlex="30"
+          fxFlex="25"
           nombre="Limpiar/Nuevo"
           [color]="isAddingItensToNota ? null : 'warn'"
           style="height: 80%"
@@ -263,38 +263,33 @@
           [disableExpression]="isAddingItensToNota"
           matTooltip="Limpiar todos los campos. Util para cuando queremos crear un nuevo pedido."
         ></app-boton>
-        <ng-container
-          *ngIf="selectedPedido == null || selectedPedido?.estado == 'ABIERTO'"
-        >
-          <ng-container *ngIf="isEditing == true; else elseTemplate">
-            <app-boton
-              fxFlex="30"
-              nombre="Guardar"
-              color="accent"
-              style="height: 80%"
-              [disableExpression]="
-                selectedProveedor == null ||
-                sucursalEntregaControl.value == null ||
-                sucursalInfluenciaControl.value == null
-              "
-              (clickEvent)="onGuardar()"
-            ></app-boton>
-          </ng-container>
-          <ng-template #elseTemplate>
-            <app-boton
-              fxFlex="50"
-              nombre="Editar"
-              color="primary"
-              style="height: 80%"
-              [disableExpression]="
-                selectedPedido == null || selectedPedido?.estado != 'ABIERTO'
-              "
-              (clickEvent)="cambiarEstado(true)"
-            ></app-boton>
-          </ng-template>
-        </ng-container>
 
-        <app-boton
+        <ng-container *ngIf="isEditing == true; else elseTemplate">
+          <app-boton
+            fxFlex="25"
+            nombre="Guardar"
+            color="accent"
+            style="height: 80%"
+            [disableExpression]="
+              selectedProveedor == null ||
+              sucursalEntregaControl.value == null ||
+              sucursalInfluenciaControl.value == null
+            "
+            (clickEvent)="onGuardar()"
+          ></app-boton>
+        </ng-container>
+        <ng-template #elseTemplate>
+          <app-boton
+            fxFlex="25"
+            nombre="Editar"
+            color="primary"
+            style="height: 80%"
+            *ngIf="selectedPedido?.estado != 'ABIERTO'"
+            (clickEvent)="cambiarEstado(true)"
+          ></app-boton>
+        </ng-template>
+
+        <!-- <app-boton
           fxFlex="30"
           nombre="Reabrir"
           color="accent"
@@ -304,12 +299,13 @@
           *ngIf="
             selectedPedido?.estado == 'ACTIVO' ||
             selectedPedido?.estado == 'EN_RECEPCION_NOTA' ||
-            selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA'
+            selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA' ||
+            selectedPedido?.estado == 'CONCLUIDO'
           "
-        ></app-boton>
+        ></app-boton> -->
 
         <app-boton
-          fxFlex="30"
+          fxFlex="25"
           nombre="Retroceder Etapa"
           color="accent"
           style="height: 80%"
@@ -317,12 +313,13 @@
           (clickEvent)="onVolverEtapa()"
           *ngIf="
             selectedPedido?.estado == 'EN_RECEPCION_NOTA' ||
-            selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA'
+            selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA' ||
+            selectedPedido?.estado == 'CONCLUIDO'
           "
         ></app-boton>
 
         <app-boton
-          fxFlex="30"
+          fxFlex="25"
           nombre="Avanazar Etapa"
           color="accent"
           style="height: 80%"
@@ -334,9 +331,19 @@
           (clickEvent)="onFinalizar()"
           *ngIf="
             selectedPedido?.estado == 'ABIERTO' ||
+            selectedPedido?.estado == 'ACTIVO' ||
             selectedPedido?.estado == 'EN_RECEPCION_NOTA' ||
             selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA'
           "
+        ></app-boton>
+
+        <app-boton
+          fxFlex="25"
+          nombre="Ir a pago"
+          color="accent"
+          style="height: 80%"
+          (clickEvent)="onGoToPago()"
+          *ngIf="selectedPedido?.estado == 'CONCLUIDO'"
         ></app-boton>
 
         <!-- <app-boton
@@ -412,8 +419,8 @@
         matInput
         type="text"
         [formControl]="codigoControl"
-        (keyup.enter)="onSearchPorCodigo()"
-        (keyup.tab)="onSearchPorCodigo()"
+        (keydown.enter)="onSearchPorCodigo()"
+        (keyup.tab)="selectedProducto == null ? onSearchPorCodigo() : null"
         (focusin)="onCodigoFocus()"
       />
     </mat-form-field>
@@ -478,6 +485,7 @@
               ? currencyMask.currencyOptionsGuarani
               : currencyMask.currencyOptionsNoGuarani
           "
+          (focusin)="precioPorPresentacion.select()"
           (keyup.enter)="precioUnitario.select()"
         />
       </mat-form-field>
@@ -500,7 +508,7 @@
           (keyup.enter)="descuentoInput.select()"
           (focusin)="precioUnitario.select()"
         />
-        <mat-hint
+        <!-- <mat-hint
           class="btn-success-flat"
           *ngIf="
             this.selectedProducto?.costo?.ultimoPrecioCompra >
@@ -519,7 +527,7 @@
             (precioUnitarioControl.value * 100) /
               this.selectedProducto?.costo?.ultimoPrecioCompra -
               100 | number : "1.0-0"
-          }}%</mat-hint
+          }}%</mat-hint -->
         >
       </mat-form-field>
     </div>
@@ -876,7 +884,7 @@
                     productoProveedorDisplayedColumns;
                     sticky: true
                   "
-                  style="height: 2em !important;"
+                  style="height: 2em !important"
                 ></tr>
                 <tr
                   mat-row
@@ -930,7 +938,8 @@
           *ngIf="
             selectedPedido?.estado == 'ACTIVO' ||
             selectedPedido?.estado == 'EN_RECEPCION_NOTA' ||
-            selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA'
+            selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA' ||
+            selectedPedido?.estado == 'CONCLUIDO'
           "
         >
           <div
@@ -990,7 +999,6 @@
                 color="accent"
                 (click)="onAgregarNota(true)"
                 [disabled]="
-                  isAddingItensToNota &&
                   selectedPedido?.estado != 'ACTIVO' &&
                   selectedPedido?.estado != 'EN_RECEPCION_NOTA'
                 "
@@ -1534,7 +1542,8 @@
         *ngIf="
           selectedPedido?.estado == 'ACTIVO' ||
           selectedPedido?.estado == 'EN_RECEPCION_NOTA' ||
-          selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA'
+          selectedPedido?.estado == 'EN_RECEPCION_MERCADERIA' ||
+          selectedPedido?.estado == 'CONCLUIDO'
         "
         [fxFlex]="50"
         style="height: 100%"
@@ -2540,7 +2549,7 @@
             <tr
               mat-header-row
               *matHeaderRowDef="pedidoDisplayedColumns; sticky: true"
-              style="height: 2em !important;"
+              style="height: 2em !important"
             ></tr>
             <tr
               mat-row

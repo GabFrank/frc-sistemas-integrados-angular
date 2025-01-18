@@ -215,6 +215,8 @@ export const deletePedidoQuery = gql`
 
 export const filterPedidosQuery = gql`
   query filterPedidos(
+    $idPedido: ID,
+    $numeroNotaRecepcion: Int,
     $estado: PedidoEstado
     $sucursalId: Int
     $inicio: String
@@ -227,6 +229,8 @@ export const filterPedidosQuery = gql`
     $size: Int
   ) {
     data: filterPedidos(
+      idPedido: $idPedido
+      numeroNotaRecepcion: $numeroNotaRecepcion
       estado: $estado
       sucursalId: $sucursalId
       inicio: $inicio
@@ -249,6 +253,7 @@ export const filterPedidosQuery = gql`
         id
         cantPedidoItem
         cantPedidoItemCancelados
+        pagado
         compra {
           id
           estado
@@ -349,6 +354,10 @@ export const pedidoInfoCompletaQuery = gql`
       fechaEntregaList {
         fechaEntrega
       }
+      cantNotas
+      cantNotasPagadas
+      cantNotasCanceladas
+      pagado
     }
   }
 `;
@@ -774,6 +783,7 @@ export const savePedidoFull = gql`
       usuarioId: $usuarioId
     ) {
       id
+      creadoEn
     }
   }
 `;
@@ -870,3 +880,16 @@ export const verificarRecepcionProductoQuery = gql`
     }
   }
 `;
+
+export const cantidadItensFaltaVerificarProductoQuery = gql`
+  query ($id: ID!) {
+    data: cantidadItensFaltaVerificarProducto(id: $id)
+  }
+`;
+
+export const cantidadItensFaltaVerificarNotaQuery = gql`
+  query ($id: ID!) {
+    data: cantidadItensFaltaVerificarNota(id: $id)
+  }
+`;
+

@@ -1,6 +1,8 @@
-<div [fxLayout]="horizontal ? 'row' : 'column'" class="titulo">
-  {{ titulo }}
-  <div class="subtitulo">
+<div [fxLayout]="horizontal ? 'row' : 'column'">
+  <div fxFlex="50" class="titulo" [style.text-align]="horizontal ? 'start' : 'center' ">
+    {{ titulo }}
+  </div>
+  <div fxFlex="50" class="subtitulo">
     {{ formattedValue }}
   </div>
 </div>

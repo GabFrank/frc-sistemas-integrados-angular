@@ -68,64 +68,23 @@ export const notaRecepcionPorPedidoIdQuery = gql`
       documento {
         id
         descripcion
-        activo
       }
       valor
       descuento
+      tipoBoleta
       pagado
       numero
       timbrado
       creadoEn
-      pedidoItemList {
-        id
-        producto {
-          id
-          descripcion
-        }
-        compraItem {
-          id
-          cantidad
-          verificado
-          lote
-          vencimiento
-          presentacion {
-            id
-            cantidad
-          }
-          producto {
-            id
-          }
-          pedidoItem {
-            id
-          }
-          precioUnitario
-          descuentoUnitario
-          estado
-        }
-        notaRecepcion {
-          id
-        }
-        presentacion {
-          id
-          cantidad
-          imagenPrincipal
-        }
-        precioUnitario
-        descuentoUnitario
-        bonificacion
-        bonificacionDetalle
-        estado
-        vencimiento
-        creadoEn
-        cantidad
-        valorTotal
-      }
+      cantidadItensVerificadoRecepcionMercaderia
       usuario {
         id
         persona {
           nombre
         }
       }
+      cantidadItens
+      fecha
     }
   }
 `;
@@ -190,5 +149,11 @@ export const notaRecepcionPorPedidoIdAndNumeroQuery = gql`
         fecha
       }
     }
+  }
+`;
+
+export const countNotaRecepcionPorPedidoId = gql`
+  query ($id: ID!) {
+    data: countNotaRecepcionPorPedidoId(id: $id)
   }
 `;

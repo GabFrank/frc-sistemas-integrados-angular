@@ -27,6 +27,8 @@ import { FinalizarPedidoGQL } from "./graphql/finalizarPedido";
 import { FilterPedidosGQL } from "./graphql/filterPedidos";
 import { PedidoEstado } from "./edit-pedido/pedido-enums";
 import { VerificarItemRecepcionProductoGQL } from "./graphql/verificar-item-recepcion-producto";
+import { PedidoItensFaltaVerificacionNotaGQL } from "./graphql/cantidadPedidoItensFaltanteVerficacionNota";
+import { PedidoItensFaltaVerificacionProductoGQL } from "./graphql/cantidadPedidoItensFaltanteVerficacionProducto";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -53,7 +55,9 @@ export class PedidoService {
     private getPedidoInfoDetalle: PedidoInfoDetalleGQL,
     private finalizarPedido: FinalizarPedidoGQL,
     private filterPedidos: FilterPedidosGQL,
-    private verificarRecepcionProducto: VerificarItemRecepcionProductoGQL
+    private verificarRecepcionProducto: VerificarItemRecepcionProductoGQL,
+    private cantFaltaVerifNota: PedidoItensFaltaVerificacionNotaGQL,
+    private cantFaltaVerifProducto: PedidoItensFaltaVerificacionProductoGQL,
   ) {}
 
   onGetPedidoInfoCompleta(id): Observable<Pedido> {
@@ -81,6 +85,8 @@ export class PedidoService {
     });
   }
   onFilterPedidos(
+    idPedido: number,
+    numeroNotaRecepcion: number,
     estado: PedidoEstado,
     sucursalId: number,
     inicio: string,
@@ -93,6 +99,8 @@ export class PedidoService {
     size: number
   ): Observable<PageInfo<Pedido>> {
     return this.genericService.onCustomQuery(this.filterPedidos, {
+      idPedido,
+      numeroNotaRecepcion,
       estado,
       sucursalId,
       inicio,
@@ -230,5 +238,13 @@ export class PedidoService {
         verificar,
       }
     );
+  }
+
+  onGetCantPedidoItensFaltaVerificaNota(id){
+    return this.genericService.onCustomQuery(this.cantFaltaVerifNota, {id})
+  }
+
+  onGetCantPedidoItensFaltaVerificaProducto(id){
+    return this.genericService.onCustomQuery(this.cantFaltaVerifProducto, {id})
   }
 }

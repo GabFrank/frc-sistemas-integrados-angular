@@ -49,6 +49,19 @@ ALTER SUBSCRIPTION central_filial4_sub REFRESH PUBLICATION;
 -- Drop a Subscription
 DROP SUBSCRIPTION subscription_name;
 
+-- reset subscriber
+-- disable subscription
+ALTER SUBSCRIPTION filial5_sub disable;
+-- set replication slot none on subscriber
+ALTER SUBSCRIPTION filial5_sub SET (slot_name = 'filial5_sub');
+-- delete replication slot on publisher
+SELECT pg_drop_replication_slot('filial5_sub');
+-- recreate replication slot on publisher
+SELECT * FROM pg_create_logical_replication_slot('filial5_sub', 'pgoutput');
+-- enable subscription on subscriber
+ALTER SUBSCRIPTION filial5_sub enable;
+
+
 
 -- 3. Additional Queries
 

@@ -82,6 +82,7 @@ import { MatCheckboxChange } from "@angular/material/checkbox";
 import { EditarPedidpItemDialogComponent } from "../editar-pedidp-item-dialog/editar-pedidp-item-dialog.component";
 import { NotaRecepcionService } from "../nota-recepcion/nota-recepcion.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
+import { PagoPedidoDialogComponent } from "../pago-pedido-dialog/pago-pedido-dialog.component";
 
 export interface ProductoDelProveedor {
   id: number;
@@ -411,7 +412,11 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     });
 
     this.precioPorPresentacionControl.valueChanges.subscribe((data) => {
-      this.calcularTotal();
+      this.calcularTotal(true);
+    });
+
+    this.precioUnitarioControl.valueChanges.subscribe((data) => {
+      this.calcularTotal(false, true);
     });
 
     this.descuentoPresentacionControl.valueChanges.subscribe((data) => {
@@ -419,24 +424,33 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     });
   }
 
-  calcularTotal() {
+  calcularTotal(isPrecioPresentacion?, isPrecioUnitario?) {
     if (this.selectedProducto != null) {
       this.cantidadUnidadControl.setValue(
         this.presentacionControl?.value?.cantidad *
           this.cantidadPresentacionControl?.value,
         { emitEvent: false }
       );
-      this.precioPorPresentacionControl.setValue(
-        (this.precioUnitarioControl.value || 0) *
-          this.presentacionControl.value?.cantidad,
-        { emitEvent: false }
-      );
+      isPrecioPresentacion != true
+        ? this.precioPorPresentacionControl.setValue(
+            (this.precioUnitarioControl.value || 0) *
+              this.presentacionControl.value?.cantidad,
+            { emitEvent: false }
+          )
+        : null;
       this.valorTotalControl.setValue(
         (this.precioPorPresentacionControl.value -
           this.descuentoPresentacionControl.value) *
           this.cantidadPresentacionControl.value,
         { emitEvent: false }
       );
+      isPrecioUnitario != true
+        ? this.precioUnitarioControl.setValue(
+            this.precioPorPresentacionControl.value /
+              this.presentacionControl.value.cantidad,
+            { emitEvent: false }
+          )
+        : null;
     }
   }
 
@@ -564,6 +578,9 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
         if (res != null) {
           this.selectedNotaRecepcionPage = res;
           this.notaRecepcionDataSource.data = res.getContent;
+          setTimeout(() => {
+            this.onGoToPago();
+          }, 1000);
         }
       });
   }
@@ -581,6 +598,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   buscarPedidoItensPorNotaRecepcion(id) {
     switch (this.selectedPedido.estado) {
       case PedidoEstado.EN_RECEPCION_NOTA:
+      case PedidoEstado.CONCLUIDO:
         this.pedidoService
           .onGetPedidoItemPorNotaRecepcion(id, this.page, this.size)
           .pipe(untilDestroyed(this))
@@ -590,6 +608,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
           });
         break;
       case PedidoEstado.EN_RECEPCION_MERCADERIA:
+      case PedidoEstado.CONCLUIDO:
         this.buscarPedidoItemNotaRecepcionVerificado(true);
         this.buscarPedidoItemNotaRecepcionVerificado(false);
         break;
@@ -1162,6 +1181,10 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
         this.selectedPedido = new Pedido();
         this.selectedPedido.estado = PedidoEstado.ABIERTO;
         this.selectedPedido.usuario = this.mainService.usuarioActual;
+      } else {
+        let aux = this.selectedPedido;
+        this.selectedPedido = new Pedido();
+        Object.assign(this.selectedPedido, aux);
       }
       this.selectedPedido.proveedor = this.selectedProveedor;
       this.selectedPedido.vendedor = this.selectedVendedor;
@@ -1188,6 +1211,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
         .subscribe((pedidoRes) => {
           if (pedidoRes != null) {
             this.selectedPedido.id = pedidoRes.id;
+            this.selectedPedido.creadoEn = pedidoRes.creadoEn;
             this.idControl.setValue(this.selectedPedido.id);
             this.cambiarEstado(false);
             resolve(pedidoRes);
@@ -1337,15 +1361,51 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
         this.onCambiarEstado(PedidoEstado.EN_RECEPCION_NOTA);
         break;
       case PedidoEstado.EN_RECEPCION_NOTA:
-        this.dialogoService
-          .confirm(
-            "Atención!!",
-            "Deseas finalizar esta etapa?",
-            "Esta acción se puede deshacer"
-          )
-          .subscribe((dialogRes) => {
-            if (dialogRes) {
-              this.onCambiarEstado(PedidoEstado.EN_RECEPCION_MERCADERIA);
+        this.notaRecepcionService
+          .onCountNotaRecepcionPorPedido(this.selectedPedido.id)
+          .subscribe((countRes) => {
+            if (countRes == 0) {
+              this.dialogoService
+                .confirm(
+                  "ATENCIÓN!!",
+                  `Necesita cargar la nota de recepción para avanzar de etapa`,
+                  null,
+                  null,
+                  false
+                )
+                .subscribe();
+            } else {
+              this.dialogoService
+                .confirm(
+                  "Atención!!",
+                  "Deseas finalizar esta etapa?",
+                  "Esta acción se puede deshacer"
+                )
+                .subscribe((dialogRes) => {
+                  if (dialogRes) {
+                    this.pedidoService
+                      .onGetCantPedidoItensFaltaVerificaNota(
+                        this.selectedPedido?.id
+                      )
+                      .subscribe((cantVerifNotaRes) => {
+                        if (cantVerifNotaRes > 0) {
+                          this.dialogoService
+                            .confirm(
+                              "ATENCIÓN!!",
+                              `Faltan ${cantVerifNotaRes} itens por verficar antes de concluir la recepcion de notas`,
+                              null,
+                              null,
+                              false
+                            )
+                            .subscribe((cantVerifNotaDialogRes) => {});
+                        } else {
+                          this.onCambiarEstado(
+                            PedidoEstado.EN_RECEPCION_MERCADERIA
+                          );
+                        }
+                      });
+                  }
+                });
             }
           });
         break;
@@ -1358,7 +1418,25 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
           )
           .subscribe((dialogRes) => {
             if (dialogRes) {
-              this.onCambiarEstado(PedidoEstado.CONCLUIDO);
+              this.pedidoService
+                .onGetCantPedidoItensFaltaVerificaProducto(
+                  this.selectedPedido?.id
+                )
+                .subscribe((cantVerifProductoRes) => {
+                  if (cantVerifProductoRes > 0) {
+                    this.dialogoService
+                      .confirm(
+                        "ATENCIÓN!!",
+                        `Faltan ${cantVerifProductoRes} itens por verficar antes de concluir la recepcion de mercaderias`,
+                        null,
+                        null,
+                        false
+                      )
+                      .subscribe((cantVerifNotaDialogRes) => {});
+                  } else {
+                    this.onCambiarEstado(PedidoEstado.CONCLUIDO);
+                  }
+                });
             }
           });
         break;
@@ -1716,6 +1794,10 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
           .subscribe((dialogRes) => {
             if (dialogRes) {
               this.onCambiarEstado(PedidoEstado.ACTIVO);
+              this.pedidoItemFormGroup.disable();
+              this.buscarPedidoItemSobrantes();
+              this.pedidoDisplayedColumns.push("check");
+              this.cambiarEstado(false);
             }
           });
         break;
@@ -1854,11 +1936,19 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
         }
       });
   }
+
+  onGoToPago() {
+    this.dialog.open(PagoPedidoDialogComponent, {
+      width: "80%",
+      height: "80%",
+      data: {
+        pedido: this.selectedPedido,
+      },
+    });
+  }
 }
 
 /*
 TO DO
-1 - Al agregar una nota, cuando se sale del cuadro de dialogo no se carga la nota nueva a la lista de notas
-2 - Una vez que se cargue todas los itens en las notas se debe de habilitar un boton que diga Finalizar
-3 - 
+
  */
