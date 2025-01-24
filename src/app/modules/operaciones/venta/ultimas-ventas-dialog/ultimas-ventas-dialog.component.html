@@ -72,8 +72,8 @@
         
             <ng-container matColumnDef="acciones">
               <th mat-header-cell *matHeaderCellDef style="width: 12%; text-align: center;"> ... </th>
-              <td mat-cell *matCellDef="let venta" class="action-link" style="width: 12%; text-align: center;">
-                <button *ngIf="data?.cancelacion == true && venta?.estado == 'CONCLUIDA'" mat-button color="primary" (click)="cancelarVenta(venta.id)">Cancelar venta</button>
+              <td mat-cell *matCellDef="let venta; let i = index" class="action-link" style="width: 12%; text-align: center;">
+                <button *ngIf="data?.cancelacion == true && venta?.estado == 'CONCLUIDA'" mat-button color="primary" (click)="cancelarVenta(venta, i)">Cancelar venta</button>
                 <button *ngIf="data?.reimpresion == true" mat-button (click)="reimpresionVenta(venta.id)">Reimprimir Venta</button>
               </td>
             </ng-container>

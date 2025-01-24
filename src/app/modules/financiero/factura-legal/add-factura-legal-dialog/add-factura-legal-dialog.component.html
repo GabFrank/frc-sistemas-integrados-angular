@@ -6,12 +6,7 @@
   <div fxFlex style="width: 100%; text-align: center">
     <h2>Factura legal</h2>
   </div>
-  <div
-    fxFlex
-    fxLayout="row"
-    fxLayoutGap="10px"
-    fxLayoutAlign="start center"
-  >
+  <div fxFlex fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
     <div fxFlex="20%">
       <mat-form-field style="width: 95%">
         <input
@@ -20,7 +15,7 @@
           type="text"
           matInput
           [formControl]="rucControl"
-          (keyup.enter)="buscarCliente()"
+          (keydown.enter)="buscarCliente()"
           (keydown.tab)="buscarCliente(); $event.preventDefault()"
           style="text-align: center"
         />
@@ -45,10 +40,10 @@
           type="text"
           matInput
           [formControl]="clienteDescripcionControl"
-          (keyup.enter)="onSaveCliente()"
+          (keyup.enter)="direccionInput.focus()"
         />
         <span matTextPrefix style="padding-right: 20px">{{
-          tributaControl.value == true ? "Razon Social:" : "Nombre:"
+          tributaControl.value == true ? "Razón Social:" : "Nombre:"
         }}</span>
       </mat-form-field>
     </div>
@@ -59,16 +54,17 @@
       <mat-icon (click)="onClear()" style="color: red">clear</mat-icon>
     </div>
   </div>
-  <div
-    fxFlex
-    fxLayout="row"
-    fxLayoutGap="10px"
-    fxLayoutAlign="start center"
-  >
+  <div fxFlex fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
     <div fxFlex="50%">
       <mat-form-field style="width: 100%">
         <mat-label>Dirección</mat-label>
-        <input type="text" matInput [formControl]="direccionControl" />
+        <input
+          #direccionInput
+          type="text"
+          matInput
+          [formControl]="direccionControl"
+          (keyup.enter)="imprimirBtn.onGetFocus()"
+        />
       </mat-form-field>
     </div>
     <mat-checkbox
@@ -90,16 +86,27 @@
         </mat-slide-toggle>
       </div>
     </div>
+    <!-- <div fxFlex>
+      <app-boton
+        #guardarBtn
+        [basic]="true"
+        color="accent"
+        nombre="Guardar cliente"
+        (clickEvent)="onGuardarCliente()"
+        [disableExpression]="
+          rucControl.value == null || clienteDescripcionControl.value == null
+        "
+      ></app-boton>
+    </div>
     <div fxFlex>
       <app-boton
         [basic]="true"
-        nombre="Verificar RUC"
-        (clickEvent)="
-          selectedCliente.verificadoSet = false; setCliente(selectedCliente)
-        "
-        [disableExpression]="selectedCliente?.id == null"
+        color="primary"
+        nombre="Cancelar"
+        (clickEvent)="onCancelarNuevoCliente()"
+        [disableExpression]="!isNuevoCliente"
       ></app-boton>
-    </div>
+    </div> -->
   </div>
   <div
     fxFlex="5"
@@ -245,14 +252,16 @@
       <div fxLayout="row">
         <h5 fxFlex="50">Descuento:</h5>
         <h5 fxFlex="50" style="text-align: end">
-          {{ (data?.descuento || 0) | number : "1.0-0" }}
+          {{ data?.descuento || 0 | number : "1.0-0" }}
         </h5>
       </div>
-      <hr class="custom-line">
+      <hr class="custom-line" />
       <div fxLayout="row">
         <h3 fxFlex="50">Total final:</h3>
         <h3 fxFlex="50" style="text-align: end">
-          {{ totalFinalControl.value - (data?.descuento || 0) | number : "1.0-0" }}
+          {{
+            totalFinalControl.value - (data?.descuento || 0) | number : "1.0-0"
+          }}
         </h3>
       </div>
     </div>
@@ -286,12 +295,7 @@
       </div>
     </div>
   </mat-card> -->
-  <div
-    fxFlex
-    fxLayout="row"
-    fxLayoutAlign="center center"
-    fxLayoutGap="10px"
-  >
+  <div fxFlex fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="10px">
     <div fxFlex="30%" style="height: 35px">
       <app-boton
         nombre="Cancelar"
@@ -301,6 +305,7 @@
     </div>
     <div fxFlex="30%" style="height: 35px">
       <app-boton
+        #imprimirBtb
         (focusEvent)="guardarSub.asObservable()"
         nombre="Imprimir"
         color="accent"

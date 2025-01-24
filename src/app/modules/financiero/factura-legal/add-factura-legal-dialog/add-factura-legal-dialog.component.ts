@@ -41,6 +41,7 @@ import { FacturaLegalService } from "../factura-legal.service";
 import { PersonaSearchGQL } from "../../../personas/persona/graphql/personaSearch";
 import { UsuarioService } from "../../../personas/usuarios/usuario.service";
 import { RucService } from "../../../../shared/services/ruc.service";
+import { BotonComponent } from "../../../../shared/components/boton/boton.component";
 
 export interface FacturaLegalData {
   venta?: Venta;
@@ -55,9 +56,9 @@ export interface FacturaLegalData {
   styleUrls: ["./add-factura-legal-dialog.component.scss"],
 })
 export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
-  @ViewChild("imprimirBtn", { static: false }) imprimirBtn: ElementRef;
   @ViewChild("rucInput", { static: false }) rucInput: ElementRef;
   @ViewChild("nombreInput", { static: false }) nombreInput: ElementRef;
+  @ViewChild("imprimirBtb", { read: BotonComponent }) imprimirBtn: BotonComponent;
 
   selectedCliente: Cliente;
   selectedVenta: Venta;
@@ -84,6 +85,8 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
   digitoVerificador = "";
 
   guardarSub = new Subject<boolean>();
+
+  isNuevoCliente = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: FacturaLegalData,
@@ -153,7 +156,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
       validText = arr[0];
       this.rucControl.setValue(validText);
       console.log(this.rucControl.value, this.selectedCliente?.documento);
-      
+
       if (
         this.rucControl.value == this.selectedCliente?.documento &&
         this.totalFinalControl.valid
@@ -287,104 +290,114 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     this.direccionControl.disable();
     this.tributaControl.setValue(res?.tributa == false ? false : true);
     // Wait for clienteService response and handle success and error
-    if (this.selectedCliente?.verificadoSet == false) {
-      this.clienteService.onConsultaRuc(this.rucControl.value).subscribe({
-        next: (rucRes) => {
-          if (rucRes?.ruc != null) {
-            this.clienteDescripcionControl.setValue(rucRes?.nombre);
-            this.direccionControl.setValue(rucRes?.direccion);
-            this.tributaControl.setValue(true);
-            if (
-              (this.selectedCliente.nombre != rucRes.nombre &&
-                this.selectedCliente.nombre != rucRes?.nombreFantasia) ||
-              this.selectedCliente.persona.direccion != rucRes.direccion
-            )
-              this.dialogoService
-                .confirm(
-                  "Atención!!",
-                  "Los datos del cliente guardados en el sistema son diferentes a los verificados en la plataforma de SET, le gustaria actualizar?"
-                )
-                .subscribe((dialogRes) => {
-                  if (dialogRes) {
-                    this.selectedCliente.nombre = rucRes.nombre;
-                    this.selectedCliente.direccion = rucRes.direccion;
-                    this.selectedCliente.tributa = true;
-                    this.selectedCliente.verificadoSet = true;
-                    this.clienteService
-                      .onSaveCliente(this.selectedCliente.toInput())
-                      .subscribe();
-                  }
-                });
-          } else {
-            console.log("entra en el no tributa");
-            this.tributaControl.setValue(false);
-            this.selectedCliente.tributa = false;
-            this.selectedCliente.verificadoSet = true;
-            this.selectedCliente.documento = rucRes.ruc;
-
-            this.clienteService
-              .onSaveCliente(this.selectedCliente.toInput())
-              .subscribe();
-          }
-        },
-        error: (error) => {
-          this.notificacionService.openSucess("No fue posible consultar SET");
-        },
-        complete: () => {},
-      });
-    }
+    //     if (this.selectedCliente?.verificadoSet == false) {
+    //       this.clienteService.onConsultaRuc(this.rucControl.value).subscribe({
+    //         next: (rucRes) => {
+    //           if (rucRes?.ruc != null) {
+    //             this.clienteDescripcionControl.setValue(rucRes?.nombre);
+    //             this.direccionControl.setValue(rucRes?.direccion);
+    //             this.tributaControl.setValue(true);
+    //             if (
+    //               (this.selectedCliente.nombre != rucRes.nombre &&
+    //                 this.selectedCliente.nombre != rucRes?.nombreFantasia) ||
+    //               this.selectedCliente.persona.direccion != rucRes.direccion
+    //             )
+    //               this.dialogoService
+    //                 .confirm(
+    //                   "Atención!!",
+    //                   "Los datos del cliente guardados en el sistema son diferentes a los verificados en la plataforma de SET, le gustaria actualizar?"
+    //                 )
+    //                 .subscribe((dialogRes) => {
+    //                   if (dialogRes) {
+    //                     this.selectedCliente.nombre = rucRes.nombre;
+    //                     this.selectedCliente.direccion = rucRes.direccion;
+    //                     this.selectedCliente.tributa = true;
+    //                     this.selectedCliente.verificadoSet = true;
+    //                     this.clienteService
+    //                       .onSaveCliente(this.selectedCliente.toInput())
+    //                       .subscribe();
+    //                   }
+    //                 });
+    //           } else {
+    //             console.log("entra en el no tributa");
+    //             this.tributaControl.setValue(false);
+    //             this.selectedCliente.tributa = false;
+    //             this.selectedCliente.verificadoSet = true;
+    //             this.selectedCliente.documento = rucRes.ruc;
+    //
+    //             this.clienteService
+    //               .onSaveCliente(this.selectedCliente.toInput())
+    //               .subscribe();
+    //           }
+    //         },
+    //         error: (error) => {
+    //           this.notificacionService.openSucess("No fue posible consultar SET");
+    //         },
+    //         complete: () => {},
+    //       });
+    //     }
   }
 
   crearNuevoCliente(persona?: Persona) {
-    this.clienteService.onConsultaRuc(this.rucControl.value).subscribe({
-      next: (rucRes) => {
-        if (rucRes?.nombre != null) {
-          this.clienteDescripcionControl.setValue(rucRes.nombre);
-          this.direccionControl.setValue(rucRes?.direccion);
-          this.selectedCliente = new Cliente;
-          this.selectedCliente.documento = rucRes.ruc;
-        } else {
-          this.dialogoService
-            .confirm(
-              "Atención!!",
-              "Este ruc no esta registrado en la SET. Desea editar el ruc o continuar?",
-              "Si continua se cambiara a facturación con cédula (sin guión)",
-              null,
-              true,
-              "Editar ruc",
-              "Continuar"
-            )
-            .subscribe((dialogRes) => {
-              if(!dialogRes){
-                this.tributaControl.setValue(false);
-                this.clienteDescripcionControl.enable();
-                this.direccionControl.enable();
-                this.nombreInput.nativeElement.focus();
-                this.selectedCliente = new Cliente;
-                this.selectedCliente.documento = rucRes.ruc;
-              } else {
-                this.nombreInput.nativeElement.select();
-              }
-              
-            });
-        }
-      },
-      error: (error) => {
-        this.clienteDescripcionControl.enable();
-        this.direccionControl.enable();
-        this.nombreInput.nativeElement.focus();
-      },
-      complete: () => {
-        if (persona != null) {
-          //hay persona no hay cliente
-          if(this.selectedCliente == null) this.selectedCliente = new Cliente();
-          this.selectedCliente.persona = persona;
-          this.selectedCliente.tipo = TipoCliente.NORMAL;
-          this.setCliente(this.selectedCliente);
-        }
-      },
-    });
+    this.isNuevoCliente = true;
+    this.clienteDescripcionControl.enable();
+    this.direccionControl.enable();
+    this.nombreInput.nativeElement.focus();
+    // this.clienteService.onConsultaRuc(this.rucControl.value).subscribe({
+    //   next: (rucRes) => {
+    //     if (rucRes?.nombre != null) {
+    //       this.clienteDescripcionControl.setValue(rucRes.nombre);
+    //       this.direccionControl.setValue(rucRes?.direccion);
+    //       this.selectedCliente = new Cliente;
+    //       this.selectedCliente.documento = rucRes.ruc;
+    //     } else {
+    //       this.dialogoService
+    //         .confirm(
+    //           "Atención!!",
+    //           "Este ruc no esta registrado en la SET. Desea editar el ruc o continuar?",
+    //           "Si continua se cambiara a facturación con cédula (sin guión)",
+    //           null,
+    //           true,
+    //           "Editar ruc",
+    //           "Continuar"
+    //         )
+    //         .subscribe((dialogRes) => {
+    //           if(!dialogRes){
+    //             this.tributaControl.setValue(false);
+    //             this.clienteDescripcionControl.enable();
+    //             this.direccionControl.enable();
+    //             this.nombreInput.nativeElement.focus();
+    //             this.selectedCliente = new Cliente;
+    //             this.selectedCliente.documento = rucRes.ruc;
+    //           } else {
+    //             this.nombreInput.nativeElement.select();
+    //           }
+    //
+    //         });
+    //     }
+    //   },
+    //   error: (error) => {
+    //     this.clienteDescripcionControl.enable();
+    //     this.direccionControl.enable();
+    //     this.nombreInput.nativeElement.focus();
+    //   },
+    //   complete: () => {
+    //     if (persona != null) {
+    //       //hay persona no hay cliente
+    //       if(this.selectedCliente == null) this.selectedCliente = new Cliente();
+    //       this.selectedCliente.persona = persona;
+    //       this.selectedCliente.tipo = TipoCliente.NORMAL;
+    //       this.setCliente(this.selectedCliente);
+    //     }
+    //   },
+    // });
   }
+
+  onGuardarCliente() {
+    this.imprimirBtn.onGetFocus();
+  }
+
+  onCancelarNuevoCliente() {}
 
   editItem(item, i) {}
 

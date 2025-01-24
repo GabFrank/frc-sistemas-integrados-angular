@@ -94,7 +94,7 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
         if (this.nombreClienteControl.valid) {
           this.searchTimer = setTimeout(() => {
             this.onSearch()
-          }, 500);
+          }, 1000);
         } else {
           this.clienteList = [];
         }

@@ -254,27 +254,7 @@ export class VentaService {
   }
 
   onCancelarVenta(id, sucId): Observable<boolean> {
-    return new Observable((obs) => {
-      this.cancelarVenta
-        .mutate(
-          {
-            id,
-            sucId,
-          },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data.data);
-          } else {
-            obs.next(null);
-          }
-        });
-    });
+      return this.genericService.onCustomMutation(this.cancelarVenta, {id, sucId}, true);
   }
 
   onSearch(

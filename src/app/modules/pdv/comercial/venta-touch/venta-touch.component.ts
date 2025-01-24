@@ -133,7 +133,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   selectedItemList: VentaItem[] = [];
   itemList: VentaItem[] = [];
   itemList2: VentaItem[] = [];
-  isDialogOpen;
   isAuxiliar = false;
   monedas: Moneda[] = [];
   mostrarTipoPrecios = false;
@@ -152,6 +151,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   mostrarPrecios = false;
   cantidadControl = new FormControl();
   modoConsulta = false;
+  isDialogOpen = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private dialogData: VentaTouchData,
@@ -221,6 +221,15 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       this.totalGs = this.selectedVenta?.totalGs;
       this.selectedItemList = this.selectedVenta?.ventaItemList;
     }
+
+    this.cargandoService
+      .dialogState$()
+      .pipe(untilDestroyed(this))
+      .subscribe((isOpen) => {
+        this.isDialogOpen = isOpen;
+        console.log(this.isDialogOpen);
+        
+      });
   }
 
   ngAfterViewInit(): void {
@@ -829,13 +838,21 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               cobro.id = this.selectedDelivery.venta.cobro.id;
               venta.cobro = cobro;
               venta.delivery = this.selectedDelivery;
-              
-              this.ventaService.onSaveVentaDelivery(venta.toInput(), this.selectedDelivery.toInput(), cobro.toItemInputList(), ventaCredito != null ? ventaCredito.toInput() : null, ventaCredito != null ? ventaCreditoCuotaInputList : null).subscribe(ventaDeliveryRes => {
-                this.resetForm();
-                this.calcularTotales();  
-                this.isDelivery = false;
-                this.selectedDelivery = null;              
-              })
+
+              this.ventaService
+                .onSaveVentaDelivery(
+                  venta.toInput(),
+                  this.selectedDelivery.toInput(),
+                  cobro.toItemInputList(),
+                  ventaCredito != null ? ventaCredito.toInput() : null,
+                  ventaCredito != null ? ventaCreditoCuotaInputList : null
+                )
+                .subscribe((ventaDeliveryRes) => {
+                  this.resetForm();
+                  this.calcularTotales();
+                  this.isDelivery = false;
+                  this.selectedDelivery = null;
+                });
 
               // this.onSaveVenta(
               //   venta,

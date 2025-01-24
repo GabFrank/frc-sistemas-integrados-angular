@@ -1,14 +1,14 @@
 import { Injectable } from "@angular/core";
 import { MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { NgxSpinnerService } from "ngx-spinner";
-import { BehaviorSubject, Subject, timer } from "rxjs";
+import { BehaviorSubject, map, Observable, Subject, timer } from "rxjs";
 import { CargandoDialogComponent } from "./cargando-dialog.component";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { NotificacionSnackbarService } from "../../../notificacion-snackbar.service";
 
 class DialogData {
-  texto: string
-  id: number
+  texto: string;
+  id: number;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -16,8 +16,16 @@ class DialogData {
   providedIn: "root",
 })
 export class CargandoDialogService {
-
-  private dialogRequests: Map<number, { timer: any, texto: string, botonText?: string, showCerrarButton: boolean, abortController: AbortController }> = new Map();
+  private dialogRequests: Map<
+    number,
+    {
+      timer: any;
+      texto: string;
+      botonText?: string;
+      showCerrarButton: boolean;
+      abortController: AbortController;
+    }
+  > = new Map();
   public requestIdCounter: number = 0;
 
   public dialogSub: Subject<boolean> = new Subject<boolean>();
@@ -26,9 +34,17 @@ export class CargandoDialogService {
     private matDialog: MatDialog,
     private spinnerService: NgxSpinnerService,
     private notificacionService: NotificacionSnackbarService
-  ) {}
+  ) {
 
-  openDialog(disable?: boolean, texto?: string, duracion?: number, botonDelay?: number, botonText?: string): { requestId: number, signal: AbortSignal } {
+  }
+
+  openDialog(
+    disable?: boolean,
+    texto?: string,
+    duracion?: number,
+    botonDelay?: number,
+    botonText?: string
+  ): { requestId: number; signal: AbortSignal } {
     // console.trace('Method called');
 
     this.spinnerService.show();
@@ -37,15 +53,15 @@ export class CargandoDialogService {
     const abortController = new AbortController();
     const timer = setTimeout(() => {
       this.closeDialog(requestId);
-      this.notificacionService.openWarn('Tiempo de espera superado');
+      this.notificacionService.openWarn("Tiempo de espera superado");
     }, duracion || 60000); // Default duration 60 seconds
 
     this.dialogRequests.set(requestId, {
       timer,
-      texto: texto || '',
-      botonText: botonText || 'Cerrar',
+      texto: texto || "",
+      botonText: botonText || "Cerrar",
       showCerrarButton: disable !== undefined ? !disable : true,
-      abortController
+      abortController,
     });
     // console.log(`Dialog opened: requestId=${requestId}, signal=${abortController.signal}`);
     return { requestId, signal: abortController.signal };
@@ -85,8 +101,8 @@ export class CargandoDialogService {
     return this.requestIdCounter;
   }
 
-  closeAll(){
-    this.dialogRequests.forEach(request => {
+  closeAll() {
+    this.dialogRequests.forEach((request) => {
       clearTimeout(request.timer);
       request.abortController.abort();
     });
@@ -94,5 +110,11 @@ export class CargandoDialogService {
     this.spinnerService.hide();
     this.dialogSub.next(false);
     this.dialogSub.complete();
+  }
+
+  public dialogState$(): Observable<boolean> {
+    return this.spinnerService.spinnerObservable.pipe(
+      map(res => !!res?.show) // Use `map` to transform the value into a boolean
+    );
   }
 }

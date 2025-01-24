@@ -21,6 +21,8 @@ class UltimasVentasDialogData {
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { MatPaginator } from "@angular/material/paginator";
 import { catchError, map, merge, startWith, switchMap, Observable, of as observableOf } from "rxjs";
+import { VentaEstado } from "../enums/venta-estado.enums";
+import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -107,27 +109,23 @@ export class UltimasVentasDialogComponent implements OnInit {
     }
   }
 
-  cancelarVenta(id) {
-    this.cargandoService.openDialog(false, 'Cancelando venta');
+  cancelarVenta(venta: Venta, index) {
     this.dialogService
       .confirm(
-        "Realmente desea cancelar la venta " + id + "?",
-        null,
-        null,
-        null
+        "Atención!!",
+        "Realmente desea cancelar la venta " + venta.id + "?",
+        "Al cancelar una venta debe escribir el motivo de canceación en el ticket y enviar una foto de la nota"
       ).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res) {
-          // this.ventaService.onCancelarVenta(id).pipe(untilDestroyed(this)).subscribe((res) => {
-          //   setTimeout(() => {
-          //     this.cargandoService.closeDialog();
-          //   }, 1000);
-          //   if (res != null) {
-          //     console.log("exito");
-          //     this.dataSource.data = [];
-          //     this.buscarVentas();
-          //   }
-          // });
+          this.ventaService.onCancelarVenta(venta.id, venta.sucursalId).pipe(untilDestroyed(this)).subscribe((res) => {
+            if (res) {
+              this.notificacionSnackBar.openSucess("Cancelado con éxito");
+              venta.estado = VentaEstado.CANCELADA;
+              this.dataSource.data = updateDataSource(this.dataSource.data, venta, index);
+              this.reimpresionVenta(venta.id);
+            }
+          });
         }
       });
   }
