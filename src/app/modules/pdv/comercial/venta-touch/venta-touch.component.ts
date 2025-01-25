@@ -227,8 +227,6 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .pipe(untilDestroyed(this))
       .subscribe((isOpen) => {
         this.isDialogOpen = isOpen;
-        console.log(this.isDialogOpen);
-        
       });
   }
 

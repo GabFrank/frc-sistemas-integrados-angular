@@ -26,6 +26,8 @@ export class ConteoService {
   ) { }
 
   onSave(conteo: Conteo, cajaId, apertura: boolean): Observable<any> {
+    console.log(conteo, cajaId, apertura);
+    
     let conteoMonedaInputList: ConteoMonedaInput[] = []
     conteo.conteoMonedaList.forEach(c => conteoMonedaInputList.push(c.toInput()))
     this.cargandoService.openDialog()
