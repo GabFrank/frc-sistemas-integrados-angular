@@ -24,49 +24,15 @@
           <div class="boton">
             <ng-content select="[buscar]"></ng-content>
             <app-boton (clickEvent)="onFiltrar()" [disableExpression]="disableFilter" [bdcWalkTriggerFor]="buscarTrigger" nombre="Buscar"></app-boton>
-            <!-- <button
-              mat-raised-button
-              color="primary"
-              (click)="onFiltrar()"
-              style="width: 100%"
-              [disabled]="disableFilter"
-              [bdcWalkTriggerFor]="buscarTrigger"
-            >
-              Buscar
-            </button> -->
           </div>
           <div class="boton">
             <app-boton (clickEvent)="onResetFiltro()" nombre="Limpiar Filtro"></app-boton>
-            <!-- <button
-              mat-raised-button
-              color="primary"
-              (click)="onResetFiltro()"
-              style="width: 100%"
-            >
-              Limpiar Filtro
-            </button> -->
           </div>
           <div *ngIf="isAdicionar" class="boton">
             <app-boton (clickEvent)="onAdd()" nombre="+ Adicionar"></app-boton>
-            <!-- <button
-              mat-raised-button
-              color="primary"
-              (click)="onAdd()"
-              style="width: 100%"
-            >
-              + Adicionar
-            </button> -->
           </div>
           <div *ngIf="isCustom" class="boton">
             <app-boton (clickEvent)="onCustomFunc()" [nombre]="customName"></app-boton>
-            <!-- <button
-              mat-raised-button
-              color="primary"
-              (click)="onCustomFunc()"
-              style="width: 100%"
-            >
-              {{ customName }}
-            </button> -->
           </div>
         </div>
       </mat-card>

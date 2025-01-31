@@ -153,6 +153,15 @@
   <mat-accordion *ngIf="mainService?.isServidor">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
+        <mat-panel-title> Empresarial </mat-panel-title>
+      </mat-expansion-panel-header>
+      <a mat-list-item (click)="onItemClick('list-sucursal')">Sucursales</a>
+    </mat-expansion-panel>
+  </mat-accordion>
+
+  <mat-accordion *ngIf="mainService?.isServidor">
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
         <mat-panel-title> General </mat-panel-title>
       </mat-expansion-panel-header>
       <a mat-list-item (click)="onItemClick('list-paises')">Paises</a>

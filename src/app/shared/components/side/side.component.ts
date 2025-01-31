@@ -32,6 +32,7 @@ import { ListRetiroComponent } from "../../../modules/financiero/retiro/list-ret
 import { ListFacturaLegalComponent } from "../../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component";
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
+import { ListSucursalComponent } from "../../../modules/empresarial/sucursal/list-sucursal/list-sucursal.component";
 
 @Component({
   selector: "app-side",
@@ -306,6 +307,15 @@ export class SideComponent implements OnInit {
         ) {
           this.tabService.addTab(
             new Tab(ListFacturaLegalComponent, "Lista de facturas", null, null)
+          );
+        }
+        break;
+        case "list-sucursal":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
+        ) {
+          this.tabService.addTab(
+            new Tab(ListSucursalComponent, "Lista de sucursales", null, null)
           );
         }
         break;
