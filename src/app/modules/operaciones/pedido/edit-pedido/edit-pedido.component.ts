@@ -170,6 +170,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   filtroItensNotaRecepcionControl = new FormControl();
   filtroPedidoItensSobrantesControl = new FormControl();
   filtroNotaRecepcionControl = new FormControl();
+  cantidadesPorSucursalControl = new FormControl();
   selectedMoneda: Moneda;
   selectedFormaPago: FormaPago;
 
@@ -579,7 +580,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
           this.selectedNotaRecepcionPage = res;
           this.notaRecepcionDataSource.data = res.getContent;
           setTimeout(() => {
-            this.onGoToPago();
+            // this.onGoToPago();
           }, 1000);
         }
       });

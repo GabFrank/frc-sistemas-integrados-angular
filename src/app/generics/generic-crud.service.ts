@@ -100,14 +100,20 @@ export class GenericCrudService {
     });
   }
 
-  onCustomQuery(gql: Query, data, servidor?, errorConf?, silentLoad?:boolean): Observable<any> {
+  onCustomQuery(
+    gql: Query,
+    data,
+    servidor?,
+    errorConf?,
+    silentLoad?: boolean
+  ): Observable<any> {
     console.log("Entrando en custom query");
 
     this.isLoading = true;
-    let { requestId = null, signal = null } = silentLoad != true ? this.cargandoService.openDialog(
-      false,
-      "Buscando..."
-    ) : {};
+    let { requestId = null, signal = null } =
+      silentLoad != true
+        ? this.cargandoService.openDialog(false, "Buscando...")
+        : {};
     return new Observable((obs) => {
       gql
         .fetch(data, {
@@ -124,7 +130,9 @@ export class GenericCrudService {
         )
         .subscribe({
           next: (res) => {
-            silentLoad != true ? this.cargandoService.closeDialog(requestId): null;
+            silentLoad != true
+              ? this.cargandoService.closeDialog(requestId)
+              : null;
             this.isLoading = false;
             if (res.errors == null) {
               obs.next(res.data["data"]);
@@ -139,7 +147,9 @@ export class GenericCrudService {
           },
           error: (error) => {
             this.isLoading = false;
-            silentLoad != true ? this.cargandoService.closeDialog(requestId): null;
+            silentLoad != true
+              ? this.cargandoService.closeDialog(requestId)
+              : null;
             if (errorConf?.networkError?.show == true) {
               this.notificacionSnackBar.notification$.next({
                 texto: "Error de red",
@@ -169,7 +179,7 @@ export class GenericCrudService {
           errorPolicy: "all",
           context: {
             clientName: servidor == true ? "servidor" : null,
-            fetchOptions: { signal }
+            fetchOptions: { signal },
           },
         })
         .pipe(untilDestroyed(this))
@@ -248,10 +258,10 @@ export class GenericCrudService {
     silentLoad?
   ): Observable<T> {
     this.isLoading = true;
-    let { requestId = null, signal = null } = silentLoad != true ? this.cargandoService.openDialog(
-      false,
-      "Buscando..."
-    ) : {};
+    let { requestId = null, signal = null } =
+      silentLoad != true
+        ? this.cargandoService.openDialog(false, "Buscando...")
+        : {};
     return new Observable((obs) => {
       gql
         .fetch(
@@ -268,7 +278,9 @@ export class GenericCrudService {
         .pipe(untilDestroyed(this))
         .subscribe(
           (res) => {
-            silentLoad != true ? this.cargandoService.closeDialog(requestId): null;
+            silentLoad != true
+              ? this.cargandoService.closeDialog(requestId)
+              : null;
             this.isLoading = false;
             if (res.errors == null) {
               obs.next(res.data["data"]);
@@ -351,10 +363,13 @@ export class GenericCrudService {
     usuarioId?: number
   ): Observable<T> {
     this.isLoading = true;
-    if(usuarioId == null) usuarioId = this.mainService.usuarioActual.id;
-    if(input?.usuarioId == null){
-      input['usuarioId'] = this.mainService.usuarioActual.id;
-    } 
+    if (usuarioId == null) usuarioId = this.mainService.usuarioActual.id;
+    if ("usuarioId" in input) {
+      if (input?.usuarioId == null) {
+        input["usuarioId"] = this.mainService.usuarioActual.id;
+      }
+    }
+
     const { requestId, signal } = this.cargandoService.openDialog(
       false,
       "Guardando..."

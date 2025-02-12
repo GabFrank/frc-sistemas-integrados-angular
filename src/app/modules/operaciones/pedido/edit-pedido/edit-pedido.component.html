@@ -361,17 +361,18 @@
     </div>
   </div>
 
-  <div
-    fxFlex
-    fxLayout="row"
-    fxLayoutGap="10px"
-    fxLayoutGap="10px"
-    fxLayoutAlign="start center"
-    *ngIf="
-      selectedPedido?.estado == 'ABIERTO' || selectedPedido?.estado == null
-    "
-  >
+  <div fxFlex fxLayout="column">
     <div
+      fxFlex
+      fxLayout="row"
+      fxLayoutGap="10px"
+      fxLayoutGap="10px"
+      fxLayoutAlign="start center"
+      *ngIf="
+        selectedPedido?.estado == 'ABIERTO' || selectedPedido?.estado == null
+      "
+    >
+      <!-- <div
       fxLayout="column"
       fxFlex="5"
       style="width: 1005; height: 100%"
@@ -397,118 +398,118 @@
       <div fxFlex>
         {{ selectedProducto?.codigoPrincipal }}
       </div>
-    </div>
-    <mat-form-field
-      *ngIf="selectedProducto?.id != null"
-      fxFlex="5"
-      style="width: 100%"
-    >
-      <mat-label>Id</mat-label>
-      <input
-        #idInput
-        matInput
-        type="text"
-        [formControl]="productoIdControl"
-        [readonly]="true"
-      />
-    </mat-form-field>
-    <mat-form-field fxFlex="20" style="width: 100%">
-      <mat-label>Código de barra o descripción del producto</mat-label>
-      <input
-        #codigoInput
-        matInput
-        type="text"
-        [formControl]="codigoControl"
-        (keydown.enter)="onSearchPorCodigo()"
-        (keyup.tab)="selectedProducto == null ? onSearchPorCodigo() : null"
-        (focusin)="onCodigoFocus()"
-      />
-    </mat-form-field>
-    <div fxFlex="5">
-      <mat-form-field style="width: 100%; text-align: center">
-        <mat-label>Presentación</mat-label>
-        <mat-select #presentacionSelect [formControl]="presentacionControl">
-          <mat-option
-            *ngFor="let presentacion of selectedProducto?.presentaciones"
-            [value]="presentacion"
-            style="text-align: center"
-          >
-            {{ presentacion?.cantidad | number : "1.0-3" }}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
-    </div>
-    <div fxFlex="10">
+    </div> -->
       <mat-form-field
+        *ngIf="selectedProducto?.id != null"
+        fxFlex="5"
         style="width: 100%"
-        matTooltip="Cantidad por presentación"
       >
-        <mat-label>Cant. por present.</mat-label>
+        <mat-label>Id</mat-label>
         <input
-          #cantidadPresentacionInput
-          type="text"
+          #idInput
           matInput
-          [formControl]="cantidadPresentacionControl"
-          style="text-align: center"
-          (keyup.enter)="precioPorPresentacion.select()"
-          currencyMask
-          [options]="currencyMask.currencyOptionsGuarani"
+          type="text"
+          [formControl]="productoIdControl"
+          [readonly]="true"
         />
       </mat-form-field>
-    </div>
-    <div fxFlex="10">
-      <mat-form-field style="width: 100%" matTooltip="Cantidad por unidad">
-        <mat-label>Cant. por unid.</mat-label>
+      <mat-form-field fxFlex="20" style="width: 100%">
+        <mat-label>Código de barra o descripción del producto</mat-label>
         <input
-          #cantidadUnidadInput
-          type="text"
+          #codigoInput
           matInput
-          [formControl]="cantidadUnidadControl"
-          style="text-align: center"
-          readonly
-          [tabindex]="-1"
+          type="text"
+          [formControl]="codigoControl"
+          (keydown.enter)="onSearchPorCodigo()"
+          (keyup.tab)="selectedProducto == null ? onSearchPorCodigo() : null"
+          (focusin)="onCodigoFocus()"
         />
       </mat-form-field>
-    </div>
-    <div fxFlex="8">
-      <mat-form-field style="width: 100%">
-        <mat-label>Precio por present.</mat-label>
-        <input
-          #precioPorPresentacion
-          type="text"
-          matInput
-          [formControl]="precioPorPresentacionControl"
-          style="text-align: center"
-          currencyMask
-          [options]="
-            selectedMoneda?.denominacion?.includes('GUARANI')
-              ? currencyMask.currencyOptionsGuarani
-              : currencyMask.currencyOptionsNoGuarani
-          "
-          (focusin)="precioPorPresentacion.select()"
-          (keyup.enter)="precioUnitario.select()"
-        />
-      </mat-form-field>
-    </div>
-    <div fxFlex="8">
-      <mat-form-field style="width: 100%">
-        <mat-label>Precio Unit.</mat-label>
-        <input
-          #precioUnitario
-          type="text"
-          matInput
-          [formControl]="precioUnitarioControl"
-          style="text-align: center"
-          currencyMask
-          [options]="
-            selectedMoneda?.denominacion?.includes('GUARANI')
-              ? currencyMask.currencyOptionsGuarani
-              : currencyMask.currencyOptionsNoGuarani
-          "
-          (keyup.enter)="descuentoInput.select()"
-          (focusin)="precioUnitario.select()"
-        />
-        <!-- <mat-hint
+      <div fxFlex="10">
+        <mat-form-field style="width: 100%; text-align: center">
+          <mat-label>Presentación</mat-label>
+          <mat-select #presentacionSelect [formControl]="presentacionControl">
+            <mat-option
+              *ngFor="let presentacion of selectedProducto?.presentaciones"
+              [value]="presentacion"
+              style="text-align: center"
+            >
+              {{ presentacion?.cantidad | number : "1.0-3" }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="10">
+        <mat-form-field
+          style="width: 100%"
+          matTooltip="Cantidad por presentación"
+        >
+          <mat-label>Cant. por present.</mat-label>
+          <input
+            #cantidadPresentacionInput
+            type="text"
+            matInput
+            [formControl]="cantidadPresentacionControl"
+            style="text-align: center"
+            (keyup.enter)="precioPorPresentacion.select()"
+            currencyMask
+            [options]="currencyMask.currencyOptionsGuarani"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="10">
+        <mat-form-field style="width: 100%" matTooltip="Cantidad por unidad">
+          <mat-label>Cant. por unid.</mat-label>
+          <input
+            #cantidadUnidadInput
+            type="text"
+            matInput
+            [formControl]="cantidadUnidadControl"
+            style="text-align: center"
+            readonly
+            [tabindex]="-1"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="8">
+        <mat-form-field style="width: 100%">
+          <mat-label>Precio por present.</mat-label>
+          <input
+            #precioPorPresentacion
+            type="text"
+            matInput
+            [formControl]="precioPorPresentacionControl"
+            style="text-align: center"
+            currencyMask
+            [options]="
+              selectedMoneda?.denominacion?.includes('GUARANI')
+                ? currencyMask.currencyOptionsGuarani
+                : currencyMask.currencyOptionsNoGuarani
+            "
+            (focusin)="precioPorPresentacion.select()"
+            (keyup.enter)="precioUnitario.select()"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="8">
+        <mat-form-field style="width: 100%">
+          <mat-label>Precio Unit.</mat-label>
+          <input
+            #precioUnitario
+            type="text"
+            matInput
+            [formControl]="precioUnitarioControl"
+            style="text-align: center"
+            currencyMask
+            [options]="
+              selectedMoneda?.denominacion?.includes('GUARANI')
+                ? currencyMask.currencyOptionsGuarani
+                : currencyMask.currencyOptionsNoGuarani
+            "
+            (keyup.enter)="descuentoInput.select()"
+            (focusin)="precioUnitario.select()"
+          />
+          <!-- <mat-hint
           class="btn-success-flat"
           *ngIf="
             this.selectedProducto?.costo?.ultimoPrecioCompra >
@@ -528,127 +529,134 @@
               this.selectedProducto?.costo?.ultimoPrecioCompra -
               100 | number : "1.0-0"
           }}%</mat-hint -->
-        >
-      </mat-form-field>
-    </div>
+          >
+        </mat-form-field>
+      </div>
 
-    <div fxFlex="8">
-      <mat-form-field style="width: 100%">
-        <mat-label>Desc. por present.</mat-label>
-        <input
-          #descuentoInput
-          type="text"
-          matInput
-          [formControl]="descuentoPresentacionControl"
-          style="text-align: center"
-          currencyMask
-          [options]="
-            selectedMoneda?.denominacion?.includes('GUARANI')
-              ? currencyMask.currencyOptionsGuarani
-              : currencyMask.currencyOptionsNoGuarani
-          "
-          matTooltip="Descuento por presentación"
-          (keyup.enter)="saveIcon._elementRef.nativeElement.focus()"
-          (focusout)="
-            valorTotalControl.setValue(
-              valorTotalControl.value -
-                descuentoPresentacionControl.value *
-                  cantidadPresentacionControl.value
-            )
-          "
-          (keyup.ArrowLeft)="precioUnitario.select()"
-          (keyup.ArrowRight)="
-            selectedPedido?.estado == 'ACTIVO'
-              ? null
-              : saveIcon._elementRef.nativeElement.focus()
-          "
-        />
-      </mat-form-field>
-    </div>
+      <div fxFlex="8">
+        <mat-form-field style="width: 100%">
+          <mat-label>Desc. por present.</mat-label>
+          <input
+            #descuentoInput
+            type="text"
+            matInput
+            [formControl]="descuentoPresentacionControl"
+            style="text-align: center"
+            currencyMask
+            [options]="
+              selectedMoneda?.denominacion?.includes('GUARANI')
+                ? currencyMask.currencyOptionsGuarani
+                : currencyMask.currencyOptionsNoGuarani
+            "
+            matTooltip="Descuento por presentación"
+            (keyup.enter)="saveIcon._elementRef.nativeElement.focus()"
+            (focusout)="
+              valorTotalControl.setValue(
+                valorTotalControl.value -
+                  descuentoPresentacionControl.value *
+                    cantidadPresentacionControl.value
+              )
+            "
+            (keyup.ArrowLeft)="precioUnitario.select()"
+            (keyup.ArrowRight)="
+              selectedPedido?.estado == 'ACTIVO'
+                ? null
+                : saveIcon._elementRef.nativeElement.focus()
+            "
+          />
+        </mat-form-field>
+      </div>
 
-    <div fxFlex="10">
-      <mat-form-field style="width: 100%">
-        <mat-label>Total</mat-label>
-        <input
-          type="text"
-          matInput
-          [formControl]="valorTotalControl"
-          style="text-align: center"
-          currencyMask
-          [options]="
-            selectedMoneda?.denominacion?.includes('GUARANI')
-              ? currencyMask.currencyOptionsGuarani
-              : currencyMask.currencyOptionsNoGuarani
-          "
-          tabindex="-1"
-          readonly
-        />
-      </mat-form-field>
-    </div>
+      <div fxFlex="10">
+        <mat-form-field style="width: 100%">
+          <mat-label>Total</mat-label>
+          <input
+            type="text"
+            matInput
+            [formControl]="valorTotalControl"
+            style="text-align: center"
+            currencyMask
+            [options]="
+              selectedMoneda?.denominacion?.includes('GUARANI')
+                ? currencyMask.currencyOptionsGuarani
+                : currencyMask.currencyOptionsNoGuarani
+            "
+            tabindex="-1"
+            readonly
+          />
+        </mat-form-field>
+      </div>
 
-    <div fxFlex="3" style="width: 100%; text-align: center">
-      <button
-        mat-icon-button
-        [disabled]="selectedPedido?.estado == 'ACTIVO'"
-        (click)="
-          $event.stopPropagation();
-          selectedPedido?.estado == 'ABIERTO' || selectedPedido == null
-            ? onSaveItem('on click')
-            : null
-        "
-        (keyup.enter)="
-          $event.stopPropagation();
-          selectedPedido?.estado == 'ABIERTO' || selectedPedido == null
-            ? onSaveItem('enter')
-            : null
-        "
-        (keyup.ArrowLeft)="descuentoInput.select()"
-        (keyup.ArrowRight)="moreOptions._elementRef.nativeElement.focus()"
-      >
-        <mat-icon
-          #saveIcon
-          [tabindex]="
+      <div fxFlex="3" style="width: 100%; text-align: center">
+        <button
+          mat-icon-button
+          [disabled]="selectedPedido?.estado == 'ACTIVO'"
+          (click)="
+            $event.stopPropagation();
             selectedPedido?.estado == 'ABIERTO' || selectedPedido == null
-              ? 0
+              ? onSaveItem('on click')
               : null
           "
+          (keyup.enter)="
+            $event.stopPropagation();
+            selectedPedido?.estado == 'ABIERTO' || selectedPedido == null
+              ? onSaveItem('enter')
+              : null
+          "
+          (keyup.ArrowLeft)="descuentoInput.select()"
+          (keyup.ArrowRight)="moreOptions._elementRef.nativeElement.focus()"
+        >
+          <mat-icon
+            #saveIcon
+            [tabindex]="
+              selectedPedido?.estado == 'ABIERTO' || selectedPedido == null
+                ? 0
+                : null
+            "
+            (click)="$event.stopPropagation()"
+            (keyup)="$event.stopPropagation()"
+            class="highlight-hover"
+            >save</mat-icon
+          >
+        </button>
+      </div>
+
+      <div fxFlex="3" style="width: 100%; text-align: center">
+        <button
+          class="btn-more-options"
+          #moreOptions
+          mat-icon-button
+          [matMenuTriggerFor]="menuItem"
+          (keyup.ArrowLeft)="saveIcon._elementRef.nativeElement.focus()"
+          (keyup.ArrowRight)="clearIcon._elementRef.nativeElement.focus()"
           (click)="$event.stopPropagation()"
-          (keyup)="$event.stopPropagation()"
-          class="highlight-hover"
-          >save</mat-icon
+          [disabled]="selectedPedido?.estado == 'ACTIVO'"
         >
-      </button>
-    </div>
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #menuItem="matMenu">
+          <button mat-menu-item>Pactar vencimiento</button>
+          <button mat-menu-item>Planificar precio</button>
+          <button mat-menu-item>Planificar entrega</button>
+        </mat-menu>
+      </div>
 
-    <div fxFlex="3" style="width: 100%; text-align: center">
-      <button
-        class="btn-more-options"
-        #moreOptions
-        mat-icon-button
-        [matMenuTriggerFor]="menuItem"
-        (keyup.ArrowLeft)="saveIcon._elementRef.nativeElement.focus()"
-        (keyup.ArrowRight)="clearIcon._elementRef.nativeElement.focus()"
-        (click)="$event.stopPropagation()"
-        [disabled]="selectedPedido?.estado == 'ACTIVO'"
-      >
-        <mat-icon>more_vert</mat-icon>
-      </button>
-      <mat-menu #menuItem="matMenu">
-        <button mat-menu-item>Pactar vencimiento</button>
-        <button mat-menu-item>Planificar precio</button>
-        <button mat-menu-item>Planificar entrega</button>
-      </mat-menu>
+      <div fxFlex="3" style="width: 100%; text-align: center">
+        <button mat-icon-button (click)="onClearItem()">
+          <mat-icon
+            #clearIcon
+            class="highlight-hover-danger"
+            (keyup.ArrowLeft)="moreOptions._elementRef.nativeElement.focus()"
+            >clear</mat-icon
+          >
+        </button>
+      </div>
     </div>
-
-    <div fxFlex="3" style="width: 100%; text-align: center">
-      <button mat-icon-button (click)="onClearItem()">
-        <mat-icon
-          #clearIcon
-          class="highlight-hover-danger"
-          (keyup.ArrowLeft)="moreOptions._elementRef.nativeElement.focus()"
-          >clear</mat-icon
-        >
-      </button>
+    <div fxFlex fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+      <section>
+        <mat-checkbox [formControl]="cantidadesPorSucursalControl">Definir cantidades por sucursal</mat-checkbox>
+        <!-- <mat-checkbox class="example-margin" [disabled]="true">Disabled</mat-checkbox> -->
+      </section>
     </div>
   </div>
   <div
