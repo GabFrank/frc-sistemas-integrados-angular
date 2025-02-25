@@ -42,6 +42,12 @@ import { EditarPedidpItemDialogComponent } from './pedido/editar-pedidp-item-dia
 import { PagoGeneralComponent } from './pago/pago-general/pago-general.component';
 import { PagoGeneralListComponent } from './pago/pago-general-list/pago-general-list.component';
 import { PagoPedidoDialogComponent } from './pedido/pago-pedido-dialog/pago-pedido-dialog.component';
+import { AddCategoriaObsDialogComponent } from './categoria-observacion/add-categoria-obs-dialog/add-categoria-obs-dialog.component';
+import { VentaObservacionDashboardComponent } from './venta-observacion/venta-observacion-dashboard/venta-observacion-dashboard.component';
+import { AddSubcategoriaObsDialogComponent } from './sub-categoria-observacion/add-subcategoria-obs-dialog/add-subcategoria-obs-dialog.component';
+import { AddVentaObservacionComponent } from './venta-observacion/add-venta-observacion/add-venta-observacion.component';
+import { AddMotivoObsDialogComponent } from './motivo-observacion/add-motivo-obs-dialog/add-motivo-obs-dialog.component';
+import { MainVentaObservacionComponent } from './venta-observacion/main-venta-observacion/main-venta-observacion.component';
 
 @NgModule({
   declarations: [
@@ -81,6 +87,12 @@ import { PagoPedidoDialogComponent } from './pedido/pago-pedido-dialog/pago-pedi
     PagoGeneralComponent,
     PagoGeneralListComponent,
     PagoPedidoDialogComponent,
+    AddCategoriaObsDialogComponent,
+    VentaObservacionDashboardComponent,
+    AddSubcategoriaObsDialogComponent,
+    AddVentaObservacionComponent,
+    AddMotivoObsDialogComponent,
+    MainVentaObservacionComponent,
   ],
   imports: [
     CommonModule,

@@ -32,6 +32,7 @@ import { ListRetiroComponent } from "../../../modules/financiero/retiro/list-ret
 import { ListFacturaLegalComponent } from "../../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component";
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
+import { MainVentaObservacionComponent } from "../../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component";
 
 @Component({
   selector: "app-side",
@@ -280,6 +281,15 @@ export class SideComponent implements OnInit {
         this.tabService.addTab(
           new Tab(DeliveryDashboardComponent, "Delivery Dash", null, null)
         );
+        break;
+      case "observacion-ventas":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
+        ) {
+          this.tabService.addTab(
+            new Tab(MainVentaObservacionComponent, "Observacion de Ventas", null, null)
+          );
+        }
         break;
       case "lucro-por-producto":
         this.tabService.addTab(

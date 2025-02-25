@@ -20,6 +20,9 @@ import { ListDeliveryComponent } from '../../modules/pdv/comercial/venta-touch/l
 import { PresentacionComponent } from '../../modules/productos/presentacion/presentacion.component';
 import { ProductoComponent } from '../../modules/productos/producto/edit-producto/producto.component';
 import { TransferenciaComponent } from '../../modules/operaciones/transferencia/transferencia.component';
+import { ListVentaComponent } from '../../modules/operaciones/venta/list-venta/list-venta.component';
+import { AddVentaObservacionComponent } from '../../modules/operaciones/venta-observacion/add-venta-observacion/add-venta-observacion.component';
+import { MainVentaObservacionComponent } from '../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -54,9 +57,12 @@ export class TabService implements OnInit {
     ];
 
     // this.addTab(new Tab(EditTransferenciaComponent, 'Transferencia 56', new TabData(56, {id: 56}), null))
-    // this.addTab(new Tab(VentaTouchComponent, 'Venta'))
+    //  this.addTab(new Tab(VentaTouchComponent, 'Venta'))
     // this.addTab(new Tab(ListPedidoComponent, 'Lista de pedidos'))
-    // this.addTab(new Tab(EditPedidoComponent, 'Nuevo pedido', new TabData(12, {id:12}), null))
+    // this.addTab(new Tab(EditPedidoComponent, 'Nuevo pedido', null, null))
+    //this.addTab(new Tab(ListCajaComponent, 'Venta 3160', new TabData(3160, {id:3160}), null))
+    this.addTab(new Tab(MainVentaObservacionComponent, 'Observacion de ventas', null, null))
+    // this.addTab(new Tab(ProductoComponent, 'Lista de productos', null, null))
     this.tabSub.next(this.tabs);
   }
   

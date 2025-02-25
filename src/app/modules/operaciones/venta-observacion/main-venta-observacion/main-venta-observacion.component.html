@@ -1,0 +1,634 @@
+<div
+  fxLayout="row"
+  style="height: 100%; width: 100%; overflow-y: hidden"
+  fxLayoutGap="10px"
+>
+<div fxFlex="20">
+  <mat-card
+    appearance="outlined"
+    fxLayout="column"
+    fxLayoutGap="10px"
+    style="width: 100%; height: 100%; padding: 20px"
+  >
+    <div fxFlex="5" style="text-align: center; color: #f57c00">
+      <h3>Resumen de la observación</h3>
+    </div>
+    <div
+      fxLayout="column"
+      fxLayoutAlign="space-around start"
+      style="width: 100%"
+    >
+      <div fxFlex style="text-align: start; color: #f57c00">
+        Categoría:
+      </div>
+      <div fxFlex style="text-align: left">
+        {{ selectedCategoriaObs?.descripcion | uppercase }}
+      </div>
+    </div>
+    <div
+      fxLayout="column"
+      fxLayoutAlign="space-around start"
+      style="width: 100%"
+    >
+      <div fxFlex style="text-align: start; color: #f57c00">
+        Subcategoría:
+      </div>
+        <div fxFlex style="text-align: right">
+          {{ selectedSubCategoriaObs?.descripcion | uppercase }}
+        </div>
+      </div>
+    <div
+      fxLayout="column"
+      fxLayoutAlign="space-around start"
+      style="width: 100%"
+    >
+      <div fxFlex style="text-align: start; color: #f57c00">
+        Motivo:
+      </div>
+        <div fxFlex style="text-align: start">
+          {{ selectedMotivoObs?.descripcion | uppercase }}
+        </div>
+    </div>
+  </mat-card>
+</div>
+<mat-horizontal-stepper 
+  fxFlex="80" 
+  fxFlexFill 
+  #stepper 
+  linear 
+  style="width: 100%; height: 100%;"
+>
+  <mat-step 
+    [stepControl]="categoriaObsControl"
+  >
+    <ng-template matStepLabel>Categoría</ng-template>
+    <div
+      table
+      style="height: 100%; background-color: rgb(70, 70, 70)"
+      fxLayout="column"
+      fxLayoutAlign="space-between start"
+    >
+      <div
+        style="
+          width: 100%;
+          height: 100%;
+          overflow-y: auto;
+          background-color: rgb(52, 52, 52);
+          padding: 10px;
+        "
+      >
+        <table 
+          mat-table 
+          [dataSource]="categoriaObsDataSource" 
+          class="mat-elevation-z8"
+        >
+          <ng-container matColumnDef="id">
+            <th mat-header-cell *matHeaderCellDef> ID </th>
+              <td 
+                mat-cell 
+                *matCellDef="let cat" 
+                (click)="onSelectCategoria(cat)"
+                [class.selected]="selectedCategoriaObs?.id === cat.id"
+              >
+                {{cat.id}}
+              </td>
+          </ng-container>
+          <ng-container matColumnDef="descripcion">
+              <th mat-header-cell *matHeaderCellDef style="width: 70%">
+                <div fxLayout="row" fxLayoutAlign="start space-between">
+                  <div fxFlex="70" fxLayout="column" fxLayoutAlign="center start">
+                    <span *ngIf="!filtroCategoriaOpen">Descripción</span>
+                    <span *ngIf="filtroCategoriaOpen" style="width: 100%">
+                      <div>
+                        <mat-form-field 
+                          style="width: 100%" 
+                          appearance="outline" 
+                          class="shrinking-mat-form-field"
+                        >
+                          <input
+                            #filtroCategoriaObsInput
+                            matInput
+                            type="text"
+                            [formControl]="filtroCategoriaControl"
+                            (keyup.enter)="onFilterCategoriaObs(); $event.stopPropagation()"
+                            (focusin)="filtroCategoriaObsInput.select()"
+                          />
+                        </mat-form-field>
+                      </div>
+                    </span>
+                  </div>
+                  <div fxFlex="30" fxLayout="row">
+                    <span>
+                      <button 
+                        matTooltip="Abrir buscador" 
+                        mat-icon-button
+                        (click)="filtroCategoriaOpen ? null : abrirFiltroCategoria()"
+                      >
+                        <mat-icon>search</mat-icon>
+                      </button>
+                    </span>
+                    <span *ngIf="filtroCategoriaOpen">
+                      <button 
+                        matTooltip="Limpiar buscador" 
+                        mat-icon-button 
+                        (click)="abrirFiltroCategoria()"
+                      >
+                        <mat-icon>clear</mat-icon>
+                      </button>
+                    </span>
+                    <span>
+                      <button 
+                        matTooltip="Crear nueva categoría" 
+                        mat-icon-button  
+                        (click)="onAddCategoriaObs()"
+                      >
+                        <mat-icon>add_circle</mat-icon>
+                      </button>
+                    </span>
+                    <span>
+                      <button 
+                        matTooltip="Recargar lista" 
+                        mat-icon-button
+                        (click)="filtroCategoriaControl.setValue(''); onFilterCategoriaObs()"
+                      >
+                        <mat-icon>refresh</mat-icon>
+                      </button>
+                    </span>
+                  </div>
+                </div>
+              </th>
+              <td
+                mat-cell 
+                *matCellDef="let cat" 
+                style="width: 70%;"
+                [class.selected]="selectedCategoriaObs?.id === cat.id"
+              >
+                <span> {{cat.descripcion}} </span>
+              </td>
+          </ng-container>
+          <ng-container matColumnDef="activo">
+            <th mat-header-cell *matHeaderCellDef> Activo </th>
+              <td 
+                mat-cell 
+                *matCellDef="let cat" 
+                (click)="onSelectCategoria(cat)"
+                [class.selected]="selectedCategoriaObs?.id === cat.id"
+              >
+                {{cat?.activo === true ? "Si" : "No"}}
+              </td>
+          </ng-container>
+          <ng-container matColumnDef="accion">
+            <th 
+              mat-header-cell 
+              *matHeaderCellDef 
+              style="width: 5%; text-align: center"
+            ></th>
+              <td 
+                mat-cell 
+                *matCellDef="let cat; let itemIndex = dataIndex" 
+                style="width: 5%; text-align: center"
+                (click)="onSelectCategoria(cat)" 
+                [class.selected]="selectedCategoriaObs?.id === cat.id"
+              >
+                <button 
+                  mat-icon-button 
+                  [matMenuTriggerFor]="menuCat" 
+                  (click)="$event.stopPropagation()"
+                >
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menuCat="matMenu">
+                  <button 
+                    mat-menu-item 
+                    (click)="onEditCategoriaObs(cat, itemIndex)"
+                  >
+                    Editar
+                  </button>
+                  <button 
+                    mat-menu-item 
+                    style="color:red" 
+                    (click)="onDeleteCategoriaObs(cat, itemIndex)"
+                  >
+                    Eliminar
+                  </button>
+                </mat-menu>
+              </td>
+          </ng-container>
+          <tr 
+            mat-header-row
+            *matHeaderRowDef="categoriaColumnsToDisplay"></tr>
+          <tr 
+            mat-row 
+            *matRowDef="let row; columns: categoriaColumnsToDisplay;" 
+            (click)="onSelectCategoria(row)"
+          ></tr>
+        </table>
+      </div>
+      <div
+        fxLayout="row"
+        style="width: 100%"
+        fxLayoutAlign="end center"
+      >
+        <div fxFlex="30" style="text-align: center">
+          <button
+            type="button"
+            style="width: 300px; padding-right: 10px"
+            mat-raised-button
+            matStepperNext
+            [disabled]="selectedCategoriaObs == null"
+            [class.selected]="selectedCategoriaObs != null"
+          >
+            Siguiente
+          </button>
+        </div>
+      </div>
+   </div>
+  </mat-step>
+  <mat-step [stepControl]="subCategoriaObsControl">
+    <ng-template matStepLabel>Subcategoría</ng-template>
+    <div
+      table
+      style="height: 100%; background-color: rgb(70, 70, 70)"
+      fxLayout="column"
+      fxLayoutAlign="space-between start"
+    >
+      <div
+        style="
+          width: 100%;
+          height: 100%;
+          overflow-y: auto;
+          background-color: rgb(52, 52, 52);
+          padding: 10px;
+        "
+      >
+        <table 
+          mat-table 
+          [dataSource]="getSubCategorias(selectedCategoriaObs?.id)" 
+          class="mat-elevation-z8"
+        >
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef> ID </th>
+            <td 
+              mat-cell 
+              *matCellDef="let sub" 
+              (click)="onSelectSubCategoria(sub)"
+              [class.selected]="selectedSubCategoriaObs?.id === sub.id"
+            >
+              {{sub.id}}
+            </td>
+        </ng-container>
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef style="width: 70%">
+            <div fxLayout="row" fxLayoutAlign="start space-between">
+              <div fxFlex="70" fxLayout="column" fxLayoutAlign="center start">
+                <span *ngIf="!filtroSubCategoriaOpen">Descripción</span>
+                <span *ngIf="filtroSubCategoriaOpen" style="width: 100%">
+                  <div>
+                    <mat-form-field 
+                      style="width: 100%" 
+                      appearance="outline" 
+                      class="shrinking-mat-form-field"
+                    >
+                      <input
+                        #filtroSubCategoriaObsInput
+                        matInput
+                        type="text"
+                        [formControl]="filtroSubCategoriaControl"
+                        (keyup.enter)="onFilterSubCategoriaObs(); $event.stopPropagation()"
+                        (focusin)="filtroSubCategoriaObsInput.select()"
+                      />
+                    </mat-form-field>
+                  </div>
+                </span>
+              </div>
+              <div fxFlex="30" fxLayout="row">
+                <span>
+                  <button 
+                    matTooltip="Abrir buscador" 
+                    mat-icon-button
+                    (click)="filtroSubCategoriaOpen ? null : abrirFiltroSubCategoria()"
+                  >
+                    <mat-icon>search</mat-icon>
+                  </button>
+                </span>
+                <span *ngIf="filtroSubCategoriaOpen">
+                  <button 
+                    matTooltip="Limpiar buscador" 
+                    mat-icon-button 
+                    (click)="abrirFiltroSubCategoria()"
+                  >
+                    <mat-icon>clear</mat-icon>
+                  </button>
+                </span>
+                <span>
+                  <button 
+                    matTooltip="Crear nueva subcategoría" 
+                    mat-icon-button 
+                    (click)="onAddSubCategoriaObs()"
+                  >
+                    <mat-icon>add_circle</mat-icon>
+                  </button>
+                </span>
+                <span>
+                  <button 
+                    matTooltip="Recargar lista" 
+                    mat-icon-button
+                    (click)="filtroSubCategoriaControl.setValue(''); onFilterSubCategoriaObs()"
+                  >
+                    <mat-icon>refresh</mat-icon>
+                  </button>
+                </span>
+              </div>
+            </div>
+          </th>
+          <td
+            mat-cell 
+            *matCellDef="let sub" 
+            style="width: 70%;"
+            [class.selected]="selectedSubCategoriaObs?.id === sub.id"
+          >
+            <span> {{sub.descripcion}} </span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="activo">
+          <th mat-header-cell *matHeaderCellDef> Activo </th>
+            <td 
+              mat-cell 
+              *matCellDef="let sub" 
+              (click)="onSelectSubCategoria(sub)"
+              [class.selected]="selectedSubCategoriaObs?.id === sub.id"
+            >
+              {{sub.activo === true ? 'Si' : 'No'}}
+            </td>
+        </ng-container>
+        <ng-container matColumnDef="accion">
+          <th 
+            mat-header-cell 
+            *matHeaderCellDef 
+            style="width: 5%; text-align: center"
+          ></th>
+            <td 
+              mat-cell 
+              *matCellDef="let sub; let itemIndex = dataIndex" 
+              style="width: 5%; text-align: center"
+              (click)="onSelectSubCategoria(sub)" 
+              [class.selected]="selectedSubCategoriaObs?.id === sub.id"
+            >
+              <button 
+                mat-icon-button
+                [matMenuTriggerFor]="menuSub" 
+                (click)="$event.stopPropagation()"
+              >
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menuSub="matMenu">
+                <button 
+                  mat-menu-item 
+                  (click)="onEditSubCategoriaObs(sub, itemIndex)"
+                >
+                  Editar
+                </button>
+                <button 
+                  mat-menu-item style="color:red" 
+                  (click)="onDeleteSubCategoriaObs(sub, itemIndex)"
+                >
+                  Eliminar
+                </button>
+              </mat-menu>
+            </td>
+        </ng-container>
+        <tr 
+          mat-header-row 
+          *matHeaderRowDef="subCategoriaColumnsToDisplay"
+        ></tr>
+        <tr 
+          mat-row 
+          *matRowDef="let row; columns: subCategoriaColumnsToDisplay;" 
+          (click)="onSelectSubCategoria(row)">
+        </tr>
+      </table>
+    </div>
+    <div
+      style="width: 100%"
+      fxLayout="row"
+      fxLayoutAlign="space-between center"
+    >
+      <div fxFlex="30" style="text-align: center">
+        <button
+          type="button"
+          style="width: 300px; padding-right: 10px"
+          mat-raised-button
+          matStepperPrevious
+          class="goBack"
+        >
+          Atras
+        </button>
+      </div>
+    <div fxFlex="30" style="text-align: center">
+      <button
+        type="button"
+        style="width: 300px; padding-right: 10px"
+        mat-raised-button
+        matStepperNext
+        [disabled]="selectedCategoriaObs === null || selectedSubCategoriaObs === null"
+        [class.selected]="selectedCategoriaObs != null"
+      >
+        Siguiente
+      </button>
+    </div>
+  </div>
+  </div>
+  </mat-step>
+  <mat-step [stepControl]="motivoObsControl">
+    <ng-template matStepLabel>Motivo</ng-template>
+    <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
+    <div
+      style="
+        width: 100%;
+        height: 100%;
+        overflow-y: auto;
+        background-color: rgb(52, 52, 52);
+        padding: 10px;
+      "
+    >
+      <table 
+        mat-table 
+        [dataSource]="getMotivos(selectedSubCategoriaObs?.id)" 
+        class="mat-elevation-z8"
+      >
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef> ID </th>
+            <td 
+              mat-cell 
+              *matCellDef="let motivo" 
+              (click)="onSelectMotivo(motivo)"
+              [class.selected]="selectedMotivoObs?.id === motivo.id"
+            >
+              {{motivo.id}}
+            </td>
+        </ng-container>
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef style="width: 70%">
+            <div fxLayout="row" fxLayoutAlign="start space-between">
+              <div fxFlex="70" fxLayout="column" fxLayoutAlign="center start">
+                <span *ngIf="!filtroMotivoOpen">Descripción</span>
+                <span *ngIf="filtroMotivoOpen" style="width: 100%">
+                  <div>
+                    <mat-form-field 
+                      style="width: 100%" 
+                      appearance="outline" 
+                      class="shrinking-mat-form-field"
+                    >
+                      <input
+                        #filtroMotivoObsInput
+                        matInput
+                        type="text"
+                        [formControl]="filtroMotivoControl"
+                        (keyup.enter)="onFilterMotivoObs(); $event.stopPropagation()"
+                        (focusin)="filtroMotivoObsInput.select()"
+                      />
+                    </mat-form-field>
+                  </div>
+                </span>
+              </div>
+              <div fxFlex="30" fxLayout="row">
+                <span>
+                  <button 
+                    matTooltip="Abrir buscador" 
+                    mat-icon-button
+                    (click)="filtroMotivoOpen ? null : abrirFiltroMotivo()"
+                  >
+                    <mat-icon>search</mat-icon>
+                  </button>
+                </span>
+                <span *ngIf="filtroMotivoOpen">
+                  <button 
+                    matTooltip="Limpiar buscador" 
+                    mat-icon-button 
+                    (click)="abrirFiltroMotivo()"
+                  >
+                    <mat-icon>clear</mat-icon>
+                  </button>
+                </span>
+                <span>
+                  <button 
+                    matTooltip="Crear nuevo motivo" 
+                    mat-icon-button 
+                    (click)="onAddMotivoObs()"
+                  >
+                    <mat-icon>add_circle</mat-icon>
+                  </button>
+                </span>
+                <span>
+                  <button 
+                    matTooltip="Recargar lista" 
+                    mat-icon-button
+                    (click)="filtroMotivoControl.setValue(''); onFilterMotivoObs()"
+                  >
+                    <mat-icon>refresh</mat-icon>
+                  </button>
+                </span>
+              </div>
+            </div>
+          </th>
+          <td
+            mat-cell 
+            *matCellDef="let motivo" 
+            style="width: 70%;"
+            [class.selected]="selectedMotivoObs?.id === motivo.id"
+          >
+            <span> {{motivo.descripcion}} </span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="activo">
+          <th mat-header-cell *matHeaderCellDef> Activo </th>
+          <td 
+            mat-cell 
+            *matCellDef="let motivo" 
+            (click)="onSelectMotivo(motivo)"
+            [class.selected]="selectedMotivoObs?.id === motivo.id"
+          >
+            {{motivo.activo === true ? 'Si' : 'No'}}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="accion">
+          <th mat-header-cell *matHeaderCellDef> Acción </th>
+          <td 
+            mat-cell 
+            *matCellDef="let motivo; let itemIndex = dataIndex" 
+            (click)="onSelectMotivo(motivo)"
+            [class.selected]="selectedMotivoObs?.id === motivo.id"
+          >
+            <button 
+              mat-icon-button 
+              [matMenuTriggerFor]="menuMotivo" 
+              (click)="$event.stopPropagation()"
+            >
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menuMotivo="matMenu">
+              <button 
+                mat-menu-item 
+                (click)="onEditMotivoObs(motivo, itemIndex)"
+              >
+                Editar
+              </button>
+              <button 
+                mat-menu-item style="color:red" 
+                (click)="onDeleteMotivoObs(motivo, itemIndex)"
+              >
+                Eliminar
+              </button>
+            </mat-menu>
+          </td>
+        </ng-container>
+
+        <tr 
+          mat-header-row 
+          *matHeaderRowDef="motivoColumnsToDisplay">
+        </tr>
+        <tr 
+          mat-row 
+          *matRowDef="let row; columns: motivoColumnsToDisplay;" 
+          (click)="onSelectMotivo(row)"></tr>
+      </table>
+    </div>
+    <div
+      style="width: 100%"
+      fxLayout="row"
+      fxLayoutAlign="space-between center"
+    >
+      <div fxFlex="30" style="text-align: center">
+        <button
+          type="button"
+          style="width: 300px; padding-right: 10px"
+          mat-raised-button
+          matStepperPrevious
+          class="goBack"
+        >
+          Atras
+        </button>
+      </div>
+      <div fxFlex="30" style="text-align: center">
+        <button
+          type="button"
+          style="width: 300px; padding-right: 10px"
+          mat-raised-button
+          matStepperNext
+          [disabled]="selectedSubCategoriaObs === null || selectedMotivoObs === null"
+          [class.selected]="selectedSubCategoriaObs != null"
+          (click)="onFinalizar()"
+        >
+          Finalizar
+        </button>
+      </div>
+    </div>
+  </div>
+  </mat-step>
+</mat-horizontal-stepper>
+</div>

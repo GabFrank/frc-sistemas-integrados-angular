@@ -1,0 +1,50 @@
+<div style="padding: 20px; min-height: 300px;" fxLayout="column">
+  <div style="width: 100%; text-align: center;">
+    <h3>Crear nueva Categoría</h3>
+  </div>
+  <div fxLayout="row" style="width: 100%;" fxLayoutAlign="start center">  
+    <div fxFlex="100">
+      <mat-form-field style="width: 100%">
+        <mat-label>Descripción</mat-label>
+        <input 
+          matInput
+          type="text"
+          [formControl]="descripcionControl"
+          autocomplete="off"
+          />
+      </mat-form-field>
+    </div>
+    <div fxFlex fxLayoutAlign="start center">
+      <mat-slide-toggle fxFlex="50" [formControl]="activoControl">
+        {{ activoControl.value ? "Activo" : "Inactivo" }}
+      </mat-slide-toggle>
+    </div>
+  </div>
+    <!-- <br> -->
+    <div
+      fxFlex
+      fxLayout="row"
+      fxLayoutGap="20px"
+      fxLayoutAlign="space-around center"
+    >
+      <button
+        fxFlex="30"
+        *ngIf="isCancelar"
+        mat-raised-button
+        (click)="onCancelar()"
+        color="primary"
+      >
+        Cancelar
+      </button>
+      <button
+        [disabled]="!formGroup.valid"
+        fxFlex="30"
+        *ngIf="isGuardar"
+        mat-raised-button
+        (click)="onGuardar()"
+        color="accent"
+      >
+        Guardar
+      </button>
+    </div>
+</div>

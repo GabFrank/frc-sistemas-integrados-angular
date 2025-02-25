@@ -1,0 +1,120 @@
+<div style="padding: 20px; min-height: 300px;" fxLayout="column">
+  <div style="width: 100%; text-align: center;">
+    <h2>Observación de la venta {{ selectedVenta?.id }}</h2>
+  </div>
+
+  <div fxFlex fxLayout="row" class="cards fondo">
+    <div fxFlex="25" fxLayout="column" style="padding-left: 60px;">
+      <div class="title" fxFlex="50">Venta ID</div>
+      <div class="item" fxFlex="50">
+        {{ selectedVenta?.id }}
+      </div>
+    </div>
+    <div fxFlex="25" fxLayout="column" style="padding-left: 55px;">
+      <div class="title" fxFlex="50">Total</div>
+      <div fxFlex="50">
+        {{ selectedVenta?.totalGs + selectedVenta?.delivery?.precio?.valor | number: "1.0-0"  }} Gs.
+      </div>
+    </div>
+    <div fxFlex="25" fxLayout="column" style="padding-left: 55px;">
+      <div class="title" fxFlex="50">Estado</div>
+      <div fxFlex="50">
+        {{ selectedVenta?.estado | uppercase }}
+      </div>
+    </div>
+    <div fxFlex="25" fxLayout="column" style="padding-left: 55px;">
+      <div class="title" fxFlex="50">Creado En</div>
+      <div fxFlex="50">
+        {{ selectedVenta?.creadoEn | date : "short" }}
+      </div>
+    </div>
+  </div>
+
+  <div fxFlex fxLayout="row" style="margin-top: 10px; text-align: center;">
+    <div fxFlex="50%" fxLayout="column">
+      <frc-searchable-select 
+        #categoriaObsSelect 
+        titulo="Categoria" 
+        [list]="categoriaObsList"
+        (selectionChanged)="handleCategoriaSelectionChange($event)" 
+        [compareFields]="['id', 'descripcion']"
+        [currentData]="categoriaObsControl.value" 
+        [isAutoSelect]="true"
+        style="padding-right: 10px;"
+      >
+        <ng-template let-item>
+          {{item.id}} - {{item.descripcion}}
+        </ng-template>
+      </frc-searchable-select>
+    </div>
+    <div fxFlex="50%" fxLayout="column">
+      <frc-searchable-select 
+        #subCategoriaObsSelect 
+        titulo="Subcategoria" 
+        [list]="filteredSubCategoriaObsList"
+        (selectionChanged)="handleSubCategoriaSelectionChange($event)" 
+        [compareFields]="['id', 'descripcion']"
+        [currentData]="subCategoriaObsControl.value" 
+        [isAutoSelect]="true"
+        style="padding-left: 10px;"
+      >
+        <ng-template let-item>
+          {{item.id}} - {{item.descripcion}}
+        </ng-template>
+      </frc-searchable-select>
+    </div>    
+  </div>
+ <div fxFlex fxLayout="row" style="margin-top: 10px; text-align: center;">
+  <div fxFlex="100%" fxLayout="column">
+    <frc-searchable-select 
+      #motivoObservacionSelect 
+      titulo="Motivo" 
+      [list]="filteredMotivoObsList"
+      (selectionChanged)="handleMotivoSelectionChange($event)" 
+      [compareFields]="['id', 'descripcion']"
+      [currentData]="motivoObservacionControl.value" 
+      [isAutoSelect]="true"
+    >
+      <ng-template let-item>
+        {{item.id}} - {{item.descripcion}}
+      </ng-template>
+    </frc-searchable-select>
+  </div>
+ </div>
+  <div fxFlex fxLayout="row">
+    <mat-form-field fxFlex>
+      <mat-label>Observación</mat-label>
+      <input 
+        matInput 
+        type="text" 
+        [formControl]="descripcionControl" 
+        autocomplete="off"
+      >
+    </mat-form-field>
+  </div>
+  <div 
+    fxFlex 
+    fxLayout="row" 
+    fxLayoutGap="20px" 
+    fxLayoutAlign="space-around center"
+    style="padding-top: 60px;"
+  >
+    <button 
+      fxFlex="30" 
+      mat-raised-button 
+      (click)="onCancelar()" 
+      color="primary"
+    >
+      Cancelar
+    </button>
+    <button 
+      [disabled]="!descripcionControl.valid" 
+      fxFlex="30"
+      mat-raised-button 
+      (click)="onGuardar()"
+      color="accent"
+    >
+      Guardar
+    </button>
+  </div>
+</div>
