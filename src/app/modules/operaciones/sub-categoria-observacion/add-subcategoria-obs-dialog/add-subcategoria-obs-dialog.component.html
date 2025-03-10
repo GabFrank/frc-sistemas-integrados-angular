@@ -6,7 +6,13 @@
     <div fxFlex="100">
       <mat-form-field style="width: 100%">
         <mat-label>Descripción</mat-label>
-        <input matInput type="text" [formControl]="descripcionControl" autocomplete="off" />
+        <input 
+          matInput 
+          type="text" 
+          [formControl]="descripcionControl" 
+          autocomplete="off" 
+          (keyup.enter)="onGuardar()"
+        />
       </mat-form-field>
     </div>
     <div fxFlex fxLayoutAlign="start center">
@@ -22,7 +28,13 @@
     style="width: 100%;"
     fxLayoutGap="10px"
   >
-  <div fxFlex fxLayout="row" fxLayoutGap="20px" fxLayoutAlign="space-around center" style="padding-top: 50px">
+  <div 
+    fxFlex 
+    fxLayout="row" 
+    fxLayoutGap="20px" 
+    fxLayoutAlign="space-around center" 
+    style="padding-top: 50px"
+  >
     <button 
       fxFlex="30" 
       *ngIf="isCancelar" 

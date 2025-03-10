@@ -464,9 +464,7 @@ export class ListVentaComponent implements OnInit {
       });
   }
 
-  // Método para marcar (y opcionalmente filtrar) las ventas según si tienen observaciones.
 onObservado(ventas: Venta[]): Venta[] {
-  // Recorre cada venta y marca si tiene observación.
   ventas.forEach((venta) => {
     venta['hasObservation'] = this.ventaObservacionList 
       ? this.ventaObservacionList.some((obs) => obs.venta.id === venta.id)

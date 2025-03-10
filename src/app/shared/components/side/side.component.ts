@@ -33,6 +33,7 @@ import { ListFacturaLegalComponent } from "../../../modules/financiero/factura-l
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
 import { MainVentaObservacionComponent } from "../../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component";
+import { MainCajaObservacionComponent } from "../../../modules/financiero/pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component";
 
 @Component({
   selector: "app-side",
@@ -287,8 +288,23 @@ export class SideComponent implements OnInit {
           this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
         ) {
           this.tabService.addTab(
-            new Tab(MainVentaObservacionComponent, "Observacion de Ventas", null, null)
+            new Tab(MainVentaObservacionComponent, "Observación de Ventas", null, null)
           );
+        }
+        else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
+        }
+        break;
+      case "observacion-cajas":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
+        ) {
+          this.tabService.addTab(
+            new Tab(MainCajaObservacionComponent, "Observación de Cajas", null, null)
+          );
+        } 
+        else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
       case "lucro-por-producto":

@@ -36,6 +36,10 @@ import { MostrarBalanceDialogComponent } from "../mostrar-balance-dialog/mostrar
 import { PageInfo } from "../../../../../app.component";
 import { UsuarioSearchGQL } from "../../../../personas/usuarios/graphql/usuarioSearch";
 import { Usuario } from "../../../../personas/usuarios/usuario.model";
+import { CajaObservacionDashboardComponent } from "../../caja-observacion/caja-observacion-dashboard/caja-observacion-dashboard.component";
+import { CajaObservacionService } from "../../caja-observacion/caja-observacion.service";
+import { MainCajaObservacionComponent } from "../../caja-observacion/main-caja-observacion/main-caja-observacion.component";
+import { CajaObservacion } from "../../caja-observacion/caja-observacion.model";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -55,6 +59,7 @@ import { Usuario } from "../../../../personas/usuarios/usuario.model";
 })
 export class ListCajaComponent implements OnInit {
   dataSource = new MatTableDataSource<PdvCaja>([]);
+  cajaObservacionList: CajaObservacion[];
   selectedPdvCaja: PdvCaja;
   expandedCaja: PdvCaja;
   selectedProducto: Producto;
@@ -98,6 +103,7 @@ export class ListCajaComponent implements OnInit {
   codigoMaletinControl = new FormControl();
   sucursalControl = new FormControl();
   sucursalCodigoControl = new FormControl();
+  conObsControl = new FormControl(false);
 
   codigoCajeroControl = new FormControl();
   cajeroControl = new FormControl();
@@ -117,7 +123,8 @@ export class ListCajaComponent implements OnInit {
     private searchMaletin: SearchMaletinGQL,
     private mainService: MainService,
     private searchSucursal: SucursalesSearchGQL,
-    private searchUsuario: UsuarioSearchGQL
+    private searchUsuario: UsuarioSearchGQL, 
+    private cajaObservacionService: CajaObservacionService
   ) {}
 
   ngOnInit(): void {
@@ -140,6 +147,13 @@ export class ListCajaComponent implements OnInit {
     } else {
       this.onSelectSucursal(this.mainService.sucursalActual);
     }
+    
+    this.cajaObservacionService.cajaObservacionBS
+      .pipe(untilDestroyed(this))
+      .subscribe((observaciones: CajaObservacion[]) => {
+        this.cajaObservacionList = observaciones;
+        this.dataSource.data = this.onObservado(this.dataSource.data);
+      })
   }
 
   onAdd(caja?: PdvCaja, index?) {
@@ -175,6 +189,9 @@ export class ListCajaComponent implements OnInit {
           this.dataSource.data = [];
           this.dataSource.data = res.getContent;
           this.selectedPageInfo = res;
+          let cajas: PdvCaja[] = res.getContent;
+          cajas = this.onObservado(cajas);  // Marca las cajas que tienen observación
+          this.dataSource.data = cajas; 
         }
       });
   }
@@ -189,6 +206,7 @@ export class ListCajaComponent implements OnInit {
     aux.setDate(hoy.getDate() - 5);
     this.fechaInicioControl.setValue(aux);
     this.fechaFinalControl.setValue(hoy);
+    this.conObsControl.setValue(false);
   }
 
   irVentas(caja: PdvCaja) {
@@ -202,6 +220,33 @@ export class ListCajaComponent implements OnInit {
         ListCajaComponent
       )
     );
+  }
+
+  onObservado(cajas: PdvCaja[]): PdvCaja[] {
+    cajas.forEach((caja) => {
+      caja['hasObservation'] = this.cajaObservacionList
+        ? this.cajaObservacionList.some((obs) => obs.pdvCaja && obs.pdvCaja.id === caja.id)
+        : false;
+    });
+  
+    if (this.conObsControl.value) {
+      cajas = cajas.filter((box) => box['hasObservation']);
+    }
+    return cajas;
+  }
+  
+
+  irObservacion(caja: PdvCaja) {
+    const dialogRef = this.matDialog
+      .open(CajaObservacionDashboardComponent, {
+        width: "950px",
+        height: "550px",
+        data: { caja: caja }
+      })
+      dialogRef.afterClosed()
+        .subscribe(() => {
+          this.cajaObservacionService.onGetCajasObservaciones().subscribe();
+        })
   }
 
   onCondigoEnter() {}

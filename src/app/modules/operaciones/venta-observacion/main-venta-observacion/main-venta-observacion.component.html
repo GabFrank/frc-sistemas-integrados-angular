@@ -19,7 +19,7 @@
       style="width: 100%"
     >
       <div fxFlex style="text-align: start; color: #f57c00">
-        Categoría:
+        Venta Categoría:
       </div>
       <div fxFlex style="text-align: left">
         {{ selectedCategoriaObs?.descripcion | uppercase }}
@@ -31,7 +31,7 @@
       style="width: 100%"
     >
       <div fxFlex style="text-align: start; color: #f57c00">
-        Subcategoría:
+        Venta Subcategoría:
       </div>
         <div fxFlex style="text-align: right">
           {{ selectedSubCategoriaObs?.descripcion | uppercase }}
@@ -43,7 +43,7 @@
       style="width: 100%"
     >
       <div fxFlex style="text-align: start; color: #f57c00">
-        Motivo:
+        Venta Motivo:
       </div>
         <div fxFlex style="text-align: start">
           {{ selectedMotivoObs?.descripcion | uppercase }}
@@ -61,7 +61,7 @@
   <mat-step 
     [stepControl]="categoriaObsControl"
   >
-    <ng-template matStepLabel>Categoría</ng-template>
+    <ng-template matStepLabel>Venta Categoría</ng-template>
     <div
       table
       style="height: 100%; background-color: rgb(70, 70, 70)"
@@ -245,7 +245,7 @@
    </div>
   </mat-step>
   <mat-step [stepControl]="subCategoriaObsControl">
-    <ng-template matStepLabel>Subcategoría</ng-template>
+    <ng-template matStepLabel>Venta Subcategoría</ng-template>
     <div
       table
       style="height: 100%; background-color: rgb(70, 70, 70)"
@@ -440,7 +440,7 @@
   </div>
   </mat-step>
   <mat-step [stepControl]="motivoObsControl">
-    <ng-template matStepLabel>Motivo</ng-template>
+    <ng-template matStepLabel>Venta Motivo</ng-template>
     <div
     table
     style="height: 100%; background-color: rgb(70, 70, 70)"

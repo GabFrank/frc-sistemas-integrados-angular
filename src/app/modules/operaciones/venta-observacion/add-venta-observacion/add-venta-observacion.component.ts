@@ -31,14 +31,13 @@ export interface VentaObservacionData {
   subCategoriaObsId: number;
   motivoObservacionId: number;
 }
-
+@UntilDestroy({ checkProperties: true})
 @Component({
   selector: 'add-venta-observacion',
   templateUrl: './add-venta-observacion.component.html',
   styleUrls: ['./add-venta-observacion.component.scss']
 })
 
-@UntilDestroy({ checkProperties: true})
 export class AddVentaObservacionComponent implements OnInit{
   @ViewChild("categoriaObsSelect", { read: FrcSearchableSelectComponent})
   categoriaObsSelect: FrcSearchableSelectComponent;
@@ -95,8 +94,8 @@ export class AddVentaObservacionComponent implements OnInit{
       motivos: this.motivoObservacionService.onGetMotivosObservaciones()
     }).subscribe(({ categorias, subcategorias, motivos }) => {
       this.categoriaObsList = categorias;
-      this.subCategoriaObsList = subcategorias;
-      this.motivoObservacionList = motivos;
+      this.subCategoriaObsList = subcategorias || [];
+      this.motivoObservacionList = motivos || [];
       
       if (this.data?.ventaObservacion?.motivoObservacion) {
         const categoriaSeleccionada = this.data.ventaObservacion.motivoObservacion.subcategoriaObservacion?.categoriaObservacion;

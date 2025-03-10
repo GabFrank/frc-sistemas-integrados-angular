@@ -1,6 +1,6 @@
 export class VentaObservacionInput {
   id: number;
-  descripcion: String;
+  descripcion: string;
   motivoObservacionId: number;
   ventaId: number;
   sucursalId: number;

@@ -49,6 +49,13 @@
           }}
         </mat-checkbox>
       </div>
+      <div fxFlex="30%">
+        <mat-label>Cajas con observaciones</mat-label>
+        <mat-checkbox
+          [formControl]="conObsControl"
+        >
+        </mat-checkbox>
+      </div>
       <div fxFlex="8%"></div>
       <div fxFlex="25%">
         <mat-form-field style="width: 100%" class="shrinking-mat-form-field">
@@ -434,6 +441,7 @@
           <mat-menu #menu="matMenu">
             <button mat-menu-item (click)="onAdd(caja, i)">Ir a Caja</button>
             <button mat-menu-item (click)="irVentas(caja)">Ir a Ventas</button>
+            <button mat-menu-item (click)="irObservacion(caja)">Adicionar observación</button>
           </mat-menu>
         </td>
       </ng-container>
@@ -462,6 +470,7 @@
       <tr
         mat-row
         *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+        [ngClass]="{'con-observacion': row.hasObservation}"
         [class.verificado]="row?.verificado == true"
       ></tr>
       <tr

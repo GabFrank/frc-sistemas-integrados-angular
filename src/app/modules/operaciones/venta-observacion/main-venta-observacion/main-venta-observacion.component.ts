@@ -119,7 +119,6 @@ export class MainVentaObservacionComponent implements OnInit, OnDestroy {
     this.subCategoriaObsService.onGetAllSubCategoriaObs()
       .subscribe({
         next: (subCat: SubCategoriaObservacion[]) => {
-          console.log('Subcategorias obtenidas', subCat);
           const datos = subCat.map(sub => ({ ...sub, expanded: false }));
           this.subCategoriaObsDataSource.data = datos;
         }
@@ -128,7 +127,6 @@ export class MainVentaObservacionComponent implements OnInit, OnDestroy {
     this.motivoObsService.onGetMotivosObservaciones()
       .subscribe({
         next: (motivo: MotivoObservacion[]) => {
-          console.log('Motivos obtenidos', motivo);
           const datos = motivo.map(mot => ({ ...mot, expanded: false }));
           this.motivoObsDataSource.data = datos;
         }
@@ -171,7 +169,7 @@ export class MainVentaObservacionComponent implements OnInit, OnDestroy {
   onFinalizar() {
     this.tabService.removeTab(this.data.id - 1);
     this.tabService.addTab(
-      new Tab(MainVentaObservacionComponent, "Observacion de ventas", null, MainVentaObservacionComponent)
+      new Tab(MainVentaObservacionComponent, "Observación de Ventas", null, MainVentaObservacionComponent)
     );
     console.log('Seleccion final:', this.selectedCategoriaObs, this.selectedSubCategoriaObs, this.selectedMotivoObs)
     this.notificationBar.notification$.next(
@@ -276,13 +274,38 @@ export class MainVentaObservacionComponent implements OnInit, OnDestroy {
           if (!newSubcat.categoriaObservacion && this.selectedCategoriaObs) {
             newSubcat.categoriaObservacion = this.selectedCategoriaObs;
           }
-          this.subCategoriaObsList = [...this.subCategoriaObsList, newSubcat];
+          this.subCategoriaObsList = [...(this.subCategoriaObsList || []), newSubcat];
 
           this.subCategoriaObsControl.setValue(newSubcat);
-          this.subCategoriaObsDataSource.data = updateDataSource(this.subCategoriaObsDataSource.data, newSubcat);
+          this.selectedSubCategoriaObs = newSubcat; 
         }
       });
   }
+
+    onAddCajaSubCategoriaObs() {
+      this.matDialog
+        .open(AddSubcategoriaObsDialogComponent, {
+          width: "550px",
+          height: "250px",
+          data: { categoriaPreselected: this.selectedCategoriaObs }
+        })
+        .afterClosed()
+        .pipe(untilDestroyed(this))
+        .subscribe((res: any) => {
+          if (res != null) {
+            let newSubcat: SubCategoriaObservacion = res.data ? res.data : res;
+  
+            if (!newSubcat.categoriaObservacion && this.subCategoriaObsDataSource.data, newSubcat) {
+              newSubcat.categoriaObservacion = this.selectedCategoriaObs;
+            }
+            this.subCategoriaObsList = [...(this.subCategoriaObsList || []), newSubcat];
+  
+            this.subCategoriaObsDataSource.data = [...this.subCategoriaObsDataSource.data, newSubcat];
+            this.subCategoriaObsControl.setValue(newSubcat);
+            this.selectedSubCategoriaObs = newSubcat; 
+          }
+        });
+    }
   
   onAddMotivoObs() {
     this.matDialog
@@ -297,13 +320,12 @@ export class MainVentaObservacionComponent implements OnInit, OnDestroy {
         if (res != null) {
           let newMot: MotivoObservacion = res.data ? res.data : res;
 
-          this.motivoObsDataSource.data = [...this.motivoObsDataSource.data, newMot];
           if (!newMot.subcategoriaObservacion && this.selectedSubCategoriaObs) {
             newMot.subcategoriaObservacion = this.selectedSubCategoriaObs;
           }
 
-          this.motivoObsList = [...this.motivoObsList, newMot];
           this.motivoObsDataSource.data = [...this.motivoObsDataSource.data, newMot];
+          this.motivoObsList = [...(this.motivoObsList || []), newMot];
 
           this.motivoObsControl.setValue(newMot);
         }
@@ -330,7 +352,7 @@ export class MainVentaObservacionComponent implements OnInit, OnDestroy {
   }
 
   onDeleteCategoriaObs(cat: CategoriaObservacion, i) {
-    this.dialogService.confirm('Atención!!', 'Realmente desea eliminar esta categoría?')
+    this.dialogService.confirm('Atención!!', 'Realmente desea eliminar esta venta categoría?')
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         if (res) {
@@ -372,7 +394,7 @@ export class MainVentaObservacionComponent implements OnInit, OnDestroy {
   }
 
   onDeleteSubCategoriaObs(sub: SubCategoriaObservacion, i) {
-    this.dialogService.confirm('Atención!!', 'Realmente desea eliminar esta subcategoría?')
+    this.dialogService.confirm('Atención!!', 'Realmente desea eliminar esta venta subcategoría?')
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         if (res) {
@@ -414,7 +436,7 @@ export class MainVentaObservacionComponent implements OnInit, OnDestroy {
   }
 
   onDeleteMotivoObs(mot: MotivoObservacion, i) {
-    this.dialogService.confirm('Atención!!', 'Realmente desea eliminar este motivo?')
+    this.dialogService.confirm('Atención!!', 'Realmente desea eliminar este venta motivo?')
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         if (res) {
