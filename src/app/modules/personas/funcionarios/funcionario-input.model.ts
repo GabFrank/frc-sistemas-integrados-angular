@@ -11,6 +11,6 @@ export class FuncionarioInput  {
   diarista: boolean
   supervisadoPorId: number
   creadoEn: Date;
-  usuarioId: number;
+  usuarioId: number = null;
   activo: boolean;
 }

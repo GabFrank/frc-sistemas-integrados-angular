@@ -27,8 +27,12 @@ import { PrintService } from "../../../print/print.service";
 import { ReporteService } from "../../../reportes/reporte.service";
 import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
 import { ProductoComponent } from "../edit-producto/producto.component";
-import { Producto } from "../producto.model";
+import { ExistenciaCostoPorSucursal, Producto } from "../producto.model";
 import { ProductoService } from "../producto.service";
+import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
+import { MovimientoStock } from '../../../operaciones/movimiento-stock/movimiento-stock.model';
+import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
+import { MovimientoStockService } from '../../../operaciones/movimiento-stock/movimiento-stock.service';
 
 interface ProductoDatasource {
   id: number;
@@ -71,7 +75,7 @@ import { SearchSubfamiliaByDescripcionGQL } from "../../sub-familia/graphql/sear
 })
 export class ListProductoComponent implements OnInit, AfterViewInit {
   readonly ROLES = ROLES;
-
+  titulo = 'Lista de productos';
   @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild("filtroProductoInput") filtroProductoInput: ElementRef;
 
@@ -114,6 +118,10 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   private service: ProductoService;
 
+  sucursales: Sucursal[] = [];
+  loadingStock: { [key: number]: boolean } = {};
+  stockPorSucursal: { [key: string]: number } = {};
+
   constructor(
     private injector: Injector,
     private tabService: TabService,
@@ -123,22 +131,15 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     private reporteService: ReporteService,
     public mainService: MainService,
     private codigoService: CodigoService,
-    private searchSubfamilia: SearchSubfamiliaByDescripcionGQL
+    private searchSubfamilia: SearchSubfamiliaByDescripcionGQL,
+    private sucursalService: SucursalService,
+    private movimientoStockService: MovimientoStockService,
   ) {
     setTimeout(() => (this.service = injector.get(ProductoService)));
   }
 
   ngOnInit(): void {
-    // subscripcion a los datos de productos
-    //listener para el campo buscar
-    // this.buscarField.valueChanges.subscribe((res) => {
-    //   this.onSearchChange(res);
-    // });
-    // this.buscarField.valueChanges
-    //   .pipe(untilDestroyed(this))
-    //   .subscribe((value) => {
-    //     if (value != null) this.onSearchProducto(value);
-    //   });
+    this.cargarSucursales();
   }
 
   ngAfterViewInit(): void {
@@ -146,14 +147,12 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       this.filtroProductoInput.nativeElement.focus();
     }, 500);
 
-    console.log(this.mainService.usuarioActual.roles);
   }
 
   createForm() {}
 
   onSearchProducto() {
     this.isSearching = true;
-    console.log(this.selectedSubfamilia?.id);
 
     this.service
       .onSearchWithFilters(
@@ -180,7 +179,17 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   onRowClick(row) {
     this.selectedProducto = row;
+    this.selectedProducto.sucursales = [];
+    for(let sucursal of this.sucursales){
+      this.service.onGetStockPorProductoAndSucursal(this.selectedProducto.id, sucursal.id).subscribe(res => {
+        let existencia = new ExistenciaCostoPorSucursal();
+        existencia.sucursal = sucursal;
+        existencia.existencia = res;
+        this.selectedProducto.sucursales.push(existencia);
+      })
+    }
     this.expandedProducto = this.selectedProducto;
+
   }
 
   onEditProducto(producto, i) {
@@ -273,4 +282,11 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       });
   }
   onClearSubfamilia() {}
+
+  cargarSucursales() {
+    this.sucursalService.onGetAllSucursales().subscribe(res => {
+      this.sucursales = res?.filter(sucursal => sucursal.nombre != "SERVIDOR" && sucursal.nombre != "COMPRAS");
+    })
+  }
+
 }

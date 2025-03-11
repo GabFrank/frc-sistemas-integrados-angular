@@ -28,9 +28,9 @@ export class Producto {
   imagenPrincipal?: string;
   tipoConservacion?: string;
   subfamilia?: Subfamilia;
-  codigos?: [Codigo]
-  sucursales?: [ExistenciaCostoPorSucursal]
-  productoUltimasCompras?: [ExistenciaCostoPorSucursal]
+  codigos?: Codigo[]
+  sucursales?: ExistenciaCostoPorSucursal[]
+  productoUltimasCompras?: ExistenciaCostoPorSucursal[]
   presentaciones: Presentacion[]
   stockPorProducto?: number;
   codigoPrincipal?: string

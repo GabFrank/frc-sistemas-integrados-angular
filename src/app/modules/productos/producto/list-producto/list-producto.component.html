@@ -312,17 +312,13 @@
             >
               Editar
             </button>
-            <button
+            <!-- <button
               mat-menu-item
               (click)="onVerMovimiento(producto, i)"
-              *ngIf="
-                mainService.usuarioActual?.roles.includes(
-                  ROLES.VER_MOVIMIENTO_DE_STOCK
-                )
-              "
+              
             >
               Ver movimientos
-            </button>
+            </button> -->
           </mat-menu>
         </td>
       </ng-container>
@@ -335,6 +331,7 @@
           *matCellDef="let producto"
           [attr.colspan]="displayedColumns.length"
           class="expanded"
+          style="background-color: rgb(50, 50, 50)"
         >
           <div
             class="example-producto-detail"
@@ -342,9 +339,48 @@
               producto?.id == expandedProducto?.id ? 'expanded' : 'collapsed'
             "
             style="text-align: center"
-            fxLayout="column"
-            fxLayoutAlign="start start"
-          ></div>
+            fxLayout="row" fxLayoutAlign="center center"
+          >
+            <div fxFlex="50" style="width: 100%; margin: 10px; height: 50vh; overflow-y: auto;">
+              <mat-card fxLayout="column" fxLayoutAlign="start start"
+                style="padding: 10px; background-color: rgb(32, 32, 32);">
+                
+                <!-- Add loading indicator -->
+                <mat-spinner *ngIf="!producto?.sucursales" diameter="30"></mat-spinner>
+                
+                <!-- Show sucursal data when loaded -->
+                <div *ngIf="producto?.sucursales" fxLayout="column" style="width: 100%">
+                  <div style="text-align: center; margin-bottom: 10px">Stock por Sucursal</div>
+                  <table style="width: 100%">
+                    <thead>
+                      <tr>
+                        <th class="titulo" style="text-align: left; padding: 8px">Sucursal</th>
+                        <th class="titulo" style="text-align: center; padding: 8px">Stock Disponible</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let sucursal of producto?.sucursales" >
+                        <td class="highlight-cell" style="text-align: left; padding: 8px" id="nombre">{{ sucursal.sucursal.nombre | uppercase }}</td>
+                        <td class="highlight-cell" style="text-align: center; padding: 8px" id="stock">
+                          <ng-container *ngIf="sucursal.existencia != null; else loadingTemplate">
+                            {{ sucursal.existencia | number:'1.0-2' }}
+                          </ng-container>
+                          <ng-template #loadingTemplate>
+                            <mat-spinner diameter="24" style="margin: 0 auto;"></mat-spinner>
+                          </ng-template>
+                        </td>
+                      </tr>
+                      <tr *ngIf="!producto?.sucursales?.length">
+                        <td colspan="2" style="text-align: center; padding: 16px;">
+                          No hay sucursales disponibles
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </mat-card>
+            </div>
+          </div>
         </td>
       </ng-container>
 
@@ -356,7 +392,7 @@
         [class.selectedRow]="expandedProducto === row"
         (click)="
           expandedProducto = expandedProducto === row ? null : row;
-          expandedProducto = row
+          onRowClick(row)
         "
       ></tr>
       <tr

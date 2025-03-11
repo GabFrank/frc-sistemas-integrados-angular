@@ -46,7 +46,7 @@ export class ClienteInput {
   documento: string;
   credito: number;
   creadoEn: Date;
-  usuarioId: number;
+  usuarioId: number = null;
   saldo: number;
   codigo: string;
   sucursalId: number;

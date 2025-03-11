@@ -31,7 +31,7 @@ export class MaletinInput {
     activo: boolean;
     abierto: boolean;
     creadoEn: string;
-    usuarioId: number;
+    usuarioId: number = null;
     sucursalId: number;
 }
 

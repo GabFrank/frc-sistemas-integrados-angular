@@ -9,5 +9,5 @@ export class CuentaBancariaInput {
   monedaId: number;
   tipoCuenta: TipoCuenta;
   creadoEn: Date;
-  usuarioId: number;
+  usuarioId: number = null;
 }

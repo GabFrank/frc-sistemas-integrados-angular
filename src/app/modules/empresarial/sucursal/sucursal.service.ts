@@ -14,6 +14,11 @@ import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { SucursalActualGQL } from "./graphql/sucursalActual";
 import { SucursalByIdGQL } from "./graphql/sucursalById";
 import { CargandoDialogService } from "../../../shared/components/cargando-dialog/cargando-dialog.service";
+import { SearchListDialogComponent, SearchListtDialogData } from "../../../shared/components/search-list-dialog/search-list-dialog.component";
+import { MatDialog } from "@angular/material/dialog";
+import { Apollo } from 'apollo-angular';
+import gql from 'graphql-tag';
+import { map } from 'rxjs';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -38,7 +43,8 @@ export class SucursalService {
     private sucursalPorId: SucursalByIdGQL,
     private cargandoService: CargandoDialogService,
     private notificacionSnackBar: NotificacionSnackbarService,
-    private genericService: GenericCrudService
+    private genericService: GenericCrudService,
+    private matDialog: MatDialog
   ) {
   }
 
@@ -144,6 +150,37 @@ export class SucursalService {
             obs.next(error);
           }
         );
+    });
+  }
+
+  onSearchSucursal(): Observable<Sucursal[]> {
+    return new Observable((obs) => {
+      this.onGetAllSucursales().subscribe((sucursales) => {
+        let data: SearchListtDialogData = {
+          titulo: "Seleccionar sucursal",
+          query: null,
+          tableData: [
+            { id: "id", nombre: "Id", width: "20%" },
+            { id: "nombre", nombre: "Nombre", width: "80%" },
+          ],
+          inicialData: sucursales,
+        };
+
+        this.matDialog
+          .open(SearchListDialogComponent, {
+            data,
+            height: "80%",
+            width: "80%",
+          })
+          .afterClosed()
+          .pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            if (res != null) {
+              obs.next(res);
+            }
+            obs.complete();
+          });
+      });
     });
   }
 }

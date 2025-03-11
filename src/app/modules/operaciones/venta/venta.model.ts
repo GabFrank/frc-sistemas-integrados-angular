@@ -62,7 +62,7 @@ export class VentaInput {
     formaPagoId: number;
     estado: VentaEstado;
     creadoEn: Date;
-    usuarioId: number;
+    usuarioId: number = null;
     totalGs: number;
     totalRs: number;
     totalDs: number;

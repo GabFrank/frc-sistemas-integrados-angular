@@ -45,5 +45,5 @@ export class SalidaInput {
   creadoEn: Date;
   cantidad: number;
   activo: boolean;
-  usuarioId: number;
+  usuarioId: number = null;
 }

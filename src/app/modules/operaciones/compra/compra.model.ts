@@ -44,5 +44,5 @@ export class CompraInput {
   valorParcial: number;
   descuento: number;
   valorTotal: number;
-  usuarioId: number;
+  usuarioId: number = null;
 }

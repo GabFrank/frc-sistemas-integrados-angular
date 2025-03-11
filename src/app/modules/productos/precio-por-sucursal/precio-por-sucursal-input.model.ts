@@ -9,5 +9,5 @@ export class PrecioPorSucursalInput {
     activo: boolean;
     precio: number;
     creadoEn: Date;
-    usuarioId: number;
+    usuarioId: number = null;
 }

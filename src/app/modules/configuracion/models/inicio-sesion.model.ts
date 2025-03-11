@@ -53,7 +53,7 @@ export class InicioSesion {
 
 export class InicioSesionInput {
   id: number;
-  usuarioId: number;
+  usuarioId: number = null;
   sucursalId: number;
   tipoDespositivo: TipoDispositivo;
   idDispositivo: string;

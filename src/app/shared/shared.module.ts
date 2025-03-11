@@ -55,6 +55,7 @@ import { AutoFitTextDirective } from './directives/auto-fit-text-directive.direc
 import { NgxSpinnerModule } from 'ngx-spinner';
 import { DataDisplayComponent } from './data-display/data-display.component';
 import { EnumToStringPipe } from '../commons/core/utils/pipes/enum-to-string';
+import { A11yModule } from '@angular/cdk/a11y';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -141,7 +142,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     ShowAfterDelayDirective,
     FormattedTooltipDirective,
     NgxSpinnerModule,
-    DataDisplayComponent
+    DataDisplayComponent,
+    A11yModule
   ],
   providers: [NgxImageCompressService, provideEnvironmentNgxMask(options), DecimalPipe, MatTooltip, TitleCasePipe, DatePipe, EnumToStringPipe]
 })

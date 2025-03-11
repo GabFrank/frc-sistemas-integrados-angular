@@ -493,6 +493,8 @@ export const pedidoItemPorNotaRecepcionQuery = gql`
       hasPrevious
       getContent {
         id
+        isDistribucionSucursalesCreacion
+        isDistribucionSucursalesRecepcion
         producto {
           id
           descripcion
@@ -890,6 +892,92 @@ export const cantidadItensFaltaVerificarProductoQuery = gql`
 export const cantidadItensFaltaVerificarNotaQuery = gql`
   query ($id: ID!) {
     data: cantidadItensFaltaVerificarNota(id: $id)
+  }
+`;
+
+export const pedidoItemQuery = gql`
+  query ($id: ID!) {
+    data: pedidoItem(id: $id) {
+      id
+      producto {
+        id
+        descripcion
+        presentaciones {
+          id
+          cantidad
+        }
+        codigoPrincipal
+      }
+      presentacionCreacion {
+        id
+        cantidad
+      }
+      pedido {
+        id
+      }
+      precioUnitarioCreacion
+      descuentoUnitarioCreacion
+      bonificacion
+      bonificacionDetalle
+      estado
+      vencimientoCreacion
+      creadoEn
+      cantidadCreacion
+      valorTotal
+      pedidoItemSucursalList {
+        id
+        sucursal {
+          id
+          nombre
+        }
+        sucursalEntrega {
+          id
+          nombre
+        }
+        cantidadPorUnidad
+        cantidadPorUnidadRecibida
+        creadoEn
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const pedidoItemPedidoItemSucursalListQuery = gql`
+  query ($id: ID!) {
+    data: pedidoItem(id: $id) {
+      pedidoItemSucursalList {
+        id
+        sucursal {
+          id
+          nombre
+        }
+        sucursalEntrega {
+          id
+          nombre
+        }
+        cantidadPorUnidad
+        cantidadPorUnidadRecibida
+        creadoEn
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const verificarDistribucionSucursalesQuery = gql`
+  query ($id: ID!){
+    data: verificarDistribucionSucursales(id: $id)
   }
 `;
 

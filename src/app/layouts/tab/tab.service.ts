@@ -54,9 +54,10 @@ export class TabService implements OnInit {
     ];
 
     // this.addTab(new Tab(EditTransferenciaComponent, 'Transferencia 56', new TabData(56, {id: 56}), null))
-    // this.addTab(new Tab(VentaTouchComponent, 'Venta'))
-    // this.addTab(new Tab(ListPedidoComponent, 'Lista de pedidos'))
-    this.addTab(new Tab(EditPedidoComponent, 'Nuevo pedido', new TabData(2, {id:2}), null))
+    this.addTab(new Tab(VentaTouchComponent, 'Venta'))
+    // this.addTab(new Tab(ListProductoComponent, "Lista de productos"))
+    // this.addTab(new Tab(ListPedidoComponent, "Lista de pedidos"))
+    // this.addTab(new Tab(EditPedidoComponent, 'Nuevo pedido', new TabData(22, {id:22}), null))
     this.tabSub.next(this.tabs);
   }
   

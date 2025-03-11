@@ -1,0 +1,192 @@
+<div
+  fxLayout="column"
+  fxLayoutGap="10px"
+  style="width: 100%"
+  style="padding: 10px; text-align: center; height: 100%"
+  cdkTrapFocus
+  [cdkTrapFocusAutoCapture]="true"
+>
+  <h3>Sucursales de influencia y entrega</h3>
+  <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+    <div fxFlex="25">
+      Producto:
+      <h3 class="titulo center">
+        {{ selectedPedidoItem?.producto?.id }} -
+        {{ selectedPedidoItem?.producto?.descripcion }}
+      </h3>
+    </div>
+    <div fxFlex="25">
+      Presentación:
+      <h3 class="titulo center">
+        {{ selectedPedidoItem?.presentacion?.cantidad }}
+      </h3>
+    </div>
+    <div fxFlex="25">
+      Cantidad Total:
+      <h3 class="titulo center">
+        {{ selectedPedidoItem?.cantidadCreacion | number : "1.0-2" }}
+      </h3>
+    </div>
+    <div fxFlex="25">
+      Sobrante:
+      <h3 class="titulo center">
+        {{
+          selectedPedidoItem?.cantidadCreacion - cantAgregada | number : "1.0-2"
+        }}
+      </h3>
+    </div>
+  </div>
+  <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+    <div fxFlex="20">
+      <app-boton
+        (clickEvent)="cantidadesPorIgual()"
+        nombre="Cantidades por igual"
+        [basic]="true"
+        color="accent"
+        tabindex="1"
+      >
+      </app-boton>
+    </div>
+    <div fxFlex="20">
+        <app-boton
+          (clickEvent)="cantidadesSegunMovimiento()"
+          nombre="Cantidades según movimiento"
+          [basic]="true"
+          color="accent"
+        >
+        </app-boton>
+      </div>
+      <div fxFlex="20">
+        <app-boton
+          (clickEvent)="seleccionarSucursal()"
+          nombre="Seleccionar sucursal por defecto"
+          [basic]="true"
+          color="accent"
+        >
+        </app-boton>
+      </div>
+  </div>
+  <mat-card *ngIf="sucursalEntregaLoaded" fxFlex="80%" style="background-color: rgb(50, 50, 50)">
+    <!-- Header Row -->
+    <div
+      fxLayout="row"
+      fxLayoutAlign="space-between center"
+      fxLayoutGap="10px"
+      style="font-weight: bold; padding: 8px 0; border-bottom: 1px solid #ccc"
+    >
+      <div fxFlex="33">Sucursal de influencia</div>
+      <div fxFlex="33">Cantidad</div>
+      <div fxFlex="33">Sucursal de entrega</div>
+    </div>
+
+    <!-- Data Rows -->
+    <div
+      *ngFor="let item of pedidoItemSucursalList; let i = index"
+      class="list-row"
+      fxLayout="row"
+      fxLayoutAlign="space-between center"
+      fxLayoutGap="10px"
+    >
+      <div fxFlex="33">
+        <span>{{ item.sucursal.nombre }}</span>
+      </div>
+      <div fxFlex="33">
+        <mat-form-field>
+          <input
+            class="center"
+            matInput
+            type="number"
+            placeholder="Cantidad"
+            [formControl]="cantidadControls[i]"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="33">
+        <mat-form-field>
+          <mat-select
+            placeholder="Sucursal de entrega"
+            [formControl]="sucursalEntregaControls[i]"
+            class="center"
+          >
+            <mat-option *ngFor="let suc of sucursales" [value]="suc">
+              {{ suc.nombre }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <button mat-icon-button 
+              color="warn" 
+              (click)="onDelete(i)" 
+              matTooltip="Eliminar">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </div>
+    <div *ngIf="!isAddNewSucursal" class="center padding">
+      <button 
+        mat-fab 
+        (click)="onAddSucursal()" 
+        color="primary" 
+        #addButton 
+        tabindex="0"
+        [attr.autofocus]="true"
+      >
+        <mat-icon>add</mat-icon>
+      </button>
+    </div>
+    <div *ngIf="isAddNewSucursal">
+      <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+        <div fxFlex="33">
+          <mat-form-field>
+            <mat-select
+              class="center"
+              placeholder="Sucursal de influencia"
+              [formControl]="sucursalInfluenciaControl"
+            >
+              <mat-option *ngFor="let suc of sucursales" [value]="suc">
+                {{ suc.nombre }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <div>
+          <button
+            mat-fab
+            (click)="onCreateControls(sucursalInfluenciaControl.value)"
+            color="accent"
+            style="width: 2.5em; height: 2.5em"
+            [disabled]="sucursalInfluenciaControl.invalid"
+          >
+            <mat-icon>check</mat-icon>
+          </button>
+        </div>
+        <div>
+          <button
+            style="width: 2.5em; height: 2.5em"
+            mat-fab
+            (click)="isAddNewSucursal = false"
+            color="primary"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+  </mat-card>
+  <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="10px">
+    <div fxFlex="20">
+      <app-boton (clickEvent)="onCancelar()" nombre="Cancelar" color="primary">
+      </app-boton>
+    </div>
+    <div fxFlex="20">
+      <app-boton
+        (clickEvent)="onGuardar()"
+        nombre="Guardar"
+        color="accent"
+        [disableExpression]="
+          cantAgregada != selectedPedidoItem?.cantidadCreacion
+        "
+      >
+      </app-boton>
+    </div>
+  </div>
+</div>

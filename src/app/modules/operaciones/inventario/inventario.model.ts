@@ -80,7 +80,7 @@ export class InventarioProductoInput {
   productoId: number;
   concluido: boolean;
   zonaId: number;
-  usuarioId: number;
+  usuarioId: number = null;
   creadoEn: Date;
 }
 
@@ -125,7 +125,7 @@ export class InventarioProductoItemInput {
   cantidadFisica: number;
   vencimiento: Date; //vencimiento que el sistema le va a indicar, si no existe crear vencimiento
   estado: InventarioProductoEstado
-  usuarioId: number;
+  usuarioId: number = null;
   creadoEn: Date;
 }
 

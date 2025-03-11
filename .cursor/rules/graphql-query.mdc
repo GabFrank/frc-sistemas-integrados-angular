@@ -1,0 +1,23 @@
+---
+description: Crear graphql query
+globs: 
+---
+
+# Crear graphql query
+
+Example: [graphql-query.ts](mdc:src/app/modules/operaciones/venta/graphql/graphql-query.ts)
+- this is an apollo graphql-query file
+- you will follow the example for creating a file
+- i will provide you a .graphqls from spring boot file, you will use this file to dected all querys and mutations to create
+- the path will always be /current-path/graphql/graphql-query.ts
+- for  each query and mutation you will create a file like this [filterPedidos.ts](mdc:src/app/modules/operaciones/pedido/graphql/filterPedidos.ts) or [savePedido.ts](mdc:src/app/modules/operaciones/pedido/graphql/savePedido.ts) in same path /current-path/graphql/
+- do not forget to import the gql from graphql-query.ts into the new querys and mutations services
+
+This update:
+1. Adds the requirement for 'data:' prefix
+2. Includes clear examples of both query and mutation formats
+3. Uses the pedido-item-sucursal implementation as a reference
+4. Makes it clear that this pattern applies to all GraphQL operations
+5. Shows how to format parameters and responses
+
+Would you like me to add or modify anything else in the rule?

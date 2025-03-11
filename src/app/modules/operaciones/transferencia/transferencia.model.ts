@@ -191,6 +191,6 @@ export class TransferenciaItemInput {
   motivoRechazoRecepcion: TransferenciaItemMotivoRechazo
   activo: boolean
   poseeVencimiento: boolean
-  usuarioId: number;
+  usuarioId: number = null;
   creadoEn: Date;
 } 

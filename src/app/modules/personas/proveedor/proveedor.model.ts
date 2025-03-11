@@ -37,5 +37,5 @@ export class ProveedorInput {
   chequeDias: number;
   datosBancarios: number;
   creadoEn: Date;
-  usuarioId: number;
+  usuarioId: number = null;
 }

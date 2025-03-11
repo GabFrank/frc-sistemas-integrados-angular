@@ -25,6 +25,6 @@ export class ZonaInput {
     sectorId: number;
     descripcion: string;
     activo: boolean;
-    usuarioId: number;
+    usuarioId: number = null;
     creadoEn: Date;
 }

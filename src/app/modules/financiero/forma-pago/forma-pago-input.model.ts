@@ -9,5 +9,5 @@ export class FormaPagoInput {
     moviemientoCaja: boolean;
     autorizacion: boolean;
     cuentaBancariaId: number;
-    usuarioId: number;
+    usuarioId: number = null;
 }

@@ -41,5 +41,5 @@ export class SalidaItemInput {
   observacion: string;
   cantidad: number;
   creadoEn: Date;
-  usuarioId: number;
+  usuarioId: number = null;
 }

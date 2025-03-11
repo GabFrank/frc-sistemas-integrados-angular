@@ -1,3 +1,129 @@
+<div fxLayout="column" style="width: 100%; height: 100%;">
+  <!-- Top Section: Title and Filtros (and Menu) -->
+  <div fxFlex="none">
+    <!-- Title (if any) -->
+    <div *ngIf="titulo" style="width: 100%; text-align: center">
+      <h3 style="margin: 0">{{ titulo }}</h3>
+    </div>
+
+    <!-- Filtros and optional Menu inside the mat-card -->
+    <mat-card
+      appearance="outlined"
+      fxLayout="row"
+      style="width: 100%; background-color: rgb(32, 32, 32); padding: 10px"
+    >
+      <!-- Filtros: Its height will be determined by its content -->
+      <div [fxFlex]="!isMenu ? '100%' : '90%'">
+        <ng-content select="[filtros]"></ng-content>
+      </div>
+
+      <!-- Optional Menu Buttons -->
+      <div
+        *ngIf="isMenu"
+        fxFlex="10%"
+        fxLayout="column"
+        fxLayoutAlign="start center"
+        fxLayoutGap="5px"
+      >
+        <div class="boton">
+          <ng-content select="[buscar]"></ng-content>
+          <app-boton
+            (clickEvent)="onFiltrar()"
+            [disableExpression]="disableFilter"
+            [bdcWalkTriggerFor]="buscarTrigger"
+            nombre="Buscar"
+          ></app-boton>
+        </div>
+        <div class="boton">
+          <app-boton (clickEvent)="onResetFiltro()" nombre="Limpiar Filtro"></app-boton>
+        </div>
+        <div *ngIf="isAdicionar" class="boton">
+          <app-boton (clickEvent)="onAdd()" nombre="+ Adicionar"></app-boton>
+        </div>
+        <div *ngIf="isCustom" class="boton">
+          <app-boton (clickEvent)="onCustomFunc()" [nombre]="customName"></app-boton>
+        </div>
+      </div>
+    </mat-card>
+  </div>
+
+  <!-- Bottom Section: Table Area (Takes the remaining space) -->
+  <div fxFlex style="overflow-y: auto;">
+    <div fxLayout="column" style="height: 100%;">
+      <ng-content select="[table]"></ng-content>
+      <div style="width: 100%" fxLayout="row" fxLayoutAlign="center center">
+        <button
+          *ngIf="data?.length > 0 && isCargarMas"
+          mat-button
+          color="accent"
+          (click)="onCargarMasDatos()"
+          [disabled]="isLastPage"
+        >
+          CARGAR MAS
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- <div fxLayout="row" style="width: 100%" fxLayoutAlign="center start">
+  <div fxLayout="column" style="width: 100%; height: 100vh;">
+    <div fxLayout="column">
+      <div *ngIf="titulo != null" style="width: 100%; text-align: center">
+        <h3 style="margin: 0px">{{ titulo }}</h3>
+      </div>
+      <mat-card
+        appearance="outlined"
+        fxLayout="row"
+        fxFlex="100%"
+        style="width: 100%; background-color: rgb(32, 32, 32); padding: 10px"
+      >
+        <div [fxFlex]="!isMenu ? '100%' : '90%'">
+          <ng-content select="[filtros]"></ng-content>
+        </div>
+        <div
+          *ngIf="isMenu"
+          [fxFlex]="isMenu ? '10%' : '0%'"
+          fxLayout="column"
+          fxLayoutAlign="start center"
+          fxLayoutGap="5px"
+        >
+          <div class="boton">
+            <ng-content select="[buscar]"></ng-content>
+            <app-boton (clickEvent)="onFiltrar()" [disableExpression]="disableFilter" [bdcWalkTriggerFor]="buscarTrigger" nombre="Buscar"></app-boton>
+          </div>
+          <div class="boton">
+            <app-boton (clickEvent)="onResetFiltro()" nombre="Limpiar Filtro"></app-boton>
+          </div>
+          <div *ngIf="isAdicionar" class="boton">
+            <app-boton (clickEvent)="onAdd()" nombre="+ Adicionar"></app-boton>
+          </div>
+          <div *ngIf="isCustom" class="boton">
+            <app-boton (clickEvent)="onCustomFunc()" [nombre]="customName"></app-boton>
+          </div>
+        </div>
+      </mat-card>
+    </div>
+    <div style="overflow-y: auto">
+      <div fxLayout="column" style="height: 100%;">
+        <ng-content select="[table]"></ng-content>
+        <div style="width: 100%" fxLayout="row" fxLayoutAlign="center center">
+          <button
+            *ngIf="data?.length > 0 && isCargarMas"
+            mat-button
+            color="accent"
+            (click)="onCargarMasDatos()"
+            [disabled]="isLastPage"
+          >
+            CARGAR MAS
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> -->
+<!-- 
 <div fxLayout="row" style="width: 100%" fxLayoutAlign="center start">
   <div fxLayout="column" style="width: 100%;" [style.height.px]="containerHeight">
     <div fxLayout="column">
@@ -38,7 +164,7 @@
       </mat-card>
     </div>
     <div fxFlex="80" style="overflow-y: auto">
-      <div fxLayout="column" style="height: 100%;">
+      <div fxLayout="column" style="height: 100vh">
         <ng-content select="[table]"></ng-content>
         <div style="width: 100%" fxLayout="row" fxLayoutAlign="center center">
           <button
@@ -54,4 +180,5 @@
       </div>
     </div>
   </div>
-</div>
+</div> -->
+

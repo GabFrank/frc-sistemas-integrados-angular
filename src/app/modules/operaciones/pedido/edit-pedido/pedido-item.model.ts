@@ -4,6 +4,7 @@ import { Presentacion } from "../../../productos/presentacion/presentacion.model
 import { Producto } from "../../../productos/producto/producto.model";
 import { CompraItem } from "../../compra/compra-item.model";
 import { NotaRecepcion } from "../nota-recepcion/nota-recepcion.model";
+import { PedidoItemSucursal } from "../pedido-item-sucursal/pedido-item-sucursal.model";
 import { PedidoItemEstado } from "./pedido-enums";
 import { Pedido } from "./pedido.model";
 
@@ -57,6 +58,9 @@ export class PedidoItem {
   descuentoUnitario: number;
   motivoRechazoRecepcionNota: string
   motivoRechazoRecepcionProducto: string
+  pedidoItemSucursalList: PedidoItemSucursal[] = [];
+  isDistribucionSucursalesCreacion: boolean;
+  isDistribucionSucursalesRecepcion: boolean;
 
   toInput(): PedidoItemInput {
     let input = new PedidoItemInput();

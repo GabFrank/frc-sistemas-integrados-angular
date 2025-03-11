@@ -17,6 +17,9 @@ import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { PageInfo } from "../../../app.component";
 import { GetStockPorFiltrosGQL } from "./graphql/getStockByFilters";
 import { GetStockPorTipoMovimientoByFiltersGQL, StockPorTipoMovimientoDto } from "./graphql/getStockPorTipoMovimientoByFilters";
+import { Apollo } from 'apollo-angular';
+import gql from 'graphql-tag';
+import { map } from 'rxjs';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -30,7 +33,8 @@ export class MovimientoStockService {
     private getMovimientoStockPorFilters: GetMovimientoStockPorFiltrosGQL,
     private genericService: GenericCrudService,
     private getStockWithFilters: GetStockPorFiltrosGQL,
-    private getStockPorTipoMovimiento: GetStockPorTipoMovimientoByFiltersGQL
+    private getStockPorTipoMovimiento: GetStockPorTipoMovimientoByFiltersGQL,
+    private apollo: Apollo
   ) {}
 
   onGetMovimientosPorFecha(
@@ -158,5 +162,22 @@ export class MovimientoStockService {
       usuarioId})
   }
 
+  getStockByProductoAndSucursal(productoId: number, sucursalId: number): Observable<number> {
+    const GET_STOCK_BY_PRODUCTO_AND_SUCURSAL = gql`
+      query GetStockByProductoAndSucursal($productoId: Int!, $sucursalId: Int!) {
+        getStockByProductoAndSucursal(productoId: $productoId, sucursalId: $sucursalId)
+      }
+    `;
 
+    return this.apollo.query<{ getStockByProductoAndSucursal: number }>({
+      query: GET_STOCK_BY_PRODUCTO_AND_SUCURSAL,
+      variables: {
+        productoId,
+        sucursalId
+      },
+      fetchPolicy: 'network-only'
+    }).pipe(
+      map(result => result.data.getStockByProductoAndSucursal)
+    );
+  }
 }

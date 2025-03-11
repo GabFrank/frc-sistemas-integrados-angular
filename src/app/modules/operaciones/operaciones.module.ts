@@ -42,6 +42,7 @@ import { EditarPedidpItemDialogComponent } from './pedido/editar-pedidp-item-dia
 import { PagoGeneralComponent } from './pago/pago-general/pago-general.component';
 import { PagoGeneralListComponent } from './pago/pago-general-list/pago-general-list.component';
 import { PagoPedidoDialogComponent } from './pedido/pago-pedido-dialog/pago-pedido-dialog.component';
+import { PedidoItemSucursalDialogComponent } from './pedido/pedido-item-sucursal/pedido-item-sucursal-dialog/pedido-item-sucursal-dialog.component';
 
 @NgModule({
   declarations: [
@@ -81,6 +82,7 @@ import { PagoPedidoDialogComponent } from './pedido/pago-pedido-dialog/pago-pedi
     PagoGeneralComponent,
     PagoGeneralListComponent,
     PagoPedidoDialogComponent,
+    PedidoItemSucursalDialogComponent,
   ],
   imports: [
     CommonModule,

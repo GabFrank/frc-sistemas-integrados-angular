@@ -75,7 +75,7 @@ export class PedidoInput {
   monedaId: number;
   plazoCredito: number;
   creadoEn: Date;
-  usuarioId: number;
+  usuarioId: number = null;
   valorTotal: number;
   pedidoItemInputList: PedidoItemInput[]
 }

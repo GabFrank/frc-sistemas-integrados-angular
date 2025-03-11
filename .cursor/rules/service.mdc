@@ -1,0 +1,24 @@
+---
+description: Crear servicios
+globs: 
+---
+
+# Crear servicios
+
+Example: [pedido.service.ts](mdc:src/app/modules/operaciones/pedido/pedido.service.ts)
+Additional Examples: 
+- [pedido-item-sucursal.service.ts](mdc:src/app/modules/operaciones/pedido/pedido-item-sucursal/pedido-item-sucursal.service.ts)
+
+Resources: 
+- [generic-crud.service.ts](mdc:src/app/generics/generic-crud.service.ts)
+- [main.service.ts](mdc:src/app/main.service.ts)
+
+- you will create a service based on the examples
+- always use [generic-crud.service.ts](mdc:src/app/generics/generic-crud.service.ts) for apollo querys and mutations: this.genericService.onGetById(this.getPedidoPorId, id); where this.getPedidoPorId is the graphql query service
+- create all functions for each query and mutation that is located on /actual-path/graphql/
+- add a small documentation in spanish for each method
+- the service file name is always <service-name>.service.ts
+- inject genericService and use its methods instead of implementing direct GraphQL calls
+- include proper error handling through GenericCrudService
+- follow the naming convention: onGet*, onSave*, onDelete*, etc.
+

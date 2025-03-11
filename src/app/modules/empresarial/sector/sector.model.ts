@@ -27,5 +27,5 @@ export class SectorInput {
     sucursalId: number;
     descripcion: string;
     activo: boolean;
-    usuarioId: number;
+    usuarioId: number = null;
 }

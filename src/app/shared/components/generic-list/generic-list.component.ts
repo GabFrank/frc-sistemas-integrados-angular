@@ -77,7 +77,7 @@ export class GenericListComponent implements OnInit {
     public windowInfoService: WindowInfoService,
   ) { 
     this.headerHeight = windowInfoService.innerTabHeight * 0.2;
-    this.tableHeight = windowInfoService.innerTabHeight * 0.75;
+    this.tableHeight = windowInfoService.innerTabHeight * 0.80;
     this.containerHeight = windowInfoService.innerTabHeight;
   }
 

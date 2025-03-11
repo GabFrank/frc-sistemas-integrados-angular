@@ -427,11 +427,11 @@ export class AdicionarCajaDialogComponent implements OnInit {
 
   crearNuevaCaja() {
     setTimeout(() => {
-      let input = new PdvCajaInput();
-      input.maletinId = this.selectedMaletin.id;
-      input.activo = true;
+      let pdvCaja = new PdvCaja();
+      pdvCaja.maletin = this.selectedMaletin;
+      pdvCaja.activo = true;
       this.cajaService
-        .onSave(input)
+        .onSave(pdvCaja.toInput())
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {

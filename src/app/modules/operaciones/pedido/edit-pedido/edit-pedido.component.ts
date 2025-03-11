@@ -64,7 +64,7 @@ import { CompraItem } from "../../compra/compra-item.model";
 import { CompraService } from "../../compra/compra.service";
 import { CostoPorProductoService } from "../../costo-por-producto/costo-por-producto.service";
 import { PedidoService } from "../pedido.service";
-import { PedidoEstado } from "./pedido-enums";
+import { PedidoEstado, PedidoItemEstado } from "./pedido-enums";
 import { PedidoItem } from "./pedido-item.model";
 import { Pedido } from "./pedido.model";
 import { TipoBoleta } from "../../compra/compra-enums";
@@ -83,6 +83,8 @@ import { EditarPedidpItemDialogComponent } from "../editar-pedidp-item-dialog/ed
 import { NotaRecepcionService } from "../nota-recepcion/nota-recepcion.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { PagoPedidoDialogComponent } from "../pago-pedido-dialog/pago-pedido-dialog.component";
+import { PedidoItemSucursalDialogComponent } from "../pedido-item-sucursal/pedido-item-sucursal-dialog/pedido-item-sucursal-dialog.component";
+import { PedidoItemSucursalService } from "../pedido-item-sucursal/pedido-item-sucursal.service";
 
 export interface ProductoDelProveedor {
   id: number;
@@ -340,7 +342,8 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     private mainService: MainService,
     private cdr: ChangeDetectorRef,
     private notaRecepcionService: NotaRecepcionService,
-    private dialogoService: DialogosService
+    private dialogoService: DialogosService,
+    private pedidoItemSucursalService: PedidoItemSucursalService
   ) {
     this.color = {
       name: "primary",
@@ -429,28 +432,28 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     if (this.selectedProducto != null) {
       this.cantidadUnidadControl.setValue(
         this.presentacionControl?.value?.cantidad *
-          this.cantidadPresentacionControl?.value,
+        this.cantidadPresentacionControl?.value,
         { emitEvent: false }
       );
       isPrecioPresentacion != true
         ? this.precioPorPresentacionControl.setValue(
-            (this.precioUnitarioControl.value || 0) *
-              this.presentacionControl.value?.cantidad,
-            { emitEvent: false }
-          )
+          (this.precioUnitarioControl.value || 0) *
+          this.presentacionControl.value?.cantidad,
+          { emitEvent: false }
+        )
         : null;
       this.valorTotalControl.setValue(
         (this.precioPorPresentacionControl.value -
-          this.descuentoPresentacionControl.value) *
-          this.cantidadPresentacionControl.value,
+          this.descuentoPresentacionControl?.value) *
+        this.cantidadPresentacionControl?.value,
         { emitEvent: false }
       );
       isPrecioUnitario != true
         ? this.precioUnitarioControl.setValue(
-            this.precioPorPresentacionControl.value /
-              this.presentacionControl.value.cantidad,
-            { emitEvent: false }
-          )
+          this.precioPorPresentacionControl?.value /
+          this.presentacionControl?.value?.cantidad,
+          { emitEvent: false }
+        )
         : null;
     }
   }
@@ -483,6 +486,9 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
         sucursalInfluenciaList?.map((s2) => s2.id)?.includes(s.id)
       )
     );
+
+    console.log(this.sucursalInfluenciaControl.value);
+
 
     let sucursalEntregaList = pedido.sucursalEntregaList?.map(
       (sucursalEntrega) => sucursalEntrega.sucursal
@@ -721,8 +727,8 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       this.selectedProveedor = proveedor;
       this.buscarProveedorControl.setValue(
         this.selectedProveedor.id +
-          " - " +
-          this.selectedProveedor.persona.nombre
+        " - " +
+        this.selectedProveedor.persona.nombre
       );
 
       this.vendedorInput?.nativeElement.focus();
@@ -865,7 +871,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     }
   }
 
-  setFocusToValorInput() {}
+  setFocusToValorInput() { }
 
   displayMoneda(value?: number) {
     let res = value ? this.monedas?.find((_) => _.id === value) : undefined;
@@ -878,7 +884,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     // if()
   }
 
-  onMonedaAutoClosed() {}
+  onMonedaAutoClosed() { }
 
   async onSaveItem(texto?) {
     console.log(texto);
@@ -922,7 +928,6 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       .pipe(untilDestroyed(this))
       .subscribe((pedidoItemRes) => {
         if (pedidoItemRes != null) {
-          this.onClearItem();
           if (newData) {
             if (this.selectedPedidoItemPage == null)
               this.selectedPedidoItemPage = new PageInfo<PedidoItem>();
@@ -933,19 +938,62 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
           } else {
             this.selectedPedidoItemPage.getContent = updateDataSourceWithId(
               this.selectedPedidoItemPage.getContent,
-              this.selectedPedidoItem,
-              this.selectedPedidoItem?.id
+              pedidoItemRes,
+              pedidoItemRes.id
             );
-            this.pedidoDataSource.data = this.selectedPedidoItemPage.getContent;
+            this.pedidoDataSource.data = [...this.selectedPedidoItemPage.getContent];
           }
-          // console.log(this.selectedPedido);
 
           this.selectedPedido.valorTotal = pedidoItemRes.pedido.valorTotal;
           this.selectedPedido.descuento = pedidoItemRes.pedido.descuento;
+
+          if (this.cantidadesPorSucursalControl.value || (this.sucursalInfluenciaControl.value?.length == 1 && this.sucursalEntregaControl.value?.length == 1)) {
+            this.onModificarSucursal(pedidoItemRes, true);
+          }
           this.actualizarDetalle();
+          this.onClearItem();
         }
       });
   }
+
+  onModificarSucursal(pedidoItem: PedidoItem, autoSet: boolean = false) {
+    this.dialog.open(PedidoItemSucursalDialogComponent, {
+      data: {
+        pedidoItem,
+        sucursalInfluenciaList: this.sucursalInfluenciaControl.value,
+        sucursalEntregaList: this.sucursalEntregaControl.value,
+        autoSet
+      },
+      height: "50%",
+      width: "70%"
+    }).afterClosed().subscribe(pedidoItemSucursalRes => {
+      if (pedidoItemSucursalRes) {
+        this.pedidoService.onGetPedidoItemSucursalList(pedidoItem.id).subscribe(pedidoItemRes => {
+          pedidoItem.pedidoItemSucursalList = pedidoItemRes.pedidoItemSucursalList;
+          switch (this.selectedPedido.estado) {
+            case PedidoEstado.ABIERTO:
+              pedidoItem.isDistribucionSucursalesCreacion = true;
+              this.pedidoDataSource.data = updateDataSourceWithId(
+                this.pedidoDataSource.data,
+                pedidoItem,
+                pedidoItem.id
+              );
+              break;
+            case PedidoEstado.EN_RECEPCION_NOTA:
+              pedidoItem.isDistribucionSucursalesRecepcion = true;
+              this.pedidoItemNotaRecepcionDataSource.data = updateDataSourceWithId(
+                this.pedidoItemNotaRecepcionDataSource.data,
+                pedidoItem,
+                pedidoItem.id
+              );
+              break;
+          }
+        })
+      }
+    })
+  }
+
+
   onClearItem() {
     this.selectedPedidoItem = null;
     this.selectedProducto = null;
@@ -985,7 +1033,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     this.fechaEntregaControl.setValue(dates);
   }
 
-  onMasOpciones() {}
+  onMasOpciones() { }
 
   onSearchPorCodigo() {
     setTimeout(() => {
@@ -1260,17 +1308,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     Object.assign(this.selectedPedidoItem, item);
     this.selectedProducto = item.producto;
     this.codigoControl.setValue(this.selectedProducto.codigoPrincipal);
-    this.cantidadPresentacionControl.setValue(item.cantidadCreacion);
-    this.cantidadUnidadControl.setValue(
-      item.cantidadCreacion * item.presentacionCreacion.cantidad
-    );
-    this.precioPorPresentacionControl.setValue(
-      item.precioUnitarioCreacion * item.presentacionCreacion.cantidad
-    );
-    this.precioUnitarioControl.setValue(item.precioUnitarioCreacion);
-    this.descuentoPresentacionControl.setValue(
-      item.presentacionCreacion.cantidad * item.descuentoUnitarioCreacion
-    );
+
     setTimeout(() => {
       this.presentacionControl.setValue(
         this.selectedProducto?.presentaciones?.find(
@@ -1278,11 +1316,22 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
         ),
         { emitEvent: false }
       );
+      this.cantidadPresentacionControl.setValue(item.cantidadCreacion);
+      this.cantidadUnidadControl.setValue(
+        item.cantidadCreacion * item.presentacionCreacion.cantidad
+      );
+      this.precioPorPresentacionControl.setValue(
+        item.precioUnitarioCreacion * item.presentacionCreacion.cantidad
+      );
+      this.precioUnitarioControl.setValue(item.precioUnitarioCreacion);
+      this.descuentoPresentacionControl.setValue(
+        item.presentacionCreacion.cantidad * item.descuentoUnitarioCreacion
+      );
       this.codigoInput.nativeElement.select();
       this.valorTotalControl.setValue(
         (item.precioUnitarioCreacion - item.descuentoUnitarioCreacion) *
-          item.presentacionCreacion.cantidad *
-          item.cantidadCreacion
+        item.presentacionCreacion.cantidad *
+        item.cantidadCreacion
       );
     }, 100);
   }
@@ -1309,7 +1358,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
           this.selectedPedido.descuento =
             this.selectedPedido.descuento -
             pedidoItem?.descuentoUnitarioCreacion *
-              pedidoItem?.cantidadCreacion;
+            pedidoItem?.cantidadCreacion;
           this.selectedPedido.valorTotal =
             this.selectedPedido.valorTotal -
             pedidoItem?.precioUnitarioCreacion * pedidoItem?.cantidadCreacion;
@@ -1338,7 +1387,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     this.cambiarEstado(true);
   }
 
-  historicoComprasHandlePageEvent($event: PageEvent) {}
+  historicoComprasHandlePageEvent($event: PageEvent) { }
   onFinalizar() {
     switch (this.selectedPedido?.estado) {
       case PedidoEstado.ABIERTO:
@@ -1359,56 +1408,68 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
           });
         break;
       case PedidoEstado.ACTIVO:
+
         this.onCambiarEstado(PedidoEstado.EN_RECEPCION_NOTA);
+
         break;
       case PedidoEstado.EN_RECEPCION_NOTA:
-        this.notaRecepcionService
-          .onCountNotaRecepcionPorPedido(this.selectedPedido.id)
-          .subscribe((countRes) => {
-            if (countRes == 0) {
-              this.dialogoService
-                .confirm(
-                  "ATENCIÓN!!",
-                  `Necesita cargar la nota de recepción para avanzar de etapa`,
-                  null,
-                  null,
-                  false
-                )
-                .subscribe();
-            } else {
-              this.dialogoService
-                .confirm(
-                  "Atención!!",
-                  "Deseas finalizar esta etapa?",
-                  "Esta acción se puede deshacer"
-                )
-                .subscribe((dialogRes) => {
-                  if (dialogRes) {
-                    this.pedidoService
-                      .onGetCantPedidoItensFaltaVerificaNota(
-                        this.selectedPedido?.id
-                      )
-                      .subscribe((cantVerifNotaRes) => {
-                        if (cantVerifNotaRes > 0) {
-                          this.dialogoService
-                            .confirm(
-                              "ATENCIÓN!!",
-                              `Faltan ${cantVerifNotaRes} itens por verficar antes de concluir la recepcion de notas`,
-                              null,
-                              null,
-                              false
-                            )
-                            .subscribe((cantVerifNotaDialogRes) => {});
-                        } else {
-                          this.onCambiarEstado(
-                            PedidoEstado.EN_RECEPCION_MERCADERIA
-                          );
-                        }
-                      });
-                  }
-                });
-            }
-          });
+        this.pedidoService.onVerificarDistribucionSucursales(this.selectedPedido.id).subscribe(res => {
+          if (res) {
+            this.notaRecepcionService
+              .onCountNotaRecepcionPorPedido(this.selectedPedido.id)
+              .subscribe((countRes) => {
+                if (countRes == 0) {
+                  this.dialogoService
+                    .confirm(
+                      "ATENCIÓN!!",
+                      `Necesita cargar la nota de recepción para avanzar de etapa`,
+                      null,
+                      null,
+                      false
+                    )
+                    .subscribe();
+                } else {
+                  this.dialogoService
+                    .confirm(
+                      "Atención!!",
+                      "Deseas finalizar esta etapa?",
+                      "Esta acción se puede deshacer"
+                    )
+                    .subscribe((dialogRes) => {
+                      if (dialogRes) {
+                        this.pedidoService
+                          .onGetCantPedidoItensFaltaVerificaNota(
+                            this.selectedPedido?.id
+                          )
+                          .subscribe((cantVerifNotaRes) => {
+                            if (cantVerifNotaRes > 0) {
+                              this.dialogoService
+                                .confirm(
+                                  "ATENCIÓN!!",
+                                  `Faltan ${cantVerifNotaRes} itens por verficar antes de concluir la recepcion de notas`,
+                                  null,
+                                  null,
+                                  false
+                                )
+                                .subscribe((cantVerifNotaDialogRes) => { });
+                            } else {
+                              this.onCambiarEstado(
+                                PedidoEstado.EN_RECEPCION_MERCADERIA
+                              );
+                            }
+                          });
+                      }
+                    });
+                }
+              });
+          } else {
+            this.dialogoService.confirm("Atención!!", "Existen itens que no tienen sucursal de destino designados, por favor complete este paso antes de continuar", null, null, false).subscribe(dialogRes => {
+              if (dialogRes) {
+              }
+            });
+          }
+        });
+
         break;
       case PedidoEstado.EN_RECEPCION_MERCADERIA:
         this.dialogoService
@@ -1433,7 +1494,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
                         null,
                         false
                       )
-                      .subscribe((cantVerifNotaDialogRes) => {});
+                      .subscribe((cantVerifNotaDialogRes) => { });
                   } else {
                     this.onCambiarEstado(PedidoEstado.CONCLUIDO);
                   }
@@ -1637,8 +1698,8 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
     console.log(
       "Falta",
       this.selectedPedido?.cantPedidoItem -
-        this.totalItensAgregados -
-        this.selectedPedido?.cantPedidoItemCancelados || 0
+      this.totalItensAgregados -
+      this.selectedPedido?.cantPedidoItemCancelados || 0
     );
 
     this.single = [];
@@ -1656,8 +1717,8 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       name: "Falta",
       value:
         this.selectedPedido?.cantPedidoItem -
-          this.totalItensAgregados -
-          this.selectedPedido?.cantPedidoItemCancelados || 0,
+        this.totalItensAgregados -
+        this.selectedPedido?.cantPedidoItemCancelados || 0,
     });
   }
 
@@ -1788,32 +1849,103 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   }
 
   onVolverEtapa() {
-    switch (this.selectedPedido.estado) {
-      case PedidoEstado.EN_RECEPCION_NOTA:
-        this.dialogoService
-          .confirm("Atención!!", "Deseas retroceder esta etapa?")
-          .subscribe((dialogRes) => {
-            if (dialogRes) {
-              this.onCambiarEstado(PedidoEstado.ACTIVO);
-              this.pedidoItemFormGroup.disable();
-              this.buscarPedidoItemSobrantes();
-              this.pedidoDisplayedColumns.push("check");
-              this.cambiarEstado(false);
-            }
-          });
-        break;
-      case PedidoEstado.EN_RECEPCION_MERCADERIA:
-        this.dialogoService
-          .confirm("Atención!!", "Deseas retroceder esta etapa?")
-          .subscribe((dialogRes) => {
-            if (dialogRes) {
-              this.onCambiarEstado(PedidoEstado.EN_RECEPCION_NOTA);
-            }
-          });
-        break;
-      default:
-        break;
-    }
+    const stateTransitions = {
+      [PedidoEstado.EN_RECEPCION_NOTA]: {
+        nextState: PedidoEstado.ACTIVO,
+        additionalActions: () => {
+          this.pedidoItemFormGroup.disable();
+          this.buscarPedidoItemSobrantes();
+          this.pedidoDisplayedColumns.push("check");
+          this.cambiarEstado(false);
+        }
+      },
+      [PedidoEstado.EN_RECEPCION_MERCADERIA]: {
+        nextState: PedidoEstado.EN_RECEPCION_NOTA
+      },
+      [PedidoEstado.ACTIVO]: {
+        nextState: PedidoEstado.ABIERTO
+      }
+    };
+
+    const transition = stateTransitions[this.selectedPedido.estado];
+
+    if (!transition) return;
+
+    this.dialogoService
+      .confirm("Atención!!", "Deseas retroceder esta etapa?")
+      .subscribe((dialogRes) => {
+        if (dialogRes) {
+          this.pedidoService
+            .onFinalizarPedido(this.selectedPedido.id, transition.nextState)
+            .subscribe((res) => {
+              if (res?.id != null) {
+                // Reset all component variables to initial state
+                this.selectedPedido = null;
+                this.selectedPedidoItem = null;
+                this.selectedProducto = null;
+                this.selectedProveedor = null;
+                this.selectedVendedor = null;
+                this.selectedMoneda = null;
+                this.selectedFormaPago = null;
+                this.selectedNotaRecepcion = null;
+                this.selectedPedidoItemPage = null;
+                this.selectedProductoProveedorPage = null;
+                this.selectedHistoricoCompraPage = null;
+                this.selectedcompraItemPage = null;
+
+                // Clear data sources
+                this.pedidoDataSource.data = [];
+                this.productosProveedorDataSource.data = [];
+                this.historicoCompraItemDataSource.data = [];
+                this.pedidoItemNotaRecepcionDataSource.data = [];
+                this.notaRecepcionDataSource.data = [];
+
+                // Reset form controls
+                this.pedidoFormGroup.reset();
+                this.pedidoItemFormGroup.reset();
+                this.codigoControl.reset();
+                this.buscarProveedorControl.reset();
+                this.buscarVendedorControl.reset();
+                this.sucursalInfluenciaControl.reset();
+                this.sucursalEntregaControl.reset();
+                this.tipoBoletaControl.setValue("LEGAL");
+                this.diasCreditoControl.reset();
+                this.fechaEntregaControl.reset();
+
+                // Reset counters and flags
+                this.totalCost = 0;
+                this.totalItensAgregados = 0;
+                this.isAddingItensToNota = false;
+                this.isEditing = true;
+
+                // Clear selections
+                this.selection.clear();
+                this.selectionNotaRecepcion.clear();
+
+                // Reset pagination
+                this.page = 0;
+                this.size = 15;
+                this.pedidoItemNotaRecepcionPageIndex = 0;
+                this.pedidoItemNotaRecepcionPageSize = 10;
+                this.notaRecepcionPageIndex = 0;
+                this.notaRecepcionPageSize = 10;
+
+                // Reload component data with new state
+                if (this.data?.tabData?.id != null) {
+                  this.pedidoService
+                    .onGetPedidoInfoCompleta(this.data.tabData.id)
+                    .pipe(untilDestroyed(this))
+                    .subscribe((pedidoRes) => {
+                      this.onCargarDatos(pedidoRes);
+                    });
+                }
+
+                // Execute any additional state-specific actions
+                transition.additionalActions?.();
+              }
+            });
+        }
+      });
   }
 
   onFilterItensNotaRecepcion() {
@@ -1946,6 +2078,42 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
         pedido: this.selectedPedido,
       },
     });
+  }
+
+  loadPedidoItemSucursalData(pedidoItem: PedidoItem, index: number) {
+    if (!pedidoItem.pedidoItemSucursalList) {
+      this.pedidoItemSucursalService
+        .onGetPedidoItensSucursalByPedidoItem(pedidoItem.id)
+        .pipe(untilDestroyed(this))
+        .subscribe(sucursalList => {
+          pedidoItem.pedidoItemSucursalList = sucursalList;
+          switch (this.selectedPedido.estado) {
+            case PedidoEstado.EN_RECEPCION_NOTA:
+              this.pedidoItemNotaRecepcionDataSource.data = updateDataSource(
+                this.pedidoItemNotaRecepcionDataSource.data,
+                pedidoItem,
+                index
+              );
+              break;
+            case PedidoEstado.ABIERTO:
+              this.pedidoDataSource.data = updateDataSource(
+                this.pedidoDataSource.data,
+                pedidoItem,
+                index
+              );
+              break;
+            default:
+              break;
+          }
+        });
+    }
+  }
+
+  onRowClick(row: PedidoItem, index: number) {
+    this.selectedPedidoItemSobrante = row;
+    if (row) {
+      this.loadPedidoItemSucursalData(row, index);
+    }
   }
 }
 

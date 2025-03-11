@@ -49,7 +49,7 @@ export class RetiroInput {
   estado: EstadoRetiro;
   observacion: String;
   creadoEn: Date;
-  usuarioId: number;
+  usuarioId: number = null;
   cajaSalidaId: number;
   cajaEntradaId: number;
   retiroGs: number;
