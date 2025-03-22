@@ -39,10 +39,12 @@ import { FlexLayoutModule } from 'ngx-flexible-layout';
 import { CompraDashboardComponent } from './compra/compra-dashboard/compra-dashboard.component';
 import { DividirItemDialogComponent } from './pedido/dividir-item-dialog/dividir-item-dialog.component';
 import { EditarPedidpItemDialogComponent } from './pedido/editar-pedidp-item-dialog/editar-pedidp-item-dialog.component';
-import { PagoGeneralComponent } from './pago/pago-general/pago-general.component';
-import { PagoGeneralListComponent } from './pago/pago-general-list/pago-general-list.component';
 import { PagoPedidoDialogComponent } from './pedido/pago-pedido-dialog/pago-pedido-dialog.component';
 import { PedidoItemSucursalDialogComponent } from './pedido/pedido-item-sucursal/pedido-item-sucursal-dialog/pedido-item-sucursal-dialog.component';
+import { ListSolicitudPagoComponent } from './solicitud-pago/list-solicitud-pago/list-solicitud-pago.component';
+import { ListPagoComponent } from './pago/list-pago/list-pago.component';
+import { EditPagoComponent } from './pago/edit-pago/edit-pago.component';
+import { PagoDetalleDialogComponent } from './pago/edit-pago/pago-detalle-dialog/pago-detalle-dialog.component';
 
 @NgModule({
   declarations: [
@@ -79,10 +81,12 @@ import { PedidoItemSucursalDialogComponent } from './pedido/pedido-item-sucursal
     CompraDashboardComponent,
     DividirItemDialogComponent,
     EditarPedidpItemDialogComponent,
-    PagoGeneralComponent,
-    PagoGeneralListComponent,
     PagoPedidoDialogComponent,
     PedidoItemSucursalDialogComponent,
+    ListSolicitudPagoComponent,
+    ListPagoComponent,
+    EditPagoComponent,
+    PagoDetalleDialogComponent
   ],
   imports: [
     CommonModule,
@@ -95,9 +99,7 @@ import { PedidoItemSucursalDialogComponent } from './pedido/pedido-item-sucursal
     EmpresarialModule
   ],
   exports: [
-    EditPedidoComponent,
-    PagoGeneralComponent,
-    PagoGeneralListComponent
+    EditPedidoComponent
   ],
   providers:[
     { provide: LOCALE_ID, useValue: 'es-PY' } ,

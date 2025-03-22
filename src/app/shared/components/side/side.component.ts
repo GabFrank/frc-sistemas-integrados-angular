@@ -33,6 +33,8 @@ import { ListFacturaLegalComponent } from "../../../modules/financiero/factura-l
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
 import { ListSucursalComponent } from "../../../modules/empresarial/sucursal/list-sucursal/list-sucursal.component";
+import { ListSolicitudPagoComponent } from "../../../modules/operaciones/solicitud-pago/list-solicitud-pago/list-solicitud-pago.component";
+import { ThermalPrinterComponent } from '../../../modules/configuracion/thermal-printer/thermal-printer.component';
 
 @Component({
   selector: "app-side",
@@ -229,6 +231,17 @@ export class SideComponent implements OnInit {
           this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
+        case "list-pagos":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ANALISIS_DE_CAJA)
+        ) {
+          this.tabService.addTab(
+            new Tab(ListSolicitudPagoComponent, "Lista de solicitudes de pago", null, null)
+          );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
+        }
+        break;
       case "list-transferencias":
         if (
           this.mainService.usuarioActual?.roles.includes(ROLES.VER_TRANSFERENCIA
@@ -317,6 +330,18 @@ export class SideComponent implements OnInit {
           this.tabService.addTab(
             new Tab(ListSucursalComponent, "Lista de sucursales", null, null)
           );
+        }
+        break;
+      case "thermal-printer":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN) || 
+          this.mainService.usuarioActual?.roles.includes("CONFIGURACION")
+        ) {
+          this.tabService.addTab(
+            new Tab(ThermalPrinterComponent, "Impresoras Térmicas", null, null)
+          );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
     }

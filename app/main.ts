@@ -3,9 +3,27 @@ import { autoUpdater, UpdateDownloadedEvent } from "electron-updater";
 import * as fs from "fs";
 import * as path from "path";
 import * as url from "url";
+import { exec } from "child_process";
+import { PosPrinter } from 'electron-pos-printer';
 
 const log = require('electron-log');
 const isDev = require('electron-is-dev');
+
+// Import interfaces and types for Thermal Printer
+interface PrinterConfig {
+  id: number;
+  name: string;
+  type: string;
+  connectionType: string;
+  address: string;
+  port?: number;
+  width?: number;
+  characterSet?: string;
+  options?: any;
+}
+
+// Store printers configuration globally
+let printers: PrinterConfig[] = [];
 
 autoUpdater.logger = log
 autoUpdater.setFeedURL({
@@ -137,6 +155,295 @@ ipcMain.on('reiniciar', (event: any, arg: any) => {
 ipcMain.on('get-app-version', (event) => {
   event.returnValue = app.getVersion();
 });
+
+// Add Thermal Printer IPC handlers
+ipcMain.handle('get-printers', (event) => {
+  return printers;
+});
+
+ipcMain.handle('save-printer', (event, printer: PrinterConfig) => {
+  const existingIndex = printers.findIndex(p => p.id === printer.id);
+  if (existingIndex >= 0) {
+    printers[existingIndex] = printer;
+  } else {
+    printer.id = printers.length > 0 ? Math.max(...printers.map(p => p.id)) + 1 : 1;
+    printers.push(printer);
+  }
+  return printer;
+});
+
+ipcMain.handle('delete-printer', (event, printerId: number) => {
+  const existingIndex = printers.findIndex(p => p.id === printerId);
+  if (existingIndex >= 0) {
+    printers.splice(existingIndex, 1);
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle('test-printer', async (event, printerId: number) => {
+  try {
+    const printer = printers.find(p => p.id === printerId);
+    if (!printer) {
+      return { success: false, error: 'Printer not found' };
+    }
+
+    // Generate test page content
+    const content = generateTestPageContent(printer);
+    
+    // Print the test page
+    const success = await printThermalReceipt(printer, content);
+    
+    return { success };
+  } catch (error) {
+    console.error('Error printing test page:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('print-receipt', async (event, { printerId, order, orderItems }) => {
+  try {
+    const printer = printers.find(p => p.id === printerId);
+    if (!printer) {
+      return { success: false, error: 'Printer not found' };
+    }
+    
+    // Generate receipt content
+    const content = generateReceiptContent(order, orderItems);
+    
+    // Print the receipt
+    const success = await printThermalReceipt(printer, content);
+    
+    return { success };
+  } catch (error) {
+    console.error('Error printing receipt:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Register IPC handlers for the simplified printer API
+function registerPrinterIpcHandlers() {
+  // Get system printers using webContents.getPrintersAsync()
+  ipcMain.handle('get-system-printers', async () => {
+    try {
+      console.log('Getting system printers');
+      const mainWindow = BrowserWindow.getFocusedWindow();
+      if (!mainWindow) {
+        console.error('No focused window found');
+        return [];
+      }
+      
+      // Use getPrintersAsync instead of getPrinters
+      const printers = await mainWindow.webContents.getPrintersAsync();
+      console.log(`Found ${printers.length} system printers`);
+      return printers;
+    } catch (error) {
+      console.error('Error getting system printers:', error);
+      return [];
+    }
+  });
+
+  // Print using electron-pos-printer
+  ipcMain.handle('print-with-pos-printer', async (event, args) => {
+    try {
+      console.log('print-with-pos-printer called with args:', JSON.stringify(args, (key, value) => {
+        // Don't log the full base64 image data to avoid console log overflow
+        if (key === 'path' && typeof value === 'string' && value.startsWith('data:image')) {
+          return 'data:image... [truncated]';
+        }
+        return value;
+      }));
+      
+      const { data, options } = args;
+      
+      // Validate arguments
+      if (!data || !Array.isArray(data)) {
+        console.error('Invalid data for printing - not an array');
+        return { success: false, error: 'Invalid data for printing' };
+      }
+      
+      if (!options || !options.printerName) {
+        console.error('Invalid printer options - missing printerName');
+        return { success: false, error: 'Invalid printer options' };
+      }
+      
+      // Deep clone the data to avoid modifying the original
+      let printData = JSON.parse(JSON.stringify(data));
+      
+      // Ensure each item has valid properties and styles to avoid the "TypeError: Cannot convert undefined or null to object" error
+      for (let i = 0; i < printData.length; i++) {
+        const item = printData[i];
+        
+        // Ensure style is an object if it exists or initialize it if it doesn't
+        if (item.style === null || item.style === undefined) {
+          printData[i].style = {};
+        }
+        
+        // Process item type specific properties
+        switch (item.type) {
+          case 'text':
+            // Ensure value is a string
+            if (item.value === null || item.value === undefined) {
+              printData[i].value = '';
+            }
+            break;
+            
+          case 'image':
+            // Fix null paths
+            if (!item.path) {
+              console.error('Image missing path, removing from print job');
+              // Replace with a placeholder text instead
+              printData[i] = {
+                type: 'text',
+                value: '[Image placeholder]',
+                style: { textAlign: 'center' }
+              };
+            }
+            break;
+            
+          case 'barCode':
+            // Ensure barcode properties
+            if (!item.value) {
+              console.error('Barcode missing value, replacing with placeholder');
+              printData[i].value = '12345678';
+            }
+            
+            // Ensure we have valid barcode properties
+            printData[i].height = item.height || 40;
+            printData[i].width = item.width || 2;
+            printData[i].position = item.position || 'center';
+            printData[i].displayValue = item.displayValue !== undefined ? item.displayValue : true;
+            break;
+            
+          case 'qrCode':
+            // Ensure QR code properties
+            if (!item.value) {
+              console.error('QR code missing value, replacing with placeholder');
+              printData[i].value = 'https://example.com';
+            }
+            
+            // Ensure we have valid QR code properties
+            printData[i].height = item.height || 150;
+            printData[i].width = item.width || 150;
+            printData[i].position = item.position || 'center';
+            break;
+        }
+      }
+      
+      // Check for image-based printing which can cause ENAMETOOLONG errors
+      const imageItems = printData.filter(item => 
+        (item.type === 'image' && item.path && item.path.startsWith('data:image')) ||
+        (item.style && item.style.backgroundImage && item.style.backgroundImage.startsWith('data:image'))
+      );
+      
+      if (imageItems.length > 0) {
+        console.log(`Detected ${imageItems.length} image items in print job`);
+        
+        // Handle image items by saving to temp files
+        const tmpDir = path.join(app.getPath('temp'), 'pos-printer-images');
+        if (!fs.existsSync(tmpDir)) {
+          fs.mkdirSync(tmpDir, { recursive: true });
+        }
+        
+        // Process each image item
+        for (let i = 0; i < printData.length; i++) {
+          const item = printData[i];
+          
+          // Handle direct image items
+          if (item.type === 'image' && item.path && item.path.startsWith('data:image')) {
+            try {
+              const timestamp = Date.now();
+              const imgPath = path.join(tmpDir, `img-${timestamp}-${i}.png`);
+              
+              // Extract base64 data
+              const base64Data = item.path.split(';base64,').pop();
+              if (base64Data) {
+                // Save to temp file
+                fs.writeFileSync(imgPath, Buffer.from(base64Data, 'base64'));
+                // Update item to use file path instead of base64
+                printData[i].path = imgPath;
+                console.log(`Saved image ${i} to temp file: ${imgPath}`);
+              }
+            } catch (err) {
+              console.error(`Error handling image ${i}:`, err);
+            }
+          }
+          
+          // Handle background images in style
+          if (item.style && item.style.backgroundImage && item.style.backgroundImage.startsWith('data:image')) {
+            try {
+              const timestamp = Date.now();
+              const imgPath = path.join(tmpDir, `bg-${timestamp}-${i}.png`);
+              
+              // Extract base64 data
+              const base64Data = item.style.backgroundImage.split(';base64,').pop();
+              if (base64Data) {
+                // Save to temp file
+                fs.writeFileSync(imgPath, Buffer.from(base64Data, 'base64'));
+                // Update style to use file path
+                printData[i].style.backgroundImage = `url(${imgPath})`;
+                console.log(`Saved background image ${i} to temp file: ${imgPath}`);
+              }
+            } catch (err) {
+              console.error(`Error handling background image ${i}:`, err);
+            }
+          }
+        }
+      }
+      
+      console.log(`Printing to "${options.printerName}" with ${printData.length} items`);
+      
+      // Ensure options object is properly configured
+      const printOptions = {
+        ...options,
+        silent: options.silent !== undefined ? options.silent : true,
+        preview: options.preview !== undefined ? options.preview : false,
+        width: options.width || '58mm',
+        margin: options.margin || '0 0 0 0',
+        copies: options.copies || 1,
+        timeOutPerLine: options.timeOutPerLine || 400
+      };
+      
+      console.log('Using print options:', JSON.stringify(printOptions));
+      
+      try {
+        // Print using electron-pos-printer
+        await PosPrinter.print(printData, printOptions);
+        console.log('Print completed successfully');
+        
+        // Clean up any temp files after printing
+        setTimeout(() => {
+          try {
+            const tmpDir = path.join(app.getPath('temp'), 'pos-printer-images');
+            if (fs.existsSync(tmpDir)) {
+              // Delete files but keep directory
+              const files = fs.readdirSync(tmpDir);
+              for (const file of files) {
+                if (file.startsWith('img-') || file.startsWith('bg-')) {
+                  fs.unlinkSync(path.join(tmpDir, file));
+                }
+              }
+              console.log(`Cleaned up ${files.length} temporary image files`);
+            }
+          } catch (error) {
+            console.error('Error cleaning up temporary files:', error);
+          }
+        }, 1000);
+        
+        return { success: true };
+      } catch (printError) {
+        console.error('PosPrinter.print() threw an error:', printError);
+        return { 
+          success: false, 
+          error: printError.message || 'Unknown printing error'
+        };
+      }
+    } catch (error) {
+      console.error('Error in print-with-pos-printer handler:', error);
+      return { success: false, error: error.message || 'Unknown printing error' };
+    }
+  });
+}
 
 try {
   // This method will be called when Electron has finished
@@ -286,10 +593,12 @@ try {
         }
       ])
     );
-    setTimeout(createWindow, 400);
+    
+    // Initialize window and register handlers here to ensure we only create one window
+    createWindow().then(() => {
+      registerPrinterIpcHandlers();
+    });
   });
-
-
 
   // Quit when all windows are closed.
   app.on('window-all-closed', () => {
@@ -301,16 +610,11 @@ try {
     }
   });
 
-  app.on('activate', () => {
-    // On OS X it's common to re-create a window in the app when the
+  // Add macOS activate handler here instead
+  app.on("activate", function () {
+    // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (instanceCount >= 2) {
-      return;
-    }
-    instanceCount++;
-    if (win === null) {
-      createWindow();
-    }
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 
 } catch (e) {
@@ -341,5 +645,683 @@ export function relaunchElectron() {
         slashes: true,
       })
     );
+  }
+}
+
+/**
+ * Thermal Printer Functions
+ */
+
+/**
+ * Main function to print content to a thermal receipt printer
+ * @param printer The printer configuration object
+ * @param content The content to print
+ * @returns Promise<boolean> Success or failure
+ */
+async function printThermalReceipt(printer: PrinterConfig, content: string): Promise<boolean> {
+  try {
+    // If no printer is found, log an error and return false
+    if (!printer) {
+      console.error('Printer not found');
+      return false;
+    }
+    
+    console.log(`Using printer: ${printer.name} (${printer.id}) of type ${printer.type}`);
+    
+    // Check if this is data for the new electron-pos-printer format
+    const isPosPrinterData = content.includes('__POS_PRINTER_DATA__:');
+    
+    // Check if this is image data for special handling
+    const isImageLabel = content.includes('data:image/') && 
+                        (content.includes('base64') || content.startsWith('__IMAGE_PRINT_DATA__:'));
+    
+    // If it's our new format, use electron-pos-printer
+    if (isPosPrinterData) {
+      console.log("Detected electron-pos-printer data format. Using advanced printing.")
+      return await printWithElectronPosPrinter(printer, content);
+    }
+    
+    // If it's image data, handle it specially
+    if (isImageLabel) {
+      console.log("Detected image data for label. Using specialized image printing.");
+      return await printImageWithCUPS(printer, content);
+    }
+    
+    // Determine if this is a product label
+    const isLabel = content.includes('Gs.') && content.includes('\x1B\x61\x01');
+    console.log(`Print job detected as ${isLabel ? 'LABEL' : 'RECEIPT/TEST'}`);
+    
+    // Special handling for CUPS printers on macOS/Linux
+    if (printer.connectionType === 'usb' && printer.address.includes('ticket-')) {
+      console.log("Detected CUPS printer. Using CUPS printing approach.");
+      console.log(`Printer address: ${printer.address}`);
+      console.log(`Content length: ${content.length} bytes`);
+      
+      // If this is a label, make sure we have some minimum content length for CUPS
+      if (isLabel && content.length < 10) {
+        console.error('Label content too short, might not trigger printing');
+        content += '\n\n\n\n\n\n\n\n\n'; // Add some padding to ensure printing
+      }
+      
+      // Log the first few characters for debugging (avoiding control chars)
+      console.log(`Content preview: ${content.replace(/[\x00-\x1F\x7F-\xFF]/g, '?').substring(0, 30)}...`);
+      
+      return await printWithCUPS(printer, content);
+    }
+
+    // Regular thermal printer printing for non-CUPS printers
+    console.log(`Using node-thermal-printer with interface type: ${printer.connectionType}`);
+    return await printWithNodeThermalPrinter(printer, content);
+  } catch (error) {
+    console.error('Error during printing:', error);
+    return false;
+  }
+}
+
+/**
+ * Special function to print an image with CUPS - resolves the name too long issue
+ * @param printer Printer configuration
+ * @param content Image data content
+ * @returns Promise<boolean> Success or failure
+ */
+async function printImageWithCUPS(printer: PrinterConfig, content: string): Promise<boolean> {
+  try {
+    console.log('Processing image data for specialized CUPS printing...');
+    
+    // Extract the base64 image data
+    let imageData = content;
+    if (content.includes('__IMAGE_PRINT_DATA__:')) {
+      imageData = content.split('__IMAGE_PRINT_DATA__:')[1].trim();
+    }
+    
+    // Check if we have valid base64 data
+    if (!imageData || (!imageData.startsWith('data:image') && !content.includes('base64'))) {
+      console.error('Invalid image data for CUPS printing');
+      return false;
+    }
+    
+    console.log('Valid image data found, preparing for CUPS printing...');
+    
+    // For CUPS, we need to save as an image file first
+    let base64Data = imageData;
+    if (base64Data.startsWith('data:image')) {
+      base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+    }
+    
+    const imageBuffer = Buffer.from(base64Data, 'base64');
+    console.log(`Image buffer created, size: ${imageBuffer.length} bytes`);
+    
+    // Save to a temporary PNG file
+    const imageTempFile = path.join(app.getPath('temp'), `label-${Date.now()}.png`);
+    fs.writeFileSync(imageTempFile, imageBuffer);
+    console.log(`Image saved to temp file: ${imageTempFile}`);
+    
+    // Get printer name properly for CUPS
+    let printerName = printer.name;
+    if (printer.connectionType === 'usb' && printer.address.includes('ticket-')) {
+      printerName = printer.address.replace('ticket-', '');
+    }
+    
+    // Use lp with image file
+    const printCommand = `lp -d "${printerName}" ${imageTempFile}`;
+    console.log(`Executing image print command: ${printCommand}`);
+    
+    return new Promise((resolve, reject) => {
+      exec(printCommand, (error: any, stdout: string, stderr: string) => {
+        // Clean up the temp file
+        try { fs.unlinkSync(imageTempFile); } catch (e) { console.error('Failed to delete temp image file:', e); }
+        
+        if (error) {
+          console.error(`CUPS image printing error: ${error.message}`);
+          console.error(`stderr: ${stderr}`);
+          reject(error);
+          return;
+        }
+        
+        console.log(`CUPS image printing stdout: ${stdout}`);
+        console.log("CUPS image printing done!");
+        resolve(true);
+      });
+    });
+  } catch (err) {
+    console.error('Error handling image data for CUPS:', err);
+    return false;
+  }
+}
+
+/**
+ * Print using CUPS (Common Unix Printing System) on macOS/Linux
+ * @param printer Printer configuration
+ * @param content Content to print
+ * @returns Promise<boolean> Success or failure
+ */
+async function printWithCUPS(printer: PrinterConfig, content: string): Promise<boolean> {
+  // Check if this is an image print request
+  const isImagePrint = content.includes('__IMAGE_PRINT_DATA__:');
+  
+  // Special handling for product labels
+  const isLabel = content.includes('Gs.') && content.includes('\x1B\x61\x01');
+  
+  // Check if this is a rotated (landscape) label
+  // Look for any of the rotation commands we might use
+  const isRotatedLabel = (isLabel || isImagePrint) && (
+    content.includes('\x1B\x54\x01') || // ESC T 1 - Print direction 90 degrees
+    content.includes('\x1D\x7C\x01') || // GS | 1 - Turn 90 degrees 
+    content.includes('\x1B\x56\x01')    // ESC V 1 - 90 degree rotation
+  );
+  
+  // Create a temporary file for the content
+  const tempFile = path.join(app.getPath('temp'), `receipt-${Date.now()}.txt`);
+  
+  // Handle image printing differently
+  if (isImagePrint) {
+    try {
+      console.log('Processing image data for CUPS printing...');
+      
+      // Extract the base64 image data
+      const imageData = content.split('__IMAGE_PRINT_DATA__:')[1].trim();
+      
+      // Check if we have valid base64 data
+      if (!imageData || !imageData.startsWith('data:image')) {
+        console.error('Invalid image data for CUPS printing');
+        return false;
+      }
+      
+      console.log('Valid image data found, preparing for CUPS printing...');
+      console.log(`Image data length: ${imageData.length} bytes`);
+      
+      // For CUPS, we need to save as an image file first
+      const imageBuffer = Buffer.from(
+        imageData.replace(/^data:image\/\w+;base64,/, ''), 
+        'base64'
+      );
+      
+      console.log(`Image buffer created, size: ${imageBuffer.length} bytes`);
+      
+      // Save to a temporary PNG file
+      const imageTempFile = path.join(app.getPath('temp'), `label-${Date.now()}.png`);
+      fs.writeFileSync(imageTempFile, imageBuffer);
+      console.log(`Image saved to temp file: ${imageTempFile}`);
+      
+      // Determine print options based on orientation
+      const orientationOption = isRotatedLabel ? '-o orientation-requested=4' : '';
+      
+      // Use lp with image file
+      const printCommand = `lp -d "${printer.address.replace('ticket-', '')}" ${orientationOption} ${imageTempFile}`;
+      console.log(`Executing image print command: ${printCommand}`);
+      
+      return new Promise((resolve, reject) => {
+        exec(printCommand, (error: any, stdout: string, stderr: string) => {
+          // Clean up the temp file
+          try { fs.unlinkSync(imageTempFile); } catch (e) { console.error('Failed to delete temp image file:', e); }
+          
+          if (error) {
+            console.error(`CUPS image printing error: ${error.message}`);
+            console.error(`stderr: ${stderr}`);
+            reject(error);
+            return;
+          }
+          
+          console.log(`CUPS image printing stdout: ${stdout}`);
+          console.log("CUPS image printing done!");
+          resolve(true);
+        });
+      });
+    } catch (err) {
+      console.error('Error handling image data for CUPS:', err);
+      return false;
+    }
+  } else if (isLabel) {
+    // For labels, we need to ensure raw printing mode and proper page formatting
+    // Add a form feed character at the end if not present
+    if (!content.includes('\f') && !content.includes('\x0C')) {
+      content += '\x0C'; // Form feed character
+    }
+    
+    // For rotated text in CUPS, we need special handling
+    if (isRotatedLabel) {
+      console.log('Detected rotated text for CUPS printing - using enhanced rotation mode');
+      
+      // Force raw mode to ensure control characters are passed through
+      fs.writeFileSync(tempFile, content, { encoding: 'binary' });
+      
+      // Use lp with raw mode and landscape orientation for rotated labels
+      const printCommand = `lp -d "${printer.address.replace('ticket-', '')}" -o raw -o orientation-requested=4 ${tempFile}`;
+      console.log(`Executing rotated label print command: ${printCommand}`);
+      
+      return new Promise((resolve, reject) => {
+        exec(printCommand, (error: any, stdout: string, stderr: string) => {
+          // Clean up the temp file
+          try { fs.unlinkSync(tempFile); } catch (e) { console.error('Failed to delete temp file:', e); }
+          
+          if (error) {
+            console.error(`CUPS rotated label printing error: ${error.message}`);
+            console.error(`stderr: ${stderr}`);
+            reject(error);
+            return;
+          }
+          
+          console.log(`CUPS rotated label printing stdout: ${stdout}`);
+          console.log("CUPS rotated label printing done!");
+          resolve(true);
+        });
+      });
+    } else {
+      // For regular (non-rotated) labels
+      // Force raw mode to ensure control characters are passed through
+      fs.writeFileSync(tempFile, content, { encoding: 'binary' });
+      
+      // Use lp with raw mode for labels to ensure ESC/POS commands work
+      const printCommand = `lp -d "${printer.address.replace('ticket-', '')}" -o raw ${tempFile}`;
+      console.log(`Executing label print command: ${printCommand}`);
+      
+      return new Promise((resolve, reject) => {
+        exec(printCommand, (error: any, stdout: string, stderr: string) => {
+          // Clean up the temp file
+          try { fs.unlinkSync(tempFile); } catch (e) { console.error('Failed to delete temp file:', e); }
+          
+          if (error) {
+            console.error(`CUPS label printing error: ${error.message}`);
+            console.error(`stderr: ${stderr}`);
+            reject(error);
+            return;
+          }
+          
+          console.log(`CUPS label printing stdout: ${stdout}`);
+          console.log("CUPS label printing done!");
+          resolve(true);
+        });
+      });
+    }
+  } else {
+    // For regular receipts and test pages, use the standard approach
+    fs.writeFileSync(tempFile, content, 'utf8');
+    
+    // Standard CUPS printing command
+    const printCommand = `lp -d "${printer.address.replace('ticket-', '')}" ${tempFile}`;
+    console.log(`Executing standard print command: ${printCommand}`);
+    
+    return new Promise((resolve, reject) => {
+      exec(printCommand, (error: any, stdout: string, stderr: string) => {
+        // Clean up the temp file
+        try { fs.unlinkSync(tempFile); } catch (e) { console.error('Failed to delete temp file:', e); }
+        
+        if (error) {
+          console.error(`CUPS printing error: ${error.message}`);
+          console.error(`stderr: ${stderr}`);
+          reject(error);
+          return;
+        }
+        
+        console.log(`CUPS printing stdout: ${stdout}`);
+        console.log("CUPS printing done!");
+        resolve(true);
+      });
+    });
+  }
+}
+
+/**
+ * Print using node-thermal-printer library
+ * @param printer Printer configuration
+ * @param content Content to print
+ * @returns Promise<boolean> Success or failure
+ */
+async function printWithNodeThermalPrinter(printer: PrinterConfig, content: string): Promise<boolean> {
+  try {
+    // Dynamically import node-thermal-printer to avoid issues when it's not installed
+    const { ThermalPrinter, PrinterTypes, CharacterSet } = require('node-thermal-printer');
+
+    // Create interface string based on connection type
+    let interfaceConfig: string;
+
+    if (printer.connectionType === 'network') {
+      // For regular network printers
+      interfaceConfig = `tcp://${printer.address}:${printer.port || 9100}`;
+    } else if (printer.connectionType === 'usb') {
+      // For USB connected printers
+      interfaceConfig = printer.address;
+    } else if (printer.connectionType === 'bluetooth') {
+      // For Bluetooth printers
+      interfaceConfig = `bt:${printer.address}`;
+    } else {
+      // Fallback
+      interfaceConfig = printer.address;
+    }
+
+    console.log(`Using printer interface: ${interfaceConfig}`);
+
+    // Get the character set from the CharacterSet enum
+    const characterSet = printer.characterSet ? getCharacterSet(printer.characterSet, CharacterSet) : CharacterSet.PC437_USA;
+
+    // Use node-thermal-printer with the right configuration
+    const thermalPrinter = new ThermalPrinter({
+      type: getPrinterType(printer.type, PrinterTypes),
+      interface: interfaceConfig,
+      options: {
+        timeout: 5000
+      },
+      width: printer.width || 48, // Character width
+      characterSet: characterSet,
+    });
+
+    // Check connection
+    const isConnected = await thermalPrinter.isPrinterConnected();
+
+    if (!isConnected) {
+      console.error('Printer is not connected');
+      return false;
+    }
+
+    // Check if this is an image print request
+    if (content.includes('__IMAGE_PRINT_DATA__:')) {
+      console.log('Detected image print request for node-thermal-printer');
+      
+      // Extract the base64 image data
+      const imageData = content.split('__IMAGE_PRINT_DATA__:')[1].trim();
+      
+      // Check if we have valid base64 data
+      if (!imageData || !imageData.startsWith('data:image')) {
+        console.error('Invalid image data for node-thermal-printer');
+        return false;
+      }
+      
+      console.log('Valid image data found, preparing for printing...');
+      console.log(`Image data length: ${imageData.length} bytes`);
+      
+      // Initialize the printer and center alignment
+      thermalPrinter.clear();       // Clear previous commands
+      thermalPrinter.initialize();  // Initialize printer
+      thermalPrinter.alignCenter(); // Center the image
+      
+      // Convert base64 to image buffer
+      const imgBuffer = Buffer.from(
+        imageData.replace(/^data:image\/\w+;base64,/, ''), 
+        'base64'
+      );
+      
+      console.log(`Image buffer created, size: ${imgBuffer.length} bytes`);
+      
+      // Print the image
+      console.log('Sending image to printer...');
+      thermalPrinter.printImage(imgBuffer);
+      
+      // Add a margin at the end and cut
+      thermalPrinter.newLine();
+      thermalPrinter.cut();
+      
+      console.log('Executing print job...');
+      await thermalPrinter.execute();
+      console.log("Image print done!");
+      return true;
+    } else {
+      // Regular text print
+      thermalPrinter.alignCenter();
+      thermalPrinter.println(content);
+      thermalPrinter.cut();
+      
+      await thermalPrinter.execute();
+      console.log("Print done!");
+      return true;
+    }
+  } catch (error) {
+    console.error('Error in printWithNodeThermalPrinter:', error);
+    return false;
+  }
+}
+
+/**
+ * Map printer type string to node-thermal-printer's PrinterTypes
+ * @param type Printer type string ('epson' or 'star')
+ * @returns PrinterTypes enum value
+ */
+function getPrinterType(type: string, PrinterTypes: any): any {
+  switch (type.toLowerCase()) {
+    case 'epson':
+      return PrinterTypes.EPSON;
+    case 'star':
+      return PrinterTypes.STAR;
+    default:
+      return PrinterTypes.EPSON; // Default to EPSON
+  }
+}
+
+/**
+ * Map character set string to node-thermal-printer's CharacterSet
+ * @param charset Character set string
+ * @returns CharacterSet enum value
+ */
+function getCharacterSet(charset: string, CharacterSet: any): any {
+  switch (charset) {
+    case 'PC437_USA':
+      return CharacterSet.PC437_USA;
+    case 'PC850_MULTILINGUAL':
+      return CharacterSet.PC850_MULTILINGUAL;
+    case 'PC860_PORTUGUESE':
+      return CharacterSet.PC860_PORTUGUESE;
+    case 'PC863_CANADIAN_FRENCH':
+      return CharacterSet.PC863_CANADIAN_FRENCH;
+    case 'PC865_NORDIC':
+      return CharacterSet.PC865_NORDIC;
+    case 'PC851_GREEK':
+      return CharacterSet.PC851_GREEK;
+    case 'PC857_TURKISH':
+      return CharacterSet.PC857_TURKISH;
+    case 'PC737_GREEK':
+      return CharacterSet.PC737_GREEK;
+    case 'ISO8859_7_GREEK':
+      return CharacterSet.ISO8859_7_GREEK;
+    case 'SLOVENIA':
+      return CharacterSet.SLOVENIA;
+    case 'PC852_LATIN2':
+      return CharacterSet.PC852_LATIN2;
+    case 'PC858_EURO':
+      return CharacterSet.PC858_EURO;
+    case 'WPC1252':
+      return CharacterSet.WPC1252;
+    case 'PC866_CYRILLIC2':
+      return CharacterSet.PC866_CYRILLIC2;
+    case 'PC852_LATIN2_2':
+      return CharacterSet.PC852_LATIN2;
+    default:
+      return CharacterSet.PC437_USA; // Default to USA
+  }
+}
+
+/**
+ * Generate a receipt content string for an order
+ * @param order Order data
+ * @param orderItems Items in the order
+ * @returns Formatted receipt content
+ */
+function generateReceiptContent(order: any, orderItems: any[]): string {
+  // Special case for product labels
+  if (order.type === 'product-label' && orderItems.length > 0) {
+    return orderItems[0].notes || '';
+  }
+  
+  // Special case for image-based product labels
+  if (order.type === 'image-label' && orderItems.length > 0 && orderItems[0].isImage) {
+    const imageData = orderItems[0].notes;
+    
+    // Special image handling - don't embed it into the content string
+    // to avoid the "name too long" error
+    console.log('Image label detected, using specialized image handling');
+    return imageData;
+  }
+
+  const dateTime = new Date(order.orderTime || new Date()).toLocaleString();
+
+  let content = `
+==============================
+         YOUR BUSINESS
+==============================
+Order #: ${order.id || 'N/A'}
+Date: ${dateTime}
+Customer: ${order.customerName || 'N/A'}
+Table: ${order.tableNumber || 'N/A'}
+------------------------------
+ITEMS
+------------------------------
+`;
+
+  // Add items
+  let subtotal = 0;
+  for (const item of orderItems) {
+    const product = item.product || {};
+    // Ensure price is a number
+    const price = typeof product.price === 'number' ? product.price : parseFloat(product.price) || 0;
+    const quantity = typeof item.quantity === 'number' ? item.quantity : parseFloat(item.quantity) || 1;
+    const lineTotal = price * quantity;
+    subtotal += lineTotal;
+    
+    content += `${product.name || 'Unknown Item'}
+${quantity} x ${price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} = ${lineTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+${item.notes && !item.notes.includes('__POS_PRINTER_DATA__:') ? `Note: ${item.notes}` : ''}
+------------------------------
+`;
+  }
+
+  // Add total
+  const totalAmount = typeof order.totalAmount === 'number' ? order.totalAmount : parseFloat(order.totalAmount) || subtotal;
+  content += `
+SUBTOTAL: ${subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+TAX: ${(subtotal * 0.08).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+TOTAL: ${totalAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+==============================
+        THANK YOU!
+   PLEASE COME AGAIN SOON
+==============================
+`;
+
+  return content;
+}
+
+/**
+ * Generate test page content for printer testing
+ * @param printer Printer configuration
+ * @returns Test page content
+ */
+function generateTestPageContent(printer: PrinterConfig): string {
+  return `
+==============================
+         TEST PAGE
+==============================
+Printer: ${printer.name}
+Type: ${printer.type}
+Connection: ${printer.connectionType}
+Address: ${printer.address}
+${printer.port ? `Port: ${printer.port}` : ''}
+------------------------------
+This is a test page to verify
+that your printer is working
+correctly with your application.
+==============================
+If you can read this message,
+your printer is correctly
+configured and working!
+==============================
+        THANK YOU!
+==============================
+`;
+}
+
+/**
+ * Print using electron-pos-printer library which supports images, barcodes, QR codes etc.
+ * @param printer Printer configuration
+ * @param content Content to print (special format for electron-pos-printer)
+ * @returns Promise<boolean> Success or failure
+ */
+async function printWithElectronPosPrinter(printer: PrinterConfig, content: string): Promise<boolean> {
+  try {
+    // Parse the content as JSON if it's in the special electron-pos-printer format
+    let data;
+    try {
+      // Check if this is JSON data for advanced printing
+      if (content.startsWith('__POS_PRINTER_DATA__:')) {
+        const jsonContent = content.replace('__POS_PRINTER_DATA__:', '');
+        console.log(`Parsing JSON content, length: ${jsonContent.length}`);
+        data = JSON.parse(jsonContent);
+        
+        // Check for image data and log some info
+        const hasImage = data.some(item => item.type === 'image');
+        if (hasImage) {
+          console.log('Image data detected in print job - WARNING: electron-pos-printer may fail with very long base64 strings');
+          
+          // Convert image items to use temporary files instead of base64 data
+          data = data.map(item => {
+            if (item.type === 'image' && item.path && item.path.startsWith('data:image')) {
+              // For safety, replace with text - base64 will be handled separately
+              console.log('Converting image item to text to avoid ENAMETOOLONG error');
+              return {
+                type: 'text',
+                value: 'Image label - processed separately',
+                style: {
+                  fontSize: '12px',
+                  textAlign: 'center',
+                  marginBottom: '10px'
+                }
+              };
+            }
+            return item;
+          });
+        }
+      } else {
+        // Default to simple text content if not in our special format
+        data = [{ type: 'text', value: content }];
+      }
+    } catch (error) {
+      console.error('Error parsing print data:', error);
+      // Default to simple text content if parsing fails
+      data = [{ type: 'text', value: content }];
+    }
+
+    // Determine printer connection
+    let printerName = printer.name;
+    if (printer.connectionType === 'usb' && printer.address.includes('ticket-')) {
+      // For CUPS printers, use the actual printer name without the prefix
+      printerName = printer.address.replace('ticket-', '');
+    } else if (printer.connectionType === 'network') {
+      // For network printers, use IP:PORT format
+      printerName = `${printer.address}:${printer.port || 9100}`;
+    } else {
+      // Use address for USB and other printers
+      printerName = printer.address;
+    }
+
+    // Determine appropriate width based on printer settings
+    const printerWidth = printer.width || 48;
+    const paperWidth = printerWidth <= 48 ? '58mm' : '80mm';
+
+    // Set up printer options
+    const options = {
+      preview: false,            // Preview in window
+      width: paperWidth,         // Paper width based on printer settings
+      margin: '0 0 0 0',         // Margin
+      copies: 1,                 // Number of copies
+      printerName: printerName,  // Printer name
+      timeOutPerLine: 400,
+      silent: false,             // Set to false to see error dialogs
+      printer: printer.type      // Use original case for printer type
+    } as any; // Type assertion to avoid type errors
+
+    console.log(`Printing with electron-pos-printer to "${printerName}" (${printer.type})`);
+    console.log('Printer options:', JSON.stringify(options));
+    
+    // Print the content using electron-pos-printer
+    return new Promise((resolve, reject) => {
+      PosPrinter.print(data, options)
+        .then(() => {
+          console.log('Print completed successfully');
+          resolve(true);
+        })
+        .catch((error) => {
+          console.error('Error printing with electron-pos-printer:', error);
+          reject(error);
+        });
+    });
+  } catch (error) {
+    console.error('Error in printWithElectronPosPrinter:', error);
+    return false;
   }
 }

@@ -20,7 +20,9 @@ import { ListDeliveryComponent } from '../../modules/pdv/comercial/venta-touch/l
 import { PresentacionComponent } from '../../modules/productos/presentacion/presentacion.component';
 import { ProductoComponent } from '../../modules/productos/producto/edit-producto/producto.component';
 import { TransferenciaComponent } from '../../modules/operaciones/transferencia/transferencia.component';
-
+import { ListSolicitudPagoComponent } from '../../modules/operaciones/solicitud-pago/list-solicitud-pago/list-solicitud-pago.component';
+import { EditPagoComponent } from '../../modules/operaciones/pago/edit-pago/edit-pago.component';
+import { ThermalPrinterComponent } from '../../modules/configuracion/thermal-printer/thermal-printer.component';
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
   'EDIT-PERSONA' = 'edit-persona'
@@ -54,10 +56,11 @@ export class TabService implements OnInit {
     ];
 
     // this.addTab(new Tab(EditTransferenciaComponent, 'Transferencia 56', new TabData(56, {id: 56}), null))
-    this.addTab(new Tab(VentaTouchComponent, 'Venta'))
+    // this.addTab(new Tab(VentaTouchComponent, 'Venta'))
     // this.addTab(new Tab(ListProductoComponent, "Lista de productos"))
     // this.addTab(new Tab(ListPedidoComponent, "Lista de pedidos"))
-    // this.addTab(new Tab(EditPedidoComponent, 'Nuevo pedido', new TabData(22, {id:22}), null))
+    this.addTab(new Tab(EditPagoComponent, "Nuevo pago", new TabData(3, {solicitudPagoId: 3})))
+    // this.addTab(new Tab(ThermalPrinterComponent, 'Impresora termica', new TabData(22, {id:22}), null))
     this.tabSub.next(this.tabs);
   }
   

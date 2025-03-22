@@ -113,6 +113,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   selectedCliente: Cliente;
   isCredito = false;
 
+  selectedCurrency: any;
+
   currencyOptionsGuarani = {
     allowNegative: true,
     precision: 0,
@@ -514,6 +516,10 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   addCobroDetalle(selectedValor?: number, selectedItem?: CobroDetalle) {
+    if(this.selectedFormaPago.descripcion == "CONVENIO"){
+      this.onConvenioClick();
+      return;
+    }
     let valor =
       selectedValor != null ? selectedValor : this.formGroup.get("valor").value;
     let saldo = this.formGroup.get("saldo").value;
@@ -759,6 +765,8 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             this.selectedCliente = ventaCredito.cliente;
             console.log(ventaCredito, res["itens"]);
             this.onFinalizar(ventaCredito, res["itens"]);
+          } else {
+            this.setFormaPago(this.formaPagoList[0].descripcion)
           }
         });
     }

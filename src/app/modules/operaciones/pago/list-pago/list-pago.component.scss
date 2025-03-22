@@ -1,0 +1,124 @@
+.container {
+  padding: 20px;
+}
+
+h1 {
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: #3f51b5;
+}
+
+.filter-card {
+  margin-bottom: 20px;
+}
+
+.table-card {
+  margin-bottom: 20px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -10px;
+}
+
+.col-md-3 {
+  width: 25%;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+.col-md-6 {
+  width: 50%;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+.button-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.spinner-container {
+  display: flex;
+  justify-content: center;
+  padding: 30px 0;
+}
+
+/* Column width styles */
+.mat-column-id {
+  width: 8%;
+  max-width: 8%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mat-column-solicitudPago {
+  width: 15%;
+  max-width: 15%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mat-column-estado {
+  width: 20%;
+  max-width: 20%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mat-column-creadoEn {
+  width: 25%;
+  max-width: 25%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mat-column-acciones {
+  width: 32%;
+  max-width: 32%;
+  text-align: right;
+}
+
+/* Estilos para los indicadores de estado */
+.estado-pendiente {
+  color: #ff9800;
+  font-weight: bold;
+}
+
+.estado-aprobado {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.estado-rechazado {
+  color: #f44336;
+  font-weight: bold;
+}
+
+.estado-procesando {
+  color: #2196f3;
+  font-weight: bold;
+}
+
+.estado-completado {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+/* Ajustes responsive */
+@media (max-width: 768px) {
+  .col-md-3, .col-md-6 {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  .button-container {
+    justify-content: space-between;
+  }
+} 

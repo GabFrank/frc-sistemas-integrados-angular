@@ -26,6 +26,7 @@ import { SearchEnvaseDialogComponent } from './envase/search-envase-dialog/searc
 import { AddEnvaseDialogComponent } from './envase/add-envase-dialog/add-envase-dialog.component';
 import { ProductosDashboardComponent } from './productos-dashboard/productos-dashboard.component';
 import { ListGrupoComponent } from './list-grupo/list-grupo.component';
+import { PrintLabelDialogComponent } from './producto/list-producto/print-label-dialog/print-label-dialog.component';
 
 
 
@@ -52,6 +53,7 @@ import { ListGrupoComponent } from './list-grupo/list-grupo.component';
     AddEnvaseDialogComponent,
     ProductosDashboardComponent,
     ListGrupoComponent,
+    PrintLabelDialogComponent
   ],
   imports: [
     CommonModule,

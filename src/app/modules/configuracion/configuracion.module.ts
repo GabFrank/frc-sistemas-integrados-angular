@@ -12,18 +12,28 @@ import { ListRolesComponent } from './roles/list-roles/list-roles.component';
 import { AdicionarRoleDialogComponent } from './roles/adicionar-role-dialog/adicionar-role-dialog.component';
 import { AdicionarGrupoRoleDialogComponent } from './roles/adicionar-grupo-role-dialog/adicionar-grupo-role-dialog.component';
 import { SolicitarRecursosDialogComponent } from './solicitar-recursos-dialog/solicitar-recursos-dialog.component';
-
-
+import { ThermalPrinterModule } from './thermal-printer/thermal-printer.module';
 
 @NgModule({
-  declarations: [ConfigurarServidorDialogComponent, ListActualizacionComponent, EditActualizacionComponent, UpdateWizardComponent, ListRolesComponent, AdicionarRoleDialogComponent, AdicionarGrupoRoleDialogComponent, SolicitarRecursosDialogComponent],
+  declarations: [
+    ConfigurarServidorDialogComponent, 
+    ListActualizacionComponent, 
+    EditActualizacionComponent, 
+    UpdateWizardComponent, 
+    ListRolesComponent, 
+    AdicionarRoleDialogComponent, 
+    AdicionarGrupoRoleDialogComponent, 
+    SolicitarRecursosDialogComponent
+  ],
   imports: [
     CommonModule,
     FlexLayoutModule,
     ReactiveFormsModule,
     FormsModule,
     MaterialModule,
-    SharedModule
-  ]
+    SharedModule,
+    ThermalPrinterModule
+  ],
+  exports: []
 })
 export class ConfiguracionModule { }

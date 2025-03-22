@@ -6,9 +6,24 @@ import * as remote from '@electron/remote';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import { environment } from '../../../../environments/environment';
+import { Observable, from } from 'rxjs';
+
 const electron = window.require('electron');
 const ipcRenderer = electron.ipcRenderer;
 
+// Define thermal printer interfaces
+export interface PrinterInfo {
+  name: string;
+  displayName: string;
+  description: string;
+  status: number;
+  isDefault: boolean;
+}
+
+export interface PrintResult {
+  success: boolean;
+  error?: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -55,11 +70,29 @@ export class ElectronService {
     }
 
     ipcRenderer.send('print', data, options)
-
   }
 
   getAppVersion() {
     return ipcRenderer.sendSync('get-app-version');
   }
 
+  /**
+   * Thermal Printer Functions
+   */
+
+  /**
+   * Get all available printers using the webContents.getPrinters() method
+   */
+  getPrinters(): Observable<PrinterInfo[]> {
+    return from(ipcRenderer.invoke('get-system-printers')) as Observable<PrinterInfo[]>;
+  }
+
+  /**
+   * Print using electron-pos-printer
+   * @param data Array of content elements to print
+   * @param options Printing options including printer name
+   */
+  printWithPosPrinter(data: any[], options: any): Observable<PrintResult> {
+    return from(ipcRenderer.invoke('print-with-pos-printer', { data, options })) as Observable<PrintResult>;
+  }
 }

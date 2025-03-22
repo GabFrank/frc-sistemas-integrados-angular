@@ -33,6 +33,9 @@ import { Sucursal } from '../../../empresarial/sucursal/sucursal.model';
 import { MovimientoStock } from '../../../operaciones/movimiento-stock/movimiento-stock.model';
 import { SucursalService } from '../../../empresarial/sucursal/sucursal.service';
 import { MovimientoStockService } from '../../../operaciones/movimiento-stock/movimiento-stock.service';
+import { ThermalPrinterService } from '../../../configuracion/thermal-printer/thermal-printer.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { PrintLabelDialogComponent } from './print-label-dialog/print-label-dialog.component';
 
 interface ProductoDatasource {
   id: number;
@@ -134,6 +137,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     private searchSubfamilia: SearchSubfamiliaByDescripcionGQL,
     private sucursalService: SucursalService,
     private movimientoStockService: MovimientoStockService,
+    private thermalPrinterService: ThermalPrinterService,
+    private snackBar: MatSnackBar,
   ) {
     setTimeout(() => (this.service = injector.get(ProductoService)));
   }
@@ -211,6 +216,21 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
           ListProductoComponent
         )
       );
+    }
+  }
+
+  /**
+   * Opens a dialog to print a price label for the selected product
+   * @param producto The product to print a label for
+   */
+  onPrintPriceLabel(producto: Producto) {
+    if (producto && producto.precioPrincipal) {
+      this.matDialog.open(PrintLabelDialogComponent, {
+        width: '400px',
+        data: { producto: producto }
+      });
+    } else {
+      this.snackBar.open('El producto no tiene precio definido', 'Cerrar', { duration: 3000 });
     }
   }
 
