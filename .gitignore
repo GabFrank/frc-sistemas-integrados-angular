@@ -51,4 +51,5 @@ testem.log
 
 # System Files
 .DS_Store
-Thumbs.dbelectron-printer/
+Thumbs.db
+electron-printer/
