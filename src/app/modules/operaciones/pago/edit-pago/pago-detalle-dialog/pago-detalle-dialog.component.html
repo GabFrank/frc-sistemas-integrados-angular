@@ -42,6 +42,14 @@
               <mat-icon>restore</mat-icon>
               Restablecer
             </button>
+            
+            <!-- Cancel button - visible for non-canceled PagoDetalles -->
+            <button mat-button color="warn" *ngIf="isEdit && form.get('estado').value !== 'CANCELADO'" 
+                    (click)="cancelPagoDetalle()" type="button"
+                    matTooltip="Cancelar detalle de pago y todas sus cuotas">
+              <mat-icon>cancel</mat-icon>
+              Cancelar Detalle
+            </button>
           </div>
         </div>
 
@@ -104,7 +112,7 @@
         <!-- Second row layout -->
         <div fxLayout="row wrap" fxLayoutGap="15px grid">
           <!-- Fuente (previously Sucursal) -->
-          <div fxFlex="25%">
+          <div fxFlex="20%">
             <mat-form-field appearance="outline" style="width: 100%;">
               <mat-label>Fuente</mat-label>
               <mat-select formControlName="sucursalId">
@@ -117,7 +125,7 @@
           </div>
 
           <!-- Caja (dependiente de Sucursal) -->
-          <div fxFlex="25%">
+          <div fxFlex="20%">
             <mat-form-field appearance="outline" style="width: 100%;">
               <mat-label>Caja</mat-label>
               <mat-select formControlName="cajaId">
@@ -129,13 +137,28 @@
             </mat-form-field>
           </div>
 
+          <!-- Estado -->
+          <div fxFlex="20%">
+            <mat-form-field appearance="outline" style="width: 100%;">
+              <mat-label>Estado</mat-label>
+              <mat-select formControlName="estado" [disabled]="true">
+                <mat-option value="ABIERTO">ABIERTO</mat-option>
+                <mat-option value="PENDIENTE">PENDIENTE</mat-option>
+                <mat-option value="PAGO_PARCIAL">PAGO PARCIAL</mat-option>
+                <mat-option value="CONCLUIDO">CONCLUIDO</mat-option>
+                <mat-option value="CANCELADO">CANCELADO</mat-option>
+              </mat-select>
+              <mat-hint>Calculado automáticamente</mat-hint>
+            </mat-form-field>
+          </div>
+
           <!-- Plazo -->
-          <div fxFlex="15%" style="display: flex; align-items: center;">
+          <div fxFlex="10%" style="display: flex; align-items: center;">
             <mat-checkbox formControlName="plazo">Pago a plazo</mat-checkbox>
           </div>
 
           <!-- Cuotas (siempre visible) -->
-          <div fxFlex="15%">
+          <div fxFlex="10%">
             <mat-form-field appearance="outline" style="width: 100%;">
               <mat-label>Número de cuotas</mat-label>
               <input matInput type="number" formControlName="cuotas" min="1" required>

@@ -9,7 +9,15 @@
         </div>
         <div class="info-field">
           <span class="info-label">Estado</span>
-          <span class="info-value status">{{ pago?.estado || 'Pendiente' }}</span>
+          <span class="info-value status" 
+               [ngClass]="{
+                 'status-abierto': pago?.estado === 'ABIERTO',
+                 'status-pendiente': pago?.estado === 'PENDIENTE',
+                 'status-concluido': pago?.estado === 'CONCLUIDO',
+                 'status-cancelado': pago?.estado === 'CANCELADO'
+               }">
+            {{ pago?.estado || 'Pendiente' }}
+          </span>
         </div>
         <div class="info-field">
           <span class="info-label">Id de la solicitud</span>
@@ -43,8 +51,15 @@
         <!-- <button mat-raised-button color="primary" (click)="addPagoDetalle()" [disabled]="savingPago">
           Guardar/Editar
         </button> -->
-        <button mat-raised-button color="accent" (click)="finalizarPago()" [disabled]="!pago || savingPago">
+        <button mat-raised-button color="accent" (click)="finalizarPago()" 
+                [disabled]="!pago || savingPago || !isFinalizarButtonEnabled"
+                [matTooltip]="finalizarButtonTooltip">
           Finalizar
+        </button>
+        <!-- Reopen button visible only when pago estado is PENDIENTE -->
+        <button mat-raised-button color="primary" *ngIf="pago?.estado === 'PENDIENTE'" 
+                (click)="reopenPago()" [disabled]="savingPago">
+          <mat-icon>lock_open</mat-icon> Reabrir Pago
         </button>
       </div>
     </div>
@@ -79,7 +94,8 @@
   <!-- Add button for adding new payment details -->
   <div class="add-detalle-button">
     <button mat-raised-button color="primary" (click)="addPagoDetalle()" 
-            [disabled]="!pago?.id || pago?.estado !== 'ABIERTO'">
+            [disabled]="!pago?.id || pago?.estado !== 'ABIERTO' || !isAgregarDetalleButtonEnabled || savingPago"
+            [matTooltip]="agregarButtonTooltip">
       <mat-icon>add</mat-icon> Agregar detalle de pago
     </button>
   </div>
@@ -113,19 +129,28 @@
       <!-- Estado Column -->
       <ng-container matColumnDef="estado">
         <th mat-header-cell *matHeaderCellDef class="col-estado">Estado</th>
-        <td mat-cell *matCellDef="let element" class="col-estado">PENDIENTE</td>
+        <td mat-cell *matCellDef="let element" class="col-estado"
+            [ngClass]="{
+              'status-abierto': element.estado === 'ABIERTO',
+              'status-pendiente': element.estado === 'PENDIENTE',
+              'status-pago-parcial': element.estado === 'PAGO_PARCIAL',
+              'status-concluido': element.estado === 'CONCLUIDO',
+              'status-cancelado': element.estado === 'CANCELADO'
+            }">
+          {{ element.estado || 'N/A' }}
+        </td>
       </ng-container>
 
       <!-- Forma de Pago Column -->
       <ng-container matColumnDef="formaPago">
         <th mat-header-cell *matHeaderCellDef class="col-forma-pago">Forma de pago</th>
-        <td mat-cell *matCellDef="let element" class="col-forma-pago">{{ element.formaPago?.nombre || 'N/A' }}</td>
+        <td mat-cell *matCellDef="let element" class="col-forma-pago">{{ element.formaPago?.descripcion || 'N/A' }}</td>
       </ng-container>
 
       <!-- Moneda Column -->
       <ng-container matColumnDef="moneda">
         <th mat-header-cell *matHeaderCellDef class="col-moneda">Moneda</th>
-        <td mat-cell *matCellDef="let element" class="col-moneda">{{ element.moneda?.nombre || 'N/A' }}</td>
+        <td mat-cell *matCellDef="let element" class="col-moneda">{{ element.moneda?.denominacion || 'N/A' }}</td>
       </ng-container>
 
       <!-- Total Column -->
@@ -139,14 +164,27 @@
         <th mat-header-cell *matHeaderCellDef class="col-acciones">Acciones</th>
         <td mat-cell *matCellDef="let element" class="col-acciones">
           <div class="action-buttons-container">
-            <button mat-icon-button color="primary" (click)="editPagoDetalle(element); $event.stopPropagation()" 
-                    [disabled]="pago?.estado !== 'PENDIENTE' && pago?.estado !== 'ABIERTO'">
-              <mat-icon>edit</mat-icon>
+            <button mat-icon-button color="primary" [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()"
+                    [disabled]="pago?.estado !== 'ABIERTO'">
+              <mat-icon>more_vert</mat-icon>
             </button>
-            <button mat-icon-button color="warn" (click)="deletePagoDetalle(element); $event.stopPropagation()"
-                    [disabled]="pago?.estado !== 'PENDIENTE' && pago?.estado !== 'ABIERTO'">
-              <mat-icon>delete</mat-icon>
-            </button>
+            <mat-menu #menu="matMenu">
+              <button mat-menu-item (click)="editPagoDetalle(element); $event.stopPropagation()"
+                      [disabled]="pago?.estado !== 'ABIERTO'">
+                <mat-icon>edit</mat-icon>
+                <span>Editar</span>
+              </button>
+              <button mat-menu-item (click)="deletePagoDetalle(element); $event.stopPropagation()"
+                      [disabled]="pago?.estado !== 'ABIERTO'">
+                <mat-icon>delete</mat-icon>
+                <span>Eliminar</span>
+              </button>
+              <button mat-menu-item (click)="cancelPagoDetalle(element); $event.stopPropagation()"
+                      [disabled]="pago?.estado !== 'ABIERTO' || element.estado === 'CANCELADO'">
+                <mat-icon>cancel</mat-icon>
+                <span>Cancelar</span>
+              </button>
+            </mat-menu>
           </div>
         </td>
       </ng-container>

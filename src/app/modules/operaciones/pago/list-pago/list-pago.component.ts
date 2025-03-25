@@ -8,6 +8,7 @@ import { PageEvent } from '@angular/material/paginator';
 import { formatDate } from '@angular/common';
 import { Pago, PagoEstado } from '../pago.model';
 import { PagoService } from '../pago.service';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 
 @Component({
   selector: 'app-list-pago',
@@ -31,7 +32,8 @@ export class ListPagoComponent implements OnInit {
     private pagoService: PagoService,
     private fb: FormBuilder,
     private router: Router,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private dialogosService: DialogosService
   ) {
     this.createFilterForm();
   }
@@ -108,9 +110,16 @@ export class ListPagoComponent implements OnInit {
    * Reinicia los filtros
    */
   resetFilters(): void {
-    this.filterForm.reset();
-    this.pageIndex = 0;
-    this.loadPagos();
+    this.dialogosService.confirm(
+      'REINICIAR FILTROS',
+      '¿ESTÁ SEGURO DE REINICIAR TODOS LOS FILTROS?'
+    ).subscribe(result => {
+      if (result) {
+        this.filterForm.reset();
+        this.pageIndex = 0;
+        this.loadPagos();
+      }
+    });
   }
 
   /**

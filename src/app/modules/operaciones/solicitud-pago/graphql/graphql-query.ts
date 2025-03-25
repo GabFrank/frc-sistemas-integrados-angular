@@ -16,9 +16,12 @@ export const solicitudPagoFragment = gql`
     tipo
     referenciaId
     pago {
-    id
-    usuario {
+      estado
       id
+      programado
+      creadoEn
+      usuario {
+        id
       nickname
       persona {
         id
@@ -28,6 +31,9 @@ export const solicitudPagoFragment = gql`
     creadoEn
     estado
     programado
+    solicitudPago {
+      id
+    }
     autorizadoPor {
       id
       nickname

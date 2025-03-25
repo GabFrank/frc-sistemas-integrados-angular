@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ThermalPrinterService } from './thermal-printer.service';
 import { PrinterInfo, PrintResult } from '../../../commons/core/electron/electron.service';
+import { DialogosService } from '../../../shared/components/dialogos/dialogos.service';
 
 @Component({
   selector: 'app-thermal-printer',
@@ -54,7 +55,8 @@ export class ThermalPrinterComponent implements OnInit {
   constructor(
     private formBuilder: FormBuilder,
     private thermalPrinterService: ThermalPrinterService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private dialogosService: DialogosService
   ) { }
 
   ngOnInit(): void {
@@ -133,15 +135,18 @@ export class ThermalPrinterComponent implements OnInit {
       return;
     }
     
-    // Confirm deletion
-    if (!confirm(`¿Está seguro de que desea eliminar la configuración de la impresora?`)) {
-      return;
-    }
-    
-    this.selectedPrinter = null;
-    this.hasStoredPrinter = false;
-    this.initForm();
-    this.snackBar.open('Configuración eliminada', 'Cerrar', { duration: 3000 });
+    // Confirm deletion using DialogosService
+    this.dialogosService.confirm(
+      'ELIMINAR IMPRESORA',
+      '¿ESTÁ SEGURO DE QUE DESEA ELIMINAR LA CONFIGURACIÓN DE LA IMPRESORA?'
+    ).subscribe(result => {
+      if (result) {
+        this.selectedPrinter = null;
+        this.hasStoredPrinter = false;
+        this.initForm();
+        this.snackBar.open('Configuración eliminada', 'Cerrar', { duration: 3000 });
+      }
+    });
   }
 
   onTestPrinter(): void {

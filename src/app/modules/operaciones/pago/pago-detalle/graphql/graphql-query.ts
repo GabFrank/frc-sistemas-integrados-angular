@@ -32,6 +32,7 @@ export const GET_PAGO_DETALLE = gql`
       }
       activo
       fechaProgramado
+      estado
     }
   }
 `;
@@ -70,6 +71,7 @@ export const SAVE_PAGO_DETALLE = gql`
       }
       activo
       fechaProgramado
+      estado
     }
   }
 `;
@@ -107,7 +109,9 @@ export const PAGO_DETALLES_POR_PAGO_ID = gql`
         id
       }
       activo
+      plazo
       fechaProgramado
+      estado
     }
   }
 `;

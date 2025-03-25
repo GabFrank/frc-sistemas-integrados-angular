@@ -16,8 +16,10 @@ import { CurrencyMaskInputMode } from 'ngx-currency';
 import { PagoDetalleCuota, PagoDetalleCuotaEstado } from '../../pago-detalle-cuota/pago-detalle-cuota.model';
 import { PagoDetalleCuotaService } from '../../pago-detalle-cuota/pago-detalle-cuota.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { forkJoin, Observable, of, tap, catchError, merge } from 'rxjs';
+import { forkJoin, Observable, of, tap, catchError, merge, EMPTY } from 'rxjs';
 import { dateToString } from '../../../../../commons/core/utils/dateUtils';
+import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
+import { PagoDetalleEstado } from '../../pago-detalle/pago-detalle.model';
 
 export interface PagoDetalleDialogData {
   pagoId: number;
@@ -116,7 +118,8 @@ export class PagoDetalleDialogComponent implements OnInit {
     private sucursalService: SucursalService,
     private cajaService: CajaService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private dialogosService: DialogosService
   ) {
     this.createForm();
   }
@@ -134,6 +137,16 @@ export class PagoDetalleDialogComponent implements OnInit {
     } else {
       // For new records, make the form editable by default
       this.isPagoDetalleFormEditable = true;
+      
+      // Prefill with preselected total if available (for new records)
+      if (this.data.preselectedTotal !== undefined && this.data.preselectedTotal > 0) {
+        // First set the form total
+        this.form.get('total').setValue(this.data.preselectedTotal);
+        
+        // Then initialize the totalFinalControl with the same value
+        this.totalFinalControl.setValue(this.data.preselectedTotal);
+        this.remainingTotal = this.data.preselectedTotal;
+      }
     }
     
     // Check for max amount in data for validation
@@ -154,6 +167,11 @@ export class PagoDetalleDialogComponent implements OnInit {
       this.validateTotalAgainstCuotasSum(value);
       this.calculateRemainingTotal();
       this.updateCuotaFormEnabledState();
+      
+      // Update totalFinal in cuota form when total changes
+      if (!this.editingCuotaId && this.remainingTotal > 0) {
+        this.totalFinalControl.setValue(this.remainingTotal);
+      }
     });
     
     // Listen for changes to the form's valid state
@@ -235,13 +253,23 @@ export class PagoDetalleDialogComponent implements OnInit {
       // Calculate the total per cuota (total divided by number of cuotas)
       const totalPerCuota = total / cuotas;
       
-      // Make sure the calculated value doesn't exceed remaining total
-      const valueToSet = Math.min(totalPerCuota, this.remainingTotal || totalPerCuota);
-      this.totalFinalControl.setValue(valueToSet);
+      // If we have existing cuotas, use the remaining total instead
+      if (this.pagoDetalleCuotas.length > 0) {
+        // For new cuotas, use the full remaining amount if it's the only cuota left to add
+        const remainingCuotas = cuotas - this.pagoDetalleCuotas.length;
+        if (remainingCuotas <= 1) {
+          this.totalFinalControl.setValue(this.remainingTotal);
+        } else {
+          // If multiple cuotas still need to be added, divide the remaining total
+          this.totalFinalControl.setValue(this.remainingTotal / remainingCuotas);
+        }
+      } else {
+        // For completely new pago detalle with no cuotas yet, use calculated value
+        this.totalFinalControl.setValue(totalPerCuota);
+      }
     } else if (total) {
       // If no cuotas specified but there is a total, set full amount
-      const valueToSet = Math.min(total, this.remainingTotal || total);
-      this.totalFinalControl.setValue(valueToSet);
+      this.totalFinalControl.setValue(this.remainingTotal > 0 ? this.remainingTotal : total);
     }
   }
 
@@ -289,6 +317,12 @@ export class PagoDetalleDialogComponent implements OnInit {
   updateTotalCuotasSum(): void {
     if (!this.pagoDetalleCuotas || this.pagoDetalleCuotas.length === 0) {
       this.totalCuotasSum = 0;
+      
+      // When there are no cuotas, set totalFinalControl to the full form total
+      const formTotal = this.form.get('total')?.value || 0;
+      if (formTotal > 0 && !this.editingCuotaId) {
+        this.totalFinalControl.setValue(formTotal);
+      }
     } else {
       this.totalCuotasSum = this.pagoDetalleCuotas.reduce((sum, cuota) => sum + (cuota.totalFinal || 0), 0);
     }
@@ -522,7 +556,8 @@ export class PagoDetalleDialogComponent implements OnInit {
       fechaProgramado: [null],
       activo: [true],
       plazo: [false],
-      cuotas: [{value: 1, disabled: true}, [Validators.required, Validators.min(1)]] // Notice the disabled state here
+      cuotas: [{value: 1, disabled: true}, [Validators.required, Validators.min(1)]],
+      estado: [{value: PagoDetalleEstado.ABIERTO, disabled: true}]
     });
     
     // Listen for sucursal changes to load cajas
@@ -541,10 +576,18 @@ export class PagoDetalleDialogComponent implements OnInit {
     this.form.get('plazo').valueChanges
       .pipe(untilDestroyed(this))
       .subscribe(plazo => {
+        console.log('Plazo changed to:', plazo, typeof plazo);
         if (!plazo) {
           this.form.get('cuotas').setValue(1);
           this.form.get('cuotas').disable();
         } else {
+          // When plazo is enabled, set the cuotas to the current number of active cuotas
+          // or to 1 if there are no active cuotas
+          const activeCuotasCount = this.pagoDetalleCuotas?.filter(c => 
+            c.estado !== PagoDetalleCuotaEstado.CANCELADO
+          ).length || 1;
+          
+          this.form.get('cuotas').setValue(activeCuotasCount);
           this.form.get('cuotas').enable();
         }
       });
@@ -575,6 +618,12 @@ export class PagoDetalleDialogComponent implements OnInit {
     
     // Store initial values after populating form
     this.storeInitialValues();
+    
+    // Initialize the cuota form's totalFinalControl with the preselected total
+    if (formValues.total > 0) {
+      this.remainingTotal = formValues.total;
+      this.totalFinalControl.setValue(formValues.total);
+    }
   }
 
   populateForm(): void {
@@ -591,12 +640,22 @@ export class PagoDetalleDialogComponent implements OnInit {
       cajaId: detalle.caja?.id,
       fechaProgramado: detalle.fechaProgramado ? new Date(detalle.fechaProgramado) : null,
       activo: detalle.activo ?? true,
-      plazo: detalle.plazo ?? false,
-      cuotas: detalle.cuotas || 1
+      plazo: detalle.plazo === true, // Ensure boolean conversion
+      cuotas: detalle.cuotas || 1,
+      estado: detalle.estado || PagoDetalleEstado.ABIERTO
     };
+    
+    console.log('Populating form with plazo value:', detalle.plazo, typeof detalle.plazo);
+    console.log('Populating form with estado:', formValues.estado);
+    
+    // Temporarily enable all controls to set their values
+    this.form.get('estado').enable();
     
     // Update form with values
     this.form.patchValue(formValues);
+    
+    // Disable estado control after setting the value
+    this.form.get('estado').disable();
     
     // Store initial values after populating form for future reset
     this.storeInitialValues();
@@ -605,7 +664,7 @@ export class PagoDetalleDialogComponent implements OnInit {
     this.remainingTotal = detalle.total || 0;
     
     // If it's a plazo payment, enable the cuotas field
-    if (detalle.plazo) {
+    if (formValues.plazo) {
       this.form.get('cuotas').enable();
     } else {
       this.form.get('cuotas').disable();
@@ -624,32 +683,54 @@ export class PagoDetalleDialogComponent implements OnInit {
    * Carga las cuotas asociadas al detalle de pago en edición
    */
   loadCuotas(): void {
-    if (!this.data.pagoDetalle?.id) return;
+    if (!this.data.pagoDetalle?.id) {
+      this.isLoading = false;
+      return;
+    }
     
     this.isLoading = true;
+    console.log('Loading cuotas for pagoDetalleId:', this.data.pagoDetalle.id);
+    
     this.pagoDetalleCuotaService.onGetPagoDetalleCuotasPorPagoDetalleId(this.data.pagoDetalle.id)
-      .pipe(untilDestroyed(this))
+      .pipe(
+        untilDestroyed(this),
+        catchError(error => {
+          console.error('Error al cargar cuotas', error);
+          this.isLoading = false;
+          this.snackBar.open('Error al cargar las cuotas', 'Cerrar', { duration: 3000 });
+          return of([]); // Return empty array on error
+        })
+      )
       .subscribe(
         cuotas => {
-          this.pagoDetalleCuotas = cuotas;
-          this.isLoading = false;
+          // Sort cuotas by numeroCuota to ensure they display in correct order
+          this.pagoDetalleCuotas = cuotas.sort((a, b) => a.numeroCuota - b.numeroCuota);
+          
+          console.log('Loaded cuotas:', this.pagoDetalleCuotas.length);
           
           // Calculate total sum of cuotas and update remaining total
           this.updateTotalCuotasSum();
           
+          // Update cuotas count in the form
+          const activeCuotasCount = cuotas.filter(c => 
+            c.estado !== PagoDetalleCuotaEstado.CANCELADO
+          ).length;
+          
+          if (this.form.get('plazo').value && activeCuotasCount > 0) {
+            this.form.get('cuotas').setValue(activeCuotasCount);
+          }
+          
           // If there are cuotas, prepare the cuota form with next number
           if (cuotas.length > 0) {
-            const maxCuotaNumber = Math.max(...cuotas.map(c => c.numeroCuota));
-            this.numeroCuotaControl.setValue(maxCuotaNumber + 1);
-            
-            // Update total for new cuota based on existing form values and remaining total
-            this.updateCuotaTotal();
+            // Get the next cuota number (after clearing the form to ensure it calculates correctly)
+            this.clearCuotaForm();
           }
-        },
-        error => {
-          console.error('Error al cargar cuotas', error);
+          
+          // Update the PagoDetalle estado based on loaded cuotas
+          this.updatePagoDetalleEstado();
+          
+          // Always ensure loading state is finished
           this.isLoading = false;
-          this.snackBar.open('Error al cargar las cuotas', 'Cerrar', { duration: 3000 });
         }
       );
   }
@@ -662,22 +743,56 @@ export class PagoDetalleDialogComponent implements OnInit {
     const wasEditing = this.editingCuotaId !== null;
     
     // Calculate next cuota number
-    const nextCuotaNumber = this.pagoDetalleCuotas.length > 0 
-      ? Math.max(...this.pagoDetalleCuotas.map(c => c.numeroCuota)) + 1 
-      : 1;
+    // Either the next number after the highest existing number, or 1 if no cuotas exist
+    let nextCuotaNumber = 1;
+    
+    // If there are no cuotas, always set to 1
+    if (!this.pagoDetalleCuotas || this.pagoDetalleCuotas.length === 0) {
+      console.log('No cuotas exist, setting cuota number to 1');
+      nextCuotaNumber = 1;
+    } else {
+      // Log all cuota numbers for debugging
+      console.log('Current cuota numbers:', this.pagoDetalleCuotas.map(c => c.numeroCuota).sort((a, b) => a - b));
+      
+      // Get the highest cuota number currently in use
+      const highestCuotaNumber = Math.max(...this.pagoDetalleCuotas.map(c => c.numeroCuota));
+      nextCuotaNumber = highestCuotaNumber + 1;
+      
+      // If we have gaps in the sequence, use the first available number instead
+      const existingNumbers = this.pagoDetalleCuotas.map(c => c.numeroCuota).sort((a, b) => a - b);
+      
+      // Find first gap in sequence
+      let foundGap = false;
+      for (let i = 1; i <= existingNumbers.length + 1; i++) {
+        if (!existingNumbers.includes(i)) {
+          nextCuotaNumber = i;
+          foundGap = true;
+          console.log('Found gap in cuota numbers at position:', i);
+          break;
+        }
+      }
+      
+      // If no gaps found, use the next number after highest
+      if (!foundGap) {
+        nextCuotaNumber = highestCuotaNumber + 1;
+        console.log('No gaps found, using next sequential number:', nextCuotaNumber);
+      }
+    }
+    
+    console.log('Setting next cuota number to:', nextCuotaNumber);
     
     // Set numero cuota (auto-generated)
     this.numeroCuotaControl.setValue(nextCuotaNumber);
     
     // Set fecha vencimiento based on plazo option
     if (this.form.get('plazo').value) {
-      // If plazo is enabled, set date 30 days in future
+      // If paying in installments, enable fecha vencimiento to allow future dates
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 30);
       this.fechaVencimientoControl.setValue(futureDate);
       this.fechaVencimientoControl.enable();
     } else {
-      // If plazo is disabled, set to current date and disable
+      // If not paying in installments, set to current date and disable
       this.fechaVencimientoControl.setValue(new Date());
       this.fechaVencimientoControl.disable();
     }
@@ -686,8 +801,15 @@ export class PagoDetalleDialogComponent implements OnInit {
     this.estadoControl.setValue(PagoDetalleCuotaEstado.PENDIENTE);
     
     // Always set the remaining total as the default value for new cuota
-    // If there's no remaining total, we'll set it to zero
-    this.totalFinalControl.setValue(Math.max(0, this.remainingTotal));
+    const formTotal = this.form.get('total')?.value || 0;
+    
+    // If there are no cuotas, use the full form total
+    if (!this.pagoDetalleCuotas || this.pagoDetalleCuotas.length === 0) {
+      this.totalFinalControl.setValue(formTotal);
+      this.remainingTotal = formTotal;
+    } else {
+      this.totalFinalControl.setValue(this.remainingTotal);
+    }
     
     // Reset editing state
     this.editingCuotaId = null;
@@ -710,89 +832,488 @@ export class PagoDetalleDialogComponent implements OnInit {
   }
 
   /**
-   * Agrega o actualiza una cuota desde el formulario de cuota
+   * Updates the PagoDetalle estado based on sus cuotas
    */
-  addCuotaFromForm(): void {
-    if (this.numeroCuotaControl.invalid || this.fechaVencimientoControl.invalid || 
-        this.estadoControl.invalid || this.totalFinalControl.invalid) {
-      this.snackBar.open('Por favor complete todos los campos requeridos correctamente', 'Cerrar', { duration: 3000 });
+  updatePagoDetalleEstado(): void {
+    if (!this.data.pagoDetalle) {
+      console.log('Cannot update PagoDetalle estado: no pagoDetalle in data');
       return;
     }
     
-    if (!this.data.pagoDetalle?.id) {
-      this.snackBar.open('Debe guardar el detalle de pago antes de agregar cuotas', 'Cerrar', { duration: 3000 });
-      return;
+    // Debug log current values
+    console.log('PagoDetalleDialog: Updating PagoDetalle estado with cuotas', {
+      id: this.data.pagoDetalle.id,
+      currentEstado: this.form.getRawValue().estado,
+      cuotasCount: this.pagoDetalleCuotas.length,
+      cuotasTotal: this.pagoDetalleCuotas.reduce((sum, c) => sum + (c.totalFinal || 0), 0),
+      formTotal: this.form.get('total').value,
+      cuotasEstados: this.pagoDetalleCuotas.map(c => ({ id: c.id, estado: c.estado, total: c.totalFinal }))
+    });
+    
+    // Create a temporary PagoDetalle instance to use the method
+    const pagoDetalle = new PagoDetalle();
+    Object.assign(pagoDetalle, this.data.pagoDetalle);
+    pagoDetalle.total = this.form.get('total').value;
+    pagoDetalle.estado = this.form.getRawValue().estado;
+    
+    try {
+      // Special case: if we have no cuotas and not CANCELADO, estado should be ABIERTO
+      let newEstado;
+      
+      if (this.pagoDetalleCuotas.length === 0) {
+        // For empty cuotas array, set to ABIERTO unless already CANCELADO
+        newEstado = this.form.getRawValue().estado === PagoDetalleEstado.CANCELADO ? 
+          PagoDetalleEstado.CANCELADO : PagoDetalleEstado.ABIERTO;
+        
+        console.log('No cuotas found, setting estado to:', newEstado);
+      } else if (this.pagoDetalleCuotas.length === 1 && 
+                 this.pagoDetalleCuotas[0].estado === PagoDetalleCuotaEstado.PENDIENTE) {
+        // Special case: Single default cuota that was just created
+        // Check if total matches (within small threshold for floating point comparison)
+        const cuotaTotal = this.pagoDetalleCuotas[0].totalFinal || 0;
+        const formTotal = this.form.get('total').value || 0;
+        const totalMatch = Math.abs(formTotal - cuotaTotal) < 0.01;
+        
+        if (totalMatch) {
+          newEstado = PagoDetalleEstado.PENDIENTE;
+          console.log('Single default cuota matches total amount, setting estado to PENDIENTE');
+        } else {
+          // Calculate based on cuotas
+          newEstado = pagoDetalle.updateEstadoBasedOnCuotas(this.pagoDetalleCuotas);
+          console.log('Single default cuota does not match total, calculated estado:', newEstado);
+        }
+      } else {
+        // Normal case: calculate based on cuotas
+        newEstado = pagoDetalle.updateEstadoBasedOnCuotas(this.pagoDetalleCuotas);
+      }
+      
+      console.log('Estado calculation result:', newEstado);
+      
+      // Always update the form with the calculated estado value
+      const formEstado = this.form.getRawValue().estado;
+      if (newEstado !== formEstado) {
+        console.log(`Estado changed from ${formEstado} to ${newEstado}`);
+        
+        // We need to enable the control temporarily to set its value
+        this.form.get('estado').enable();
+        this.form.get('estado').setValue(newEstado);
+        this.form.get('estado').disable();
+        
+        // Save to database
+        this.saveDetailsOnly();
+      } else {
+        console.log('Estado remained the same:', newEstado);
+      }
+    } catch (error) {
+      console.error('Error calculating estado:', error);
+      this.snackBar.open('Error al actualizar el estado: ' + (error.message || 'Error desconocido'), 'Cerrar', { duration: 5000 });
     }
+  }
+
+  /**
+   * Cancels a cuota by setting its estado to CANCELADO
+   * @param cuota Cuota to cancel
+   */
+  cancelCuota(cuota: PagoDetalleCuota): void {
+    if (!cuota || !cuota.id) return;
     
-    // Validate that the totalFinal doesn't exceed the remaining total
-    // For editing, we need to make an exception since we're replacing the value
-    const isEditing = this.editingCuotaId !== null;
-    const maxAllowableTotal = isEditing 
-      ? this.remainingTotal + (this.pagoDetalleCuotas.find(c => c.id === this.editingCuotaId)?.totalFinal || 0) 
-      : this.remainingTotal;
-    
-    if (this.totalFinalControl.value > maxAllowableTotal) {
-      this.snackBar.open(`El valor ingresado excede el monto restante (${maxAllowableTotal})`, 'Cerrar', { duration: 3000 });
-      return;
-    }
-    
-    // Create the input object for save/update
-    const cuotaInput = {
-      id: this.editingCuotaId, // Will be null for new cuotas
-      pagoDetalleId: this.data.pagoDetalle.id,
-      numeroCuota: this.numeroCuotaControl.value,
-      fechaVencimiento: dateToString(this.fechaVencimientoControl.value),
-      estado: this.estadoControl.value,
-      totalFinal: this.totalFinalControl.value,
-      totalPagado: isEditing ? (this.pagoDetalleCuotas.find(c => c.id === this.editingCuotaId)?.totalPagado || 0) : 0
-    };
-    
-    this.isLoading = true;
-    this.pagoDetalleCuotaService.onSavePagoDetalleCuota(cuotaInput)
-      .pipe(untilDestroyed(this))
-      .subscribe(
-        result => {
-          // Show success message
-          this.snackBar.open(
-            isEditing ? 'Cuota actualizada con éxito' : 'Cuota agregada con éxito', 
-            'Cerrar', 
-            { duration: 3000 }
-          );
-          
-          // Reset editing state
-          this.editingCuotaId = null;
-          
-          // Reload cuotas then clear form
-          this.loadCuotas();
-          
-          // After the cuotas are loaded, we need to prepare the form for a new cuota if possible
-          setTimeout(() => {
-            // Calculate if we have remaining amount
-            this.calculateRemainingTotal();
-            
-            // Prepare form for the next cuota if we have remaining total
-            if (this.remainingTotal > 0) {
-              this.clearCuotaForm();
-            } else {
-              // No more funds available, just disable the form
-              this.totalFinalControl.setValue(null);
-              this.updateCuotaFormEnabledState();
-              this.updateCuotaFormValidState();
+    this.dialogosService.confirm(
+      'CANCELAR CUOTA',
+      `¿ESTÁ SEGURO QUE DESEA CANCELAR LA CUOTA #${cuota.numeroCuota}?`,
+      'Esta acción no se puede deshacer.'
+    ).subscribe(result => {
+      if (result) {
+        console.log('Canceling cuota:', cuota);
+        
+        // Create input for cancellation
+        const cancelInput = {
+          id: cuota.id,
+          pagoDetalleId: cuota.pagoDetalle?.id,
+          numeroCuota: cuota.numeroCuota,
+          fechaVencimiento: dateToString(cuota.fechaVencimiento),
+          totalFinal: cuota.totalFinal,
+          totalPagado: cuota.totalPagado,
+          estado: PagoDetalleCuotaEstado.CANCELADO,
+          creadoEn: dateToString(cuota.creadoEn)
+        };
+        
+        this.pagoDetalleCuotaService.onSavePagoDetalleCuota(cancelInput)
+          .pipe(
+            untilDestroyed(this),
+            catchError(error => {
+              console.error('Error al cancelar cuota', error);
+              this.snackBar.open('Error al cancelar cuota: ' + (error.message || 'Error desconocido'), 'Cerrar', { duration: 5000 });
+              return EMPTY;
+            })
+          )
+          .subscribe(updatedCuota => {
+            // Update the cuota in the array
+            const index = this.pagoDetalleCuotas.findIndex(c => c.id === cuota.id);
+            if (index !== -1) {
+              this.pagoDetalleCuotas[index] = updatedCuota;
             }
             
-            this.isLoading = false;
-          }, 300); // Wait for loadCuotas to complete
-        },
-        error => {
-          console.error('Error al ' + (isEditing ? 'actualizar' : 'agregar') + ' cuota', error);
-          this.isLoading = false;
-          this.snackBar.open(
-            'Error al ' + (isEditing ? 'actualizar' : 'agregar') + ' la cuota', 
-            'Cerrar', 
-            { duration: 3000 }
-          );
+            this.snackBar.open('Cuota cancelada correctamente', 'Cerrar', { duration: 3000 });
+            
+            // Recalculate totals
+            this.updateTotalCuotasSum();
+            this.calculateRemainingTotal();
+            
+            // Log the current state before updating estado
+            console.log('Current state after canceling cuota:', {
+              pagoDetalleTotal: this.form.get('total').value,
+              cuotasTotal: this.pagoDetalleCuotas.reduce((sum, c) => sum + (c.totalFinal || 0), 0),
+              currentEstado: this.form.get('estado').value,
+              cuotasCount: this.pagoDetalleCuotas.filter(c => c.estado !== PagoDetalleCuotaEstado.CANCELADO).length,
+              activeCuotasEstados: this.pagoDetalleCuotas
+                .filter(c => c.estado !== PagoDetalleCuotaEstado.CANCELADO)
+                .map(c => c.estado)
+            });
+            
+            // Update the PagoDetalle estado
+            this.updatePagoDetalleEstado();
+          });
+      }
+    });
+  }
+
+  /**
+   * Deletes a cuota
+   * @param cuota Cuota to delete
+   */
+  deleteCuota(cuota: PagoDetalleCuota): void {
+    // Display a confirmation dialog
+    this.dialogosService.confirm(
+      'ELIMINAR CUOTA',
+      `¿ESTÁ SEGURO QUE DESEA ELIMINAR LA CUOTA #${cuota.numeroCuota}?`,
+      'Esta acción no se puede deshacer.'
+    ).subscribe(result => {
+      if (result) {
+        const isLastCuota = this.pagoDetalleCuotas.length === 1;
+        console.log('Deleting cuota:', cuota, 'Is last cuota:', isLastCuota);
+        
+        this.pagoDetalleCuotaService.onDeletePagoDetalleCuota(cuota.id)
+          .pipe(
+            untilDestroyed(this),
+            catchError(error => {
+              console.error('Error al eliminar cuota', error);
+              this.snackBar.open('Error al eliminar cuota: ' + (error.message || 'Error desconocido'), 'Cerrar', { duration: 5000 });
+              return EMPTY;
+            })
+          )
+          .subscribe(() => {
+            console.log('Cuota deleted successfully from database, removing from array. Before:', this.pagoDetalleCuotas.length);
+            
+            // Remove the cuota from the array
+            const index = this.pagoDetalleCuotas.findIndex(c => c.id === cuota.id);
+            if (index !== -1) {
+              // Create a new array instead of modifying the existing one to help with change detection
+              this.pagoDetalleCuotas = this.pagoDetalleCuotas.filter(c => c.id !== cuota.id);
+              console.log('Cuota removed from array. After:', this.pagoDetalleCuotas.length);
+            } else {
+              console.warn('Cuota not found in array, id:', cuota.id);
+            }
+            
+            this.snackBar.open('Cuota eliminada correctamente', 'Cerrar', { duration: 3000 });
+            
+            // If it was the last cuota, special handling
+            if (isLastCuota) {
+              console.log('Last cuota deleted - special handling');
+              // Update the cuota form to prepare for a new cuota 1
+              this.numeroCuotaControl.setValue(1);
+              
+              // Get the form total to set as the totalFinal for the next cuota
+              const formTotal = this.form.get('total')?.value || 0;
+              this.totalFinalControl.setValue(formTotal);
+              this.remainingTotal = formTotal;
+              
+              // Explicitly update cuotas count to 0
+              this.form.get('cuotas').setValue(0);
+              
+              // Update estado after last cuota deletion
+              this.updatePagoDetalleEstado();
+              
+              // Update PagoDetalle in database to reflect zero cuotas
+              this.updatePagoDetalleCuotasCount();
+            } else {
+              // Normal handling for non-last cuota
+              
+              // Reorder cuota numbers
+              this.reorderCuotaNumbers();
+              
+              // Recalculate totals
+              this.updateTotalCuotasSum();
+              this.calculateRemainingTotal();
+              
+              // Log the current state before updating estado
+              console.log('Current state after deleting cuota:', {
+                pagoDetalleTotal: this.form.get('total').value,
+                cuotasTotal: this.pagoDetalleCuotas.reduce((sum, c) => sum + (c.totalFinal || 0), 0),
+                currentEstado: this.form.get('estado').value,
+                cuotasCount: this.pagoDetalleCuotas.filter(c => c.estado !== PagoDetalleCuotaEstado.CANCELADO).length,
+                allPendiente: this.pagoDetalleCuotas.every(c => c.estado === PagoDetalleCuotaEstado.PENDIENTE)
+              });
+              
+              // Update PagoDetalle estado after deleting cuota
+              this.updatePagoDetalleEstado();
+            }
+          });
+      }
+    });
+  }
+
+  /**
+   * Cancels the entire PagoDetalle and all its cuotas
+   */
+  cancelPagoDetalle(): void {
+    if (!this.data.pagoDetalle || !this.data.pagoDetalle.id) return;
+    
+    this.dialogosService.confirm(
+      'CANCELAR DETALLE DE PAGO',
+      '¿ESTÁ SEGURO QUE DESEA CANCELAR ESTE DETALLE DE PAGO?',
+      'Esta operación cancelará todas las cuotas pendientes asociadas y no se puede deshacer.'
+    ).subscribe(result => {
+      if (result) {
+        // First, set the estado of the PagoDetalle to CANCELADO
+        const pagoDetalle = new PagoDetalle();
+        Object.assign(pagoDetalle, this.data.pagoDetalle);
+        pagoDetalle.cancel();
+        
+        // Update the form
+        this.form.get('estado').setValue(PagoDetalleEstado.CANCELADO);
+        
+        // Save the PagoDetalle
+        this.saveDetailsOnly();
+        
+        // Now cancel all non-canceled cuotas
+        const activeCuotas = this.pagoDetalleCuotas.filter(c => 
+          c.estado !== PagoDetalleCuotaEstado.CANCELADO
+        );
+        
+        if (activeCuotas.length === 0) {
+          this.snackBar.open('Detalle de pago cancelado correctamente', 'Cerrar', { duration: 3000 });
+          return;
         }
-      );
+        
+        // Create an array of observables for each cuota to cancel
+        const cancelObservables = activeCuotas.map(cuota => {
+          const cancelInput = {
+            id: cuota.id,
+            pagoDetalleId: cuota.pagoDetalle?.id,
+            numeroCuota: cuota.numeroCuota,
+            fechaVencimiento: dateToString(cuota.fechaVencimiento),
+            totalFinal: cuota.totalFinal,
+            totalPagado: cuota.totalPagado,
+            estado: PagoDetalleCuotaEstado.CANCELADO,
+            creadoEn: dateToString(cuota.creadoEn)
+          };
+          
+          return this.pagoDetalleCuotaService.onSavePagoDetalleCuota(cancelInput);
+        });
+        
+        // Execute all cancellations in parallel
+        forkJoin(cancelObservables)
+          .pipe(untilDestroyed(this))
+          .subscribe(
+            results => {
+              // Update the cuotas array with the results
+              results.forEach(updatedCuota => {
+                const index = this.pagoDetalleCuotas.findIndex(c => c.id === updatedCuota.id);
+                if (index !== -1) {
+                  this.pagoDetalleCuotas[index] = updatedCuota;
+                }
+              });
+              
+              this.snackBar.open('Detalle de pago y cuotas canceladas correctamente', 'Cerrar', { duration: 3000 });
+            },
+            error => {
+              console.error('Error al cancelar cuotas', error);
+              this.snackBar.open('Error al cancelar algunas cuotas. Por favor, revise el detalle.', 'Cerrar', { duration: 5000 });
+            }
+          );
+      }
+    });
+  }
+
+  /**
+   * Reordena los números de cuotas para mantener una secuencia consecutiva
+   * Esto es útil después de eliminar una cuota
+   */
+  reorderCuotaNumbers(): void {
+    if (!this.data.pagoDetalle?.id) return;
+    
+    // If no cuotas left, simply prepare the form with number 1 and exit
+    if (this.pagoDetalleCuotas.length === 0) {
+      this.numeroCuotaControl.setValue(1);
+      const formTotal = this.form.get('total')?.value || 0;
+      this.totalFinalControl.setValue(formTotal);
+      this.remainingTotal = formTotal;
+      return;
+    }
+    
+    this.isLoading = true;
+    
+    // Sort cuotas by their current number to ensure proper ordering
+    const sortedCuotas = [...this.pagoDetalleCuotas].sort((a, b) => a.numeroCuota - b.numeroCuota);
+    
+    // Create updates for all cuotas that need renumbering
+    const updates = sortedCuotas.map((cuota, index) => {
+      const correctNumber = index + 1;
+      
+      // Only update cuotas where the number needs to change
+      if (cuota.numeroCuota !== correctNumber) {
+        return {
+          id: cuota.id,
+          pagoDetalleId: cuota.pagoDetalle?.id,
+          numeroCuota: correctNumber,
+          fechaVencimiento: dateToString(cuota.fechaVencimiento),
+          estado: cuota.estado,
+          totalFinal: cuota.totalFinal,
+          totalPagado: cuota.totalPagado,
+          creadoEn: dateToString(cuota.creadoEn)
+        };
+      }
+      return null;
+    }).filter(update => update !== null);
+    
+    // If no updates needed, just finish
+    if (updates.length === 0) {
+      this.isLoading = false;
+      return;
+    }
+    
+    // Process updates sequentially to avoid race conditions
+    const processUpdate = (index) => {
+      if (index >= updates.length) {
+        // All updates done
+        this.isLoading = false;
+        return;
+      }
+      
+      this.pagoDetalleCuotaService.onSavePagoDetalleCuota(updates[index])
+        .pipe(untilDestroyed(this))
+        .subscribe(
+          result => {
+            // Update the cuota in the array
+            const cuotaIndex = this.pagoDetalleCuotas.findIndex(c => c.id === result.id);
+            if (cuotaIndex !== -1) {
+              this.pagoDetalleCuotas[cuotaIndex] = result;
+            }
+            
+            // Process next update
+            processUpdate(index + 1);
+          },
+          error => {
+            console.error('Error al reordenar cuotas', error);
+            this.isLoading = false;
+            this.snackBar.open('Error al reordenar las cuotas', 'Cerrar', { duration: 3000 });
+          }
+        );
+    };
+    
+    // Start processing updates
+    if (updates.length > 0) {
+      processUpdate(0);
+    } else {
+      this.isLoading = false;
+    }
+  }
+
+  /**
+   * Updates the number of cuotas in the PagoDetalle model based on the current cuotas
+   */
+  updatePagoDetalleCuotasCount(): void {
+    if (!this.data.pagoDetalle?.id) return;
+    
+    // Count active cuotas (not CANCELADO)
+    const activeCuotasCount = this.pagoDetalleCuotas.filter(
+      c => c.estado !== PagoDetalleCuotaEstado.CANCELADO
+    ).length;
+    
+    console.log('Updating cuotas count in pagoDetalle:', {
+      currentFormCount: this.form.get('cuotas').value,
+      actualArrayCount: this.pagoDetalleCuotas.length,
+      activeCuotasCount,
+      needsUpdate: activeCuotasCount !== this.form.get('cuotas').value
+    });
+    
+    // Always update if there are no cuotas left, otherwise only if count has changed
+    const shouldUpdate = activeCuotasCount === 0 || activeCuotasCount !== this.form.get('cuotas').value;
+    
+    if (shouldUpdate) {
+      // Update the form control
+      this.form.get('cuotas').setValue(activeCuotasCount);
+      
+      // Get the current plazo value - ensure it's a boolean
+      const plazoValue = this.form.get('plazo').value === true;
+      
+      // Get current estado - should be ABIERTO when no cuotas
+      let currentEstado = this.form.get('estado').value;
+      
+      // If no active cuotas, estado should be ABIERTO unless it's CANCELADO
+      if (activeCuotasCount === 0 && currentEstado !== PagoDetalleEstado.CANCELADO) {
+        currentEstado = PagoDetalleEstado.ABIERTO;
+        
+        // Update the form estado
+        this.form.get('estado').enable();
+        this.form.get('estado').setValue(currentEstado);
+        this.form.get('estado').disable();
+      }
+      
+      console.log('Updating PagoDetalle in database with new count:', {
+        id: this.data.pagoDetalle.id,
+        cuotas: activeCuotasCount,
+        plazo: plazoValue,
+        estado: currentEstado
+      });
+      
+      // Update the PagoDetalle in the database
+      const pagoDetalleInput = {
+        id: this.data.pagoDetalle.id,
+        pagoId: this.data.pagoId,
+        cuotas: activeCuotasCount,
+        // Include other required fields from the form
+        monedaId: this.form.get('monedaId').value,
+        formaPagoId: this.form.get('formaPagoId').value,
+        total: this.form.get('total').value,
+        sucursalId: this.form.get('sucursalId').value,
+        cajaId: this.form.get('cajaId').value,
+        fechaProgramado: this.form.get('fechaProgramado').value 
+          ? dateToString(this.form.get('fechaProgramado').value) 
+          : null,
+        activo: this.form.get('activo').value,
+        plazo: plazoValue,
+        estado: currentEstado
+      };
+      
+      this.pagoDetalleService.update(pagoDetalleInput)
+        .pipe(
+          untilDestroyed(this),
+          catchError(error => {
+            console.error('Error al actualizar número de cuotas:', error);
+            this.snackBar.open('Error al actualizar número de cuotas: ' + (error.message || 'Error desconocido'), 'Cerrar', { duration: 5000 });
+            return EMPTY;
+          })
+        )
+        .subscribe(
+          updatedDetalle => {
+            // Update data model
+            this.data.pagoDetalle = updatedDetalle;
+            console.log('PagoDetalle updated with new cuotas count:', activeCuotasCount, 'estado:', updatedDetalle.estado);
+            
+            // Update UI components based on new estado
+            if (activeCuotasCount === 0) {
+              // Reset remaining total and totalFinalControl to full form total
+              const formTotal = this.form.get('total')?.value || 0;
+              this.remainingTotal = formTotal;
+              this.totalFinalControl.setValue(formTotal);
+              
+              // Update the cuota form enabled state
+              this.updateCuotaFormEnabledState();
+            }
+          }
+        );
+    }
   }
 
   /**
@@ -900,6 +1421,11 @@ export class PagoDetalleDialogComponent implements OnInit {
     this.isLoading = true;
     const formValues = this.form.getRawValue(); // Get raw values including disabled controls
     
+    console.log('Saving PagoDetalle with values:', formValues);
+    
+    // Ensure plazo is a boolean
+    const plazoValue = formValues.plazo === true;
+    
     // Create input object
     const pagoDetalleInput = {
       id: this.data.pagoDetalle?.id,
@@ -911,9 +1437,12 @@ export class PagoDetalleDialogComponent implements OnInit {
       cajaId: formValues.cajaId,
       fechaProgramado: formValues.fechaProgramado,
       activo: formValues.activo,
-      plazo: formValues.plazo,
-      cuotas: formValues.plazo ? (formValues.cuotas || 1) : 1 // Default to 1 if not plazo
+      plazo: plazoValue,
+      cuotas: plazoValue ? (formValues.cuotas || 1) : 1, // Default to 1 if not plazo
+      estado: formValues.estado
     };
+    
+    console.log('Sending PagoDetalle to server with estado:', pagoDetalleInput.estado);
     
     // Save or update
     const observable = this.isEdit
@@ -940,7 +1469,7 @@ export class PagoDetalleDialogComponent implements OnInit {
           
           // If this was a plazo update and the plazo value changed:
           const wasPlazo = this.data.pagoDetalle?.plazo;
-          const isPlazoNow = formValues.plazo;
+          const isPlazoNow = plazoValue;
           
           // If plazo status changed from false to true, we might need to create cuotas
           if (!wasPlazo && isPlazoNow) {
@@ -953,7 +1482,7 @@ export class PagoDetalleDialogComponent implements OnInit {
           }
           
           // If not edit mode (new record) and pago plazo is false, create a default cuota
-          if (!formValues.plazo && !this.pagoDetalleCuotas.length) {
+          if (!plazoValue && !this.pagoDetalleCuotas.length) {
             // Create a single cuota with current date as vencimiento
             const newCuota = {
               pagoDetalleId: result.id,
@@ -968,7 +1497,16 @@ export class PagoDetalleDialogComponent implements OnInit {
               .pipe(untilDestroyed(this))
               .subscribe(
                 cuotaResult => {
-                  this.loadCuotas(); // Reload cuotas
+                  // Add the cuota to the array immediately before loading
+                  this.pagoDetalleCuotas.push(cuotaResult);
+                  console.log('Added automatic cuota:', cuotaResult);
+                  
+                  // Reload cuotas
+                  this.loadCuotas();
+                  
+                  // Update the estado based on the cuota
+                  this.updatePagoDetalleEstado();
+                  
                   this.isLoading = false;
                   this.snackBar.open('Detalle de pago y cuota guardados correctamente', 'Cerrar', { duration: 3000 });
                 },
@@ -1084,94 +1622,17 @@ export class PagoDetalleDialogComponent implements OnInit {
   }
 
   /**
-   * Elimina una cuota o la marca como CANCELADO si no está en estado PENDIENTE
-   * @param cuota Cuota a eliminar o cancelar
+   * Add a validator to check if total exceeds maxAmount
    */
-  deleteCuota(cuota: PagoDetalleCuota): void {
-    // For non-PENDIENTE cuotas, we only allow setting estado to CANCELADO
-    if (cuota.estado !== PagoDetalleCuotaEstado.PENDIENTE) {
-      this.snackBar.open(
-        'No se puede eliminar una cuota que no está en estado PENDIENTE. Para anularla, puede marcarla como CANCELADO.',
-        'Entendido',
-        { duration: 5000 }
-      );
-      
-      // Optional: Offer to cancel the cuota instead
-      const confirmCancel = confirm('¿Desea marcar esta cuota como CANCELADO?');
-      if (confirmCancel) {
-        this.isLoading = true;
-        
-        // Create update input with estado set to CANCELADO
-        const cancelInput = {
-          id: cuota.id,
-          pagoDetalleId: cuota.pagoDetalle?.id,
-          numeroCuota: cuota.numeroCuota,
-          fechaVencimiento: typeof cuota.fechaVencimiento === 'string' 
-            ? cuota.fechaVencimiento 
-            : dateToString(new Date(cuota.fechaVencimiento)),
-          estado: PagoDetalleCuotaEstado.CANCELADO,
-          totalFinal: cuota.totalFinal,
-          totalPagado: cuota.totalPagado
-        };
-        
-        this.pagoDetalleCuotaService.onSavePagoDetalleCuota(cancelInput)
-          .pipe(untilDestroyed(this))
-          .subscribe(
-            result => {
-              this.loadCuotas(); // Recargar las cuotas y actualizar sumatorias
-              this.snackBar.open('Cuota marcada como CANCELADO con éxito', 'Cerrar', { duration: 3000 });
-            },
-            error => {
-              console.error('Error al cancelar cuota', error);
-              this.isLoading = false;
-              this.snackBar.open('Error al cancelar la cuota', 'Cerrar', { duration: 3000 });
-            }
-          );
-      }
-      return;
-    }
+  addMaxAmountValidator(): void {
+    // We don't need to add custom validators here since validateTotalAgainstMaxAmount
+    // will handle the validation and set errors directly on the form control
     
-    // For PENDIENTE cuotas, proceed with normal deletion
-    if (confirm('¿Está seguro de eliminar esta cuota?')) {
-      this.isLoading = true;
-      this.pagoDetalleCuotaService.onDeletePagoDetalleCuota(cuota.id)
-        .pipe(untilDestroyed(this))
-        .subscribe(
-          result => {
-            if (result) {
-              this.loadCuotas(); // Recargar las cuotas y actualizar sumatorias
-              this.snackBar.open('Cuota eliminada con éxito', 'Cerrar', { duration: 3000 });
-            } else {
-              this.isLoading = false;
-              this.snackBar.open('No se pudo eliminar la cuota', 'Cerrar', { duration: 3000 });
-            }
-          },
-          error => {
-            console.error('Error al eliminar cuota', error);
-            this.isLoading = false;
-            this.snackBar.open('Error al eliminar la cuota', 'Cerrar', { duration: 3000 });
-          }
-        );
+    // Just do an initial validation of the current value if any
+    const currentTotal = this.form.get('total').value;
+    if (currentTotal !== null && currentTotal !== undefined) {
+      this.validateTotalAgainstMaxAmount(currentTotal);
     }
-  }
-
-  // Add a new method to validate total against maxAmount
-  validateTotalAgainstMaxAmount(total: number): void {
-    // First validate against maxAmount (upper limit)
-    if (this.data.maxAmount !== undefined && total > this.data.maxAmount) {
-      this.form.get('total').setErrors({ exceedsMaxAmount: true });
-    } else if (this.form.get('total').hasError('exceedsMaxAmount')) {
-      // Remove the error if the value is now valid
-      const errors = { ...this.form.get('total').errors };
-      delete errors['exceedsMaxAmount'];
-      this.form.get('total').setErrors(Object.keys(errors).length ? errors : null);
-    }
-    
-    // Then validate against cuotas sum (lower limit)
-    this.validateTotalAgainstCuotasSum(total);
-    
-    // Update the cuota form enabled state after validation
-    this.updateCuotaFormEnabledState();
   }
 
   // Add this after populateForm method
@@ -1270,20 +1731,6 @@ export class PagoDetalleDialogComponent implements OnInit {
   }
 
   /**
-   * Add a validator to check if total exceeds maxAmount
-   */
-  addMaxAmountValidator(): void {
-    // We don't need to add custom validators here since validateTotalAgainstMaxAmount
-    // will handle the validation and set errors directly on the form control
-    
-    // Just do an initial validation of the current value if any
-    const currentTotal = this.form.get('total').value;
-    if (currentTotal !== null && currentTotal !== undefined) {
-      this.validateTotalAgainstMaxAmount(currentTotal);
-    }
-  }
-
-  /**
    * Load all required data for the form
    */
   loadData(): void {
@@ -1303,6 +1750,22 @@ export class PagoDetalleDialogComponent implements OnInit {
           // If creating new, use preselected values if available
           if (!this.isEdit) {
             this.populateFormWithPreselectedValues();
+            
+            // For new records, initialize the cuota form with total
+            setTimeout(() => {
+              this.calculateRemainingTotal();
+              
+              // Ensure totalFinalControl has the correct value, even if no cuotas yet
+              const totalValue = this.form.get('total').value;
+              if (totalValue > 0 && (!this.totalFinalControl.value || this.totalFinalControl.value === 0)) {
+                this.totalFinalControl.setValue(totalValue);
+              }
+              
+              // Initialize the cuota form with the remaining amount
+              if (!this.editingCuotaId && this.form.get('total').value > 0) {
+                this.clearCuotaForm();
+              }
+            }, 100);
           }
           
           this.isLoading = false;
@@ -1328,5 +1791,122 @@ export class PagoDetalleDialogComponent implements OnInit {
   calculateRemainingTotal(): void {
     // Just an alias to updateRemainingTotal to maintain backward compatibility
     this.updateRemainingTotal();
+  }
+
+  /**
+   * Validate total against maxAmount
+   * @param total The total value to validate
+   */
+  validateTotalAgainstMaxAmount(total: number): void {
+    // First validate against maxAmount (upper limit)
+    if (this.data.maxAmount !== undefined && total > this.data.maxAmount) {
+      this.form.get('total').setErrors({ exceedsMaxAmount: true });
+    } else if (this.form.get('total').hasError('exceedsMaxAmount')) {
+      // Remove the error if the value is now valid
+      const errors = { ...this.form.get('total').errors };
+      delete errors['exceedsMaxAmount'];
+      this.form.get('total').setErrors(Object.keys(errors).length ? errors : null);
+    }
+    
+    // Then validate against cuotas sum (lower limit)
+    this.validateTotalAgainstCuotasSum(total);
+    
+    // Update the cuota form enabled state after validation
+    this.updateCuotaFormEnabledState();
+  }
+
+  /**
+   * Adds a new cuota from the form
+   */
+  addCuotaFromForm(): void {
+    if (!this.data.pagoDetalle?.id) {
+      this.snackBar.open('Primero debe guardar el detalle de pago', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    
+    // Is this an edit or a new cuota?
+    const isEditing = this.editingCuotaId !== null;
+    
+    // Validate form
+    if (!this.cuotaFormValid) {
+      return;
+    }
+    
+    // Confirm total doesn't exceed available amount
+    const totalFinal = this.totalFinalControl.value;
+    const availableAmount = isEditing 
+      ? this.remainingTotal + (this.pagoDetalleCuotas.find(c => c.id === this.editingCuotaId)?.totalFinal || 0)
+      : this.remainingTotal;
+    
+    if (totalFinal > availableAmount) {
+      this.snackBar.open(`El total excede el monto disponible (${availableAmount})`, 'Cerrar', { duration: 3000 });
+      return;
+    }
+    
+    // Create cuota input object
+    const cuotaInput: any = {
+      numeroCuota: this.numeroCuotaControl.value,
+      fechaVencimiento: dateToString(this.fechaVencimientoControl.value),
+      estado: PagoDetalleCuotaEstado.PENDIENTE,
+      totalFinal: this.totalFinalControl.value,
+      pagoDetalleId: this.data.pagoDetalle.id,
+      totalPagado: isEditing ? (this.pagoDetalleCuotas.find(c => c.id === this.editingCuotaId)?.totalPagado || 0) : 0
+    };
+    
+    // If editing, include the ID
+    if (isEditing) {
+      cuotaInput.id = this.editingCuotaId;
+    }
+    
+    // Log the cuota being added
+    console.log(`${isEditing ? 'Editing' : 'Adding new'} cuota:`, cuotaInput);
+    
+    // Save the cuota
+    this.pagoDetalleCuotaService.onSavePagoDetalleCuota(cuotaInput)
+      .pipe(
+        untilDestroyed(this),
+        catchError(error => {
+          console.error('Error al guardar cuota', error);
+          this.snackBar.open('Error al guardar cuota: ' + (error.message || 'Error desconocido'), 'Cerrar', { duration: 5000 });
+          return EMPTY;
+        })
+      )
+      .subscribe(result => {
+        // Log the result
+        console.log(`Cuota ${isEditing ? 'updated' : 'added'} successfully:`, result);
+        
+        if (isEditing) {
+          // Replace the edited cuota
+          const index = this.pagoDetalleCuotas.findIndex(c => c.id === this.editingCuotaId);
+          if (index !== -1) {
+            this.pagoDetalleCuotas[index] = result;
+          }
+          this.snackBar.open('Cuota actualizada correctamente', 'Cerrar', { duration: 3000 });
+        } else {
+          // Add the new cuota to the array
+          this.pagoDetalleCuotas.push(result);
+          this.snackBar.open('Cuota agregada correctamente', 'Cerrar', { duration: 3000 });
+        }
+        
+        // Reset the form
+        this.editingCuotaId = null;
+        this.clearCuotaForm();
+        
+        // Recalculate totals
+        this.updateTotalCuotasSum();
+        this.calculateRemainingTotal();
+        
+        // Log the current state before updating estado
+        console.log('Current state before updating estado:', {
+          pagoDetalleTotal: this.form.get('total').value,
+          cuotasTotal: this.pagoDetalleCuotas.reduce((sum, c) => sum + (c.totalFinal || 0), 0),
+          currentEstado: this.form.get('estado').value,
+          cuotasCount: this.pagoDetalleCuotas.filter(c => c.estado !== PagoDetalleCuotaEstado.CANCELADO).length,
+          allPendiente: this.pagoDetalleCuotas.every(c => c.estado === PagoDetalleCuotaEstado.PENDIENTE)
+        });
+        
+        // Immediately update the PagoDetalle estado based on the updated cuotas
+        this.updatePagoDetalleEstado();
+      });
   }
 } 

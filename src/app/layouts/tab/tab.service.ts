@@ -60,7 +60,6 @@ export class TabService implements OnInit {
     // this.addTab(new Tab(ListProductoComponent, "Lista de productos"))
     // this.addTab(new Tab(ListPedidoComponent, "Lista de pedidos"))
     this.addTab(new Tab(EditPagoComponent, "Nuevo pago", new TabData(3, {solicitudPagoId: 3})))
-    // this.addTab(new Tab(ThermalPrinterComponent, 'Impresora termica', new TabData(22, {id:22}), null))
     this.tabSub.next(this.tabs);
   }
   
