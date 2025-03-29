@@ -502,7 +502,7 @@ export class GenericCrudService {
               },
             }
           )
-          .pipe(untilDestroyed(this))
+          .pipe(untilDestroyed(this)) 
           .subscribe((res) => {
             this.cargandoService.closeDialog(requestId);
             if (res.errors == null) {

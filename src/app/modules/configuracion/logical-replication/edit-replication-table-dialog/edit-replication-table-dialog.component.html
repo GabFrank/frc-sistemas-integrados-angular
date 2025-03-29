@@ -1,0 +1,58 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title>{{ data.isEdit ? 'Editar' : 'Nueva' }} Tabla de Replicación</h2>
+  
+  <div *ngIf="errorMsg" class="error-message">
+    {{ errorMsg }}
+  </div>
+  
+  <form [formGroup]="tableForm" (ngSubmit)="onSave()">
+    <div mat-dialog-content fxLayout="column" fxLayoutAlign="start center" fxLayoutGap="30px">
+      <!-- Table Name -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Nombre de Tabla</mat-label>
+        <input matInput formControlName="tableName" placeholder="Ej: personas.usuario" style="text-transform: lowercase !important;"/>
+        <mat-hint>Nombre de la tabla en la base de datos (Se guardará en mayúsculas)</mat-hint>
+        <mat-error *ngIf="tableForm.get('tableName').invalid">
+          <ng-container *ngIf="tableForm.get('tableName').hasError('required')">Este campo es obligatorio</ng-container>
+          <ng-container *ngIf="tableForm.get('tableName').hasError('pattern')">Solo se permiten letras, números y guiones bajos</ng-container>
+        </mat-error>
+      </mat-form-field>
+      
+      <!-- Direction -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Dirección de Replicación</mat-label>
+        <mat-select formControlName="direction">
+          <mat-option *ngFor="let option of directionOptions" [value]="option.value">
+            {{ option.label }}
+          </mat-option>
+        </mat-select>
+        <mat-hint>Seleccione la dirección en que se replicará esta tabla</mat-hint>
+        <mat-error *ngIf="tableForm.get('direction').invalid">
+          <ng-container *ngIf="tableForm.get('direction').hasError('required')">Este campo es obligatorio</ng-container>
+        </mat-error>
+      </mat-form-field>
+      
+      <!-- Description -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Descripción</mat-label>
+        <textarea matInput formControlName="description" placeholder="Descripción de la tabla (opcional)" rows="3"></textarea>
+      </mat-form-field>
+      
+      <!-- Enabled -->
+      <div class="enabled-toggle">
+        <mat-slide-toggle formControlName="enabled" color="primary">
+          {{ tableForm.get('enabled').value ? 'Activa' : 'Inactiva' }}
+        </mat-slide-toggle>
+        <span class="toggle-hint">Estado de la tabla en la replicación</span>
+      </div>
+    </div>
+    
+    <div mat-dialog-actions>
+      <button mat-button type="button" (click)="onCancel()" [disabled]="isLoading">Cancelar</button>
+      <button mat-raised-button color="primary" type="submit" [disabled]="isLoading">
+        <mat-spinner *ngIf="isLoading" diameter="20"></mat-spinner>
+        <span *ngIf="!isLoading">Guardar</span>
+      </button>
+    </div>
+  </form>
+</div> 

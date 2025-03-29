@@ -19,6 +19,9 @@ import { MatDialog } from "@angular/material/dialog";
 import { Apollo } from 'apollo-angular';
 import gql from 'graphql-tag';
 import { map } from 'rxjs';
+import { SucursalesSearchGQL } from "./graphql/sucursalesSearch";
+import { PageInfo } from "../../../app.component";
+import { saveSucursal } from "./graphql/graphql-query";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -36,6 +39,7 @@ export class SucursalService {
 
   constructor(
     private getAllSucursales: SucursalesGQL,
+    private sucursalesSearch: SucursalesSearchGQL,
     private notificacionBar: NotificacionSnackbarService,
     private getSucursalActual: SucursalActualGQL,
     private http: HttpClient,
@@ -44,8 +48,33 @@ export class SucursalService {
     private cargandoService: CargandoDialogService,
     private notificacionSnackBar: NotificacionSnackbarService,
     private genericService: GenericCrudService,
-    private matDialog: MatDialog
+    private matDialog: MatDialog,
+    private apollo: Apollo
   ) {
+  }
+
+  onSearchConFiltros(term: string, deposito: boolean, pageIndex: number, pageSize: number): Observable<PageInfo<Sucursal>> {
+    return this.genericService.onCustomQuery(
+      this.sucursalesSearch,
+      {
+        texto: term,
+        deposito: deposito,
+        page: pageIndex,
+        size: pageSize
+      }
+    ).pipe(
+      map((res: any) => {
+        const pageInfo = new PageInfo<Sucursal>();
+        pageInfo.getContent = res;
+        pageInfo.getTotalElements = res.length;
+        pageInfo.getNumberOfElements = res.length;
+        pageInfo.isFirst = pageIndex === 0;
+        pageInfo.isLast = true; // Assuming this is the last page
+        pageInfo.hasNext = false;
+        pageInfo.hasPrevious = pageIndex > 0;
+        return pageInfo;
+      })
+    );
   }
 
   onGetSucursal(id): Observable<Sucursal> {
@@ -180,6 +209,46 @@ export class SucursalService {
             }
             obs.complete();
           });
+      });
+    });
+  }
+
+  onSaveSucursal(sucursalInput: any): Observable<Sucursal> {
+    return new Observable((obs) => {
+      this.apollo.mutate({
+        mutation: saveSucursal,
+        variables: {
+          entity: sucursalInput
+        },
+        fetchPolicy: "no-cache",
+        errorPolicy: "all"
+      })
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (res: any) => {
+          if (res.errors == null) {
+            obs.next(res.data.data);
+            obs.complete();
+            this.notificacionBar.notification$.next({
+              texto: "Sucursal guardada correctamente",
+              color: NotificacionColor.success,
+              duracion: 3
+            });
+          } else {
+            this.notificacionBar.notification$.next({
+              texto: "Ups! algo salio mal: " + res.errors[0].message,
+              color: NotificacionColor.danger,
+              duracion: 3
+            });
+          }
+        },
+        error: (err) => {
+          this.notificacionBar.notification$.next({
+            texto: "Ups! algo salio mal: " + err,
+            color: NotificacionColor.danger,
+            duracion: 3
+          });
+        }
       });
     });
   }

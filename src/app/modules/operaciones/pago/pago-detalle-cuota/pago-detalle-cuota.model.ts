@@ -2,6 +2,7 @@ import { PagoDetalle } from '../pago-detalle/pago-detalle.model';
 import { Usuario } from '../../../personas/usuarios/usuario.model';
 import { Cheque } from '../../../financiero/cheque/cheque.model';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { Proveedor } from '../../../personas/proveedor/proveedor.model';
 
 export enum PagoDetalleCuotaEstado {
     PENDIENTE = 'PENDIENTE',
@@ -22,6 +23,7 @@ export class PagoDetalleCuota {
     creadoEn: Date;
     usuario: Usuario;
     cheque: Cheque;
+    proveedor: Proveedor;
 
     toInput(): PagoDetalleCuotaInput {
         let input = new PagoDetalleCuotaInput();
@@ -35,6 +37,7 @@ export class PagoDetalleCuota {
         input.totalFinal = this?.totalFinal;
         input.creadoEn = dateToString(this?.creadoEn);
         input.usuarioId = this?.usuario?.id;
+        input.proveedorId = this?.proveedor?.id;
         return input;
     }
 }
@@ -50,4 +53,5 @@ export class PagoDetalleCuotaInput {
     totalFinal?: number;
     creadoEn?: string;
     usuarioId?: number;
+    proveedorId?: number;
 } 

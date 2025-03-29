@@ -20,6 +20,13 @@ export const pagoDetalleCuotaQuery = gql`
       cheque {
         id
       }
+      proveedor {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
     }
   }
 `;
@@ -30,6 +37,10 @@ export const pagoDetalleCuotasQuery = gql`
       id
       pagoDetalle {
         id
+        sucursal {
+          id
+          nombre
+        }
       }
       referenciaId
       numeroCuota
@@ -43,6 +54,13 @@ export const pagoDetalleCuotasQuery = gql`
       }
       cheque {
         id
+      }
+      proveedor {
+        id
+        persona {
+          id
+          nombre
+        }
       }
     }
   }
@@ -68,6 +86,13 @@ export const pagoDetalleCuotasPorPagoDetalleIdQuery = gql`
       cheque {
         id
       }
+      proveedor {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
     }
   }
 `;
@@ -92,6 +117,13 @@ export const pagoDetalleCuotasSearchQuery = gql`
       cheque {
         id
       }
+      proveedor {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
     }
   }
 `;
@@ -99,6 +131,66 @@ export const pagoDetalleCuotasSearchQuery = gql`
 export const countPagoDetalleCuotaQuery = gql`
   query {
     data: countPagoDetalleCuota
+  }
+`;
+
+export const pagoDetalleCuotasFiltradoQuery = gql`
+  query pagoDetalleCuotasFiltradoQuery(
+    $estado: String, 
+    $sucursalId: Int, 
+    $fechaDesde: String, 
+    $fechaHasta: String,
+    $page: Int,
+    $size: Int,
+    $filtrarPorCreacion: Boolean
+  ) {
+    data: getPagoDetalleCuotasFiltrado(
+      estado: $estado, 
+      sucursalId: $sucursalId, 
+      fechaDesde: $fechaDesde, 
+      fechaHasta: $fechaHasta,
+      page: $page,
+      size: $size,
+      filtrarPorCreacion: $filtrarPorCreacion
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        pagoDetalle {
+          id
+          sucursal {
+            id
+            nombre
+          }
+        }
+        referenciaId
+        numeroCuota
+        fechaVencimiento
+        estado
+        totalPagado
+        totalFinal
+        creadoEn
+        usuario {
+          id
+        }
+        cheque {
+          id
+        }
+        proveedor {
+          id
+          persona {
+            id
+            nombre
+          }
+        }
+      }
+    }
   }
 `;
 
@@ -121,6 +213,13 @@ export const savePagoDetalleCuota = gql`
       }
       cheque {
         id
+      }
+      proveedor {
+        id
+        persona {
+          id
+          nombre
+        }
       }
     }
   }

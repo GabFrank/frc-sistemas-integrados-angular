@@ -9,6 +9,9 @@ import { GetPagoDetalleCuotasSearchGQL } from './graphql/getPagoDetalleCuotasSea
 import { GetCountPagoDetalleCuotaGQL } from './graphql/getCountPagoDetalleCuota';
 import { SavePagoDetalleCuotaGQL } from './graphql/savePagoDetalleCuota';
 import { DeletePagoDetalleCuotaGQL } from './graphql/deletePagoDetalleCuota';
+import { GetPagoDetalleCuotasFiltradoGQL } from './graphql/getPagoDetalleCuotasFiltrado';
+import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { PageInfo } from '../../../../app.component';
 
 @Injectable({
   providedIn: 'root'
@@ -23,7 +26,8 @@ export class PagoDetalleCuotaService {
     private getPagoDetalleCuotasSearchGQL: GetPagoDetalleCuotasSearchGQL,
     private getCountPagoDetalleCuotaGQL: GetCountPagoDetalleCuotaGQL,
     private savePagoDetalleCuotaGQL: SavePagoDetalleCuotaGQL,
-    private deletePagoDetalleCuotaGQL: DeletePagoDetalleCuotaGQL
+    private deletePagoDetalleCuotaGQL: DeletePagoDetalleCuotaGQL,
+    private getPagoDetalleCuotasFiltradoGQL: GetPagoDetalleCuotasFiltradoGQL
   ) { }
 
   /**
@@ -87,5 +91,50 @@ export class PagoDetalleCuotaService {
    */
   onDeletePagoDetalleCuota(id: number): Observable<boolean> {
     return this.genericService.onDelete(this.deletePagoDetalleCuotaGQL, id, 'Cuota', null, false);
+  }
+
+  /**
+   * Filtra cuotas de detalle de pago por estado, sucursal y rango de fechas
+   * @param estado Estado de la cuota (opcional)
+   * @param sucursalId ID de la sucursal (opcional)
+   * @param fechaDesde Fecha desde (opcional)
+   * @param fechaHasta Fecha hasta (opcional)
+   * @param page Número de página
+   * @param size Tamaño de página
+   * @param filtrarPorCreacion Si es true, filtra por fecha de creación en lugar de vencimiento
+   * @returns Observable de PageInfo con lista de cuotas filtradas
+   */
+  onFiltrarPagoDetalleCuotas(
+    estado?: string, 
+    sucursalId?: number, 
+    fechaDesde?: Date, 
+    fechaHasta?: Date,
+    page: number = 0,
+    size: number = 10,
+    filtrarPorCreacion: boolean = false
+  ): Observable<PageInfo<PagoDetalleCuota>> {
+    const variables: any = {
+      page: page,
+      size: size,
+      filtrarPorCreacion: filtrarPorCreacion
+    };
+    
+    if (estado && estado !== 'TODOS') {
+      variables.estado = estado;
+    }
+    
+    if (sucursalId) {
+      variables.sucursalId = sucursalId;
+    }
+    
+    if (fechaDesde) {
+      variables.fechaDesde = dateToString(fechaDesde);
+    }
+    
+    if (fechaHasta) {
+      variables.fechaHasta = dateToString(fechaHasta);
+    }
+    
+    return this.genericService.onCustomQuery(this.getPagoDetalleCuotasFiltradoGQL, variables);
   }
 } 

@@ -11,14 +11,14 @@ export class Sector {
     usuario: Usuario;
     zonaList: Zona[]
 
-    toInput(): SectorInput {
-        let input = new SectorInput;
-        input.id = this.id;
-        input.sucursalId = this.sucursal?.id;
-        input.descripcion = this.descripcion;
-        input.activo = this.activo;
-        input.usuarioId = this.usuario?.id;
-        return input;
+    toInput(): any {
+        return {
+            id: this.id,
+            descripcion: this.descripcion,
+            usuarioId: this.usuario?.id,
+            sucursalId: this.sucursal?.id,
+            activo: this.activo
+        };
     }
 }
 

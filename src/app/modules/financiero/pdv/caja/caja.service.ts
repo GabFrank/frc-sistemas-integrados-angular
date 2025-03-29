@@ -24,6 +24,7 @@ import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { BalancePorCajaIdAndSucursalIdGQL } from "./graphql/balancePorCajaIdAndSucursalId";
 import { CajaSimplePorIdGQL } from "./graphql/cajaSimplePorId";
 import { VerificarCajaGQL } from "./graphql/verificarCaja";
+import { CajaAbiertoPorSucursalGQL } from "./graphql/cajaAbiertoPorSucursal";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -46,7 +47,8 @@ export class CajaService {
     private balancePorCajaId: BalancePorCajaIdGQL,
     private cajasWithFilters: CajasWithFiltersGQL,
     private balancePorCajaIdAndSucursalId: BalancePorCajaIdAndSucursalIdGQL,
-    private verificarCaja: VerificarCajaGQL
+    private verificarCaja: VerificarCajaGQL,
+    private cajaAbiertoPorSucursal: CajaAbiertoPorSucursalGQL
   ) {}
 
   // onGetAll(): Observable<any> {
@@ -192,5 +194,20 @@ export class CajaService {
 
   onVerificarCaja(cajaId, sucursalId, usuarioId, verificado){
     return this.genericService.onCustomQuery(this.verificarCaja, {cajaId, sucursalId, usuarioId, verificado})
+  }
+
+  /**
+   * Obtiene las cajas abiertas de una sucursal con sus balances
+   * @param sucursalId ID de la sucursal
+   * @returns Observable con un array de cajas abiertas con sus balances
+   */
+  onGetCajasAbiertasPorSucursal(sucursalId: number): Observable<PdvCaja[]> {
+    return this.genericService.onCustomQuery(
+      this.cajaAbiertoPorSucursal, 
+      { sucursalId },
+      null,
+      null,
+      true
+    );
   }
 }

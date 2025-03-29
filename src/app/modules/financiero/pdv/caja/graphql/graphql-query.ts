@@ -527,3 +527,66 @@ export const cajasWithFilters = gql`
     }
   }
 `;
+
+export const cajaAbiertoPorSucursalQuery = gql`
+  query ($sucursalId: ID!) {
+    data: cajaAbiertoPorSucursal(sucursalId: $sucursalId) {
+      id
+      descripcion
+      activo
+      estado
+      tuvoProblema
+      fechaApertura
+      fechaCierre
+      observacion
+      maletin {
+        id
+        descripcion
+      }
+      sucursal {
+        id
+        nombre
+      }
+      creadoEn
+      usuario {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      balance {
+        cajaId
+        totalGeneral
+        totalVentaGs
+        totalVentaRs
+        totalVentaDs
+        totalTarjeta
+        totalCredito
+        totalRetiroGs
+        totalRetiroRs
+        totalRetiroDs
+        totalGastoGs
+        totalGastoRs
+        totalGastoDs
+        totalAperGs
+        totalAperRs
+        totalAperDs
+        totalCierreGs
+        totalCierreRs
+        totalCierreDs
+        totalDescuento
+        totalAumento
+        totalCanceladasGs
+        totalCanceladasRs
+        totalCanceladasDs
+        vueltoGs
+        vueltoRs
+        vueltoDs
+        diferenciaGs
+        diferenciaRs
+        diferenciaDs
+      }
+    }
+  }
+`;

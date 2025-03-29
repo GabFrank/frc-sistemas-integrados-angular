@@ -35,6 +35,8 @@ import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesio
 import { ListSucursalComponent } from "../../../modules/empresarial/sucursal/list-sucursal/list-sucursal.component";
 import { ListSolicitudPagoComponent } from "../../../modules/operaciones/solicitud-pago/list-solicitud-pago/list-solicitud-pago.component";
 import { ThermalPrinterComponent } from '../../../modules/configuracion/thermal-printer/thermal-printer.component';
+import { ListReplicationComponent } from '../../../modules/configuracion/logical-replication/list-replication/list-replication.component';
+import { ListReplicationTablesComponent } from '../../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
 
 @Component({
   selector: "app-side",
@@ -342,6 +344,26 @@ export class SideComponent implements OnInit {
           );
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción. ')
+        }
+        break;
+      case "logical-replication":
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
+          this.tabService.addTab(
+            new Tab(ListReplicationComponent, "Replicación Lógica", null, null)
+          );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. Solo disponible para administradores.')
+        }
+        break;
+      case "replication-tables":
+        console.log("replication-tables");
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
+          console.log("replication-tables 2");
+          this.tabService.addTab(
+            new Tab(ListReplicationTablesComponent, "Tablas de Replicación", null, null)
+          );
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. Solo disponible para administradores.')
         }
         break;
     }

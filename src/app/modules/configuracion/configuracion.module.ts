@@ -13,6 +13,13 @@ import { AdicionarRoleDialogComponent } from './roles/adicionar-role-dialog/adic
 import { AdicionarGrupoRoleDialogComponent } from './roles/adicionar-grupo-role-dialog/adicionar-grupo-role-dialog.component';
 import { SolicitarRecursosDialogComponent } from './solicitar-recursos-dialog/solicitar-recursos-dialog.component';
 import { ThermalPrinterModule } from './thermal-printer/thermal-printer.module';
+import { ListReplicationComponent } from './logical-replication/list-replication/list-replication.component';
+import { LogicalReplicationService } from './logical-replication/logical-replication.service';
+import { EditRemotePublicationDialogComponent } from './logical-replication/edit-remote-publication-dialog/edit-remote-publication-dialog.component';
+import { EditRemoteSubscriptionDialogComponent } from './logical-replication/edit-remote-subscription-dialog/edit-remote-subscription-dialog.component';
+import { ConfiguracionRoutingModule } from './configuracion-routing.module';
+import { ListReplicationTablesComponent } from './logical-replication/list-replication-tables/list-replication-tables.component';
+import { EditReplicationTableDialogComponent } from './logical-replication/edit-replication-table-dialog/edit-replication-table-dialog.component';
 
 @NgModule({
   declarations: [
@@ -23,7 +30,12 @@ import { ThermalPrinterModule } from './thermal-printer/thermal-printer.module';
     ListRolesComponent, 
     AdicionarRoleDialogComponent, 
     AdicionarGrupoRoleDialogComponent, 
-    SolicitarRecursosDialogComponent
+    SolicitarRecursosDialogComponent,
+    ListReplicationComponent,
+    EditRemotePublicationDialogComponent,
+    EditRemoteSubscriptionDialogComponent,
+    ListReplicationTablesComponent,
+    EditReplicationTableDialogComponent
   ],
   imports: [
     CommonModule,
@@ -32,8 +44,15 @@ import { ThermalPrinterModule } from './thermal-printer/thermal-printer.module';
     FormsModule,
     MaterialModule,
     SharedModule,
-    ThermalPrinterModule
+    ThermalPrinterModule,
+    ConfiguracionRoutingModule
   ],
-  exports: []
+  providers: [
+    LogicalReplicationService
+  ],
+  exports: [
+    ListReplicationComponent,
+    ListReplicationTablesComponent
+  ]
 })
 export class ConfiguracionModule { }

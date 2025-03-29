@@ -23,6 +23,10 @@ import { TransferenciaComponent } from '../../modules/operaciones/transferencia/
 import { ListSolicitudPagoComponent } from '../../modules/operaciones/solicitud-pago/list-solicitud-pago/list-solicitud-pago.component';
 import { EditPagoComponent } from '../../modules/operaciones/pago/edit-pago/edit-pago.component';
 import { ThermalPrinterComponent } from '../../modules/configuracion/thermal-printer/thermal-printer.component';
+import { ListSucursalComponent } from '../../modules/empresarial/sucursal/list-sucursal/list-sucursal.component';
+import { ListReplicationComponent } from '../../modules/configuracion/logical-replication/list-replication/list-replication.component';
+import { ListReplicationTablesComponent } from '../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
+import { FinancieroDashboardComponent } from '../../modules/financiero/financiero-dashboard/financiero-dashboard.component';
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
   'EDIT-PERSONA' = 'edit-persona'
@@ -58,8 +62,8 @@ export class TabService implements OnInit {
     // this.addTab(new Tab(EditTransferenciaComponent, 'Transferencia 56', new TabData(56, {id: 56}), null))
     // this.addTab(new Tab(VentaTouchComponent, 'Venta'))
     // this.addTab(new Tab(ListProductoComponent, "Lista de productos"))
-    // this.addTab(new Tab(ListPedidoComponent, "Lista de pedidos"))
-    this.addTab(new Tab(EditPagoComponent, "Nuevo pago", new TabData(3, {solicitudPagoId: 3})))
+    this.addTab(new Tab(FinancieroDashboardComponent, "Dashboard Financiero"))
+    // this.addTab(new Tab(ListReplicationTablesComponent, "Tablas de Replicación"))
     this.tabSub.next(this.tabs);
   }
   
