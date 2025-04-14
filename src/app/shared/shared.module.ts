@@ -57,6 +57,7 @@ import { NgxSpinnerModule } from 'ngx-spinner';
 import { DataDisplayComponent } from './data-display/data-display.component';
 import { EnumToStringPipe } from '../commons/core/utils/pipes/enum-to-string';
 import { A11yModule } from '@angular/cdk/a11y';
+import { ConfiguracionFullDialogComponent } from './components/configuracion-full-dialog/configuracion-full-dialog.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -99,7 +100,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     ShowAfterDelayDirective,
     FormattedTooltipDirective,
     AutoFitTextDirective,
-    DataDisplayComponent
+    DataDisplayComponent,
+    ConfiguracionFullDialogComponent
   ],
   imports: [
     CommonModule,

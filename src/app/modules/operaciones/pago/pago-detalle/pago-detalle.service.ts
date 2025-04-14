@@ -7,6 +7,7 @@ import { GetPagoDetalle } from './graphql/getPagoDetalle';
 import { SavePagoDetalle } from './graphql/savePagoDetalle';
 import { PagoDetallesPorPagoIdGQL } from './graphql/pagoDetallesPorPagoId';
 import { DeletePagoDetalle } from './graphql/deletePagoDetalle';
+import { UpdatePagoDetalleCajaySucursal } from './graphql/updatePagoDetalleCajaySucursal';
 import { map } from 'rxjs/operators';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
 @Injectable({
@@ -19,7 +20,8 @@ export class PagoDetalleService {
     private getPagoDetalleQuery: GetPagoDetalle,
     private savePagoDetalleMutation: SavePagoDetalle,
     private pagoDetallesPorPagoIdQuery: PagoDetallesPorPagoIdGQL,
-    private deletePagoDetalleMutation: DeletePagoDetalle
+    private deletePagoDetalleMutation: DeletePagoDetalle,
+    private updatePagoDetalleCajaySucursalMutation: UpdatePagoDetalleCajaySucursal
   ) {}
 
   /**
@@ -117,5 +119,27 @@ export class PagoDetalleService {
     input.creadoEn = dateToString(new Date());
 
     return this.onSavePagoDetalle(input);
+  }
+
+  /**
+   * Actualiza la sucursal y caja de un detalle de pago
+   * @param pagoDetalleId ID del detalle de pago a actualizar
+   * @param sucursalId ID de la nueva sucursal
+   * @param cajaId ID de la nueva caja (opcional)
+   * @returns Observable con el detalle de pago actualizado
+   */
+  onUpdatePagoDetalleCajaySucursal(
+    pagoDetalleId: number,
+    sucursalId: number,
+    cajaId?: number
+  ): Observable<PagoDetalle> {
+    return this.genericService.onCustomMutation(
+      this.updatePagoDetalleCajaySucursalMutation,
+      {
+        pagoDetalleId,
+        sucursalId,
+        cajaId
+      }
+    );
   }
 } 

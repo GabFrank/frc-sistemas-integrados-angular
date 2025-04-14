@@ -3,6 +3,12 @@
     <button mat-raised-button color="primary" (click)="actualizarDatos()">
       <mat-icon>refresh</mat-icon> ACTUALIZAR
     </button>
+    
+    <div class="spacer"></div>
+    
+    <button mat-raised-button color="accent" (click)="abrirConfiguracion()">
+      <mat-icon>settings</mat-icon> CONFIGURACIÓN
+    </button>
   </div>
 
   <!-- Contenedor principal -->
@@ -154,7 +160,7 @@
     <!-- Sector derecho: Accesos rápidos y Cambio -->
     <div class="right-column">
       <!-- Accesos rápidos -->
-      <mat-card class="card">
+      <mat-card class="card" *ngIf="configuracion.mostrarAccesosRapidos">
         <mat-card-header>
           <mat-card-title class="titulo-center" style="font-size: medium;">ACCESOS RÁPIDOS</mat-card-title>
         </mat-card-header>
@@ -184,7 +190,7 @@
       </mat-card>
 
       <!-- Cambio de monedas -->
-      <mat-card class="card">
+      <mat-card class="card" *ngIf="configuracion.mostrarMonedas">
         <mat-card-header>
           <mat-card-title class="titulo-center" style="font-size: medium;">CAMBIO DE MONEDAS</mat-card-title>
         </mat-card-header>

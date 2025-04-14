@@ -33,6 +33,7 @@ import { PagoDetalleService } from "../../operaciones/pago/pago-detalle/pago-det
 import { PagoDetalle, PagoDetalleInput } from "../../operaciones/pago/pago-detalle/pago-detalle.model";
 import { PdvCaja } from "../../financiero/pdv/caja/caja.model";
 import { forkJoin } from "rxjs";
+import { FinancieroConfiguracionDialogComponent, FinancieroConfiguracionData } from '../financiero-configuracion-dialog/financiero-configuracion-dialog.component';
 
 @UntilDestroy()
 @Component({
@@ -70,6 +71,13 @@ export class FinancieroDashboardComponent implements OnInit {
   @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild(MatSort) sort: MatSort;
 
+  // Configuración
+  configuracion: FinancieroConfiguracionData = {
+    paginacionTamano: 10,
+    mostrarMonedas: true,
+    mostrarAccesosRapidos: true
+  };
+
   constructor(
     public tabService: TabService,
     private mainService: MainService,
@@ -83,6 +91,9 @@ export class FinancieroDashboardComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // Cargar configuración guardada si existe
+    this.cargarConfiguracion();
+    
     this.cargarCuotasPendientes();
     this.cargarMonedas();
     this.cargarSucursales();
@@ -248,41 +259,26 @@ export class FinancieroDashboardComponent implements OnInit {
       return Promise.resolve(false);
     }
 
-    const pagoDetalle = pagoDetalleCuota.pagoDetalle;
-    
-    // Crear el input para actualizar el PagoDetalle
-    const pagoDetalleInput = new PagoDetalleInput();
-    pagoDetalleInput.id = pagoDetalle.id;
-    pagoDetalleInput.pagoId = pagoDetalle.pago?.id;
-    pagoDetalleInput.usuarioId = pagoDetalle.usuario?.id;
-    pagoDetalleInput.monedaId = pagoDetalle.moneda?.id;
-    pagoDetalleInput.formaPagoId = pagoDetalle.formaPago?.id;
-    pagoDetalleInput.total = pagoDetalle.total;
-    pagoDetalleInput.activo = pagoDetalle.activo;
-    pagoDetalleInput.plazo = pagoDetalle.plazo;
-    pagoDetalleInput.cuotas = pagoDetalle.cuotas;
-    pagoDetalleInput.estado = pagoDetalle.estado;
-    
-    // Establecer la nueva sucursal y caja
-    pagoDetalleInput.sucursalId = sucursal.id;
-    pagoDetalleInput.cajaId = caja?.id;
+    const pagoDetalleId = pagoDetalleCuota.pagoDetalle.id;
+    const sucursalId = sucursal.id;
+    const cajaId = caja?.id;
 
     return new Promise((resolve, reject) => {
-      this.pagoDetalleService.onSavePagoDetalle(pagoDetalleInput)
+      this.pagoDetalleService.onUpdatePagoDetalleCajaySucursal(pagoDetalleId, sucursalId, cajaId)
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (result) => {
             if (result) {
-              this.notificacionService.openSucess('Sucursal actualizada correctamente');
+              this.notificacionService.openSucess('Sucursal y caja actualizadas correctamente');
               resolve(true);
             } else {
-              this.notificacionService.openWarn('No se pudo actualizar la sucursal');
+              this.notificacionService.openWarn('No se pudo actualizar la sucursal y caja');
               resolve(false);
             }
           },
           error: (error) => {
-            console.error('Error al actualizar sucursal:', error);
-            this.notificacionService.openWarn('Error al actualizar la sucursal: ' + (error.message || 'Error desconocido'));
+            console.error('Error al actualizar sucursal y caja:', error);
+            this.notificacionService.openWarn('Error al actualizar la sucursal y caja: ' + (error.message || 'Error desconocido'));
             reject(error);
           }
         });
@@ -314,5 +310,55 @@ export class FinancieroDashboardComponent implements OnInit {
           });
       }
     });
+  }
+
+  /**
+   * Abre el diálogo de configuración financiera
+   */
+  abrirConfiguracion(): void {
+    this.matDialog.open(FinancieroConfiguracionDialogComponent, {
+      width: '500px',
+      data: this.configuracion
+    }).afterClosed().subscribe(result => {
+      if (result) {
+        // Actualizar la configuración local
+        this.configuracion = result;
+        
+        // Guardar configuración en localStorage
+        this.guardarConfiguracion();
+        
+        // Aplicar cambios de configuración
+        if (this.paginator) {
+          this.paginator.pageSize = this.configuracion.paginacionTamano;
+          this.pageSize = this.configuracion.paginacionTamano;
+          this.aplicarFiltros();
+        }
+        
+        this.notificacionService.openSucess('Configuración actualizada');
+      }
+    });
+  }
+
+  /**
+   * Carga la configuración guardada en localStorage si existe
+   */
+  cargarConfiguracion(): void {
+    const configuracionGuardada = localStorage.getItem('financieroDashboardConfig');
+    if (configuracionGuardada) {
+      try {
+        const config = JSON.parse(configuracionGuardada);
+        this.configuracion = { ...this.configuracion, ...config };
+        this.pageSize = this.configuracion.paginacionTamano;
+      } catch (e) {
+        console.error('Error al cargar configuración:', e);
+      }
+    }
+  }
+  
+  /**
+   * Guarda la configuración actual en localStorage
+   */
+  guardarConfiguracion(): void {
+    localStorage.setItem('financieroDashboardConfig', JSON.stringify(this.configuracion));
   }
 }

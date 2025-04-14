@@ -120,4 +120,50 @@ export const DELETE_PAGO_DETALLE = gql`
   mutation deletePagoDetalle($id: ID!) {
     data: deletePagoDetalle(id: $id)
   }
+`;
+
+export const UPDATE_PAGO_DETALLE_CAJA_Y_SUCURSAL = gql`
+  mutation updatePagoDetalleCajaySucursal($pagoDetalleId: ID!, $sucursalId: ID!, $cajaId: ID) {
+    data: updatePagoDetalleCajaySucursal(pagoDetalleId: $pagoDetalleId, sucursalId: $sucursalId, cajaId: $cajaId) {
+      id
+      pago {
+        id
+      }
+      usuario {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      creadoEn
+      moneda {
+        id
+        denominacion
+        simbolo
+      }
+      formaPago {
+        id
+        descripcion
+      }
+      total
+      sucursal {
+        id
+        nombre
+      }
+      caja {
+        id
+        usuario {
+          id
+          persona {
+            id
+            nombre
+          }
+        }
+      }
+      activo
+      fechaProgramado
+      estado
+    }
+  }
 `; 

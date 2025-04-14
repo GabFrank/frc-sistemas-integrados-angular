@@ -61,5 +61,8 @@
       "ip": "172.25.1.24",
       "port": "8082"
     }
-  ]
-}
+  ],
+  "ipDefault": "172.25.1.200",
+  "puertoDefault": "8082",
+  "useFinancieroDashBoard": false
+} 

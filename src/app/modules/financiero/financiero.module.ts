@@ -31,6 +31,7 @@ import { AddFacturaLegalDialogComponent } from './factura-legal/add-factura-lega
 import { EditFacturaLegalItemComponent } from './factura-legal/edit-factura-legal-item/edit-factura-legal-item.component';
 import { AddVentaCreditoDialogComponent } from './venta-credito/add-venta-credito-dialog/add-venta-credito-dialog.component';
 import { ListVentaCreditoComponent } from './venta-credito/list-venta-credito/list-venta-credito.component';
+import { FinancieroConfiguracionDialogComponent } from './financiero-configuracion-dialog/financiero-configuracion-dialog.component';
 
 @NgModule({
   declarations: [
@@ -60,6 +61,7 @@ import { ListVentaCreditoComponent } from './venta-credito/list-venta-credito/li
     EditFacturaLegalItemComponent,
     AddVentaCreditoDialogComponent,
     ListVentaCreditoComponent,
+    FinancieroConfiguracionDialogComponent,
   ],
   imports: [
     CommonModule,

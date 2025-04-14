@@ -30,3 +30,6 @@ getTotalPages
       getContent {
         //here comes the entity fields
       }
+- all titles must use class "titulo-center" and font medium
+- for all components always create .ts, .html and .scss, skip test file
+- do not use Dynamic imports unless we really need

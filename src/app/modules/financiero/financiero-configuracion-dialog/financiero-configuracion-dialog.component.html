@@ -1,0 +1,36 @@
+<h2 mat-dialog-title>CONFIGURACIÓN FINANCIERA</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="configuracionForm" class="configuracion-form">
+    
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Tamaño de Paginación</mat-label>
+      <mat-select formControlName="paginacionTamano">
+        <mat-option *ngFor="let tamano of tamanosPagina" [value]="tamano">
+          {{ tamano }} ITEMS POR PÁGINA
+        </mat-option>
+      </mat-select>
+      <mat-hint>Cantidad de elementos a mostrar por página</mat-hint>
+    </mat-form-field>
+    
+    <div class="toggle-container">
+      <mat-slide-toggle formControlName="mostrarMonedas" color="primary">
+        Mostrar Cambio de Monedas
+      </mat-slide-toggle>
+      <span class="toggle-description">Mostrar u ocultar la sección de cambio de monedas</span>
+    </div>
+    
+    <div class="toggle-container">
+      <mat-slide-toggle formControlName="mostrarAccesosRapidos" color="primary">
+        Mostrar Accesos Rápidos
+      </mat-slide-toggle>
+      <span class="toggle-description">Mostrar u ocultar la sección de accesos rápidos</span>
+    </div>
+    
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancelar()">CANCELAR</button>
+  <button mat-raised-button color="primary" (click)="guardarConfiguracion()">GUARDAR</button>
+</mat-dialog-actions>

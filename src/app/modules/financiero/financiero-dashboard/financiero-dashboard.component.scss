@@ -11,6 +11,10 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  
+  .spacer {
+    flex: 1 1 auto;
+  }
 }
 
 .content-grid {
