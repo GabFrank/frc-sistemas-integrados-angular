@@ -23,6 +23,7 @@ import { WindowInfoService } from "./shared/services/window-info.service";
 import { SearchBarDialogComponent } from "./shared/widgets/search-bar-dialog/search-bar-dialog.component";
 import { DialogoNuevasFuncionesComponent } from "./shared/components/dialogo-nuevas-funciones/dialogo-nuevas-funciones.component";
 import { GraphqlConnectionService, connectionStatusSub } from "./shared/services/graphql-connection.service";
+import { ConfirmDialogComponent } from "./shared/components/confirm-dialog/confirm-dialog.component";
 
 export class Pageable {
   getPageNumber: number;
@@ -127,6 +128,7 @@ export class AppComponent implements OnInit, OnDestroy {
    */
   async ngOnInit(): Promise<void> {
     console.log("on init de la app");
+    console.log("Cargando configuración: verificando localStorage, archivo de backup y configuración por defecto");
 
     this.overlay.getContainerElement().classList.add("darkMode");
     
@@ -141,27 +143,67 @@ export class AppComponent implements OnInit, OnDestroy {
     // Check if system is configured
     this.configService.isConfigured()
       .pipe(untilDestroyed(this))
-      .subscribe((isConfigured) => {
-        if (!isConfigured) {
+      .subscribe((isSystemConfigured) => {
+        if (!isSystemConfigured) {
           // If not configured, show configuration dialog
           this.configService.showConfigDialog()
             .pipe(untilDestroyed(this))
             .subscribe((configured) => {
               if (configured) {
-                // Configuration saved, continue with app initialization
-                this.initializeApp();
+                // Configuration saved, restart to ensure proper initialization
+                this.notificationService.notification$.next({
+                  texto: "CONFIGURACIÓN GUARDADA. INICIANDO APLICACIÓN...",
+                  color: NotificacionColor.success,
+                  duracion: 3
+                });
+                
+                // Delay restart slightly to show notification
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1500);
               } else {
                 // User cancelled configuration, show message
                 this.notificationService.notification$.next({
-                  texto: "Configuración necesaria para iniciar el sistema",
+                  texto: "CONFIGURACIÓN NECESARIA PARA INICIAR EL SISTEMA",
                   color: NotificacionColor.warn,
                   duracion: 10
                 });
               }
             });
         } else {
-          // System is configured, proceed with normal initialization
-          this.initializeApp();
+          // Check if user has explicitly configured the system
+          if (!this.configService.hasUserConfiguration()) {
+            // If using default config (not explicitly configured by user), show config dialog first
+            this.configService.showConfigDialog()
+              .pipe(untilDestroyed(this))
+              .subscribe((configured) => {
+                if (configured) {
+                  // User has configured the system, restart to ensure proper initialization
+                  this.notificationService.notification$.next({
+                    texto: "CONFIGURACIÓN GUARDADA. INICIANDO APLICACIÓN...",
+                    color: NotificacionColor.success,
+                    duracion: 3
+                  });
+                  
+                  // Delay restart slightly to show notification
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 1500);
+                } else {
+                  // User cancelled configuration, proceed with default settings
+                  this.notificationService.notification$.next({
+                    texto: "USANDO CONFIGURACIÓN POR DEFECTO",
+                    color: NotificacionColor.info,
+                    duracion: 5
+                  });
+                  // Initialize with default config
+                  this.initializeApp();
+                }
+              });
+          } else {
+            // System is configured and user has explicitly configured it, proceed with normal initialization
+            this.initializeApp();
+          }
         }
       });
 
@@ -204,7 +246,7 @@ export class AppComponent implements OnInit, OnDestroy {
           console.log("Login failed or was cancelled, showing configuration dialog");
           // If login fails or is cancelled, check if server configuration needs to be updated
           this.notificationService.notification$.next({
-            texto: "Por favor configure los parámetros del servidor para continuar",
+            texto: "POR FAVOR CONFIGURE LOS PARÁMETROS DEL SERVIDOR PARA CONTINUAR",
             color: NotificacionColor.info,
             duracion: 5
           });
@@ -214,8 +256,42 @@ export class AppComponent implements OnInit, OnDestroy {
             .pipe(untilDestroyed(this))
             .subscribe(configured => {
               if (configured) {
-                // If configuration was updated, attempt to reconnect
-                this.graphqlService.reconnectWebSockets();
+                // If configuration was updated, prompt for restart
+                const confirmDialogRef = this.matDialog.open(ConfirmDialogComponent, {
+                  width: '400px',
+                  data: {
+                    title: 'REINICIAR APLICACIÓN',
+                    message: 'LA CONFIGURACIÓN HA SIDO GUARDADA. ES NECESARIO REINICIAR LA APLICACIÓN PARA APLICAR LOS CAMBIOS. ¿DESEA REINICIAR AHORA?',
+                    confirmText: 'REINICIAR',
+                    cancelText: 'DESPUÉS'
+                  }
+                });
+                
+                confirmDialogRef.afterClosed().subscribe(restart => {
+                  if (restart) {
+                    // Restart the application
+                    this.notificationService.notification$.next({
+                      texto: "REINICIANDO APLICACIÓN...",
+                      color: NotificacionColor.info,
+                      duracion: 3
+                    });
+                    
+                    setTimeout(() => {
+                      window.location.reload();
+                    }, 1000);
+                  } else {
+                    // Just attempt to reconnect without restart
+                    this.graphqlService.reconnectWebSockets();
+                    
+                    // After updating config, reopen login dialog
+                    setTimeout(() => {
+                      this.matDialog.open(LoginComponent, {
+                        width: "70%",
+                        disableClose: false,
+                      });
+                    }, 1000);
+                  }
+                });
               }
             });
         }

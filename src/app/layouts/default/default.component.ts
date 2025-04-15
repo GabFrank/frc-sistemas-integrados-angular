@@ -36,14 +36,8 @@ export class DefaultComponent implements OnInit {
     public windowInfo: WindowInfoService,
     private mainService: MainService
   ) {
-    fromEvent(document.body, "mousemove")
-      .pipe(untilDestroyed(this))
-      .subscribe((e) => {
-        let event = e as MouseEvent;
-        if (event.pageX < 10) {
-          this.sideBarOpen = true;
-        }
-      });
+    // We no longer need auto-expand on mouse movement since the sidebar is always visible
+    // in its mini form and will expand when clicked
   }
 
   ngOnInit(): void {
@@ -67,8 +61,18 @@ export class DefaultComponent implements OnInit {
     this.openDialog(index);
   }
 
-  tootleSideBar(e): void {
+  /**
+   * Toggle the sidebar state when the menu button is clicked
+   */
+  toggleSideNav(): void {
     this.sideBarOpen = !this.sideBarOpen;
+  }
+
+  /**
+   * Set the sidebar state based on the event from the side-mini-variant component
+   */
+  setSideNav(isExpanded: boolean): void {
+    this.sideBarOpen = isExpanded;
   }
 
   openDialog(index): void {
@@ -87,13 +91,5 @@ export class DefaultComponent implements OnInit {
           this.tabService.removeTab(index);
         }
       });
-  }
-
-  onSideBarFocus() {
-    if (this.sideBarOpen) {
-      setTimeout(() => {
-        this.sideBarOpen = false;
-      }, 1000);
-    }
   }
 }

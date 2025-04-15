@@ -18,3 +18,7 @@ input.mat-input-element {
 mat-form-field {
   width: 100%;
 } 
+
+input {
+  text-transform: none !important;
+}

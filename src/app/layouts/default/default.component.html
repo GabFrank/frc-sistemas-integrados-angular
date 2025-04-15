@@ -1,11 +1,11 @@
 <div style="height: 100vh">
-  <app-header (toogleSideBarEvent)="tootleSideBar($event)"></app-header>
+  <app-header (toogleSideBarEvent)="toggleSideNav()"></app-header>
 
   <mat-drawer-container>
-    <mat-drawer mode="side" [opened]="sideBarOpen">
-      <app-side></app-side>
+    <mat-drawer mode="side" [opened]="true" class="side-drawer">
+      <app-side-mini-variant [isExpanded]="sideBarOpen" (toggleSideNav)="setSideNav($event)"></app-side-mini-variant>
     </mat-drawer>
-    <mat-drawer-content (mouseover)="onSideBarFocus()" style="overflow: hidden;">
+    <mat-drawer-content style="overflow: hidden;">
       <mat-tab-group
         class="main-tab-group mt-2"
         [selectedIndex]="selectedTab"

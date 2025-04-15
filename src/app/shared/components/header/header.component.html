@@ -15,6 +15,7 @@
         mat-icon-button
         (click)="toogleSideBar()"
         [disabled]="!status"
+        class="header-menu-toggle"
       >
         <mat-icon>menu</mat-icon>
       </button>
@@ -74,7 +75,7 @@
               (click)="onGetConfiguracion()"
               [disabled]="!status"
             >
-              Configurar BD
+              Configuración del Sistema
             </button>
           </div>
           <button mat-menu-item [matMenuTriggerFor]="sucursales">

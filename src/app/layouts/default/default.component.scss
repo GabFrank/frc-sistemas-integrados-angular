@@ -1,9 +1,6 @@
 :host {
-  display: flex;
-  flex-direction: column;
+  display: block;
   height: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
 }
 
 .mat-drawer-container,
@@ -67,4 +64,47 @@
 .mat-mdc-tab.mdc-tab {
   height: 2em !important;
   max-width: 200px;
+}
+
+// Add styles for the new side-drawer with the mini-variant sidebar
+.side-drawer {
+  width: auto !important;
+  min-width: auto !important;
+  max-width: none !important;
+  overflow: visible !important;
+}
+
+mat-drawer-container {
+  height: calc(100% - 64px); // Adjust for header height
+
+  @media(max-width: 599px) {
+    height: calc(100% - 56px); // Adjust for smaller header on mobile
+  }
+}
+
+// Existing styles
+.main-tab-group {
+  height: calc(100% - 3px) !important;
+}
+
+.mat-tab-class {
+  height: 100% !important;
+}
+
+.mat-mdc-tab-body-wrapper {
+  height: 100% !important;
+}
+
+::ng-deep .mat-mdc-tab-body-content {
+  overflow: hidden !important;
+}
+
+// Fix for material tab text color
+.mat-mdc-tab .mdc-tab__text-label {
+  color: white !important;
+}
+
+// Fix tab label height
+::ng-deep .mdc-tab {
+  height: 48px !important;
 }

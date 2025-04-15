@@ -22,6 +22,7 @@ import { environment } from "../../../../environments/environment";
 import { TipoEntidad } from "../../../generics/tipo-entidad.enum";
 import { ActualizacionService } from "../../../modules/configuracion/actualizacion/actualizacion.service";
 import { ConfiguracionService } from "../../services/configuracion.service";
+import { ConfiguracionDialogComponent } from "../configuracion-dialog/configuracion-dialog.component";
 import { ROLES } from "../../../modules/personas/roles/roles.enum";
 import { QrCodeComponent, QrData } from "../../qr-code/qr-code.component";
 import { DialogosService } from "../dialogos/dialogos.service";
@@ -152,19 +153,29 @@ export class HeaderComponent implements OnInit, OnDestroy {
       .subscribe((res) => {});
   }
 
+  /**
+   * Opens the configuration dialog to modify system settings
+   */
+  openConfigDialog() {
+    this.configService
+      .showConfigDialog()
+      .pipe(untilDestroyed(this))
+      .subscribe((result) => {
+        if (result) {
+          // Configuration was updated, check if we need to restart
+          this.dialogoService
+            .confirm("Configuración actualizada", "¿Desea reiniciar ahora para aplicar los cambios?")
+            .subscribe((shouldRestart) => {
+              if (shouldRestart) {
+                this.electronService.relaunch();
+              }
+            });
+        }
+      });
+  }
+
   onGetConfiguracion() {
-    // this.configService
-    //   .isConfigured()
-    //   .pipe(untilDestroyed(this))
-    //   .subscribe((res) => {
-    //     if (!res) {
-    //       this.matDialog.open(ConfigurarServidorDialogComponent, {
-    //         width: "80%",
-    //         height: "500px",
-    //         disableClose: true,
-    //       });
-    //     }
-    //   });
+    this.openConfigDialog();
   }
 
   cambiarSucursal(sucursal) {

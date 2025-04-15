@@ -63,14 +63,17 @@
       <mat-label>Modo</mat-label>
       <mat-select formControlName="modo">
         <mat-option value="NOT">Normal</mat-option>
-        <mat-option value="DEV">Desarrollo</mat-option>
-        <mat-option value="TEST">Pruebas</mat-option>
       </mat-select>
     </mat-form-field>
+    
+    <mat-checkbox formControlName="isLocal">Usar Servidor Local</mat-checkbox>
   </form>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button (click)="onCancel()">Cancelar</button>
-  <button mat-raised-button color="primary" [disabled]="configForm.invalid" (click)="onSave()">Guardar</button>
+  <button mat-button (click)="onBackup()" color="accent">
+    <mat-icon>save_alt</mat-icon> CREAR RESPALDO
+  </button>
+  <button mat-button (click)="onCancel()">CANCELAR</button>
+  <button mat-raised-button color="primary" [disabled]="configForm.invalid" (click)="onSave()">GUARDAR</button>
 </mat-dialog-actions> 
