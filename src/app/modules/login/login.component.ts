@@ -2,11 +2,10 @@ import { Component, OnInit } from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatDialogRef } from "@angular/material/dialog";
 import { Subscription } from "rxjs";
-import { connectionStatusSub } from "../../app.module";
 import { MainService } from "../../main.service";
 import { CargandoDialogService } from "../../shared/components/cargando-dialog/cargando-dialog.service";
 import { LoginService } from "./login.service";
-
+import { connectionStatusSub } from "../../shared/services/graphql-connection.service";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 
 @UntilDestroy()
@@ -66,7 +65,7 @@ export class LoginComponent implements OnInit {
             this.showBienvenida = true;
             this.errorMessage = null;
             setTimeout(() => {
-              this.dialogRef.close();
+              this.dialogRef.close(res);
             }, 2000);
           } else if (res.error != null) {
             this.mainService.authenticationSub.next(false);
@@ -90,7 +89,7 @@ export class LoginComponent implements OnInit {
         if (res) {
           this.showBienvenida = true;
           setTimeout(() => {
-            this.dialogRef.close();
+            this.dialogRef.close(res);
           }, 2000);
         }
       });

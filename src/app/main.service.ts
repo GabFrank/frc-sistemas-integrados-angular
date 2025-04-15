@@ -16,6 +16,7 @@ import { IpcRenderer } from "electron";
 import { ActualizacionService } from "./modules/configuracion/actualizacion/actualizacion.service";
 import { SucursalService } from "./modules/empresarial/sucursal/sucursal.service";
 import { MonedaService } from "./modules/financiero/moneda/moneda.service";
+import { ConfiguracionService } from "./shared/services/configuracion.service";
 
 @UntilDestroy()
 @Injectable({
@@ -49,11 +50,12 @@ export class MainService implements OnDestroy {
   constructor(
     // private getMonedas: MonedasGetAllGQL,
     public sucursalService: SucursalService,
-    private usuarioService: UsuarioService
+    private usuarioService: UsuarioService,
+    private configService: ConfiguracionService
   ) {
-
-    localStorage.setItem("ip", this.serverIpAddres);
-
+    // Get server IP from ConfiguracionService instead of environment
+    const config = this.configService.getConfig();
+    this.serverIpAddres = config.serverIp;
   }
 
   isAuthenticated(): Observable<boolean> {
@@ -99,23 +101,50 @@ export class MainService implements OnDestroy {
   }
 
   load(): Promise<boolean> {
-    let res;    
-    this.sucursalService.onGetSucursalActual()
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {          
-          this.sucursalActual = res;
-          if (this.sucursalActual?.id == 0) {
-            this.isServidor = true;
+    // Update server configuration from ConfiguracionService
+    const config = this.configService.getConfig();
+    this.serverIpAddres = config.serverIp;
+    
+    // Create a Promise that resolves when sucursal is loaded or rejects after timeout
+    return new Promise<boolean>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        console.warn('Sucursal loading timed out');
+        resolve(false);
+      }, 5000);
+      
+      this.sucursalService.onGetSucursalActual()
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (res) => {
+            clearTimeout(timeout);
+            if (res != null) {          
+              this.sucursalActual = res;
+              if (this.sucursalActual?.id == 0) {
+                this.isServidor = true;
+              }
+              resolve(true);
+            } else {
+              resolve(false);
+            }
+          },
+          error: (err) => {
+            clearTimeout(timeout);
+            console.error('Error loading sucursal:', err);
+            resolve(false);
           }
-        }
-      });
-    return res;
+        });
+    });
   }
 
-  changeServerIpAddress(text) {
-    localStorage.setItem("ip", text);
-    this.serverIpAddres = localStorage.getItem("ip");
+  /**
+   * Changes the server IP address using ConfiguracionService
+   * This ensures all IP references are updated consistently
+   */
+  changeServerIpAddress(text: string) {
+    this.configService.updateConfig({
+      serverIp: text
+    });
+    this.serverIpAddres = text;
   }
 
   // async getConfigFile(){

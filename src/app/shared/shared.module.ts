@@ -58,6 +58,7 @@ import { DataDisplayComponent } from './data-display/data-display.component';
 import { EnumToStringPipe } from '../commons/core/utils/pipes/enum-to-string';
 import { A11yModule } from '@angular/cdk/a11y';
 import { ConfiguracionFullDialogComponent } from './components/configuracion-full-dialog/configuracion-full-dialog.component';
+import { ConfiguracionDialogComponent } from './components/configuracion-dialog/configuracion-dialog.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -101,7 +102,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     FormattedTooltipDirective,
     AutoFitTextDirective,
     DataDisplayComponent,
-    ConfiguracionFullDialogComponent
+    ConfiguracionFullDialogComponent,
+    ConfiguracionDialogComponent
   ],
   imports: [
     CommonModule,
@@ -116,6 +118,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     NgxQRCodeModule,
     Ng2FittextModule,
     BootstrapModule,
+    NgxSpinnerModule
   ],
   exports: [
     HeaderComponent,
@@ -148,7 +151,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     FormattedTooltipDirective,
     NgxSpinnerModule,
     DataDisplayComponent,
-    A11yModule
+    A11yModule,
+    ConfiguracionDialogComponent
   ],
   providers: [NgxImageCompressService, provideEnvironmentNgxMask(options), DecimalPipe, MatTooltip, TitleCasePipe, DatePipe, EnumToStringPipe]
 })

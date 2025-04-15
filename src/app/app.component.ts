@@ -10,11 +10,9 @@ import {
 import { MatDialog } from "@angular/material/dialog";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { connectionStatusSub } from "./app.module";
 import { GenericCrudService } from "./generics/generic-crud.service";
 import { MainService } from "./main.service";
-import { ConfiguracionService } from "./modules/configuracion/configuracion.service";
-import { ConfigurarServidorDialogComponent } from "./modules/configuracion/configurar-servidor-dialog/configurar-servidor-dialog.component";
+import { ConfiguracionService } from "./shared/services/configuracion.service";
 import { LoginComponent } from "./modules/login/login.component";
 import {
   NotificacionColor,
@@ -24,6 +22,7 @@ import { CargandoDialogService } from "./shared/components/cargando-dialog/carga
 import { WindowInfoService } from "./shared/services/window-info.service";
 import { SearchBarDialogComponent } from "./shared/widgets/search-bar-dialog/search-bar-dialog.component";
 import { DialogoNuevasFuncionesComponent } from "./shared/components/dialogo-nuevas-funciones/dialogo-nuevas-funciones.component";
+import { GraphqlConnectionService, connectionStatusSub } from "./shared/services/graphql-connection.service";
 
 export class Pageable {
   getPageNumber: number;
@@ -80,7 +79,8 @@ export class AppComponent implements OnInit, OnDestroy {
     public mainService: MainService,
     public genericService: GenericCrudService,
     private configService: ConfiguracionService,
-    public cargandoService: CargandoDialogService
+    public cargandoService: CargandoDialogService,
+    private graphqlService: GraphqlConnectionService
   ) {
     this.innerHeight = windowInfo.innerHeight + "px";
     notificationService.notification$
@@ -121,35 +121,47 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * 1 - se adiciona la clase darkMode al conntainer principal, para poder aplicar el estilo dark
-   * 2 - Abrimos el dialogo de login, si la respuesta es true el dialogo desaparece
-   *    si la respuesta es false, abre el dialogo de configuracion de servidor
+   * 1 - se adiciona la clase darkMode al container principal, para poder aplicar el estilo dark
+   * 2 - Verificamos la configuración y mostramos el diálogo si es necesario
+   * 3 - Inicializamos la aplicación y abrimos el diálogo de login
    */
   async ngOnInit(): Promise<void> {
     console.log("on init de la app");
 
     this.overlay.getContainerElement().classList.add("darkMode");
-    await this.mainService.load();
-    this.matDialog
-      .open(LoginComponent, {
-        width: "70%",
-        disableClose: false,
-      })
-      .afterClosed()
-      .subscribe((res) => {
-        if (!res) {
-          this.configService
-            .isConfigured()
+    
+    // Subscribe to configuration changes to trigger connection updates
+    this.configService.configChanged
+      .pipe(untilDestroyed(this))
+      .subscribe(config => {
+        console.log('Configuration changed - attempting to reconnect');
+        this.graphqlService.reconnectWebSockets();
+      });
+    
+    // Check if system is configured
+    this.configService.isConfigured()
+      .pipe(untilDestroyed(this))
+      .subscribe((isConfigured) => {
+        if (!isConfigured) {
+          // If not configured, show configuration dialog
+          this.configService.showConfigDialog()
             .pipe(untilDestroyed(this))
-            .subscribe((res) => {
-              if (!res) {
-                this.matDialog.open(ConfigurarServidorDialogComponent, {
-                  width: "80%",
-                  height: "500px",
-                  disableClose: true,
+            .subscribe((configured) => {
+              if (configured) {
+                // Configuration saved, continue with app initialization
+                this.initializeApp();
+              } else {
+                // User cancelled configuration, show message
+                this.notificationService.notification$.next({
+                  texto: "Configuración necesaria para iniciar el sistema",
+                  color: NotificacionColor.warn,
+                  duracion: 10
                 });
               }
             });
+        } else {
+          // System is configured, proceed with normal initialization
+          this.initializeApp();
         }
       });
 
@@ -171,6 +183,43 @@ export class AppComponent implements OnInit, OnDestroy {
         }, 3000);
       }
     });
+  }
+
+  /**
+   * Initialize the application after configuration is loaded
+   */
+  private initializeApp(): void {
+    // Load main service data
+    this.mainService.load();
+    
+    // Open login dialog
+    this.matDialog
+      .open(LoginComponent, {
+        width: "70%",
+        disableClose: false,
+      })
+      .afterClosed()
+      .subscribe((res) => {
+        if (!res) {
+          console.log("Login failed or was cancelled, showing configuration dialog");
+          // If login fails or is cancelled, check if server configuration needs to be updated
+          this.notificationService.notification$.next({
+            texto: "Por favor configure los parámetros del servidor para continuar",
+            color: NotificacionColor.info,
+            duracion: 5
+          });
+          
+          this.configService
+            .showConfigDialog()
+            .pipe(untilDestroyed(this))
+            .subscribe(configured => {
+              if (configured) {
+                // If configuration was updated, attempt to reconnect
+                this.graphqlService.reconnectWebSockets();
+              }
+            });
+        }
+      });
   }
 
   @HostListener("document:keydown", ["$event"]) onKeydownHandler(

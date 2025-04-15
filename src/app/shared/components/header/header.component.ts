@@ -9,7 +9,6 @@ import { FormControl } from "@angular/forms";
 import { MatDialog } from "@angular/material/dialog";
 import { Router } from "@angular/router";
 import { Observable, Subscription } from "rxjs";
-import { connectionStatusSub } from "../../../app.module";
 import { ElectronService } from "../../../commons/core/electron/electron.service";
 import { TabService } from "../../../layouts/tab/tab.service";
 import { MainService } from "../../../main.service";
@@ -22,8 +21,7 @@ import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { environment } from "../../../../environments/environment";
 import { TipoEntidad } from "../../../generics/tipo-entidad.enum";
 import { ActualizacionService } from "../../../modules/configuracion/actualizacion/actualizacion.service";
-import { ConfiguracionService } from "../../../modules/configuracion/configuracion.service";
-import { ConfigurarServidorDialogComponent } from "../../../modules/configuracion/configurar-servidor-dialog/configurar-servidor-dialog.component";
+import { ConfiguracionService } from "../../services/configuracion.service";
 import { ROLES } from "../../../modules/personas/roles/roles.enum";
 import { QrCodeComponent, QrData } from "../../qr-code/qr-code.component";
 import { DialogosService } from "../dialogos/dialogos.service";
@@ -31,6 +29,7 @@ import { UsuarioService } from "../../../modules/personas/usuarios/usuario.servi
 import { resolve } from "path";
 import { rejects } from "assert";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
+import { connectionStatusSub } from "../../services/graphql-connection.service";
 
 // import { ApolloConfigService } from '../../../apollo-config.service';
 
@@ -42,7 +41,7 @@ import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesio
 })
 export class HeaderComponent implements OnInit, OnDestroy {
   isDev = isDevMode();
-  isLocalhost = localStorage.getItem("ip") == "localhost";
+  isLocalhost = false;
   status = false;
   statusObs: Observable<any>;
   serverIpAddress = "";
@@ -75,7 +74,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.status = res;
       });
 
-    this.sucursalList = environment["sucursales"];
+    // Use empty array as fallback if environment doesn't have sucursales
+    this.sucursalList = environment["sucursales"] || [];
+
+    const config = this.configService.getConfig();
+    this.isLocalhost = config.serverIp === "localhost";
 
     this.appVersion = this.electronService.getAppVersion();
   }
@@ -150,18 +153,18 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   onGetConfiguracion() {
-    this.configService
-      .isConfigured()
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (!res) {
-          this.matDialog.open(ConfigurarServidorDialogComponent, {
-            width: "80%",
-            height: "500px",
-            disableClose: true,
-          });
-        }
-      });
+    // this.configService
+    //   .isConfigured()
+    //   .pipe(untilDestroyed(this))
+    //   .subscribe((res) => {
+    //     if (!res) {
+    //       this.matDialog.open(ConfigurarServidorDialogComponent, {
+    //         width: "80%",
+    //         height: "500px",
+    //         disableClose: true,
+    //       });
+    //     }
+    //   });
   }
 
   cambiarSucursal(sucursal) {
@@ -170,13 +173,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
         .confirm("Atención!!", "Realmente quieres cambiar de sucursal?")
         .subscribe((res) => {
           if (res) {
-            localStorage.setItem("ip", sucursal["ip"]);
-            localStorage.setItem("port", sucursal["port"]);
-            localStorage.setItem("centralIp", environment["serverCentralIp"]);
-            localStorage.setItem(
-              "centralPort",
-              environment["serverCentralPort"] + ""
-            );
+            this.configService.updateConfig({
+              serverIp: sucursal["ip"]
+            });
             this.electronService.relaunch();
           }
         });
@@ -184,8 +183,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   onDevMode(server) {
-    localStorage.setItem("ip", "localhost");
-    localStorage.setItem("port", server ? "8081" : "8082");
+    this.configService.updateConfig({
+      serverIp: "localhost"
+    });
     this.electronService.relaunch();
   }
 }

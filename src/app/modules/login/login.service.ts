@@ -8,6 +8,7 @@ import { environment } from "../../../environments/environment";
 import { MainService } from "../../main.service";
 import { Usuario } from "../personas/usuarios/usuario.model";
 import { UsuarioService } from "../personas/usuarios/usuario.service";
+import { ConfiguracionService } from "../../shared/services/configuracion.service";
 
 export interface LoginResponse {
   usuario?: Usuario;
@@ -40,18 +41,22 @@ export class LoginService {
     private usuarioService: UsuarioService,
     public mainService: MainService,
     private deviceDetector: DeviceDetectorService,
-    private electronService: ElectronService
+    private electronService: ElectronService,
+    private configService: ConfiguracionService
   ) {}
 
   login(nickname, password): Observable<LoginResponse> {
     return new Observable((obs) => {
+      // Get the server configuration from ConfiguracionService
+      const config = this.configService.getConfig();
+      
       let httpBody = {
         nickname: nickname,
         password: password,
       };
       let httpResponse = this.http
         .post(
-          `http://${environment["serverIp"]}:${environment["serverPort"]}/login`,
+          `http://${config.serverIp}:${config.serverPort}/login`,
           httpBody,
           this.httpOptions
         )

@@ -1,10 +1,8 @@
 {
-  "ipDefault": "localhost",
-  "puertoDefault": "8081",
-  "centralIp": "localhost",
-  "centralPort": "8081",
-  "ipCentralDefault": "localhost",
-  "puertoCentralDefault": "8081",
+  "serverIp": "localhost",
+  "serverPort": "8081",
+  "serverCentralIp": "localhost",
+  "serverCentralPort": "8081",
   "printers": {
     "ticket": "ticket-mb",
     "factura": "factura"
