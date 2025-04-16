@@ -17,7 +17,7 @@ import { ReimprimirRetiroGQL } from "./graphql/reimprimirRetiro";
 import { FilterRetirosGQL } from "./graphql/filterRetiros";
 import { Tab } from "../../../layouts/tab/tab.model";
 import { PageInfo } from "../../../app.component";
-
+import { ConfiguracionService } from "../../../shared/services/configuracion.service";
 @UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
@@ -32,7 +32,8 @@ export class RetiroService {
     private crudService: GenericCrudService,
     private retiroPorCajaId: RetiroPorCajaSalidaIdGQL,
     private reimprimirRetiro: ReimprimirRetiroGQL,
-    private filterRetiro: FilterRetirosGQL
+    private filterRetiro: FilterRetirosGQL,
+    private configService: ConfiguracionService
   ) { }
 
   onGePorCajaSalidaId(id: number): Observable<Retiro[]> {
@@ -42,8 +43,8 @@ export class RetiroService {
   onReimprimirRetiro(id: number, sucId?: number): Observable<boolean> {
     if (sucId == null) {
       return this.crudService.onCustomQuery(this.reimprimirRetiro, {
-        id, printerName: environment['printers']['ticket'],
-        local: environment['local']
+        id, printerName: this.configService?.getConfig()?.printers?.ticket,
+        local: this.configService?.getConfig()?.local
       })
     }
   }
@@ -74,8 +75,8 @@ export class RetiroService {
           {
             entity: retiro.toInput(),
             retiroDetalleInputList: retiro.toDetalleInput(),
-            printerName: environment['printers']['ticket'],
-            local: environment['local']
+            printerName: this.configService?.getConfig()?.printers?.ticket,
+            local: this.configService?.getConfig()?.local
           },
           {
             fetchPolicy: "no-cache",

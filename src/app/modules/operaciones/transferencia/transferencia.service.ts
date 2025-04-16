@@ -27,7 +27,7 @@ import { PageInfo } from '../../../app.component';
 import { GetTransferenciaItemGQL } from './graphql/getTransferenciaItem';
 import { GetTransferenciaItensPorTransferenciaIdGQL } from './graphql/getTransferenciaItensPorTransferenciaIdWithFilter';
 import { GetTransferenciaItensPorTransferenciaIdWithFilterGQL } from './graphql/getTransferenciaItensPorTransferenciaId';
-
+import { ConfiguracionService } from '../../../shared/services/configuracion.service';
 @UntilDestroy()
 @Injectable({
   providedIn: 'root'
@@ -53,14 +53,15 @@ export class TransferenciaService {
     private imprimirTransferencia: ImprimirTransferenciaGQL,
     private reporteService: ReporteService,
     private tabService: TabService,
-    private getTransferenciaItem: GetTransferenciaItemGQL
+    private getTransferenciaItem: GetTransferenciaItemGQL,
+    private configService: ConfiguracionService
   ) { }
 
   onImprimirTransferencia(id, ticket?) {
     this.genericCrudService.onCustomQuery(this.imprimirTransferencia, {
       id: id,
       ticket: ticket,
-      printerName: environment['printers']['ticket'],
+      printerName: this.configService?.getConfig()?.printers?.ticket,
     }).subscribe(res => {
       if (res != null) {
         this.reporteService.onAdd('Transferencia '+ id, res)

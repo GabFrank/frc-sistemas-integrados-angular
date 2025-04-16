@@ -67,7 +67,7 @@ export class UltimasVentasDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.ventaService
-      .onSearch(null, this.data.caja.id, 0, 20, false).pipe(untilDestroyed(this))
+      .onSearch(null, this.data.caja.id, 0, 20, false, this.data.caja.sucursalId).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.dataSource.data = res.getContent;

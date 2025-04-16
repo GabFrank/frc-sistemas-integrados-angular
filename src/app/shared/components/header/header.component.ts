@@ -30,7 +30,7 @@ import { UsuarioService } from "../../../modules/personas/usuarios/usuario.servi
 import { resolve } from "path";
 import { rejects } from "assert";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
-import { connectionStatusSub } from "../../services/graphql-connection.service";
+import { connectionStatusSub, cloudConnectionStatusSub } from "../../services/graphql-connection.service";
 
 // import { ApolloConfigService } from '../../../apollo-config.service';
 
@@ -43,12 +43,18 @@ import { connectionStatusSub } from "../../services/graphql-connection.service";
 export class HeaderComponent implements OnInit, OnDestroy {
   isDev = isDevMode();
   isLocalhost = false;
-  status = false;
+  isLocal = true; // Flag to indicate if local server is enabled
+  localStatus = false;
+  cloudStatus = false;
+  // Flag to indicate that one server is down
+  serverWarning = false;
   statusObs: Observable<any>;
   serverIpAddress = "";
   editServerIp = false;
   serverIpControl = new FormControl();
-  statusSub: Subscription;
+  localStatusSub: Subscription;
+  cloudStatusSub: Subscription;
+  configChangedSub: Subscription;
   sucursalList: any[];
   readonly ROLES = ROLES;
   @Output() toogleSideBarEvent: EventEmitter<any> = new EventEmitter();
@@ -69,19 +75,59 @@ export class HeaderComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.statusSub = connectionStatusSub
+    // Get config and set isLocal flag
+    const config = this.configService.getConfig();
+    this.isLocalhost = config.serverIp === "localhost";
+    this.isLocal = config.isLocal;
+
+    // Subscribe to config changes to update isLocal flag
+    this.configChangedSub = this.configService.configChanged
+      .pipe(untilDestroyed(this))
+      .subscribe(newConfig => {
+        this.isLocal = newConfig.isLocal;
+        this.isLocalhost = newConfig.serverIp === "localhost";
+        this.updateServerWarning();
+      });
+
+    // Local server status subscription
+    this.localStatusSub = connectionStatusSub
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        this.status = res;
+        this.localStatus = res;
+        this.updateServerWarning();
+      });
+    
+    // Cloud server status subscription
+    this.cloudStatusSub = cloudConnectionStatusSub
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        this.cloudStatus = res;
+        this.updateServerWarning();
       });
 
     // Use empty array as fallback if environment doesn't have sucursales
     this.sucursalList = environment["sucursales"] || [];
 
-    const config = this.configService.getConfig();
-    this.isLocalhost = config.serverIp === "localhost";
-
     this.appVersion = this.electronService.getAppVersion();
+  }
+
+  /**
+   * Updates the server warning flag based on server status
+   * We have a warning when one server is connected but the other is not
+   */
+  private updateServerWarning(): void {
+    // If both statuses are initialized (not null)
+    if (this.cloudStatus != null) {
+      if (this.isLocal && this.localStatus != null) {
+        // Only consider local status for warning if isLocal is true
+        this.serverWarning = (this.localStatus && !this.cloudStatus) || (!this.localStatus && this.cloudStatus);
+      } else {
+        // If isLocal is false, only care about cloud status
+        this.serverWarning = !this.cloudStatus;
+      }
+    } else {
+      this.serverWarning = false;
+    }
   }
 
   toogleSideBar() {
@@ -119,7 +165,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     //Called once, before the instance is destroyed.
     //Add 'implements OnDestroy' to the class.
-    this.statusSub.unsubscribe();
+    this.localStatusSub.unsubscribe();
+    if (this.cloudStatusSub) {
+      this.cloudStatusSub.unsubscribe();
+    }
+    if (this.configChangedSub) {
+      this.configChangedSub.unsubscribe();
+    }
   }
 
   onSearch() {

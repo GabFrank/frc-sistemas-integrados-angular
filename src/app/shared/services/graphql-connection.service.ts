@@ -17,8 +17,9 @@ import { environment } from '../../../environments/environment';
 import { ConfiguracionService, ConfiguracionSistema } from './configuracion.service';
 import { NotificacionSnackbarService, NotificacionColor } from '../../notificacion-snackbar.service';
 
-// Connection status subject that can be subscribed to by components
+// Connection status subjects that can be subscribed to by components
 export const connectionStatusSub = new BehaviorSubject<boolean>(null);
+export const cloudConnectionStatusSub = new BehaviorSubject<boolean>(null);
 export const errorObs = new BehaviorSubject<any>(null);
 
 @Injectable({
@@ -28,14 +29,24 @@ export class GraphqlConnectionService {
   private wsClient: SubscriptionClient;
   private wsClient2: SubscriptionClient;
   private retryCount = 0;
+  private cloudRetryCount = 0;
   private maxRetries = 5;
   private isDev = !environment.production;
+  private isLocal = true;
 
   constructor(
     private configService: ConfiguracionService,
     private notificationService: NotificacionSnackbarService
   ) {
     this.initialize();
+    
+    // Subscribe to configuration changes
+    this.configService.configChanged.subscribe(config => {
+      this.isLocal = config.isLocal;
+      
+      // Reconnect WebSockets whenever configuration changes
+      this.reconnectWebSockets();
+    });
   }
 
   /**
@@ -50,9 +61,14 @@ export class GraphqlConnectionService {
       this.isDev = true;
     }
     
+    // Load configuration
+    const config = this.configService.getConfig();
+    this.isLocal = config.isLocal;
+    
     // Default retries and connection settings
     this.maxRetries = 5;
     this.retryCount = 0;
+    this.cloudRetryCount = 0;
   }
 
   /**
@@ -77,14 +93,26 @@ export class GraphqlConnectionService {
    * @returns True if configuration is valid, false otherwise
    */
   private isValidConfig(config: ConfiguracionSistema): boolean {
-    // Check if required fields are present and valid
-    const isValid = !!(
+    // For cloud server, always check the server central configuration
+    const isCloudValid = !!(
+      config && 
+      config.serverCentralIp && 
+      config.serverCentralPort && 
+      config.serverCentralIp !== 'undefined' && 
+      config.serverCentralPort !== 'undefined'
+    );
+    
+    // For local server, only check if isLocal is true
+    const isLocalValid = !config.isLocal || !!(
       config && 
       config.serverIp && 
       config.serverPort && 
       config.serverIp !== 'undefined' && 
       config.serverPort !== 'undefined'
     );
+    
+    // Both must be valid based on our requirements
+    const isValid = isCloudValid && isLocalValid;
     
     // In development mode, log warnings but return true to allow operation with defaults
     if (!isValid && this.isDev) {
@@ -118,18 +146,20 @@ export class GraphqlConnectionService {
     }
     
     // Use configuration or development defaults
-    const serverIp = config.serverIp || (this.isDev ? 'localhost' : null);
-    const serverPort = config.serverPort || (this.isDev ? '8081' : null);
     const serverCentralIp = config.serverCentralIp || (this.isDev ? 'localhost' : null);
     const serverCentralPort = config.serverCentralPort || (this.isDev ? '8081' : null);
     
-    // Create HTTP URLs
-    const url = `http://${serverIp}:${serverPort}/graphql`;
-    const url2 = `http://${serverCentralIp}:${serverCentralPort}/graphql`;
+    // Only use local server config if isLocal is true
+    const serverIp = this.isLocal ? (config.serverIp || (this.isDev ? 'localhost' : null)) : null;
+    const serverPort = this.isLocal ? (config.serverPort || (this.isDev ? '8081' : null)) : null;
     
-    // Create WebSocket URLs
-    const wUri = `ws://${serverIp}:${serverPort}/subscriptions`;
+    // Create HTTP URLs - only create local URL if isLocal is true
+    const url2 = `http://${serverCentralIp}:${serverCentralPort}/graphql`;
+    const url = this.isLocal ? `http://${serverIp}:${serverPort}/graphql` : null;
+    
+    // Create WebSocket URLs - only create local WebSocket URL if isLocal is true
     const wUri2 = `ws://${serverCentralIp}:${serverCentralPort}/subscriptions`;
+    const wUri = this.isLocal ? `ws://${serverIp}:${serverPort}/subscriptions` : null;
     
     // Create the context for basic authentication
     const basic = setContext((operation, context) => ({}));
@@ -168,16 +198,19 @@ export class GraphqlConnectionService {
     // Create an abortable link
     const abortableLink = this.createAbortableLink();
     
-    // Create an HTTP link for primary server
-    const http = ApolloLink.from([
-      basic,
-      auth,
-      httpLink.create({
-        uri: url,
-      }),
-    ]);
+    // Create HTTP links - only create local link if isLocal is true
+    let http = null;
+    if (this.isLocal && url) {
+      http = ApolloLink.from([
+        basic,
+        auth,
+        httpLink.create({
+          uri: url,
+        }),
+      ]);
+    }
     
-    // Create an HTTP link for central server
+    // Create an HTTP link for central server (always required)
     const http2 = ApolloLink.from([
       basic,
       auth,
@@ -186,37 +219,62 @@ export class GraphqlConnectionService {
       }),
     ]);
     
-    // Create WebSocket clients with proper connection handling
+    // Set up WebSocket clients with proper connection handling
     this.setupWebSocketClients(wUri, wUri2);
     
-    // Create WebSocket links
-    const ws = new WebSocketLink(this.wsClient);
+    // Create WebSocket links - only create local link if isLocal is true
+    let ws = null;
+    if (this.isLocal && this.wsClient) {
+      ws = new WebSocketLink(this.wsClient);
+    }
+    
+    // Create central WebSocket link (always required)
     const ws2 = new WebSocketLink(this.wsClient2);
     
-    // Combine links based on operation type
-    return abortableLink.concat(
-      errorLink.concat(
-        split(
-          ({ query }) => {
-            const definition = getMainDefinition(query);
-            return (
-              definition.kind === "OperationDefinition" &&
-              definition.operation === "subscription"
-            );
-          },
-          ApolloLink.split(
-            (operation) => operation.getContext().clientName === "servidor",
-            ws2,
-            ws
-          ),
-          ApolloLink.split(
-            (operation) => operation.getContext().clientName === "servidor",
-            http2,
-            http
+    // Build the link chain based on whether we're using local server
+    if (this.isLocal) {
+      // Using both local and central servers
+      return abortableLink.concat(
+        errorLink.concat(
+          split(
+            ({ query }) => {
+              const definition = getMainDefinition(query);
+              return (
+                definition.kind === "OperationDefinition" &&
+                definition.operation === "subscription"
+              );
+            },
+            ApolloLink.split(
+              (operation) => operation.getContext().clientName === "servidor",
+              ws2,
+              ws
+            ),
+            ApolloLink.split(
+              (operation) => operation.getContext().clientName === "servidor",
+              http2,
+              http
+            )
           )
         )
-      )
-    );
+      );
+    } else {
+      // Using only central server
+      return abortableLink.concat(
+        errorLink.concat(
+          split(
+            ({ query }) => {
+              const definition = getMainDefinition(query);
+              return (
+                definition.kind === "OperationDefinition" &&
+                definition.operation === "subscription"
+              );
+            },
+            ws2,
+            http2
+          )
+        )
+      );
+    }
   }
   
   /**
@@ -255,6 +313,35 @@ export class GraphqlConnectionService {
    * Set up WebSocket clients with retry logic
    */
   private setupWebSocketClients(wUri: string, wUri2: string): void {
+    // Set up cloud connection first (always required)
+    this.setupCloudWebSocketClient(wUri2);
+    
+    // Only set up local connection if isLocal is true and wUri is provided
+    if (this.isLocal && wUri) {
+      this.setupLocalWebSocketClient(wUri);
+    } else {
+      // If we're not using local server, set local status to null
+      connectionStatusSub.next(null);
+      
+      // Close existing connection if any
+      if (this.wsClient) {
+        this.wsClient.close(false);
+        this.wsClient = null;
+      }
+    }
+  }
+  
+  /**
+   * Set up local WebSocket client
+   */
+  private setupLocalWebSocketClient(wUri: string): void {
+    // Only proceed if isLocal is true
+    if (!this.isLocal || !wUri) {
+      console.log("Local server connection disabled. Not connecting to local server.");
+      connectionStatusSub.next(null);
+      return;
+    }
+    
     // Primary WebSocket client
     this.wsClient = new SubscriptionClient(wUri, {
       reconnect: true,
@@ -264,7 +351,7 @@ export class GraphqlConnectionService {
           this.retryCount++;
           if (this.retryCount === this.maxRetries) {
             this.notificationService.notification$.next({
-              texto: "PROBLEMAS DE CONEXIÓN CON EL SERVIDOR. INTENTANDO RECONECTAR...",
+              texto: "PROBLEMAS DE CONEXIÓN CON EL SERVIDOR LOCAL.",
               color: NotificacionColor.danger,
               duracion: 6,
             });
@@ -275,46 +362,91 @@ export class GraphqlConnectionService {
       }
     });
     
-    // Central server WebSocket client
-    this.wsClient2 = new SubscriptionClient(wUri2, {
-      reconnect: true,
-      lazy: true,
-    });
-    
-    // Connection event handlers
+    // Connection event handlers for local server
     this.wsClient.onConnected(() => {
       connectionStatusSub.next(true);
-      console.log("WebSocket connected");
+      console.log("Local WebSocket connected");
     });
     
     this.wsClient.onDisconnected(() => {
       if (connectionStatusSub.value != false) {
         connectionStatusSub.next(false);
       }
-      console.log("WebSocket disconnected");
+      console.log("Local WebSocket disconnected");
     });
     
     this.wsClient.onReconnected(() => {
       connectionStatusSub.next(true);
-      console.log("WebSocket reconnected");
-      this.notificationService.notification$.next({
-        texto: "¡Conexión restablecida!",
-        color: NotificacionColor.success,
-        duracion: 3,
-      });
-    });
-    
-    this.wsClient.onReconnecting(() => {
-      console.log(`WebSocket reconnecting... Attempt ${this.retryCount}`);
+      console.log("Local WebSocket reconnected");
       
-      // Show reconnection message periodically but not on every attempt
-      if (this.retryCount % 5 === 0 && this.retryCount > 0) {
+      // Only show notification if both connections are now established
+      if (cloudConnectionStatusSub.value === true) {
         this.notificationService.notification$.next({
-          texto: `RECONECTANDO AL SERVIDOR... INTENTANDO RESTABLECER CONEXIÓN`,
-          color: NotificacionColor.warn,
+          texto: "¡Conexión local restablecida!",
+          color: NotificacionColor.success,
           duracion: 3,
         });
       }
+    });
+    
+    this.wsClient.onReconnecting(() => {
+      console.log(`Local WebSocket reconnecting... Attempt ${this.retryCount}`);
+    });
+  }
+  
+  /**
+   * Set up cloud WebSocket client
+   */
+  private setupCloudWebSocketClient(wUri2: string): void {
+    // Central server WebSocket client
+    this.wsClient2 = new SubscriptionClient(wUri2, {
+      reconnect: true,
+      connectionCallback: (error) => {
+        if (error) {
+          console.error('Cloud WebSocket connection error:', error);
+          this.cloudRetryCount++;
+          if (this.cloudRetryCount === this.maxRetries) {
+            this.notificationService.notification$.next({
+              texto: "PROBLEMAS DE CONEXIÓN CON EL SERVIDOR CENTRAL.",
+              color: NotificacionColor.danger,
+              duracion: 6,
+            });
+          }
+        } else {
+          this.cloudRetryCount = 0;
+        }
+      }
+    });
+    
+    // Connection event handlers for cloud server
+    this.wsClient2.onConnected(() => {
+      cloudConnectionStatusSub.next(true);
+      console.log("Cloud WebSocket connected");
+    });
+    
+    this.wsClient2.onDisconnected(() => {
+      if (cloudConnectionStatusSub.value != false) {
+        cloudConnectionStatusSub.next(false);
+      }
+      console.log("Cloud WebSocket disconnected");
+    });
+    
+    this.wsClient2.onReconnected(() => {
+      cloudConnectionStatusSub.next(true);
+      console.log("Cloud WebSocket reconnected");
+      
+      // Only show notification if both connections are now established or if not using local
+      if (!this.isLocal || connectionStatusSub.value === true) {
+        this.notificationService.notification$.next({
+          texto: "¡Conexión central restablecida!",
+          color: NotificacionColor.success,
+          duracion: 3,
+        });
+      }
+    });
+    
+    this.wsClient2.onReconnecting(() => {
+      console.log(`Cloud WebSocket reconnecting... Attempt ${this.cloudRetryCount}`);
     });
   }
   
@@ -325,25 +457,38 @@ export class GraphqlConnectionService {
   reconnectWebSockets(): void {
     // Reset retry count when manually reconnecting
     this.retryCount = 0;
+    this.cloudRetryCount = 0;
     
+    // Update isLocal from config
+    const config = this.configService.getConfig();
+    this.isLocal = config.isLocal;
+    
+    // Close existing connections
     if (this.wsClient) {
       this.wsClient.close(false);
+      // Clear reference if local is disabled
+      if (!this.isLocal) {
+        this.wsClient = null;
+      }
     }
     
     if (this.wsClient2) {
       this.wsClient2.close(false);
     }
     
-    // Get updated configuration
-    const config = this.configService.getConfig();
-    
+    // Get updated configuration    
     if (this.isValidConfig(config)) {
-      const serverIp = config.serverIp;
-      const serverPort = config.serverPort;
       const serverCentralIp = config.serverCentralIp;
       const serverCentralPort = config.serverCentralPort;
       
-      const wUri = `ws://${serverIp}:${serverPort}/subscriptions`;
+      // Only prepare local server URI if isLocal is true
+      let wUri = null;
+      if (this.isLocal) {
+        const serverIp = config.serverIp;
+        const serverPort = config.serverPort;
+        wUri = `ws://${serverIp}:${serverPort}/subscriptions`;
+      }
+      
       const wUri2 = `ws://${serverCentralIp}:${serverCentralPort}/subscriptions`;
       
       this.setupWebSocketClients(wUri, wUri2);

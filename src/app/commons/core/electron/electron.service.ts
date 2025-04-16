@@ -7,7 +7,7 @@ import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import { environment } from '../../../../environments/environment';
 import { Observable, from } from 'rxjs';
-
+import { ConfiguracionService } from '../../../shared/services/configuracion.service';
 const electron = window.require('electron');
 const ipcRenderer = electron.ipcRenderer;
 
@@ -35,6 +35,7 @@ export class ElectronService {
   }
 
   constructor(
+    private configService: ConfiguracionService
   ) {
     if (this.isElectron) {
 
@@ -59,7 +60,7 @@ export class ElectronService {
       preview: false,
       margin: '0 0 0 0',
       copies: 1,
-      printerName: environment['printers']['ticket'],
+      printerName: this.configService?.getConfig()?.printers?.ticket,
       timeOutPerLine: 400,
       pageSize: '58mm', // page size,
       silent: true,

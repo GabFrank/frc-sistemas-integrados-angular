@@ -14,7 +14,7 @@
         fxFlex="20"
         mat-icon-button
         (click)="toogleSideBar()"
-        [disabled]="!status"
+        [disabled]="!cloudStatus && (!isLocal || !localStatus)"
         class="header-menu-toggle"
       >
         <mat-icon>menu</mat-icon>
@@ -26,8 +26,13 @@
       </span> -->
       <div style="position: relative; text-align: center">
         <span style="padding-left: 20px; display: inline-block">
-          BODEGA FRANCO {{ mainService?.sucursalActual?.nombre | uppercase }}
-          {{ isDev && isLocalhost ? "DEV" : null }}
+          <ng-container *ngIf="isLocal; else cloudTitle">
+            BODEGA FRANCO {{ mainService?.sucursalActual?.nombre | uppercase }}
+            {{ isDev && isLocalhost ? "DEV" : null }}
+          </ng-container>
+          <ng-template #cloudTitle>
+            BODEGA FRANCO CLOUD {{ isDev ? "DEV" : null }}
+          </ng-template>
         </span>
         <span
           style="
@@ -60,7 +65,7 @@
               mat-flat-button
               color="success"
               (click)="createQrCode()"
-              [disabled]="!status"
+              [disabled]="!cloudStatus && (!isLocal || !localStatus)"
             >
               QR de la sucursal
             </button>
@@ -73,7 +78,7 @@
               mat-flat-button
               color="success"
               (click)="onGetConfiguracion()"
-              [disabled]="!status"
+              [disabled]="!cloudStatus && (!isLocal || !localStatus)"
             >
               Configuración del Sistema
             </button>
@@ -85,12 +90,12 @@
       </div>
 
       <div fxFlex="10">
-        <button mat-icon-button [disabled]="!status" (click)="onSearch()">
+        <button mat-icon-button [disabled]="!cloudStatus && (!isLocal || !localStatus)" (click)="onSearch()">
           <mat-icon>search</mat-icon>
         </button>
       </div>
       <div fxFlex="50">
-        <button mat-button [matMenuTriggerFor]="menu" [disabled]="!status">
+        <button mat-button [matMenuTriggerFor]="menu" [disabled]="!cloudStatus && (!isLocal || !localStatus)">
           <mat-icon *ngIf="mainService?.usuarioActual?.persona == null" fxFlex
             >person_outline</mat-icon
           >
@@ -106,7 +111,7 @@
             mat-menu-item
             (click)="onLogout()"
             *ngIf="mainService?.usuarioActual?.persona != null"
-            [disabled]="!status"
+            [disabled]="!cloudStatus && (!isLocal || !localStatus)"
           >
             Salir
           </button>
@@ -114,7 +119,7 @@
             mat-menu-item
             (click)="onLogin()"
             *ngIf="mainService?.usuarioActual?.persona == null"
-            [disabled]="!status"
+            [disabled]="!cloudStatus && (!isLocal || !localStatus)"
           >
             Entrar
           </button>
@@ -122,34 +127,57 @@
       </div>
     </div>
     <div
-      fxFlex="10"
+      [fxFlex]="isLocal ? '15' : '10'"
       fxLayout="column"
       fxLayoutAlign="center center"
+      [class.server-warning]="serverWarning"
       style="background-color: rgb(32, 32, 32)"
     >
-      <div fxFlex="10" style="font-size: 0.5em">Servidor</div>
-      <div
-        *ngIf="status == true"
-        fxFlex="10"
-        style="font-size: 0.6em; color: #43a047"
-      >
-        Online
-      </div>
-
-      <div
-        *ngIf="status == false"
-        fxFlex="10"
-        style="font-size: 0.6em; color: #f44336"
-      >
-        Offline
-      </div>
-
-      <div
-        *ngIf="status == null"
-        fxFlex="10"
-        style="font-size: 0.6em; color: #f44336"
-      >
-        <mat-spinner diameter="25"></mat-spinner>
+      <div fxFlex fxLayout="row" fxLayoutAlign="space-between center" style="width: 100%; padding: 0 5px">
+        <div *ngIf="isLocal" fxFlex="50" fxLayout="column" fxLayoutAlign="center center">
+          <div style="font-size: 0.5em">LOCAL</div>
+          <div
+            *ngIf="localStatus == true"
+            style="font-size: 0.6em; color: #43a047"
+          >
+            Online
+          </div>
+          <div
+            *ngIf="localStatus == false"
+            [class.blink]="serverWarning && cloudStatus"
+            style="font-size: 0.6em; color: #f44336"
+          >
+            Offline
+          </div>
+          <div
+            *ngIf="localStatus == null"
+            style="font-size: 0.6em; color: #f44336"
+          >
+            <mat-spinner diameter="15"></mat-spinner>
+          </div>
+        </div>
+        <div [fxFlex]="isLocal ? '50' : '100'" fxLayout="column" fxLayoutAlign="center center">
+          <div style="font-size: 0.5em">CENTRAL</div>
+          <div
+            *ngIf="cloudStatus == true"
+            style="font-size: 0.6em; color: #43a047"
+          >
+            Online
+          </div>
+          <div
+            *ngIf="cloudStatus == false"
+            [class.blink]="serverWarning && isLocal && localStatus"
+            style="font-size: 0.6em; color: #f44336"
+          >
+            Offline
+          </div>
+          <div
+            *ngIf="cloudStatus == null"
+            style="font-size: 0.6em; color: #f44336"
+          >
+            <mat-spinner diameter="15"></mat-spinner>
+          </div>
+        </div>
       </div>
     </div>
   </mat-toolbar-row>

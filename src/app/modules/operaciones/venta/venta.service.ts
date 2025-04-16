@@ -36,6 +36,7 @@ import {
   VentaCreditoCuotaInput,
 } from "../../financiero/venta-credito/venta-credito.model";
 import { DeliveryInput } from "../delivery/graphql/delivery-input.model";
+import { ConfiguracionService } from "../../../shared/services/configuracion.service";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -61,7 +62,8 @@ export class VentaService {
     private saveCobroDetalleQuery: SaveCobroDetalleGQL,
     private deleteCobroDetalle: DeleteCobroDetalleGQL,
     private ventaItemPorId: VentaItemPorIdGQL,
-    private saveVentaDelivery: SaveVentaDeliveryGQL
+    private saveVentaDelivery: SaveVentaDeliveryGQL,
+    private configService: ConfiguracionService
   ) {}
 
   // $venta:VentaInput!, $venteItemList: [VentaItemInput], $cobro: CobroInput, $cobroDetalleList: [CobroDetalleInput]
@@ -122,9 +124,9 @@ export class VentaService {
       cobroDetalleList: cobroDetalleInputList,
       ticket,
       facturar: isFactura,
-      printerName: environment["printers"]["ticket"],
-      local: environment["local"],
-      pdvId: environment["pdvId"],
+      printerName: this.configService?.getConfig()?.printers?.ticket,
+      local: this.configService?.getConfig()?.local,
+      pdvId: this.configService?.getConfig()?.pdvId,
       ventaCreditoInput,
       ventaCreditoCuotaInputList,
     });
@@ -208,8 +210,8 @@ export class VentaService {
         .mutate(
           {
             id,
-            printerName: environment["printers"]["ticket"],
-            local: environment["local"],
+            printerName: this.configService?.getConfig()?.printers?.ticket,
+            local: this.configService?.getConfig()?.local,
           },
           {
             fetchPolicy: "no-cache",
@@ -234,8 +236,8 @@ export class VentaService {
           {
             id,
             itens,
-            printerName: environment["printers"]["ticket"],
-            local: environment["local"],
+            printerName: this.configService?.getConfig()?.printers?.ticket,
+            local: this.configService?.getConfig()?.local,
           },
           {
             fetchPolicy: "no-cache",

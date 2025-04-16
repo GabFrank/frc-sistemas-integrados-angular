@@ -13,7 +13,7 @@ import { SaveGastoGQL } from './graphql/saveGasto';
 import { SaveVueltoGastoGQL } from './graphql/saveVuelto';
 import { FilterGastosGQL } from './graphql/filterGastos';
 import { PageInfo } from '../../../app.component';
-
+import { ConfiguracionService } from '../../../shared/services/configuracion.service';
 @Injectable({
   providedIn: 'root'
 })
@@ -28,7 +28,8 @@ export class GastoService {
     private gastoPorCajaId: GastoPorCajaIdGQL,
     private reimprimirGasto: ReimprimirGastoGQL,
     private saveVuelto: SaveVueltoGastoGQL,
-    private filterGasto: FilterGastosGQL
+    private filterGasto: FilterGastosGQL,
+    private configService: ConfiguracionService
   ) { }
 
   // onGetAll(): Observable<any> {
@@ -36,7 +37,7 @@ export class GastoService {
   // }
 
   onSave(gasto: Gasto): Observable<Gasto> {
-    return this.genericService.onSave(this.saveGasto, gasto.toInput(), environment['printers']['ticket'], environment['local']);
+    return this.genericService.onSave(this.saveGasto, gasto.toInput(), this.configService?.getConfig()?.printers?.ticket, this.configService?.getConfig()?.local);
   }
 
   onGetByDate(inicio?: Date, fin?: Date): Observable<Gasto[]> {
@@ -56,7 +57,7 @@ export class GastoService {
   }
 
   onReimprimir(id): Observable<boolean> {
-    return this.genericService.onCustomQuery(this.reimprimirGasto, { id: id, printerName: environment['printers']['ticket'] });
+    return this.genericService.onCustomQuery(this.reimprimirGasto, { id: id, printerName: this.configService?.getConfig()?.printers?.ticket });
   }
 
   onSaveVuelto(data): Observable<Gasto> {

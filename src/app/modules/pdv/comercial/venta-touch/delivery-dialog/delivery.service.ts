@@ -27,7 +27,7 @@ import { CobroInput } from "../../../../operaciones/venta/cobro/cobro.model";
 import { CobroDetalleInput } from "../../../../operaciones/venta/cobro/cobro-detalle.model";
 import { ReimprimirDeliveryGQL } from "../../../../operaciones/delivery/graphql/reimprimir-delivery";
 import { DeliverysPorCajaIdAndEstadoGQL } from "../../../../operaciones/delivery/graphql/deliveryPorCajaIdAndEstado";
-
+import { ConfiguracionService } from "../../../../../shared/services/configuracion.service";
 @UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
@@ -43,7 +43,8 @@ export class DeliveryService {
     private mainService: MainService,
     private saveDeliveryEstado: SaveDeliveryEstadoGQL,
     private reimprimirDelivery: ReimprimirDeliveryGQL,
-    private deliveryPorCajaIdAndEstado: DeliverysPorCajaIdAndEstadoGQL
+    private deliveryPorCajaIdAndEstado: DeliverysPorCajaIdAndEstadoGQL,
+    private configService: ConfiguracionService
   ) {
   }
 
@@ -80,17 +81,17 @@ export class DeliveryService {
     return this.genericService.onSaveCustom(this.saveDeliveryEstado, {
       deliveryId: id,
       deliveryEstado: estado,
-      printerName: environment['printers']['ticket'],
-      local: environment['local'],
-      pdvId: environment['pdvId'],
+      printerName: this.configService?.getConfig()?.printers?.ticket,
+      local: this.configService?.getConfig()?.local,
+      pdvId: this.configService?.getConfig()?.pdvId,
     })
   }
 
   onReimprimirDelivery(id): Observable<boolean> {
     return this.genericService.onCustomQuery(this.reimprimirDelivery, {
       id: id,
-      printerName: environment['printers']['ticket'],
-      local: environment['local'],
+      printerName: this.configService?.getConfig()?.printers?.ticket,
+      local: this.configService?.getConfig()?.local,
     })
   }
 }
