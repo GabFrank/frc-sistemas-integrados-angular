@@ -58,22 +58,40 @@ export class MainService implements OnDestroy {
     this.serverIpAddres = config.serverIp;
   }
 
+  /**
+   * Check if a user is authenticated by checking token and keepLogged flag
+   * For frontend-only session management
+   */
   isAuthenticated(): Observable<boolean> {
     return new Observable((obs) => {
       let isToken = localStorage.getItem("token");
-      if (isToken != null) {
+      let keepLogged = localStorage.getItem("keepLogged");
+      
+      // Only consider authenticated if token exists and either keepLogged is true or it's a new session
+      if (isToken != null && (keepLogged === "true" || this.logged)) {
         this.getUsuario()
           .pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (res) {
+              this.logged = true;
               obs.next(true);
               this.authenticationSub.next(res);
             } else {
+              // If getUsuario failed, clear the token if not keepLogged
+              if (keepLogged !== "true") {
+                localStorage.removeItem("token");
+                localStorage.removeItem("usuarioId");
+              }
               obs.next(false);
               this.authenticationSub.next(res);
             }
           });
       } else {
+        // If not keepLogged, clear the token when checking authentication
+        if (keepLogged !== "true") {
+          localStorage.removeItem("token");
+          localStorage.removeItem("usuarioId");
+        }
         obs.next(false);
       }
     });
@@ -158,6 +176,22 @@ export class MainService implements OnDestroy {
   // async getWs(){
   //   return `ws://${await this.configFile.serverUrl}:${await this.configFile.serverPor}/subscriptions`
   // }
+
+  /**
+   * Logout the current user by clearing tokens and user data
+   * This will force a re-authentication on next app start
+   */
+  logout(): void {
+    // Clear authentication tokens
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuarioId");
+    localStorage.removeItem("keepLogged");
+    
+    // Reset user data
+    this.usuarioActual = null;
+    this.logged = false;
+    this.authenticationSub.next(false);
+  }
 
   ngOnDestroy(): void { }
 }

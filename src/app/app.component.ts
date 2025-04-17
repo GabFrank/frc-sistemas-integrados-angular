@@ -237,8 +237,9 @@ export class AppComponent implements OnInit, OnDestroy {
     // Open login dialog
     this.matDialog
       .open(LoginComponent, {
-        width: "70%",
-        disableClose: false,
+        width: "80%",
+        maxWidth: "900px",
+        disableClose: true,
       })
       .afterClosed()
       .subscribe((res) => {
@@ -286,8 +287,9 @@ export class AppComponent implements OnInit, OnDestroy {
                     // After updating config, reopen login dialog
                     setTimeout(() => {
                       this.matDialog.open(LoginComponent, {
-                        width: "70%",
-                        disableClose: false,
+                        width: "80%", 
+                        maxWidth: "800px",
+                        disableClose: true,
                       });
                     }, 1000);
                   }

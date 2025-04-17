@@ -45,14 +45,15 @@ export class LoginService {
     private configService: ConfiguracionService
   ) {}
 
-  login(nickname, password): Observable<LoginResponse> {
+  login(nickname: string, password: string, keepLogged: boolean = false): Observable<LoginResponse> {
     return new Observable((obs) => {
       // Get the server configuration from ConfiguracionService
       const config = this.configService.getConfig();
       
       let httpBody = {
         nickname: nickname,
-        password: password,
+        password: password
+        // keepLogged is managed only on frontend, not sent to backend
       };
       let httpResponse = this.http
         .post(
@@ -64,11 +65,18 @@ export class LoginService {
         .subscribe(
           (res) => {
             if (res["token"] != null) {
+              // Store token and user ID in localStorage always
               localStorage.setItem("token", res["token"]);
+              // Store the keepLogged preference locally
+              localStorage.setItem("keepLogged", keepLogged.toString());
+              
+              if (res["usuarioId"] != null) {
+                localStorage.setItem("usuarioId", res["usuarioId"]);
+              }
+              
               this.mainService.sucursalActual = res["sucursal"];
               setTimeout(() => {
                 if (res["usuarioId"] != null) {
-                  localStorage.setItem("usuarioId", res["usuarioId"]);
                   this.usuarioService
                     .onGetUsuario(res["usuarioId"])
                     .pipe(untilDestroyed(this))
@@ -81,6 +89,7 @@ export class LoginService {
                           this.mainService?.sucursalActual;
                         inicioSesion.horaInicio = new Date();
                         inicioSesion.creadoEn = new Date();
+                        
                         let deviceId = localStorage.getItem("deviceId");
                         if (deviceId == null) {
                           let uuid = generateUUID();
