@@ -15,8 +15,6 @@ import { MainService } from '../../../main.service';
 })
 export class MonedaService {
 
-  monedaList: Moneda[]
-
   currencyOptionsGuarani = {
     allowNegative: true,
     precision: 0,
@@ -52,15 +50,14 @@ export class MonedaService {
     private genericService: GenericCrudService,
     private mainService: MainService
   ) { 
-    mainService.usuarioActual != null ? this.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
-      if(res!=null){
-        this.monedaList = res;
-      }
-    }) : null;
+    // mainService.usuarioActual != null ? this.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
+    //   if(res!=null){
+    //     this.monedaList = res;
+    //   }
+    // }) : null;
   }
 
-  onGetAll(): Observable<Moneda[]>{
-    if(this.monedaList?.length > 0) return of(this.monedaList);
-    return this.genericService.onGetAll(this.getAllMonedas);
+  onGetAll(servidor: boolean = true): Observable<Moneda[]>{
+    return this.genericService.onGetAll(this.getAllMonedas, null, null, servidor);
   }
 }

@@ -1,0 +1,189 @@
+.configuracion-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 16px 0;
+  min-width: 500px;
+  max-width: 800px;
+}
+
+.tab-content {
+  padding: 24px 0;
+}
+
+.server-config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 32px;
+  
+  @media (max-width: 700px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.server-section,
+.branding-section,
+.printers-section,
+.pdv-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+  
+  h4 {
+    margin: 0 0 8px 0;
+    color: #673ab7;
+    font-weight: 500;
+  }
+  
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.features-section {
+  margin-top: 16px;
+  
+  h4 {
+    margin: 0 0 8px 0;
+    color: #673ab7;
+    font-weight: 500;
+  }
+}
+
+.seccion-titulo {
+  margin-top: 8px;
+  margin-bottom: 24px;
+  color: #3f51b5;
+  font-weight: 500;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.small-field {
+  width: 100px;
+}
+
+.sucursales-section {
+  margin-top: 16px;
+  
+  .sucursales-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  
+  .sucursales-table {
+    overflow-x: auto;
+    margin-bottom: 16px;
+    
+    table {
+      width: 100%;
+      
+      th {
+        font-weight: 500;
+        color: #3f51b5;
+      }
+      
+      .mat-column-id {
+        width: 80px;
+      }
+      
+      .mat-column-nombre {
+        width: 30%;
+      }
+      
+      .mat-column-ip {
+        width: 30%;
+      }
+      
+      .mat-column-port {
+        width: 100px;
+      }
+      
+      .mat-column-actions {
+        width: 80px;
+        text-align: center;
+      }
+      
+      .small-field {
+        width: 80px;
+      }
+    }
+  }
+}
+
+.config-warning {
+  display: flex;
+  align-items: center;
+  background-color: rgba(244, 67, 54, 0.1);
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  
+  mat-icon {
+    margin-right: 8px;
+  }
+  
+  span {
+    color: #f44336;
+    font-weight: 500;
+  }
+}
+
+// Dark mode specific styles
+mat-dialog-content {
+  background-color: #424242;
+  color: white;
+  max-height: 75vh;
+}
+
+mat-dialog-title {
+  background-color: #424242;
+  color: white;
+  padding: 16px;
+  margin: 0;
+}
+
+mat-dialog-actions {
+  background-color: #424242;
+  padding: 16px;
+  margin: 0;
+}
+
+:host ::ng-deep {
+  .mat-tab-header {
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .mat-tab-label {
+    color: white;
+    opacity: 0.7;
+    font-weight: 500;
+    
+    &.mat-tab-label-active {
+      opacity: 1;
+    }
+  }
+  
+  .mat-tab-body-content {
+    padding: 8px;
+  }
+  
+  .mat-form-field-appearance-outline .mat-form-field-outline {
+    color: rgba(255, 255, 255, 0.3);
+  }
+  
+  .mat-form-field-label {
+    color: rgba(255, 255, 255, 0.7);
+  }
+  
+  .mat-hint {
+    color: rgba(255, 255, 255, 0.5);
+  }
+} 

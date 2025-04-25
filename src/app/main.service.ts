@@ -59,6 +59,25 @@ export class MainService implements OnDestroy {
   }
 
   /**
+   * Checks if the system is running in local mode
+   * Reads from the 'configuracion-sistema' object in localStorage
+   * @returns boolean indicating if the system is in local mode
+   */
+  isLocal(): boolean {
+    try {
+      const configString = localStorage.getItem('configuracion-sistema');
+      if (configString) {
+        const config = JSON.parse(configString);
+        return config.isLocal === true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking isLocal configuration:', error);
+      return false;
+    }
+  }
+
+  /**
    * Check if a user is authenticated by checking token and keepLogged flag
    * For frontend-only session management
    */
@@ -102,7 +121,7 @@ export class MainService implements OnDestroy {
       let id = localStorage.getItem("usuarioId");
       if (id != null) {
         this.usuarioService
-          .onGetUsuario(+id)
+          .onGetUsuario(+id, !this.isLocal())
           .pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (res != null) {
@@ -130,7 +149,7 @@ export class MainService implements OnDestroy {
         resolve(false);
       }, 5000);
       
-      this.sucursalService.onGetSucursalActual()
+      this.sucursalService.onGetSucursalActual(!this.isLocal())
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (res) => {

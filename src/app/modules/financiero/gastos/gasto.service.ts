@@ -36,35 +36,35 @@ export class GastoService {
   //   return this.genericService.onGetAll(this.getAllGastos);
   // }
 
-  onSave(gasto: Gasto): Observable<Gasto> {
-    return this.genericService.onSave(this.saveGasto, gasto.toInput(), this.configService?.getConfig()?.printers?.ticket, this.configService?.getConfig()?.local);
+  onSave(gasto: Gasto, servidor = true): Observable<Gasto> {
+    return this.genericService.onSave(this.saveGasto, gasto.toInput(), this.configService?.getConfig()?.printers?.ticket, this.configService?.getConfig()?.local, servidor);
   }
 
-  onGetByDate(inicio?: Date, fin?: Date): Observable<Gasto[]> {
-    return this.genericService.onGetByFecha(this.gastosPorFecha, inicio, fin);
+  onGetByDate(inicio?: Date, fin?: Date, servidor = true): Observable<Gasto[]> {
+    return this.genericService.onGetByFecha(this.gastosPorFecha, inicio, fin, servidor);
   }
 
-  onGetById(id): Observable<Gasto> {
-    return this.genericService.onGetById(this.gastoPorId, id);
+  onGetById(id, servidor = true): Observable<Gasto> {
+    return this.genericService.onGetById(this.gastoPorId, id, null, null, servidor);
   }
 
-  onDelete(id): Observable<Gasto> {
-    return this.genericService.onDelete(this.deleteGasto, id);
+  onDelete(id, servidor = true): Observable<Gasto> {
+    return this.genericService.onDelete(this.deleteGasto, id, null, null, null, servidor);
   }
 
-  onGetByCajaId(id): Observable<Gasto[]> {
-    return this.genericService.onGetById<Gasto[]>(this.gastoPorCajaId, id);
+  onGetByCajaId(id, servidor = true): Observable<Gasto[]> {
+    return this.genericService.onGetById<Gasto[]>(this.gastoPorCajaId, id, null, null, servidor);
   }
 
-  onReimprimir(id): Observable<boolean> {
-    return this.genericService.onCustomQuery(this.reimprimirGasto, { id: id, printerName: this.configService?.getConfig()?.printers?.ticket });
+  onReimprimir(id, servidor = true): Observable<boolean> {
+    return this.genericService.onCustomQuery(this.reimprimirGasto, { id: id, printerName: this.configService?.getConfig()?.printers?.ticket }, servidor);
   }
 
-  onSaveVuelto(data): Observable<Gasto> {
-    return this.genericService.onSaveCustom(this.saveVuelto, data, false);
+  onSaveVuelto(data, servidor = true): Observable<Gasto> {
+    return this.genericService.onSaveCustom(this.saveVuelto, data, servidor);
   }
 
-  onFilterGasto(id?: number, cajaId?: number, sucId?: number, responsableId?: number, descripcion?: string, page?: number, size?: number): Observable<PageInfo<Gasto>> {
+  onFilterGasto(id?: number, cajaId?: number, sucId?: number, responsableId?: number, descripcion?: string, page?: number, size?: number, servidor = true): Observable<PageInfo<Gasto>> {
     return this.genericService.onCustomQuery(
       this.filterGasto, {
       id,
@@ -74,8 +74,7 @@ export class GastoService {
       descripcion,
       page,
       size
-    }, true
-    )
+    }, servidor)
   }
 
 }

@@ -33,31 +33,31 @@ export class PersonaService {
     private personaPorDocumento: PersonaPorDocumentoGQL
   ) {}
 
-  onGetAll(page): Observable<Persona[]>{
-    return this.genericService.onGetAll(this.getPersonas, page)
+  onGetAll(page, servidor: boolean = true): Observable<Persona[]>{
+    return this.genericService.onGetAll(this.getPersonas, page, null, servidor)
   }
 
-  onSearch(texto): Observable<Persona[]> {
-    return this.genericService.onGetByTexto(this.searchPersona, texto)
+  onSearch(texto, servidor: boolean = true): Observable<Persona[]> {
+    return this.genericService.onGetByTexto(this.searchPersona, texto, null, servidor)
   }
 
-  onGetPorDocumento(texto): Observable<Persona> {
-    return this.genericService.onCustomQuery(this.personaPorDocumento, {texto})
+  onGetPorDocumento(texto, servidor: boolean = true): Observable<Persona> {
+    return this.genericService.onCustomQuery(this.personaPorDocumento, {texto}, servidor)
   }
 
-  onSavePersona(input: PersonaInput): Observable<any> {
-    return this.genericService.onSave(this.savePersonna, input, null, null, true)
+  onSavePersona(input: PersonaInput, servidor: boolean = true): Observable<any> {
+    return this.genericService.onSave(this.savePersonna, input, null, null, servidor)
   }
 
-  onGetPersona(id): Observable<Persona> {
-    return this.genericService.onGetById(this.getPersona, id)
+  onGetPersona(id, servidor: boolean = true): Observable<Persona> {
+    return this.genericService.onGetById(this.getPersona, id, null, null, servidor)
   }
 
-  onDeletePersona(id): Observable<boolean> {
-    return this.genericService.onDelete(this.deletePersona, id)
+  onDeletePersona(id, servidor: boolean = true): Observable<boolean> {
+    return this.genericService.onDelete(this.deletePersona, id, null, null, true, servidor)
   }
 
-  onDeletePersonaSinDialogo(id): Observable<boolean> {
-    return this.genericService.onDelete(this.deletePersona, id, null, null, false)
+  onDeletePersonaSinDialogo(id, servidor: boolean = true): Observable<boolean> {
+    return this.genericService.onDelete(this.deletePersona, id, null, null, false, servidor)
   }
 }

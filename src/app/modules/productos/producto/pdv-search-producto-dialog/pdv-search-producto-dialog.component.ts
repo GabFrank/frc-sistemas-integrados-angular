@@ -63,7 +63,7 @@ export interface PdvSearchProductoResponseData {
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { environment } from "../../../../../environments/environment";
 import { Transferencia } from "../../../operaciones/transferencia/transferencia.model";
-
+import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-pdv-search-producto-dialog",
@@ -128,7 +128,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     private getProducto: ProductoForPdvGQL,
     private productoService: ProductoService,
     private _el: ElementRef,
-    private stockService: MovimientoStockService
+    private stockService: MovimientoStockService,
+    private configService: ConfiguracionService
   ) {
     if (data?.mostrarStock == true) {
       this.displayedColumns = [
@@ -138,8 +139,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         "existencia",
         // "acciones"
       ];
-      this.precios = environment["precios"];
-      this.modoPrecio = environment["modo"];
+      this.precios = this.configService.getConfig().precios.split(',');
+      this.modoPrecio = this.configService.getConfig().modo;
     }
   }
 

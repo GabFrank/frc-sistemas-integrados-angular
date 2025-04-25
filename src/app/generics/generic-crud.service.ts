@@ -63,7 +63,7 @@ export class GenericCrudService {
     setTimeout(() => (this.mainService = injector.get(MainService)));
   }
 
-  onGetAll(gql: Query, page?, size?, servidor?): Observable<any> {
+  onGetAll(gql: Query, page?, size?, servidor: boolean = true): Observable<any> {
     this.isLoading = true;
     const { requestId, signal } = this.cargandoService.openDialog(
       false,
@@ -77,7 +77,7 @@ export class GenericCrudService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
             context: {
-              clientName: servidor == true ? "servidor" : null,
+              clientName: servidor == null || servidor ? "servidor" : null,
               fetchOptions: { signal },
             },
           }
@@ -103,7 +103,7 @@ export class GenericCrudService {
   onCustomQuery(
     gql: Query,
     data,
-    servidor?,
+    servidor: boolean = true,
     errorConf?,
     silentLoad?: boolean
   ): Observable<any> {
@@ -120,7 +120,7 @@ export class GenericCrudService {
           fetchPolicy: "no-cache",
           errorPolicy: "all",
           context: {
-            clientName: servidor == true ? "servidor" : null,
+            clientName: servidor == null || servidor ? "servidor" : null,
             fetchOptions: { signal },
           },
         })
@@ -166,7 +166,7 @@ export class GenericCrudService {
     });
   }
 
-  onCustomMutation(gql: Mutation, data, servidor?): Observable<any> {
+  onCustomMutation(gql: Mutation, data, servidor: boolean = true): Observable<any> {
     this.isLoading = true;
     const { requestId, signal } = this.cargandoService.openDialog(
       false,
@@ -178,7 +178,7 @@ export class GenericCrudService {
           fetchPolicy: "no-cache",
           errorPolicy: "all",
           context: {
-            clientName: servidor == true ? "servidor" : null,
+            clientName: servidor == null || servidor ? "servidor" : null,
             fetchOptions: { signal },
           },
         })
@@ -203,7 +203,7 @@ export class GenericCrudService {
   onCustomSub(
     gql: Subscription,
     data,
-    servidor?,
+    servidor: boolean = true,
     cargando?: boolean
   ): Observable<any> {
     this.isLoading = true;
@@ -222,7 +222,7 @@ export class GenericCrudService {
           fetchPolicy: "no-cache",
           errorPolicy: "all",
           context: {
-            clientName: servidor == true ? "servidor" : null,
+            clientName: servidor == null || servidor ? "servidor" : null,
             fetchOptions: { signal },
           },
         })
@@ -251,7 +251,7 @@ export class GenericCrudService {
     id: number,
     page?,
     size?,
-    servidor?,
+    servidor: boolean = true,
     sucId?,
     error?,
     duracion?,
@@ -270,7 +270,7 @@ export class GenericCrudService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
             context: {
-              clientName: servidor == true ? "servidor" : null,
+              clientName: servidor == null || servidor ? "servidor" : null,
               fetchOptions: { signal },
             },
           }
@@ -313,7 +313,7 @@ export class GenericCrudService {
   onGetByTexto(
     gql: Query,
     texto: string,
-    servidor?,
+    servidor: boolean = true,
     duracion?
   ): Observable<any> {
     this.isLoading = true;
@@ -330,7 +330,7 @@ export class GenericCrudService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
             context: {
-              clientName: servidor == true ? "servidor" : null,
+              clientName: servidor == null || servidor ? "servidor" : null,
               fetchOptions: { signal },
             },
           }
@@ -358,7 +358,7 @@ export class GenericCrudService {
     input,
     printerName?: string,
     local?: string,
-    servidor?,
+    servidor: boolean = true,
     errorConf?: QueryError,
     usuarioId?: number
   ): Observable<T> {
@@ -382,7 +382,7 @@ export class GenericCrudService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
             context: {
-              clientName: servidor == true ? "servidor" : null,
+              clientName: servidor == null || servidor ? "servidor" : null,
               fetchOptions: { signal },
             },
           }
@@ -433,7 +433,7 @@ export class GenericCrudService {
     });
   }
 
-  onSaveCustom<T>(gql: Mutation, data, servidor?): Observable<T> {
+  onSaveCustom<T>(gql: Mutation, data, servidor: boolean = true): Observable<T> {
     this.isLoading = true;
     const { requestId, signal } = this.cargandoService.openDialog(
       false,
@@ -445,7 +445,7 @@ export class GenericCrudService {
           fetchPolicy: "no-cache",
           errorPolicy: "all",
           context: {
-            clientName: servidor == true ? "servidor" : null,
+            clientName: servidor == null || servidor ? "servidor" : null,
             fetchOptions: { signal },
           },
         })
@@ -481,7 +481,7 @@ export class GenericCrudService {
     titulo?,
     data?: any,
     showDialog?: boolean,
-    servidor?
+    servidor: boolean = true
   ): Observable<any> {
     return new Observable((obs) => {
       if (showDialog == false) {
@@ -497,7 +497,7 @@ export class GenericCrudService {
             {
               errorPolicy: "all",
               context: {
-                clientName: servidor == true ? "servidor" : null,
+                clientName: servidor == null || servidor ? "servidor" : null,
                 fetchOptions: { signal },
               },
             }
@@ -544,7 +544,7 @@ export class GenericCrudService {
                   {
                     errorPolicy: "all",
                     context: {
-                      clientName: servidor == true ? "servidor" : null,
+                      clientName: servidor == null || servidor ? "servidor" : null,
                       fetchOptions: { signal },
                     },
                   }
@@ -587,7 +587,7 @@ export class GenericCrudService {
     titulo?,
     data?: any,
     showDialog?: boolean,
-    servidor?
+    servidor: boolean = true
   ): Observable<any> {
     return new Observable((obs) => {
       if (showDialog == false) {
@@ -604,7 +604,7 @@ export class GenericCrudService {
             {
               errorPolicy: "all",
               context: {
-                clientName: servidor == true ? "servidor" : null,
+                clientName: servidor == null || servidor ? "servidor" : null,
                 fetchOptions: { signal },
               },
             }
@@ -651,7 +651,7 @@ export class GenericCrudService {
                   {
                     errorPolicy: "all",
                     context: {
-                      clientName: servidor == true ? "servidor" : null,
+                      clientName: servidor == null || servidor ? "servidor" : null,
                       fetchOptions: { signal },
                     },
                   }
@@ -691,7 +691,7 @@ export class GenericCrudService {
     gql: any,
     inicio: Date,
     fin: Date,
-    servidor?,
+    servidor: boolean = true,
     sucId?
   ): Observable<any> {
     let hoy = new Date();
@@ -728,7 +728,7 @@ export class GenericCrudService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
             context: {
-              clientName: servidor == true ? "servidor" : null,
+              clientName: servidor == null || servidor ? "servidor" : null,
               fetchOptions: { signal },
             },
           }
@@ -757,7 +757,7 @@ export class GenericCrudService {
     info?: string,
     printerName?: string,
     pdvId?: number,
-    servidor?,
+    servidor: boolean = true,
     error?: boolean
   ) {
     const { requestId, signal } = this.cargandoService.openDialog();
@@ -775,7 +775,7 @@ export class GenericCrudService {
             fetchPolicy: "no-cache",
             errorPolicy: "all",
             context: {
-              clientName: servidor == true ? "servidor" : null,
+              clientName: servidor == null || servidor ? "servidor" : null,
               fetchOptions: { signal },
             },
           }

@@ -16,7 +16,7 @@
         <!-- Navigation Menu -->
         <div class="nav-menu">
             <ng-container *ngFor="let section of navigationItems">
-                <ng-container *ngIf="isItemVisible(section)">
+                <ng-container *ngIf="section.isVisible !== false">
                     <!-- Top level menu item -->
                     <div class="menu-item"
                         [class.expanded-item]="isExpanded && hasChildren(section) && section.isExpanded"
@@ -36,7 +36,7 @@
                     <div class="submenu" *ngIf="isExpanded && hasChildren(section) && section.isExpanded">
                         <ng-container *ngFor="let item of section.items">
                             <!-- Second level menu item that might have its own submenu -->
-                            <ng-container *ngIf="hasChildren(item) && isItemVisible(item)">
+                            <ng-container *ngIf="hasChildren(item) && item.isVisible !== false">
                                 <div class="submenu-item with-children" [class.expanded-item]="item.isExpanded"
                                     (click)="toggleMenuSection(item, $event)">
                                     <div class="menu-icon">
@@ -53,7 +53,7 @@
                                 <!-- Third level menu items -->
                                 <div class="nested-submenu" *ngIf="item.isExpanded">
                                     <ng-container *ngFor="let subItem of item.items">
-                                        <div *ngIf="isItemVisible(subItem)" class="submenu-item"
+                                        <div *ngIf="subItem.isVisible !== false" class="submenu-item"
                                             (click)="onItemClick(getAction(subItem), $event)">
                                             <div class="menu-icon">
                                                 <mat-icon>{{subItem.icon}}</mat-icon>
@@ -67,7 +67,7 @@
                             </ng-container>
 
                             <!-- Second level menu item without children -->
-                            <div *ngIf="!hasChildren(item) && isItemVisible(item)" class="submenu-item"
+                            <div *ngIf="!hasChildren(item) && item.isVisible !== false" class="submenu-item"
                                 (click)="onItemClick(getAction(item), $event)">
                                 <div class="menu-icon">
                                     <mat-icon>{{item.icon}}</mat-icon>
@@ -86,13 +86,13 @@
             <div *ngIf="mainService?.usuarioActual != null" class="footer-button logout-button"
                 (click)="onLogout(); $event.stopPropagation()">
                 <mat-icon>exit_to_app</mat-icon>
-                <span *ngIf="isExpanded">Salir</span>
+                <span *ngIf="isExpanded">SALIR</span>
             </div>
 
             <div *ngIf="mainService?.usuarioActual == null" class="footer-button login-button"
                 (click)="onLogin(); $event.stopPropagation()">
                 <mat-icon>login</mat-icon>
-                <span *ngIf="isExpanded">Entrar</span>
+                <span *ngIf="isExpanded">ENTRAR</span>
             </div>
 
             <div class="footer-button restart-button" (click)="onReiniciar(); $event.stopPropagation()">

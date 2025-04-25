@@ -18,7 +18,8 @@ export class DialogosService {
     listMessages?: string[],
     action?: boolean,
     btn1Name?: string,
-    btn2Name?: string
+    btn2Name?: string,
+    servidor: boolean = true
   ): Observable<any> {
     this.dialogRef = this.dialog.open(DialogosComponent, {
       autoFocus: false,

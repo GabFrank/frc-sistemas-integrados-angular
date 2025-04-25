@@ -114,20 +114,6 @@ export class ListTransferenciaComponent implements OnInit {
       this.sucursalList = res.filter((s) => s.id != 0);
     });
 
-    setTimeout(() => {
-      this.matDialog.open(DialogoNuevasFuncionesComponent, {
-        data: {
-          id: 123,
-          componente: ListTransferenciaComponent,
-          titulo: 'Nuevas funciones en esta pantalla de transferencias',
-          mensaje: `
-          A partir de ahora tenemos paginación en la tabla, ya no será utilizado el botón cargar más. Podes seleccionar la cantidad de itens para mostrar en la lista y navegar con los controles que estan en la barra inferior de la lista.
-          `
-        },
-        width: '60%'
-      })
-    }, 1000);
-
     interval(300000).pipe(untilDestroyed(this)).subscribe(()=> {
       this.onFilter();      
     });

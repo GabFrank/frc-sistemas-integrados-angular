@@ -113,7 +113,7 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
           DeliveryEstado.EN_CAMINO,
           DeliveryEstado.PARA_ENTREGA,
         ],
-        this.cajaService?.selectedCaja?.sucursalId
+        this.cajaService?.selectedCaja?.sucursalId, false
       )
       .subscribe((res) => {
         this.dataSource.data = res;
@@ -191,7 +191,7 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
         .onDeliveryPorCajaIdAndEstado(
           this.cajaService?.selectedCaja?.id,
           this.selectedEstadosControl.value,
-          this.cajaService?.selectedCaja?.sucursalId
+          this.cajaService?.selectedCaja?.sucursalId, false
         )
         .subscribe((res) => {
           this.dataSource.data = res;
@@ -241,11 +241,9 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onDeliveryClick(row: Delivery, index) {
-    console.log(row, this.selectedDelivery);
-    
     this.calcularVueltoSub.next(null);
     if (row.venta?.id == null) {
-      this.deliveryService.onGetById(row.id).subscribe((res) => {
+      this.deliveryService.onGetById(row.id, false).subscribe((res) => {
         if (res != null) {
           let aux = this.selectedDelivery?.id;
           this.selectedDelivery = res;
@@ -295,7 +293,8 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
               this.deliveryService
                 .onSaveDeliveryEstado(
                   this.selectedDelivery?.id,
-                  DeliveryEstado.PARA_ENTREGA
+                  DeliveryEstado.PARA_ENTREGA,
+                  false
                 )
                 .subscribe((res) => {
                   if (res != null) {
@@ -317,7 +316,7 @@ export class ListDeliveryComponent implements OnInit, AfterViewInit, OnDestroy {
               break;
             case "reimprimir":
               this.deliveryService
-                .onReimprimirDelivery(this.selectedDelivery.id)
+                .onReimprimirDelivery(this.selectedDelivery.id, false)
                 .subscribe();
               break;
             default:

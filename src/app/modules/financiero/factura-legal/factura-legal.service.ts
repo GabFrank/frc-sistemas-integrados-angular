@@ -21,6 +21,8 @@ import { removeSecondDigito } from "../../../commons/core/utils/rucUtils";
 import { ResumenFacturasGQL } from "./graphql/resumenFacturas";
 import { GenerarExcelFacturasGQL } from "./graphql/generarExcelFacturas";
 import { GenerarExcelFacturasZipGQL } from "./graphql/generarExcelFacturasZip";
+import { ConfiguracionService } from "../../../shared/services/configuracion.service";
+import { TimbradoDetalle } from "../timbrado/timbrado.modal";
 
 @Injectable({
   providedIn: "root",
@@ -38,12 +40,14 @@ export class FacturaLegalService {
     private crearExcelService: CrearExcelService,
     private getResumenFacturas: ResumenFacturasGQL,
     private generarExcelFacturasZip: GenerarExcelFacturasZipGQL,
-    private generarExcelFacturas: GenerarExcelFacturasGQL
+    private generarExcelFacturas: GenerarExcelFacturasGQL,
+    private configService: ConfiguracionService
   ) {}
 
   onSaveFactura(
     input: FacturaLegalInput,
-    facturaLegalItemInputList: FacturaLegalItemInput[]
+    facturaLegalItemInputList: FacturaLegalItemInput[],
+    servidor: boolean = true
   ): Observable<any> {
     if (input?.nombre != null) input.nombre = input.nombre.toUpperCase();
     return this.genericService.onSaveConDetalle(
@@ -51,17 +55,17 @@ export class FacturaLegalService {
       input,
       facturaLegalItemInputList,
       null,
-      environment["printers"]["ticket"],
-      environment["pdvId"]
+      this.configService?.getConfig()?.printers?.ticket,
+      this.configService?.getConfig()?.pdvId, servidor
     );
   }
 
-  onImprimirFacturasPorCaja(id: number) {
+  onImprimirFacturasPorCaja(id: number, servidor: boolean = true) {
     return this.genericService
       .onCustomQuery(this.imprimirFacturasPorCaja, {
         id: id,
-        printerName: environment["printers"]["ticket"],
-      })
+        printerName: this.configService?.getConfig()?.printers?.ticket
+      }, servidor)
       .subscribe((res) => {
         if (res) {
           this.notificacionService.openGuardadoConExito();
@@ -69,13 +73,13 @@ export class FacturaLegalService {
       });
   }
 
-  onReimprimirFactura(id: number, sucId: number) {
+  onReimprimirFactura(id: number, sucId: number, servidor: boolean = true) {
     return this.genericService
       .onCustomQuery(this.imprimirFactura, {
         id,
         sucId,
-        printerName: environment["printers"]["ticket"],
-      })
+        printerName: this.configService?.getConfig()?.printers?.ticket,
+      }, servidor)
       .subscribe((res) => {
         if (res) {
           this.notificacionService.openGuardadoConExito();
@@ -93,7 +97,8 @@ export class FacturaLegalService {
     nombre?: string,
     iva5?: boolean,
     iva10?: boolean,
-    full?: boolean
+    full?: boolean,
+    servidor: boolean = true
   ) {
     return this.genericService.onCustomQuery(
       full == true ? this.allFacturasFullInfo : this.allFacturas,
@@ -107,36 +112,39 @@ export class FacturaLegalService {
         nombre,
         iva5,
         iva10,
-      }
+      },
+      servidor
     );
   }
 
-  onGetFacturaLegal(id, sucId): Observable<FacturaLegal> {
-    return this.genericService.onGetById(this.facturaLegalPorId, id, sucId);
+  onGetFacturaLegal(id, sucId, servidor: boolean = true): Observable<FacturaLegal> {
+    return this.genericService.onGetById(this.facturaLegalPorId, id, null, null, servidor, sucId);
   }
 
   onGenerarExcelFacturas(
     fechaInicio: string,
     fechaFin: string,
-    sucId?: number
+    sucId?: number,
+    servidor: boolean = true
   ): Observable<string> {
     return this.genericService.onCustomQuery(this.generarExcelFacturas, {
       fechaInicio,
       fechaFin,
       sucId,
-    });
+    }, servidor);
   }
 
   onGenerarExcelFacturasZip(
     fechaInicio: string,
     fechaFin: string,
-    sucId?: number[]
+    sucId?: number[],
+    servidor: boolean = true
   ): Observable<string> {
     return this.genericService.onCustomQuery(this.generarExcelFacturasZip, {
       fechaInicio,
       fechaFin,
       sucId,
-    });
+    }, servidor);
   }
 
   onGetResumenFacturas(
@@ -146,7 +154,8 @@ export class FacturaLegalService {
     ruc?: string,
     nombre?: string,
     iva5?: boolean,
-    iva10?: boolean
+    iva10?: boolean,
+    servidor: boolean = true
   ): Observable<ResumenFacturasDto> {
     return this.genericService.onCustomQuery(this.getResumenFacturas, {
       fechaInicio,
@@ -156,7 +165,36 @@ export class FacturaLegalService {
       nombre,
       iva5,
       iva10,
-    });
+    }, servidor);
+  }
+
+  //create a function to show warning if timbradoDetalle.timbrado.fechaFin about to expire, show it 15 days before
+  onShowWarningIfTimbradoAboutToExpire(timbradoDetalle: TimbradoDetalle) {
+    console.log('on show warning if timbrado about to expire');
+    const fechaFin = new Date(timbradoDetalle.timbrado.fechaFin);
+    const fechaActual = new Date();
+    const diferencia = fechaFin.getTime() - fechaActual.getTime();
+    const dias = Math.ceil(diferencia / (1000 * 60 * 60 * 24));
+    if (dias < 15) {
+      //add set timeout of 2 seconds
+      setTimeout(() => {
+        this.notificacionService.openWarn("El timbrado está por llegar a su fecha de fin. Favor contactar con RRHH para solicitar un nuevo timbrado.", 5);
+      }, 2000);
+    }
+  }
+
+  //create a function to show warning if timbradoDetalle.rangoHasta - timbradoDetalle.numeroActual < rangoHasta * 0.1
+  onShowWarningIfTimbradoRangoAboutToExpire(timbradoDetalle: TimbradoDetalle) {
+    console.log('on show warning if timbrado rango about to expire');
+    
+    const rangoHasta = timbradoDetalle.rangoHasta;
+    const numeroActual = timbradoDetalle.numeroActual;
+    const diferencia = rangoHasta - numeroActual;
+    if ((rangoHasta * 0.1) > diferencia) {
+      setTimeout(() => {
+        this.notificacionService.openWarn("El timbrado está por llegar a su rango máximo. Favor contactar con RRHH para solicitar un nuevo timbrado.", 5);
+      }, 2000);
+    }
   }
 }
 

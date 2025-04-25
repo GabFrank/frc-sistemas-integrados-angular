@@ -46,6 +46,16 @@ import { ListReplicationTablesComponent } from '../../../modules/configuracion/l
 export class SideComponent implements OnInit {
 
   isTest = false;
+  
+  // Menu visibility properties
+  isPdvVisible = false;
+  isAdminSectionVisible = false;
+  isInventarioSectionVisible = false;
+  isFinancieroSectionVisible = false;
+  isPersonasSectionVisible = false;
+  isProductosSectionVisible = false;
+  isOperacionesSectionVisible = false;
+  isConfiguracionSectionVisible = false;
 
   constructor(
     public tabService: TabService,
@@ -60,6 +70,93 @@ export class SideComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Initialize menu visibility
+    //log the user roles
+    console.log(this.mainService.usuarioActual?.roles);
+
+    this.updateMenuVisibility();
+    
+    // Subscribe to changes in authentication status to update menu visibility
+    this.mainService.authenticationSub.subscribe(isAuthenticated => {
+      if (isAuthenticated) {
+        this.updateMenuVisibility();
+      } else {
+        this.resetMenuVisibility();
+      }
+    });
+  }
+
+  /**
+   * Updates all menu visibility properties based on current user roles and local mode
+   */
+  updateMenuVisibility(): void {
+    // PDV section is visible only in local mode
+    this.isPdvVisible = this.mainService.isLocal();
+    
+    // Other sections are visible based on user roles
+    this.isAdminSectionVisible = this.hasAnyRole([ROLES.ADMIN, ROLES.SOPORTE]);
+    
+    this.isInventarioSectionVisible = this.hasAnyRole([
+      ROLES.VER_INVENTARIO, 
+      ROLES.CREAR_INVENTARIO, 
+      ROLES.PARTICIPAR_DEL_INVENTARIO,
+      ROLES.VER_MOVIMIENTO_DE_STOCK
+    ]);
+    
+    this.isFinancieroSectionVisible = this.hasAnyRole([
+      ROLES.ANALISIS_DE_CAJA,
+      ROLES.ANALISIS_CONTABLE,
+      ROLES.CAMBIAR_COTIZACION
+    ]);
+    
+    this.isPersonasSectionVisible = this.hasAnyRole([
+      ROLES.VER_PERSONAS,
+      ROLES.EDITAR_PERSONAS,
+      ROLES.VER_USUARIOS,
+      ROLES.EDITAR_USUARIOS,
+      ROLES.VER_FUNCIONARIOS,
+      ROLES.CREAR_FUNCIONARIOS,
+      ROLES.EDITAR_FUNCIONARIOS
+    ]);
+    
+    this.isProductosSectionVisible = this.hasAnyRole([
+      ROLES.VER_PRODUCTOS,
+      ROLES.EDITAR_PRODUCTOS,
+      ROLES.CREAR_PRECIOS,
+      ROLES.EDITAR_PRECIOS,
+      ROLES.VER_PRECIO_COSTO
+    ]);
+    
+    this.isOperacionesSectionVisible = this.hasAnyRole([
+      ROLES.VER_TRANSFERENCIA,
+      ROLES.CREAR_TRANSFERENCIA
+    ]);
+    
+    this.isConfiguracionSectionVisible = this.hasAnyRole([ROLES.ADMIN, "CONFIGURACION", ROLES.SOPORTE]);
+  }
+
+  /**
+   * Reset all menu visibility to false
+   */
+  resetMenuVisibility(): void {
+    this.isPdvVisible = false;
+    this.isAdminSectionVisible = false;
+    this.isInventarioSectionVisible = false;
+    this.isFinancieroSectionVisible = false;
+    this.isPersonasSectionVisible = false;
+    this.isProductosSectionVisible = false;
+    this.isOperacionesSectionVisible = false;
+    this.isConfiguracionSectionVisible = false;
+  }
+
+  /**
+   * Helper method to check if the user has any of the specified roles
+   * @param roleList Array of roles to check
+   * @returns true if user has any of the specified roles
+   */
+  private hasAnyRole(roleList: string[]): boolean {
+    if (!this.mainService.usuarioActual?.roles) return false;
+    return roleList.some(role => this.mainService.usuarioActual.roles.includes(role));
   }
 
   onItemClick(tab: string): void {

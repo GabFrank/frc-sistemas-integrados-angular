@@ -26,6 +26,7 @@ export class SearchListtDialogData {
   isAdicionar?: boolean;
   queryData?: any;
   paginator?: boolean;
+  isServidor?: boolean = true;
 }
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -133,7 +134,7 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
       this.queryData.size = this.pageSize;
     }
     this.genericCrudService
-      .onCustomQuery(this.data.query, this.queryData).pipe(untilDestroyed(this))
+      .onCustomQuery(this.data.query, this.queryData, this.data.isServidor).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           if(this.data?.paginator == true){

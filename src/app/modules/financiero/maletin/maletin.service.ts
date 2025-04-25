@@ -24,28 +24,28 @@ export class MaletinService {
     private countMaletin: CountMaletinGQL
   ) { }
 
-  onCount(): Observable<number> {
-    return this.genericCrud.onCustomQuery(this.countMaletin, null);
+  onCount(servidor: boolean = true): Observable<number> {
+    return this.genericCrud.onCustomQuery(this.countMaletin, null, servidor);
   }
 
-  onGetAll(page?, size?): Observable<any>{
-    return this.genericCrud.onGetAll(this.getAllMaletines, page, size)
+  onGetAll(page?, size?, servidor: boolean = true): Observable<any>{
+    return this.genericCrud.onGetAll(this.getAllMaletines, page, size, servidor)
   }
 
-  onGetPorId(id, sucursalId): Observable<any>{
-    return this.genericCrud.onCustomQuery(this.getMaletinPorId, {id, sucursalId})
+  onGetPorId(id, sucursalId, servidor: boolean = true): Observable<any>{
+    return this.genericCrud.onCustomQuery(this.getMaletinPorId, {id, sucursalId}, servidor)
   }
 
-  onGetPorDescripcion(texto): Observable<any>{
-    return this.genericCrud.onGetByTexto(this.getMaletinPorDescripcion, texto)
+  onGetPorDescripcion(texto, servidor: boolean = true): Observable<any>{
+    return this.genericCrud.onGetByTexto(this.getMaletinPorDescripcion, texto, servidor)
   }
 
-  onSave(input: MaletinInput): Observable<any>{
-    return this.genericCrud.onSave(this.saveMaletin, input)
+  onSave(input: MaletinInput, servidor: boolean = true): Observable<any>{
+    return this.genericCrud.onSave(this.saveMaletin, input, null, null, servidor)
   }
 
-  onDelete(id): Observable<any>{
-    return this.genericCrud.onDelete(this.deleteMaletin, id, 'Maletin', `Id: ${id}`)
+  onDelete(id, servidor: boolean = true): Observable<any>{
+    return this.genericCrud.onDelete(this.deleteMaletin, id, 'Maletin', `Id: ${id}`, servidor)
   }
 
 }

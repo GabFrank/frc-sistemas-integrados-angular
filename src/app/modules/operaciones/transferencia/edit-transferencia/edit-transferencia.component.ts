@@ -280,21 +280,6 @@ export class EditTransferenciaComponent implements OnInit {
 
     this.monedaControl.setValue("1 - GUARANI");
     this.monedaControl.disable();
-
-    setTimeout(() => {
-      this.matDialog.open(DialogoNuevasFuncionesComponent, {
-        data: {
-          id: 123,
-          componente: EditTransferenciaComponent,
-          titulo: "Nuevas funciones en esta pantalla de transferencias",
-          mensaje: `
-          1 - A partir de ahora tenemos paginación en la tabla, ya no será utilizado el botón cargar más. Podes seleccionar la cantidad de itens para mostrar en la lista y navegar con los controles que estan en la barra inferior de la lista.\n
-          2 - Al pasar productos pesables, el sistema no avisará sobre productos duplicados. Verificar atentamente para no pasar dos veces el mismo producto.
-          `,
-        },
-        width: "60%",
-      });
-    }, 1000);
   }
 
   @HostListener("window:keyup", ["$event"])

@@ -25,48 +25,18 @@ export class ConteoService {
     private cargandoService: CargandoDialogService
   ) { }
 
-  onSave(conteo: Conteo, cajaId, apertura: boolean): Observable<any> {
-    console.log(conteo, cajaId, apertura);
-    
+  onSave(conteo: Conteo, cajaId, apertura: boolean, servidor: boolean = true): Observable<any> {
     let conteoMonedaInputList: ConteoMonedaInput[] = []
     conteo.conteoMonedaList.forEach(c => conteoMonedaInputList.push(c.toInput()))
-    this.cargandoService.openDialog()
-    return new Observable((obs) => {
-      this.onSaveConteo.mutate(
-        {
-        conteo: conteo.toInput(),
-        conteoMonedaInputList,
-        cajaId,
-        apertura
-      }, 
-      { fetchPolicy: 'no-cache', errorPolicy: 'all' })
-      .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.cargandoService.closeDialog()
-        if (res.errors == null) {
-          obs.next(res.data['data'])
-          this.notificacionSnackBar.notification$.next({
-            texto: apertura == true ? 'Abierto con éxito!!' : 'Cerrado con éxito',
-            color: NotificacionColor.success,
-            duracion: 3
-          })
-        } else {
-          this.notificacionSnackBar.notification$.next({
-            texto: 'Ups! Algo salió mal en operacion: ' + res.errors[0].message + res,
-            color: NotificacionColor.danger,
-            duracion: 5
-          })
-          obs.next(null);
-        }
-      })
-    });
+    //refactor using genericservice on custom mutation, remember tu put patameters inside {conteo: conteo.toInput(), conteoMonedaInputList, cajaId, apertura}
+    return this.genericService.onCustomMutation(this.onSaveConteo, {conteo: conteo.toInput(), conteoMonedaInputList, cajaId, apertura}, servidor);
   }
 
-  onSaveInput(input): Observable<any> {
-    return this.genericService.onSave(this.onSaveConteo, input);
+  onSaveInput(input, servidor: boolean = true): Observable<any> {
+    return this.genericService.onSave(this.onSaveConteo, input, null, null, servidor);
   }
 
-  onDelete(id): Observable<any> {
-    return this.genericService.onDelete(this.deleteConteo, id);
+  onDelete(id, servidor: boolean = true): Observable<any> {
+    return this.genericService.onDelete(this.deleteConteo, id, null, null, null, servidor);
   }
 }

@@ -32,6 +32,7 @@ import { CajaService } from "../caja.service";
 
 export class AdicionarCajaData {
   caja?: PdvCaja;
+  isVentaTouch?: boolean;
 }
 
 export interface AdicionarCajaResponse {
@@ -115,6 +116,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
 
   isTab = false;
 
+  isVentaTouch = false;
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data2: AdicionarCajaData,
     private matDialogRef: MatDialogRef<AdicionarCajaDialogComponent>,
@@ -123,8 +126,6 @@ export class AdicionarCajaDialogComponent implements OnInit {
     private notificacionBar: NotificacionSnackbarService,
     private cargandoDialog: CargandoDialogService,
     private matDialog: MatDialog,
-    private mainService: MainService,
-    private facturaService: FacturaLegalService,
     private deliveryService: DeliveryService
   ) {
 
@@ -136,13 +137,13 @@ export class AdicionarCajaDialogComponent implements OnInit {
     this.usuarioControl.disable();
 
     if(this.data != null) this.isTab = true;
+
+    if(this.data2?.isVentaTouch != null) this.isVentaTouch = this.data2?.isVentaTouch;
     
     let auxData: PdvCaja = this.data2?.caja != null ? this.data2?.caja : (this.data?.tabData?.data != null ? this.data?.tabData?.data : null);
     if (auxData != null) {
-      console.log(auxData);
-      
       this.cajaService
-        .onGetById(auxData?.id, auxData.sucursalId)
+        .onGetById(auxData?.id, auxData.sucursalId, null, !this.isVentaTouch)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
@@ -154,7 +155,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
                 DeliveryEstado.ABIERTO,
                 DeliveryEstado.EN_CAMINO,
                 DeliveryEstado.PARA_ENTREGA,
-              ], this.selectedCaja.sucursal.id)
+              ], this.selectedCaja.sucursal.id, !this.isVentaTouch)
               .subscribe((deliveryRes: Delivery[]) => {
                 if (deliveryRes.length > 0) this.isDeliveryAbierto = true;
               });
@@ -195,7 +196,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
   cargarDatos() {
     if (this.selectedCaja?.maletin != null)
       this.maletinService
-        .onGetPorId(this.selectedCaja?.maletin?.id, this.selectedCaja.sucursal.id)
+        .onGetPorId(this.selectedCaja?.maletin?.id, this.selectedCaja.sucursal.id, !this.isVentaTouch)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
@@ -240,7 +241,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
     if (this.verificarMaletinTimeout == null) {
       this.verificarMaletinTimeout = setTimeout(() => {
         this.maletinService
-          .onGetPorDescripcion(this.descripcionMaletinControl.value)
+          .onGetPorDescripcion(this.descripcionMaletinControl.value, !this.isVentaTouch)
           .pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (res != null) {
@@ -410,12 +411,13 @@ export class AdicionarCajaDialogComponent implements OnInit {
         if (this.selectedCaja != null)
           this.cajaService.onImprimirBalance(
             this.selectedCaja?.id,
-            this.selectedCaja?.sucursalId
+            this.selectedCaja?.sucursalId,
+            !this.isVentaTouch
           );
         break;
       case "imprimir-factura":
         if (this.selectedCaja != null)
-          this.facturaService.onImprimirFacturasPorCaja(this.selectedCaja?.id);
+          // this.facturaService.onImprimirFacturasPorCaja(this.selectedCaja?.id);
         break;
       case "salir":
         this.matDialogRef.close();
@@ -431,7 +433,7 @@ export class AdicionarCajaDialogComponent implements OnInit {
       pdvCaja.maletin = this.selectedMaletin;
       pdvCaja.activo = true;
       this.cajaService
-        .onSave(pdvCaja.toInput())
+        .onSave(pdvCaja.toInput(), !this.isVentaTouch)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {

@@ -67,6 +67,7 @@ import { VentaService } from "../../../../operaciones/venta/venta.service";
 import { CobroDetalle } from "../../../../operaciones/venta/cobro/cobro-detalle.model";
 import { Cliente } from "../../../../personas/clientes/cliente.model";
 import { BotonComponent } from "../../../../../shared/components/boton/boton.component";
+import { MonedaService } from "../../../../financiero/moneda/moneda.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -148,7 +149,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   isLoaded = 0;
 
   constructor(
-    private getMonedas: MonedasGetAllGQL,
+    private monedasService: MonedaService,
     public mainService: MainService,
     private matDialog: MatDialog,
     @Inject(MAT_DIALOG_DATA) public data: PagoData,
@@ -347,7 +348,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
 
   getFormaPagos() {
     this.formaPagoService
-      .onGetAllFormaPago()
+      .onGetAllFormaPago(false)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.formaPagoList = res;
@@ -357,14 +358,12 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   setPrecios() {
-    this.getMonedas
-      .fetch()
+    this.monedasService.onGetAll(false)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        if (!res.errors) {
-          this.monedas = res.data.data;
-          this.cambioRs = this.monedas.find(
-            (m) => m.denominacion == "REAL"
+        this.monedas = res;
+        this.cambioRs = this.monedas.find(
+          (m) => m.denominacion == "REAL"
           )?.cambio;
           this.cambioDs = this.monedas.find(
             (m) => m.denominacion == "DOLAR"
@@ -375,7 +374,6 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
           this.formGroup.controls.moneda.setValue(
             this.monedas.find((m) => m.denominacion == "GUARANI")?.id
           );
-        }
       });
   }
 
@@ -566,7 +564,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       if (this.data?.delivery != null && item?.id == null) {
         item.cobro = this.data?.delivery?.venta?.cobro;
         this.ventaService
-          .onSaveCobroDetalle(item.toInput())
+          .onSaveCobroDetalle(item.toInput(), false)
           .subscribe((cbRes) => {
             if (cbRes != null) {
               item.id = cbRes.id;
@@ -611,7 +609,7 @@ export class PagoTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     if (item.id != null) {
       //quiere decir que esta guardado en la base de datos
       this.ventaService
-        .onDeleteCobroDetalle(item.id, item.sucursalId)
+        .onDeleteCobroDetalle(item.id, item.sucursalId, false)
         .subscribe((res) => {
           if (res) {
             // borrado con exito

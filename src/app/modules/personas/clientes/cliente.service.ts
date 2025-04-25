@@ -35,38 +35,38 @@ export class ClienteService {
   ) {
   }
 
-  onSaveCliente(input: ClienteInput): Observable<Cliente> {
+  onSaveCliente(input: ClienteInput, servidor: boolean = true): Observable<Cliente> {
     let errorConf: QueryError = {
       networkError: {
         show: false,
         propagate: true
       }
     }
-    return this.genericService.onSave(this.saveCliente, input, null, null, true, errorConf);
+    return this.genericService.onSave(this.saveCliente, input, null, null, servidor, errorConf);
   }
 
-  onGetClientePorPersonaDocumento(texto: string): Observable<Cliente> {
-    return this.genericService.onGetByTexto(this.getClientePorPersonaDocumento, texto)
+  onGetClientePorPersonaDocumento(texto: string, servidor: boolean = true): Observable<Cliente> {
+    return this.genericService.onGetByTexto(this.getClientePorPersonaDocumento, texto, servidor);
   }
 
-  onGetById(id: number): Observable<Cliente> {
-    return this.genericService.onGetById(this.getClienteById, id);
+  onGetById(id: number, servidor: boolean = true): Observable<Cliente> {
+    return this.genericService.onGetById(this.getClienteById, id, null, null, servidor);
   }
 
-  onGetByIdFromServer(id: number): Observable<Cliente> {
-    return this.genericService.onGetById(this.getClientePorPersonaIdFromServer, id);
+  onGetByIdFromServer(id: number, servidor: boolean = true): Observable<Cliente> {
+    return this.genericService.onGetById(this.getClientePorPersonaIdFromServer, id, null, null, servidor);
   }
 
-  onGetByPersonaId(id: number): Observable<Cliente> {
-    return this.genericService.onGetById(this.getClientePorPersonaId, id);
+  onGetByPersonaId(id: number, servidor: boolean = true): Observable<Cliente> {
+    return this.genericService.onGetById(this.getClientePorPersonaId, id, null, null, servidor);
   }
 
-  onSearch(texto: string): Observable<Cliente[]> {
-    return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto);
+  onSearch(texto: string, servidor: boolean = true): Observable<Cliente[]> {
+    return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto, servidor);
   }
 
-  onSearchConFiltros(texto: string, tipo: TipoCliente, page, size): Observable<PageInfo<Cliente>> {
-    return this.genericService.onCustomQuery(this.searchWithFilters, { texto, tipo, page, size }, false);
+  onSearchConFiltros(texto: string, tipo: TipoCliente, page, size, servidor: boolean = true): Observable<PageInfo<Cliente>> {
+    return this.genericService.onCustomQuery(this.searchWithFilters, { texto, tipo, page, size }, servidor);
   }
 
   onGetByPersonaIdFromServer(id: number): Observable<Cliente> {
@@ -77,14 +77,14 @@ export class ClienteService {
     return this.genericService.onGetByTexto(this.searchByPersonaNombre, texto, true, 10000);
   }
 
-  onConsultaRuc(ruc:string): Observable<RucResponse>{
+  onConsultaRuc(ruc:string, servidor: boolean = true): Observable<RucResponse>{
     let errorConf: QueryError = {
       networkError: {
         show: false,
         propagate: true
       }
     }
-    return this.genericService.onCustomQuery(this.consultaRuc, {ruc}, errorConf)
+    return this.genericService.onCustomQuery(this.consultaRuc, {ruc}, servidor, errorConf)
   }
 
 }

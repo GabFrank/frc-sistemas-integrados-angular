@@ -7,6 +7,7 @@ import { FormaPagoGetAllGQL } from "./graphql/allFormaPago";
 import { FormaPagoByIdGQL } from "./graphql/formaPagoById";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { MainService } from "../../../main.service";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -19,27 +20,21 @@ export class FormaPagoService {
   constructor(
     private getFormaPago: FormaPagoByIdGQL,
     private getAllFormaPago: FormaPagoGetAllGQL,
-    private genericService: GenericCrudService
+    private genericService: GenericCrudService,
+    private mainService: MainService
   ) {
-    this.onGetAllFormaPago().pipe(untilDestroyed(this)).subscribe(res => {
+    this.onGetAllFormaPago(!this.mainService.isLocal()).pipe(untilDestroyed(this)).subscribe(res => {
       this.formaPagoList = res;
       this.formaPagoSub.next(res);
     })
   }
 
-  onGetFormaPago(id) {
-    return this.getFormaPago.fetch(
-      {
-        id,
-      },
-      {
-        fetchPolicy: "no-cache",
-        errorPolicy: "all",
-      }
-    );
+  onGetFormaPago(id, servidor: boolean = true) {
+    //use genericService
+    return this.genericService.onGetById(this.getFormaPago, id, null, null, servidor);
   }
 
-  onGetAllFormaPago(): Observable<any> {
-    return this.genericService.onGetAll(this.getAllFormaPago);
+  onGetAllFormaPago(servidor: boolean = true): Observable<any> {
+    return this.genericService.onGetAll(this.getAllFormaPago, null, null, servidor);
   }
 }

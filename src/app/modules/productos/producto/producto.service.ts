@@ -95,8 +95,8 @@ export class ProductoService {
     return this.genericService.onCustomQuery(this.productoPorSucursalStock, {proId, sucId});
   }
 
-  onGetProductoPorCodigo(texto): Observable<Producto> {
-    return this.genericService.onCustomQuery(this.productoPorCodigo, { texto });
+  onGetProductoPorCodigo(texto, servidor: boolean = true): Observable<Producto> {
+    return this.genericService.onCustomQuery(this.productoPorCodigo, { texto }, servidor);
   }
 
   onSearch(texto, offset?, activo?): Observable<Producto[]> {

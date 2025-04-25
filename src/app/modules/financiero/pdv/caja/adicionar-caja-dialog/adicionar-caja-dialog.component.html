@@ -240,6 +240,7 @@
           <mat-step>
             <ng-template matStepLabel>Conteo Inicial</ng-template>
             <app-adicionar-conteo-dialog
+              [isVentaTouch]="isVentaTouch"
               [apertura]="true"
               nombreBoton="Abrir Caja"
               [cajaId]="selectedCaja?.id"
@@ -253,6 +254,7 @@
           <mat-step>
             <ng-template matStepLabel>Conteo Final</ng-template>
             <app-adicionar-conteo-dialog
+              [isVentaTouch]="isVentaTouch"
               [apertura]="false"
               nombreBoton="Cerrar Caja"
               [cajaId]="selectedCaja?.id"

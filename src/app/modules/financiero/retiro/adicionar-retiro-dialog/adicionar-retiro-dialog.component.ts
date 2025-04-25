@@ -22,6 +22,7 @@ import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { CajaService } from '../../pdv/caja/caja.service';
+import { Moneda } from '../../moneda/moneda.model';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -45,7 +46,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
   dolarControl = new FormControl(0, Validators.min(1))
   currencyMask = new CurrencyMask
   funcionarioList: Funcionario[];
-
+  monedaList: Moneda[];
 
   retiroDetalleList: RetiroDetalle[]
   funcionarioSub: Subscription;
@@ -76,17 +77,30 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
     private cajaService: CajaService
   ) {
     if (data?.caja != null) {
+      //find all monedas using monedaService.onGetAll() and assign to monedaList
+      this.monedaService.onGetAll(false).pipe(untilDestroyed(this)).subscribe(res => {
+        if (res != null) {
+          this.monedaList = res;
+        }
+      });
       this.selectedCajaSalida = data.caja;
-      retiroService.onGePorCajaSalidaId(this.selectedCajaSalida.id).pipe(untilDestroyed(this)).subscribe((res) => {
+      retiroService.onGePorCajaSalidaId(this.selectedCajaSalida.id, false).pipe(untilDestroyed(this)).subscribe((res) => {
         if (res != null) {
           this.dataSource.data = res;
         }
       });
-      this.cajaService.onCajaBalancePorId(this.selectedCajaSalida.id).subscribe(res => {
+      this.cajaService.onCajaBalancePorId(this.selectedCajaSalida.id, false).subscribe(res => {
         if (res != null) {
           this.selectedCajaSalida.balance = res;
         }
       })
+    } else {
+      //show a dialog with the message "No se encontró caja" and when dialog is closed, close the current dialog
+      this.dialogService.confirm('No se encontró caja', null, null, ['No se encontró caja']).subscribe(res => {
+        if (res) {
+          this.dialogRef.close(null);
+        }
+      });
     }
   }
   ngAfterViewInit(): void {
@@ -117,7 +131,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
     if (this.responsableControl.valid) {
       if (isNaN(this.responsableControl.value) == false) {
         this.funcionarioService
-          .onGetFuncionarioPorPersona(this.responsableControl.value)
+          .onGetFuncionarioPorPersona(this.responsableControl.value, false)
           .subscribe((res) => {
             if (res != null) {
               this.onResponsableSelect(res);
@@ -133,7 +147,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
 
   onResponsableSearchByTexto(){
     this.funcionarioService
-    .onFuncionarioSearch(this.responsableControl.value)
+    .onFuncionarioSearch(this.responsableControl.value, false)
     .pipe(untilDestroyed(this))
     .subscribe((response) => {
       this.funcionarioList = response;
@@ -153,7 +167,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
       this.responsableControl.setValue(
         this.selectedResponsable?.id +
         " - " +
-        this.selectedResponsable?.persona?.nombre
+        this.selectedResponsable?.persona?.nombre, { emitEvent: false }
       );
     }
     if(e != null && this.responsableInput != null){
@@ -175,22 +189,22 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
           retiro.observacion = this.observacionControl.value;
           retiro.responsable = this.selectedResponsable;
           let guaraniDetalle = new RetiroDetalle()
-          guaraniDetalle.moneda = this.monedaService.monedaList.find(m => m.denominacion == 'GUARANI');
+          guaraniDetalle.moneda = this.monedaList.find(m => m.denominacion == 'GUARANI');
           guaraniDetalle.cambio = guaraniDetalle?.moneda?.cambio
           guaraniDetalle.cantidad = +this.guaraniControl.value;
           let realDetalle = new RetiroDetalle()
-          realDetalle.moneda = this.monedaService.monedaList.find(m => m.denominacion == 'REAL');
+          realDetalle.moneda = this.monedaList.find(m => m.denominacion == 'REAL');
           realDetalle.cambio = realDetalle?.moneda?.cambio
           realDetalle.cantidad = +this.realControl.value;
           let dolarDetalle = new RetiroDetalle()
-          dolarDetalle.moneda = this.monedaService.monedaList.find(m => m.denominacion == 'DOLAR');
+          dolarDetalle.moneda = this.monedaList.find(m => m.denominacion == 'DOLAR');
           dolarDetalle.cambio = dolarDetalle?.moneda?.cambio
           dolarDetalle.cantidad = +this.dolarControl.value;
           let retiroDetalleList: RetiroDetalle[] = [
             guaraniDetalle, realDetalle, dolarDetalle
           ]
           retiro.retiroDetalleList = retiroDetalleList;
-          this.retiroService.onSave(retiro).pipe(untilDestroyed(this)).subscribe(retiroResponse => {
+          this.retiroService.onSave(retiro, false).pipe(untilDestroyed(this)).subscribe(retiroResponse => {
             this.cargandoDialog.closeDialog()
             if (retiroResponse != null) {
               this.dialogRef.close(true)
@@ -260,7 +274,7 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
   }
 
   onReimprimir(retiro: Retiro) {
-    this.retiroService.onReimprimirRetiro(retiro.id).subscribe(res => {
+    this.retiroService.onReimprimirRetiro(retiro.id, null, false).subscribe(res => {
       if (res == true) {
         this.notificacionService.openSucess('Reimpresión con éxito')
       } else {

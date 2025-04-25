@@ -1,5 +1,5 @@
 import { Injectable, Input } from "@angular/core";
-import { Observable } from "rxjs";
+import { Observable, pipe } from "rxjs";
 import { MainService } from "../../../main.service";
 import {
   NotificacionColor,
@@ -36,20 +36,20 @@ export class RetiroService {
     private configService: ConfiguracionService
   ) { }
 
-  onGePorCajaSalidaId(id: number): Observable<Retiro[]> {
-    return this.crudService.onGetById(this.retiroPorCajaId, id);
+  onGePorCajaSalidaId(id: number, servidor = true): Observable<Retiro[]> {
+    return this.crudService.onGetById(this.retiroPorCajaId, id, null, null, servidor);
   }
 
-  onReimprimirRetiro(id: number, sucId?: number): Observable<boolean> {
+  onReimprimirRetiro(id: number, sucId?: number, servidor = true): Observable<boolean> {
     if (sucId == null) {
       return this.crudService.onCustomQuery(this.reimprimirRetiro, {
         id, printerName: this.configService?.getConfig()?.printers?.ticket,
         local: this.configService?.getConfig()?.local
-      })
+      }, servidor)
     }
   }
 
-  onFilterRetiro(id?: number, cajaId?: number, sucId?: number, responsableId?: number, cajeroId?: number, page?: number, size?: number): Observable<PageInfo<Retiro>> {
+  onFilterRetiro(id?: number, cajaId?: number, sucId?: number, responsableId?: number, cajeroId?: number, page?: number, size?: number, servidor = true): Observable<PageInfo<Retiro>> {
     return this.crudService.onCustomQuery(
       this.filterRetiro, {
       id,
@@ -59,48 +59,21 @@ export class RetiroService {
       cajeroId,
       page,
       size
-    }, true
-    )
+    }, servidor)
   }
 
-  onSave(retiro: Retiro): Observable<any> {
+  onSave(retiro: Retiro, servidor = true): Observable<any> {
     this.cargandoDialog.openDialog(true, 'Guardando...')
     retiro.retiroGs = retiro.retiroDetalleList.find(r => r.moneda.denominacion == 'GUARANI')?.cantidad;
     retiro.retiroRs = retiro.retiroDetalleList.find(r => r.moneda.denominacion == 'REAL')?.cantidad;
     retiro.retiroDs = retiro.retiroDetalleList.find(r => r.moneda.denominacion == 'DOLAR')?.cantidad;
     retiro.usuario = this.mainService.usuarioActual;
-    return new Observable((obs) => {
-      return this.saveRetiro
-        .mutate(
-          {
-            entity: retiro.toInput(),
-            retiroDetalleInputList: retiro.toDetalleInput(),
-            printerName: this.configService?.getConfig()?.printers?.ticket,
-            local: this.configService?.getConfig()?.local
-          },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        ).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.cargandoDialog.closeDialog()
-          if (res.errors == null) {
-            this.notificacionBar.notification$.next({
-              texto: "Guardado con éxito!!",
-              color: NotificacionColor.success,
-              duracion: 2,
-            });
-            obs.next(res.data.data);
-          } else {
-            this.notificacionBar.notification$.next({
-              texto: "Ups!! Algo salio mal: " + res.errors[0].message,
-              color: NotificacionColor.danger,
-              duracion: 5,
-            });
-            obs.next(null);
-          }
-        });
-    });
+    //refactur using custom mutation,
+    return this.crudService.onCustomMutation(this.saveRetiro, {
+      entity: retiro.toInput(),
+      retiroDetalleInputList: retiro.toDetalleInput(),
+      printerName: this.configService?.getConfig()?.printers?.ticket,
+      local: this.configService?.getConfig()?.local
+    }, servidor);
   }
 }

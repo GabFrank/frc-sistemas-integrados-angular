@@ -64,7 +64,7 @@ export class VentaService {
     private ventaItemPorId: VentaItemPorIdGQL,
     private saveVentaDelivery: SaveVentaDeliveryGQL,
     private configService: ConfiguracionService
-  ) {}
+  ) { }
 
   // $venta:VentaInput!, $venteItemList: [VentaItemInput], $cobro: CobroInput, $cobroDetalleList: [CobroDetalleInput]
 
@@ -73,23 +73,16 @@ export class VentaService {
     deliveryInput: DeliveryInput,
     cobroDetalleList?: CobroDetalleInput[],
     ventaCreditoInput?: VentaCreditoInput,
-    ventaCreditoCuotaInputList?: VentaCreditoCuotaInput[]
+    ventaCreditoCuotaInputList?: VentaCreditoCuotaInput[],
+    servidor = true
   ) {
-    console.log(
-      ventaInput,
-      deliveryInput,
-      cobroDetalleList,
-      ventaCreditoInput,
-      ventaCreditoCuotaInputList
-    );
-
     return this.genericService.onCustomMutation(this.saveVentaDelivery, {
       ventaInput,
       deliveryInput,
       cobroDetalleList,
       ventaCreditoInput,
       ventaCreditoCuotaInputList,
-    });
+    }, servidor);
   }
 
   onSaveVenta(
@@ -98,7 +91,8 @@ export class VentaService {
     ticket,
     ventaCreditoInput?,
     ventaCreditoCuotaInputList?,
-    isFactura?: boolean
+    isFactura?: boolean,
+    servidor = true
   ): Observable<Venta> {
     let ventaItemInputList: VentaItemInput[] = [];
     let cobroDetalleInputList: CobroDetalleInput[] = [];
@@ -129,70 +123,27 @@ export class VentaService {
       pdvId: this.configService?.getConfig()?.pdvId,
       ventaCreditoInput,
       ventaCreditoCuotaInputList,
-    });
-    // return new Observable((obs) => {
-    //   this.saveVenta
-    //     .mutate(
-    //       {
-    //         ventaInput: ventaInput,
-    //         ventaItemList: ventaItemInputList,
-    //         cobro: cobroInput,
-    //         cobroDetalleList: cobroDetalleInputList,
-    //         ticket,
-    //         facturar: isFactura,
-    //         printerName: environment["printers"]["ticket"],
-    //         local: environment["local"],
-    //         pdvId: environment["pdvId"],
-    //         ventaCreditoInput,
-    //         ventaCreditoCuotaInputList,
-    //       },
-    //       {
-    //         errorPolicy: "all",
-    //         fetchPolicy: "no-cache",
-    //       }
-    //     )
-    //     .pipe(untilDestroyed(this))
-    //     .subscribe((res) => {
-    //       if (res.errors != null) {
-    //         this.notificacionBar.openWarn(res.errors[0].message);
-    //       } else {
-    //         obs.next(res.data["data"]);
-    //       }
-    //     });
-    // });
+    }, servidor);
   }
 
-  onSaveVenta2(ventaInput?: VentaInput): Observable<Venta> {
-    return new Observable((obs) => {
-      this.saveVenta
-        .mutate(
-          {
-            ventaInput: ventaInput,
-          },
-          {
-            errorPolicy: "all",
-            fetchPolicy: "no-cache",
-          }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          obs.next(res.data["data"]);
-        });
-    });
+  onSaveVenta2(ventaInput?: VentaInput, servidor = true): Observable<Venta> {
+    return this.genericService.onCustomMutation(this.saveVenta, {
+      ventaInput: ventaInput,
+    }, servidor);
   }
 
-  onDeleteVenta(id): Observable<boolean> {
+  onDeleteVenta(id, servidor = true): Observable<boolean> {
     return this.genericService.onDelete(
       this.deleteVenta,
       id,
       null,
       null,
       false,
-      false
+      servidor
     );
   }
 
-  onDeleteVentaItem(id, sucId): Observable<boolean> {
+  onDeleteVentaItem(id, sucId, servidor = true): Observable<boolean> {
     return this.genericService.onDeleteWithSucId(
       this.deleteVentaItem,
       id,
@@ -204,59 +155,33 @@ export class VentaService {
     );
   }
 
-  onReimprimirVenta(id): Observable<boolean> {
-    return new Observable((obs) => {
-      this.reimprimirVenta
-        .mutate(
-          {
-            id,
-            printerName: this.configService?.getConfig()?.printers?.ticket,
-            local: this.configService?.getConfig()?.local,
-          },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data.data);
-          } else {
-            obs.next(null);
-          }
-        });
-    });
+  onReimprimirVenta(id, servidor = true): Observable<boolean> {
+    return this.genericService.onCustomMutation(
+      this.reimprimirVenta,
+      {
+        id,
+        printerName: this.configService?.getConfig()?.printers?.ticket,
+        local: this.configService?.getConfig()?.local,
+      },
+      servidor
+    );
   }
 
-  onImprimirPagare(id, itens): Observable<boolean> {
-    return new Observable((obs) => {
-      this.imprimirPagare
-        .mutate(
-          {
-            id,
-            itens,
-            printerName: this.configService?.getConfig()?.printers?.ticket,
-            local: this.configService?.getConfig()?.local,
-          },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data.data);
-          } else {
-            obs.next(null);
-          }
-        });
-    });
+  onImprimirPagare(id, itens, servidor = true): Observable<boolean> {
+    return this.genericService.onCustomMutation(
+      this.imprimirPagare,
+      {
+        id,
+        itens,
+        printerName: this.configService?.getConfig()?.printers?.ticket,
+        local: this.configService?.getConfig()?.local,
+      },
+      servidor
+    );
   }
 
-  onCancelarVenta(id, sucId): Observable<boolean> {
-      return this.genericService.onCustomMutation(this.cancelarVenta, {id, sucId}, true);
+  onCancelarVenta(id, sucId, servidor = true): Observable<boolean> {
+    return this.genericService.onCustomMutation(this.cancelarVenta, { id, sucId }, servidor);
   }
 
   onSearch(
@@ -269,7 +194,8 @@ export class VentaService {
     formaPago?,
     estado?,
     isDelivery?,
-    monedaId?
+    monedaId?,
+    servidor = true
   ): Observable<PageInfo<Venta>> {
     return this.genericService.onCustomQuery(this.ventasPorCajaId, {
       idVenta,
@@ -282,46 +208,15 @@ export class VentaService {
       estado,
       isDelivery,
       monedaId,
-    });
-    // if (page == null) page = 0;
-    // if (size == null) size = 20;
-    // if (asc == null) asc = true;
-    // return new Observable((obs) => {
-    //   this.ventasPorCajaId
-    //     .fetch(
-    //       {
-    //         id,
-    //         page,
-    //         size,
-    //         asc,
-    //         sucId,
-    //         formaPago,
-    //         estado,
-    //         isDelivery
-    //       },
-    //       {
-    //         fetchPolicy: "no-cache",
-    //         errorPolicy: "all",
-    //       }
-    //     ).pipe(untilDestroyed(this))
-    //     .subscribe((res) => {
-    //       this.genericService.isLoading = false;
-    //       if (res.errors == null) {
-    //         obs.next(res.data.data);
-    //       } else {
-    //         obs.next(null);
-    //       }
-    //     });
-    // });
+    }, servidor);
   }
 
-  onGetPorId(id, sucId?, silentLoad?): Observable<Venta> {
+  onGetPorId(id, sucId?, silentLoad?, servidor = true): Observable<Venta> {
     return this.genericService.onGetById(
       this.ventaPorId,
       id,
       null,
-      null,
-      false,
+      null, servidor,
       sucId,
       null,
       null,
@@ -329,67 +224,54 @@ export class VentaService {
     );
   }
 
-  onGetVentasPorPeriodo(inicio: string, fin: string, sucId?): Observable<any> {
-    return new Observable((obs) => {
-      this.ventaPorPeriodo
-        .fetch(
-          { inicio, fin, sucId },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data.data);
-          } else {
-            obs.next(null);
-            this.notificacionBar.notification$.next({
-              texto: "Ocurrio algún problema: ",
-              color: NotificacionColor.warn,
-              duracion: 2,
-            });
-          }
-        });
-    });
-  }
-
-  onCountVenta(): Observable<number> {
-    return this.genericService.onCustomQuery(this.countVenta, null);
-  }
-
-  onSaveVentaItem(ventaItemInput: VentaItemInput): Observable<any> {
-    return this.genericService.onSave(this.saveVentaItemQuery, ventaItemInput);
-  }
-
-  onSaveCobroDetalle(
-    cobroDetalleInput: CobroDetalleInput
-  ): Observable<CobroDetalle> {
-    return this.genericService.onSave(
-      this.saveCobroDetalleQuery,
-      cobroDetalleInput
+  onGetVentasPorPeriodo(inicio: string, fin: string, sucId?, servidor = true): Observable<any> {
+    return this.genericService.onCustomQuery(
+      this.ventaPorPeriodo,
+      { inicio, fin, sucId },
+      servidor
     );
   }
 
-  onDeleteCobroDetalle(id, sucId): Observable<boolean> {
+  onCountVenta(servidor = true): Observable<number> {
+    return this.genericService.onCustomQuery(this.countVenta, null, servidor);
+  }
+
+  onSaveVentaItem(ventaItemInput: VentaItemInput, servidor = true): Observable<any> {
+    return this.genericService.onSave(this.saveVentaItemQuery, ventaItemInput, null, null, servidor);
+  }
+
+  onSaveCobroDetalle(
+    cobroDetalleInput: CobroDetalleInput,
+    servidor = true
+  ): Observable<CobroDetalle> {
+    return this.genericService.onSave(
+      this.saveCobroDetalleQuery,
+      cobroDetalleInput,
+      null,
+      null,
+      servidor
+    );
+  }
+
+  onDeleteCobroDetalle(id, sucId, servidor = true): Observable<boolean> {
     return this.genericService.onDeleteWithSucId(
       this.deleteCobroDetalle,
       id,
       sucId,
       null,
       null,
-      false
+      false,
+      servidor
     );
   }
 
-  onGetVentaItemPorId(id, sucId): Observable<VentaItem> {
+  onGetVentaItemPorId(id, sucId, servidor = true): Observable<VentaItem> {
     return this.genericService.onGetById(
       this.ventaItemPorId,
       id,
       null,
       null,
-      null,
+      servidor,
       sucId
     );
   }

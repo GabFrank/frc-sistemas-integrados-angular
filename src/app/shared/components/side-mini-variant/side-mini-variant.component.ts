@@ -1,4 +1,4 @@
-import { Component, EventEmitter, HostListener, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, OnInit, Output, OnDestroy } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { ElectronService } from '../../../commons/core/electron/electron.service';
 import { Tab } from "../../../layouts/tab/tab.model";
@@ -37,12 +37,16 @@ import { ListSolicitudPagoComponent } from "../../../modules/operaciones/solicit
 import { ThermalPrinterComponent } from '../../../modules/configuracion/thermal-printer/thermal-printer.component';
 import { ListReplicationComponent } from '../../../modules/configuracion/logical-replication/list-replication/list-replication.component';
 import { ListReplicationTablesComponent } from '../../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
+import { Subscription } from 'rxjs';
 
 // Define interfaces for the navigation items structure
 interface BaseNavigationItem {
   name: string;
   icon: string;
-  visibilityCondition?: () => boolean;
+  isVisible?: boolean; // Property to store visibility state
+  visibilityRoles?: string[]; // The roles that can see this item
+  requiresLocalMode?: boolean; // Whether this item requires local mode
+  requiresServerMode?: boolean; // Whether this item requires server mode
 }
 
 interface ActionNavigationItem extends BaseNavigationItem {
@@ -64,25 +68,40 @@ type NavigationItem = ActionNavigationItem | ParentNavigationItem;
   templateUrl: './side-mini-variant.component.html',
   styleUrls: ['./side-mini-variant.component.scss']
 })
-export class SideMiniVariantComponent implements OnInit {
+export class SideMiniVariantComponent implements OnInit, OnDestroy {
   @Input() isExpanded = false;
   @Output() toggleSideNav = new EventEmitter<boolean>();
+  
+  private authSubscription: Subscription;
 
+  //An ADMIN puede ver todos los items  
   navigationItems: NavigationItem[] = [
     {
       name: 'PDV',
       icon: 'point_of_sale',
       isExpanded: false,
+      requiresLocalMode: true,
       items: [
-        { name: 'Punto de Venta', icon: 'shopping_cart', action: 'pdv-venta-touch' },
-        { name: 'Últimas cajas', icon: 'history', action: 'pdv-venta-ultimas-cajas' }
-      ],
-      visibilityCondition: () => !this.mainService?.isServidor && this.mainService?.usuarioActual != null
+        { 
+          name: 'Punto de Venta', 
+          icon: 'shopping_cart', 
+          action: 'pdv-venta-touch', 
+          visibilityRoles: [ROLES.VENTA_TOUCH]
+        },
+        { 
+          name: 'Últimas cajas', 
+          icon: 'history', 
+          action: 'pdv-venta-ultimas-cajas',
+          visibilityRoles: [ROLES.VENTA_TOUCH]
+        }
+      ]
     },
     {
       name: 'Operaciones',
       icon: 'business_center',
       isExpanded: false,
+      requiresServerMode: false,
+      visibilityRoles: [ROLES.VER_TRANSFERENCIA, ROLES.CREAR_TRANSFERENCIA, ROLES.VER_INVENTARIO, ROLES.CREAR_INVENTARIO, ROLES.PARTICIPAR_DEL_INVENTARIO, ROLES.VER_MOVIMIENTO_DE_STOCK],
       items: [
         {
           name: 'Compras',
@@ -97,9 +116,24 @@ export class SideMiniVariantComponent implements OnInit {
           icon: 'inventory',
           isExpanded: false,
           items: [
-            { name: 'Transferencias', icon: 'swap_horiz', action: 'list-transferencias' },
-            { name: 'Inventarios', icon: 'storage', action: 'list-inventario' },
-            { name: 'Movimientos', icon: 'swap_vert', action: 'list-movimiento' }
+            { 
+              name: 'Transferencias', 
+              icon: 'swap_horiz', 
+              action: 'list-transferencias',
+              visibilityRoles: [ROLES.VER_TRANSFERENCIA]
+            },
+            { 
+              name: 'Inventarios', 
+              icon: 'storage', 
+              action: 'list-inventario',
+              visibilityRoles: [ROLES.VER_INVENTARIO, ROLES.CREAR_INVENTARIO, ROLES.PARTICIPAR_DEL_INVENTARIO]
+            },
+            { 
+              name: 'Movimientos', 
+              icon: 'swap_vert', 
+              action: 'list-movimiento',
+              visibilityRoles: [ROLES.VER_MOVIMIENTO_DE_STOCK, ROLES.VER_INVENTARIO]
+            }
           ]
         },
         {
@@ -107,80 +141,165 @@ export class SideMiniVariantComponent implements OnInit {
           icon: 'sell',
           isExpanded: false,
           items: [
-            { name: 'Cajas', icon: 'point_of_sale', action: 'list-caja' },
+            { 
+              name: 'Cajas', 
+              icon: 'point_of_sale', 
+              action: 'list-caja',
+              visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
+            },
             { name: 'Delivery', icon: 'delivery_dining', action: 'delivery-dashboard' }
           ]
         }
-      ],
-      visibilityCondition: () => this.mainService?.isServidor
+      ]
     },
     {
       name: 'Financiero',
       icon: 'account_balance',
       isExpanded: false,
+      requiresServerMode: false,
+      visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION],
       items: [
-        { name: 'Cotización', icon: 'monetization_on', action: 'list-cotizacion' },
-        { name: 'Pagos', icon: 'payment', action: 'list-pagos' },
-        { name: 'Gastos', icon: 'money_off', action: 'list-gastos' },
-        { name: 'Retiros', icon: 'savings', action: 'list-retiros' },
-        { name: 'Facturas', icon: 'receipt', action: 'list-facturas' },
-        { name: 'Maletines', icon: 'work', action: 'list-maletin' },
+        { 
+          name: 'Cotización', 
+          icon: 'monetization_on', 
+          action: 'list-cotizacion',
+          visibilityRoles: [ROLES.CAMBIAR_COTIZACION]
+        },
+        { 
+          name: 'Pagos', 
+          icon: 'payment', 
+          action: 'list-pagos',
+          visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
+        },
+        { 
+          name: 'Gastos', 
+          icon: 'money_off', 
+          action: 'list-gastos',
+          visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
+        },
+        { 
+          name: 'Retiros', 
+          icon: 'savings', 
+          action: 'list-retiros',
+          visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
+        },
+        { 
+          name: 'Facturas', 
+          icon: 'receipt', 
+          action: 'list-facturas',
+          visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
+        },
+        { 
+          name: 'Maletines', 
+          icon: 'work', 
+          action: 'list-maletin',
+          visibilityRoles: [ROLES.ADMIN]
+        },
         { 
           name: 'Lucro por producto', 
           icon: 'trending_up', 
           action: 'lucro-por-producto',
-          visibilityCondition: () => this.mainService.usuarioActual?.roles.includes('ADMIN')
+          visibilityRoles: [ROLES.ADMIN]
         }
-      ],
-      visibilityCondition: () => this.mainService?.isServidor
+      ]
     },
     {
       name: 'Productos',
       icon: 'inventory_2',
       isExpanded: false,
+      requiresServerMode: false,
+      visibilityRoles: [ROLES.VER_PRODUCTOS, ROLES.EDITAR_PRODUCTOS, ROLES.CREAR_PRECIOS, ROLES.EDITAR_PRECIOS, ROLES.VER_PRECIO_COSTO],
       items: [
-        { name: 'Productos', icon: 'category', action: 'list-producto' }
-      ],
-      visibilityCondition: () => this.mainService?.isServidor
+        { 
+          name: 'Productos', 
+          icon: 'category', 
+          action: 'list-producto',
+          visibilityRoles: [ROLES.VER_PRODUCTOS, ROLES.ADMIN]
+        }
+      ]
     },
     {
       name: 'Bancario',
       icon: 'account_balance_wallet',
       isExpanded: false,
       items: [],
-      visibilityCondition: () => this.mainService?.isServidor
+      requiresServerMode: false,
+      visibilityRoles: [ROLES.ADMIN]
     },
     {
       name: 'R.R.H.H.',
       icon: 'people',
       isExpanded: false,
+      requiresServerMode: false,
+      visibilityRoles: [ROLES.VER_PERSONAS, ROLES.EDITAR_PERSONAS, ROLES.VER_USUARIOS, ROLES.EDITAR_USUARIOS, ROLES.VER_FUNCIONARIOS, ROLES.CREAR_FUNCIONARIOS, ROLES.EDITAR_FUNCIONARIOS],
       items: [
-        { name: 'Clientes', icon: 'person', action: 'clientes-dashboard' },
-        { name: 'Usuarios', icon: 'manage_accounts', action: 'list-usuario' },
-        { name: 'Funcionarios', icon: 'badge', action: 'funcionario-dashboard' },
-        { name: 'Roles', icon: 'admin_panel_settings', action: 'list-roles' }
-      ],
-      visibilityCondition: () => this.mainService?.isServidor
+        { 
+          name: 'Clientes', 
+          icon: 'person', 
+          action: 'clientes-dashboard',
+          visibilityRoles: [ROLES.VER_PERSONAS]
+        },
+        { 
+          name: 'Usuarios', 
+          icon: 'manage_accounts', 
+          action: 'list-usuario',
+          visibilityRoles: [ROLES.VER_USUARIOS]
+        },
+        { 
+          name: 'Funcionarios', 
+          icon: 'badge', 
+          action: 'funcionario-dashboard',
+          visibilityRoles: [ROLES.VER_FUNCIONARIOS]
+        },
+        { 
+          name: 'Roles', 
+          icon: 'admin_panel_settings', 
+          action: 'list-roles',
+          visibilityRoles: [ROLES.SOPORTE]
+        }
+      ]
     },
     {
       name: 'Empresarial',
       icon: 'business',
       isExpanded: false,
+      requiresServerMode: false,
+      visibilityRoles: [ROLES.ADMIN],
       items: [
-        { name: 'Sucursales', icon: 'store', action: 'list-sucursal' }
-      ],
-      visibilityCondition: () => this.mainService?.isServidor
+        { 
+          name: 'Sucursales', 
+          icon: 'store', 
+          action: 'list-sucursal',
+          visibilityRoles: [ROLES.ADMIN]
+        }
+      ]
     },
     {
       name: 'Configuración',
       icon: 'settings',
       isExpanded: false,
+      requiresServerMode: false,
+      visibilityRoles: [ROLES.ADMIN, "CONFIGURACION", ROLES.SOPORTE],
       items: [
-        { name: 'Impresoras Térmicas', icon: 'print', action: 'thermal-printer' },
-        { name: 'Replicación Lógica', icon: 'sync', action: 'logical-replication' },
-        { name: 'Tablas de Replicación', icon: 'table_chart', action: 'replication-tables' }
-      ],
-      visibilityCondition: () => this.mainService?.isServidor
+        { 
+          name: 'Impresoras Térmicas', 
+          icon: 'print', 
+          action: 'thermal-printer',
+          visibilityRoles: [ROLES.ADMIN, "CONFIGURACION"]
+        },
+        { 
+          name: 'Replicación Lógica', 
+          icon: 'sync', 
+          action: 'logical-replication',
+          visibilityRoles: [ROLES.ADMIN]
+        },
+        { 
+          name: 'Tablas de Replicación', 
+          icon: 'table_chart', 
+          action: 'replication-tables',
+          visibilityRoles: [ROLES.ADMIN]
+        }
+      ]
     }
   ];
 
@@ -195,6 +314,98 @@ export class SideMiniVariantComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    // Update menu visibility on component init
+    this.updateMenuVisibility();
+    
+    // Subscribe to authentication changes to update menu visibility
+    this.authSubscription = this.mainService.authenticationSub.subscribe(isAuthenticated => {
+      if (isAuthenticated) {
+        this.updateMenuVisibility();
+      } else {
+        // Reset visibility when logged out
+        this.resetMenuVisibility();
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    // Clean up subscriptions
+    if (this.authSubscription) {
+      this.authSubscription.unsubscribe();
+    }
+  }
+
+  /**
+   * Updates visibility for all menu items based on user roles and environment
+   */
+  updateMenuVisibility(): void {
+    const isLocal = this.mainService.isLocal();
+    const isServer = this.mainService?.isServidor;
+    const userRoles = this.mainService.usuarioActual?.roles || [];
+    
+    // First level items
+    for (const item of this.navigationItems) {
+      // Check if item requires specific mode
+      if (item.requiresLocalMode && !isLocal) {
+        item.isVisible = false;
+        continue;
+      }
+      
+      if (item.requiresServerMode && !isServer) {
+        item.isVisible = false;
+        continue;
+      }
+      
+      // Check roles for visibility
+      item.isVisible = this.checkItemVisibility(item, userRoles);
+      
+      // Check child items if this is a parent
+      if ('items' in item && item.items) {
+        for (const childItem of item.items) {
+          childItem.isVisible = this.checkItemVisibility(childItem, userRoles);
+          
+          // For nested children (3rd level)
+          if ('items' in childItem && childItem.items) {
+            for (const grandChild of childItem.items) {
+              grandChild.isVisible = this.checkItemVisibility(grandChild, userRoles);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Checks if a menu item should be visible based on user roles
+   */
+  private checkItemVisibility(item: BaseNavigationItem, userRoles: string[]): boolean {
+    // If no roles specified, it's visible
+    if (!item.visibilityRoles || item.visibilityRoles.length === 0) {
+      return true;
+    }
+    
+    // Check if user has any of the required roles, if user is ADMIN, it can see all items
+    if (userRoles.includes(ROLES.ADMIN)) {
+      return true;
+    }
+    return userRoles.some(role => item.visibilityRoles.includes(role));
+  }
+
+  /**
+   * Resets visibility for all menu items to false
+   */
+  resetMenuVisibility(): void {
+    // Reset visibility of all items
+    const resetItemVisibility = (items: any[]) => {
+      for (const item of items) {
+        item.isVisible = false;
+        if (item.items) {
+          resetItemVisibility(item.items);
+        }
+      }
+    };
+    
+    resetItemVisibility(this.navigationItems);
   }
 
   // Click handler for the entire side nav that will expand it
@@ -370,7 +581,7 @@ export class SideMiniVariantComponent implements OnInit {
 
   // Helper method to open a tab if the user is authorized
   private openTabIfAuthorized(role: string, component: any, title: string): void {
-    if (this.mainService.usuarioActual?.roles.includes(role)) {
+    if (this.mainService.usuarioActual?.roles.includes(role) || this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
       this.tabService.addTab(new Tab(component, title, null, null));
     } else {
       this.notificacionService.openWarn('No tenés acceso a esta opción.');
@@ -406,9 +617,9 @@ export class SideMiniVariantComponent implements OnInit {
     this.electronService.relaunch();
   }
 
-  // Check if an item is visible
+  // Check if an item is visible using isVisible property
   isItemVisible(item: any): boolean {
-    return !item.visibilityCondition || item.visibilityCondition();
+    return item.isVisible !== false; // If not explicitly set to false, show it
   }
 
   // Helper function to check if item has children

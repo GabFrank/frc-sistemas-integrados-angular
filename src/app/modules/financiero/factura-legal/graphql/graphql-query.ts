@@ -206,7 +206,7 @@ export const facturaLegalQuery = gql`
     }
   }
 `;
-
+// this returns TimbradoDetalle
 export const saveFacturaLegal = gql`
   mutation saveFacturaLegal(
     $entity: FacturaLegalInput!
@@ -219,7 +219,17 @@ export const saveFacturaLegal = gql`
       detalleList: $detalleList
       printerName: $printerName
       pdvId: $pdvId
-    )
+    ) {
+        id
+        timbrado {
+          numero
+          fechaInicio
+          fechaFin
+        }
+        rangoDesde
+        rangoHasta
+        numeroActual
+      }
   }
 `;
 

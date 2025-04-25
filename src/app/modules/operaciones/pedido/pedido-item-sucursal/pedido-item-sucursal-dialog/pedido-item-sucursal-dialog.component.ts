@@ -354,7 +354,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
   }
 
   seleccionarSucursal() {
-    this.sucursalService.onSearchSucursal().subscribe(sucursal => {
+    this.sucursalService.openSearchDialog().subscribe(sucursal => {
       console.log(sucursal);
       
       if (sucursal) {

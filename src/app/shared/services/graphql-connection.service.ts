@@ -337,7 +337,7 @@ export class GraphqlConnectionService {
   private setupLocalWebSocketClient(wUri: string): void {
     // Only proceed if isLocal is true
     if (!this.isLocal || !wUri) {
-      console.log("Local server connection disabled. Not connecting to local server.");
+      // console.log("Local server connection disabled. Not connecting to local server.");
       connectionStatusSub.next(null);
       return;
     }
@@ -347,7 +347,7 @@ export class GraphqlConnectionService {
       reconnect: true,
       connectionCallback: (error) => {
         if (error) {
-          console.error('WebSocket connection error:', error);
+          // console.error('WebSocket connection error:', error);
           this.retryCount++;
           if (this.retryCount === this.maxRetries) {
             this.notificationService.notification$.next({
@@ -365,19 +365,19 @@ export class GraphqlConnectionService {
     // Connection event handlers for local server
     this.wsClient.onConnected(() => {
       connectionStatusSub.next(true);
-      console.log("Local WebSocket connected");
+      // console.log("Local WebSocket connected");
     });
     
     this.wsClient.onDisconnected(() => {
       if (connectionStatusSub.value != false) {
         connectionStatusSub.next(false);
       }
-      console.log("Local WebSocket disconnected");
+      // console.log("Local WebSocket disconnected");
     });
     
     this.wsClient.onReconnected(() => {
       connectionStatusSub.next(true);
-      console.log("Local WebSocket reconnected");
+      // console.log("Local WebSocket reconnected");
       
       // Only show notification if both connections are now established
       if (cloudConnectionStatusSub.value === true) {
@@ -390,7 +390,7 @@ export class GraphqlConnectionService {
     });
     
     this.wsClient.onReconnecting(() => {
-      console.log(`Local WebSocket reconnecting... Attempt ${this.retryCount}`);
+      // console.log(`Local WebSocket reconnecting... Attempt ${this.retryCount}`);
     });
   }
   
@@ -403,7 +403,7 @@ export class GraphqlConnectionService {
       reconnect: true,
       connectionCallback: (error) => {
         if (error) {
-          console.error('Cloud WebSocket connection error:', error);
+          // console.error('Cloud WebSocket connection error:', error);
           this.cloudRetryCount++;
           if (this.cloudRetryCount === this.maxRetries) {
             this.notificationService.notification$.next({
@@ -421,19 +421,19 @@ export class GraphqlConnectionService {
     // Connection event handlers for cloud server
     this.wsClient2.onConnected(() => {
       cloudConnectionStatusSub.next(true);
-      console.log("Cloud WebSocket connected");
+      // console.log("Cloud WebSocket connected");
     });
     
     this.wsClient2.onDisconnected(() => {
       if (cloudConnectionStatusSub.value != false) {
         cloudConnectionStatusSub.next(false);
       }
-      console.log("Cloud WebSocket disconnected");
+      // console.log("Cloud WebSocket disconnected");
     });
     
     this.wsClient2.onReconnected(() => {
       cloudConnectionStatusSub.next(true);
-      console.log("Cloud WebSocket reconnected");
+      // console.log("Cloud WebSocket reconnected");
       
       // Only show notification if both connections are now established or if not using local
       if (!this.isLocal || connectionStatusSub.value === true) {
@@ -446,7 +446,7 @@ export class GraphqlConnectionService {
     });
     
     this.wsClient2.onReconnecting(() => {
-      console.log(`Cloud WebSocket reconnecting... Attempt ${this.cloudRetryCount}`);
+      // console.log(`Cloud WebSocket reconnecting... Attempt ${this.cloudRetryCount}`);
     });
   }
   

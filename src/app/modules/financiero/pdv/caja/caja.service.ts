@@ -25,6 +25,7 @@ import { BalancePorCajaIdAndSucursalIdGQL } from "./graphql/balancePorCajaIdAndS
 import { CajaSimplePorIdGQL } from "./graphql/cajaSimplePorId";
 import { VerificarCajaGQL } from "./graphql/verificarCaja";
 import { CajaAbiertoPorSucursalGQL } from "./graphql/cajaAbiertoPorSucursal";
+import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -48,19 +49,20 @@ export class CajaService {
     private cajasWithFilters: CajasWithFiltersGQL,
     private balancePorCajaIdAndSucursalId: BalancePorCajaIdAndSucursalIdGQL,
     private verificarCaja: VerificarCajaGQL,
-    private cajaAbiertoPorSucursal: CajaAbiertoPorSucursalGQL
-  ) {}
+    private cajaAbiertoPorSucursal: CajaAbiertoPorSucursalGQL,
+    private configService: ConfiguracionService
+  ) { }
 
   // onGetAll(): Observable<any> {
   //   return this.genericService.onGetAll(this.getAllCajas);
   // }
 
-  onCajaBalancePorId(id: number): Observable<CajaBalance> {
-    return this.genericService.onGetById(this.balancePorCajaId, id);
+  onCajaBalancePorId(id: number, servidor: boolean = true): Observable<CajaBalance> {
+    return this.genericService.onGetById(this.balancePorCajaId, id, null, null, servidor);
   }
 
-  onCajaBalancePorIdAndSucursalId(id: number, sucId: number): Observable<CajaBalance> {
-    return this.genericService.onCustomQuery(this.balancePorCajaIdAndSucursalId, {id, sucId}, null, null, true);
+  onCajaBalancePorIdAndSucursalId(id: number, sucId: number, servidor: boolean = true): Observable<CajaBalance> {
+    return this.genericService.onCustomQuery(this.balancePorCajaIdAndSucursalId, { id, sucId }, servidor, null, true);
   }
 
   onGetCajasWithFilters(
@@ -73,8 +75,9 @@ export class CajaService {
     sucId: number,
     verificado: boolean,
     page: number,
-    size: number
-  ){
+    size: number,
+    servidor: boolean = true
+  ) {
     return this.genericService.onCustomQuery(this.cajasWithFilters, {
       cajaId,
       estado,
@@ -86,10 +89,10 @@ export class CajaService {
       verificado,
       page,
       size
-    });
+    }, servidor);
   }
 
-  onGetByDate(inicio?: Date, fin?: Date, sucId?): Observable<PdvCaja[]> {
+  onGetByDate(inicio?: Date, fin?: Date, sucId?, servidor: boolean = true): Observable<PdvCaja[]> {
     let hoy = new Date();
     if (inicio == null) {
       inicio = new Date();
@@ -103,7 +106,7 @@ export class CajaService {
       this.cajasPorFecha,
       inicio,
       fin,
-      null,
+      servidor,
       sucId
     );
   }
@@ -111,7 +114,8 @@ export class CajaService {
   onGetBalanceByDate(
     inicio?: Date,
     fin?: Date,
-    sucId?
+    sucId?,
+    servidor: boolean = true
   ): Observable<CajaBalance> {
     let hoy = new Date();
     if (inicio == null) {
@@ -126,74 +130,76 @@ export class CajaService {
       this.balancePorFecha,
       inicio,
       fin,
-      null,
+      servidor,
       sucId
     );
   }
 
-  onSave(input: PdvCajaInput): Observable<any> {
-    return this.genericService.onSave(this.onSaveCaja, input);
+  onSave(input: PdvCajaInput, servidor: boolean = true): Observable<any> {
+    return this.genericService.onSave(this.onSaveCaja, input, null, null, servidor);
   }
 
-  onGetById(id, sucId?, silentLoad?): Observable<any> {
+  onGetById(id, sucId?, silentLoad?, servidor: boolean = true): Observable<any> {
     return this.genericService.onGetById(
       this.cajaPorId,
       id,
       null,
       null,
-      null,
+      servidor,
       sucId,
       null
     );
   }
 
-  onGetByIdSimp(id, sucId?, silentLoad?): Observable<any> {
+  onGetByIdSimp(id, sucId?, silentLoad?, servidor: boolean = true): Observable<any> {
     return this.genericService.onGetById(
       this.cajaSimplePorId,
       id,
       null,
       null,
-      null,
+      servidor,
       sucId,
       null
     );
   }
 
-  onGetByUsuarioIdAndAbierto(id, sucId?): Observable<any> {
+  onGetByUsuarioIdAndAbierto(id, sucId?, servidor: boolean = true): Observable<any> {
     return this.genericService.onGetById(
       this.cajaPorUsuarioIdAndAbierto,
       id,
       null,
-      null,
-      null,
+      null, servidor,
       sucId
     );
   }
 
-  onDelete(id, showDialog?: boolean): Observable<any> {
-    return this.genericService.onDelete(this.deleteCaja, id, showDialog);
+  onDelete(id, showDialog?: boolean, servidor: boolean = true): Observable<any> {
+    return this.genericService.onDelete(this.deleteCaja, id, showDialog, null, null, servidor);
   }
 
-  onImprimirBalance(id, sucId?) {
+  onImprimirBalance(id, sucId?, servidor: boolean = true) {
     return this.imprimirBalance
       .fetch(
         {
           id,
-          printerName: environment["printers"]["ticket"],
-          cajaName: environment["local"],
+          printerName: this.configService.getConfig().printers["ticket"],
+          cajaName: this.configService.getConfig().local,
           sucId,
         },
         {
           fetchPolicy: "no-cache",
           errorPolicy: "all",
+          context: {
+            clientName: servidor == null || servidor ? "servidor" : null,
+          },
         }
       )
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {});
+      .subscribe((res) => { });
   }
 
-  onVerificarCaja(cajaId, sucursalId, usuarioId, verificado){
-    return this.genericService.onCustomQuery(this.verificarCaja, {cajaId, sucursalId, usuarioId, verificado})
+  onVerificarCaja(cajaId, sucursalId, usuarioId, verificado, servidor: boolean = true) {
+    return this.genericService.onCustomQuery(this.verificarCaja, { cajaId, sucursalId, usuarioId, verificado }, servidor)
   }
 
   /**
@@ -201,11 +207,11 @@ export class CajaService {
    * @param sucursalId ID de la sucursal
    * @returns Observable con un array de cajas abiertas con sus balances
    */
-  onGetCajasAbiertasPorSucursal(sucursalId: number): Observable<PdvCaja[]> {
+  onGetCajasAbiertasPorSucursal(sucursalId: number, servidor: boolean = true): Observable<PdvCaja[]> {
     return this.genericService.onCustomQuery(
-      this.cajaAbiertoPorSucursal, 
+      this.cajaAbiertoPorSucursal,
       { sucursalId },
-      null,
+      servidor,
       null,
       true
     );

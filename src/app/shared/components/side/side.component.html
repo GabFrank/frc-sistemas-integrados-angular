@@ -30,9 +30,8 @@
 
   <mat-divider></mat-divider>
 
-  <mat-accordion
-    *ngIf="!mainService?.isServidor && mainService?.usuarioActual != null"
-  >
+  <!-- PDV Section - Only visible in local mode -->
+  <mat-accordion *ngIf="isPdvVisible">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> PDV </mat-panel-title>
@@ -46,8 +45,9 @@
     </mat-expansion-panel>
   </mat-accordion>
 
-  <mat-accordion>
-    <mat-expansion-panel *ngIf="mainService?.isServidor">
+  <!-- Operations Section -->
+  <mat-accordion *ngIf="isOperacionesSectionVisible">
+    <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> Operaciones </mat-panel-title>
       </mat-expansion-panel-header>
@@ -104,7 +104,8 @@
     </mat-expansion-panel>
   </mat-accordion>
 
-  <mat-accordion *ngIf="mainService?.isServidor">
+  <!-- Financial Section -->
+  <mat-accordion *ngIf="isFinancieroSectionVisible">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> Financiero </mat-panel-title>
@@ -120,7 +121,8 @@
     </mat-expansion-panel>
   </mat-accordion>
 
-  <mat-accordion *ngIf="mainService?.isServidor">
+  <!-- Products Section -->
+  <mat-accordion *ngIf="isProductosSectionVisible">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> Productos </mat-panel-title>
@@ -129,7 +131,8 @@
     </mat-expansion-panel>
   </mat-accordion>
 
-  <mat-accordion *ngIf="mainService?.isServidor">
+  <!-- Banking Section - Hidden for now as it was empty -->
+  <mat-accordion *ngIf="isAdminSectionVisible">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> Bancario </mat-panel-title>
@@ -137,7 +140,8 @@
     </mat-expansion-panel>
   </mat-accordion>
 
-  <mat-accordion *ngIf="mainService?.isServidor">
+  <!-- Human Resources Section -->
+  <mat-accordion *ngIf="isPersonasSectionVisible">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> R.R.H.H. </mat-panel-title>
@@ -151,7 +155,8 @@
     </mat-expansion-panel>
   </mat-accordion>
 
-  <mat-accordion *ngIf="mainService?.isServidor">
+  <!-- Business Section -->
+  <mat-accordion *ngIf="isAdminSectionVisible">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> Empresarial </mat-panel-title>
@@ -160,7 +165,8 @@
     </mat-expansion-panel>
   </mat-accordion>
 
-  <mat-accordion *ngIf="mainService?.isServidor">
+  <!-- General Section -->
+  <mat-accordion *ngIf="isAdminSectionVisible">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> General </mat-panel-title>
@@ -170,7 +176,8 @@
     </mat-expansion-panel>
   </mat-accordion>
 
-  <mat-accordion *ngIf="mainService?.isServidor">
+  <!-- Configuration Section -->
+  <mat-accordion *ngIf="isConfiguracionSectionVisible">
     <mat-expansion-panel>
       <mat-expansion-panel-header>
         <mat-panel-title> Configuración </mat-panel-title>
@@ -193,14 +200,14 @@
   <div style="padding: 10px; height: 60px;">
     <app-boton
       *ngIf="mainService?.usuarioActual != null"
-      nombre="Salir"
+      nombre="SALIR"
       (clickEvent)="onLogout()"
       style="height: 100% !important;"
     ></app-boton>
     <app-boton
       color="accent"
       *ngIf="mainService?.usuarioActual == null"
-      nombre="Entrar"
+      nombre="ENTRAR"
       (clickEvent)="onLogin()"
       style="height: 100% !important;"
     ></app-boton>

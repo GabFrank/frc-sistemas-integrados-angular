@@ -3,7 +3,7 @@
   (adicionar)="onAdd()"
   (filtrar)="onFilter()"
   (resetFiltro)="onResetFiltro()"
-  [isAdicionar]="mainService?.sucursalActual?.id == 0 ? true : false"
+  [isAdicionar]="mainService?.usuarioActual?.roles.includes('ADMIN') || mainService?.usuarioActual?.roles.includes('CREAR_TRANSFERENCIA') ? true : false"
 >
   <div filtros fxLayout="column" style="width: 100%; height: 100%">
     <div fxLayout="row wrap" fxLayoutGap="10px">

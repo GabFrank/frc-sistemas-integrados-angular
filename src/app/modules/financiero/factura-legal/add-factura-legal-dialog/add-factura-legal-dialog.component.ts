@@ -42,11 +42,13 @@ import { PersonaSearchGQL } from "../../../personas/persona/graphql/personaSearc
 import { UsuarioService } from "../../../personas/usuarios/usuario.service";
 import { RucService } from "../../../../shared/services/ruc.service";
 import { BotonComponent } from "../../../../shared/components/boton/boton.component";
+import { TimbradoDetalle } from "../../timbrado/timbrado.modal";
 
 export interface FacturaLegalData {
   venta?: Venta;
   ventaItemList: VentaItem[];
   descuento: number;
+  isServidor: boolean;
 }
 
 @UntilDestroy()
@@ -88,6 +90,8 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
 
   isNuevoCliente = false;
 
+  isServidor = false;
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: FacturaLegalData,
     private matDialogRef: MatDialogRef<AddFacturaLegalDialogComponent>,
@@ -127,6 +131,8 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
   }
 
   cargarDatos() {
+    this.isServidor = this.data.isServidor ? this.data.isServidor : false;
+
     if (this.data.venta != null) {
       this.totalFinalControl.setValue(this.data?.venta?.totalGs);
     }
@@ -169,7 +175,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
         this.tributaControl.setValue(true);
         this.cargandoService.openDialog();
         this.clienteService
-          .onGetClientePorPersonaDocumento(this.rucControl.value)
+          .onGetClientePorPersonaDocumento(this.rucControl.value, this.isServidor)
           .pipe(untilDestroyed(this))
           .subscribe((res) => {
             this.cargandoService.closeDialog();
@@ -177,12 +183,12 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
               this.setCliente(res);
             } else {
               this.clienteService
-                .onSearch(this.rucControl.value)
+                .onSearch(this.rucControl.value, this.isServidor)
                 .pipe(untilDestroyed(this))
                 .subscribe((res2) => {
                   if (res2?.length == 0) {
                     this.personaService
-                      .onSearch(this.rucControl.value)
+                      .onSearch(this.rucControl.value, this.isServidor)
                       .pipe(untilDestroyed(this))
                       .subscribe((personaRes) => {
                         if (personaRes?.length == 0) {
@@ -218,6 +224,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
                               },
                             ],
                             inicialData: personaRes,
+                            isServidor: this.isServidor,
                           };
                           // data.
                           this.matDialog
@@ -251,6 +258,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
                         },
                       ],
                       inicialData: res2,
+                      isServidor: this.isServidor,
                     };
                     // data.
                     this.matDialog
@@ -455,7 +463,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
             this.selectedCliente.documento = this.rucControl.value;
             this.selectedCliente.verificadoSet = false;
             this.clienteService
-              .onSaveCliente(this.selectedCliente.toInput())
+              .onSaveCliente(this.selectedCliente.toInput(), this.isServidor)
               .subscribe({
                 next: (saveRes) => {
                   console.log("guardado sin error");
@@ -488,6 +496,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
         { id: "documento", nombre: "Documento/Ruc", width: "20%" },
       ],
       search: true,
+      isServidor: this.isServidor,
     };
     this.dialog
       .open(SearchListDialogComponent, {
@@ -545,10 +554,12 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
       facturaItemInputList.push(f.toInput());
     });
     this.facturaService
-      .onSaveFactura(factura.toInput(), facturaItemInputList)
+      .onSaveFactura(factura.toInput(), facturaItemInputList, this.isServidor)
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res) {
+      .subscribe((res: TimbradoDetalle) => {
+        if (res != null) {
+          this.facturaService.onShowWarningIfTimbradoAboutToExpire(res);
+          this.facturaService.onShowWarningIfTimbradoRangoAboutToExpire(res);
           this.matDialogRef.close({
             facturado: true,
             cliente: this.selectedCliente,

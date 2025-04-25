@@ -69,7 +69,6 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: AddVentaCreditoData,
     private dialogRef: MatDialogRef<AddVentaCreditoDialogComponent>,
-    private personaService: PersonaService,
     private clienteService: ClienteService,
     private notificacionService: NotificacionSnackbarService,
     private matDialog: MatDialog,

@@ -24,7 +24,8 @@ import {
   ProductoCategoriaResponseData,
 } from "../../comercial/venta-touch/producto-categoria-dialog/producto-categoria-dialog.component";
 import { SelectProductosResponseData } from "../../comercial/venta-touch/select-productos-dialog/select-productos-dialog.component";
-
+import { ProductoService } from "../../../productos/producto/producto.service";
+import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
 @UntilDestroy()
 @Component({
   selector: "app-buscador",
@@ -74,12 +75,13 @@ export class BuscadorComponent implements OnInit {
 
   constructor(
     private dialog: MatDialog,
-    public getProductoByCodigo: ProductoPorCodigoGQL,
+    private productoService: ProductoService,
     private beepService: BeepService,
-    private notificacionSnackbar: NotificacionSnackbarService
+    private notificacionSnackbar: NotificacionSnackbarService,
+    private configService: ConfiguracionService
   ) {
-    this.filteredPrecios = environment["precios"];
-    this.modoPrecio = environment["modo"];
+    this.filteredPrecios = this.configService.getConfig().precios.split(',');
+    this.modoPrecio = this.configService.getConfig().modo;
   }
 
   ngOnInit(): void {
@@ -198,20 +200,12 @@ export class BuscadorComponent implements OnInit {
     if (texto.length == 13 && texto.substring(0, 2) == "20") {
       isPrefi20 = true;
     }
-    this.getProductoByCodigo
-      .fetch(
-        {
-          texto,
-        },
-        { fetchPolicy: "no-cache", errorPolicy: "all" }
-      )
+    this.productoService.onGetProductoPorCodigo(texto, false)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        if (res.errors == null) {
-          producto = res.data.data;
+        if (res != null) {
+          producto = res;
           if (producto != null) {
-            console.log("encontro el producto con codigo original");
-
             if (producto?.balanza == true && texto.length == 13) {
               peso = +texto.substring(7, 12) / 1000;
               this.cantidadControl.setValue(peso);
@@ -273,19 +267,12 @@ export class BuscadorComponent implements OnInit {
               peso = +texto.substring(7, 12) / 1000;
               texto = codigo;
               this.cantidadControl.setValue(peso);
-              this.getProductoByCodigo
-                .fetch(
-                  {
-                    texto,
-                  },
-                  { fetchPolicy: "no-cache", errorPolicy: "all" }
-                )
+              this.productoService.onGetProductoPorCodigo(texto, false)
                 .pipe(untilDestroyed(this))
                 .subscribe((res) => {
-                  if (res.errors == null) {
-                    producto = res.data.data;
+                  if (res != null) {
+                    producto = res;
                     if (producto != null) {
-                      console.log("ahora si encontro");
                       if (producto?.balanza == true && texto.length == 13) {
                         peso = +texto.substring(7, 12) / 1000;
                         this.cantidadControl.setValue(peso);
@@ -299,9 +286,6 @@ export class BuscadorComponent implements OnInit {
                       this.cantidadControl.setValue(1);
                       return;
                     } else {
-                      console.log(
-                        "igual no encontro entonces voy a abrir el busscador"
-                      );
                       this.cantidadControl.setValue(1);
                       this.buscarProductoDialog();
                       this.notificacionSnackbar.notification$.next({
