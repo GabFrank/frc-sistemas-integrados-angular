@@ -5,7 +5,7 @@ import {
   transition,
   animate,
 } from "@angular/animations";
-import { Component, Input, OnInit, ViewChild } from "@angular/core";
+import { ChangeDetectorRef, Component, Input, OnInit, ViewChild } from "@angular/core";
 import { MatTableDataSource } from "@angular/material/table";
 import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
 import { TabData, TabService } from "../../../../layouts/tab/tab.service";
@@ -36,6 +36,10 @@ import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { ListGastosComponent } from "../../../financiero/gastos/list-gastos/list-gastos.component";
 import { Conteo } from "../../../financiero/conteo/conteo.model";
 import { MainService } from "../../../../main.service";
+import { VentaObservacionDashboardComponent } from "../../venta-observacion/venta-observacion-dashboard/venta-observacion-dashboard.component";
+import { VentaObservacion } from "../../venta-observacion/venta-observacion.model";
+import { SubCategoriaObservacion } from "../../sub-categoria-observacion/sub-categoria-observacion.model";
+import { VentaObservacionService } from "../../venta-observacion/venta-observacion.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -60,7 +64,9 @@ export class ListVentaComponent implements OnInit {
   @Input()
   data: Tab;
 
+  addVentaObservacionDataSource = new MatTableDataSource<VentaObservacion>([]);
   ventaDataSource = new MatTableDataSource<Venta>([]);
+  subCategoriaObsDataSource = new MatTableDataSource<SubCategoriaObservacion>([])
   ventaDisplayedColumns = [
     "id",
     "cliente",
@@ -71,7 +77,9 @@ export class ListVentaComponent implements OnInit {
     "acciones",
   ];
   expandedVenta: Venta;
+  ventaList: Venta[];
   selectedCaja: PdvCaja;
+  ventaObservacionList: VentaObservacion[];
   loading = false;
   isCargando = false;
   isLastPage = false;
@@ -92,6 +100,7 @@ export class ListVentaComponent implements OnInit {
   ventaEstadoList = Object.keys(VentaEstado);
   estadoControl = new FormControl(null);
   filterChanged = true;
+  conObsControl = new FormControl(false);
 
   length = 15;
   pageSize = 15;
@@ -113,7 +122,9 @@ export class ListVentaComponent implements OnInit {
     private tabService: TabService,
     private matDialog: MatDialog,
     private monedaService: MonedaService,
-    private mainService: MainService
+    private mainService: MainService,
+    private ventaObservacionService: VentaObservacionService,
+    private cd: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -141,10 +152,19 @@ export class ListVentaComponent implements OnInit {
       this.formaPagoList = res;
     });
 
+    this.ventaObservacionService.ventaObservacionBS
+      .pipe(untilDestroyed(this))
+      .subscribe((observaciones: VentaObservacion[]) => {
+        this.ventaObservacionList = observaciones;
+        this.onObservado(this.ventaDataSource.data);
+        this.ventaDataSource.data = [...this.ventaDataSource.data];
+      })
+
     this.form = new FormGroup({
       id: this.idVentaControl,
       formaPago: this.formaPagoControl,
       estado: this.estadoControl,
+      conObservacion: this.conObsControl
     });
 
     this.form.valueChanges.subscribe((res) => {
@@ -188,6 +208,8 @@ export class ListVentaComponent implements OnInit {
     this.filterChanged = true;
   }
 
+  
+
   onGetVentas() {
     // this.cargandoService.openDialog()
     // this.isCargando = true;
@@ -210,7 +232,9 @@ export class ListVentaComponent implements OnInit {
         // this.isCargando = false;
         if (res != null) {
           this.selectedPageInfo = res;
-          this.ventaDataSource.data = res.getContent;
+          let ventas: Venta[] = res.getContent;
+          ventas = this.onObservado(ventas);
+          this.ventaDataSource.data = ventas;
         }
       });
   }
@@ -240,6 +264,7 @@ export class ListVentaComponent implements OnInit {
     } else {
       this.getTotales(venta);
     }
+    // this.loadObservaciones();
   }
 
   getTotales(venta: Venta) {
@@ -352,6 +377,7 @@ export class ListVentaComponent implements OnInit {
     this.estadoControl.setValue(null);
     this.selectedFormaPago = null;
     this.ventaDataSource.data = [];
+    this.conObsControl.setValue(false);
   }
 
   onGoToRetiros() {
@@ -436,5 +462,33 @@ export class ListVentaComponent implements OnInit {
             });
         }
       });
+  }
+
+onObservado(ventas: Venta[]): Venta[] {
+  ventas.forEach((venta) => {
+    venta['hasObservation'] = this.ventaObservacionList 
+      ? this.ventaObservacionList.some((obs) => obs.venta.id === venta.id)
+      : false;
+  });
+
+  if (this.conObsControl.value) {
+    ventas = ventas.filter((sale) => sale['hasObservation']);
+  }
+
+  return ventas;
+}
+ 
+
+  onListObservaciones(venta: Venta) {
+    const dialogRef = this.matDialog
+      .open(VentaObservacionDashboardComponent, {
+        width: "950px",
+        height: "550px",
+        data: { venta: venta }
+      })
+    dialogRef.afterClosed()
+      .subscribe(() => {
+        this.ventaObservacionService.onGetVentasObservaciones().subscribe();
+      })
   }
 }

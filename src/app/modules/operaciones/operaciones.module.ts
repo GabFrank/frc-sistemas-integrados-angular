@@ -40,6 +40,12 @@ import { CompraDashboardComponent } from './compra/compra-dashboard/compra-dashb
 import { DividirItemDialogComponent } from './pedido/dividir-item-dialog/dividir-item-dialog.component';
 import { EditarPedidpItemDialogComponent } from './pedido/editar-pedidp-item-dialog/editar-pedidp-item-dialog.component';
 import { PagoPedidoDialogComponent } from './pedido/pago-pedido-dialog/pago-pedido-dialog.component';
+import { AddCategoriaObsDialogComponent } from './categoria-observacion/add-categoria-obs-dialog/add-categoria-obs-dialog.component';
+import { VentaObservacionDashboardComponent } from './venta-observacion/venta-observacion-dashboard/venta-observacion-dashboard.component';
+import { AddSubcategoriaObsDialogComponent } from './sub-categoria-observacion/add-subcategoria-obs-dialog/add-subcategoria-obs-dialog.component';
+import { AddVentaObservacionComponent } from './venta-observacion/add-venta-observacion/add-venta-observacion.component';
+import { AddMotivoObsDialogComponent } from './motivo-observacion/add-motivo-obs-dialog/add-motivo-obs-dialog.component';
+import { MainVentaObservacionComponent } from './venta-observacion/main-venta-observacion/main-venta-observacion.component';
 import { PedidoItemSucursalDialogComponent } from './pedido/pedido-item-sucursal/pedido-item-sucursal-dialog/pedido-item-sucursal-dialog.component';
 import { ListSolicitudPagoComponent } from './solicitud-pago/list-solicitud-pago/list-solicitud-pago.component';
 import { ListPagoComponent } from './pago/list-pago/list-pago.component';
@@ -83,6 +89,12 @@ import { ModificarSucursalPagoDetalleComponent } from './pago/pago-detalle-cuota
     DividirItemDialogComponent,
     EditarPedidpItemDialogComponent,
     PagoPedidoDialogComponent,
+    AddCategoriaObsDialogComponent,
+    VentaObservacionDashboardComponent,
+    AddSubcategoriaObsDialogComponent,
+    AddVentaObservacionComponent,
+    AddMotivoObsDialogComponent,
+    MainVentaObservacionComponent,
     PedidoItemSucursalDialogComponent,
     ListSolicitudPagoComponent,
     ListPagoComponent,

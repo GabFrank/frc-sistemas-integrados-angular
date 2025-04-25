@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { Observable } from "rxjs";
+import { BehaviorSubject, Observable } from "rxjs";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { MainService } from "../../../main.service";
 import { CobroDetalle, CobroDetalleInput } from "./cobro/cobro-detalle.model";
@@ -43,6 +43,9 @@ import { ConfiguracionService } from "../../../shared/services/configuracion.ser
   providedIn: "root",
 })
 export class VentaService {
+  ventasBS = new BehaviorSubject<Venta[]>([]);
+  ventas$ = this.ventasBS.asObservable();
+  
   constructor(
     private genericService: GenericCrudService,
     private saveVenta: SaveVentaGQL,
@@ -83,6 +86,10 @@ export class VentaService {
       ventaCreditoInput,
       ventaCreditoCuotaInputList,
     }, servidor);
+  }
+
+  setVentas(ventas: Venta[]): void {
+    this.ventasBS.next(ventas);
   }
 
   onSaveVenta(
@@ -274,5 +281,14 @@ export class VentaService {
       servidor,
       sucId
     );
+  }
+
+  onSetObservado(ventaObs: Venta) {
+    const ventas = this.ventasBS.getValue();
+    const index = ventas.findIndex(v => v.id === ventaObs.id);
+    if (index >= 0) {
+      ventas[index] = ventaObs;
+      this.ventasBS.next([...ventas]);
+    }
   }
 }

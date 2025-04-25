@@ -27,6 +27,11 @@ import { ListSucursalComponent } from '../../modules/empresarial/sucursal/list-s
 import { ListReplicationComponent } from '../../modules/configuracion/logical-replication/list-replication/list-replication.component';
 import { ListReplicationTablesComponent } from '../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
 import { FinancieroDashboardComponent } from '../../modules/financiero/financiero-dashboard/financiero-dashboard.component';
+import { ListVentaComponent } from '../../modules/operaciones/venta/list-venta/list-venta.component';
+import { AddVentaObservacionComponent } from '../../modules/operaciones/venta-observacion/add-venta-observacion/add-venta-observacion.component';
+import { MainVentaObservacionComponent } from '../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component';
+import { MainCajaObservacionComponent } from '../../modules/financiero/pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component';
+
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
   'EDIT-PERSONA' = 'edit-persona'
@@ -64,6 +69,12 @@ export class TabService implements OnInit {
     // this.addTab(new Tab(ListProductoComponent, "Lista de productos"))
     // this.addTab(new Tab(FinancieroDashboardComponent, "Dashboard Financiero"))
     // this.addTab(new Tab(VentaTouchComponent, "Venta"))
+    //  this.addTab(new Tab(VentaTouchComponent, 'Venta'))
+    // this.addTab(new Tab(ListPedidoComponent, 'Lista de pedidos'))
+    // this.addTab(new Tab(EditPedidoComponent, 'Nuevo pedido', null, null))
+    //this.addTab(new Tab(ListCajaComponent, 'Venta 3160', new TabData(3160, {id:3160}), null))
+    //this.addTab(new Tab(ListCajaComponent, 'Observacion de cajas', null, null))
+    // this.addTab(new Tab(ProductoComponent, 'Lista de productos', null, null))
     this.tabSub.next(this.tabs);
   }
   

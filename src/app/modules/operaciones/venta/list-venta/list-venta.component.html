@@ -491,6 +491,13 @@
             </mat-form-field>
           </div>
         </div>
+        <div fxLayout="column" style="padding-top: 10px">
+            <div fxLayout="row" style="align-items: center">
+            <mat-label style="font-size: 14px;">Ventas con observaciones:</mat-label>
+            <mat-checkbox [formControl]="conObsControl"></mat-checkbox>
+          </div>
+
+        </div>
       </div>
       <div
         table
@@ -622,9 +629,6 @@
                 two_wheeler
               </mat-icon>
             </ng-template>
-            
-              
-              
             </td>
           </ng-container>
 
@@ -651,6 +655,9 @@
               <mat-menu #menu="matMenu">
                 <button mat-menu-item (click)="onCancelarVenta(venta, i)">
                   {{ venta?.estado == "CANCELADA" ? "Habilitar" : "Cancelar" }}
+                </button>
+                <button mat-menu-item (click)="onListObservaciones(venta)">
+                  Adicionar observación
                 </button>
               </mat-menu>
             </td>
@@ -914,6 +921,7 @@
               columns: ventaDisplayedColumns;
               let i = dataIndex
             "
+            [ngClass]="{'con-observacion': element.hasObservation}"
             class="example-element-row"
             [class.example-expanded-row]="expandedVenta === element"
             (click)="

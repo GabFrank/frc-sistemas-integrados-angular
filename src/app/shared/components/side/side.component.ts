@@ -32,6 +32,8 @@ import { ListRetiroComponent } from "../../../modules/financiero/retiro/list-ret
 import { ListFacturaLegalComponent } from "../../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component";
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
+import { MainVentaObservacionComponent } from "../../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component";
+import { MainCajaObservacionComponent } from "../../../modules/financiero/pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component";
 import { ListSucursalComponent } from "../../../modules/empresarial/sucursal/list-sucursal/list-sucursal.component";
 import { ListSolicitudPagoComponent } from "../../../modules/operaciones/solicitud-pago/list-solicitud-pago/list-solicitud-pago.component";
 import { ThermalPrinterComponent } from '../../../modules/configuracion/thermal-printer/thermal-printer.component';
@@ -393,6 +395,30 @@ export class SideComponent implements OnInit {
         this.tabService.addTab(
           new Tab(DeliveryDashboardComponent, "Delivery Dash", null, null)
         );
+        break;
+      case "observacion-ventas":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
+        ) {
+          this.tabService.addTab(
+            new Tab(MainVentaObservacionComponent, "Observación de Ventas", null, null)
+          );
+        }
+        else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
+        }
+        break;
+      case "observacion-cajas":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
+        ) {
+          this.tabService.addTab(
+            new Tab(MainCajaObservacionComponent, "Observación de Cajas", null, null)
+          );
+        } 
+        else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
+        }
         break;
       case "lucro-por-producto":
         this.tabService.addTab(

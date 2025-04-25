@@ -32,6 +32,13 @@ import { EditFacturaLegalItemComponent } from './factura-legal/edit-factura-lega
 import { AddVentaCreditoDialogComponent } from './venta-credito/add-venta-credito-dialog/add-venta-credito-dialog.component';
 import { ListVentaCreditoComponent } from './venta-credito/list-venta-credito/list-venta-credito.component';
 import { FinancieroConfiguracionDialogComponent } from './financiero-configuracion-dialog/financiero-configuracion-dialog.component';
+import { AddCajaCategoriaObsDialogComponent } from "./pdv/caja-categoria-observacion/add-caja-categoria-obs-dialog/add-caja-categoria-obs-dialog.component";
+import { AddCajaSubCategoriaObsDialogComponent } from "./pdv/caja-subcategoria-observacion/add-caja-subcategoria-obs-dialog/add-caja-subcategoria-obs-dialog.component";
+import { AddCajaMotivoObsDialogComponent } from './pdv/caja-motivo-observacion/add-caja-motivo-obs-dialog/add-caja-motivo-obs-dialog.component';
+import { AddCajaObservacionComponent } from "./pdv/caja-observacion/add-caja-observacion-dialog/add-caja-observacion-dialog.component";
+import { MainCajaObservacionComponent } from './pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component';
+import { CajaObservacionDashboardComponent } from './pdv/caja-observacion/caja-observacion-dashboard/caja-observacion-dashboard.component';
+
 
 @NgModule({
   declarations: [
@@ -62,6 +69,12 @@ import { FinancieroConfiguracionDialogComponent } from './financiero-configuraci
     AddVentaCreditoDialogComponent,
     ListVentaCreditoComponent,
     FinancieroConfiguracionDialogComponent,
+    AddCajaCategoriaObsDialogComponent,
+    AddCajaSubCategoriaObsDialogComponent,
+    AddCajaMotivoObsDialogComponent,
+    AddCajaObservacionComponent,
+    MainCajaObservacionComponent,
+    CajaObservacionDashboardComponent,
   ],
   imports: [
     CommonModule,
