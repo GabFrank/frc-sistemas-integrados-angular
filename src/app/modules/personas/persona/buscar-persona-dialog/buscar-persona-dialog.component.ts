@@ -67,7 +67,6 @@ export class BuscarPersonaDialogComponent implements OnInit {
       clearTimeout(this.onSearchTimer);
     }
     if (text == "" || text == null || text == " ") {
-      console.log("text is ", text);
       this.dataSource != undefined ? (this.dataSource.data = []) : null;
       this.isSearching = false;
     } else {
@@ -81,7 +80,6 @@ export class BuscarPersonaDialogComponent implements OnInit {
   }
 
   highlight(index: number) {
-    console.log(index);
     if (index >= 0 && index <= this.dataSource.data.length - 1) {
       this.selectedRowIndex = index;
       this.expandedPersona = this.dataSource.data[index];

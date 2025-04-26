@@ -17,6 +17,7 @@ export const pedidosQuery = gql`
       estado
       moneda {
         denominacion
+        simbolo
       }
       plazoCredito
       creadoEn
@@ -50,6 +51,7 @@ export const pedidosResumidoQuery = gql`
       moneda {
         id
         denominacion
+        simbolo
       }
       plazoCredito
       creadoEn
@@ -82,6 +84,7 @@ export const pedidosSearch = gql`
       estado
       moneda {
         denominacion
+        simbolo
       }
       plazoCredito
       creadoEn
@@ -111,6 +114,7 @@ export const pedidoQuery = gql`
       estado
       moneda {
         denominacion
+        simbolo
       }
       plazoCredito
       creadoEn
@@ -128,109 +132,10 @@ export const pedidoQuery = gql`
 
 export const savePedido = gql`
   mutation savePedido($entity: PedidoInput!) {
-    data: savePedido(pedido: $entity) {
+    data: savePedido(entity: $entity) {
       id
-    }
-  }
-`;
-
-export const deletePedidoQuery = gql`
-  mutation deletePedido($id: ID!) {
-    deletePedido(id: $id)
-  }
-`;
-
-export const filterPedidosQuery = gql`
-  query filterPedidos(
-    $estado: PedidoEstado
-    $sucursalId: Int
-    $inicio: String
-    $fin: String
-    $proveedorId: Int
-    $vendedorId: Int
-    $formaPago: FormaPago
-    $productoId: Int
-  ) {
-    data: filterPedidos(
-      estado: $estado
-      sucursalId: $sucursalId
-      inicio: $inicio
-      fin: $fin
-      proveedorId: $proveedorId
-      vendedorId: $vendedorId
-      formaPago: $formaPago
-      productoId: $productoId
-    ) {
-      id
-      proveedor {
-        id
-        persona {
-          nombre
-        }
-      }
-      vendedor {
-        id
-        persona {
-          nombre
-        }
-      }
-      nombreProveedor
-      formaPago {
-        id
-        descripcion
-      }
-      estado
-      moneda {
-        id
-        denominacion
-        simbolo
-      }
-      plazoCredito
-      creadoEn
-      usuario {
-        id
-        persona {
-          nombre
-        }
-      }
-      nombreUsuario
-      descuento
-      valorTotal
-      pedidoItens {
-        id
-        producto {
-          id
-          descripcion
-          descripcionFactura
-        }
-        precioUnitario
-        descuentoUnitario
-        bonificacion
-        bonificacionDetalle
-        estado
-        vencimiento
-        creadoEn
-        pedidoItemSucursales {
-          id
-          sucursal {
-            id
-            nombre
-          }
-          sucursalEntrega {
-            id
-            nombre
-          }
-          cantidad
-        }
-      }
-    }
-  }
-`;
-
-export const pedidoInfoCompletaQuery = gql`
-  query ($id: ID!) {
-    data: pedido(id: $id) {
-      id
+      cantPedidoItem
+      cantPedidoItemCancelados
       compra {
         id
         estado
@@ -266,7 +171,227 @@ export const pedidoInfoCompletaQuery = gql`
       }
       descuento
       valorTotal
-      pedidoItens {
+      tipoBoleta
+      sucursalInfluenciaList {
+        id
+        sucursal {
+          id
+          nombre
+        }
+      }
+      sucursalEntregaList {
+        id
+        sucursal {
+          id
+          nombre
+        }
+      }
+      fechaEntregaList {
+        fechaEntrega
+      }
+      notaRecepcionList {
+        id
+        numero
+        tipoBoleta
+        fecha
+        cantidadItens
+        valor
+        pedido {
+          id
+        }
+        compra {
+          id
+        }
+      }
+    }
+  }
+`;
+
+export const deletePedidoQuery = gql`
+  mutation deletePedido($id: ID!) {
+    deletePedido(id: $id)
+  }
+`;
+
+export const filterPedidosQuery = gql`
+  query filterPedidos(
+    $idPedido: ID,
+    $numeroNotaRecepcion: Int,
+    $estado: PedidoEstado
+    $sucursalId: Int
+    $inicio: String
+    $fin: String
+    $proveedorId: Int
+    $vendedorId: Int
+    $formaPagoId: Int
+    $productoId: Int
+    $page: Int
+    $size: Int
+  ) {
+    data: filterPedidos(
+      idPedido: $idPedido
+      numeroNotaRecepcion: $numeroNotaRecepcion
+      estado: $estado
+      sucursalId: $sucursalId
+      inicio: $inicio
+      fin: $fin
+      proveedorId: $proveedorId
+      vendedorId: $vendedorId
+      formaPagoId: $formaPagoId
+      productoId: $productoId
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        cantPedidoItem
+        cantPedidoItemCancelados
+        pagado
+        compra {
+          id
+          estado
+        }
+        proveedor {
+          id
+          persona {
+            nombre
+          }
+        }
+        vendedor {
+          id
+          persona {
+            nombre
+          }
+        }
+        formaPago {
+          id
+          descripcion
+        }
+        estado
+        moneda {
+          id
+          denominacion
+        }
+        plazoCredito
+        creadoEn
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+        descuento
+        valorTotal
+        tipoBoleta
+      }
+    }
+  }
+`;
+
+export const pedidoInfoCompletaQuery = gql`
+  query ($id: ID!) {
+    data: pedido(id: $id) {
+      id
+      cantPedidoItem
+      cantPedidoItemCancelados
+      compra {
+        id
+        estado
+      }
+      proveedor {
+        id
+        persona {
+          nombre
+        }
+      }
+      vendedor {
+        id
+        persona {
+          nombre
+        }
+      }
+      formaPago {
+        id
+        descripcion
+      }
+      estado
+      moneda {
+        id
+        denominacion
+      }
+      plazoCredito
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      descuento
+      valorTotal
+      tipoBoleta
+      sucursalInfluenciaList {
+        id
+        sucursal {
+          id
+          nombre
+        }
+      }
+      sucursalEntregaList {
+        id
+        sucursal {
+          id
+          nombre
+        }
+      }
+      fechaEntregaList {
+        fechaEntrega
+      }
+      cantNotas
+      cantNotasPagadas
+      cantNotasCanceladas
+      pagado
+    }
+  }
+`;
+
+export const pedidoInfoDetallesQuery = gql`
+  query ($id: ID!) {
+    data: pedido(id: $id) {
+      id
+      cantPedidoItem
+      descuento
+      valorTotal
+      cantPedidoItemSinNota
+      cantPedidoItemCancelados
+    }
+  }
+`;
+
+// pedidoItemPorPedidoIdSobrante
+export const pedidoItemPorPedidoIdSobranteQuery = gql`
+  query ($id: ID!, $page: Int, $size: Int, $texto: String) {
+    data: pedidoItemPorPedidoIdSobrante(
+      id: $id
+      page: $page
+      size: $size
+      texto: $texto
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
         id
         producto {
           id
@@ -274,76 +399,273 @@ export const pedidoInfoCompletaQuery = gql`
           presentaciones {
             id
             cantidad
-            imagenPrincipal
           }
+          codigoPrincipal
         }
-        notaRecepcion {
+        presentacionCreacion {
+          id
+          cantidad
+        }
+        pedido {
           id
         }
+        precioUnitarioCreacion
+        descuentoUnitarioCreacion
+        bonificacion
+        bonificacionDetalle
+        estado
+        vencimientoCreacion
+        creadoEn
+        cantidadCreacion
+        valorTotal
+        precioUnitarioRecepcionNota
+        descuentoUnitarioRecepcionNota
+        vencimientoRecepcionNota
+        presentacionRecepcionNota {
+          id
+          cantidad
+        }
+        cantidadRecepcionNota
+        precioUnitarioRecepcionProducto
+        descuentoUnitarioRecepcionProducto
+        vencimientoRecepcionProducto
+        presentacionRecepcionProducto {
+          id
+          cantidad
+        }
+        cantidadRecepcionProducto
+        usuarioRecepcionNota {
+          id
+        }
+        usuarioRecepcionProducto {
+          id
+        }
+        obsCreacion
+        obsRecepcionNota
+        obsRecepcionProducto
+        autorizacionRecepcionNota
+        autorizacionRecepcionProducto
+        autorizadoPorRecepcionNota {
+          id
+        }
+        autorizadoPorRecepcionProducto {
+          id
+        }
+        motivoModificacionRecepcionNota
+        motivoModificacionRecepcionProducto
+        motivoRechazoRecepcionNota
+        motivoRechazoRecepcionProducto
+        cancelado
+        verificadoRecepcionNota
+        verificadoRecepcionProducto
+        precioUnitario
+        cantidad
         presentacion {
           id
           cantidad
         }
-        precioUnitario
-        descuentoUnitario
-        bonificacion
-        bonificacionDetalle
-        estado
-        vencimiento
-        creadoEn
-        cantidad
-        valorTotal
       }
     }
   }
 `;
 
-// pedidoItemPorPedidoIdSobrante
-export const pedidoItemPorPedidoIdSobranteQuery = gql`
-  query ($id: ID!) {
-    data: pedidoItemPorPedidoIdSobrante(id: $id) {
-      id
-      producto {
+export const pedidoItemPorNotaRecepcionQuery = gql`
+  query (
+    $id: ID!
+    $page: Int
+    $size: Int
+    $texto: String
+    $verificado: Boolean
+  ) {
+    data: pedidoItemPorNotaRecepcion(
+      id: $id
+      page: $page
+      size: $size
+      texto: $texto
+      verificado: $verificado
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
         id
-        descripcion
-        presentaciones {
+        isDistribucionSucursalesCreacion
+        isDistribucionSucursalesRecepcion
+        producto {
+          id
+          descripcion
+          presentaciones {
+            id
+            cantidad
+          }
+          codigoPrincipal
+        }
+        presentacionCreacion {
           id
           cantidad
         }
-      }
-      presentacion {
-        id
+        pedido {
+          id
+        }
+        notaRecepcion {
+          id
+        }
+        precioUnitarioCreacion
+        descuentoUnitarioCreacion
+        bonificacion
+        bonificacionDetalle
+        estado
+        vencimientoCreacion
+        creadoEn
+        cantidadCreacion
+        valorTotal
+        precioUnitarioRecepcionNota
+        descuentoUnitarioRecepcionNota
+        vencimientoRecepcionNota
+        presentacionRecepcionNota {
+          id
+          cantidad
+        }
+        cantidadRecepcionNota
+        precioUnitarioRecepcionProducto
+        descuentoUnitarioRecepcionProducto
+        vencimientoRecepcionProducto
+        presentacionRecepcionProducto {
+          id
+          cantidad
+        }
+        cantidadRecepcionProducto
+        usuarioRecepcionNota {
+          id
+        }
+        usuarioRecepcionProducto {
+          id
+        }
+        obsCreacion
+        obsRecepcionNota
+        obsRecepcionProducto
+        autorizacionRecepcionNota
+        autorizacionRecepcionProducto
+        autorizadoPorRecepcionNota {
+          id
+        }
+        autorizadoPorRecepcionProducto {
+          id
+        }
+        motivoModificacionRecepcionNota
+        motivoModificacionRecepcionProducto
+        motivoRechazoRecepcionNota
+        motivoRechazoRecepcionProducto
+        cancelado
+        verificadoRecepcionNota
+        verificadoRecepcionProducto
+        precioUnitario
         cantidad
-      }
-      compraItem {
-        id
-        cantidad
-        verificado
-        lote
-        vencimiento
         presentacion {
           id
           cantidad
         }
+      }
+    }
+  }
+`;
+
+export const pedidoItemPorPedidoPageQuery = gql`
+  query ($id: ID!, $page: Int, $size: Int, $texto: String) {
+    data: pedidoItemPorPedidoPage(
+      id: $id
+      page: $page
+      size: $size
+      texto: $texto
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
         producto {
           id
+          descripcion
+          presentaciones {
+            id
+            cantidad
+          }
+          codigoPrincipal
         }
-        pedidoItem {
+        presentacionCreacion {
+          id
+          cantidad
+        }
+        pedido {
           id
         }
-        precioUnitario
-        descuentoUnitario
+        notaRecepcion {
+          id
+        }
+        precioUnitarioCreacion
+        descuentoUnitarioCreacion
+        bonificacion
+        bonificacionDetalle
         estado
+        vencimientoCreacion
+        creadoEn
+        cantidadCreacion
+        valorTotal
+        precioUnitarioRecepcionNota
+        descuentoUnitarioRecepcionNota
+        vencimientoRecepcionNota
+        presentacionRecepcionNota {
+          id
+          cantidad
+        }
+        cantidadRecepcionNota
+        precioUnitarioRecepcionProducto
+        descuentoUnitarioRecepcionProducto
+        vencimientoRecepcionProducto
+        presentacionRecepcionProducto {
+          id
+          cantidad
+        }
+        cantidadRecepcionProducto
+        usuarioRecepcionNota {
+          id
+        }
+        usuarioRecepcionProducto {
+          id
+        }
+        obsCreacion
+        obsRecepcionNota
+        obsRecepcionProducto
+        autorizacionRecepcionNota
+        autorizacionRecepcionProducto
+        autorizadoPorRecepcionNota {
+          id
+        }
+        autorizadoPorRecepcionProducto {
+          id
+        }
+        motivoModificacionRecepcionNota
+        motivoModificacionRecepcionProducto
+        motivoRechazoRecepcionNota
+        motivoRechazoRecepcionProducto
+        cancelado
+        verificadoRecepcionNota
+        verificadoRecepcionProducto
+        precioUnitario
+        cantidad
+        presentacion {
+          id
+          cantidad
+        }
       }
-      precioUnitario
-      descuentoUnitario
-      bonificacion
-      bonificacionDetalle
-      estado
-      vencimiento
-      creadoEn
-      cantidad
-      valorTotal
     }
   }
 `;
@@ -361,3 +683,301 @@ export const updateNotaRecepcionQuery = gql`
     }
   }
 `;
+
+export const addPedidoItemToNotaRecepcionQuery = gql`
+  mutation addPedidoItemToNotaRecepcion(
+    $notaRecepcion: ID
+    $pedidoItemId: ID!
+  ) {
+    data: addPedidoItemToNotaRecepcion(
+      notaRecepcion: $notaRecepcion
+      pedidoItemId: $pedidoItemId
+    ) {
+      id
+      producto {
+        id
+        descripcion
+        presentaciones {
+          id
+          cantidad
+        }
+        codigoPrincipal
+      }
+      presentacionCreacion {
+        id
+        cantidad
+      }
+      pedido {
+        id
+      }
+      precioUnitarioCreacion
+      descuentoUnitarioCreacion
+      bonificacion
+      bonificacionDetalle
+      estado
+      vencimientoCreacion
+      creadoEn
+      cantidadCreacion
+      valorTotal
+      precioUnitarioRecepcionNota
+      descuentoUnitarioRecepcionNota
+      vencimientoRecepcionNota
+      presentacionRecepcionNota {
+        id
+        cantidad
+      }
+      cantidadRecepcionNota
+      precioUnitarioRecepcionProducto
+      descuentoUnitarioRecepcionProducto
+      vencimientoRecepcionProducto
+      presentacionRecepcionProducto {
+        id
+        cantidad
+      }
+      cantidadRecepcionProducto
+      usuarioRecepcionNota {
+        id
+      }
+      usuarioRecepcionProducto {
+        id
+      }
+      obsCreacion
+      obsRecepcionNota
+      obsRecepcionProducto
+      autorizacionRecepcionNota
+      autorizacionRecepcionProducto
+      autorizadoPorRecepcionNota {
+        id
+      }
+      autorizadoPorRecepcionProducto {
+        id
+      }
+      motivoModificacionRecepcionNota
+      motivoModificacionRecepcionProducto
+      motivoRechazoRecepcionNota
+      motivoRechazoRecepcionProducto
+      cancelado
+      verificadoRecepcionNota
+      verificadoRecepcionProducto
+      precioUnitario
+      cantidad
+      presentacion {
+        id
+        cantidad
+      }
+    }
+  }
+`;
+
+export const savePedidoFull = gql`
+  mutation savePedidoFull(
+    $entity: PedidoInput!
+    $fechaEntregaList: [String]
+    $sucursalEntregaList: [Int]
+    $sucursalInfluenciaList: [Int]
+    $usuarioId: Int
+  ) {
+    data: savePedidoFull(
+      entity: $entity
+      fechaEntregaList: $fechaEntregaList
+      sucursalEntregaList: $sucursalEntregaList
+      sucursalInfluenciaList: $sucursalInfluenciaList
+      usuarioId: $usuarioId
+    ) {
+      id
+      creadoEn
+    }
+  }
+`;
+
+export const finalizarPedido = gql`
+  mutation finalizarPedido($id: ID, $estado: PedidoEstado) {
+    data: finalizarPedido(id: $id, estado: $estado) {
+      id
+      estado
+    }
+  }
+`;
+
+// pedido:PedidoInput!, fechaEntregaList: [String], sucursalEntregaList: [Int], sucursalInfluenciaList: [Int], usuarioId: Int
+
+export const verificarRecepcionProductoQuery = gql`
+  mutation verificarRecepcionProducto($pedidoItemId: ID!, $verificar: Boolean!) {
+    data: verificarRecepcionProducto(
+      pedidoItemId: $pedidoItemId
+      verificar: $verificar
+    ) {
+      id
+      producto {
+        id
+        descripcion
+        presentaciones {
+          id
+          cantidad
+        }
+        codigoPrincipal
+      }
+      presentacionCreacion {
+        id
+        cantidad
+      }
+      pedido {
+        id
+      }
+      precioUnitarioCreacion
+      descuentoUnitarioCreacion
+      bonificacion
+      bonificacionDetalle
+      estado
+      vencimientoCreacion
+      creadoEn
+      cantidadCreacion
+      valorTotal
+      precioUnitarioRecepcionNota
+      descuentoUnitarioRecepcionNota
+      vencimientoRecepcionNota
+      presentacionRecepcionNota {
+        id
+        cantidad
+      }
+      cantidadRecepcionNota
+      precioUnitarioRecepcionProducto
+      descuentoUnitarioRecepcionProducto
+      vencimientoRecepcionProducto
+      presentacionRecepcionProducto {
+        id
+        cantidad
+      }
+      cantidadRecepcionProducto
+      usuarioRecepcionNota {
+        id
+      }
+      usuarioRecepcionProducto {
+        id
+      }
+      obsCreacion
+      obsRecepcionNota
+      obsRecepcionProducto
+      autorizacionRecepcionNota
+      autorizacionRecepcionProducto
+      autorizadoPorRecepcionNota {
+        id
+      }
+      autorizadoPorRecepcionProducto {
+        id
+      }
+      motivoModificacionRecepcionNota
+      motivoModificacionRecepcionProducto
+      motivoRechazoRecepcionNota
+      motivoRechazoRecepcionProducto
+      cancelado
+      verificadoRecepcionNota
+      verificadoRecepcionProducto
+      precioUnitario
+      cantidad
+      presentacion {
+        id
+        cantidad
+      }
+    }
+  }
+`;
+
+export const cantidadItensFaltaVerificarProductoQuery = gql`
+  query ($id: ID!) {
+    data: cantidadItensFaltaVerificarProducto(id: $id)
+  }
+`;
+
+export const cantidadItensFaltaVerificarNotaQuery = gql`
+  query ($id: ID!) {
+    data: cantidadItensFaltaVerificarNota(id: $id)
+  }
+`;
+
+export const pedidoItemQuery = gql`
+  query ($id: ID!) {
+    data: pedidoItem(id: $id) {
+      id
+      producto {
+        id
+        descripcion
+        presentaciones {
+          id
+          cantidad
+        }
+        codigoPrincipal
+      }
+      presentacionCreacion {
+        id
+        cantidad
+      }
+      pedido {
+        id
+      }
+      precioUnitarioCreacion
+      descuentoUnitarioCreacion
+      bonificacion
+      bonificacionDetalle
+      estado
+      vencimientoCreacion
+      creadoEn
+      cantidadCreacion
+      valorTotal
+      pedidoItemSucursalList {
+        id
+        sucursal {
+          id
+          nombre
+        }
+        sucursalEntrega {
+          id
+          nombre
+        }
+        cantidadPorUnidad
+        cantidadPorUnidadRecibida
+        creadoEn
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const pedidoItemPedidoItemSucursalListQuery = gql`
+  query ($id: ID!) {
+    data: pedidoItem(id: $id) {
+      pedidoItemSucursalList {
+        id
+        sucursal {
+          id
+          nombre
+        }
+        sucursalEntrega {
+          id
+          nombre
+        }
+        cantidadPorUnidad
+        cantidadPorUnidadRecibida
+        creadoEn
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const verificarDistribucionSucursalesQuery = gql`
+  query ($id: ID!){
+    data: verificarDistribucionSucursales(id: $id)
+  }
+`;
+

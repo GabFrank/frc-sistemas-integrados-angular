@@ -3,6 +3,7 @@ import { VentaItem } from "../../operaciones/venta/venta-item.model"
 import { Venta } from "../../operaciones/venta/venta.model"
 import { Cliente } from "../../personas/clientes/cliente.model"
 import { Usuario } from "../../personas/usuarios/usuario.model"
+import { Presentacion } from "../../productos/presentacion/presentacion.model"
 import { PdvCaja } from "../pdv/caja/caja.model"
 import { TimbradoDetalle } from "../timbrado/timbrado.modal"
 
@@ -26,6 +27,7 @@ export class FacturaLegal {
     totalParcial5:number
     totalParcial10:number
     totalFinal:number
+    descuento:number
     usuario: Usuario
     creadoEn: Date
     sucursalId: number
@@ -53,6 +55,7 @@ export class FacturaLegal {
         input.usuarioId = this.usuario?.id
         input.viaTributaria = this.viaTributaria
         input.sucursalId = this.sucursalId
+        input.descuento = this.descuento
         return input;
     }
 }
@@ -76,11 +79,13 @@ export class FacturaLegalInput {
     totalParcial10: number
     viaTributaria: boolean
     totalFinal: number
+    descuento: number
     usuarioId: number
 }
 
 export class FacturaLegalItem {
     id: number
+    presentacion: Presentacion;
     facturaLegal: FacturaLegal
     ventaItem: VentaItem
     cantidad: number
@@ -103,12 +108,14 @@ export class FacturaLegalItem {
         input.iva = this.iva
         input.creadoEn = this.creadoEn
         input.usuarioId = this.usuario?.id
+        input.presentacionId = this.presentacion?.id;
         return input;
     }
 }
 
 export class FacturaLegalItemInput {
     id: number
+    presentacionId: number;
     facturaLegalId: number
     ventaItemId: number
     cantidad: number
@@ -118,4 +125,14 @@ export class FacturaLegalItemInput {
     iva: number
     creadoEn: Date
     usuarioId: number
+}
+
+export class ResumenFacturasDto {
+    cantFacturas: number
+    maxNumero: number
+    minNumero: number
+    totalFinal: number
+    total5: number
+    total10: number
+    total0: number
 }

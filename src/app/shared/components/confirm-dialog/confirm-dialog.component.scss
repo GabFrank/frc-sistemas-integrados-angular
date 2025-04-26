@@ -1,0 +1,18 @@
+h2 {
+  margin-bottom: 16px;
+}
+
+p {
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+[mat-dialog-actions] {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 0;
+  
+  button:not(:last-child) {
+    margin-right: 8px;
+  }
+} 

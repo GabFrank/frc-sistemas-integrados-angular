@@ -22,8 +22,8 @@ tr:focus{
     display: flex;
   }
 
-  .mat-cell,
-.mat-header-cell {
+  .mat-mdc-cell,
+.mat-mdc-header-cell {
   word-wrap: initial;
   display: table-cell;
   padding: 0px 10px;

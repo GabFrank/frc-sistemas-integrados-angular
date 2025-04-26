@@ -1,0 +1,13 @@
+{
+  "ip": "localhost",
+  "port": "8082",
+  "centralIp": "localhost",
+  "centralPort": "8081",
+  "local": "CAJA 1",
+  "precios": "EXPO, EXPO-DEPOSITO",
+  "modo": "NOT",
+  "pdvId": 1,
+  "printers": {
+    "ticket": "ticket"
+  }
+}

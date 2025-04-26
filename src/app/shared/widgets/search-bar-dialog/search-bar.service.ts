@@ -16,6 +16,13 @@ import { ListCajaComponent } from '../../../modules/financiero/pdv/caja/list-caj
 import { ListSectorComponent } from '../../../modules/empresarial/sector/list-sector/list-sector.component';
 import { SolicitarRecursosDialogComponent } from '../../../modules/configuracion/solicitar-recursos-dialog/solicitar-recursos-dialog.component';
 import { ROLES } from '../../../modules/personas/roles/roles.enum';
+import { PrecioDelivery } from '../../../modules/operaciones/delivery/precio-delivery.model';
+import { PrecioDeliveryComponent } from '../../../modules/operaciones/delivery/precio-delivery/precio-delivery.component';
+import { ListClientesComponent } from '../../../modules/personas/clientes/list-clientes/list-clientes.component';
+import { ListRetiroComponent } from '../../../modules/financiero/retiro/list-retiro/list-retiro.component';
+import { ListGastosComponent } from '../../../modules/financiero/gastos/list-gastos/list-gastos.component';
+import { LucroPorProducto } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.model';
+import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.component';
 
 export enum TIPO_SEARCH {
   COMPONENTE = 'COMPONENTE',
@@ -46,7 +53,12 @@ export const componenteList: SearchData[] =
     { title: 'Actualizacion', component: ListActualizacionComponent },
     { title: 'Lista de cajas', component: ListCajaComponent, role: ROLES.ANALISIS_DE_CAJA },
     { title: 'Lista de sectores', component: ListSectorComponent },
-    { title: 'Solicitar Recursos', component: SolicitarRecursosDialogComponent, role: ROLES.SOPORTE }
+    { title: 'Solicitar Recursos', component: SolicitarRecursosDialogComponent, role: ROLES.SOPORTE },
+    { title: 'Precio del Delivery', component: PrecioDeliveryComponent },
+    { title: 'Lista de clientes', component: ListClientesComponent, role: ROLES.ADMIN },
+    { title: 'Lista de retiros', component: ListRetiroComponent, role: ROLES.ANALISIS_DE_CAJA },
+    { title: 'Lista de gastos', component: ListGastosComponent, role: ROLES.ANALISIS_DE_CAJA },
+    { title: 'Lucro por producto', component: LucroPorProductoComponent, role: ROLES.ADMIN }
   ]
 
 @UntilDestroy()
@@ -92,8 +104,6 @@ export class SearchBarService {
   }
 
   openTab(data: SearchData) {
-    console.log(data);
-    
     this.tabService.addTab(new Tab(data.component, data.title, new TabData(data?.data?.id, data?.data), this.tabService?.currentTab()?.component))
   }
 }

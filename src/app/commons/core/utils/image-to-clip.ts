@@ -7,7 +7,6 @@ export async function imageToClip(url) {
                 [blob.type]: blob
             })
         ]);
-        console.log('Image copied.');
     } catch (err) {
         console.error(err.name, err.message);
     }

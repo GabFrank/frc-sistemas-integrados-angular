@@ -1,7 +1,10 @@
 {
-  "http://localhost:4200": {
-    "target": "https://firebasestorage.googleapis.com/*",
-    "secure": true,
-    "changeOrigin": true
+  "/api": {
+    "target": "https://siyopude.com",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/api": ""
+    }
   }
 }

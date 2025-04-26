@@ -7,6 +7,7 @@ import { Component, Input, OnInit } from '@angular/core';
 })
 export class TotalesComponent implements OnInit {
   @Input() totalGs;
+  @Input() descuentoGs;
   @Input() cambioRs;
   @Input() cambioDs;
   @Input() cambioArg;

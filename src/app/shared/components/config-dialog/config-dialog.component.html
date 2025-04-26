@@ -1,0 +1,211 @@
+<h2 mat-dialog-title>CONFIGURACIÓN DEL SISTEMA</h2>
+
+<div *ngIf="isNewConfig" class="config-warning">
+  <mat-icon color="warn">warning</mat-icon>
+  <span>Esta configuración inicial es necesaria para el funcionamiento de la aplicación</span>
+</div>
+
+<mat-dialog-content>
+  <form [formGroup]="configForm" class="configuracion-form">
+    
+    <mat-tab-group>
+      <!-- TAB 1: Configuración de Servidor -->
+      <mat-tab label="SERVIDORES">
+        <div class="tab-content">
+          <h3 class="seccion-titulo">CONFIGURACIÓN DE SERVIDORES</h3>
+          
+          <div class="server-config-grid">
+            <div formGroupName="server" class="server-section">
+              <h4>SERVIDOR LOCAL</h4>
+              <mat-form-field appearance="outline">
+                <mat-label>IP</mat-label>
+                <input matInput formControlName="ip" placeholder="localhost">
+                <mat-hint>Dirección IP o nombre del servidor local</mat-hint>
+                <mat-error *ngIf="configForm.get('server.ip').hasError('required')">
+                  Este campo es requerido
+                </mat-error>
+              </mat-form-field>
+              
+              <mat-form-field appearance="outline">
+                <mat-label>Puerto</mat-label>
+                <input matInput formControlName="port" placeholder="8082">
+                <mat-hint>Puerto del servidor local</mat-hint>
+                <mat-error *ngIf="configForm.get('server.port').hasError('required')">
+                  Este campo es requerido
+                </mat-error>
+              </mat-form-field>
+            </div>
+            
+            <div formGroupName="central" class="server-section">
+              <h4>SERVIDOR CENTRAL</h4>
+              <mat-form-field appearance="outline">
+                <mat-label>IP</mat-label>
+                <input matInput formControlName="ip" placeholder="localhost">
+                <mat-hint>Dirección IP o nombre del servidor central</mat-hint>
+                <mat-error *ngIf="configForm.get('central.ip').hasError('required')">
+                  Este campo es requerido
+                </mat-error>
+              </mat-form-field>
+              
+              <mat-form-field appearance="outline">
+                <mat-label>Puerto</mat-label>
+                <input matInput formControlName="port" placeholder="8081">
+                <mat-hint>Puerto del servidor central</mat-hint>
+                <mat-error *ngIf="configForm.get('central.port').hasError('required')">
+                  Este campo es requerido
+                </mat-error>
+              </mat-form-field>
+            </div>
+          </div>
+          
+          <div class="features-section" formGroupName="features">
+            <h4>CARACTERÍSTICAS</h4>
+            <mat-slide-toggle formControlName="useFinancieroDashBoard" color="primary">
+              Usar servidor local para dashboard financiero
+            </mat-slide-toggle>
+          </div>
+        </div>
+      </mat-tab>
+      
+      <!-- TAB 2: Configuración Adicional -->
+      <mat-tab label="CONFIGURACIÓN ADICIONAL">
+        <div class="tab-content">
+          <div formGroupName="branding" class="branding-section">
+            <h3 class="seccion-titulo">CONFIGURACIÓN DE ENTORNO</h3>
+            
+            <mat-form-field appearance="outline">
+              <mat-label>Local</mat-label>
+              <input matInput formControlName="local" placeholder="CAJA 1">
+              <mat-hint>Identificador del local</mat-hint>
+            </mat-form-field>
+            
+            <mat-form-field appearance="outline">
+              <mat-label>Precios</mat-label>
+              <input matInput formControlName="precios" placeholder="EXPO, EXPO-DEPOSITO">
+              <mat-hint>Configuración de precios</mat-hint>
+            </mat-form-field>
+            
+            <mat-form-field appearance="outline">
+              <mat-label>Modo</mat-label>
+              <input matInput formControlName="modo" placeholder="NOT">
+              <mat-hint>Modo de operación</mat-hint>
+            </mat-form-field>
+          </div>
+          
+          <div formGroupName="printers" class="printers-section">
+            <h3 class="seccion-titulo">IMPRESORAS</h3>
+            
+            <mat-form-field appearance="outline">
+              <mat-label>Impresora de Ticket</mat-label>
+              <input matInput formControlName="ticket" placeholder="ticket">
+              <mat-hint>Nombre de la impresora para tickets</mat-hint>
+            </mat-form-field>
+            
+            <mat-form-field appearance="outline">
+              <mat-label>Impresora de Factura</mat-label>
+              <input matInput formControlName="factura" placeholder="factura">
+              <mat-hint>Nombre de la impresora para facturas</mat-hint>
+            </mat-form-field>
+          </div>
+          
+          <div class="pdv-section">
+            <h3 class="seccion-titulo">PUNTO DE VENTA</h3>
+            
+            <mat-form-field appearance="outline">
+              <mat-label>ID de PDV</mat-label>
+              <input matInput type="number" formControlName="pdvId" min="0">
+              <mat-hint>Identificador único del punto de venta</mat-hint>
+              <mat-error *ngIf="configForm.get('pdvId').hasError('min')">
+                El ID debe ser mayor o igual a 0
+              </mat-error>
+            </mat-form-field>
+          </div>
+        </div>
+      </mat-tab>
+      
+      <!-- TAB 3: Sucursales -->
+      <mat-tab label="SUCURSALES">
+        <div class="tab-content">
+          <div class="sucursales-section">
+            <div class="sucursales-header">
+              <h3 class="seccion-titulo">SUCURSALES</h3>
+              <button mat-mini-fab color="primary" type="button" (click)="addSucursal()">
+                <mat-icon>add</mat-icon>
+              </button>
+            </div>
+            
+            <div class="sucursales-table" formArrayName="sucursales">
+              <table mat-table [dataSource]="sucursalesArray.controls">
+                
+                <!-- ID Column -->
+                <ng-container matColumnDef="id">
+                  <th mat-header-cell *matHeaderCellDef>ID</th>
+                  <td mat-cell *matCellDef="let sucursal; let i = index" [formGroupName]="i">
+                    <mat-form-field appearance="outline" class="small-field">
+                      <input matInput formControlName="id" type="number" min="0">
+                      <mat-error *ngIf="sucursal.get('id')?.hasError('required')">Requerido</mat-error>
+                      <mat-error *ngIf="sucursal.get('id')?.hasError('min')">Mínimo 0</mat-error>
+                    </mat-form-field>
+                  </td>
+                </ng-container>
+                
+                <!-- Nombre Column -->
+                <ng-container matColumnDef="nombre">
+                  <th mat-header-cell *matHeaderCellDef>NOMBRE</th>
+                  <td mat-cell *matCellDef="let sucursal; let i = index" [formGroupName]="i">
+                    <mat-form-field appearance="outline">
+                      <input matInput formControlName="nombre">
+                      <mat-error *ngIf="sucursal.get('nombre')?.hasError('required')">Requerido</mat-error>
+                    </mat-form-field>
+                  </td>
+                </ng-container>
+                
+                <!-- IP Column -->
+                <ng-container matColumnDef="ip">
+                  <th mat-header-cell *matHeaderCellDef>IP</th>
+                  <td mat-cell *matCellDef="let sucursal; let i = index" [formGroupName]="i">
+                    <mat-form-field appearance="outline">
+                      <input matInput formControlName="ip">
+                      <mat-error *ngIf="sucursal.get('ip')?.hasError('required')">Requerido</mat-error>
+                    </mat-form-field>
+                  </td>
+                </ng-container>
+                
+                <!-- Port Column -->
+                <ng-container matColumnDef="port">
+                  <th mat-header-cell *matHeaderCellDef>PUERTO</th>
+                  <td mat-cell *matCellDef="let sucursal; let i = index" [formGroupName]="i">
+                    <mat-form-field appearance="outline" class="small-field">
+                      <input matInput formControlName="port">
+                      <mat-error *ngIf="sucursal.get('port')?.hasError('required')">Requerido</mat-error>
+                    </mat-form-field>
+                  </td>
+                </ng-container>
+                
+                <!-- Actions Column -->
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef>ACCIÓN</th>
+                  <td mat-cell *matCellDef="let sucursal; let i = index">
+                    <button mat-icon-button color="warn" type="button" (click)="removeSucursal(i)" 
+                            [disabled]="sucursalesArray.controls.length <= 1">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </td>
+                </ng-container>
+                
+                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+    
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()" [disabled]="isNewConfig">CANCELAR</button>
+  <button mat-raised-button color="primary" (click)="saveConfig()">GUARDAR</button>
+</mat-dialog-actions> 

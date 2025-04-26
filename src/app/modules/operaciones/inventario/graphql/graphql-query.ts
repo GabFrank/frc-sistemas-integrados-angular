@@ -108,8 +108,6 @@ export const inventarioPorUsuarioQuery = gql`
   query ($id: ID!) {
     data: inventarioPorUsuario(id: $id) {
       id
-      idOrigen
-      idCentral
       sucursal {
         id
         nombre
@@ -269,37 +267,37 @@ export const inventarioPorFechaQuery = gql`
 export const saveInventarioProducto = gql`
   mutation saveInventarioProducto($entity: InventarioProductoInput!) {
     data: saveInventarioProducto(inventarioProducto: $entity) {
+      id
+      concluido
+      producto {
         id
-        concluido
-        producto {
+        descripcion
+      }
+      zona {
+        id
+        sector {
           id
           descripcion
         }
-        zona {
-          id
-          sector {
-            id
-            descripcion
-          }
-          descripcion
+        descripcion
+      }
+      usuario {
+        id
+        persona {
+          nombre
         }
-        usuario {
+      }
+      inventarioProductoItemList {
+        id
+        presentacion {
           id
-          persona {
-            nombre
-          }
-        }
-        inventarioProductoItemList {
-          id
-          presentacion {
-            id
-            cantidad
-            imagenPrincipal
-          }
           cantidad
-          vencimiento
-          creadoEn
+          imagenPrincipal
         }
+        cantidad
+        vencimiento
+        creadoEn
+      }
     }
   }
 `;
@@ -345,7 +343,6 @@ export const deleteInventarioProductoItemQuery = gql`
     deleteInventarioProductoItem(id: $id)
   }
 `;
-
 
 export const inverntarioAbiertoPorSucursalQuery = gql`
   query ($id: ID!) {
@@ -399,4 +396,134 @@ export const inverntarioAbiertoPorSucursalQuery = gql`
   }
 `;
 
+export const inventarioProductoItemWithFilterQuery = gql`
+  query (
+    $startDate: String
+    $endDate: String
+    $sucursalIdList: [Int]
+    $usuarioIdList: [ID]
+    $productoIdList: [ID]
+    $page: Int
+    $size: Int
+    $orderBy: String
+    $tipoOrder: String
+  ) {
+    data: inventarioProductoItemWithFilter(
+      startDate: $startDate
+      endDate: $endDate
+      sucursalIdList: $sucursalIdList
+      usuarioIdList: $usuarioIdList
+      productoIdList: $productoIdList
+      page: $page
+      size: $size
+      orderBy: $orderBy
+      tipoOrder: $tipoOrder
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getPageable {
+        getPageNumber
+        getPageSize
+      }
+      getContent {
+        id
+        inventarioProducto {
+          id
+          inventario {
+            id
+            sucursal {
+              id
+              nombre
+            }
+          }
+        }
+        zona {
+          id
+        }
+        presentacion {
+          id
+          cantidad
+          producto {
+            id
+            descripcion
+            codigoPrincipal
+          }
+        }
+        cantidad
+        cantidadFisica
+        vencimiento
+        estado
+        creadoEn
+        usuario {
+          id
+          nickname
+        }
+      }
+    }
+  }
+`;
 
+export const reporteInventarioQuery = gql`
+  query (
+    $startDate: String
+    $endDate: String
+    $sucursalIdList: [Int]
+    $usuarioIdList: [ID]
+    $productoIdList: [ID]
+    $page: Int
+    $size: Int
+    $orderBy: String
+    $tipoOrder: String
+    $nickname: String
+  ) {
+    data: reporteInventario(
+      startDate: $startDate
+      endDate: $endDate
+      sucursalIdList: $sucursalIdList
+      usuarioIdList: $usuarioIdList
+      productoIdList: $productoIdList
+      page: $page
+      size: $size
+      orderBy: $orderBy
+      tipoOrder: $tipoOrder
+      nickname: $nickname
+    )
+  }
+`;
+
+export const inventarioProductoItemQuery = gql`
+  query ($id: ID!) {
+    data: inventarioProductoItem(id: $id) {
+      id
+      inventarioProducto {
+        id
+      }
+      zona {
+        id
+      }
+      presentacion {
+        id
+        cantidad
+        producto {
+          id
+          descripcion
+          codigoPrincipal
+        }
+      }
+      cantidad
+      cantidadFisica
+      vencimiento
+      estado
+      creadoEn
+      usuario {
+        id
+        nickname
+      }
+    }
+  }
+`;

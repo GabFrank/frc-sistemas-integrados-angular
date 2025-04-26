@@ -10,23 +10,25 @@ tr.example-detail-row {
   height: 0;
 }
 
-
-.example-producto-row td {
+.example-element-row td {
   border-bottom-width: 0;
 }
 
-.example-producto-detail {
+.example-element-detail {
   overflow: hidden;
   display: flex;
-  background-color: none !important;
 }
 
-.example-producto-detail:hover {
-  background-color: none;
+table {
+  width: 100%;
 }
 
-.mat-cell,
-.mat-header-cell {
+tr.example-detail-row {
+  height: 0;
+}
+
+.mat-mdc-cell,
+.mat-mdc-header-cell {
 word-wrap: initial;
 display: table-cell;
 padding: 0px 10px;
@@ -62,4 +64,10 @@ background-color: rgb(51, 51, 51) !important;
 
 input {
   text-transform: uppercase;
+}
+
+.separator-horizontal-bottom {
+  padding-left: 3px;
+  padding-right: 3px;
+  box-shadow: 0 1px 0 0 rgba(133, 133, 133, 0.133);
 }

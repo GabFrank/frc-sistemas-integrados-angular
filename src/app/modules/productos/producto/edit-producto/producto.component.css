@@ -36,7 +36,6 @@ input {
   color: black;
 }
 
-
 ::ng-deep .mat-step-header[aria-labelledby="disabled_Resi"] {
   pointer-events: none !important;
   cursor: not-allowed;
@@ -55,16 +54,24 @@ tr.example-detail-row {
 }
 
 .example-element-detail {
-  height: 500px;
-overflow-y: auto ;
+  min-height: 300px;
+  overflow-y: auto;
+  background-color: rgb(74, 74, 74);
 }
 
-td, th {
+.example-element-detail-familia {
+  min-height: 100px;
+  overflow-y: auto;
+  background-color: rgb(74, 74, 74);
+}
+
+td,
+th {
   text-align: center;
 }
 
 .selectedRow {
-  background-color: #43A047;
+  background-color: #43a047;
 }
 
 .title {
@@ -74,4 +81,24 @@ td, th {
 
 .item {
   text-align: start;
+}
+
+::ng-deep .mat-horizontal-stepper-wrapper,
+::ng-deep .mat-horizontal-content-container,
+::ng-deep .mat-horizontal-stepper-content {
+  height: 100%; /* Ensure that all necessary inner elements take full height */
+}
+
+.ellipsis-text {
+  white-space: nowrap; /* Prevents text from wrapping to the next line */
+  overflow-x: hidden !important; /* Ensures that any overflowed content is hidden */
+  text-overflow: ellipsis !important; /* Adds ellipsis (...) when the text overflows */
+}
+
+.mat-mdc-row:hover {
+  background-color: #43a048a9 !important;
+}
+
+textarea {
+  text-transform: capitalize;
 }

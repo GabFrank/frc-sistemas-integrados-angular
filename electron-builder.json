@@ -1,5 +1,5 @@
 {
-  "asar": false,
+  "asar": true,
   "directories": {
     "output": "release/"
   },
@@ -8,12 +8,9 @@
     "!**/*.ts",
     "!*.map",
     "!package.json",
-    "!package-lock.json"
-  ],
-  "extraResources": [
+    "!package-lock.json",
     {
-      "from": "dist",
-      "to": "app",
+      "from": "../dist",
       "filter": ["**/*"]
     }
   ],
@@ -27,19 +24,30 @@
     ]
   },
   "nsis": {
+    "oneClick": false,
+    "perMachine": true,
+    "allowElevation": true,
+    "allowToChangeInstallationDirectory": false,
     "installerIcon": "./app/icons/logo.ico",
-    "uninstallerIcon": "./app/icons/logo_uninstall.ico"
+    "uninstallerIcon": "./app/icons/logo_uninstall.ico",
+    "guid": "FRC",
+    "include": "app/installer.nsh",
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "FRC",
+    "artifactName": "FRC.${ext}"
   },
   "portable": {
-    "splashImage": "dist/assets/logo_inicio.bmp"
+    "splashImage": "dist/assets/icons/electron.bmp"
   },
   "mac": {
     "icon": "dist/assets/icons",
     "target": ["dmg"]
   },
   "linux": {
-    "icon": "dist/assets/icons",
-    "target": ["AppImage"]
-  },
-  "afterAllArtifactBuild": "./afterAllArtifactBuild.js"
+    "icon": "./app/icons/logo_inicio.png",
+    "target": ["AppImage"],
+    "category": "Utility",
+    "artifactName": "FRC.${ext}"
+  }
 }

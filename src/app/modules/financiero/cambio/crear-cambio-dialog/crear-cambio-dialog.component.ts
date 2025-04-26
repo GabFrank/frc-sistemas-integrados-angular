@@ -41,7 +41,7 @@ export class CrearCambioDialogComponent implements OnInit {
   }
 
   onGuardar(){
-    let input = new CambioInput()
+    let input = new CambioInput();
     input.monedaId = this.selectedMoneda.id;
     input.valorEnGs = this.cotizacionControl.value;
     this.cambioService.onSaveCambio(input)

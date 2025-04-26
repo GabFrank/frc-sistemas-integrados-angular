@@ -1,0 +1,46 @@
+<div
+  fxLayout="row"
+  style="width: 100%; height: 80%"
+  fxLayoutAlign="center center"
+>
+  <div fxFlex="60" fxLayout="column">
+    <div
+      fxFlex
+      fxLayout="row wrap"
+      fxLayoutAlign="start start"
+      fxLayoutGap="10px"
+    >
+      <div class="item" fxFlex="25%" style="height: 200px">
+        <app-boton
+          nombre="Informaciones Generales"
+          icon="receipt_long"
+          [iconSize]="4"
+          (clickEvent)="onInfoGenerales()"
+        ></app-boton>
+      </div>
+      <div class="item" fxFlex="25%" style="height: 200px">
+        <app-boton
+          nombre="Precios de deliverys"
+          icon="move_up"
+          [iconSize]="4"
+          (clickEvent)="onDeliveryPrecio()"
+        ></app-boton>
+      </div>
+      <div class="item" fxFlex="25%" style="height: 200px">
+        <app-boton
+          nombre="Entregadores"
+          icon="tune"
+          [iconSize]="4"
+        ></app-boton>
+      </div>
+      <div class="item" fxFlex="25%" style="height: 200px">
+        <app-boton
+          nombre="Vehículos"
+          icon="tune"
+          [iconSize]="4"
+        ></app-boton>
+      </div>
+    </div>
+  </div>
+</div>
+

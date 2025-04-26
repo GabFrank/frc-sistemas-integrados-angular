@@ -1,0 +1,32 @@
+table {
+    width: 100%;
+}
+
+tr.example-detail-row {
+    height: 0;
+}
+
+input {
+    text-transform: uppercase;
+}
+
+// Custom styling for status colors
+td.estado-pendiente {
+    color: orange;
+    font-weight: bold;
+}
+
+td.estado-parcial {
+    color: #ffcc00;
+    font-weight: bold;
+}
+
+td.estado-concluido {
+    color: green;
+    font-weight: bold;
+}
+
+td.estado-cancelado {
+    color: red;
+    font-weight: bold;
+} 

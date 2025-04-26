@@ -1,8 +1,8 @@
-import gql from 'graphql-tag';
+import gql from "graphql-tag";
 
 export const familiasQuery = gql`
   {
-    data : familias {
+    data: familias {
       id
       nombre
       descripcion
@@ -28,24 +28,37 @@ export const familiasQuery = gql`
 `;
 
 export const familiasSearch = gql`
-  query ($texto: String) {
-    data: familiaSearch(texto: $texto) {
-      id
-      nombre
-      descripcion
-      activo
-      icono
-      posicion
-      subfamilias {
+  query ($texto: String,$page:Int, $size:Int) {
+    data: familiaSearch(texto: $texto, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
         id
+        nombre
         descripcion
         activo
         icono
-        subfamiliaList {
+        posicion
+        creadoEn
+        usuario {
+          id
+        }
+        subfamilias {
           id
           descripcion
           activo
           icono
+          subfamiliaList {
+            id
+            descripcion
+            activo
+            icono
+          }
         }
       }
     }
@@ -54,7 +67,7 @@ export const familiasSearch = gql`
 
 export const familiaQuery = gql`
   query ($id: ID!) {
-    data : familia(id: $id) {
+    data: familia(id: $id) {
       id
       nombre
       descripcion
@@ -86,6 +99,7 @@ export const saveFamilia = gql`
       activo
       icono
       posicion
+      creadoEn
       subfamilias {
         id
         descripcion

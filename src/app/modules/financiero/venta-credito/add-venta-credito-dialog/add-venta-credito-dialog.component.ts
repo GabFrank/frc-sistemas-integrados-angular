@@ -19,6 +19,7 @@ import { PersonaService } from '../../../personas/persona/persona.service';
 import { EstadoVentaCredito, TipoConfirmacion, VentaCredito, VentaCreditoCuotaInput } from '../venta-credito.model';
 import { VentaCreditoService } from '../venta-credito.service';
 import { isNumber } from 'util';
+import { generateRandomString } from '../../../../commons/core/utils/string-utils';
 
 export class AddVentaCreditoData {
   valor: number;
@@ -55,28 +56,30 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   nombreClienteControl = new FormControl(null, [Validators.required, Validators.minLength(1)])
   cuotasControl = new FormControl(1, [Validators.required])
   interesControl = new FormControl(0, [Validators.required])
+  facturaControl = new FormControl(false);
   dataSource = new MatTableDataSource<VentaCreditoCuotaInput>([])
   displayedColumns = ['id', 'vencimiento', 'valor', 'acciones']
   total = 0;
   ventaSub: Subscription;
   searchTimer;
 
+  vencimientoControl = new FormControl(getLastDayOfNextMonth())
+  today = new Date();
+
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: AddVentaCreditoData,
     private dialogRef: MatDialogRef<AddVentaCreditoDialogComponent>,
-    private personaService: PersonaService,
     private clienteService: ClienteService,
     private notificacionService: NotificacionSnackbarService,
     private matDialog: MatDialog,
     private mainService: MainService,
-    private ventaCreditoService: VentaCreditoService
+    private ventaCreditoService: VentaCreditoService,
   ) { }
 
 
   ngOnInit(): void {
     if (this.data?.valor != null) {
       this.total = this.data?.valor;
-      this.addItem(this.total)
     }
     this.cuotasControl.disable()
     this.interesControl.disable()
@@ -89,9 +92,8 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
         }
         if (this.nombreClienteControl.valid) {
           this.searchTimer = setTimeout(() => {
-            console.log('on search');
             this.onSearch()
-          }, 500);
+          }, 1000);
         } else {
           this.clienteList = [];
         }
@@ -101,9 +103,12 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   }
 
   ngAfterViewInit(): void {
-    this.container.nativeElement.addEventListener('keydown', (e) => {
-      console.log(e);
 
+    setTimeout(() => {
+      this.nombreInput.nativeElement.focus();
+    }, 500);
+
+    this.container.nativeElement.addEventListener('keydown', (e) => {
       if (!this.isDialogOpen && this.total <= this.selectedCliente?.saldo) {
         switch (e.key) {
           case "F1":
@@ -142,7 +147,6 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   onSearch() {
     if (this.nombreClienteControl.valid) {
       if (isNaN(this.nombreClienteControl.value) == false) {
-        console.log('is numero');
         this.clienteService.onGetByPersonaIdFromServer(this.nombreClienteControl.value).subscribe(res => {
           if (res != null) {
             this.onClienteSelect(res)
@@ -151,7 +155,6 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
           }
         })
       } else {
-        console.log('not a numero');
         this.onSearchByNombre()
       }
 
@@ -162,16 +165,13 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
 
   onSearchByNombre() {
     this.clienteService.onSearchFromServer(this.nombreClienteControl.value).subscribe(res2 => {
-      console.log(res2);
-      
       if (res2 != null) {
         if (res2.length == 1) {
           this.onClienteSelect(res2[0])
           this.onClienteAutocompleteClose();
         } else if (res2.length > 1) {
           this.clienteList = res2;
-          console.log(this.clienteList);
-          
+
         } else {
           this.onClienteAutocompleteClose();
           this.onClienteSelect(null);
@@ -181,6 +181,8 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   }
 
   onClienteSelect(e) {
+    console.log(e);
+    
     if (e?.id != null) {
       this.selectedCliente = e;
       this.nombreClienteControl.setValue(
@@ -211,7 +213,7 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
     item.activo = true;
     item.parcial = false;
     item.valor = valor;
-    item.vencimiento = dateToString(getLastDayOfNextMonth())
+    item.vencimiento = dateToString(this.vencimientoControl.value)
     this.dataSource.data = updateDataSource(this.dataSource.data, item)
   }
 
@@ -234,6 +236,7 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   }
 
   onConfirmVentaCredito() {
+    this.addItem(this.total)
     let ventaCredito = new VentaCredito()
     ventaCredito.cantidadCuotas = this.cuotasControl.value;
     ventaCredito.cliente = this.selectedCliente;
@@ -241,8 +244,9 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
     ventaCredito.sucursal = this.mainService?.sucursalActual;
     ventaCredito.tipoConfirmacion = this.tipoConfirmacion;
     ventaCredito.valorTotal = this.total;
+    ventaCredito.usuario = this.mainService.usuarioActual;
     if (ventaCredito.valorTotal <= this.selectedCliente?.saldo) {
-      this.dialogRef.close({ ventaCredito: ventaCredito, itens: this.dataSource.data })
+      this.dialogRef.close({ ventaCredito: ventaCredito, itens: this.dataSource.data, factura: this.facturaControl.value })
     } else {
       this.notificacionService.openWarn('No posee saldo suficiente. Verifique en el aplicativo.')
     }
@@ -253,16 +257,16 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
   }
   onGuardar() { }
 
-
-
   onQrClick() {
     let now = Date.now()
     let id = this.selectedCliente.persona.id;
+    let secretKey = generateRandomString(16);
     let qrData: QrData = {
-      idOrigen: this.mainService.sucursalActual.id,
+      idOrigen: id,
       tipoEntidad: TipoEntidad.VENTA_CREDITO,
-      data: id,
-      timestamp: now
+      data: secretKey,
+      timestamp: now,
+      sucursalId: this.mainService.sucursalActual.id
     }
     let qrDialogRef = this.matDialog.open(QrCodeComponent, {
       data: {
@@ -272,19 +276,15 @@ export class AddVentaCreditoDialogComponent implements OnInit, OnDestroy, AfterV
       }
     })
 
-    this.ventaSub = this.ventaCreditoService.ventaCreditoQrSub().subscribe(res => {
-      if (res['clienteId'] == qrData.data) {
+    this.ventaSub = this.ventaCreditoService.ventaCreditoQrSub().pipe(untilDestroyed(this)).subscribe(res => {
+      if (+res['clienteId'] == +id && +this.mainService.sucursalActual.id == +res['sucursalId'] && secretKey == res['secretKey']) {
         let diff = ((Date.now() - (+qrData.timestamp)) / 1000) / 60;
-        console.log(diff);
-
         if (diff < 60) {
           this.ventaSub.unsubscribe()
           qrDialogRef.close()
           this.tipoConfirmacion = TipoConfirmacion.QR;
           this.onConfirmVentaCredito()
         }
-      } else {
-        this.notificacionService.openWarn('Cliente incorrecto.')
       }
     })
   }

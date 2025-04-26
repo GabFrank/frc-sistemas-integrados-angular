@@ -5,5 +5,5 @@ export class BancoInput {
   nombre: string;
   codigo: string;
   creadoEn: Date;
-  usuarioId: number;
+  usuarioId: number = null;
 }

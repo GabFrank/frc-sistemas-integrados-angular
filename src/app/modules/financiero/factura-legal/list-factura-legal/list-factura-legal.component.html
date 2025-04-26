@@ -8,9 +8,14 @@
   [buscarTrigger]="facturaStep5"
 >
   <div filtros fxLayout="row" fxLayoutGap="10px" style="width: 100%">
-    <div fxFlex="80">
-      <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
-        <div fxFlex="30%">
+    <div
+      fxFlex="60"
+      fxLayout="column"
+      fxLayoutAlign="start start"
+      fxLayoutGap="20px"
+    >
+      <div fxLayout="row" fxLayoutGap="10px" style="width: 100%">
+        <div fxFlex="50%">
           <mat-form-field style="width: 100%">
             <mat-label>Rango de fecha</mat-label>
             <mat-date-range-input
@@ -50,7 +55,7 @@
             >
           </mat-form-field>
         </div>
-        <div fxFlex="30%">
+        <div fxFlex="50%">
           <mat-form-field style="width: 100%">
             <mat-label>Sucursales</mat-label>
             <mat-select
@@ -91,8 +96,13 @@
           </mat-form-field>
         </div>
       </div>
-      <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
-        <div fxFlex="30%">
+      <div
+        fxLayout="row"
+        fxLayoutAlign="start center"
+        fxLayoutGap="10px"
+        style="width: 100%"
+      >
+        <div fxFlex="50%">
           <mat-form-field style="width: 100%">
             <mat-label>Nombre del cliente</mat-label>
             <input
@@ -103,7 +113,7 @@
             />
           </mat-form-field>
         </div>
-        <div fxFlex="30%">
+        <div fxFlex="50%">
           <mat-form-field style="width: 100%">
             <mat-label>Ruc del cliente</mat-label>
             <input
@@ -114,12 +124,6 @@
             />
           </mat-form-field>
         </div>
-        <!-- <div fxFlex="10%" style="text-align: center">
-          <mat-checkbox [formControl]="iva5Control"> Iva al 5% </mat-checkbox>
-        </div>
-        <div fxFlex="10%" style="text-align: center">
-          <mat-checkbox [formControl]="iva5Control"> Iva al 10% </mat-checkbox>
-        </div> -->
       </div>
       <div fxLayout="row" fxLayoutGap="20px">
         <div
@@ -133,15 +137,23 @@
         <div [bdcWalkTriggerFor]="facturaStep7">
           <app-boton
             (clickEvent)="exportarExcel()"
-            nombre="Exportar a excel"
-            [disableExpression]="dataSource.data.length < 1"
+            nombre="Exportar a .xlsx"
+            [disableExpression]="fechaInicioControl.invalid || sucursalControl.value?.length != 1"
+          >
+          </app-boton>
+        </div>
+        <div>
+          <app-boton
+            (clickEvent)="exportarExcel(true)"
+            nombre="Exportar a .zip"
+            [disableExpression]="fechaInicioControl.invalid"
           >
           </app-boton>
         </div>
       </div>
     </div>
     <div
-      fxFlex="20"
+      fxFlex="40"
       style="width: 100%; height: 100%; font-size: 1.15em; padding-right: 20px"
       [bdcWalkTriggerFor]="facturaStep6"
       fxLayout="column"
@@ -151,30 +163,53 @@
       <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
         <div fxFlex="60%">Cantidad de facturas:</div>
         <div fxFlex="40%" style="text-align: end">
-          {{ cantidadFacturas }}
+          {{ selectedResumenFacturas?.cantFacturas }}
         </div>
       </div>
       <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
         <div fxFlex="60%">Nro. inicio:</div>
         <div fxFlex="40%" style="text-align: end">
-          {{ numeroInicioFactura || "-" }}
+          {{ selectedResumenFacturas?.minNumero || "-" }}
         </div>
       </div>
       <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
         <div fxFlex="60%">Nro. fin:</div>
         <div fxFlex="40%" style="text-align: end">
-          {{ numeroFinFactura || "-" }}
+          {{ selectedResumenFacturas?.maxNumero || "-" }}
         </div>
       </div>
       <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
         <div fxFlex="60%">Total en Gs:</div>
         <div fxFlex="40%" style="text-align: end">
-          {{ totalEnGs | number : "1.0-0" }}
+          {{ selectedResumenFacturas?.totalFinal | number : "1.0-0" }}
+        </div>
+      </div>
+      <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+        <div fxFlex="60%">Total exentas:</div>
+        <div fxFlex="40%" style="text-align: end">
+          {{ selectedResumenFacturas?.total0 | number : "1.0-0" }}
+        </div>
+      </div>
+      <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+        <div fxFlex="60%">Total iva 5%:</div>
+        <div fxFlex="40%" style="text-align: end">
+          {{ selectedResumenFacturas?.total5 | number : "1.0-0" }}
+        </div>
+      </div>
+      <div fxLayout="row" fxLayoutAlign="start start" fxLayoutGap="10px">
+        <div fxFlex="60%">Total iva 10%:</div>
+        <div fxFlex="40%" style="text-align: end">
+          {{ selectedResumenFacturas?.total10 | number : "1.0-0" }}
         </div>
       </div>
     </div>
   </div>
-  <div table>
+  <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
     <table
       mat-table
       [dataSource]="dataSource"
@@ -222,7 +257,7 @@
           Ruc
         </th>
         <td mat-cell *matCellDef="let factura" style="text-align: center">
-          {{ factura?.ruc | titlecase }}
+          {{ factura?.ruc }}
         </td>
       </ng-container>
 
@@ -231,7 +266,7 @@
           Total
         </th>
         <td mat-cell *matCellDef="let factura" style="text-align: center">
-          {{ factura?.totalFinal | number : "1.0-0" }}
+          {{ factura?.totalFinal - (factura?.descuento || 0) | number : "1.0-0" }}
         </td>
       </ng-container>
 
@@ -266,6 +301,9 @@
           </button>
           <mat-menu #menu="matMenu">
             <button mat-menu-item (click)="onEdit(factura, i)">Editar</button>
+            <button mat-menu-item (click)="onImprimir(factura, i)">
+              Imprimir
+            </button>
             <button
               mat-menu-item
               color="primary"
@@ -299,7 +337,7 @@
               fxLayoutGap="20px"
               fxLayoutAlign="center center"
             >
-              <mat-card fxFlex="40%">
+              <mat-card appearance="outlined" fxFlex="40%">
                 <div style="text-align: center">
                   <h4>Item</h4>
                 </div>
@@ -403,6 +441,14 @@
         class="example-detail-row"
       ></tr>
     </table>
+    <mat-paginator
+      itemsPerPageLabel="Itens por pagina"
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)"
+      [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
   </div>
 </app-generic-list>
 
@@ -426,7 +472,7 @@
         <code>Filtrar</code>
         Utilizar filtros para optimizar las búsquedas
       </li>
-      <li> 
+      <li>
         <code>Exportar a excel</code>
         Exportar la lista de facturas filtradas a un formato excel compatible
         con el sistema de gestión contable.
@@ -610,7 +656,9 @@
       puede contactar con el soporte técnico.
     </p>
     <div style="width: 100%; text-align: center">
-      <button mat-stroked-button (click)="facturaStep8.close(); onFinalizar()">Cerrar</button>
+      <button mat-stroked-button (click)="facturaStep8.close(); onFinalizar()">
+        Cerrar
+      </button>
     </div>
   </div>
 </bdc-walk-dialog>

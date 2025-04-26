@@ -20,6 +20,7 @@ export class Funcionario  {
   activo: boolean;
   usuario: Usuario;
   nickname: string;
+  imagenPrincipal: string;
 
   toInput(): FuncionarioInput {
     let input = new FuncionarioInput;

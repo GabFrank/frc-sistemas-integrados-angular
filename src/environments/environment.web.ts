@@ -18,8 +18,3 @@ export const environment = {
     appId: "1:389460380308:web:53701896405855d9f64281"
   }
 };
-
-export const serverAdress = {
-  serverIp: localStorage.getItem('serverIpAddress') != null ? localStorage.getItem('serverIpAddress') : ipAddress,
-  serverPort: port
-}

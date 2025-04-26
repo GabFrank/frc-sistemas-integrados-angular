@@ -26,3 +26,7 @@ export function replaceObject<T>(arr: T[], object:T): T[]{
     }
     return arr;
 }
+
+export function extractIds(arr) {
+    return arr.map(obj => obj.id);
+  }

@@ -1,7 +1,6 @@
 import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
 import { CostoPorProducto } from '../../operaciones/costo-por-producto/costo-por-producto.model';
 import { Pedido } from '../../operaciones/pedido/edit-pedido/pedido.model';
-import { Proveedor } from '../../personas/proveedor/proveedor.model';
 import { Usuario } from '../../personas/usuarios/usuario.model';
 import { Codigo } from '../codigo/codigo.model';
 import { Presentacion } from '../presentacion/presentacion.model';
@@ -29,15 +28,19 @@ export class Producto {
   imagenPrincipal?: string;
   tipoConservacion?: string;
   subfamilia?: Subfamilia;
-  codigos?: [Codigo]
-  sucursales?: [ExistenciaCostoPorSucursal]
-  productoUltimasCompras?: [ExistenciaCostoPorSucursal]
+  codigos?: Codigo[]
+  sucursales?: ExistenciaCostoPorSucursal[]
+  productoUltimasCompras?: ExistenciaCostoPorSucursal[]
   presentaciones: Presentacion[]
   stockPorProducto?: number;
   codigoPrincipal?: string
   costo: CostoPorProducto
   isEnvase: boolean;
   envase: Producto
+  stockPorProductoDestino?: any;
+  precioPrincipal: number;
+  activo: boolean
+  creadoEn: Date
 }
 
 export class ExistenciaCostoPorSucursal {

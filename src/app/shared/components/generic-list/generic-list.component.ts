@@ -36,8 +36,17 @@ export class GenericListComponent implements OnInit {
   @Output()
   cargarMasDatos = new EventEmitter<any>(null);
 
+  @Output()
+  customFunction = new EventEmitter<any>(null);
+
   @Input()
   isAdicionar: boolean;
+
+  @Input()
+  isCustom: boolean;
+
+  @Input()
+  customName: string;
 
   @Input()
   isMenu: boolean = true;
@@ -56,6 +65,9 @@ export class GenericListComponent implements OnInit {
   
   @Input()
   isLastPage = false;
+
+  @Input()
+  isCargarMas = false;
   
   headerHeight;
   tableHeight;
@@ -65,7 +77,7 @@ export class GenericListComponent implements OnInit {
     public windowInfoService: WindowInfoService,
   ) { 
     this.headerHeight = windowInfoService.innerTabHeight * 0.2;
-    this.tableHeight = windowInfoService.innerTabHeight * 0.75;
+    this.tableHeight = windowInfoService.innerTabHeight * 0.80;
     this.containerHeight = windowInfoService.innerTabHeight;
   }
 
@@ -93,5 +105,8 @@ export class GenericListComponent implements OnInit {
     this.cargarMasDatos.emit()
   }
 
+  onCustomFunc(){
+    this.customFunction.emit()
+  }
   
 }

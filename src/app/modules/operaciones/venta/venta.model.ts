@@ -2,6 +2,7 @@ import { FormaPago } from "../../financiero/forma-pago/forma-pago.model";
 import { PdvCaja } from "../../financiero/pdv/caja/caja.model";
 import { Cliente } from "../../personas/clientes/cliente.model";
 import { Usuario } from "../../personas/usuarios/usuario.model";
+import { Delivery } from "../delivery/delivery.model";
 import { Cobro } from "./cobro/cobro.model";
 import { VentaEstado } from "./enums/venta-estado.enums";
 import { VentaItem, VentaItemInput } from "./venta-item.model";
@@ -23,6 +24,7 @@ export class Venta {
     cobro: Cobro
     sucursalId: number;
     isDelivery: boolean;
+    delivery: Delivery
 
     toInput(): VentaInput {
         let input = new VentaInput()
@@ -37,6 +39,8 @@ export class Venta {
         input.totalRs = this.totalRs;
         input.totalDs = this.totalDs;
         input.sucursalId = this.sucursalId;
+        input.cobroId = this.cobro?.id;
+        input.deliveryId = this.delivery?.id;
         return input;
     }
 
@@ -58,11 +62,13 @@ export class VentaInput {
     formaPagoId: number;
     estado: VentaEstado;
     creadoEn: Date;
-    usuarioId: number;
+    usuarioId: number = null;
     totalGs: number;
     totalRs: number;
     totalDs: number;
     sucursalId: number;
+    cobroId: number;
+    deliveryId: number;
 }
 
 export class VentaPorPeriodo {

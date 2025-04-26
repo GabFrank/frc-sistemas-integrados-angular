@@ -23,5 +23,5 @@ export class DocumentoInput {
   descripcion: string;
   activo: boolean;
   creadoEn: Date;
-  usuarioId: number;
+  usuarioId: number = null;
 }

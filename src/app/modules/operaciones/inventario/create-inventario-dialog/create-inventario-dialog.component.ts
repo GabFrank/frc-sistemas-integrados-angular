@@ -28,13 +28,13 @@ export class CreateInventarioDialogComponent implements OnInit {
   responsable: Usuario;
 
   constructor(
-    private mainService: MainService, 
-    private sectorService: SectorService, 
-    private notificacionService: NotificacionSnackbarService, 
+    private mainService: MainService,
+    private sectorService: SectorService,
+    private notificacionService: NotificacionSnackbarService,
     private dialogoService: DialogosService,
     private matDialogRef: MatDialogRef<CreateInventarioDialogComponent>,
     private inventarioService: InventarioService
-    ) { 
+    ) {
     this.responsable = mainService.usuarioActual;
   }
 
@@ -46,7 +46,6 @@ export class CreateInventarioDialogComponent implements OnInit {
     this.sectorService.onGetSectores(this.mainService.sucursalActual.id)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
-        console.log(res)
         if(res.length==0){
           this.notificacionService.notification$.next({
             texto: 'No hay sectores ni zonas registradas.',
@@ -65,12 +64,11 @@ export class CreateInventarioDialogComponent implements OnInit {
               this.inventarioService.onSaveInventario(inventario.toInput())
                 .pipe(untilDestroyed(this))
                 .subscribe(res2 => {
-                  console.log(res2)
                   if(res2!=null){
                     this.matDialogRef.close(res2)
                   }
                 })
-            } 
+            }
           })
         }
       })

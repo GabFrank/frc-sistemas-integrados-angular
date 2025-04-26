@@ -40,7 +40,6 @@ export class SeleccionarBilletesTouchComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: SelectBilleteData,
     public dialogRef: MatDialogRef<PagoTouchComponent>,
   ) {
-    console.log(data)
     switch (data.moneda.denominacion) {
       case 'GUARANI':
         this.selectedBilletes = this.guaraniBilletes.sort((a,b) => this.filtrar(a,b));
@@ -62,7 +61,7 @@ export class SeleccionarBilletesTouchComponent implements OnInit {
         this.numberFormat = '1.2-2'
 
         break;
-    
+
       default:
         break;
     }
@@ -87,7 +86,6 @@ export class SeleccionarBilletesTouchComponent implements OnInit {
       saldo: new FormControl(null)
     })
 
-    console.log(this.data)
 
     this.formGroup.controls.cantidad.setValue(1);
     this.formGroup.controls.total.setValue(0);

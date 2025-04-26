@@ -41,7 +41,7 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
   usuarioRoleColumnsToDisplay = ['id', 'nombre', 'eliminar']
   roleList: Role[];
   selectedUsuarioRole;
-  
+
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: AdicionarUsuarioDialogData,
     private dialogRef: MatDialogRef<AdicionarUsuarioDialogComponent>,
@@ -53,8 +53,6 @@ export class AdicionarUsuarioDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    console.log(this.data);
-
     this.formGroup = new FormGroup({
       nickname: this.nicknameControl,
       activo: this.activoControl

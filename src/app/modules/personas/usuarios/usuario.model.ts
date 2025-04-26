@@ -1,3 +1,4 @@
+import { InicioSesion } from '../../configuracion/models/inicio-sesion.model';
 import { Persona } from '../persona/persona.model';
 import { UsuarioInput } from './usuario-input.model';
 
@@ -12,6 +13,7 @@ export class Usuario  {
   roles: string[];
   avatar: string;
   activo: boolean;
+  inicioSesion: InicioSesion
 
   toInput(): UsuarioInput {
     let input = new UsuarioInput;

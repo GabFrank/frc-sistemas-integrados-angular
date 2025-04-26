@@ -1,87 +1,32 @@
 import { enableProdMode } from '@angular/core';
 import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
-const { readFileSync } = window.require('fs');
-import { isDevMode } from '@angular/core';
 import { AppModule } from './app/app.module';
 import { APP_CONFIG, environment } from './environments/environment';
-const electron = window.require('electron');
 
-if (APP_CONFIG.production) {
+// Check production mode and enable production mode if needed
+if (APP_CONFIG && APP_CONFIG.production) {
   enableProdMode();
 }
 
-(async () => {
-  var configPath;
-  var configLocalPath;
-  if (isDevMode) {
-    configPath = "./configuracion.json"
-    configLocalPath = "./configuracion-local.json"
-  } else if (process.platform == 'darwin') {
-    configPath = "./configuracion.json"
-    configLocalPath = "./configuracion-local.json"
-  } else if (process.platform == 'win32') {
-    configPath = ".\\configuracion.json"
-    configLocalPath = ".\\configuracion-local.json"
+// Bootstrap the Angular application
+platformBrowserDynamic()
+  .bootstrapModule(AppModule, {
+    preserveWhitespaces: false
+  })
+  .catch(err => console.error(err));
+
+  // preserve the real console.error
+const _consoleError = console.error.bind(console);
+
+console.error = (...args: any[]) => {
+  // if it's exactly the WebSocket connection-refused error, swallow it
+  if (
+    typeof args[0] === 'string' &&
+    args[0].includes('WebSocket connection to') &&
+    args[0].includes('failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED')
+  ) {
+    return;
   }
-  var configFile: Config = JSON.parse(readFileSync(configPath));
-  var configLocalFile: ConfigLocal = JSON.parse(readFileSync(configLocalPath));
-
-  if (configLocalPath != null) {
-    if (localStorage.getItem('ip') == null || localStorage.getItem('centralIp') == null) {
-      environment['serverIp'] = configLocalFile.ipDefault;
-      environment['serverPort'] = configLocalFile.puertoDefault;
-      environment['serverCentralIp'] = configLocalFile.ipDefault;
-      environment['serverCentralPort'] = configLocalFile.puertoDefault;
-      localStorage.setItem('ip', configLocalFile.ipDefault)
-      localStorage.setItem('port', configLocalFile.puertoDefault + "")
-      localStorage.setItem('centralIp', configLocalFile.ipCentralDefault)
-      localStorage.setItem('centralPort', configLocalFile.puertoCentralDefault + "")
-    } else {
-      environment['serverIp'] = localStorage.getItem('ip');
-      environment['serverPort'] = +localStorage.getItem('port');
-      environment['serverCentralIp'] = localStorage.getItem('centralIp');
-      environment['serverCentralPort'] = +localStorage.getItem('centralPort');
-    }
-    environment['printers'] = configLocalFile.printers;
-    environment['local'] = configLocalFile.local;
-    environment['precios'] = configLocalFile.precios;
-    environment['modo'] = configLocalFile.modo;
-    environment['pdvId'] = configLocalFile.pdvId;
-
-  } else {
-    alert("Archivo de configuración local en falta")
-  }
-
-  if (configFile != null) {
-    environment['sucursales'] = configFile.sucursales;
-  }  
-
-  platformBrowserDynamic()
-    .bootstrapModule(AppModule, {
-      preserveWhitespaces: false
-    })
-    .catch(err => console.error(err));
-})();
-
-
-export interface Config {
-  repositoryUrl: string;
-  sucursales: {
-    id: number
-    nombre: string
-    ip: string
-    port: number
-  }
-}
-
-export interface ConfigLocal {
-  ipDefault: string
-  puertoDefault: number
-  ipCentralDefault: string
-  puertoCentralDefault: number
-  printers;
-  local: string;
-  precios: string[]
-  modo: string;
-  pdvId: number;
-}
+  // otherwise delegate to the real console.error
+  _consoleError(...args);
+};

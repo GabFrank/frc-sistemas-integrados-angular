@@ -1,0 +1,248 @@
+<app-generic-list
+  [data]="dataSource.data"
+  (filtrar)="onFiltrar()"
+  (resetFiltro)="resetFiltro()"
+  (adicionar)="onNewSolicitudPago()"
+  [isAdicionar]="true"
+>
+  <div filtros>
+    <div
+      fxLayout="row wrap"
+      fxLayoutAlign="start center"
+      fxLayoutGap="10px"
+      style="width: 100%"
+    >
+      <!-- ID filter -->
+      <div fxFlex="20%">
+        <mat-form-field style="width: 90%">
+          <mat-label>ID Solicitud</mat-label>
+          <input
+            type="number"
+            matInput
+            [formControl]="idControl"
+            (keyup.enter)="onFiltrar()"
+          />
+        </mat-form-field>
+      </div>
+      
+      <!-- Referencia ID filter -->
+      <div fxFlex="20%">
+        <mat-form-field style="width: 90%">
+          <mat-label>Referencia</mat-label>
+          <input
+            #buscar
+            type="text"
+            matInput
+            [formControl]="buscarControl"
+            (keyup.enter)="onFiltrar()"
+          />
+        </mat-form-field>
+      </div>
+      
+      <!-- Estado filter -->
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Estado</mat-label>
+          <mat-select [formControl]="estadoControl" name="estado">
+            <mat-option [value]="null"> Todos </mat-option>
+            <mat-option *ngFor="let estado of estadoList" [value]="estado">
+              {{ estado | titlecase }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      
+      <!-- Tipo filter -->
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Tipo</mat-label>
+          <mat-select [formControl]="tipoControl" name="tipo">
+            <mat-option [value]="null"> Todos </mat-option>
+            <mat-option *ngFor="let tipo of tipoList" [value]="tipo">
+              {{ tipo | titlecase }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+  
+  <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
+    <!-- Loading indicator -->
+    <div 
+      *ngIf="isSearching" 
+      style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 999;"
+    >
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+    
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      multiTemplateDataRows
+      class="mat-elevation-z8"
+      style="width: 100%"
+    >
+      <!-- ID Column -->
+      <ng-container matColumnDef="id" style="width: 5%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
+          Id
+        </th>
+        <td mat-cell *matCellDef="let solicitudPago" style="text-align: center; width: 5%">
+          {{ solicitudPago?.id }}
+        </td>
+      </ng-container>
+
+      <!-- Usuario Column -->
+      <ng-container matColumnDef="usuario">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Usuario
+        </th>
+        <td mat-cell *matCellDef="let solicitudPago" style="text-align: center">
+          {{ solicitudPago?.usuario?.nickname }}
+        </td>
+      </ng-container>
+
+      <!-- Fecha Creación Column -->
+      <ng-container matColumnDef="creadoEn">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Fecha Creación
+        </th>
+        <td mat-cell *matCellDef="let solicitudPago" style="text-align: center">
+          {{ solicitudPago?.creadoEn | date:'dd/MM/yyyy HH:mm' }}
+        </td>
+      </ng-container>
+
+      <!-- Estado Column -->
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Estado
+        </th>
+        <td 
+          mat-cell 
+          *matCellDef="let solicitudPago" 
+          style="text-align: center"
+          [ngClass]="'estado-' + (solicitudPago?.estado | lowercase)"
+        >
+          {{ solicitudPago?.estado | titlecase }}
+        </td>
+      </ng-container>
+
+      <!-- Tipo Column -->
+      <ng-container matColumnDef="tipo">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Tipo
+        </th>
+        <td mat-cell *matCellDef="let solicitudPago" style="text-align: center">
+          {{ solicitudPago?.tipo | titlecase }}
+        </td>
+      </ng-container>
+
+      <!-- Referencia ID Column -->
+      <ng-container matColumnDef="referenciaId">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Referencia
+        </th>
+        <td mat-cell *matCellDef="let solicitudPago" style="text-align: center">
+          {{ solicitudPago?.referenciaId }}
+        </td>
+      </ng-container>
+
+      <!-- Action column -->
+      <ng-container matColumnDef="acciones">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 5%; text-align: center"
+        >
+          ...
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let solicitudPago; let i = index"
+          style="text-align: center; width: 5%"
+        >
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button
+              mat-menu-item
+              (click)="onEditSolicitudPago(solicitudPago, i)"
+              *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)"
+            >
+              Editar
+            </button>
+            <button
+              mat-menu-item
+              (click)="onViewDetails(solicitudPago)"
+              *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)"
+            >
+              Ver detalles
+            </button>
+            <button
+              mat-menu-item
+              (click)="onCrearEditarPago(solicitudPago)"
+              *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)"
+            >
+              Crear/Editar pago
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <!-- Row definitions -->
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+      ></tr>
+
+      <!-- Expandable row detail (optional) -->
+      <ng-container matColumnDef="expandedDetail">
+        <td
+          mat-cell
+          *matCellDef="let solicitudPago"
+          [attr.colspan]="displayedColumns.length"
+          class="expanded"
+        >
+          <div
+            class="example-solicitudPago-detail"
+            [@detailExpand]="
+              solicitudPago == expandedSolicitudPago ? 'expanded' : 'collapsed'
+            "
+            style="text-align: center"
+            fxLayout="column"
+            fxLayoutAlign="start start"
+          >
+            <!-- Expanded detail content can be added here -->
+          </div>
+        </td>
+      </ng-container>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: ['expandedDetail']"
+        class="example-detail-row"
+      ></tr>
+    </table>
+    
+    <!-- Pagination -->
+    <mat-paginator
+      itemsPerPageLabel="Itens por pagina"
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)"
+      [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
+  </div>
+</app-generic-list> 

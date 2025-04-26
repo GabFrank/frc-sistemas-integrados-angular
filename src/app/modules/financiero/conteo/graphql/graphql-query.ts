@@ -131,7 +131,7 @@ export const saveConteo = gql`
   mutation saveConteo(
     $conteo: ConteoInput!
     $conteoMonedaInputList: [ConteoMonedaInput]
-    $cajaId: Int
+    $cajaId: Int!
     $apertura: Boolean
   ) {
     data: saveConteo(

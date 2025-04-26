@@ -39,26 +39,20 @@ export class ReportTestComponent implements OnInit {
 
  generatePDF() {
   var data = document.getElementById('pdf' + this.counter)
-  console.log(data)
   html2canvas(data, {
      scale: 3 // make better quality ouput
   }).then((canvas) => {
      this.counter++
-     console.log(canvas)
      // Few necessary setting options
      const contentDataURL = canvas.toDataURL('image/png')
-     console.log(contentDataURL)
 
      this.pdf.addImage(contentDataURL, 'PNG', 0, 0, 210, 295)
 
      // Control if new page needed, else generate the pdf
-     console.log(this.counter, this.length)
      if (this.counter < this.length) {
-       console.log('entro al if');
         this.pdf.addPage()
         this.generatePDF()
      } else {
-       console.log('entra al save')
         this.pdf.save('users.pdf') // Generated PDF
         return true
      }
@@ -79,12 +73,10 @@ export class ReportTestComponent implements OnInit {
 
   paginaSiguiente() {
     if(this.paginas.length-1 > this.counter) this.counter++;
-    console.log(this.counter)
 
   }
 
   paginaAnterior() {
     if(this.counter > 0) this.counter--;
-    console.log(this.counter)
   }
 }

@@ -3,6 +3,7 @@ import {
   ElementRef,
   HostListener,
   Inject,
+  Input,
   OnInit,
   ViewChild,
 } from "@angular/core";
@@ -31,6 +32,7 @@ import { CajaService } from "../caja.service";
 
 export class AdicionarCajaData {
   caja?: PdvCaja;
+  isVentaTouch?: boolean;
 }
 
 export interface AdicionarCajaResponse {
@@ -39,9 +41,13 @@ export interface AdicionarCajaResponse {
   conteoCierre?: Conteo;
 }
 
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { MainService } from "../../../../../main.service";
 import { FacturaLegalService } from "../../../factura-legal/factura-legal.service";
+import { DeliveryService } from "../../../../pdv/comercial/venta-touch/delivery-dialog/delivery.service";
+import { DeliveryEstado } from "../../../../operaciones/delivery/enums";
+import { Delivery } from "../../../../operaciones/delivery/delivery.model";
+import { Tab } from "../../../../../layouts/tab/tab.model";
 
 @UntilDestroy()
 @Component({
@@ -50,11 +56,17 @@ import { FacturaLegalService } from "../../../factura-legal/factura-legal.servic
   styleUrls: ["./adicionar-caja-dialog.component.scss"],
 })
 export class AdicionarCajaDialogComponent implements OnInit {
+
+  @Input()
+  data: Tab;
+  
   @ViewChild("stepper", { static: false }) stepper: MatStepper;
   @ViewChild("codigoMaletinInput", { static: false })
   codigoMaletinInput: ElementRef;
 
   @ViewChild("siguienteBtn", { static: false })
+
+  
   siguienteBtn: MatButton;
 
   conetoMonedaList: ConteoMoneda[];
@@ -75,8 +87,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
   observacionControl = new FormControl(null);
   activoControl = new FormControl(true);
   estadoControl = new FormControl(true);
-  fechaAperturaControl = new FormControl(true);
-  fechaCierreControl = new FormControl(true);
+  fechaAperturaControl = new FormControl();
+  fechaCierreControl = new FormControl();
   creadoEnControl = new FormControl();
   conteoAperturaControl = new FormControl();
   conteoCierreControl = new FormControl();
@@ -98,37 +110,62 @@ export class AdicionarCajaDialogComponent implements OnInit {
 
   isCierre = false;
 
+  isDeliveryAbierto = false;
+
+  verificarMaletinTimeout = null;
+
+  isTab = false;
+
+  isVentaTouch = false;
+
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: AdicionarCajaData,
+    @Inject(MAT_DIALOG_DATA) public data2: AdicionarCajaData,
     private matDialogRef: MatDialogRef<AdicionarCajaDialogComponent>,
     private cajaService: CajaService,
     private maletinService: MaletinService,
     private notificacionBar: NotificacionSnackbarService,
     private cargandoDialog: CargandoDialogService,
     private matDialog: MatDialog,
-    private mainService: MainService,
-    private facturaService: FacturaLegalService
+    private deliveryService: DeliveryService
   ) {
-    // this.cargarMonedas();
+
   }
 
   ngOnInit(): void {
     this.idControl.disable();
     this.creadoEnControl.disable();
     this.usuarioControl.disable();
-    if (this.data?.caja != null) {
-      this.cajaService.onGetById(this.data.caja.id, this.data.caja.sucursalId).pipe(untilDestroyed(this)).subscribe((res) => {
-        if (res != null) {
-          this.selectedCaja = res;
-          this.isCierre = this.selectedCaja?.conteoCierre != null;
-          this.cargarDatos();
-        }
-      });
+
+    if(this.data != null) this.isTab = true;
+
+    if(this.data2?.isVentaTouch != null) this.isVentaTouch = this.data2?.isVentaTouch;
+    
+    let auxData: PdvCaja = this.data2?.caja != null ? this.data2?.caja : (this.data?.tabData?.data != null ? this.data?.tabData?.data : null);
+    if (auxData != null) {
+      this.cajaService
+        .onGetById(auxData?.id, auxData.sucursalId, null, !this.isVentaTouch)
+        .pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          if (res != null) {
+            this.selectedCaja = res;
+            this.isCierre = this.selectedCaja?.conteoCierre != null;
+            this.cargarDatos();
+            this.deliveryService
+              .onDeliveryPorCajaIdAndEstado(this.selectedCaja.id, [
+                DeliveryEstado.ABIERTO,
+                DeliveryEstado.EN_CAMINO,
+                DeliveryEstado.PARA_ENTREGA,
+              ], this.selectedCaja.sucursal.id, !this.isVentaTouch)
+              .subscribe((deliveryRes: Delivery[]) => {
+                if (deliveryRes.length > 0) this.isDeliveryAbierto = true;
+              });
+          }
+        });
     } else {
     }
+
     setTimeout(() => {
       this.codigoMaletinInput.nativeElement.focus();
-
     }, 1000);
   }
 
@@ -159,7 +196,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
   cargarDatos() {
     if (this.selectedCaja?.maletin != null)
       this.maletinService
-        .onGetPorId(this.selectedCaja?.maletin?.id).pipe(untilDestroyed(this))
+        .onGetPorId(this.selectedCaja?.maletin?.id, this.selectedCaja.sucursal.id, !this.isVentaTouch)
+        .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
             this.selectedMaletin = res;
@@ -200,35 +238,42 @@ export class AdicionarCajaDialogComponent implements OnInit {
   }
 
   verificarMaletin() {
-    this.maletinService
-      .onGetPorDescripcion(this.descripcionMaletinControl.value).pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          let maletinEncontrado: Maletin = res;
-          if (maletinEncontrado.abierto == true) {
-            this.notificacionBar.notification$.next({
-              texto: "Este maletin ya esta siendo utilizado",
-              color: NotificacionColor.warn,
-              duracion: 3,
-            });
-            this.seleccionarMaletin(null);
-          } else {
-            this.notificacionBar.notification$.next({
-              texto: "Maletin verificado correctamente",
-              color: NotificacionColor.success,
-              duracion: 2,
-            });
-            this.seleccionarMaletin(maletinEncontrado);
-          }
-        } else {
-          this.notificacionBar.notification$.next({
-            texto: "No existe un maletin registrado con ese código",
-            color: NotificacionColor.danger,
-            duracion: 3,
+    if (this.verificarMaletinTimeout == null) {
+      this.verificarMaletinTimeout = setTimeout(() => {
+        this.maletinService
+          .onGetPorDescripcion(this.descripcionMaletinControl.value, !this.isVentaTouch)
+          .pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            if (res != null) {
+              let maletinEncontrado: Maletin = res;
+              if (maletinEncontrado.abierto == true) {
+                this.notificacionBar.notification$.next({
+                  texto: "Este maletin ya esta siendo utilizado",
+                  color: NotificacionColor.warn,
+                  duracion: 3,
+                });
+                this.seleccionarMaletin(null);
+              } else {
+                this.notificacionBar.notification$.next({
+                  texto: "Maletin verificado correctamente",
+                  color: NotificacionColor.success,
+                  duracion: 2,
+                });
+                this.seleccionarMaletin(maletinEncontrado);
+              }
+            } else {
+              this.notificacionBar.notification$.next({
+                texto: "No existe un maletin registrado con ese código",
+                color: NotificacionColor.danger,
+                duracion: 3,
+              });
+              this.seleccionarMaletin(null);
+            }
           });
-          this.seleccionarMaletin(null);
-        }
-      });
+          clearTimeout(this.verificarMaletinTimeout)
+          this.verificarMaletinTimeout = null;
+      }, 1000);
+    }
   }
 
   sinMaletin() {
@@ -238,7 +283,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
         autoFocus: true,
         restoreFocus: true,
       })
-      .afterClosed().pipe(untilDestroyed(this))
+      .afterClosed()
+      .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           this.notificacionBar.notification$.next({
@@ -269,10 +315,10 @@ export class AdicionarCajaDialogComponent implements OnInit {
     switch (this.stepper.selectedIndex) {
       case 0:
         this.stepper.next();
-        this.cargandoDialog.openDialog();
+        let dialog = this.cargandoDialog.openDialog();
         setTimeout(() => {
           // this.gs500Input.nativeElement.focus()
-          this.cargandoDialog.closeDialog();
+          this.cargandoDialog.closeDialog(dialog.requestId);
         }, 500);
         this.siguienteSubject.next(0);
         break;
@@ -307,8 +353,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
       this.selectedConteoApertura = response.conteo;
     } else {
       this.selectedConteoCierre = response.conteo;
-      if(!this.isCierre){
-        this.goTo('imprimir')
+      if (!this.isCierre) {
+        this.goTo("imprimir");
         this.isCierre = true;
       }
     }
@@ -352,15 +398,26 @@ export class AdicionarCajaDialogComponent implements OnInit {
         this.focusToAPerturaSub.next(null);
         break;
       case "cierre":
-        this.stepper.selectedIndex = 1;
-        this.stepper.selectedIndex = 2;
-        this.focusToCierreSub.next(null);
+        if (this.isDeliveryAbierto) {
+          this.notificacionBar.openWarn("Posee deliverys sin concluir");
+        } else {
+          this.stepper.selectedIndex = 1;
+          this.stepper.selectedIndex = 2;
+          this.focusToCierreSub.next(null);
+        }
+
         break;
       case "imprimir":
-        if (this.selectedCaja != null) this.cajaService.onImprimirBalance(this.selectedCaja?.id)
+        if (this.selectedCaja != null)
+          this.cajaService.onImprimirBalance(
+            this.selectedCaja?.id,
+            this.selectedCaja?.sucursalId,
+            !this.isVentaTouch
+          );
         break;
       case "imprimir-factura":
-        if (this.selectedCaja != null) this.facturaService.onImprimirFacturasPorCaja(this.selectedCaja?.id)
+        if (this.selectedCaja != null)
+          // this.facturaService.onImprimirFacturasPorCaja(this.selectedCaja?.id);
         break;
       case "salir":
         this.matDialogRef.close();
@@ -371,20 +428,19 @@ export class AdicionarCajaDialogComponent implements OnInit {
   }
 
   crearNuevaCaja() {
-    this.cargandoDialog.openDialog(true, 'Creando caja...')
     setTimeout(() => {
-      let input = new PdvCajaInput;
-      input.maletinId = this.selectedMaletin.id;
-      input.activo = true;
-      this.cajaService.onSave(input)
+      let pdvCaja = new PdvCaja();
+      pdvCaja.maletin = this.selectedMaletin;
+      pdvCaja.activo = true;
+      this.cajaService
+        .onSave(pdvCaja.toInput(), !this.isVentaTouch)
         .pipe(untilDestroyed(this))
-        .subscribe(res => {
-          this.cargandoDialog.closeDialog()
+        .subscribe((res) => {
           if (res != null) {
             this.selectedCaja = res;
             this.cajaService.selectedCaja = this.selectedCaja;
           }
-        })
+        });
     }, 1000);
   }
 }

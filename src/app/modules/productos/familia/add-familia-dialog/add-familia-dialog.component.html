@@ -1,47 +1,90 @@
-<form [formGroup]="formGroup" fxLayout="column">
+<div style="padding: 20px; min-height: 300px;" fxLayout="column">
   <div style="width: 100%; text-align: center">
-    <h2>Crear nueva Familia</h2>
+    <h3>Crear nueva Familia</h3>
   </div>
-  <div fxFlex fxLayout="row">
-    <mat-form-field fxFlex>
-      <mat-label>Nombre</mat-label>
-      <input matInput type="text" formControlName="nombre" autocomplete="off"/>
-    </mat-form-field>
-  </div>
-  <div fxFlex fxLayout="row">
-    <mat-form-field fxFlex>
-      <mat-label>Descripción</mat-label>
-      <textarea matInput type="text" formControlName="descripcion" autocomplete="off"></textarea>
-    </mat-form-field>
-  </div>
-  <div fxFlex fxLayout="row" fxLayoutAlign="start center">
-    <mat-slide-toggle fxFlex="50" formControlName="activo">{{
-      formGroup.controls.activo.value ? "Activo" : "Inactivo"
-    }}</mat-slide-toggle>
-    <div fxFlex fxLayout="row" fxLayoutAlign="start center">
-        <div fxFlex>
-            Icono: 
-        </div>
-        <mat-icon fxFlex style="font-size: 3em; height: 100%;">{{iconoControl.value}}</mat-icon>
-        <button mat-raised-button color="primary">
-            <mat-icon (click)="searchIcon()">search</mat-icon>
-        </button>
+  <div fxLayout="row" style="width: 100%" fxLayoutAlign="start center">
+    <div fxFlex="70">
+      <mat-form-field style="width: 100%">
+        <mat-label>Nombre</mat-label>
+        <input
+          matInput
+          type="text"
+          [formControl]="nombreControl"
+          autocomplete="off"
+        />
+      </mat-form-field>
+    </div>
+    <div fxFlex="30" style="text-align: center; padding-top: 15px">
+      <mat-slide-toggle [formControl]="activoControl">{{
+        formGroup.controls.activo.value ? "Activo" : "Inactivo"
+      }}</mat-slide-toggle>
     </div>
   </div>
-  <div fxFlex>
-    <mat-form-field>
-      <mat-label>Posición</mat-label>
-      <mat-select formControlName="posicion">
-        <mat-option *ngFor="let pos of listPos" [value]="pos">
-          {{pos}}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
+  <mat-form-field style="width: 100%; min-height: 100px;">
+    <mat-label>Descripción</mat-label>
+    <textarea
+      matInput
+      type="text"
+      [formControl]="descripcionControl"
+      autocomplete="off"
+    ></textarea>
+  </mat-form-field>
+  <!-- <div fxFlex fxLayout="row" fxLayoutAlign="space-around center">
+      
+      <div fxFlex fxLayout="row" fxLayoutAlign="start center">
+        <div fxFlex>Icono:</div>
+        <mat-icon fxFlex style="font-size: 3em; height: 100%">{{
+          iconoControl.value
+        }}</mat-icon>
+        <button mat-raised-button color="primary">
+          <mat-icon (click)="searchIcon()">search</mat-icon>
+        </button>
+      </div>
+    </div> -->
+  <!-- <div fxFlex>
+      <mat-form-field>
+        <mat-label>Posición</mat-label>
+        <mat-select formControlName="posicion">
+          <mat-option *ngFor="let pos of listPos" [value]="pos">
+            {{pos}}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div> -->
+  <br />
+  <div
+    fxFlex
+    fxLayout="row"
+    fxLayoutGap="20px"
+    fxLayoutAlign="space-around center"
+  >
+    <button
+      fxFlex="30"
+      *ngIf="isCancelar"
+      mat-raised-button
+      (click)="onCancelar()"
+      color="primary"
+    >
+      Cancelar
+    </button>
+    <button
+      [disabled]="!formGroup.valid"
+      fxFlex="30"
+      *ngIf="isGuardar"
+      mat-raised-button
+      (click)="onGuardar()"
+      color="accent"
+    >
+      Guardar
+    </button>
+    <button
+      fxFlex="30"
+      *ngIf="isEditar"
+      mat-raised-button
+      (click)="onEditar()"
+      color="accent"
+    >
+      Editar
+    </button>
   </div>
-  <br>
-  <div fxFlex fxLayout="row" fxLayoutGap="20px" fxLayoutAlign="space-around center">
-    <button fxFlex="30" *ngIf="isCancelar" mat-raised-button (click)="onCancelar()" color="primary">Cancelar</button>
-    <button [disabled]="!formGroup.valid" fxFlex="30" *ngIf="isGuardar" mat-raised-button (click)="onGuardar()" color="accent">Guardar</button>
-    <button fxFlex="30" *ngIf="isEditar" mat-raised-button (click)="onEditar()" color="accent">Editar</button>
 </div>
-</form>

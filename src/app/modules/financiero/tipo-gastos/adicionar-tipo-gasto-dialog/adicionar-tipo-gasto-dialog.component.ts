@@ -24,7 +24,7 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
   idControl = new FormControl();
   descripcionControl = new FormControl(null, Validators.required);
   autorizacionControl = new FormControl(null, Validators.required);
-  cargoControl = new FormControl(true);
+  cargoControl = new FormControl();
   activoControl = new FormControl(true);
   creadoEnControl = new FormControl();
   usuarioControl = new FormControl();
@@ -44,7 +44,6 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
       this.cargarDatos()
     }
     if(data.parent != null){
-      console.log(data.parent)
       this.selectedParent = data.parent;
     }
   }
@@ -76,7 +75,7 @@ export class AdicionarTipoGastoDialogComponent implements OnInit {
       input.clasificacionGastoId = this.selectedTipoGasto?.clasificacionGasto?.id
       input.usuarioId = this.selectedTipoGasto.usuario.id;
     } else {
-      input.clasificacionGastoId = this.data?.parent?.id; 
+      input.clasificacionGastoId = this.data?.parent?.id;
     }
     input.descripcion = this.descripcionControl.value;
     input.autorizacion = this.autorizacionControl.value;

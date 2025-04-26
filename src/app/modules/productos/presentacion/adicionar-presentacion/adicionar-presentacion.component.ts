@@ -106,7 +106,6 @@ export class AdicionarPresentacionComponent implements OnInit {
       .subscribe((res) => {
         this.cargandoDialog.closeDialog()
         if(res?.errors?.length>0){
-          console.log(res)
           this.notificacionSnackBar.notification$.next({
             texto: res.errors[0]?.message,
             color: NotificacionColor.danger,
@@ -119,7 +118,6 @@ export class AdicionarPresentacionComponent implements OnInit {
             duracion: 2
           })
           setTimeout(() => {
-            console.log(res.data.data)
             this.matDialogRef.close(res.data.data);
           }, 500);
         }
@@ -133,7 +131,6 @@ export class AdicionarPresentacionComponent implements OnInit {
 
   cargarPresentacion() {
     this.cargandoDialog.openDialog()
-    console.log(this.selectedPresentacion);
     this.descripcionControl.setValue(this.selectedPresentacion.descripcion);
     this.principalControl.setValue(this.selectedPresentacion.principal);
     this.activoControl.setValue(this.selectedPresentacion.activo);
@@ -147,7 +144,6 @@ export class AdicionarPresentacionComponent implements OnInit {
   createTipoPresentacionSelect() {
     this.cargandoDialog.openDialog()
     this.tipoPresentacionService.onGetPresentaciones().pipe(untilDestroyed(this)).subscribe((res) => {
-      console.log(res);
       this.tipoPresentacionList = res.data.data.sort((a, b) => {
         if (a.id > b.id) {
           return 1;

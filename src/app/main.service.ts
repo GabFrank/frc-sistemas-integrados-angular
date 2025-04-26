@@ -1,8 +1,8 @@
 import { HttpClient } from "@angular/common/http";
-import { Injectable, Injector, OnDestroy } from "@angular/core";
+import { Injectable, OnDestroy } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
-import { BehaviorSubject, Observable, Subscription, takeUntil } from "rxjs";
-import { ConfigFile, ipAddress } from "../environments/conectionConfig";
+import { BehaviorSubject, Observable, Subscription } from "rxjs";
+import { ConfigFile } from "../environments/conectionConfig";
 import { environment } from "../environments/environment";
 import { SucursalByIdGQL } from "./modules/empresarial/sucursal/graphql/sucursalById";
 import { Sucursal } from "./modules/empresarial/sucursal/sucursal.model";
@@ -12,11 +12,11 @@ import { Usuario } from "./modules/personas/usuarios/usuario.model";
 import { UsuarioService } from "./modules/personas/usuarios/usuario.service";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { SucursalService } from "./modules/empresarial/sucursal/sucursal.service";
-import { Actualizacion } from "./modules/configuracion/actualizacion/actualizacion.model";
-import { ActualizacionService } from "./modules/configuracion/actualizacion/actualizacion.service";
 import { IpcRenderer } from "electron";
-import { ElectronService } from "../app/commons/core/electron/electron.service";
+import { ActualizacionService } from "./modules/configuracion/actualizacion/actualizacion.service";
+import { SucursalService } from "./modules/empresarial/sucursal/sucursal.service";
+import { MonedaService } from "./modules/financiero/moneda/moneda.service";
+import { ConfiguracionService } from "./shared/services/configuracion.service";
 
 @UntilDestroy()
 @Injectable({
@@ -42,44 +42,75 @@ export class MainService implements OnDestroy {
   serverIpAddres = environment['serverIp'];
   authSub;
   isServidor = false;
-  private updateService: ActualizacionService;
   public renderer: IpcRenderer;
   configFile: ConfigFile
 
   // isUserLoggerSub = new BehaviorSubject<boolean>(false);
 
   constructor(
-    private getSucursalById: SucursalByIdGQL,
-    private getMonedas: MonedasGetAllGQL,
-    private matDialog: MatDialog,
-    private http: HttpClient,
+    // private getMonedas: MonedasGetAllGQL,
     public sucursalService: SucursalService,
     private usuarioService: UsuarioService,
-    private injector: Injector,
-    private electronService: ElectronService
+    private configService: ConfiguracionService
   ) {
-    
-    localStorage.setItem("serverIpAddress", this.serverIpAddres);
-
-    
+    // Get server IP from ConfiguracionService instead of environment
+    const config = this.configService.getConfig();
+    this.serverIpAddres = config.serverIp;
   }
 
+  /**
+   * Checks if the system is running in local mode
+   * Reads from the 'configuracion-sistema' object in localStorage
+   * @returns boolean indicating if the system is in local mode
+   */
+  isLocal(): boolean {
+    try {
+      const configString = localStorage.getItem('configuracion-sistema');
+      if (configString) {
+        const config = JSON.parse(configString);
+        return config.isLocal === true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking isLocal configuration:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if a user is authenticated by checking token and keepLogged flag
+   * For frontend-only session management
+   */
   isAuthenticated(): Observable<boolean> {
     return new Observable((obs) => {
       let isToken = localStorage.getItem("token");
-      if (isToken != null) {
+      let keepLogged = localStorage.getItem("keepLogged");
+      
+      // Only consider authenticated if token exists and either keepLogged is true or it's a new session
+      if (isToken != null && (keepLogged === "true" || this.logged)) {
         this.getUsuario()
           .pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (res) {
+              this.logged = true;
               obs.next(true);
               this.authenticationSub.next(res);
             } else {
+              // If getUsuario failed, clear the token if not keepLogged
+              if (keepLogged !== "true") {
+                localStorage.removeItem("token");
+                localStorage.removeItem("usuarioId");
+              }
               obs.next(false);
               this.authenticationSub.next(res);
             }
           });
       } else {
+        // If not keepLogged, clear the token when checking authentication
+        if (keepLogged !== "true") {
+          localStorage.removeItem("token");
+          localStorage.removeItem("usuarioId");
+        }
         obs.next(false);
       }
     });
@@ -90,7 +121,7 @@ export class MainService implements OnDestroy {
       let id = localStorage.getItem("usuarioId");
       if (id != null) {
         this.usuarioService
-          .onGetUsuario(+id)
+          .onGetUsuario(+id, !this.isLocal())
           .pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (res != null) {
@@ -107,31 +138,50 @@ export class MainService implements OnDestroy {
   }
 
   load(): Promise<boolean> {
-    let res;
-    this.sucursalService.onGetSucursalActual()
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          this.sucursalActual = res;
-          if (this.sucursalActual?.id == 0) {
-            this.isServidor = true;
+    // Update server configuration from ConfiguracionService
+    const config = this.configService.getConfig();
+    this.serverIpAddres = config.serverIp;
+    
+    // Create a Promise that resolves when sucursal is loaded or rejects after timeout
+    return new Promise<boolean>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        console.warn('Sucursal loading timed out');
+        resolve(false);
+      }, 5000);
+      
+      this.sucursalService.onGetSucursalActual(!this.isLocal())
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (res) => {
+            clearTimeout(timeout);
+            if (res != null) {          
+              this.sucursalActual = res;
+              if (this.sucursalActual?.id == 0) {
+                this.isServidor = true;
+              }
+              resolve(true);
+            } else {
+              resolve(false);
+            }
+          },
+          error: (err) => {
+            clearTimeout(timeout);
+            console.error('Error loading sucursal:', err);
+            resolve(false);
           }
-        }
-      });
-    this.getMonedas
-      .fetch()
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res.errors == null) {
-          this.monedas = res.data.data;
-        }
-      });
-    return res;
+        });
+    });
   }
 
-  changeServerIpAddress(text) {
-    localStorage.setItem("serverIpAddress", text);
-    this.serverIpAddres = localStorage.getItem("serverIpAddress");
+  /**
+   * Changes the server IP address using ConfiguracionService
+   * This ensures all IP references are updated consistently
+   */
+  changeServerIpAddress(text: string) {
+    this.configService.updateConfig({
+      serverIp: text
+    });
+    this.serverIpAddres = text;
   }
 
   // async getConfigFile(){
@@ -145,6 +195,22 @@ export class MainService implements OnDestroy {
   // async getWs(){
   //   return `ws://${await this.configFile.serverUrl}:${await this.configFile.serverPor}/subscriptions`
   // }
+
+  /**
+   * Logout the current user by clearing tokens and user data
+   * This will force a re-authentication on next app start
+   */
+  logout(): void {
+    // Clear authentication tokens
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuarioId");
+    localStorage.removeItem("keepLogged");
+    
+    // Reset user data
+    this.usuarioActual = null;
+    this.logged = false;
+    this.authenticationSub.next(false);
+  }
 
   ngOnDestroy(): void { }
 }

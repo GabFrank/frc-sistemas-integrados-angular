@@ -1,0 +1,43 @@
+.configuracion-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px 0;
+  min-width: 400px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.toggle-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+  
+  .toggle-description {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+    margin-left: 34px; // Aligned with toggle text
+  }
+}
+
+// Dark mode specific styles - our app is in dark mode
+mat-dialog-content {
+  background-color: #424242; // Dark background
+  color: white;
+}
+
+mat-dialog-title {
+  background-color: #424242; // Dark background
+  color: white;
+  padding: 16px;
+  margin: 0;
+}
+
+mat-dialog-actions {
+  background-color: #424242; // Dark background
+  padding: 16px;
+  margin: 0;
+}

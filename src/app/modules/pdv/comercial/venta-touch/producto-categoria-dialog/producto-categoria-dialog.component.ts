@@ -1,4 +1,5 @@
 import {
+  AfterViewInit,
   Component,
   ElementRef,
   Inject,
@@ -39,14 +40,14 @@ export class ProductoCategoriaResponseData {
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { environment } from "../../../../../../environments/environment";
 import { NotificacionSnackbarService } from "../../../../../notificacion-snackbar.service";
-
+import { ConfiguracionService } from "../../../../../shared/services/configuracion.service";
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-producto-categoria-dialog",
   templateUrl: "./producto-categoria-dialog.component.html",
   styleUrls: ["./producto-categoria-dialog.component.css"],
 })
-export class ProductoCategoriaDialogComponent implements OnInit {
+export class ProductoCategoriaDialogComponent implements OnInit, AfterViewInit {
   @ViewChild("cantidad", { static: false }) cantidadInput: ElementRef;
 
   presentaciones: Presentacion[] = [];
@@ -68,32 +69,38 @@ export class ProductoCategoriaDialogComponent implements OnInit {
     public windowInfo: WindowInfoService,
     public matDialog: MatDialog,
     public mainService: MainService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private configService: ConfiguracionService
   ) {
     this.presentaciones = data?.presentaciones;
-    console.log(this.presentaciones);
-    
     this.cantidad = +data?.cantidad;
-    this.filteredPrecios = environment['precios']
-    this.modoPrecio = environment['modo']
-    if(this.filteredPrecios!=null && this.modoPrecio == 'ONLY'){
+    this.filteredPrecios = this.configService?.getConfig()?.precios.split(',').map(p => p.trim())
+    this.modoPrecio = this.configService?.getConfig()?.modo
+    console.log(this.filteredPrecios, this.modoPrecio);
+
+    if (this.filteredPrecios != null && this.modoPrecio == 'ONLY') {
       this.presentaciones.filter((p, index) => {
         this.presentaciones[index].precios = p.precios.filter(pre => this.filteredPrecios?.includes(pre?.tipoPrecio?.descripcion))
         return this.presentaciones[index].precios.length > 0
       })
-    } else if(this.filteredPrecios!=null && this.modoPrecio == 'MIXTO'){
+    } else if (this.filteredPrecios != null && this.modoPrecio == 'MIXTO') {
       this.presentaciones.filter((p, index) => {
         let foundPrecios = p.precios.filter(pre => this.filteredPrecios?.includes(pre?.tipoPrecio?.descripcion))
-        if(foundPrecios.length > 0){
+        if (foundPrecios.length > 0) {
           this.presentaciones[index].precios = foundPrecios;
         }
         return true;
       })
-    } else if(this.filteredPrecios!=null && this.modoPrecio=='NOT'){
+    } else if (this.filteredPrecios != null && this.modoPrecio == 'NOT') {
       this.presentaciones.filter((p, index) => {
         this.presentaciones[index].precios = p.precios.filter(pre => !this.filteredPrecios?.includes(pre?.tipoPrecio?.descripcion))
         return this.presentaciones[index].precios.length > 0
       })
+    }
+  }
+  ngAfterViewInit(): void {
+    if (this.data?.cantidad != null && this.presentaciones?.length == 1 && this.presentaciones[0]?.precios?.length == 1) {
+      this.onGridCardClick(this.presentaciones[0]);
     }
   }
 
@@ -146,9 +153,9 @@ export class ProductoCategoriaDialogComponent implements OnInit {
       this.selectedPrecio = this.selectedPresentacion?.precios.find(
         (p) => p.principal == true
       );
-      this.selectedPrecio == null ? this.desplegarTipoPrecio = true: null;
+      this.selectedPrecio == null ? this.desplegarTipoPrecio = true : null;
     }
-    if(this.selectedPresentacion!=null && this.selectedPrecio!=null){
+    if (this.selectedPresentacion != null && this.selectedPrecio != null) {
       response = {
         presentacion: this.selectedPresentacion,
         precio: this.selectedPrecio,
@@ -156,7 +163,7 @@ export class ProductoCategoriaDialogComponent implements OnInit {
         tipoPrecio: this.tipoPrecio,
       };
       this.dialogRef.close(response);
-    } else if(this.selectedPrecio==null && this.selectedPresentacion?.precios.length > 0){
+    } else if (this.selectedPrecio == null && this.selectedPresentacion?.precios.length > 0) {
       response = {
         presentacion: this.selectedPresentacion,
         precio: this.selectedPresentacion?.precios[0],
@@ -167,7 +174,7 @@ export class ProductoCategoriaDialogComponent implements OnInit {
     } else {
       this.notificacionService.openWarn('No existe precio disponible')
     }
-    
+
   }
 
   setFocusToCantidad() {

@@ -5,28 +5,30 @@
   fxLayoutGap="5px"
 >
   <mat-card
+    appearance="outlined"
     fxFlex="50%"
     fxLayout="column"
-    style="width: 100%; height: 100%"
+    style="width: 100%; height: 100%; padding: 10px;"
     [style.background-color]="isDelivery ? '#f57c00' : (isAuxiliar ? 'rgb(0, 155, 39)' : '')"
     (click)="isDialogOpen ? null : buscadorFocusSub.next()"
   >
     <div fxFlex="20%">
       <app-totales
         [totalGs]="totalGs"
+        [descuentoGs]="descuentoGs"
         [cambioRs]="cambioRs"
         [cambioDs]="cambioDs"
         [cambioArg]="cambioArg"
       ></app-totales>
     </div>
-    <div fxFlex="55%">
+    <div fxFlex="55%" [ngClass]="{'component-wrapper': modoConsulta}">
       <app-item-list
         [itemList]="selectedItemList"
         (editEvent)="editItem($event)"
         (removeEvent)="removeItem($event)"
       ></app-item-list>
     </div>
-    <div fxFlex="10%">
+    <div fxFlex>
       <app-buscador
         [selectedTipoPrecio]="selectedTipoPrecio"
         [tiposPrecios]="tiposPrecios"
@@ -36,6 +38,8 @@
         [openSearchEvent]="buscadorOpenSearch.asObservable()"
         (crearItemEvent)="crearItem($event)"
         [mostrarPrecios]="mostrarPrecios"
+        (cantidadEvent)="updateCantidad($event)"
+        [clearBuscadorEvent]="clearBuscadorSub.asObservable()"
       ></app-buscador>
     </div>
     <div fxFlex="15%" fxLayout="row" fxLayoutGap="10px">
@@ -60,9 +64,10 @@
     </div>
   </mat-card>
   <mat-card
+    appearance="outlined"
     fxFlex="50%"
     fxLayout="column"
-    style="width: 100%; height: 100%"
+    style="width: 100%; height: 100%; padding: 10px;"
     (click)="isDialogOpen ? null : buscadorFocusSub.next()"
   >
     <div fxFlex="85%">

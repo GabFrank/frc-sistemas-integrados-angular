@@ -1,30 +1,41 @@
-import { Injectable } from '@angular/core';
-import { MatDialogRef, MatDialog } from '@angular/material/dialog';
-import { Observable } from 'rxjs';
-import { DialogosComponent } from './dialogos.component';
+import { Injectable } from "@angular/core";
+import { MatDialogRef, MatDialog } from "@angular/material/dialog";
+import { Observable } from "rxjs";
+import { DialogosComponent } from "./dialogos.component";
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: "root",
 })
 export class DialogosService {
-
   private dialogRef: MatDialogRef<DialogosComponent>;
 
-  constructor(private dialog: MatDialog) { }
+  constructor(private dialog: MatDialog) {}
 
-  public confirm(title: string, message1: string, message2?: string, listMessages?: string[], action?: boolean): Observable<any> {
+  public confirm(
+    title: string,
+    message1: string,
+    message2?: string,
+    listMessages?: string[],
+    action?: boolean,
+    btn1Name?: string,
+    btn2Name?: string,
+    servidor: boolean = true
+  ): Observable<any> {
     this.dialogRef = this.dialog.open(DialogosComponent, {
       autoFocus: false,
       restoreFocus: true,
+      minHeight: "200px",
       data: {
         title,
         message1,
         message2,
         listMessages,
-        action
-      }
+        action: action == null ? true : action,
+        btn1Name,
+        btn2Name,
+      },
     });
-    
-    return this.dialogRef.afterClosed();
 
-  }}
+    return this.dialogRef.afterClosed();
+  }
+}

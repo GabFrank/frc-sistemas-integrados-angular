@@ -22,10 +22,7 @@ export class FavoritosComponent implements OnInit {
   isCargandoPDV = true;
 
   constructor(
-    private pdvCategoriaService: PdvCategoriaService,
-    private cargandoService: CargandoDialogService,
-    private notificacionSnackbar: NotificacionSnackbarService,
-    private mainService: MainService
+    private pdvCategoriaService: PdvCategoriaService
   ) { }
 
   ngOnInit(): void {
@@ -38,39 +35,6 @@ export class FavoritosComponent implements OnInit {
       this.selectedPdvCategoria = this.pdvCategorias[0];
       this.isCargandoPDV = false;
     })
-    // this.pdvCategoriaService
-    // .onGetCategorias()
-    // .pipe(untilDestroyed(this))
-    // .subscribe((res) => {
-    //   // this.cargandoService.openDialog(false, "Cargando Otros");
-    //   // this.cargandoService.closeDialog();
-    //   if (res.errors == null) {
-    //     this.pdvCategorias = res.data.data;
-    //     res.data.data.forEach((cat) => {
-    //       cat.grupos.forEach((gr) => {
-    //         if (gr.activo == true) {
-    //           this.pdvCategoriaService
-    //             .onGetGrupoProductosPorGrupoId(gr.id)
-    //             .pipe(untilDestroyed(this))
-    //             .subscribe((res) => {
-    //               if (res != null) {
-    //                 gr.pdvGruposProductos = res;
-    //               }
-    //             });
-    //         }
-    //       });
-    //       console.log("carga completa");
-    //     });
-    //     this.selectedPdvCategoria = this.pdvCategorias[0];
-    //     this.isCargandoPDV = false;
-    //   } else {
-    //     this.notificacionSnackbar.notification$.next({
-    //       texto: "No fue posible cargar categorias",
-    //       color: NotificacionColor.warn,
-    //       duracion: 3,
-    //     });
-    //   }
-    // });
   }
 
   onGridCardClick(grupo) {
@@ -78,6 +42,6 @@ export class FavoritosComponent implements OnInit {
   }
 
   actualizar() {
-    this.buscarPdvCategoria()
+    this.pdvCategoriaService.onRefresh()
   }
 }

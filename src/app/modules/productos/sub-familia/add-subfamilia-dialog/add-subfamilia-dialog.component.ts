@@ -72,7 +72,6 @@ export class AddSubfamiliaDialogComponent implements OnInit {
 
   loadData() {
     if (this.data?.subfamilia != null) {
-      console.log(this.data.subfamilia)
       this.idControl.setValue(this.data.subfamilia.id);
       this.nombreControl.setValue(this.data.subfamilia.nombre);
       this.descripcionControl.setValue(this.data.subfamilia?.descripcion);
@@ -123,7 +122,6 @@ export class AddSubfamiliaDialogComponent implements OnInit {
       this.descripcionControl.value?.toUpperCase();
     this.subfamiliaInput.activo = true;
     this.subfamiliaInput.icono = this.iconoControl.value;
-    console.log(this.subfamiliaInput)
     this.subfamiliaService.onSaveSubfamilia(this.subfamiliaInput).pipe(untilDestroyed(this)).subscribe((res) => {
       if (res != null) {
         this.dialogRef.close(res);

@@ -13,6 +13,13 @@ export const sucursalesQuery = gql
       usuario{
         id
       }
+      deposito
+      ip
+      puerto
+      direccion
+      nroDelivery
+      isConfigured
+        
     }
   }`;
 
@@ -30,6 +37,12 @@ export const sucursalesSearch = gql
       usuario{
         id
       }
+      ip
+      puerto
+      direccion
+      nroDelivery
+      isConfigured
+        
     }
   }`
 
@@ -46,10 +59,16 @@ export const sucursalQuery = gql
       usuario{
         id
       }
+      ip
+      puerto
+      direccion
+      nroDelivery
+      isConfigured
+        
     }
   }`
 
-  export const sucursalActualQuery = gql
+export const sucursalActualQuery = gql
   `query{
     data : sucursalActual{
       id
@@ -57,6 +76,11 @@ export const sucursalQuery = gql
       ciudad{
         id
       }
+      ip
+      puerto
+      direccion
+      nroDelivery
+      isConfigured
     }
   }`
 
@@ -64,6 +88,16 @@ export const saveSucursal = gql
   `mutation saveSucursal($entity:SucursalInput!){
       data: saveSucursal(sucursal:$entity){
         id
+        nombre
+        localizacion
+        ciudad{
+          id
+        }
+        ip
+        puerto
+        direccion
+        nroDelivery
+        isConfigured
       }
     }`
 

@@ -60,7 +60,7 @@ export class SalidaDialogComponent implements OnInit {
     "producto",
     "codigo",
     "presentacion",
-    "cantidad"  ];
+    "cantidad"];
 
   isEditar = true;
   isItemEditar = true;
@@ -126,7 +126,7 @@ export class SalidaDialogComponent implements OnInit {
     });
 
     if (this.data?.salida != null) this.cargarDatos();
-    if (this.data?.id!=null) this.buscarSalida(this.data.id)
+    if (this.data?.id != null) this.buscarSalida(this.data.id)
 
     this.cargandoService.closeDialog()
 
@@ -169,13 +169,12 @@ export class SalidaDialogComponent implements OnInit {
     });
   }
 
-  buscarSalida(id){
+  buscarSalida(id) {
     this.salidaService.onGetSalida(id).pipe(untilDestroyed(this)).subscribe(res => {
-      console.log(res)
-      if(res!=null){
+      if (res != null) {
         this.selectedSalida = res;
         this.cargarDatos()
-      } 
+      }
     })
   }
 
@@ -187,7 +186,7 @@ export class SalidaDialogComponent implements OnInit {
     this.onSelectTipoSalida(this.selectedSalida?.tipoSalida);
     this.onSelectSucursal(this.selectedSalida?.sucursal);
     this.formGroup.disable();
-    if(this.selectedSalida.salidaItemList!=null){
+    if (this.selectedSalida.salidaItemList != null) {
       this.itemDataSource.data = this.selectedSalida.salidaItemList;
     }
     setTimeout(() => {
@@ -196,23 +195,21 @@ export class SalidaDialogComponent implements OnInit {
   }
 
   onSelectSucursal(e) {
-    console.log(e);
     this.selectedSucursal = this.sucursalList.find((s) => s.id == e);
     if (this.selectedSucursal != null) {
       this.sucursalControl.setValue(this.selectedSucursal.id);
     }
   }
 
-  onUsuarioInput() {}
+  onUsuarioInput() { }
 
   onResponsableSelect(e) {
-    console.log(e);
     if (e?.id != null) {
       this.selectedResponsable = e;
       this.usuarioInputControl.setValue(
         this.selectedResponsable?.id +
-          " - " +
-          this.selectedResponsable?.persona?.nombre
+        " - " +
+        this.selectedResponsable?.persona?.nombre
       );
     }
   }
@@ -224,7 +221,6 @@ export class SalidaDialogComponent implements OnInit {
   }
 
   onSelectTipoSalida(e) {
-    console.log(e);
     this.selectedTipoSalida = e as TipoSalida;
     this.tipoSalidaControl.setValue(this.selectedTipoSalida);
     if (this.selectedTipoSalida != TipoSalida.SUCURSAL) {
@@ -238,18 +234,18 @@ export class SalidaDialogComponent implements OnInit {
     }, 0);
   }
 
-  onEdit(e: SalidaItem) {}
+  onEdit(e: SalidaItem) { }
 
   onDelete() {
     this.cargandoService.openDialog()
 
     this.dialogoService.confirm('Atención!!', 'Realmente desea eliminar este item?', null, [`Producto: ${this.selectedSalidaItem.producto.descripcion.toUpperCase()}`, `Presentación: ${this.selectedSalidaItem.presentacion.descripcion.toUpperCase()}`, `Cantidad: ${this.selectedSalidaItem.cantidad}`]).subscribe(res => {
-      if(res){
+      if (res) {
         this.salidaItemService.onDeleteSalidaItem(this.selectedSalidaItem.id).pipe(untilDestroyed(this)).subscribe(res2 => {
-          if(res2){
+          if (res2) {
             let auxArray = this.itemDataSource.data;
             let index = auxArray.findIndex(i => i.id == this.selectedSalidaItem.id)
-            if(index> -1){
+            if (index > -1) {
               auxArray.splice(index, 1);
               this.itemDataSource.data = auxArray;
             }
@@ -265,10 +261,7 @@ export class SalidaDialogComponent implements OnInit {
   onSaveSalida() {
     this.cargandoService.openDialog()
 
-    console.log(this.selectedSalida);
-    console.log(this.selectedResponsable);
-    console.log(this.selectedSucursal);
-    console.log(this.selectedTipoSalida);
+
     let salida = new SalidaInput();
     salida.id = this.selectedSalida?.id;
     salida.responsableCargaId = this.selectedResponsable?.id;
@@ -276,11 +269,8 @@ export class SalidaDialogComponent implements OnInit {
     salida.sucursalId = this.selectedSucursal?.id;
     salida.creadoEn = this.selectedSalida?.creadoEn;
     salida.activo = this.selectedSalida?.activo;
-    console.log(salida);
     this.salidaService.onSaveSalida(salida).pipe(untilDestroyed(this)).subscribe((res) => {
-      console.log(res);
       this.selectedSalida = res["data"] as Salida;
-      console.log(this.selectedSalida);
       this.isEditar = false;
       this.cargarDatos();
       this.usuarioInputControl.disable();
@@ -291,7 +281,7 @@ export class SalidaDialogComponent implements OnInit {
     });
   }
 
-  addProducto() {}
+  addProducto() { }
 
   onEditar() {
     this.isEditar = true;
@@ -301,7 +291,6 @@ export class SalidaDialogComponent implements OnInit {
   }
 
   onCancelar() {
-    console.log("hola");
     this.selectedSalida.salidaItemList = this.itemDataSource.data;
     this.matDialogRef.close(this.selectedSalida);
   }
@@ -336,7 +325,7 @@ export class SalidaDialogComponent implements OnInit {
     this.productoIdControl.setValue(this.selectedProducto.id);
   }
 
-  onProductoFocus(){
+  onProductoFocus() {
     this.productoControl.value != null ? this.productoInput.nativeElement.select() : null;
   }
 
@@ -357,10 +346,10 @@ export class SalidaDialogComponent implements OnInit {
     }, 100);
   }
 
-  onItemSave(){
+  onItemSave() {
     this.cargandoService.openDialog()
 
-    if(this.itemFormGroup.valid){
+    if (this.itemFormGroup.valid) {
       let isNew = this.selectedSalidaItem?.id == null;
       let item = new SalidaItem();
       let auxArray: SalidaItem[] = []
@@ -371,14 +360,13 @@ export class SalidaDialogComponent implements OnInit {
       item.cantidad = this.cantidadControl.value;
       item.usuario = this.selectedSalidaItem?.usuario;
       item.creadoEn = this.selectedSalidaItem?.creadoEn;
-      console.log(item.cantidad * item.presentacion.cantidad > item?.producto?.stockPorProducto)
-      if((item.cantidad * item.presentacion.cantidad) > item?.producto?.stockPorProducto){
+      if ((item.cantidad * item.presentacion.cantidad) > item?.producto?.stockPorProducto) {
         this.dialogoService.confirm('Atención!!', 'El stock actual del producto es inferior a la intención de salida', 'Desea continuar?', [`Actual: ${item.producto.stockPorProducto}`, `Cantidad a dar salida: ${item.cantidad}`]).subscribe(res => {
-          if(res){
+          if (res) {
             this.salidaItemService.onSaveSalidaItem(item.toInput()).pipe(untilDestroyed(this)).subscribe(res => {
-              if(res!=null){
+              if (res != null) {
                 this.selectedSalidaItem = res;
-                if(!isNew){
+                if (!isNew) {
                   let index = this.itemDataSource.data.findIndex(s => s.id == this.selectedSalidaItem.id)
                   auxArray = this.itemDataSource.data;
                   auxArray[index] = this.selectedSalidaItem;
@@ -396,9 +384,9 @@ export class SalidaDialogComponent implements OnInit {
         })
       } else {
         this.salidaItemService.onSaveSalidaItem(item.toInput()).pipe(untilDestroyed(this)).subscribe(res => {
-          if(res!=null){
+          if (res != null) {
             this.selectedSalidaItem = res;
-            if(!isNew){
+            if (!isNew) {
               let index = this.itemDataSource.data.findIndex(s => s.id == this.selectedSalidaItem.id)
               auxArray = this.itemDataSource.data;
               auxArray[index] = this.selectedSalidaItem;
@@ -415,11 +403,11 @@ export class SalidaDialogComponent implements OnInit {
 
         });
       }
-      
+
     }
   }
 
-  onSelectSalidaItem(item: SalidaItem){
+  onSelectSalidaItem(item: SalidaItem) {
     this.selectedSalidaItem = item;
     this.onSelectProducto(item.producto);
     this.onSelectPresentacion(item.presentacion);
@@ -428,18 +416,17 @@ export class SalidaDialogComponent implements OnInit {
     this.isItemEditar = false;
   }
 
-  onEditItem(){
-    console.log('hola')
+  onEditItem() {
     this.isItemEditar = true;
     this.productoControl.enable()
     this.cantidadControl.enable()
     this.setFocusToProductoInput()
   }
 
-  onFinalizarSalida(){
+  onFinalizarSalida() {
     this.cargandoService.openDialog()
 
-    if(this.selectedSalida?.id != null){
+    if (this.selectedSalida?.id != null) {
       this.salidaService.onFinalizarEntrega(this.selectedSalida.id).pipe(untilDestroyed(this)).subscribe(res => {
         this.selectedSalida.activo = res as boolean;
         this.cargandoService.closeDialog()

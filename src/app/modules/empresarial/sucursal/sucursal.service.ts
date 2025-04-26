@@ -7,12 +7,23 @@ import {
 import { SucursalesGQL } from "./graphql/sucursalesQuery";
 import { Sucursal } from "./sucursal.model";
 
-import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { HttpClient, HttpHeaders } from "@angular/common/http";
-import { environment, serverAdress } from "../../../../environments/environment";
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { environment } from "../../../../environments/environment";
+import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { SucursalActualGQL } from "./graphql/sucursalActual";
 import { SucursalByIdGQL } from "./graphql/sucursalById";
-import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { CargandoDialogService } from "../../../shared/components/cargando-dialog/cargando-dialog.service";
+import { SearchListDialogComponent, SearchListtDialogData } from "../../../shared/components/search-list-dialog/search-list-dialog.component";
+import { MatDialog } from "@angular/material/dialog";
+import { Apollo } from 'apollo-angular';
+import { map } from 'rxjs';
+import { SucursalesSearchGQL } from "./graphql/sucursalesSearch";
+import { PageInfo } from "../../../app.component";
+import { QueryRef } from 'apollo-angular';
+import { SaveSucursalGQL } from "./graphql/saveSucursal";
+import { DeleteSucursalGQL } from "./graphql/deleteSucursal";
+import { DialogosService } from "../../../shared/components/dialogos/dialogos.service";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -26,95 +37,217 @@ export class SucursalService {
     }),
   };
 
-  private crudService: GenericCrudService
+  isLoading = false;
 
   constructor(
     private getAllSucursales: SucursalesGQL,
+    private sucursalesSearch: SucursalesSearchGQL,
     private notificacionBar: NotificacionSnackbarService,
     private getSucursalActual: SucursalActualGQL,
     private http: HttpClient,
     private injector: Injector,
     private sucursalPorId: SucursalByIdGQL,
-
+    private cargandoService: CargandoDialogService,
+    private notificacionSnackBar: NotificacionSnackbarService,
+    private genericService: GenericCrudService,
+    private matDialog: MatDialog,
+    private apollo: Apollo,
+    private saveSucursalGQL: SaveSucursalGQL,
+    private deleteSucursalGQL: DeleteSucursalGQL,
+    private dialogoService: DialogosService
   ) {
-    setTimeout(() => this.crudService = injector.get(GenericCrudService));
-
   }
 
-  onGetSucursal(id): Observable<Sucursal>{
-    return this.crudService.onGetById(this.sucursalPorId, id);
+  onSearchConFiltros(term: string, deposito: boolean, pageIndex: number, pageSize: number, servidor: boolean = true): Observable<PageInfo<Sucursal>> {
+    return this.genericService.onCustomQuery(
+      this.sucursalesSearch,
+      {
+        texto: term,
+        deposito: deposito,
+        page: pageIndex,
+        size: pageSize
+      },
+      servidor
+    ).pipe(
+      map((res: any) => {
+        const pageInfo = new PageInfo<Sucursal>();
+        pageInfo.getContent = res;
+        pageInfo.getTotalElements = res.length;
+        pageInfo.getNumberOfElements = res.length;
+        pageInfo.isFirst = pageIndex === 0;
+        pageInfo.isLast = true; // Assuming this is the last page
+        pageInfo.hasNext = false;
+        pageInfo.hasPrevious = pageIndex > 0;
+        return pageInfo;
+      })
+    );
   }
 
-  onGetAllSucursales(): Observable<Sucursal[]> {
+  onGetSucursal(id, servidor: boolean = true): Observable<Sucursal> {
+    return this.genericService.onCustomQuery(this.sucursalPorId, {id}, servidor);
+  }
+
+  onGetAllSucursales(servidor: boolean = true): Observable<Sucursal[]> {
+    return this.genericService.onCustomQuery(this.getAllSucursales, {}, servidor);
+  }
+
+  onGetSucursalActual(servidor: boolean = true): Observable<Sucursal> {
+    return this.genericService.onCustomQuery(this.getSucursalActual, {}, servidor);
+  }
+
+  // getSucursalesAdmin(servidor: boolean = true): Observable<any> {
+  //   return new Observable((obs) => {
+  //     let httpBody = {
+  //       nickname: "ADMIN",
+  //       password: "ADMIN",
+  //     };
+      
+  //     // Only proceed with the HTTP request if servidor is true
+  //     if (servidor) {
+  //       this.http
+  //         .post(
+  //           `http://${environment['serverIp']}:${environment['serverPort']}/sucursales`,
+  //           httpBody,
+  //           this.httpOptions
+  //         )
+  //         .pipe(untilDestroyed(this))
+  //         .subscribe({
+  //           next: (res) => {
+  //             obs.next(res);
+  //             obs.complete();
+  //           },
+  //           error: (error) => {
+  //             obs.error(error);
+  //             obs.complete();
+  //           }
+  //         });
+  //     } else {
+  //       // If servidor is false, return empty or cached data if available
+  //       obs.next([]);
+  //       obs.complete();
+  //     }
+  //   });
+  // }
+
+  // getSucursalActualAdmin(servidor: boolean = true): Observable<any> {
+  //   return new Observable((obs) => {
+  //     let httpBody = {
+  //       nickname: "ADMIN",
+  //       password: "ADMIN",
+  //     };
+      
+  //     // Only proceed with the HTTP request if servidor is true
+  //     if (servidor) {
+  //       this.http
+  //         .post(
+  //           `http://${environment['ip']}:${environment['port']}/public/sucursal-actual`,
+  //           httpBody,
+  //           this.httpOptions
+  //         )
+  //         .pipe(untilDestroyed(this))
+  //         .subscribe({
+  //           next: (res) => {
+  //             obs.next(res);
+  //             obs.complete();
+  //           },
+  //           error: (error) => {
+  //             obs.error(error);
+  //             obs.complete();
+  //           }
+  //         });
+  //     } else {
+  //       // If servidor is false, return empty or cached data if available
+  //       obs.next(null);
+  //       obs.complete();
+  //     }
+  //   });
+  // }
+
+  onSearchSucursal(filtro: any, servidor: boolean = true): Observable<Sucursal[]> {
+    return this.genericService.onCustomQuery(this.sucursalesSearch, {
+      filtro: filtro,
+    }, servidor);
+  }
+
+  onSaveSucursal(sucursalInput: any, servidor: boolean = true): Observable<Sucursal> {
+    return this.genericService.onSave(this.saveSucursalGQL, sucursalInput, null, null, servidor);
+  }
+
+  onDeleteSucursal(id: number, showDialog: boolean = true, servidor: boolean = true): Observable<boolean> {
+    return this.genericService.onDelete(this.deleteSucursalGQL, id, "sucursal", null, showDialog, servidor);
+  }
+
+  openSearchDialog(title?: string, message?: string, servidor: boolean = true): Observable<Sucursal> {
     return new Observable((obs) => {
-      this.getAllSucursales
-        .fetch(
-          {},
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-          } else {
-            this.notificacionBar.notification$.next({
-              texto: "Ups! algo salio mal: " + res.errors[0].message,
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
-          }
+      this.onGetAllSucursales(servidor).pipe(untilDestroyed(this)).subscribe((res) => {
+        const dialogData = new SearchListtDialogData();
+        dialogData.titulo = title || 'Seleccionar Sucursal';
+        dialogData.inicialData = res;
+        dialogData.tableData = [
+          { id: 'id', nombre: 'ID', width: '100px' },
+          { id: 'nombre', nombre: 'Nombre', width: '250px' }
+        ];
+        
+        const dialogRef = this.matDialog.open(SearchListDialogComponent, {
+          width: '80%',
+          data: dialogData
         });
+
+        dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe((result: Sucursal) => {
+          if (result) {
+            obs.next(result);
+          }
+          obs.complete();
+        });
+      });
     });
   }
 
-  onGetSucursalActual(): Observable<Sucursal>{
-    return new Observable((obs) => {
-      this.getSucursalActual
-        .fetch(
-          {},
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-          } else {
-            this.notificacionBar.notification$.next({
-              texto: "Ups! algo salio mal: " + res.errors[0].message,
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
-          }
-        });
-    });  }
+  toggleSucursalDeposito(sucursal: Sucursal, servidor: boolean = true): Observable<Sucursal> {
+    // Toggle the deposito property
+    sucursal.deposito = !sucursal.deposito;
+    // Save the updated sucursal
+    return this.onSaveSucursal(sucursal, servidor);
+  }
 
-  getSucursalesAdmin(): Observable<any> {
+  configureSucursal(sucursalId: number, ipAddress: string, puerto: string, servidor: boolean = true): Observable<Sucursal> {
     return new Observable((obs) => {
-      let httpBody = {
-        nickname: "ADMIN",
-        password: "ADMIN",
-      };
-      let httpResponse = this.http
-        .post(
-          `http://${environment['serverIp']}:${environment['serverPort']}/sucursales`,
-          httpBody,
-          this.httpOptions
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe(
-          (res) => {
-            obs.next(res)
-          },
-          (error) => {
-            obs.next(error);
-          }
-        );
+      this.onGetSucursal(sucursalId, servidor).pipe(untilDestroyed(this)).subscribe((sucursal) => {
+        if (sucursal) {
+          sucursal.ip = ipAddress.toUpperCase();
+          sucursal.puerto = Number(puerto);
+          sucursal.isConfigured = true;
+          
+          this.onSaveSucursal(sucursal, servidor).pipe(untilDestroyed(this)).subscribe({
+            next: (updatedSucursal) => {
+              this.notificacionBar.notification$.next({
+                texto: "Sucursal configurada correctamente",
+                color: NotificacionColor.success,
+                duracion: 3
+              });
+              obs.next(updatedSucursal);
+              obs.complete();
+            },
+            error: (err) => {
+              this.notificacionBar.notification$.next({
+                texto: "Error al configurar sucursal: " + err,
+                color: NotificacionColor.danger,
+                duracion: 3
+              });
+              obs.error(err);
+              obs.complete();
+            }
+          });
+        } else {
+          this.notificacionBar.notification$.next({
+            texto: "No se encontró la sucursal",
+            color: NotificacionColor.warn,
+            duracion: 3
+          });
+          obs.error("Sucursal no encontrada");
+          obs.complete();
+        }
+      });
     });
   }
 }

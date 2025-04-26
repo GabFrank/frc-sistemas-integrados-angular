@@ -1,63 +1,78 @@
-<div>
-    <form [formGroup]="formGroup">
-      <div fxLayout="column" fxLayoutAlign="start">
-        <div fxFlex style="width: 100%; text-align: center">
-          <h3 *ngIf="selectedCodigo?.id != null">Editar Código</h3>
-          <h3 *ngIf="selectedCodigo?.id == null">Nuevo Código</h3>
+<div style="padding: 20px">
+  <form [formGroup]="formGroup">
+    <div fxLayout="column" fxLayoutAlign="start">
+      <div fxFlex style="width: 100%; text-align: center">
+        <h3 *ngIf="selectedCodigo?.id != null">Editar Código</h3>
+        <h3 *ngIf="selectedCodigo?.id == null">Nuevo Código</h3>
+      </div>
+      <div fxFlex>
+        <mat-form-field style="width: 100%">
+          <mat-label>Código</mat-label>
+          <input
+            #codigoInput
+            [type]="isPesable ? 'number' : 'text'"
+            matInput
+            formControlName="codigo"
+            autocomplete="off"
+            oninput="this.value == ' ' ? this.value = '': null"
+          />
+          <mat-error *ngIf="isPesable"
+            >El código debe de tener 5 números</mat-error
+          >
+        </mat-form-field>
+      </div>
+      <div fxLayout="row" style="height: 50px !important; padding-left: 20px">
+        <div
+          fxFlex="50%"
+          fxLayout="row"
+          fxLayoutAlign="start center"
+          fxLayoutGap="20px"
+        >
+          <mat-label fxFlex>Principal</mat-label>
+          <mat-slide-toggle fxFlex formControlName="principal">
+            {{ principalControl.value == true ? "Si" : "No" }}</mat-slide-toggle
+          >
         </div>
-        <div fxFlex>
-          <mat-form-field style="width: 100%">
-            <mat-label>Código</mat-label>
-            <input
-              #codigoInput
-              [type]="isPesable ? 'number' : 'text'"
-              matInput
-              formControlName="codigo"
-              autocomplete="off"
-              oninput="this.value == ' ' ? this.value = '': null"
-            />
-            <mat-error *ngIf="isPesable">El código debe de tener 5 números</mat-error>
-          </mat-form-field>
-        </div>
-        <div fxFlex fxLayout="row">
-          <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center">
-            <mat-label fxFlex="30">Principal</mat-label>
-            <mat-slide-toggle fxFlex formControlName="principal">
-              {{ principalControl.value == true ? "Si" : "No" }}</mat-slide-toggle
-            >
-          </div>
-          <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center">
-            <mat-label fxFlex="30">Activo</mat-label>
-            <mat-slide-toggle fxFlex formControlName="activo">{{
-              activoControl.value == true ? "Si" : "No"
-            }}</mat-slide-toggle>
-          </div>
-        </div>
-        <br />
-        <div fxFlex fxLayout="row">
-          <div fxFlex="50%" style="text-align: center">
-            <button
-              style="width: 70%"
-              mat-raised-button
-              [color]="isEditting ? 'accent' : 'primary'"
-              [disabled]="isEditting ? !formGroup.valid : false"
-              (click)="isEditting ? onSave() : isEditting = true ; formGroup.enable(); codigoInput.focus()"
-            >
-              {{isEditting ? 'Guardar' : 'Editar'}}
-            </button>
-          </div>
-          <div fxFlex="50%" style="text-align: center">
-            <button
-              style="width: 70%"
-              mat-raised-button
-              color="primary"
-              (click)="onCancelar()"
-            >
-              Cancelar
-            </button>
-          </div>
+        <div
+          fxFlex="50%"
+          fxLayout="row"
+          fxLayoutAlign="start center"
+          fxLayoutGap="20px"
+        >
+          <mat-label fxFlex>Activo</mat-label>
+          <mat-slide-toggle fxFlex formControlName="activo">{{
+            activoControl.value == true ? "Si" : "No"
+          }}</mat-slide-toggle>
         </div>
       </div>
-    </form>
-  </div>
-  
+      <br />
+      <div fxFlex fxLayout="row">
+        <div fxFlex="50%" style="text-align: center">
+          <button
+            style="width: 70%"
+            mat-raised-button
+            color="primary"
+            (click)="onCancelar()"
+          >
+            Cancelar
+          </button>
+        </div>
+        <div fxFlex="50%" style="text-align: center">
+          <button
+            style="width: 70%"
+            mat-raised-button
+            [color]="isEditting ? 'accent' : 'primary'"
+            [disabled]="isEditting ? !formGroup.valid : false"
+            (click)="
+              isEditting ? onSave() : (isEditting = true);
+              formGroup.enable();
+              codigoInput.focus()
+            "
+          >
+            {{ isEditting ? "Guardar" : "Editar" }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>

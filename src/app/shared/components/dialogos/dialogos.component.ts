@@ -14,7 +14,9 @@ export class DialogoData {
   public message1?: string;
   public message2?: string;
   public listMessages?: string[];
-  public action?: boolean = true;
+  public action?: boolean;
+  public btn1Name?: string = 'Si';
+  public btn2Name?: string = 'No';
 }
 
 @Component({
@@ -34,15 +36,19 @@ export class DialogosComponent implements OnInit, AfterViewInit {
     public dialogRef: MatDialogRef<DialogosComponent>,
     @Inject(MAT_DIALOG_DATA) public data: DialogoData
   ) {
-    this.data.action = true;
+    if(data.btn1Name==null)data.btn1Name = 'Si';
+    if(data.btn2Name==null)data.btn2Name = 'No';
   }
 
   ngOnInit(): void {}
 
   ngAfterViewInit(): void {
     setTimeout(() => {
-      console.log(this.okButton);
-      this.okButton._elementRef.nativeElement.focus();
+      if(this.data?.action != false){
+        this.okButton._elementRef.nativeElement.focus();
+      } else {
+        this.okButton2._elementRef.nativeElement.focus();
+      }
     }, 0);
   }
 

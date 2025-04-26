@@ -1,5 +1,5 @@
 import { CajaService } from './../../../../financiero/pdv/caja/caja.service';
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy  } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dialog';
 import { Subscription } from 'rxjs';
 import { MainService } from '../../../../../main.service';
@@ -20,7 +20,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
   templateUrl: './seleccionar-caja-dialog.component.html',
   styleUrls: ['./seleccionar-caja-dialog.component.scss']
 })
-export class SeleccionarCajaDialogComponent implements OnInit {
+export class SeleccionarCajaDialogComponent implements OnInit, OnDestroy {
   ventaSub: Subscription;
   selectedCaja: PdvCaja;
   constructor(
@@ -29,18 +29,16 @@ export class SeleccionarCajaDialogComponent implements OnInit {
     public dialogRef: MatDialogRef<SeleccionarCajaDialogComponent>,
     public mainService: MainService,
     private matDialog: MatDialog,
-    private cargandoDialog: CargandoDialogService,
     private cajaService: CajaService
   ) { }
 
   ngOnInit(): void {
-    this.cargandoDialog.openDialog()
+    console.log('iniciando seleccionar caja dialog');
     if (this.cajaService?.selectedCaja != null) {
       this.abrirCaja()
     }
 
     this.ventaSub = this.ventaTouchService.cajaSub.pipe(untilDestroyed(this)).subscribe(res => {
-      this.cargandoDialog.closeDialog()
       if (res != null) {
         this.dialogRef.close(res)
       } else {
@@ -50,12 +48,11 @@ export class SeleccionarCajaDialogComponent implements OnInit {
   }
 
   abrirCaja() {
-    this.cargandoDialog.openDialog()
     setTimeout(() => {
-      this.cargandoDialog.closeDialog()
       this.matDialog.open(AdicionarCajaDialogComponent, {
         data: {
-          caja: this.cajaService?.selectedCaja
+          caja: this.cajaService?.selectedCaja,
+          isVentaTouch: true
         },
         width: '90%',
         height: '95%',
@@ -63,7 +60,9 @@ export class SeleccionarCajaDialogComponent implements OnInit {
         autoFocus: true,
         restoreFocus: true
       }).afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
-        this.dialogRef.close(res)
+        console.log('caja encontrado con exito');
+        
+        this.dialogRef.close()
       })
     }, 1000);
   }
@@ -74,6 +73,15 @@ export class SeleccionarCajaDialogComponent implements OnInit {
 
   onSalir() {
     this.dialogRef.close('salir')
+  }
+
+  consulta(){
+    this.dialogRef.close('consulta')
+  }
+
+  ngOnDestroy(): void {
+    console.log('destruyendo seleccionar caja dialog');
+    this.ventaSub.unsubscribe();
   }
 
 

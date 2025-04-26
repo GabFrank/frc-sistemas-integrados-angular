@@ -26,7 +26,8 @@ import { environment } from "../../../../../../environments/environment";
 import { CobroInput } from "../../../../operaciones/venta/cobro/cobro.model";
 import { CobroDetalleInput } from "../../../../operaciones/venta/cobro/cobro-detalle.model";
 import { ReimprimirDeliveryGQL } from "../../../../operaciones/delivery/graphql/reimprimir-delivery";
-
+import { DeliverysPorCajaIdAndEstadoGQL } from "../../../../operaciones/delivery/graphql/deliveryPorCajaIdAndEstado";
+import { ConfiguracionService } from "../../../../../shared/services/configuracion.service";
 @UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: "root",
@@ -41,19 +42,25 @@ export class DeliveryService {
     private deliveryById: DeliveryByIdGQL,
     private mainService: MainService,
     private saveDeliveryEstado: SaveDeliveryEstadoGQL,
-    private reimprimirDelivery: ReimprimirDeliveryGQL
+    private reimprimirDelivery: ReimprimirDeliveryGQL,
+    private deliveryPorCajaIdAndEstado: DeliverysPorCajaIdAndEstadoGQL,
+    private configService: ConfiguracionService
   ) {
   }
 
-  onGetById(id): Observable<Delivery> {
-    return this.genericService.onGetById(this.deliveryById, id);
+  onDeliveryPorCajaIdAndEstado(id: number, estadoList: DeliveryEstado[], sucId, servidor: boolean = true): Observable<Delivery[]> {
+    return this.genericService.onCustomQuery(this.deliveryPorCajaIdAndEstado, { id: id, estadoList: estadoList, sucId }, servidor);
   }
 
-  onGetDeliverysByEstadoList(estadoList: DeliveryEstado[], sucId?: number) {
-    return this.genericService.onCustomQuery(this.deliverysByEstadoList, { estadoList, sucId })
+  onGetById(id, servidor: boolean = true): Observable<Delivery> {
+    return this.genericService.onGetById(this.deliveryById, id, null, null, servidor);
   }
 
-  onSaveDeliveryAndVenta(delivery: DeliveryInput, venta: VentaInput, ventaItemList: VentaItemInput[], cobro: CobroInput, cobroDetalleList: CobroDetalleInput[]) {
+  onGetDeliverysByEstadoList(estadoList: DeliveryEstado[], sucId?: number, servidor: boolean = true) {
+    return this.genericService.onCustomQuery(this.deliverysByEstadoList, { estadoList, sucId }, servidor)
+  }
+
+  onSaveDeliveryAndVenta(delivery: DeliveryInput, venta: VentaInput, ventaItemList: VentaItemInput[], cobro: CobroInput, cobroDetalleList: CobroDetalleInput[], servidor: boolean = true) {
     if (delivery != null && delivery.usuarioId == null) delivery.usuarioId = this.mainService?.usuarioActual?.id
     if (venta != null && venta.usuarioId == null) venta.usuarioId = this.mainService?.usuarioActual?.id
     if (cobro != null && cobro.usuarioId == null) cobro.usuarioId = this.mainService?.usuarioActual?.id
@@ -63,28 +70,28 @@ export class DeliveryService {
       ventaItemInputList: ventaItemList,
       cobroInput: cobro,
       cobroDetalleInputList: cobroDetalleList
-    });
+    }, servidor);
   }
 
-  onGetPreciosDelivery(): Observable<PrecioDelivery[]> {
-    return this.genericService.onGetAll(this.preciosDelivery)
+  onGetPreciosDelivery(servidor: boolean = true): Observable<PrecioDelivery[]> {
+    return this.genericService.onGetAll(this.preciosDelivery, null, null, servidor);
   }
 
-  onSaveDeliveryEstado(id, estado): Observable<Delivery> {
+  onSaveDeliveryEstado(id, estado, servidor: boolean = true): Observable<Delivery> {
     return this.genericService.onSaveCustom(this.saveDeliveryEstado, {
       deliveryId: id,
       deliveryEstado: estado,
-      printerName: environment['printers']['ticket'],
-      local: environment['local'],
-      pdvId: environment['pdvId'],
-    })
+      printerName: this.configService?.getConfig()?.printers?.ticket,
+      local: this.configService?.getConfig()?.local,
+      pdvId: this.configService?.getConfig()?.pdvId,
+    }, servidor);
   }
 
-  onReimprimirDelivery(id): Observable<boolean> {
+  onReimprimirDelivery(id, servidor: boolean = true): Observable<boolean> {
     return this.genericService.onCustomQuery(this.reimprimirDelivery, {
       id: id,
-      printerName: environment['printers']['ticket'],
-      local: environment['local'],
-    })
+      printerName: this.configService?.getConfig()?.printers?.ticket,
+      local: this.configService?.getConfig()?.local,
+    }, servidor);
   }
 }

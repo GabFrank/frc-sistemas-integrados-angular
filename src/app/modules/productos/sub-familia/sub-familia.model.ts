@@ -5,15 +5,15 @@ import { Producto } from "../producto/producto.model";
 export class Subfamilia {
     id:number;
     nombre: string;
-    descripcion: String
+    descripcion: string
     familia: Familia
     subFamilia: Subfamilia
     subfamiliaList: Subfamilia[]
-    activo: Boolean
+    activo: boolean
     creadoEn: Date
     usuario: Usuario
     productos: [Producto]
-    icono: String
-    posicion: String;
+    icono: string
+    posicion: string;
 
 }

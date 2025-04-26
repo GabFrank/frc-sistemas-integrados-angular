@@ -10,6 +10,7 @@ import { PdvCategoriaInput } from './pdv-categoria-input.model';
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { PdvCategoria } from './pdv-categoria.model';
+import { GruposProductosPorGrupoIdSimpleGQL } from './graphql/getGrupoProductosSimple';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -25,38 +26,34 @@ export class PdvCategoriaService implements OnDestroy {
     private saveCategoria: SavePdvCategoriaGQL,
     private notificacionService: NotificacionSnackbarService,
     private genericService: GenericCrudService,
-    private getGruposProductosPorGrupoId: GruposProductosPorGrupoIdGQL
+    private getGruposProductosPorGrupoId: GruposProductosPorGrupoIdGQL,
+    private getGruposProductosPorGrupoIdSimple: GruposProductosPorGrupoIdSimpleGQL
   ) {
     this.cargarCategorias()
-    this.timer = setInterval(() => {
-      this.cargarCategorias()
-    }, 900000);
+    // this.timer = setInterval(() => {
+    //   this.cargarCategorias()
+    // }, 900000);
   }
 
   cargarCategorias() {
-    this.onGetCategorias()
+    this.onGetCategorias(false)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        // this.cargandoService.openDialog(false, "Cargando Otros");
-        // this.cargandoService.closeDialog();
-        if (res.errors == null) {
-          this.pdvCategorias = res.data.data;
-          this.pdvCategoriasSub.next(this.pdvCategorias)
-          res.data.data.forEach((cat) => {
-            cat.grupos.forEach((gr) => {
-              if (gr.activo == true) {
-                this.onGetGrupoProductosPorGrupoId(gr.id)
-                  .pipe(untilDestroyed(this))
-                  .subscribe((res) => {
-                    if (res != null) {
-                      gr.pdvGruposProductos = res;
-                    }
-                  });
-              }
-            });
-            console.log("carga completa");
+        this.pdvCategorias = res;
+        this.pdvCategoriasSub.next(this.pdvCategorias)
+        this.pdvCategorias.forEach((cat) => {
+          cat.grupos.forEach((gr) => {
+            if (gr.activo == true) {
+              this.onGetGrupoProductosPorGrupoId(gr.id, false)
+                .pipe(untilDestroyed(this))
+                .subscribe((res) => {
+                  if (res != null) {
+                    gr.pdvGruposProductos = res;
+                  }
+                });
+            }
           });
-        }
+        });
       });
   }
 
@@ -64,8 +61,28 @@ export class PdvCategoriaService implements OnDestroy {
     clearInterval(this.timer)
   }
 
-  onGetCategorias() {
-    return this.getCategorias.fetch(null, { fetchPolicy: 'no-cache', errorPolicy: 'all' })
+  onGetCategorias(servidor: boolean = true): Observable<PdvCategoria[]> {
+    return this.genericService.onCustomQuery(this.getCategorias, {}, servidor, null, true);
+  }
+
+  onRefresh() {
+    this.onGetCategorias(false).subscribe(res => {
+      this.pdvCategorias = res;
+      this.pdvCategoriasSub.next(this.pdvCategorias)
+      this.pdvCategorias.forEach((cat) => {
+        cat.grupos.forEach((gr) => {
+          if (gr.activo == true) {
+            this.onGetGrupoProductosPorGrupoId(gr.id)
+              .pipe(untilDestroyed(this))
+              .subscribe((res) => {
+                if (res != null) {
+                  gr.pdvGruposProductos = res;
+                }
+              });
+          }
+        });
+      });
+    })
   }
 
   onSaveCategoria(input: PdvCategoriaInput) {
@@ -95,7 +112,11 @@ export class PdvCategoriaService implements OnDestroy {
     })
   }
 
-  onGetGrupoProductosPorGrupoId(id): Observable<PdvGruposProductos[]> {
-    return this.genericService.onGetById(this.getGruposProductosPorGrupoId, id)
+  onGetGrupoProductosPorGrupoId(id, servidor: boolean = true): Observable<PdvGruposProductos[]> {
+    return this.genericService.onGetById(this.getGruposProductosPorGrupoId, id, null, null, servidor, null, null, null, true)
+  }
+
+  onGetGrupoProductosPorGrupoIdSimple(id, servidor: boolean = true): Observable<PdvGruposProductos[]> {
+    return this.genericService.onGetById(this.getGruposProductosPorGrupoIdSimple, id, null, null, servidor, null, null, null, true)
   }
 }

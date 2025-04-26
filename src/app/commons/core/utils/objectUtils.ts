@@ -10,3 +10,8 @@ function getClassProperties(instanceOfClass) {
     return names.filter(name => name != 'constructor');
 }
 
+export function deserializeEntity<T>(cls: new () => T, obj: any): T {
+    return Object.assign(new cls(), obj);
+}
+
+

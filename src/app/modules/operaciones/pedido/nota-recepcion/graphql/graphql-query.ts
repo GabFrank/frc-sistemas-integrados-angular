@@ -47,6 +47,7 @@ export const notaRecepcionQuery = gql`
       numero
       timbrado
       creadoEn
+      cantidadItensVerificadoRecepcionMercaderia
       usuario {
         id
       }
@@ -67,64 +68,23 @@ export const notaRecepcionPorPedidoIdQuery = gql`
       documento {
         id
         descripcion
-        activo
       }
       valor
       descuento
+      tipoBoleta
       pagado
       numero
       timbrado
       creadoEn
-      pedidoItemList {
-        id
-        producto {
-          id
-          descripcion
-        }
-        compraItem {
-          id
-          cantidad
-          verificado
-          lote
-          vencimiento
-          presentacion{
-            id
-            cantidad
-          }
-          producto{
-            id
-          }
-          pedidoItem{
-            id
-          }
-          precioUnitario
-          descuentoUnitario
-          estado
-        }
-        notaRecepcion {
-          id
-        }
-        presentacion {
-          id
-          cantidad
-          imagenPrincipal
-        }
-        precioUnitario
-        descuentoUnitario
-        bonificacion
-        bonificacionDetalle
-        estado
-        vencimiento
-        creadoEn
-        cantidad
-        valorTotal
-      }
+      cantidadItensVerificadoRecepcionMercaderia
       usuario {
         id
         persona {
           nombre
         }
       }
+      cantidadItens
+      fecha
     }
   }
 `;
@@ -133,6 +93,7 @@ export const saveNotaRecepcion = gql`
   mutation saveNotaRecepcion($entity: NotaRecepcionInput!) {
     data: saveNotaRecepcion(entity: $entity) {
       id
+      valor
     }
   }
 `;
@@ -143,4 +104,56 @@ export const deleteNotaRecepcionQuery = gql`
   }
 `;
 
-// buscarSobrantes
+export const notaRecepcionPorPedidoIdAndNumeroQuery = gql`
+  query ($id: ID!, $numero: Int, $page: Int, $size: Int) {
+    data: notaRecepcionPorPedidoIdAndNumero(
+      id: $id
+      numero: $numero
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        pedido {
+          id
+        }
+        compra {
+          id
+        }
+        documento {
+          id
+          descripcion
+        }
+        valor
+        descuento
+        tipoBoleta
+        pagado
+        numero
+        timbrado
+        creadoEn
+        cantidadItensVerificadoRecepcionMercaderia
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+        cantidadItens
+        fecha
+      }
+    }
+  }
+`;
+
+export const countNotaRecepcionPorPedidoId = gql`
+  query ($id: ID!) {
+    data: countNotaRecepcionPorPedidoId(id: $id)
+  }
+`;

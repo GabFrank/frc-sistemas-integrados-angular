@@ -1,25 +1,28 @@
-import { CargandoDialogService } from './../../../shared/components/cargando-dialog/cargando-dialog.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Injectable, Type } from "@angular/core";
-import { AllFuncionariosGQL } from "./graphql/allFuncionarios";
-import { FuncionarioInput } from "./funcionario-input.model";
+import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
-import { Funcionario } from "./funcionario.model";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
-import { SaveFuncionarioGQL } from "./graphql/saveFuncionario";
 import {
-  NotificacionColor,
-  NotificacionSnackbarService,
+  NotificacionSnackbarService
 } from "../../../notificacion-snackbar.service";
+import { CargandoDialogService } from './../../../shared/components/cargando-dialog/cargando-dialog.service';
+import { FuncionarioInput } from "./funcionario-input.model";
+import { Funcionario } from "./funcionario.model";
+import { AllFuncionariosGQL } from "./graphql/allFuncionarios";
 import { FuncionarioSearchGQL } from "./graphql/funcionarioSearch";
+import { SaveFuncionarioGQL } from "./graphql/saveFuncionario";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { environment } from '../../../../environments/environment';
 import { DeletePreRegistroFuncionarioGQL } from "./graphql/graphql-pre-funcionario/deletePreRegistroFuncionario";
 import { PreRegistroFuncionarioByIdGQL } from "./graphql/graphql-pre-funcionario/preRegistroFuncionarioById";
 import { PreRegistroFuncionariosGQL } from "./graphql/graphql-pre-funcionario/preRegistroFuncionariosQuery";
 import { SavePreRegistroFuncionarioGQL } from "./graphql/graphql-pre-funcionario/savePreRegistroFuncionario";
-import { environment, serverAdress } from '../../../../environments/environment';
 import { PreRegistroFuncionario } from './pre-registro-funcionario.model';
+import { FuncionariosWithPageGQL } from './graphql/funcionarios-with-page';
+import { PageInfo } from '../../../app.component';
+import { FuncionarioPorPersonaIdGQL } from './graphql/funcionarioPorPersonaId';
+import { FuncionarioByIdGQL } from './graphql/funcionarioById';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -37,61 +40,35 @@ export class FuncionarioService {
     private savePreRegistroFuncionario: SavePreRegistroFuncionarioGQL,
     private deletePreRegistroFuncionario: DeletePreRegistroFuncionarioGQL,
     private cargandoService: CargandoDialogService,
-    private preRegistroFuncionarios: PreRegistroFuncionariosGQL
+    private preRegistroFuncionarios: PreRegistroFuncionariosGQL,
+    private funcionariosWithPage: FuncionariosWithPageGQL,
+    private funcionarioPorPersona: FuncionarioPorPersonaIdGQL,
+    private funcionarioById: FuncionarioByIdGQL
+  ) { }
 
-  ) {}
-
-  onGetAllFuncionarios(page?): Observable<Funcionario[]> {
-    return this.genericCrud.onGetAll(this.getAllFuncionarios, page);
+  onGetAllFuncionarios(page?, size?, servidor = true): Observable<Funcionario[]> {
+    return this.genericCrud.onGetAll(this.getAllFuncionarios, page, size, servidor);
   }
 
-  onGetFuncionarioById(id) {}
-
-  onFuncionarioSearch(texto: string): Observable<any> {
-    return new Observable(obs => {
-      this.searchFuncionario
-      .fetch({ texto }, { fetchPolicy: "no-cache", errorPolicy: "all" }).pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if(res.errors==null){
-          obs.next(res.data.data)
-        } else {
-          console.log(res)
-          obs.next(null)
-        }
-      });
-    })
+  onGetFuncionarioById(id, servidor = true): Observable<Funcionario> { 
+    return this.genericCrud.onGetById(this.funcionarioById, id, null, null, servidor);
   }
 
-  onSaveFuncionario(input: FuncionarioInput): Observable<Funcionario> {
-    console.log(input);
-    return new Observable((obs) => {
-      if (input.id == null && input.usuarioId == null) {
-        input.usuarioId = +localStorage.getItem("usuarioId");
-      }
-      this.saveFuncionario
-        .mutate(
-          {
-            entity: input,
-          },
-          { errorPolicy: "all" }
-        ).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          console.log(res.errors);
-          if (res.errors == null) {
-            obs.next(res.data.data);
-            this.notificacionBar.openGuardadoConExito()
-          } else {
-            obs.next(null);
-            this.notificacionBar.openAlgoSalioMal(res.errors[0].message)
-          }
-        });
-    });
+  onFuncionarioSearch(texto: string, servidor = true): Observable<any> {
+    //refactor using genericcrud
+    return this.genericCrud.onCustomQuery(this.searchFuncionario, { texto }, servidor);
   }
 
-  onDeleteFuncionario(id) {}
+  onSaveFuncionario(input: FuncionarioInput, servidor = true): Observable<Funcionario> {
+    return this.genericCrud.onSave(this.saveFuncionario, input, null, null, servidor);
+  }
 
-  onGetPreRegistroFuncionario(id): Observable<PreRegistroFuncionario> {
-    return this.genericCrud.onGetById(this.getPreRegistroFuncionario, id);
+  // onDeleteFuncionario(id, servidor = true) {
+  //   return this.genericCrud.onDelete(this.deleteFuncionario, id, servidor);
+  // }
+
+  onGetPreRegistroFuncionario(id, servidor = true): Observable<PreRegistroFuncionario> {
+    return this.genericCrud.onGetById(this.getPreRegistroFuncionario, id, null, null, servidor);
   }
 
   // onGetPreRegistroFuncionarioes(sucursalId: number): Observable<PreRegistroFuncionario[]> {
@@ -100,7 +77,6 @@ export class FuncionarioService {
 
   onSavePreRegistroFuncionario(input): Observable<boolean> {
     this.cargandoService.openDialog()
-    console.log(input)
     let httpOptions = {
       headers: new HttpHeaders({
         Accept: "application/json",
@@ -115,7 +91,7 @@ export class FuncionarioService {
         httpOptions
       ).pipe(untilDestroyed(this)).subscribe(res => {
         this.cargandoService.closeDialog()
-        if(res?.id!=null){
+        if (res?.id != null) {
           obs.next(true)
           this.notificacionBar.openGuardadoConExito()
         } else {
@@ -125,16 +101,23 @@ export class FuncionarioService {
     })
   }
 
-  onSavePreRegistroFuncionarioGraphql(input): Observable<boolean> {
-    return this.genericCrud.onSave(this.savePreRegistroFuncionario, input)
+  onSavePreRegistroFuncionarioGraphql(input, servidor = true): Observable<boolean> {
+    return this.genericCrud.onSave(this.savePreRegistroFuncionario, input, null, null, servidor)
   }
 
-  onDeletePreRegistroFuncionario(id): Observable<boolean> {
-    return this.genericCrud.onDelete(this.deletePreRegistroFuncionario, id)
+  onDeletePreRegistroFuncionario(id, servidor = true): Observable<boolean> {
+    return this.genericCrud.onDelete(this.deletePreRegistroFuncionario, id, null, null, servidor)
   }
 
-  onGetAllPreRegistroFuncionarios(page?): Observable<PreRegistroFuncionario[]>{
-    console.log('page: ', page)
-    return this.genericCrud.onGetAll(this.preRegistroFuncionarios, page)
+  onGetAllPreRegistroFuncionarios(page?, size?, servidor = true): Observable<PreRegistroFuncionario[]> {
+    return this.genericCrud.onGetAll(this.preRegistroFuncionarios, page, size, servidor)
+  }
+
+  onGetAllWithPage(page?, size?, id?, nombre?, sucursalIdList?, servidor = true): Observable<PageInfo<Funcionario>> {
+    return this.genericCrud.onCustomQuery(this.funcionariosWithPage, { page, size, id, nombre, sucursalIdList }, servidor);
+  }
+
+  onGetFuncionarioPorPersona(id, servidor = true): Observable<Funcionario> {
+    return this.genericCrud.onGetById(this.funcionarioPorPersona, id, null, null, servidor);
   }
 }

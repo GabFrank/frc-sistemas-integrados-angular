@@ -17,7 +17,8 @@ export class CobroDetalle {
     creadoEn: Date
     usuario: Usuario
     identificadorTransaccion: string
-
+    sucursalId: number;
+    
     toInput(): CobroDetalleInput {
         let input = new CobroDetalleInput()
         input.id = this.id;
@@ -33,6 +34,7 @@ export class CobroDetalle {
         input.creadoEn = this.creadoEn
         input.usuarioId = this.usuario?.id;
         input.identificadorTransaccion = this.identificadorTransaccion;
+        input.sucursalId = this.sucursalId;
         return input;
     }
 }
@@ -51,4 +53,5 @@ export class CobroDetalleInput {
     creadoEn: Date
     usuarioId: number
     identificadorTransaccion: string
+    sucursalId: number;
 }

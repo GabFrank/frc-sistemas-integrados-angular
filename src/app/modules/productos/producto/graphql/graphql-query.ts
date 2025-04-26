@@ -20,6 +20,9 @@ export const productosQuery = gql`
           descripcion
         }
       }
+      costo {
+        ultimoPrecioCompra
+      }
       presentaciones {
         id
         principal
@@ -55,7 +58,6 @@ export const productosExistenciaCostoQuery = gql`
     data: productos {
       id
       descripcion
-      
     }
   }
 `;
@@ -64,14 +66,18 @@ export const productosExistenciaCostoSearch = gql`
   query ($texto: String) {
     data: productoSearch(texto: $texto) {
       id
-      
     }
   }
 `;
 
 export const productoSearchPdv = gql`
-  query ($texto: String, $offset: Int, $isEnvase: Boolean) {
-    data: productoSearch(texto: $texto, offset: $offset, isEnvase: $isEnvase) {
+  query ($texto: String, $offset: Int, $isEnvase: Boolean, $activo: Boolean) {
+    data: productoSearch(
+      texto: $texto
+      offset: $offset
+      isEnvase: $isEnvase
+      activo: $activo
+    ) {
       id
       balanza
       descripcion
@@ -81,6 +87,10 @@ export const productoSearchPdv = gql`
       diasVencimiento
       observacion
       codigoPrincipal
+      precioPrincipal
+      costo {
+        ultimoPrecioCompra
+      }
       envase {
         id
         descripcion
@@ -143,7 +153,9 @@ export const productosSearch = gql`
       promocion
       vencimiento
       diasVencimiento
-
+      costo {
+        ultimoPrecioCompra
+      }
       tipoConservacion
       subfamilia {
         id
@@ -152,6 +164,50 @@ export const productosSearch = gql`
           id
           descripcion
         }
+      }
+    }
+  }
+`;
+
+export const searchProductoWithFilters = gql`
+  query (
+    $texto: String
+    $codigo: String
+    $activo: Boolean
+    $stock: Boolean
+    $balanza: Boolean
+    $subfamilia: Int
+    $vencimiento: Boolean
+    $page: Int
+    $size: Int
+  ) {
+    data: searchProductoWithFilters(
+      texto: $texto
+      codigo: $codigo
+      activo: $activo
+      stock: $stock
+      balanza: $balanza
+      subfamilia: $subfamilia
+      vencimiento: $vencimiento
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        descripcion
+        costo {
+          costoMedio
+          ultimoPrecioCompra
+        }
+        precioPrincipal
+        codigoPrincipal
       }
     }
   }
@@ -217,6 +273,10 @@ export const productoPorCodigoQuery = gql`
       cambiable
       imagenPrincipal
       isEnvase
+      costo {
+        ultimoPrecioCompra
+        costoMedio
+      }
       envase {
         id
         descripcion
@@ -256,6 +316,7 @@ export const productoPorCodigoQuery = gql`
           activo
         }
       }
+      codigoPrincipal
     }
   }
 `;
@@ -277,7 +338,9 @@ export const productoPorProveedor = gql`
       promocion
       vencimiento
       diasVencimiento
-
+      costo {
+        ultimoPrecioCompra
+      }
       tipoConservacion
       subfamilia {
         id
@@ -307,16 +370,32 @@ export const productoQuery = gql`
       iva
       stock
       isEnvase
+      codigoPrincipal
+      precioPrincipal
+      activo
+      creadoEn
       envase {
         id
         descripcion
       }
       subfamilia {
         id
+        nombre
         descripcion
+        activo
+        creadoEn
+        usuario {
+          id
+        }
         familia {
           id
+          nombre
           descripcion
+          activo
+          creadoEn
+          usuario {
+            id
+          }
         }
       }
       presentaciones {
@@ -324,6 +403,7 @@ export const productoQuery = gql`
         descripcion
         principal
         cantidad
+        activo
         codigos {
           id
           codigo
@@ -398,7 +478,9 @@ export const saveProducto = gql`
       promocion
       vencimiento
       diasVencimiento
-
+      costo {
+        ultimoPrecioCompra
+      }
       tipoConservacion
       subfamilia {
         id
@@ -491,7 +573,7 @@ export const productoParaPedidoQuery = gql`
         ultimoPrecioCompra
         ultimoPrecioVenta
         costoMedio
-        moneda { 
+        moneda {
           id
           denominacion
           cambio
@@ -523,6 +605,9 @@ export const findByPdvGrupoProductoQuery = gql`
       iva
       stock
       isEnvase
+      costo {
+        ultimoPrecioCompra
+      }
       envase {
         id
         descripcion
@@ -559,5 +644,31 @@ export const findByPdvGrupoProductoQuery = gql`
         }
       }
     }
+  }
+`;
+
+export const lucroPorProductoQuery = gql`
+  query lucroPorProducto(
+    $fechaInicio: String
+    $fechaFin: String
+    $sucursalIdList: [Int]
+    $usuarioId: ID!
+    $usuarioIdList: [ID]
+    $productoIdList: [ID]
+  ) {
+    data: lucroPorProducto(
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      sucursalIdList: $sucursalIdList
+      usuarioId: $usuarioId
+      usuarioIdList: $usuarioIdList
+      productoIdList: $productoIdList
+    )
+  }
+`;
+
+export const imprimirCodigoBarraQuery = gql`
+  query imprimirCodigoBarra($codigoId: Int) {
+    data: imprimirCodigoBarra(codigoId: $codigoId)
   }
 `;

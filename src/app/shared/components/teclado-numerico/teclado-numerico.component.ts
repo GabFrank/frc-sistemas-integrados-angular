@@ -55,7 +55,7 @@ export class TecladoNumericoComponent implements OnInit, AfterViewInit {
   doneBtn: MatButton;
 
   constructor(public dialogRef: MatDialogRef<TecladoNumericoComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: TecladoData) { 
+    @Inject(MAT_DIALOG_DATA) public data: TecladoData) {
     }
 
   ngOnInit(): void {
@@ -82,17 +82,16 @@ export class TecladoNumericoComponent implements OnInit, AfterViewInit {
 
   setCantidad(n: string){
     let cantidad : any = +this.formGroup.get('cantidad').value;
-    console.log(cantidad, n)
     switch (n) {
       case 'borrar':
         if(this.data.financial){
           if(cantidad < 0.01) {
             this.formGroup.get('cantidad').setValue(0)
           } else {
-            this.formGroup.get('cantidad').setValue(cantidad*0.1);        
+            this.formGroup.get('cantidad').setValue(cantidad*0.1);
           }
         } else {
-          this.formGroup.get('cantidad').setValue(Math.floor(cantidad*0.1));        
+          this.formGroup.get('cantidad').setValue(Math.floor(cantidad*0.1));
         }
         break;
       case 'clear':

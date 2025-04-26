@@ -1,57 +1,100 @@
 import {
-  animate, state,
+  animate,
+  state,
   style,
-  transition, trigger
+  transition,
+  trigger,
 } from "@angular/animations";
 import {
+  AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   Input,
   OnInit,
-  ViewChild
+  ViewChild,
 } from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
+
+import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
+import { MatDatepicker } from "@angular/material/datepicker";
 import { MatDialog } from "@angular/material/dialog";
-import { MatStepper } from "@angular/material/stepper";
+import { MatPaginator, PageEvent } from "@angular/material/paginator";
+import { MatSelect } from "@angular/material/select";
 import { MatTableDataSource } from "@angular/material/table";
-import { Observable, Subscription } from "rxjs";
-import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
-import { Moneda } from "../../../../modules/financiero/moneda/moneda.model";
-import { Proveedor } from "../../../../modules/personas/proveedor/proveedor.model";
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { forkJoin } from "rxjs";
+import { PageInfo } from "../../../../app.component";
+import { dateToString } from "../../../../commons/core/utils/dateUtils";
+import {
+  CurrencyMask,
+  updateDataSource,
+  updateDataSourceWithId,
+} from "../../../../commons/core/utils/numbersUtils";
+import { Tab } from "../../../../layouts/tab/tab.model";
+import { MainService } from "../../../../main.service";
 import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
-import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
+import { FrcSearchableSelectComponent } from "../../../../shared/components/frc-searchable-select/frc-searchable-select.component";
+import {
+  SearchListDialogComponent,
+  SearchListtDialogData,
+  TableData,
+} from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
+import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
+import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
 import { FormaPago } from "../../../financiero/forma-pago/forma-pago.model";
 import { FormaPagoService } from "../../../financiero/forma-pago/forma-pago.service";
+import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
+import { Proveedor } from "../../../personas/proveedor/proveedor.model";
 import { ProveedorService } from "../../../personas/proveedor/proveedor.service";
-import { Usuario } from "../../../personas/usuarios/usuario.model";
 import { Vendedor } from "../../../personas/vendedor/vendedor.model";
 import { VendedorService } from "../../../personas/vendedor/vendedor.service";
-import { AdicionarDetalleCompraItemDialogComponent } from "../../compra/adicionar-detalle-compra-item-dialog/adicionar-detalle-compra-item-dialog.component";
-import { CompraEstado } from "../../compra/compra-enums";
-import { CompraItem } from "../../compra/compra-item.model";
-import { Compra } from "../../compra/compra.model";
-import { CompraService } from "../../compra/compra.service";
-import { AdicionarItemDialogComponent } from "../adicionar-item-dialog/adicionar-item-dialog.component";
+import { Presentacion } from "../../../productos/presentacion/presentacion.model";
+import { ProductoProveedor } from "../../../productos/producto-proveedor/producto-proveedor.model";
+import { ProductoProveedorService } from "../../../productos/producto-proveedor/producto-proveedor.service";
 import {
-  AdicionarNotaRecepcionDialogComponent
-} from "../nota-recepcion/adicionar-nota-recepcion-dialog/adicionar-nota-recepcion-dialog.component";
-import { NotaRecepcion } from "../nota-recepcion/nota-recepcion.model";
-import { NotaRecepcionService } from "../nota-recepcion/nota-recepcion.service";
+  PdvSearchProductoData,
+  PdvSearchProductoDialogComponent,
+  PdvSearchProductoResponseData,
+} from "../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
+import { Producto } from "../../../productos/producto/producto.model";
+import { ProductoService } from "../../../productos/producto/producto.service";
+import { CompraItem } from "../../compra/compra-item.model";
+import { CompraService } from "../../compra/compra.service";
+import { CostoPorProductoService } from "../../costo-por-producto/costo-por-producto.service";
 import { PedidoService } from "../pedido.service";
-import { PedidoEstado } from "./pedido-enums";
+import { PedidoEstado, PedidoItemEstado } from "./pedido-enums";
 import { PedidoItem } from "./pedido-item.model";
 import { Pedido } from "./pedido.model";
-
-export interface Transaction {
-  item: string;
-  cost: number;
-}
-
-import { MatDatepicker } from "@angular/material/datepicker";
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { TipoBoleta } from "../../compra/compra-enums";
+import { NotaRecepcion } from "../nota-recepcion/nota-recepcion.model";
+import {
+  AdicionarNotaRecepcionData,
+  AdicionarNotaRecepcionDialogComponent,
+} from "../nota-recepcion/adicionar-nota-recepcion-dialog/adicionar-nota-recepcion-dialog.component";
+import { SelectionModel } from "@angular/cdk/collections";
+import { extractIds } from "../../../../commons/core/utils/arraysUtil";
+import { Color, ScaleType } from "@swimlane/ngx-charts";
+import { DividirItemDialogComponent } from "../dividir-item-dialog/dividir-item-dialog.component";
 import { AdicionarProveedorDialogComponent } from "../../../personas/proveedor/adicionar-proveedor-dialog/adicionar-proveedor-dialog.component";
-import { MatSelect } from "@angular/material/select";
+import { MatCheckboxChange } from "@angular/material/checkbox";
+import { EditarPedidpItemDialogComponent } from "../editar-pedidp-item-dialog/editar-pedidp-item-dialog.component";
+import { NotaRecepcionService } from "../nota-recepcion/nota-recepcion.service";
+import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
+import { PagoPedidoDialogComponent } from "../pago-pedido-dialog/pago-pedido-dialog.component";
+import { PedidoItemSucursalDialogComponent } from "../pedido-item-sucursal/pedido-item-sucursal-dialog/pedido-item-sucursal-dialog.component";
+import { PedidoItemSucursalService } from "../pedido-item-sucursal/pedido-item-sucursal.service";
+
+export interface ProductoDelProveedor {
+  id: number;
+  proveedor: string;
+  producto: any;
+  stockTotal: number;
+  stockPorSucursal: any[];
+  sugeridoTotal: number;
+  sugeridoPorSucursal: any[];
+}
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -69,713 +112,2012 @@ import { MatSelect } from "@angular/material/select";
     ]),
   ],
 })
-export class EditPedidoComponent implements OnInit {
-  @ViewChild("stepper", { static: false }) stepper: MatStepper;
-  isVuelto = false;
+export class EditPedidoComponent implements OnInit, AfterViewInit {
+  //Inputs de los elementos
+  @ViewChild("proveedorInput", { static: false }) proveedorInput: ElementRef;
+  @ViewChild("vendedorInput", { static: false }) vendedorInput: ElementRef;
+  @ViewChild("sucursalSelect", { static: false, read: MatSelect })
+  sucursalSelect: MatSelect;
+  @ViewChild("sucursalEntregaSelect", { static: false, read: MatSelect })
+  sucursalEntregaSelect: MatSelect;
+  @ViewChild("presentacionSelect", { static: false, read: MatSelect })
+  presentacionSelect: MatSelect;
+  @ViewChild("autoMonedaInput", { static: false, read: MatAutocompleteTrigger })
+  matMonedaTrigger: MatAutocompleteTrigger;
+  @ViewChild("autoMonedaInput", { static: false })
+  autoMonedaInput: ElementRef;
+  @ViewChild("diasCreditoInput", { static: false })
+  diasCreditoInput: ElementRef;
+  @ViewChild("formaPagoSelect", { read: FrcSearchableSelectComponent })
+  formaPagoSelect: FrcSearchableSelectComponent;
+  @ViewChild("monedaSelect", { read: FrcSearchableSelectComponent })
+  monedaSelect: FrcSearchableSelectComponent;
+  @ViewChild("picker") picker: MatDatepicker<Date>;
+  @ViewChild("codigoInput", { static: false }) codigoInput: ElementRef;
+  @ViewChild("cantidadPresentacionInput", { static: false })
+  cantidadPresentacionInput: ElementRef;
+  @ViewChild("cantidadUnidadInput", { static: false })
+  cantidadUnidadInput: ElementRef;
 
-  @Input()
-  data;
-
-  @ViewChild("proveedorInput", { static: false })
-  proveedorInput: ElementRef;
-
-  @ViewChild("plazoInput", { static: false })
-  plazoInput: ElementRef;
-
-  @ViewChild("fechaInput", { static: false })
-  fechaInput: ElementRef;
-
-  @ViewChild("vendedorInput", { static: false })
-  vendedorInput: MatSelect;
-
-  @ViewChild("formaPagoInput", { static: false })
-  formaPagoInput: MatSelect;
-
-  @ViewChild("monedaInput", { static: false })
-  monedaInput: MatSelect;
-
-  @ViewChild("picker", { static: false })
-  calendar: MatDatepicker<any>;
-
-  detalleForm: FormGroup = new FormGroup({});
-
-  idControl = new FormControl();
-  vendedorControl = new FormControl();
-  proveedorControl = new FormControl(null, Validators.required);
-  fechaEntregaControl = new FormControl();
-  formaPagoControl = new FormControl();
-  estadoControl = new FormControl(PedidoEstado.ABIERTO);
-  monedaControl = new FormControl();
-  plazoCreditoControl = new FormControl(8);
-  descuentoControl = new FormControl(0);
-  creadoEnControl = new FormControl();
-  usuarioControl = new FormControl();
-  creditoControl = new FormControl(true);
-
-  selectedPedido: Pedido;
+  //datos del proveedor
   selectedProveedor: Proveedor;
+
+  //datos del vendedor
   selectedVendedor: Vendedor;
+  vendedorList: Vendedor[];
+
+  //Controles del formulario
+  pedidoFormGroup: FormGroup;
+  pedidoItemFormGroup: FormGroup;
+  idControl = new FormControl(null);
+  buscarProveedorControl = new FormControl(null, Validators.required);
+  buscarVendedorControl = new FormControl(null);
+  sucursalInfluenciaControl = new FormControl(null);
+  sucursalEntregaControl = new FormControl(null);
+  tipoBoletaControl = new FormControl("LEGAL");
+  diasCreditoControl = new FormControl(null);
+  fechaEntregaControl = new FormControl(null);
+  fechaEntregaDisplayControl = new FormControl(null);
+  productoIdControl = new FormControl(null);
+  codigoControl = new FormControl(null, Validators.required);
+  descripcionControl = new FormControl(null);
+  presentacionControl = new FormControl(null);
+  cantidadUnidadControl = new FormControl(null);
+  cantidadPresentacionControl = new FormControl(null);
+  formaPagoControl = new FormControl(null);
+  precioPorPresentacionControl = new FormControl(null);
+  precioUnitarioControl = new FormControl(null);
+  monedaControl = new FormControl(null);
+  buscarProductoProveedor = new FormControl();
+  filtroItensNotaRecepcionControl = new FormControl();
+  filtroPedidoItensSobrantesControl = new FormControl();
+  filtroNotaRecepcionControl = new FormControl();
+  cantidadesPorSucursalControl = new FormControl();
   selectedMoneda: Moneda;
   selectedFormaPago: FormaPago;
-  selectedUsuario: Usuario;
 
-  proveedorList: Proveedor[];
-  proveedorSub: Subscription;
-  proveedorTimer;
-
-  vendedorList: Vendedor[];
-  vendedorSub: Subscription;
-  vendedorTimer;
-
+  //Listas
+  presentacionList: Presentacion[];
+  sucursalList: Sucursal[];
+  tipoBoletaList: any[] = ["LEGAL", "COMUN", "AMBAS"];
   formaPagoList: FormaPago[];
-  formaPagoSub: Subscription;
-  formaPagoTimer;
+  monedas: Moneda[];
+  auxMonedas: Moneda[];
 
-  monedaList: Moneda[];
-  monedaSub: Subscription;
-  monedaTimer;
+  //datos de sucursales
+  sucursalInfluenciaSelect: any;
 
-  descuentoItem = 0;
-  descuentoGeneral = 0;
-  valorTotal = 0;
+  //datos de tabla Productos del Proveedor
+  expandedProductoProveedor: any;
+  productosProveedorDataSource = new MatTableDataSource<ProductoProveedor>([]);
+  filteredProductosProveedorDataSource =
+    new MatTableDataSource<ProductoProveedor>([]);
+  productoProveedorDisplayedColumns = ["codigo", "descripcion", "menu"];
 
-  //table
-  columnsToDisplay = [
-    "producto",
+  //datos de tabla de historico de precios
+  expandedcompraItem: any;
+  historicoCompraItemDataSource = new MatTableDataSource<CompraItem>([]);
+  compraItemDisplayedColumns = [
+    "fecha",
+    "presentacion",
+    "cantidad",
+    "precio",
+    "menu",
+  ];
+  pageCompraItem: number = 0;
+  sizeCompraItem: number = 10;
+
+  //datos de tabla de itens del pedido
+  expandedPedido: PedidoItem;
+  expandedPedidoItemNotaRecepcion: PedidoItem;
+  pedidoDataSource = new MatTableDataSource<any>([]);
+  pedidoItemNotaRecepcionDataSource = new MatTableDataSource<any>([]);
+  pedidoDisplayedColumns = [
+    "id",
+    "codigo",
+    "descripcion",
     "presentacion",
     "cantidad",
     "precioUnitario",
-    "descuentoUnitario",
+    "precioPresentacion",
+    // "descuentoPresentacion",
+    "total",
+    "menu",
+  ];
+  pedidoItemNotaRecepcionDisplayedColumns = [
+    "id",
+    "codigo",
+    "descripcion",
+    "presentacion",
+    "cantidad",
+    "precioUnitario",
+    "precioPresentacion",
+    // "descuentoPresentacion",
+    "total",
+    "menu",
+    "delete",
+  ];
+  selection = new SelectionModel<PedidoItem>(true, []);
+  selectionNotaRecepcion = new SelectionModel<PedidoItem>(true, []);
+  selectedPedidoItemNotaRecepcion: PedidoItem;
+  selectedPedidoItemSobrante: PedidoItem;
+  selectedPedidoItemNotaRecepcionPage: PageInfo<PedidoItem>;
+  pedidoItemNotaRecepcionPageIndex = 0;
+  pedidoItemNotaRecepcionPageSize = 10;
+  selectedNotaRecepcionPage: PageInfo<NotaRecepcion>;
+  notaRecepcionPageIndex = 0;
+  notaRecepcionPageSize = 10;
+  //datos de fecha de entrega
+  initialDates: Date[] = []; // Example initial dates
+
+  //datos del producto
+  isPesable = false;
+  selectedProducto: Producto;
+
+  //flags de control
+  isDialogOpen = false;
+
+  //mascara para formatear los numeros a monedas
+  currencyMask = new CurrencyMask();
+
+  col1 = 35;
+  col2 = 65;
+  r1 = 50;
+  r2 = 50;
+
+  productoProveedorPageIndex = 0;
+  productoProveedorPageSize = 10;
+  selectedProductoProveedorPage: PageInfo<ProductoProveedor>;
+
+  compraItemPageIndex = 0;
+  compraItemPageSize = 10;
+  selectedcompraItemPage: PageInfo<CompraItem>;
+
+  //Datos del pedido
+  selectedPedido: Pedido;
+  selectedPedidoItem: PedidoItem;
+
+  //Paginacion
+  page = 0;
+  size = 15;
+  selectedPedidoItemPage: PageInfo<PedidoItem>;
+
+  @Input()
+  data: Tab;
+
+  //variable que indica si esta en estado de editar el pedido
+  isEditing = true;
+
+  totalCost = 0;
+
+  //datos de nota recepcion
+  notaRecepcionDataSource = new MatTableDataSource<NotaRecepcion>([]);
+  selectedNotaRecepcion: NotaRecepcion;
+  notaRecepcionDisplayedColumns = [
+    "numero",
+    "tipoBoleta",
+    "cantidadItem",
     "valorTotal",
-    "acciones",
+    "menu",
   ];
-  dataSource = new MatTableDataSource<PedidoItem>([]);
-  expandedPedidoItem: PedidoItem | null;
-  valorParcial = 0;
+  expandedNotaRecepcionProveedor: NotaRecepcion;
+  isAddingItensToNota = false;
+  totalItensAgregados = 0;
 
-  //table nota recepcion
-  columnsToDisplayNotaRecepcion = [
-    "id",
-    "tipo",
-    "numero",
-    "valor",
-    "descuento",
-    "valorFinal",
-    "cantItens",
-    "responsable",
-    "acciones",
-  ];
+  valorTotalControl = new FormControl(null);
+  descuentoPresentacionControl = new FormControl(null);
+  selectedHistoricoCompraPage: PageInfo<CompraItem>;
 
-  columnsToDisplayMercaderiaRecepcion = [
-    "id",
-    "tipo",
-    "numero",
-    "valor",
-    "valorFinal",
-    "cantItens",
-    "acciones",
-  ];
-  dataSourceNotaRecepcion = new MatTableDataSource<NotaRecepcion>([]);
-  expandedNotaRecepcion: NotaRecepcion | null;
+  //datos del grafico
+  single: any[] = [];
+  view: any[] = [700, 400];
 
-  isEditar = false;
+  // options
+  gradient: boolean = true;
+  showLegend: boolean = true;
+  showLabels: boolean = true;
+  isDoughnut: boolean = false;
+  legendPosition: string = "below";
 
-  selectedCompra: Compra;
-  compraItemList: CompraItem[];
-  selectedCompraItem: CompraItem;
+  color: Color;
+
+  colorScheme = {
+    domain: ["#43a047", "#f44336", "#363636"],
+  };
 
   constructor(
     private proveedorService: ProveedorService,
     private vendedorService: VendedorService,
-    private formaPagoService: FormaPagoService,
+    private dialog: MatDialog,
+    private cargandoService: CargandoDialogService,
+    private sucursalService: SucursalService,
     private monedaService: MonedaService,
+    public formaPagoService: FormaPagoService,
+    private productoService: ProductoService,
     private matDialog: MatDialog,
-    private pedidoService: PedidoService,
-    private dialogoService: DialogosService,
-    private notaRecepcionService: NotaRecepcionService,
+    private costoPorProducoService: CostoPorProductoService,
     private compraService: CompraService,
-    private cargandoDialog: CargandoDialogService
-  ) { }
+    private productoProveedorService: ProductoProveedorService,
+    private pedidoService: PedidoService,
+    private mainService: MainService,
+    private cdr: ChangeDetectorRef,
+    private notaRecepcionService: NotaRecepcionService,
+    private dialogoService: DialogosService,
+    private pedidoItemSucursalService: PedidoItemSucursalService
+  ) {
+    this.color = {
+      name: "primary",
+      selectable: true,
+      domain: this.colorScheme.domain,
+      group: ScaleType.Linear,
+    };
+  }
 
   ngOnInit(): void {
-    this.createDetalleForm();
-    this.monedaControl.disable();
-    this.proveedorList = [];
-    this.vendedorList = [];
-    this.formaPagoList = [];
-    this.monedaList = [];
+    this.pedidoFormGroup = new FormGroup({
+      proveedoor: this.buscarProveedorControl,
+      vendedor: this.buscarVendedorControl,
+      formaPago: this.formaPagoControl,
+      moneda: this.monedaControl,
+      sucursalInfluencia: this.sucursalInfluenciaControl,
+      sucursalEntrega: this.sucursalEntregaControl,
+      tipoBoleta: this.tipoBoletaControl,
+      diasCredito: this.diasCreditoControl,
+      fechaEntrega: this.fechaEntregaControl,
+    });
+    this.pedidoItemFormGroup = new FormGroup({
+      codigo: this.codigoControl,
+      presentacion: this.presentacionControl,
+      cantidadUnidad: this.cantidadUnidadControl,
+      cantidadPresentacion: this.cantidadPresentacionControl,
+      precioPorPresentacion: this.precioPorPresentacionControl,
+      precioUnitario: this.precioUnitarioControl,
+      valorTotal: this.valorTotalControl,
+      descuentoPresentacion: this.descuentoPresentacionControl,
+    });
 
-    this.formaPagoService.onGetAllFormaPago().pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res != null) {
-        this.formaPagoList = res;
-        if (this.formaPagoList.length > 0) {
-          this.onFormaPagoSelect(
-            this.formaPagoList.find((f) => f.descripcion == "EFECTIVO")
-          );
+    forkJoin({
+      sucursales: this.sucursalService
+        .onGetAllSucursales()
+        .pipe(untilDestroyed(this)),
+      monedas: this.monedaService.onGetAll().pipe(untilDestroyed(this)),
+      formasPago: this.formaPagoService
+        .onGetAllFormaPago()
+        .pipe(untilDestroyed(this)),
+    }).subscribe({
+      next: ({ sucursales, monedas, formasPago }) => {
+        this.sucursalList = sucursales.filter((s) => s.deposito == true);
+        this.monedas = monedas;
+        this.auxMonedas = monedas;
+        this.formaPagoList = formasPago;
+
+        // Call someFunc() here, it will execute after all operations are finished
+        if (this.data?.tabData?.id != null) {
+          this.pedidoService
+            .onGetPedidoInfoCompleta(this.data.tabData.id)
+            .pipe(untilDestroyed(this))
+            .subscribe((pedidoRes) => {
+              this.onCargarDatos(pedidoRes);
+            });
         }
-      }
+        console.log(monedas[2].cambio);
+      },
+      error: (error) => {
+        // Handle errors
+      },
     });
 
-    this.monedaService.onGetAll().pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res != null) {
-        this.monedaList = res;
-        if (this.monedaList.length > 0) {
-          this.onMonedaSelect(
-            this.monedaList.find((f) => f.denominacion == "GUARANI")
-          );
-        }
-      }
+    this.presentacionControl.valueChanges.subscribe((data) => {
+      this.calcularTotal();
     });
 
-    this.proveedorSub = this.proveedorControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res == "") this.selectedProveedor = null;
-      if (this.proveedorTimer != null) {
-        clearTimeout(this.proveedorTimer);
-      }
-      if (res != null && res.length != 0) {
-        this.proveedorTimer = setTimeout(() => {
-          this.proveedorService.onSearch(res).pipe(untilDestroyed(this)).subscribe((response) => {
-            this.proveedorList = response;
-            if (this.proveedorList.length == 1) {
-              this.onProveedorSelect(this.proveedorList[0]);
-              this.onProveedorAutocompleteClose();
-            } else {
-              this.onProveedorAutocompleteClose();
-              this.onProveedorSelect(null);
-            }
-          });
-        }, 500);
-      } else {
-        this.proveedorList = [];
-      }
+    this.cantidadPresentacionControl.valueChanges.subscribe((data) => {
+      this.calcularTotal();
     });
 
+    this.precioPorPresentacionControl.valueChanges.subscribe((data) => {
+      this.calcularTotal(true);
+    });
 
-    if (this.data?.tabData != null) {
-      this.cargarPedido(+this.data?.tabData["data"].id);
+    this.precioUnitarioControl.valueChanges.subscribe((data) => {
+      this.calcularTotal(false, true);
+    });
+
+    this.descuentoPresentacionControl.valueChanges.subscribe((data) => {
+      this.calcularTotal();
+    });
+  }
+
+  calcularTotal(isPrecioPresentacion?, isPrecioUnitario?) {
+    if (this.selectedProducto != null) {
+      this.cantidadUnidadControl.setValue(
+        this.presentacionControl?.value?.cantidad *
+        this.cantidadPresentacionControl?.value,
+        { emitEvent: false }
+      );
+      isPrecioPresentacion != true
+        ? this.precioPorPresentacionControl.setValue(
+          (this.precioUnitarioControl.value || 0) *
+          this.presentacionControl.value?.cantidad,
+          { emitEvent: false }
+        )
+        : null;
+      this.valorTotalControl.setValue(
+        (this.precioPorPresentacionControl.value -
+          this.descuentoPresentacionControl?.value) *
+        this.cantidadPresentacionControl?.value,
+        { emitEvent: false }
+      );
+      isPrecioUnitario != true
+        ? this.precioUnitarioControl.setValue(
+          this.precioPorPresentacionControl?.value /
+          this.presentacionControl?.value?.cantidad,
+          { emitEvent: false }
+        )
+        : null;
+    }
+  }
+
+  onCargarDatos(pedido: Pedido) {
+    this.selectedPedido = new Pedido();
+    Object.assign(this.selectedPedido, pedido);
+
+    if (pedido == null) {
+      this.cambiarEstado(true);
     } else {
-      console.log("nuevo pedido");
+      this.cambiarEstado(false);
     }
 
+    this.idControl.setValue(pedido?.id);
+    if (pedido.proveedor != null) {
+      this.onSelectProveedor(pedido.proveedor);
+    }
+    if (pedido.vendedor != null) {
+      this.vendedorList = [pedido.vendedor];
+      this.onSelectVendedor(pedido.vendedor);
+    }
+
+    let sucursalInfluenciaList = pedido.sucursalInfluenciaList?.map(
+      (sucursalInfluencia) => sucursalInfluencia.sucursal
+    );
+
+    this.sucursalInfluenciaControl.setValue(
+      this.sucursalList?.filter((s) =>
+        sucursalInfluenciaList?.map((s2) => s2.id)?.includes(s.id)
+      )
+    );
+
+    console.log(this.sucursalInfluenciaControl.value);
+
+
+    let sucursalEntregaList = pedido.sucursalEntregaList?.map(
+      (sucursalEntrega) => sucursalEntrega.sucursal
+    );
+
+    let pedidoFechaEntregaList: Date[] = pedido.fechaEntregaList?.map(
+      (fechaEntrega) => new Date(fechaEntrega.fechaEntrega)
+    );
+
+    this.sucursalEntregaControl.setValue(
+      this.sucursalList?.filter((s) =>
+        sucursalEntregaList?.map((s2) => s2.id)?.includes(s.id)
+      )
+    );
+
+    this.notaRecepcionDataSource.data.forEach((res) => {
+      this.totalItensAgregados = this.totalItensAgregados + res.cantidadItens;
+    });
+
+    this.onUpdateChart();
+
+    this.tipoBoletaControl.setValue(
+      this.tipoBoletaList.find((tipo) => tipo.toString() == pedido.tipoBoleta)
+    );
+
+    this.handleFormaPagoSelectionChange(
+      this.formaPagoList.find((forma) => forma.id == pedido?.formaPago?.id)
+    );
+
+    this.handleMonedaSelectionChange(
+      this.monedas.find((moneda) => moneda.id == pedido.moneda.id)
+    );
+
+    this.diasCreditoControl.setValue(pedido.plazoCredito);
+
+    if (pedidoFechaEntregaList?.length > 0) {
+      this.initialDates = pedidoFechaEntregaList;
+    }
+
+    this.totalCost = this.selectedPedido.valorTotal;
+
+    // console.log(this.selectedPedido);
+
+    switch (this.selectedPedido.estado) {
+      case PedidoEstado.ABIERTO:
+        this.pedidoItemFormGroup.enable();
+        break;
+      case PedidoEstado.EN_RECEPCION_NOTA:
+        this.pedidoDisplayedColumns.push("check");
+        this.pedidoItemFormGroup.disable();
+        break;
+      case PedidoEstado.EN_RECEPCION_MERCADERIA:
+        this.notaRecepcionDisplayedColumns.pop();
+        this.notaRecepcionDisplayedColumns.pop();
+        this.notaRecepcionDisplayedColumns.push(
+          "cantidadItemVerificadoRecepcionMercaderia",
+          "cantidadItemPorVerificarRecepcionMercaderia"
+        );
+        this.pedidoDisplayedColumns.push("check");
+        this.pedidoItemFormGroup.disable();
+        break;
+    }
+
+    this.onBuscarNotaRecepcion();
+
+    this.onBuscarItens(pedido);
+
+    setTimeout(() => {
+      this.codigoInput.nativeElement.focus();
+    }, 500);
+  }
+
+  onBuscarItens(pedido: Pedido) {
+    switch (pedido.estado) {
+      case PedidoEstado.ABIERTO:
+        this.buscarPedidoItens();
+        break;
+      case PedidoEstado.EN_RECEPCION_NOTA:
+      case PedidoEstado.ACTIVO:
+        this.buscarPedidoItemSobrantes();
+        break;
+    }
+  }
+
+  onBuscarNotaRecepcion(texto?) {
+    this.notaRecepcionService
+      .onGetNotaRecepcionPorPedidoIdAndNumero(
+        this.selectedPedido.id,
+        texto,
+        this.notaRecepcionPageIndex,
+        this.notaRecepcionPageSize
+      )
+      .subscribe((res) => {
+        if (res != null) {
+          this.selectedNotaRecepcionPage = res;
+          this.notaRecepcionDataSource.data = res.getContent;
+          setTimeout(() => {
+            // this.onGoToPago();
+          }, 1000);
+        }
+      });
+  }
+
+  buscarPedidoItens() {
+    this.pedidoService
+      .onGetPedidoItemPorPedido(this.selectedPedido.id, this.page, this.size)
+      .pipe(untilDestroyed(this))
+      .subscribe((res: PageInfo<PedidoItem>) => {
+        this.selectedPedidoItemPage = res;
+        this.pedidoDataSource.data = res.getContent;
+      });
+  }
+
+  buscarPedidoItensPorNotaRecepcion(id) {
+    switch (this.selectedPedido.estado) {
+      case PedidoEstado.EN_RECEPCION_NOTA:
+      case PedidoEstado.CONCLUIDO:
+        this.pedidoService
+          .onGetPedidoItemPorNotaRecepcion(id, this.page, this.size)
+          .pipe(untilDestroyed(this))
+          .subscribe((res: PageInfo<PedidoItem>) => {
+            this.selectedPedidoItemNotaRecepcionPage = res;
+            this.pedidoItemNotaRecepcionDataSource.data = res.getContent;
+          });
+        break;
+      case PedidoEstado.EN_RECEPCION_MERCADERIA:
+      case PedidoEstado.CONCLUIDO:
+        this.buscarPedidoItemNotaRecepcionVerificado(true);
+        this.buscarPedidoItemNotaRecepcionVerificado(false);
+        break;
+    }
+  }
+
+  ngAfterViewInit(): void {
+    this.cargandoService.openDialog();
     setTimeout(() => {
       this.proveedorInput.nativeElement.focus();
+      this.cargandoService.closeDialog();
     }, 1000);
   }
 
-  cargarPedido(id) {
-    this.cargandoDialog.openDialog();
-    this.dataSource.data = [];
-    this.pedidoService.onGetPedidoInfoCompleta(id).pipe(untilDestroyed(this)).subscribe((res) => {
-      this.isEditar = true;
-      if (res != null) {
-        console.log(res);
-        this.selectedPedido = new Pedido();
-        Object.assign(this.selectedPedido, res);
-        this.onProveedorSelect(this.selectedPedido.proveedor);
-        this.onMonedaSelect(this.selectedPedido.moneda);
-        this.onFormaPagoSelect(this.selectedPedido.formaPago);
-        this.creditoControl.setValue(this.selectedPedido.plazoCredito > 1);
-        this.plazoCreditoControl.setValue(this.selectedPedido.plazoCredito);
-        this.fechaEntregaControl.setValue(this.selectedPedido.fechaDeEntrega);
-        this.selectedPedido.pedidoItens.forEach((p) => {
-          this.addItem(p);
-        });
-        this.detalleForm.disable();
-        console.log(res);
-        this.notaRecepcionService
-          .onGetNotaRecepcionPorPedidoId(this.selectedPedido.id).pipe(untilDestroyed(this))
-          .subscribe((res2) => {
-            console.log(res2);
-            if (res != null) {
-              console.log(res2);
-              this.dataSourceNotaRecepcion.data = res2;
-            }
+  /*Esta funcion buscara un proveedor de acuerdo al texto ingresado
+  si el texto es vacio, entonces abrira el dialogo de buscar proveedores
+  si el texto contiene el codigo (ID) del proveedor, se buscara por ID, 
+  si se encuentra 1 proveedor, se cargara automaticamente, si no se encuentra abrira el dialogo de buscar proveedores
+  si el texto contiene un string, se abrira el dialogo de buscar proveedor filtrado por ese string
+  */
+  onBuscarProveedor() {
+    if (this.buscarProveedorControl.valid) {
+      //verificar si se ingreso algun texto en el buscador
+      let texto: string = this.buscarProveedorControl.value;
+      if (!isNaN(+texto)) {
+        //verificar si el texto es un numero (ID)
+        this.proveedorService
+          .onGetPorId(+texto)
+          .pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            this.onSelectProveedor(res);
           });
-        this.cargandoDialog.closeDialog();
+      } else if (
+        this.selectedProveedor != null &&
+        texto.includes(this.selectedProveedor.persona.nombre)
+      ) {
+        this.vendedorInput.nativeElement.focus();
+      } else {
+        this.onSearchProveedorPorTexto();
       }
-    });
+    } else {
+      this.onSearchProveedorPorTexto();
+    }
   }
 
-  createDetalleForm() {
-    this.detalleForm = new FormGroup({
-      id: this.idControl,
-      vendedor: this.vendedorControl,
-      proveedor: this.proveedorControl,
-      fechaEntrega: this.fechaEntregaControl,
-      formaPago: this.formaPagoControl,
-      estado: this.estadoControl,
-      plazoCredito: this.plazoCreditoControl,
-      descuento: this.descuentoControl,
-      creadoEn: this.creadoEnControl,
-      usuario: this.usuarioControl,
-    });
+  onSearchProveedorPorTexto() {
+    let tableData: TableData[] = [
+      {
+        id: "id",
+        nombre: "Id",
+      },
+      {
+        id: "nombre",
+        nombre: "Nombre",
+        nested: true,
+        nestedId: "persona",
+      },
+      {
+        id: "documento",
+        nombre: "RUC/CI",
+        nested: true,
+        nestedId: "persona",
+      },
+    ];
+    let data: SearchListtDialogData = {
+      query: this.proveedorService.proveedorSearch,
+      tableData: tableData,
+      titulo: "Buscar proveedor",
+      search: true,
+      texto: this.buscarProveedorControl.value,
+      inicialSearch: this.buscarProveedorControl.valid,
+      isAdicionar: true,
+    };
+    this.dialog
+      .open(SearchListDialogComponent, {
+        data: data,
+        width: "60%",
+        height: "80%",
+      })
+      .afterClosed()
+      .subscribe((res: Proveedor) => {
+        if (res != null) {
+          if (res["adicionar"] == true) {
+            console.log(res);
+
+            this.matDialog
+              .open(AdicionarProveedorDialogComponent, {
+                width: "600px",
+              })
+              .afterClosed()
+              .subscribe((proveedorRes) => {
+                if (proveedorRes?.id != null) {
+                  this.onSelectProveedor(proveedorRes);
+                }
+              });
+          } else if (res?.id != null) {
+            this.onSelectProveedor(res);
+          }
+        }
+      });
   }
 
-  onProveedorSelect(e: Proveedor) {
-    if (e?.id != null) {
-      this.selectedProveedor = e;
-      this.proveedorControl.setValue(
-        this.selectedProveedor?.id +
+  /*
+  Funcion en donde pasamos el proveedor encontrado
+  */
+  onSelectProveedor(proveedor: Proveedor) {
+    if (proveedor != null) {
+      this.vendedorList = proveedor?.vendedores;
+      this.selectedProveedor = proveedor;
+      this.buscarProveedorControl.setValue(
+        this.selectedProveedor.id +
         " - " +
-        this.selectedProveedor?.persona?.nombre
+        this.selectedProveedor.persona.nombre
       );
-      if (e?.vendedores != null) {
-        this.vendedorList = e.vendedores;
-        this.proveedorInput.nativeElement.select();
+
+      this.vendedorInput?.nativeElement.focus();
+
+      this.productoProveedorService
+        .getByProveedorId(
+          proveedor.id,
+          null,
+          this.productoProveedorPageIndex,
+          this.productoProveedorPageSize
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe((res: PageInfo<ProductoProveedor>) => {
+          this.selectedProductoProveedorPage = res;
+          this.productosProveedorDataSource.data = res.getContent;
+        });
+    } else {
+      this.vendedorList = null;
+      this.selectedProveedor = null;
+      this.buscarProveedorControl.setValue(null, { emitEvent: false });
+      this.vendedorInput.nativeElement.focus();
+    }
+  }
+
+  onFiltrarProductoProveedor() {
+    this.productoProveedorService
+      .getByProveedorId(
+        this.selectedProveedor.id,
+        this.buscarProductoProveedor.value,
+        this.productoProveedorPageIndex,
+        this.productoProveedorPageSize
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe((res: PageInfo<ProductoProveedor>) => {
+        this.selectedProductoProveedorPage = res;
+        this.productosProveedorDataSource.data = res.getContent;
+      });
+  }
+
+  onClearProveedor() {
+    this.onSelectProveedor(null);
+    this.productosProveedorDataSource.data = [];
+    this.historicoCompraItemDataSource.data = [];
+  }
+
+  /*
+  si hay un proveedor seleccionado, al buscar un vendedor va a filtrar por proveedor, o sea
+  va a buscar todos los vendedores vinculados con el proveedor
+   */
+  onBuscarVendedor() {
+    this.onSearchVendedorPorTexto();
+  }
+
+  onSearchVendedorPorTexto() {
+    let tableData: TableData[] = [
+      {
+        id: "id",
+        nombre: "Id",
+      },
+      {
+        id: "nombre",
+        nombre: "Nombre",
+        nested: true,
+        nestedId: "persona",
+      },
+      {
+        id: "documento",
+        nombre: "RUC/CI",
+        nested: true,
+        nestedId: "persona",
+      },
+    ];
+    let data: SearchListtDialogData = {
+      query: this.vendedorService.vendedorSearch,
+      tableData: tableData,
+      titulo: "Buscar vendedor",
+      search: false,
+      texto: this.buscarVendedorControl.value,
+      inicialSearch: false,
+      inicialData: this.vendedorList,
+      isAdicionar: true,
+    };
+    this.dialog
+      .open(SearchListDialogComponent, {
+        data: data,
+        width: "60%",
+        height: "80%",
+      })
+      .afterClosed()
+      .subscribe((res: Vendedor) => {
+        // if (res != null) {
+        //   if(res['adicionar']==true){
+        //     console.log(res);
+        //     this.matDialog.open(Addven, {
+        //       width: '600px'
+        //     }).afterClosed().subscribe(proveedorRes => {
+        //       if(proveedorRes?.id != null){
+        //         this.onSelectProveedor(proveedorRes);
+        //       }
+        //     })
+        //   } else if(res?.id != null) {
+        //     this.onSelectProveedor(res);
+        //   }
+        // }
+      });
+  }
+
+  onSelectVendedor(vendedor: Vendedor, focus = true) {
+    if (vendedor != null) {
+      this.selectedVendedor = vendedor;
+      this.buscarVendedorControl.setValue(
+        this.selectedVendedor.id + " - " + this.selectedVendedor.persona.nombre
+      );
+      this.sucursalSelect.focus();
+    } else {
+      this.selectedVendedor = null;
+      this.buscarVendedorControl.setValue(null, { emitEvent: false });
+      focus ? this.vendedorInput.nativeElement.focus() : null;
+    }
+  }
+
+  onClearVendedor(focus = true) {
+    this.onSelectVendedor(null, focus);
+  }
+
+  onMonedaSearch(a?): void {
+    let texto;
+    a == null ? (texto = this.monedaControl.value) : (texto = a);
+    let filteredMonedas = this.monedas.filter((m) => {
+      if (m.id == +texto || m.denominacion.match(/.*i.*/)) {
+        return m;
       }
+    });
+    if (filteredMonedas.length == 1) {
       setTimeout(() => {
-        let formaPago = this.formaPagoList.find(fp => fp.descripcion == 'CHEQUE');
-        if (this.selectedProveedor?.credito == true) this.onFormaPagoSelect(formaPago);
-        if (this.selectedProveedor?.chequeDias != null) this.plazoCreditoControl.setValue(this.selectedProveedor.chequeDias)
+        this.monedaControl.setValue(filteredMonedas[0].id);
+        this.setFocusToValorInput();
+        this.matMonedaTrigger.closePanel();
       }, 1000);
     }
   }
 
-  onProveedorAutocompleteClose() {
+  setFocusToValorInput() { }
+
+  displayMoneda(value?: number) {
+    let res = value ? this.monedas?.find((_) => _.id === value) : undefined;
+    this.selectedMoneda = res;
+    this.setFocusToValorInput();
+    return res ? res.id + " - " + res.denominacion : undefined;
+  }
+
+  onFormaPagoEnter() {
+    // if()
+  }
+
+  onMonedaAutoClosed() { }
+
+  async onSaveItem(texto?) {
+    console.log(texto);
+
+    if (this.selectedPedido?.id == null) {
+      await this.onGuardar();
+      await this.savePedidoItem();
+    } else {
+      this.savePedidoItem();
+    }
+  }
+
+  savePedidoItem() {
+    let newData = true;
+    if (this.selectedPedidoItem == null) {
+      this.selectedPedidoItem = new PedidoItem();
+      this.selectedPedidoItem.usuarioCreacion = this.selectedPedido?.usuario;
+    } else {
+      newData = false;
+    }
+    this.selectedPedidoItem.pedido = this.selectedPedido;
+    this.selectedPedidoItem.producto = this.selectedProducto;
+    this.selectedPedidoItem.presentacionCreacion =
+      this.presentacionControl.value;
+    this.selectedPedidoItem.cantidadCreacion =
+      this.cantidadPresentacionControl.value;
+    this.selectedPedidoItem.precioUnitarioCreacion =
+      this.precioUnitarioControl.value;
+    this.selectedPedidoItem.descuentoUnitarioCreacion =
+      this.descuentoPresentacionControl.value /
+      this.selectedPedidoItem.presentacionCreacion.cantidad;
+    this.selectedPedidoItem.valorTotal =
+      this.cantidadPresentacionControl.value *
+      (this.precioPorPresentacionControl.value -
+        this.descuentoPresentacionControl.value);
+    // this.selectedPedidoItem.vencimiento = this.vencimientoControl.value;
+    // this.selectedPedidoItem.bonificacion = this.bonificacionControl.value;
+
+    this.pedidoService
+      .onSaveItem(this.selectedPedidoItem.toInput())
+      .pipe(untilDestroyed(this))
+      .subscribe((pedidoItemRes) => {
+        if (pedidoItemRes != null) {
+          if (newData) {
+            if (this.selectedPedidoItemPage == null)
+              this.selectedPedidoItemPage = new PageInfo<PedidoItem>();
+            this.selectedPedidoItemPage.getContent.unshift(pedidoItemRes);
+            this.selectedPedidoItemPage.getNumberOfElements++;
+            this.selectedPedidoItemPage.getTotalElements++;
+            this.pedidoDataSource.data = this.selectedPedidoItemPage.getContent;
+          } else {
+            this.selectedPedidoItemPage.getContent = updateDataSourceWithId(
+              this.selectedPedidoItemPage.getContent,
+              pedidoItemRes,
+              pedidoItemRes.id
+            );
+            this.pedidoDataSource.data = [...this.selectedPedidoItemPage.getContent];
+          }
+
+          this.selectedPedido.valorTotal = pedidoItemRes.pedido.valorTotal;
+          this.selectedPedido.descuento = pedidoItemRes.pedido.descuento;
+
+          if (this.cantidadesPorSucursalControl.value || (this.sucursalInfluenciaControl.value?.length == 1 && this.sucursalEntregaControl.value?.length == 1)) {
+            this.onModificarSucursal(pedidoItemRes, true);
+          }
+          this.actualizarDetalle();
+          this.onClearItem();
+        }
+      });
+  }
+
+  onModificarSucursal(pedidoItem: PedidoItem, autoSet: boolean = false) {
+    this.dialog.open(PedidoItemSucursalDialogComponent, {
+      data: {
+        pedidoItem,
+        sucursalInfluenciaList: this.sucursalInfluenciaControl.value,
+        sucursalEntregaList: this.sucursalEntregaControl.value,
+        autoSet
+      },
+      height: "50%",
+      width: "70%"
+    }).afterClosed().subscribe(pedidoItemSucursalRes => {
+      if (pedidoItemSucursalRes) {
+        this.pedidoService.onGetPedidoItemSucursalList(pedidoItem.id).subscribe(pedidoItemRes => {
+          pedidoItem.pedidoItemSucursalList = pedidoItemRes.pedidoItemSucursalList;
+          switch (this.selectedPedido.estado) {
+            case PedidoEstado.ABIERTO:
+              pedidoItem.isDistribucionSucursalesCreacion = true;
+              this.pedidoDataSource.data = updateDataSourceWithId(
+                this.pedidoDataSource.data,
+                pedidoItem,
+                pedidoItem.id
+              );
+              break;
+            case PedidoEstado.EN_RECEPCION_NOTA:
+              pedidoItem.isDistribucionSucursalesRecepcion = true;
+              this.pedidoItemNotaRecepcionDataSource.data = updateDataSourceWithId(
+                this.pedidoItemNotaRecepcionDataSource.data,
+                pedidoItem,
+                pedidoItem.id
+              );
+              break;
+          }
+        })
+      }
+    })
+  }
+
+
+  onClearItem() {
+    this.selectedPedidoItem = null;
+    this.selectedProducto = null;
+    this.codigoControl.setValue(null);
+    this.presentacionControl.setValue(null);
+    this.cantidadPresentacionControl.setValue(null);
+    this.cantidadUnidadControl.setValue(null);
+    this.precioPorPresentacionControl.setValue(0);
+    this.precioUnitarioControl.setValue(0);
+    this.valorTotalControl.setValue(0);
+    this.descuentoPresentacionControl.setValue(0);
+    this.codigoInput.nativeElement.focus();
+  }
+
+  handleFormaPagoSelectionChange(value) {
+    this.formaPagoControl.setValue(value);
+    this.selectedFormaPago = value;
+    if (this.selectedFormaPago.descripcion.includes("TARJETA")) {
+      this.monedas = this.auxMonedas.filter((m) =>
+        m.denominacion.includes("GUARANI")
+      );
+    } else if (this.selectedFormaPago.descripcion.includes("PIX")) {
+      this.monedas = this.auxMonedas.filter((m) =>
+        m.denominacion.includes("REAL")
+      );
+    } else {
+      this.monedas = this.auxMonedas;
+    }
+  }
+
+  handleMonedaSelectionChange(value: any) {
+    this.monedaControl.setValue(value);
+    this.selectedMoneda = value;
+  }
+
+  handleDatesChanged(dates: Date[]) {
+    this.fechaEntregaControl.setValue(dates);
+  }
+
+  onMasOpciones() { }
+
+  onSearchPorCodigo() {
     setTimeout(() => {
-      this.proveedorInput.nativeElement.select();
+      if (this.codigoControl.valid) {
+        let text = this.codigoControl.value;
+        this.isPesable = false;
+        let peso;
+        let codigo;
+        if (text.length == 13 && text.substring(0, 2) == "20") {
+          this.isPesable = true;
+          codigo = text.substring(2, 7);
+          peso = +text.substring(7, 12) / 1000;
+          text = codigo;
+          this.cantidadUnidadControl.enable();
+          this.cantidadPresentacionControl.setValue(peso);
+          this.cantidadUnidadControl.setValue(peso);
+          this.cantidadPresentacionControl.disable();
+          this.cantidadUnidadControl.disable();
+          this.presentacionControl.disable();
+        } else {
+          this.cantidadPresentacionControl.enable();
+          this.presentacionControl.enable();
+        }
+        this.productoService.onGetProductoPorCodigo(text).subscribe((res) => {
+          if (res != null) {
+            this.onSelectProducto(res);
+          } else {
+            this.onAddItem(this.codigoControl.value);
+          }
+        });
+      } else {
+        this.onAddItem();
+      }
     }, 100);
   }
 
-  onFormaPagoSelect(e: FormaPago) {
-    if (e?.id != null) {
-      this.selectedFormaPago = e;
-      this.formaPagoControl.setValue(this.selectedFormaPago.id);
+  onSelectProducto(producto: Producto, openPresentacion = true) {
+    this.selectedProducto = producto;
+    this.productoIdControl.setValue(this.selectedProducto.id);
+    this.onSearchCompraItems(this.selectedProducto);
+    this.codigoControl.setValue(
+      `${this.selectedProducto?.id} - ${this.selectedProducto?.descripcion}`
+    );
+    this.precioUnitarioControl.setValue(
+      this.selectedProducto?.costo?.ultimoPrecioCompra
+    );
+    if (this.selectedProducto?.presentaciones?.length == 1) {
+      this.presentacionControl.setValue(
+        this.selectedProducto.presentaciones[0],
+        { emitEvent: openPresentacion }
+      );
+      if (!this.isPesable) {
+        this.cantidadPresentacionControl.setValue(1);
+        this.cantidadUnidadControl.setValue(
+          this.presentacionControl.value?.cantidad
+        );
+      }
+      this.cantidadPresentacionInput.nativeElement.select();
+    } else if (this.selectedProducto?.presentaciones?.length > 1) {
+      this.presentacionControl.setValue(
+        this.selectedProducto.presentaciones[0],
+        { emitEvent: openPresentacion }
+      );
+      this.presentacionSelect.focus();
+      this.presentacionSelect.open();
+    } else {
     }
   }
 
-  onMonedaSelect(e: Moneda) {
-    if (e?.id != null) {
-      this.selectedMoneda = e;
-      this.monedaControl.setValue(this.selectedMoneda.id);
-    }
-  }
-
-  onAdicionar() {
-    if (this.selectedPedido == null) {
-      this.onGuardar().pipe(untilDestroyed(this)).subscribe((res) => {
-        if (res) {
-          this.matDialog
-            .open(AdicionarItemDialogComponent, {
-              data: {
-                pedido: this.selectedPedido,
-              },
-              // maxWidth: '100vw',
-              // maxHeight: '100vh',
-              height: '80%',
-              width: '100%',
-              // panelClass: 'full-screen-modal',
-              disableClose: false,
-            })
-            .afterClosed().pipe(untilDestroyed(this))
-            .subscribe((res) => {
-              if (res != null) {
-                this.updateItem(res);
-              }
-            });
+  onSearchCompraItems(producto: Producto) {
+    this.compraService
+      .getItemPorProductoId(producto.id)
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res != null || res?.length != 0) {
+          this.historicoCompraItemDataSource.data = res;
+        } else {
+          this.historicoCompraItemDataSource.data = [];
         }
       });
-    } else {
-      this.matDialog
-        .open(AdicionarItemDialogComponent, {
-          data: {
-            pedido: this.selectedPedido,
-          },
-          width: "100%",
-          height: "70%",
-          disableClose: false,
-        })
-        .afterClosed().pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res != null) {
-            this.updateItem(res);
+  }
+
+  onCodigoFocus() {
+    this.codigoInput.nativeElement.select();
+  }
+
+  onAddItem(texto?) {
+    this.isDialogOpen = true;
+    let data: PdvSearchProductoData = {
+      texto: texto,
+      cantidad: 1,
+      mostrarOpciones: false,
+      mostrarStock: true,
+      conservarUltimaBusqueda: true,
+    };
+    this.matDialog
+      .open(PdvSearchProductoDialogComponent, {
+        data: data,
+        height: "80%",
+      })
+      .afterClosed()
+      .subscribe((res) => {
+        this.isDialogOpen = false;
+        let response: PdvSearchProductoResponseData = res;
+        this.selectedProducto = response.producto;
+        this.onSearchCompraItems(this.selectedProducto);
+        this.codigoControl.setValue(this.selectedProducto?.descripcion);
+        this.precioUnitarioControl.setValue(
+          this.selectedProducto?.costo?.ultimoPrecioCompra
+        );
+        this.presentacionControl.setValue(response.presentacion);
+        this.cantidadPresentacionControl.setValue(1);
+        this.productoIdControl.setValue(this.selectedProducto.id);
+        // let codigo = response.presentacion?.codigoPrincipal?.codigo;
+        // if (codigo == null) codigo = response.producto.codigoPrincipal;
+        // this.codigoControl.setValue(codigo)
+        // let foundItem = this.dataSource.data?.find(t => t.presentacionPreTransferencia?.producto?.id == this.presentacionControl.value?.producto?.id)
+        // if (foundItem != null) {
+        //   this.dialogoService.confirm("Ya existe un producto cargado en la lista", "Desea editar el item?").subscribe(dialogRes => {
+        //     if (dialogRes) {
+        //       this.onEditItem(foundItem)
+        //     }
+        //   })
+        // }
+        setTimeout(() => {
+          this.cantidadPresentacionInput.nativeElement.select();
+        }, 100);
+      });
+  }
+
+  onBuscarProductoProveedor() {
+    this.onFiltrarProductoProveedor();
+  }
+
+  onResizeEnd(e) {
+    let widthFactor = e.rectangle.width / 100;
+    let heightFactor = e.rectangle.height / 100;
+    let resizeR = e.edges.right;
+    let resizeH = e.edges.top;
+    let factorR = Math.round(resizeR / widthFactor);
+    let factorH = Math.round(resizeH / heightFactor);
+    if (!isNaN(factorR)) {
+      this.col1 = this.col1 + factorR;
+      this.col2 = this.col2 + factorR * -1;
+    }
+    if (!isNaN(factorH)) {
+      this.r1 = this.r1 + factorH;
+      this.r2 = this.r2 + factorH * -1;
+    }
+  }
+
+  onResizeStart(e) {
+    // console.log(e);
+  }
+
+  onProductoProveedorItemClick(productoProveedor: ProductoProveedor, i) {
+    this.productoService
+      .getProducto(productoProveedor.producto.id)
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res != null) {
+          this.onClearItem();
+          this.onSelectProducto(res);
+        }
+      });
+  }
+
+  productoProveedorHandlePageEvent(e: PageEvent) {
+    this.productoProveedorPageIndex = e.pageIndex;
+    this.productoProveedorPageSize = e.pageSize;
+    this.onFiltrarProductoProveedor();
+  }
+
+  pedidoItemNotaRecepcionHandlePageEvent(e: PageEvent) {
+    this.pedidoItemNotaRecepcionPageIndex = e.pageIndex;
+    this.pedidoItemNotaRecepcionPageSize = e.pageSize;
+  }
+
+  notaRecepcionHandlePageEvent(e: PageEvent) {
+    this.notaRecepcionPageIndex = e.pageIndex;
+    this.notaRecepcionPageSize = e.pageSize;
+  }
+
+  onRepetirPedido(compraItem: CompraItem, index) {
+    // this.presentacionControl.setValue(this.selectedProducto.presentaciones.find(p => p.id == compraItem.presentacion.id))
+  }
+
+  /*
+  Metodo para guardar el pedido
+  */
+  async onGuardar() {
+    return new Promise((resolve, reject) => {
+      if (this.selectedPedido == null) {
+        this.selectedPedido = new Pedido();
+        this.selectedPedido.estado = PedidoEstado.ABIERTO;
+        this.selectedPedido.usuario = this.mainService.usuarioActual;
+      } else {
+        let aux = this.selectedPedido;
+        this.selectedPedido = new Pedido();
+        Object.assign(this.selectedPedido, aux);
+      }
+      this.selectedPedido.proveedor = this.selectedProveedor;
+      this.selectedPedido.vendedor = this.selectedVendedor;
+      this.selectedPedido.moneda = this.selectedMoneda;
+      this.selectedPedido.formaPago = this.selectedFormaPago;
+      this.selectedPedido.plazoCredito = this.diasCreditoControl.value;
+      this.selectedPedido.tipoBoleta = this.tipoBoletaControl.value;
+
+      this.pedidoService
+        .onSaveFull(
+          this.selectedPedido.toInput(),
+          this.fechaEntregaControl.value?.map((entity: Date) =>
+            dateToString(entity)
+          ),
+          this.sucursalEntregaControl.value?.map(
+            (entity: Sucursal) => entity.id
+          ),
+          this.sucursalInfluenciaControl.value?.map(
+            (entity: Sucursal) => entity.id
+          ),
+          this.mainService.usuarioActual.id
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe((pedidoRes) => {
+          if (pedidoRes != null) {
+            this.selectedPedido.id = pedidoRes.id;
+            this.selectedPedido.creadoEn = pedidoRes.creadoEn;
+            this.idControl.setValue(this.selectedPedido.id);
+            this.cambiarEstado(false);
+            resolve(pedidoRes);
+          } else {
+            reject(null);
           }
         });
-    }
-  }
-
-  addItem(pedidoItem: PedidoItem, index?: number) {
-    this.dataSource.data = updateDataSource(this.dataSource.data, pedidoItem);
-  }
-
-  updateItem(pedidoItem: PedidoItem) {
-    this.cargandoDialog.openDialog()
-    let index;
-    if (pedidoItem?.id != null) {
-      index = this.dataSource.data.findIndex((e) => e.id == pedidoItem.id);
-    }
-    this.pedidoService.onSaveItem(pedidoItem.toInput()).pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res != null) {
-        pedidoItem.id = res.id;
-        pedidoItem.compraItem = res.compraItem;
-        if (index != -1) {
-          this.dataSource.data = updateDataSource(this.dataSource.data, pedidoItem, index);
-        } else {
-          this.dataSource.data = updateDataSource(
-            this.dataSource.data,
-            pedidoItem
-          );
-        }
-        this.cargandoDialog.closeDialog()
-      }
     });
   }
 
-  onGuardar(): Observable<boolean> {
-    return new Observable((obs) => {
-      let pedido = new Pedido();
-      if (this.selectedPedido != null) {
-        pedido.id = this.selectedPedido.id;
-        pedido.usuario = this.selectedPedido.usuario;
-        pedido.creadoEn = this.selectedPedido.creadoEn;
-      }
-      pedido.proveedor = this.selectedProveedor;
-      pedido.descuento = this.descuentoControl.value + this.descuentoItem;
-      pedido.fechaDeEntrega = this.fechaEntregaControl.value;
-      pedido.formaPago = this.selectedFormaPago;
-      pedido.moneda = this.selectedMoneda;
-      pedido.pedidoItens = this.dataSource.data;
-      pedido.plazoCredito = this.plazoCreditoControl.value;
-      pedido.valorTotal = this.valorTotal;
-      pedido.vendedor = this.selectedVendedor;
-      pedido.pedidoItens = this.dataSource.data;
-      pedido.estado = PedidoEstado.ABIERTO;
-      this.pedidoService.onSave(pedido.toInput()).pipe(untilDestroyed(this)).subscribe((res) => {
-        if (res != null) {
-          pedido.id = res.id;
-          this.selectedPedido = pedido;
-          obs.next(true);
-        } else {
-          obs.next(false);
+  onCancelar() {
+    this.inicializar();
+  }
+
+  cambiarEstado(editar: boolean) {
+    if (!editar) {
+      this.isEditing = false;
+      this.buscarProveedorControl.disable();
+      this.buscarVendedorControl.disable();
+      this.sucursalEntregaControl.disable();
+      this.sucursalInfluenciaControl.disable();
+      this.diasCreditoControl.disable();
+      this.tipoBoletaControl.disable();
+      this.fechaEntregaControl.disable();
+      this.monedaControl.disable();
+    } else {
+      this.isEditing = true;
+      this.buscarVendedorControl.enable();
+      this.sucursalEntregaControl.enable();
+      this.sucursalInfluenciaControl.enable();
+      this.diasCreditoControl.enable();
+      this.tipoBoletaControl.enable();
+      this.fechaEntregaControl.enable();
+      this.monedaControl.enable();
+      this.buscarProveedorControl.enable();
+      setTimeout(() => {
+        this.proveedorInput.nativeElement.focus();
+      }, 100);
+    }
+  }
+
+  onEditItem(item: PedidoItem, index: number) {
+    this.onClearItem();
+    this.selectedPedidoItem = new PedidoItem();
+    Object.assign(this.selectedPedidoItem, item);
+    this.selectedProducto = item.producto;
+    this.codigoControl.setValue(this.selectedProducto.codigoPrincipal);
+
+    setTimeout(() => {
+      this.presentacionControl.setValue(
+        this.selectedProducto?.presentaciones?.find(
+          (p) => p.id == item.presentacionCreacion.id
+        ),
+        { emitEvent: false }
+      );
+      this.cantidadPresentacionControl.setValue(item.cantidadCreacion);
+      this.cantidadUnidadControl.setValue(
+        item.cantidadCreacion * item.presentacionCreacion.cantidad
+      );
+      this.precioPorPresentacionControl.setValue(
+        item.precioUnitarioCreacion * item.presentacionCreacion.cantidad
+      );
+      this.precioUnitarioControl.setValue(item.precioUnitarioCreacion);
+      this.descuentoPresentacionControl.setValue(
+        item.presentacionCreacion.cantidad * item.descuentoUnitarioCreacion
+      );
+      this.codigoInput.nativeElement.select();
+      this.valorTotalControl.setValue(
+        (item.precioUnitarioCreacion - item.descuentoUnitarioCreacion) *
+        item.presentacionCreacion.cantidad *
+        item.cantidadCreacion
+      );
+    }, 100);
+  }
+
+  pedidoItensHandlePageEvent($event: PageEvent) {
+    throw new Error("Method not implemented.");
+  }
+
+  onDeleteItem(pedidoItem: PedidoItem, index: number) {
+    console.log(index);
+
+    this.pedidoService
+      .onDeletePedidoItem(pedidoItem.id)
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) {
+          this.pedidoDataSource.data = updateDataSource(
+            this.pedidoDataSource.data,
+            null,
+            index
+          );
+          this.selectedPedidoItemPage.getContent = this.pedidoDataSource.data;
+          this.selectedPedidoItemPage.getTotalElements--;
+          this.selectedPedido.descuento =
+            this.selectedPedido.descuento -
+            pedidoItem?.descuentoUnitarioCreacion *
+            pedidoItem?.cantidadCreacion;
+          this.selectedPedido.valorTotal =
+            this.selectedPedido.valorTotal -
+            pedidoItem?.precioUnitarioCreacion * pedidoItem?.cantidadCreacion;
         }
       });
-    });
   }
 
-  onEditar() {
-    this.isEditar = false;
-    this.detalleForm.enable();
+  inicializar() {
+    this.buscarVendedorControl.setValue(null);
+    this.selectedVendedor = null;
+    this.buscarProveedorControl.setValue(null);
+    this.selectedProveedor = null;
+    this.sucursalEntregaControl.setValue(null);
+    this.sucursalInfluenciaControl.setValue(null);
+    this.tipoBoletaControl.setValue(this.tipoBoletaList[0]);
+    this.onClearItem();
+    this.formaPagoControl.setValue(this.formaPagoList[0]);
+    this.monedaControl.setValue(this.monedas[0]);
+    this.diasCreditoControl.setValue(null);
+    this.fechaEntregaControl.setValue(null);
+    this.pedidoDataSource.data = [];
+    this.productosProveedorDataSource.data = [];
+    this.selectedPedidoItemPage = null;
+    this.selectedProductoProveedorPage = null;
+    this.selectedPedido = null;
+    this.cambiarEstado(true);
   }
 
-  goTo(text) {
-    switch (text) {
-      case "detalle-pedido":
-        this.stepper.selectedIndex = 0;
+  historicoComprasHandlePageEvent($event: PageEvent) { }
+  onFinalizar() {
+    switch (this.selectedPedido?.estado) {
+      case PedidoEstado.ABIERTO:
+        let aux = new Pedido();
+        Object.assign(aux, this.selectedPedido);
+        aux.estado = PedidoEstado.ACTIVO;
+        this.pedidoService
+          .onSave(aux.toInput())
+          .pipe(untilDestroyed(this))
+          .subscribe((res: Pedido) => {
+            if (res != null) {
+              this.selectedPedido = res;
+              this.totalItensAgregados = 0;
+              this.pedidoItemFormGroup.disable();
+              this.buscarPedidoItemSobrantes();
+              this.pedidoDisplayedColumns.push("check");
+            }
+          });
         break;
+      case PedidoEstado.ACTIVO:
 
-      case "recepcion-nota":
-        if (this.selectedPedido.estado == PedidoEstado.ABIERTO && this.dataSource.data.length > 0) {
-          this.dialogoService
-            .confirm("Iniciar recepción de nota?", null).pipe(untilDestroyed(this))
-            .subscribe((res) => {
-              if (res) {
-                this.selectedPedido.estado = PedidoEstado.EN_RECEPCION_NOTA;
-                this.pedidoService
-                  .onSave(this.selectedPedido.toInput()).pipe(untilDestroyed(this))
-                  .subscribe((res) => {
-                    let compra = new Compra();
-                    compra.estado = CompraEstado.PRE_COMPRA;
-                    compra.pedido = this.selectedPedido;
-                    compra.proveedor = this.selectedPedido.proveedor;
-                    this.compraService
-                      .onSaveCompra(compra.toInput()).pipe(untilDestroyed(this))
-                      .subscribe((res2) => {
-                        console.log(res2);
-                        if (res2 != null) {
-                          this.cargandoDialog.closeDialog();
-                          this.selectedPedido.compra = res2;
-                          this.goTo("recepcion-nota");
-                        }
-                      });
-                  });
+        this.onCambiarEstado(PedidoEstado.EN_RECEPCION_NOTA);
+
+        break;
+      case PedidoEstado.EN_RECEPCION_NOTA:
+        this.pedidoService.onVerificarDistribucionSucursales(this.selectedPedido.id).subscribe(res => {
+          if (res) {
+            this.notaRecepcionService
+              .onCountNotaRecepcionPorPedido(this.selectedPedido.id)
+              .subscribe((countRes) => {
+                if (countRes == 0) {
+                  this.dialogoService
+                    .confirm(
+                      "ATENCIÓN!!",
+                      `Necesita cargar la nota de recepción para avanzar de etapa`,
+                      null,
+                      null,
+                      false
+                    )
+                    .subscribe();
+                } else {
+                  this.dialogoService
+                    .confirm(
+                      "Atención!!",
+                      "Deseas finalizar esta etapa?",
+                      "Esta acción se puede deshacer"
+                    )
+                    .subscribe((dialogRes) => {
+                      if (dialogRes) {
+                        this.pedidoService
+                          .onGetCantPedidoItensFaltaVerificaNota(
+                            this.selectedPedido?.id
+                          )
+                          .subscribe((cantVerifNotaRes) => {
+                            if (cantVerifNotaRes > 0) {
+                              this.dialogoService
+                                .confirm(
+                                  "ATENCIÓN!!",
+                                  `Faltan ${cantVerifNotaRes} itens por verficar antes de concluir la recepcion de notas`,
+                                  null,
+                                  null,
+                                  false
+                                )
+                                .subscribe((cantVerifNotaDialogRes) => { });
+                            } else {
+                              this.onCambiarEstado(
+                                PedidoEstado.EN_RECEPCION_MERCADERIA
+                              );
+                            }
+                          });
+                      }
+                    });
+                }
+              });
+          } else {
+            this.dialogoService.confirm("Atención!!", "Existen itens que no tienen sucursal de destino designados, por favor complete este paso antes de continuar", null, null, false).subscribe(dialogRes => {
+              if (dialogRes) {
               }
             });
-        }
-        if (
-          this.selectedPedido != null &&
-          this.dataSource.data.length > 0 &&
-          (this.selectedPedido.estado == PedidoEstado.EN_RECEPCION_NOTA ||
-            this.selectedPedido.estado == PedidoEstado.EN_RECEPCION_MERCADERIA)
-        ) {
-          this.stepper.selectedIndex = 1;
-        }
+          }
+        });
+
         break;
-      case "recepcion-mercaderia":
-        if (this.selectedPedido.estado == PedidoEstado.EN_RECEPCION_NOTA) {
-          this.cargandoDialog.openDialog();
-          this.dialogoService
-            .confirm("Iniciar recepción de mercaderia?", null).pipe(untilDestroyed(this))
-            .subscribe((res) => {
-              if (res) {
-                this.selectedPedido.estado =
-                  PedidoEstado.EN_RECEPCION_MERCADERIA;
-                this.pedidoService.onSave(this.selectedPedido.toInput()).pipe(untilDestroyed(this)).subscribe(res2 => {
-                  if (res2 !== null) {
-                    this.cargandoDialog.closeDialog();
-                    this.stepper.selectedIndex = 2;
+      case PedidoEstado.EN_RECEPCION_MERCADERIA:
+        this.dialogoService
+          .confirm(
+            "Atención!!",
+            "Deseas finalizar esta etapa?",
+            "Esta acción se puede deshacer"
+          )
+          .subscribe((dialogRes) => {
+            if (dialogRes) {
+              this.pedidoService
+                .onGetCantPedidoItensFaltaVerificaProducto(
+                  this.selectedPedido?.id
+                )
+                .subscribe((cantVerifProductoRes) => {
+                  if (cantVerifProductoRes > 0) {
+                    this.dialogoService
+                      .confirm(
+                        "ATENCIÓN!!",
+                        `Faltan ${cantVerifProductoRes} itens por verficar antes de concluir la recepcion de mercaderias`,
+                        null,
+                        null,
+                        false
+                      )
+                      .subscribe((cantVerifNotaDialogRes) => { });
+                  } else {
+                    this.onCambiarEstado(PedidoEstado.CONCLUIDO);
                   }
-                })
-              }
-            });
-        } else if (this.selectedPedido.estado >= PedidoEstado.EN_RECEPCION_MERCADERIA) {
-          this.stepper.selectedIndex = 2;
-        }
-
+                });
+            }
+          });
         break;
-
-      case "detalle-compra":
-        if (
-          this.dataSource.data.length - this.getCantidadItensVerificados() ==
-          0
-        ) {
-        }
+      case PedidoEstado.CONCLUIDO:
         break;
-
+      case PedidoEstado.CANCELADO:
+        break;
       default:
         break;
     }
   }
 
-  openItem(pedidoItem: PedidoItem) {
-    if (this.selectedPedido != null || true) {
-      this.matDialog
-        .open(AdicionarItemDialogComponent, {
-          data: {
-            pedido: this.selectedPedido,
-            pedidoItem,
-          },
-          width: "100%",
-          height: "70%",
-          disableClose: false,
-        })
-        .afterClosed().pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res != null) {
-            this.updateItem(res);
-          }
-        });
-    }
+  buscarPedidoItemSobrantes() {
+    this.pedidoService
+      .onGetPedidoItemSobrantes(this.selectedPedido.id, 0, this.size)
+      .pipe(untilDestroyed(this))
+      .subscribe((res2: PageInfo<PedidoItem>) => {
+        this.selectedPedidoItemPage = res2;
+        this.pedidoDataSource.data = this.selectedPedidoItemPage.getContent;
+      });
   }
 
-  deleteItem(pedidoItem: PedidoItem) {
-    let index = this.dataSource.data.findIndex((i) => i == pedidoItem);
-    this.pedidoService.onDeletePedidoItem(pedidoItem.id).pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res == true) {
-        if (index != -1) {
-          let arr: PedidoItem[] = this.dataSource.data;
-          arr.splice(index, 1);
-          this.dataSource.data = [];
-          arr.forEach((e) => {
-            this.addItem(e);
-          });
+  buscarPedidoItemNotaRecepcionVerificado(verificado?) {
+    this.pedidoService
+      .onGetPedidoItemPorNotaRecepcion(
+        this.selectedNotaRecepcion?.id,
+        this.notaRecepcionPageIndex,
+        this.notaRecepcionPageSize,
+        this.filtroItensNotaRecepcionControl.value,
+        verificado
+      )
+      .pipe(untilDestroyed(this))
+      .subscribe((res: PageInfo<PedidoItem>) => {
+        if (!verificado) {
+          this.selectedPedidoItemNotaRecepcionPage = res;
+          this.pedidoItemNotaRecepcionDataSource.data = res.getContent;
+        } else {
+          this.selectedPedidoItemPage = res;
+          this.pedidoDataSource.data = res.getContent;
         }
-      }
-    });
+      });
   }
 
-  getCantidadItensCargados(): number {
-    let cantidad = 0;
-    this.dataSourceNotaRecepcion.data.forEach((e) => {
-      if (e.pedidoItemList != null) {
-        e.pedidoItemList.forEach((n) => {
-          cantidad += 1;
-        });
-      }
-    });
-    return cantidad;
+  onReabrir() {
+    let aux = new Pedido();
+    Object.assign(aux, this.selectedPedido);
+    aux.estado = PedidoEstado.ABIERTO;
+    this.pedidoDisplayedColumns.pop();
+    this.pedidoService
+      .onSave(aux.toInput())
+      .pipe(untilDestroyed(this))
+      .subscribe((res: Pedido) => {
+        if (res != null) {
+          this.selectedPedido.estado = aux.estado;
+          this.pedidoItemFormGroup.enable();
+        }
+      });
   }
 
-  getCantidadItensVerificados(): number {
-    let cantidad = 0;
-    this.dataSourceNotaRecepcion.data.forEach((e) => {
-      if (e.pedidoItemList != null) {
-        e.pedidoItemList.forEach((n) => {
-          if (n.compraItem.verificado == true) {
-            cantidad++;
-          }
-        });
-      }
-    });
-    return cantidad;
-  }
-
-  getValorTotal(): number {
-    let valor = 0;
-    this.dataSource.data.forEach((n) => {
-      valor += (n.precioUnitario - n.descuentoUnitario) * n.cantidad;
-    });
-    return valor;
-  }
-
-  getDescuento(): number {
-    let valor = 0;
-    this.dataSource.data.forEach((n) => {
-      valor += n.descuentoUnitario * n.cantidad;
-    });
-    return valor;
-  }
-
-  onAdicionarNotaPedido() {
-    console.log(this.selectedPedido);
-    this.matDialog
+  onAgregarNota(nuevo?) {
+    this.dialog
       .open(AdicionarNotaRecepcionDialogComponent, {
         data: {
           pedido: this.selectedPedido,
+          notaRecepcion: !nuevo ? this.selectedNotaRecepcion : null,
+          notaRecepcionList: this.notaRecepcionDataSource.data,
         },
-        width: "100%",
-        height: "70%",
+        height: "60%",
       })
-      .afterClosed().pipe(untilDestroyed(this))
+      .afterClosed()
       .subscribe((res) => {
-        if (res != null) {
-          this.cargarPedido(this.selectedPedido.id);
+        if (res?.id != null) {
+          this.selectedNotaRecepcion = res;
+          this.notaRecepcionDataSource.data = updateDataSourceWithId(
+            this.notaRecepcionDataSource.data,
+            res,
+            this.selectedNotaRecepcion?.id
+          );
+          if (this.selectedPedido.estado == PedidoEstado.ACTIVO) {
+            this.onCambiarEstado(PedidoEstado.EN_RECEPCION_NOTA);
+          }
+        } else if (res?.nuevo) {
+          this.selectedNotaRecepcion = null;
+          this.onAgregarNota();
         }
       });
   }
 
-  openNotaRecepcion(notaRecepcion: NotaRecepcion, i) {
-    if (this.selectedPedido != null) {
-      this.matDialog
-        .open(AdicionarNotaRecepcionDialogComponent, {
-          data: {
-            notaRecepcion,
-            pedido: this.selectedPedido,
-          },
-          width: "100%",
-          height: "70%",
-          disableClose: true,
-        })
-        .afterClosed().pipe(untilDestroyed(this))
+  onNotaRecepcionClick(notaRecepcion: NotaRecepcion, index?) {
+    this.filtroItensNotaRecepcionControl.setValue(null);
+    this.selectedNotaRecepcion = notaRecepcion;
+    this.buscarPedidoItensPorNotaRecepcion(notaRecepcion.id);
+  }
+
+  onRefreshNotaRecepcion(notaRecepcion: NotaRecepcion) {
+    if (notaRecepcion != null) {
+      this.notaRecepcionService
+        .onGetNotaRecepcion(notaRecepcion.id)
         .subscribe((res) => {
           if (res != null) {
-            this.cargarPedido(this.selectedPedido.id);
+            this.selectedNotaRecepcion.valor = res.valor;
+            this.notaRecepcionDataSource.data = updateDataSourceWithId(
+              this.notaRecepcionDataSource.data,
+              this.selectedNotaRecepcion,
+              this.selectedNotaRecepcion.id
+            );
+            this.onUpdateChart();
           }
         });
     }
   }
 
-  deleteItemNotaRecepcion(nota, i) { }
-
-  crearCompraItem(item: PedidoItem): CompraItem {
-    let compraItem = new CompraItem();
-    compraItem.compra = this.selectedPedido.compra;
-    compraItem.pedidoItem = item;
-    compraItem.cantidad = item.cantidad;
-    compraItem.precioUnitario = item.precioUnitario;
-    compraItem.producto = item.producto;
-    compraItem.presentacion = item.presentacion;
-    compraItem.descuentoUnitario = item.descuentoUnitario;
-    compraItem.bonificacion =
-      item.precioUnitario == 0 ||
-      item.precioUnitario.toFixed(0) == item.descuentoUnitario.toFixed(0);
-    return compraItem;
+  isAllSelected() {
+    const numSelected = this.selection.selected.length;
+    const numRows = this.pedidoDataSource.data.length;
+    return numSelected === numRows;
   }
 
-  onConfirmarItem(item: PedidoItem, pedidoItemIndex, notaRecepcionIndex) {
-    this.cargandoDialog.openDialog();
-    let compraItem = new CompraItem();
-    Object.assign(compraItem, item.compraItem);
-    compraItem.verificado = true;
-    this.compraService
-      .onSaveCompraItem(compraItem.toInput()).pipe(untilDestroyed(this))
+  /** Selects all rows if they are not all selected; otherwise clear selection. */
+  masterToggle() {
+    this.isAllSelected()
+      ? this.selection.clear()
+      : this.pedidoDataSource.data.forEach((row) => this.selection.select(row));
+  }
+
+  onEnableAddingItemToNota() {
+    this.pedidoDisplayedColumns.unshift("select");
+    this.isAddingItensToNota = true;
+  }
+
+  onAddPedidoItemToNota(pedidoItem: PedidoItem) {
+    console.log(pedidoItem);
+
+    this.pedidoService
+      .onAddPedidoItemToNotaRecepcion(
+        this.selectedNotaRecepcion.id,
+        pedidoItem.id
+      )
+      .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        console.log(res);
-        this.cargandoDialog.closeDialog();
-        if (res != null) {
-          item.compraItem.verificado = true;
-          let notaRecepcion =
-            this.dataSourceNotaRecepcion.data[notaRecepcionIndex];
-          notaRecepcion.pedidoItemList[pedidoItemIndex] = item;
-          this.dataSourceNotaRecepcion.data = updateDataSource(
-            this.dataSourceNotaRecepcion.data,
-            notaRecepcion,
-            notaRecepcionIndex
+        if (res) {
+          this.selectedPedidoItem = res;
+          let aux = this.pedidoItemNotaRecepcionDataSource.data;
+          aux.unshift(this.selectedPedidoItem);
+          this.pedidoItemNotaRecepcionDataSource.data = aux;
+          this.pedidoDataSource.data = updateDataSourceWithId(
+            this.pedidoDataSource.data,
+            null,
+            this.selectedPedidoItem.id
           );
+          this.selectedNotaRecepcion.cantidadItens++;
+          this.totalItensAgregados++;
+          this.onUpdateChart();
+          this.selectedNotaRecepcion.valor =
+            this.selectedNotaRecepcion.valor +
+            this.selectedPedidoItem.valorTotal;
+          if (this.pedidoDataSource.data.length == 0) {
+            this.pedidoDisplayedColumns.shift();
+            this.isAddingItensToNota = false;
+          }
         }
       });
   }
 
-  onModificarItem(item: PedidoItem, pedidoItemIndex, notaRecepcionIndex) {
-    // let compraItem = new CompraItem();
-    // if (item?.compraItem?.id != null) {
-    //   compraItem.id = item.compraItem.id;
-    // }
-    // compraItem.compra = this.selectedPedido.compra;
-    // compraItem.pedidoItem = item;
-    // compraItem.cantidad = item.cantidad;
-    // compraItem.precioUnitario = item.precioUnitario;
-    // compraItem.producto = item.producto;
-    // compraItem.presentacion = item.presentacion;
-    // compraItem.descuentoUnitario = item.descuentoUnitario;
-    // compraItem.bonificacion =
-    //   item.precioUnitario == 0 ||
-    //   item.precioUnitario.toFixed(0) == item.descuentoUnitario.toFixed(0);
-    // item.compraItem = compraItem;
-    this.matDialog
-      .open(AdicionarDetalleCompraItemDialogComponent, {
+  onDeleteItemFromNota(pedidoItem: PedidoItem) {
+    this.pedidoService
+      .onAddPedidoItemToNotaRecepcion(null, pedidoItem.id)
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) {
+          this.selectedPedidoItem = res;
+          let aux = this.pedidoDataSource.data;
+          aux.unshift(this.selectedPedidoItem);
+          this.pedidoDataSource.data = aux;
+          this.pedidoItemNotaRecepcionDataSource.data = updateDataSourceWithId(
+            this.pedidoItemNotaRecepcionDataSource.data,
+            null,
+            this.selectedPedidoItem.id
+          );
+          this.selectedNotaRecepcion.cantidadItens--;
+          this.totalItensAgregados--;
+          this.onUpdateChart();
+
+          this.selectedNotaRecepcion.valor =
+            this.selectedNotaRecepcion.valor -
+            this.selectedPedidoItem.valorTotal;
+        }
+      });
+  }
+
+  onUpdateChart() {
+    console.log("Agregado", this.totalItensAgregados || 0);
+    console.log(
+      "Cancelado",
+      this.selectedPedido?.cantPedidoItemCancelados || 0
+    );
+    console.log(
+      "Falta",
+      this.selectedPedido?.cantPedidoItem -
+      this.totalItensAgregados -
+      this.selectedPedido?.cantPedidoItemCancelados || 0
+    );
+
+    this.single = [];
+    this.single.push({
+      name: "Agregado",
+      value: this.totalItensAgregados || 0,
+    });
+
+    this.single.push({
+      name: "Cancelado",
+      value: this.selectedPedido?.cantPedidoItemCancelados || 0,
+    });
+
+    this.single.push({
+      name: "Falta",
+      value:
+        this.selectedPedido?.cantPedidoItem -
+        this.totalItensAgregados -
+        this.selectedPedido?.cantPedidoItemCancelados || 0,
+    });
+  }
+
+  onCambiarEstado(estado: PedidoEstado) {
+    this.pedidoService
+      .onFinalizarPedido(this.selectedPedido.id, estado)
+      .subscribe((res) => {
+        if (res?.id != null) {
+          console.log(res);
+          this.selectedPedido.estado = res.estado;
+        }
+      });
+  }
+
+  onDividirItem(pedidoItem: PedidoItem, index: number) {
+    console.log(pedidoItem);
+
+    this.dialog
+      .open(DividirItemDialogComponent, {
+        width: "70%",
+        height: "50%",
         data: {
-          compraItem: item.compraItem,
-          pedidoItem: item,
-          modificarPrecio: false
+          pedido: this.selectedPedido,
+          pedidoItem: pedidoItem,
         },
-        width: "100%",
-        disableClose: true,
       })
-      .afterClosed().pipe(untilDestroyed(this))
+      .afterClosed()
+      .subscribe((dividirRes: PedidoItem[]) => {
+        if (dividirRes != null && dividirRes.length > 0) {
+          dividirRes.forEach((p) => {
+            if (p?.notaRecepcion?.id != null) {
+              this.selectedNotaRecepcion.pedidoItemList =
+                updateDataSourceWithId(
+                  this.selectedNotaRecepcion.pedidoItemList,
+                  p,
+                  p.id
+                );
+              this.pedidoItemNotaRecepcionDataSource.data =
+                this.selectedNotaRecepcion.pedidoItemList;
+            } else {
+              this.pedidoDataSource.data = updateDataSourceWithId(
+                this.pedidoDataSource.data,
+                p,
+                p.id
+              );
+            }
+          });
+          this.actualizarDetalle();
+        }
+      });
+  }
+
+  onSetSucEntrega() {
+    if (this.sucursalInfluenciaControl.value != null) {
+      let sucInfluenciaList: Sucursal[] = this.sucursalInfluenciaControl.value;
+      if (sucInfluenciaList.length == 1) {
+        this.sucursalEntregaControl.setValue(
+          this.sucursalInfluenciaControl.value
+        );
+      }
+    }
+  }
+
+  /*
+  Esta funcion sirve para modificar un item en la etapa de recepcion de nota
+  Abrira un cuadro de dialogo en donde mostrara las opciones de modificacion
+  */
+  onModificarItem(p, cancelar?, reabrir?, width = "60%") {
+    this.matDialog
+      .open(EditarPedidpItemDialogComponent, {
+        width: width,
+        data: {
+          pedido: this.selectedPedido,
+          pedidoItem: p,
+          rechazar: cancelar,
+          reabrir: reabrir,
+        },
+      })
+      .afterClosed()
+      .subscribe((res) => {
+        if (res?.id != null) {
+          if (res?.notaRecepcion != null) {
+            this.pedidoItemNotaRecepcionDataSource.data =
+              updateDataSourceWithId(
+                this.pedidoItemNotaRecepcionDataSource.data,
+                res,
+                res.id
+              );
+            this.onRefreshNotaRecepcion(res.notaRecepcion);
+          } else {
+            this.pedidoDataSource.data = updateDataSourceWithId(
+              this.pedidoDataSource.data,
+              res,
+              res.id
+            );
+          }
+          this.actualizarDetalle();
+        }
+      });
+  }
+
+  onRechazarItem(p) {
+    this.onModificarItem(p, true, false, "50%");
+  }
+
+  onReabrirItem(p) {
+    this.onModificarItem(p, false, true, "50%");
+  }
+
+  actualizarDetalle() {
+    this.pedidoService
+      .onGetPedidoInfoDetalle(this.selectedPedido.id)
+      .subscribe((res) => {
+        console.log(res);
+
+        this.selectedPedido.valorTotal = res.valorTotal;
+        this.selectedPedido.cantPedidoItem = res.cantPedidoItem;
+        this.selectedPedido.cantPedidoItemSinNota = res.cantPedidoItemSinNota;
+        this.selectedPedido.cantPedidoItemCancelados =
+          res.cantPedidoItemCancelados;
+        this.totalItensAgregados =
+          this.selectedPedido.cantPedidoItem -
+          this.selectedPedido.cantPedidoItemSinNota;
+        this.onUpdateChart();
+      });
+    if (this.selectedNotaRecepcion != null)
+      this.onRefreshNotaRecepcion(this.selectedNotaRecepcion);
+  }
+
+  onVolverEtapa() {
+    const stateTransitions = {
+      [PedidoEstado.EN_RECEPCION_NOTA]: {
+        nextState: PedidoEstado.ACTIVO,
+        additionalActions: () => {
+          this.pedidoItemFormGroup.disable();
+          this.buscarPedidoItemSobrantes();
+          this.pedidoDisplayedColumns.push("check");
+          this.cambiarEstado(false);
+        }
+      },
+      [PedidoEstado.EN_RECEPCION_MERCADERIA]: {
+        nextState: PedidoEstado.EN_RECEPCION_NOTA
+      },
+      [PedidoEstado.ACTIVO]: {
+        nextState: PedidoEstado.ABIERTO
+      }
+    };
+
+    const transition = stateTransitions[this.selectedPedido.estado];
+
+    if (!transition) return;
+
+    this.dialogoService
+      .confirm("Atención!!", "Deseas retroceder esta etapa?")
+      .subscribe((dialogRes) => {
+        if (dialogRes) {
+          this.pedidoService
+            .onFinalizarPedido(this.selectedPedido.id, transition.nextState)
+            .subscribe((res) => {
+              if (res?.id != null) {
+                // Reset all component variables to initial state
+                this.selectedPedido = null;
+                this.selectedPedidoItem = null;
+                this.selectedProducto = null;
+                this.selectedProveedor = null;
+                this.selectedVendedor = null;
+                this.selectedMoneda = null;
+                this.selectedFormaPago = null;
+                this.selectedNotaRecepcion = null;
+                this.selectedPedidoItemPage = null;
+                this.selectedProductoProveedorPage = null;
+                this.selectedHistoricoCompraPage = null;
+                this.selectedcompraItemPage = null;
+
+                // Clear data sources
+                this.pedidoDataSource.data = [];
+                this.productosProveedorDataSource.data = [];
+                this.historicoCompraItemDataSource.data = [];
+                this.pedidoItemNotaRecepcionDataSource.data = [];
+                this.notaRecepcionDataSource.data = [];
+
+                // Reset form controls
+                this.pedidoFormGroup.reset();
+                this.pedidoItemFormGroup.reset();
+                this.codigoControl.reset();
+                this.buscarProveedorControl.reset();
+                this.buscarVendedorControl.reset();
+                this.sucursalInfluenciaControl.reset();
+                this.sucursalEntregaControl.reset();
+                this.tipoBoletaControl.setValue("LEGAL");
+                this.diasCreditoControl.reset();
+                this.fechaEntregaControl.reset();
+
+                // Reset counters and flags
+                this.totalCost = 0;
+                this.totalItensAgregados = 0;
+                this.isAddingItensToNota = false;
+                this.isEditing = true;
+
+                // Clear selections
+                this.selection.clear();
+                this.selectionNotaRecepcion.clear();
+
+                // Reset pagination
+                this.page = 0;
+                this.size = 15;
+                this.pedidoItemNotaRecepcionPageIndex = 0;
+                this.pedidoItemNotaRecepcionPageSize = 10;
+                this.notaRecepcionPageIndex = 0;
+                this.notaRecepcionPageSize = 10;
+
+                // Reload component data with new state
+                if (this.data?.tabData?.id != null) {
+                  this.pedidoService
+                    .onGetPedidoInfoCompleta(this.data.tabData.id)
+                    .pipe(untilDestroyed(this))
+                    .subscribe((pedidoRes) => {
+                      this.onCargarDatos(pedidoRes);
+                    });
+                }
+
+                // Execute any additional state-specific actions
+                transition.additionalActions?.();
+              }
+            });
+        }
+      });
+  }
+
+  onFilterItensNotaRecepcion() {
+    let texto: string = this.filtroItensNotaRecepcionControl.value;
+    if (texto != null && texto.trim() != "") {
+      this.pedidoService
+        .onGetPedidoItemPorNotaRecepcion(
+          this.selectedNotaRecepcion.id,
+          this.productoProveedorPageIndex,
+          this.productoProveedorPageSize,
+          texto
+        )
+        .subscribe((res) => {
+          if (res != null) {
+            this.selectedPedidoItemNotaRecepcionPage = res;
+            this.pedidoItemNotaRecepcionDataSource.data = res.getContent;
+          }
+        });
+    }
+  }
+
+  onClearFilterPedidoItensNotaRecepcion() {
+    this.filtroItensNotaRecepcionControl.setValue(null);
+    this.onNotaRecepcionClick(this.selectedNotaRecepcion);
+  }
+
+  onFilterPedidoItensSobrantes() {
+    let texto: string = this.filtroPedidoItensSobrantesControl.value;
+    if (this.selectedPedido.estado == "ABIERTO") {
+      this.pedidoService
+        .onGetPedidoItemPorPedido(
+          this.selectedPedido.id,
+          this.page,
+          this.size,
+          texto
+        )
+        .subscribe((res) => {
+          if (res != null) {
+            this.selectedPedidoItemPage = res;
+            this.pedidoDataSource.data = res.getContent;
+          }
+        });
+    } else {
+      this.pedidoService
+        .onGetPedidoItemSobrantes(
+          this.selectedPedido.id,
+          this.page,
+          this.size,
+          texto
+        )
+        .subscribe((res) => {
+          if (res != null) {
+            this.selectedPedidoItemPage = res;
+            this.pedidoDataSource.data = res.getContent;
+          }
+        });
+    }
+  }
+
+  onClearPedidoItensSobrantes() {
+    this.filtroPedidoItensSobrantesControl.setValue(null);
+    this.onFilterPedidoItensSobrantes();
+  }
+
+  onFilterNotaRecepcion() {
+    let texto: string = this.filtroNotaRecepcionControl.value;
+    if (texto != null && texto.trim() != "") {
+      this.onBuscarNotaRecepcion(texto);
+    }
+  }
+
+  onClearFilterNotaRecepcion() {
+    this.filtroNotaRecepcionControl.setValue(null);
+    this.onBuscarNotaRecepcion();
+  }
+
+  onVerificarRecepcionProducto(
+    pedidoItem: PedidoItem,
+    verificar: boolean,
+    index
+  ) {
+    this.pedidoService
+      .onVerificarItemRecepcionProducto(pedidoItem.id, verificar)
       .subscribe((res) => {
         if (res != null) {
-          if (res != null) {
-            item.compraItem = res;
-            let notaRecepcion =
-              this.dataSourceNotaRecepcion.data[notaRecepcionIndex];
-            notaRecepcion.pedidoItemList[pedidoItemIndex] = item;
-            console.log(notaRecepcion);
-            this.dataSourceNotaRecepcion.data = updateDataSource(
-              this.dataSourceNotaRecepcion.data,
-              notaRecepcion,
-              notaRecepcionIndex
+          if (verificar) {
+            this.pedidoItemNotaRecepcionDataSource.data = updateDataSource(
+              this.pedidoItemNotaRecepcionDataSource.data,
+              null,
+              index
+            );
+            this.pedidoDataSource.data = updateDataSource(
+              this.pedidoDataSource.data,
+              res
+            );
+            this.selectedNotaRecepcion
+              .cantidadItensVerificadoRecepcionMercaderia++;
+            this.notaRecepcionDataSource.data = updateDataSourceWithId(
+              this.notaRecepcionDataSource.data,
+              this.selectedNotaRecepcion,
+              this.selectedNotaRecepcion?.id
+            );
+          } else {
+            this.pedidoDataSource.data = updateDataSource(
+              this.pedidoDataSource.data,
+              null,
+              index
+            );
+            this.pedidoItemNotaRecepcionDataSource.data = updateDataSource(
+              this.pedidoItemNotaRecepcionDataSource.data,
+              res
+            );
+            this.selectedNotaRecepcion
+              .cantidadItensVerificadoRecepcionMercaderia--;
+            this.notaRecepcionDataSource.data = updateDataSourceWithId(
+              this.notaRecepcionDataSource.data,
+              this.selectedNotaRecepcion,
+              this.selectedNotaRecepcion?.id
             );
           }
         }
       });
   }
 
-  onAddProveedor() {
-    this.matDialog.open(AdicionarProveedorDialogComponent, {
-      width: '50%'
-    }).afterClosed().subscribe(res => {
-      if (res != null) {
-        this.onProveedorSelect(res)
-      }
-    })
+  onGoToPago() {
+    this.dialog.open(PagoPedidoDialogComponent, {
+      width: "80%",
+      height: "80%",
+      data: {
+        pedido: this.selectedPedido,
+      },
+    });
   }
 
-  openCalendar() {
-    this.calendar.open()
+  loadPedidoItemSucursalData(pedidoItem: PedidoItem, index: number) {
+    if (!pedidoItem.pedidoItemSucursalList) {
+      this.pedidoItemSucursalService
+        .onGetPedidoItensSucursalByPedidoItem(pedidoItem.id)
+        .pipe(untilDestroyed(this))
+        .subscribe(sucursalList => {
+          pedidoItem.pedidoItemSucursalList = sucursalList;
+          switch (this.selectedPedido.estado) {
+            case PedidoEstado.EN_RECEPCION_NOTA:
+              this.pedidoItemNotaRecepcionDataSource.data = updateDataSource(
+                this.pedidoItemNotaRecepcionDataSource.data,
+                pedidoItem,
+                index
+              );
+              break;
+            case PedidoEstado.ABIERTO:
+              this.pedidoDataSource.data = updateDataSource(
+                this.pedidoDataSource.data,
+                pedidoItem,
+                index
+              );
+              break;
+            default:
+              break;
+          }
+        });
+    }
   }
 
-  onProveedorEnter() {
-    this.vendedorInput.focus()
-  }
-
-  onVendedorEnter() {
-    this.vendedorInput.close()
-    this.formaPagoInput.focus()
-  }
-
-  onFormaPagoEnter(){
-    this.monedaInput.focus()
-  }
-
-  onMonedaEnter() {
-    this.plazoInput.nativeElement.select()
-  }
-
-  onPlazoEnter() {
-    this.fechaInput.nativeElement.select()
-  }
-
-  onFechaEntregaEnter() {
-
+  onRowClick(row: PedidoItem, index: number) {
+    this.selectedPedidoItemSobrante = row;
+    if (row) {
+      this.loadPedidoItemSucursalData(row, index);
+    }
   }
 }
+
+/*
+TO DO
+
+ */

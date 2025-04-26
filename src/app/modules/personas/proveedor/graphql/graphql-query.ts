@@ -1,130 +1,180 @@
-import gql from 'graphql-tag';
+import gql from "graphql-tag";
 
-export const proveedoresQuery = gql
-  `{
-    data : proveedores{
+export const proveedoresQuery = gql`
+  {
+    data: proveedores {
       id
-      persona{
+      persona {
         id
         nombre
       }
-      vendedorList{
+      vendedores {
         id
-        nombrePersona
+        persona {
+          nombre
+        }
       }
       credito
       tipoCredito
-      productos{
+      productos {
         id
         descripcion
       }
     }
-  }`
+  }
+`;
 
-export const proveedoresSearchByPersona = gql
-  `query($texto: String){
-    data : proveedorSearchByPersona(texto: $texto){
+export const proveedoresSearchByPersona = gql`
+  query ($texto: String) {
+    data: proveedorSearchByPersona(texto: $texto) {
       id
-      persona{
+      persona {
         id
         nombre
+        documento
       }
-      vendedores{
+      vendedores {
         id
-        persona{
+        persona {
           id
           nombre
+          documento
         }
       }
       credito
       chequeDias
       tipoCredito
-      productos{
+      productos {
         id
         descripcion
       }
     }
-  }`
+  }
+`;
 
-export const proveedoresSearchByProveedor = gql
-  `query($texto: String){
-    data : proveedorSearchByProveedor(texto: $texto){
+export const proveedorPorPersona = gql`
+  query ($personaId: ID!) {
+    data: proveedorPorPersona(personaId: $personaId) {
       id
-      persona{
+      creadoEn
+      usuario {
+        id
+      }
+      persona {
         id
         nombre
+        documento
+        telefono
       }
-      vendedores{
+      vendedores {
         id
-        nombrePersona
-      }
-      credito
-      tipoCredito
-      productos{
-        id
-        descripcion
-      }
-    }
-  }`
-
-export const proveedoresPorProveedor = gql
-  `query($id: Int){
-    data : proveedorPorVendedor(id: $id){
-      id
-      persona{
-        id
-        nombre
-      }
-      vendedorList{
-        id
-        nombrePersona
-      }
-      credito
-      tipoCredito
-      productos{
-        id
-        descripcion
-      }
-    }
-  }`
-
-export const proveedorQuery = gql
-  `query($id: ID!){
-    proveedor(id: $id){
-      id
-      persona{
-        id
-        nombre
-      }
-      vendedorList{
-        id
-        nombrePersona
-      }
-      credito
-      tipoCredito
-      productos{
-        id
-        descripcion
-      }
-    }
-  }`
-
-export const saveProveedor = gql
-  `mutation saveProveedor($entity:ProveedorInput!){
-      data: saveProveedor(proveedor:$entity){
-        id
-        credito
-        chequeDias
         persona {
           id
           nombre
+          documento
         }
       }
-    }`
+      credito
+      chequeDias
+      tipoCredito
+      productos {
+        id
+        descripcion
+      }
+    }
+  }
+`;
 
-export const deleteProveedorQuery = gql
-  ` mutation deleteProveedor($id: ID!){
+export const proveedoresSearchByProveedor = gql`
+  query ($texto: String) {
+    data: proveedorSearchByProveedor(texto: $texto) {
+      id
+      persona {
+        id
+        nombre
+      }
+      vendedores {
+        id
+        persona {
+          nombre
+        }
+      }
+      credito
+      tipoCredito
+      productos {
+        id
+        descripcion
+      }
+    }
+  }
+`;
+
+export const proveedoresPorProveedor = gql`
+  query ($id: Int) {
+    data: proveedorPorVendedor(id: $id) {
+      id
+      persona {
+        id
+        nombre
+      }
+      vendedores {
+        id
+        persona {
+          nombre
+        }
+      }
+      credito
+      tipoCredito
+      productos {
+        id
+        descripcion
+      }
+    }
+  }
+`;
+
+export const proveedorQuery = gql`
+  query ($id: ID!) {
+    data: proveedor(id: $id) {
+      id
+      persona {
+        id
+        nombre
+        documento
+      }
+      vendedores {
+        id
+        persona {
+          nombre
+          documento
+        }
+      }
+      credito
+      tipoCredito
+      productos {
+        id
+        descripcion
+      }
+    }
+  }
+`;
+
+export const saveProveedor = gql`
+  mutation saveProveedor($entity: ProveedorInput!) {
+    data: saveProveedor(proveedor: $entity) {
+      id
+      credito
+      chequeDias
+      persona {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
+export const deleteProveedorQuery = gql`
+  mutation deleteProveedor($id: ID!) {
     deleteProveedor(id: $id)
-}`
-
-
+  }
+`;

@@ -12,10 +12,22 @@ import { Observable } from 'rxjs';
 import { GetTransferenciaGQL } from './graphql/getTransferencia';
 import { GenericCrudService } from './../../../generics/generic-crud.service';
 import { Injectable } from '@angular/core';
-import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaInput } from './transferencia.model';
+import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaInput, TipoTransferencia } from './transferencia.model';
 import { DeleteTransferenciaGQL } from './graphql/deleteTransferencia';
-import { GetTransferenciaItensPorTransferenciaIdGQL } from './graphql/getTransferenciaItensPorTransferenciaId';
-
+import { GetTransferenciasPorUsuarioGQL } from './graphql/getTransferenciasPorUsuario';
+import { GetTransferenciasWithFilterGQL } from './graphql/getTransferenciasWithFilter';
+import { ImprimirTransferenciaGQL } from './graphql/imprimirTransferencia';
+import { environment } from '../../../../environments/environment';
+import { ReporteService } from '../../reportes/reporte.service';
+import { TabService } from '../../../layouts/tab/tab.service';
+import { Tab } from '../../../layouts/tab/tab.model';
+import { ListProductoComponent } from '../../productos/producto/list-producto/list-producto.component';
+import { ReportesComponent } from '../../reportes/reportes/reportes.component';
+import { PageInfo } from '../../../app.component';
+import { GetTransferenciaItemGQL } from './graphql/getTransferenciaItem';
+import { GetTransferenciaItensPorTransferenciaIdGQL } from './graphql/getTransferenciaItensPorTransferenciaIdWithFilter';
+import { GetTransferenciaItensPorTransferenciaIdWithFilterGQL } from './graphql/getTransferenciaItensPorTransferenciaId';
+import { ConfiguracionService } from '../../../shared/services/configuracion.service';
 @UntilDestroy()
 @Injectable({
   providedIn: 'root'
@@ -34,22 +46,48 @@ export class TransferenciaService {
     private notificacionService: NotificacionSnackbarService,
     private getTransferenciasPorFecha: GetTransferenciaPorFechaGQL,
     private mainService: MainService,
-    private transferenciaItemPorTransferenciaId: GetTransferenciaItensPorTransferenciaIdGQL
+    private transferenciaItemPorTransferenciaId: GetTransferenciaItensPorTransferenciaIdGQL,
+    private transferenciaItemPorTransferenciaIdWithFilter: GetTransferenciaItensPorTransferenciaIdWithFilterGQL,
+    private transferenciasPorUsuario: GetTransferenciasPorUsuarioGQL,
+    private getTransferenciasWithFiler: GetTransferenciasWithFilterGQL,
+    private imprimirTransferencia: ImprimirTransferenciaGQL,
+    private reporteService: ReporteService,
+    private tabService: TabService,
+    private getTransferenciaItem: GetTransferenciaItemGQL,
+    private configService: ConfiguracionService
   ) { }
+
+  onImprimirTransferencia(id, ticket?) {
+    this.genericCrudService.onCustomQuery(this.imprimirTransferencia, {
+      id: id,
+      ticket: ticket,
+      printerName: this.configService?.getConfig()?.printers?.ticket,
+    }).subscribe(res => {
+      if (res != null) {
+        this.reporteService.onAdd('Transferencia '+ id, res)
+        this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListProductoComponent))
+      }
+    })
+  }
 
   onGetTrasferenciasPorFecha(inicio, fin) {
     return this.genericCrudService.onGetByFecha(this.getTransferenciasPorFecha, inicio, fin);
   }
 
+  onGetTrasnferenciasPorUsuario(id): Observable<Transferencia[]> {
+    return this.genericCrudService.onGetById(this.transferenciasPorUsuario, id)
+  }
+
+
   onGetTransferencia(id): Observable<Transferencia> {
     return this.genericCrudService.onGetById(this.getTransferencia, id);
   }
 
-  onGetTransferenciaItensPorTransferenciaId(id, page?, size?): Observable<TransferenciaItem[]> {
+  onGetTransferenciaItensPorTransferenciaId(id, page?, size?): Observable<PageInfo<TransferenciaItem>> {
     return this.genericCrudService.onGetById(this.transferenciaItemPorTransferenciaId, id, page, size);
   }
 
-  onSaveTransferencia(input): Observable<Transferencia> {
+  onSaveTransferencia(input, responseOnError?:boolean): Observable<Transferencia> {
     input.usuarioPreTransferenciaId = this.mainService.usuarioActual.id;
     return this.genericCrudService.onSave(this.saveTransferencia, input);
   }
@@ -58,8 +96,8 @@ export class TransferenciaService {
     return this.genericCrudService.onDelete(this.deleteTransfencia, id, 'Realmente  desea eliminar esta transferencia?')
   }
 
-  onSaveTransferenciaItem(input): Observable<TransferenciaItem> {
-    return this.genericCrudService.onSave(this.saveTransferenciaItem, input);
+  onSaveTransferenciaItem(input, precioCosto?: number): Observable<TransferenciaItem> {
+    return this.genericCrudService.onSaveCustom(this.saveTransferenciaItem, { entity: input, precioCosto: precioCosto });
   }
 
   onDeleteTransferenciaItem(id): Observable<boolean> {
@@ -149,5 +187,42 @@ export class TransferenciaService {
       })
     })
   }
+
+  onGetTransferenciasWithFilters(
+    sucursalOrigenId?: number,
+    sucursalDestinoId?: number,
+    estado?: TransferenciaEstado,
+    tipo?: TipoTransferencia,
+    etapa?: EtapaTransferencia,
+    isOrigen?: boolean,
+    isDestino?: boolean,
+    creadoDesde?: string,
+    creadoHasta?: string,
+    page?: number,
+    size?: number): Observable<PageInfo<Transferencia>> {
+    return this.genericCrudService.onCustomQuery(this.getTransferenciasWithFiler, {
+      sucursalOrigenId,
+      sucursalDestinoId,
+      estado,
+      tipo,
+      etapa,
+      isOrigen,
+      isDestino,
+      creadoDesde,
+      creadoHasta,
+      page,
+      size
+    });
+  }
+
+  onGetTransferenciaItem(id: number): Observable<TransferenciaItem> {
+    return this.genericCrudService.onGetById(this.getTransferenciaItem, id);
+  }
+
+  onGetTransferenciaItensPorTransferenciaIdWithFilter(id?, texto?, page?, size?) {
+    return this.genericCrudService.onCustomQuery(this.transferenciaItemPorTransferenciaIdWithFilter, {id, name: texto, page, size});
+ 
+  }
+  
 }
 

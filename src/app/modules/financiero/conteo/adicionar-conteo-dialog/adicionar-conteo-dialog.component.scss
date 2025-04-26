@@ -1,18 +1,46 @@
-:host ::ng-deep .mat-form-field-infix {
-  border: 0px !important;
-  padding: 0px !important;
-}
+/* TODO(mdc-migration): The following rule targets internal classes of form-field that may no longer apply for the MDC version. */
+// :host ::ng-deep .mat-form-field-infix {
+//   border: 0px !important;
+//   padding: 0px !important;
+// }
 
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
+// input::-webkit-outer-spin-button,
+// input::-webkit-inner-spin-button {
+//   -webkit-appearance: none;
+//   margin: 0;
+// }
 
-mat-form-field{
-  font-size: 10px;
-}
+// mat-form-field{
+//   font-size: medium;
+// }
 
-input {
-  font-size: 1.5em;
+// input {
+//   font-size: medium;
+// }
+
+// ::ng-deep .mat-form-field-flex>.mat-form-field-infix {
+//   padding: 0.4em 0px !important;
+// }
+
+// ::ng-deep .mat-form-field-label-wrapper {
+//   top: -1.5em;
+// }
+
+// ::ng-deep .mat-form-field-appearance-outline.mat-form-field-can-float.mat-form-field-should-float .mat-form-field-label {
+//   transform: translateY(-1.1em) scale(.75);
+//   width: 133.33333%;
+// }
+
+// .mat-mdc-text-field-wrapper .mdc-text-field .mdc-text-field--filled .mdc-text-field--no-label .mat-mdc-form-field-flex {
+//   transform: translateY(-10px) !important;
+// }
+
+.shrinking-mat-form-field {
+  ::ng-deep .mat-mdc-form-field-infix {
+    transform: translateY(-10px) !important;
+  }
+
+  ::ng-deep.mat-mdc-form-field-text-prefix {
+    transform: translateY(-10px) !important;
+  }
 }

@@ -1,0 +1,26 @@
+<mat-form-field class="example-full-width" appearance="fill">
+  <mat-label id="label">{{titulo}}</mat-label>
+  <input
+    matInput
+    [matDatepicker]="picker"
+    [formControl]="dateControl"
+    (dateChange)="addEvent($event)"
+    hidden
+  />
+  <input
+    matInput
+    [formControl]="displayDateControl"
+    readonly
+    [matTooltip]="displayDateControl.value"
+    (focusin)="onInputFocus()"
+  />
+  <mat-icon
+    *ngIf="displayDateControl.value"
+    matTextSuffix
+    (click)="clearDates()"
+    class="highlight-hover-danger"
+    >close</mat-icon
+  >
+  <mat-datepicker-toggle #pickerToogle matSuffix [for]="picker"></mat-datepicker-toggle>
+  <mat-datepicker #picker [dateClass]="dateClass"></mat-datepicker>
+</mat-form-field>

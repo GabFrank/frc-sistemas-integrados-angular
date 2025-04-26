@@ -25,7 +25,7 @@ export class CortarImagenDialogComponent implements OnInit {
     public dialogRef: MatDialogRef<CortarImagenDialogComponent>,
     private imageCompress : NgxImageCompressService,
     private copyToClip: Clipboard
-  ) { 
+  ) {
     this.fileChangeEvent(data.imagen)
   }
 
@@ -39,7 +39,7 @@ export class CortarImagenDialogComponent implements OnInit {
   }
   imageCropped(event: ImageCroppedEvent) {
     this.croppedImage = event.base64;
-    
+
   //   this.imageCompress.compressFile(this.croppedImage, DOC_ORIENTATION.NotDefined, 50, 50).then(res =>{
   //     console.warn('Size in bytes was:', this.imageCompress.byteCount(this.croppedImage));
   //     this.croppedImage = res

@@ -1,4 +1,3 @@
-import { Input } from "@angular/core";
 import { dateToString } from "../../../commons/core/utils/dateUtils";
 import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
 import { Cobro } from "../../operaciones/venta/cobro/cobro.model";
@@ -21,6 +20,8 @@ export class VentaCredito {
     estado: EstadoVentaCredito
     creadoEn: Date
     usuario: Usuario
+    fechaCobro: Date
+
 
     toInput(): VentaCreditoInput {
         let input = new VentaCreditoInput
@@ -37,6 +38,7 @@ export class VentaCredito {
         input.interesMoraDia = this.interesMoraDia
         input.estado = this.estado
         input.usuarioId = this.usuario?.id
+        input.fechaCobro = dateToString(this.fechaCobro)
         return input;
     }
 }
@@ -55,6 +57,7 @@ export class VentaCreditoInput {
     interesMoraDia: number
     estado: EstadoVentaCredito
     usuarioId: number
+    fechaCobro: string
 }
 
 export class VentaCreditoCuota {
@@ -107,7 +110,8 @@ export enum EstadoVentaCredito {
     ABIERTO = 'ABIERTO',
     FINALIZADO = 'FINALIZADO',
     EN_MORA = 'EN_MORA',
-    INCOBRABLE = 'INCOBRABLE'
+    INCOBRABLE = 'INCOBRABLE',
+    CANCELADO = 'CANCELADO'
 }
 
 export class VentaCreditoQRAuthUpdate {

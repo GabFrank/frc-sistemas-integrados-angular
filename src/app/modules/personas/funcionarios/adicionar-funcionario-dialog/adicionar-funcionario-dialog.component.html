@@ -1,370 +1,303 @@
-<div fxLayout="column" style="width: 100%; height: 100%">
-  <div fxFlex="5" style="width: 100%; text-align: center">
-    <h3 *ngIf="data?.funcionario == null">Nuevo Funcionario</h3>
-    <h3 *ngIf="data?.funcionario != null">
-      {{ data.funcionario.persona.nombre }}
-    </h3>
-  </div>
-  <div fxFlex="90%" fxLayout="row" style="width: 100%">
-    <div fxFlex="100" fxLayout="column">
-      <div *ngIf="data?.funcionario != null" fxFlex>
-        Código de funcionario: {{ data?.funcionario.id }}
+<div
+  fxLayout="column"
+  style="width: 100%; height: 100%; padding: 5px"
+  fxLayoutGap="10px"
+>
+  <div fxFlex="5" style="text-align: center">Información del Funcionario</div>
+  <div
+    fxFlex="90"
+    fxLayout="row"
+    style="height: 100%; width: 100%"
+    fxLayoutGap="10px"
+  >
+    <div
+      fxFlex="45"
+      fxLayout="column"
+      style="width: 100%; height: 100%; padding: 10px"
+    >
+      <div>
+        <mat-form-field style="width: 100%">
+          <mat-label>Sucursal actual</mat-label>
+          <mat-select #sucursalSelect [formControl]="sucursalControl">
+            <mat-select-trigger>
+              {{ sucursalControl.value?.nombre }}
+            </mat-select-trigger>
+            <div
+              style="
+                width: 100%;
+                text-align: end;
+                padding-right: 10px;
+                padding-top: 10px;
+                font-size: 0.8em;
+                color: white;
+              "
+            >
+              <mat-icon
+                (click)="sucursalSelect.close()"
+                class="highlight-hover-danger"
+                >clear</mat-icon
+              >
+            </div>
+            <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal"
+              >{{ sucursal?.id }} -
+              {{ sucursal?.nombre | titlecase }}</mat-option
+            >
+          </mat-select>
+        </mat-form-field>
       </div>
-      <mat-accordion>
-        <mat-expansion-panel style="background-color: rgb(32, 32, 32)">
-          <mat-expansion-panel-header style="background-color: rgb(32, 32, 32)">
-            <mat-panel-title style="background-color: rgb(32, 32, 32)">
-              Persona: {{ selectedPersona?.nombre | titlecase }}
-            </mat-panel-title>
-          </mat-expansion-panel-header>
-          <div
-            fxLayout="column"
-            fxFlex="90%"
-            fxLayoutAlign="start space-between"
-            fxLayoutGap="10px"
-          >
-            <div fxFlex fxLayout="row">
-              <div fxFlex="10">
-                <div style="color: #f57c00">Id:</div>
+      <!-- <div>
+        <frc-searchable-select
+          #cargoSelect
+          titulo="Cargo"
+          [list]="cargoList"
+          (selectionChanged)="handleCargoSelectionChange($event)"
+          [compareFields]="['id', 'descripcion']"
+          [isAutoSelect]="true"
+          aria-readonly
+        >
+          <ng-template let-item>
+            {{ item.id }} - {{ item.descripcion }}
+          </ng-template>
+        </frc-searchable-select>
+      </div>
+      <div>
+        <frc-searchable-select
+          #supervisadoPorSelect
+          titulo="Supervisado por"
+          [list]="supervisadoPorList"
+          (selectionChanged)="handleSupervisadoPorSelectionChange($event)"
+          (inputChanged)="handleSupervisadoPorInputChange($event)"
+          [isAutoSelect]="true"
+          [isFilter]="false"
+        >
+          <ng-template let-item>
+            {{ item.id }} - {{ item?.persona.nombre | titlecase }}
+          </ng-template>
+        </frc-searchable-select>
+      </div> -->
+      <div>
+        <mat-form-field style="width: 100%">
+          <mat-label>Fecha de ingreso</mat-label>
+          <input
+            matInput
+            [matDatepicker]="picker"
+            [formControl]="fechaIngresoControl"
+          />
+          <mat-datepicker-toggle
+            matSuffix
+            [for]="picker"
+          ></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+      </div>
+      <br />
+      <div fxLayout="row" fxLayoutGap="10px">
+        <div fxFlex="50%">
+          <mat-label style="margin-right: 10px">Fase de prueba</mat-label>
+          <mat-slide-toggle [formControl]="fasePruebaControl">
+          </mat-slide-toggle>
+        </div>
+        <div fxFlex="50%">
+          <mat-label style="margin-right: 10px">Diarista</mat-label>
+          <mat-slide-toggle [formControl]="diaristaControl"> </mat-slide-toggle>
+        </div>
+      </div>
+      <br />
+      <div fxLayout="row" fxLayoutGap="10px">
+        <div fxFlex="50%">
+          <mat-label style="margin-right: 10px">Crédito</mat-label>
+          <mat-slide-toggle [formControl]="isCreditoControl">
+          </mat-slide-toggle>
+        </div>
+        <div fxFlex="50%">
+          <mat-label style="margin-right: 10px">Activo</mat-label>
+          <mat-slide-toggle [formControl]="activoControl"> </mat-slide-toggle>
+        </div>
+      </div>
+      <br />
+      <div fxLayout="row" fxLayoutGap="10px">
+        <mat-form-field fxFlex="50" style="width: 100%">
+          <input
+            #sueldoInput
+            type="text"
+            matInput
+            [formControl]="sueldoControl"
+            currencyMask
+            [options]="currencyMask.currencyOptionsGuarani"
+          />
+          <span matTextPrefix style="width: 100%;">Sueldo (Gs.):</span>
+        </mat-form-field>
+        <mat-form-field fxFlex="50" style="width: 100%">
+          <input
+            #creditoInput
+            type="text"
+            matInput
+            [formControl]="creditoControl"
+            currencyMask
+            [options]="currencyMask.currencyOptionsGuarani"
+          />
+          <span matTextPrefix style="width: 100%;">Crédito (Gs.):</span>
+        </mat-form-field>
+      </div>
+    </div>
+    <div fxFlex="55" fxLayout="column" green style="width: 100%">
+      <mat-card
+        fxFlex="40"
+        style="
+          background-color: rgb(60, 60, 60);
+          width: 100%;
+          padding: 10px;
+          height: 100%;
+        "
+        [class.selected]="selectedPersona != null"
+        fxLayout="row"
+        fxLayoutGap="10px"
+      >
+        <div fxFlex="70" fxLayout="column" fxLayoutGap="10px">
+          <div fxFlex="20" fxLayout="row" fxLayoutGap="10px">
+            <div fxFlex="10">
+              <div style="font-size: small; color: rgb(187, 187, 187)">Id</div>
+              <div style="font-size: medium" copiarAClipboard>
                 {{ selectedPersona?.id }}
               </div>
-              <div fxFlex="5%"></div>
-              <div fxFlex="60%">
-                <div style="color: #f57c00">Nombre:</div>
+            </div>
+            <div fxFlex="80">
+              <div style="font-size: small; color: rgb(187, 187, 187)">
+                Nombre y apellido
+              </div>
+              <div style="font-size: medium" copiarAClipboard>
                 {{ selectedPersona?.nombre | titlecase }}
               </div>
-              <div fxFlex="20%">
-                <div style="color: #f57c00">Apodo:</div>
-                {{ selectedPersona?.apodo | titlecase }}
-              </div>
-            </div>
-            <div fxFlex fxLayout="row">
-              <div fxFlex="30">
-                <div style="color: #f57c00">Teléfono:</div>
-                {{ selectedPersona?.telefono }}
-              </div>
-              <div fxFlex="5%"></div>
-              <div fxFlex="30%">
-                <div style="color: #f57c00">CI:</div>
-                {{ selectedPersona?.documento }}
-              </div>
-            </div>
-            <div fxFlex fxLayout="row">
-              <div fxFlex="30">
-                <div style="color: #f57c00">Ciudad:</div>
-                {{ selectedPersona?.ciudad?.descripcion | titlecase }}
-              </div>
-              <div fxFlex="5%"></div>
-              <div fxFlex="70%">
-                <div style="color: #f57c00">Dirección:</div>
-                {{ selectedPersona?.direccion | titlecase }}
-              </div>
             </div>
           </div>
-          <div fxLayout="column" fxFlex="10%" fxLayoutGap="5px">
-            <div fxFlex>
-              <button
-                type="button"
-                mat-raised-button
-                color="primary"
-                (click)="onSearchPersona()"
-              >
-                <mat-icon>search</mat-icon>
-              </button>
+          <div fxFlex="20">
+            <div style="font-size: small; color: rgb(187, 187, 187)">
+              Fecha de nacimiento
             </div>
-            <div fxFlex>
-              <button
-                type="button"
-                mat-raised-button
-                color="primary"
-                (click)="onAddPersona()"
-              >
-                <mat-icon>add_circle_outline</mat-icon>
-              </button>
+            <div style="font-size: medium" copiarAClipboard>
+              {{ selectedPersona?.nacimiento | date : "shortDate" }}
             </div>
           </div>
-        </mat-expansion-panel>
-      </mat-accordion>
-
-      <!-- <br /> -->
-      <mat-accordion *ngIf="false">
-        <mat-expansion-panel style="background-color: rgb(32, 32, 32)">
-          <mat-expansion-panel-header style="background-color: rgb(32, 32, 32)">
-            <mat-panel-title style="background-color: rgb(32, 32, 32)">
-              Cargo: {{ selectedCargo?.nombre }}
-            </mat-panel-title>
-          </mat-expansion-panel-header>
-          <div fxLayout="column" fxFlex="90%" fxLayoutGap="10px">
-            <div fxFlex fxLayout="row">
-              <div fxFlex="10">Id: {{ selectedCargo?.id }}</div>
-              <div fxFlex="5%"></div>
-              <div fxFlex="80%">Nombre: {{ selectedCargo?.nombre }}</div>
+          <div fxFlex="20">
+            <div style="font-size: small; color: rgb(187, 187, 187)">
+              Lugar de nacimiento
             </div>
-            <div fxFlex fxLayout="row">
-              <div fxFlex>
-                Supervisado por:
-                {{ selectedCargo?.nombre | titlecase }}
-              </div>
-            </div>
-            <div fxFlex fxLayout="row">
-              <div fxFlex>
-                Descripión: {{ selectedCargo?.descripcion | uppercase }}
-              </div>
+            <div style="font-size: medium" copiarAClipboard>
+              {{ selectedPersona?.ciudad?.descripcion | titlecase }}
             </div>
           </div>
-          <div fxLayout="column" fxFlex="10%" fxLayoutGap="5px">
-            <div fxFlex>
-              <button
-                type="button"
-                mat-raised-button
-                color="primary"
-                (click)="onSearchCargo()"
-              >
-                <mat-icon>search</mat-icon>
-              </button>
+          <div fxFlex="20">
+            <div style="font-size: small; color: rgb(187, 187, 187)">
+              Teléfono
             </div>
-            <!-- <div fxFlex>
-              <button type="button" mat-raised-button color="primary" (click)="onAddCargo()"><mat-icon>add_circle_outline</mat-icon></button>
-            </div> -->
-          </div>
-        </mat-expansion-panel>
-      </mat-accordion>
-      <!-- <br /> -->
-      <mat-accordion *ngIf="false">
-        <mat-expansion-panel style="background-color: rgb(32, 32, 32)">
-          <mat-expansion-panel-header style="background-color: rgb(32, 32, 32)">
-            <mat-panel-title style="background-color: rgb(32, 32, 32)">
-              Sucursal: {{ selectedSucursal?.nombre }}
-            </mat-panel-title>
-          </mat-expansion-panel-header>
-          <div fxLayout="column" fxFlex="90%" fxLayoutGap="10px">
-            <div fxFlex fxLayout="row">
-              <div fxFlex="10">Id: {{ selectedSucursal?.id }}</div>
-              <div fxFlex="5%"></div>
-              <div fxFlex="80%">Nombre: {{ selectedSucursal?.nombre }}</div>
-            </div>
-            <div fxFlex fxLayout="row">
-              <div fxFlex>
-                Ciudad: {{ selectedSucursal?.ciudad?.descripcion | titlecase }}
-              </div>
+            <div style="font-size: medium" copiarAClipboard>
+              {{ selectedPersona?.telefono }}
             </div>
           </div>
-          <div fxLayout="column" fxFlex="10%" fxLayoutGap="5px">
-            <div fxFlex>
-              <button
-                type="button"
-                mat-raised-button
-                color="primary"
-                (click)="onSearchSucursal()"
-              >
-                <mat-icon>search</mat-icon>
-              </button>
+          <div fxFlex="20" fxLayout="row" fxLayoutGap="10px">
+            <div
+              style="color: #43a047; cursor: pointer"
+              (click)="onEditarPersona()"
+            >
+              Editar
             </div>
-            <!-- <div fxFlex>
-              <button type="button" mat-raised-button color="primary"><mat-icon>add_circle_outline</mat-icon></button>
-            </div> -->
+            <div style="color: #43a047; cursor: pointer">Compartir</div>
           </div>
-        </mat-expansion-panel>
-      </mat-accordion>
-
+        </div>
+        <div fxFlex="30" fxLayout="column" fxLayoutAlign="center center">
+          <img
+            fxFlex="90"
+            [src]="
+              selectedFuncionario?.imagenPrincipal != null
+                ? selectedFuncionario.imagenPrincipal
+                : 'assets/avatar-3x4.png'
+            "
+            style="height: 100%; object-fit: contain"
+          />
+          <div
+            fxFlex="10"
+            style="text-align: center; font-size: medium; padding: 5px"
+          >
+            C.I.: {{ selectedPersona?.documento | number: '1.0-0'}}
+          </div>
+        </div>
+      </mat-card>
       <br />
+      <div style="width: 100%; text-align: center">Histórico de marcación</div>
+      <div fxFlex="55">
+        <table
+          mat-table
+          class="mat-elevation-z8"
+          [dataSource]="marcacionesDataSource"
+          style="padding-left: 5px; padding-right: 5px; width: 100%"
+        >
+          <!--- Note that these columns can be defined in any order.
+                  The actual rendered columns are set as a property on the row definition" -->
 
-      <mat-accordion *ngIf="selectedPersona != null">
-        <mat-expansion-panel style="background-color: rgb(32, 32, 32)">
-          <mat-expansion-panel-header style="background-color: rgb(32, 32, 32)">
-            <mat-panel-title style="background-color: rgb(32, 32, 32)">
-              Aceeso al sistema (Usuario)
-            </mat-panel-title>
-          </mat-expansion-panel-header>
-          <div fxLayout="column" fxFlex="90%" fxLayoutGap="10px">
-            <div fxFlex fxLayout="row">
-              <div fxFlex="10">Id: {{ selectedUsuario?.id }}</div>
-              <div fxFlex="5%"></div>
-              <div fxFlex="80%">Nickname: {{ selectedUsuario?.nickname }}</div>
-            </div>
-            <div fxFlex fxLayout="row">
-              <div fxFlex>Futuros datos sobre roles</div>
-            </div>
-          </div>
-          <div fxLayout="column" fxFlex="10%" fxLayoutGap="5px">
-            <div fxFlex *ngIf="selectedUsuario == null">
-              <button
-                type="button"
-                mat-raised-button
-                color="primary"
-                (click)="onAddUsuario()"
-              >
-                <mat-icon>add_circle_outline</mat-icon>
-              </button>
-            </div>
-            <div fxFlex *ngIf="selectedUsuario != null">
-              <button
-                type="button"
-                mat-raised-button
-                color="primary"
-                (click)="onAddUsuario()"
-              >
-                <mat-icon>edit</mat-icon>
-              </button>
-            </div>
-            <!-- <div fxFlex>
-              <button type="button" mat-raised-button color="primary"><mat-icon>add_circle_outline</mat-icon></button>
-            </div> -->
-          </div>
-        </mat-expansion-panel>
-      </mat-accordion>
+          <!-- Position Column -->
+          <ng-container matColumnDef="fecha">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center">
+              Fecha
+            </th>
+            <td mat-cell *matCellDef="let element" style="text-align: center">
+              {{ element.fecha }}
+            </td>
+          </ng-container>
 
-      <br />
-      <mat-accordion *ngIf="selectedUsuario != null">
-        <mat-expansion-panel style="background-color: rgb(32, 32, 32)">
-          <mat-expansion-panel-header style="background-color: rgb(32, 32, 32)">
-            <mat-panel-title style="background-color: rgb(32, 32, 32)">
-              Datos generales
-            </mat-panel-title>
-          </mat-expansion-panel-header>
-          <div fxLayout="column" style="width: 100%">
-            <div fxFlex fxLayout="row" style="width: 100%">
-              <div fxFlex="50">
-                <mat-form-field style="width: 90%">
-                  <mat-label>Fecha Ingreso</mat-label>
-                  <input
-                    matInput
-                    [matDatepicker]="picker"
-                    [formControl]="fechaIngresoControl"
-                    [max]="today"
-                  />
-                  <mat-datepicker-toggle
-                    matSuffix
-                    [for]="picker"
-                  ></mat-datepicker-toggle>
-                  <mat-datepicker #picker></mat-datepicker>
-                </mat-form-field>
-              </div>
-              <div fxFlex="50%">
-                <mat-form-field style="width: 90%">
-                  <mat-label>Cargo</mat-label>
-                  <mat-select [formControl]="cargoControl" name="cargo">
-                    <mat-option>Ninguno</mat-option>
-                    <mat-option
-                      *ngFor="let cargo of cargoList"
-                      [value]="cargo.id"
-                    >
-                      {{ cargo?.id }} - {{ cargo?.nombre  | titlecase}}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
-              </div>
-            </div>
-            <div fxLayout="row" fxFlex="100%">
-              <div fxFlex="50%">
-                <mat-form-field style="width: 90%">
-                  <mat-label>Sueldo</mat-label>
-                  <input type="number" matInput [formControl]="sueldoControl" />
-                </mat-form-field>
-              </div>
-              <div fxFlex="50%">
-                <mat-form-field style="width: 90%">
-                  <mat-label>Crédito</mat-label>
-                  <input
-                    type="number"
-                    matInput
-                    [formControl]="creditoControl"
-                  />
-                </mat-form-field>
-              </div>
-            </div>
-            <div fxLayout="row" fxFlex="100%">
-              <div fxFlex="30%">
-                <section>
-                  <p>
-                    <mat-checkbox [formControl]="fasePruebaControl"
-                      >Fase de prueba</mat-checkbox
-                    >
-                  </p>
-                </section>
-              </div>
-              <div fxFlex="30%">
-                <section>
-                  <p>
-                    <mat-checkbox [formControl]="diaristaControl"
-                      >Diarista</mat-checkbox
-                    >
-                  </p>
-                </section>
-              </div>
-              <div fxFlex="30%">
-                <section>
-                  <p>
-                    <mat-checkbox [formControl]="activoControl"
-                      >Activo</mat-checkbox
-                    >
-                  </p>
-                </section>
-              </div>
-            </div>
-            <div fxLayout="row" fxFlex="50%">
-              <div fxFlex="50%">
-                <mat-form-field style="width: 90%">
-                  <mat-label>Sucursal</mat-label>
-                  <mat-select [formControl]="sucursalControl" name="sucursal">
-                    <mat-option>Ninguna</mat-option>
-                    <mat-option
-                      *ngFor="let sucursal of sucursalList"
-                      [value]="sucursal.id"
-                    >
-                      {{ sucursal?.id }} - {{ sucursal?.nombre |  titlecase}}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
-              </div>
-              <div fxFlex="50%">
-                <mat-form-field style="width: 90%">
-                  <mat-label>Supervisado Por</mat-label>
-                  <mat-select [formControl]="supervisadoPorControl" name="supervisadoPor">
-                    <mat-option>Ninguno</mat-option>
-                    <mat-option
-                      *ngFor="let funcionario of funcionarioList"
-                      [value]="funcionario.id"
-                    >
-                      {{ funcionario?.id }} - {{ funcionario?.persona?.nombre | titlecase}}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
-              </div>
-            </div>
-          </div>
-        </mat-expansion-panel>
-      </mat-accordion>
+          <ng-container matColumnDef="tipo">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center">
+              Tipo
+            </th>
+            <td mat-cell *matCellDef="let element" style="text-align: center">
+              {{ element.tipo }}
+            </td>
+          </ng-container>
+
+          <!-- Name Column -->
+          <ng-container matColumnDef="sucursal">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center">
+              Sucursal
+            </th>
+            <td mat-cell *matCellDef="let element" style="text-align: center">
+              {{ element?.sucursal | titlecase }}
+            </td>
+          </ng-container>
+
+          <tr
+            mat-header-row
+            *matHeaderRowDef="['fecha', 'tipo', 'sucursal']"
+          ></tr>
+          <tr
+            mat-row
+            *matRowDef="
+              let row;
+              columns: ['fecha', 'tipo', 'sucursal'];
+              let i = index
+            "
+          ></tr>
+        </table>
+      </div>
     </div>
-    <!-- <div fxLayout="column" fxFlex="50%"></div> -->
   </div>
-  <br>
   <div
     fxFlex="5"
     fxLayout="row"
+    fxLayoutGap="10px"
+    style="height: 100%; width: 100%; text-align: center"
     fxLayoutAlign="center center"
-    fxLayoutGap="20px"
   >
-    <div fxFlex="15%">
-      <button
-        style="width: 100%"
-        mat-raised-button
-        color="primary"
-        (click)="onCancelar()"
-      >
-        Cancelar
-      </button>
-    </div>
-    <div fxFlex="15%">
-      <button
-        style="width: 100%"
-        mat-raised-button
-        color="accent"
-        (click)="onGuardar()"
-        [disabled]="selectedPersona == null && selectedUsuario == null"
-      >
-        Guardar
-      </button>
-    </div>
+    <app-boton
+      color="primary"
+      nombre="Cancelar"
+      style="width: 20%; height: 40px"
+      (clickEvent)="onCancel()"
+    ></app-boton>
+    <app-boton
+      color="accent"
+      nombre="Guardar"
+      style="width: 20%; height: 40px"
+      [disableExpression]="formGroup.invalid || selectedPersona == null"
+      (clickEvent)="onSave()"
+    ></app-boton>
   </div>
 </div>

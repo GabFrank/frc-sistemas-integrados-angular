@@ -1,0 +1,363 @@
+<h2 mat-dialog-title class="titulo-center" style="text-align: center;">{{ isEdit ? 'Editar' : 'Agregar' }} Detalle de
+  Pago</h2>
+
+<div *ngIf="data.maxAmount !== undefined" class="max-amount-indicator">
+  Monto máximo disponible: {{ data.maxAmount | number }}
+</div>
+
+<div style="width: 100%;">
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" style="width: 100%;">
+    <mat-dialog-content>
+      <div *ngIf="isLoading" style="display: flex; justify-content: center; margin: 20px 0;">
+        <mat-spinner diameter="30"></mat-spinner>
+      </div>
+
+      <!-- First row layout -->
+      <!-- wrap this row with a new column div with gap 15px -->
+      <!-- Pago Detalle Form Section -->
+      <div fxLayout="column" fxLayoutGap="10px" class="pago-detalle-form"
+        style="background-color: #303030; padding: 15px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+        [class.disabled-form]="!isPagoDetalleFormEditable">
+        <div fxLayout="row" fxLayoutAlign="space-between center" style="margin-bottom: 10px;">
+          <h3 class="titulo-center" style="margin: 0;">Detalle de Pago</h3>
+          <div>
+            <!-- Edit/Read-only toggle button -->
+            <button mat-button color="accent" *ngIf="isEdit && !isPagoDetalleFormEditable" (click)="togglePagoDetalleFormEditMode()" type="button">
+              <mat-icon>edit</mat-icon>
+              Editar detalle
+            </button>
+            
+            <!-- Finalizar button acts as both save and exit edit mode -->
+            <button mat-raised-button color="primary" *ngIf="isEdit && isPagoDetalleFormEditable" 
+                    (click)="saveAndExitEditMode()" type="button"
+                    [disabled]="form.invalid || isLoading">
+              <mat-icon>save</mat-icon>
+              Guardar cambios
+            </button>
+            
+            <!-- Reset button - only visible in edit mode -->
+            <button mat-button color="warn" *ngIf="isPagoDetalleFormEditable && isEdit" 
+                    (click)="resetToInitialValues()" type="button"
+                    matTooltip="Restablecer a valores iniciales">
+              <mat-icon>restore</mat-icon>
+              Restablecer
+            </button>
+            
+            <!-- Cancel button - visible for non-canceled PagoDetalles -->
+            <button mat-button color="warn" *ngIf="isEdit && form.get('estado').value !== 'CANCELADO'" 
+                    (click)="cancelPagoDetalle()" type="button"
+                    matTooltip="Cancelar detalle de pago y todas sus cuotas">
+              <mat-icon>cancel</mat-icon>
+              Cancelar Detalle
+            </button>
+          </div>
+        </div>
+
+        <div fxLayout="row wrap" fxLayoutGap="15px grid">
+          
+
+          <!-- Moneda -->
+          <div fxFlex="25%">
+            <mat-form-field appearance="outline" style="width: 100%;">
+              <mat-label>Moneda</mat-label>
+              <mat-select formControlName="monedaId" required>
+                <mat-option *ngFor="let moneda of monedas" [value]="moneda.id">
+                  {{ moneda.denominacion }}
+                </mat-option>
+              </mat-select>
+              <mat-error *ngIf="form.get('monedaId').hasError('required')">
+                La moneda es requerida
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <!-- Forma de Pago -->
+          <div fxFlex="25%">
+            <mat-form-field appearance="outline" style="width: 100%;">
+              <mat-label>Forma de Pago</mat-label>
+              <mat-select formControlName="formaPagoId" required>
+                <mat-option *ngFor="let formaPago of formasPago" [value]="formaPago.id">
+                  {{ formaPago.descripcion }}
+                </mat-option>
+              </mat-select>
+              <mat-error *ngIf="form.get('formaPagoId').hasError('required')">
+                La forma de pago es requerida
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <!-- Total -->
+          <div fxFlex="25%">
+            <mat-form-field appearance="outline" style="width: 100%;">
+              <mat-label>Total {{ selectedCurrencySymbol }}</mat-label>
+              <input matInput formControlName="total" required currencyMask [options]="
+                    selectedCurrency
+                  ">
+              <mat-error *ngIf="form.get('total').hasError('required')">
+                El total es requerido
+              </mat-error>
+              <mat-error *ngIf="form.get('total').hasError('min')">
+                El total debe ser mayor o igual a cero
+              </mat-error>
+              <mat-error *ngIf="form.get('total').hasError('exceedsMaxAmount')">
+                Excede el monto pendiente por pagar ({{ data.maxAmount | number }})
+              </mat-error>
+              <mat-error *ngIf="form.get('total').hasError('lessThanCuotasSum')">
+                El total no puede ser menor que la suma de cuotas ({{ totalCuotasSum | number }})
+              </mat-error>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!-- Second row layout -->
+        <div fxLayout="row wrap" fxLayoutGap="15px grid">
+          <!-- Fuente (previously Sucursal) -->
+          <div fxFlex="20%">
+            <mat-form-field appearance="outline" style="width: 100%;">
+              <mat-label>Fuente</mat-label>
+              <mat-select formControlName="sucursalId">
+                <mat-option [value]="null">Ninguna</mat-option>
+                <mat-option *ngFor="let sucursal of sucursales" [value]="sucursal.id">
+                  {{ sucursal.nombre }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <!-- Caja (dependiente de Sucursal) -->
+          <div fxFlex="20%">
+            <mat-form-field appearance="outline" style="width: 100%;">
+              <mat-label>Caja</mat-label>
+              <mat-select formControlName="cajaId">
+                <mat-option [value]="null">Ninguna</mat-option>
+                <mat-option *ngFor="let caja of cajas" [value]="caja.id">
+                  {{ caja.descripcion }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <!-- Estado -->
+          <div fxFlex="20%">
+            <mat-form-field appearance="outline" style="width: 100%;">
+              <mat-label>Estado</mat-label>
+              <mat-select formControlName="estado" [disabled]="true">
+                <mat-option value="ABIERTO">ABIERTO</mat-option>
+                <mat-option value="PENDIENTE">PENDIENTE</mat-option>
+                <mat-option value="PAGO_PARCIAL">PAGO PARCIAL</mat-option>
+                <mat-option value="CONCLUIDO">CONCLUIDO</mat-option>
+                <mat-option value="CANCELADO">CANCELADO</mat-option>
+              </mat-select>
+              <mat-hint>Calculado automáticamente</mat-hint>
+            </mat-form-field>
+          </div>
+
+          <!-- Plazo -->
+          <div fxFlex="10%" style="display: flex; align-items: center;">
+            <mat-checkbox formControlName="plazo">Pago a plazo</mat-checkbox>
+          </div>
+
+          <!-- Cuotas (siempre visible) -->
+          <div fxFlex="10%">
+            <mat-form-field appearance="outline" style="width: 100%;">
+              <mat-label>Número de cuotas</mat-label>
+              <input matInput type="number" formControlName="cuotas" min="1" required>
+              <mat-error *ngIf="form.get('cuotas').hasError('required')">
+                El número de cuotas es requerido
+              </mat-error>
+              <mat-error *ngIf="form.get('cuotas').hasError('min')">
+                El número de cuotas debe ser al menos 1
+              </mat-error>
+            </mat-form-field>
+          </div>
+          
+          <!-- Guardar Detalle Button for new records -->
+          <div fxFlex="20%" fxLayoutAlign="end center" *ngIf="!isEdit">
+            <button mat-raised-button color="primary" type="button" (click)="saveDetailsOnly()"
+              [disabled]="form.invalid || isLoading">
+              Guardar Detalle
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- New Card for PagoDetalleCuota form - disabled when not in edit mode -->
+      <div fxLayout="column" fxLayoutGap="10px" class="pago-detalle-cuota-form" [class.disabled-container]="!cuotaFormEnabled"
+        style="margin-top: 20px; background-color: #303030; padding: 15px; padding-bottom: 25px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div fxLayout="row" fxLayoutAlign="space-between center" style="margin: 0 0 15px 0;">
+          <h3 class="titulo-center" style="margin: 0;">
+            {{ editingCuotaId !== null ? ('Editar Cuota #' + numeroCuotaControl.value) : 'Agregar Cuota' }}
+          </h3>
+          <div *ngIf="isEdit" class="remaining-total">
+            <span>Monto disponible: {{ remainingTotal | number }}</span>
+            <span *ngIf="remainingTotal <= 0" class="warning-text"> (No hay saldo disponible)</span>
+            <span *ngIf="form.get('total').hasError('exceedsMaxAmount')" class="warning-text"> (El total excede el monto máximo)</span>
+            <span *ngIf="form.get('total').hasError('lessThanCuotasSum')" class="warning-text"> (El total es menor que la suma de cuotas)</span>
+          </div>
+        </div>
+
+        <div fxLayout="row wrap" fxLayoutGap="15px" fxLayoutAlign="start center">
+          <!-- Número Cuota - reduced size and made read-only -->
+          <div fxFlex="15%">
+            <mat-form-field appearance="outline" style="width: 100%;">
+              <mat-label>N° Cuota</mat-label>
+              <input matInput type="number" [formControl]="numeroCuotaControl" min="1" readonly>
+              <mat-hint>Auto-generado</mat-hint>
+            </mat-form-field>
+          </div>
+
+          <!-- Fecha Vencimiento -->
+          <div fxFlex="25%">
+            <mat-form-field appearance="outline" style="width: 100%;">
+              <mat-label>Fecha Vencimiento</mat-label>
+              <input matInput [matDatepicker]="picker" [formControl]="fechaVencimientoControl" required>
+              <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-datepicker #picker></mat-datepicker>
+              <mat-hint *ngIf="!form.get('plazo').value">Fecha actual (no editable)</mat-hint>
+            </mat-form-field>
+          </div>
+
+          <!-- Estado - made read-only -->
+          <div fxFlex="20%">
+            <mat-form-field appearance="outline" style="width: 100%;">
+              <mat-label>Estado</mat-label>
+              <input matInput [value]="estadoControl.value" readonly>
+              <mat-hint>No editable</mat-hint>
+            </mat-form-field>
+          </div>
+
+          <!-- Total Final -->
+          <div fxFlex="20%">
+            <mat-form-field appearance="outline" style="width: 100%;">
+              <mat-label>Total Final</mat-label>
+              <input matInput [formControl]="totalFinalControl" required currencyMask [options]="selectedCurrency">
+              <mat-error *ngIf="totalFinalControl.hasError('required')">
+                El total es requerido
+              </mat-error>
+              <mat-error *ngIf="totalFinalControl.hasError('min')">
+                El total debe ser mayor o igual a cero
+              </mat-error>
+              <mat-error *ngIf="totalFinalControl.hasError('exceedsTotal')">
+                Excede el monto disponible ({{ remainingTotal | number }})
+              </mat-error>
+            </mat-form-field>
+          </div>
+          
+          <!-- Action Buttons moved to same row -->
+          <div fxFlex="15%" fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="5px">
+            <button 
+              mat-icon-button
+              type="button" 
+              (click)="clearCuotaForm()" 
+              [disabled]="!cuotaFormEnabled"
+              matTooltip="Restablecer">
+              <mat-icon>refresh</mat-icon>
+            </button>
+            <button 
+              mat-mini-fab
+              color="primary" 
+              type="button" 
+              (click)="addCuotaFromForm()" 
+              [disabled]="!cuotaFormValid"
+              matTooltip="{{ editingCuotaId ? 'Actualizar Cuota' : 'Agregar Cuota' }}">
+              <mat-icon>{{ editingCuotaId ? 'save' : 'add' }}</mat-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de cuotas con altura fija y fondo más oscuro - disabled when not in edit mode -->
+      <div class="cuotas-table-container" [class.disabled-container]="!isEdit"
+        style="margin-top: 20px; height: 400px; overflow-y: auto; width: 100%; background-color: #303030; padding: 15px; border-radius: 4px;">
+        <h3 class="titulo-center" style="text-align: center;">Cuotas</h3>
+
+        <table mat-table [dataSource]="pagoDetalleCuotas" class="mat-elevation-z4" style="width: 100%">
+          <!-- Número de Cuota Column -->
+          <ng-container matColumnDef="numeroCuota">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;">N° Cuota</th>
+            <td mat-cell *matCellDef="let cuota" style="text-align: center;">{{ cuota.numeroCuota }}</td>
+          </ng-container>
+
+          <!-- Fecha Vencimiento Column -->
+          <ng-container matColumnDef="fechaVencimiento">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;">Fecha Vencimiento</th>
+            <td mat-cell *matCellDef="let cuota" style="text-align: center;">{{ cuota.fechaVencimiento |
+              date:'dd/MM/yyyy' }}</td>
+          </ng-container>
+
+          <!-- Estado Column -->
+          <ng-container matColumnDef="estado">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;">Estado</th>
+            <td mat-cell *matCellDef="let cuota" style="text-align: center;">{{ cuota.estado }}</td>
+          </ng-container>
+
+          <!-- Total Final Column -->
+          <ng-container matColumnDef="totalFinal">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;">Total</th>
+            <td mat-cell *matCellDef="let cuota" style="text-align: center;">{{ cuota.totalFinal | number }}</td>
+          </ng-container>
+
+          <!-- Total Pagado Column -->
+          <ng-container matColumnDef="totalPagado">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;">Pagado</th>
+            <td mat-cell *matCellDef="let cuota" style="text-align: center;">{{ cuota.totalPagado | number }}</td>
+          </ng-container>
+
+          <!-- Cheque Column -->
+          <ng-container matColumnDef="cheque">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;">Cheque</th>
+            <td mat-cell *matCellDef="let cuota" style="text-align: center;">{{ cuota.cheque?.numero || 'N/A' }}</td>
+          </ng-container>
+
+          <!-- Actions Column -->
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef style="text-align: center;">Acciones</th>
+            <td mat-cell *matCellDef="let cuota" style="text-align: center;">
+              <!-- Edit button - available for all cuotas but will have different behavior -->
+              <button mat-icon-button color="primary" type="button" (click)="editCuota(cuota)" 
+                      matTooltip="{{ cuota.estado === 'PENDIENTE' ? 'Editar cuota' : 'Ver detalles (estado no editable)' }}">
+                <mat-icon>{{ cuota.estado === 'PENDIENTE' ? 'edit' : 'visibility' }}</mat-icon>
+              </button>
+              
+              <!-- Delete button - only for PENDIENTE cuotas -->
+              <button mat-icon-button color="warn" type="button" (click)="deleteCuota(cuota)"
+                      matTooltip="{{ cuota.estado === 'PENDIENTE' ? 'Eliminar cuota' : 'Marcar como cancelado' }}">
+                <mat-icon>{{ cuota.estado === 'PENDIENTE' ? 'delete' : 'cancel' }}</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;" 
+              (dblclick)="editCuota(row)" 
+              [class.editing-row]="editingCuotaId === row.id"
+              [class.highlight-animation]="editingCuotaId === row.id"
+              [matTooltip]="row.estado === 'PENDIENTE' ? 'Doble clic para editar' : 'Doble clic para ver detalles'"></tr>
+
+          <!-- Row shown when there is no data -->
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell" colspan="7" style="text-align: center; padding: 16px;">
+              No hay cuotas registradas
+            </td>
+          </tr>
+        </table>
+      </div>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="center" style="padding: 16px 0;">
+      <button mat-raised-button color="primary" type="button" (click)="onCancel()" [disabled]="isLoading"
+        style="min-width: 120px; height: 45px;">
+        Cerrar
+      </button>
+    </mat-dialog-actions>
+  </form>
+</div>
+
+<style>
+  .disabled-container {
+    opacity: 0.7;
+    pointer-events: none;
+  }
+</style>
+
+<!-- Ahora ya podemos agregar cuotas y editarlas, proximo paso es realizar los pagos y cambiar los estados -->

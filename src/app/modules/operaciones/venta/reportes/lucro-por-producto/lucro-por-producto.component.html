@@ -1,0 +1,191 @@
+<app-generic-list
+  [data]="dataSource.data"
+  (cargarMasDatos)="cargarMasDatos()"
+  [isLastPage]="isLastPage"
+  (filtrar)="onFiltrar()"
+  (resetFiltro)="resetFiltro()"
+  [isCustom]="true"
+  customName="Generar Pdf"
+  (customFunction)="onGenerarPdf()"
+>
+  <div filtros>
+    <div
+      fxLayout="row"
+      fxLayoutAlign="start center"
+      fxLayoutGap="10px"
+      style="width: 100%"
+    >
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Rango de fecha</mat-label>
+          <mat-date-range-input
+            [formGroup]="fechaFormGroup"
+            [rangePicker]="picker"
+            style="width: 100%"
+          >
+            <input
+              matStartDate
+              formControlName="inicio"
+              placeholder="Inicio"
+              [max]="today"
+            />
+            <input
+              matEndDate
+              formControlName="fin"
+              placeholder="Fin"
+              [max]="fechaInicioControl.value"
+            />
+          </mat-date-range-input>
+          <mat-datepicker-toggle
+            matSuffix
+            [for]="picker"
+          ></mat-datepicker-toggle>
+          <mat-date-range-picker #picker></mat-date-range-picker>
+
+          <mat-error
+            *ngIf="
+              fechaFormGroup.controls.inicio.hasError('matStartDateInvalid')
+            "
+            >Fecha inicial inválida</mat-error
+          >
+          <mat-error
+            *ngIf="fechaFormGroup.controls.fin.hasError('matEndDateInvalid')"
+            >Fecha final inválida</mat-error
+          >
+        </mat-form-field>
+      </div>
+      <div fxFlex="10%">
+        <mat-form-field style="width: 100%;">
+          <mat-label>Inicio Hora</mat-label>
+          <input
+            matInput
+            [formControl]="horaInicioControl"
+            type="time"
+            placeholder="Hora inicio"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="10%">
+        <mat-form-field style="width: 100%;">
+          <mat-label>Fin Hora</mat-label>
+          <input
+            matInput
+            [formControl]="horaFinalControl"
+            type="time"
+            placeholder="Hora fin"
+          />
+        </mat-form-field>
+      </div>
+      <div fxFlex="25%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Sucursales</mat-label>
+          <mat-select #sucursalSelect [formControl]="sucursalControl" multiple>
+            <mat-select-trigger>
+              {{(sucursalControl.value?.[0]?.nombre || '')}}
+              <span
+                *ngIf="(sucursalControl.value?.length || 0) > 1"
+                class="example-additional-selection"
+              >
+                (+{{ (sucursalControl.value?.length || 0) - 1 }}
+                {{ sucursalControl.value?.length === 2 ? "otro" : "otros" }})
+              </span>
+            </mat-select-trigger>
+            <div
+              style="
+                width: 100%;
+                text-align: end;
+                padding-right: 10px;
+                padding-top: 10px;
+                font-size: 0.8em;
+                color: white;
+              "
+            >
+              <mat-icon (click)="sucursalSelect.close()">clear</mat-icon>
+            </div>
+            <mat-option [value]="null">Todas</mat-option>
+            <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal"
+              >{{ sucursal?.id }} -
+              {{ sucursal?.nombre | titlecase }}</mat-option
+            >
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="30%" fxLayout="row" fxLayoutAlign="start center">
+        <div fxFlex="80%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Buscar cajero</mat-label>
+            <input
+              #cajeroInput
+              type="text"
+              matInput
+              [formControl]="buscarCajeroControl"
+              (keyup.enter)="onBuscarCajero()"
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="10%" style="text-align: center">
+          <mat-icon style="font-size: 2em" (click)="onBuscarCajero()"
+            >search</mat-icon
+          >
+        </div>
+        <div
+          fxFlex="10%"
+          style="text-align: center"
+          *ngIf="selectedUsuario != null"
+        >
+          <mat-icon style="font-size: 2em" (click)="onClearPersona()"
+            >clear</mat-icon
+          >
+        </div>
+      </div>
+    </div>
+    <div
+      fxLayout="row"
+      fxLayoutAlign="start center"
+      fxLayoutGap="10px"
+      style="width: 100%"
+    >
+      <div fxFlex="40%" fxLayout="column" fxLayoutGap="10px">
+        <div fxFlex fxLayoutAlign="start center">
+          <div fxFlex="80%">
+            <mat-form-field style="width: 100%">
+              <mat-label>Buscar producto</mat-label>
+              <input
+                #buscadorInput
+                type="text"
+                matInput
+                [formControl]="buscarProductoControl"
+                (keyup.enter)="onBuscarProducto()"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="10%" style="text-align: center">
+            <mat-icon style="font-size: 2em" (click)="onBuscarProducto()"
+              >search</mat-icon
+            >
+          </div>
+          <div fxFlex="10%" style="text-align: center">
+            <mat-icon style="font-size: 2em" (click)="onAddProducto()"
+              >add</mat-icon
+            >
+          </div>
+        </div>
+        <div
+          fxFlex
+          fxLayout="row"
+          *ngFor="let producto of productoList; let index = index"
+        >
+          <div fxFlex="80%">{{ producto.id }} - {{ producto.descripcion }}</div>
+          <div fxFlex="10%" style="text-align: center">
+            <mat-icon
+              style="font-size: 2em"
+              (click)="onClearProducto(producto, index)"
+              >clear</mat-icon
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div table></div>
+</app-generic-list>

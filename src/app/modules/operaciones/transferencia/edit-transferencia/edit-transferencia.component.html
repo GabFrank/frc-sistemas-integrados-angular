@@ -2,17 +2,12 @@
   titulo="Gestión de Transferencia"
   style="height: 90%"
   [data]="dataSource.data"
-  (cargarMasDatos)="cargarMasDatos()"
   [isLastPage]="isLastPage"
   [isMenu]="false"
 >
   <div filtros style="width: 100%; height: 100%">
-    <mat-card
-      fxLayout="column"
-      fxLayoutGap="10px"
-      style="background-color: rgb(32, 32, 32); height: 100%; width: 100%"
-    >
-      <div fxFlex="33" fxLayout="row">
+    <div fxLayout="column" fxLayoutGap="10px" style="height: 100%; width: 100%">
+      <div fxFlex fxLayout="row">
         <div fxFlex="25" fxLayout="column">
           <div class="title" fxFlex="50">Id</div>
           <div class="item" fxFlex="50">
@@ -28,17 +23,17 @@
         <div fxFlex="25" fxLayout="column">
           <div class="title" fxFlex="50">Creado En</div>
           <div fxFlex="50">
-            {{ selectedTransferencia?.creadoEn | date: "short" }}
+            {{ selectedTransferencia?.creadoEn | date : "short" }}
           </div>
         </div>
         <div fxFlex="25" fxLayout="column">
           <div class="title" fxFlex="50">Estado</div>
           <div fxFlex="50">
-            {{ selectedTransferencia?.estado | enumToString | titlecase}}
+            {{ selectedTransferencia?.estado | enumToString | titlecase }}
           </div>
         </div>
       </div>
-      <div fxFlex="33" fxLayout="row">
+      <div fxFlex fxLayout="row">
         <div fxFlex="25" fxLayout="column">
           <div class="title" fxFlex="50">Suc. Origen</div>
           <div class="item" fxFlex="50">
@@ -68,95 +63,87 @@
       </div>
 
       <div
-        fxFlex="33"
+        fxFlex
         fxLayout="row"
         fxLayoutGap="10px"
         fxLayoutAlign="start center"
       >
         <div
-          fxFlex="60%"
+          fxFlex="70%"
           fxLayout="row"
+          fxLayoutGap="25px"
           style="width: 100%"
           fxLayoutAlign="start center"
         >
-          <!-- <div fxFlex="5%">
-            <mat-icon style="color: #43a047">circle</mat-icon>
-          </div>
-          <div fxFlex="10%">Sin cambios</div>
-          <div fxFlex="5%"></div>
-          <div fxFlex="5%">
-            <mat-icon style="color: #f57c00">circle</mat-icon>
-          </div>
-          <div fxFlex="10%">Modificado</div>
-          <div fxFlex="5%"></div>
-          <div fxFlex="5%">
-            <mat-icon style="color: #f44336">circle</mat-icon>
-          </div>
-          <div fxFlex="10%">Rechazado</div> -->
-          <div fxFlex="5"></div>
           <div
+            *ngIf="selectedTransferencia?.id != null"
             class="raised-button"
-            fxFlex="20%"
-            fxLayout="row"
-            style="width: 100%"
-            fxLayoutAlign="start center"
             (click)="onQrClick()"
           >
-            <div fxFlex="70">Generar QR</div>
-            <div fxFle="30">
-              <mat-icon style="font-size: 2em">qr_code</mat-icon>
-            </div>
+            Generar QR
           </div>
-          <div fxFlex="5"></div>
           <div
+            *ngIf="selectedTransferencia?.id != null"
             class="raised-button"
-            fxFlex="15%"
-            fxLayout="row"
-            style="width: 100%"
-            fxLayoutAlign="start center"
+            (click)="onImprimir()"
+          >
+            Imprimir
+          </div>
+          <div
+            *ngIf="selectedTransferencia?.id != null"
+            class="raised-button"
             (click)="onRefresh()"
           >
-            <div fxFlex="70">Actualizar</div>
-            <div fxFle="30">
-              <mat-icon style="font-size: 2em">refresh</mat-icon>
-            </div>
+            Actualizar
           </div>
-          <div fxFlex="5"></div>
           <div
+            *ngIf="selectedTransferencia?.id != null"
             class="raised-button"
-            fxFlex="15%"
-            fxLayout="row"
-            style="width: 100%"
-            fxLayoutAlign="start center"
             (click)="onOpenTimeLine()"
           >
-            <div fxFlex="70">Resumen</div>
-            <div fxFle="30">
-              <mat-icon style="font-size: 2em">timeline</mat-icon>
-            </div>
+            Resumen de la transf.
           </div>
+          <div class="raised-button" (click)="nuevaTransferencia()">
+            Nueva Transferencia
+          </div>
+          <!-- <mat-form-field class="shrinking-mat-form-field">
+            <input
+              #cantidadInput
+              type="text"
+              matInput
+              [formControl]="sizeControl"
+              style="text-align: center"
+              (keyup.enter)="onCantidadItensFocusOut()"
+              (click)="cantidadInput.select()"
+            />
+            <span matTextPrefix>Ver itens:</span>
+            <span matTextSuffix>
+              <mat-icon
+                class="raised-button"
+                (click)="onCantidadItensFocusOut()"
+                style="transform: translateY(-5px) !important"
+                matTooltip="Recargar itens"
+                >refresh</mat-icon
+              >
+            </span>
+          </mat-form-field> -->
         </div>
-        <div
-            class="raised-button"
-            fxFlex="15%"
-            fxLayout="row"
-            style="width: 100%"
-            fxLayoutAlign="start center"
-            (click)="nuevaTransferencia()"
-          >
-            <div fxFlex="70">Nueva Transferencia</div>
-            <div fxFle="30">
-              <mat-icon style="font-size: 2em">add_circle</mat-icon>
-            </div>
-          </div>
         <div fxFlex="15%">
           <button
-            *ngIf="isPreTransferenciaCreacion"
+            *ngIf="
+              isPreTransferenciaCreacion ||
+              isPreTransferenciaOrigen ||
+              isPreparacionMercaderia
+            "
             style="width: 100%"
             mat-raised-button
             (click)="selectSucursales()"
           >
-            Selec. Sucursales
+            {{
+              selectedTransferencia?.id == null
+                ? "Selec. Sucursales"
+                : "Cambiar Sucursales"
+            }}
           </button>
         </div>
         <div fxFlex="15%" *ngIf="false">
@@ -253,121 +240,271 @@
         </div>
       </div>
       <mat-card
+        appearance="outlined"
         fxFlex
-        fxLayout="row"
-        style="width: 100%"
+        fxLayout="column"
+        style="width: 100%; height: 100%"
         fxLayoutGap="10px"
-        fxLayoutAlign="space-around center"
-        style="
-          background-color: rgb(66, 66, 66);
-          padding-top: 15px;
-          padding-bottom: 3px;
-        "
+        style="background-color: rgb(66, 66, 66); padding: 10px"
         *ngIf="isPreTransferenciaCreacion"
       >
-        <div fxFlex="5%" style="text-align: center">
-          <img
-            [src]="
-              presentacionControl.value?.imagenPrincipal != null
-                ? presentacionControl.value?.imagenPrincipal
-                : 'assets/no-image.png'
-            "
-            style="width: 50px; height: 50px; object-fit: contain"
-          />
-        </div>
-        <div fxFlex="25" fxLayout="column">
-          <div fxFlex>
-            DESCRIPCION: {{ selectedProducto?.descripcion | uppercase }}
-          </div>
-          <div fxFlex>
-            FACTURA : {{ selectedProducto?.descripcionFactura | uppercase }}
-          </div>
-        </div>
-        <div fxFlex="20%">
-          <mat-form-field style="width: 100%" appearance="outline">
-            <mat-label>Código de barra</mat-label>
-            <input
-              #codigoInput
-              matInput
-              type="text"
-              [formControl]="codigoControl"
-              (keyup.enter)="onSearchPorCodigo()"
-              (keyup.tab)="onSearchPorCodigo()"
-              (focusin)="onCodigoFocus()"
+        <div
+          fxFlex
+          fxLayout="row"
+          style="width: 100%"
+          fxLayoutGap="10px"
+          fxLayoutAlign="start center"
+        >
+          <!-- <div fxFlex="5%" style="text-align: center">
+            <img
+              [src]="
+                presentacionControl.value?.imagenPrincipal != null
+                  ? presentacionControl.value?.imagenPrincipal
+                  : 'assets/no-image.png'
+              "
+              style="width: 50px; height: 50px; object-fit: contain"
             />
-          </mat-form-field>
-        </div>
-        <div fxFlex="10%">
-          <mat-form-field style="width: 100%">
-            <mat-label>Presentación</mat-label>
-            <mat-select
-              #matSelect
-              [formControl]="presentacionControl"
-              name="presentacion"
-              (keyup.enter)="onPresentacionSelect(); $event.stopPropagation()"
+          </div> -->
+          <div fxFlex="30" fxLayout="column" fxLayoutAlign="center start">
+            <div style="width: 100%; text-align: center">Producto</div>
+            <div style="color: white; font-size: medium">
+              {{ selectedProducto?.id }}
+              <span *ngIf="selectedProducto?.id !== undefined"> - </span>
+              {{ selectedProducto?.descripcion | uppercase }}
+            </div>
+            <div style="color: rgb(177, 177, 177); font-size: small">
+              {{ selectedProducto?.descripcionFactura | uppercase }}
+            </div>
+          </div>
+          <div fxFlex="20%">
+            <mat-form-field
+              style="width: 100%"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+              floatLabel="always"
             >
-              <mat-option
-                *ngFor="let presentacion of selectedProducto?.presentaciones"
-                [value]="presentacion"
+              <mat-label>Código de barra</mat-label>
+              <input
+                #codigoInput
+                matInput
+                type="text"
+                [formControl]="codigoControl"
+                (keyup.enter)="onSearchPorCodigo()"
+                (keyup.tab)="onSearchPorCodigo()"
+                (focusin)="onCodigoFocus()"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="10%">
+            <mat-form-field
+              style="width: 100%; text-align: center"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+              floatLabel="always"
+            >
+              <mat-label>Present.</mat-label>
+              <mat-select
+                #matSelect
+                [formControl]="presentacionControl"
+                name="presentacion"
+                (keyup.enter)="onPresentacionSelect(); $event.stopPropagation()"
               >
-                {{ presentacion?.cantidad | number: "1.0-3" }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
+                <mat-option
+                  *ngFor="let presentacion of selectedProducto?.presentaciones"
+                  [value]="presentacion"
+                >
+                  {{ presentacion?.cantidad | number : "1.0-3" }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div fxFlex="10%">
+            <mat-form-field
+              style="width: 100%; text-align: center"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+              floatLabel="always"
+            >
+              <mat-label>Cant. por present.</mat-label>
+              <input
+                #cantPresentacionInput
+                matInput
+                type="text"
+                [formControl]="cantidadPresentacionControl"
+                (keyup.enter)="onCantidadPresentacionEnter()"
+                (keyup.tab)="onCantidadPresentacionEnter()"
+                (focusout)="onCantidadPresentacionFocusOut()"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="10%">
+            <mat-form-field
+              style="width: 100%; text-align: center"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+              floatLabel="always"
+            >
+              <mat-label>Cant. por unid.</mat-label>
+              <input
+                #cantUnidadInput
+                matInput
+                type="text"
+                [formControl]="cantidadUnidadControl"
+                (keyup.enter)="onCantidadUnidadEnter()"
+                (keyup.tab)="onCantidadUnidadEnter()"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="10">
+            <mat-form-field
+              style="width: 100%"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+              floatLabel="always"
+            >
+              <mat-label>Vencimiento</mat-label>
+              <input
+                matInput
+                #vencimientoInput
+                [formControl]="vencimientoControl"
+                (input)="onDateInput($event)"
+                placeholder="dd/mm/yy"
+                maxlength="8"
+                (keyup.enter)="onVencimientoEnter(vencimientoControl.value)"
+              />
+
+              <!-- <mat-label>Vencimiento</mat-label>
+              <input
+                matInput
+                #vencimientoInput
+                [matDatepicker]="picker"
+                [formControl]="vencimientoControl"
+                (keyup.enter)="onVencimientoEnter(vencimientoControl.value)"
+              />
+              <mat-datepicker-toggle
+                matSuffix
+                [for]="picker"
+                [tabIndex]="-1"
+              ></mat-datepicker-toggle>
+              <mat-datepicker
+                #picker
+                (closed)="onDatepickerClosed()"
+              ></mat-datepicker> -->
+            </mat-form-field>
+          </div>
+          <div fxFlex style="width: 100%; text-align: center">
+            <mat-icon
+              class="highlight-hover"
+              (click)="onSave()"
+              style="font-size: 2em"
+              >save</mat-icon
+            >
+          </div>
+
+          <div fxFlex style="width: 100%; text-align: center">
+            <mat-icon
+              class="highlight-hover-danger"
+              (click)="onClear()"
+              style="font-size: 2em"
+              >clear</mat-icon
+            >
+          </div>
         </div>
-        <div fxFlex="10%">
-          <mat-form-field style="width: 100%" appearance="outline">
-            <mat-label>Cantidad por presentación</mat-label>
-            <input
-              #cantPresentacionInput
-              matInput
-              type="text"
-              [formControl]="cantidadPresentacionControl"
-              (keyup.enter)="onCantidadPresentacionEnter()"
-              (keyup.tab)="onCantidadPresentacionEnter()"
-            />
-          </mat-form-field>
-        </div>
-        <div fxFlex="10%">
-          <mat-form-field style="width: 100%" appearance="outline">
-            <mat-label>Cantidad por unidad</mat-label>
-            <input
-              #cantUnidadInput
-              matInput
-              type="text"
-              [formControl]="cantidadUnidadControl"
-              (keyup.enter)="onCantidadUnidadEnter()"
-              (keyup.tab)="onCantidadUnidadEnter()"
-            />
-          </mat-form-field>
-        </div>
-        <div fxFlex="10">
-          <mat-form-field style="width: 100%">
-            <mat-label>Vencimiento</mat-label>
-            <input
-              matInput
-              #vencimientoInput
-              [matDatepicker]="picker"
-              [formControl]="vencimientoControl"
-              (keyup.enter)="onVencimientoEnter()"
-            />
-            <mat-datepicker-toggle
-              matSuffix
-              [for]="picker"
-            ></mat-datepicker-toggle>
-            <mat-datepicker #picker></mat-datepicker>
-          </mat-form-field>
-        </div>
-        <div fxFlex="5%" style="width: 100%; text-align: center">
-          <mat-icon class="highlight-hover-danger" (click)="onClear()"
-            >clear</mat-icon
-          >
+        <div
+          *ngIf="
+            selectedTransferencia.sucursalOrigen?.nombre?.includes('COMPRAS')
+          "
+          fxFlex
+          fxLayout="row"
+          style="width: 100%"
+          fxLayoutGap="10px"
+        >
+          <div fxFlex="15"></div>
+          <div fxFlex="15"></div>
+          <div fxFlex="15">
+            <mat-form-field
+              style="width: 100%"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+              floatLabel="always"
+            >
+              <mat-label>Moneda</mat-label>
+              <input
+                #monedaInput
+                type="text"
+                matInput
+                [formControl]="monedaControl"
+                oninput="this.value == ' ' ? this.value = '': null"
+                [matAutocomplete]="autoMoneda"
+              />
+              <span matSuffix style="cursor: pointer">(F9)</span>
+
+              <mat-autocomplete
+                #autoMoneda="matAutocomplete"
+                (optionSelected)="onMonedaSelect($event.option.value)"
+                (closed)="onMonedaAutocompleteClose()"
+              >
+                <mat-option
+                  *ngFor="let moneda of filteredMonedaList"
+                  [value]="moneda"
+                >
+                  {{ moneda.id }} -
+                  {{ moneda?.denominacion | uppercase }}
+                </mat-option>
+              </mat-autocomplete>
+            </mat-form-field>
+          </div>
+          <div fxFlex="10%">
+            <mat-form-field
+              style="width: 100%"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+              floatLabel="always"
+            >
+              <mat-label>Costo por unid.</mat-label>
+              <input
+                #precioUnidadInput
+                matInput
+                type="text"
+                [formControl]="precioUnidadControl"
+                (keyup.enter)="onPrecioUnidadEnter()"
+                (keyup.tab)="onPrecioUnidadEnter()"
+                currencyMask
+                [options]="currencyMask.currencyOptionsGuarani"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="10%">
+            <mat-form-field
+              style="width: 100%"
+              appearance="outline"
+              class="shrinking-mat-form-field"
+              floatLabel="always"
+            >
+              <mat-label>Costo por present.</mat-label>
+              <input
+                #precioPresentacionInput
+                matInput
+                type="text"
+                [formControl]="precioPresentacionControl"
+                (keyup.enter)="onPrecioPresentacionEnter()"
+                (keyup.tab)="onPrecioPresentacionEnter()"
+                currencyMask
+                [options]="currencyMask.currencyOptionsGuarani"
+              />
+            </mat-form-field>
+          </div>
         </div>
       </mat-card>
-    </mat-card>
+    </div>
   </div>
 
-  <div table style="width: 100%; height: 100%">
+  <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
     <table
       *ngIf="isPreTransferenciaCreacion"
       mat-table
@@ -376,18 +513,59 @@
       class="mat-elevation-z8"
     >
       <ng-container matColumnDef="producto">
-        <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
+        <th mat-header-cell *matHeaderCellDef style="width: 30%">
+          <div fxLayout="row" fxLayoutAlign="start space-between">
+            <div fxFlex="90" fxLayout="column" fxLayoutAlign="center start">
+              <span *ngIf="!filtroProductosOpen"> Producto </span>
+              <span *ngIf="filtroProductosOpen" style="width: 100%">
+                <div>
+                  <mat-form-field
+                    style="width: 100%"
+                    appearance="outline"
+                    class="shrinking-mat-form-field"
+                  >
+                    <input
+                      #filtroProductoInput
+                      matInput
+                      type="text"
+                      [formControl]="filtroProductoControl"
+                      (keyup.enter)="onFilterProducto()"
+                      (keyup.tab)="onSearchPorCodigo()"
+                      (focusin)="filtroProductoInput.select()"
+                    />
+                  </mat-form-field>
+                </div>
+              </span>
+            </div>
+            <div fxFlex="10">
+              <span *ngIf="!filtroProductosOpen">
+                <button mat-icon-button (click)="abrirFiltroProductos()">
+                  <mat-icon>search</mat-icon>
+                </button>
+              </span>
+              <span *ngIf="filtroProductosOpen">
+                <button mat-icon-button (click)="abrirFiltroProductos()">
+                  <mat-icon>clear</mat-icon>
+                </button>
+              </span>
+            </div>
+          </div>
+        </th>
         <td mat-cell *matCellDef="let item" style="width: 30%">
-          {{
+          <span copiarAClipboard>{{
+            item?.presentacionPreTransferencia?.producto?.id
+          }}</span>
+          -
+          <span copiarAClipboard>{{
             item?.presentacionPreTransferencia?.producto?.descripcion
               | uppercase
-          }}
+          }}</span>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="codigo">
         <th mat-header-cell *matHeaderCellDef>Cod. Barra</th>
-        <td mat-cell *matCellDef="let item">
+        <td mat-cell *matCellDef="let item" copiarAClipboard>
           {{ item?.presentacionPreTransferencia?.producto?.codigoPrincipal }}
         </td>
       </ng-container>
@@ -397,7 +575,7 @@
           Presentacion
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
-          {{ item?.presentacionPreTransferencia?.cantidad | number: "1.0-3" }}
+          {{ item?.presentacionPreTransferencia?.cantidad | number : "1.0-3" }}
         </td>
       </ng-container>
 
@@ -406,7 +584,7 @@
           Cantidad
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
-          {{ item?.cantidadPreTransferencia | number: "1.0-3" }}
+          {{ item?.cantidadPreTransferencia | number : "1.0-3" }}
         </td>
       </ng-container>
 
@@ -414,10 +592,17 @@
         <th mat-header-cell *matHeaderCellDef style="text-align: center">
           Precio venta
         </th>
-        <td mat-cell *matCellDef="let item" style="text-align: center">
+        <td
+          mat-cell
+          *matCellDef="let item"
+          style="text-align: center"
+          [copiarAClipboard]="
+            item?.presentacionPreTransferencia?.precioPrincipal?.precio
+          "
+        >
           {{
             item?.presentacionPreTransferencia?.precioPrincipal?.precio
-              | number: "1.0-3"
+              | number : "1.0-3"
           }}
         </td>
       </ng-container>
@@ -437,7 +622,7 @@
             fxLayoutGap="10px"
           >
             <div fxFlex>
-              {{ item?.vencimientoPreTransferencia | date: "shortDate" }}
+              {{ item?.vencimientoPreTransferencia | date : "shortDate" }}
             </div>
           </div>
         </td>
@@ -529,8 +714,46 @@
       class="mat-elevation-z8"
     >
       <ng-container matColumnDef="producto">
-        <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
+        <th mat-header-cell *matHeaderCellDef style="width: 30%">
+          <div fxLayout="row" fxLayoutAlign="start space-between">
+            <div fxFlex="90" fxLayout="column" fxLayoutAlign="center start">
+              <span *ngIf="!filtroProductosOpen"> Producto </span>
+              <span *ngIf="filtroProductosOpen" style="width: 100%">
+                <div>
+                  <mat-form-field
+                    style="width: 100%"
+                    appearance="outline"
+                    class="shrinking-mat-form-field"
+                  >
+                    <input
+                      #filtroProductoInput
+                      matInput
+                      type="text"
+                      [formControl]="filtroProductoControl"
+                      (keyup.enter)="onFilterProducto()"
+                      (keyup.tab)="onSearchPorCodigo()"
+                      (focusin)="filtroProductoInput.select()"
+                    />
+                  </mat-form-field>
+                </div>
+              </span>
+            </div>
+            <div fxFlex="10">
+              <span *ngIf="!filtroProductosOpen">
+                <button mat-icon-button (click)="abrirFiltroProductos()">
+                  <mat-icon>search</mat-icon>
+                </button>
+              </span>
+              <span *ngIf="filtroProductosOpen">
+                <button mat-icon-button (click)="abrirFiltroProductos()">
+                  <mat-icon>clear</mat-icon>
+                </button>
+              </span>
+            </div>
+          </div>
+        </th>
         <td mat-cell *matCellDef="let item" style="width: 30%">
+          {{ item?.presentacionPreTransferencia?.producto?.id }} -
           {{
             item?.presentacionPreTransferencia?.producto?.descripcion
               | uppercase
@@ -550,7 +773,7 @@
           Presentacion
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
-          {{ item?.presentacionPreTransferencia?.cantidad | number: "1.0-3" }}
+          {{ item?.presentacionPreTransferencia?.cantidad | number : "1.0-3" }}
         </td>
       </ng-container>
 
@@ -559,7 +782,7 @@
           Cantidad
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
-          {{ item?.cantidadPreTransferencia | number: "1.0-3" }}
+          {{ item?.cantidadPreTransferencia | number : "1.0-3" }}
           {{
             item?.motivoModificacionPreparacion == "CANTIDAD_INCORRECTA"
               ? " / " + item?.cantidadPreparacion
@@ -575,7 +798,7 @@
         <td mat-cell *matCellDef="let item" style="text-align: center">
           {{
             item?.presentacionPreTransferencia?.precioPrincipal?.precio
-              | number: "1.0-2"
+              | number : "1.0-2"
           }}
         </td>
       </ng-container>
@@ -595,7 +818,7 @@
             fxLayoutGap="10px"
           >
             <div fxFlex>
-              {{ item?.vencimientoPreTransferencia | date: "shortDate" }}
+              {{ item?.vencimientoPreTransferencia | date : "shortDate" }}
             </div>
             <div
               fxFlex="10"
@@ -611,7 +834,7 @@
                 item?.motivoModificacionPreparacion == 'VENCIMIENTO_INCORRECTO'
               "
             >
-              {{ item?.vencimientoPreparacion | date: "shortDate" }}
+              {{ item?.vencimientoPreparacion | date : "shortDate" }}
             </div>
           </div>
         </td>
@@ -698,7 +921,7 @@
               element == expandedElement ? 'expanded' : 'collapsed'
             "
           >
-            <div>{{ element?.cantidadPreparacion | number: "1.0-3" }}</div>
+            <div>{{ element?.cantidadPreparacion | number : "1.0-3" }}</div>
           </div>
         </td>
       </ng-container>
@@ -737,9 +960,50 @@
       class="mat-elevation-z8"
     >
       <ng-container matColumnDef="producto">
-        <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
+        <th mat-header-cell *matHeaderCellDef style="width: 30%">
+          <div fxLayout="row" fxLayoutAlign="start space-between">
+            <div fxFlex="90" fxLayout="column" fxLayoutAlign="center start">
+              <span *ngIf="!filtroProductosOpen"> Producto </span>
+              <span *ngIf="filtroProductosOpen" style="width: 100%">
+                <div>
+                  <mat-form-field
+                    style="width: 100%"
+                    appearance="outline"
+                    class="shrinking-mat-form-field"
+                  >
+                    <input
+                      #filtroProductoInput
+                      matInput
+                      type="text"
+                      [formControl]="filtroProductoControl"
+                      (keyup.enter)="onFilterProducto()"
+                      (keyup.tab)="onSearchPorCodigo()"
+                      (focusin)="filtroProductoInput.select()"
+                    />
+                  </mat-form-field>
+                </div>
+              </span>
+            </div>
+            <div fxFlex="10">
+              <span *ngIf="!filtroProductosOpen">
+                <button mat-icon-button (click)="abrirFiltroProductos()">
+                  <mat-icon>search</mat-icon>
+                </button>
+              </span>
+              <span *ngIf="filtroProductosOpen">
+                <button mat-icon-button (click)="abrirFiltroProductos()">
+                  <mat-icon>clear</mat-icon>
+                </button>
+              </span>
+            </div>
+          </div>
+        </th>
         <td mat-cell *matCellDef="let item" style="width: 30%">
-          {{ item?.presentacionPreparacion?.producto?.descripcion | uppercase }}
+          {{ item?.presentacionPreTransferencia?.producto?.id }} -
+          {{
+            item?.presentacionPreTransferencia?.producto?.descripcion
+              | uppercase
+          }}
         </td>
       </ng-container>
 
@@ -755,7 +1019,7 @@
           Presentacion
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
-          {{ item?.presentacionPreparacion?.cantidad | number: "1.0-3" }}
+          {{ item?.presentacionPreparacion?.cantidad | number : "1.0-3" }}
         </td>
       </ng-container>
 
@@ -764,7 +1028,7 @@
           Cantidad
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
-          {{ item?.cantidadPreparacion | number: "1.0-3" }}
+          {{ item?.cantidadPreparacion | number : "1.0-3" }}
         </td>
       </ng-container>
 
@@ -775,7 +1039,7 @@
         <td mat-cell *matCellDef="let item" style="text-align: center">
           {{
             item?.presentacionPreparacion?.precioPrincipal?.precio
-              | number: "1.0-2"
+              | number : "1.0-2"
           }}
         </td>
       </ng-container>
@@ -795,7 +1059,7 @@
             fxLayoutGap="10px"
           >
             <div fxFlex>
-              {{ item?.vencimientoPreparacion | date: "shortDate" }}
+              {{ item?.vencimientoPreparacion | date : "shortDate" }}
             </div>
           </div>
         </td>
@@ -924,9 +1188,50 @@
       class="mat-elevation-z8"
     >
       <ng-container matColumnDef="producto">
-        <th mat-header-cell *matHeaderCellDef style="width: 30%">Producto</th>
+        <th mat-header-cell *matHeaderCellDef style="width: 30%">
+          <div fxLayout="row" fxLayoutAlign="start space-between">
+            <div fxFlex="90" fxLayout="column" fxLayoutAlign="center start">
+              <span *ngIf="!filtroProductosOpen"> Producto </span>
+              <span *ngIf="filtroProductosOpen" style="width: 100%">
+                <div>
+                  <mat-form-field
+                    style="width: 100%"
+                    appearance="outline"
+                    class="shrinking-mat-form-field"
+                  >
+                    <input
+                      #filtroProductoInput
+                      matInput
+                      type="text"
+                      [formControl]="filtroProductoControl"
+                      (keyup.enter)="onFilterProducto()"
+                      (keyup.tab)="onSearchPorCodigo()"
+                      (focusin)="filtroProductoInput.select()"
+                    />
+                  </mat-form-field>
+                </div>
+              </span>
+            </div>
+            <div fxFlex="10">
+              <span *ngIf="!filtroProductosOpen">
+                <button mat-icon-button (click)="abrirFiltroProductos()">
+                  <mat-icon>search</mat-icon>
+                </button>
+              </span>
+              <span *ngIf="filtroProductosOpen">
+                <button mat-icon-button (click)="abrirFiltroProductos()">
+                  <mat-icon>clear</mat-icon>
+                </button>
+              </span>
+            </div>
+          </div>
+        </th>
         <td mat-cell *matCellDef="let item" style="width: 30%">
-          {{ item?.presentacionTransporte?.producto?.descripcion | uppercase }}
+          {{ item?.presentacionPreTransferencia?.producto?.id }} -
+          {{
+            item?.presentacionPreTransferencia?.producto?.descripcion
+              | uppercase
+          }}
         </td>
       </ng-container>
 
@@ -942,7 +1247,7 @@
           Presentacion
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
-          {{ item?.presentacionTransporte?.cantidad | number: "1.0-3" }}
+          {{ item?.presentacionTransporte?.cantidad | number : "1.0-3" }}
         </td>
       </ng-container>
 
@@ -951,7 +1256,7 @@
           Cantidad
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
-          {{ item?.cantidadTransporte | number: "1.0-3" }}
+          {{ item?.cantidadTransporte | number : "1.0-3" }}
         </td>
       </ng-container>
 
@@ -962,7 +1267,7 @@
         <td mat-cell *matCellDef="let item" style="text-align: center">
           {{
             item?.presentacionTransporte?.precioPrincipal?.precio
-              | number: "1.0-2"
+              | number : "1.0-2"
           }}
         </td>
       </ng-container>
@@ -982,7 +1287,7 @@
             fxLayoutGap="10px"
           >
             <div fxFlex>
-              {{ item?.vencimientoTransporte | date: "shortDate" }}
+              {{ item?.vencimientoTransporte | date : "shortDate" }}
             </div>
           </div>
         </td>
@@ -1098,5 +1403,13 @@
         class="example-detail-row"
       ></tr>
     </table>
+    <mat-paginator
+      itemsPerPageLabel="Itens por pagina"
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)"
+      [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
   </div>
 </app-generic-list>

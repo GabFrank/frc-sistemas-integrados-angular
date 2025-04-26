@@ -1,57 +1,128 @@
-::ng-deep .mat-horizontal-stepper-header{
-  pointer-events: none !important;
-}
-.mat-horizontal-content-container{
-  // height: 100vh;
-}
-.mat-horizontal-stepper-content{
-  // height: 100vh;
-  display: flex;
+.cards {
+  width: 100%;
+  height: 100%;
+  padding: 5px;
 }
 
-input {
-  text-transform: uppercase;
+.fondo {
+  background-color: rgb(32, 32, 32);
 }
 
-table {
+tr {
+  height: 45px !important;
+}
+
+
+
+::ng-deep mat-form-field {
   width: 100%;
 }
 
+::ng-deep .mat-calendar-body-cell.selected>.mat-calendar-body-cell-content,
+::ng-deep .mat-calendar-body-cell.selected:hover>.mat-calendar-body-cell-content,
+::ng-deep .mat-calendar-body-cell.selected>.mat-calendar-body-cell-content:hover {
+  background-color: #43a047 !important;
+  color: #fff !important;
+}
+
 tr.example-detail-row {
-  height: 0;
+  height: 0px !important;
 }
 
 .example-element-row td {
   border-bottom-width: 0;
 }
 
-.example-expanded-row {
-  background-color: #43a047;
-  font-weight: bold;
-}
-
 .example-element-detail {
-  background-color: rgb(32, 32, 32);
   overflow: hidden;
   display: flex;
 }
 
-th {
-  height: 85%;
+mat-icon:focus {
+  outline: none;
+  /* Change as desired */
+  color: #43a047;
 }
 
-td {
-  height: 95%;
+.btn-more-options:focus {
+  outline: none;
+  color: #43a047;
 }
 
-::ng-deep .mat-form-field-disabled .mat-form-field-underline {
-  background-image: linear-gradient(
-    to right,
-    rgba(0, 0, 0, 1) 0,
-    rgba(0, 0, 0, 0.42) 33%,
-    #c2c7cc 0
-  ) !important;
-  background-size: 1px 100% !important;
-  background-repeat: repeat-x !important;
+mat-icon {
+  transition: transform 0.3s ease-in-out;
 }
 
+.mat-mdc-icon-button:focus {
+  --mat-mdc-button-persistent-ripple-color: none;
+}
+
+.resize-hover {
+  width: 5px;
+  cursor: col-resize;
+}
+
+.resize-hover-h {
+  height: 5px;
+  cursor: row-resize;
+}
+
+.selected-row {
+  background-color: #43a047;
+  color: white
+}
+
+.selected-row:hover {
+  background-color: #337a36;
+  color: white
+}
+
+.titulo {
+  text-align: center;
+  font-size: small;
+}
+
+.subtitulo {
+  color: rgb(197, 197, 197);
+  font-size: medium;
+  text-align: center;
+}
+
+/* Custom styles for white-on-hover class */
+.white-on-hover-button:hover .white-on-hover {
+  color: white !important;
+  /* Ensures the hover color is applied */
+}
+
+.shrinking-mat-form-field {
+  height: 30px !important;
+
+  ::ng-deep.mat-mdc-form-field-infix {
+    transform: translateY(-10px) !important;
+  }
+
+  ::ng-deep .mat-mdc-input-element {
+    font-size: 15px;
+  }
+
+  ::ng-deep.mat-mdc-form-field-text-prefix {
+    transform: translateY(-10px) !important;
+    font-size: small;
+  }
+
+  ::ng-deep.mat-form-field-infix {
+    top: 0em !important;
+  }
+
+  ::ng-deep.mat-form-field-suffix {
+    top: 0em !important;
+  }
+
+  ::ng-deep.mat-mdc-text-field-wrapper {
+    height: 30px;
+  }
+}
+
+::ng-deep .mat-checkbox-layout {
+  align-items: center;
+}

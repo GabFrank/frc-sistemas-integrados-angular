@@ -40,5 +40,5 @@ export class EntradaInput {
   observacion: String;
   creadoEn: Date;
   activo: boolean;
-  usuarioId: number;
+  usuarioId: number = null;
 }

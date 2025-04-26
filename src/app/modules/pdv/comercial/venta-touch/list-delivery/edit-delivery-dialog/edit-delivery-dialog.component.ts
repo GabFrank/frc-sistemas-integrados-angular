@@ -20,6 +20,8 @@ import { MatTab } from '@angular/material/tabs';
 import { Cliente } from '../../../../../personas/clientes/cliente.model';
 import { ClienteService } from '../../../../../personas/clientes/cliente.service';
 import { DescuentoDialogData, DescuentoDialogComponent } from '../../pago-touch/descuento-dialog/descuento-dialog.component';
+import { VentaService } from '../../../../../operaciones/venta/venta.service';
+import { Venta } from '../../../../../operaciones/venta/venta.model';
 
 export interface EditDeliveryDialogData {
   delivery: Delivery;
@@ -124,12 +126,12 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: EditDeliveryDialogData,
     private deliveryService: DeliveryService,
-    private monedaService: MonedaService,
-    private formaPagoService: FormaPagoService,
     private matDialogRef: MatDialogRef<EditDeliveryDialogComponent>,
     private clienteService: ClienteService,
-    private matDialog: MatDialog
+    private matDialog: MatDialog,
+    private ventaService: VentaService,
   ) {
+    
     this.selectedDelivery = data?.delivery;
 
     this.cambioRs = data?.cambioRs;
@@ -143,15 +145,18 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
     }
 
     if (this.selectedDelivery?.id != null) {
-
+      this.telefonoControl.setValue(this.selectedDelivery.telefono)
+      this.direccionControl.setValue(this.selectedDelivery.direccion)
+      this.selectedDelivery?.venta?.cliente != null ? this.onClienteSelect(this.selectedDelivery?.venta?.cliente) : null;
+      this.selectedDelivery?.precio != null ? this.onPrecioSelect(this.selectedDelivery.precio) : null;
     }
   }
 
   ngOnInit(): void {
-    this.deliveryService.onGetPreciosDelivery().subscribe(res => {
+    this.deliveryService.onGetPreciosDelivery(false).subscribe(res => {
       this.precioList = res;
       if (this.precioList.length > 0) {
-        this.onPrecioSelect(this.precioList[0])
+        if(this.selectedPrecio==null) this.onPrecioSelect(this.precioList[0])
         this.vueltoControl.setValue(this.selectedDelivery.venta.valorTotal + this.selectedPrecio?.valor)
         this.saldoControl.setValue(this.selectedDelivery.venta.valorTotal + this.selectedPrecio?.valor)
         this.calcularVueltoPara()
@@ -209,10 +214,20 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
 
     setTimeout(() => {
       this.monedaList = this.data?.monedaList;
-      console.log(this.monedaList);
-
-      this.onMonedaSelect(this.monedaList[0])
       this.onMonedaVueltoSelect(this.monedaList[0])
+      setTimeout(() => {
+        this.onMonedaSelect(this.monedaList[0])
+        if (this.selectedDelivery?.id != null) {
+          this.data.delivery.venta.cobro.cobroDetalleList.forEach(c => {
+            this.isDescuento = c.descuento;
+            this.isAumento = c.aumento;
+            this.selectedFormaPago = c.formaPago
+            this.selectedMoneda = c.moneda
+            this.vueltoControl.setValue(c.valor)
+            this.addCobroDetalle(null, c);
+          })
+        }
+      }, 500);
     }, 0);
 
     setTimeout(() => {
@@ -492,78 +507,148 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
       item.descuento = this.isDescuento
       item.aumento = this.isAumento
       item.pago = (!this.isVuelto && !this.isDescuento && !this.isAumento)
+      item.cambio = this.selectedMoneda.cambio
       this.valorParcialPagado += item.valor * item.moneda.cambio;
       this.vueltoControl
         .setValue((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor - this.valorParcialPagado) / this.selectedMoneda.cambio);
       this.saldoControl.setValue(
         ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado)
       );
-      this.cobroItemList.push(item);
-      this.isVuelto = false;
-      this.isDescuento = false;
-      this.isAumento = false;
-      this.formaPagoControl.reset()
-      this.monedaControl.reset()
-      this.onFormaPagoSelect(this.formaPagoList[0])
-      this.onMonedaSelect(this.monedaList[0])
+      if (this.selectedDelivery?.id != null && item?.id == null) {
+        item.cobro = this.selectedDelivery?.venta?.cobro
+        this.ventaService.onSaveCobroDetalle(item.toInput(), false).subscribe(cbRes => {
+          if (cbRes != null) {
+            item.id = cbRes.id;
+            this.cobroItemList.push(item);
+            this.isVuelto = false;
+            this.isDescuento = false;
+            this.isAumento = false;
+            this.formaPagoControl.reset()
+            this.monedaControl.reset()
+            this.onFormaPagoSelect(this.formaPagoList[0])
+            this.onMonedaSelect(this.monedaList[0])
+            if (this.vueltoControl.value == 0) {
+              this.telefonoInput.nativeElement.focus()
+              this.isVueltoControl.setValue(false)
+            } else if (this.vueltoControl.value < 0) {
+              this.isVueltoControl.setValue(true)
+              this.formaPagoInput.nativeElement.focus()
+              if ((this.vueltoControl.value) <= ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) * 0.2)) {
+                this.isAumento = true
+              }
+            } else {
+              this.isVueltoControl.setValue(false)
+              this.formaPagoInput.nativeElement.focus()
+              if ((this.vueltoControl.value) <= ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) * 0.2)) {
+                this.isDescuento = true
+              }
+            }
+          }
+        })
+      } else {
+        this.cobroItemList.push(item);
+        this.isVuelto = false;
+        this.isDescuento = false;
+        this.isAumento = false;
+        this.formaPagoControl.reset()
+        this.monedaControl.reset()
+        this.onFormaPagoSelect(this.formaPagoList[0])
+        this.onMonedaSelect(this.monedaList[0])
+        if (this.vueltoControl.value == 0) {
+          this.telefonoInput.nativeElement.focus()
+          this.isVueltoControl.setValue(false)
+        } else if (this.vueltoControl.value < 0) {
+          this.isVueltoControl.setValue(true)
+          this.formaPagoInput.nativeElement.focus()
+          if ((this.vueltoControl.value) <= ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) * 0.2)) {
+            this.isAumento = true
+          }
+        } else {
+          this.isVueltoControl.setValue(false)
+          this.formaPagoInput.nativeElement.focus()
+          if ((this.vueltoControl.value) <= ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) * 0.2)) {
+            this.isDescuento = true
+          }
+        }
+      }
+
+
+    }
+
+  }
+
+  onDeleteItem(item: CobroDetalle, i) {
+    if (item?.id != null) {
+      this.ventaService.onDeleteCobroDetalle(item.id, item.sucursalId, false).subscribe(res => {
+        if (res) {
+          this.valorParcialPagado -= item.valor * item.moneda.cambio;
+
+          this.saldoControl.setValue(
+            ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado)
+          );
+          this.vueltoControl.setValue(
+            ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado) / this.selectedMoneda.cambio
+          );
+          this.cobroItemList.splice(i, 1);
+          this.formaPagoInput.nativeElement.select()
+          if (this.vueltoControl.value == 0) {
+            this.telefonoInput.nativeElement.focus()
+            this.isVueltoControl.setValue(false)
+          } else if (this.vueltoControl.value < 0) {
+            this.isVueltoControl.setValue(true)
+            this.formaPagoInput.nativeElement.focus()
+          } else {
+            this.isVueltoControl.setValue(false)
+            this.formaPagoInput.nativeElement.focus()
+          }
+          this.calcularVueltoPara()
+        }
+      })
+    } else {
+      this.valorParcialPagado -= item.valor * item.moneda.cambio;
+
+      this.saldoControl.setValue(
+        ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado)
+      );
+      this.vueltoControl.setValue(
+        ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado) / this.selectedMoneda.cambio
+      );
+      this.cobroItemList.splice(i, 1);
+      this.formaPagoInput.nativeElement.select()
       if (this.vueltoControl.value == 0) {
         this.telefonoInput.nativeElement.focus()
         this.isVueltoControl.setValue(false)
       } else if (this.vueltoControl.value < 0) {
         this.isVueltoControl.setValue(true)
         this.formaPagoInput.nativeElement.focus()
-        if ((this.vueltoControl.value) <= ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) * 0.2)) {
-          this.isAumento = true
-        }
       } else {
         this.isVueltoControl.setValue(false)
         this.formaPagoInput.nativeElement.focus()
-        if ((this.vueltoControl.value) <= ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) * 0.2)) {
-          this.isDescuento = true
-        }
       }
+      this.calcularVueltoPara()
     }
 
-  }
-
-  onDeleteItem(item: CobroDetalle, i) {
-    this.valorParcialPagado -= item.valor * item.moneda.cambio;
-    this.saldoControl.setValue(
-      ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado)
-    );
-    this.vueltoControl.setValue(
-      ((this.selectedDelivery.venta.valorTotal + this.selectedPrecio.valor) - this.valorParcialPagado) / this.selectedMoneda.cambio
-    );
-    this.cobroItemList.splice(i, 1);
-    this.formaPagoInput.nativeElement.select()
-    if (this.vueltoControl.value == 0) {
-      this.telefonoInput.nativeElement.focus()
-      this.isVueltoControl.setValue(false)
-    } else if (this.vueltoControl.value < 0) {
-      this.isVueltoControl.setValue(true)
-      this.formaPagoInput.nativeElement.focus()
-    } else {
-      this.isVueltoControl.setValue(false)
-      this.formaPagoInput.nativeElement.focus()
-    }
-    this.calcularVueltoPara()
   }
 
   onGuardar() {
     if (this.telefonoControl.valid) {
       let delivery = new Delivery()
+      let venta = new Venta()
+      let cobro = new Cobro()
       if (this.data.delivery != null) Object.assign(delivery, this.data?.delivery)
+      if (delivery?.venta != null) Object.assign(venta, delivery.venta)
+      if (venta?.cobro != null) Object.assign(cobro, venta.cobro)
       delivery.telefono = this.telefonoControl.value;
       delivery.precio = this.selectedPrecio;
       delivery.direccion = this.direccionControl.value;
-      delivery.venta.cliente = this.selectedCliente;
+      venta.cliente = this.selectedCliente;
 
       if (delivery?.venta?.cobro == null) {
-        delivery.venta.cobro = new Cobro()
-        delivery.venta.cobro.cobroDetalleList = this.cobroItemList;
+        cobro = new Cobro()
+        cobro.cobroDetalleList = this.cobroItemList;
       }
 
-      this.deliveryService.onSaveDeliveryAndVenta(delivery.toInput(), delivery?.venta?.toInput(), delivery?.venta?.toItemInputList(), delivery?.venta?.cobro.toInput(), delivery?.venta?.cobro.toItemInputList()).subscribe(res => {
+      this.deliveryService.onSaveDeliveryAndVenta(delivery.toInput(), venta?.toInput(), venta?.toItemInputList(), cobro?.toInput(), cobro?.toItemInputList(), false).subscribe(res => {
         if (res != null) {
           delivery.id = res.id;
           delivery.venta = res.venta;
@@ -575,7 +660,7 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
   }
 
   calcularVueltoPara() {
-    let total = this.selectedDelivery?.venta?.valorTotal + this.selectedPrecio?.valor;
+    let total = this.selectedDelivery?.venta.valorTotal + this.selectedPrecio.valor - this.valorParcialPagado;
     let valor = this.vueltoParaControl.value;
     if (this.cobroItemList?.length == 0) {
       let factorGs = Math.floor(total / 100000) + 1;

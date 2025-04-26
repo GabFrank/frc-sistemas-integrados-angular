@@ -1,12 +1,21 @@
 table {
-    width: 100%;
-  }
-  
-  tr.example-detail-row {
-    height: 0;
-  }
-  
-  .example-element-detail {
-    overflow: hidden;
-    display: flex;
-  }
+  width: 100%;
+}
+
+tr.example-detail-row {
+  height: 0;
+}
+
+.example-element-detail {
+  overflow: hidden;
+  display: flex;
+}
+
+tr:not(.example-detail-row) {
+  height: 40px !important;
+}
+
+.descripcion:hover {
+  text-decoration: underline;
+  color: rgb(44, 44, 208)
+}

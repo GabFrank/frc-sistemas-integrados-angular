@@ -9,6 +9,8 @@ import { CountFamiliaGQL } from './graphql/countFamilia';
 import { MainService } from '../../../main.service';
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { FamiliasSearchGQL } from './graphql/familiasSearch';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -23,7 +25,9 @@ export class FamiliaService {
     private saveFamilia: SaveFamiliaGQL,
     private deleteFamilia: DeleteFamiliaGQL,
     private countFamilia: CountFamiliaGQL,
-    public mainService: MainService
+    public mainService: MainService, 
+    private familiaSearch: FamiliasSearchGQL,
+    private genericService: GenericCrudService
     ) {
     this.onGetFamilias()
   }
@@ -43,21 +47,12 @@ export class FamiliaService {
     })
   }
 
-  onSaveFamilia(familiaInput: FamiliaInput): Observable<any>{
+  onSearchFamilia(texto, page, size){
+    return this.genericService.onCustomQuery(this.familiaSearch, {texto, page, size});
+  }
 
-    familiaInput.usuarioId = this.mainService?.usuarioActual?.id
-    familiaInput.icono == null ? familiaInput.icono = 'block' : null
-    return new Observable((obs)=>{
-      this.saveFamilia.mutate({
-        entity: familiaInput
-      }).pipe(untilDestroyed(this)).subscribe(res => {
-        if(!res.errors){
-          this.onGetFamilias()
-          obs.next(res.data)
-        }
-      })
-    })
-    
+  onSaveFamilia(familiaInput: FamiliaInput): Observable<any>{
+    return this.genericService.onSave(this.saveFamilia, familiaInput);  
   }
 
 

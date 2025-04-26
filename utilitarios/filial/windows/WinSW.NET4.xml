@@ -1,0 +1,18 @@
+
+<service>
+  
+  <!-- ID of the service. It should be unique across the Windows system-->
+  <id>frc-server</id>
+  <!-- Display name of the service -->
+  <name>FRC-SYS (powered by WinSW)</name>
+  <!-- Service description -->
+  <description>This service is a service created from a minimal configuration</description>
+  
+  <!-- Path to the executable, which should be started -->
+  <executable>java</executable>
+  <arguments>-jar frc-server.jar</arguments>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>5</keepFiles>
+  </log>
+</service>

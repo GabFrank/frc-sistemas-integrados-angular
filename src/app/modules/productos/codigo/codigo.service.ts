@@ -34,7 +34,6 @@ export class CodigoService {
   ) {}
 
   onGetCodigosPorPresentacionId(id) {
-    console.log("haciendo fetch", id);
     return this.getCodigosPorPresentacionId.fetch(
       {
         id,
@@ -50,7 +49,6 @@ export class CodigoService {
     if(input.usuarioId==null) input.usuarioId = this.mainService?.usuarioActual?.id;
     input.id == null ? (input.activo = true) : null;
     if(input.principal==false) input.principal = null;
-    console.log(input)
     return new Observable((obs) => {
       this.saveCodigo
         .mutate(
@@ -62,7 +60,6 @@ export class CodigoService {
           }
         ).pipe(untilDestroyed(this))
         .subscribe((res) => {
-          console.log(res);
           if (res.errors == null) {
             this.notificacionBar.notification$.next({
               texto: "Código guardado con éxito",

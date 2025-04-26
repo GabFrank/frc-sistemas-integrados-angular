@@ -19,7 +19,7 @@ export class PreRegistroFuncionario {
   fechaNacimiento: Date
   fechaIngreso: Date
   habilidades: string
-  registroConducir : Boolean
+  registroConducir : boolean
   nivelEducacion: string
   observacion: string
   verificado: boolean
@@ -65,7 +65,7 @@ export class PreRegistroFuncionarioInput{
   fechaNacimiento: string
   fechaIngreso: string
   habilidades: string
-  registroConducir : Boolean
+  registroConducir : boolean
   nivelEducacion: string
   observacion: string
 }

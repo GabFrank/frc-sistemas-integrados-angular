@@ -1,0 +1,126 @@
+.container-main {
+  padding: 24px;
+  height: 100%;
+}
+
+.section-title {
+  margin-bottom: 16px;
+  color: rgba(0, 0, 0, 0.87);
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.subsection-title {
+  margin: 16px 0;
+  color: rgba(0, 0, 0, 0.87);
+  font-size: 16px;
+  font-weight: 500;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  padding-bottom: 8px;
+}
+
+.w-100 {
+  width: 100%;
+}
+
+.mt-2 {
+  margin-top: 16px;
+}
+
+.mt-4 {
+  margin-top: 32px;
+}
+
+.mr-2 {
+  margin-right: 16px;
+}
+
+.ml-2 {
+  margin-left: 16px;
+}
+
+.py-3 {
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+.text-muted {
+  color: rgba(0, 0, 0, 0.54);
+}
+
+// For flex layout
+[fxLayout="row"] {
+  display: flex;
+  flex-direction: row;
+}
+
+[fxLayout="column"] {
+  display: flex;
+  flex-direction: column;
+}
+
+[fxLayoutAlign="center center"] {
+  justify-content: center;
+  align-items: center;
+}
+
+[fxLayoutAlign="space-between center"] {
+  justify-content: space-between;
+  align-items: center;
+}
+
+[fxFlex] {
+  flex: 1 1 auto;
+}
+
+[fxLayoutGap="24px"] > *:not(:last-child) {
+  margin-bottom: 24px;
+}
+
+[fxLayoutGap="16px"] > *:not(:last-child) {
+  margin-right: 16px;
+}
+
+// Media queries
+@media (max-width: 959px) {
+  .fxLayout-lt-md-column {
+    flex-direction: column !important;
+  }
+  
+  .fxFlex-lt-md-100 {
+    flex: 0 0 100% !important;
+  }
+}
+
+@media (max-width: 599px) {
+  .fxLayout-lt-sm-column {
+    flex-direction: column !important;
+  }
+  
+  [fxLayoutGap="16px"] > *:not(:last-child) {
+    margin-right: 0;
+    margin-bottom: 16px;
+  }
+}
+
+.spinner-inline {
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.form-container {
+  padding: 16px;
+}
+
+mat-card {
+  margin-bottom: 16px;
+}
+
+mat-form-field {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+::ng-deep .mat-form-field-wrapper {
+  padding-bottom: 1.25em;
+} 

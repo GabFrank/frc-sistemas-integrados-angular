@@ -1,0 +1,44 @@
+.titulo-center {
+  text-align: center;
+  font-weight: bold;
+  color: #3f51b5;
+  margin-bottom: 20px;
+}
+
+.mat-column-acciones {
+  width: 80px;
+  max-width: 80px;
+}
+
+.mat-column-id {
+  width: 100px;
+  max-width: 100px;
+}
+
+.container-fluid {
+  height: 90vh;
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+}
+
+.w-100 {
+  width: 100% !important;
+}
+
+.no-data-row {
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+  color: #777;
+}
+
+mat-card {
+  margin-bottom: 20px;
+}
+
+mat-spinner {
+  margin: 0 auto;
+}

@@ -8,17 +8,14 @@ import {
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import {
   MAT_DIALOG_DATA,
-  MatDialogRef,
   MatDialog,
+  MatDialogRef,
 } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
-import { Color } from "highcharts";
 import {
   CurrencyMask,
   stringToCantidad,
-  stringToDecimal,
-  stringToInteger,
-  stringToUnknown,
+  stringToInteger
 } from "../../../../commons/core/utils/numbersUtils";
 import { MainService } from "../../../../main.service";
 import {
@@ -133,8 +130,6 @@ export class AdicionarItemDialogComponent implements OnInit {
 
     if (this.data.pedidoItem != null) {
       this.cargarPedidoItem(this.data.pedidoItem);
-    } else {
-      console.log('nuevo pedido item')
     }
   }
 
@@ -145,16 +140,16 @@ export class AdicionarItemDialogComponent implements OnInit {
         this.selectedPedidoItem = new PedidoItem();
         Object.assign(this.selectedPedidoItem, res);
         this.cantidadControl.setValue(
-          pedidoItem.cantidad / pedidoItem.presentacion.cantidad
+          pedidoItem.cantidadCreacion / pedidoItem.presentacionCreacion.cantidad
         );
-        this.cantidadUnidadControl.setValue(pedidoItem.cantidad);
-        this.precioPorUnidadControl.setValue(pedidoItem.precioUnitario);
+        this.cantidadUnidadControl.setValue(pedidoItem.cantidadCreacion);
+        this.precioPorUnidadControl.setValue(pedidoItem.precioUnitarioCreacion);
         this.precioPorPresentacionControl.setValue(
-          (
-            pedidoItem.precioUnitario * pedidoItem.presentacion.cantidad
+          +(
+            pedidoItem.precioUnitarioCreacion * pedidoItem.presentacionCreacion.cantidad
           ).toFixed(0)
         );
-        this.descuentoControl.setValue(pedidoItem.descuentoUnitario * pedidoItem.presentacion.cantidad);
+        this.descuentoControl.setValue(pedidoItem.descuentoUnitarioCreacion * pedidoItem.presentacionCreacion.cantidad);
         this.productoService
           .getProducto(pedidoItem.producto.id).pipe(untilDestroyed(this))
           .subscribe((res) => {
@@ -163,7 +158,7 @@ export class AdicionarItemDialogComponent implements OnInit {
               this.getInfoExtra();
             }
           });
-        this.selectedPresentacion = pedidoItem.presentacion;
+        this.selectedPresentacion = pedidoItem.presentacionCreacion;
         this.formGroup.disable();
       }
     });
@@ -342,7 +337,7 @@ export class AdicionarItemDialogComponent implements OnInit {
       this.precioPorPresentacionControl.value > 0
     ) {
       this.precioPorUnidadControl.setValue(
-        (
+        +(
           this.precioPorPresentacionControl.value /
           this.selectedPresentacion.cantidad
         ).toFixed(3)
@@ -402,13 +397,13 @@ export class AdicionarItemDialogComponent implements OnInit {
             }
             pedidoItem.pedido = this.data.pedido;
             pedidoItem.producto = this.selectedProducto;
-            pedidoItem.presentacion = this.selectedPresentacion;
-            pedidoItem.precioUnitario = this.precioPorUnidadControl.value;
-            pedidoItem.cantidad = this.cantidadUnidadControl.value;
+            pedidoItem.presentacionCreacion = this.selectedPresentacion;
+            pedidoItem.precioUnitarioCreacion = this.precioPorUnidadControl.value;
+            pedidoItem.cantidadCreacion = this.cantidadUnidadControl.value;
             pedidoItem.valorTotal =
-              pedidoItem?.precioUnitario * pedidoItem?.cantidad -
+              pedidoItem?.precioUnitarioCreacion * pedidoItem?.cantidadCreacion -
               descuentoTotal;
-            pedidoItem.descuentoUnitario =
+            pedidoItem.descuentoUnitarioCreacion =
               this.descuentoControl.value / this.selectedPresentacion.cantidad;
             this.matDialogRef.close(pedidoItem);
           }

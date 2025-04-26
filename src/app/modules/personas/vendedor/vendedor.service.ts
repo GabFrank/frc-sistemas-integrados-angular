@@ -11,7 +11,7 @@ export class VendedorService {
 
   constructor(
     private genericService: GenericCrudService,
-    private vendedorSearch: VendedoresSearchByPersonaGQL
+    public vendedorSearch: VendedoresSearchByPersonaGQL
   ) { }
 
   onSearch(texto: string): Observable<Vendedor[]>{

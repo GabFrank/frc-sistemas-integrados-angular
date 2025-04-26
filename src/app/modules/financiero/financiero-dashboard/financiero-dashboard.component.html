@@ -1,39 +1,236 @@
-<div
-  fxLayout="row"
-  style="width: 100%; height: 80%"
-  fxLayoutAlign="center center"
->
-  <div fxFlex="60" fxLayout="column">
-    <div
-      fxFlex
-      fxLayout="row wrap"
-      fxLayoutAlign="start start"
-      fxLayoutGap="10px"
-    >
-      <div fxFlex="25%" style="height: 200px">
-        <app-boton
-          nombre="Lista de Facturas"
-          icon="receipt_long"
-          [iconSize]="4"
-          (clickEvent)="onListFacturas()"
-        ></app-boton>
-      </div>
-      <!-- <div fxFlex="30%" style="height: 250px">
-        <app-boton
-          nombre="Nueva Transferencia"
-          icon="move_up"
-          [iconSize]="4"
-          (clickEvent)="onNuevaTransferencia()"
-        ></app-boton>
-      </div>
-      <div fxFlex="30%" style="height: 250px">
-        <app-boton
-          nombre="Configurar Transferencias"
-          icon="tune"
-          [iconSize]="4"
-        ></app-boton>
-      </div> -->
+<div class="dashboard-container">
+  <div class="toolbar">
+    <button mat-raised-button color="primary" (click)="actualizarDatos()">
+      <mat-icon>refresh</mat-icon> ACTUALIZAR
+    </button>
+    
+    <div class="spacer"></div>
+    
+    <button mat-raised-button color="accent" (click)="abrirConfiguracion()">
+      <mat-icon>settings</mat-icon> CONFIGURACIÓN
+    </button>
+  </div>
+
+  <!-- Contenedor principal -->
+  <div class="content-grid">
+    <!-- Sector izquierdo: Pagos pendientes -->
+    <mat-card class="card cuotas-card">
+      <mat-card-header>
+        <mat-card-title class="titulo-center" style="font-size: medium;">SOLICITUDES PENDIENTES DE PAGO</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <!-- Filtros -->
+        <div class="filters">
+          <mat-form-field appearance="outline">
+            <mat-label>Estado</mat-label>
+            <mat-select [formControl]="filtroEstado">
+              <mat-option *ngFor="let estado of estados" [value]="estado.value">
+                {{estado.label}}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Sucursal</mat-label>
+            <mat-select [formControl]="filtroSucursal">
+              <mat-option [value]="null">TODAS</mat-option>
+              <mat-option *ngFor="let sucursal of sucursales" [value]="sucursal">
+                {{sucursal.nombre}}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Desde</mat-label>
+            <input matInput [matDatepicker]="desdeDate" [formControl]="filtroFechaDesde">
+            <mat-datepicker-toggle matSuffix [for]="desdeDate"></mat-datepicker-toggle>
+            <mat-datepicker #desdeDate></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Hasta</mat-label>
+            <input matInput [matDatepicker]="hastaDate" [formControl]="filtroFechaHasta">
+            <mat-datepicker-toggle matSuffix [for]="hastaDate"></mat-datepicker-toggle>
+            <mat-datepicker #hastaDate></mat-datepicker>
+          </mat-form-field>
+          
+          <div class="filter-buttons">
+            <div class="fecha-filter-toggle">
+              <mat-slide-toggle [formControl]="filtrarPorCreacion" color="primary">
+                Filtrar por fecha de creación
+              </mat-slide-toggle>
+              <span class="toggle-label">{{ filtrarPorCreacion.value ? 'FECHA CREACIÓN' : 'FECHA VENCIMIENTO' }}</span>
+            </div>
+            
+            <button mat-raised-button color="primary" (click)="aplicarFiltros()">
+              <mat-icon>filter_alt</mat-icon> APLICAR FILTROS
+            </button>
+            <button mat-raised-button color="warn" (click)="limpiarFiltros()">
+              <mat-icon>clear</mat-icon> LIMPIAR
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabla de cuotas pendientes -->
+        <div class="table-container">
+          <table mat-table [dataSource]="cuotasPendientesDataSource" matSort class="mat-elevation-z0">
+            <!-- Columna Proveedor -->
+            <ng-container matColumnDef="proveedor">
+              <th mat-header-cell *matHeaderCellDef style="text-align: left; width: 25%;">PROVEEDOR</th>
+              <td mat-cell *matCellDef="let cuota" style="text-align: left; width: 25%;">{{cuota.proveedor?.persona?.nombre || cuota.proveedor?.persona?.nombreFantasia || 'N/A'}}</td>
+            </ng-container>
+
+            <!-- Columna Sucursal -->
+            <ng-container matColumnDef="sucursal">
+              <th mat-header-cell *matHeaderCellDef style="text-align: left; width: 22%;">SUCURSAL</th>
+              <td mat-cell *matCellDef="let cuota" style="text-align: left; width: 22%;">{{cuota.pagoDetalle?.sucursal?.nombre || 'N/A'}}</td>
+            </ng-container>
+
+            <!-- Columna Estado -->
+            <ng-container matColumnDef="estado">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 13%;">ESTADO</th>
+              <td mat-cell *matCellDef="let cuota" style="text-align: center; width: 13%;">
+                <span [ngClass]="{
+                  'pendiente-badge': cuota.estado === 'PENDIENTE',
+                  'pago-parcial-badge': cuota.estado === 'PAGO_PARCIAL'
+                }">
+                  {{cuota.estado}}
+                </span>
+              </td>
+            </ng-container>
+
+            <!-- Columna Fecha Vencimiento -->
+            <ng-container matColumnDef="fechaVencimiento">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 12%;">VENCIMIENTO</th>
+              <td mat-cell *matCellDef="let cuota" style="text-align: center; width: 12%;">{{cuota.fechaVencimiento | date:'dd/MM/yyyy'}}</td>
+            </ng-container>
+
+            <!-- Columna Total Final -->
+            <ng-container matColumnDef="totalFinal">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 14%;">TOTAL FINAL</th>
+              <td mat-cell *matCellDef="let cuota" style="text-align: center; width: 14%;">{{cuota.totalFinal | currency:'PYG':'symbol':'1.0-0'}}</td>
+            </ng-container>
+
+            <!-- Columna Total Pagado -->
+            <ng-container matColumnDef="totalPagado">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 14%;">TOTAL PAGADO</th>
+              <td mat-cell *matCellDef="let cuota" style="text-align: center; width: 14%;">{{cuota.totalPagado | currency:'PYG':'symbol':'1.0-0'}}</td>
+            </ng-container>
+
+            <!-- Columna Fecha Creación -->
+            <ng-container matColumnDef="creadoEn">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 12%;">CREADO EN</th>
+              <td mat-cell *matCellDef="let cuota" style="text-align: center; width: 12%;">{{cuota.creadoEn | date:'dd/MM/yyyy'}}</td>
+            </ng-container>
+
+            <!-- Columna Menú -->
+            <ng-container matColumnDef="menu">
+              <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%;">OPCIONES</th>
+              <td mat-cell *matCellDef="let cuota" style="text-align: center; width: 10%;">
+                <button mat-icon-button [matMenuTriggerFor]="menu" color="primary">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu">
+                  <button mat-menu-item *ngIf="cuota.estado === 'PENDIENTE' || cuota.estado === 'PAGO_PARCIAL'" (click)="realizarPago(cuota)">
+                    <mat-icon>payment</mat-icon>
+                    <span>REALIZAR PAGO</span>
+                  </button>
+                  <button mat-menu-item (click)="verEditarPago(cuota)">
+                    <mat-icon>visibility</mat-icon>
+                    <span>VER/EDITAR PAGO</span>
+                  </button>
+                  <button mat-menu-item (click)="modificarSucursal(cuota)">
+                    <mat-icon>store</mat-icon>
+                    <span>MODIFICAR SUCURSAL</span>
+                  </button>
+                </mat-menu>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="cuotasDisplayedColumns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: cuotasDisplayedColumns;"></tr>
+          </table>
+        </div>
+      </mat-card-content>
+      <mat-card-footer class="paginator-footer">
+        <mat-paginator [length]="totalElements" [pageSize]="pageSize" [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons></mat-paginator>
+      </mat-card-footer>
+    </mat-card>
+
+    <!-- Sector derecho: Accesos rápidos y Cambio -->
+    <div class="right-column">
+      <!-- Accesos rápidos -->
+      <mat-card class="card" *ngIf="configuracion.mostrarAccesosRapidos">
+        <mat-card-header>
+          <mat-card-title class="titulo-center" style="font-size: medium;">ACCESOS RÁPIDOS</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="shortcut-grid">
+            <button mat-raised-button class="shortcut-button" (click)="abrirModuloGastos()">
+              <mat-icon>money_off</mat-icon>
+              <span>GASTOS</span>
+            </button>
+            
+            <button mat-raised-button class="shortcut-button" (click)="abrirModuloRetiros()">
+              <mat-icon>savings</mat-icon>
+              <span>RETIROS</span>
+            </button>
+            
+            <button mat-raised-button class="shortcut-button" (click)="abrirModuloSolicitudPago()">
+              <mat-icon>receipt_long</mat-icon>
+              <span>SOLICITUDES DE PAGO</span>
+            </button>
+            
+            <button mat-raised-button class="shortcut-button" (click)="abrirModuloCambio()">
+              <mat-icon>currency_exchange</mat-icon>
+              <span>CAMBIO</span>
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Cambio de monedas -->
+      <mat-card class="card" *ngIf="configuracion.mostrarMonedas">
+        <mat-card-header>
+          <mat-card-title class="titulo-center" style="font-size: medium;">CAMBIO DE MONEDAS</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="table-container">
+            <table mat-table [dataSource]="monedasDataSource">
+              <!-- Columna Denominación -->
+              <ng-container matColumnDef="denominacion">
+                <th mat-header-cell *matHeaderCellDef class="text-center">MONEDA</th>
+                <td mat-cell *matCellDef="let moneda" class="text-center">{{moneda.denominacion}}</td>
+              </ng-container>
+
+              <!-- Columna Símbolo -->
+              <ng-container matColumnDef="simbolo">
+                <th mat-header-cell *matHeaderCellDef class="text-center">SIMBOLO</th>
+                <td mat-cell *matCellDef="let moneda" class="text-center">{{moneda.simbolo}}</td>
+              </ng-container>
+
+              <!-- Columna Cambio -->
+              <ng-container matColumnDef="cambio">
+                <th mat-header-cell *matHeaderCellDef class="text-center">CAMBIO EN GS</th>
+                <td mat-cell *matCellDef="let moneda" class="text-center">{{moneda.cambio | currency:'PYG':'symbol':'1.0-0'}}</td>
+              </ng-container>
+
+              <!-- Columna Acción -->
+              <ng-container matColumnDef="accion">
+                <th mat-header-cell *matHeaderCellDef class="text-center">ACCIÓN</th>
+                <td mat-cell *matCellDef="let moneda; let i = index" class="text-center">
+                  <button mat-icon-button color="primary" (click)="actualizarCambio(moneda)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="monedasDisplayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: monedasDisplayedColumns;"></tr>
+            </table>
+          </div>
+        </mat-card-content>
+      </mat-card>
     </div>
   </div>
 </div>
-

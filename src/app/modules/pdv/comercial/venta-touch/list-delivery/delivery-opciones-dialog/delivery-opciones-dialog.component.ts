@@ -22,11 +22,11 @@ export class DeliveryOpcionesDialogComponent implements OnInit, AfterViewInit {
   ) { }
 
   ngOnInit(): void {
-    this.deliveryService.onGetById(this.selectedDelivery.id).subscribe(res => {
-      if(res!=null){
-        this.selectedDelivery = res;
-      }
-    })
+    // this.deliveryService.onGetById(this.selectedDelivery.id).subscribe(res => {
+    //   if(res!=null){
+    //     this.selectedDelivery = res;
+    //   }
+    // })
   }
 
   ngAfterViewInit(): void {

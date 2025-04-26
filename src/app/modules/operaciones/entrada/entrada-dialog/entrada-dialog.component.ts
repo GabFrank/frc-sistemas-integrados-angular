@@ -201,7 +201,6 @@ export class EntradaDialogComponent implements OnInit {
 
   buscarEntrada(id) {
     this.entradaService.onGetEntrada(id).pipe(untilDestroyed(this)).subscribe(res => {
-      console.log(res)
       if (res != null) {
         this.selectedEntrada = res;
         this.cargarDatos()
@@ -226,7 +225,6 @@ export class EntradaDialogComponent implements OnInit {
   }
 
   onSelectSucursal(e) {
-    console.log(e);
     this.selectedSucursal = this.sucursalList.find((s) => s.id == e);
     if (this.selectedSucursal != null) {
       this.sucursalControl.setValue(this.selectedSucursal.id);
@@ -253,7 +251,6 @@ export class EntradaDialogComponent implements OnInit {
   }
 
   onSelectTipoEntrada(e) {
-    console.log(e);
     this.selectedTipoEntrada = e as TipoEntrada;
     this.tipoEntradaControl.setValue(this.selectedTipoEntrada);
     if (this.selectedTipoEntrada != TipoEntrada.SUCURSAL) {
@@ -292,10 +289,6 @@ export class EntradaDialogComponent implements OnInit {
 
   onSaveEntrada() {
     this.cargandoService.openDialog()
-    console.log(this.selectedEntrada);
-    console.log(this.selectedResponsable);
-    console.log(this.selectedSucursal);
-    console.log(this.selectedTipoEntrada);
     let entrada = new EntradaInput();
     entrada.id = this.selectedEntrada?.id;
     entrada.responsableCargaId = this.selectedResponsable?.id;
@@ -303,11 +296,8 @@ export class EntradaDialogComponent implements OnInit {
     entrada.sucursalId = this.selectedSucursal?.id;
     entrada.creadoEn = this.selectedEntrada?.creadoEn;
     entrada.activo = (this.selectedEntrada?.activo == true)
-    console.log(entrada);
     this.entradaService.onSaveEntrada(entrada).pipe(untilDestroyed(this)).subscribe((res) => {
-      console.log(res);
       this.selectedEntrada = res["data"] as Entrada;
-      console.log(this.selectedEntrada);
       this.isEditar = false;
       this.cargarDatos();
       this.usuarioInputControl.disable();
@@ -327,7 +317,6 @@ export class EntradaDialogComponent implements OnInit {
   }
 
   onCancelar() {
-    console.log("hola");
     if (this.selectedEntrada != null) this.selectedEntrada.entradaItemList = this.itemDataSource.data;
     this.matDialogRef.close(this.selectedEntrada);
   }
@@ -426,7 +415,6 @@ export class EntradaDialogComponent implements OnInit {
   }
 
   onEditItem() {
-    console.log('hola')
     this.isItemEditar = true;
     this.productoControl.enable()
     this.cantidadControl.enable()

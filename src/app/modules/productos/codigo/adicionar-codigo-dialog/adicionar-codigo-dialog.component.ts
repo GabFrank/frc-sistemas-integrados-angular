@@ -71,7 +71,7 @@ export class AdicionarCodigoDialogComponent implements OnInit {
     this.codigoControl.setValue(this.selectedCodigo.codigo);
     this.principalControl.setValue(this.selectedCodigo.principal);
     this.activoControl.setValue(this.selectedCodigo.activo);
-    
+
     //cargar input
     this.codigoInput.id = this.selectedCodigo.id;
   }
@@ -87,7 +87,6 @@ export class AdicionarCodigoDialogComponent implements OnInit {
     this.codigoService
       .onGetCodigoPorCodigo(this.codigoInput.codigo).pipe(untilDestroyed(this))
       .subscribe((res) => {
-        console.log(res)
         this.cargandoDialog.closeDialog()
         if (res.errors == null) {
           switch (res.data.data.length) {
@@ -95,7 +94,6 @@ export class AdicionarCodigoDialogComponent implements OnInit {
               isCodigoInUse = false;
               break;
             case 1:
-              console.log(res.data.data[0].id, this.codigoInput.id)
               if (res.data.data[0].id === this.codigoInput.id) {
                 isCodigoInUse = false;
               } else {
@@ -115,7 +113,6 @@ export class AdicionarCodigoDialogComponent implements OnInit {
             })
           } else {
             this.codigoService.onSaveCodigo(this.codigoInput).pipe(untilDestroyed(this)).subscribe(res2 => {
-              console.log(res2)
               if(res2!=null){
                 this.matDialogRef.close(res2)
               }

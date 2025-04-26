@@ -42,7 +42,7 @@ export class SearchEnvaseDialogComponent implements OnInit {
     private dialogRef: MatDialogRef<SearchEnvaseDialogComponent>,
     private mainService: MainService,
     private service: ProductoService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.buscarField.valueChanges.pipe(untilDestroyed(this)).subscribe((value) => {
@@ -62,10 +62,8 @@ export class SearchEnvaseDialogComponent implements OnInit {
     this.onSearchTimer = setTimeout(() => {
       this.service.onEnvaseSearch(text, offset, true).pipe(untilDestroyed(this)).subscribe((res) => {
         if (offset == null) {
-          console.log("offset es nulo");
           this.dataSource.data = res;
         } else {
-          console.log("offset es: ", offset);
           const arr = [...this.dataSource.data.concat(res)];
           this.dataSource.data = arr;
         }
@@ -74,7 +72,7 @@ export class SearchEnvaseDialogComponent implements OnInit {
     }, 1000);
   }
 
-  onRowClick(envase: Producto){
+  onRowClick(envase: Producto) {
     this.dialogRef.close(envase)
   }
 
@@ -96,11 +94,7 @@ export class SearchEnvaseDialogComponent implements OnInit {
   }
 
   arrowDownEvent() {
-    console.log(
-      this.selectedRowIndex,
-      this.paginator.pageSize,
-      this.dataSource?.data.length - 1
-    );
+
     if (this.selectedRowIndex < this.dataSource?.data.length - 1) {
       if (this.selectedRowIndex + 1 == this.paginator.pageSize) {
         this.paginator.nextPage();
@@ -111,7 +105,7 @@ export class SearchEnvaseDialogComponent implements OnInit {
     }
     this.highlight(nextrow, this.selectedRowIndex);
   }
-cargarMasDatos() {
+  cargarMasDatos() {
     this.onSearchProducto(this.buscarField.value, this.dataSource.data.length);
   }
 }

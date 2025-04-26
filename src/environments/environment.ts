@@ -1,4 +1,4 @@
-import { centralPort, ipAddress, ipCentralAddress, port } from "./conectionConfig";
+import { ipCentralAddress, centralPort, ipAddress, port } from "./conectionConfig";
 
 export const APP_CONFIG = {
   production: false,
@@ -29,9 +29,3 @@ export const environment = {
   modo: null,
   pdvId: null
 };
-
-export const serverAdress = {
-  serverIp: ipAddress,
-  serverPort: port
-}
-

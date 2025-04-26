@@ -36,7 +36,7 @@ export class ActualizacionInput {
     title: string
     msg: string
     btn: string
-    usuarioId: number;
+    usuarioId: number = null;
 }
 
 export enum NivelActualizacion {

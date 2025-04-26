@@ -13,19 +13,19 @@
       style="width: 100%"
     >
       <div fxFlex="15" style="width: 100%; height: 100%">
-        <mat-form-field style="width: 100%; text-align: center">
+        <mat-form-field style="width: 100%; text-align: center" class="shrinking-mat-form-field">
           <input
             #cantidadInput
             matInput
             type="text"
             formControlName="cantidad"
             autocomplete="off"
-            style="color: white; font-size: 1.8em"
+            style="color: white; font-size: 1.5em; text-align: center;"
           />
         </mat-form-field>
       </div>
       <div fxFlex="65" style="width: 100%; height: 100%">
-        <mat-form-field style="width: 100%" floatLabel="never">
+        <mat-form-field style="width: 100%" class="shrinking-mat-form-field">
           <!-- [matKeyboard]="'Azərbaycanca'"
                   darkTheme="true" -->
           <input
@@ -37,7 +37,7 @@
             (keydown.enter)="onEnterPress()"
             autocomplete="off"
             oninput="this.value != ' ' ? this.value = this.value.toUpperCase() : this.value = null"
-            style="color: white; font-size: 1.8em"
+            style="color: white; font-size: 1.5em"
           />
         </mat-form-field>
       </div>
@@ -48,7 +48,7 @@
         fxLayoutAlign="space-around center"
         mat-raised-button
         color="primary"
-        style="height: 2em"
+        style="height: 100% !important"
         (click)="buscarProductoDialog()"
       >
         <div fxFlex>

@@ -65,9 +65,7 @@ export class AdicionarDetalleCompraItemDialogComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.data.compraItem != null) {
-      this.cargarDatos(this.data.compraItem)
-      console.log(this.data.compraItem)
-      
+      this.cargarDatos(this.data.compraItem);
     }
   }
 
@@ -98,7 +96,7 @@ export class AdicionarDetalleCompraItemDialogComponent implements OnInit {
       if(res!=null){
         this.matDialogRef.close(this.selectedCompraItem)
       }
-    })  
+    })
   }
 
   onCancelar() {
@@ -147,9 +145,9 @@ export class AdicionarDetalleCompraItemDialogComponent implements OnInit {
 
   onComparar(compraItem: CompraItem, pedidoItem: PedidoItem): boolean {
     if (
-      (compraItem.precioUnitario != pedidoItem?.precioUnitario ||
-      compraItem.descuentoUnitario != pedidoItem?.descuentoUnitario ||
-      compraItem.cantidad != pedidoItem?.cantidad)
+      (compraItem.precioUnitario != pedidoItem?.precioUnitarioCreacion ||
+      compraItem.descuentoUnitario != pedidoItem?.descuentoUnitarioCreacion ||
+      compraItem.cantidad != pedidoItem?.cantidadCreacion)
     ) {
       return true;
     } else {

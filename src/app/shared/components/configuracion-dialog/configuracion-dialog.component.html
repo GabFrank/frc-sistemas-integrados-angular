@@ -1,0 +1,79 @@
+<h2 mat-dialog-title>Configuración del Sistema</h2>
+<mat-dialog-content>
+  <form [formGroup]="configForm" fxLayout="column" fxLayoutGap="16px">
+    <div fxLayout="row" fxLayoutGap="16px">
+      <mat-form-field fxFlex>
+        <mat-label>IP Servidor</mat-label>
+        <input matInput formControlName="serverIp" required>
+        <mat-error *ngIf="configForm.get('serverIp').invalid">Obligatorio</mat-error>
+      </mat-form-field>
+      
+      <mat-form-field fxFlex>
+        <mat-label>Puerto Servidor</mat-label>
+        <input matInput formControlName="serverPort" required>
+        <mat-error *ngIf="configForm.get('serverPort').invalid">Obligatorio</mat-error>
+      </mat-form-field>
+    </div>
+    
+    <div fxLayout="row" fxLayoutGap="16px">
+      <mat-form-field fxFlex>
+        <mat-label>IP Servidor Central</mat-label>
+        <input matInput formControlName="serverCentralIp" required>
+        <mat-error *ngIf="configForm.get('serverCentralIp').invalid">Obligatorio</mat-error>
+      </mat-form-field>
+      
+      <mat-form-field fxFlex>
+        <mat-label>Puerto Servidor Central</mat-label>
+        <input matInput formControlName="serverCentralPort" required>
+        <mat-error *ngIf="configForm.get('serverCentralPort').invalid">Obligatorio</mat-error>
+      </mat-form-field>
+    </div>
+    
+    <div fxLayout="row" fxLayoutGap="16px">
+      <mat-form-field fxFlex>
+        <mat-label>Nombre Local</mat-label>
+        <input matInput formControlName="local">
+      </mat-form-field>
+      
+      <mat-form-field fxFlex>
+        <mat-label>ID PDV</mat-label>
+        <input matInput type="number" formControlName="pdvId">
+      </mat-form-field>
+    </div>
+    
+    <mat-form-field>
+      <mat-label>Precios</mat-label>
+      <input matInput formControlName="precios">
+      <mat-hint>Separados por coma (ej: EXPO, EXPO-DEPOSITO)</mat-hint>
+    </mat-form-field>
+    
+    <div fxLayout="row" fxLayoutGap="16px">
+      <mat-form-field fxFlex>
+        <mat-label>Impresora Ticket</mat-label>
+        <input matInput formControlName="ticketPrinter">
+      </mat-form-field>
+      
+      <mat-form-field fxFlex>
+        <mat-label>Impresora Factura</mat-label>
+        <input matInput formControlName="facturaPrinter">
+      </mat-form-field>
+    </div>
+    
+    <mat-form-field>
+      <mat-label>Modo</mat-label>
+      <mat-select formControlName="modo">
+        <mat-option value="NOT">Normal</mat-option>
+      </mat-select>
+    </mat-form-field>
+    
+    <mat-checkbox formControlName="isLocal">Usar Servidor Local</mat-checkbox>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onBackup()" color="accent">
+    <mat-icon>save_alt</mat-icon> CREAR RESPALDO
+  </button>
+  <button mat-button (click)="onCancel()">CANCELAR</button>
+  <button mat-raised-button color="primary" [disabled]="configForm.invalid" (click)="onSave()">GUARDAR</button>
+</mat-dialog-actions> 

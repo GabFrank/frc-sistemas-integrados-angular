@@ -31,7 +31,6 @@ export class PrecioPorSucursalService {
   ) {}
 
   onSave(input: PrecioPorSucursalInput): Observable<any> {
-    console.log(input);
     input.usuarioId = this.mainService?.usuarioActual?.id;
     return new Observable((obs) => {
       this.savePrecioPorSucursal

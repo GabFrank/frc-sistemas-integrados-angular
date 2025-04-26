@@ -15,9 +15,11 @@ import {
 } from "../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
 import { SucursalService } from "../../empresarial/sucursal/sucursal.service";
-import { ConfiguracionService } from "../configuracion.service";
+import { ConfiguracionService as ModuleConfigService } from "../configuracion.service";
+import { ConfiguracionService } from "../../../shared/services/configuracion.service";
+import { GraphqlConnectionService } from "../../../shared/services/graphql-connection.service";
 
-class Data {}
+class Data { }
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -41,20 +43,32 @@ export class ConfigurarServidorDialogComponent implements OnInit {
   sincronizando = false;
   sincronizado = null;
   selectedSucursal: Sucursal;
+  
+  // Store current server settings
+  currentIp: string;
+  currentPort: string;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) private data: Data,
     private dialogRef: MatDialogRef<ConfigurarServidorDialogComponent>,
     private matDialog: MatDialog,
-    private configService: ConfiguracionService
-  ) {}
+    private moduleConfigService: ModuleConfigService,
+    private configService: ConfiguracionService,
+    private graphqlService: GraphqlConnectionService
+  ) { }
 
   ngOnInit(): void {
     this.conexionGroup.addControl("verificado", this.verificadoControl);
     this.sucursalGroup.addControl("sucursal", this.sucursalControl);
     this.sincronizarGroup.addControl("sincronizado", this.sincronizadoControl);
     this.sucursalControl.disable();
-    this.configService.getSucursalesAdmin().subscribe((res) => {
+    
+    // Store current settings to detect changes
+    const config = this.configService.getConfig();
+    this.currentIp = config.serverIp;
+    this.currentPort = config.serverPort;
+    
+    this.moduleConfigService.getSucursalesAdmin().subscribe((res) => {
       if (res != null) {
         this.sucursales = res;
       }
@@ -64,7 +78,20 @@ export class ConfigurarServidorDialogComponent implements OnInit {
   onVerificar() {
     this.verificando = true;
     this.sincronizando = true;
-    this.configService.onVerificarConexion().subscribe((res) => {
+    
+    // Get current config to check for changes
+    const config = this.configService.getConfig();
+    const ipChanged = this.currentIp !== config.serverIp;
+    const portChanged = this.currentPort !== config.serverPort;
+    
+    // If configuration changed, trigger reconnection
+    if (ipChanged || portChanged) {
+      this.currentIp = config.serverIp;
+      this.currentPort = config.serverPort;
+      this.graphqlService.reconnectWebSockets();
+    }
+    
+    this.moduleConfigService.onVerificarConexion().subscribe((res) => {
       if (res) {
         this.verificado = res;
         this.verificando = false;
@@ -75,6 +102,16 @@ export class ConfigurarServidorDialogComponent implements OnInit {
   }
 
   onSalir() {
+    // Check for unsaved changes before closing
+    const config = this.configService.getConfig();
+    const ipChanged = this.currentIp !== config.serverIp;
+    const portChanged = this.currentPort !== config.serverPort;
+    
+    // If configuration changed, trigger reconnection before closing
+    if (ipChanged || portChanged) {
+      this.graphqlService.reconnectWebSockets();
+    }
+    
     this.dialogRef.close(true);
   }
 
@@ -109,12 +146,10 @@ export class ConfigurarServidorDialogComponent implements OnInit {
 
   onSincronizar() {
     let timer: NodeJS.Timeout;
-    this.configService.onSolicitarSincronizacion().subscribe((res) => {
+    this.moduleConfigService.onSolicitarSincronizacion().subscribe((res) => {
       if (res == true) {
-        console.log("sincronizacionn iniciada...");
         this.sincronizando = true;
         timer = setInterval(() => {
-          console.log("solicitando is configured");
           this.configService
             .isConfigured()
             .pipe(untilDestroyed(this))

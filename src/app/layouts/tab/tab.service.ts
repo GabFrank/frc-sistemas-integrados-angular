@@ -1,12 +1,36 @@
-import { EventEmitter, Injectable } from '@angular/core';
+import { EventEmitter, Injectable, OnInit } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
-import { ProductoService } from '../../modules/productos/producto/producto.service';
+import { ListClientesComponent } from '../../modules/personas/clientes/list-clientes/list-clientes.component';
 import { CargandoDialogService } from './../../shared/components/cargando-dialog/cargando-dialog.service';
 import { Tab } from './tab.model';
-import { FinancieroDashboardComponent } from '../../modules/financiero/financiero-dashboard/financiero-dashboard.component';
+import { ListMovimientoStockComponent } from '../../modules/operaciones/movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
+import { ListInventarioComponent } from '../../modules/operaciones/inventario/list-inventario/list-inventario.component';
+import { EditCompraComponent } from '../../modules/operaciones/compra/edit-compra/edit-compra.component';
+import { EditPedidoComponent } from '../../modules/operaciones/pedido/edit-pedido/edit-pedido.component';
+import { ListTransferenciaComponent } from '../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
+import { ListProductoComponent } from '../../modules/productos/producto/list-producto/list-producto.component';
 import { ListFacturaLegalComponent } from '../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component';
-import { ListActualizacionComponent } from '../../modules/configuracion/actualizacion/list-actualizacion/list-actualizacion.component';
+import { ListPedidoComponent } from '../../modules/operaciones/pedido/list-pedido/list-pedido.component';
+import { EditTransferenciaComponent } from '../../modules/operaciones/transferencia/edit-transferencia/edit-transferencia.component';
+import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
+import { ListGastosComponent } from '../../modules/financiero/gastos/list-gastos/list-gastos.component';
+import { ListMaletinComponent } from '../../modules/financiero/maletin/list-maletin/list-maletin.component';
+import { ListCajaComponent } from '../../modules/financiero/pdv/caja/list-caja/list-caja.component';
+import { ListDeliveryComponent } from '../../modules/pdv/comercial/venta-touch/list-delivery/list-delivery.component';
+import { PresentacionComponent } from '../../modules/productos/presentacion/presentacion.component';
+import { ProductoComponent } from '../../modules/productos/producto/edit-producto/producto.component';
+import { TransferenciaComponent } from '../../modules/operaciones/transferencia/transferencia.component';
+import { ListSolicitudPagoComponent } from '../../modules/operaciones/solicitud-pago/list-solicitud-pago/list-solicitud-pago.component';
+import { EditPagoComponent } from '../../modules/operaciones/pago/edit-pago/edit-pago.component';
+import { ThermalPrinterComponent } from '../../modules/configuracion/thermal-printer/thermal-printer.component';
+import { ListSucursalComponent } from '../../modules/empresarial/sucursal/list-sucursal/list-sucursal.component';
+import { ListReplicationComponent } from '../../modules/configuracion/logical-replication/list-replication/list-replication.component';
+import { ListReplicationTablesComponent } from '../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
+import { FinancieroDashboardComponent } from '../../modules/financiero/financiero-dashboard/financiero-dashboard.component';
+import { ListVentaComponent } from '../../modules/operaciones/venta/list-venta/list-venta.component';
+import { AddVentaObservacionComponent } from '../../modules/operaciones/venta-observacion/add-venta-observacion/add-venta-observacion.component';
+import { MainVentaObservacionComponent } from '../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component';
+import { MainCajaObservacionComponent } from '../../modules/financiero/pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -25,31 +49,38 @@ export class TabData {
 @Injectable({
   providedIn: 'root'
 })
-export class TabService {
+export class TabService implements OnInit {
 
   tabs: Tab[] = []
   currentIndex = -1;
   tabSub = new BehaviorSubject<Tab[]>(this.tabs);
   tabChangedEvent = new EventEmitter<any>();
 
-
   constructor(
-    private cargandoService: CargandoDialogService,
-    private productoService: ProductoService
+    private cargandoService: CargandoDialogService
   ) {
 
     this.tabs = [
-      // new Tab(ListFuncioarioComponent, 'Lista de funcionarios', null, null),
       // new Tab(VentaTouchComponent, 'Venta', null, null),
     ];
+
+    // this.addTab(new Tab(EditTransferenciaComponent, 'Transferencia 56', new TabData(56, {id: 56}), null))
+    // this.addTab(new Tab(VentaTouchComponent, 'Venta'))
+    // this.addTab(new Tab(ListProductoComponent, "Lista de productos"))
+    // this.addTab(new Tab(FinancieroDashboardComponent, "Dashboard Financiero"))
+    // this.addTab(new Tab(VentaTouchComponent, "Venta"))
+    //  this.addTab(new Tab(VentaTouchComponent, 'Venta'))
+    // this.addTab(new Tab(ListPedidoComponent, 'Lista de pedidos'))
+    // this.addTab(new Tab(EditPedidoComponent, 'Nuevo pedido', null, null))
+    //this.addTab(new Tab(ListCajaComponent, 'Venta 3160', new TabData(3160, {id:3160}), null))
+    //this.addTab(new Tab(ListCajaComponent, 'Observacion de cajas', null, null))
+    // this.addTab(new Tab(ProductoComponent, 'Lista de productos', null, null))
     this.tabSub.next(this.tabs);
-
-    // this.productoService.getProducto(1152).subscribe(res => {
-    //   console.log(res)
-    //   this.addTab(new Tab(ProductoComponent, 'Nuevo Producto', { data: res }))
-    // })
   }
-
+  
+  ngOnInit(): void {
+    // this.addTab(new Tab(CompraDashboardComponent, 'Compras', null, null))
+  }
 
   // Horario especial
 
@@ -62,7 +93,7 @@ export class TabService {
     return this.tabs[this.currentIndex];
   }
 
-  setTabActive(index): void {    
+  setTabActive(index): void {
     if (this.tabs.length > 0) {
       for (let i = 0; i < this.tabs.length; i++) {
         if (this.tabs[i].active === true) {
@@ -74,12 +105,13 @@ export class TabService {
       }
       this.currentIndex = index;
       this.tabSub.next(this.tabs);
+
     }
   }
 
   public removeTab(index: number): void {
     //buscar si tiene parent
-    const parentComponent = this.tabs[index].parentComponent ?? null;
+    const parentComponent = this.tabs[index]?.parentComponent ?? null;
     // remover tab
     this.tabs[index] = null
     this.tabs.splice(index, 1);
@@ -105,8 +137,8 @@ export class TabService {
     this.tabSub.next(this.tabs);
   }
 
-  public addTab(tab: Tab): void {    
-    this.cargandoService.openDialog()
+  public addTab(tab: Tab): void {
+    let rId = this.cargandoService.openDialog()
     const duplicado = this.tabs.findIndex(x => x.title == tab.title);
     if (duplicado == -1) {
       tab.id = this.tabs.length + 1;
@@ -118,7 +150,7 @@ export class TabService {
       this.setTabActive(duplicado);
     }
     setTimeout(() => {
-      this.cargandoService.closeDialog()
+      this.cargandoService.closeDialog(rId.requestId)
       // this.tabSub.next(this.tabs);
     }, 500);
   }
@@ -139,4 +171,23 @@ export class TabService {
     let index = this.tabs.findIndex(t => t.title == nombre);
     return index;
   }
+
+  reiniciarTab() {
+    let auxTab = new Tab()
+    Object.assign(auxTab, this.currentTab())
+    this.removeTab(this.currentIndex)
+    this.addTab(auxTab)
+  }
+
+  removeCurrentTab() {
+    this.removeTab(this.currentIndex)
+  }
+
+  changeCurrentTabName(name:string){
+    this.tabs[this.currentIndex].title = name;
+  }
 }
+
+// conteo -> conteo moneda -> caja -> gastos -> retiros -> retiro detalle -> 
+// cobro -> cobro detalle -> venta -> venta_item -> factura legal -> factura legal item
+

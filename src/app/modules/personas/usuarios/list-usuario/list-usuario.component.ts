@@ -10,6 +10,7 @@ import { ROLES } from '../../roles/roles.enum';
 import { AdicionarUsuarioDialogComponent } from '../adicionar-usuario-dialog/adicionar-usuario-dialog.component';
 import { Usuario } from '../usuario.model';
 import { UsuarioService } from '../usuario.service';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
 
 @UntilDestroy()
 @Component({
@@ -31,7 +32,7 @@ export class ListUsuarioComponent implements OnInit {
 
   readonly ROLES = ROLES
 
-  @ViewChild('buscar', {static: true}) buscar: ElementRef;
+  @ViewChild('buscar', { static: true }) buscar: ElementRef;
 
   dataSource = new MatTableDataSource<Usuario>([]);
   selectedUsuario: Usuario;
@@ -47,18 +48,19 @@ export class ListUsuarioComponent implements OnInit {
   constructor(
     public service: UsuarioService,
     private matDialog: MatDialog,
-    public mainService: MainService
+    public mainService: MainService,
+    private dialogoService: DialogosService
   ) { }
 
   ngOnInit(): void {
     this.cargarMasDatos()
   }
 
-  rowSelectedEvent(e){
+  rowSelectedEvent(e) {
   }
 
-  onFiltrar(){
-    if(this.buscarControl.valid){
+  onFiltrar() {
+    if (this.buscarControl.valid) {
       this.isSearching = true;
       this.service.onSeachUsuario(this.buscarControl.value)
         .pipe(untilDestroyed(this))
@@ -75,7 +77,7 @@ export class ListUsuarioComponent implements OnInit {
     }
   }
 
-  onAddUsuario(usuario?: Usuario, index?){
+  onAddUsuario(usuario?: Usuario, index?) {
     this.matDialog.open(AdicionarUsuarioDialogComponent, {
       data: {
         usuario
@@ -85,20 +87,34 @@ export class ListUsuarioComponent implements OnInit {
     })
   }
 
-  onEditRoles(usuario, i){
+  onEditRoles(usuario, i) {
 
   }
 
-  cargarMasDatos(){
+  cargarMasDatos() {
     this.isSearching = true;
     this.page++;
     this.service.onGetUsuarios(this.page)
-    .pipe(untilDestroyed(this))
-    .subscribe(res => {
-      if(res.length == 0) this.isLastPage = true;
-      this.isSearching = false;
-      this.dataSource.data = this.dataSource.data.concat(res)
+      .pipe(untilDestroyed(this))
+      .subscribe(res => {
+        if (res.length == 0) this.isLastPage = true;
+        this.isSearching = false;
+        this.dataSource.data = this.dataSource.data.concat(res)
+      })
+  }
+
+  onInitPassword(usuario: Usuario, i) {
+    this.dialogoService.confirm('Atención!! Estas reseteando una contraseña', 'Esta acción no se puede deshacer.').subscribe(dialogRes => {
+      if (dialogRes) {
+        let aux = new Usuario;
+        Object.assign(aux, usuario);
+        aux.password = '123';
+        this.service.onSaveUsuario(aux.toInput()).subscribe(res => {
+
+        })
+      }
     })
+
   }
 
 }

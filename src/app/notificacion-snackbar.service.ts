@@ -29,31 +29,31 @@ export class NotificacionSnackbarService {
     this.notification$.next({
       texto: "Guardado con éxito",
       color: NotificacionColor.success,
-      duracion: 2,
+      duracion: 2
     });
   }
 
-  openAlgoSalioMal(texto?){
+  openAlgoSalioMal(texto?, duracion = 4){
     this.notification$.next({
       texto: `Ups! Algo salió mal. ${texto}`,
       color: NotificacionColor.danger,
-      duracion: 4,
+      duracion: duracion,
     });
   }
 
-  openWarn(texto?){
+  openWarn(texto?, duracion = 3){
     this.notification$.next({
       texto: `${texto}`,
       color: NotificacionColor.warn,
-      duracion: 3,
+      duracion: duracion,
     });
   }
 
-  openSucess(texto?){
+  openSucess(texto?, duracion = 2){
     this.notification$.next({
       texto: `${texto}`,
       color: NotificacionColor.success,
-      duracion: 2,
+      duracion: duracion,
     });
   }
 }

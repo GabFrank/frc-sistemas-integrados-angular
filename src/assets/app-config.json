@@ -1,0 +1,32 @@
+{
+  "server": {
+    "ip": "localhost",
+    "port": "8081"
+  },
+  "central": {
+    "ip": "localhost",
+    "port": "8081"
+  },
+  "features": {
+    "useFinancieroDashBoard": true
+  },
+  "branding": {
+    "local": "CAJA 1",
+    "precios": "EXPO, EXPO-DEPOSITO",
+    "modo": "NOT"
+  },
+  "printers": {
+    "ticket": "ticket",
+    "factura": ""
+  },
+  "pdvId": 1,
+  "sucursales": [
+    {
+      "id": 0,
+      "nombre": "SERVIDOR",
+      "ip": "172.25.1.200",
+      "port": "8082"
+    }
+  ],
+  "initialized": true
+}

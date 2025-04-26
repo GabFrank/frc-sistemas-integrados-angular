@@ -12,15 +12,168 @@
 [![Star on GitHub][github-star-badge]][github-star]
 [![Tweet][twitter-badge]][twitter]
 
+# Franco Systems Frontend Analysis
+
+This document provides an analysis of the Franco Systems Frontend Angular application, focusing on initialization flow, database connection, and authentication processes. It also includes recommendations for code improvements.
+
+## Current Application Flow
+
+### Initialization Flow
+
+1. **Electron Application Start**:
+   - The application starts from `main.ts` (Electron main process) which creates the main browser window.
+   - IPC handlers are registered for communication between renderer and main processes.
+   - Printer configurations and other hardware-related setups are established.
+
+2. **Angular Application Bootstrap**:
+   - The Angular app loads with `AppModule` as the root module.
+   - In `AppModule`, there's an `APP_INITIALIZER` that calls `MainService.load()` before the app starts.
+   - The Apollo GraphQL client is configured to connect to the backend server(s) specified in the environment files.
+   - WebSocket connections are established for real-time updates.
+
+3. **Configuration Loading**:
+   - The `MainService.load()` method fetches the current branch (sucursal) details.
+   - Server connection details (IP, port) are retrieved from environment variables or local storage.
+   - Connection status is monitored through a BehaviorSubject (`connectionStatusSub`).
+
+### Database Connection
+
+The application doesn't connect directly to a database but uses GraphQL via Apollo Client:
+
+1. **Apollo Client Setup**:
+   - Configuration in `AppModule` creates HTTP and WebSocket links to the GraphQL server.
+   - Error handling is implemented with `onError` from Apollo.
+   - A custom timeout and abort mechanism is implemented for requests.
+
+2. **Multiple Server Support**:
+   - The application can connect to two servers: a local server and a central server.
+   - Server switching logic is implemented based on operation context (`clientName`).
+
+### Authentication Flow
+
+1. **Initial Authentication Check**:
+   - When `AppComponent` initializes, it checks if the user is already authenticated via `MainService.isAuthenticated()`.
+   - If not authenticated, it opens the `LoginComponent` dialog.
+
+2. **Login Process**:
+   - User enters credentials in the `LoginComponent`.
+   - On submission, `LoginService.login()` is called with the provided credentials.
+   - If successful, the user details are stored in localStorage (`token` and `usuarioId`).
+   - The `MainService.authenticationSub` BehaviorSubject is updated with the authentication status.
+   - A welcome message is shown briefly before closing the login dialog.
+
+3. **Server Configuration**:
+   - If login fails and the server isn't configured, the `ConfigurarServidorDialogComponent` opens to configure server settings.
+   - Server IP and port can be changed and stored in localStorage.
+
+4. **Connection Monitoring**:
+   - The application continuously monitors the connection to the server.
+   - Connection status is communicated through the UI using snackbar notifications.
+
+## Recommendations for Improvement
+
+### Code Structure and Organization
+
+1. **State Management**:
+   - Replace multiple BehaviorSubjects with a proper state management solution like NgRx or NGXS.
+   - Create a centralized auth state service instead of spreading authentication logic across multiple services.
+
+2. **Error Handling**:
+   - Implement a centralized error handling mechanism instead of scattered error handling logic.
+   - Add robust error reporting and logging for both development and production.
+
+3. **Code Duplication**:
+   - The `AppModule` has a complex Apollo setup that could be extracted into a separate service.
+   - Printer handling in `main.ts` should be refactored into separate modules for better maintainability.
+
+### Performance Improvements
+
+1. **Lazy Loading**:
+   - Implement module lazy loading to reduce initial bundle size.
+   - Make sure all heavy components are loaded only when needed.
+
+2. **Memory Management**:
+   - Fix potential memory leaks with proper subscription management (although @UntilDestroy is already in use).
+   - Implement proper cleanup in ngOnDestroy methods.
+
+3. **Caching Strategy**:
+   - Implement Apollo's cache policies more effectively for frequently accessed data.
+   - Use Apollo's persisted queries feature to reduce payload sizes.
+
+### Reliability Enhancements
+
+1. **Offline Support**:
+   - Implement better offline capabilities using service workers.
+   - Add local caching of critical data to work without a connection.
+
+2. **Error Recovery**:
+   - Add auto-reconnect logic with exponential backoff for network failures.
+   - Implement transaction queuing when offline to sync when connection is restored.
+
+3. **Security Improvements**:
+   - Store authentication tokens securely (consider using electron-store with encryption).
+   - Implement token refresh mechanisms to avoid sessions expiring during active use.
+
+### Code Quality
+
+1. **TypeScript Strictness**:
+   - Enable strict mode in tsconfig to catch more errors at compile time.
+   - Fix type issues in the codebase (like the AppComponent error in declarations).
+
+2. **Testing**:
+   - Add comprehensive unit and integration tests.
+   - Implement E2E tests for critical user flows.
+
+3. **Documentation**:
+   - Add JSDoc comments to key methods and classes.
+   - Document complex business logic and component interactions.
+
+### UI/UX Improvements
+
+1. **Loading States**:
+   - Implement better loading indicators for network operations.
+   - Add skeleton screens instead of just loading spinners.
+
+2. **Error Feedback**:
+   - Improve error messages to be more user-friendly and actionable.
+   - Add guidance for resolving common issues (e.g., connection problems).
+
+3. **Accessibility**:
+   - Ensure all UI components meet WCAG guidelines.
+   - Add keyboard navigation support throughout the application.
+
+## Implementation Plan
+
+To implement these recommendations, a phased approach is suggested:
+
+1. **Phase 1: Critical Fixes**
+   - Fix the AppComponent declaration issue
+   - Implement centralized error handling
+   - Address memory leaks and subscription management
+
+2. **Phase 2: Architecture Improvements**
+   - Refactor to proper state management
+   - Implement lazy loading
+   - Extract the Apollo setup into a dedicated service
+
+3. **Phase 3: Performance & Reliability**
+   - Add offline support
+   - Implement caching strategies
+   - Enhance security features
+
+4. **Phase 4: Quality & UX**
+   - Add comprehensive testing
+   - Improve documentation
+   - Enhance UI/UX with better loading states and error handling
+
 # Introduction
 
-Bootstrap and package your project with Angular 12 and Electron 13 (Typescript + SASS + Hot Reload) for creating Desktop applications.
+Bootstrap and package your project with Angular 15 and Electron 21 (Typescript + SASS + Hot Reload) for creating Desktop applications.
 
 Currently runs with:
 
-- Angular v12.1.2
-- Electron v13.1.7
-- Electron Builder v22.11.9
+- Angular v15.1.5
+- Electron v23.1.0
 
 With this sample, you can:
 
@@ -76,24 +229,23 @@ You can disable "Developer Tools" by commenting `win.webContents.openDevTools();
 
 ## Project structure
 
-|Folder|Description|
-| ---- | ---- |
-| app | Electron main process folder (NodeJS) |
-| src | Electron renderer process folder (Web / Angular) |
+| Folder | Description                                      |
+|--------|--------------------------------------------------|
+| app    | Electron main process folder (NodeJS)            |
+| src    | Electron renderer process folder (Web / Angular) |
 
 ## How to import 3rd party libraries
 
 This sample project runs in both modes (web and electron). To make this work, **you have to import your dependencies the right way**. \
 
 There are two kind of 3rd party libraries :
-- NodeJS's one (like an ORM, Database...)
-    - Used in electron's Main process (app folder) have to be added in `dependencies` of `app/package.json`
-    - Used in electron's Renderer process (src folder) have to be added in `dependencies` of both `app/package.json` and `src/package.json`
+- NodeJS's one - Uses NodeJS core module (crypto, fs, util...)
+    - I suggest you add this kind of 3rd party library in `dependencies` of both `app/package.json` and `package.json (root folder)` in order to make it work in both Electron's Main process (app folder) and Electron's Renderer process (src folder).
 
 Please check `providers/electron.service.ts` to watch how conditional import of libraries has to be done when using NodeJS / 3rd party libraries in renderer context (i.e. Angular).
 
 - Web's one (like bootstrap, material, tailwind...)
-    - It have to be added in `dependencies` of `src/package.json`
+    - It have to be added in `dependencies` of `package.json  (root folder)`
 
 ## Add a dependency with ng-add
 
@@ -106,13 +258,12 @@ Maybe you only want to execute the application in the browser with hot reload? J
 
 ## Included Commands
 
-|Command|Description|
-| ---- | ---- |
-|`npm run ng:serve`| Execute the app in the browser |
-|`npm run build`| Build the app. Your built files are in the /dist folder. |
-|`npm run build:prod`| Build the app with Angular aot. Your built files are in the /dist folder. |
-|`npm run electron:local`| Builds your application and start electron
-|`npm run electron:build`| Builds your application and creates an app consumable based on your operating system |
+| Command                  | Description                                                                                           |
+|--------------------------|-------------------------------------------------------------------------------------------------------|
+| `npm run ng:serve`       | Execute the app in the web browser (DEV mode)                                                         |
+| `npm run web:build`      | Build the app that can be used directly in the web browser. Your built files are in the /dist folder. |
+| `npm run electron:local` | Builds your application and start electron locally                                                    |
+| `npm run electron:build` | Builds your application and creates an app consumable based on your operating system                  |
 
 **Your application is optimised. Only /dist folder and NodeJS dependencies are included in the final bundle.**
 
@@ -126,9 +277,9 @@ Then use your library by importing it in `app/main.ts` file. Quite simple, isn't
 
 E2E Test scripts can be found in `e2e` folder.
 
-|Command|Description|
-| ---- | ---- |
-|`npm run e2e`| Execute end to end tests |
+| Command       | Description               |
+|---------------|---------------------------|
+| `npm run e2e` | Execute end to end tests  |
 
 Note: To make it work behind a proxy, you can add this proxy exception in your terminal  
 `export {no_proxy,NO_PROXY}="127.0.0.1,localhost"`
@@ -143,6 +294,10 @@ Finally from VsCode press **Ctrl+Shift+D** and select **Application Debug** and 
 
 Please note that Hot reload is only available in Renderer process.
 
+## Want to use Angular Material ? Ngx-Bootstrap ?
+
+Please refer to [HOW_TO file](./HOW_TO.md)
+
 ## Branch & Packages version
 
 - Angular 4 & Electron 1 : Branch [angular4](https://github.com/maximegris/angular-electron/tree/angular4)
@@ -153,11 +308,14 @@ Please note that Hot reload is only available in Renderer process.
 - Angular 9 & Electron 7 : Branch [angular9](https://github.com/maximegris/angular-electron/tree/angular9)
 - Angular 10 & Electron 9 : Branch [angular10](https://github.com/maximegris/angular-electron/tree/angular10)
 - Angular 11 & Electron 12 : Branch [angular11](https://github.com/maximegris/angular-electron/tree/angular11)
-- Angular 12 & Electron 13 : (master)
+- Angular 12 & Electron 16 : Branch [angular12](https://github.com/maximegris/angular-electron/tree/angular12)
+- Angular 13 & Electron 18 : Branch [angular13](https://github.com/maximegris/angular-electron/tree/angular13)
+- Angular 14 & Electron 21 : Branch [angular14](https://github.com/maximegris/angular-electron/tree/angular14)
+- Angular 15 & Electron 22 : (main)
 
 [maintained-badge]: https://img.shields.io/badge/maintained-yes-brightgreen
 [license-badge]: https://img.shields.io/badge/license-MIT-blue.svg
-[license]: https://github.com/maximegris/angular-electron/blob/master/LICENSE.md
+[license]: https://github.com/maximegris/angular-electron/blob/main/LICENSE.md
 [prs-badge]: https://img.shields.io/badge/PRs-welcome-red.svg
 [prs]: http://makeapullrequest.com
 

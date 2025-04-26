@@ -131,20 +131,77 @@ export const savePedidoItem = gql`
       producto {
         id
         descripcion
+        presentaciones {
+          id
+          cantidad
+        }
+        codigoPrincipal
       }
+      presentacionCreacion {
+        id
+        cantidad
+      }
+      pedido {
+        id
+      }
+      notaRecepcion {
+        id
+      }
+      precioUnitarioCreacion
+      descuentoUnitarioCreacion
+      bonificacion
+      bonificacionDetalle
+      estado
+      vencimientoCreacion
+      creadoEn
+      cantidadCreacion
+      valorTotal
+      precioUnitarioRecepcionNota
+      descuentoUnitarioRecepcionNota
+      vencimientoRecepcionNota
+      presentacionRecepcionNota {
+        id
+        cantidad
+      }
+      cantidadRecepcionNota
+      precioUnitarioRecepcionProducto
+      descuentoUnitarioRecepcionProducto
+      vencimientoRecepcionProducto
+      presentacionRecepcionProducto {
+        id
+        cantidad
+      }
+      cantidadRecepcionProducto
+      usuarioRecepcionNota {
+        id
+      }
+      usuarioRecepcionProducto {
+        id
+      }
+      obsCreacion
+      obsRecepcionNota
+      obsRecepcionProducto
+      autorizacionRecepcionNota
+      autorizacionRecepcionProducto
+      autorizadoPorRecepcionNota {
+        id
+      }
+      autorizadoPorRecepcionProducto {
+        id
+      }
+      motivoModificacionRecepcionNota
+      motivoModificacionRecepcionProducto
+      motivoRechazoRecepcionNota
+      motivoRechazoRecepcionProducto
+      cancelado
+      verificadoRecepcionNota
+      verificadoRecepcionProducto
+      precioUnitario
+      cantidad
       presentacion {
         id
         cantidad
       }
-      precioUnitario
-      descuentoUnitario
-      bonificacion
-      bonificacionDetalle
-      estado
-      vencimiento
-      creadoEn
-      cantidad
-      valorTotal
     }
   }
 `;

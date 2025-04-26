@@ -1,26 +1,61 @@
-
-
-<div fxLayout="column" style="width: 100%;" fxLayoutGap="10px">
-    <div fxLayout="row" style="width: 100%;" fxLayoutGap="10px">
-        <div fxFlex="10%">
-            <mat-icon>search</mat-icon>
-        </div>
-        <div fxFlex="90%">
-            <mat-form-field style="width: 100%;">
-                <mat-label>Buscar cualquier cosa bro</mat-label>
-                <input type="text" matInput [formControl]="buscarControl" (keyup)="onBuscar()">
-            </mat-form-field>
-        </div>
+<div fxLayout="column" style="width: 100%" fxLayoutGap="15px">
+  <div
+    fxLayout="row"
+    style="width: 100%"
+    fxLayoutGap="10px"
+    fxLayoutAlign="start center"
+  >
+    <div fxFlex="100%">
+      <mat-form-field style="width: 100%; padding: 10px">
+        <input
+          type="text"
+          matInput
+          [formControl]="buscarControl"
+          (keyup)="onBuscar()"
+          placeholder="Buscar listas, productos, reportes etc."
+        />
+        <span matTextPrefix style="padding-right: 20px">
+          <mat-icon style="font-size: 2em">search</mat-icon>
+        </span>
+      </mat-form-field>
     </div>
-    <div fxFlex fxLayout="column" style="width: 100%; height: 100%;">
-        {{searchDataList?.componentes.length > 0 ? 'Menu' : ''}}
-        <mat-card class="hover" fxFlex *ngFor="let item of searchDataList?.componentes" (click)="onClick(item)">
-            {{item?.title | uppercase}}
-        </mat-card>
-        <mat-divider *ngIf="searchDataList?.productos.length > 0" style="width: 100%;"></mat-divider>
-        {{searchDataList?.productos.length > 0 ? 'Productos' : ''}}
-        <mat-card class="hover" fxFlex *ngFor="let item of searchDataList?.productos" (click)="onClick(item)">
-            {{item?.title | uppercase}}
-        </mat-card>
+  </div>
+  <div fxFlex fxLayout="column" style="width: 100%; height: 100%">
+    <div
+      style="padding-left: 20px; font-size: small; color: rgb(193, 193, 193)"
+    >
+      {{ searchDataList?.componentes.length > 0 ? "Menu" : "" }}
     </div>
+    <div
+      appearance="outlined"
+      class="hover"
+      fxFlex
+      *ngFor="let item of searchDataList?.componentes"
+      (click)="onClick(item)"
+      style="font-size: medium; padding-top: 5px; padding-bottom: 5px; padding-left: 20px;"
+    >
+      {{ item?.title | titlecase }}
+    </div>
+    <div
+      style="padding-left: 20px; font-size: small; color: rgb(193, 193, 193)"
+    >
+      <mat-divider
+        *ngIf="searchDataList?.productos.length > 0"
+        style="width: 100%"
+      ></mat-divider>
+      <br>
+      {{ searchDataList?.productos.length > 0 ? "Productos" : "" }}
+    </div>
+    <div
+      appearance="outlined"
+      class="hover"
+      fxFlex
+      *ngFor="let item of searchDataList?.productos"
+      (click)="onClick(item)"
+      style="font-size: medium; padding-top: 5px; padding-bottom: 5px; padding-left: 20px;"
+    >
+      {{ item?.title | titlecase }}
+    </div>
+    <br>
+  </div>
 </div>

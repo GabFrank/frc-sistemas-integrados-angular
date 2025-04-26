@@ -1,32 +1,46 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "strict": false,
+    "strictNullChecks": false,
     "outDir": "./dist/out-tsc",
-    "rootDir": "./src",
-    "module": "es2020",
+    "module": "es2022",
     "sourceMap": true,
     "declaration": false,
     "moduleResolution": "node",
-    "emitDecoratorMetadata": true,
+    "emitDecoratorMetadata": false,
     "experimentalDecorators": true,
-    "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true,
     "allowJs": true,
-    "target": "es5",
-    "checkJs": true,
-    "types": ["node"],
-    "typeRoots": ["node_modules/@types"],
-    "lib": ["es2017", "es2016", "es2015", "dom"],
-    "strict": false
+    "target": "ES2022",
+    "typeRoots": [
+      "node_modules/@types",
+      "node_modules"
+    ],
+    "lib": [
+      "es2017",
+      "es2016",
+      "es2015",
+      "es2018",
+      "es2020",
+      "dom"
+    ],
+    "useDefineForClassFields": false
   },
-  "angularCompilerOptions": {
-    "fullTemplateTypeCheck": false,
-    "strictInjectionParameters": false,
-    "strictTemplates": false,
-    "strictAttributeTypes": false
-  },
-  // "include": [
-  //   "src/**/*.d.ts"
+  // "exclude": [
+  //   "node_modules",
+  //   "release",
+  //   "dist",
+  //   ".angular"
   // ],
-  "exclude": ["node_modules", "dist", "app", "release"]
+  "include": ["src/**/*.ts", "src/**/*.html"],
+  "angularCompilerOptions": {
+    "strictTemplates": true,
+    "fullTemplateTypeCheck": true,
+    "annotateForClosureCompiler": true,
+    "strictInjectionParameters": true,
+    "skipTemplateCodegen": false,
+    "preserveWhitespaces": true,
+    "skipMetadataEmit": false,
+    "disableTypeScriptVersionCheck": true
+  }
 }

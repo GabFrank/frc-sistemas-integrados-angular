@@ -1,0 +1,14 @@
+{
+  "serverIp": "localhost",
+  "serverPort": "8081",
+  "serverCentralIp": "localhost",
+  "serverCentralPort": "8081",
+  "printers": {
+    "ticket": "ticket-mb",
+    "factura": "factura"
+  },
+  "local": "Caja 1",
+  "precios": "EXPO, EXPO-DEPOSITO",
+  "modo": "NOT",
+  "pdvId": 2
+}

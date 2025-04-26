@@ -1,9 +1,5 @@
-import {NgModule} from '@angular/core';
-import {Apollo, APOLLO_OPTIONS} from 'apollo-angular';
-import {ApolloClientOptions, ApolloLink, InMemoryCache} from '@apollo/client/core';
-import {HttpLink} from 'apollo-angular/http';
-import { setContext } from '@apollo/client/link/context';
-import { HttpClientModule, HttpHeaders } from '@angular/common/http';
+import { HttpClientModule } from '@angular/common/http';
+import { NgModule } from '@angular/core';
 
 
 @NgModule({

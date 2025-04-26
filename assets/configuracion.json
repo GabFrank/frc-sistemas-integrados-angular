@@ -1,0 +1,14 @@
+{
+  "repositoryUrl": "https://github.com/GabFrank/franco-system-frontend-general.git",
+  "ip": "localhost",
+  "port": "8082",
+  "useFinancieroDashBoard": false,
+  "sucursales": [
+    {
+      "id": 0,
+      "nombre": "SERVIDOR",
+      "ip": "172.25.1.200",
+      "port": "8082"
+    }
+  ]
+}

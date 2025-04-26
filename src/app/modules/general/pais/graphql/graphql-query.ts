@@ -15,6 +15,9 @@ export const paisesSearch = gql
       id
       descripcion
       codigo
+      usuario {
+        id
+      }
     }
   }`
 

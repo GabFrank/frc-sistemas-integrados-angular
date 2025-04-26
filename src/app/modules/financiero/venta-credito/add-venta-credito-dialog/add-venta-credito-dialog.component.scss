@@ -5,3 +5,25 @@ input {
 table {
     width: 100%;
 }
+
+.floating-label-slide-toggle {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    bottom: -10px;
+    text-align: center;
+  
+    .floating-label {
+      position: absolute;
+      top: -12px; /* Adjust this value based on your design */
+      left: 10px; /* Adjust this value based on your design */
+      font-size: 12px;
+      color: #868686; /* You can customize the color */
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+  
+    .custom-slide-toggle {
+      margin-top: 10px; /* Add margin to ensure it doesn't overlap with the label */
+    }
+  }

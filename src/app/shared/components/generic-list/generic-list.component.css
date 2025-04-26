@@ -6,4 +6,9 @@ table {
   cursor: pointer;
 }
 
+.boton {
+  width: 100%;
+  min-height: 30px;
+}
+
 

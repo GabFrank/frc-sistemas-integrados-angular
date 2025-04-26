@@ -1,4 +1,72 @@
 th, td {
     text-align: center;
-    width: 12.5%;
+}
+
+.mat-column-acciones {
+    width: 120px;
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.titulo-center {
+    text-align: center;
+    font-weight: 500;
+    margin-bottom: 1rem;
+}
+
+table {
+    width: 100%;
+}
+
+.mat-mdc-card {
+    margin-bottom: 16px;
+}
+
+.badge {
+    padding: 6px 12px;
+    border-radius: 16px;
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+// Dialog dimensions
+::ng-deep .mat-mdc-dialog-container .mdc-dialog__surface {
+    min-width: 800px;
+    max-width: 90vw;
+    max-height: 90vh;
+}
+
+// Dark theme adjustments
+::ng-deep.mat-mdc-row:hover .mat-mdc-cell {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+// Loading spinner container
+.text-center {
+    text-align: center;
+}
+
+.p-3 {
+    padding: 1rem;
+}
+
+.mt-2 {
+    margin-top: 0.5rem;
+}
+
+.mx-auto {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+// Responsive adjustments for small screens
+@media (max-width: 768px) {
+    ::ng-deep .mat-mdc-dialog-container .mdc-dialog__surface {
+        min-width: 100%;
+    }
 }

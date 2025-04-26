@@ -48,7 +48,6 @@ export class UtilitariosDialogComponent implements OnInit {
     public matDialog: MatDialog,
     private mainService: MainService
   ) {
-    console.log(data)
     if (data?.caja != null) this.selectedCaja = data.caja;
   }
 
@@ -71,6 +70,7 @@ export class UtilitariosDialogComponent implements OnInit {
       .open(AdicionarCajaDialogComponent, {
         data: {
           caja: this.selectedCaja,
+          isVentaTouch: true
         },
         width: "90%",
         height: "95vh",

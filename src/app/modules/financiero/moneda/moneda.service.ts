@@ -1,19 +1,19 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { MonedasGetAllGQL } from './graphql/monedasGetAll';
 import { Moneda } from './moneda.model';
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { CurrencyMaskInputMode } from 'ngx-currency';
+import { UsuarioService } from '../../personas/usuarios/usuario.service';
+import { MainService } from '../../../main.service';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: 'root'
 })
 export class MonedaService {
-
-  monedaList: Moneda[]
 
   currencyOptionsGuarani = {
     allowNegative: true,
@@ -47,16 +47,17 @@ export class MonedaService {
 
   constructor(
     private getAllMonedas: MonedasGetAllGQL,
-    private genericService: GenericCrudService
+    private genericService: GenericCrudService,
+    private mainService: MainService
   ) { 
-    this.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
-      if(res!=null){
-        this.monedaList = res;
-      }
-    })
+    // mainService.usuarioActual != null ? this.onGetAll().pipe(untilDestroyed(this)).subscribe(res => {
+    //   if(res!=null){
+    //     this.monedaList = res;
+    //   }
+    // }) : null;
   }
 
-  onGetAll(): Observable<Moneda[]>{
-    return this.genericService.onGetAll(this.getAllMonedas);
+  onGetAll(servidor: boolean = true): Observable<Moneda[]>{
+    return this.genericService.onGetAll(this.getAllMonedas, null, null, servidor);
   }
 }

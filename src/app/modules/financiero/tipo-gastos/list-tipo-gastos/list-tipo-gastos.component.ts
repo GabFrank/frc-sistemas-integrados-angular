@@ -191,8 +191,7 @@ export class ListTipoGastosComponent implements OnInit {
 
   deleteFromDataSource(node: ExampleFlatNode){
     let index = this.treeControl.dataNodes.findIndex(e => e.id == node.id)
-    console.log('eliminando ', node)
-    this.treeControl.dataNodes[index] = null; 
+    this.treeControl.dataNodes[index] = null;
   }
 
   expandAnsestrales(node: ExampleFlatNode, nodes: ExampleFlatNode[]) {

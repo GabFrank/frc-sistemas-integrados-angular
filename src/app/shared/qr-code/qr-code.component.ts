@@ -1,7 +1,5 @@
-import { Component, Inject, OnInit, ViewChild, ElementRef } from '@angular/core';
-import { AngularFirestore } from '@angular/fire/firestore';
-import { AngularFireStorage } from '@angular/fire/storage';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { Component, Inject, OnInit } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 
 
 //  ejemp
@@ -20,10 +18,10 @@ export interface QrCodeDialogData {
   nombre: any;
   codigo: QrData;
   segundos?: number;
+  imprimir?: boolean;
 }
 
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { QrcodeComponent } from '@techiediaries/ngx-qrcode';
+import { UntilDestroy } from '@ngneat/until-destroy';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -32,7 +30,6 @@ import { QrcodeComponent } from '@techiediaries/ngx-qrcode';
   styleUrls: ['./qr-code.component.scss']
 })
 export class QrCodeComponent implements OnInit {
-
 
   value = '';
   isQrShow = true;
@@ -69,6 +66,11 @@ export class QrCodeComponent implements OnInit {
     this.dialogRef.close()
   }
 
+  onImprimir(){
+    clearTimeout(this.timer)
+    this.dialogRef.close('imprimir')
+  }
+
 }
 
 //logica de codigos qr
@@ -90,4 +92,4 @@ export function descodificarQr(codigo: string) {
     timestamp: arr[7]
   }
   return res;
-}  
+}

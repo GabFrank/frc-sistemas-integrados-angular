@@ -23,11 +23,11 @@ export class VentaTouchService {
   ) {
     
    }
-  onGetCaja(){
+  onGetCaja(servidor: boolean = false){
     return new Observable(obs => {
       let usuarioId = localStorage.getItem('usuarioId');
       if(usuarioId!=null){
-        this.cajaService.onGetByUsuarioIdAndAbierto(+usuarioId).pipe(untilDestroyed(this)).subscribe(res => {
+        this.cajaService.onGetByUsuarioIdAndAbierto(+usuarioId, null, servidor).pipe(untilDestroyed(this)).subscribe(res => {
           if(res!=null){
             this.selectedCaja = res;
             obs.next(res)
@@ -43,7 +43,7 @@ export class VentaTouchService {
     }
   }
 
-  onSaveVenta(venta: Venta, cobro: Cobro, ticket,  ventaCreditoInput, ventaCreditoCuotaInputList): Observable<any>{
-    return this.ventaService.onSaveVenta(venta, cobro, ticket,  ventaCreditoInput, ventaCreditoCuotaInputList)
+  onSaveVenta(venta: Venta, cobro: Cobro, ticket, ventaCreditoInput, ventaCreditoCuotaInputList, isFactura?: boolean, servidor: boolean = false): Observable<any>{
+    return this.ventaService.onSaveVenta(venta, cobro, ticket, ventaCreditoInput, ventaCreditoCuotaInputList, isFactura, servidor)
   }
 }

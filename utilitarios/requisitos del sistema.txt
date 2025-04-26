@@ -1,0 +1,278 @@
+ESPECIFICACIONES DEL SISTEMA
+===========================
+
+1. ARQUITECTURA GENERAL
+----------------------
+- Tipo: Aplicación distribuida multicapa
+- Patrón de arquitectura: Cliente-Servidor
+- Protocolo de comunicación: GraphQL
+
+2. COMPONENTES DEL SISTEMA
+-------------------------
+2.1 Base de Datos
+- Motor: PostgreSQL 16
+- Características principales:
+  * Replicación lógica habilitada
+  * Alta disponibilidad
+  * Sistema de respaldo automatizado
+
+2.2 Backend
+- Framework: Spring Boot (Java)
+- Características principales:
+  * API GraphQL
+  * Servicios RESTful
+  * Gestión de autenticación y autorización
+  * Manejo de transacciones
+  * Logging y monitoreo
+
+2.3 Frontend
+a) Aplicación de Escritorio
+- Framework: Angular 15 + Electron
+- Características:
+  * Interfaz de usuario con Angular Material
+  * Modo offline
+  * Actualizaciones automáticas
+  * Integración con sistema operativo
+
+b) Aplicación Móvil
+- Framework: Angular 15 + Ionic
+- Características:
+  * Diseño responsive
+  * PWA capabilities
+  * Acceso a características nativas del dispositivo
+
+2.4 Capa de Comunicación
+- GraphQL (Apollo)
+- Características:
+  * Queries optimizadas
+  * Subscriptions para datos en tiempo real
+  * Cache management
+  * Error handling
+
+3. MÓDULOS DEL SISTEMA
+---------------------
+
+3.1 Módulo de Administración (Schema: administrativo)
+- Descripción: Gestión de autorizaciones y marcaciones del sistema
+- Tipos de datos (ENUM):
+  * estado_autorizacion:
+    - EN ESPERA
+    - CANCELADO
+    - AUTORIZADO
+    - NO_AUTORIZADO
+  * tipo_autorizacion:
+    - MARCACION
+  * tipo_marcacion:
+    - ENTRADA
+    - SALIDA
+
+3.2 Módulo de Configuración (Schema: configuraciones)
+- Descripción: Gestión de configuraciones del sistema y dispositivos
+- Tablas:
+  * inicio_sesion:
+    - id: bigint
+    - usuario_id: bigint
+    - id_dispositivo: text
+    - hora_inicio: timestamp
+    - hora_fin: timestamp
+    - creado_en: timestamp
+    - sucursal_id: bigint
+    - token: text
+    - tipo_dispositivo: tipo_dispositivo
+  * local:
+    - id: bigint
+    - sucursal_id: bigint
+    - creado_en: timestamp
+    - usuario_id: bigint
+    - equipo_id: bigint
+    - is_servidor: boolean
+  * rabbitmq_msg:
+    - id: bigint
+    - tipo_accion: text
+    - tipo_entidad: text
+    - entidad: text
+    - id_sucursal_origen: bigint
+    - data: jsonb
+    - recibido_en_servidor: boolean
+    - recibido_en_filial: boolean
+    - exchange: text
+    - key: text
+    - class_type: text
+- Tipos de datos (ENUM):
+  * nivel_actualizacion:
+    - CRITICO
+    - MODERADO
+    - MANTENIMIENTO
+  * nivel_error:
+    - INFO
+    - ALERTA
+    - PELIGRO
+    - CRITICO
+  * tipo_actualizacion:
+    - MOBILE
+    - DESKTOP
+    - SERVIDOR_FILIAL
+    - SERVIDOR_CENTRAL
+  * tipo_dispositivo:
+    - ANDROID
+    - IOS
+    - DESKTOP_WIN
+    - DESKTOP_LIN
+    - DESKTOP_MAC
+    - WEBWEB_MOBILE
+  * tipo_error:
+    - APLICACION
+    - BASE_DE_DATOS
+
+3.3 Módulo Empresarial (Schema: empresarial)
+- Descripción: Gestión de estructura organizacional
+- Tablas:
+  * cargo:
+    - id: bigint
+    - nombre: text
+    - descripcion: text
+    - supervisado_por_id: bigint
+    - sueldo_base: numeric
+    - usuario_id: bigint
+    - creado_en: timestamp
+  * sucursal:
+    - id: bigint
+    - nombre: text
+    - localizacion: text
+    - ciudad_id: bigint
+    - usuario_id: bigint
+    - creado_en: timestamp
+    - deposito: boolean
+    - deposito_predeterminado: boolean
+    - direccion: text
+    - nro_delivery: text
+    - is_configured: boolean
+    - codigo_establecimiento_factura: text
+    - ip: text
+    - puerto: integer
+  * zona:
+    - id: bigint
+    - sector_id: bigint
+    - descripcion: text
+    - activo: boolean
+    - usuario_id: bigint
+    - creado_en: timestamp
+
+3.4 Módulo de Equipos (Schema: equipos)
+- Descripción: Gestión de equipamiento
+- Tablas:
+  * equipo:
+    - id: bigint
+    - marca: text
+    - modelo: text
+    - costo: numeric
+    - descripcion: text
+    - imagenes: text[]
+    - usuario_id: bigint
+    - creado_en: timestamp
+    - tipo_equipo_id: bigint
+    - sucursal_id: bigint
+  * tipo_equipo:
+    - id: bigint
+    - descripcion: text
+    - usuario_id: bigint
+    - creado_en: timestamp
+    - sucursal_id: bigint
+
+3.5 Módulo Financiero (Schema: financiero)
+- Descripción: Gestión financiera y bancaria
+- Tablas:
+  * banco
+  * cambio
+  * cuenta_bancaria
+  * factura_legal
+  * gasto
+- Tipos de datos (ENUM):
+  * estado_retiro:
+    - EN_PROCESO
+    - CONCLUIDO
+    - NECESITA_VERIFICACION
+    - EN_VERIFICACION
+    - VERIFICADO_CONCLUIDO_SIN_PROBLEMA
+    - VERIFICADO_CONCLUIDO_CON_PROBLEMA
+  * estado_venta_credito:
+    - ABIERTO
+    - FINALIZADO
+    - EN_MORA
+    - INCOBRABLE
+    - CANCELADO
+
+3.6 Módulo de Operaciones (Schema: operaciones)
+- Descripción: Gestión de inventarios y operaciones
+- Tablas:
+  * inventario:
+    - id: bigint
+    - id_central: bigint
+    - id_origen: bigint
+    - sucursal_id: bigint
+    - fecha_inicio: timestamp
+    - fecha_fin: timestamp
+    - abierto: boolean
+    - tipo: tipo_inventario
+    - estado: inventario_estado
+    - usuario_id: bigint
+    - observacion: text
+  * inventario_producto:
+    - id: bigint
+    - inventario_id: bigint
+    - producto_id: bigint
+    - zona_id: bigint
+    - concluido: boolean
+    - usuario_id: bigint
+    - creado_en: timestamp
+  * inventario_producto_item:
+    - id: bigint
+    - inventario_producto_id: bigint
+    - presentacion_id: bigint
+    - zona_id: bigint
+    - cantidad: numeric
+    - vencimiento: date
+    - estado: inventario_producto_estado
+    - usuario_id: bigint
+    - creado_en: timestamp
+    - cantidad_fisica: numeric
+
+3.7 Módulo de Productos (Schema: productos)
+- Descripción: Gestión de productos y presentaciones
+- Tablas:
+  * tipo_presentacion:
+    - id: bigint
+    - descripcion: text
+    - unico: boolean
+    - usuario_id: bigint
+    - creado_en: timestamp
+
+3.8 Módulo de Vehículos (Schema: vehiculos)
+- Descripción: Gestión de flota vehicular
+- Tablas:
+  * marca:
+    - id: bigint
+    - descripcion: text
+    - usuario_id: bigint
+    - creado_en: timestamp
+  * modelo:
+    - id: bigint
+    - marca_id: bigint
+    - descripcion: text
+    - usuario_id: bigint
+    - creado_en: timestamp
+  * vehiculo:
+    - id: bigint
+    - modelo_id: bigint
+    - chapa: text
+    - color: text
+    - usuario_id: bigint
+    - creado_en: timestamp
+  * vehiculo_sucursal:
+    - id: bigint
+    - vehiculo_id: bigint
+    - sucursal_id: bigint
+    - activo: boolean
+    - usuario_id: bigint
+    - creado_en: timestamp
+

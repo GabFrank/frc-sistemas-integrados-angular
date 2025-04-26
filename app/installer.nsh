@@ -1,0 +1,3 @@
+!macro customInit
+
+!macroend

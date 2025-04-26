@@ -69,7 +69,7 @@ export class CompraItemInput {
   vencimiento: Date;
   estado: CompraItemEstado;
   creadoEn: Date;
-  usuarioId: number;
+  usuarioId: number = null;
   pedidoItemId: number;
   verificado: boolean
 
