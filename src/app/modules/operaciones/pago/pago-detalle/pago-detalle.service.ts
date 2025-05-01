@@ -54,9 +54,11 @@ export class PagoDetalleService {
     return this.genericService.onDelete(
       this.deletePagoDetalleMutation,
       id,
-      'Detalle de Pago',
+      '¿Eliminar detalle de pago?',
       null,
-      false
+      false,
+      true,
+      "¿Está seguro que desea eliminar este detalle de pago?"
     );
   }
 

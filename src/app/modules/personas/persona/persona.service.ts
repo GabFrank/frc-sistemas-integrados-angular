@@ -54,7 +54,7 @@ export class PersonaService {
   }
 
   onDeletePersona(id, servidor: boolean = true): Observable<boolean> {
-    return this.genericService.onDelete(this.deletePersona, id, null, null, true, servidor)
+    return this.genericService.onDelete(this.deletePersona, id, "¿Eliminar persona?", null, true, servidor, "¿Está seguro que desea eliminar esta persona?");
   }
 
   onDeletePersonaSinDialogo(id, servidor: boolean = true): Observable<boolean> {

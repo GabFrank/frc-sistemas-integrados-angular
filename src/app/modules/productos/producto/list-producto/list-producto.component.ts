@@ -152,6 +152,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       this.filtroProductoInput.nativeElement.focus();
     }, 500);
 
+    //log usuario roles
+    console.log(this.mainService.usuarioActual?.roles);
   }
 
   createForm() {}

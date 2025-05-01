@@ -90,7 +90,11 @@ export class InventarioService {
     return this.genericCrudService.onDelete(
       this.deleteTransfencia,
       id,
-      "Realmente  desea eliminar esta inventario?"
+      "¿Eliminar inventario?",
+      null,
+      true,
+      true,
+      "¿Está seguro que desea eliminar este inventario?"
     );
   }
 
@@ -102,7 +106,11 @@ export class InventarioService {
     return this.genericCrudService.onDelete(
       this.deleteInventarioProducto,
       id,
-      "Realmente  desea eliminar este item"
+      "¿Eliminar inventario producto?",
+      null,
+      true,
+      true,
+      "¿Está seguro que desea eliminar este inventario producto?"
     );
   }
 
@@ -117,7 +125,11 @@ export class InventarioService {
     return this.genericCrudService.onDelete(
       this.deleteInventarioProductoItem,
       id,
-      "Realmente  desea eliminar este item"
+      "¿Eliminar inventario producto item?",
+      null,
+      true,
+      true,
+      "¿Está seguro que desea eliminar este inventario producto item?"
     );
   }
 

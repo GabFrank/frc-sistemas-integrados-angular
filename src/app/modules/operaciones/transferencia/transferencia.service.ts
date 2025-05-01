@@ -93,7 +93,7 @@ export class TransferenciaService {
   }
 
   onDeleteTransferencia(id): Observable<boolean> {
-    return this.genericCrudService.onDelete(this.deleteTransfencia, id, 'Realmente  desea eliminar esta transferencia?')
+    return this.genericCrudService.onDelete(this.deleteTransfencia, id, '¿Eliminar transferencia?', null, true, true, "¿Está seguro que desea eliminar esta transferencia?");
   }
 
   onSaveTransferenciaItem(input, precioCosto?: number): Observable<TransferenciaItem> {
@@ -101,7 +101,7 @@ export class TransferenciaService {
   }
 
   onDeleteTransferenciaItem(id): Observable<boolean> {
-    return this.genericCrudService.onDelete(this.deleteTransferenciaItem, id, 'Realmente  desea eliminar este item')
+    return this.genericCrudService.onDelete(this.deleteTransferenciaItem, id, '¿Eliminar item de transferencia?', null, true, true, "¿Está seguro que desea eliminar este item de transferencia?");
   }
 
   onFinalizar(transferencia: Transferencia): Observable<boolean> {

@@ -67,7 +67,7 @@ export class UsuarioService {
   }
 
   onDeleteUsuario(id, servidor: boolean = true): Observable<boolean> {
-    return this.genericService.onDelete(this.deleteUsuario, id, null, null, true, servidor)
+    return this.genericService.onDelete(this.deleteUsuario, id, "¿Eliminar usuario?", null, true, servidor, "¿Está seguro que desea eliminar este usuario?");
   }
 
   onDeleteUsuarioSinDialogo(id, servidor: boolean = true): Observable<boolean> {

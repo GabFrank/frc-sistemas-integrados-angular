@@ -106,7 +106,7 @@ export class FuncionarioService {
   }
 
   onDeletePreRegistroFuncionario(id, servidor = true): Observable<boolean> {
-    return this.genericCrud.onDelete(this.deletePreRegistroFuncionario, id, null, null, servidor)
+    return this.genericCrud.onDelete(this.deletePreRegistroFuncionario, id, "¿Eliminar pre registro de funcionario?", null, true, servidor, "¿Está seguro que desea eliminar este pre registro de funcionario?");
   }
 
   onGetAllPreRegistroFuncionarios(page?, size?, servidor = true): Observable<PreRegistroFuncionario[]> {

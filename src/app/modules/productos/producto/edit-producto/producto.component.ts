@@ -900,15 +900,15 @@ export class ProductoComponent implements OnInit, OnDestroy {
       this.codigoService
         .onGetCodigosPorPresentacionId(this.selectedPresentacion.id)
         .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.selectedPresentacionCodigoDataSource.data = res.data.data;
+        .subscribe((res: Codigo[]) => {
+          this.selectedPresentacionCodigoDataSource.data = res;
           this.precioPorSucursalService
             .onGetPrecioPorSurursalPorPresentacionId(
               this.selectedPresentacion.id
             )
             .pipe(untilDestroyed(this))
-            .subscribe((res2) => {
-              this.selectedPresentacionPrecioDataSource.data = res2.data.data;
+            .subscribe((res2: PrecioPorSucursal[]) => {
+              this.selectedPresentacionPrecioDataSource.data = res2;
             });
         });
     }
@@ -957,25 +957,27 @@ export class ProductoComponent implements OnInit, OnDestroy {
     let data = new AdicionarCodigoData();
     data.codigo = this.selectedCodigo;
     data.presentacion = this.selectedPresentacion;
+    data.index = index;
+    data.presentacionIndex = presentacionIndex;
     this.matDialog
       .open(AdicionarCodigoDialogComponent, {
         data,
-        minWidth: '400px',
+        minWidth: '500px',
         disableClose: true,
       })
       .afterClosed()
       .pipe(untilDestroyed(this))
-      .subscribe((res) => {
+      .subscribe((res: {codigo: Codigo, index: number, presentacionIndex: number}) => {
         if (res != null) {
           this.codigoDataSource.data = updateDataSource(
             this.codigoDataSource.data,
-            res,
-            index
+            res.codigo,
+            res.index
           );
           let presentacion =
-            this.presentacionesDataSource.data[presentacionIndex];
-          if (res.principal) {
-            presentacion.codigoPrincipal = res;
+            this.presentacionesDataSource.data[res.presentacionIndex];
+          if (res.codigo.principal) {
+            presentacion.codigoPrincipal = res.codigo;
             this.presentacionesDataSource.data = updateDataSource(
               this.presentacionesDataSource.data,
               presentacion,
@@ -983,7 +985,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
             );
           } else if (
             presentacion?.codigoPrincipal != null &&
-            presentacion?.codigoPrincipal?.id == res.id
+            presentacion?.codigoPrincipal?.id == res.codigo.id
           ) {
             presentacion.codigoPrincipal = null;
             this.presentacionesDataSource.data = updateDataSource(
@@ -992,27 +994,6 @@ export class ProductoComponent implements OnInit, OnDestroy {
               presentacionIndex
             );
           }
-          // let presentacionId = res.presentacion.id;
-          // if (presentacionId != null) {
-          //   let presentacionIndex =
-          //     this.presentacionesDataSource.data.findIndex(
-          //       (p) => p.id == presentacionId
-          //     );
-          //   let codigoIndex = this.presentacionesDataSource.data[
-          //     presentacionIndex
-          //   ].codigos.findIndex((c) => c.id == res.id);
-          //   let list = [...this.presentacionesDataSource.data];
-          //   if (codigoIndex != -1) {
-          //     console.log('actualizando codigo')
-          //     console.log(res)
-          //     list[presentacionIndex].codigos[codigoIndex] = res;
-          //   } else {
-          //     console.log('agregando nuevo codigo', presentacionIndex, res)
-          //     list[presentacionIndex].codigos.push(res)
-          //   }
-          //   this.presentacionesDataSource.data = [...list];
-          //   this.codigoTable.renderRows()
-          // }
         }
       });
   }
@@ -1023,13 +1004,11 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onDeleteCodigo(codigo: Codigo, codigoIndex) {
-    // this.cargandoDialog.openDialog()
-    // this.codigoService.onDeleteCodigo(codigo).pipe(untilDestroyed(this)).subscribe((res) => {
-    //   this.cargandoDialog.closeDialog()
-    //   if (res) {
-    //     this.getPresentacionPorProductoId(this.selectedProducto.id);
-    //   }
-    // });
+    this.codigoService.onDeleteCodigo(codigo).pipe(untilDestroyed(this)).subscribe((res) => {
+      if (res) {
+        this.getPresentacionPorProductoId(this.selectedProducto.id);
+      }
+    });
   }
 
   onAddPrecio(index?, presentacionIndex?) {

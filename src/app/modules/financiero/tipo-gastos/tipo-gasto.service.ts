@@ -42,7 +42,7 @@ export class TipoGastoService {
   }
 
   onDelete(id, servidor = true): Observable<any>{
-    return this.genericService.onDelete(this.deleteTipoGasto, id, null, null, null, servidor);
+    return this.genericService.onDelete(this.deleteTipoGasto, id, "¿Eliminar tipo de gasto?", null, true, servidor, "¿Está seguro que desea eliminar este tipo de gasto?");
   }
 
   onSearch(texto, servidor = true): Observable<any>{
