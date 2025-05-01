@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from "@angular/core";
+import { Component, Inject, OnInit, HostListener } from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { NotificacionColor, NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
@@ -7,13 +7,14 @@ import { Presentacion } from "../../presentacion/presentacion.model";
 import { CodigoInput } from "../codigo-input.model";
 import { Codigo } from "../codigo.model";
 import { CodigoService } from "../codigo.service";
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 export class AdicionarCodigoData {
   codigo: Codigo;
   presentacion: Presentacion;
+  index: number;
+  presentacionIndex: number;
 }
-
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -30,6 +31,8 @@ export class AdicionarCodigoDialogComponent implements OnInit {
   codigoInput = new CodigoInput;
   isEditting = false;
   isPesable = false;
+  inputChanged = false;
+  inputTimer: any = null;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarCodigoData,
@@ -38,6 +41,19 @@ export class AdicionarCodigoDialogComponent implements OnInit {
     private notificacionSnackBar: NotificacionSnackbarService,
     private cargandoDialog: CargandoDialogService
   ) {}
+
+  @HostListener('window:keydown', ['$event'])
+  handleKeyDown(event: KeyboardEvent) {
+    if (event.key === 'Enter' && this.isEditting) {
+      // Prevent form submission if input just changed (likely from barcode scanner)
+      if (this.inputChanged) {
+        event.preventDefault();
+      } else {
+        event.preventDefault();
+        this.onSave();
+      }
+    }
+  }
 
   ngOnInit(): void {
     this.createForm();
@@ -64,6 +80,21 @@ export class AdicionarCodigoDialogComponent implements OnInit {
     this.principalControl.setValue(false);
     this.activoControl.setValue(true);
 
+    // Add input change listener
+    this.codigoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
+      // Mark input as recently changed
+      this.inputChanged = true;
+      
+      // Clear previous timer
+      if (this.inputTimer) {
+        clearTimeout(this.inputTimer);
+      }
+      
+      // Set timer to reset inputChanged flag after 500ms
+      this.inputTimer = setTimeout(() => {
+        this.inputChanged = false;
+      }, 500);
+    });
   }
 
   cargarDato() {
@@ -77,7 +108,6 @@ export class AdicionarCodigoDialogComponent implements OnInit {
   }
 
   onSave() {
-    this.cargandoDialog.openDialog()
     this.codigoInput.codigo = this.codigoControl.value;
     this.codigoInput.activo = this.activoControl.value;
     this.codigoInput.principal = this.principalControl.value;
@@ -86,15 +116,14 @@ export class AdicionarCodigoDialogComponent implements OnInit {
     let isCodigoInUse = false;
     this.codigoService
       .onGetCodigoPorCodigo(this.codigoInput.codigo).pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        this.cargandoDialog.closeDialog()
-        if (res.errors == null) {
-          switch (res.data.data.length) {
+      .subscribe((res: Codigo[]) => {
+        if (res != null) {
+          switch (res.length) {
             case 0:
               isCodigoInUse = false;
               break;
             case 1:
-              if (res.data.data[0].id === this.codigoInput.id) {
+              if (res[0].id === this.codigoInput.id) {
                 isCodigoInUse = false;
               } else {
                 isCodigoInUse = true;
@@ -114,7 +143,7 @@ export class AdicionarCodigoDialogComponent implements OnInit {
           } else {
             this.codigoService.onSaveCodigo(this.codigoInput).pipe(untilDestroyed(this)).subscribe(res2 => {
               if(res2!=null){
-                this.matDialogRef.close(res2)
+                this.matDialogRef.close({codigo: res2, index: this.data.index, presentacionIndex: this.data.presentacionIndex})
               }
             })
           }

@@ -143,10 +143,11 @@ export class VentaService {
     return this.genericService.onDelete(
       this.deleteVenta,
       id,
-      null,
+      "¿Eliminar venta?",
       null,
       false,
-      servidor
+      servidor,
+      "¿Está seguro que desea eliminar esta venta?"
     );
   }
 

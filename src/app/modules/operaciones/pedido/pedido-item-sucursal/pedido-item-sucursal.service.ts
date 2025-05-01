@@ -67,7 +67,7 @@ export class PedidoItemSucursalService {
    * @param id ID del PedidoItemSucursal a eliminar
    */
   onDeletePedidoItemSucursal(id: number): Observable<boolean> {
-    return this.genericService.onDelete(this.deletePedidoItemSucursalGQL, id, 'pedido item sucursal');
+    return this.genericService.onDelete(this.deletePedidoItemSucursalGQL, id, '¿Eliminar pedido item sucursal?', null, true, true, "¿Está seguro que desea eliminar este pedido item sucursal?");
   }
 
   /**

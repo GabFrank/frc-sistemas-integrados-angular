@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
-import { BehaviorSubject, Observable } from "rxjs";
+import { BehaviorSubject, Observable, pipe } from "rxjs";
 import { MainService } from "../../../main.service";
 import {
   NotificacionColor,
@@ -15,6 +15,7 @@ import { DeleteCodigoGQL } from "./graphql/deleteCodigo";
 import { SaveCodigoGQL } from "./graphql/saveCodigo";
 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { GenericCrudService } from "../../../generics/generic-crud.service";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -30,110 +31,26 @@ export class CodigoService {
     private deleteCodigo: DeleteCodigoGQL,
     private notificacionBar: NotificacionSnackbarService,
     private getCodigoPorCodigo: CodigoPorCodigoGQL,
-    private dialogoService: DialogosService
+    private dialogoService: DialogosService,
+    private genericService: GenericCrudService
   ) {}
 
-  onGetCodigosPorPresentacionId(id) {
-    return this.getCodigosPorPresentacionId.fetch(
-      {
-        id,
-      },
-      {
-        fetchPolicy: "no-cache",
-        errorPolicy: "all",
-      }
-    );
+  onGetCodigosPorPresentacionId(id, servidor = true) {
+    return this.genericService.onGetById(this.getCodigosPorPresentacionId, id, null, null, servidor);
   }
 
-  onSaveCodigo(input: CodigoInput): Observable<any> {
+  onSaveCodigo(input: CodigoInput, servidor = true): Observable<any> {
     if(input.usuarioId==null) input.usuarioId = this.mainService?.usuarioActual?.id;
     input.id == null ? (input.activo = true) : null;
     if(input.principal==false) input.principal = null;
-    return new Observable((obs) => {
-      this.saveCodigo
-        .mutate(
-          {
-            entity: input,
-          },
-          {
-            errorPolicy: "all",
-          }
-        ).pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            this.notificacionBar.notification$.next({
-              texto: "Código guardado con éxito",
-              duracion: 2,
-              color: NotificacionColor.success,
-            });
-            obs.next(res.data.data);
-          } else {
-            let texto = "Ups! Ocurrió algun problema al guardar";
-            if (
-              res?.errors[0]?.message?.includes("codigo_un_presentacion_principal")
-            ) {
-              texto = "Ya existe un código principal!!";
-            }
-            this.notificacionBar.notification$.next({
-              texto,
-              duracion: 2,
-              color: NotificacionColor.danger,
-            });
-          }
-        });
-    });
+    return this.genericService.onSave(this.saveCodigo, input, null, null, servidor);
   }
 
-  onDeleteCodigo(codigo: Codigo): Observable<any> {
-    return new Observable((obs) => {
-      this.dialogoService
-        .confirm(
-          "Atención!!",
-          "Realemente desea eliminar el código",
-          `${codigo.codigo}`
-        ).pipe(untilDestroyed(this))
-        .subscribe((res1) => {
-          if (res1) {
-            this.deleteCodigo
-              .mutate(
-                {
-                  id: codigo.id,
-                },
-                { errorPolicy: "all" }
-              ).pipe(untilDestroyed(this))
-              .subscribe((res) => {
-                if (res.errors == null) {
-                  this.notificacionBar.notification$.next({
-                    texto: "Código eliminado con éxito",
-                    duracion: 2,
-                    color: NotificacionColor.success,
-                  });
-                  obs.next(true);
-                } else {
-                  {
-                    this.notificacionBar.notification$.next({
-                      texto: "Ups! Ocurrió algun problema al eliminar",
-                      duracion: 2,
-                      color: NotificacionColor.danger,
-                    });
-                  }
-                }
-              });
-          } else {
-          }
-        });
-    });
+  onDeleteCodigo(codigo: Codigo, servidor = true): Observable<any> {
+    return this.genericService.onDelete(this.deleteCodigo, codigo.id, "¿Eliminar código?", null, true, servidor, "¿Está seguro que desea eliminar este código?");
   }
 
-  onGetCodigoPorCodigo(texto: string) {
-    return this.getCodigoPorCodigo.fetch(
-      {
-        texto,
-      },
-      {
-        fetchPolicy: "no-cache",
-        errorPolicy: "all",
-      }
-    );
+  onGetCodigoPorCodigo(texto: string, servidor = true) {
+    return this.genericService.onGetByTexto(this.getCodigoPorCodigo, texto, servidor);
   }
 }

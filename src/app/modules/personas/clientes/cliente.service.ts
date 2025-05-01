@@ -70,7 +70,9 @@ export class ClienteService {
   }
 
   onGetByPersonaIdFromServer(id: number): Observable<Cliente> {
-    return this.genericService.onGetById(this.getClientePorPersonaId, id, null, null, true, null, false, 10000);
+    return this.genericService.onGetById(this.getClientePorPersonaId, id, null, null, true, null, false, 10000, null, 
+      "Ocurrio un error al obtener el cliente. Verifique si possee conexión a internet", 
+      "Ocurrio un error al obtener el cliente. Verifique si possee conexión a internet");
   }
 
   onSearchFromServer(texto: string): Observable<Cliente[]> {

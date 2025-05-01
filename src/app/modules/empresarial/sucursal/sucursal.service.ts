@@ -174,7 +174,7 @@ export class SucursalService {
   }
 
   onDeleteSucursal(id: number, showDialog: boolean = true, servidor: boolean = true): Observable<boolean> {
-    return this.genericService.onDelete(this.deleteSucursalGQL, id, "sucursal", null, showDialog, servidor);
+    return this.genericService.onDelete(this.deleteSucursalGQL, id, "¿Eliminar sucursal?", null, showDialog, servidor, "¿Está seguro que desea eliminar esta sucursal?");
   }
 
   openSearchDialog(title?: string, message?: string, servidor: boolean = true): Observable<Sucursal> {

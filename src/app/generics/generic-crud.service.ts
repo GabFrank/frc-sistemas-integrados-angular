@@ -255,7 +255,9 @@ export class GenericCrudService {
     sucId?,
     error?,
     duracion?,
-    silentLoad?
+    silentLoad?,
+    errorText?,
+    warningText?
   ): Observable<T> {
     this.isLoading = true;
     let { requestId = null, signal = null } =
@@ -294,7 +296,7 @@ export class GenericCrudService {
               }
             } else {
               this.notificacionSnackBar.notification$.next({
-                texto: "Ups! Algo salió mal: " + res.errors[0].message,
+                texto: errorText != null ? errorText : "Ups! Algo salió mal: " + res.errors[0].message,
                 color: NotificacionColor.danger,
                 duracion: 3,
               });
@@ -302,7 +304,7 @@ export class GenericCrudService {
           },
           (err) => {
             this.notificacionBar.openWarn(
-              "Problema al realizar esta operación"
+              warningText != null ? warningText : "Problema al realizar esta operación"
             );
             this.cargandoService.closeDialog(requestId);
           }
@@ -481,7 +483,8 @@ export class GenericCrudService {
     titulo?,
     data?: any,
     showDialog?: boolean,
-    servidor: boolean = true
+    servidor: boolean = true,
+    mensaje?: string
   ): Observable<any> {
     return new Observable((obs) => {
       if (showDialog == false) {
@@ -528,7 +531,7 @@ export class GenericCrudService {
           });
       } else {
         this.dialogoService
-          .confirm("Atención!!", "Realemente desea eliminar este " + titulo)
+          .confirm(titulo != null ? titulo : "Atención!!", mensaje != null ? mensaje : "Realemente desea eliminar este item?")
           .pipe(untilDestroyed(this))
           .subscribe((res1) => {
             const { requestId, signal } = this.cargandoService.openDialog(

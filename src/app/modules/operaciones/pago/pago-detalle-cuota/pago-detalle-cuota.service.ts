@@ -90,7 +90,7 @@ export class PagoDetalleCuotaService {
    * @returns Observable booleano indicando si se eliminó correctamente
    */
   onDeletePagoDetalleCuota(id: number): Observable<boolean> {
-    return this.genericService.onDelete(this.deletePagoDetalleCuotaGQL, id, 'Cuota', null, false);
+    return this.genericService.onDelete(this.deletePagoDetalleCuotaGQL, id, '¿Eliminar cuota?', null, false, true, "¿Está seguro que desea eliminar esta cuota?");
   }
 
   /**

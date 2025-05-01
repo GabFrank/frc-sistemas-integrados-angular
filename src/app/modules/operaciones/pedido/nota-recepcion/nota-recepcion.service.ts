@@ -34,7 +34,7 @@ export class NotaRecepcionService {
     return this.genericService.onSave(this.saveNotaRecepcion, input);
   }
   onDeleteNotaRecepcion(id): Observable<boolean> {
-    return this.genericService.onDelete(this.deleteNotaRecepcion, id);
+    return this.genericService.onDelete(this.deleteNotaRecepcion, id, "¿Eliminar nota de recepción?", null, true, true, "¿Está seguro que desea eliminar esta nota de recepción?");
   }
   onGetNotaRecepcionPorPedidoIdAndNumero(
     id,

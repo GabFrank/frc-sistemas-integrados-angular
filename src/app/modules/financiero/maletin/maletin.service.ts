@@ -45,7 +45,7 @@ export class MaletinService {
   }
 
   onDelete(id, servidor: boolean = true): Observable<any>{
-    return this.genericCrud.onDelete(this.deleteMaletin, id, 'Maletin', `Id: ${id}`, servidor)
+    return this.genericCrud.onDelete(this.deleteMaletin, id, '¿Eliminar maletin?', null, true, servidor, "¿Está seguro que desea eliminar este maletin?");
   }
 
 }

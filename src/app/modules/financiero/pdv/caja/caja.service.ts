@@ -174,7 +174,7 @@ export class CajaService {
   }
 
   onDelete(id, showDialog?: boolean, servidor: boolean = true): Observable<any> {
-    return this.genericService.onDelete(this.deleteCaja, id, showDialog, null, null, servidor);
+    return this.genericService.onDelete(this.deleteCaja, id, "¿Eliminar caja?", null, showDialog, servidor, "¿Está seguro que desea eliminar esta caja?");
   }
 
   onImprimirBalance(id, sucId?, servidor: boolean = true) {
