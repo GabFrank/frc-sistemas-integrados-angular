@@ -380,4 +380,21 @@ export class ListInventarioComponent implements OnInit {
       )
     }
   }
+
+  onResetFiltro(){
+    // set fecha inicio a 2 dias atras
+    let aux = new Date();
+    aux.setDate(aux.getDate() - 2);
+    this.fechaInicioControl.setValue(aux);
+    this.fechaFinalControl.setValue(new Date());
+    // set hora inicio a 00:00 and fin to 23:59
+    this.horaInicioControl.setValue("00:00");
+    this.horaFinalControl.setValue("23:59");
+    this.sucursalControl.setValue(null);
+    this.selectedUsuario = null;
+    this.buscarProductoControl.setValue(null);
+    this.buscarUsuarioControl.setValue(null);
+    this.ordenarPorControl.setValue(null);
+    this.tipoOrdenControl.setValue(null);
+  }
 }

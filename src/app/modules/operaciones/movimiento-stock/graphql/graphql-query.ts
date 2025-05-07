@@ -106,8 +106,8 @@ export const deleteMovimientoQuery = gql`
 `;
 
 export const stockPorProductoQuery = gql`
-  query ($id: ID!) {
-    data: stockPorProducto(id: $id)
+  query ($id: ID!, $sucId: ID) {
+    data: stockPorProducto(id: $id, sucId: $sucId)
   }
 `;
 

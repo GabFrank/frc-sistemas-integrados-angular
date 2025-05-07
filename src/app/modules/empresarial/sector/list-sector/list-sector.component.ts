@@ -92,9 +92,9 @@ export class ListSectorComponent implements OnInit {
   onAdd() {
     this.matDialog.open(AdicionarSectorDialogComponent, {
       data: {
-        sucursal: this.selectedSucursal
+        sucursal: this.selectedSucursal || this.sucursalControl.value
       },
-      width: '50%'
+      width: '500px'
     }).afterClosed().subscribe(res => {
       if (res != null) {
         this.dataSource.data = updateDataSource(this.dataSource.data, res)
@@ -106,9 +106,9 @@ export class ListSectorComponent implements OnInit {
     this.matDialog.open(AdicionarSectorDialogComponent, {
       data: {
         sector,
-        sucursal: this.selectedSucursal
+        sucursal: this.selectedSucursal || this.sucursalControl.value
       },
-      width: '50%'
+      width: '500px'
     }).afterClosed().subscribe(res => {
       if (res != null) {
         this.dataSource.data = updateDataSource(this.dataSource.data, res, i)
@@ -143,7 +143,7 @@ export class ListSectorComponent implements OnInit {
         zona
       }
       ,
-      width: '50%'
+      width: '500px'
     }).afterClosed().subscribe(res => {
       if (res != null) {
         this.zonaDataSource.data = updateDataSource(this.zonaDataSource.data, res, i)
@@ -157,13 +157,18 @@ export class ListSectorComponent implements OnInit {
         sector
       }
       ,
-      width: '50%'
+      width: '500px'
     }).afterClosed().subscribe(res => {
       if (res != null) {
         this.zonaDataSource.data = updateDataSource(this.zonaDataSource.data, res)
         // this.dataSource.data = updateDataSource(this.dataSource.data, this.zonaDataSource.data, i)
       }
     })
+  }
+
+  onResetFiltro(){
+    this.sucursalControl.setValue(null);
+    this.nombreControl.setValue(null);
   }
 
 }

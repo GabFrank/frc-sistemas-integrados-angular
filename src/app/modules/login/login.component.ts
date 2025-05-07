@@ -121,9 +121,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
       // Check if majority of corners have similar color
       if (this.areSimilarColors(topLeft, topRight) && 
           this.areSimilarColors(topLeft, bottomLeft)) {
-        console.log('Consistent background color detected in corners');
       } else {
-        console.log('Inconsistent corner colors, using top-left pixel');
         // You could implement more complex color selection logic here if needed
       }
       
@@ -131,12 +129,9 @@ export class LoginComponent implements OnInit, AfterViewInit {
       
       // If the detected color is too light or white, use the default color
       if (this.isLightColor(r, g, b)) {
-        console.log('Detected color too light, using default color');
         return;
       }
-      
-      console.log('Detected logo background color:', this.logoBackgroundColor);
-      
+            
       // Apply the detected color to the logo background
       const logoBackground = this.elementRef.nativeElement.querySelector('.logo-background');
       if (logoBackground) {

@@ -35,7 +35,7 @@ export class MovimientoStockService {
     private getStockWithFilters: GetStockPorFiltrosGQL,
     private getStockPorTipoMovimiento: GetStockPorTipoMovimientoByFiltersGQL,
     private apollo: Apollo
-  ) {}
+  ) { }
 
   onGetMovimientosPorFecha(
     inicio: Date,
@@ -87,23 +87,12 @@ export class MovimientoStockService {
     }
   }
 
-  onGetStockPorProducto(id): Observable<number> {
-    return new Observable((obs) => {
-      this.getStockPorProducto
-        .fetch({ id }, { fetchPolicy: "no-cache", errorPolicy: "all" })
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-          } else {
-            this.notificacionBar.notification$.next({
-              texto: "Ups!, algo salio mal: " + res.errors[0].message,
-              duracion: 3,
-              color: NotificacionColor.danger,
-            });
-          }
-        });
-    });
+  onGetStockPorProducto(id, sucursalId?: number, servidor = true): Observable<number> {
+    //use genericService        
+    return this.genericService.onCustomQuery(this.getStockPorProducto, {
+      id,
+      sucId: sucursalId
+    }, servidor);
   }
 
   onGetMovimientoStockPorFiltros(
@@ -115,7 +104,7 @@ export class MovimientoStockService {
     usuarioId: number,
     page: number,
     size: number
-  ): Observable<PageInfo<MovimientoStock>>{
+  ): Observable<PageInfo<MovimientoStock>> {
     return this.genericService.onCustomQuery(this.getMovimientoStockPorFilters, {
       inicio,
       fin,
@@ -135,14 +124,15 @@ export class MovimientoStockService {
     productoId: number,
     tipoMovimientoList: TipoMovimiento[],
     usuarioId: number
-  ): Observable<number>{
+  ): Observable<number> {
     return this.genericService.onCustomQuery(this.getStockWithFilters, {
       inicio,
       fin,
       sucursalList,
       productoId,
       tipoMovimientoList,
-      usuarioId})
+      usuarioId
+    })
   }
 
   onGetStockPorTipoMovimiento(
@@ -152,32 +142,22 @@ export class MovimientoStockService {
     productoId: number,
     tipoMovimientoList: TipoMovimiento[],
     usuarioId: number
-  ): Observable<StockPorTipoMovimientoDto[]>{
+  ): Observable<StockPorTipoMovimientoDto[]> {
     return this.genericService.onCustomQuery(this.getStockPorTipoMovimiento, {
       inicio,
       fin,
       sucursalList,
       productoId,
       tipoMovimientoList,
-      usuarioId})
+      usuarioId
+    })
   }
 
-  getStockByProductoAndSucursal(productoId: number, sucursalId: number): Observable<number> {
-    const GET_STOCK_BY_PRODUCTO_AND_SUCURSAL = gql`
-      query GetStockByProductoAndSucursal($productoId: Int!, $sucursalId: Int!) {
-        getStockByProductoAndSucursal(productoId: $productoId, sucursalId: $sucursalId)
-      }
-    `;
-
-    return this.apollo.query<{ getStockByProductoAndSucursal: number }>({
-      query: GET_STOCK_BY_PRODUCTO_AND_SUCURSAL,
-      variables: {
-        productoId,
-        sucursalId
-      },
-      fetchPolicy: 'network-only'
-    }).pipe(
-      map(result => result.data.getStockByProductoAndSucursal)
-    );
-  }
+  // getStockByProductoAndSucursal(productoId: number, sucursalId: number): Observable<number> {
+  //   //refactorizar usando genericService
+  //   return this.genericService.onCustomQuery(this.getStockByProductoAndSucursalGQL, {
+  //     productoId,
+  //     sucursalId
+  //   });
+  // }
 }

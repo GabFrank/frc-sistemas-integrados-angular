@@ -176,8 +176,8 @@ export class ListMovimientoStockComponent implements OnInit {
     });
   }
 
-  onGetResumen() {
-    this.sucursalIdList = this.toEntityId(
+  onGetResumen(isPagination: boolean = false) {
+    const sucursalIdList = this.toEntityId(
       this.sucursalControl.value,
       this.sucursalList
     );
@@ -197,21 +197,15 @@ export class ListMovimientoStockComponent implements OnInit {
 
     this.onGetMovimientos();
 
-    this.service
-      .onGetStockPorFiltros(
-        dateToString(fechaInicial),
-        dateToString(fechaFin),
-        this.sucursalIdList,
-        this.selectedProducto?.id,
-        this.tipoMovimientoControl.value,
-        this.selectedUsuario?.id
-      )
-      .subscribe((res) => {
-        console.log(res);
-        this.stockTotal = res;
+    // if sucursalid list is not empty, get stock for each sucursal and sum itm add logs  
+    if (sucursalIdList.length > 0 && !isPagination) {
+      sucursalIdList.forEach((sucursalId) => {
+        this.service.onGetStockPorProducto(this.selectedProducto?.id, sucursalId).subscribe((res) => {
+          this.stockTotal += res;
+        });
       });
 
-    this.service
+      this.service
       .onGetStockPorTipoMovimiento(
         dateToString(fechaInicial),
         dateToString(fechaFin),
@@ -227,6 +221,7 @@ export class ListMovimientoStockComponent implements OnInit {
         });
         this.stockPorTipoMovimiento = res;
       });
+    }
   }
 
   onGetMovimientos() {
@@ -359,12 +354,14 @@ export class ListMovimientoStockComponent implements OnInit {
     this.productoList.splice(index, 1);
   }
 
-  onFiltrar() {
+  onFiltrar(isPagination: boolean = false) {
     this.dataSource.data = [];
-    this.stockPorRangoFecha = 0;
-    this.stockTotal = 0;
-    this.stockPorTipoMovimiento = [];
-    this.onGetResumen();
+    if (!isPagination) {
+      this.stockPorRangoFecha = 0;
+      this.stockTotal = 0;
+      this.stockPorTipoMovimiento = [];
+    }
+    this.onGetResumen(isPagination);
   }
 
   resetFiltro() {}
@@ -455,7 +452,7 @@ export class ListMovimientoStockComponent implements OnInit {
   handlePageEvent(e: PageEvent) {
     this.page = e.pageIndex;
     this.size = e.pageSize;
-    this.onFiltrar();
+    this.onFiltrar(true);
   }
 
   onClickRow(movimiento: MovimientoStock, index: number) {

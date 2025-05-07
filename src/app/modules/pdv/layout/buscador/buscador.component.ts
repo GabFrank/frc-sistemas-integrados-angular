@@ -91,13 +91,17 @@ export class BuscadorComponent implements OnInit {
     });
     this.formGroup.get("cantidad").setValue(1);
 
-    this.focusEvent.pipe(untilDestroyed(this)).subscribe((res) => {
-      this.setFocusToInput();
-    });
+    if (this.focusEvent) {
+      this.focusEvent.pipe(untilDestroyed(this)).subscribe((res) => {
+        this.setFocusToInput();
+      });
+    }
 
-    this.openSearchEvent.pipe(untilDestroyed(this)).subscribe((res) => {
-      this.onEnterPress();
-    });
+    if (this.openSearchEvent) {
+      this.openSearchEvent.pipe(untilDestroyed(this)).subscribe((res) => {
+        this.onEnterPress();
+      });
+    }
 
     this.buscadorControl.valueChanges
       .pipe(untilDestroyed(this))
@@ -112,9 +116,11 @@ export class BuscadorComponent implements OnInit {
         }
       });
 
-    this.clearBuscadorEvent.pipe(untilDestroyed(this)).subscribe((res) => {
-      this.buscadorControl.setValue(null);
-    });
+    if (this.clearBuscadorEvent) {
+      this.clearBuscadorEvent.pipe(untilDestroyed(this)).subscribe((res) => {
+        this.buscadorControl.setValue(null);
+      });
+    }
   }
 
   buscarProductoDialog() {
@@ -204,6 +210,7 @@ export class BuscadorComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
+          console.log('Encontro producto por codigo');
           producto = res;
           if (producto != null) {
             if (producto?.balanza == true && texto.length == 13) {
@@ -300,6 +307,9 @@ export class BuscadorComponent implements OnInit {
               this.buscarProductoDialog();
             }
           }
+        } else {
+          console.log('No encontro producto por codigo');
+          this.buscarProductoDialog();
         }
         this.setFocusToInput();
       });

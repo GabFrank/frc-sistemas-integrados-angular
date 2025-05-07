@@ -139,12 +139,18 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         "existencia",
         // "acciones"
       ];
-      this.precios = this.configService.getConfig().precios.split(',');
-      this.modoPrecio = this.configService.getConfig().modo;
+      if (this.configService.getConfig().precios) {
+        this.precios = this.configService.getConfig().precios.split(',').map(precio => precio.trim());
+      }
+      if (this.configService.getConfig().modo) {
+        this.modoPrecio = this.configService.getConfig().modo?.trim();
+      }
+      console.log('Configuracion de precios', this.precios, this.modoPrecio);
     }
   }
 
   ngOnInit(): void {
+    console.log('Iniciando dialogo de busqueda de producto');
     this.createForm();
 
     this.productoDetailList = [];
@@ -498,7 +504,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         });
     } else {
       this.stockService
-        .onGetStockPorProducto(producto.id)
+        .onGetStockPorProducto(producto.id, null, false)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
@@ -511,7 +517,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
 
   mostrarCodigoPrincipal(producto: Producto, index?) {
     this.stockService
-      .onGetStockPorProducto(producto.id)
+      .onGetStockPorProducto(producto.id, null, false)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {

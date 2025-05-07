@@ -35,30 +35,9 @@ export class CiudadService {
    * Obtiene todas las ciudades desde el backend
    * @returns Observable con la lista de ciudades
    */
-  getAllCiudades(): Observable<Ciudad[]> {
-    return new Observable((obs) => {
-      this.ciudadesGQL
-        .fetch(
-          {},
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-            obs.complete();
-          } else {
-            this.notificacionBar.notification$.next({
-              texto: "Ups! algo salio mal al cargar ciudades: " + res.errors[0].message,
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
-          }
-        });
-    });
+  getAllCiudades(servidor = true): Observable<Ciudad[]> {
+    // refactorizar usando el servicio de generic-crud
+    return this.genericService.onCustomQuery(this.ciudadesGQL, null, servidor);
   }
 
   /**
@@ -66,30 +45,8 @@ export class CiudadService {
    * @param texto Texto a buscar
    * @returns Observable con la lista de ciudades que coinciden
    */
-  searchCiudades(texto: string): Observable<Ciudad[]> {
-    return new Observable((obs) => {
-      this.ciudadesSearchGQL
-        .fetch(
-          { texto: texto },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-            obs.complete();
-          } else {
-            this.notificacionBar.notification$.next({
-              texto: "Ups! algo salio mal al buscar ciudades: " + res.errors[0].message,
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
-          }
-        });
-    });
+  searchCiudades(texto: string, servidor = true): Observable<Ciudad[]> {
+    return this.genericService.onCustomQuery(this.ciudadesSearchGQL, { texto }, servidor);
   }
 
   /**
@@ -97,30 +54,8 @@ export class CiudadService {
    * @param id ID de la ciudad
    * @returns Observable con la ciudad
    */
-  getCiudadById(id: number): Observable<Ciudad> {
-    return new Observable((obs) => {
-      this.ciudadGQL
-        .fetch(
-          { id: id },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-            obs.complete();
-          } else {
-            this.notificacionBar.notification$.next({
-              texto: "Ups! algo salio mal al obtener ciudad: " + res.errors[0].message,
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
-          }
-        });
-    });
+  getCiudadById(id: number, servidor = true): Observable<Ciudad> {
+    return this.genericService.onCustomQuery(this.ciudadGQL, { id }, servidor);
   }
 
   /**
@@ -128,43 +63,7 @@ export class CiudadService {
    * @param ciudad Ciudad a guardar
    * @returns Observable con la ciudad guardada
    */
-  saveCiudad(ciudad: any): Observable<Ciudad> {
-    return new Observable((obs) => {
-      this.apollo.mutate({
-        mutation: saveCiudad,
-        variables: {
-          entity: ciudad
-        },
-        fetchPolicy: "no-cache",
-        errorPolicy: "all"
-      })
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (res: any) => {
-          if (res.errors == null) {
-            obs.next(res.data.data);
-            obs.complete();
-            this.notificacionBar.notification$.next({
-              texto: "Ciudad guardada correctamente",
-              color: NotificacionColor.success,
-              duracion: 3
-            });
-          } else {
-            this.notificacionBar.notification$.next({
-              texto: "Ups! algo salio mal al guardar ciudad: " + res.errors[0].message,
-              color: NotificacionColor.danger,
-              duracion: 3
-            });
-          }
-        },
-        error: (err) => {
-          this.notificacionBar.notification$.next({
-            texto: "Ups! algo salio mal al guardar ciudad: " + err,
-            color: NotificacionColor.danger,
-            duracion: 3
-          });
-        }
-      });
-    });
-  }
+//   saveCiudad(ciudad: any, servidor = true): Observable<Ciudad> {
+//     return this.genericService.onSave(saveCiudad, { entity: ciudad }, servidor);
+//   }
 }
