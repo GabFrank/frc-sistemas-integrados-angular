@@ -87,44 +87,24 @@ export class ProductoService {
     // })
   }
 
-  onSearchWithFilters(texto: string, codigo: string, activo, stock, balanza, subfamilia, vencimiento, page, size): Observable<PageInfo<Producto>>{
-    return this.genericService.onCustomQuery(this.searchWithFilters, {texto, codigo, activo, stock, balanza, subfamilia, vencimiento, page, size});
+  onSearchWithFilters(texto: string, codigo: string, activo, stock, balanza, subfamilia, vencimiento, page, size, servidor = true): Observable<PageInfo<Producto>>{
+    return this.genericService.onCustomQuery(this.searchWithFilters, {texto, codigo, activo, stock, balanza, subfamilia, vencimiento, page, size}, servidor);
   }
 
-  onGetStockPorProductoAndSucursal(proId, sucId){
-    return this.genericService.onCustomQuery(this.productoPorSucursalStock, {proId, sucId});
+  onGetStockPorProductoAndSucursal(proId, sucId, servidor = true){
+    return this.genericService.onCustomQuery(this.productoPorSucursalStock, {proId, sucId}, servidor);
   }
 
   onGetProductoPorCodigo(texto, servidor: boolean = true): Observable<Producto> {
     return this.genericService.onCustomQuery(this.productoPorCodigo, { texto }, servidor);
   }
 
-  onSearch(texto, offset?, activo?): Observable<Producto[]> {
-    return this.genericService.onCustomQuery(this.productoSearch, {texto, offset, isEnvase: false, activo})
+  onSearch(texto, offset?, activo?, servidor = true): Observable<Producto[]> {
+    return this.genericService.onCustomQuery(this.productoSearch, {texto, offset, isEnvase: false, activo}, servidor);
   }
 
-  onEnvaseSearch(texto, offset?, isEnvase?: boolean): Observable<Producto[]> {
-    return new Observable((obs) => {
-      this.envaseSearch
-        .fetch(
-          {
-            texto,
-            offset,
-            isEnvase,
-          },
-          {
-            fetchPolicy: "no-cache",
-            errorPolicy: "all",
-          }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data.data);
-          } else {
-          }
-        });
-    });
+  onEnvaseSearch(texto, offset?, isEnvase?: boolean, servidor = true): Observable<Producto[]> {
+    return this.genericService.onCustomQuery(this.envaseSearch, {texto, offset, isEnvase}, servidor);
   }
 
   onSearchLocal(texto: string) {
@@ -143,119 +123,36 @@ export class ProductoService {
 
   onSearchParaPdv() {}
 
-  onGetProductoPorId(id): Observable<Producto> {
-    return this.genericService.onGetById(this.productoPorId, id);
+  onGetProductoPorId(id, servidor = true): Observable<Producto> {
+    return this.genericService.onGetById(this.productoPorId, id, null, null, servidor);
   }
 
-  onSaveProducto(input: ProductoInput): Observable<any> {
-    let isNew = input?.id == null;
-    return new Observable((obs) => {
-      input.usuarioId = this.mainService?.usuarioActual?.id;
-      this.saveProducto
-        .mutate(
-          {
-            entity: input,
-          },
-          { errorPolicy: "all" }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data.data);
-            if (isNew) {
-              this.productosList.push(res.data.data);
-            } else {
-              let index = this.productosList.findIndex(
-                (p) => (p.id = input.id)
-              );
-              if (index != -1) {
-                this.productosList[index] = res.data.data;
-              }
-            }
-            this.notificacionSnack.notification$.next({
-              texto: "Producto guardado con éxito",
-              color: NotificacionColor.success,
-              duracion: 2,
-            });
-          } else {
-            obs.next(null);
-            this.notificacionSnack.notification$.next({
-              texto: `Ups! Algo salió mal. ${res.errors[0].message}`,
-              color: NotificacionColor.danger,
-              duracion: 4,
-            });
-          }
-        });
-    });
+  onSaveProducto(input: ProductoInput, servidor = true): Observable<any> {
+    return this.genericService.onCustomMutation(this.saveProducto, {entity: input}, servidor);
   }
 
-  getProducto(id): Observable<Producto> {
-    return this.genericService.onGetById(this.productoPorId, id);
+  getProducto(id, servidor = true): Observable<Producto> {
+    return this.genericService.onGetById(this.productoPorId, id, null, null, servidor);
   }
 
-  onImageSave(image: string, filename: string) {
-    // return new Observable((obs) => {
-    this.saveImage
-      .mutate({
-        image,
-        filename,
-      })
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res.errors == null) {
-          // obs.next(res.data)
-          this.notificacionSnack.notification$.next({
-            texto: "Imagen guardada con éxito",
-            color: NotificacionColor.success,
-            duracion: 2,
-          });
-        } else {
-          this.notificacionSnack.notification$.next({
-            texto: "Ups!! La imagen no se pudo guardar",
-            color: NotificacionColor.danger,
-            duracion: 2,
-          });
-        }
-      });
-    // })
+  onImageSave(image: string, filename: string, servidor = true): Observable<any> {
+    return this.genericService.onCustomMutation(this.saveImage, {image, filename}, servidor);
   }
 
-  onPrintProductoPorId(id) {
-    this.printProductoPorId
-      .fetch(
-        {
-          id,
-        },
-        {
-          errorPolicy: "all",
-          fetchPolicy: "no-cache",
-        }
-      )
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {});
+  onPrintProductoPorId(id, servidor = true) {
+    return this.genericService.onCustomQuery(this.printProductoPorId, {id}, servidor);
   }
 
-  onGetProductoParaPedido(id): Observable<Producto> {
-    return this.genericService.onGetById(this.getProductoParaPedido, id);
+  onGetProductoParaPedido(id, servidor = true): Observable<Producto> {
+    return this.genericService.onGetById(this.getProductoParaPedido, id, null, null, servidor);
   }
 
-  onExportarReporte(texto: string): Observable<string> {
-    return new Observable((obs) => {
-      this.exportarReporte
-        .fetch({ texto }, { fetchPolicy: "no-cache", errorPolicy: "all" })
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data.data);
-          } else {
-            obs.next("Problema");
-          }
-        });
-    });
+  onExportarReporte(texto: string, servidor = true): Observable<string> {
+    return this.genericService.onCustomQuery(this.exportarReporte, {texto}, servidor);
   }
 
-  onFindByPdvGrupoProductoId(id): Observable<Producto[]> {
-    return this.genericService.onGetById(this.findByPdvGrupoProductoId, id);
+  onFindByPdvGrupoProductoId(id, servidor = true): Observable<Producto[]> {
+    return this.genericService.onGetById(this.findByPdvGrupoProductoId, id, null, null, servidor);
   }
 
   onImprimirReporteLucroPorProducto(
@@ -263,7 +160,8 @@ export class ProductoService {
     fechaFin,
     sucursalIdList?,
     usuarioIdList?,
-    productoIdList?
+    productoIdList?,
+    servidor = true
   ) {
     this.genericService
       .onCustomQuery(
@@ -276,7 +174,7 @@ export class ProductoService {
           usuarioIdList,
           productoIdList,
         },
-        true
+        servidor
       )
       .subscribe((res) => {
         if (res != null) {
@@ -288,7 +186,7 @@ export class ProductoService {
       });
   }
 
-  onImprimirCodigo(codigo: Codigo) {
-    return this.genericService.onCustomQuery(this.imprimirCodigo, {codigoId: codigo?.id});
+  onImprimirCodigo(codigo: Codigo, servidor = true) {
+    return this.genericService.onCustomQuery(this.imprimirCodigo, {codigoId: codigo?.id}, servidor);
   }
 }

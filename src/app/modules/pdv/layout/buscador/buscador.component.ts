@@ -138,6 +138,7 @@ export class BuscadorComponent implements OnInit {
       mostrarStock: true,
       mostrarOpciones: true,
       conservarUltimaBusqueda: true,
+      servidor: false,
     };
     this.dialogReference = this.dialog.open(PdvSearchProductoDialogComponent, {
       height: "90%",

@@ -65,18 +65,9 @@ export class TabService implements OnInit {
     ];
 
     // this.addTab(new Tab(EditTransferenciaComponent, 'Transferencia 56', new TabData(56, {id: 56}), null))
-    // this.addTab(new Tab(VentaTouchComponent, 'Venta'))
-    // this.addTab(new Tab(ListProductoComponent, "Lista de productos"))
-    // this.addTab(new Tab(FinancieroDashboardComponent, "Dashboard Financiero"))
-    // this.addTab(new Tab(VentaTouchComponent, "Venta"))
-    //  this.addTab(new Tab(VentaTouchComponent, 'Venta'))
-    // this.addTab(new Tab(ListPedidoComponent, 'Lista de pedidos'))
-    // this.addTab(new Tab(EditPedidoComponent, 'Nuevo pedido', null, null))
-    //this.addTab(new Tab(ListCajaComponent, 'Venta 3160', new TabData(3160, {id:3160}), null))
-    //this.addTab(new Tab(ListCajaComponent, 'Observacion de cajas', null, null))
-    // this.addTab(new Tab(ProductoComponent, 'Lista de productos', null, null))
-    // open list inventario
-    this.addTab(new Tab(ListInventarioComponent, 'Lista de inventario', null, null))
+    // open list transferencia, add set timeout 1000
+    // this.addTab(new Tab(ListTransferenciaComponent, 'Lista de transferencias', null, null))
+    // this.addTab(new Tab(ListInventarioComponent, 'Lista de inventario', null, null))
     this.tabSub.next(this.tabs);
   }
   

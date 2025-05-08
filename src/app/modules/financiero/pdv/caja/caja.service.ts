@@ -178,24 +178,7 @@ export class CajaService {
   }
 
   onImprimirBalance(id, sucId?, servidor: boolean = true) {
-    return this.imprimirBalance
-      .fetch(
-        {
-          id,
-          printerName: this.configService.getConfig().printers["ticket"],
-          cajaName: this.configService.getConfig().local,
-          sucId,
-        },
-        {
-          fetchPolicy: "no-cache",
-          errorPolicy: "all",
-          context: {
-            clientName: servidor == null || servidor ? "servidor" : null,
-          },
-        }
-      )
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => { });
+    return this.genericService.onCustomQuery(this.imprimirBalance, {id, printerName: this.configService.getConfig().printers["ticket"], cajaName: this.configService.getConfig().local, sucId}, servidor);
   }
 
   onVerificarCaja(cajaId, sucursalId, usuarioId, verificado, servidor: boolean = true) {

@@ -38,45 +38,32 @@ export class PresentacionService {
     private genericService: GenericCrudService
   ) { }
 
-  onGetPresentacionesPorProductoId(id): Observable<Presentacion[]>{
-    return this.genericService.onGetById(this.getPresentacionesPorProductoId, id);
+  onGetPresentacionesPorProductoId(id, servidor = true): Observable<Presentacion[]>{
+    return this.genericService.onGetById(this.getPresentacionesPorProductoId, id, null, null, servidor);
   }
 
-  onGetPresentaciones() {
-    return this.getPresentaciones.fetch(null, { fetchPolicy: "no-cache" });
+  onGetPresentaciones(servidor = true) {
+    return this.genericService.onGetById(this.getPresentaciones, null, null, null, servidor);
   }
 
-  onSavePresentacion(presentacionInput: PresentacionInput): Observable<any> {
+  onSavePresentacion(presentacionInput: PresentacionInput, servidor = true): Observable<any> {
     if (presentacionInput.descripcion == null) {
       presentacionInput.descripcion = presentacionInput.cantidad.toString()
     }
     presentacionInput.usuarioId = this.mainService?.usuarioActual?.id;
-    return this.savePresentacion.mutate({
+    return this.genericService.onCustomMutation(this.savePresentacion, {
       entity: presentacionInput,
-    }, {
-      errorPolicy: 'all'
-    });
+    }, servidor);
   }
-  onDeletePresentacion(presentacion: Presentacion): Observable<any> {
+
+  
+  onDeletePresentacion(presentacion: Presentacion, servidor = true): Observable<any> {
     return new Observable(obs => {
       this.dialogoService.confirm('Atención!!', 'Realmente deseas eliminar esta presentación?', 'Todos los códigos y precios también serán eliminados.', [`Descripción: ${presentacion.descripcion}`, `Cantidad: ${presentacion.cantidad}`]).pipe(untilDestroyed(this)).subscribe(res => {
         if (res) {
-          this.deletePresentacion.mutate({
+          this.genericService.onCustomMutation(this.deletePresentacion, {
             id: presentacion.id,
-          }, {
-            fetchPolicy: 'no-cache',
-            errorPolicy: 'all'
-          }).pipe(untilDestroyed(this)).subscribe(res => {
-            if (res.errors == null) {
-              obs.next(res.data)
-            } else {
-              if (res.errors[0].message.includes('violates foreign key')) {
-                // this.notificacionSnack.notification$.next({
-                //   texto: 'No puedes eliminar una presentación que contenga'
-                // })
-              }
-            }
-          })
+          }, servidor);
         }
       })
     })
@@ -84,41 +71,23 @@ export class PresentacionService {
 
   }
 
-  onImageSave(image: string, filename: string): Observable<any> {
+  onImageSave(image: string, filename: string, servidor = true): Observable<any> {
     // return new Observable((obs) => {
     return new Observable<any>(obs => {
-      this.saveImage.mutate({
+      this.genericService.onCustomMutation(this.saveImage, {
         image,
         filename
-      }, { fetchPolicy: 'no-cache', errorPolicy: 'all' }).pipe(untilDestroyed(this)).subscribe(res => {
-        if (res.errors == null) {
-          // obs.next(res.data)
-          this.notificacionSnack.notification$.next({
-            texto: "Imagen guardada con éxito",
-            color: NotificacionColor.success,
-            duracion: 2
-          })
-          return obs.next(image)
-        } else {
-          this.notificacionSnack.notification$.next({
-            texto: "Ups!! La imagen no se pudo guardar",
-            color: NotificacionColor.danger,
-            duracion: 2
-          })
-          return obs.next(null)
-        }
-      })
+      }, servidor);
     })
-    // })
   }
 
-  onGetPresentacion(id: number) {
-    return this.genericService.onGetById(this.getPresentacion, id)
+  onGetPresentacion(id: number, servidor = true) {
+    return this.genericService.onGetById(this.getPresentacion, id, null, null, servidor)
   }
 
-  async onGetPresentacionTest(id: number): Promise<Presentacion> {
+  async onGetPresentacionTest(id: number, servidor = true): Promise<Presentacion> {
     return new Promise((resolve, reject) => {
-      this.genericService.onGetById(this.getPresentacion, id)
+      this.genericService.onGetById(this.getPresentacion, id, null, null, servidor)
         .pipe(untilDestroyed(this))
         .subscribe(res => {
           if (res != null) {

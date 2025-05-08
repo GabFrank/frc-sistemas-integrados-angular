@@ -32,8 +32,8 @@ export class FamiliaService {
     this.onGetFamilias()
   }
 
-  onGetFamilias(){
-    this.getFamilias.fetch(null, {fetchPolicy: 'no-cache'}).pipe(untilDestroyed(this)).subscribe(res => {
+  onGetFamilias(servidor = true){
+    return this.genericService.onCustomQuery(this.getFamilias, null, servidor).pipe(untilDestroyed(this)).subscribe(res => {
       if(!res.error){
         this.familias = res.data.data;
         this.familiaBS.next(this.familias.sort((a,b)=>{
@@ -47,34 +47,26 @@ export class FamiliaService {
     })
   }
 
-  onSearchFamilia(texto, page, size){
-    return this.genericService.onCustomQuery(this.familiaSearch, {texto, page, size});
+  onSearchFamilia(texto, page, size, servidor = true){
+    return this.genericService.onCustomQuery(this.familiaSearch, {texto, page, size}, servidor);
   }
 
-  onSaveFamilia(familiaInput: FamiliaInput): Observable<any>{
-    return this.genericService.onSave(this.saveFamilia, familiaInput);  
+  onSaveFamilia(familiaInput: FamiliaInput, servidor = true): Observable<any>{
+    return this.genericService.onSave(this.saveFamilia, familiaInput, null, null, servidor);  
   }
 
 
 
-  onDeleteFamilia(id: number){
-    return this.deleteFamilia.mutate({
-      id
-    }).pipe(untilDestroyed(this)).subscribe(res => {
+  onDeleteFamilia(id: number, servidor = true){
+    return this.genericService.onDelete(this.deleteFamilia, id, null, null, servidor).pipe(untilDestroyed(this)).subscribe(res => {
       if(!res.errors){
         this.onGetFamilias()
       }
     })
   }
 
-  onCountFamilia(): Observable<number> {
-    return new Observable((obs)=>{
-      this.countFamilia.fetch().pipe(untilDestroyed(this)).subscribe(res => {
-        if(!res.error){
-          return obs.next(res.data.countFamilia)
-        }
-      })
-    }) 
+  onCountFamilia(servidor = true): Observable<number> {
+    return this.genericService.onCustomQuery(this.countFamilia, null, servidor);
   }
 
 }

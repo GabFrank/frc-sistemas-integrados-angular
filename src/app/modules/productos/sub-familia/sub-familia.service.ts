@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, of } from 'rxjs';
 import { MainService } from '../../../main.service';
 import { FamiliaService } from '../familia/familia.service';
 import { AllSubfamiliasGQL } from './graphql/allFamilias';
@@ -34,16 +34,16 @@ export class SubFamiliaService {
     private subfamiliaSearch: SubfamiliasSearchGQL,
     private searchByDescripcion: SearchSubfamiliaByDescripcionGQL
 
-    ) {
+  ) {
     this.onGetSubfamilias()
   }
 
-  onGetSubfamilias(){
-    this.getSubfamilias.fetch(null, {fetchPolicy: 'no-cache'}).pipe(untilDestroyed(this)).subscribe(res => {
-      if(!res.error){
+  onGetSubfamilias(servidor = true) {
+    return this.genericService.onCustomQuery(this.getSubfamilias, null, servidor).pipe(untilDestroyed(this)).subscribe(res => {
+      if (!res.error) {
         this.subfamilias = res.data.data;
-        this.subfamiliaBS.next(this.subfamilias.sort((a,b)=>{
-          if(a.id > b.id) {
+        this.subfamiliaBS.next(this.subfamilias.sort((a, b) => {
+          if (a.id > b.id) {
             return 1
           } else {
             return -1
@@ -53,51 +53,40 @@ export class SubFamiliaService {
     })
   }
 
-  onSaveSubfamilia(subfamiliaInput: SubfamiliaInput): Observable<any>{
+  onSaveSubfamilia(subfamiliaInput: SubfamiliaInput, servidor = true): Observable<any> {
     subfamiliaInput.usuarioId = this.mainService?.usuarioActual?.id
     subfamiliaInput.icono == null ? subfamiliaInput.icono = 'block' : null
-    return new Observable((obs)=>{
-      this.saveSubfamilia.mutate({
-        entity: subfamiliaInput
-      }).pipe(untilDestroyed(this)).subscribe(res => {
-        if(!res.errors){
+    return new Observable(obs => {
+      this.genericService.onSave(this.saveSubfamilia, subfamiliaInput, null, null, servidor).pipe(untilDestroyed(this)).subscribe(res => {
+        if (res) {
           this.onGetSubfamilias()
-          obs.next(res.data)
           this.familiaService.onGetFamilias()
+          obs.next(res)
         }
       })
     })
-    
   }
 
-  onSearchSubfamilia(familiaId, texto, page, size){
-    return this.genericService.onCustomQuery(this.subfamiliaSearch, {familiaId, texto, page, size});
+  onSearchSubfamilia(familiaId, texto, page, size, servidor = true) {
+    return this.genericService.onCustomQuery(this.subfamiliaSearch, { familiaId, texto, page, size }, servidor);
   }
 
-  onSearchSubfamiliaSinFamiliaId(texto, page, size){
-    return this.genericService.onCustomQuery(this.subfamiliaSearch, {texto, page, size});
+  onSearchSubfamiliaSinFamiliaId(texto, page, size, servidor = true) {
+    return this.genericService.onCustomQuery(this.subfamiliaSearch, { texto, page, size }, servidor);
   }
 
 
 
-  onDeleteSubfamilia(id: number){
-    return this.deleteSubfamilia.mutate({
-      id
-    }).pipe(untilDestroyed(this)).subscribe(res => {
-      if(!res.errors){
+  onDeleteSubfamilia(id: number, servidor = true) {
+    return this.genericService.onDelete(this.deleteSubfamilia, id, null, null, servidor).pipe(untilDestroyed(this)).subscribe(res => {
+      if (!res.errors) {
         this.onGetSubfamilias()
         this.familiaService.onGetFamilias()
       }
     })
   }
 
-  onCountSubfamilia(): Observable<number> {
-    return new Observable((obs)=>{
-      this.countSubfamilia.fetch().pipe(untilDestroyed(this)).subscribe(res => {
-        if(!res.error){
-          return obs.next(res.data.countSubfamilia)
-        }
-      })
-    }) 
+  onCountSubfamilia(servidor = true): Observable<number> {
+    return this.genericService.onCustomQuery(this.countSubfamilia, null, servidor);
   }
 }

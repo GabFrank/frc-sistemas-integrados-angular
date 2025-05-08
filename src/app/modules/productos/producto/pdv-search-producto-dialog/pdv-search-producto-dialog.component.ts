@@ -51,6 +51,7 @@ export interface PdvSearchProductoData {
   conservarUltimaBusqueda?: boolean;
   costo?: boolean;
   transferencia?: Transferencia;
+  servidor?: boolean;
 }
 
 export interface PdvSearchProductoResponseData {
@@ -125,7 +126,6 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     public dialogRef: MatDialogRef<PdvSearchProductoDialogComponent>,
     public mainService: MainService,
     private matDialog: MatDialog,
-    private getProducto: ProductoForPdvGQL,
     private productoService: ProductoService,
     private _el: ElementRef,
     private stockService: MovimientoStockService,
@@ -215,7 +215,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       // }
       this.onSearchTimer = setTimeout(() => {
         this.productoService
-          .onSearch(text, offset, true)
+          .onSearch(text, offset, true, this.data.servidor)
           .pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (offset == null) {
@@ -261,7 +261,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
   getProductoDetail(producto: Producto, index) {
     if (producto?.presentaciones == null) {
       this.productoService
-        .getProducto(producto.id)
+        .getProducto(producto.id, this.data.servidor)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (this.precios != null && this.modoPrecio == "ONLY") {
@@ -320,7 +320,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         } else {
           this.onPresentacionClick(
             this.dataSource.data[index]?.presentaciones[
-              this.selectedPresentacionRowIndex
+            this.selectedPresentacionRowIndex
             ],
             this.dataSource.data[index],
             null
@@ -483,7 +483,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       this.productoService
         .onGetStockPorProductoAndSucursal(
           producto.id,
-          this.data.transferencia.sucursalOrigen.id
+          this.data.transferencia.sucursalOrigen.id,
+          this.data.servidor
         )
         .subscribe((stock) => {
           if (stock != null) {
@@ -494,7 +495,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       this.productoService
         .onGetStockPorProductoAndSucursal(
           producto.id,
-          this.data.transferencia.sucursalDestino.id
+          this.data.transferencia.sucursalDestino.id,
+          this.data.servidor
         )
         .subscribe((stock) => {
           if (stock != null) {
@@ -504,7 +506,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
         });
     } else {
       this.stockService
-        .onGetStockPorProducto(producto.id, null, false)
+        .onGetStockPorProducto(producto.id, null, this.data.servidor)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
@@ -517,7 +519,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
 
   mostrarCodigoPrincipal(producto: Producto, index?) {
     this.stockService
-      .onGetStockPorProducto(producto.id, null, false)
+      .onGetStockPorProducto(producto.id, null, this.data.servidor)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
