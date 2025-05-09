@@ -8,7 +8,7 @@ import { FinalizarTransferenciaGQL } from './graphql/finalizarTransferencia';
 import { DeleteTransferenciaItemGQL } from './graphql/deleteTransferenciaItem';
 import { SaveTransferenciaItemGQL } from './graphql/saveTransferenciaItem';
 import { SaveTransferenciaGQL } from './graphql/saveTransferencia';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { GetTransferenciaGQL } from './graphql/getTransferencia';
 import { GenericCrudService } from './../../../generics/generic-crud.service';
 import { Injectable } from '@angular/core';
@@ -28,7 +28,7 @@ import { GetTransferenciaItemGQL } from './graphql/getTransferenciaItem';
 import { GetTransferenciaItensPorTransferenciaIdGQL } from './graphql/getTransferenciaItensPorTransferenciaIdWithFilter';
 import { GetTransferenciaItensPorTransferenciaIdWithFilterGQL } from './graphql/getTransferenciaItensPorTransferenciaId';
 import { ConfiguracionService } from '../../../shared/services/configuracion.service';
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: 'root'
 })
@@ -105,25 +105,30 @@ export class TransferenciaService {
     return this.genericCrudService.onDelete(this.deleteTransferenciaItem, id, '¿Eliminar item de transferencia?', null, true, servidor, "¿Está seguro que desea eliminar este item de transferencia?");
   }
 
-  onFinalizar(transferencia: Transferencia, servidor = true): Observable<boolean> {
-
-    return new Observable(obs => {
-      if (transferencia.estado == TransferenciaEstado.ABIERTA) {
-        this.dialogoService.confirm('Realmente desea finalizar esta transferencia?', 'Una vez finalizada, la transferencia estara disponible para ser preparada').subscribe(res => {
-          if (res) {
-            return this.genericCrudService.onCustomMutation(this.finalizarTransferencia, {
-              id: transferencia.id,
-              usuarioId: this.mainService.usuarioActual.id
-            }, servidor);
-          }
-        })
-      }
-    })
-  }
+  // onFinalizar(transferencia: Transferencia, servidor = true): Observable<boolean> {
+  //   return new Observable(obs => {
+  //     if (transferencia.estado == TransferenciaEstado.ABIERTA) {
+  //       this.dialogoService.confirm('Realmente desea finalizar esta transferencia?', 'Una vez finalizada, la transferencia estara disponible para ser preparada').subscribe(res => {
+  //         if (res) {
+  //           return this.genericCrudService.onCustomMutation(this.finalizarTransferencia, {
+  //             id: transferencia.id,
+  //             usuarioId: this.mainService.usuarioActual.id
+  //           }, servidor).pipe(untilDestroyed(this)).subscribe(res => {
+  //             obs.next(res);
+  //             obs.complete();
+  //           })
+  //         }
+  //       })
+  //     }
+  //   })
+  // }
 
   onAvanzarEtapa(transferencia: Transferencia, etapa: EtapaTransferencia, servidor = true): Observable<boolean> {
     let texto = ''
-    if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN) {
+    // add etapa PRE_TRANSFERENCIA_CREACION
+    if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_CREACION) {
+      texto = 'Estas culminando la etapa de creación de transferencia, verifique con cuidado cada item';
+    } else if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN) {
       texto = 'Estas iniciando la etapa de preparación de productos, verifique con cuidado cada item';
     } else if (etapa == EtapaTransferencia.PREPARACION_MERCADERIA) {
       texto = 'Estas iniciando la etapa de preparación de productos, verifique con cuidado cada item';
@@ -140,17 +145,30 @@ export class TransferenciaService {
     } else if (etapa == EtapaTransferencia.RECEPCION_CONCLUIDA) {
       texto = 'Estas culminando la etapa de recepción, al aceptar, las mercaderias van a ser cargadas en stock';
     }
-    return new Observable(obs => {
+    return new Observable<boolean>(obs => {
       this.dialogoService.confirm('Atención, revise los datos antes de proceder.', texto).subscribe(res => {
         if (res) {
           this.genericCrudService.onCustomMutation(this.prepararTransferencia, {
             id: transferencia.id,
             etapa,
             usuarioId: this.mainService.usuarioActual.id
-          }, servidor)
+          }, servidor).pipe(untilDestroyed(this)).subscribe(res => {
+            console.log('res', res);
+            obs.next(res);
+            obs.complete();
+          }, error => {
+            obs.error(error);
+            obs.complete();
+          });
+        } else {
+          obs.next(false);
+          obs.complete();
         }
-      })
-    })
+      }, error => {
+        obs.error(error);
+        obs.complete();
+      });
+    });
   }
 
   onGetTransferenciasWithFilters(

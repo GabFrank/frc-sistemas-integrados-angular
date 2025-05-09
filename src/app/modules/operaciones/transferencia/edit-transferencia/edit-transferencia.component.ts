@@ -243,7 +243,9 @@ export class EditTransferenciaComponent implements OnInit {
     });
 
     setTimeout(() => {
-      this.codigoInput.nativeElement.focus();
+      if (this.codigoInput != null) {
+        this.codigoInput.nativeElement.focus();
+      }
     }, 1000);
 
     setTimeout(() => {
@@ -684,19 +686,19 @@ export class EditTransferenciaComponent implements OnInit {
       });
   }
 
-  onFinalizar() {
-    this.transferenciaService
-      .onFinalizar(this.selectedTransferencia)
-      .pipe()
-      .subscribe((res) => {
-        if (res) {
-          this.selectedTransferencia.estado = TransferenciaEstado.EN_ORIGEN;
-          this.selectedTransferencia.etapa =
-            EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN;
-          this.verificarEtapa();
-        }
-      });
-  }
+  // onFinalizar() {
+  //   this.transferenciaService
+  //     .onFinalizar(this.selectedTransferencia)
+  //     .pipe(untilDestroyed(this))
+  //     .subscribe((res) => {
+  //       if (res) {
+  //         this.selectedTransferencia.estado = TransferenciaEstado.EN_ORIGEN;
+  //         this.selectedTransferencia.etapa =
+  //           EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN;
+  //         this.verificarEtapa();
+  //       }
+  //     });
+  // }
 
   isAllSelected() {
     const numSelected = this.selection.selected.length;
@@ -891,7 +893,9 @@ export class EditTransferenciaComponent implements OnInit {
         if (res) {
           this.selectedTransferencia.etapa = etapa;
           this.verificarEtapa();
-          if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN) {
+          if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_CREACION) {
+            this.selectedTransferencia.estado = TransferenciaEstado.EN_ORIGEN;
+          } else if (etapa == EtapaTransferencia.PRE_TRANSFERENCIA_ORIGEN) {
             this.selectedTransferencia.estado = TransferenciaEstado.EN_ORIGEN;
           } else if (etapa == EtapaTransferencia.TRANSPORTE_EN_CAMINO) {
             this.selectedTransferencia.estado = TransferenciaEstado.EN_TRANSITO;

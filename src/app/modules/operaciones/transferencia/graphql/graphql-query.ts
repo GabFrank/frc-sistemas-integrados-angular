@@ -374,7 +374,7 @@ export const transferenciaWithFiltersQuery = gql`
 
 export const finalizarTransferencia = gql`
   mutation finalizarTransferencia($id: ID!, $usuarioId: ID!) {
-    finalizarTransferencia(id: $id, usuarioId: $usuarioId)
+    data: finalizarTransferencia(id: $id, usuarioId: $usuarioId)
   }
 `;
 
@@ -384,13 +384,13 @@ export const prepararTransferencia = gql`
     $etapa: EtapaTransferencia!
     $usuarioId: ID!
   ) {
-    avanzarEtapaTransferencia(id: $id, etapa: $etapa, usuarioId: $usuarioId)
+    data: avanzarEtapaTransferencia(id: $id, etapa: $etapa, usuarioId: $usuarioId)
   }
 `;
 
 export const imprimirTransferencia = gql`
   query imprimirTransferencia($id: ID!) {
-    imprimirTransferencia(id: $id)
+    data: imprimirTransferencia(id: $id)
   }
 `;
 
@@ -510,7 +510,7 @@ export const saveTransferenciaItem = gql`
 
 export const deleteTransferenciaItemQuery = gql`
   mutation deleteTransferenciaItem($id: ID!) {
-    deleteTransferenciaItem(id: $id)
+    data: deleteTransferenciaItem(id: $id)
   }
 `;
 
@@ -626,7 +626,7 @@ export const saveTransferenciaItemDetalle = gql`
 
 export const deleteTransferenciaItemDetalleQuery = gql`
   mutation deleteTransferenciaItemDetalle($id: ID!) {
-    deleteTransferenciaItemDetalle(id: $id)
+    data: deleteTransferenciaItemDetalle(id: $id)
   }
 `;
 
