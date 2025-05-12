@@ -178,7 +178,7 @@ export class CajaService {
   }
 
   onImprimirBalance(id, sucId?, servidor: boolean = true) {
-    return this.genericService.onCustomQuery(this.imprimirBalance, {id, printerName: this.configService.getConfig().printers["ticket"], cajaName: this.configService.getConfig().local, sucId}, servidor);
+    return this.genericService.onCustomQuery(this.imprimirBalance, {id, printerName: this.configService.getConfig().printers["ticket"], cajaName: this.configService.getConfig().local, sucId}, servidor, null, true);
   }
 
   onVerificarCaja(cajaId, sucursalId, usuarioId, verificado, servidor: boolean = true) {

@@ -34,8 +34,8 @@ export class FamiliaService {
 
   onGetFamilias(servidor = true){
     return this.genericService.onCustomQuery(this.getFamilias, null, servidor).pipe(untilDestroyed(this)).subscribe(res => {
-      if(!res.error){
-        this.familias = res.data.data;
+      if(res){
+        this.familias = res;
         this.familiaBS.next(this.familias.sort((a,b)=>{
           if(a.id > b.id) {
             return 1

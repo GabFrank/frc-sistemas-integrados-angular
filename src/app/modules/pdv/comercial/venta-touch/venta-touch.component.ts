@@ -379,8 +379,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       .onGetAllTipoPrecios(false)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
-        if (!res.errors) {
-          this.tiposPrecios = res.data.data;
+        if (res) {
+          this.tiposPrecios = res;
           this.selectedTipoPrecio = this.tiposPrecios[0];
         } else {
           this.notificacionSnackbar.notification$.next({

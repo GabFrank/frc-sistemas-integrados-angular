@@ -45,7 +45,7 @@ export class CargandoDialogService {
     botonDelay?: number,
     botonText?: string
   ): { requestId: number; signal: AbortSignal } {
-    // console.trace('Method called');
+    console.trace('Method called');
 
     this.spinnerService.show();
 
@@ -63,7 +63,7 @@ export class CargandoDialogService {
       showCerrarButton: disable !== undefined ? !disable : true,
       abortController,
     });
-    // console.log(`Dialog opened: requestId=${requestId}, signal=${abortController.signal}`);
+    console.log(`Dialog opened: requestId=${requestId}, signal=${abortController.signal}`);
     return { requestId, signal: abortController.signal };
   }
 
@@ -80,7 +80,7 @@ export class CargandoDialogService {
     if (request) {
       clearTimeout(request.timer);
       request.abortController.abort();
-      // console.log(`Request aborted: requestId=${requestId}`);
+      console.log(`Request aborted: requestId=${requestId}`);
       this.dialogRequests.delete(requestId);
 
       if (this.dialogRequests.size === 0) {

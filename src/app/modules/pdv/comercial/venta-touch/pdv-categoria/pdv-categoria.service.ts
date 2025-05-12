@@ -85,31 +85,9 @@ export class PdvCategoriaService implements OnDestroy {
     })
   }
 
-  onSaveCategoria(input: PdvCategoriaInput) {
-    return new Observable(obs => {
-      this.saveCategoria.mutate({
-        input
-      }, {
-        fetchPolicy: 'no-cache',
-        errorPolicy: 'all'
-      }).pipe(untilDestroyed(this)).subscribe(res => {
-        if (res.errors != null) {
-          this.notificacionService.notification$.next({
-            texto: 'Ups! Algo salió mal',
-            duracion: 3,
-            color: NotificacionColor.danger
-          })
-          obs.next({ 'error': res })
-        } else {
-          this.notificacionService.notification$.next({
-            texto: 'Categoria guardada correctamente!',
-            duracion: 2,
-            color: NotificacionColor.success
-          })
-          obs.next({ 'data': res.data.data })
-        }
-      })
-    })
+  onSaveCategoria(input: PdvCategoriaInput, servidor = true) {
+    // refactor 
+    return this.genericService.onSave(this.saveCategoria, input, null, null,  servidor)
   }
 
   onGetGrupoProductosPorGrupoId(id, servidor: boolean = true): Observable<PdvGruposProductos[]> {

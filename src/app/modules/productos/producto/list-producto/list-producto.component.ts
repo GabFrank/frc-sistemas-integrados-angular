@@ -175,7 +175,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         this.selectedSubfamilia?.id,
         this.vencimientoControl.value,
         this.pageIndex,
-        this.pageSize
+        this.pageSize,
+        true
       )
       .subscribe((res) => {
         this.selectedPageInfo = res;
@@ -188,7 +189,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     this.selectedProducto = row;
     this.selectedProducto.sucursales = [];
     for(let sucursal of this.sucursales){
-      this.service.onGetStockPorProductoAndSucursal(this.selectedProducto.id, sucursal.id).subscribe(res => {
+      this.service.onGetStockPorProductoAndSucursal(this.selectedProducto.id, sucursal.id, true).subscribe(res => {
         let existencia = new ExistenciaCostoPorSucursal();
         existencia.sucursal = sucursal;
         existencia.existencia = res;

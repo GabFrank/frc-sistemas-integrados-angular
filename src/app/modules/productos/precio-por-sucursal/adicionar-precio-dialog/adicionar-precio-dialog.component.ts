@@ -61,8 +61,8 @@ export class AdicionarPrecioDialogComponent implements OnInit {
 
   loadTipoPrecios(){
     this.tipoPrecioService.onGetAllTipoPrecios().pipe(untilDestroyed(this)).subscribe(res => {
-      if(res.errors==null){
-        this.tipoPrecioList = res.data.data;
+      if(res!=null){
+        this.tipoPrecioList = res;
       }
     })
   }

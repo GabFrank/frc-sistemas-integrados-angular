@@ -40,8 +40,8 @@ export class SubFamiliaService {
 
   onGetSubfamilias(servidor = true) {
     return this.genericService.onCustomQuery(this.getSubfamilias, null, servidor).pipe(untilDestroyed(this)).subscribe(res => {
-      if (!res.error) {
-        this.subfamilias = res.data.data;
+      if (res) {
+        this.subfamilias = res;
         this.subfamiliaBS.next(this.subfamilias.sort((a, b) => {
           if (a.id > b.id) {
             return 1
