@@ -1,8 +1,8 @@
 {
-  "serverIp": "localhost",
+  "serverIp": "172.25.3.1",
   "serverPort": "8082",
-  "serverCentralIp": "localhost",
-  "serverCentralPort": "8081",
+  "serverCentralIp": "172.25.1.200",
+  "serverCentralPort": "8082",
   "local": "Caja 1",
   "precios": "EXPO, EXPO-DEPOSITO",
   "modo": "NOT",

@@ -50,6 +50,14 @@ export class LoginService {
       // Get the server configuration from ConfiguracionService
       const config = this.configService.getConfig();
       
+      // Determine which server to use based on isLocal flag
+      const serverIp = config.isLocal ? config.serverIp : config.serverCentralIp;
+      const serverPort = config.isLocal ? config.serverPort : config.serverCentralPort;
+      
+      console.log("isLocal", config.isLocal);
+      console.log("serverIp", serverIp);
+      console.log("serverPort", serverPort);
+      
       let httpBody = {
         nickname: nickname,
         password: password
@@ -57,13 +65,14 @@ export class LoginService {
       };
       let httpResponse = this.http
         .post(
-          `http://${config.serverIp}:${config.serverPort}/login`,
+          `http://${serverIp}:${serverPort}/login`,
           httpBody,
           this.httpOptions
         )
         .pipe(untilDestroyed(this))
         .subscribe(
           (res) => {
+            console.log("res", res);
             if (res["token"] != null) {
               // Store token and user ID in localStorage always
               localStorage.setItem("token", res["token"]);
@@ -78,7 +87,7 @@ export class LoginService {
               setTimeout(() => {
                 if (res["usuarioId"] != null) {
                   this.usuarioService
-                    .onGetUsuario(res["usuarioId"])
+                    .onGetUsuario(res["usuarioId"], !config.isLocal)
                     .pipe(untilDestroyed(this))
                     .subscribe((res) => {
                       if (res?.id != null) {

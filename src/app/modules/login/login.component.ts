@@ -31,6 +31,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
   errorMessage: string;
   hidePassword = true;
   logoBackgroundColor = '#c30e0e'; // Default fallback color
+  serverInfo: string; // Information about which server we're connecting to
 
   statusSub: Subscription;
 
@@ -47,6 +48,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.createForm();
     this.verficarAuth();
+    this.updateServerInfo();
 
     this.statusSub = connectionStatusSub
       .pipe(untilDestroyed(this))
@@ -54,6 +56,13 @@ export class LoginComponent implements OnInit, AfterViewInit {
         if (res) {
           this.verficarAuth();
         }
+      });
+      
+    // Update server info when configuration changes
+    this.configService.configChanged
+      .pipe(untilDestroyed(this))
+      .subscribe(() => {
+        this.updateServerInfo();
       });
   }
 
@@ -192,6 +201,8 @@ export class LoginComponent implements OnInit, AfterViewInit {
 
   onEntrar(): void {
     if (this.nicknameControl.valid && this.passwordControl.valid) {
+      this.errorMessage = null; // Clear previous error messages
+      
       this.loginService
         .login(
           this.nicknameControl.value, 
@@ -209,7 +220,7 @@ export class LoginComponent implements OnInit, AfterViewInit {
             }, 2000);
           } else if (res.error != null) {
             this.mainService.authenticationSub.next(false);
-            this.errorMessage = res.error.message;
+            this.errorMessage = res.error.message || 'Error de conexión al servidor. Verifique la configuración.';
           }
         });
     }
@@ -268,5 +279,15 @@ export class LoginComponent implements OnInit, AfterViewInit {
         );
       }
     });
+  }
+
+  // Update the server info based on configuration
+  updateServerInfo(): void {
+    const config = this.configService.getConfig();
+    if (config.isLocal) {
+      this.serverInfo = `Conectando a servidor local: ${config.serverIp}:${config.serverPort}`;
+    } else {
+      this.serverInfo = `Conectando a servidor central: ${config.serverCentralIp}:${config.serverCentralPort}`;
+    }
   }
 }

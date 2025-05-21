@@ -35,6 +35,11 @@
               <h4>Ingrese sus credenciales para tener acceso al sistema.</h4>
             </div>
             
+            <div class="server-info" *ngIf="false">
+              <mat-icon>dns</mat-icon>
+              <span>{{ serverInfo }}</span>
+            </div>
+            
             <div fxLayout="column" fxLayoutGap="20px" style="width: 100%">
               <mat-form-field appearance="outline">
                 <mat-label>Usuario</mat-label>
@@ -92,7 +97,7 @@
                 >
                   <mat-icon>login</mat-icon> Entrar
                 </button>
-                <button
+                <!-- <button
                   type="button"
                   color="primary"
                   mat-stroked-button
@@ -100,7 +105,7 @@
                   class="cancel-button"
                 >
                   <mat-icon>close</mat-icon> Cancelar
-                </button>
+                </button> -->
               </div>
             </div>
           </div>
@@ -247,6 +252,36 @@
     border-radius: 4px;
     padding: 8px 20px;
     font-weight: 500;
+  }
+  
+  .server-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: rgba(0,0,0,0.1);
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.8);
+  }
+  
+  .server-info mat-icon {
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+    color: #c30e0e;
+  }
+  
+  .login-error-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: rgba(255,0,0,0.1);
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-top: 10px;
+    color: #f44336;
   }
   
   .error-message {
