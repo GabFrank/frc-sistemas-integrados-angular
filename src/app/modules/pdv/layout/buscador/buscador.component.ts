@@ -195,122 +195,117 @@ export class BuscadorComponent implements OnInit {
     let isPesable = false;
     let peso;
     let codigo;
-    let isPrefi20 = false;
+    
     if (texto == null || texto == " " || texto == "") return null;
-    // if (texto.length == 13 && texto.substring(0, 2) == '20') {
-    //   isPesable = true;
-    //   codigo = texto.substring(2, 7)
-    //   peso = +texto.substring(7, 12) / 1000
-    //   texto = codigo
-    //   this.cantidadControl.setValue(peso)
-    // }
-    if (texto.length == 13 && texto.substring(0, 2) == "20") {
-      isPrefi20 = true;
-    }
+    
+    // Flag for potential weighable product (prefix 20 with length 13)
+    let isPotentialPesable = texto.length == 13 && texto.substring(0, 2) == '20';
+    let originalTexto = texto;
+    
+    // First try with the complete barcode
     this.productoService.onGetProductoPorCodigo(texto, false)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
           console.log('Encontro producto por codigo');
           producto = res;
-          if (producto != null) {
-            if (producto?.balanza == true && texto.length == 13) {
-              peso = +texto.substring(7, 12) / 1000;
-              this.cantidadControl.setValue(peso);
-            }
-            this.isAudio ? this.beepService.beep() : null;
-            if (this.mostrarPrecios) {
-              this.dialog
-                .open(ProductoCategoriaDialogComponent, {
-                  data: {
-                    presentaciones: producto?.presentaciones,
-                    producto,
-                  },
-                  width: "90%",
-                })
-                .afterClosed()
-                .pipe(untilDestroyed(this))
-                .subscribe((res) => {
-                  let respuesta: SelectProductosResponseData =
-                    new SelectProductosResponseData();
-                  let productoCategoriaResponse: ProductoCategoriaResponseData =
-                    res;
-                  if (
-                    productoCategoriaResponse?.presentacion != null &&
-                    productoCategoriaResponse.precio != null
-                  ) {
-                    respuesta.producto = producto;
-                    respuesta.data = productoCategoriaResponse;
+          console.log(producto);
+          
+          // Check if it's a weighable product that needs weight parsing
+          if (producto?.balanza == true && isPotentialPesable) {
+            peso = +originalTexto.substring(7, 12) / 1000;
+            this.cantidadControl.setValue(peso);
+          }
+          
+          this.isAudio ? this.beepService.beep() : null;
+          if (this.mostrarPrecios) {
+            this.dialog
+              .open(ProductoCategoriaDialogComponent, {
+                data: {
+                  presentaciones: producto?.presentaciones,
+                  producto,
+                },
+                width: "90%",
+              })
+              .afterClosed()
+              .pipe(untilDestroyed(this))
+              .subscribe((res) => {
+                let respuesta: SelectProductosResponseData =
+                  new SelectProductosResponseData();
+                let productoCategoriaResponse: ProductoCategoriaResponseData =
+                  res;
+                if (
+                  productoCategoriaResponse?.presentacion != null &&
+                  productoCategoriaResponse.precio != null
+                ) {
+                  respuesta.producto = producto;
+                  respuesta.data = productoCategoriaResponse;
+                  this.crearItemEvent.emit({
+                    presentacion: productoCategoriaResponse?.presentacion,
+                    precio: productoCategoriaResponse.precio,
+                    producto: producto,
+                    texto: texto,
+                    cantidad: productoCategoriaResponse.cantidad,
+                  });
+                  this.buscadorControl.setValue(null);
+                  this.cantidadControl.setValue(1);
+                }
+              });
+          } else {
+            this.crearItemEvent.emit({
+              producto: producto,
+              texto: texto,
+              cantidad: this.cantidadControl.value,
+            });
+            this.buscadorControl.setValue(null);
+            this.cantidadControl.setValue(1);
+            return;
+          }
+        } else {
+          console.log("No encontro el producto con codigo original");
+          this.isAudio ? this.beepService.boop() : null;
+          
+          // If it's a potential weighable product and not found with original code,
+          // try to find with the product code part only
+          if (isPotentialPesable) {
+            console.log("Intentando como producto pesable");
+            
+            codigo = originalTexto.substring(2, 7);
+            peso = +originalTexto.substring(7, 12) / 1000;
+            
+            this.productoService.onGetProductoPorCodigo(codigo, false)
+              .pipe(untilDestroyed(this))
+              .subscribe((res) => {
+                if (res != null) {
+                  producto = res;
+                  if (producto != null) {
+                    // Set the weight as quantity
+                    this.cantidadControl.setValue(peso);
+                    
                     this.crearItemEvent.emit({
-                      presentacion: productoCategoriaResponse?.presentacion,
-                      precio: productoCategoriaResponse.precio,
                       producto: producto,
-                      texto: texto,
-                      cantidad: productoCategoriaResponse.cantidad,
+                      texto: codigo,
+                      cantidad: this.cantidadControl.value,
                     });
                     this.buscadorControl.setValue(null);
                     this.cantidadControl.setValue(1);
+                    return;
+                  } else {
+                    this.cantidadControl.setValue(1);
+                    this.buscarProductoDialog();
+                    this.notificacionSnackbar.notification$.next({
+                      texto: "Producto no encontrado",
+                      color: NotificacionColor.warn,
+                      duracion: 2,
+                    });
                   }
-                });
-            } else {
-              this.crearItemEvent.emit({
-                producto: producto,
-                texto: texto,
-                cantidad: this.cantidadControl.value,
+                } else {
+                  this.buscarProductoDialog();
+                }
               });
-              this.buscadorControl.setValue(null);
-              this.cantidadControl.setValue(1);
-              return;
-            }
           } else {
-            console.log("no encontro el producto con codigo original");
-
-            this.isAudio ? this.beepService.boop() : null;
-            // this.cantidadControl.setValue(1);
-            if (isPrefi20) {
-              console.log("es prefix");
-
-              isPesable = true;
-              codigo = texto.substring(2, 7);
-              peso = +texto.substring(7, 12) / 1000;
-              texto = codigo;
-              this.cantidadControl.setValue(peso);
-              this.productoService.onGetProductoPorCodigo(texto, false)
-                .pipe(untilDestroyed(this))
-                .subscribe((res) => {
-                  if (res != null) {
-                    producto = res;
-                    if (producto != null) {
-                      if (producto?.balanza == true && texto.length == 13) {
-                        peso = +texto.substring(7, 12) / 1000;
-                        this.cantidadControl.setValue(peso);
-                      }
-                      this.crearItemEvent.emit({
-                        producto: producto,
-                        texto: texto,
-                        cantidad: this.cantidadControl.value,
-                      });
-                      this.buscadorControl.setValue(null);
-                      this.cantidadControl.setValue(1);
-                      return;
-                    } else {
-                      this.cantidadControl.setValue(1);
-                      this.buscarProductoDialog();
-                      this.notificacionSnackbar.notification$.next({
-                        texto: "Producto no encontrado",
-                        color: NotificacionColor.warn,
-                        duracion: 2,
-                      });
-                    }
-                  }
-                });
-            } else {
-              this.buscarProductoDialog();
-            }
+            this.buscarProductoDialog();
           }
-        } else {
-          console.log('No encontro producto por codigo');
-          this.buscarProductoDialog();
         }
         this.setFocusToInput();
       });
