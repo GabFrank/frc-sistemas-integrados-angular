@@ -408,12 +408,22 @@ export class AdicionarCajaDialogComponent implements OnInit {
 
         break;
       case "imprimir":
-        if (this.selectedCaja != null)
+        if (this.selectedCaja != null) {
           this.cajaService.onImprimirBalance(
             this.selectedCaja?.id,
             this.selectedCaja?.sucursalId,
             !this.isVentaTouch
-          );
+          ).subscribe({
+            next: (response) => {
+              // TODO: Implement success notification if needed
+              console.log('Balance impreso:', response);
+            },
+            error: (err) => {
+              // TODO: Implement error notification if needed
+              console.error('Error al imprimir balance:', err);
+            }
+          });
+        }
         break;
       case "imprimir-factura":
         if (this.selectedCaja != null)

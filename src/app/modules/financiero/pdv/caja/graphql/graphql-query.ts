@@ -454,7 +454,7 @@ export const imprimirBalanceQuery = gql`
     $local: String
     $sucId: ID
   ) {
-    imprimirBalance(
+    data: imprimirBalance(
       id: $id
       printerName: $printerName
       local: $local

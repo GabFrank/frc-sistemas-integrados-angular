@@ -112,7 +112,19 @@ export class UltimasCajasDialogComponent implements OnInit {
   }
 
   onImprimirBalance(caja: PdvCaja) {
-    this.cajaService.onImprimirBalance(caja.id, caja.sucursalId);
+    this.cajaService.onImprimirBalance(caja.id, caja.sucursalId, false)
+    .subscribe({
+      next: (response) => {
+        // Handle successful response, e.g., show a success message
+        // TODO: Implement success notification if needed
+        console.log('Balance impreso:', response);
+      },
+      error: (err) => {
+        // Handle error, e.g., show an error message
+        // TODO: Implement error notification if needed
+        console.error('Error al imprimir balance:', err);
+      }
+    });
   }
 
   salir() {
