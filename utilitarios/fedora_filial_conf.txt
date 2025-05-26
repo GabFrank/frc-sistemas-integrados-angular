@@ -121,7 +121,8 @@ sudo update-desktop-database
 sudo tee /etc/systemd/system/frc.service << "EOF" > /dev/null
 [Unit]
 Description=FRC Sistemas Integrados
-After=network.target
+Requires=postgresql.service
+After=postgresql.service
 
 [Service]
 Type=simple
@@ -129,6 +130,8 @@ User=franco
 WorkingDirectory=/home/franco/FRC/frc-server/
 ExecStart=/usr/bin/java -jar /home/franco/FRC/frc-server/frc-server.jar
 SuccessExitStatus=143
+Restart=on-failure
+RestartSec=5s
 
 [Install]
 WantedBy=multi-user.target
