@@ -4,6 +4,7 @@ export const proveedoresQuery = gql`
   {
     data: proveedores {
       id
+      chequeDias
       persona {
         id
         nombre
@@ -89,6 +90,7 @@ export const proveedoresSearchByProveedor = gql`
   query ($texto: String) {
     data: proveedorSearchByProveedor(texto: $texto) {
       id
+      chequeDias
       persona {
         id
         nombre
@@ -113,6 +115,7 @@ export const proveedoresPorProveedor = gql`
   query ($id: Int) {
     data: proveedorPorVendedor(id: $id) {
       id
+      chequeDias
       persona {
         id
         nombre
@@ -137,6 +140,7 @@ export const proveedorQuery = gql`
   query ($id: ID!) {
     data: proveedor(id: $id) {
       id
+      chequeDias
       persona {
         id
         nombre
@@ -169,6 +173,7 @@ export const saveProveedor = gql`
         id
         nombre
       }
+      tipoCredito
     }
   }
 `;

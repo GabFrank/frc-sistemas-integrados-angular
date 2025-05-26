@@ -179,7 +179,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
   //Listas
   presentacionList: Presentacion[];
   sucursalList: Sucursal[];
-  tipoBoletaList: any[] = ["LEGAL", "COMUN", "AMBAS"];
+  tipoBoletaList: any[] = ["LEGAL", "COMUN", "OTRO"];
   formaPagoList: FormaPago[];
   monedas: Moneda[];
   auxMonedas: Moneda[];
@@ -730,7 +730,12 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
         " - " +
         this.selectedProveedor.persona.nombre
       );
-
+      
+      this.diasCreditoControl.setValue(this.selectedProveedor.chequeDias);
+      if(proveedor.credito){
+        this.selectedFormaPago = this.formaPagoList.find(fp => fp.descripcion === 'CHEQUE');
+        this.formaPagoControl.setValue(this.selectedFormaPago);
+      }
       this.vendedorInput?.nativeElement.focus();
 
       this.productoProveedorService
