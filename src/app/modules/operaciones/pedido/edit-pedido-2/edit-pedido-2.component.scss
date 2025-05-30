@@ -1,0 +1,450 @@
+.pedido-container {
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  background-color: #2d2d2d;
+  padding: 16px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header Section Styles - 20% of container height */
+.pedido-header {
+  height: 20%;
+  min-height: 180px;
+  max-height: 300px;
+  overflow: auto;
+  
+  .header-card {
+    height: 100%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    background: linear-gradient(135deg, #667eea89 0%, #764ba29a 100%);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    
+    mat-card-header {
+      padding-bottom: 8px;
+      flex-shrink: 0;
+      
+      mat-card-title {
+        font-size: 1.75rem;
+        font-weight: 500;
+        margin: 0;
+        
+        span {
+          font-size: 1.5rem;
+        }
+        
+        mat-chip-list {
+          mat-chip {
+            font-weight: bold;
+            font-size: 1rem;
+            &.mat-primary {
+              background-color: rgba(255, 255, 255, 0.2);
+              color: white;
+            }
+            &.mat-accent {
+              background-color: #4caf50;
+            }
+            &.mat-warn {
+              background-color: #f44336;
+            }
+          }
+        }
+      }
+    }
+    
+    mat-card-content {
+      flex: 1;
+      overflow: auto;
+      padding-top: 8px;
+      
+      .info-label {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin: 0 0 8px 0;
+        color: #f57c00;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      .info-content {
+        .info-value {
+          font-size: 1.5rem;
+          font-weight: 500;
+          margin-bottom: 4px;
+          color: white;
+        }
+        
+        .info-secondary {
+          font-size: 1.2rem;
+          color: rgba(255, 255, 255, 0.8);
+        }
+      }
+      
+      .info-placeholder {
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.6);
+        font-style: italic;
+      }
+    }
+  }
+}
+
+/* Stepper Container - 80% of container height */
+.stepper-container {
+  height: 80%;
+  overflow: hidden;
+  
+  .full-height-stepper {
+    height: 100%;
+    background-color: #2d2d2d;
+    
+    ::ng-deep {
+      .mat-horizontal-stepper-header-container {
+        background-color: #2d2d2d !important;
+        flex-shrink: 0;
+      }
+      
+      .mat-horizontal-stepper-content {
+        overflow: hidden;
+        height: calc(100% - 72px);
+        background-color: #2d2d2d;
+        position: relative;
+        
+        .mat-horizontal-content-container {
+          height: 100%;
+          overflow: hidden;
+          padding: 0;
+          background-color: #2d2d2d;
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+        }
+      }
+      
+      .mat-stepper-horizontal-line {
+        border-top-color: #555;
+      }
+      
+      .mat-step-header {
+        pointer-events: auto;
+        background-color: #2d2d2d;
+        
+        &.cdk-keyboard-focused,
+        &.cdk-program-focused,
+        &:hover:not(.mat-step-disabled) {
+          background-color: rgba(255, 255, 255, 0.08);
+          border-radius: 4px;
+        }
+        
+        .mat-step-icon {
+          background-color: #555;
+          color: #ccc;
+          
+          &.mat-step-icon-state-done {
+            background-color: #4caf50;
+            color: white;
+          }
+          
+          &.mat-step-icon-state-edit {
+            background-color: #2196f3;
+            color: white;
+          }
+        }
+        
+        .mat-step-label {
+          .mat-step-text-label {
+            font-weight: 500;
+            font-size: 1rem;
+            color: #e0e0e0;
+            
+            mat-icon {
+              font-size: 20px;
+              width: 20px;
+              height: 20px;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/* Step Content Styles */
+.step-content {
+  height: 100%;
+  width: 100%;
+  padding: 16px;
+  background-color: #3a3a3a;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  margin: 8px;
+  overflow: hidden;
+  color: #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  
+  h3 {
+    margin: 0 0 12px 0;
+    color: #f0f0f0;
+    font-size: 1.75rem;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+  
+  p {
+    margin: 0 0 16px 0;
+    color: #bbb;
+    font-size: 1.125rem;
+    flex-shrink: 0;
+  }
+  
+  .step-placeholder {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #2a2a2a;
+    border: 2px dashed #666;
+    border-radius: 8px;
+    padding: 24px;
+    
+    .large-icon {
+      font-size: 5rem;
+      width: 5rem;
+      height: 5rem;
+      color: #777;
+      margin-bottom: 16px;
+    }
+    
+    p {
+      color: #aaa;
+      text-align: center;
+      font-style: italic;
+      font-size: 1.125rem;
+      margin: 0;
+    }
+  }
+}
+
+/* Step Actions */
+.step-actions {
+  padding: 16px 0 0 0;
+  border-top: 1px solid #555;
+  margin-top: auto;
+  flex-shrink: 0;
+  
+  button {
+    min-width: 120px;
+    font-size: 1rem;
+    
+    &.mat-raised-button {
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+    }
+    
+    &.mat-button {
+      color: #e0e0e0;
+    }
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .pedido-container {
+    padding: 8px;
+  }
+  
+  .pedido-header {
+    min-height: 150px;
+    
+    .header-card {
+      mat-card-content {
+        .info-label {
+          font-size: 0.875rem;
+        }
+        
+        .info-value {
+          font-size: 1rem;
+        }
+        
+        .info-secondary {
+          font-size: 0.875rem;
+        }
+      }
+    }
+  }
+  
+  .step-content {
+    padding: 16px;
+    margin: 8px;
+    
+    h3 {
+      font-size: 1.5rem;
+    }
+    
+    p {
+      font-size: 1rem;
+    }
+    
+    .large-icon {
+      font-size: 4rem !important;
+      width: 4rem !important;
+      height: 4rem !important;
+    }
+    
+    .step-placeholder {
+      p {
+        font-size: 1rem;
+      }
+    }
+  }
+  
+  .stepper-container {
+    .full-height-stepper {
+      ::ng-deep {
+        .mat-step-label {
+          .mat-step-text-label {
+            font-size: 0.875rem;
+            
+            span {
+              display: none;
+            }
+            
+            mat-icon {
+              margin: 0;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #2d2d2d;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #666;
+  border-radius: 4px;
+  
+  &:hover {
+    background: #777;
+  }
+}
+
+/* Loading states */
+.loading-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  background-color: #3a3a3a;
+  color: #e0e0e0;
+  
+  mat-spinner {
+    margin-right: 16px;
+  }
+}
+
+/* Dark theme overrides for Material components */
+::ng-deep {
+  .mat-horizontal-stepper-header-container {
+    background-color: #2d2d2d !important;
+  }
+  
+  .mat-stepper-horizontal {
+    background-color: #2d2d2d !important;
+  }
+  
+  .mat-step-header .mat-step-label {
+    color: #e0e0e0 !important;
+  }
+  
+  .mat-step-header .mat-step-label.mat-step-label-active {
+    color: #fff !important;
+  }
+  
+  .mat-step-header .mat-step-label.mat-step-label-selected {
+    color: #fff !important;
+  }
+  
+  /* Force stepper content to stack properly */
+  .mat-stepper-horizontal .mat-horizontal-stepper-content {
+    min-height: 0;
+    overflow: hidden;
+    display: block !important;
+  }
+  
+  .mat-stepper-horizontal .mat-horizontal-content-container {
+    overflow: hidden;
+    height: 100%;
+    display: block !important;
+  }
+  
+  /* Ensure only active step content is visible */
+  .mat-stepper-horizontal .mat-horizontal-stepper-content[aria-expanded="false"] {
+    height: 0 !important;
+    visibility: hidden;
+    overflow: hidden;
+  }
+  
+  .mat-stepper-horizontal .mat-horizontal-stepper-content[aria-expanded="true"] {
+    height: calc(100% - 72px) !important;
+    visibility: visible;
+    overflow: hidden;
+  }
+  
+  /* Fix for step content positioning */
+  .mat-stepper-horizontal .mat-step:not(.mat-step-optional) .mat-step-label {
+    pointer-events: auto;
+  }
+  
+  /* Ensure proper stepper layout */
+  .mat-stepper-horizontal {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+  }
+  
+  .mat-horizontal-stepper-header-container {
+    flex-shrink: 0 !important;
+  }
+  
+  .mat-horizontal-stepper-content-container {
+    flex: 1 !important;
+    height: 100% !important;
+    position: relative !important;
+  }
+}
+
+.chip-container {
+  mat-chip {
+    font-weight: bold;
+    font-size: 1rem;
+    &.mat-primary {
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+    &.mat-accent {
+      background-color: #4caf50;
+    }
+    &.mat-warn {
+      background-color: #f44336;
+    }
+  }
+} 

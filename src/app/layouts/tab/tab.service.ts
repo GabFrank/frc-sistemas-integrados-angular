@@ -7,6 +7,7 @@ import { ListMovimientoStockComponent } from '../../modules/operaciones/movimien
 import { ListInventarioComponent } from '../../modules/operaciones/inventario/list-inventario/list-inventario.component';
 import { EditCompraComponent } from '../../modules/operaciones/compra/edit-compra/edit-compra.component';
 import { EditPedidoComponent } from '../../modules/operaciones/pedido/edit-pedido/edit-pedido.component';
+import { EditPedido2Component } from '../../modules/operaciones/pedido/edit-pedido-2/edit-pedido-2.component';
 import { ListTransferenciaComponent } from '../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
 import { ListProductoComponent } from '../../modules/productos/producto/list-producto/list-producto.component';
 import { ListFacturaLegalComponent } from '../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component';
@@ -69,7 +70,9 @@ export class TabService implements OnInit {
     // this.addTab(new Tab(ListTransferenciaComponent, 'Lista de transferencias', null, null))
     // this.addTab(new Tab(ListInventarioComponent, 'Lista de inventario', null, null))
     // this.addTab(new Tab(EditPedidoComponent, 'Pedido 1', new TabData(1, {id: 1}), null))
-    this.addTab(new Tab(EditPedidoComponent, 'Pedido 2', new TabData(2, {id: 2}), null))
+    // Test both components - remove one when testing the other
+    this.addTab(new Tab(EditPedidoComponent, 'Pedido 2 (Original)', new TabData(2, {id: 2}), null))
+    this.addTab(new Tab(EditPedido2Component, 'Pedido 2 (New)', new TabData(2, {id: 2}), null))
     this.tabSub.next(this.tabs);
   }
   

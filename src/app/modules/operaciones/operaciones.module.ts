@@ -18,6 +18,7 @@ import { EditNecesidadComponent } from './necesidad/edit-necesidad/edit-necesida
 import { ListNecesidadComponent } from './necesidad/list-necesidad/list-necesidad.component';
 import { AdicionarItemDialogComponent } from './pedido/adicionar-item-dialog/adicionar-item-dialog.component';
 import { EditPedidoComponent } from './pedido/edit-pedido/edit-pedido.component';
+import { EditPedido2Component } from './pedido/edit-pedido-2/edit-pedido-2.component';
 import { ListPedidoComponent } from './pedido/list-pedido/list-pedido.component';
 import { AdicionarNotaRecepcionDialogComponent } from './pedido/nota-recepcion/adicionar-nota-recepcion-dialog/adicionar-nota-recepcion-dialog.component';
 import { AdicionarNotaRecepcionItemDialogComponent } from './pedido/nota-recepcion/adicionar-nota-recepcion-item-dialog/adicionar-nota-recepcion-item-dialog.component';
@@ -57,6 +58,7 @@ import { ModificarSucursalPagoDetalleComponent } from './pago/pago-detalle-cuota
   declarations: [
     ListPedidoComponent,
     EditPedidoComponent,
+    EditPedido2Component,
     ListCompraComponent,
     EditCompraComponent,
     ListNecesidadComponent,
@@ -114,7 +116,8 @@ import { ModificarSucursalPagoDetalleComponent } from './pago/pago-detalle-cuota
     
   ],
   exports: [
-    EditPedidoComponent
+    EditPedidoComponent,
+    EditPedido2Component
   ],
   providers:[
     { provide: LOCALE_ID, useValue: 'es-PY' } ,
