@@ -143,6 +143,8 @@ export class AdicionarNotaRecepcionDialogComponent implements OnInit {
         }
       })
     })
+
+    this.fechaControl.setValue(dateToString(new Date(), "dd/MM/yy"), {emitEvent: false})
   }
 
   cargarDatos() {
@@ -206,7 +208,6 @@ export class AdicionarNotaRecepcionDialogComponent implements OnInit {
 
   onNumeroEnter() {
     if (this.numeroControl.value != null) {
-      this.fechaControl.setValue(dateToString(new Date(), "dd/MM/yy"))
       this.fechaInput.nativeElement.select();
     } else if (this.tipoBoletaControl.value == "COMUN") {
       this.dialogoService
