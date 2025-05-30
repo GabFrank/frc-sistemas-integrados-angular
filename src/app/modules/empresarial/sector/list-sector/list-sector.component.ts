@@ -69,11 +69,9 @@ export class ListSectorComponent implements OnInit {
 
   ngOnInit(): void {
     this.sucursalList = []
-    this.sucursalService.onGetAllSucursales()
-      .pipe(untilDestroyed(this))
-      .subscribe(res => {
-        this.sucursalList = res.filter(s => s.id != 0);
-      })
+    this.sucursalService.onGetAllSucursales(true, true).subscribe((res) => {
+      this.sucursalList = res.filter(s => s.id != 0);
+    })
   }
 
   onFilter() {

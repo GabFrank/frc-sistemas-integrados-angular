@@ -51,6 +51,7 @@ export class ListSucursalComponent implements OnInit {
     "deposito",
     "depositoPredeterminado",
     "codigoEstablecimientoFactura",
+    "activo",
     "usuario",
     "acciones"
   ]
@@ -132,7 +133,7 @@ export class ListSucursalComponent implements OnInit {
   }
 
   onEditSucursal(sucursal: Sucursal, i) {
-    // Open edit dialog and update datasource when closed
+    // Open edit dialog and reload data when closed
     this.dialog.open(EditSucursalDialogComponent, {
       data: {
         sucursal: sucursal
@@ -141,8 +142,7 @@ export class ListSucursalComponent implements OnInit {
       disableClose: true
     }).afterClosed().subscribe(res => {
       if (res != null) {
-        this.dataSource.data = updateDataSourceWithId(this.dataSource.data, res, sucursal.id);
-        this.table.renderRows();
+        this.onFiltrar();
       }
     })
   }

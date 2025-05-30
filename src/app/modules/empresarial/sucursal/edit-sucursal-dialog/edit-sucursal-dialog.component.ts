@@ -45,6 +45,7 @@ export class EditSucursalDialogComponent implements OnInit {
   direccionControl = new FormControl(null);
   nroDeliveryControl = new FormControl(null);
   isConfiguredControl = new FormControl(false);
+  activoControl = new FormControl(false);
 
   // Lists for selects
   ciudadList: Ciudad[] = [];
@@ -76,7 +77,8 @@ export class EditSucursalDialogComponent implements OnInit {
       // Add new fields to form group
       direccion: this.direccionControl,
       nroDelivery: this.nroDeliveryControl,
-      isConfigured: this.isConfiguredControl
+      isConfigured: this.isConfiguredControl,
+      activo: this.activoControl
     });
 
     // Load initial data
@@ -118,16 +120,16 @@ export class EditSucursalDialogComponent implements OnInit {
     this.nombreControl.setValue(this.selectedSucursal.nombre);
     this.localizacionControl.setValue(this.selectedSucursal.localizacion);
     this.ciudadControl.setValue(this.selectedSucursal.ciudad?.id);
-    this.depositoControl.setValue(this.selectedSucursal.deposito);
-    this.depositoPredeterminadoControl.setValue(this.selectedSucursal.depositoPredeterminado);
+    this.depositoControl.setValue(this.selectedSucursal.deposito ?? false);
+    this.depositoPredeterminadoControl.setValue(this.selectedSucursal.depositoPredeterminado ?? false);
     this.codigoEstablecimientoFacturaControl.setValue(this.selectedSucursal.codigoEstablecimientoFactura);
     this.ipControl.setValue(this.selectedSucursal.ip);
     this.puertoControl.setValue(this.selectedSucursal.puerto);
-    // Set values for new fields
     this.direccionControl.setValue(this.selectedSucursal.direccion);
     this.nroDeliveryControl.setValue(this.selectedSucursal.nroDelivery);
-    this.isConfiguredControl.setValue(this.selectedSucursal.isConfigured);
-    
+    this.isConfiguredControl.setValue(this.selectedSucursal.isConfigured ?? false);
+    this.activoControl.setValue(this.selectedSucursal.activo ?? false);
+
     this.formGroup.disable();
   }
 
@@ -153,24 +155,23 @@ export class EditSucursalDialogComponent implements OnInit {
     const ciudadId = this.ciudadControl.value;
     this.selectedSucursal.ciudad = this.ciudadList.find(c => c.id === ciudadId);
     
-    this.selectedSucursal.deposito = this.depositoControl.value;
-    this.selectedSucursal.depositoPredeterminado = this.depositoPredeterminadoControl.value;
+    this.selectedSucursal.deposito = this.depositoControl.value ?? false;
+    this.selectedSucursal.depositoPredeterminado = this.depositoPredeterminadoControl.value ?? false;
     this.selectedSucursal.codigoEstablecimientoFactura = this.codigoEstablecimientoFacturaControl.value?.toUpperCase();
     this.selectedSucursal.ip = this.ipControl.value;
     this.selectedSucursal.puerto = this.puertoControl.value;
-    // Update new fields
     this.selectedSucursal.direccion = this.direccionControl.value?.toUpperCase();
     this.selectedSucursal.nroDelivery = this.nroDeliveryControl.value?.toUpperCase();
-    this.selectedSucursal.isConfigured = this.isConfiguredControl.value;
+    this.selectedSucursal.isConfigured = this.isConfiguredControl.value ?? false;
+    this.selectedSucursal.activo = this.activoControl.value ?? false;
     
-    // Set user if new sucursal
-    if (!this.selectedSucursal.id) {
-      this.selectedSucursal.usuario = this.mainService.usuarioActual;
-    }
+    // Set/update user for both new and existing sucursals
+    this.selectedSucursal.usuario = this.mainService.usuarioActual;
 
     // Save to backend
     let aux = new Sucursal();
     Object.assign(aux, this.selectedSucursal);
+    
     this.sucursalService.onSaveSucursal(aux.toInput())
       .pipe(untilDestroyed(this))
       .subscribe(res => {

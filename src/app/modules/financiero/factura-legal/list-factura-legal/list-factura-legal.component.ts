@@ -144,17 +144,14 @@ export class ListFacturaLegalComponent implements OnInit {
     this.fechaFinControl.setValue(this.today);
     this.sucursalList = [];
     this.sucursalIdList = [];
-    this.sucursalService
-      .onGetAllSucursales()
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        this.sucursalList = res.filter((s) => {
-          if (s.id != 0) {
-            this.sucursalIdList.push(s.id);
-            return s;
-          }
-        });
+    this.sucursalService.onGetAllSucursales(true, true).subscribe((res) => {
+      this.sucursalList = res.filter((s) => {
+        if (s.id != 0) {
+          this.sucursalIdList.push(s.id);
+          return s;
+        }
       });
+    });
   }
 
   onFilter() {

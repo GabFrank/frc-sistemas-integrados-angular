@@ -1,5 +1,3 @@
-<p>list-sucursal works!</p>
-
 <app-generic-list
   [data]="dataSource.data"
   (filtrar)="onFiltrar()"
@@ -122,6 +120,16 @@
         </th>
         <td mat-cell *matCellDef="let sucursal" style="text-align: center">
           {{ sucursal?.codigoEstablecimientoFactura }}
+        </td>
+      </ng-container>
+
+      <!-- Activo Column -->
+      <ng-container matColumnDef="activo">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Activo
+        </th>
+        <td mat-cell *matCellDef="let sucursal" style="text-align: center">
+          {{ sucursal?.activo ? 'Si' : 'No' }}
         </td>
       </ng-container>
 

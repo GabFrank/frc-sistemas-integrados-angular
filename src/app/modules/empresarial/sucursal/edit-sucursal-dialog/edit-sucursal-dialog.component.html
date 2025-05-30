@@ -126,21 +126,41 @@
     </div>
 
     <!-- Checkboxes -->
-    <div fxLayout="row" fxLayoutGap="20px">
-      <div fxFlex="33%">
-        <mat-checkbox [formControl]="depositoControl">
-          Es Depósito
-        </mat-checkbox>
+    <div fxLayout="column" fxLayoutGap="10px">
+      <!-- Primera fila: Es Depósito y Depósito Predeterminado -->
+      <div fxLayout="row" fxLayoutGap="20px">
+        <div fxFlex="50%">
+          <mat-checkbox 
+            [formControl]="depositoControl"
+            [checked]="depositoControl.value">
+            Es Depósito
+          </mat-checkbox>
+        </div>
+        <div fxFlex="50%">
+          <mat-checkbox 
+            [formControl]="depositoPredeterminadoControl"
+            [checked]="depositoPredeterminadoControl.value">
+            Depósito Predeterminado
+          </mat-checkbox>
+        </div>
       </div>
-      <div fxFlex="33%">
-        <mat-checkbox [formControl]="depositoPredeterminadoControl">
-          Depósito Predeterminado
-        </mat-checkbox>
-      </div>
-      <div fxFlex="33%">
-        <mat-checkbox [formControl]="isConfiguredControl">
-          Configurado
-        </mat-checkbox>
+      
+      <!-- Segunda fila: Configurado y Activo -->
+      <div fxLayout="row" fxLayoutGap="20px">
+        <div fxFlex="50%">
+          <mat-checkbox 
+            [formControl]="isConfiguredControl"
+            [checked]="isConfiguredControl.value">
+            Configurado
+          </mat-checkbox>
+        </div>
+        <div fxFlex="50%">
+          <mat-checkbox 
+            [formControl]="activoControl"
+            [checked]="activoControl.value">
+            Activo
+          </mat-checkbox>
+        </div>
       </div>
     </div>
   </form>

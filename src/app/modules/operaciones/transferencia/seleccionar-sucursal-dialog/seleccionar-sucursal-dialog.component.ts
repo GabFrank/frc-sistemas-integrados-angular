@@ -63,14 +63,14 @@ export class SeleccionarSucursalDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargandoService.openDialog()
-    this.sucursalService.onGetAllSucursales()
+    this.sucursalService.onGetAllSucursales(true, true)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         if (res != null) {
-          this.sucursalList = res.filter(s => s.id != 0)
+          this.sucursalList = res
           if (this.mainService.sucursalActual.id != 0) {
             this.filteredOrigenSucursalList = [this.mainService.sucursalActual]
-            this.filteredDestinoSucursalList = res.filter(s => s.id != this.mainService.sucursalActual.id && s.id != 0)
+            this.filteredDestinoSucursalList = res.filter(s => s.id != this.mainService.sucursalActual.id)
           } else {
             this.filteredOrigenSucursalList = this.sucursalList;
           }

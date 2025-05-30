@@ -307,7 +307,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   onClearSubfamilia() {}
 
   cargarSucursales() {
-    this.sucursalService.onGetAllSucursales().subscribe(res => {
+    this.sucursalService.onGetAllSucursales(true, true).subscribe(res => {
       this.sucursales = res?.filter(sucursal => sucursal.nombre != "SERVIDOR" && sucursal.nombre != "COMPRAS");
     })
   }

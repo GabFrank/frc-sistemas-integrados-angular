@@ -18,8 +18,11 @@ export const sucursalesQuery = gql
       puerto
       direccion
       nroDelivery
+      depositoPredeterminado
+      deposito
+      codigoEstablecimientoFactura
       isConfigured
-        
+      activo
     }
   }`;
 
@@ -41,8 +44,11 @@ export const sucursalesSearch = gql
       puerto
       direccion
       nroDelivery
+      depositoPredeterminado
+      deposito
+      codigoEstablecimientoFactura
       isConfigured
-        
+      activo
     }
   }`
 
@@ -63,8 +69,11 @@ export const sucursalQuery = gql
       puerto
       direccion
       nroDelivery
+      depositoPredeterminado
+      deposito
+      codigoEstablecimientoFactura
       isConfigured
-        
+      activo
     }
   }`
 
@@ -80,7 +89,11 @@ export const sucursalActualQuery = gql
       puerto
       direccion
       nroDelivery
+      depositoPredeterminado
+      deposito
+      codigoEstablecimientoFactura
       isConfigured
+      activo
     }
   }`
 
@@ -97,7 +110,11 @@ export const saveSucursal = gql
         puerto
         direccion
         nroDelivery
+        depositoPredeterminado
+        deposito
+        codigoEstablecimientoFactura
         isConfigured
+        activo
       }
     }`
 

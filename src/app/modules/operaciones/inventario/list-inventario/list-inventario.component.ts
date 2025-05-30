@@ -168,17 +168,14 @@ export class ListInventarioComponent implements OnInit {
     this.sucursalIdList = [];
 
     setTimeout(() => {
-      this.sucursalService
-        .onGetAllSucursales()
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.sucursalList = res.filter((s) => {
-            if (s.id != 0) {
-              this.sucursalIdList.push(s.id);
-              return s;
-            }
-          });
+      this.sucursalService.onGetAllSucursales(true, true).subscribe((res) => {
+        this.sucursalList = res.filter((s) => {
+          if (s.id != 0) {
+            this.sucursalIdList.push(s.id);
+            return s;
+          }
         });
+      });
     });
   }
 

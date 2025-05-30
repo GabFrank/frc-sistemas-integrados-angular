@@ -110,8 +110,8 @@ export class ListTransferenciaComponent implements OnInit {
       fin: this.fechaFinControl,
     });
     this.onGetTransferencias();
-    this.sucursalService.onGetAllSucursales().subscribe((res) => {
-      this.sucursalList = res.filter((s) => s.id != 0);
+    this.sucursalService.onGetAllSucursales(true, true).subscribe((res) => {
+      this.sucursalList = res;
     });
 
     interval(300000).pipe(untilDestroyed(this)).subscribe(()=> {
