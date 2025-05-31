@@ -59,12 +59,19 @@ export class MotivoObservacionService {
     return this.genericService.onSave(this.saveMotivoObservacion, motivoObservacionInput).pipe(
       tap((res: any) => {
         if (res != null) {
-          const newMotivo: MotivoObservacion = res.data ? res.data : res;
+          const savedMotivo: MotivoObservacion = res.data ? res.data : res;
 
           if(this.motivoObservaciones) {
-            this.motivoObservaciones = [...this.motivoObservaciones, newMotivo];
+            const existingIndex = this.motivoObservaciones.findIndex(item => item.id === savedMotivo.id);
+            
+            if (existingIndex !== -1) {
+              this.motivoObservaciones[existingIndex] = savedMotivo;
+              this.motivoObservaciones = [...this.motivoObservaciones];
+            } else {
+              this.motivoObservaciones = [...this.motivoObservaciones, savedMotivo];
+            }
           } else {
-            this.motivoObservaciones = [newMotivo];
+            this.motivoObservaciones = [savedMotivo];
           }
           this.motivoObservacionBS.next(this.motivoObservaciones);
         }

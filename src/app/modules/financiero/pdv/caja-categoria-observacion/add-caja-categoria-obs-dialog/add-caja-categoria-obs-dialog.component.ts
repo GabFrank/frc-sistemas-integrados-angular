@@ -44,6 +44,7 @@ export class AddCajaCategoriaObsDialogComponent implements OnInit {
   ngOnInit(): void {
     this.createForm();
     this.loadData();
+    this.usuarioIdControl.setValue(this.mainService.usuarioActual?.id);
   }
 
   createForm() {
@@ -64,8 +65,7 @@ export class AddCajaCategoriaObsDialogComponent implements OnInit {
   }
 
   onCancelar() {
-    this.descripcionControl.reset();
-    this.activoControl.setValue(true);
+    this.dialogRef.close();
   }
 
   onEditar() {
@@ -85,6 +85,8 @@ export class AddCajaCategoriaObsDialogComponent implements OnInit {
   
     this.cajaCategoriaObsInput.descripcion = this.descripcionControl.value?.toUpperCase();
     this.cajaCategoriaObsInput.activo = this.activoControl.value;
+    this.cajaCategoriaObsInput.usuarioId = this.mainService.usuarioActual?.id;
+    
     this.cajaCategoriaObservacionService.onSaveCajaCategoriaObservacion(this.cajaCategoriaObsInput)
       .subscribe({
         next: (res) => {

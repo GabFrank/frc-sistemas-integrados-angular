@@ -59,12 +59,19 @@ export class CategoriaObservacionService {
         return this.genericService.onSave(this.saveCategoriaObservacion, categoriaObsInput).pipe(
             tap((res: any) => {
                 if (res != null) {
-                    const newCategoria: CategoriaObservacion = res.data ? res.data : res;
+                    const savedCategoria: CategoriaObservacion = res.data ? res.data : res;
 
                     if (this.categoriasObs) {
-                        this.categoriasObs = [...this.categoriasObs, newCategoria];
+                        const existingIndex = this.categoriasObs.findIndex(item => item.id === savedCategoria.id);
+                        
+                        if (existingIndex !== -1) {
+                            this.categoriasObs[existingIndex] = savedCategoria;
+                            this.categoriasObs = [...this.categoriasObs];
+                        } else {
+                            this.categoriasObs = [...this.categoriasObs, savedCategoria];
+                        }
                     } else {
-                        this.categoriasObs = [newCategoria];
+                        this.categoriasObs = [savedCategoria];
                     }
                     this.categoriaObsBS.next(this.categoriasObs);
                 }

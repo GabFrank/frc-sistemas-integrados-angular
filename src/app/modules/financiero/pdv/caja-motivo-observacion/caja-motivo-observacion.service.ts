@@ -59,12 +59,19 @@ export class CajaMotivoObservacionService {
     return this.genericService.onSave(this.saveCajaMotivoObservacion, cajaMotivoObservacionInput).pipe(
       tap((res: any) => {
         if (res != null) {
-          const newCajaMotivo: CajaMotivoObservacion = res.data ? res.data : res;
+          const savedCajaMotivo: CajaMotivoObservacion = res.data ? res.data : res;
 
           if(this.cajaMotivoObservaciones) {
-            this.cajaMotivoObservaciones = [...this.cajaMotivoObservaciones, newCajaMotivo];
+            const existingIndex = this.cajaMotivoObservaciones.findIndex(item => item.id === savedCajaMotivo.id);
+            
+            if (existingIndex !== -1) {
+              this.cajaMotivoObservaciones[existingIndex] = savedCajaMotivo;
+              this.cajaMotivoObservaciones = [...this.cajaMotivoObservaciones];
+            } else {
+              this.cajaMotivoObservaciones = [...this.cajaMotivoObservaciones, savedCajaMotivo];
+            }
           } else {
-            this.cajaMotivoObservaciones = [newCajaMotivo];
+            this.cajaMotivoObservaciones = [savedCajaMotivo];
           }
           this.cajaMotivoObservacionBS.next(this.cajaMotivoObservaciones);
         }

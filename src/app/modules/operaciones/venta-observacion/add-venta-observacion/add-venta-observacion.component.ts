@@ -93,9 +93,9 @@ export class AddVentaObservacionComponent implements OnInit{
       subcategorias: this.subCategoriaObsService.onGetAllSubCategoriaObs(),
       motivos: this.motivoObservacionService.onGetMotivosObservaciones()
     }).subscribe(({ categorias, subcategorias, motivos }) => {
-      this.categoriaObsList = categorias;
-      this.subCategoriaObsList = subcategorias || [];
-      this.motivoObservacionList = motivos || [];
+      this.categoriaObsList = (categorias || []).filter(cat => cat.activo === true);
+      this.subCategoriaObsList = (subcategorias || []).filter(sub => sub.activo === true);
+      this.motivoObservacionList = (motivos || []).filter(mot => mot.activo === true);
       
       if (this.data?.ventaObservacion?.motivoObservacion) {
         const categoriaSeleccionada = this.data.ventaObservacion.motivoObservacion.subcategoriaObservacion?.categoriaObservacion;
@@ -140,7 +140,7 @@ export class AddVentaObservacionComponent implements OnInit{
   }
 
   onCancelar() {
-    this.descripcionControl.reset();
+    this.dialogRef.close();
   }
 
   onEditar() {
@@ -175,9 +175,7 @@ export class AddVentaObservacionComponent implements OnInit{
     if (this.data?.venta?.sucursalId) {
       this.ventaObservacionInput.sucursalId = this.data.venta.sucursalId;
     } 
-    if (this.data?.usuarioId) {
-      this.ventaObservacionInput.usuarioId = this.mainService.usuarioActual?.id
-    }
+    this.ventaObservacionInput.usuarioId = this.mainService.usuarioActual?.id;
     this.ventaObservacionInput.descripcion = this.descripcionControl.value?.toUpperCase();
     
       this.ventaObservacionService.onSaveVentaObservacion(this.ventaObservacionInput)
@@ -202,10 +200,11 @@ export class AddVentaObservacionComponent implements OnInit{
       
       this.filteredMotivoObsList = this.motivoObservacionList.filter(m =>
         m?.subcategoriaObservacion &&
-        m.subcategoriaObservacion.id.toString() === value.id.toString()
+        m.subcategoriaObservacion.id.toString() === value.id.toString() &&
+        m.activo === true
       );
 
-      if (this.filteredSubCategoriaObsList.length > 0) {
+      if (this.filteredMotivoObsList.length > 0) {
         this.motivoObservacionControl.setValue(this.filteredMotivoObsList[0]);
       } else {
         this.motivoObservacionControl.setValue(null);
@@ -218,7 +217,7 @@ export class AddVentaObservacionComponent implements OnInit{
   
   handleCategoriaSelectionChange(selectedCategoria: any, newSelectedSubcategoria?: SubCategoriaObservacion) {
     if (!selectedCategoria) {
-      this.filteredSubCategoriaObsList = [...this.subCategoriaObsList];
+      this.filteredSubCategoriaObsList = this.subCategoriaObsList.filter(sub => sub.activo === true);
       this.subCategoriaObsControl.setValue(null);
       return;
     }
@@ -227,7 +226,8 @@ export class AddVentaObservacionComponent implements OnInit{
     
     this.filteredSubCategoriaObsList = this.subCategoriaObsList.filter(subCat =>
       subCat?.categoriaObservacion &&
-      subCat.categoriaObservacion.id.toString() === selectedCategoria.id.toString()
+      subCat.categoriaObservacion.id.toString() === selectedCategoria.id.toString() &&
+      subCat.activo === true
     );
     
     if (newSelectedSubcategoria) {
@@ -242,6 +242,7 @@ export class AddVentaObservacionComponent implements OnInit{
     
     if (this.filteredSubCategoriaObsList.length > 0) {
       this.subCategoriaObsControl.setValue(this.filteredSubCategoriaObsList[0]);
+      this.handleSubCategoriaSelectionChange(this.filteredSubCategoriaObsList[0]);
     } else {
       this.subCategoriaObsControl.setValue(null);
     }

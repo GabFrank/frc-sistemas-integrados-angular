@@ -52,11 +52,19 @@ export class CajaSubCategoriaObservacionService {
     return this.genericService.onSave(this.saveCajaSubCategoriaObservacion, cajaSubCategoriaObservacionInput).pipe(
       tap((res: any) => {
         if (res != null) {
-          const newSubcat: CajaSubCategoriaObservacion = res.data ? res.data : res;
-          if (this.cajaSubCategoriaObservaciones) {
-            this.cajaSubCategoriaObservaciones = [...this.cajaSubCategoriaObservaciones, newSubcat];
+          const savedSubcat: CajaSubCategoriaObservacion = res.data ? res.data : res;
+          
+          if (this.cajaSubCategoriaObservaciones) { 
+            const existingIndex = this.cajaSubCategoriaObservaciones.findIndex(item => item.id === savedSubcat.id);
+            
+            if (existingIndex !== -1) {
+              this.cajaSubCategoriaObservaciones[existingIndex] = savedSubcat;
+              this.cajaSubCategoriaObservaciones = [...this.cajaSubCategoriaObservaciones];
+            } else {
+              this.cajaSubCategoriaObservaciones = [...this.cajaSubCategoriaObservaciones, savedSubcat];
+            }
           } else {
-            this.cajaSubCategoriaObservaciones = [newSubcat];
+            this.cajaSubCategoriaObservaciones = [savedSubcat];
           }
           this.cajaSubCategoriaObservacionBS.next(this.cajaSubCategoriaObservaciones);
         }

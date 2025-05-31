@@ -62,6 +62,7 @@ export class AddCajaSubCategoriaObsDialogComponent implements OnInit{
       });
     this.createForm();
     this.loadData();
+    this.usuarioIdControl.setValue(this.mainService.usuarioActual?.id);
   }
 
   createForm() {
@@ -84,9 +85,7 @@ export class AddCajaSubCategoriaObsDialogComponent implements OnInit{
   }
 
   onCancelar() {
-    this.descripcionControl.reset();
-    this.cajaCategoriaObsControl.reset();
-    this.activoControl.setValue(true);
+    this.dialogRef.close();
   }
 
   onGuardar() {
@@ -111,6 +110,8 @@ export class AddCajaSubCategoriaObsDialogComponent implements OnInit{
     }
     this.cajaSubCategoriaObservacionInput.descripcion = this.descripcionControl.value?.toUpperCase();
     this.cajaSubCategoriaObservacionInput.activo = this.activoControl.value;
+    this.cajaSubCategoriaObservacionInput.usuarioId = this.mainService.usuarioActual?.id;
+    
     if (this.data?.cajaCategoriaPreselected) {
       this.cajaSubCategoriaObservacionInput.cajaCategoriaObsId = this.data.cajaCategoriaPreselected.id;
     }

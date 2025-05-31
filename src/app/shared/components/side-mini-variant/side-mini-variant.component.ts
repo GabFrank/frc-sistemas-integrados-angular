@@ -37,6 +37,8 @@ import { ListSolicitudPagoComponent } from "../../../modules/operaciones/solicit
 import { ThermalPrinterComponent } from '../../../modules/configuracion/thermal-printer/thermal-printer.component';
 import { ListReplicationComponent } from '../../../modules/configuracion/logical-replication/list-replication/list-replication.component';
 import { ListReplicationTablesComponent } from '../../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
+import { MainVentaObservacionComponent } from "../../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component";
+import { MainCajaObservacionComponent } from "../../../modules/financiero/pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component";
 import { Subscription } from 'rxjs';
 
 // Define interfaces for the navigation items structure
@@ -148,6 +150,25 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
               visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
             },
             { name: 'Delivery', icon: 'delivery_dining', action: 'delivery-dashboard' }
+          ]
+        },
+        {
+          name: 'Observaciones',
+          icon: 'visibility',
+          isExpanded: false,
+          items: [
+            { 
+              name: 'Observaciones de cajas', 
+              icon: 'receipt_long', 
+              action: 'observacion-cajas',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            { 
+              name: 'Observaciones de ventas', 
+              icon: 'shopping_cart_checkout', 
+              action: 'observacion-ventas',
+              visibilityRoles: [ROLES.ADMIN]
+            }
           ]
         }
       ]
@@ -575,6 +596,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "replication-tables":
         this.openTabIfAuthorized(ROLES.ADMIN, ListReplicationTablesComponent, "Tablas de Replicación");
+        break;
+      case "observacion-cajas":
+        this.openTabIfAuthorized(ROLES.ADMIN, MainCajaObservacionComponent, "Observación de Cajas");
+        break;
+      case "observacion-ventas":
+        this.openTabIfAuthorized(ROLES.ADMIN, MainVentaObservacionComponent, "Observación de Ventas");
         break;
     }
   }

@@ -5,6 +5,6 @@ export class CajaMotivoObservacionInput {
   id: number;
   descripcion: string;
   activo: boolean;
-  cajaSubCategoriaObsId: CajaSubCategoriaObservacion;
-  usuarioId: Usuario;
+  cajaSubCategoriaObsId: number;
+  usuarioId: number;
 }

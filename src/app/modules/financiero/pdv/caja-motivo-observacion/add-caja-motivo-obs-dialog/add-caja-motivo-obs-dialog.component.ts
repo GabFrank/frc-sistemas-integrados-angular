@@ -61,6 +61,7 @@ export class AddCajaMotivoObsDialogComponent implements OnInit{
       });
     this.createForm();
     this.loadData();
+    this.usuarioIdControl.setValue(this.mainService.usuarioActual?.id);
   }
 
   createForm() {
@@ -83,9 +84,7 @@ export class AddCajaMotivoObsDialogComponent implements OnInit{
   }
 
   onCancelar() {
-    this.descripcionControl.reset();
-    this.cajaSubCategoriaObsControl.reset();
-    this.activoControl.setValue(true);
+    this.dialogRef.close();
   }
 
   onGuardar() {
@@ -108,6 +107,8 @@ export class AddCajaMotivoObsDialogComponent implements OnInit{
     }
     this.cajaMotivoObservacionInput.descripcion = this.descripcionControl.value?.toUpperCase();
     this.cajaMotivoObservacionInput.activo = this.activoControl.value;
+    this.cajaMotivoObservacionInput.usuarioId = this.mainService.usuarioActual?.id;
+    
     this.cajaMotivoObservacionService.onSaveCajaMotivoObservacion(this.cajaMotivoObservacionInput)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
