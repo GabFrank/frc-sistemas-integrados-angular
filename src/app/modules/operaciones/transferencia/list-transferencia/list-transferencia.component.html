@@ -12,6 +12,7 @@
           placeholder="Id"
           matInput
           [formControl]="idControl"
+          (keyup.enter)="onFilter()"
           type="number"
         />
       </mat-form-field>

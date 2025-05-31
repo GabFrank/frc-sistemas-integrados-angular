@@ -110,6 +110,7 @@
               matInput
               [formControl]="nombreControl"
               [bdcWalkTriggerFor]="facturaStep3"
+              (keyup.enter)="onFilter()"
             />
           </mat-form-field>
         </div>
@@ -121,6 +122,7 @@
               matInput
               [formControl]="rucControl"
               [bdcWalkTriggerFor]="facturaStep4"
+              (keyup.enter)="onFilter()"
             />
           </mat-form-field>
         </div>

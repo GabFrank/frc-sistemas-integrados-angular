@@ -105,6 +105,8 @@ export class ListGastosComponent implements OnInit {
     this.idCajaControl.setValue(null);
     this.sucOrigenControl.setValue(null);
     this.idCajaControl.setValue(null);
+    this.idGastoControl.setValue(null);
+    this.descripcionControl.setValue(null);
     this.dataSource.data = []
   }
 
