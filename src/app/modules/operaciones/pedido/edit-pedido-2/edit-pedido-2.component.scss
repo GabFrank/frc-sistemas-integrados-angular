@@ -102,77 +102,6 @@
   .full-height-stepper {
     height: 100%;
     background-color: #2d2d2d;
-    
-    ::ng-deep {
-      .mat-horizontal-stepper-header-container {
-        background-color: #2d2d2d !important;
-        flex-shrink: 0;
-      }
-      
-      .mat-horizontal-stepper-content {
-        overflow: hidden;
-        height: calc(100% - 72px);
-        background-color: #2d2d2d;
-        position: relative;
-        
-        .mat-horizontal-content-container {
-          height: 100%;
-          overflow: hidden;
-          padding: 0;
-          background-color: #2d2d2d;
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-        }
-      }
-      
-      .mat-stepper-horizontal-line {
-        border-top-color: #555;
-      }
-      
-      .mat-step-header {
-        pointer-events: auto;
-        background-color: #2d2d2d;
-        
-        &.cdk-keyboard-focused,
-        &.cdk-program-focused,
-        &:hover:not(.mat-step-disabled) {
-          background-color: rgba(255, 255, 255, 0.08);
-          border-radius: 4px;
-        }
-        
-        .mat-step-icon {
-          background-color: #555;
-          color: #ccc;
-          
-          &.mat-step-icon-state-done {
-            background-color: #4caf50;
-            color: white;
-          }
-          
-          &.mat-step-icon-state-edit {
-            background-color: #2196f3;
-            color: white;
-          }
-        }
-        
-        .mat-step-label {
-          .mat-step-text-label {
-            font-weight: 500;
-            font-size: 1rem;
-            color: #e0e0e0;
-            
-            mat-icon {
-              font-size: 20px;
-              width: 20px;
-              height: 20px;
-            }
-          }
-        }
-      }
-    }
   }
 }
 
@@ -363,72 +292,22 @@
 
 /* Dark theme overrides for Material components */
 ::ng-deep {
-  .mat-horizontal-stepper-header-container {
-    background-color: #2d2d2d !important;
-  }
-  
-  .mat-stepper-horizontal {
-    background-color: #2d2d2d !important;
-  }
-  
-  .mat-step-header .mat-step-label {
-    color: #e0e0e0 !important;
-  }
-  
-  .mat-step-header .mat-step-label.mat-step-label-active {
-    color: #fff !important;
-  }
-  
-  .mat-step-header .mat-step-label.mat-step-label-selected {
-    color: #fff !important;
-  }
-  
-  /* Force stepper content to stack properly */
-  .mat-stepper-horizontal .mat-horizontal-stepper-content {
-    min-height: 0;
-    overflow: hidden;
-    display: block !important;
-  }
-  
-  .mat-stepper-horizontal .mat-horizontal-content-container {
-    overflow: hidden;
+  /* Basic dark theme only - no stepper overrides */
+}
+
+/* Full height stepper solution */
+::ng-deep .mat-horizontal-stepper-wrapper {
+  height: 100%;
+  background-color: #2d2d2d;
+
+  .mat-horizontal-content-container {
     height: 100%;
-    display: block !important;
+    background-color: #2d2d2d;
   }
-  
-  /* Ensure only active step content is visible */
-  .mat-stepper-horizontal .mat-horizontal-stepper-content[aria-expanded="false"] {
-    height: 0 !important;
-    visibility: hidden;
-    overflow: hidden;
-  }
-  
-  .mat-stepper-horizontal .mat-horizontal-stepper-content[aria-expanded="true"] {
-    height: calc(100% - 72px) !important;
-    visibility: visible;
-    overflow: hidden;
-  }
-  
-  /* Fix for step content positioning */
-  .mat-stepper-horizontal .mat-step:not(.mat-step-optional) .mat-step-label {
-    pointer-events: auto;
-  }
-  
-  /* Ensure proper stepper layout */
-  .mat-stepper-horizontal {
-    display: flex !important;
-    flex-direction: column !important;
-    height: 100% !important;
-  }
-  
-  .mat-horizontal-stepper-header-container {
-    flex-shrink: 0 !important;
-  }
-  
-  .mat-horizontal-stepper-content-container {
-    flex: 1 !important;
-    height: 100% !important;
-    position: relative !important;
+
+  .mat-horizontal-stepper-content {
+    height: 100%;
+    background-color: #2d2d2d;
   }
 }
 
