@@ -208,6 +208,7 @@ export const searchProductoWithFilters = gql`
         }
         precioPrincipal
         codigoPrincipal
+        activo
       }
     }
   }

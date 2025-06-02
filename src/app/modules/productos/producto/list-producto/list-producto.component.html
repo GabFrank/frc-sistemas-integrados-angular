@@ -277,7 +277,9 @@
         <th mat-header-cell *matHeaderCellDef style="text-align: center">
           Activo
         </th>
-        <td mat-cell *matCellDef="let producto" style="text-align: center"></td>
+        <td mat-cell *matCellDef="let producto" style="text-align: center">
+          {{ producto?.activo ? "Si" : "No" }}
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="acciones">

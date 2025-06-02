@@ -939,14 +939,39 @@ export class ProductoComponent implements OnInit, OnDestroy {
   }
 
   onDeletePresentacion(presentacion: Presentacion) {
-    this.presentacionService
-      .onDeletePresentacion(presentacion)
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res) {
-          this.getPresentacionPorProductoId(this.selectedProducto.id);
-        }
-      });
+    this.dialogo.confirm(
+      'Atención!!', 
+      'Realmente deseas eliminar esta presentación?', 
+      'Todos los códigos y precios también serán eliminados.', 
+      [`Descripción: ${presentacion.descripcion}`, `Cantidad: ${presentacion.cantidad}`]
+    ).pipe(untilDestroyed(this)).subscribe(confirmed => {
+      if (confirmed) {
+        this.cargandoDialog.openDialog();
+        this.presentacionService
+          .onDeletePresentacion(presentacion)
+          .pipe(untilDestroyed(this))
+          .subscribe((res) => {
+            this.cargandoDialog.closeDialog();
+            
+            if (res === true || res === 'true' || res != null) {
+              this.notifiActionBar.notification$.next({
+                texto: "Presentación eliminada correctamente",
+                color: NotificacionColor.success,
+                duracion: 3
+              });
+              this.getPresentacionPorProductoId(this.selectedProducto.id);
+            }
+          }, error => {
+            this.cargandoDialog.closeDialog();
+            this.notifiActionBar.notification$.next({
+              texto: "Error al eliminar la presentación",
+              color: NotificacionColor.warn,
+              duracion: 3
+            });
+            console.error('Error al eliminar presentación:', error);
+          });
+      }
+    });
   }
 
   //fin funciones de presentacion
@@ -1025,49 +1050,40 @@ export class ProductoComponent implements OnInit, OnDestroy {
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res != null) {
-          this.precioDataSource.data = updateDataSource(
-            this.precioDataSource.data,
-            res,
-            index
-          );
-          let presentacion =
-            this.presentacionesDataSource.data[presentacionIndex];
-          if (res.principal) {
-            presentacion.precioPrincipal = res;
-            this.presentacionesDataSource.data = updateDataSource(
-              this.presentacionesDataSource.data,
-              presentacion,
-              presentacionIndex
-            );
-          } else if (
-            presentacion?.precioPrincipal != null &&
-            presentacion?.precioPrincipal?.id == res.id
-          ) {
-            presentacion.precioPrincipal = null;
-            this.presentacionesDataSource.data = updateDataSource(
-              this.presentacionesDataSource.data,
-              presentacion,
-              presentacionIndex
-            );
-          }
-          // let presentacionId = res.presentacion.id;
-          // if (presentacionId != null) {
-          //   let presentacionIndex =
-          //     this.presentacionesDataSource.data.findIndex(
-          //       (p) => p.id == presentacionId
-          //     );
-          //   let precioIndex = this.presentacionesDataSource.data[
-          //     presentacionIndex
-          //   ].precios.findIndex((c) => c.id == res.id);
-          //   let list = [...this.presentacionesDataSource.data];
-          //   if (precioIndex != -1) {
-          //     list[presentacionIndex].precios[precioIndex] = res;
-          //   } else {
-          //     list[presentacionIndex].precios.push(res)
-          //   }
-          //   this.presentacionesDataSource.data = [...list];
-          //   this.precioTable.renderRows()
-          // }
+          let presentacion = this.presentacionesDataSource.data[presentacionIndex];
+            
+          this.precioPorSucursalService
+            .onGetPrecioPorSurursalPorPresentacionId(this.selectedPresentacion.id)
+            .pipe(untilDestroyed(this))
+            .subscribe((preciosActualizados: PrecioPorSucursal[]) => {
+              this.selectedPresentacionPrecioDataSource.data = preciosActualizados;
+              
+              presentacion.precios = preciosActualizados;
+              
+              if (this.expandedPresentacion && this.expandedPresentacion.id === presentacion.id) {
+                this.precioDataSource.data = preciosActualizados;
+              }
+              
+              const nuevoPrecioPrincipal = preciosActualizados.find(p => p.principal === true);
+              if (nuevoPrecioPrincipal) {
+                presentacion.precioPrincipal = nuevoPrecioPrincipal;
+              } else {
+                presentacion.precioPrincipal = null;
+              }
+              
+              this.presentacionesDataSource.data = updateDataSource(
+                this.presentacionesDataSource.data,
+                presentacion,
+                presentacionIndex
+              );
+              
+              const presentacionListIndex = this.presentacionesList.findIndex(p => p.id === presentacion.id);
+              if (presentacionListIndex !== -1) {
+                this.presentacionesList[presentacionListIndex] = presentacion;
+              }
+              
+              this.changeDetectorRefs.detectChanges();
+            });
         }
       });
   }
