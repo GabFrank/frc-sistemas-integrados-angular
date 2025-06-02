@@ -81,13 +81,10 @@ export class PresentacionService {
   }
 
   onImageSave(image: string, filename: string, servidor = true): Observable<any> {
-    // return new Observable((obs) => {
-    return new Observable<any>(obs => {
-      this.genericService.onCustomMutation(this.saveImage, {
-        image,
-        filename
-      }, servidor);
-    })
+    return this.genericService.onCustomMutation(this.saveImage, {
+      image,
+      filename
+    }, servidor);
   }
 
   onGetPresentacion(id: number, servidor = true) {
