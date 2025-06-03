@@ -66,6 +66,7 @@ export class EditPedido2Component implements OnInit {
   canAccessStep2 = false;
   canAccessStep3 = false;
   canAccessStep4 = false;
+  step1FormValid = false;
 
   constructor(
     private pedidoService: PedidoService,
@@ -222,4 +223,13 @@ export class EditPedido2Component implements OnInit {
   }
 
   completePedido(): void {}
+
+  onPedidoChange(pedido: Pedido): void {
+    this.selectedPedido = pedido;
+  }
+
+  onStep1FormValidChange(isValid: boolean): void {
+    this.step1FormValid = isValid;
+    this.canAccessStep1 = isValid && this.selectedPedido?.id != null;
+  }
 }

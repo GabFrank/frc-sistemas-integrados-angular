@@ -1,0 +1,225 @@
+<div class="datos-pedido-container" fxLayout="column" fxFill>
+  
+  <!-- Loading indicator -->
+  <div *ngIf="isLoading" fxLayout="row" fxLayoutAlign="center center" style="height: 200px;">
+    <mat-spinner diameter="50"></mat-spinner>
+    <span style="margin-left: 16px; color: #e0e0e0;">CARGANDO...</span>
+  </div>
+
+  <!-- Form content -->
+  <div *ngIf="!isLoading" [formGroup]="datosFormGroup" fxLayout="column" fxLayoutGap="24px" fxFlex>
+    
+    <!-- Pedido ID (readonly) -->
+    <div *ngIf="selectedPedido?.id" fxLayout="row" fxLayoutAlign="start center">
+      <mat-form-field appearance="outline" fxFlex="20">
+        <mat-label>ID PEDIDO</mat-label>
+        <input matInput [formControl]="idControl" readonly>
+        <mat-icon matSuffix>tag</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <!-- Proveedor y Vendedor -->
+    <div fxLayout="row" fxLayout.xs="column" fxLayoutGap="16px" fxLayoutGap.xs="16px">
+      <mat-form-field appearance="outline" fxFlex="50">
+        <mat-label>PROVEEDOR *</mat-label>
+        <input 
+          matInput 
+          #proveedorInput
+          [formControl]="buscarProveedorControl" 
+          (keydown.enter)="onBuscarProveedor()"
+          placeholder="Buscar proveedor...">
+        <mat-icon matSuffix>search</mat-icon>
+        <button mat-icon-button matSuffix 
+                *ngIf="selectedProveedor" 
+                (click)="onClearProveedor()"
+                type="button">
+          <mat-icon>clear</mat-icon>
+        </button>
+        <mat-error *ngIf="buscarProveedorControl.hasError('required')">
+          PROVEEDOR ES REQUERIDO
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFlex="50">
+        <mat-label>VENDEDOR</mat-label>
+        <input 
+          matInput 
+          #vendedorInput
+          [formControl]="buscarVendedorControl" 
+          (keydown.enter)="onBuscarVendedor()"
+          [disabled]="!selectedProveedor"
+          placeholder="Buscar vendedor...">
+        <mat-icon matSuffix>search</mat-icon>
+        <button mat-icon-button matSuffix 
+                *ngIf="selectedVendedor" 
+                (click)="onClearVendedor()"
+                type="button">
+          <mat-icon>clear</mat-icon>
+        </button>
+      </mat-form-field>
+    </div>
+
+    <!-- Sucursales -->
+    <div fxLayout="row" fxLayout.xs="column" fxLayoutGap="16px" fxLayoutGap.xs="16px">
+      <mat-form-field appearance="outline" fxFlex="50">
+        <mat-label>SUCURSALES DE INFLUENCIA *</mat-label>
+        <mat-select 
+          #sucursalInfluenciaSelect
+          [formControl]="sucursalInfluenciaControl"
+          (selectionChange)="onSucursalInfluenciaChange()"
+          multiple>
+          <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
+            {{ sucursal.nombre }}
+          </mat-option>
+        </mat-select>
+        <mat-icon matSuffix>store</mat-icon>
+        <mat-error *ngIf="sucursalInfluenciaControl.hasError('required')">
+          SUCURSALES DE INFLUENCIA SON REQUERIDAS
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" fxFlex="50">
+        <mat-label>SUCURSALES DE ENTREGA *</mat-label>
+        <mat-select 
+          #sucursalEntregaSelect
+          [formControl]="sucursalEntregaControl"
+          (selectionChange)="onSucursalEntregaChange()"
+          multiple>
+          <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
+            {{ sucursal.nombre }}
+          </mat-option>
+        </mat-select>
+        <mat-icon matSuffix>local_shipping</mat-icon>
+        <mat-error *ngIf="sucursalEntregaControl.hasError('required')">
+          SUCURSALES DE ENTREGA SON REQUERIDAS
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <!-- Tipo Boleta y Moneda -->
+    <div fxLayout="row" fxLayout.xs="column" fxLayoutGap="16px" fxLayoutGap.xs="16px">
+      <mat-form-field appearance="outline" fxFlex="50">
+        <mat-label>TIPO BOLETA *</mat-label>
+        <mat-select 
+          [formControl]="tipoBoletaControl"
+          (selectionChange)="onTipoBoletaChange()">
+          <mat-option *ngFor="let tipo of tipoBoletaList" [value]="tipo">
+            {{ tipo }}
+          </mat-option>
+        </mat-select>
+        <mat-icon matSuffix>receipt</mat-icon>
+        <mat-error *ngIf="tipoBoletaControl.hasError('required')">
+          TIPO BOLETA ES REQUERIDO
+        </mat-error>
+      </mat-form-field>
+
+      <div fxFlex="50">
+        <frc-searchable-select
+          #monedaSelect
+          [list]="monedas"
+          [currentData]="selectedMoneda"
+          titulo="MONEDA"
+          [compareFields]="['denominacion']"
+          [disabled]="!isEditing"
+          (selectionChanged)="handleMonedaSelectionChange($event)">
+          <ng-template let-item>
+            {{ item.denominacion }}
+          </ng-template>
+        </frc-searchable-select>
+      </div>
+    </div>
+
+    <!-- Forma de Pago y Días Crédito -->
+    <div fxLayout="row" fxLayout.xs="column" fxLayoutGap="16px" fxLayoutGap.xs="16px">
+      <div fxFlex="50">
+        <frc-searchable-select
+          #formaPagoSelect
+          [list]="formaPagoList"
+          [currentData]="selectedFormaPago"
+          titulo="FORMA DE PAGO"
+          [compareFields]="['descripcion']"
+          [disabled]="!isEditing"
+          (selectionChanged)="handleFormaPagoSelectionChange($event)">
+          <ng-template let-item>
+            {{ item.descripcion }}
+          </ng-template>
+        </frc-searchable-select>
+      </div>
+
+      <mat-form-field appearance="outline" fxFlex="50">
+        <mat-label>DÍAS CRÉDITO</mat-label>
+        <input 
+          matInput 
+          #diasCreditoInput
+          type="number"
+          [formControl]="diasCreditoControl"
+          (change)="onDiasCreditoChange()"
+          value="0"
+          placeholder="0">
+        <mat-icon matSuffix>schedule</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <!-- Fechas de Entrega -->
+    <div fxLayout="row" fxLayoutAlign="start stretch">
+      <div fxFlex="100">
+        <frc-multi-datepicker
+          titulo="FECHAS DE ENTREGA"
+          [initialDates]="initialDates"
+          (datesChanged)="handleDatesChanged($event)"
+          [disabled]="!isEditing">
+        </frc-multi-datepicker>
+      </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="16px" class="form-actions">
+      <!-- Edit mode buttons -->
+      <div *ngIf="isEditing" fxLayout="row" fxLayoutGap="16px">
+        <button 
+          mat-raised-button 
+          color="primary"
+          [disabled]="!isFormValid() || isLoading"
+          (click)="onGuardar()"
+          type="button">
+          <mat-icon>save</mat-icon>
+          GUARDAR DATOS
+        </button>
+        
+        <button 
+          mat-raised-button 
+          color="warn"
+          [disabled]="!selectedPedido?.id || isLoading"
+          (click)="onEliminar()"
+          type="button">
+          <mat-icon>delete</mat-icon>
+          ELIMINAR
+        </button>
+      </div>
+      
+      <!-- View mode buttons -->
+      <div *ngIf="!isEditing" fxLayout="row" fxLayoutGap="16px">
+        <button 
+          mat-raised-button 
+          color="accent"
+          [disabled]="isLoading"
+          (click)="onEditar()"
+          type="button">
+          <mat-icon>edit</mat-icon>
+          EDITAR
+        </button>
+        
+        <button 
+          mat-raised-button 
+          color="warn"
+          [disabled]="!selectedPedido?.id || isLoading"
+          (click)="onEliminar()"
+          type="button">
+          <mat-icon>delete</mat-icon>
+          ELIMINAR
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div> 

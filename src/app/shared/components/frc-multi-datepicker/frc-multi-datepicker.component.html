@@ -15,12 +15,17 @@
     (focusin)="onInputFocus()"
   />
   <mat-icon
-    *ngIf="displayDateControl.value"
+    *ngIf="displayDateControl.value && !disabled"
     matTextSuffix
     (click)="clearDates()"
     class="highlight-hover-danger"
     >close</mat-icon
   >
-  <mat-datepicker-toggle #pickerToogle matSuffix [for]="picker"></mat-datepicker-toggle>
+  <mat-datepicker-toggle 
+    #pickerToogle 
+    matSuffix 
+    [for]="picker"
+    [disabled]="disabled">
+  </mat-datepicker-toggle>
   <mat-datepicker #picker [dateClass]="dateClass"></mat-datepicker>
 </mat-form-field>

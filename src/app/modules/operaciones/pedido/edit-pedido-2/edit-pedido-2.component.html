@@ -126,13 +126,11 @@
         </ng-template>
         
         <div class="step-content" fxLayout="column" fxFill>
-          <h3>{{ stepsConfig[0].label }}</h3>
-          <p>Gestión de la información básica del pedido: proveedor, vendedor, forma de pago, moneda y configuraciones iniciales.</p>
-          
-          <div fxFlex fxLayout="column" fxLayoutAlign="center center" class="step-placeholder">
-            <mat-icon class="large-icon">{{ stepsConfig[0].icon }}</mat-icon>
-            <p>Aquí se implementará la funcionalidad para gestionar los datos del pedido</p>
-          </div>
+          <app-datos-del-pedido 
+            [selectedPedido]="selectedPedido"
+            (pedidoChange)="onPedidoChange($event)"
+            (formValid)="onStep1FormValidChange($event)">
+          </app-datos-del-pedido>
           
           <div class="step-actions" fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
             <button mat-raised-button color="primary" (click)="nextStep()" 

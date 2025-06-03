@@ -27,6 +27,7 @@ import { AdicionarProveedorDialogComponent } from "../../../personas/proveedor/a
 import { stringToTime } from "../../../../commons/core/utils/string-utils";
 import { PedidoEstado } from "../edit-pedido/pedido-enums";
 import { PagoPedidoDialogComponent } from "../pago-pedido-dialog/pago-pedido-dialog.component";
+import { EditPedido2Component } from "../edit-pedido-2/edit-pedido-2.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -209,7 +210,7 @@ export class ListPedidoComponent implements OnInit, OnDestroy {
 
   onAdd() {
     this.tabService.addTab(
-      new Tab(EditPedidoComponent, "Nuevo Pedido", null, null)
+      new Tab(EditPedido2Component, "Nuevo Pedido", null, null)
     );
   }
 
@@ -218,7 +219,7 @@ export class ListPedidoComponent implements OnInit, OnDestroy {
   openPedido(pedido: Pedido) {
     this.tabService.addTab(
       new Tab(
-        EditPedidoComponent,
+        EditPedido2Component,
         `Pedido ${pedido.id}`,
         new TabData(pedido.id, { id: pedido.id }),
         ListPedidoComponent
