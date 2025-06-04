@@ -10,7 +10,7 @@
   "isConfigured": true,
   "isLocal": false,
   "printers": {
-    "ticket": "ticket",
+    "ticket": "ticket_soporte",
     "factura": "factura"
   }
 }
