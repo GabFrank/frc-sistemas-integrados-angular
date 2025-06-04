@@ -20,6 +20,8 @@ import { ProductoService } from '../../../../../productos/producto/producto.serv
 import { MainService } from '../../../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
 import { PageInfo } from '../../../../../../app.component';
+import { CurrencyMask } from '../../../../../../commons/core/utils/numbersUtils';
+import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
 
 // Import PdvSearchProductoDialog components
 import { 
@@ -88,6 +90,23 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   // Focus management state
   private presentacionEnterCount = 0;
 
+  // Calculation state
+  private isCalculating = false;
+
+  // Currency mask for money fields
+  currencyMask = new CurrencyMask();
+
+  // Total preview value - calculated only when needed
+  totalPreview = 0;
+  totalDescuento = 0;
+
+  // Price validation
+  originalPrice = 0;
+  priceChangeMessage = '';
+  priceChangeType: 'higher' | 'lower' | 'none' = 'none';
+  priceChangePercentage = 0;
+  showPriceWarning = false;
+
   constructor(
     public dialogRef: MatDialogRef<AddProductDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: AddProductDialogData,
@@ -96,7 +115,8 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     private productoService: ProductoService,
     private mainService: MainService,
     private notificacionService: NotificacionSnackbarService,
-    private matDialog: MatDialog
+    private matDialog: MatDialog,
+    private dialogosService: DialogosService
   ) {}
 
   ngOnInit(): void {
@@ -127,7 +147,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     this.productSelectionFormGroup.valueChanges
       .pipe(untilDestroyed(this))
       .subscribe(() => {
-        // This will trigger change detection for the total preview
+        this.calculateTotalPreview();
       });
 
     // Handle precio calculations
@@ -135,12 +155,14 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       .pipe(untilDestroyed(this))
       .subscribe((precioUnitario) => {
         this.calculatePrecioPorPresentacion();
+        this.validatePriceChange();
       });
 
     this.productSelectionFormGroup.get('precioPorPresentacion')?.valueChanges
       .pipe(untilDestroyed(this))
       .subscribe((precioPorPresentacion) => {
         this.calculatePrecioUnitario();
+        this.validatePriceChangeFromPresentacion();
       });
 
     // Handle descuento calculations
@@ -148,12 +170,14 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       .pipe(untilDestroyed(this))
       .subscribe((descuentoUnitario) => {
         this.calculateDescuentoPorPresentacion();
+        this.validatePriceChange();
       });
 
     this.productSelectionFormGroup.get('descuentoPorPresentacion')?.valueChanges
       .pipe(untilDestroyed(this))
       .subscribe((descuentoPorPresentacion) => {
         this.calculateDescuentoUnitario();
+        this.validatePriceChangeFromPresentacion();
       });
 
     // Recalculate when presentacion changes
@@ -162,6 +186,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       .subscribe(() => {
         this.calculatePrecioPorPresentacion();
         this.calculateDescuentoPorPresentacion();
+        this.clearPriceWarning(); // Clear warnings when presentation changes
       });
   }
 
@@ -248,6 +273,10 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
           const ultimoPrecio = this.selectedProducto?.costo?.ultimoPrecioCompra || 0;
           const presentacion = response.presentacion || this.selectedProducto.presentaciones?.[0];
           
+          // Set original price for validation
+          this.originalPrice = ultimoPrecio;
+          this.clearPriceWarning();
+          
           // Reset form with product data
           this.productSelectionFormGroup.patchValue({
             presentacion: presentacion,
@@ -266,6 +295,11 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
           // Load historical purchases for this product
           this.loadHistoricoCompras();
           this.notificacionService.openSucess('Producto encontrado');
+          
+          // Focus on presentacion field after product is selected from dialog
+          setTimeout(() => {
+            this.focusPresentacion();
+          }, 100);
         }
       });
   }
@@ -276,6 +310,10 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     
     const ultimoPrecio = this.selectedProducto?.costo?.ultimoPrecioCompra || 0;
     const presentacion = this.selectedProducto.presentaciones?.[0];
+    
+    // Set original price for validation
+    this.originalPrice = ultimoPrecio;
+    this.clearPriceWarning();
     
     // Reset form with product data
     this.productSelectionFormGroup.patchValue({
@@ -308,6 +346,10 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     
     const ultimoPrecio = this.selectedProducto?.costo?.ultimoPrecioCompra || 0;
     const presentacion = this.selectedProducto.presentaciones?.[0];
+    
+    // Set original price for validation
+    this.originalPrice = ultimoPrecio;
+    this.clearPriceWarning();
     
     // Reset form with product data
     this.productSelectionFormGroup.patchValue({
@@ -391,10 +433,12 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     });
   }
 
-  getTotalPreview(): number {
+  calculateTotalPreview(): void {
     const formValue = this.productSelectionFormGroup.value;
     if (!formValue.presentacion || !formValue.cantidad || formValue.precioUnitario === null) {
-      return 0;
+      this.totalPreview = 0;
+      this.totalDescuento = 0;
+      return;
     }
     
     const cantidad = formValue.cantidad || 0;
@@ -402,7 +446,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     const precioUnitario = formValue.precioUnitario || 0;
     const descuentoUnitario = formValue.descuentoUnitario || 0;
     
-    return cantidad * presentacionCantidad * (precioUnitario - descuentoUnitario);
+    const subtotal = cantidad * presentacionCantidad * precioUnitario;
+    this.totalDescuento = cantidad * presentacionCantidad * descuentoUnitario;
+    this.totalPreview = subtotal - this.totalDescuento;
   }
 
   clearAllSelections(): void {
@@ -576,8 +622,6 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   }
 
   // Calculation methods
-  private isCalculating = false;
-
   private calculatePrecioPorPresentacion(): void {
     if (this.isCalculating) return;
     
@@ -589,6 +633,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       const precioPorPresentacion = precioUnitario * presentacion.cantidad;
       this.productSelectionFormGroup.get('precioPorPresentacion')?.setValue(precioPorPresentacion, { emitEvent: false });
       this.isCalculating = false;
+      this.calculateTotalPreview();
     }
   }
 
@@ -603,6 +648,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       const precioUnitario = precioPorPresentacion / presentacion.cantidad;
       this.productSelectionFormGroup.get('precioUnitario')?.setValue(precioUnitario, { emitEvent: false });
       this.isCalculating = false;
+      this.calculateTotalPreview();
     }
   }
 
@@ -617,6 +663,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       const descuentoPorPresentacion = descuentoUnitario * presentacion.cantidad;
       this.productSelectionFormGroup.get('descuentoPorPresentacion')?.setValue(descuentoPorPresentacion, { emitEvent: false });
       this.isCalculating = false;
+      this.calculateTotalPreview();
     }
   }
 
@@ -631,6 +678,117 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       const descuentoUnitario = descuentoPorPresentacion / presentacion.cantidad;
       this.productSelectionFormGroup.get('descuentoUnitario')?.setValue(descuentoUnitario, { emitEvent: false });
       this.isCalculating = false;
+      this.calculateTotalPreview();
     }
+  }
+
+  // Price validation methods
+  private validatePriceChange(): void {
+    if (!this.originalPrice || this.originalPrice === 0) {
+      this.clearPriceWarning();
+      return;
+    }
+
+    const precioUnitario = this.productSelectionFormGroup.get('precioUnitario')?.value || 0;
+    const descuentoUnitario = this.productSelectionFormGroup.get('descuentoUnitario')?.value || 0;
+    const cleanPrecioUnitario = this.cleanCurrencyValue(precioUnitario);
+    const cleanDescuentoUnitario = this.cleanCurrencyValue(descuentoUnitario);
+    const netPrice = cleanPrecioUnitario - cleanDescuentoUnitario;
+    const priceDifference = netPrice - this.originalPrice;
+    const percentageChange = Math.abs((priceDifference / this.originalPrice) * 100);
+    
+    this.priceChangePercentage = Math.round(percentageChange);
+    
+    if (netPrice > this.originalPrice) {
+      this.priceChangeType = 'higher';
+      this.priceChangeMessage = `Precio ${this.priceChangePercentage}% más alto que el anterior`;
+    } else if (netPrice < this.originalPrice) {
+      this.priceChangeType = 'lower';
+      this.priceChangeMessage = `Precio ${this.priceChangePercentage}% más bajo que el anterior`;
+    } else {
+      this.clearPriceWarning();
+      return;
+    }
+
+    this.showPriceWarning = true;
+
+    // Show confirmation dialog for extreme changes (>100%)
+    if (percentageChange > 100) {
+      this.showExtremeChangedDialog(netPrice, percentageChange);
+    }
+  }
+
+  private showExtremeChangedDialog(newPrice: number, percentageChange: number): void {
+    const changeType = newPrice > this.originalPrice ? 'mayor' : 'menor';
+    const message = `El precio ingresado es ${Math.round(percentageChange)}% ${changeType} al precio anterior (Gs. ${this.originalPrice.toLocaleString()}). ¿Desea continuar?`;
+    
+    this.dialogosService.confirm(
+      'Cambio de precio extremo detectado',
+      message
+    ).subscribe(confirmed => {
+      if (!confirmed) {
+        // Reset to original price if user doesn't want to continue
+        this.productSelectionFormGroup.get('precioUnitario')?.setValue(this.originalPrice, { emitEvent: false });
+        this.clearPriceWarning();
+      }
+    });
+  }
+
+  private clearPriceWarning(): void {
+    this.showPriceWarning = false;
+    this.priceChangeMessage = '';
+    this.priceChangeType = 'none';
+    this.priceChangePercentage = 0;
+  }
+
+  private validatePriceChangeFromPresentacion(): void {
+    if (!this.originalPrice || this.originalPrice === 0) {
+      this.clearPriceWarning();
+      return;
+    }
+
+    const precioPorPresentacion = this.productSelectionFormGroup.get('precioPorPresentacion')?.value || 0;
+    const descuentoPorPresentacion = this.productSelectionFormGroup.get('descuentoPorPresentacion')?.value || 0;
+    const presentacion = this.productSelectionFormGroup.get('presentacion')?.value;
+    if (!presentacion?.cantidad || presentacion.cantidad === 0) {
+      this.clearPriceWarning();
+      return;
+    }
+
+    // Convert presentacion price to unit price for comparison (considering discount)
+    const cleanPresentacionPrice = this.cleanCurrencyValue(precioPorPresentacion);
+    const cleanDescuentoPresentacion = this.cleanCurrencyValue(descuentoPorPresentacion);
+    const netPresentacionPrice = cleanPresentacionPrice - cleanDescuentoPresentacion;
+    const equivalentUnitPrice = netPresentacionPrice / presentacion.cantidad;
+    const priceDifference = equivalentUnitPrice - this.originalPrice;
+    const percentageChange = Math.abs((priceDifference / this.originalPrice) * 100);
+    
+    this.priceChangePercentage = Math.round(percentageChange);
+    
+    if (equivalentUnitPrice > this.originalPrice) {
+      this.priceChangeType = 'higher';
+      this.priceChangeMessage = `Precio ${this.priceChangePercentage}% más alto que el anterior`;
+    } else if (equivalentUnitPrice < this.originalPrice) {
+      this.priceChangeType = 'lower';
+      this.priceChangeMessage = `Precio ${this.priceChangePercentage}% más bajo que el anterior`;
+    } else {
+      this.clearPriceWarning();
+      return;
+    }
+
+    this.showPriceWarning = true;
+
+    // Show confirmation dialog for extreme changes (>100%)
+    if (percentageChange > 100) {
+      this.showExtremeChangedDialog(equivalentUnitPrice, percentageChange);
+    }
+  }
+
+  private cleanCurrencyValue(value: any): number {
+    if (typeof value === 'string') {
+      // Remove currency symbols, spaces, and convert comma to dot
+      return parseFloat(value.replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
+    }
+    return parseFloat(value) || 0;
   }
 }

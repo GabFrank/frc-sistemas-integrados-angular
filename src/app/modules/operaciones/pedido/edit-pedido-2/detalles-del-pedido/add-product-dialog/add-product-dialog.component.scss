@@ -150,6 +150,62 @@
 .dialog-actions {
   padding: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.price-validation-container {
+  flex: 1;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+// Price validation messages - updated for new position
+.price-validation-message {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border-left: 4px solid;
+  background-color: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 300px;
+  
+  .warning-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+  
+  &.price-higher {
+    color: #ff5252;
+    border-left-color: #ff5252;
+    background-color: rgba(255, 82, 82, 0.15);
+    
+    .warning-icon {
+      color: #ff5252;
+    }
+  }
+  
+  &.price-lower {
+    color: #4caf50;
+    border-left-color: #4caf50;
+    background-color: rgba(76, 175, 80, 0.15);
+    
+    .warning-icon {
+      color: #4caf50;
+    }
+  }
 }
 
 // Responsive design
@@ -175,3 +231,21 @@
   align-items: center;
   margin-bottom: 20px;
 }
+
+.totals-container {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  align-items: center;
+  justify-content: center;
+}
+
+.total-row {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  align-items: center;
+  font-size: medium;
+  font-weight: bold;
+}
+
