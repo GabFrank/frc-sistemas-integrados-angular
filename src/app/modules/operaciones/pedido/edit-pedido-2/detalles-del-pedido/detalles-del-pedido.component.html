@@ -6,8 +6,8 @@
       <div class="total-display">
         <span class="total-label">Total:</span>
         <strong class="total-amount"
-          >{{ getMonedaSymbol() }}
-          {{ getTotalValue() | number : "1.2-2" }}</strong
+          >Gs.
+          {{ getTotalValue() | number : "1.0-2" }}</strong
         >
       </div>
     </div>
@@ -121,21 +121,40 @@
             PRECIO UNIT.
           </th>
           <td mat-cell *matCellDef="let elemento" class="data-cell text-center">
-            <div class="price-display">
-              <div class="unit-price">
-                {{ getMonedaSymbol() }}
-                {{ elemento.precioUnitarioCreacion | number : "1.2-2" }}
-              </div>
-              <div
+            <div class="price-display-simple">
+              <span class="net-price-value">
+                Gs. {{ elemento.netPrecioUnitarioCalculado | number : "1.0-2" }}
+              </span>
+              <mat-icon 
                 *ngIf="elemento.descuentoUnitarioCreacion > 0"
-                class="discount-info"
+                class="discount-indicator"
+                [matTooltip]="'Precio unitario con descuento aplicado\nPrecio original: Gs. ' + (elemento.precioUnitarioCreacion | number : '1.0-2') + '\nDescuento: Gs. ' + (elemento.descuentoUnitarioCreacion | number : '1.0-2')"
+                matTooltipPosition="above"
               >
-                <small class="discount-text">
-                  - {{ getMonedaSymbol() }}
-                  {{ elemento.descuentoUnitarioCreacion | number : "1.2-2" }}
-                  descuento
-                </small>
-              </div>
+                local_offer
+              </mat-icon>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Precio por Presentación Column -->
+        <ng-container matColumnDef="precioPorPresentacion">
+          <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+            PRECIO X PRES.
+          </th>
+          <td mat-cell *matCellDef="let elemento" class="data-cell text-center">
+            <div class="price-display-simple">
+              <span class="net-price-value">
+                Gs. {{ elemento.netPrecioPorPresentacionCalculado | number : "1.0-2" }}
+              </span>
+              <mat-icon 
+                *ngIf="elemento.descuentoUnitarioCreacion > 0"
+                class="discount-indicator"
+                [matTooltip]="'Precio por presentación con descuento aplicado\nPrecio original: Gs. ' + (elemento.precioPorPresentacionCalculado | number : '1.0-2') + '\nDescuento: Gs. ' + (elemento.descuentoPorPresentacionCalculado | number : '1.0-2')"
+                matTooltipPosition="above"
+              >
+                local_offer
+              </mat-icon>
             </div>
           </td>
         </ng-container>
@@ -148,8 +167,8 @@
           <td mat-cell *matCellDef="let elemento" class="data-cell text-center">
             <div class="total-cell">
               <strong class="item-total"
-                >{{ getMonedaSymbol() }}
-                {{ elemento.valorTotal | number : "1.2-2" }}</strong
+                >Gs.
+                {{ elemento.totalConDescuentoCalculado | number : "1.0-2" }}</strong
               >
             </div>
           </td>
@@ -161,36 +180,37 @@
             ACCIONES
           </th>
           <td mat-cell *matCellDef="let elemento" class="data-cell text-center">
-            <div class="action-buttons">
-              <button
-                mat-icon-button
-                color="primary"
-                (click)="onEditPedidoItem(elemento)"
-                matTooltip="Editar item"
-                class="action-btn"
-              >
+            <button
+              mat-icon-button
+              [matMenuTriggerFor]="actionsMenu"
+              class="actions-menu-btn"
+              matTooltip="Acciones"
+            >
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #actionsMenu="matMenu">
+              <button mat-menu-item (click)="onEditPedidoItem(elemento)">
                 <mat-icon>edit</mat-icon>
+                <span>Editar</span>
               </button>
-              <button
-                mat-icon-button
-                *ngIf="selectedPedido.sucursalInfluenciaList?.length > 1"
-                color="accent"
+              <button 
+                mat-menu-item 
+                *ngIf="selectedPedido"
                 (click)="onManageSucursales(elemento)"
-                matTooltip="Gestionar sucursales"
-                class="action-btn"
               >
                 <mat-icon>business</mat-icon>
+                <span>Gestionar Sucursales</span>
               </button>
-              <button
-                mat-icon-button
-                color="warn"
+              <button 
+                mat-menu-item 
                 (click)="onDeletePedidoItem(elemento)"
-                matTooltip="Eliminar item"
-                class="action-btn"
+                [disabled]="!isDeleteAllowed()"
+                class="delete-menu-item"
               >
                 <mat-icon>delete</mat-icon>
+                <span>Eliminar</span>
               </button>
-            </div>
+            </mat-menu>
           </td>
         </ng-container>
 
@@ -256,265 +276,3 @@
     </mat-paginator>
   </div>
 </div>
-
-<style>
-  /* Full height container with flexbox */
-  .detalles-container {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    min-height: 0; /* Allow flexbox shrinking */
-  }
-
-  /* Header sections */
-  .action-header {
-    flex-shrink: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 24px;
-    background: rgba(0, 0, 0, 0.1);
-    border-bottom: 1px solid #555;
-  }
-
-  .search-header {
-    flex-shrink: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 24px;
-    border-bottom: 1px solid #555;
-    gap: 16px;
-  }
-
-  .search-section {
-    flex: 1;
-    max-width: 400px;
-  }
-
-  .items-info {
-    flex-shrink: 0;
-  }
-
-  /* Main content area - takes remaining space */
-  .content-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0; /* Allow content to shrink */
-    overflow: hidden;
-  }
-
-  /* Footer pagination */
-  .pagination-footer {
-    flex-shrink: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 24px;
-    border-top: 1px solid #555;
-    background: rgba(0, 0, 0, 0.1);
-  }
-
-  /* Action bar styling */
-  .items-summary {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-  }
-
-  .items-title {
-    color: #ffffff;
-    font-weight: 600;
-  }
-
-  .total-display {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    .total-label {
-      color: #b0b0b0;
-    }
-
-    .total-amount {
-      color: #4caf50;
-    }
-  }
-
-  /* Search field styling */
-  .search-field {
-    width: 100%;
-
-    ::ng-deep .mat-form-field-outline {
-      color: #555 !important;
-    }
-
-    ::ng-deep .mat-form-field-label {
-      color: #b0b0b0 !important;
-    }
-
-    ::ng-deep input {
-      color: #ffffff !important;
-    }
-  }
-
-  .items-count {
-    color: #b0b0b0;
-  }
-
-  /* Table styling for dark theme */
-  .table-container {
-    overflow-y: auto;
-    border: 1px solid #555;
-    border-radius: 8px;
-    margin: 16px 24px 0;
-  }
-
-  .items-table {
-    background: #3e3e42 !important;
-    height: 100%;
-  }
-
-  .header-row {
-    background: #4a4a4e !important;
-  }
-
-  .header-cell {
-    background: #4a4a4e !important;
-    color: #ffffff !important;
-    font-weight: 600;
-    border-bottom: 1px solid #555;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
-  .data-cell {
-    background: #3e3e42 !important;
-    color: #ffffff !important;
-    border-bottom: 1px solid #555;
-  }
-
-  .data-row:hover {
-    background: #4a4a4e !important;
-  }
-
-  /* Product info with barcode */
-  .producto-info {
-    .d-flex {
-      gap: 8px;
-    }
-  }
-
-  .product-details {
-    flex: 1;
-  }
-
-  .product-name {
-    color: #ffffff !important;
-    font-weight: 500;
-  }
-
-  .product-obs {
-    color: #b0b0b0 !important;
-  }
-
-  .barcode-btn {
-    color: #2196f3 !important;
-    background: rgba(33, 150, 243, 0.1) !important;
-
-    &:hover {
-      background: rgba(33, 150, 243, 0.2) !important;
-    }
-  }
-
-  .presentation-detail {
-    color: #b0b0b0 !important;
-  }
-
-  .quantity-value {
-    font-weight: 600;
-    color: #2196f3 !important;
-  }
-
-  .unit-price {
-    color: #ffffff !important;
-    font-weight: 500;
-  }
-
-  .discount-text {
-    color: #ff9800 !important;
-  }
-
-  .item-total {
-    color: #4caf50 !important;
-  }
-
-  .action-buttons {
-    display: flex;
-    gap: 4px;
-    justify-content: center;
-  }
-
-  .action-btn {
-    background: rgba(255, 255, 255, 0.1) !important;
-  }
-
-  /* Loading and empty states */
-  .loading-state,
-  .empty-state {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    color: #b0b0b0;
-    padding: 40px 20px;
-  }
-
-  .loading-text {
-    margin-top: 16px;
-    color: #b0b0b0;
-  }
-
-  .empty-icon {
-    font-size: 72px;
-    height: 72px;
-    width: 72px;
-    color: #666;
-  }
-
-  .empty-title {
-    margin-top: 16px;
-    color: #ffffff !important;
-  }
-
-  .empty-subtitle {
-    color: #b0b0b0;
-    margin-bottom: 24px;
-  }
-
-  .empty-action-btn {
-    background: #2196f3 !important;
-    color: white !important;
-  }
-
-  .pagination-info {
-    color: #b0b0b0;
-  }
-
-  /* Override Material paginator for dark theme */
-  ::ng-deep .mat-paginator {
-    background: transparent !important;
-    color: #ffffff !important;
-  }
-
-  ::ng-deep .mat-paginator .mat-icon-button {
-    color: #ffffff !important;
-  }
-
-  ::ng-deep .mat-paginator .mat-paginator-page-size-select {
-    color: #ffffff !important;
-  }
-</style>

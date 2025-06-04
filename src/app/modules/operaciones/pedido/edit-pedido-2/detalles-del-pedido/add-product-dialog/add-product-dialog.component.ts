@@ -32,6 +32,8 @@ import {
 
 export interface AddProductDialogData {
   pedido: Pedido;
+  pedidoItem?: PedidoItem; // Optional - for editing existing items
+  isEditing?: boolean; // Flag to indicate edit mode
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -122,6 +124,11 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.setupFormSubscriptions();
     this.loadProductosProveedor();
+    
+    // If editing an existing item, load its data
+    if (this.data.isEditing && this.data.pedidoItem) {
+      this.loadPedidoItemForEditing();
+    }
   }
 
   ngAfterViewInit(): void {
@@ -400,28 +407,52 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
     const formValue = this.productSelectionFormGroup.value;
     
-    const pedidoItem = new PedidoItem();
-    pedidoItem.pedido = this.data.pedido;
-    pedidoItem.producto = this.selectedProducto;
-    pedidoItem.presentacionCreacion = formValue.presentacion;
-    pedidoItem.cantidadCreacion = formValue.cantidad;
-    pedidoItem.precioUnitarioCreacion = formValue.precioUnitario;
-    pedidoItem.descuentoUnitarioCreacion = formValue.descuentoUnitario || 0;
-    pedidoItem.valorTotal = formValue.cantidad * formValue.presentacion.cantidad * 
-                          (formValue.precioUnitario - (formValue.descuentoUnitario || 0));
-    pedidoItem.usuarioCreacion = this.mainService.usuarioActual;
+    if (this.data.isEditing && this.data.pedidoItem) {
+      // Update existing pedido item
+      const pedidoItem = this.data.pedidoItem;
+      pedidoItem.presentacionCreacion = formValue.presentacion;
+      pedidoItem.cantidadCreacion = formValue.cantidad;
+      pedidoItem.precioUnitarioCreacion = formValue.precioUnitario;
+      pedidoItem.descuentoUnitarioCreacion = formValue.descuentoUnitario || 0;
+      pedidoItem.valorTotal = formValue.cantidad * formValue.presentacion.cantidad * 
+                            (formValue.precioUnitario - (formValue.descuentoUnitario || 0));
 
-    this.pedidoService.onSaveItem(pedidoItem.toInput())
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (response) => {
-          this.notificacionService.openSucess('Producto agregado al pedido');
-          this.dialogRef.close({ added: true, pedidoItem: response });
-        },
-        error: () => {
-          this.notificacionService.openWarn('Error al agregar producto al pedido');
-        }
-      });
+      this.pedidoService.onSaveItem(pedidoItem.toInput())
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (response) => {
+            this.notificacionService.openSucess('Item actualizado exitosamente');
+            this.dialogRef.close({ updated: true, pedidoItem: response });
+          },
+          error: () => {
+            this.notificacionService.openWarn('Error al actualizar item del pedido');
+          }
+        });
+    } else {
+      // Add new pedido item
+      const pedidoItem = new PedidoItem();
+      pedidoItem.pedido = this.data.pedido;
+      pedidoItem.producto = this.selectedProducto;
+      pedidoItem.presentacionCreacion = formValue.presentacion;
+      pedidoItem.cantidadCreacion = formValue.cantidad;
+      pedidoItem.precioUnitarioCreacion = formValue.precioUnitario;
+      pedidoItem.descuentoUnitarioCreacion = formValue.descuentoUnitario || 0;
+      pedidoItem.valorTotal = formValue.cantidad * formValue.presentacion.cantidad * 
+                            (formValue.precioUnitario - (formValue.descuentoUnitario || 0));
+      pedidoItem.usuarioCreacion = this.mainService.usuarioActual;
+
+      this.pedidoService.onSaveItem(pedidoItem.toInput())
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (response) => {
+            this.notificacionService.openSucess('Producto agregado al pedido');
+            this.dialogRef.close({ added: true, pedidoItem: response });
+          },
+          error: () => {
+            this.notificacionService.openWarn('Error al agregar producto al pedido');
+          }
+        });
+    }
   }
 
   onRepeatFromHistory(compraItem: any): void {
@@ -790,5 +821,38 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       return parseFloat(value.replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
     }
     return parseFloat(value) || 0;
+  }
+
+  private loadPedidoItemForEditing(): void {
+    const pedidoItem = this.data.pedidoItem;
+    if (!pedidoItem) return;
+
+    // Set the selected product
+    this.selectedProducto = pedidoItem.producto;
+    this.selectedProductoProveedor = null; // Clear proveedor selection since this is direct editing
+
+    // Set original price for validation
+    this.originalPrice = pedidoItem.precioUnitarioCreacion || 0;
+    this.clearPriceWarning();
+
+    // Load the form with existing data
+    this.productSelectionFormGroup.patchValue({
+      presentacion: pedidoItem.presentacionCreacion,
+      cantidad: pedidoItem.cantidadCreacion,
+      precioUnitario: pedidoItem.precioUnitarioCreacion,
+      precioPorPresentacion: pedidoItem.presentacionCreacion?.cantidad ? 
+        (pedidoItem.precioUnitarioCreacion || 0) * pedidoItem.presentacionCreacion.cantidad : 0,
+      descuentoUnitario: pedidoItem.descuentoUnitarioCreacion || 0,
+      descuentoPorPresentacion: pedidoItem.presentacionCreacion?.cantidad ? 
+        (pedidoItem.descuentoUnitarioCreacion || 0) * pedidoItem.presentacionCreacion.cantidad : 0
+    });
+
+    // Update search field with product description
+    this.buscarProductoDirectoControl.setValue(
+      `${this.selectedProducto?.id} - ${this.selectedProducto?.descripcion}`
+    );
+
+    // Load historical purchases for this product
+    this.loadHistoricoCompras();
   }
 }

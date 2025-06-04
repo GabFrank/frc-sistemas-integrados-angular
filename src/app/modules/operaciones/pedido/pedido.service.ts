@@ -130,7 +130,7 @@ export class PedidoService {
 
   onDeletePedidoItem(id): Observable<boolean> {
     this.actualizarSub.next(true);
-    return this.genericService.onDelete(this.deletePedidoItem, id, "¿Eliminar item de pedido?", null, true, true, "¿Está seguro que desea eliminar este item de pedido?");
+    return this.genericService.onDelete(this.deletePedidoItem, id, "¿Eliminar item de pedido?", null, false, true, "¿Está seguro que desea eliminar este item de pedido?");
   }
 
   onSaveItem(input: PedidoItemInput): Observable<PedidoItem> {

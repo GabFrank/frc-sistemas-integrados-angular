@@ -8,6 +8,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { Pedido } from '../../edit-pedido/pedido.model';
 import { PedidoItem } from '../../edit-pedido/pedido-item.model';
+import { PedidoEstado } from '../../edit-pedido/pedido-enums';
 import { ProductoProveedor } from '../../../../productos/producto-proveedor/producto-proveedor.model';
 import { Producto } from '../../../../productos/producto/producto.model';
 import { Presentacion } from '../../../../productos/presentacion/presentacion.model';
@@ -18,6 +19,7 @@ import { PedidoService } from '../../pedido.service';
 import { ProductoService } from '../../../../productos/producto/producto.service';
 import { MainService } from '../../../../../main.service';
 import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
+import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
 import { PageInfo } from '../../../../../app.component';
 
 import { PedidoItemSucursalDialogComponent } from '../../pedido-item-sucursal/pedido-item-sucursal-dialog/pedido-item-sucursal-dialog.component';
@@ -58,7 +60,7 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
 
   // Table columns
   productosProveedorColumns = ['codigo', 'descripcion', 'stock', 'sugerido', 'acciones'];
-  pedidoItemsColumns = ['descripcion', 'presentacion', 'cantidad', 'precioUnitario', 'total', 'acciones'];
+  pedidoItemsColumns = ['descripcion', 'presentacion', 'cantidad', 'precioUnitario', 'precioPorPresentacion', 'total', 'acciones'];
   historicoComprasColumns = ['fecha', 'presentacion', 'cantidad', 'precio', 'acciones'];
 
   // Selected items
@@ -82,7 +84,8 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
     private productoService: ProductoService,
     private mainService: MainService,
     private notificacionService: NotificacionSnackbarService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private dialogosService: DialogosService
   ) {}
 
   ngOnInit(): void {
@@ -193,7 +196,27 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
       .subscribe({
         next: (response) => {
           this.pedidoItemsPage = response;
-          this.pedidoItemsDataSource.data = response.getContent;
+          // Calculate computed properties for each item to avoid function calls in template
+          const itemsWithComputedProps = response.getContent.map(item => {
+            const precioUnitario = item.precioUnitarioCreacion || 0;
+            const descuentoUnitario = item.descuentoUnitarioCreacion || 0;
+            const cantidadPresentacion = item.presentacionCreacion?.cantidad || 1;
+            const cantidadCreacion = item.cantidadCreacion || 0;
+            
+            const computedItem = Object.assign(item, {
+              // Computed properties to avoid function calls in template
+              precioPorPresentacionCalculado: precioUnitario * cantidadPresentacion,
+              descuentoPorPresentacionCalculado: descuentoUnitario * cantidadPresentacion,
+              netPrecioUnitarioCalculado: precioUnitario - descuentoUnitario,
+              netPrecioPorPresentacionCalculado: (precioUnitario * cantidadPresentacion) - (descuentoUnitario * cantidadPresentacion),
+              // Total with discount applied
+              totalConDescuentoCalculado: cantidadCreacion * cantidadPresentacion * (precioUnitario - descuentoUnitario)
+            });
+            
+            return computedItem;
+          });
+          
+          this.pedidoItemsDataSource.data = itemsWithComputedProps as any;
           this.isLoading = false;
         },
         error: () => {
@@ -275,16 +298,17 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
       });
   }
 
-  openSucursalDialog(pedidoItem: PedidoItem): void {
+  openSucursalDialog(pedidoItem: PedidoItem, isEditing: boolean = false): void {
+    // isEditting true significa que se esta editando un item del pedido, por lo que no se debe setear la sucursal de entrega por defecto
     this.dialog.open(PedidoItemSucursalDialogComponent, {
       data: {
         pedidoItem,
         sucursalInfluenciaList: this.selectedPedido.sucursalInfluenciaList?.map(s => s.sucursal),
         sucursalEntregaList: this.selectedPedido.sucursalEntregaList?.map(s => s.sucursal),
-        autoSet: this.selectedPedido.sucursalInfluenciaList?.length === 1
+        autoSet: this.selectedPedido.sucursalInfluenciaList?.length === 1 && !isEditing
       },
       width: '70%',
-      height: '50%'
+      height: '60%'
     }).afterClosed().subscribe(result => {
       if (result) {
         this.loadPedidoItems();
@@ -293,28 +317,66 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
   }
 
   onEditPedidoItem(pedidoItem: PedidoItem): void {
-    this.dialog.open(AdicionarItemDialogComponent, {
+    this.dialog.open(AddProductDialogComponent, {
       data: {
         pedido: this.selectedPedido,
         pedidoItem: pedidoItem,
-        edit: true
+        isEditing: true
       },
-      width: '80%',
-      height: '80%'
+      width: '95%',
+      height: '85%',
+      disableClose: false,
+      autoFocus: false
     }).afterClosed().subscribe(result => {
-      if (result) {
+      if (result?.updated) {
         this.loadPedidoItems();
+        this.pedidoChange.emit(this.selectedPedido);
       }
     });
   }
 
   onDeletePedidoItem(pedidoItem: PedidoItem): void {
-    // Implement delete confirmation and logic
-    this.notificacionService.openWarn('Funcionalidad de eliminar en desarrollo');
+    // Check if deletion is allowed based on pedido estado
+    if (!this.isDeleteAllowed()) {
+      this.notificacionService.openWarn('Solo se pueden eliminar items cuando el pedido está en estado ACTIVO');
+      return;
+    }
+
+    // Ask for confirmation since deletion is irreversible
+    const message = `¿Está seguro que desea eliminar este item del pedido?\n\nProducto: ${pedidoItem.producto?.descripcion}\nCantidad: ${pedidoItem.cantidadCreacion}\n\nEsta acción es irreversible.`;
+    
+    this.dialogosService.confirm(
+      'Confirmar eliminación',
+      message
+    ).subscribe(confirmed => {
+      if (confirmed) {
+        this.pedidoService.onDeletePedidoItem(pedidoItem.id)
+          .pipe(untilDestroyed(this))
+          .subscribe({
+            next: () => {
+              this.notificacionService.openSucess('Item eliminado del pedido exitosamente');
+              this.loadPedidoItems();
+              // Emit pedido change to update parent component
+              this.pedidoChange.emit(this.selectedPedido);
+            },
+            error: () => {
+              this.notificacionService.openWarn('Error al eliminar item del pedido');
+            }
+          });
+      }
+    });
+  }
+
+  /**
+   * Check if item deletion is allowed based on pedido estado
+   * Only allow deletion when pedido is in ACTIVO state
+   */
+  isDeleteAllowed(): boolean {
+    return this.selectedPedido?.estado === PedidoEstado.ACTIVO;
   }
 
   onManageSucursales(pedidoItem: PedidoItem): void {
-    this.openSucursalDialog(pedidoItem);
+    this.openSucursalDialog(pedidoItem, true);
   }
 
   onRepeatFromHistory(compraItem: any): void {
@@ -348,7 +410,11 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
   }
 
   getTotalValue(): number {
-    return this.pedidoItemsDataSource.data.reduce((total, item) => total + (item.valorTotal || 0), 0);
+    return this.pedidoItemsDataSource.data.reduce((total, item) => {
+      // Use the calculated total with discount applied, fallback to original valorTotal if not available
+      const itemTotal = (item as any).totalConDescuentoCalculado || item.valorTotal || 0;
+      return total + itemTotal;
+    }, 0);
   }
 
   openAddProductDialog(): void {

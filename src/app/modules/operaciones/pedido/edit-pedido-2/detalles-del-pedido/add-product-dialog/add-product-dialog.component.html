@@ -1,11 +1,18 @@
 <div class="main-container">
   <div class="header-section">
-    <div>Agregar Producto al Pedido</div>
-    <span class="provider-info"
-      >Proveedor: {{ data.pedido?.proveedor?.persona?.nombre }}</span
+    <div style="font-size: 1.8rem; font-weight: 500">
+      {{
+        data.isEditing
+          ? "Editar Producto del Pedido"
+          : "Agregar Producto al Pedido"
+      }}
+    </div>
+    <span class="provider-info">
+      <span class="titulo-color">Proveedor:</span>
+      {{ data.pedido?.proveedor?.persona?.nombre }}</span
     >
   </div>
-  
+
   <!-- Product Search and Form Section (45%) -->
   <div class="form-section">
     <!-- Product Search Section -->
@@ -56,12 +63,10 @@
       <mat-card-header>
         <div class="w-100">
           <mat-card-title
-            class="d-flex justify-content-between align-items-center"
+            class="d-flex justify-content-between align-items-center titulo-color"
+            style="font-size: small"
           >
-            <span>
-              <mat-icon>add_circle</mat-icon>
-              Configurar Producto
-            </span>
+            <span> Configurar Producto </span>
             <button
               mat-icon-button
               (click)="clearProductSelection()"
@@ -70,7 +75,10 @@
               <mat-icon>clear</mat-icon>
             </button>
           </mat-card-title>
-          <mat-card-subtitle *ngIf="selectedProducto" class="selected-product-name">
+          <mat-card-subtitle
+            *ngIf="selectedProducto"
+            class="selected-product-name"
+          >
             <div>
               <span class="titulo-color">Descripción:</span>
               {{ selectedProducto.descripcion }}
@@ -87,13 +95,13 @@
         <div class="form-content-layout">
           <!-- Product Image Section -->
           <div class="product-image-container">
-            <img 
-              src="assets/no-image.png" 
+            <img
+              src="assets/no-image.png"
               [alt]="selectedProducto?.descripcion || 'Producto'"
               class="product-image"
             />
           </div>
-          
+
           <!-- Form Fields Section -->
           <div class="form-fields-container">
             <form [formGroup]="productSelectionFormGroup" class="product-form">
@@ -279,15 +287,22 @@
               </div>
 
               <!-- Total Preview -->
-              <div class="total-preview" *ngIf="totalPreview > 0 || totalDescuento > 0">
+              <div
+                class="total-preview"
+                *ngIf="totalPreview > 0 || totalDescuento > 0"
+              >
                 <div class="totals-container">
                   <div class="total-row" *ngIf="totalDescuento > 0">
                     <span class="titulo-color">Descuento Total:</span>
-                    <span class="total-amount">Gs. {{ totalDescuento | number : "1.0-2" }}</span>
+                    <span class="total-amount item-total"
+                      >Gs. {{ totalDescuento | number : "1.0-2" }}</span
+                    >
                   </div>
                   <div class="total-row">
                     <span class="titulo-color">Total:</span>
-                    <span class="total-amount">Gs. {{ totalPreview | number : "1.0-2" }}</span>
+                    <span class="total-amount item-total"
+                      >Gs. {{ totalPreview | number : "1.0-2" }}</span
+                    >
                   </div>
                 </div>
               </div>
@@ -299,19 +314,21 @@
     <div class="dialog-actions">
       <!-- Price validation message on the left -->
       <div class="price-validation-container">
-        <div 
-          class="price-validation-message" 
+        <div
+          class="price-validation-message"
           *ngIf="showPriceWarning"
           [ngClass]="{
             'price-higher': priceChangeType === 'higher',
             'price-lower': priceChangeType === 'lower'
           }"
         >
-          <mat-icon class="warning-icon">{{priceChangeType === 'higher' ? 'trending_up' : 'trending_down'}}</mat-icon>
+          <mat-icon class="warning-icon">{{
+            priceChangeType === "higher" ? "trending_up" : "trending_down"
+          }}</mat-icon>
           {{ priceChangeMessage }}
         </div>
       </div>
-      
+
       <!-- Buttons on the right -->
       <div class="dialog-buttons">
         <button mat-button (click)="onCancel()" class="cancel-btn">
@@ -327,8 +344,10 @@
           (keydown)="onAgregarButtonEnter($event)"
           class="add-btn"
         >
-          <mat-icon>add_shopping_cart</mat-icon>
-          AGREGAR AL PEDIDO
+          <mat-icon>{{
+            data.isEditing ? "save" : "add_shopping_cart"
+          }}</mat-icon>
+          {{ data.isEditing ? "ACTUALIZAR PRODUCTO" : "AGREGAR AL PEDIDO" }}
         </button>
       </div>
     </div>
@@ -340,8 +359,7 @@
     <div class="list-panel">
       <mat-card class="list-card">
         <mat-card-header>
-          <mat-card-title>
-            <mat-icon>shopping_basket</mat-icon>
+          <mat-card-title style="font-size: small" class="titulo-color">
             Productos del Proveedor
           </mat-card-title>
         </mat-card-header>
@@ -409,9 +427,7 @@
                     color="primary"
                     size="small"
                     (click)="onProductoProveedorSelect(elemento)"
-                    [disabled]="
-                      selectedProductoProveedor?.id === elemento.id
-                    "
+                    [disabled]="selectedProductoProveedor?.id === elemento.id"
                   >
                     <mat-icon>{{
                       selectedProductoProveedor?.id === elemento.id
@@ -434,9 +450,7 @@
               <tr
                 mat-row
                 *matRowDef="let row; columns: productosProveedorColumns"
-                [class.selected-row]="
-                  selectedProductoProveedor?.id === row.id
-                "
+                [class.selected-row]="selectedProductoProveedor?.id === row.id"
               ></tr>
             </table>
           </div>
@@ -477,8 +491,7 @@
     <div class="list-panel">
       <mat-card class="list-card">
         <mat-card-header>
-          <mat-card-title>
-            <mat-icon>history</mat-icon>
+          <mat-card-title style="font-size: small" class="titulo-color">
             Historial de Precios
           </mat-card-title>
           <mat-card-subtitle *ngIf="selectedProducto">
