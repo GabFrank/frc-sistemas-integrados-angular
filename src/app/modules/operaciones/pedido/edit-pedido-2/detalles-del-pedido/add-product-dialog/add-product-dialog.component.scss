@@ -1,0 +1,177 @@
+// Main container - Full width and height, column layout with 10px gap
+.main-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  gap: 10px;
+  padding: 0px;
+  background-color: rgb(52, 52, 52);
+}
+
+// Header section - 10% of height
+.header-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+  border-radius: 4px;
+}
+
+// Product form section - 45% of height
+.form-section {
+  flex: 0 0 45%;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  margin-top: 15px;
+  margin: 0 10px;
+}
+
+// Lists section - 45% of height
+.lists-section {
+  flex: 0 0 45%;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  overflow: hidden;
+  margin: 0 10px;
+}
+
+// Each list panel takes equal space
+.list-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+
+.list-card {
+  height: 100%;
+  padding: 5px;
+}
+
+// Table containers with scroll
+.list-table-container {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+
+// Form layout
+.product-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+// Form content layout with image and fields side by side
+.form-content-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+// Product image container
+.product-image-container {
+  flex: 0 0 180px;
+  
+  .product-image {
+    width: 180px;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+}
+
+// Form fields container
+.form-fields-container {
+  flex: 1;
+  
+  .product-form {
+    padding: 0;
+  }
+}
+
+// No product selected message
+.no-product-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  
+  mat-icon {
+    font-size: 48px;
+    height: 48px;
+    width: 48px;
+    margin-bottom: 16px;
+    color: rgba(255, 255, 255, 0.4);
+  }
+  
+  p {
+    margin: 0;
+    font-size: 1rem;
+  }
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-field {
+  flex: 1;
+}
+
+// Search row
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.search-field {
+  flex: 1;
+}
+
+// Dialog actions
+.dialog-actions {
+  padding: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .lists-section {
+    flex-direction: column;
+  }
+  
+  .form-row {
+    flex-direction: column;
+  }
+  
+  .search-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.selected-product-name {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 20px;
+}

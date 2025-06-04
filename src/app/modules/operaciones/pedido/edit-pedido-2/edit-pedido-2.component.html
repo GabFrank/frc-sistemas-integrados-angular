@@ -129,7 +129,8 @@
           <app-datos-del-pedido 
             [selectedPedido]="selectedPedido"
             (pedidoChange)="onPedidoChange($event)"
-            (formValid)="onStep1FormValidChange($event)">
+            (formValid)="onStep1FormValidChange($event)"
+            style="height: 100% !important;">
           </app-datos-del-pedido>
           
           <div class="step-actions" fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
@@ -154,13 +155,12 @@
         </ng-template>
         
         <div class="step-content" fxLayout="column" fxFill>
-          <h3>{{ stepsConfig[1].label }}</h3>
-          <p>Adición y gestión de productos al pedido. Configuración de cantidades, precios y distribución por sucursales.</p>
-          
-          <div fxFlex fxLayout="column" fxLayoutAlign="center center" class="step-placeholder">
-            <mat-icon class="large-icon">{{ stepsConfig[1].icon }}</mat-icon>
-            <p>Aquí se implementará la funcionalidad para gestionar los detalles del pedido</p>
-          </div>
+          <app-detalles-del-pedido 
+            [selectedPedido]="selectedPedido"
+            (pedidoChange)="onPedidoChange($event)"
+            (formValid)="onStep2FormValidChange($event)"
+            style="height: 100% !important;">
+          </app-detalles-del-pedido>
           
           <div class="step-actions" fxLayout="row" fxLayoutAlign="space-between center" fxLayoutGap="10px">
             <button mat-button (click)="previousStep()">

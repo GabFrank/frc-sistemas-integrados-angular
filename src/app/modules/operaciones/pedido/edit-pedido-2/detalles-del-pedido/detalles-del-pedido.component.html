@@ -1,0 +1,520 @@
+<div class="detalles-container">
+  <!-- Action Bar -->
+  <div class="action-header">
+    <div class="items-summary">
+      <span class="items-title">Items del Pedido</span>
+      <div class="total-display">
+        <span class="total-label">Total:</span>
+        <strong class="total-amount"
+          >{{ getMonedaSymbol() }}
+          {{ getTotalValue() | number : "1.2-2" }}</strong
+        >
+      </div>
+    </div>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="openAddProductDialog()"
+      [disabled]="!selectedPedido?.proveedor"
+    >
+      <mat-icon>add_shopping_cart</mat-icon>
+      AGREGAR PRODUCTO
+    </button>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="search-header" *ngIf="pedidoItemsDataSource.data.length > 0">
+    <div class="search-section">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>BUSCAR EN ITEMS</mat-label>
+        <input
+          matInput
+          [formControl]="buscarItemsControl"
+          placeholder="Código o descripción..."
+        />
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+    </div>
+    <div class="items-info">
+      <span class="items-count">
+        {{ pedidoItemsDataSource.data.length }} item(s) en el pedido
+      </span>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="content-area">
+    <!-- Items Table -->
+    <div
+      class="table-container"
+      *ngIf="!isLoading && pedidoItemsDataSource.data.length > 0"
+    >
+      <table
+        mat-table
+        [dataSource]="pedidoItemsDataSource"
+        class="w-100 items-table"
+      >
+        <!-- Descripción Column -->
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef class="header-cell">
+            DESCRIPCIÓN
+          </th>
+          <td mat-cell *matCellDef="let elemento" class="data-cell">
+            <div class="producto-info">
+              <div class="d-flex align-items-center">
+                <div class="product-details">
+                  <div class="product-name">
+                    {{ elemento.producto?.descripcion }}
+                  </div>
+                  <small class="product-obs" *ngIf="elemento.obsCreacion">{{
+                    elemento.obsCreacion
+                  }}</small>
+                </div>
+                <button
+                  mat-icon-button
+                  class="barcode-btn"
+                  [copiarAClipboard]="elemento.producto?.codigoPrincipal"
+                  [matTooltip]="elemento.producto?.codigoPrincipal"
+                  matTooltipPosition="above"
+                >
+                  <mat-icon>qr_code</mat-icon>
+                </button>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Presentación Column -->
+        <ng-container matColumnDef="presentacion">
+          <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+            PRESENTACIÓN
+          </th>
+          <td mat-cell *matCellDef="let elemento" class="data-cell text-center">
+            <div class="presentation-display">
+              <ng-container *ngIf="elemento.presentacionCreacion?.descripcion">
+                ({{ elemento.presentacionCreacion?.descripcion }})
+              </ng-container>
+              <ng-container *ngIf="elemento.presentacionCreacion?.cantidad">
+                {{ elemento.presentacionCreacion?.cantidad | number : "1.0-2" }}
+              </ng-container>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Cantidad Column -->
+        <ng-container matColumnDef="cantidad">
+          <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+            CANTIDAD
+          </th>
+          <td mat-cell *matCellDef="let elemento" class="data-cell text-center">
+            <div class="quantity-display">
+              <span class="quantity-value">{{
+                elemento.cantidadCreacion
+              }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Precio Unitario Column -->
+        <ng-container matColumnDef="precioUnitario">
+          <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+            PRECIO UNIT.
+          </th>
+          <td mat-cell *matCellDef="let elemento" class="data-cell text-center">
+            <div class="price-display">
+              <div class="unit-price">
+                {{ getMonedaSymbol() }}
+                {{ elemento.precioUnitarioCreacion | number : "1.2-2" }}
+              </div>
+              <div
+                *ngIf="elemento.descuentoUnitarioCreacion > 0"
+                class="discount-info"
+              >
+                <small class="discount-text">
+                  - {{ getMonedaSymbol() }}
+                  {{ elemento.descuentoUnitarioCreacion | number : "1.2-2" }}
+                  descuento
+                </small>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Total Column -->
+        <ng-container matColumnDef="total">
+          <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+            TOTAL
+          </th>
+          <td mat-cell *matCellDef="let elemento" class="data-cell text-center">
+            <div class="total-cell">
+              <strong class="item-total"
+                >{{ getMonedaSymbol() }}
+                {{ elemento.valorTotal | number : "1.2-2" }}</strong
+              >
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Acciones Column -->
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+            ACCIONES
+          </th>
+          <td mat-cell *matCellDef="let elemento" class="data-cell text-center">
+            <div class="action-buttons">
+              <button
+                mat-icon-button
+                color="primary"
+                (click)="onEditPedidoItem(elemento)"
+                matTooltip="Editar item"
+                class="action-btn"
+              >
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                *ngIf="selectedPedido.sucursalInfluenciaList?.length > 1"
+                color="accent"
+                (click)="onManageSucursales(elemento)"
+                matTooltip="Gestionar sucursales"
+                class="action-btn"
+              >
+                <mat-icon>business</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                color="warn"
+                (click)="onDeletePedidoItem(elemento)"
+                matTooltip="Eliminar item"
+                class="action-btn"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr
+          mat-header-row
+          *matHeaderRowDef="pedidoItemsColumns"
+          class="header-row"
+        ></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: pedidoItemsColumns"
+          class="data-row"
+        ></tr>
+      </table>
+    </div>
+
+    <!-- Loading indicator -->
+    <div *ngIf="isLoading" class="loading-state">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p class="loading-text">Cargando items del pedido...</p>
+    </div>
+
+    <!-- Empty state -->
+    <div
+      *ngIf="!isLoading && pedidoItemsDataSource.data.length === 0"
+      class="empty-state"
+    >
+      <mat-icon class="empty-icon">shopping_cart</mat-icon>
+      <h4 class="empty-title">No hay items en el pedido</h4>
+      <p class="empty-subtitle">
+        Agregue productos del proveedor para comenzar a armar su pedido
+      </p>
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="openAddProductDialog()"
+        [disabled]="!selectedPedido?.proveedor"
+        class="empty-action-btn"
+      >
+        <mat-icon>add_shopping_cart</mat-icon>
+        AGREGAR PRIMER PRODUCTO
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer with Pagination -->
+  <div
+    class="pagination-footer"
+    *ngIf="!isLoading && pedidoItemsDataSource.data.length > 0"
+  >
+    <div class="pagination-info">
+      Mostrando {{ pedidoItemsDataSource.data.length }} de
+      {{ pedidoItemsPage?.getTotalElements || 0 }} items
+    </div>
+    <mat-paginator
+      #pedidoItemsPaginator
+      [length]="pedidoItemsPage?.getTotalElements || 0"
+      [pageSize]="15"
+      [pageSizeOptions]="[10, 15, 25, 50]"
+      (page)="onPedidoItemsPageChange($event)"
+      showFirstLastButtons
+    >
+    </mat-paginator>
+  </div>
+</div>
+
+<style>
+  /* Full height container with flexbox */
+  .detalles-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0; /* Allow flexbox shrinking */
+  }
+
+  /* Header sections */
+  .action-header {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid #555;
+  }
+
+  .search-header {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 24px;
+    border-bottom: 1px solid #555;
+    gap: 16px;
+  }
+
+  .search-section {
+    flex: 1;
+    max-width: 400px;
+  }
+
+  .items-info {
+    flex-shrink: 0;
+  }
+
+  /* Main content area - takes remaining space */
+  .content-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* Allow content to shrink */
+    overflow: hidden;
+  }
+
+  /* Footer pagination */
+  .pagination-footer {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 24px;
+    border-top: 1px solid #555;
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  /* Action bar styling */
+  .items-summary {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .items-title {
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  .total-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .total-label {
+      color: #b0b0b0;
+    }
+
+    .total-amount {
+      color: #4caf50;
+    }
+  }
+
+  /* Search field styling */
+  .search-field {
+    width: 100%;
+
+    ::ng-deep .mat-form-field-outline {
+      color: #555 !important;
+    }
+
+    ::ng-deep .mat-form-field-label {
+      color: #b0b0b0 !important;
+    }
+
+    ::ng-deep input {
+      color: #ffffff !important;
+    }
+  }
+
+  .items-count {
+    color: #b0b0b0;
+  }
+
+  /* Table styling for dark theme */
+  .table-container {
+    overflow-y: auto;
+    border: 1px solid #555;
+    border-radius: 8px;
+    margin: 16px 24px 0;
+  }
+
+  .items-table {
+    background: #3e3e42 !important;
+    height: 100%;
+  }
+
+  .header-row {
+    background: #4a4a4e !important;
+  }
+
+  .header-cell {
+    background: #4a4a4e !important;
+    color: #ffffff !important;
+    font-weight: 600;
+    border-bottom: 1px solid #555;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .data-cell {
+    background: #3e3e42 !important;
+    color: #ffffff !important;
+    border-bottom: 1px solid #555;
+  }
+
+  .data-row:hover {
+    background: #4a4a4e !important;
+  }
+
+  /* Product info with barcode */
+  .producto-info {
+    .d-flex {
+      gap: 8px;
+    }
+  }
+
+  .product-details {
+    flex: 1;
+  }
+
+  .product-name {
+    color: #ffffff !important;
+    font-weight: 500;
+  }
+
+  .product-obs {
+    color: #b0b0b0 !important;
+  }
+
+  .barcode-btn {
+    color: #2196f3 !important;
+    background: rgba(33, 150, 243, 0.1) !important;
+
+    &:hover {
+      background: rgba(33, 150, 243, 0.2) !important;
+    }
+  }
+
+  .presentation-detail {
+    color: #b0b0b0 !important;
+  }
+
+  .quantity-value {
+    font-weight: 600;
+    color: #2196f3 !important;
+  }
+
+  .unit-price {
+    color: #ffffff !important;
+    font-weight: 500;
+  }
+
+  .discount-text {
+    color: #ff9800 !important;
+  }
+
+  .item-total {
+    color: #4caf50 !important;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+  }
+
+  .action-btn {
+    background: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  /* Loading and empty states */
+  .loading-state,
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #b0b0b0;
+    padding: 40px 20px;
+  }
+
+  .loading-text {
+    margin-top: 16px;
+    color: #b0b0b0;
+  }
+
+  .empty-icon {
+    font-size: 72px;
+    height: 72px;
+    width: 72px;
+    color: #666;
+  }
+
+  .empty-title {
+    margin-top: 16px;
+    color: #ffffff !important;
+  }
+
+  .empty-subtitle {
+    color: #b0b0b0;
+    margin-bottom: 24px;
+  }
+
+  .empty-action-btn {
+    background: #2196f3 !important;
+    color: white !important;
+  }
+
+  .pagination-info {
+    color: #b0b0b0;
+  }
+
+  /* Override Material paginator for dark theme */
+  ::ng-deep .mat-paginator {
+    background: transparent !important;
+    color: #ffffff !important;
+  }
+
+  ::ng-deep .mat-paginator .mat-icon-button {
+    color: #ffffff !important;
+  }
+
+  ::ng-deep .mat-paginator .mat-paginator-page-size-select {
+    color: #ffffff !important;
+  }
+</style>

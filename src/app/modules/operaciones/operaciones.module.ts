@@ -54,6 +54,8 @@ import { EditPagoComponent } from './pago/edit-pago/edit-pago.component';
 import { PagoDetalleDialogComponent } from './pago/edit-pago/pago-detalle-dialog/pago-detalle-dialog.component';
 import { ModificarSucursalPagoDetalleComponent } from './pago/pago-detalle-cuota/modificar-sucursal-pago-detalle/modificar-sucursal-pago-detalle.component';
 import { DatosDelPedidoComponent } from './pedido/edit-pedido-2/datos-del-pedido/datos-del-pedido.component';
+import { DetallesDelPedidoComponent } from './pedido/edit-pedido-2/detalles-del-pedido/detalles-del-pedido.component';
+import { AddProductDialogComponent } from './pedido/edit-pedido-2/detalles-del-pedido/add-product-dialog/add-product-dialog.component';
 
 @NgModule({
   declarations: [
@@ -104,7 +106,9 @@ import { DatosDelPedidoComponent } from './pedido/edit-pedido-2/datos-del-pedido
     EditPagoComponent,
     PagoDetalleDialogComponent,
     ModificarSucursalPagoDetalleComponent,
-    DatosDelPedidoComponent
+    DatosDelPedidoComponent,
+    DetallesDelPedidoComponent,
+    AddProductDialogComponent
   ],
   imports: [
     CommonModule,

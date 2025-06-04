@@ -230,6 +230,12 @@ export class EditPedido2Component implements OnInit {
 
   onStep1FormValidChange(isValid: boolean): void {
     this.step1FormValid = isValid;
-    this.canAccessStep1 = isValid && this.selectedPedido?.id != null;
+    this.canAccessStep1 = isValid;
+    this.stepsConfig[0].completed = isValid;
+  }
+
+  onStep2FormValidChange(isValid: boolean): void {
+    this.canAccessStep2 = isValid;
+    this.stepsConfig[1].completed = isValid;
   }
 }
