@@ -29,7 +29,9 @@
 
 .search-section {
   flex: 1;
-  max-width: 400px;
+  display: flex;
+  flex-direction: row;
+  gap: 15px
 }
 
 .items-info {
@@ -84,7 +86,7 @@
 
 /* Search field styling */
 .search-field {
-  width: 100%;
+  width: 40%;
 
   ::ng-deep .mat-form-field-outline {
     color: #555 !important;
@@ -326,4 +328,68 @@
   font-size: 12px !important;
   border: 1px solid #666 !important;
   border-radius: 4px !important;
+}
+
+/* Distribution Status Legend */
+.status-legend {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-left: 16px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.distribution-complete-legend {
+  background: rgba(76, 175, 80, 0.3);
+}
+
+.distribution-incomplete-legend {
+  background: rgba(255, 152, 0, 0.3);
+}
+
+.legend-text {
+  font-size: 12px;
+  color: #b0b0b0;
+  white-space: nowrap;
+}
+
+/* Distribution Status Row Colors */
+.data-row.distribution-complete {
+  background: rgba(76, 175, 80, 0.08) !important;
+  
+  &:hover {
+    background: rgba(76, 175, 80, 0.15) !important;
+  }
+  
+  .data-cell {
+    background: transparent !important;
+  }
+}
+
+.data-row.distribution-incomplete {
+  background: rgba(255, 152, 0, 0.08) !important;
+  
+  &:hover {
+    background: rgba(255, 152, 0, 0.15) !important;
+  }
+  
+  .data-cell {
+    background: transparent !important;
+  }
 }

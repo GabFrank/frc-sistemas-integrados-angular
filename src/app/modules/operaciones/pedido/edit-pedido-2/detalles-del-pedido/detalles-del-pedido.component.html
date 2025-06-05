@@ -22,8 +22,8 @@
     </button>
   </div>
 
-  <!-- Search Bar -->
-  <div class="search-header" *ngIf="pedidoItemsDataSource.data.length > 0">
+  <!-- Search Bar, always visible -->
+  <div class="search-header">
     <div class="search-section">
       <mat-form-field appearance="outline" class="search-field">
         <mat-label>BUSCAR EN ITEMS</mat-label>
@@ -34,10 +34,22 @@
         />
         <mat-icon matSuffix>search</mat-icon>
       </mat-form-field>
+      
+      <!-- Distribution Status Legend -->
+      <div class="status-legend">
+        <div class="legend-item">
+          <div class="legend-color distribution-complete-legend"></div>
+          <span class="legend-text">Distribución completa</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color distribution-incomplete-legend"></div>
+          <span class="legend-text">Distribución incompleta</span>
+        </div>
+      </div>
     </div>
     <div class="items-info">
       <span class="items-count">
-        {{ pedidoItemsDataSource.data.length }} item(s) en el pedido
+        {{ pedidoItemsPage?.getTotalElements || pedidoItemsDataSource.data.length }} item(s) en el pedido
       </span>
     </div>
   </div>
@@ -223,6 +235,7 @@
           mat-row
           *matRowDef="let row; columns: pedidoItemsColumns"
           class="data-row"
+          [ngClass]="row.distributionStatusClass"
         ></tr>
       </table>
     </div>
@@ -233,9 +246,9 @@
       <p class="loading-text">Cargando items del pedido...</p>
     </div>
 
-    <!-- Empty state -->
+    <!-- Empty state for pedido with no items -->
     <div
-      *ngIf="!isLoading && pedidoItemsDataSource.data.length === 0"
+      *ngIf="!isLoading && pedidoItemsDataSource.data.length === 0 && !buscarItemsControl.value"
       class="empty-state"
     >
       <mat-icon class="empty-icon">shopping_cart</mat-icon>
@@ -252,6 +265,27 @@
       >
         <mat-icon>add_shopping_cart</mat-icon>
         AGREGAR PRIMER PRODUCTO
+      </button>
+    </div>
+
+    <!-- No search results state -->
+    <div
+      *ngIf="!isLoading && pedidoItemsDataSource.data.length === 0 && buscarItemsControl.value"
+      class="empty-state"
+    >
+      <mat-icon class="empty-icon">search_off</mat-icon>
+      <h4 class="empty-title">No se encontraron resultados</h4>
+      <p class="empty-subtitle">
+        No hay items que coincidan con "{{ buscarItemsControl.value }}"
+      </p>
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="buscarItemsControl.setValue('')"
+        class="empty-action-btn"
+      >
+        <mat-icon>clear</mat-icon>
+        LIMPIAR BÚSQUEDA
       </button>
     </div>
   </div>

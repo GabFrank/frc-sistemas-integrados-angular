@@ -1,34 +1,45 @@
-import { Component, Inject, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { MatTableDataSource } from '@angular/material/table';
-import { MatPaginator } from '@angular/material/paginator';
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialog } from '@angular/material/dialog';
-import { MatSelect } from '@angular/material/select';
-import { MatButton } from '@angular/material/button';
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import {
+  Component,
+  Inject,
+  OnInit,
+  ViewChild,
+  ElementRef,
+  AfterViewInit,
+} from "@angular/core";
+import { FormControl, FormGroup, Validators } from "@angular/forms";
+import { MatTableDataSource } from "@angular/material/table";
+import { MatPaginator } from "@angular/material/paginator";
+import {
+  MatDialogRef,
+  MAT_DIALOG_DATA,
+  MatDialog,
+} from "@angular/material/dialog";
+import { MatSelect } from "@angular/material/select";
+import { MatButton } from "@angular/material/button";
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { debounceTime, distinctUntilChanged } from "rxjs/operators";
 
-import { Pedido } from '../../../edit-pedido/pedido.model';
-import { PedidoItem } from '../../../edit-pedido/pedido-item.model';
-import { ProductoProveedor } from '../../../../../productos/producto-proveedor/producto-proveedor.model';
-import { Producto } from '../../../../../productos/producto/producto.model';
-import { CompraItem } from '../../../../compra/compra-item.model';
+import { Pedido } from "../../../edit-pedido/pedido.model";
+import { PedidoItem } from "../../../edit-pedido/pedido-item.model";
+import { ProductoProveedor } from "../../../../../productos/producto-proveedor/producto-proveedor.model";
+import { Producto } from "../../../../../productos/producto/producto.model";
+import { CompraItem } from "../../../../compra/compra-item.model";
 
-import { ProductoProveedorService } from '../../../../../productos/producto-proveedor/producto-proveedor.service';
-import { PedidoService } from '../../../pedido.service';
-import { ProductoService } from '../../../../../productos/producto/producto.service';
-import { MainService } from '../../../../../../main.service';
-import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
-import { PageInfo } from '../../../../../../app.component';
-import { CurrencyMask } from '../../../../../../commons/core/utils/numbersUtils';
-import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
+import { ProductoProveedorService } from "../../../../../productos/producto-proveedor/producto-proveedor.service";
+import { PedidoService } from "../../../pedido.service";
+import { ProductoService } from "../../../../../productos/producto/producto.service";
+import { MainService } from "../../../../../../main.service";
+import { NotificacionSnackbarService } from "../../../../../../notificacion-snackbar.service";
+import { PageInfo } from "../../../../../../app.component";
+import { CurrencyMask } from "../../../../../../commons/core/utils/numbersUtils";
+import { DialogosService } from "../../../../../../shared/components/dialogos/dialogos.service";
 
 // Import PdvSearchProductoDialog components
-import { 
+import {
   PdvSearchProductoDialogComponent,
   PdvSearchProductoData,
-  PdvSearchProductoResponseData 
-} from '../../../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component';
+  PdvSearchProductoResponseData,
+} from "../../../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
 
 export interface AddProductDialogData {
   pedido: Pedido;
@@ -38,35 +49,56 @@ export interface AddProductDialogData {
 
 @UntilDestroy({ checkProperties: true })
 @Component({
-  selector: 'app-add-product-dialog',
-  templateUrl: './add-product-dialog.component.html',
-  styleUrls: ['./add-product-dialog.component.scss']
+  selector: "app-add-product-dialog",
+  templateUrl: "./add-product-dialog.component.html",
+  styleUrls: ["./add-product-dialog.component.scss"],
 })
 export class AddProductDialogComponent implements OnInit, AfterViewInit {
-  @ViewChild('productosProveedorPaginator') productosProveedorPaginator: MatPaginator;
-  
+  @ViewChild("productosProveedorPaginator")
+  productosProveedorPaginator: MatPaginator;
+
   // Form field references for focus management
-  @ViewChild('buscarProductoDirectoInput') buscarProductoDirectoInput: ElementRef<HTMLInputElement>;
-  @ViewChild('presentacionSelect') presentacionSelect: MatSelect;
-  @ViewChild('cantidadInput') cantidadInput: ElementRef<HTMLInputElement>;
-  @ViewChild('precioUnitarioInput') precioUnitarioInput: ElementRef<HTMLInputElement>;
-  @ViewChild('precioPorPresentacionInput') precioPorPresentacionInput: ElementRef<HTMLInputElement>;
-  @ViewChild('descuentoUnitarioInput') descuentoUnitarioInput: ElementRef<HTMLInputElement>;
-  @ViewChild('descuentoPorPresentacionInput') descuentoPorPresentacionInput: ElementRef<HTMLInputElement>;
-  @ViewChild('agregarButton') agregarButton: MatButton;
+  @ViewChild("buscarProductoDirectoInput")
+  buscarProductoDirectoInput: ElementRef<HTMLInputElement>;
+  @ViewChild("presentacionSelect") presentacionSelect: MatSelect;
+  @ViewChild("cantidadInput") cantidadInput: ElementRef<HTMLInputElement>;
+  @ViewChild("precioUnitarioInput")
+  precioUnitarioInput: ElementRef<HTMLInputElement>;
+  @ViewChild("precioPorPresentacionInput")
+  precioPorPresentacionInput: ElementRef<HTMLInputElement>;
+  @ViewChild("descuentoUnitarioInput")
+  descuentoUnitarioInput: ElementRef<HTMLInputElement>;
+  @ViewChild("descuentoPorPresentacionInput")
+  descuentoPorPresentacionInput: ElementRef<HTMLInputElement>;
+  @ViewChild("agregarButton") agregarButton: MatButton;
 
   // Form controls
-  buscarProductoControl = new FormControl('');
-  buscarProductoDirectoControl = new FormControl('');
-  
+  buscarProductoControl = new FormControl("");
+  buscarProductoDirectoControl = new FormControl("");
+
   // Product selection form
   productSelectionFormGroup = new FormGroup({
-    presentacion: new FormControl(null, Validators.required),
-    cantidad: new FormControl(1, [Validators.required, Validators.min(0.01)]),
-    precioUnitario: new FormControl(0, [Validators.required, Validators.min(0)]),
-    precioPorPresentacion: new FormControl(0, [Validators.min(0)]),
-    descuentoUnitario: new FormControl(0, [Validators.min(0)]),
-    descuentoPorPresentacion: new FormControl(0, [Validators.min(0)])
+    presentacion: new FormControl(
+      { value: null, disabled: true },
+      Validators.required
+    ),
+    cantidad: new FormControl({ value: 1, disabled: true }, [
+      Validators.required,
+      Validators.min(0.01),
+    ]),
+    precioUnitario: new FormControl({ value: 0, disabled: true }, [
+      Validators.required,
+      Validators.min(0),
+    ]),
+    precioPorPresentacion: new FormControl({ value: 0, disabled: true }, [
+      Validators.min(0),
+    ]),
+    descuentoUnitario: new FormControl({ value: 0, disabled: true }, [
+      Validators.min(0),
+    ]),
+    descuentoPorPresentacion: new FormControl({ value: 0, disabled: true }, [
+      Validators.min(0),
+    ]),
   });
 
   // Data sources
@@ -74,8 +106,14 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   historicoComprasDataSource = new MatTableDataSource<any>([]);
 
   // Table columns
-  productosProveedorColumns = ['codigo', 'descripcion', 'stock', 'acciones'];
-  historicoComprasColumns = ['fecha', 'proveedor', 'cantidad', 'precio', 'acciones'];
+  productosProveedorColumns = ["codigo", "descripcion", "stock", "acciones"];
+  historicoComprasColumns = [
+    "fecha",
+    "proveedor",
+    "cantidad",
+    "precio",
+    "acciones",
+  ];
 
   // Selected items
   selectedProductoProveedor: ProductoProveedor;
@@ -104,8 +142,8 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
   // Price validation
   originalPrice = 0;
-  priceChangeMessage = '';
-  priceChangeType: 'higher' | 'lower' | 'none' = 'none';
+  priceChangeMessage = "";
+  priceChangeType: "higher" | "lower" | "none" = "none";
   priceChangePercentage = 0;
   showPriceWarning = false;
 
@@ -124,7 +162,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.setupFormSubscriptions();
     this.loadProductosProveedor();
-    
+
     // If editing an existing item, load its data
     if (this.data.isEditing && this.data.pedidoItem) {
       this.loadPedidoItemForEditing();
@@ -141,11 +179,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   private setupFormSubscriptions(): void {
     // Search productos debounced
     this.buscarProductoControl.valueChanges
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        untilDestroyed(this)
-      )
+      .pipe(debounceTime(300), distinctUntilChanged(), untilDestroyed(this))
       .subscribe(() => {
         this.loadProductosProveedor();
       });
@@ -158,38 +192,43 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       });
 
     // Handle precio calculations
-    this.productSelectionFormGroup.get('precioUnitario')?.valueChanges
-      .pipe(untilDestroyed(this))
+    this.productSelectionFormGroup
+      .get("precioUnitario")
+      ?.valueChanges.pipe(untilDestroyed(this))
       .subscribe((precioUnitario) => {
         this.calculatePrecioPorPresentacion();
         this.validatePriceChange();
       });
 
-    this.productSelectionFormGroup.get('precioPorPresentacion')?.valueChanges
-      .pipe(untilDestroyed(this))
+    this.productSelectionFormGroup
+      .get("precioPorPresentacion")
+      ?.valueChanges.pipe(untilDestroyed(this))
       .subscribe((precioPorPresentacion) => {
         this.calculatePrecioUnitario();
         this.validatePriceChangeFromPresentacion();
       });
 
     // Handle descuento calculations
-    this.productSelectionFormGroup.get('descuentoUnitario')?.valueChanges
-      .pipe(untilDestroyed(this))
+    this.productSelectionFormGroup
+      .get("descuentoUnitario")
+      ?.valueChanges.pipe(untilDestroyed(this))
       .subscribe((descuentoUnitario) => {
         this.calculateDescuentoPorPresentacion();
         this.validatePriceChange();
       });
 
-    this.productSelectionFormGroup.get('descuentoPorPresentacion')?.valueChanges
-      .pipe(untilDestroyed(this))
+    this.productSelectionFormGroup
+      .get("descuentoPorPresentacion")
+      ?.valueChanges.pipe(untilDestroyed(this))
       .subscribe((descuentoPorPresentacion) => {
         this.calculateDescuentoUnitario();
         this.validatePriceChangeFromPresentacion();
       });
 
     // Recalculate when presentacion changes
-    this.productSelectionFormGroup.get('presentacion')?.valueChanges
-      .pipe(untilDestroyed(this))
+    this.productSelectionFormGroup
+      .get("presentacion")
+      ?.valueChanges.pipe(untilDestroyed(this))
       .subscribe(() => {
         this.calculatePrecioPorPresentacion();
         this.calculateDescuentoPorPresentacion();
@@ -201,25 +240,24 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     if (!this.data.pedido?.proveedor) return;
 
     this.isLoadingProductos = true;
-    const texto = this.buscarProductoControl.value || '';
+    const texto = this.buscarProductoControl.value || "";
 
-    this.productoProveedorService.getByProveedorId(
-      this.data.pedido.proveedor.id,
-      texto,
-      page,
-      size
-    ).pipe(untilDestroyed(this))
-    .subscribe({
-      next: (response) => {
-        this.productosProveedorPage = response;
-        this.productosProveedorDataSource.data = response.getContent;
-        this.isLoadingProductos = false;
-      },
-      error: () => {
-        this.isLoadingProductos = false;
-        this.notificacionService.openWarn('Error al cargar productos del proveedor');
-      }
-    });
+    this.productoProveedorService
+      .getByProveedorId(this.data.pedido.proveedor.id, texto, page, size)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (response) => {
+          this.productosProveedorPage = response;
+          this.productosProveedorDataSource.data = response.getContent;
+          this.isLoadingProductos = false;
+        },
+        error: () => {
+          this.isLoadingProductos = false;
+          this.notificacionService.openWarn(
+            "Error al cargar productos del proveedor"
+          );
+        },
+      });
   }
 
   onSearchProductoDirecto(): void {
@@ -231,7 +269,8 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
     // First try to find product by exact code
     this.isLoadingProductos = true;
-    this.productoService.onGetProductoPorCodigo(searchTerm)
+    this.productoService
+      .onGetProductoPorCodigo(searchTerm)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (producto) => {
@@ -247,7 +286,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
           this.isLoadingProductos = false;
           // If error occurs, open search dialog with the search term
           this.onOpenProductSearch(searchTerm);
-        }
+        },
       });
   }
 
@@ -266,32 +305,49 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     this.matDialog
       .open(PdvSearchProductoDialogComponent, {
         data: data,
-        height: '80%',
+        height: "80%",
       })
       .afterClosed()
       .subscribe((res) => {
         this.isDialogOpen = false;
         const response: PdvSearchProductoResponseData = res;
-        
+        console.log("response", response);
+
         if (response?.producto) {
           this.selectedProducto = response.producto;
           this.selectedProductoProveedor = null; // Clear proveedor selection since this is direct search
-          
-          const ultimoPrecio = this.selectedProducto?.costo?.ultimoPrecioCompra || 0;
-          const presentacion = response.presentacion || this.selectedProducto.presentaciones?.[0];
-          
+
+          const ultimoPrecio =
+            this.selectedProducto?.costo?.ultimoPrecioCompra || 0;
+          const presentacion =
+            response.presentacion ||
+            this.selectedProducto.presentaciones?.find(
+              (p) => p.principal === true
+            );
+
+          // if presentacion is not null, then copy presentacion.image to selectedProducto.imagenPrincipal
+          if (presentacion) {
+            this.selectedProducto.imagenPrincipal =
+              presentacion.imagenPrincipal;
+          }
+
           // Set original price for validation
           this.originalPrice = ultimoPrecio;
           this.clearPriceWarning();
-          
+
+          // Enable form controls
+          this.enableFormControls();
+
           // Reset form with product data
           this.productSelectionFormGroup.patchValue({
             presentacion: presentacion,
             cantidad: response.cantidad || 1,
             precioUnitario: ultimoPrecio,
-            precioPorPresentacion: presentacion?.cantidad ? ultimoPrecio * presentacion.cantidad : 0,
+            precioPorPresentacion: presentacion?.cantidad
+              ? ultimoPrecio * presentacion.cantidad
+              : 0,
             descuentoUnitario: 0,
-            descuentoPorPresentacion: 0
+            descuentoPorPresentacion: 0,
           });
 
           // Update search field with product description
@@ -301,8 +357,8 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
           // Load historical purchases for this product
           this.loadHistoricoCompras();
-          this.notificacionService.openSucess('Producto encontrado');
-          
+          this.notificacionService.openSucess("Producto encontrado");
+
           // Focus on presentacion field after product is selected from dialog
           setTimeout(() => {
             this.focusPresentacion();
@@ -314,22 +370,27 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   onSelectProductoDirecto(producto: Producto): void {
     this.selectedProducto = producto;
     this.selectedProductoProveedor = null; // Clear proveedor selection since this is direct search
-    
+
     const ultimoPrecio = this.selectedProducto?.costo?.ultimoPrecioCompra || 0;
     const presentacion = this.selectedProducto.presentaciones?.[0];
-    
+
     // Set original price for validation
     this.originalPrice = ultimoPrecio;
     this.clearPriceWarning();
-    
+
+    // Enable form controls
+    this.enableFormControls();
+
     // Reset form with product data
     this.productSelectionFormGroup.patchValue({
       presentacion: presentacion,
       cantidad: 1,
       precioUnitario: ultimoPrecio,
-      precioPorPresentacion: presentacion?.cantidad ? ultimoPrecio * presentacion.cantidad : 0,
+      precioPorPresentacion: presentacion?.cantidad
+        ? ultimoPrecio * presentacion.cantidad
+        : 0,
       descuentoUnitario: 0,
-      descuentoPorPresentacion: 0
+      descuentoPorPresentacion: 0,
     });
 
     // Update search field with product description
@@ -339,8 +400,8 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
     // Load historical purchases for this product
     this.loadHistoricoCompras();
-    this.notificacionService.openSucess('Producto encontrado');
-    
+    this.notificacionService.openSucess("Producto encontrado");
+
     // Focus on presentacion field after product is found
     setTimeout(() => {
       this.focusPresentacion();
@@ -350,22 +411,27 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   onProductoProveedorSelect(productoProveedor: ProductoProveedor): void {
     this.selectedProductoProveedor = productoProveedor;
     this.selectedProducto = productoProveedor.producto;
-    
+
     const ultimoPrecio = this.selectedProducto?.costo?.ultimoPrecioCompra || 0;
     const presentacion = this.selectedProducto.presentaciones?.[0];
-    
+
     // Set original price for validation
     this.originalPrice = ultimoPrecio;
     this.clearPriceWarning();
-    
+
+    // Enable form controls
+    this.enableFormControls();
+
     // Reset form with product data
     this.productSelectionFormGroup.patchValue({
       presentacion: presentacion,
       cantidad: 1,
       precioUnitario: ultimoPrecio,
-      precioPorPresentacion: presentacion?.cantidad ? ultimoPrecio * presentacion.cantidad : 0,
+      precioPorPresentacion: presentacion?.cantidad
+        ? ultimoPrecio * presentacion.cantidad
+        : 0,
       descuentoUnitario: 0,
-      descuentoPorPresentacion: 0
+      descuentoPorPresentacion: 0,
     });
 
     // Update search field with product description
@@ -375,7 +441,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
     // Load historical purchases for this product
     this.loadHistoricoCompras();
-    
+
     // Focus on presentacion field after product is found
     setTimeout(() => {
       this.focusPresentacion();
@@ -386,27 +452,29 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     if (!this.selectedProducto?.id) return;
 
     this.isLoadingHistorico = true;
-    this.productoService.onGetProductoPorId(this.selectedProducto.id)
+    this.productoService
+      .onGetProductoPorId(this.selectedProducto.id)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (response) => {
-          this.historicoComprasDataSource.data = response.productoUltimasCompras || [];
+          this.historicoComprasDataSource.data =
+            response.productoUltimasCompras || [];
           this.isLoadingHistorico = false;
         },
         error: () => {
           this.isLoadingHistorico = false;
-        }
+        },
       });
   }
 
   onAddProductToPedido(): void {
     if (!this.selectedProducto || this.productSelectionFormGroup.invalid) {
-      this.notificacionService.openWarn('Complete todos los campos requeridos');
+      this.notificacionService.openWarn("Complete todos los campos requeridos");
       return;
     }
 
     const formValue = this.productSelectionFormGroup.value;
-    
+
     if (this.data.isEditing && this.data.pedidoItem) {
       // Update existing pedido item
       const pedidoItem = this.data.pedidoItem;
@@ -414,19 +482,28 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       pedidoItem.cantidadCreacion = formValue.cantidad;
       pedidoItem.precioUnitarioCreacion = formValue.precioUnitario;
       pedidoItem.descuentoUnitarioCreacion = formValue.descuentoUnitario || 0;
-      pedidoItem.valorTotal = formValue.cantidad * formValue.presentacion.cantidad * 
-                            (formValue.precioUnitario - (formValue.descuentoUnitario || 0));
-
-      this.pedidoService.onSaveItem(pedidoItem.toInput())
+      pedidoItem.valorTotal =
+        formValue.cantidad *
+        formValue.presentacion.cantidad *
+        (formValue.precioUnitario - (formValue.descuentoUnitario || 0));
+      // there is an error saying that pedidoItem.toInput() is not a function, so I'm going to fix it
+      let pedidoAux = new PedidoItem();
+      Object.assign(pedidoAux, pedidoItem);
+      this.pedidoService
+        .onSaveItem(pedidoAux.toInput())
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (response) => {
-            this.notificacionService.openSucess('Item actualizado exitosamente');
+            this.notificacionService.openSucess(
+              "Item actualizado exitosamente"
+            );
             this.dialogRef.close({ updated: true, pedidoItem: response });
           },
           error: () => {
-            this.notificacionService.openWarn('Error al actualizar item del pedido');
-          }
+            this.notificacionService.openWarn(
+              "Error al actualizar item del pedido"
+            );
+          },
         });
     } else {
       // Add new pedido item
@@ -437,20 +514,27 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       pedidoItem.cantidadCreacion = formValue.cantidad;
       pedidoItem.precioUnitarioCreacion = formValue.precioUnitario;
       pedidoItem.descuentoUnitarioCreacion = formValue.descuentoUnitario || 0;
-      pedidoItem.valorTotal = formValue.cantidad * formValue.presentacion.cantidad * 
-                            (formValue.precioUnitario - (formValue.descuentoUnitario || 0));
+      pedidoItem.valorTotal =
+        formValue.cantidad *
+        formValue.presentacion.cantidad *
+        (formValue.precioUnitario - (formValue.descuentoUnitario || 0));
       pedidoItem.usuarioCreacion = this.mainService.usuarioActual;
 
-      this.pedidoService.onSaveItem(pedidoItem.toInput())
+      let pedidoAux = new PedidoItem();
+      Object.assign(pedidoAux, pedidoItem);
+      this.pedidoService
+        .onSaveItem(pedidoAux.toInput())
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (response) => {
-            this.notificacionService.openSucess('Producto agregado al pedido');
+            this.notificacionService.openSucess("Producto agregado al pedido");
             this.dialogRef.close({ added: true, pedidoItem: response });
           },
           error: () => {
-            this.notificacionService.openWarn('Error al agregar producto al pedido');
-          }
+            this.notificacionService.openWarn(
+              "Error al agregar producto al pedido"
+            );
+          },
         });
     }
   }
@@ -460,23 +544,27 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     this.productSelectionFormGroup.patchValue({
       cantidad: compraItem.cantidad,
       precioUnitario: compraItem.precio,
-      descuentoUnitario: 0
+      descuentoUnitario: 0,
     });
   }
 
   calculateTotalPreview(): void {
     const formValue = this.productSelectionFormGroup.value;
-    if (!formValue.presentacion || !formValue.cantidad || formValue.precioUnitario === null) {
+    if (
+      !formValue.presentacion ||
+      !formValue.cantidad ||
+      formValue.precioUnitario === null
+    ) {
       this.totalPreview = 0;
       this.totalDescuento = 0;
       return;
     }
-    
+
     const cantidad = formValue.cantidad || 0;
     const presentacionCantidad = formValue.presentacion?.cantidad || 1;
     const precioUnitario = formValue.precioUnitario || 0;
     const descuentoUnitario = formValue.descuentoUnitario || 0;
-    
+
     const subtotal = cantidad * presentacionCantidad * precioUnitario;
     this.totalDescuento = cantidad * presentacionCantidad * descuentoUnitario;
     this.totalPreview = subtotal - this.totalDescuento;
@@ -492,8 +580,10 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       precioUnitario: 0,
       precioPorPresentacion: 0,
       descuentoUnitario: 0,
-      descuentoPorPresentacion: 0
+      descuentoPorPresentacion: 0,
     });
+    // Disable form controls when no product is selected
+    this.disableFormControls();
     this.historicoComprasDataSource.data = [];
   }
 
@@ -506,8 +596,10 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       precioUnitario: 0,
       precioPorPresentacion: 0,
       descuentoUnitario: 0,
-      descuentoPorPresentacion: 0
+      descuentoPorPresentacion: 0,
     });
+    // Disable form controls when no product is selected
+    this.disableFormControls();
     this.historicoComprasDataSource.data = [];
   }
 
@@ -518,7 +610,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
   // Utility methods
   getMonedaSymbol(): string {
-    return this.data.pedido?.moneda?.simbolo || '$';
+    return this.data.pedido?.moneda?.simbolo || "$";
   }
 
   onCancel(): void {
@@ -582,17 +674,17 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
   // Enter key handlers
   onBuscarProductoEnter(event: KeyboardEvent): void {
-    if (event.key === 'Enter') {
+    if (event.key === "Enter") {
       event.preventDefault();
       this.onSearchProductoDirecto();
     }
   }
 
   onPresentacionEnter(event: KeyboardEvent): void {
-    if (event.key === 'Enter') {
+    if (event.key === "Enter") {
       event.preventDefault();
       this.presentacionEnterCount++;
-      
+
       if (this.presentacionEnterCount === 1) {
         // First Enter: open the dropdown
         if (this.presentacionSelect && !this.presentacionSelect.panelOpen) {
@@ -611,42 +703,42 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   }
 
   onCantidadEnter(event: KeyboardEvent): void {
-    if (event.key === 'Enter') {
+    if (event.key === "Enter") {
       event.preventDefault();
       this.focusPrecioPorPresentacion();
     }
   }
 
   onPrecioPorPresentacionEnter(event: KeyboardEvent): void {
-    if (event.key === 'Enter') {
+    if (event.key === "Enter") {
       event.preventDefault();
       this.focusPrecioUnitario();
     }
   }
 
   onPrecioUnitarioEnter(event: KeyboardEvent): void {
-    if (event.key === 'Enter') {
+    if (event.key === "Enter") {
       event.preventDefault();
       this.focusDescuentoPorPresentacion();
     }
   }
 
   onDescuentoPorPresentacionEnter(event: KeyboardEvent): void {
-    if (event.key === 'Enter') {
+    if (event.key === "Enter") {
       event.preventDefault();
       this.focusDescuentoUnitario();
     }
   }
 
   onDescuentoUnitarioEnter(event: KeyboardEvent): void {
-    if (event.key === 'Enter') {
+    if (event.key === "Enter") {
       event.preventDefault();
       this.focusAgregarButton();
     }
   }
 
   onAgregarButtonEnter(event: KeyboardEvent): void {
-    if (event.key === 'Enter' || event.key === ' ') {
+    if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       this.onAddProductToPedido();
     }
@@ -655,14 +747,18 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   // Calculation methods
   private calculatePrecioPorPresentacion(): void {
     if (this.isCalculating) return;
-    
-    const precioUnitario = this.productSelectionFormGroup.get('precioUnitario')?.value || 0;
-    const presentacion = this.productSelectionFormGroup.get('presentacion')?.value;
-    
+
+    const precioUnitario =
+      this.productSelectionFormGroup.get("precioUnitario")?.value || 0;
+    const presentacion =
+      this.productSelectionFormGroup.get("presentacion")?.value;
+
     if (presentacion?.cantidad) {
       this.isCalculating = true;
       const precioPorPresentacion = precioUnitario * presentacion.cantidad;
-      this.productSelectionFormGroup.get('precioPorPresentacion')?.setValue(precioPorPresentacion, { emitEvent: false });
+      this.productSelectionFormGroup
+        .get("precioPorPresentacion")
+        ?.setValue(precioPorPresentacion, { emitEvent: false });
       this.isCalculating = false;
       this.calculateTotalPreview();
     }
@@ -670,14 +766,18 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
   private calculatePrecioUnitario(): void {
     if (this.isCalculating) return;
-    
-    const precioPorPresentacion = this.productSelectionFormGroup.get('precioPorPresentacion')?.value || 0;
-    const presentacion = this.productSelectionFormGroup.get('presentacion')?.value;
-    
+
+    const precioPorPresentacion =
+      this.productSelectionFormGroup.get("precioPorPresentacion")?.value || 0;
+    const presentacion =
+      this.productSelectionFormGroup.get("presentacion")?.value;
+
     if (presentacion?.cantidad && presentacion.cantidad > 0) {
       this.isCalculating = true;
       const precioUnitario = precioPorPresentacion / presentacion.cantidad;
-      this.productSelectionFormGroup.get('precioUnitario')?.setValue(precioUnitario, { emitEvent: false });
+      this.productSelectionFormGroup
+        .get("precioUnitario")
+        ?.setValue(precioUnitario, { emitEvent: false });
       this.isCalculating = false;
       this.calculateTotalPreview();
     }
@@ -685,14 +785,19 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
   private calculateDescuentoPorPresentacion(): void {
     if (this.isCalculating) return;
-    
-    const descuentoUnitario = this.productSelectionFormGroup.get('descuentoUnitario')?.value || 0;
-    const presentacion = this.productSelectionFormGroup.get('presentacion')?.value;
-    
+
+    const descuentoUnitario =
+      this.productSelectionFormGroup.get("descuentoUnitario")?.value || 0;
+    const presentacion =
+      this.productSelectionFormGroup.get("presentacion")?.value;
+
     if (presentacion?.cantidad) {
       this.isCalculating = true;
-      const descuentoPorPresentacion = descuentoUnitario * presentacion.cantidad;
-      this.productSelectionFormGroup.get('descuentoPorPresentacion')?.setValue(descuentoPorPresentacion, { emitEvent: false });
+      const descuentoPorPresentacion =
+        descuentoUnitario * presentacion.cantidad;
+      this.productSelectionFormGroup
+        .get("descuentoPorPresentacion")
+        ?.setValue(descuentoPorPresentacion, { emitEvent: false });
       this.isCalculating = false;
       this.calculateTotalPreview();
     }
@@ -700,14 +805,20 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
   private calculateDescuentoUnitario(): void {
     if (this.isCalculating) return;
-    
-    const descuentoPorPresentacion = this.productSelectionFormGroup.get('descuentoPorPresentacion')?.value || 0;
-    const presentacion = this.productSelectionFormGroup.get('presentacion')?.value;
-    
+
+    const descuentoPorPresentacion =
+      this.productSelectionFormGroup.get("descuentoPorPresentacion")?.value ||
+      0;
+    const presentacion =
+      this.productSelectionFormGroup.get("presentacion")?.value;
+
     if (presentacion?.cantidad && presentacion.cantidad > 0) {
       this.isCalculating = true;
-      const descuentoUnitario = descuentoPorPresentacion / presentacion.cantidad;
-      this.productSelectionFormGroup.get('descuentoUnitario')?.setValue(descuentoUnitario, { emitEvent: false });
+      const descuentoUnitario =
+        descuentoPorPresentacion / presentacion.cantidad;
+      this.productSelectionFormGroup
+        .get("descuentoUnitario")
+        ?.setValue(descuentoUnitario, { emitEvent: false });
       this.isCalculating = false;
       this.calculateTotalPreview();
     }
@@ -720,21 +831,25 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    const precioUnitario = this.productSelectionFormGroup.get('precioUnitario')?.value || 0;
-    const descuentoUnitario = this.productSelectionFormGroup.get('descuentoUnitario')?.value || 0;
+    const precioUnitario =
+      this.productSelectionFormGroup.get("precioUnitario")?.value || 0;
+    const descuentoUnitario =
+      this.productSelectionFormGroup.get("descuentoUnitario")?.value || 0;
     const cleanPrecioUnitario = this.cleanCurrencyValue(precioUnitario);
     const cleanDescuentoUnitario = this.cleanCurrencyValue(descuentoUnitario);
     const netPrice = cleanPrecioUnitario - cleanDescuentoUnitario;
     const priceDifference = netPrice - this.originalPrice;
-    const percentageChange = Math.abs((priceDifference / this.originalPrice) * 100);
-    
+    const percentageChange = Math.abs(
+      (priceDifference / this.originalPrice) * 100
+    );
+
     this.priceChangePercentage = Math.round(percentageChange);
-    
+
     if (netPrice > this.originalPrice) {
-      this.priceChangeType = 'higher';
+      this.priceChangeType = "higher";
       this.priceChangeMessage = `Precio ${this.priceChangePercentage}% más alto que el anterior`;
     } else if (netPrice < this.originalPrice) {
-      this.priceChangeType = 'lower';
+      this.priceChangeType = "lower";
       this.priceChangeMessage = `Precio ${this.priceChangePercentage}% más bajo que el anterior`;
     } else {
       this.clearPriceWarning();
@@ -749,26 +864,32 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     }
   }
 
-  private showExtremeChangedDialog(newPrice: number, percentageChange: number): void {
-    const changeType = newPrice > this.originalPrice ? 'mayor' : 'menor';
-    const message = `El precio ingresado es ${Math.round(percentageChange)}% ${changeType} al precio anterior (Gs. ${this.originalPrice.toLocaleString()}). ¿Desea continuar?`;
-    
-    this.dialogosService.confirm(
-      'Cambio de precio extremo detectado',
-      message
-    ).subscribe(confirmed => {
-      if (!confirmed) {
-        // Reset to original price if user doesn't want to continue
-        this.productSelectionFormGroup.get('precioUnitario')?.setValue(this.originalPrice, { emitEvent: false });
-        this.clearPriceWarning();
-      }
-    });
+  private showExtremeChangedDialog(
+    newPrice: number,
+    percentageChange: number
+  ): void {
+    const changeType = newPrice > this.originalPrice ? "mayor" : "menor";
+    const message = `El precio ingresado es ${Math.round(
+      percentageChange
+    )}% ${changeType} al precio anterior (Gs. ${this.originalPrice.toLocaleString()}). ¿Desea continuar?`;
+
+    this.dialogosService
+      .confirm("Cambio de precio extremo detectado", message)
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          // Reset to original price if user doesn't want to continue
+          this.productSelectionFormGroup
+            .get("precioUnitario")
+            ?.setValue(this.originalPrice, { emitEvent: false });
+          this.clearPriceWarning();
+        }
+      });
   }
 
   private clearPriceWarning(): void {
     this.showPriceWarning = false;
-    this.priceChangeMessage = '';
-    this.priceChangeType = 'none';
+    this.priceChangeMessage = "";
+    this.priceChangeType = "none";
     this.priceChangePercentage = 0;
   }
 
@@ -778,29 +899,40 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    const precioPorPresentacion = this.productSelectionFormGroup.get('precioPorPresentacion')?.value || 0;
-    const descuentoPorPresentacion = this.productSelectionFormGroup.get('descuentoPorPresentacion')?.value || 0;
-    const presentacion = this.productSelectionFormGroup.get('presentacion')?.value;
+    const precioPorPresentacion =
+      this.productSelectionFormGroup.get("precioPorPresentacion")?.value || 0;
+    const descuentoPorPresentacion =
+      this.productSelectionFormGroup.get("descuentoPorPresentacion")?.value ||
+      0;
+    const presentacion =
+      this.productSelectionFormGroup.get("presentacion")?.value;
     if (!presentacion?.cantidad || presentacion.cantidad === 0) {
       this.clearPriceWarning();
       return;
     }
 
     // Convert presentacion price to unit price for comparison (considering discount)
-    const cleanPresentacionPrice = this.cleanCurrencyValue(precioPorPresentacion);
-    const cleanDescuentoPresentacion = this.cleanCurrencyValue(descuentoPorPresentacion);
-    const netPresentacionPrice = cleanPresentacionPrice - cleanDescuentoPresentacion;
+    const cleanPresentacionPrice = this.cleanCurrencyValue(
+      precioPorPresentacion
+    );
+    const cleanDescuentoPresentacion = this.cleanCurrencyValue(
+      descuentoPorPresentacion
+    );
+    const netPresentacionPrice =
+      cleanPresentacionPrice - cleanDescuentoPresentacion;
     const equivalentUnitPrice = netPresentacionPrice / presentacion.cantidad;
     const priceDifference = equivalentUnitPrice - this.originalPrice;
-    const percentageChange = Math.abs((priceDifference / this.originalPrice) * 100);
-    
+    const percentageChange = Math.abs(
+      (priceDifference / this.originalPrice) * 100
+    );
+
     this.priceChangePercentage = Math.round(percentageChange);
-    
+
     if (equivalentUnitPrice > this.originalPrice) {
-      this.priceChangeType = 'higher';
+      this.priceChangeType = "higher";
       this.priceChangeMessage = `Precio ${this.priceChangePercentage}% más alto que el anterior`;
     } else if (equivalentUnitPrice < this.originalPrice) {
-      this.priceChangeType = 'lower';
+      this.priceChangeType = "lower";
       this.priceChangeMessage = `Precio ${this.priceChangePercentage}% más bajo que el anterior`;
     } else {
       this.clearPriceWarning();
@@ -816,9 +948,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   }
 
   private cleanCurrencyValue(value: any): number {
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       // Remove currency symbols, spaces, and convert comma to dot
-      return parseFloat(value.replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
+      return parseFloat(value.replace(/[^\d,-]/g, "").replace(",", ".")) || 0;
     }
     return parseFloat(value) || 0;
   }
@@ -835,16 +967,29 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     this.originalPrice = pedidoItem.precioUnitarioCreacion || 0;
     this.clearPriceWarning();
 
+    // Enable form controls
+    this.enableFormControls();
+
+    // Find the matching presentacion object to ensure proper selection
+    const presentacionToSelect =
+      this.selectedProducto?.presentaciones?.find(
+        (p) => p.id === pedidoItem.presentacionCreacion?.id
+      ) || pedidoItem.presentacionCreacion;
+
     // Load the form with existing data
     this.productSelectionFormGroup.patchValue({
-      presentacion: pedidoItem.presentacionCreacion,
+      presentacion: presentacionToSelect,
       cantidad: pedidoItem.cantidadCreacion,
       precioUnitario: pedidoItem.precioUnitarioCreacion,
-      precioPorPresentacion: pedidoItem.presentacionCreacion?.cantidad ? 
-        (pedidoItem.precioUnitarioCreacion || 0) * pedidoItem.presentacionCreacion.cantidad : 0,
+      precioPorPresentacion: pedidoItem.presentacionCreacion?.cantidad
+        ? (pedidoItem.precioUnitarioCreacion || 0) *
+          pedidoItem.presentacionCreacion.cantidad
+        : 0,
       descuentoUnitario: pedidoItem.descuentoUnitarioCreacion || 0,
-      descuentoPorPresentacion: pedidoItem.presentacionCreacion?.cantidad ? 
-        (pedidoItem.descuentoUnitarioCreacion || 0) * pedidoItem.presentacionCreacion.cantidad : 0
+      descuentoPorPresentacion: pedidoItem.presentacionCreacion?.cantidad
+        ? (pedidoItem.descuentoUnitarioCreacion || 0) *
+          pedidoItem.presentacionCreacion.cantidad
+        : 0,
     });
 
     // Update search field with product description
@@ -854,5 +999,29 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
     // Load historical purchases for this product
     this.loadHistoricoCompras();
+  }
+
+  // Helper methods for enabling/disabling form controls
+  private enableFormControls(): void {
+    this.productSelectionFormGroup.get("presentacion")?.enable();
+    this.productSelectionFormGroup.get("cantidad")?.enable();
+    this.productSelectionFormGroup.get("precioUnitario")?.enable();
+    this.productSelectionFormGroup.get("precioPorPresentacion")?.enable();
+    this.productSelectionFormGroup.get("descuentoUnitario")?.enable();
+    this.productSelectionFormGroup.get("descuentoPorPresentacion")?.enable();
+  }
+
+  private disableFormControls(): void {
+    this.productSelectionFormGroup.get("presentacion")?.disable();
+    this.productSelectionFormGroup.get("cantidad")?.disable();
+    this.productSelectionFormGroup.get("precioUnitario")?.disable();
+    this.productSelectionFormGroup.get("precioPorPresentacion")?.disable();
+    this.productSelectionFormGroup.get("descuentoUnitario")?.disable();
+    this.productSelectionFormGroup.get("descuentoPorPresentacion")?.disable();
+  }
+
+  // Getter for form validity check (to replace template disabled binding)
+  get isFormInvalidOrNoProduct(): boolean {
+    return this.productSelectionFormGroup.invalid || !this.selectedProducto;
   }
 }

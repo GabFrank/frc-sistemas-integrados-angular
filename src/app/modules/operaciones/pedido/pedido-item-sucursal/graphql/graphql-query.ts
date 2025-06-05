@@ -98,6 +98,7 @@ export const pedidoItensSucursalByPedidoItemQuery = gql`
       }
       cantidadPorUnidad
       cantidadPorUnidadRecibida
+      stockDisponible
       creadoEn
       usuario {
         id

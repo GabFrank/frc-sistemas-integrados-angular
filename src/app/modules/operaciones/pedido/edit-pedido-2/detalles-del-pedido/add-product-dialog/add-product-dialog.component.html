@@ -96,7 +96,7 @@
           <!-- Product Image Section -->
           <div class="product-image-container">
             <img
-              src="assets/no-image.png"
+              [src]="selectedProducto?.imagenPrincipal || 'assets/no-image.png'"
               [alt]="selectedProducto?.descripcion || 'Producto'"
               class="product-image"
             />
@@ -112,7 +112,6 @@
                   <mat-select
                     #presentacionSelect
                     formControlName="presentacion"
-                    [disabled]="!selectedProducto"
                     (keydown)="onPresentacionEnter($event)"
                   >
                     <mat-option
@@ -145,7 +144,6 @@
                     #cantidadInput
                     type="number"
                     formControlName="cantidad"
-                    [disabled]="!selectedProducto"
                     min="0.01"
                     step="0.01"
                     (keydown)="onCantidadEnter($event)"
@@ -179,12 +177,11 @@
                     #precioPorPresentacionInput
                     type="text"
                     formControlName="precioPorPresentacion"
-                    [disabled]="!selectedProducto"
                     currencyMask
                     [options]="currencyMask.currencyOptionsGuarani"
                     (keydown)="onPrecioPorPresentacionEnter($event)"
                   />
-                  <span matPrefix>Gs.&nbsp;</span>
+                  <span matPrefix class="prefix-padding">Gs.&nbsp;</span>
                   <mat-icon matSuffix>local_offer</mat-icon>
                   <mat-error
                     *ngIf="
@@ -205,12 +202,11 @@
                     #precioUnitarioInput
                     type="text"
                     formControlName="precioUnitario"
-                    [disabled]="!selectedProducto"
                     currencyMask
                     [options]="currencyMask.currencyOptionsGuarani"
                     (keydown)="onPrecioUnitarioEnter($event)"
                   />
-                  <span matPrefix>Gs.&nbsp;</span>
+                  <span matPrefix class="prefix-padding">Gs.&nbsp;</span>
                   <mat-error
                     *ngIf="
                       productSelectionFormGroup
@@ -241,12 +237,11 @@
                     #descuentoPorPresentacionInput
                     type="text"
                     formControlName="descuentoPorPresentacion"
-                    [disabled]="!selectedProducto"
                     currencyMask
                     [options]="currencyMask.currencyOptionsGuarani"
                     (keydown)="onDescuentoPorPresentacionEnter($event)"
                   />
-                  <span matPrefix>Gs.&nbsp;</span>
+                  <span matPrefix class="prefix-padding">Gs.&nbsp;</span>
                   <mat-icon matSuffix>discount</mat-icon>
                   <mat-error
                     *ngIf="
@@ -267,12 +262,11 @@
                     #descuentoUnitarioInput
                     type="text"
                     formControlName="descuentoUnitario"
-                    [disabled]="!selectedProducto"
                     currencyMask
                     [options]="currencyMask.currencyOptionsGuarani"
                     (keydown)="onDescuentoUnitarioEnter($event)"
                   />
-                  <span matPrefix>Gs.&nbsp;</span>
+                  <span matPrefix class="prefix-padding">Gs.&nbsp;</span>
                   <mat-icon matSuffix>money_off</mat-icon>
                   <mat-error
                     *ngIf="
@@ -292,17 +286,26 @@
                 *ngIf="totalPreview > 0 || totalDescuento > 0"
               >
                 <div class="totals-container">
-                  <div class="total-row" *ngIf="totalDescuento > 0">
-                    <span class="titulo-color">Descuento Total:</span>
-                    <span class="total-amount item-total"
-                      >Gs. {{ totalDescuento | number : "1.0-2" }}</span
-                    >
+                  <!-- Descuento Total Row -->
+                  <div class="total-row discount-total" *ngIf="totalDescuento > 0">
+                    <div class="total-label-container">
+                      <mat-icon class="total-icon">local_offer</mat-icon>
+                      <span class="total-label">Descuento Total:</span>
+                    </div>
+                    <span class="total-value discount-value">
+                      -Gs. {{ totalDescuento | number : "1.0-2" }}
+                    </span>
                   </div>
-                  <div class="total-row">
-                    <span class="titulo-color">Total:</span>
-                    <span class="total-amount item-total"
-                      >Gs. {{ totalPreview | number : "1.0-2" }}</span
-                    >
+                  
+                  <!-- Main Total Row -->
+                  <div class="total-row main-total">
+                    <div class="total-label-container">
+                      <mat-icon class="total-icon">calculate</mat-icon>
+                      <span class="total-label">Total:</span>
+                    </div>
+                    <span class="total-value final-total">
+                      Gs. {{ totalPreview | number : "1.0-2" }}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -336,11 +339,11 @@
           CANCELAR
         </button>
         <button
-          mat-raised-button
           #agregarButton
+          mat-raised-button
           color="primary"
-          [disabled]="productSelectionFormGroup.invalid || !selectedProducto"
           (click)="onAddProductToPedido()"
+          [disabled]="isFormInvalidOrNoProduct"
           (keydown)="onAgregarButtonEnter($event)"
           class="add-btn"
         >

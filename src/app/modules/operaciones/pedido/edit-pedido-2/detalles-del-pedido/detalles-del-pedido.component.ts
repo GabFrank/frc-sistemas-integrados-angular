@@ -115,15 +115,15 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
         this.loadProductosProveedor();
       });
 
-    // Search items debounced
+    // Search items debounced - now uses backend search
     this.buscarItemsControl.valueChanges
       .pipe(
         debounceTime(300),
         distinctUntilChanged(),
         untilDestroyed(this)
       )
-      .subscribe((searchText) => {
-        this.filterPedidoItems(searchText);
+      .subscribe(() => {
+        this.loadPedidoItems(); // Reset to first page when searching
       });
 
     // Product selection form validation
@@ -135,24 +135,8 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
   }
 
   private setupDataSourceFiltering(): void {
-    // Custom filter predicate for pedido items
-    this.pedidoItemsDataSource.filterPredicate = (data: PedidoItem, filter: string) => {
-      const searchTerm = filter.toLowerCase();
-      return (
-        data.producto?.codigoPrincipal?.toLowerCase().includes(searchTerm) ||
-        data.producto?.descripcion?.toLowerCase().includes(searchTerm) ||
-        data.presentacionCreacion?.descripcion?.toLowerCase().includes(searchTerm) ||
-        data.obsCreacion?.toLowerCase().includes(searchTerm)
-      );
-    };
-  }
-
-  private filterPedidoItems(searchText: string): void {
-    if (!searchText || searchText.trim() === '') {
-      this.pedidoItemsDataSource.filter = '';
-    } else {
-      this.pedidoItemsDataSource.filter = searchText.trim().toLowerCase();
-    }
+    // Removed local filtering since we now use backend search
+    // The table datasource will just display the data returned from backend
   }
 
   private loadInitialData(): void {
@@ -191,17 +175,30 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
     if (!this.selectedPedido?.id) return;
 
     this.isLoading = true;
-    this.pedidoService.onGetPedidoItemPorPedido(this.selectedPedido.id, page, size)
+    const texto = this.buscarItemsControl.value || '';
+    
+    this.pedidoService.onGetPedidoItemPorPedido(this.selectedPedido.id, page, size, texto)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (response) => {
           this.pedidoItemsPage = response;
+          
           // Calculate computed properties for each item to avoid function calls in template
           const itemsWithComputedProps = response.getContent.map(item => {
             const precioUnitario = item.precioUnitarioCreacion || 0;
             const descuentoUnitario = item.descuentoUnitarioCreacion || 0;
             const cantidadPresentacion = item.presentacionCreacion?.cantidad || 1;
             const cantidadCreacion = item.cantidadCreacion || 0;
+            
+            // Calculate sucursal distribution status
+            const totalCantidadRequerida = cantidadCreacion * cantidadPresentacion;
+            const totalCantidadDistribuida = (item.pedidoItemSucursalList || [])
+              .reduce((sum, sucursalItem) => sum + (sucursalItem.cantidadPorUnidad || 0), 0);
+            
+            const isDistributionComplete = totalCantidadDistribuida >= totalCantidadRequerida;
+            const distributionPercentage = totalCantidadRequerida > 0 
+              ? Math.round((totalCantidadDistribuida / totalCantidadRequerida) * 100) 
+              : 0;
             
             const computedItem = Object.assign(item, {
               // Computed properties to avoid function calls in template
@@ -210,13 +207,27 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
               netPrecioUnitarioCalculado: precioUnitario - descuentoUnitario,
               netPrecioPorPresentacionCalculado: (precioUnitario * cantidadPresentacion) - (descuentoUnitario * cantidadPresentacion),
               // Total with discount applied
-              totalConDescuentoCalculado: cantidadCreacion * cantidadPresentacion * (precioUnitario - descuentoUnitario)
+              totalConDescuentoCalculado: cantidadCreacion * cantidadPresentacion * (precioUnitario - descuentoUnitario),
+              // Sucursal distribution status
+              isDistributionComplete: isDistributionComplete,
+              distributionPercentage: distributionPercentage,
+              totalCantidadRequerida: totalCantidadRequerida,
+              totalCantidadDistribuida: totalCantidadDistribuida,
+              distributionStatusClass: isDistributionComplete ? 'distribution-complete' : 'distribution-incomplete'
             });
             
             return computedItem;
           });
           
           this.pedidoItemsDataSource.data = itemsWithComputedProps as any;
+          
+          // Reset paginator to match backend pagination
+          if (this.pedidoItemsPaginator) {
+            this.pedidoItemsPaginator.pageIndex = page;
+            this.pedidoItemsPaginator.length = response.getTotalElements;
+            this.pedidoItemsPaginator.pageSize = size;
+          }
+          
           this.isLoading = false;
         },
         error: () => {

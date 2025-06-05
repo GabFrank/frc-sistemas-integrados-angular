@@ -1,4 +1,4 @@
-import { Injectable, Injector } from "@angular/core";
+  import { Injectable, Injector } from "@angular/core";
 import { Mutation, Query, Subscription } from "apollo-angular";
 import { Observable, timeout } from "rxjs";
 import { MainService } from "../main.service";
@@ -107,8 +107,6 @@ export class GenericCrudService {
     errorConf?,
     silentLoad?: boolean
   ): Observable<any> {
-    console.log("Entrando en custom query");
-
     this.isLoading = true;
     let { requestId = null, signal = null } =
       silentLoad != true

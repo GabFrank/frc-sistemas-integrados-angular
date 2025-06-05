@@ -9,6 +9,7 @@ export class PedidoItemSucursal {
     sucursalEntrega: Sucursal;
     cantidadPorUnidad: number;
     cantidadPorUnidadRecibida: number;
+    stockDisponible: number;
     creadoEn: Date;
     usuario: Usuario;
 

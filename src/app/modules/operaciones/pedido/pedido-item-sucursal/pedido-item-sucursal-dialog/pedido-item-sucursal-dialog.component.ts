@@ -1,6 +1,7 @@
-import { Component, Inject, OnInit, ViewChild, ElementRef, AfterViewInit } from "@angular/core";
+import { Component, Inject, OnInit, ViewChild, ElementRef, AfterViewInit, QueryList, ViewChildren } from "@angular/core";
 import { FormControl, Validators } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
+import { MatSelect } from "@angular/material/select";
 import { PedidoItem } from "../../edit-pedido/pedido-item.model";
 import { Sucursal } from "../../../../empresarial/sucursal/sucursal.model";
 import { SucursalService } from "../../../../empresarial/sucursal/sucursal.service";
@@ -12,8 +13,9 @@ import { MainService } from "../../../../../main.service";
 import { PedidoItemSucursal, PedidoItemSucursalInput } from "../pedido-item-sucursal.model";
 import { NotificacionColor, NotificacionSnackbarService } from "../../../../../notificacion-snackbar.service";
 import { Observable, forkJoin } from "rxjs";
-import { A11yModule } from '@angular/cdk/a11y';
-import { log } from "console";
+import { DialogosService } from "../../../../../shared/components/dialogos/dialogos.service";
+import { PedidoService } from "../../pedido.service";
+import { MatButton } from "@angular/material/button";
 
 @Component({
   selector: "pedido-item-sucursal-dialog",
@@ -22,6 +24,15 @@ import { log } from "console";
 })
 export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit {
   @ViewChild('addButton') addButton: ElementRef;
+  @ViewChild('saveButton', { static: false, read: MatButton }) saveButton: MatButton;
+  
+  // ViewChild references for form controls navigation
+  @ViewChildren('cantidadInput') cantidadInputs: QueryList<ElementRef>;
+  @ViewChildren('sucursalEntregaSelect') sucursalEntregaSelects: QueryList<MatSelect>;
+
+  // Navigation state management
+  private selectOpenStates: boolean[] = [];
+  private selectEnterCounts: number[] = [];
 
   sucursalInfluenciaList: Sucursal[] = [];
   selectedPedidoItem: PedidoItem;
@@ -37,6 +48,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
 
   isAddNewSucursal = false;
   sucursalEntregaLoaded: boolean = false;
+  isLoadingStock: boolean = false;
 
   pedidoItemSucursalList: PedidoItemSucursal[] = [];
 
@@ -53,7 +65,9 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
     private movStockService: MovimientoStockService,
     private pedidoItemSucursalService: PedidoItemSucursalService,
     private mainService: MainService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private dialogosService: DialogosService,
+    private pedidoService: PedidoService
   ) {
     sucursalService.onGetAllSucursales().subscribe((sucRes) => {
       this.sucursales = sucRes;
@@ -64,6 +78,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
       }
     });
   }
+
   ngOnInit(): void {
     if (this.data.autoSet) {
       let pedidoItemSucursal = new PedidoItemSucursal();
@@ -73,18 +88,16 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
       pedidoItemSucursal.cantidadPorUnidad = this.data.pedidoItem.cantidadCreacion * this.data.pedidoItem.presentacionCreacion?.cantidad;
       pedidoItemSucursal.usuario = this.mainService.usuarioActual;
       this.pedidoItemSucursalService.onSavePedidoItemSucursal(pedidoItemSucursal.toInput()).subscribe(res => {
-        console.log(res);
         this.dialogRef.close(true);
       });
-    } else {
-
     }
   }
 
   ngAfterViewInit() {
+    // Focus on first cantidad input when component is ready
     setTimeout(() => {
-      this.addButton?.nativeElement?.focus();
-    }, 100);
+      this.focusFirstCantidadInput();
+    }, 200);
   }
 
   loadPedidoItemSucursalAndInitControls(): void {
@@ -104,6 +117,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
             newPedidoItemSucursal.pedidoItem = this.selectedPedidoItem;
             newPedidoItemSucursal.cantidadPorUnidad = 0;
             newPedidoItemSucursal.usuario = this.mainService.usuarioActual;
+            newPedidoItemSucursal.stockDisponible = 0; // Initialize stock
             
             // Set default sucursal entrega if available
             if (this.data.sucursalEntregaList?.length === 1) {
@@ -114,19 +128,66 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
           }
         });
 
+        // Load stock for all items (both existing and new)
+        this.loadStockForAllItems();
         this.initializeFormControls();
       });
+  }
+
+  private loadStockForAllItems(): void {
+    const stockQueries: Observable<number>[] = [];
+    this.isLoadingStock = true;
+    
+    this.pedidoItemSucursalList.forEach((item, index) => {
+      if (item.sucursal && this.selectedPedidoItem.producto) {
+        const stockQuery = this.movStockService.onGetStockPorProducto(
+          this.selectedPedidoItem.producto.id,
+          item.sucursal.id
+        );
+        stockQueries.push(stockQuery);
+      } else {
+        // Create an observable that returns 0 for items without proper data
+        stockQueries.push(new Observable(subscriber => {
+          subscriber.next(0);
+          subscriber.complete();
+        }));
+      }
+    });
+
+    // Execute all stock queries in parallel
+    if (stockQueries.length > 0) {
+      forkJoin(stockQueries).subscribe({
+        next: (stockResults) => {
+          stockResults.forEach((stock, index) => {
+            if (this.pedidoItemSucursalList[index]) {
+              this.pedidoItemSucursalList[index].stockDisponible = stock || 0;
+            }
+          });
+          this.isLoadingStock = false;
+        },
+        error: (error) => {
+          console.error('Error loading stock information:', error);
+          // Set all stocks to 0 on error
+          this.pedidoItemSucursalList.forEach(item => {
+            item.stockDisponible = 0;
+          });
+          this.isLoadingStock = false;
+        }
+      });
+    } else {
+      this.isLoadingStock = false;
+    }
   }
 
   initializeFormControls(): void {
     // Clear existing controls
     this.cantidadControls = [];
     this.sucursalEntregaControls = [];
+    this.selectOpenStates = [];
+    this.selectEnterCounts = [];
 
     // Create controls for all items in pedidoItemSucursalList
     this.pedidoItemSucursalList.forEach(item => {
-      console.log(item);
-      
       // Create cantidad control
       const cantidadControl = new FormControl(
         item.cantidadPorUnidad / this.selectedPedidoItem.presentacionCreacion?.cantidad,
@@ -141,10 +202,110 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
         Validators.required
       );
       this.sucursalEntregaControls.push(sucursalEntregaControl);
+      
+      // Initialize navigation state
+      this.selectOpenStates.push(false);
+      this.selectEnterCounts.push(0);
     });
 
     this.sucursalEntregaLoaded = true;
     this.calcularCantAdicionada();
+  }
+
+  // Focus management methods
+  private focusFirstCantidadInput(): void {
+    if (this.cantidadInputs && this.cantidadInputs.length > 0) {
+      const firstInput = this.cantidadInputs.first;
+      if (firstInput?.nativeElement) {
+        firstInput.nativeElement.focus();
+        firstInput.nativeElement.select();
+      }
+    }
+  }
+
+  private focusCantidadInput(index: number): void {
+    if (this.cantidadInputs && this.cantidadInputs.toArray()[index]) {
+      const input = this.cantidadInputs.toArray()[index];
+      if (input?.nativeElement) {
+        input.nativeElement.focus();
+        input.nativeElement.select();
+      }
+    }
+  }
+
+  private focusSucursalEntregaSelect(index: number): void {
+    if (this.sucursalEntregaSelects && this.sucursalEntregaSelects.toArray()[index]) {
+      const select = this.sucursalEntregaSelects.toArray()[index];
+      if (select) {
+        select.focus();
+        this.selectEnterCounts[index] = 0; // Reset enter count
+      }
+    }
+  }
+
+  // Keyboard event handlers
+  onCantidadEnter(event: KeyboardEvent, index: number): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.focusSucursalEntregaSelect(index);
+    }
+  }
+
+  onSucursalEntregaEnter(event: KeyboardEvent, index: number): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.selectEnterCounts[index]++;
+      
+      const select = this.sucursalEntregaSelects.toArray()[index];
+      
+      if (this.selectEnterCounts[index] === 1) {
+        // First Enter: open the dropdown
+        if (select && !select.panelOpen) {
+          select.open();
+          this.selectOpenStates[index] = true;
+        }
+      } else if (this.selectEnterCounts[index] >= 2) {
+        // Second Enter: close dropdown and move to next field
+        if (select && select.panelOpen) {
+          select.close();
+          this.selectOpenStates[index] = false;
+        }
+        
+        // Move to next cantidad input or focus save button if last
+        setTimeout(() => {
+          const nextIndex = index + 1;
+          if (nextIndex < this.cantidadControls.length) {
+            this.focusCantidadInput(nextIndex);
+          } else {
+            // Focus on save button if it's the last field
+            this.focusSaveButton();
+          }
+        }, 100);
+      }
+    }
+  }
+
+  onSucursalEntregaClosed(index: number): void {
+    // Reset state when dropdown is closed
+    this.selectOpenStates[index] = false;
+    this.selectEnterCounts[index] = 0;
+    if(index === this.cantidadControls.length - 1) {
+      this.focusSaveButton();
+    }
+  }
+
+  private focusSaveButton(): void {
+    if (this.saveButton?._elementRef.nativeElement) {
+      this.saveButton._elementRef.nativeElement.focus();
+    } else if (this.addButton?.nativeElement) {
+      // Fallback to add button if save button is not available
+      this.addButton.nativeElement.focus();
+    }
+  }
+
+  // Add trackBy function for better performance in ngFor
+  trackByIndex(index: number, item: any): number {
+    return index;
   }
 
   cantidadesPorIgual() {
@@ -201,13 +362,34 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
     newPedidoItemSucursal.cantidadPorUnidad = 0;
     newPedidoItemSucursal.usuario = this.mainService.usuarioActual;
     newPedidoItemSucursal.sucursalEntrega = this.sucEntregaPorDefecto;
+    newPedidoItemSucursal.stockDisponible = 0; // Initialize stock
     
     this.pedidoItemSucursalList.push(newPedidoItemSucursal);
+    
+    // Load stock for the new sucursal
+    if (this.selectedPedidoItem.producto) {
+      this.movStockService.onGetStockPorProducto(
+        this.selectedPedidoItem.producto.id,
+        sucursal.id
+      ).subscribe({
+        next: (stock) => {
+          newPedidoItemSucursal.stockDisponible = stock || 0;
+        },
+        error: (error) => {
+          console.error('Error loading stock for new sucursal:', error);
+          newPedidoItemSucursal.stockDisponible = 0;
+        }
+      });
+    }
     
     // Update other lists and controls
     this.sucursalInfluenciaList.push(sucursal);
     this.sucursalInfluenciaControl.setValue(null);
     this.isAddNewSucursal = false;
+    
+    // Update navigation state arrays
+    this.selectOpenStates.push(false);
+    this.selectEnterCounts.push(0);
   }
 
   cantidadesSegunMovimiento() {
@@ -271,6 +453,76 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
     this.dialogRef.close(true);
   }
   onGuardar() {
+    // Calculate total distributed quantity
+    const totalDistributed = this.cantidadControls.reduce((total, control) => 
+      total + (control.value || 0), 0);
+    const originalQuantity = this.selectedPedidoItem.cantidadCreacion;
+    
+    // Check if distributed quantity differs from original
+    if (totalDistributed !== originalQuantity) {
+      this.showQuantityChangeConfirmation(totalDistributed, originalQuantity);
+      return;
+    }
+    
+    // If quantities match, proceed with normal save
+    this.proceedWithSave();
+  }
+
+  private showQuantityChangeConfirmation(newQuantity: number, originalQuantity: number): void {
+    const diferencia = newQuantity - originalQuantity;
+    const accion = diferencia > 0 ? 'incrementar' : 'reducir';
+    const diferenciaPresentacion = Math.abs(diferencia);
+    const cantidadUnidades = diferenciaPresentacion * (this.selectedPedidoItem.presentacionCreacion?.cantidad || 1);
+    
+    const message = `
+      La cantidad total distribuida (${newQuantity}) ${diferencia > 0 ? 'es mayor' : 'es menor'} que la cantidad original del pedido (${originalQuantity}).
+      
+      Esto significa que se va a ${accion} la cantidad del item del pedido en ${diferenciaPresentacion} presentación(es) (${cantidadUnidades} unidades).
+      
+      ¿Desea continuar y actualizar la cantidad del pedido item?
+    `;
+    
+    this.dialogosService.confirm(
+      'Cambio de cantidad detectado',
+      message
+    ).subscribe(confirmed => {
+      if (confirmed) {
+        this.updatePedidoItemQuantityAndSave(newQuantity);
+      }
+      // If not confirmed, do nothing (user can adjust quantities)
+    });
+  }
+
+  private updatePedidoItemQuantityAndSave(newQuantity: number): void {
+    // Update the pedido item quantity
+    this.selectedPedidoItem.cantidadCreacion = newQuantity;
+    
+    // Recalculate total value with new quantity
+    const cantidadPresentacion = this.selectedPedidoItem.presentacionCreacion?.cantidad || 1;
+    const precioUnitario = this.selectedPedidoItem.precioUnitarioCreacion || 0;
+    const descuentoUnitario = this.selectedPedidoItem.descuentoUnitarioCreacion || 0;
+    
+    this.selectedPedidoItem.valorTotal = newQuantity * cantidadPresentacion * (precioUnitario - descuentoUnitario);
+    
+    // Save the updated pedido item first, then save the distributions
+    // toInput is not a function error again
+    let pedidoItemAux = new PedidoItem();
+    Object.assign(pedidoItemAux, this.selectedPedidoItem);
+    pedidoItemAux.cantidadCreacion = newQuantity;
+    this.pedidoService.onSaveItem(pedidoItemAux.toInput()).subscribe({
+      next: (updatedItem) => {
+        this.selectedPedidoItem = updatedItem;
+        this.notificacionService.openSucess('Cantidad del pedido item actualizada correctamente');
+        this.proceedWithSave();
+      },
+      error: (error) => {
+        this.notificacionService.openWarn('Error al actualizar la cantidad del pedido item');
+        console.error('Error updating pedido item:', error);
+      }
+    });
+  }
+
+  private proceedWithSave(): void {
     const saveOperations: Observable<any>[] = [];
     const combinationMap = new Map<string, boolean>();
 
@@ -343,20 +595,22 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
     if (saveOperations.length > 0) {
       forkJoin(saveOperations).subscribe({
         next: (results) => {
-          this.notificacionService.openSucess("Elementos guardados correctamente");
+          this.notificacionService.openSucess("Distribución guardada correctamente");
           this.dialogRef.close(true);
         },
         error: (error) => {
-          this.notificacionService.openWarn("Error al guardar algunos elementos");
+          this.notificacionService.openWarn("Error al guardar la distribución");
+          console.error('Error saving distribution:', error);
         }
       });
+    } else {
+      // No operations to save, just close
+      this.dialogRef.close(true);
     }
   }
 
   seleccionarSucursal() {
     this.sucursalService.openSearchDialog().subscribe(sucursal => {
-      console.log(sucursal);
-      
       if (sucursal) {
         // Iterate through all sucursalEntregaControls and set the selected sucursal
         this.sucursalEntregaControls.forEach((control, index) => {

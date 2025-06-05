@@ -30,7 +30,8 @@
         <span class="titulo-color">Sobrante:</span>
         <h3 class="info-value">
           {{
-            selectedPedidoItem?.cantidadCreacion - cantAgregada | number : "1.0-2"
+            selectedPedidoItem?.cantidadCreacion - cantAgregada
+              | number : "1.0-2"
           }}
         </h3>
       </div>
@@ -71,6 +72,7 @@
       <!-- Header Row -->
       <div class="table-header">
         <div class="header-cell">Sucursal de influencia</div>
+        <div class="header-cell">Stock Disponible</div>
         <div class="header-cell">Cantidad</div>
         <div class="header-cell">Sucursal de entrega</div>
         <div class="header-cell">Acciones</div>
@@ -79,28 +81,49 @@
       <!-- Data Rows -->
       <div class="table-body">
         <div
-          *ngFor="let item of pedidoItemSucursalList; let i = index"
+          *ngFor="
+            let item of pedidoItemSucursalList;
+            let i = index;
+            trackBy: trackByIndex
+          "
           class="table-row"
         >
           <div class="table-cell">
             <span class="cell-value">{{ item.sucursal.nombre }}</span>
           </div>
+
           <div class="table-cell">
-            <mat-form-field  class="table-form-field">
+            <span class="cell-value stock-value" *ngIf="!isLoadingStock">
+              {{ item.stockDisponible | number : "1.0-2" }}
+            </span>
+            <span class="cell-value stock-loading" *ngIf="isLoadingStock">
+              <mat-icon>refresh</mat-icon>
+              Cargando...
+            </span>
+          </div>
+
+          <div class="table-cell">
+            <mat-form-field class="table-form-field">
               <input
+                #cantidadInput
                 matInput
                 type="number"
                 placeholder="Cantidad"
                 [formControl]="cantidadControls[i]"
-                style="text-align: center;"
+                style="text-align: center"
+                (keydown)="onCantidadEnter($event, i)"
               />
             </mat-form-field>
           </div>
+
           <div class="table-cell">
-            <mat-form-field  class="table-form-field">
+            <mat-form-field class="table-form-field">
               <mat-select
+                #sucursalEntregaSelect
                 placeholder="Sucursal de entrega"
                 [formControl]="sucursalEntregaControls[i]"
+                (keydown)="onSucursalEntregaEnter($event, i)"
+                (closed)="onSucursalEntregaClosed(i)"
               >
                 <mat-option *ngFor="let suc of sucursales" [value]="suc">
                   {{ suc.nombre }}
@@ -109,10 +132,10 @@
             </mat-form-field>
           </div>
           <div class="table-cell">
-            <button 
-              mat-icon-button 
-              color="warn" 
-              (click)="onDelete(i)" 
+            <button
+              mat-icon-button
+              color="warn"
+              (click)="onDelete(i)"
               matTooltip="Eliminar"
               class="delete-btn"
             >
@@ -125,11 +148,11 @@
       <!-- Add New Sucursal Section -->
       <div class="add-section">
         <div *ngIf="!isAddNewSucursal" class="add-button-container">
-          <button 
-            mat-fab 
-            (click)="onAddSucursal()" 
-            color="primary" 
-            #addButton 
+          <button
+            mat-fab
+            (click)="onAddSucursal()"
+            color="primary"
+            #addButton
             tabindex="0"
             [attr.autofocus]="true"
           >
@@ -139,7 +162,7 @@
         <div *ngIf="isAddNewSucursal" class="add-form-container">
           <div class="add-form-row">
             <div class="add-form-field">
-              <mat-form-field >
+              <mat-form-field>
                 <mat-label>Sucursal de influencia</mat-label>
                 <mat-select [formControl]="sucursalInfluenciaControl">
                   <mat-option *ngFor="let suc of sucursales" [value]="suc">
@@ -176,20 +199,16 @@
   <!-- Footer Section -->
   <div class="footer-section">
     <div class="footer-buttons">
-      <button 
-        mat-button 
-        (click)="onCancelar()" 
-        class="cancel-btn"
-      >
+      <button mat-button (click)="onCancelar()" class="cancel-btn">
         <mat-icon>close</mat-icon>
         Cancelar
       </button>
       <button
+        #saveButton
         mat-raised-button
         (click)="onGuardar()"
         color="primary"
         class="save-btn"
-        [disabled]="cantAgregada != selectedPedidoItem?.cantidadCreacion"
       >
         <mat-icon>save</mat-icon>
         Guardar

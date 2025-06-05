@@ -215,8 +215,8 @@ export const deletePedidoQuery = gql`
 
 export const filterPedidosQuery = gql`
   query filterPedidos(
-    $idPedido: ID,
-    $numeroNotaRecepcion: Int,
+    $idPedido: ID
+    $numeroNotaRecepcion: Int
     $estado: PedidoEstado
     $sucursalId: Int
     $inicio: String
@@ -610,6 +610,19 @@ export const pedidoItemPorPedidoPageQuery = gql`
         notaRecepcion {
           id
         }
+        pedidoItemSucursalList {
+          id
+          sucursal {
+            id
+            nombre
+          }
+          sucursalEntrega {
+            id
+            nombre
+          }
+          cantidadPorUnidad
+          cantidadPorUnidadRecibida
+        }
         precioUnitarioCreacion
         descuentoUnitarioCreacion
         bonificacion
@@ -802,7 +815,10 @@ export const finalizarPedido = gql`
 // pedido:PedidoInput!, fechaEntregaList: [String], sucursalEntregaList: [Int], sucursalInfluenciaList: [Int], usuarioId: Int
 
 export const verificarRecepcionProductoQuery = gql`
-  mutation verificarRecepcionProducto($pedidoItemId: ID!, $verificar: Boolean!) {
+  mutation verificarRecepcionProducto(
+    $pedidoItemId: ID!
+    $verificar: Boolean!
+  ) {
     data: verificarRecepcionProducto(
       pedidoItemId: $pedidoItemId
       verificar: $verificar
@@ -976,8 +992,7 @@ export const pedidoItemPedidoItemSucursalListQuery = gql`
 `;
 
 export const verificarDistribucionSucursalesQuery = gql`
-  query ($id: ID!){
+  query ($id: ID!) {
     data: verificarDistribucionSucursales(id: $id)
   }
 `;
-
