@@ -807,7 +807,65 @@ export const finalizarPedido = gql`
   mutation finalizarPedido($id: ID, $estado: PedidoEstado) {
     data: finalizarPedido(id: $id, estado: $estado) {
       id
+      cantPedidoItem
+      cantPedidoItemCancelados
+      compra {
+        id
+        estado
+      }
+      proveedor {
+        id
+        persona {
+          nombre
+        }
+      }
+      vendedor {
+        id
+        persona {
+          nombre
+        }
+      }
+      formaPago {
+        id
+        descripcion
+      }
       estado
+      moneda {
+        id
+        denominacion
+      }
+      plazoCredito
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      descuento
+      valorTotal
+      tipoBoleta
+      sucursalInfluenciaList {
+        id
+        sucursal {
+          id
+          nombre
+        }
+      }
+      sucursalEntregaList {
+        id
+        sucursal {
+          id
+          nombre
+        }
+      }
+      fechaEntregaList {
+        fechaEntrega
+      }
+      cantNotas
+      cantNotasPagadas
+      cantNotasCanceladas
+      pagado
     }
   }
 `;

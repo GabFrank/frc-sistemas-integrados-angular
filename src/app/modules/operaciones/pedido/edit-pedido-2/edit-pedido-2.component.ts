@@ -67,6 +67,10 @@ export class EditPedido2Component implements OnInit {
   canAccessStep3 = false;
   canAccessStep4 = false;
   step1FormValid = false;
+  
+  // New properties for next step conditions
+  canGoToRecepcionNota = false;
+  canAgregarProducto = false;
 
   constructor(
     private pedidoService: PedidoService,
@@ -86,6 +90,7 @@ export class EditPedido2Component implements OnInit {
           this.updateStepStates();
           this.updateStepAccessibility();
           this.updateEstadoColor();
+          this.updateButtonStates();
         });
     }
   }
@@ -200,6 +205,26 @@ export class EditPedido2Component implements OnInit {
     }
   }
 
+  updateButtonStates(): void {
+    if (!this.selectedPedido) {
+      this.canGoToRecepcionNota = false;
+      this.canAgregarProducto = false;
+      return;
+    }
+
+    // "Siguiente" button to go to "Recepcion de nota" step is enabled when:
+    // 1. Pedido exists (already checked above)
+    // 2. Pedido has at least one pedido item created
+    // 3. Current estado is ACTIVO (ready to move to EN_RECEPCION_NOTA)
+    this.canGoToRecepcionNota = 
+      this.selectedPedido.estado === PedidoEstado.ACTIVO &&
+      this.selectedPedido.cantPedidoItem &&
+      this.selectedPedido.cantPedidoItem > 0;
+
+    // "Agregar producto" button is enabled only when pedido estado is ACTIVO
+    this.canAgregarProducto = this.selectedPedido.estado === PedidoEstado.ACTIVO;
+  }
+
   // Navigation methods
   nextStep(): void {
     if (
@@ -222,10 +247,44 @@ export class EditPedido2Component implements OnInit {
     }
   }
 
+  // New method to move to "Recepcion de nota" step and save new estado
+  goToRecepcionNota(): void {
+    if (!this.canGoToRecepcionNota || !this.selectedPedido) {
+      return;
+    }
+
+    // Update pedido estado to EN_RECEPCION_NOTA and save
+    this.pedidoService
+      .onFinalizarPedido(this.selectedPedido.id, PedidoEstado.EN_RECEPCION_NOTA)
+      .pipe(untilDestroyed(this))
+      .subscribe(
+        (updatedPedido) => {
+          this.selectedPedido = updatedPedido;
+          this.updateStepStates();
+          this.updateStepAccessibility();
+          this.updateEstadoColor();
+          this.updateButtonStates();
+          
+          // Move to step 2 (Recepcion de nota)
+          this.goToStep(2);
+        },
+        (error) => {
+          console.error('Error al finalizar pedido:', error);
+          // Handle error - show message to user
+        }
+      );
+  }
+
   completePedido(): void {}
 
   onPedidoChange(pedido: Pedido): void {
     this.selectedPedido = pedido;
+    
+    // Update step states and accessibility when pedido changes
+    this.updateStepStates();
+    this.updateStepAccessibility();
+    this.updateEstadoColor();
+    this.updateButtonStates();
   }
 
   onStep1FormValidChange(isValid: boolean): void {

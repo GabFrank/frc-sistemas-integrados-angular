@@ -11,10 +11,7 @@
 
 /* Header Section Styles - 20% of container height */
 .pedido-header {
-  height: 20%;
-  min-height: 180px;
-  max-height: 300px;
-  overflow: auto;
+  height: 180px;
   
   .header-card {
     height: 100%;
@@ -60,7 +57,6 @@
     mat-card-content {
       flex: 1;
       overflow: auto;
-      padding-top: 8px;
       
       .info-label {
         font-size: 1.2rem;

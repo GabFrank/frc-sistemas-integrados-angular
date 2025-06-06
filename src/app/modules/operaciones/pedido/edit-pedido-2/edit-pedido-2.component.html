@@ -1,30 +1,48 @@
 <div class="pedido-container" fxLayout="column" fxFill>
   <!-- Header Card with Pedido Information - 20% height -->
-  <div class="pedido-header" fxFlex="20">
+  <div class="pedido-header">
     <mat-card class="header-card">
-      <mat-card-header>
+      <!-- we wont need this header card, but we will keep it for now -->
+      <!-- <mat-card-header>
         <mat-card-title fxLayout="row" fxLayoutAlign="space-between center">
-          <span>Pedido #{{ selectedPedido?.id || 'Nuevo' }}</span>
+          <span>Pedido #{{ selectedPedido?.id || "Nuevo" }}</span>
           <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="16px">
             <div class="chip-container">
-              <mat-chip 
-                [color]="estadoColor" 
-                selected="true">
+              <mat-chip [color]="estadoColor" selected="true">
                 {{ selectedPedido?.estado | enumToString }}
               </mat-chip>
             </div>
           </div>
         </mat-card-title>
-      </mat-card-header>
-      
+      </mat-card-header> -->
+
       <mat-card-content>
-        <div fxLayout="row" fxLayoutGap="32px" fxLayout.xs="column" fxLayoutGap.xs="16px">
+        <div
+          fxLayout="row"
+          fxLayoutGap="32px"
+          fxLayout.xs="column"
+          fxLayoutGap.xs="16px"
+        >
+          <!-- Id del pedido -->
+          <div fxFlex="20">
+            <div class="info-label">Id del pedido</div>
+            <div class="info-content">
+              <div class="info-value">{{ selectedPedido?.id }}</div>
+            </div>
+          </div>
           <!-- Proveedor Info -->
-          <div fxFlex="25">
+          <div fxFlex="20">
             <div class="info-label">Proveedor</div>
-            <div class="info-content" *ngIf="selectedPedido?.proveedor; else placeholderProveedor">
-              <div class="info-value">{{ selectedPedido.proveedor.persona.nombre }}</div>
-              <div class="info-secondary">{{ selectedPedido.proveedor.persona.documento }}</div>
+            <div
+              class="info-content"
+              *ngIf="selectedPedido?.proveedor; else placeholderProveedor"
+            >
+              <div class="info-value">
+                {{ selectedPedido.proveedor.persona.nombre }}
+              </div>
+              <div class="info-secondary">
+                {{ selectedPedido.proveedor.persona.documento }}
+              </div>
             </div>
             <ng-template #placeholderProveedor>
               <div class="info-placeholder">Sin proveedor asignado</div>
@@ -32,11 +50,18 @@
           </div>
 
           <!-- Vendedor Info -->
-          <div fxFlex="25">
+          <div fxFlex="20">
             <div class="info-label">Vendedor</div>
-            <div class="info-content" *ngIf="selectedPedido?.vendedor; else placeholderVendedor">
-              <div class="info-value">{{ selectedPedido.vendedor.persona.nombre }}</div>
-              <div class="info-secondary">{{ selectedPedido.vendedor.persona.documento }}</div>
+            <div
+              class="info-content"
+              *ngIf="selectedPedido?.vendedor; else placeholderVendedor"
+            >
+              <div class="info-value">
+                {{ selectedPedido.vendedor.persona.nombre }}
+              </div>
+              <div class="info-secondary">
+                {{ selectedPedido.vendedor.persona.documento }}
+              </div>
             </div>
             <ng-template #placeholderVendedor>
               <div class="info-placeholder">Sin vendedor asignado</div>
@@ -44,10 +69,15 @@
           </div>
 
           <!-- Forma de Pago Info -->
-          <div fxFlex="25">
+          <div fxFlex="20">
             <div class="info-label">Forma de Pago</div>
-            <div class="info-content" *ngIf="selectedPedido?.formaPago; else placeholderFormaPago">
-              <div class="info-value">{{ selectedPedido.formaPago.descripcion }}</div>
+            <div
+              class="info-content"
+              *ngIf="selectedPedido?.formaPago; else placeholderFormaPago"
+            >
+              <div class="info-value">
+                {{ selectedPedido.formaPago.descripcion }}
+              </div>
               <div class="info-secondary" *ngIf="selectedPedido.plazoCredito">
                 {{ selectedPedido.plazoCredito }} días
               </div>
@@ -58,11 +88,18 @@
           </div>
 
           <!-- Moneda Info -->
-          <div fxFlex="25">
+          <div fxFlex="20">
             <div class="info-label">Moneda</div>
-            <div class="info-content" *ngIf="selectedPedido?.moneda; else placeholderMoneda">
-              <div class="info-value">{{ selectedPedido.moneda.denominacion }}</div>
-              <div class="info-secondary">{{ selectedPedido.moneda.simbolo }}</div>
+            <div
+              class="info-content"
+              *ngIf="selectedPedido?.moneda; else placeholderMoneda"
+            >
+              <div class="info-value">
+                {{ selectedPedido.moneda.denominacion }}
+              </div>
+              <div class="info-secondary">
+                {{ selectedPedido.moneda.simbolo }}
+              </div>
             </div>
             <ng-template #placeholderMoneda>
               <div class="info-placeholder">Sin moneda definida</div>
@@ -71,32 +108,60 @@
         </div>
 
         <!-- Totales Row -->
-        <div fxLayout="row" fxLayoutGap="32px" fxLayout.xs="column" fxLayoutGap.xs="16px" style="margin-top: 16px;">
-          <div fxFlex="25">
+        <div
+          fxLayout="row"
+          fxLayoutGap="32px"
+          fxLayout.xs="column"
+          fxLayoutGap.xs="16px"
+          style="margin-top: 16px"
+        >
+          <!-- estado del pedido -->
+          <div fxFlex="20">
+            <div class="info-label">Estado del pedido</div>
+            <div class="info-content">
+              <div class="chip-container">
+                <mat-chip [color]="estadoColor" selected="true">
+                  {{ selectedPedido?.estado | enumToString }}
+                </mat-chip>
+              </div>
+            </div>
+          </div>
+          <div fxFlex="20">
             <div class="info-label">Total sin Descuento</div>
             <div class="info-content">
-              <div class="info-value">{{ selectedPedido?.valorTotal | number:'1.0-2'}}</div>
+              <div class="info-value">
+                {{ selectedPedido?.valorTotal | number : "1.0-2" }}
+              </div>
             </div>
           </div>
 
-          <div fxFlex="25">
+          <div fxFlex="20">
             <div class="info-label">Descuento</div>
             <div class="info-content">
-              <div class="info-value">{{ selectedPedido?.descuento | number:'1.0-2'}}</div>
+              <div class="info-value">
+                {{ selectedPedido?.descuento | number : "1.0-2" }}
+              </div>
             </div>
           </div>
 
-          <div fxFlex="25">
+          <div fxFlex="20">
             <div class="info-label">Total con Descuento</div>
             <div class="info-content">
-              <div class="info-value">{{ (selectedPedido?.valorTotal || 0) - (selectedPedido?.descuento || 0) | currency:'':'' }}</div>
+              <div class="info-value">
+                {{
+                  (selectedPedido?.valorTotal || 0) -
+                    (selectedPedido?.descuento || 0) | currency : "" : ""
+                }}
+              </div>
             </div>
           </div>
 
-          <div fxFlex="25">
+          <div fxFlex="20">
             <div class="info-label">Cantidad de Items</div>
             <div class="info-content">
-              <div class="info-value">{{ selectedPedido?.cantPedidoItem || 0 }}</div>
+              <div class="info-value">
+                {{ selectedPedido?.cantPedidoItem || 0 }}
+              </div>
             </div>
           </div>
         </div>
@@ -105,37 +170,48 @@
   </div>
 
   <!-- Stepper Container - 80% height -->
-  <div class="stepper-container" fxFlex="80">
-    <mat-stepper 
-      #stepper 
-      class="full-height-stepper" 
+  <div class="stepper-container" style="height: 100%">
+    <mat-stepper
+      #stepper
+      class="full-height-stepper"
       orientation="horizontal"
       linear="false"
-      [selectedIndex]="currentStepIndex">
-      
+      [selectedIndex]="currentStepIndex"
+    >
       <!-- Step 1: Datos del pedido -->
-      <mat-step 
+      <mat-step
         [stepControl]="null"
         [editable]="canAccessStep0"
-        [completed]="stepsConfig[0].completed">
+        [completed]="stepsConfig[0].completed"
+      >
         <ng-template matStepLabel>
           <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
             <mat-icon>{{ stepsConfig[0].icon }}</mat-icon>
             <span fxHide.xs>{{ stepsConfig[0].label }}</span>
           </div>
         </ng-template>
-        
+
         <div class="step-content" fxLayout="column" fxFill>
-          <app-datos-del-pedido 
+          <app-datos-del-pedido
             [selectedPedido]="selectedPedido"
             (pedidoChange)="onPedidoChange($event)"
             (formValid)="onStep1FormValidChange($event)"
-            style="height: 100% !important;">
+            style="height: 100% !important"
+          >
           </app-datos-del-pedido>
-          
-          <div class="step-actions" fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="10px">
-            <button mat-raised-button color="primary" (click)="nextStep()" 
-                    [disabled]="!canAccessStep1">
+
+          <div
+            class="step-actions"
+            fxLayout="row"
+            fxLayoutAlign="end center"
+            fxLayoutGap="10px"
+          >
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="nextStep()"
+              [disabled]="!canAccessStep1"
+            >
               Siguiente
             </button>
           </div>
@@ -143,31 +219,41 @@
       </mat-step>
 
       <!-- Step 2: Detalles del pedido -->
-      <mat-step 
+      <mat-step
         [stepControl]="null"
         [editable]="canAccessStep1"
-        [completed]="stepsConfig[1].completed">
+        [completed]="stepsConfig[1].completed"
+      >
         <ng-template matStepLabel>
           <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
             <mat-icon>{{ stepsConfig[1].icon }}</mat-icon>
             <span fxHide.xs>{{ stepsConfig[1].label }}</span>
           </div>
         </ng-template>
-        
+
         <div class="step-content" fxLayout="column" fxFill>
-          <app-detalles-del-pedido 
+          <app-detalles-del-pedido
             [selectedPedido]="selectedPedido"
+            [canAgregarProducto]="canAgregarProducto"
             (pedidoChange)="onPedidoChange($event)"
             (formValid)="onStep2FormValidChange($event)"
-            style="height: 100% !important;">
+            style="height: 100% !important"
+          >
           </app-detalles-del-pedido>
-          
-          <div class="step-actions" fxLayout="row" fxLayoutAlign="space-between center" fxLayoutGap="10px">
-            <button mat-button (click)="previousStep()">
-              Anterior
-            </button>
-            <button mat-raised-button color="primary" (click)="nextStep()" 
-                    [disabled]="!canAccessStep2">
+
+          <div
+            class="step-actions"
+            fxLayout="row"
+            fxLayoutAlign="space-between center"
+            fxLayoutGap="10px"
+          >
+            <button mat-button (click)="previousStep()">Anterior</button>
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="goToRecepcionNota()"
+              [disabled]="!canGoToRecepcionNota"
+            >
               Siguiente
             </button>
           </div>
@@ -175,32 +261,51 @@
       </mat-step>
 
       <!-- Step 3: Recepción de nota -->
-      <mat-step 
+      <mat-step
         [stepControl]="null"
         [editable]="canAccessStep2"
-        [completed]="stepsConfig[2].completed">
+        [completed]="stepsConfig[2].completed"
+      >
         <ng-template matStepLabel>
           <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
             <mat-icon>{{ stepsConfig[2].icon }}</mat-icon>
             <span fxHide.xs>{{ stepsConfig[2].label }}</span>
           </div>
         </ng-template>
-        
+
         <div class="step-content" fxLayout="column" fxFill>
           <h3>{{ stepsConfig[2].label }}</h3>
-          <p>Procesamiento de notas de recepción del proveedor. Verificación de productos y cantidades recibidas.</p>
-          
-          <div fxFlex fxLayout="column" fxLayoutAlign="center center" class="step-placeholder">
+          <p>
+            Procesamiento de notas de recepción del proveedor. Verificación de
+            productos y cantidades recibidas.
+          </p>
+
+          <div
+            fxFlex
+            fxLayout="column"
+            fxLayoutAlign="center center"
+            class="step-placeholder"
+          >
             <mat-icon class="large-icon">{{ stepsConfig[2].icon }}</mat-icon>
-            <p>Aquí se implementará la funcionalidad para gestionar la recepción de notas</p>
+            <p>
+              Aquí se implementará la funcionalidad para gestionar la recepción
+              de notas
+            </p>
           </div>
-          
-          <div class="step-actions" fxLayout="row" fxLayoutAlign="space-between center" fxLayoutGap="10px">
-            <button mat-button (click)="previousStep()">
-              Anterior
-            </button>
-            <button mat-raised-button color="primary" (click)="nextStep()" 
-                    [disabled]="!canAccessStep3">
+
+          <div
+            class="step-actions"
+            fxLayout="row"
+            fxLayoutAlign="space-between center"
+            fxLayoutGap="10px"
+          >
+            <button mat-button (click)="previousStep()">Anterior</button>
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="nextStep()"
+              [disabled]="!canAccessStep3"
+            >
               Siguiente
             </button>
           </div>
@@ -208,32 +313,51 @@
       </mat-step>
 
       <!-- Step 4: Recepción de mercadería -->
-      <mat-step 
+      <mat-step
         [stepControl]="null"
         [editable]="canAccessStep3"
-        [completed]="stepsConfig[3].completed">
+        [completed]="stepsConfig[3].completed"
+      >
         <ng-template matStepLabel>
           <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
             <mat-icon>{{ stepsConfig[3].icon }}</mat-icon>
             <span fxHide.xs>{{ stepsConfig[3].label }}</span>
           </div>
         </ng-template>
-        
+
         <div class="step-content" fxLayout="column" fxFill>
           <h3>{{ stepsConfig[3].label }}</h3>
-          <p>Verificación física de la mercadería recibida. Control de calidad y confirmación de entrega.</p>
-          
-          <div fxFlex fxLayout="column" fxLayoutAlign="center center" class="step-placeholder">
+          <p>
+            Verificación física de la mercadería recibida. Control de calidad y
+            confirmación de entrega.
+          </p>
+
+          <div
+            fxFlex
+            fxLayout="column"
+            fxLayoutAlign="center center"
+            class="step-placeholder"
+          >
             <mat-icon class="large-icon">{{ stepsConfig[3].icon }}</mat-icon>
-            <p>Aquí se implementará la funcionalidad para gestionar la recepción de mercadería</p>
+            <p>
+              Aquí se implementará la funcionalidad para gestionar la recepción
+              de mercadería
+            </p>
           </div>
-          
-          <div class="step-actions" fxLayout="row" fxLayoutAlign="space-between center" fxLayoutGap="10px">
-            <button mat-button (click)="previousStep()">
-              Anterior
-            </button>
-            <button mat-raised-button color="primary" (click)="nextStep()" 
-                    [disabled]="!canAccessStep4">
+
+          <div
+            class="step-actions"
+            fxLayout="row"
+            fxLayoutAlign="space-between center"
+            fxLayoutGap="10px"
+          >
+            <button mat-button (click)="previousStep()">Anterior</button>
+            <button
+              mat-raised-button
+              color="primary"
+              (click)="nextStep()"
+              [disabled]="!canAccessStep4"
+            >
               Siguiente
             </button>
           </div>
@@ -241,37 +365,51 @@
       </mat-step>
 
       <!-- Step 5: Solicitud de pago -->
-      <mat-step 
+      <mat-step
         [stepControl]="null"
         [editable]="canAccessStep4"
-        [completed]="stepsConfig[4].completed">
+        [completed]="stepsConfig[4].completed"
+      >
         <ng-template matStepLabel>
           <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
             <mat-icon>{{ stepsConfig[4].icon }}</mat-icon>
             <span fxHide.xs>{{ stepsConfig[4].label }}</span>
           </div>
         </ng-template>
-        
+
         <div class="step-content" fxLayout="column" fxFill>
           <h3>{{ stepsConfig[4].label }}</h3>
-          <p>Generación de solicitud de pago al proveedor. Revisión final y confirmación del proceso.</p>
-          
-          <div fxFlex fxLayout="column" fxLayoutAlign="center center" class="step-placeholder">
+          <p>
+            Generación de solicitud de pago al proveedor. Revisión final y
+            confirmación del proceso.
+          </p>
+
+          <div
+            fxFlex
+            fxLayout="column"
+            fxLayoutAlign="center center"
+            class="step-placeholder"
+          >
             <mat-icon class="large-icon">{{ stepsConfig[4].icon }}</mat-icon>
-            <p>Aquí se implementará la funcionalidad para gestionar la solicitud de pago</p>
+            <p>
+              Aquí se implementará la funcionalidad para gestionar la solicitud
+              de pago
+            </p>
           </div>
-          
-          <div class="step-actions" fxLayout="row" fxLayoutAlign="space-between center" fxLayoutGap="10px">
-            <button mat-button (click)="previousStep()">
-              Anterior
-            </button>
+
+          <div
+            class="step-actions"
+            fxLayout="row"
+            fxLayoutAlign="space-between center"
+            fxLayoutGap="10px"
+          >
+            <button mat-button (click)="previousStep()">Anterior</button>
             <button mat-raised-button color="accent" (click)="completePedido()">
               Completar Pedido
             </button>
           </div>
         </div>
       </mat-step>
-
     </mat-stepper>
   </div>
-</div> 
+</div>

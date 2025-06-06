@@ -37,6 +37,7 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
   @ViewChild('pedidoItemsPaginator') pedidoItemsPaginator: MatPaginator;
 
   @Input() selectedPedido: Pedido;
+  @Input() canAgregarProducto: boolean = false;
   @Output() pedidoChange = new EventEmitter<Pedido>();
   @Output() formValid = new EventEmitter<boolean>();
 
@@ -100,6 +101,11 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
       if (this.selectedPedido.proveedor) {
         this.loadProductosProveedor();
       }
+      
+      // Ensure totals are calculated when pedido changes
+      setTimeout(() => {
+        this.updatePedidoTotals();
+      }, 100);
     }
   }
 
@@ -228,6 +234,9 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
             this.pedidoItemsPaginator.pageSize = size;
           }
           
+          // Update pedido totals and emit changes
+          this.updatePedidoTotals();
+          
           this.isLoading = false;
         },
         error: () => {
@@ -295,7 +304,7 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
       .subscribe({
         next: (response) => {
           this.notificacionService.openSucess('Producto agregado al pedido');
-          this.loadPedidoItems();
+          this.loadPedidoItems(); // This will trigger updatePedidoTotals()
           this.clearProductSelection();
           
           // Open sucursal dialog if multiple sucursales
@@ -340,7 +349,7 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
       autoFocus: false
     }).afterClosed().subscribe(result => {
       if (result?.updated) {
-        this.loadPedidoItems();
+        this.loadPedidoItems(); // This will trigger updatePedidoTotals()
         this.pedidoChange.emit(this.selectedPedido);
       }
     });
@@ -366,7 +375,7 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
           .subscribe({
             next: () => {
               this.notificacionService.openSucess('Item eliminado del pedido exitosamente');
-              this.loadPedidoItems();
+              this.loadPedidoItems(); // This will trigger updatePedidoTotals()
               // Emit pedido change to update parent component
               this.pedidoChange.emit(this.selectedPedido);
             },
@@ -441,7 +450,7 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result?.added) {
-        this.loadPedidoItems();
+        this.loadPedidoItems(); // This will trigger updatePedidoTotals()
         
         // Open sucursal dialog if multiple sucursales
         if (this.selectedPedido.sucursalInfluenciaList?.length > 1 && result.pedidoItem) {
@@ -449,5 +458,61 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
         }
       }
     });
+  }
+
+  /**
+   * Calculate and update pedido totals based on current items
+   * This method calculates:
+   * - Total sin descuento
+   * - Total descuento
+   * - Total con descuento
+   * - Cantidad de items
+   */
+  private updatePedidoTotals(): void {
+    if (!this.selectedPedido) return;
+
+    const items = this.pedidoItemsDataSource.data;
+    
+    // Calculate totals
+    let totalSinDescuento = 0;
+    let totalDescuento = 0;
+    let cantidadItems = items.length;
+
+    items.forEach(item => {
+      const precioUnitario = item.precioUnitarioCreacion || 0;
+      const descuentoUnitario = item.descuentoUnitarioCreacion || 0;
+      const cantidadPresentacion = item.presentacionCreacion?.cantidad || 1;
+      const cantidadCreacion = item.cantidadCreacion || 0;
+
+      // Total sin descuento: cantidad * presentacion * precio unitario
+      const itemTotalSinDescuento = cantidadCreacion * cantidadPresentacion * precioUnitario;
+      totalSinDescuento += itemTotalSinDescuento;
+
+      // Total descuento: cantidad * presentacion * descuento unitario
+      const itemDescuento = cantidadCreacion * cantidadPresentacion * descuentoUnitario;
+      totalDescuento += itemDescuento;
+    });
+
+    // Total con descuento
+    const totalConDescuento = totalSinDescuento - totalDescuento;
+
+    // Update pedido object using existing properties
+    this.selectedPedido.valorTotal = totalConDescuento;
+    this.selectedPedido.cantPedidoItem = this.getTotalItemsCount(); // Use total from all pages
+    this.selectedPedido.descuento = totalDescuento;
+
+    // Add calculated properties for template use
+    (this.selectedPedido as any).valorTotalSinDescuento = totalSinDescuento;
+    (this.selectedPedido as any).valorTotalDescuento = totalDescuento;
+
+    // Emit the updated pedido to parent component
+    this.pedidoChange.emit(this.selectedPedido);
+  }
+
+  /**
+   * Get total items count from all pages
+   */
+  getTotalItemsCount(): number {
+    return this.pedidoItemsPage?.getTotalElements || this.pedidoItemsDataSource.data.length;
   }
 }

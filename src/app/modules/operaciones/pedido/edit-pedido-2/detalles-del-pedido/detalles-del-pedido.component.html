@@ -1,28 +1,5 @@
 <div class="detalles-container">
-  <!-- Action Bar -->
-  <div class="action-header">
-    <div class="items-summary">
-      <span class="items-title">Items del Pedido</span>
-      <div class="total-display">
-        <span class="total-label">Total:</span>
-        <strong class="total-amount"
-          >Gs.
-          {{ getTotalValue() | number : "1.0-2" }}</strong
-        >
-      </div>
-    </div>
-    <button
-      mat-raised-button
-      color="primary"
-      (click)="openAddProductDialog()"
-      [disabled]="!selectedPedido?.proveedor"
-    >
-      <mat-icon>add_shopping_cart</mat-icon>
-      AGREGAR PRODUCTO
-    </button>
-  </div>
-
-  <!-- Search Bar, always visible -->
+  <!-- Search Bar with Add Product Button -->
   <div class="search-header">
     <div class="search-section">
       <mat-form-field appearance="outline" class="search-field">
@@ -47,10 +24,19 @@
         </div>
       </div>
     </div>
-    <div class="items-info">
-      <span class="items-count">
-        {{ pedidoItemsPage?.getTotalElements || pedidoItemsDataSource.data.length }} item(s) en el pedido
-      </span>
+    
+    <!-- Add Product Button -->
+    <div class="action-section">
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="openAddProductDialog()"
+        [disabled]="!canAgregarProducto"
+        class="add-product-btn"
+      >
+        <mat-icon>add_shopping_cart</mat-icon>
+        AGREGAR PRODUCTO
+      </button>
     </div>
   </div>
 
@@ -260,7 +246,7 @@
         mat-raised-button
         color="primary"
         (click)="openAddProductDialog()"
-        [disabled]="!selectedPedido?.proveedor"
+        [disabled]="!canAgregarProducto"
         class="empty-action-btn"
       >
         <mat-icon>add_shopping_cart</mat-icon>
