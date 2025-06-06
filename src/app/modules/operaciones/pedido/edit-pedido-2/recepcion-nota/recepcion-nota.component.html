@@ -1,0 +1,403 @@
+<div class="recepcion-nota-container">
+  <!-- Summary Cards Section -->
+  <div class="summary-section">
+    <div class="summary-cards">
+      <mat-card class="summary-card">
+        <mat-card-header>
+          <mat-card-title class="titulo-center">Items del Pedido</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="summary-stats">
+            <div class="stat-item">
+              <span class="stat-number">{{ totalItems }}</span>
+              <span class="stat-label">Total</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number assigned">{{ assignedItems }}</span>
+              <span class="stat-label">Asignados</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number pending">{{ pendingItems }}</span>
+              <span class="stat-label">Pendientes</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="summary-card">
+        <mat-card-header>
+          <mat-card-title class="titulo-center">Notas de Recepción</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="summary-stats">
+            <div class="stat-item">
+              <span class="stat-number">{{ totalNotas }}</span>
+              <span class="stat-label">Total Notas</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="openCrearNotaDialog()"
+        [disabled]="!canCreateNotaComputed || isProcessing"
+      >
+        <mat-icon>add</mat-icon>
+        CREAR NOTA CON ITEMS SELECCIONADOS
+        <span *ngIf="selectedItemIds.size > 0" class="selection-badge">
+          ({{ selectedItemIds.size }})
+        </span>
+      </button>
+
+      <button
+        mat-raised-button
+        color="accent"
+        (click)="onAsignarItemsANota()"
+        [disabled]="!canAssignItemsComputed || isProcessing"
+      >
+        <mat-icon>assignment</mat-icon>
+        ASIGNAR A NOTA SELECCIONADA
+        <span *ngIf="selectedItemIds.size > 0" class="selection-badge">
+          ({{ selectedItemIds.size }})
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="content-area">
+    <!-- Items Section -->
+    <div class="section-container">
+      <div class="section-header">
+        <h3 class="titulo-center">Items del Pedido</h3>
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Buscar items</mat-label>
+          <input
+            matInput
+            [formControl]="searchItemsControl"
+            placeholder="Buscar por producto..."
+          />
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+      </div>
+
+      <!-- Items Table -->
+      <div class="table-container" *ngIf="!isLoadingItems">
+        <table
+          mat-table
+          [dataSource]="pedidoItemsDataSource"
+          class="items-table"
+        >
+          <!-- Select Column -->
+          <ng-container matColumnDef="select">
+            <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+              <mat-checkbox
+                (change)="masterToggle()"
+                [checked]="allSelectedComputed"
+                [indeterminate]="itemsSelection.hasValue() && !allSelectedComputed"
+              >
+              </mat-checkbox>
+            </th>
+            <td mat-cell *matCellDef="let item" class="data-cell text-center">
+              <mat-checkbox
+                [checked]="itemsSelection.isSelected(item)"
+                [disabled]="item.isAssigned"
+                (click)="$event.stopPropagation()"
+                (change)="toggleItemSelection(item)"
+              >
+              </mat-checkbox>
+            </td>
+          </ng-container>
+
+          <!-- Producto Column -->
+          <ng-container matColumnDef="producto">
+            <th mat-header-cell *matHeaderCellDef class="header-cell">PRODUCTO</th>
+            <td mat-cell *matCellDef="let item" class="data-cell">
+              <div class="product-info">
+                <div class="product-name">
+                  {{ item.producto?.descripcion }}
+                </div>
+                <small class="product-code">
+                  Código: {{ item.producto?.codigoPrincipal }}
+                </small>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Presentación Column -->
+          <ng-container matColumnDef="presentacion">
+            <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+              PRESENTACIÓN
+            </th>
+            <td mat-cell *matCellDef="let item" class="data-cell text-center">
+              {{ item.presentacionCreacion?.descripcion }}
+              ({{ item.presentacionCreacion?.cantidad }})
+            </td>
+          </ng-container>
+
+          <!-- Cantidad Column -->
+          <ng-container matColumnDef="cantidad">
+            <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+              CANTIDAD
+            </th>
+            <td mat-cell *matCellDef="let item" class="data-cell text-center">
+              {{ item.cantidadCreacion }}
+            </td>
+          </ng-container>
+
+          <!-- Precio Column -->
+          <ng-container matColumnDef="precio">
+            <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+              PRECIO UNIT.
+            </th>
+            <td mat-cell *matCellDef="let item" class="data-cell text-center">
+              {{ monedaSymbol }}
+              {{ item.precioUnitarioCreacion | number : "1.0-2" }}
+            </td>
+          </ng-container>
+
+          <!-- Total Column -->
+          <ng-container matColumnDef="total">
+            <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+              TOTAL
+            </th>
+            <td mat-cell *matCellDef="let item" class="data-cell text-center">
+              <strong>
+                {{ monedaSymbol }}
+                {{ item.valorTotal | number : "1.0-2" }}
+              </strong>
+            </td>
+          </ng-container>
+
+          <!-- Estado Column -->
+          <ng-container matColumnDef="estado">
+            <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+              ESTADO
+            </th>
+            <td mat-cell *matCellDef="let item; let i = index" class="data-cell text-center">
+              <mat-chip
+                [ngClass]="itemsWithComputedProperties[i]?.statusClass"
+              >
+                {{ itemsWithComputedProperties[i]?.statusText }}
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <!-- Acciones Column -->
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+              ACCIONES
+            </th>
+            <td mat-cell *matCellDef="let item" class="data-cell text-center">
+              <button
+                mat-icon-button
+                *ngIf="item.isAssigned"
+                (click)="onDesasignarItem(item)"
+                matTooltip="Desasignar de nota"
+                class="action-btn"
+              >
+                <mat-icon>remove_circle</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="pedidoItemsColumns; sticky: true"></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: pedidoItemsColumns; let i = index"
+            [ngClass]="itemsWithComputedProperties[i]?.statusClass"
+          ></tr>
+        </table>
+      </div>
+
+      <!-- Loading for Items -->
+      <div *ngIf="isLoadingItems" class="loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Cargando items del pedido...</p>
+      </div>
+
+      <!-- Empty state for Items -->
+      <div
+        *ngIf="!isLoadingItems && pedidoItemsDataSource.data.length === 0"
+        class="empty-state"
+      >
+        <mat-icon class="empty-icon">shopping_cart</mat-icon>
+        <h4>No hay items disponibles</h4>
+        <p>Todos los items del pedido han sido asignados a notas de recepción</p>
+      </div>
+
+      <!-- Items Pagination -->
+      <mat-paginator
+        #itemsPaginator
+        *ngIf="!isLoadingItems && pedidoItemsDataSource.data.length > 0"
+        [length]="pedidoItemsPage?.getTotalElements || 0"
+        [pageSize]="15"
+        [pageSizeOptions]="[10, 15, 25, 50]"
+        (page)="onItemsPageChange($event)"
+        showFirstLastButtons
+      >
+      </mat-paginator>
+    </div>
+
+    <!-- Notas Section -->
+    <div class="section-container">
+      <div class="section-header">
+        <h3 class="titulo-center">Notas de Recepción</h3>
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Buscar por número</mat-label>
+          <input
+            matInput
+            [formControl]="searchNotasControl"
+            placeholder="Número de nota..."
+          />
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+      </div>
+
+      <!-- Notas Table -->
+      <div class="table-container" *ngIf="!isLoadingNotas">
+        <table
+          mat-table
+          [dataSource]="notasRecepcionDataSource"
+          class="notas-table"
+        >
+          <!-- Número Column -->
+          <ng-container matColumnDef="numero">
+            <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+              NÚMERO
+            </th>
+            <td mat-cell *matCellDef="let nota" class="data-cell text-center">
+              <strong>{{ nota.numero }}</strong>
+            </td>
+          </ng-container>
+
+          <!-- Tipo Boleta Column -->
+          <ng-container matColumnDef="tipoBoleta">
+            <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+              TIPO
+            </th>
+            <td mat-cell *matCellDef="let nota" class="data-cell text-center">
+              {{ nota.tipoBoleta }}
+            </td>
+          </ng-container>
+
+          <!-- Fecha Column -->
+          <ng-container matColumnDef="fecha">
+            <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+              FECHA
+            </th>
+            <td mat-cell *matCellDef="let nota" class="data-cell text-center">
+              {{ nota.fecha | date : "dd/MM/yyyy" }}
+            </td>
+          </ng-container>
+
+          <!-- Cantidad Items Column -->
+          <ng-container matColumnDef="cantidadItems">
+            <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+              ITEMS
+            </th>
+            <td mat-cell *matCellDef="let nota" class="data-cell text-center">
+              {{ nota.cantidadItens || 0 }}
+            </td>
+          </ng-container>
+
+          <!-- Valor Column -->
+          <ng-container matColumnDef="valor">
+            <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+              VALOR
+            </th>
+            <td mat-cell *matCellDef="let nota" class="data-cell text-center">
+              <strong>
+                {{ monedaSymbol }}
+                {{ nota.valor | number : "1.0-2" }}
+              </strong>
+            </td>
+          </ng-container>
+
+          <!-- Acciones Column -->
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+              ACCIONES
+            </th>
+            <td mat-cell *matCellDef="let nota" class="data-cell text-center">
+              <button
+                mat-icon-button
+                [matMenuTriggerFor]="notaMenu"
+                matTooltip="Acciones"
+                (click)="$event.stopPropagation()"
+              >
+                <mat-icon>more_vert</mat-icon>
+              </button>
+
+              <mat-menu #notaMenu="matMenu">
+                <button mat-menu-item (click)="onSelectNota(nota)">
+                  <mat-icon>
+                    {{ selectedNotaRecepcion?.id === nota.id ? 'radio_button_checked' : 'radio_button_unchecked' }}
+                  </mat-icon>
+                  <span>
+                    {{ selectedNotaRecepcion?.id === nota.id ? 'Deseleccionar' : 'Seleccionar para asignación' }}
+                  </span>
+                </button>
+                <button mat-menu-item (click)="onGestionarItems(nota)">
+                  <mat-icon>edit_note</mat-icon>
+                  <span>Gestionar Items</span>
+                </button>
+                <button mat-menu-item (click)="onEditarNota(nota)">
+                  <mat-icon>edit</mat-icon>
+                  <span>Editar</span>
+                </button>
+                <button mat-menu-item (click)="onEliminarNota(nota)" class="delete-menu-item">
+                  <mat-icon>delete</mat-icon>
+                  <span>Eliminar</span>
+                </button>
+              </mat-menu>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="notasRecepcionColumns; sticky: true"></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: notasRecepcionColumns"
+            [ngClass]="{ 'selected-nota': selectedNotaRecepcion?.id === row.id }"
+            (click)="onSelectNota(row)"
+            (dblclick)="onGestionarItems(row)"
+            class="clickable-row"
+          ></tr>
+        </table>
+      </div>
+
+      <!-- Loading for Notas -->
+      <div *ngIf="isLoadingNotas" class="loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Cargando notas de recepción...</p>
+      </div>
+
+      <!-- Empty state for Notas -->
+      <div
+        *ngIf="!isLoadingNotas && notasRecepcionDataSource.data.length === 0"
+        class="empty-state"
+      >
+        <mat-icon class="empty-icon">receipt</mat-icon>
+        <h4>No hay notas de recepción</h4>
+        <p>Cree una nueva nota para comenzar a asignar items</p>
+      </div>
+
+      <!-- Notas Pagination -->
+      <mat-paginator
+        #notasPaginator
+        *ngIf="!isLoadingNotas && notasRecepcionDataSource.data.length > 0"
+        [length]="notasRecepcionPage?.getTotalElements || 0"
+        [pageSize]="10"
+        [pageSizeOptions]="[5, 10, 20, 50]"
+        (page)="onNotasPageChange($event)"
+        showFirstLastButtons
+      >
+      </mat-paginator>
+    </div>
+  </div>
+</div> 

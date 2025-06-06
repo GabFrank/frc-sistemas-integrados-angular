@@ -56,6 +56,9 @@ import { ModificarSucursalPagoDetalleComponent } from './pago/pago-detalle-cuota
 import { DatosDelPedidoComponent } from './pedido/edit-pedido-2/datos-del-pedido/datos-del-pedido.component';
 import { DetallesDelPedidoComponent } from './pedido/edit-pedido-2/detalles-del-pedido/detalles-del-pedido.component';
 import { AddProductDialogComponent } from './pedido/edit-pedido-2/detalles-del-pedido/add-product-dialog/add-product-dialog.component';
+import { RecepcionNotaComponent } from './pedido/edit-pedido-2/recepcion-nota/recepcion-nota.component';
+import { CrearNotaRecepcionDialogComponent } from './pedido/edit-pedido-2/recepcion-nota/crear-nota-recepcion-dialog/crear-nota-recepcion-dialog.component';
+import { ManageNotaItemsDialogComponent } from './pedido/edit-pedido-2/recepcion-nota/manage-nota-items-dialog/manage-nota-items-dialog.component';
 
 @NgModule({
   declarations: [
@@ -108,7 +111,10 @@ import { AddProductDialogComponent } from './pedido/edit-pedido-2/detalles-del-p
     ModificarSucursalPagoDetalleComponent,
     DatosDelPedidoComponent,
     DetallesDelPedidoComponent,
-    AddProductDialogComponent
+    AddProductDialogComponent,
+    RecepcionNotaComponent,
+    CrearNotaRecepcionDialogComponent,
+    ManageNotaItemsDialogComponent
   ],
   imports: [
     CommonModule,

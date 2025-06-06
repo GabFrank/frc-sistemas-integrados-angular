@@ -386,3 +386,21 @@ input {
   color: #4caf50 !important;
 }
 
+// Global sticky header styles for Angular Material tables
+.mat-mdc-table, .mat-table {
+  .mat-mdc-header-row, .mat-header-row {
+    
+    &.mat-table-sticky {
+      z-index: 10;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+      
+      .mat-mdc-header-cell, th {
+        background-color: #3c3c3c !important;
+        border-bottom: 1px solid #f57c00 !important;
+        position: sticky;
+        top: 0;
+      }
+    }
+  }
+}
+

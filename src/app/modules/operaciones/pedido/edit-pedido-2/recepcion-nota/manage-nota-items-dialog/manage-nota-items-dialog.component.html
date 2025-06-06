@@ -1,0 +1,322 @@
+<div class="dialog-container">
+  <!-- Dialog Header -->
+  <div class="dialog-header">
+    <div style="font-size: 1.8rem; font-weight: 500">
+      {{ dialogTitleComputed }}
+    </div>
+  </div>
+
+  <!-- Dialog Content-->
+  <div class="dialog-content">
+    <!-- Nota Information, hide this section becouse is taking too much space-->
+    <!-- <div class="nota-info-section">
+      <div style="color: rgba(255, 255, 255, 0.644); font-size:medium; padding-bottom: 10px">Información de la Nota</div>
+      <div class="nota-details">
+        <div class="detail-item">
+          <span class="label">Nota #:</span>
+          <span class="value">{{ notaRecepcion?.numero }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Pedido #:</span>
+          <span class="value">{{ pedido?.id }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Proveedor:</span>
+          <span class="value">{{ pedido?.proveedor?.persona?.nombre }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Items asignados:</span>
+          <span class="value">{{ assignedCountComputed }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Items disponibles:</span>
+          <span class="value">{{ unassignedCountComputed }}</span>
+        </div>
+      </div>
+    </div> -->
+
+    <!-- Data not found message -->
+    <div class="no-data-message" *ngIf="!hasDataComputed && !isLoadingAssigned && !isLoadingUnassigned">
+      <mat-icon>inbox</mat-icon>
+      <p>No hay items para gestionar</p>
+    </div>
+
+    <!-- Items Management Section -->
+    <div class="items-management-section" *ngIf="hasDataComputed">
+      
+      <!-- Assigned Items Section -->
+      <div class="items-section assigned-section">
+        <div class="section-header">
+          <div class="section-title">
+            <mat-icon>assignment</mat-icon>
+            <span>Items Asignados a esta Nota</span>
+            <mat-chip class="count-chip">{{ assignedCountComputed }}</mat-chip>
+          </div>
+          <div class="section-actions">
+            <mat-form-field appearance="outline" class="search-field">
+              <mat-label>Buscar items asignados</mat-label>
+              <input matInput [formControl]="assignedSearchControl" placeholder="Buscar productos...">
+              <mat-icon matSuffix>search</mat-icon>
+            </mat-form-field>
+            <button 
+              mat-raised-button 
+              color="warn" 
+              [disabled]="!canRemoveItemsComputed"
+              (click)="onRemoveSelectedItems()"
+            >
+              <mat-icon>remove</mat-icon>
+              Remover {{ selectedAssignedCountComputed > 0 ? '(' + selectedAssignedCountComputed + ')' : '' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <mat-progress-bar *ngIf="isLoadingAssigned" mode="indeterminate"></mat-progress-bar>
+
+          <div class="table-content">
+            <table mat-table [dataSource]="assignedItemsDataSource" class="items-table">
+              <!-- Selection Column -->
+              <ng-container matColumnDef="select">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">
+                  <mat-checkbox 
+                    [checked]="isAllAssignedSelected()"
+                    [indeterminate]="selectedAssignedCountComputed > 0 && !isAllAssignedSelected()"
+                    (change)="toggleAllAssigned()"
+                    [disabled]="isProcessing">
+                  </mat-checkbox>
+                </th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  <mat-checkbox 
+                    [checked]="isAssignedItemSelected(item)"
+                    (change)="onAssignedItemToggle(item)"
+                    [disabled]="isProcessing">
+                  </mat-checkbox>
+                </td>
+              </ng-container>
+  
+              <!-- Product Column -->
+              <ng-container matColumnDef="producto">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">Producto</th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  <div class="product-info">
+                    <div class="product-name">{{ item.producto?.descripcion }}</div>
+                    <small class="product-code">Cód: {{ item.producto?.id }}</small>
+                  </div>
+                </td>
+              </ng-container>
+  
+              <!-- Presentation Column -->
+              <ng-container matColumnDef="presentacion">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">Presentación</th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  {{ item.presentacionCreacion?.descripcion }}
+                </td>
+              </ng-container>
+  
+              <!-- Quantity Column -->
+              <ng-container matColumnDef="cantidad">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">Cantidad</th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  {{ item.cantidadCreacion | number:'1.0-2' }}
+                </td>
+              </ng-container>
+  
+              <!-- Price Column -->
+              <ng-container matColumnDef="precio">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">Precio Unit.</th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  {{ monedaSymbolComputed }} {{ item.precioUnitarioCreacion | number:'1.0-2' }}
+                </td>
+              </ng-container>
+  
+              <!-- Total Column -->
+              <ng-container matColumnDef="total">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">Total</th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;" class="total-cell">
+                  {{ monedaSymbolComputed }} {{ item.valorTotal | number:'1.0-2' }}
+                </td>
+              </ng-container>
+  
+              <!-- Actions Column -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">Acciones</th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  <button 
+                    mat-icon-button 
+                    color="warn" 
+                    [disabled]="isProcessing"
+                    (click)="onRemoveItem(item)"
+                    matTooltip="Remover de la nota">
+                    <mat-icon>remove_circle</mat-icon>
+                  </button>
+                </td>
+              </ng-container>
+  
+              <tr mat-header-row *matHeaderRowDef="assignedItemsColumns; sticky: true"></tr>
+              <tr mat-row *matRowDef="let row; columns: assignedItemsColumns;"></tr>
+            </table>
+
+            <!-- Empty state for assigned items -->
+            <div class="empty-state" *ngIf="!isLoadingAssigned && assignedItemsDataSource.data.length === 0">
+              <mat-icon>assignment</mat-icon>
+              <p>No hay items asignados a esta nota</p>
+            </div>
+          </div>
+          
+          <div class="paginator-spacer"></div>
+
+          <mat-paginator 
+            #assignedPaginator
+            [length]="assignedPage?.getTotalElements"
+            [pageSize]="10"
+            [pageSizeOptions]="[5, 10, 20, 50]"
+            (page)="onAssignedPageChange($event)"
+            showFirstLastButtons>
+          </mat-paginator>
+        </div>
+      </div>
+
+      <!-- Unassigned Items Section -->
+      <div class="items-section unassigned-section">
+        <div class="section-header">
+          <div class="section-title">
+            <mat-icon>add_shopping_cart</mat-icon>
+            <span>Items Disponibles para Asignar</span>
+            <mat-chip class="count-chip">{{ unassignedCountComputed }}</mat-chip>
+          </div>
+          <div class="section-actions">
+            <mat-form-field appearance="outline" class="search-field">
+              <mat-label>Buscar items disponibles</mat-label>
+              <input matInput [formControl]="unassignedSearchControl" placeholder="Buscar productos...">
+              <mat-icon matSuffix>search</mat-icon>
+            </mat-form-field>
+            <button 
+              mat-raised-button 
+              color="primary" 
+              [disabled]="!canAddItemsComputed"
+              (click)="onAddSelectedItems()"
+            >
+              <mat-icon>add</mat-icon>
+              Agregar {{ selectedUnassignedCountComputed > 0 ? '(' + selectedUnassignedCountComputed + ')' : '' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <mat-progress-bar *ngIf="isLoadingUnassigned" mode="indeterminate"></mat-progress-bar>
+          
+          <div class="table-content">
+            <table mat-table [dataSource]="unassignedItemsDataSource" class="items-table">
+              <!-- Selection Column -->
+              <ng-container matColumnDef="select">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">
+                  <mat-checkbox 
+                    [checked]="isAllUnassignedSelected()"
+                    [indeterminate]="selectedUnassignedCountComputed > 0 && !isAllUnassignedSelected()"
+                    (change)="toggleAllUnassigned()"
+                    [disabled]="isProcessing">
+                  </mat-checkbox>
+                </th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  <mat-checkbox 
+                    [checked]="isUnassignedItemSelected(item)"
+                    (change)="onUnassignedItemToggle(item)"
+                    [disabled]="isProcessing">
+                  </mat-checkbox>
+                </td>
+              </ng-container>
+
+              <!-- Product Column -->
+              <ng-container matColumnDef="producto">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">Producto</th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  <div class="product-info">
+                    <div class="product-name">{{ item.producto?.descripcion }}</div>
+                    <small class="product-code">Cód: {{ item.producto?.id }}</small>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Presentation Column -->
+              <ng-container matColumnDef="presentacion">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">Presentación</th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  {{ item.presentacionCreacion?.descripcion }}
+                </td>
+              </ng-container>
+
+              <!-- Quantity Column -->
+              <ng-container matColumnDef="cantidad">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">Cantidad</th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  {{ item.cantidadCreacion | number:'1.0-2' }}
+                </td>
+              </ng-container>
+
+              <!-- Price Column -->
+              <ng-container matColumnDef="precio">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">Precio Unit.</th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  {{ monedaSymbolComputed }} {{ item.precioUnitarioCreacion | number:'1.0-2' }}
+                </td>
+              </ng-container>
+
+              <!-- Total Column -->
+              <ng-container matColumnDef="total">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">Total</th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;" class="total-cell">
+                  {{ monedaSymbolComputed }} {{ item.valorTotal | number:'1.0-2' }}
+                </td>
+              </ng-container>
+
+              <!-- Actions Column -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">Acciones</th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  <button 
+                    mat-icon-button 
+                    color="primary" 
+                    [disabled]="isProcessing"
+                    (click)="onAddItem(item)"
+                    matTooltip="Agregar a la nota">
+                    <mat-icon>add_circle</mat-icon>
+                  </button>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="unassignedItemsColumns; sticky: true"></tr>
+              <tr mat-row *matRowDef="let row; columns: unassignedItemsColumns;"></tr>
+            </table>
+
+            <!-- Empty state for unassigned items -->
+            <div class="empty-state" *ngIf="!isLoadingUnassigned && unassignedItemsDataSource.data.length === 0">
+              <mat-icon>add_shopping_cart</mat-icon>
+              <p>No hay items disponibles para asignar</p>
+            </div>
+          </div>
+
+          <div class="paginator-spacer"></div>
+
+          <mat-paginator 
+            #unassignedPaginator
+            [length]="unassignedPage?.getTotalElements"
+            [pageSize]="10"
+            [pageSizeOptions]="[5, 10, 20, 50]"
+            (page)="onUnassignedPageChange($event)"
+            showFirstLastButtons>
+          </mat-paginator>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Dialog Actions -->
+  <div class="dialog-actions">
+    <button mat-raised-button color="primary" (click)="onClose()" [disabled]="isProcessing">
+      <mat-icon *ngIf="isProcessing">hourglass_empty</mat-icon>
+      <mat-icon *ngIf="!isProcessing">close</mat-icon>
+      Cerrar
+    </button>
+  </div>
+</div> 

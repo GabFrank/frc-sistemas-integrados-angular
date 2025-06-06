@@ -260,52 +260,20 @@
         </div>
       </mat-step>
 
-      <!-- Step 3: Recepción de nota -->
-      <mat-step
-        [stepControl]="null"
-        [editable]="canAccessStep2"
-        [completed]="stepsConfig[2].completed"
-      >
-        <ng-template matStepLabel>
-          <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
-            <mat-icon>{{ stepsConfig[2].icon }}</mat-icon>
-            <span fxHide.xs>{{ stepsConfig[2].label }}</span>
-          </div>
-        </ng-template>
-
+      <!-- Step 3: Recepción de Nota -->
+      <mat-step label="Recepción de Nota" [stepControl]="dummyStepControl">
         <div class="step-content" fxLayout="column" fxFill>
-          <h3>{{ stepsConfig[2].label }}</h3>
-          <p>
-            Procesamiento de notas de recepción del proveedor. Verificación de
-            productos y cantidades recibidas.
-          </p>
-
-          <div
-            fxFlex
-            fxLayout="column"
-            fxLayoutAlign="center center"
-            class="step-placeholder"
-          >
-            <mat-icon class="large-icon">{{ stepsConfig[2].icon }}</mat-icon>
-            <p>
-              Aquí se implementará la funcionalidad para gestionar la recepción
-              de notas
-            </p>
-          </div>
-
-          <div
-            class="step-actions"
-            fxLayout="row"
-            fxLayoutAlign="space-between center"
-            fxLayoutGap="10px"
-          >
-            <button mat-button (click)="previousStep()">Anterior</button>
-            <button
-              mat-raised-button
-              color="primary"
-              (click)="nextStep()"
-              [disabled]="!canAccessStep3"
-            >
+          <app-recepcion-nota 
+            [selectedPedido]="selectedPedido"
+            (pedidoChange)="onPedidoChange($event)"
+            style="flex: 1; min-height: 0;">
+          </app-recepcion-nota>
+          
+          <div class="step-actions" fxLayout="row" fxLayoutAlign="space-between center" fxLayoutGap="10px">
+            <button mat-button (click)="previousStep()">
+              Anterior
+            </button>
+            <button mat-raised-button color="primary" (click)="nextStep()">
               Siguiente
             </button>
           </div>

@@ -72,6 +72,9 @@ export class EditPedido2Component implements OnInit {
   canGoToRecepcionNota = false;
   canAgregarProducto = false;
 
+  // Dummy step control for simple steps
+  dummyStepControl = new FormControl();
+
   constructor(
     private pedidoService: PedidoService,
     private mainService: MainService
@@ -87,49 +90,43 @@ export class EditPedido2Component implements OnInit {
         .onGetPedidoInfoCompleta(this.data.tabData.id)
         .subscribe((pedido) => {
           this.selectedPedido = pedido;
-          this.updateStepStates();
           this.updateStepAccessibility();
           this.updateEstadoColor();
           this.updateButtonStates();
+          
+          // Update step states after pedido is set and give Angular time to update
+          setTimeout(() => {
+            this.updateStepStates();
+          }, 100);
         });
     }
   }
 
   updateStepStates(): void {
     if (!this.selectedPedido) return;
+    
     const estado = this.selectedPedido.estado;
+    
     // Only calculate currentStepIndex based on pedido estado
     // Let Angular Material handle step states naturally
     switch (estado) {
       case PedidoEstado.ABIERTO:
-        setTimeout(() => {
-          this.currentStepIndex = 0;
-        }, 1000);
+        this.currentStepIndex = 0;
         break;
       case PedidoEstado.ACTIVO:
-        setTimeout(() => {
-          this.currentStepIndex = 1;
-        }, 1000);
+        this.currentStepIndex = 1;
         break;
       case PedidoEstado.EN_RECEPCION_NOTA:
-        setTimeout(() => {
-          this.currentStepIndex = 2;
-        }, 1000);
+        this.currentStepIndex = 2;
         break;
       case PedidoEstado.EN_RECEPCION_MERCADERIA:
-        setTimeout(() => {
-          this.currentStepIndex = 3;
-        }, 1000);
+        this.currentStepIndex = 3;
         break;
       case PedidoEstado.CONCLUIDO:
-        setTimeout(() => {
-          this.currentStepIndex = 4;
-        }, 1000);
+        this.currentStepIndex = 4;
         break;
       default:
-        setTimeout(() => {
-          this.currentStepIndex = 0;
-        }, 1000);
+        this.currentStepIndex = 0;
         break;
     }
 
@@ -277,13 +274,8 @@ export class EditPedido2Component implements OnInit {
 
   completePedido(): void {}
 
-  onPedidoChange(pedido: Pedido): void {
-    this.selectedPedido = pedido;
-    
-    // Update step states and accessibility when pedido changes
-    this.updateStepStates();
-    this.updateStepAccessibility();
-    this.updateEstadoColor();
+  onPedidoChange(updatedPedido: Pedido): void {
+    this.selectedPedido = updatedPedido;
     this.updateButtonStates();
   }
 
