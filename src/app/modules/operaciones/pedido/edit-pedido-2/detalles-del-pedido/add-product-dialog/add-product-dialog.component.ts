@@ -21,6 +21,7 @@ import { debounceTime, distinctUntilChanged } from "rxjs/operators";
 
 import { Pedido } from "../../../edit-pedido/pedido.model";
 import { PedidoItem } from "../../../edit-pedido/pedido-item.model";
+import { PedidoStep } from "../../../edit-pedido/pedido-item.model";
 import { ProductoProveedor } from "../../../../../productos/producto-proveedor/producto-proveedor.model";
 import { Producto } from "../../../../../productos/producto/producto.model";
 import { CompraItem } from "../../../../compra/compra-item.model";
@@ -45,6 +46,7 @@ export interface AddProductDialogData {
   pedido: Pedido;
   pedidoItem?: PedidoItem; // Optional - for editing existing items
   isEditing?: boolean; // Flag to indicate edit mode
+  currentStep?: PedidoStep; // Current step context
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -147,6 +149,12 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   priceChangePercentage = 0;
   showPriceWarning = false;
 
+  // Step context
+  currentStep: PedidoStep = PedidoStep.DETALLES_PEDIDO;
+  
+  // Modification tracking
+  hasModifications = false;
+
   constructor(
     public dialogRef: MatDialogRef<AddProductDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: AddProductDialogData,
@@ -162,6 +170,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.setupFormSubscriptions();
     this.loadProductosProveedor();
+    
+    // Set current step context
+    this.currentStep = this.data.currentStep || PedidoStep.DETALLES_PEDIDO;
 
     // If editing an existing item, load its data
     if (this.data.isEditing && this.data.pedidoItem) {
@@ -476,76 +487,191 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     const formValue = this.productSelectionFormGroup.value;
 
     if (this.data.isEditing && this.data.pedidoItem) {
-      // Update existing pedido item
-      const pedidoItem = this.data.pedidoItem;
-      pedidoItem.presentacionCreacion = formValue.presentacion;
-      pedidoItem.cantidadCreacion = formValue.cantidad;
-      pedidoItem.precioUnitarioCreacion = formValue.precioUnitario;
-      pedidoItem.descuentoUnitarioCreacion = formValue.descuentoUnitario || 0;
-      pedidoItem.valorTotal =
-        formValue.cantidad *
-        formValue.presentacion.cantidad *
-        (formValue.precioUnitario - (formValue.descuentoUnitario || 0));
-      // there is an error saying that pedidoItem.toInput() is not a function, so I'm going to fix it
-      let pedidoAux = new PedidoItem();
-      Object.assign(pedidoAux, pedidoItem);
-      this.pedidoService
-        .onSaveItem(pedidoAux.toInput())
-        .pipe(untilDestroyed(this))
-        .subscribe({
-          next: (response) => {
-            this.notificacionService.openSucess(
-              "Item actualizado exitosamente"
-            );
-            this.dialogRef.close({ updated: true, pedidoItem: response });
-          },
-          error: () => {
-            this.notificacionService.openWarn(
-              "Error al actualizar item del pedido"
-            );
-          },
-        });
+      // Update existing pedido item with step-aware logic
+      this.updatePedidoItemForStep(formValue);
     } else {
-      // Add new pedido item
-      const pedidoItem = new PedidoItem();
-      pedidoItem.pedido = this.data.pedido;
-      pedidoItem.producto = this.selectedProducto;
-      pedidoItem.presentacionCreacion = formValue.presentacion;
-      pedidoItem.cantidadCreacion = formValue.cantidad;
-      pedidoItem.precioUnitarioCreacion = formValue.precioUnitario;
-      pedidoItem.descuentoUnitarioCreacion = formValue.descuentoUnitario || 0;
-      pedidoItem.valorTotal =
-        formValue.cantidad *
-        formValue.presentacion.cantidad *
-        (formValue.precioUnitario - (formValue.descuentoUnitario || 0));
-      pedidoItem.usuarioCreacion = this.mainService.usuarioActual;
-
-      let pedidoAux = new PedidoItem();
-      Object.assign(pedidoAux, pedidoItem);
-      this.pedidoService
-        .onSaveItem(pedidoAux.toInput())
-        .pipe(untilDestroyed(this))
-        .subscribe({
-          next: (response) => {
-            this.notificacionService.openSucess("Producto agregado al pedido");
-            this.dialogRef.close({ added: true, pedidoItem: response });
-          },
-          error: () => {
-            this.notificacionService.openWarn(
-              "Error al agregar producto al pedido"
-            );
-          },
-        });
+      // Add new pedido item (always creates in DETALLES_PEDIDO step)
+      this.createNewPedidoItem(formValue);
     }
   }
 
-  onRepeatFromHistory(compraItem: any): void {
-    // Fill form with historical data
-    this.productSelectionFormGroup.patchValue({
-      cantidad: compraItem.cantidad,
-      precioUnitario: compraItem.precio,
-      descuentoUnitario: 0,
-    });
+  private updatePedidoItemForStep(formValue: any): void {
+    const pedidoItemData = this.data.pedidoItem;
+    if (!pedidoItemData) return;
+
+    // Create a proper PedidoItem instance from the data
+    const pedidoItem = new PedidoItem();
+    Object.assign(pedidoItem, pedidoItemData);
+
+    // For RecepcionNota step: if this is the first time editing, copy Creacion data first
+    if (this.currentStep === PedidoStep.RECEPCION_NOTA) {
+      const hasRecepcionNotaData = pedidoItem.precioUnitarioRecepcionNota !== null && 
+                                   pedidoItem.precioUnitarioRecepcionNota !== undefined;
+      
+      if (!hasRecepcionNotaData) {
+        // Copy creation data to RecepcionNota fields before applying user changes
+        pedidoItem.copyStepValues(PedidoStep.DETALLES_PEDIDO, PedidoStep.RECEPCION_NOTA);
+      }
+    }
+
+    // For RecepcionProducto step: if this is the first time editing, copy previous step data first  
+    if (this.currentStep === PedidoStep.RECEPCION_PRODUCTO) {
+      const hasRecepcionProductoData = pedidoItem.precioUnitarioRecepcionProducto !== null && 
+                                       pedidoItem.precioUnitarioRecepcionProducto !== undefined;
+      
+      if (!hasRecepcionProductoData) {
+        // Try to copy from RecepcionNota first, fallback to Creacion
+        const hasRecepcionNotaData = pedidoItem.precioUnitarioRecepcionNota !== null && 
+                                     pedidoItem.precioUnitarioRecepcionNota !== undefined;
+        
+        if (hasRecepcionNotaData) {
+          pedidoItem.copyStepValues(PedidoStep.RECEPCION_NOTA, PedidoStep.RECEPCION_PRODUCTO);
+        } else {
+          pedidoItem.copyStepValues(PedidoStep.DETALLES_PEDIDO, PedidoStep.RECEPCION_PRODUCTO);
+        }
+      }
+    }
+
+    // Set the appropriate step values (user's changes)
+    pedidoItem.setFieldValueForStep('presentacion', formValue.presentacion, this.currentStep);
+    pedidoItem.setFieldValueForStep('cantidad', formValue.cantidad, this.currentStep);
+    pedidoItem.setFieldValueForStep('precioUnitario', formValue.precioUnitario, this.currentStep);
+    pedidoItem.setFieldValueForStep('descuentoUnitario', formValue.descuentoUnitario || 0, this.currentStep);
+    
+    // Set step-specific user and modification tracking
+    if (this.currentStep === PedidoStep.RECEPCION_NOTA) {
+      pedidoItem.usuarioRecepcionNota = this.mainService.usuarioActual;
+      
+      // Check if modifications were made
+      const modificationsDetected = this.detectModifications(formValue);
+      if (modificationsDetected) {
+        pedidoItem.motivoModificacionRecepcionNota = this.getModificationReason(formValue);
+      }
+    } else if (this.currentStep === PedidoStep.RECEPCION_PRODUCTO) {
+      pedidoItem.usuarioRecepcionProducto = this.mainService.usuarioActual;
+      
+      // Check if modifications were made
+      const modificationsDetected = this.detectModifications(formValue);
+      if (modificationsDetected) {
+        pedidoItem.motivoModificacionRecepcionProducto = this.getModificationReason(formValue);
+      }
+    }
+
+    // Calculate total based on current step values
+    const currentPresentacion = pedidoItem.getFieldValueForStep('presentacion', this.currentStep);
+    const currentCantidad = pedidoItem.getFieldValueForStep('cantidad', this.currentStep);
+    const currentPrecio = pedidoItem.getFieldValueForStep('precioUnitario', this.currentStep);
+    const currentDescuento = pedidoItem.getFieldValueForStep('descuentoUnitario', this.currentStep);
+    
+    pedidoItem.valorTotal = 
+      currentCantidad * 
+      currentPresentacion.cantidad * 
+      (currentPrecio - (currentDescuento || 0));
+
+    // Save the updated item
+    let pedidoAux = new PedidoItem();
+    Object.assign(pedidoAux, pedidoItem);
+    
+    this.pedidoService
+      .onSaveItem(pedidoAux.toInput())
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (response) => {
+          this.notificacionService.openSucess("Item actualizado exitosamente");
+          this.dialogRef.close({ updated: true, pedidoItem: response, step: this.currentStep });
+        },
+        error: () => {
+          this.notificacionService.openWarn("Error al actualizar item del pedido");
+        },
+      });
+  }
+
+  private createNewPedidoItem(formValue: any): void {
+    const pedidoItem = new PedidoItem();
+    pedidoItem.pedido = this.data.pedido;
+    pedidoItem.producto = this.selectedProducto;
+    
+    // Always create new items with Creacion fields
+    pedidoItem.presentacionCreacion = formValue.presentacion;
+    pedidoItem.cantidadCreacion = formValue.cantidad;
+    pedidoItem.precioUnitarioCreacion = formValue.precioUnitario;
+    pedidoItem.descuentoUnitarioCreacion = formValue.descuentoUnitario || 0;
+    pedidoItem.valorTotal =
+      formValue.cantidad *
+      formValue.presentacion.cantidad *
+      (formValue.precioUnitario - (formValue.descuentoUnitario || 0));
+    pedidoItem.usuarioCreacion = this.mainService.usuarioActual;
+
+    let pedidoAux = new PedidoItem();
+    Object.assign(pedidoAux, pedidoItem);
+    
+    this.pedidoService
+      .onSaveItem(pedidoAux.toInput())
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (response) => {
+          this.notificacionService.openSucess("Producto agregado al pedido");
+          this.dialogRef.close({ added: true, pedidoItem: response, step: this.currentStep });
+        },
+        error: () => {
+          this.notificacionService.openWarn("Error al agregar producto al pedido");
+        },
+      });
+  }
+
+  private detectModifications(formValue: any): boolean {
+    if (!this.data.pedidoItem) return false;
+    
+    // Create a proper PedidoItem instance from the data
+    const pedidoItem = new PedidoItem();
+    Object.assign(pedidoItem, this.data.pedidoItem);
+    
+    // Get previous step values for comparison
+    let previousStep: PedidoStep;
+    if (this.currentStep === PedidoStep.RECEPCION_PRODUCTO) {
+      previousStep = PedidoStep.RECEPCION_NOTA;
+    } else if (this.currentStep === PedidoStep.RECEPCION_NOTA) {
+      previousStep = PedidoStep.DETALLES_PEDIDO;
+    } else {
+      return false; // No previous step to compare
+    }
+    
+    const previousPresentacion = pedidoItem.getFieldValueForStep('presentacion', previousStep);
+    const previousCantidad = pedidoItem.getFieldValueForStep('cantidad', previousStep);
+    const previousPrecio = pedidoItem.getFieldValueForStep('precioUnitario', previousStep);
+    const previousDescuento = pedidoItem.getFieldValueForStep('descuentoUnitario', previousStep);
+    
+    return (
+      formValue.presentacion?.id !== previousPresentacion?.id ||
+      formValue.cantidad !== previousCantidad ||
+      formValue.precioUnitario !== previousPrecio ||
+      (formValue.descuentoUnitario || 0) !== (previousDescuento || 0)
+    );
+  }
+
+  private getModificationReason(formValue: any): string {
+    // This could be enhanced to automatically detect the specific type of modification
+    // For now, return a generic message or prompt user for specific reason
+    return 'MODIFICACION_EN_RECEPCION'; // Could be enhanced with more specific logic
+  }
+
+  // Method to determine if current step allows modifications
+  get canModifyInCurrentStep(): boolean {
+    return this.currentStep !== PedidoStep.DETALLES_PEDIDO || !this.data.isEditing;
+  }
+
+  // Method to get step display name for UI
+  get currentStepDisplayName(): string {
+    switch (this.currentStep) {
+      case PedidoStep.DETALLES_PEDIDO:
+        return 'Detalles del Pedido';
+      case PedidoStep.RECEPCION_NOTA:
+        return 'Recepción de Nota';
+      case PedidoStep.RECEPCION_PRODUCTO:
+        return 'Recepción de Producto';
+      default:
+        return 'Desconocido';
+    }
   }
 
   calculateTotalPreview(): void {
@@ -956,39 +1082,42 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   }
 
   private loadPedidoItemForEditing(): void {
-    const pedidoItem = this.data.pedidoItem;
-    if (!pedidoItem) return;
+    const pedidoItemData = this.data.pedidoItem;
+    if (!pedidoItemData) return;
+
+    // Create a proper PedidoItem instance from the data
+    const pedidoItem = new PedidoItem();
+    Object.assign(pedidoItem, pedidoItemData);
 
     // Set the selected product
     this.selectedProducto = pedidoItem.producto;
     this.selectedProductoProveedor = null; // Clear proveedor selection since this is direct editing
 
-    // Set original price for validation
+    // Get step-appropriate values using the helper methods
+    const presentacion = pedidoItem.getFieldValueForStep('presentacion', this.currentStep);
+    const cantidad = pedidoItem.getFieldValueForStep('cantidad', this.currentStep);
+    const precioUnitario = pedidoItem.getFieldValueForStep('precioUnitario', this.currentStep);
+    const descuentoUnitario = pedidoItem.getFieldValueForStep('descuentoUnitario', this.currentStep);
+    const vencimiento = pedidoItem.getFieldValueForStep('vencimiento', this.currentStep);
+
+    // Set original price for validation - always use the creation price as baseline
     this.originalPrice = pedidoItem.precioUnitarioCreacion || 0;
     this.clearPriceWarning();
 
     // Enable form controls
     this.enableFormControls();
 
-    // Find the matching presentacion object to ensure proper selection
-    const presentacionToSelect =
-      this.selectedProducto?.presentaciones?.find(
-        (p) => p.id === pedidoItem.presentacionCreacion?.id
-      ) || pedidoItem.presentacionCreacion;
-
-    // Load the form with existing data
+    // Load the form with step-appropriate data
     this.productSelectionFormGroup.patchValue({
-      presentacion: presentacionToSelect,
-      cantidad: pedidoItem.cantidadCreacion,
-      precioUnitario: pedidoItem.precioUnitarioCreacion,
-      precioPorPresentacion: pedidoItem.presentacionCreacion?.cantidad
-        ? (pedidoItem.precioUnitarioCreacion || 0) *
-          pedidoItem.presentacionCreacion.cantidad
+      presentacion: presentacion,
+      cantidad: cantidad,
+      precioUnitario: precioUnitario,
+      precioPorPresentacion: presentacion?.cantidad
+        ? (precioUnitario || 0) * presentacion.cantidad
         : 0,
-      descuentoUnitario: pedidoItem.descuentoUnitarioCreacion || 0,
-      descuentoPorPresentacion: pedidoItem.presentacionCreacion?.cantidad
-        ? (pedidoItem.descuentoUnitarioCreacion || 0) *
-          pedidoItem.presentacionCreacion.cantidad
+      descuentoUnitario: descuentoUnitario || 0,
+      descuentoPorPresentacion: presentacion?.cantidad
+        ? (descuentoUnitario || 0) * presentacion.cantidad
         : 0,
     });
 
@@ -999,6 +1128,20 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
     // Load historical purchases for this product
     this.loadHistoricoCompras();
+    
+    // Track if we're showing data from a different step (indicating potential modifications)
+    this.trackModificationStatus();
+  }
+
+  private trackModificationStatus(): void {
+    if (!this.data.pedidoItem) return;
+    
+    // Create a proper PedidoItem instance from the data
+    const pedidoItem = new PedidoItem();
+    Object.assign(pedidoItem, this.data.pedidoItem);
+    
+    // Check if current step has modifications compared to previous steps
+    this.hasModifications = pedidoItem.hasModificationsInStep(this.currentStep);
   }
 
   // Helper methods for enabling/disabling form controls
@@ -1023,5 +1166,14 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   // Getter for form validity check (to replace template disabled binding)
   get isFormInvalidOrNoProduct(): boolean {
     return this.productSelectionFormGroup.invalid || !this.selectedProducto;
+  }
+
+  onRepeatFromHistory(compraItem: any): void {
+    // Fill form with historical data
+    this.productSelectionFormGroup.patchValue({
+      cantidad: compraItem.cantidad,
+      precioUnitario: compraItem.precio,
+      descuentoUnitario: 0,
+    });
   }
 }

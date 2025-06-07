@@ -1,11 +1,12 @@
 import { Injectable } from "@angular/core";
-import { BehaviorSubject, Observable } from "rxjs";
+import { BehaviorSubject, Observable, of } from "rxjs";
+import { map } from "rxjs/operators";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import {
   NotificacionColor,
   NotificacionSnackbarService,
 } from "../../../notificacion-snackbar.service";
-import { PedidoItem, PedidoItemInput } from "./edit-pedido/pedido-item.model";
+import { PedidoItem, PedidoItemInput, PedidoStep } from "./edit-pedido/pedido-item.model";
 import { Pedido, PedidoInput } from "./edit-pedido/pedido.model";
 import { PedidoInfoCompletaGQL } from "./graphql/pedidoInfoCompleta";
 import { PedidoInfoResumidoGQL } from "./graphql/pedidoInfoResumido";
@@ -264,5 +265,88 @@ export class PedidoService {
 
   onVerificarDistribucionSucursales(id): Observable<boolean> {
     return this.genericService.onCustomQuery(this.verificarDistribucionSucursalesGQL, {id});
+  }
+
+  // Step-aware methods for PedidoItem management
+  
+  /**
+   * Prepare pedido items for step transition by copying previous step data if no modifications exist
+   * @param pedidoId - ID of the pedido
+   * @param fromStep - Previous step
+   * @param toStep - Target step
+   */
+  prepareItemsForStepTransition(pedidoId: number, fromStep: PedidoStep, toStep: PedidoStep): Observable<boolean> {
+    return this.onGetPedidoInfoCompleta(pedidoId).pipe(
+      map(pedido => {
+        let hasUpdates = false;
+        
+        pedido.pedidoItens?.forEach(itemData => {
+          // Create a proper PedidoItem instance from the data
+          const item = new PedidoItem();
+          Object.assign(item, itemData);
+          
+          // Only copy values if the target step doesn't have data yet
+          if (!this.hasDataForStep(item, toStep)) {
+            item.copyStepValues(fromStep, toStep);
+            
+            // Copy the modified values back to the original object
+            Object.assign(itemData, item);
+            hasUpdates = true;
+          }
+        });
+        
+        // Save the updated pedido if there were changes
+        if (hasUpdates) {
+          this.onSave(pedido.toInput()).subscribe();
+        }
+        
+        return hasUpdates;
+      })
+    );
+  }
+  
+  /**
+   * Check if a pedido item has data for a specific step
+   */
+  private hasDataForStep(item: PedidoItem, step: PedidoStep): boolean {
+    switch (step) {
+      case PedidoStep.RECEPCION_NOTA:
+        return item.precioUnitarioRecepcionNota !== null && 
+               item.precioUnitarioRecepcionNota !== undefined;
+      case PedidoStep.RECEPCION_PRODUCTO:
+        return item.precioUnitarioRecepcionProducto !== null && 
+               item.precioUnitarioRecepcionProducto !== undefined;
+      default:
+        return true; // Creation step always has data
+    }
+  }
+  
+  /**
+   * Mark pedido items as verified for a specific step
+   * @param pedidoItemIds - Array of pedido item IDs
+   * @param step - Step to mark as verified
+   */
+  markItemsAsVerified(pedidoItemIds: number[], step: PedidoStep): Observable<boolean> {
+    // This would need a corresponding GraphQL mutation
+    // For now, returning a placeholder
+    console.log(`Marking items ${pedidoItemIds} as verified for step ${step}`);
+    return of(true);
+  }
+  
+  /**
+   * Get current step context based on pedido estado
+   */
+  getCurrentStepFromPedidoEstado(estado: any): PedidoStep {
+    switch (estado) {
+      case 'ABIERTO':
+      case 'ACTIVO':
+        return PedidoStep.DETALLES_PEDIDO;
+      case 'EN_RECEPCION_NOTA':
+        return PedidoStep.RECEPCION_NOTA;
+      case 'EN_RECEPCION_MERCADERIA':
+        return PedidoStep.RECEPCION_PRODUCTO;
+      default:
+        return PedidoStep.DETALLES_PEDIDO;
+    }
   }
 }

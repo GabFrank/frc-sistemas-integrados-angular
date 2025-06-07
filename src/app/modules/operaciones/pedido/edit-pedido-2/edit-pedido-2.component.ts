@@ -2,16 +2,19 @@ import { Component, Input, OnInit, ViewChild } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
 import { MatStepper } from "@angular/material/stepper";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { MatDialog } from "@angular/material/dialog";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { MainService } from "../../../../main.service";
 import { PedidoService } from "../pedido.service";
 import { Pedido } from "../edit-pedido/pedido.model";
 import { PedidoEstado } from "../edit-pedido/pedido-enums";
+import { PedidoItem, PedidoStep } from "../edit-pedido/pedido-item.model";
 import { Proveedor } from "../../../personas/proveedor/proveedor.model";
 import { Vendedor } from "../../../personas/vendedor/vendedor.model";
 import { FormaPago } from "../../../financiero/forma-pago/forma-pago.model";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
+import { AddProductDialogComponent, AddProductDialogData } from "./detalles-del-pedido/add-product-dialog/add-product-dialog.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -77,7 +80,8 @@ export class EditPedido2Component implements OnInit {
 
   constructor(
     private pedidoService: PedidoService,
-    private mainService: MainService
+    private mainService: MainService,
+    private matDialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -240,17 +244,68 @@ export class EditPedido2Component implements OnInit {
 
   goToStep(stepIndex: number): void {
     if (this.stepsConfig[stepIndex]?.accessible && this.stepper) {
-      this.stepper.selectedIndex = stepIndex;
+      this.currentStepIndex = stepIndex;
     }
   }
 
-  // New method to move to "Recepcion de nota" step and save new estado
+  // New method to open add product dialog with step context
+  openAddProductDialog(pedidoItem?: PedidoItem, isEditing = false): void {
+    if (!this.selectedPedido) return;
+    
+    const currentStep = this.pedidoService.getCurrentStepFromPedidoEstado(this.selectedPedido.estado);
+    
+    const dialogData: AddProductDialogData = {
+      pedido: this.selectedPedido,
+      pedidoItem: pedidoItem,
+      isEditing: isEditing,
+      currentStep: currentStep
+    };
+
+    const dialogRef = this.matDialog.open(AddProductDialogComponent, {
+      data: dialogData,
+      width: '90%',
+      maxWidth: '1200px',
+      height: '80%',
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result?.added || result?.updated) {
+        // Refresh pedido data after item is added/updated
+        this.loadPedidoData();
+        
+        // Show appropriate message based on step
+        const action = result.added ? 'agregado' : 'actualizado';
+        const stepName = this.getStepDisplayName(result.step);
+        console.log(`Item ${action} en paso: ${stepName}`);
+      }
+    });
+  }
+
+  // Helper method to get step display name
+  private getStepDisplayName(step: PedidoStep): string {
+    switch (step) {
+      case PedidoStep.DETALLES_PEDIDO:
+        return 'Detalles del Pedido';
+      case PedidoStep.RECEPCION_NOTA:
+        return 'Recepción de Nota';
+      case PedidoStep.RECEPCION_PRODUCTO:
+        return 'Recepción de Producto';
+      default:
+        return 'Desconocido';
+    }
+  }
+
+  // Method to handle step transitions with data preparation
   goToRecepcionNota(): void {
     if (!this.canGoToRecepcionNota || !this.selectedPedido) {
       return;
     }
 
     // Update pedido estado to EN_RECEPCION_NOTA and save
+    // Note: We don't copy data automatically - it will be copied only when:
+    // 1. Items are edited in recepcion nota step
+    // 2. Items are assigned to nota recepcion
     this.pedidoService
       .onFinalizarPedido(this.selectedPedido.id, PedidoEstado.EN_RECEPCION_NOTA)
       .pipe(untilDestroyed(this))

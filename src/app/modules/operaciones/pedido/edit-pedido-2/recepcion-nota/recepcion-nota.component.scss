@@ -16,10 +16,15 @@
   .summary-cards {
     display: flex;
     gap: 16px;
-    flex-wrap: wrap;
+
+    .pedido-items-summary-card {
+      flex: 55%;
+    }
+    .notas-summary-card {
+      flex: 45%;
+    }
 
     .summary-card {
-      flex: 1;
       min-width: 250px;
       background-color: rgba(40, 40, 40, 0.8);
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -67,7 +72,7 @@
   .action-buttons {
     display: flex;
     gap: 12px;
-    justify-content: center;
+    justify-content: flex-end;
     flex-wrap: wrap;
 
     button {
@@ -86,6 +91,17 @@
         margin-left: 4px;
         font-size: 12px;
       }
+      
+      .nota-selected-badge {
+        font-weight: bold;
+        color: #4caf50;
+        background-color: rgba(76, 175, 80, 0.2);
+        border-radius: 12px;
+        padding: 2px 6px;
+        margin-left: 4px;
+        font-size: 11px;
+        border: 1px solid rgba(76, 175, 80, 0.3);
+      }
     }
   }
 }
@@ -97,8 +113,14 @@
   flex: 1;
   min-height: 0;
 
+  .pedido-items-section {
+    flex: 55%;
+  }
+  .notas-section {
+    flex: 45%;
+  }
+
   .section-container {
-    flex: 1;
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -234,8 +256,13 @@
     }
 
     &.selected-nota {
-      background-color: rgba(33, 150, 243, 0.2);
-      border-left: 3px solid #2196f3;
+      background-color: rgba(76, 175, 80, 0.25) !important;
+      border-left: 4px solid #4caf50;
+      box-shadow: inset 0 0 0 1px rgba(76, 175, 80, 0.3);
+      
+      &:hover {
+        background-color: rgba(76, 175, 80, 0.35) !important;
+      }
     }
 
     &.clickable-row {
@@ -306,6 +333,12 @@
   }
 
   .summary-section {
+    .pedido-items-summary-card {
+      flex: 55%;
+    }
+    .notas-summary-card {
+      flex: 45%;
+    }
     .summary-cards {
       flex-direction: column;
 
@@ -408,5 +441,40 @@
     align-items: center;
     gap: 16px;
     color: white;
+  }
+}
+
+// Specific styling for nota rows
+.nota-row {
+  position: relative;
+  
+  &[data-selected="true"] {
+    background-color: rgba(76, 175, 80, 0.25) !important;
+    border-left: 4px solid #4caf50;
+    box-shadow: inset 0 0 0 1px rgba(76, 175, 80, 0.3);
+    
+    &::after {
+      content: "✓ SELECCIONADA";
+      position: absolute;
+      top: 50%;
+      right: 60px;
+      transform: translateY(-50%);
+      font-size: 9px;
+      font-weight: bold;
+      color: #4caf50;
+      background-color: rgba(76, 175, 80, 0.3);
+      padding: 2px 5px;
+      border-radius: 8px;
+      z-index: 1;
+      pointer-events: none;
+    }
+    
+    &:hover {
+      background-color: rgba(76, 175, 80, 0.35) !important;
+      
+      &::after {
+        background-color: rgba(76, 175, 80, 0.4);
+      }
+    }
   }
 }

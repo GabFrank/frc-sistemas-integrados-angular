@@ -8,7 +8,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { SelectionModel } from '@angular/cdk/collections';
 
 import { Pedido } from '../../edit-pedido/pedido.model';
-import { PedidoItem } from '../../edit-pedido/pedido-item.model';
+import { PedidoItem, PedidoStep } from '../../edit-pedido/pedido-item.model';
 import { NotaRecepcion } from '../../nota-recepcion/nota-recepcion.model';
 import { PageInfo } from '../../../../../app.component';
 
@@ -21,6 +21,7 @@ import { DialogosService } from '../../../../../shared/components/dialogos/dialo
 import { CrearNotaRecepcionDialogComponent } from './crear-nota-recepcion-dialog/crear-nota-recepcion-dialog.component';
 import { ManageNotaItemsDialogComponent } from './manage-nota-items-dialog/manage-nota-items-dialog.component';
 import { DividirItemDialogComponent } from '../../dividir-item-dialog/dividir-item-dialog.component';
+import { AddProductDialogComponent, AddProductDialogData } from '../detalles-del-pedido/add-product-dialog/add-product-dialog.component';
 import { dateToString, parseShortDate } from '../../../../../commons/core/utils/dateUtils';
 
 interface PedidoItemWithStatus extends PedidoItem {
@@ -350,6 +351,30 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
     });
   }
 
+  onCrearNotaVacia(): void {
+    const dialogRef = this.dialog.open(CrearNotaRecepcionDialogComponent, {
+      width: '50%',
+      height: '80%',
+      data: {
+        pedido: this.selectedPedido,
+        selectedItems: [] // Empty array - no items selected
+      },
+      disableClose: false
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result?.notaCreated) {
+        this.notificacionService.openSucess('Nota de recepción creada exitosamente');
+        
+        this.loadPedidoItems();
+        this.loadNotasRecepcion();
+        
+        // Emit pedido change to update parent component
+        this.pedidoChange.emit(this.selectedPedido);
+      }
+    });
+  }
+
   onAsignarItemsANota(): void {
     if (this.selectedItemIds.size === 0) {
       this.notificacionService.openWarn('Seleccione al menos un item para asignar');
@@ -389,9 +414,45 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
   }
 
   private async asignarItemsANota(itemIds: number[], notaRecepcionId: number): Promise<void> {
-    // Use the existing service method to assign items
+    // First, ensure items have RecepcionNota data by copying from Creacion if needed
+    for (const itemId of itemIds) {
+      await this.ensureItemHasRecepcionNotaData(itemId);
+    }
+    
+    // Then assign items to nota recepcion
     for (const itemId of itemIds) {
       await this.pedidoService.onAddPedidoItemToNotaRecepcion(notaRecepcionId, itemId).toPromise();
+    }
+  }
+
+  private async ensureItemHasRecepcionNotaData(itemId: number): Promise<void> {
+    try {
+      // Get the current item data
+      const item = await this.pedidoService.onGetPedidoItem(itemId).toPromise();
+      
+      // Check if it already has RecepcionNota data
+      const hasRecepcionNotaData = item.precioUnitarioRecepcionNota !== null && 
+                                   item.precioUnitarioRecepcionNota !== undefined;
+      
+      if (!hasRecepcionNotaData) {
+        // Create proper PedidoItem instance and copy data
+        const pedidoItem = new PedidoItem();
+        Object.assign(pedidoItem, item);
+        
+        // Copy Creacion data to RecepcionNota fields
+        pedidoItem.copyStepValues(PedidoStep.DETALLES_PEDIDO, PedidoStep.RECEPCION_NOTA);
+        
+        // Set the user who is doing the assignment
+        pedidoItem.usuarioRecepcionNota = this.mainService.usuarioActual;
+        
+        // Save the updated item
+        const pedidoAux = new PedidoItem();
+        Object.assign(pedidoAux, pedidoItem);
+        await this.pedidoService.onSaveItem(pedidoAux.toInput()).toPromise();
+      }
+    } catch (error) {
+      console.error(`Error ensuring RecepcionNota data for item ${itemId}:`, error);
+      // Continue with assignment even if this fails
     }
   }
 
@@ -403,6 +464,7 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
     this.dialogosService.confirm('Confirmar desasignación', message)
       .subscribe(confirmed => {
         if (confirmed) {
+          // The backend automatically clears all RecepcionNota data when unassigning (notaRecepcionId = null)
           this.pedidoService.onAddPedidoItemToNotaRecepcion(null, item.id)
             .pipe(untilDestroyed(this))
             .subscribe({
@@ -447,11 +509,12 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
   }
 
   onEliminarNota(nota: NotaRecepcion): void {
-    const message = `¿Está seguro que desea eliminar la nota de recepción ${nota.numero}?\n\nTodos los items asignados a esta nota quedarán sin asignar.`;
+    const message = `¿Está seguro que desea eliminar la nota de recepción ${nota.numero}?\n\nTodos los items asignados a esta nota quedarán sin asignar y se limpiarán automáticamente sus datos de recepción.`;
     
     this.dialogosService.confirm('Confirmar eliminación', message)
       .subscribe(confirmed => {
         if (confirmed) {
+          // The backend now handles clearing all items' RecepcionNota data automatically
           this.notaRecepcionService.onDeleteNotaRecepcion(nota.id)
             .pipe(untilDestroyed(this))
             .subscribe({
@@ -501,7 +564,18 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
   }
 
   onSelectNota(nota: NotaRecepcion): void {
-    this.selectedNotaRecepcion = this.selectedNotaRecepcion?.id === nota.id ? null : nota;
+    const wasSelected = this.selectedNotaRecepcion?.id === nota.id;
+    
+    if (wasSelected) {
+      // Deselecting current nota
+      this.selectedNotaRecepcion = null;
+      this.notificacionService.openWarn(`Nota ${nota.numero} deseleccionada`);
+    } else {
+      // Selecting new nota
+      this.selectedNotaRecepcion = nota;
+      this.notificacionService.openSucess(`Nota ${nota.numero} seleccionada para asignación de items`);
+    }
+    
     // Update computed properties after nota selection change
     this.updateComputedProperties();
   }
@@ -535,6 +609,77 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
     dialogRef.afterClosed().subscribe((dividirRes: PedidoItem[]) => {
       if (dividirRes != null && dividirRes.length > 0) {
         this.notificacionService.openSucess(`Item dividido en ${dividirRes.length} partes exitosamente`);
+        this.loadPedidoItems();
+        this.loadNotasRecepcion();
+        
+        // Emit pedido change to update parent component
+        this.pedidoChange.emit(this.selectedPedido);
+      }
+    });
+  }
+
+  // Method to open edit dialog for pedido item in recepcion nota step
+  onEditarItem(item: PedidoItemWithStatus): void {
+    if (!this.selectedPedido || !item) {
+      this.notificacionService.openWarn('Error: Pedido o item no disponible');
+      return;
+    }
+
+    const dialogData: AddProductDialogData = {
+      pedido: this.selectedPedido,
+      pedidoItem: item,
+      isEditing: true,
+      currentStep: PedidoStep.RECEPCION_NOTA
+    };
+
+    const dialogRef = this.dialog.open(AddProductDialogComponent, {
+      data: dialogData,
+      width: '90%',
+      maxWidth: '1200px',
+      height: '80%',
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result?.updated) {
+        this.notificacionService.openSucess('Item actualizado en recepción de nota');
+        
+        // Reload data to reflect changes
+        this.loadPedidoItems();
+        this.loadNotasRecepcion();
+        
+        // Emit pedido change to update parent component
+        this.pedidoChange.emit(this.selectedPedido);
+      }
+    });
+  }
+
+  // Method to add new item in recepcion nota step
+  onAgregarItem(): void {
+    if (!this.selectedPedido) {
+      this.notificacionService.openWarn('Error: Pedido no disponible');
+      return;
+    }
+
+    const dialogData: AddProductDialogData = {
+      pedido: this.selectedPedido,
+      isEditing: false,
+      currentStep: PedidoStep.RECEPCION_NOTA
+    };
+
+    const dialogRef = this.dialog.open(AddProductDialogComponent, {
+      data: dialogData,
+      width: '90%',
+      maxWidth: '1200px',
+      height: '80%',
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result?.added) {
+        this.notificacionService.openSucess('Nuevo item agregado en recepción de nota');
+        
+        // Reload data to reflect changes
         this.loadPedidoItems();
         this.loadNotasRecepcion();
         

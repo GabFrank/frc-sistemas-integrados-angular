@@ -49,371 +49,371 @@ export class EditarPedidpItemDialogData {
   templateUrl: "./editar-pedidp-item-dialog.component.html",
   styleUrls: ["./editar-pedidp-item-dialog.component.scss"],
 })
-export class EditarPedidpItemDialogComponent implements OnInit {
-  @ViewChild("saveBtn", { read: BotonComponent }) saveBtn: BotonComponent;
-  @ViewChild("codigoInput", { static: false }) codigoInput: ElementRef;
-  @ViewChild("cantidadPresentacionInput", { static: false })
-  cantidadPresentacionInput: ElementRef;
-  @ViewChild("cantidadUnidadInput", { static: false })
-  cantidadUnidadInput: ElementRef;
-  @ViewChild("presentacionSelect", { static: false, read: MatSelect })
-  presentacionSelect: MatSelect;
+export class EditarPedidpItemDialogComponent {
+  // @ViewChild("saveBtn", { read: BotonComponent }) saveBtn: BotonComponent;
+  // @ViewChild("codigoInput", { static: false }) codigoInput: ElementRef;
+  // @ViewChild("cantidadPresentacionInput", { static: false })
+  // cantidadPresentacionInput: ElementRef;
+  // @ViewChild("cantidadUnidadInput", { static: false })
+  // cantidadUnidadInput: ElementRef;
+  // @ViewChild("presentacionSelect", { static: false, read: MatSelect })
+  // presentacionSelect: MatSelect;
 
-  pedidoItemFormGroup: FormGroup;
-  productoIdControl = new FormControl(null);
-  codigoControl = new FormControl(null, Validators.required);
-  descripcionControl = new FormControl(null);
-  presentacionControl = new FormControl(null);
-  cantidadUnidadControl = new FormControl(null);
-  cantidadPresentacionControl = new FormControl(null);
-  formaPagoControl = new FormControl(null);
-  precioPorPresentacionControl = new FormControl(null);
-  precioUnitarioControl = new FormControl(null);
-  monedaControl = new FormControl(null);
-  descuentoPresentacionControl = new FormControl(null);
-  valorTotalControl = new FormControl(null);
-  motivoModificacionControl = new FormControl();
-  motivoRechazoControl = new FormControl();
-  obsControl = new FormControl(null);
-  motivoModificacionList: string[] = Object.values(
-    PedidoItemMotivoModificacion
-  );
-  motivoRechazoList: string[] = Object.values(PedidoItemMotivoRechazo);
+  // pedidoItemFormGroup: FormGroup;
+  // productoIdControl = new FormControl(null);
+  // codigoControl = new FormControl(null, Validators.required);
+  // descripcionControl = new FormControl(null);
+  // presentacionControl = new FormControl(null);
+  // cantidadUnidadControl = new FormControl(null);
+  // cantidadPresentacionControl = new FormControl(null);
+  // formaPagoControl = new FormControl(null);
+  // precioPorPresentacionControl = new FormControl(null);
+  // precioUnitarioControl = new FormControl(null);
+  // monedaControl = new FormControl(null);
+  // descuentoPresentacionControl = new FormControl(null);
+  // valorTotalControl = new FormControl(null);
+  // motivoModificacionControl = new FormControl();
+  // motivoRechazoControl = new FormControl();
+  // obsControl = new FormControl(null);
+  // motivoModificacionList: string[] = Object.values(
+  //   PedidoItemMotivoModificacion
+  // );
+  // motivoRechazoList: string[] = Object.values(PedidoItemMotivoRechazo);
 
-  presentacionList: Presentacion[];
-  selectedPedido: Pedido;
-  selectedPedidoItem: PedidoItem;
-  selectedProducto: Producto;
-  selectedMoneda: Moneda;
-  currencyMask = new CurrencyMask();
-  isPesable = false;
-  isRechazar = false;
+  // presentacionList: Presentacion[];
+  // selectedPedido: Pedido;
+  // selectedPedidoItem: PedidoItem;
+  // selectedProducto: Producto;
+  // selectedMoneda: Moneda;
+  // currencyMask = new CurrencyMask();
+  // isPesable = false;
+  // isRechazar = false;
 
-  constructor(
-    @Inject(MAT_DIALOG_DATA) public data: EditarPedidpItemDialogData,
-    private pedidoService: PedidoService,
-    private matDialogRef: MatDialogRef<EditarPedidpItemDialogComponent>,
-    private productoService: ProductoService,
-    private matDialog: MatDialog,
-    private dialogService: DialogosService
-  ) {}
+  // constructor(
+  //   @Inject(MAT_DIALOG_DATA) public data: EditarPedidpItemDialogData,
+  //   private pedidoService: PedidoService,
+  //   private matDialogRef: MatDialogRef<EditarPedidpItemDialogComponent>,
+  //   private productoService: ProductoService,
+  //   private matDialog: MatDialog,
+  //   private dialogService: DialogosService
+  // ) {}
 
-  ngOnInit() {
-    if (this.data?.rechazar) {
-      this.isRechazar = true;
-    }
+  // ngOnInit() {
+  //   if (this.data?.rechazar) {
+  //     this.isRechazar = true;
+  //   }
 
-    if (this.data?.pedidoItem != null) {
-      this.selectedPedido = this.data.pedido;
-      this.selectedPedidoItem = this.data.pedidoItem;
-      this.cargarDatos(
-        this.selectedPedidoItem.producto,
-        this.selectedPedidoItem.presentacion
-      );
+  //   if (this.data?.pedidoItem != null) {
+  //     this.selectedPedido = this.data.pedido;
+  //     this.selectedPedidoItem = this.data.pedidoItem;
+  //     this.cargarDatos(
+  //       this.selectedPedidoItem.producto,
+  //       this.selectedPedidoItem.presentacion
+  //     );
 
-      if (this.data?.reabrir) {
-        this.selectedPedidoItem.cancelado = false;
-        this.selectedPedidoItem.motivoRechazoRecepcionNota = null;
-        this.selectedPedidoItem.obsRecepcionNota = null;
-        this.motivoRechazoControl.setValue(null);
-        this.obsControl.setValue(null);
-        this.onSaveItem();
-      }
-    }
+  //     if (this.data?.reabrir) {
+  //       this.selectedPedidoItem.cancelado = false;
+  //       this.selectedPedidoItem.motivoRechazoRecepcionNota = null;
+  //       this.selectedPedidoItem.obsRecepcionNota = null;
+  //       this.motivoRechazoControl.setValue(null);
+  //       this.obsControl.setValue(null);
+  //       this.onSaveItem();
+  //     }
+  //   }
 
-    this.presentacionControl.valueChanges.subscribe((data) => {
-      this.calcularTotal();
-    });
+  //   this.presentacionControl.valueChanges.subscribe((data) => {
+  //     this.calcularTotal();
+  //   });
 
-    this.cantidadPresentacionControl.valueChanges.subscribe((data) => {
-      this.calcularTotal();
-    });
+  //   this.cantidadPresentacionControl.valueChanges.subscribe((data) => {
+  //     this.calcularTotal();
+  //   });
 
-    this.precioPorPresentacionControl.valueChanges.subscribe((data) => {
-      this.calcularTotal();
-    });
+  //   this.precioPorPresentacionControl.valueChanges.subscribe((data) => {
+  //     this.calcularTotal();
+  //   });
 
-    this.descuentoPresentacionControl.valueChanges.subscribe((data) => {
-      this.calcularTotal();
-    });
-  }
+  //   this.descuentoPresentacionControl.valueChanges.subscribe((data) => {
+  //     this.calcularTotal();
+  //   });
+  // }
 
-  cargarDatos(producto: Producto, presentacion: Presentacion) {
-    if (this.selectedPedidoItem != null) {
-      this.selectedMoneda = this.data.pedido.moneda;
-      this.selectedProducto = producto;
-      this.productoIdControl.setValue(this.selectedProducto.id);
-      this.codigoControl.setValue(this.selectedProducto.descripcion);
-      this.presentacionList = this.selectedProducto.presentaciones;
-      this.presentacionControl.setValue(
-        this.presentacionList.find((p) => p.id === presentacion.id)
-      );
-      this.cantidadPresentacionControl.setValue(
-        this.selectedPedidoItem.cantidad || 0
-      );
-      this.precioUnitarioControl.setValue(
-        producto?.costo?.ultimoPrecioCompra ||
-          this.selectedPedidoItem.precioUnitario ||
-          0
-      );
-      this.descuentoPresentacionControl.setValue(
-        this.selectedPedidoItem.descuentoUnitario *
-          this.presentacionControl.value.cantidad || 0
-      );
-      switch (this.selectedPedido.estado) {
-        case PedidoEstado.EN_RECEPCION_NOTA:
-          if (this.selectedPedidoItem?.verificadoRecepcionNota) {
-            this.motivoModificacionControl.setValue(
-              this.selectedPedidoItem?.motivoModificacionRecepcionNota?.split(
-                ","
-              ) || []
-            );
-            this.motivoRechazoControl.setValue(
-              this.selectedPedidoItem?.motivoRechazoRecepcionNota?.split(",") ||
-                []
-            );
-            this.obsControl.setValue(this.data.pedidoItem?.obsRecepcionNota);
-          }
-          break;
-        case PedidoEstado.EN_RECEPCION_MERCADERIA:
-          if (this.selectedPedidoItem?.verificadoRecepcionProducto) {
-            this.motivoModificacionControl.setValue(
-              this.selectedPedidoItem?.motivoModificacionRecepcionProducto?.split(
-                ","
-              ) || []
-            );
-            this.motivoRechazoControl.setValue(
-              this.selectedPedidoItem?.motivoRechazoRecepcionProducto?.split(
-                ","
-              ) || []
-            );
-            this.obsControl.setValue(
-              this.data.pedidoItem?.obsRecepcionProducto
-            );
-          }
-          break;
-      }
+  // cargarDatos(producto: Producto, presentacion: Presentacion) {
+  //   if (this.selectedPedidoItem != null) {
+  //     this.selectedMoneda = this.data.pedido.moneda;
+  //     this.selectedProducto = producto;
+  //     this.productoIdControl.setValue(this.selectedProducto.id);
+  //     this.codigoControl.setValue(this.selectedProducto.descripcion);
+  //     this.presentacionList = this.selectedProducto.presentaciones;
+  //     this.presentacionControl.setValue(
+  //       this.presentacionList.find((p) => p.id === presentacion.id)
+  //     );
+  //     this.cantidadPresentacionControl.setValue(
+  //       this.selectedPedidoItem.cantidad || 0
+  //     );
+  //     this.precioUnitarioControl.setValue(
+  //       producto?.costo?.ultimoPrecioCompra ||
+  //         this.selectedPedidoItem.precioUnitario ||
+  //         0
+  //     );
+  //     this.descuentoPresentacionControl.setValue(
+  //       this.selectedPedidoItem.descuentoUnitario *
+  //         this.presentacionControl.value.cantidad || 0
+  //     );
+  //     switch (this.selectedPedido.estado) {
+  //       case PedidoEstado.EN_RECEPCION_NOTA:
+  //         if (this.selectedPedidoItem?.verificadoRecepcionNota) {
+  //           this.motivoModificacionControl.setValue(
+  //             this.selectedPedidoItem?.motivoModificacionRecepcionNota?.split(
+  //               ","
+  //             ) || []
+  //           );
+  //           this.motivoRechazoControl.setValue(
+  //             this.selectedPedidoItem?.motivoRechazoRecepcionNota?.split(",") ||
+  //               []
+  //           );
+  //           this.obsControl.setValue(this.data.pedidoItem?.obsRecepcionNota);
+  //         }
+  //         break;
+  //       case PedidoEstado.EN_RECEPCION_MERCADERIA:
+  //         if (this.selectedPedidoItem?.verificadoRecepcionProducto) {
+  //           this.motivoModificacionControl.setValue(
+  //             this.selectedPedidoItem?.motivoModificacionRecepcionProducto?.split(
+  //               ","
+  //             ) || []
+  //           );
+  //           this.motivoRechazoControl.setValue(
+  //             this.selectedPedidoItem?.motivoRechazoRecepcionProducto?.split(
+  //               ","
+  //             ) || []
+  //           );
+  //           this.obsControl.setValue(
+  //             this.data.pedidoItem?.obsRecepcionProducto
+  //           );
+  //         }
+  //         break;
+  //     }
 
-      this.calcularTotal();
-      setTimeout(() => {
-        this.codigoInput?.nativeElement.select();
-      }, 500);
-    }
-  }
+  //     this.calcularTotal();
+  //     setTimeout(() => {
+  //       this.codigoInput?.nativeElement.select();
+  //     }, 500);
+  //   }
+  // }
 
-  onSearchPorCodigo() {
-    setTimeout(() => {
-      if (this.codigoControl.valid) {
-        let text = this.codigoControl.value;
-        this.isPesable = false;
-        let peso;
-        let codigo;
-        if (text.length == 13 && text.substring(0, 2) == "20") {
-          this.isPesable = true;
-          codigo = text.substring(2, 7);
-          peso = +text.substring(7, 12) / 1000;
-          text = codigo;
-          this.cantidadUnidadControl.enable();
-          this.cantidadPresentacionControl.setValue(peso);
-          this.cantidadUnidadControl.setValue(peso);
-          this.cantidadPresentacionControl.disable();
-          this.cantidadUnidadControl.disable();
-          this.presentacionControl.disable();
-        } else {
-          this.cantidadPresentacionControl.enable();
-          this.presentacionControl.enable();
-        }
-        this.productoService.onGetProductoPorCodigo(text).subscribe((res) => {
-          if (res != null) {
-            this.onSelectProducto(res);
-          } else {
-            this.onAddItem(this.codigoControl.value);
-          }
-        });
-      } else {
-        this.onAddItem();
-      }
-    }, 100);
-  }
+  // onSearchPorCodigo() {
+  //   setTimeout(() => {
+  //     if (this.codigoControl.valid) {
+  //       let text = this.codigoControl.value;
+  //       this.isPesable = false;
+  //       let peso;
+  //       let codigo;
+  //       if (text.length == 13 && text.substring(0, 2) == "20") {
+  //         this.isPesable = true;
+  //         codigo = text.substring(2, 7);
+  //         peso = +text.substring(7, 12) / 1000;
+  //         text = codigo;
+  //         this.cantidadUnidadControl.enable();
+  //         this.cantidadPresentacionControl.setValue(peso);
+  //         this.cantidadUnidadControl.setValue(peso);
+  //         this.cantidadPresentacionControl.disable();
+  //         this.cantidadUnidadControl.disable();
+  //         this.presentacionControl.disable();
+  //       } else {
+  //         this.cantidadPresentacionControl.enable();
+  //         this.presentacionControl.enable();
+  //       }
+  //       this.productoService.onGetProductoPorCodigo(text).subscribe((res) => {
+  //         if (res != null) {
+  //           this.onSelectProducto(res);
+  //         } else {
+  //           this.onAddItem(this.codigoControl.value);
+  //         }
+  //       });
+  //     } else {
+  //       this.onAddItem();
+  //     }
+  //   }, 100);
+  // }
 
-  onSelectProducto(
-    producto: Producto,
-    presentacion?: Presentacion,
-    openPresentacion = true
-  ) {
-    this.cargarDatos(producto, presentacion);
-  }
+  // onSelectProducto(
+  //   producto: Producto,
+  //   presentacion?: Presentacion,
+  //   openPresentacion = true
+  // ) {
+  //   this.cargarDatos(producto, presentacion);
+  // }
 
-  calcularTotal() {
-    this.cantidadUnidadControl.setValue(
-      this.presentacionControl.value.cantidad *
-        this.cantidadPresentacionControl.value,
-      { emitEvent: false }
-    );
-    this.precioPorPresentacionControl.setValue(
-      (this.precioUnitarioControl.value || 0) *
-        this.presentacionControl.value.cantidad,
-      { emitEvent: false }
-    );
-    this.valorTotalControl.setValue(
-      (this.precioPorPresentacionControl.value -
-        this.descuentoPresentacionControl.value) *
-        this.cantidadPresentacionControl.value,
-      { emitEvent: false }
-    );
-  }
+  // calcularTotal() {
+  //   this.cantidadUnidadControl.setValue(
+  //     this.presentacionControl.value.cantidad *
+  //       this.cantidadPresentacionControl.value,
+  //     { emitEvent: false }
+  //   );
+  //   this.precioPorPresentacionControl.setValue(
+  //     (this.precioUnitarioControl.value || 0) *
+  //       this.presentacionControl.value.cantidad,
+  //     { emitEvent: false }
+  //   );
+  //   this.valorTotalControl.setValue(
+  //     (this.precioPorPresentacionControl.value -
+  //       this.descuentoPresentacionControl.value) *
+  //       this.cantidadPresentacionControl.value,
+  //     { emitEvent: false }
+  //   );
+  // }
 
-  onAddItem(texto?) {
-    let data: PdvSearchProductoData = {
-      texto: texto,
-      cantidad: 1,
-      mostrarOpciones: false,
-      mostrarStock: true,
-      conservarUltimaBusqueda: true,
-    };
-    this.matDialog
-      .open(PdvSearchProductoDialogComponent, {
-        data: data,
-        height: "80%",
-      })
-      .afterClosed()
-      .subscribe((res) => {
-        let response: PdvSearchProductoResponseData = res;
-        this.onSelectProducto(response.producto, response.presentacion);
-      });
-  }
+  // onAddItem(texto?) {
+  //   let data: PdvSearchProductoData = {
+  //     texto: texto,
+  //     cantidad: 1,
+  //     mostrarOpciones: false,
+  //     mostrarStock: true,
+  //     conservarUltimaBusqueda: true,
+  //   };
+  //   this.matDialog
+  //     .open(PdvSearchProductoDialogComponent, {
+  //       data: data,
+  //       height: "80%",
+  //     })
+  //     .afterClosed()
+  //     .subscribe((res) => {
+  //       let response: PdvSearchProductoResponseData = res;
+  //       this.onSelectProducto(response.producto, response.presentacion);
+  //     });
+  // }
 
-  onCodigoFocus() {}
-  onSaveItem() {
-    let auxPedidoItem = new PedidoItem();
-    Object.assign(auxPedidoItem, this.selectedPedidoItem);
-    this.selectedPedidoItem = auxPedidoItem;
-    this.selectedPedidoItem.producto = this.selectedProducto;
+  // onCodigoFocus() {}
+  // onSaveItem() {
+  //   let auxPedidoItem = new PedidoItem();
+  //   Object.assign(auxPedidoItem, this.selectedPedidoItem);
+  //   this.selectedPedidoItem = auxPedidoItem;
+  //   this.selectedPedidoItem.producto = this.selectedProducto;
 
-    switch (this.selectedPedido.estado) {
-      case PedidoEstado.ABIERTO:
-      case PedidoEstado.ACTIVO:
-        this.selectedPedidoItem.presentacionCreacion =
-          this.presentacionControl.value;
-        this.selectedPedidoItem.cantidadCreacion =
-          this.cantidadPresentacionControl.value;
-        this.selectedPedidoItem.precioUnitarioCreacion =
-          this.precioUnitarioControl.value;
-        this.selectedPedidoItem.descuentoUnitarioCreacion =
-          this.descuentoPresentacionControl.value /
-          this.selectedPedidoItem.presentacionCreacion.cantidad;
-        this.selectedPedidoItem.valorTotal =
-          this.cantidadPresentacionControl.value *
-          (this.precioPorPresentacionControl.value -
-            this.descuentoPresentacionControl.value);
-        break;
+  //   switch (this.selectedPedido.estado) {
+  //     case PedidoEstado.ABIERTO:
+  //     case PedidoEstado.ACTIVO:
+  //       this.selectedPedidoItem.presentacionCreacion =
+  //         this.presentacionControl.value;
+  //       this.selectedPedidoItem.cantidadCreacion =
+  //         this.cantidadPresentacionControl.value;
+  //       this.selectedPedidoItem.precioUnitarioCreacion =
+  //         this.precioUnitarioControl.value;
+  //       this.selectedPedidoItem.descuentoUnitarioCreacion =
+  //         this.descuentoPresentacionControl.value /
+  //         this.selectedPedidoItem.presentacionCreacion.cantidad;
+  //       this.selectedPedidoItem.valorTotal =
+  //         this.cantidadPresentacionControl.value *
+  //         (this.precioPorPresentacionControl.value -
+  //           this.descuentoPresentacionControl.value);
+  //       break;
 
-      case PedidoEstado.EN_RECEPCION_NOTA:
-        if (this.selectedPedidoItem?.verificadoRecepcionNota) {
-          this.selectedPedidoItem.presentacionRecepcionNota =
-            this.presentacionControl.value;
-          this.selectedPedidoItem.cantidadRecepcionNota =
-            this.cantidadPresentacionControl.value;
-          this.selectedPedidoItem.precioUnitarioRecepcionNota =
-            this.precioUnitarioControl.value;
-          this.selectedPedidoItem.descuentoUnitarioRecepcionNota =
-            this.descuentoPresentacionControl.value /
-            this.selectedPedidoItem.presentacionRecepcionNota.cantidad;
-          this.selectedPedidoItem.valorTotal =
-            this.cantidadPresentacionControl.value *
-            (this.precioPorPresentacionControl.value -
-              this.descuentoPresentacionControl.value);
-          this.selectedPedidoItem.motivoRechazoRecepcionNota =
-            this.motivoRechazoControl.value;
-          this.selectedPedidoItem.motivoModificacionRecepcionNota =
-            this.motivoModificacionControl.value?.toString();
-          this.selectedPedidoItem.obsRecepcionNota =
-            this.obsControl.value?.toUpperCase();
-        } else {
-          this.selectedPedidoItem.presentacionCreacion =
-            this.presentacionControl.value;
-          this.selectedPedidoItem.cantidadCreacion =
-            this.cantidadPresentacionControl.value;
-          this.selectedPedidoItem.precioUnitarioCreacion =
-            this.precioUnitarioControl.value;
-          this.selectedPedidoItem.descuentoUnitarioCreacion =
-            this.descuentoPresentacionControl.value /
-            this.selectedPedidoItem.presentacionCreacion.cantidad;
-          this.selectedPedidoItem.valorTotal =
-            this.cantidadPresentacionControl.value *
-            (this.precioPorPresentacionControl.value -
-              this.descuentoPresentacionControl.value);
-        }
-        break;
+  //     case PedidoEstado.EN_RECEPCION_NOTA:
+  //       if (this.selectedPedidoItem?.verificadoRecepcionNota) {
+  //         this.selectedPedidoItem.presentacionRecepcionNota =
+  //           this.presentacionControl.value;
+  //         this.selectedPedidoItem.cantidadRecepcionNota =
+  //           this.cantidadPresentacionControl.value;
+  //         this.selectedPedidoItem.precioUnitarioRecepcionNota =
+  //           this.precioUnitarioControl.value;
+  //         this.selectedPedidoItem.descuentoUnitarioRecepcionNota =
+  //           this.descuentoPresentacionControl.value /
+  //           this.selectedPedidoItem.presentacionRecepcionNota.cantidad;
+  //         this.selectedPedidoItem.valorTotal =
+  //           this.cantidadPresentacionControl.value *
+  //           (this.precioPorPresentacionControl.value -
+  //             this.descuentoPresentacionControl.value);
+  //         this.selectedPedidoItem.motivoRechazoRecepcionNota =
+  //           this.motivoRechazoControl.value;
+  //         this.selectedPedidoItem.motivoModificacionRecepcionNota =
+  //           this.motivoModificacionControl.value?.toString();
+  //         this.selectedPedidoItem.obsRecepcionNota =
+  //           this.obsControl.value?.toUpperCase();
+  //       } else {
+  //         this.selectedPedidoItem.presentacionCreacion =
+  //           this.presentacionControl.value;
+  //         this.selectedPedidoItem.cantidadCreacion =
+  //           this.cantidadPresentacionControl.value;
+  //         this.selectedPedidoItem.precioUnitarioCreacion =
+  //           this.precioUnitarioControl.value;
+  //         this.selectedPedidoItem.descuentoUnitarioCreacion =
+  //           this.descuentoPresentacionControl.value /
+  //           this.selectedPedidoItem.presentacionCreacion.cantidad;
+  //         this.selectedPedidoItem.valorTotal =
+  //           this.cantidadPresentacionControl.value *
+  //           (this.precioPorPresentacionControl.value -
+  //             this.descuentoPresentacionControl.value);
+  //       }
+  //       break;
 
-      case PedidoEstado.EN_RECEPCION_MERCADERIA:
-        if (this.selectedPedidoItem?.verificadoRecepcionProducto) {
-          this.selectedPedidoItem.presentacionRecepcionProducto =
-            this.presentacionControl.value;
-          this.selectedPedidoItem.cantidadRecepcionProducto =
-            this.cantidadPresentacionControl.value;
-          this.selectedPedidoItem.precioUnitarioRecepcionProducto =
-            this.precioUnitarioControl.value;
-          this.selectedPedidoItem.descuentoUnitarioRecepcionProducto =
-            this.descuentoPresentacionControl.value /
-            this.selectedPedidoItem.presentacionRecepcionProducto.cantidad;
-          this.selectedPedidoItem.valorTotal =
-            this.cantidadPresentacionControl.value *
-            (this.precioPorPresentacionControl.value -
-              this.descuentoPresentacionControl.value);
-          this.selectedPedidoItem.motivoRechazoRecepcionProducto =
-            this.motivoRechazoControl.value;
-          this.selectedPedidoItem.motivoModificacionRecepcionProducto =
-            this.motivoModificacionControl.value?.toString();
-          this.selectedPedidoItem.obsRecepcionProducto =
-            this.obsControl.value?.toUpperCase();
-        }
-        break;
-    }
+  //     case PedidoEstado.EN_RECEPCION_MERCADERIA:
+  //       if (this.selectedPedidoItem?.verificadoRecepcionProducto) {
+  //         this.selectedPedidoItem.presentacionRecepcionProducto =
+  //           this.presentacionControl.value;
+  //         this.selectedPedidoItem.cantidadRecepcionProducto =
+  //           this.cantidadPresentacionControl.value;
+  //         this.selectedPedidoItem.precioUnitarioRecepcionProducto =
+  //           this.precioUnitarioControl.value;
+  //         this.selectedPedidoItem.descuentoUnitarioRecepcionProducto =
+  //           this.descuentoPresentacionControl.value /
+  //           this.selectedPedidoItem.presentacionRecepcionProducto.cantidad;
+  //         this.selectedPedidoItem.valorTotal =
+  //           this.cantidadPresentacionControl.value *
+  //           (this.precioPorPresentacionControl.value -
+  //             this.descuentoPresentacionControl.value);
+  //         this.selectedPedidoItem.motivoRechazoRecepcionProducto =
+  //           this.motivoRechazoControl.value;
+  //         this.selectedPedidoItem.motivoModificacionRecepcionProducto =
+  //           this.motivoModificacionControl.value?.toString();
+  //         this.selectedPedidoItem.obsRecepcionProducto =
+  //           this.obsControl.value?.toUpperCase();
+  //       }
+  //       break;
+  //   }
 
-    this.pedidoService
-      .onSaveItem(this.selectedPedidoItem.toInput())
-      .subscribe((pedidoItemRes) => {
-        if (pedidoItemRes != null) {
-          this.matDialogRef.close(pedidoItemRes);
-        }
-      });
-  }
+  //   this.pedidoService
+  //     .onSaveItem(this.selectedPedidoItem.toInput())
+  //     .subscribe((pedidoItemRes) => {
+  //       if (pedidoItemRes != null) {
+  //         this.matDialogRef.close(pedidoItemRes);
+  //       }
+  //     });
+  // }
 
-  onRechazarItem() {
-    this.dialogService
-      .confirm(
-        "Atención!!",
-        "Realmente desea cancelar este item?",
-        "Esta acción se puede revertir"
-      )
-      .subscribe((res) => {
-        if (res) {
-          switch (this.selectedPedido.estado) {
-            case PedidoEstado.EN_RECEPCION_NOTA:
-              this.selectedPedidoItem.motivoRechazoRecepcionNota =
-                this.motivoRechazoControl.value?.toString();
-              this.selectedPedidoItem.obsRecepcionNota =
-                this.obsControl.value?.toUpperCase();
-                this.selectedPedidoItem.verificadoRecepcionNota = true;
-              break;
-            case PedidoEstado.EN_RECEPCION_MERCADERIA:
-              this.selectedPedidoItem.motivoRechazoRecepcionProducto =
-                this.motivoRechazoControl.value?.toString();
-              this.selectedPedidoItem.obsRecepcionProducto =
-                this.obsControl.value?.toUpperCase();
-                this.selectedPedidoItem.verificadoRecepcionProducto = true;
-              break;
-          }
+  // onRechazarItem() {
+  //   this.dialogService
+  //     .confirm(
+  //       "Atención!!",
+  //       "Realmente desea cancelar este item?",
+  //       "Esta acción se puede revertir"
+  //     )
+  //     .subscribe((res) => {
+  //       if (res) {
+  //         switch (this.selectedPedido.estado) {
+  //           case PedidoEstado.EN_RECEPCION_NOTA:
+  //             this.selectedPedidoItem.motivoRechazoRecepcionNota =
+  //               this.motivoRechazoControl.value?.toString();
+  //             this.selectedPedidoItem.obsRecepcionNota =
+  //               this.obsControl.value?.toUpperCase();
+  //               this.selectedPedidoItem.verificadoRecepcionNota = true;
+  //             break;
+  //           case PedidoEstado.EN_RECEPCION_MERCADERIA:
+  //             this.selectedPedidoItem.motivoRechazoRecepcionProducto =
+  //               this.motivoRechazoControl.value?.toString();
+  //             this.selectedPedidoItem.obsRecepcionProducto =
+  //               this.obsControl.value?.toUpperCase();
+  //               this.selectedPedidoItem.verificadoRecepcionProducto = true;
+  //             break;
+  //         }
 
-          this.selectedPedidoItem.cancelado = true;
-          this.onSaveItem();
-        }
-      });
-  }
+  //         this.selectedPedidoItem.cancelado = true;
+  //         this.onSaveItem();
+  //       }
+  //     });
+  // }
 
-  onClearItem() {}
-  onSalir() {
-    this.matDialogRef.close();
-  }
+  // onClearItem() {}
+  // onSalir() {
+  //   this.matDialogRef.close();
+  // }
 }

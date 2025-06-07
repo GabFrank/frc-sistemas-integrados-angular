@@ -8,6 +8,12 @@ import { PedidoItemSucursal } from "../pedido-item-sucursal/pedido-item-sucursal
 import { PedidoItemEstado } from "./pedido-enums";
 import { Pedido } from "./pedido.model";
 
+export enum PedidoStep {
+  DETALLES_PEDIDO = 'DETALLES_PEDIDO',
+  RECEPCION_NOTA = 'RECEPCION_NOTA', 
+  RECEPCION_PRODUCTO = 'RECEPCION_PRODUCTO'
+}
+
 export class PedidoItem {
   id: number;
   pedido: Pedido;
@@ -52,10 +58,6 @@ export class PedidoItem {
   cancelado: boolean;
   verificadoRecepcionNota: boolean;
   verificadoRecepcionProducto: boolean;
-  presentacion: Presentacion;
-  precioUnitario: number;
-  cantidad: number;
-  descuentoUnitario: number;
   motivoRechazoRecepcionNota: string
   motivoRechazoRecepcionProducto: string
   pedidoItemSucursalList: PedidoItemSucursal[] = [];
@@ -117,6 +119,150 @@ export class PedidoItem {
     input.motivoRechazoRecepcionNota = this.motivoRechazoRecepcionNota;
     input.motivoRechazoRecepcionProducto = this.motivoRechazoRecepcionProducto;
     return input;
+  }
+
+  // Helper method to get the appropriate field value based on current step
+  getFieldValueForStep(fieldName: string, step: PedidoStep): any {
+    switch (step) {
+      case PedidoStep.RECEPCION_PRODUCTO:
+        // Priority: RecepcionProducto -> RecepcionNota -> Creacion
+        const productoValue = this.getFieldValue(fieldName, 'RecepcionProducto');
+        if (productoValue !== null && productoValue !== undefined) return productoValue;
+        
+        const notaValue = this.getFieldValue(fieldName, 'RecepcionNota');
+        if (notaValue !== null && notaValue !== undefined) return notaValue;
+        
+        return this.getFieldValue(fieldName, 'Creacion');
+        
+      case PedidoStep.RECEPCION_NOTA:
+        // Priority: RecepcionNota -> Creacion
+        const recepcionNotaValue = this.getFieldValue(fieldName, 'RecepcionNota');
+        if (recepcionNotaValue !== null && recepcionNotaValue !== undefined) return recepcionNotaValue;
+        
+        return this.getFieldValue(fieldName, 'Creacion');
+        
+      case PedidoStep.DETALLES_PEDIDO:
+      default:
+        return this.getFieldValue(fieldName, 'Creacion');
+    }
+  }
+
+  // Helper method to get field value by suffix
+  private getFieldValue(fieldName: string, suffix: string): any {
+    let fullFieldName: string;
+    
+    // Map field names to actual property names
+    switch (fieldName) {
+      case 'presentacion':
+        fullFieldName = 'presentacion' + suffix;
+        break;
+      case 'cantidad':
+        fullFieldName = 'cantidad' + suffix;
+        break;
+      case 'precioUnitario':
+        fullFieldName = 'precioUnitario' + suffix;
+        break;
+      case 'descuentoUnitario':
+        fullFieldName = 'descuentoUnitario' + suffix;
+        break;
+      case 'vencimiento':
+        fullFieldName = 'vencimiento' + suffix;
+        break;
+      case 'obs':
+        fullFieldName = 'obs' + suffix;
+        break;
+      default:
+        fullFieldName = fieldName + suffix;
+        break;
+    }
+    
+    return this[fullFieldName];
+  }
+
+  // Helper method to set field value for specific step
+  setFieldValueForStep(fieldName: string, value: any, step: PedidoStep): void {
+    let suffix: string;
+    switch (step) {
+      case PedidoStep.RECEPCION_PRODUCTO:
+        suffix = 'RecepcionProducto';
+        break;
+      case PedidoStep.RECEPCION_NOTA:
+        suffix = 'RecepcionNota';
+        break;
+      case PedidoStep.DETALLES_PEDIDO:
+      default:
+        suffix = 'Creacion';
+        break;
+    }
+    
+    let fullFieldName: string;
+    
+    // Map field names to actual property names
+    switch (fieldName) {
+      case 'presentacion':
+        fullFieldName = 'presentacion' + suffix;
+        break;
+      case 'cantidad':
+        fullFieldName = 'cantidad' + suffix;
+        break;
+      case 'precioUnitario':
+        fullFieldName = 'precioUnitario' + suffix;
+        break;
+      case 'descuentoUnitario':
+        fullFieldName = 'descuentoUnitario' + suffix;
+        break;
+      case 'vencimiento':
+        fullFieldName = 'vencimiento' + suffix;
+        break;
+      case 'obs':
+        fullFieldName = 'obs' + suffix;
+        break;
+      default:
+        fullFieldName = fieldName + suffix;
+        break;
+    }
+    
+    this[fullFieldName] = value;
+  }
+
+  // Check if modifications were made in a specific step
+  hasModificationsInStep(step: PedidoStep): boolean {
+    const fields = ['presentacion', 'cantidad', 'precioUnitario', 'descuentoUnitario', 'vencimiento'];
+    
+    switch (step) {
+      case PedidoStep.RECEPCION_NOTA:
+        return fields.some(field => {
+          const recepcionValue = this.getFieldValue(field, 'RecepcionNota');
+          const creacionValue = this.getFieldValue(field, 'Creacion');
+          return recepcionValue !== null && recepcionValue !== undefined && 
+                 recepcionValue !== creacionValue;
+        });
+        
+      case PedidoStep.RECEPCION_PRODUCTO:
+        return fields.some(field => {
+          const productoValue = this.getFieldValue(field, 'RecepcionProducto');
+          const notaValue = this.getFieldValue(field, 'RecepcionNota');
+          const creacionValue = this.getFieldValue(field, 'Creacion');
+          
+          // Check if RecepcionProducto differs from the previous step values
+          const previousValue = notaValue !== null && notaValue !== undefined ? notaValue : creacionValue;
+          return productoValue !== null && productoValue !== undefined && 
+                 productoValue !== previousValue;
+        });
+        
+      default:
+        return false;
+    }
+  }
+
+  // Copy values from one step to another (for when no modifications are made)
+  copyStepValues(fromStep: PedidoStep, toStep: PedidoStep): void {
+    const fields = ['presentacion', 'cantidad', 'precioUnitario', 'descuentoUnitario', 'vencimiento', 'obs'];
+    
+    fields.forEach(field => {
+      const value = this.getFieldValueForStep(field, fromStep);
+      this.setFieldValueForStep(field, value, toStep);
+    });
   }
 }
 

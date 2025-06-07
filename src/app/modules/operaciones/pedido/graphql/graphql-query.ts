@@ -772,12 +772,6 @@ export const addPedidoItemToNotaRecepcionQuery = gql`
       cancelado
       verificadoRecepcionNota
       verificadoRecepcionProducto
-      precioUnitario
-      cantidad
-      presentacion {
-        id
-        cantidad
-      }
     }
   }
 `;
