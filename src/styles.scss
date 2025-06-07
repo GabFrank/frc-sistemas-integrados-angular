@@ -386,21 +386,24 @@ input {
   color: #4caf50 !important;
 }
 
-// Global sticky header styles for Angular Material tables
+/* put this in your global styles.scss (or in your component scss with ::ng-deep) */
 .mat-mdc-table, .mat-table {
-  .mat-mdc-header-row, .mat-header-row {
-    
-    &.mat-table-sticky {
-      z-index: 10;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-      
-      .mat-mdc-header-cell, th {
-        background-color: #3c3c3c !important;
-        border-bottom: 1px solid #f57c00 !important;
-        position: sticky;
-        top: 0;
-      }
-    }
+  /* target the header row when it’s made sticky */
+  .mat-mdc-header-row.mat-table-sticky,
+  .mat-header-row.mat-table-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 10;                      /* sit above table body */
+    background-color: #3c3c3c;        /* solid dark grey */
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  /* ensure each header cell matches the row’s background & has your border */
+  .mat-mdc-header-row.mat-table-sticky .mat-mdc-header-cell,
+  .mat-header-row.mat-table-sticky th {
+    background-color: #3c3c3c !important;
+    border-bottom: 1px solid #f57c00 !important;
   }
 }
+
 

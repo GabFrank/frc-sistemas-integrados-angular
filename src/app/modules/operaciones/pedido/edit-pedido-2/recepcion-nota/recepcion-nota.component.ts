@@ -20,6 +20,7 @@ import { DialogosService } from '../../../../../shared/components/dialogos/dialo
 
 import { CrearNotaRecepcionDialogComponent } from './crear-nota-recepcion-dialog/crear-nota-recepcion-dialog.component';
 import { ManageNotaItemsDialogComponent } from './manage-nota-items-dialog/manage-nota-items-dialog.component';
+import { DividirItemDialogComponent } from '../../dividir-item-dialog/dividir-item-dialog.component';
 import { dateToString, parseShortDate } from '../../../../../commons/core/utils/dateUtils';
 
 interface PedidoItemWithStatus extends PedidoItem {
@@ -278,7 +279,7 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
     this.itemsWithComputedProperties = this.pedidoItemsDataSource.data.map(item => ({
       ...item,
       statusClass: item.isAssigned ? 'item-assigned' : 'item-pending',
-      statusText: item.isAssigned ? `Asignado a nota ${item.notaNumero}` : 'Pendiente de asignación'
+      statusText: item.isAssigned ? `Asig. a ${item.notaNumero}` : 'Pendiente'
     }));
   }
 
@@ -512,5 +513,34 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
 
   onNotasPageChange(event: any): void {
     this.loadNotasRecepcion(event.pageIndex, event.pageSize);
+  }
+
+  // Item split functionality
+  onDividirItem(item: PedidoItemWithStatus): void {
+    if (item.isAssigned) {
+      this.notificacionService.openWarn('No se puede dividir un item ya asignado a una nota de recepción');
+      return;
+    }
+
+    const dialogRef = this.dialog.open(DividirItemDialogComponent, {
+      width: '80%',
+      height: '70%',
+      data: {
+        pedido: this.selectedPedido,
+        pedidoItem: item,
+      },
+      disableClose: false
+    });
+
+    dialogRef.afterClosed().subscribe((dividirRes: PedidoItem[]) => {
+      if (dividirRes != null && dividirRes.length > 0) {
+        this.notificacionService.openSucess(`Item dividido en ${dividirRes.length} partes exitosamente`);
+        this.loadPedidoItems();
+        this.loadNotasRecepcion();
+        
+        // Emit pedido change to update parent component
+        this.pedidoChange.emit(this.selectedPedido);
+      }
+    });
   }
 } 
