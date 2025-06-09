@@ -9,23 +9,33 @@ export const pedidoItensQuery = gql`
     producto {
       id
     }
-    precioUnitario
-    descuentoUnitario
+    presentacionCreacion {
+      id
+      cantidad
+    }
+    cantidadCreacion
+    precioUnitarioCreacion
+    descuentoUnitarioCreacion
+    valorTotal
     bonificacion
     bonificacionDetalle
     observacion
+    vencimientoCreacion
     estado
-    vencimiento
     creadoEn
-    usuario {
+    usuarioCreacion {
       id
     }
-    pedidoItemSucursales {
+
+    notaRecepcion {
+      id
+    }
+    pedidoItemSucursalList {
       id
       sucursal {
         id
       }
-      cantidad
+      cantidadPorUnidad
       sucursalEntrega {
         id
       }
@@ -43,23 +53,33 @@ export const pedidoItensSearch = gql`
       producto {
         id
       }
-      precioUnitario
-      descuentoUnitario
+      presentacionCreacion {
+        id
+        cantidad
+      }
+      cantidadCreacion
+      precioUnitarioCreacion
+      descuentoUnitarioCreacion
+      valorTotal
       bonificacion
       bonificacionDetalle
       observacion
+      vencimientoCreacion
       estado
-      vencimiento
       creadoEn
-      usuario {
+      usuarioCreacion {
         id
       }
-      pedidoItemSucursales {
+
+      notaRecepcion {
+        id
+      }
+      pedidoItemSucursalList {
         id
         sucursal {
           id
         }
-        cantidad
+        cantidadPorUnidad
         sucursalEntrega {
           id
         }
@@ -76,19 +96,38 @@ export const pedidoItemQuery = gql`
         id
         descripcion
       }
-      presentacion {
+      presentacionCreacion {
         id
         cantidad
       }
-      precioUnitario
-      descuentoUnitario
+      cantidadCreacion
+      precioUnitarioCreacion
+      descuentoUnitarioCreacion
+      valorTotal
       bonificacion
       bonificacionDetalle
+      vencimientoCreacion
       estado
-      vencimiento
       creadoEn
-      cantidad
-      valorTotal
+      usuarioCreacion {
+        id
+      }
+
+      notaRecepcion {
+        id
+      }
+      pedidoItemSucursalList {
+        id
+        sucursal {
+          id
+          nombre
+        }
+        sucursalEntrega {
+          id
+          nombre
+        }
+        cantidadPorUnidad
+      }
     }
   }
 `;
@@ -101,14 +140,27 @@ export const pedidoItemPorPedidoIdQuery = gql`
         id
         descripcion
       }
-      precioUnitario
-      descuentoUnitario
+      presentacionCreacion {
+        id
+        cantidad
+      }
+      cantidadCreacion
+      precioUnitarioCreacion
+      descuentoUnitarioCreacion
+      valorTotal
       bonificacion
       bonificacionDetalle
+      vencimientoCreacion
       estado
-      vencimiento
       creadoEn
-      pedidoItemSucursales {
+      usuarioCreacion {
+        id
+      }
+
+      notaRecepcion {
+        id
+      }
+      pedidoItemSucursalList {
         id
         sucursal {
           id
@@ -118,7 +170,7 @@ export const pedidoItemPorPedidoIdQuery = gql`
           id
           nombre
         }
-        cantidad
+        cantidadPorUnidad
       }
     }
   }
@@ -144,18 +196,26 @@ export const savePedidoItem = gql`
       pedido {
         id
       }
+
       notaRecepcion {
         id
       }
+      cantidadCreacion
       precioUnitarioCreacion
       descuentoUnitarioCreacion
+      valorTotal
       bonificacion
       bonificacionDetalle
-      estado
+      observacion
       vencimientoCreacion
+      estado
       creadoEn
-      cantidadCreacion
-      valorTotal
+      usuarioCreacion {
+        id
+      }
+      compraItem {
+        id
+      }
       precioUnitarioRecepcionNota
       descuentoUnitarioRecepcionNota
       vencimientoRecepcionNota
@@ -196,12 +256,8 @@ export const savePedidoItem = gql`
       cancelado
       verificadoRecepcionNota
       verificadoRecepcionProducto
-      precioUnitario
-      cantidad
-      presentacion {
-        id
-        cantidad
-      }
+      isDistribucionSucursalesCreacion
+      isDistribucionSucursalesRecepcion
     }
   }
 `;

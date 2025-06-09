@@ -1,6 +1,7 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, ViewChild } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatButton } from '@angular/material/button';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 import { Pedido } from '../../../edit-pedido/pedido.model';
@@ -25,6 +26,8 @@ export interface CrearNotaRecepcionDialogData {
   styleUrls: ['./crear-nota-recepcion-dialog.component.scss']
 })
 export class CrearNotaRecepcionDialogComponent implements OnInit {
+  
+  @ViewChild('saveButton', { static: false }) saveButton!: MatButton;
   
   notaForm: FormGroup;
   tipoBoletaOptions = ['LEGAL', 'COMUN', 'OTRO'];
@@ -305,5 +308,101 @@ export class CrearNotaRecepcionDialogComponent implements OnInit {
 
   getTipoBoletaError(): string {
     return this.tipoBoletaErrorComputed;
+  }
+
+  // Keyboard navigation methods
+  onNumeroKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const numeroControl = this.notaForm.get('numero');
+      if (numeroControl && numeroControl.valid) {
+        const tipoBoletaSelect = document.querySelector('mat-select[formControlName="tipoBoleta"]') as HTMLElement;
+        if (tipoBoletaSelect) {
+          tipoBoletaSelect.focus();
+        }
+      } else {
+        // Mark field as touched to show validation error
+        numeroControl?.markAsTouched();
+        this.updateComputedProperties();
+      }
+    }
+  }
+
+  onTipoBoletaKeyDown(event: KeyboardEvent): void {
+    // Don't handle Enter here - let mat-select handle opening dropdown
+    // Navigation will happen on selectionChange or closed event
+  }
+
+  onTipoBoletaSelectionChange(): void {
+    // Navigate to next field after selection is made
+    const tipoBoletaControl = this.notaForm.get('tipoBoleta');
+    if (tipoBoletaControl && tipoBoletaControl.valid) {
+      setTimeout(() => {
+        const fechaInput = document.querySelector('input[formControlName="fecha"]') as HTMLElement;
+        if (fechaInput) {
+          fechaInput.focus();
+        }
+      }, 100); // Small delay to ensure dropdown is closed
+    }
+  }
+
+  onTipoBoletaClosed(): void {
+    // Alternative method - navigate when dropdown closes
+    const tipoBoletaControl = this.notaForm.get('tipoBoleta');
+    if (tipoBoletaControl && tipoBoletaControl.valid) {
+      const fechaInput = document.querySelector('input[formControlName="fecha"]') as HTMLElement;
+      if (fechaInput) {
+        fechaInput.focus();
+      }
+    } else {
+      // Mark field as touched to show validation error
+      tipoBoletaControl?.markAsTouched();
+      this.updateComputedProperties();
+    }
+  }
+
+  onFechaKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const fechaControl = this.notaForm.get('fecha');
+      if (fechaControl && fechaControl.valid) {
+        const timbradoInput = document.querySelector('input[formControlName="timbrado"]') as HTMLElement;
+        if (timbradoInput) {
+          timbradoInput.focus();
+        }
+      } else {
+        // Mark field as touched to show validation error
+        fechaControl?.markAsTouched();
+        this.updateComputedProperties();
+      }
+    }
+  }
+
+  onTimbradoKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      // Timbrado is optional, so always allow navigation
+      const observacionesTextarea = document.querySelector('textarea[formControlName="observaciones"]') as HTMLElement;
+      if (observacionesTextarea) {
+        observacionesTextarea.focus();
+      }
+    }
+  }
+
+  onObservacionesKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      // Observaciones is optional, so always allow navigation to save button
+      if (this.saveButton && this.isFormValid) {
+        this.saveButton.focus();
+      }
+    }
+  }
+
+  onSaveButtonKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.onSave();
+    }
   }
 } 

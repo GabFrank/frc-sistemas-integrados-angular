@@ -17,20 +17,20 @@
       <div class="info-item">
         <span class="titulo-color">Presentación:</span>
         <h3 class="info-value">
-          {{ selectedPedidoItem?.presentacion?.cantidad }}
+          {{ currentPresentacion?.cantidad }}
         </h3>
       </div>
       <div class="info-item">
         <span class="titulo-color">Cantidad Total:</span>
         <h3 class="info-value">
-          {{ selectedPedidoItem?.cantidadCreacion | number : "1.0-2" }}
+          {{ currentCantidad | number : "1.0-2" }}
         </h3>
       </div>
       <div class="info-item">
         <span class="titulo-color">Sobrante:</span>
         <h3 class="info-value">
           {{
-            selectedPedidoItem?.cantidadCreacion - cantAgregada
+            currentCantidad - cantAgregada
               | number : "1.0-2"
           }}
         </h3>

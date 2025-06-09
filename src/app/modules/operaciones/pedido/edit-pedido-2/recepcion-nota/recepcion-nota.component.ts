@@ -414,45 +414,10 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
   }
 
   private async asignarItemsANota(itemIds: number[], notaRecepcionId: number): Promise<void> {
-    // First, ensure items have RecepcionNota data by copying from Creacion if needed
-    for (const itemId of itemIds) {
-      await this.ensureItemHasRecepcionNotaData(itemId);
-    }
-    
-    // Then assign items to nota recepcion
+    // The backend addPedidoItemToNotaRecepcion method already handles copying data from 
+    // Creacion fields to RecepcionNota fields automatically, so we don't need to do it here
     for (const itemId of itemIds) {
       await this.pedidoService.onAddPedidoItemToNotaRecepcion(notaRecepcionId, itemId).toPromise();
-    }
-  }
-
-  private async ensureItemHasRecepcionNotaData(itemId: number): Promise<void> {
-    try {
-      // Get the current item data
-      const item = await this.pedidoService.onGetPedidoItem(itemId).toPromise();
-      
-      // Check if it already has RecepcionNota data
-      const hasRecepcionNotaData = item.precioUnitarioRecepcionNota !== null && 
-                                   item.precioUnitarioRecepcionNota !== undefined;
-      
-      if (!hasRecepcionNotaData) {
-        // Create proper PedidoItem instance and copy data
-        const pedidoItem = new PedidoItem();
-        Object.assign(pedidoItem, item);
-        
-        // Copy Creacion data to RecepcionNota fields
-        pedidoItem.copyStepValues(PedidoStep.DETALLES_PEDIDO, PedidoStep.RECEPCION_NOTA);
-        
-        // Set the user who is doing the assignment
-        pedidoItem.usuarioRecepcionNota = this.mainService.usuarioActual;
-        
-        // Save the updated item
-        const pedidoAux = new PedidoItem();
-        Object.assign(pedidoAux, pedidoItem);
-        await this.pedidoService.onSaveItem(pedidoAux.toInput()).toPromise();
-      }
-    } catch (error) {
-      console.error(`Error ensuring RecepcionNota data for item ${itemId}:`, error);
-      // Continue with assignment even if this fails
     }
   }
 

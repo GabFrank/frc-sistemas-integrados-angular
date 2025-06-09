@@ -45,6 +45,7 @@
             formControlName="numero"
             placeholder="Ingrese el número de nota"
             min="1"
+            (keydown)="onNumeroKeyDown($event)"
           />
           <mat-error *ngIf="notaForm.get('numero')?.invalid && notaForm.get('numero')?.touched">
             {{ numeroErrorComputed }}
@@ -54,7 +55,10 @@
         <!-- Tipo de Boleta -->
         <mat-form-field appearance="outline" class="form-field">
           <mat-label>Tipo de Boleta</mat-label>
-          <mat-select formControlName="tipoBoleta">
+          <mat-select 
+            formControlName="tipoBoleta" 
+            (selectionChange)="onTipoBoletaSelectionChange()"
+            (closed)="onTipoBoletaClosed()">
             <mat-option *ngFor="let tipo of tipoBoletaOptions" [value]="tipo">
               {{ tipo }}
             </mat-option>
@@ -75,6 +79,7 @@
             formControlName="fecha"
             placeholder="Seleccione una fecha"
             readonly
+            (keydown)="onFechaKeyDown($event)"
           />
           <mat-hint>Seleccione la fecha de la nota</mat-hint>
           <mat-datepicker-toggle matSuffix [for]="fechaPicker"></mat-datepicker-toggle>
@@ -92,6 +97,7 @@
             type="number"
             formControlName="timbrado"
             placeholder="Número de timbrado (opcional)"
+            (keydown)="onTimbradoKeyDown($event)"
           />
         </mat-form-field>
       </div>
@@ -105,6 +111,7 @@
             formControlName="observaciones"
             rows="3"
             placeholder="Observaciones adicionales (opcional)"
+            (keydown)="onObservacionesKeyDown($event)"
           ></textarea>
         </mat-form-field>
       </div>
@@ -146,6 +153,8 @@
       color="primary"
       (click)="onSave()"
       [disabled]="!isFormValidComputed || isSaving"
+      (keydown)="onSaveButtonKeyDown($event)"
+      #saveButton
     >
       <mat-icon *ngIf="isSaving">hourglass_empty</mat-icon>
       <mat-icon *ngIf="!isSaving && !isEditMode">add</mat-icon>

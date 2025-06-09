@@ -14,6 +14,15 @@ export enum PedidoStep {
   RECEPCION_PRODUCTO = 'RECEPCION_PRODUCTO'
 }
 
+// Add NotaPedido class
+export class NotaPedido {
+  id: number;
+  pedido: Pedido;
+  nroNota: string;
+  usuario: Usuario;
+  creadoEn: Date;
+}
+
 export class PedidoItem {
   id: number;
   pedido: Pedido;

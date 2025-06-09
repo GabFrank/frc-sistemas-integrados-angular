@@ -2,7 +2,7 @@ import { Component, Inject, OnInit, ViewChild, ElementRef, AfterViewInit, QueryL
 import { FormControl, Validators } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { MatSelect } from "@angular/material/select";
-import { PedidoItem } from "../../edit-pedido/pedido-item.model";
+import { PedidoItem, PedidoStep } from "../../edit-pedido/pedido-item.model";
 import { Sucursal } from "../../../../empresarial/sucursal/sucursal.model";
 import { SucursalService } from "../../../../empresarial/sucursal/sucursal.service";
 import { MovimientoStockService } from "../../../movimiento-stock/movimiento-stock.service";
@@ -52,6 +52,11 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
 
   pedidoItemSucursalList: PedidoItemSucursal[] = [];
 
+  // Computed properties for step-specific values
+  currentStepComputed: PedidoStep = PedidoStep.DETALLES_PEDIDO;
+  presentacionComputed: any = null;
+  cantidadComputed: number = 0;
+
   constructor(
     @Inject(MAT_DIALOG_DATA)
     public data: {
@@ -74,6 +79,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
       if (data.pedidoItem && data.sucursalInfluenciaList) {
         this.selectedPedidoItem = data.pedidoItem;
         this.sucursalInfluenciaList = data.sucursalInfluenciaList;
+        this.updateComputedProperties();
         this.loadPedidoItemSucursalAndInitControls();
       }
     });
@@ -85,12 +91,34 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
       pedidoItemSucursal.sucursal = this.data.sucursalInfluenciaList[0];
       pedidoItemSucursal.sucursalEntrega = this.data.sucursalEntregaList[0];
       pedidoItemSucursal.pedidoItem = this.data.pedidoItem;
-      pedidoItemSucursal.cantidadPorUnidad = this.data.pedidoItem.cantidadCreacion * this.data.pedidoItem.presentacionCreacion?.cantidad;
+      // Use computed properties instead of direct field access
+      this.updateComputedProperties();
+      pedidoItemSucursal.cantidadPorUnidad = this.cantidadComputed * (this.presentacionComputed?.cantidad || 1);
       pedidoItemSucursal.usuario = this.mainService.usuarioActual;
       this.pedidoItemSucursalService.onSavePedidoItemSucursal(pedidoItemSucursal.toInput()).subscribe(res => {
         this.dialogRef.close(true);
       });
     }
+  }
+
+  private updateComputedProperties(): void {
+    if (this.selectedPedidoItem) {
+      // Determine current step from pedido estado
+      this.currentStepComputed = this.pedidoService.getCurrentStepFromPedidoEstado(this.selectedPedidoItem.pedido?.estado);
+      
+      // Get step-specific values using helper methods
+      this.presentacionComputed = this.selectedPedidoItem.getFieldValueForStep('presentacion', this.currentStepComputed);
+      this.cantidadComputed = this.selectedPedidoItem.getFieldValueForStep('cantidad', this.currentStepComputed);
+    }
+  }
+
+  // Getters for template
+  get currentPresentacion(): any {
+    return this.presentacionComputed;
+  }
+
+  get currentCantidad(): number {
+    return this.cantidadComputed;
   }
 
   ngAfterViewInit() {
@@ -190,7 +218,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
     this.pedidoItemSucursalList.forEach(item => {
       // Create cantidad control
       const cantidadControl = new FormControl(
-        item.cantidadPorUnidad / this.selectedPedidoItem.presentacionCreacion?.cantidad,
+        item.cantidadPorUnidad / (this.currentPresentacion?.cantidad || 1),
         [Validators.required, Validators.min(0)]
       );
       cantidadControl.valueChanges.subscribe(() => this.calcularCantAdicionada());
@@ -312,7 +340,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
     // Get the number of sucursales (using 0 as fallback if undefined)
     const cantSucursales = this.sucursalInfluenciaList?.length || 0;
     // Total quantity to be divided among the sucursales
-    const cantTotal = this.selectedPedidoItem.cantidadCreacion;
+    const cantTotal = this.currentCantidad;
 
     if (cantSucursales > 0) {
       // Calculate the base amount for each sucursal using integer division
@@ -469,57 +497,40 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
   }
 
   private showQuantityChangeConfirmation(newQuantity: number, originalQuantity: number): void {
-    const diferencia = newQuantity - originalQuantity;
-    const accion = diferencia > 0 ? 'incrementar' : 'reducir';
-    const diferenciaPresentacion = Math.abs(diferencia);
-    const cantidadUnidades = diferenciaPresentacion * (this.selectedPedidoItem.presentacionCreacion?.cantidad || 1);
+    const diferenciaPresentacion = newQuantity - originalQuantity;
+    const cantidadUnidades = diferenciaPresentacion * (this.currentPresentacion?.cantidad || 1);
     
-    const message = `
-      La cantidad total distribuida (${newQuantity}) ${diferencia > 0 ? 'es mayor' : 'es menor'} que la cantidad original del pedido (${originalQuantity}).
-      
-      Esto significa que se va a ${accion} la cantidad del item del pedido en ${diferenciaPresentacion} presentación(es) (${cantidadUnidades} unidades).
-      
-      ¿Desea continuar y actualizar la cantidad del pedido item?
-    `;
+    const message = `Se detectó que la cantidad total del pedido item cambió de ${originalQuantity} a ${newQuantity}.\n\n` +
+      `¿Desea actualizar la cantidad en el pedido item?\n\n` +
+      `Diferencia: ${diferenciaPresentacion} (${cantidadUnidades} unidades)`;
     
     this.dialogosService.confirm(
-      'Cambio de cantidad detectado',
+      'Confirmar cambio de cantidad',
       message
-    ).subscribe(confirmed => {
-      if (confirmed) {
+    ).subscribe(result => {
+      if (result) {
         this.updatePedidoItemQuantityAndSave(newQuantity);
+      } else {
+        this.proceedWithSave();
       }
-      // If not confirmed, do nothing (user can adjust quantities)
     });
   }
 
   private updatePedidoItemQuantityAndSave(newQuantity: number): void {
-    // Update the pedido item quantity
-    this.selectedPedidoItem.cantidadCreacion = newQuantity;
+    // Update the quantity in the pedido item using step-specific fields
+    this.selectedPedidoItem.setFieldValueForStep('cantidad', newQuantity, this.currentStepComputed);
     
-    // Recalculate total value with new quantity
-    const cantidadPresentacion = this.selectedPedidoItem.presentacionCreacion?.cantidad || 1;
-    const precioUnitario = this.selectedPedidoItem.precioUnitarioCreacion || 0;
-    const descuentoUnitario = this.selectedPedidoItem.descuentoUnitarioCreacion || 0;
+    // Also update valorTotal if needed
+    const cantidadPresentacion = this.currentPresentacion?.cantidad || 1;
+    const precioUnitario = this.selectedPedidoItem.getFieldValueForStep('precioUnitario', this.currentStepComputed) || 0;
+    const descuentoUnitario = this.selectedPedidoItem.getFieldValueForStep('descuentoUnitario', this.currentStepComputed) || 0;
     
-    this.selectedPedidoItem.valorTotal = newQuantity * cantidadPresentacion * (precioUnitario - descuentoUnitario);
-    
-    // Save the updated pedido item first, then save the distributions
-    // toInput is not a function error again
-    let pedidoItemAux = new PedidoItem();
-    Object.assign(pedidoItemAux, this.selectedPedidoItem);
-    pedidoItemAux.cantidadCreacion = newQuantity;
-    this.pedidoService.onSaveItem(pedidoItemAux.toInput()).subscribe({
-      next: (updatedItem) => {
-        this.selectedPedidoItem = updatedItem;
-        this.notificacionService.openSucess('Cantidad del pedido item actualizada correctamente');
-        this.proceedWithSave();
-      },
-      error: (error) => {
-        this.notificacionService.openWarn('Error al actualizar la cantidad del pedido item');
-        console.error('Error updating pedido item:', error);
-      }
-    });
+    // Calculate new total value
+    const newValorTotal = (newQuantity * cantidadPresentacion) * (precioUnitario - descuentoUnitario);
+    this.selectedPedidoItem.valorTotal = newValorTotal;
+
+    // Continue with the save process
+    this.proceedWithSave();
   }
 
   private proceedWithSave(): void {
@@ -554,7 +565,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
 
           const pedidoItemSucursal = new PedidoItemSucursal();
           Object.assign(pedidoItemSucursal, item);
-          pedidoItemSucursal.cantidadPorUnidad = cantidad * this.selectedPedidoItem.presentacionCreacion?.cantidad;
+          pedidoItemSucursal.cantidadPorUnidad = cantidad * (this.currentPresentacion?.cantidad || 1);
           pedidoItemSucursal.sucursalEntrega = sucursalEntrega;
           
           saveOperations.push(
@@ -579,7 +590,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
           }
 
           const pedidoItemSucursal = new PedidoItemSucursal();
-          pedidoItemSucursal.cantidadPorUnidad = cantidad * this.selectedPedidoItem.presentacionCreacion?.cantidad;
+          pedidoItemSucursal.cantidadPorUnidad = cantidad * (this.currentPresentacion?.cantidad || 1);
           pedidoItemSucursal.sucursalEntrega = sucursalEntrega;
           pedidoItemSucursal.pedidoItem = this.selectedPedidoItem;
           pedidoItemSucursal.sucursal = sucursal;
