@@ -22,6 +22,8 @@ import { CrearNotaRecepcionDialogComponent } from './crear-nota-recepcion-dialog
 import { ManageNotaItemsDialogComponent } from './manage-nota-items-dialog/manage-nota-items-dialog.component';
 import { DividirItemDialogComponent } from '../../dividir-item-dialog/dividir-item-dialog.component';
 import { AddProductDialogComponent, AddProductDialogData } from '../detalles-del-pedido/add-product-dialog/add-product-dialog.component';
+import { ItemStatusDialogComponent, ItemStatusDialogData } from './item-status-dialog/item-status-dialog.component';
+import { PedidoItemSucursalDialogComponent } from '../../pedido-item-sucursal/pedido-item-sucursal-dialog/pedido-item-sucursal-dialog.component';
 import { dateToString, parseShortDate } from '../../../../../commons/core/utils/dateUtils';
 
 interface PedidoItemWithStatus extends PedidoItem {
@@ -155,6 +157,7 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
     if (this.selectedPedido?.id) {
       this.loadPedidoItems();
       this.loadNotasRecepcion();
+      this.updateSummary(); // Load summary from backend
       this.updateComputedProperties();
     }
   }
@@ -251,14 +254,31 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
   }
 
   private updateSummary(): void {
-    // Update summary counters
-    this.totalItems = this.pedidoItemsPage?.getTotalElements || 0;
-    this.assignedItems = this.pedidoItemsDataSource.data.filter(item => item.isAssigned).length;
-    this.pendingItems = this.totalItems - this.assignedItems;
-    this.totalNotas = this.notasRecepcionPage?.getTotalElements || 0;
-    
-    // Update computed properties
-    this.updateComputedProperties();
+    // Load summary from backend
+    if (this.selectedPedido?.id) {
+      this.pedidoService.onGetPedidoRecepcionNotaSummary(this.selectedPedido.id)
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (summary) => {
+            this.totalItems = summary.totalItems;
+            this.assignedItems = summary.assignedItems;
+            this.pendingItems = summary.pendingItems;
+            this.totalNotas = summary.totalNotas;
+            
+            // Update computed properties
+            this.updateComputedProperties();
+          },
+          error: () => {
+            console.warn('Could not load pedido recepcion nota summary');
+            // Fallback to previous calculation method if needed
+            this.totalItems = 0;
+            this.assignedItems = 0;
+            this.pendingItems = 0;
+            this.totalNotas = 0;
+            this.updateComputedProperties();
+          }
+        });
+    }
   }
 
   private updateComputedProperties(): void {
@@ -342,8 +362,12 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         this.selectedItemIds.clear();
         this.itemsSelection.clear();
         
+        // Refresh data and summary
         this.loadPedidoItems();
         this.loadNotasRecepcion();
+        this.updateSummary(); // Refresh summary from backend
+        this.selectedNotaRecepcion = null;
+        this.isProcessing = false;
         
         // Emit pedido change to update parent component
         this.pedidoChange.emit(this.selectedPedido);
@@ -366,8 +390,10 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
       if (result?.notaCreated) {
         this.notificacionService.openSucess('Nota de recepción creada exitosamente');
         
+        // Refresh data and summary
         this.loadPedidoItems();
         this.loadNotasRecepcion();
+        this.updateSummary(); // Refresh summary from backend
         
         // Emit pedido change to update parent component
         this.pedidoChange.emit(this.selectedPedido);
@@ -399,8 +425,10 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         this.selectedItemIds.clear();
         this.itemsSelection.clear();
         
+        // Refresh data and summary
         this.loadPedidoItems();
         this.loadNotasRecepcion();
+        this.updateSummary(); // Refresh summary from backend
         this.selectedNotaRecepcion = null;
         this.isProcessing = false;
         
@@ -435,8 +463,11 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
             .subscribe({
               next: () => {
                 this.notificacionService.openSucess('Item desasignado exitosamente');
+                
+                // Refresh data and summary
                 this.loadPedidoItems();
                 this.loadNotasRecepcion();
+                this.updateSummary(); // Refresh summary from backend
                 
                 // Emit pedido change
                 this.pedidoChange.emit(this.selectedPedido);
@@ -485,8 +516,11 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
             .subscribe({
               next: () => {
                 this.notificacionService.openSucess('Nota de recepción eliminada exitosamente');
+                
+                // Refresh data and summary
                 this.loadPedidoItems();
                 this.loadNotasRecepcion();
+                this.updateSummary(); // Refresh summary from backend
                 
                 // Emit pedido change
                 this.pedidoChange.emit(this.selectedPedido);
@@ -519,8 +553,11 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
     dialogRef.afterClosed().subscribe(result => {
       if (result?.itemsChanged) {
         this.notificacionService.openSucess('Items gestionados exitosamente');
+        
+        // Refresh data and summary
         this.loadPedidoItems();
         this.loadNotasRecepcion();
+        this.updateSummary(); // Refresh summary from backend
         
         // Emit pedido change to update parent component
         this.pedidoChange.emit(this.selectedPedido);
@@ -574,8 +611,11 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
     dialogRef.afterClosed().subscribe((dividirRes: PedidoItem[]) => {
       if (dividirRes != null && dividirRes.length > 0) {
         this.notificacionService.openSucess(`Item dividido en ${dividirRes.length} partes exitosamente`);
+        
+        // Refresh data and summary
         this.loadPedidoItems();
         this.loadNotasRecepcion();
+        this.updateSummary(); // Refresh summary from backend
         
         // Emit pedido change to update parent component
         this.pedidoChange.emit(this.selectedPedido);
@@ -612,8 +652,52 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         // Reload data to reflect changes
         this.loadPedidoItems();
         this.loadNotasRecepcion();
+        this.updateSummary(); // Refresh summary from backend
+        
+        // Check if distribution update is needed (presentacion or cantidad changed)
+        if (result.needsDistributionUpdate) {
+          this.openSucursalDistributionDialog(result.pedidoItem);
+        }
         
         // Emit pedido change to update parent component
+        this.pedidoChange.emit(this.selectedPedido);
+      }
+    });
+  }
+
+  // Method to open pedido item sucursal distribution dialog
+  private openSucursalDistributionDialog(pedidoItem: PedidoItem): void {
+    // Get sucursal data from pedido
+    const sucursalInfluenciaList = this.selectedPedido?.sucursalInfluenciaList || [];
+    const sucursalEntregaList = this.selectedPedido?.sucursalEntregaList || [];
+
+    if (sucursalInfluenciaList.length === 0) {
+      this.notificacionService.openWarn('No hay sucursales de influencia configuradas para este pedido');
+      return;
+    }
+
+    const dialogRef = this.dialog.open(PedidoItemSucursalDialogComponent, {
+      width: '90%',
+      maxWidth: '1000px',
+      height: '80%',
+      data: {
+        pedidoItem: pedidoItem,
+        sucursalInfluenciaList: sucursalInfluenciaList,
+        sucursalEntregaList: sucursalEntregaList,
+        autoSet: false
+      },
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.notificacionService.openSucess('Distribución por sucursales actualizada');
+        
+        // Reload data to reflect any changes
+        this.loadPedidoItems();
+        this.updateSummary();
+        
+        // Emit pedido change
         this.pedidoChange.emit(this.selectedPedido);
       }
     });
@@ -647,10 +731,65 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         // Reload data to reflect changes
         this.loadPedidoItems();
         this.loadNotasRecepcion();
+        this.updateSummary(); // Refresh summary from backend
         
         // Emit pedido change to update parent component
         this.pedidoChange.emit(this.selectedPedido);
       }
+    });
+  }
+
+  // Method to open item rejection dialog
+  onGestionarRechazoItem(item: PedidoItemWithStatus): void {
+    if (!item) {
+      this.notificacionService.openWarn('Error: Item no disponible');
+      return;
+    }
+
+    const dialogData: ItemStatusDialogData = {
+      pedidoItem: item,
+      isReadOnly: false
+    };
+
+    const dialogRef = this.dialog.open(ItemStatusDialogComponent, {
+      data: dialogData,
+      width: '600px',
+      maxWidth: '90vw',
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result?.updated) {
+        this.notificacionService.openSucess('Estado de rechazo actualizado exitosamente');
+        
+        // Reload data to reflect changes
+        this.loadPedidoItems();
+        this.loadNotasRecepcion();
+        this.updateSummary(); // Refresh summary from backend
+        
+        // Emit pedido change to update parent component
+        this.pedidoChange.emit(this.selectedPedido);
+      }
+    });
+  }
+
+  // Method to view item rejection status (read-only)
+  onVerRechazoItem(item: PedidoItemWithStatus): void {
+    if (!item) {
+      this.notificacionService.openWarn('Error: Item no disponible');
+      return;
+    }
+
+    const dialogData: ItemStatusDialogData = {
+      pedidoItem: item,
+      isReadOnly: true
+    };
+
+    this.dialog.open(ItemStatusDialogComponent, {
+      data: dialogData,
+      width: '600px',
+      maxWidth: '90vw',
+      disableClose: false
     });
   }
 } 

@@ -76,7 +76,7 @@
               *ngIf="selectedPedido?.formaPago; else placeholderFormaPago"
             >
               <div class="info-value">
-                {{ selectedPedido.formaPago.descripcion }}
+                {{ selectedPedido.formaPago?.descripcion }}
               </div>
               <div class="info-secondary" *ngIf="selectedPedido.plazoCredito">
                 {{ selectedPedido.plazoCredito }} días
@@ -95,10 +95,10 @@
               *ngIf="selectedPedido?.moneda; else placeholderMoneda"
             >
               <div class="info-value">
-                {{ selectedPedido.moneda.denominacion }}
+                {{ selectedPedido.moneda?.denominacion }}
               </div>
               <div class="info-secondary">
-                {{ selectedPedido.moneda.simbolo }}
+                {{ selectedPedido.moneda?.simbolo }}
               </div>
             </div>
             <ng-template #placeholderMoneda>

@@ -1,7 +1,11 @@
-<div class="main-container">
-  <!-- Header Section with Gradient Background -->
-  <div class="header-section">
-    <h3 class="dialog-title">Sucursales de influencia y entrega</h3>
+<div
+  class="main-container"
+  [class.embedded-mode]="isEmbedded"
+  style="height: 100%"
+>
+  <!-- Header Section with Gradient Background - Only shown in dialog mode -->
+  <div class="header-section" *ngIf="showDialogHeader">
+    <h3 class="dialog-title">{{ dialogTitle }}</h3>
   </div>
 
   <!-- Product Info Section -->
@@ -29,10 +33,7 @@
       <div class="info-item">
         <span class="titulo-color">Sobrante:</span>
         <h3 class="info-value">
-          {{
-            currentCantidad - cantAgregada
-              | number : "1.0-2"
-          }}
+          {{ currentCantidad - cantAgregada | number : "1.0-2" }}
         </h3>
       </div>
     </div>
@@ -196,12 +197,12 @@
     </mat-card>
   </div>
 
-  <!-- Footer Section -->
+  <!-- Footer Section - Only shown in dialog mode -->
   <div class="footer-section">
     <div class="footer-buttons">
       <button mat-button (click)="onCancelar()" class="cancel-btn">
         <mat-icon>close</mat-icon>
-        Cancelar
+        Salir
       </button>
       <button
         #saveButton

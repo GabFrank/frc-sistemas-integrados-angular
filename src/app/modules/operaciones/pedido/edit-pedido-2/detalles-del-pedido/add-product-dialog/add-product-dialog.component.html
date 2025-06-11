@@ -9,275 +9,461 @@
     </div>
     <span class="provider-info">
       <span class="titulo-color">Proveedor:</span>
-      {{ data.pedido?.proveedor?.persona?.nombre }}</span
-    >
+      {{ data.pedido?.proveedor?.persona?.nombre }}
+    </span>
   </div>
 
-  <!-- Product Search and Form Section (45%) -->
-  <div class="form-section">
-    <!-- Product Search Section -->
-    <mat-card class="search-card">
-      <mat-card-content>
-        <div class="search-row">
-          <mat-form-field appearance="outline" class="search-field">
-            <mat-label>CÓDIGO DE BARRA O DESCRIPCIÓN</mat-label>
-            <input
-              matInput
-              #buscarProductoDirectoInput
-              [formControl]="buscarProductoDirectoControl"
-              (keydown)="onBuscarProductoEnter($event)"
-              (keyup.tab)="
-                selectedProducto == null ? onSearchProductoDirecto() : null
-              "
-              placeholder="Ingrese código o descripción del producto..."
-            />
-            <mat-icon
-              matSuffix
-              class="search-icon"
-              (click)="onSearchProductoDirecto()"
-              >search</mat-icon
-            >
-          </mat-form-field>
-          <button
-            mat-icon-button
-            color="primary"
-            (click)="onSearchProductoDirecto()"
-            class="search-btn"
-          >
-            <mat-icon>search</mat-icon>
-          </button>
-          <button
-            mat-icon-button
-            (click)="clearAllSelections()"
-            class="clear-btn"
-            matTooltip="Limpiar búsqueda"
-          >
-            <mat-icon>clear</mat-icon>
-          </button>
-        </div>
-      </mat-card-content>
-    </mat-card>
+  <!-- Tabbed Interface -->
+  <div class="tabs-container">
+    <mat-tab-group [(selectedIndex)]="selectedTabIndex" class="product-tabs">
+      <!-- Tab 1: Configurar Producto -->
+      <mat-tab>
+        <ng-template mat-tab-label> Configurar Producto </ng-template>
 
-    <!-- Product Configuration Form - Always Visible -->
-    <mat-card class="form-card">
-      <mat-card-header>
-        <div class="w-100">
-          <mat-card-title
-            class="d-flex justify-content-between align-items-center titulo-color"
-            style="font-size: small"
-          >
-            <span> Configurar Producto </span>
-            <button
-              mat-icon-button
-              (click)="clearProductSelection()"
-              matTooltip="Limpiar selección"
-            >
-              <mat-icon>clear</mat-icon>
-            </button>
-          </mat-card-title>
-          <mat-card-subtitle
-            *ngIf="selectedProducto"
-            class="selected-product-name"
-          >
-            <div>
-              <span class="titulo-color">Descripción:</span>
-              {{ selectedProducto.descripcion }}
-            </div>
-            <div>
-              <span class="titulo-color">Código:</span>
-              {{ selectedProducto.codigoPrincipal }}
-            </div>
-          </mat-card-subtitle>
-        </div>
-      </mat-card-header>
-
-      <mat-card-content>
-        <div class="form-content-layout">
-          <!-- Product Image Section -->
-          <div class="product-image-container">
-            <img
-              [src]="selectedProducto?.imagenPrincipal || 'assets/no-image.png'"
-              [alt]="selectedProducto?.descripcion || 'Producto'"
-              class="product-image"
-            />
-          </div>
-
-          <!-- Form Fields Section -->
-          <div class="form-fields-container">
-            <form [formGroup]="productSelectionFormGroup" class="product-form">
-              <div class="form-row">
-                <!-- Presentación -->
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>PRESENTACIÓN *</mat-label>
-                  <mat-select
-                    #presentacionSelect
-                    formControlName="presentacion"
-                    (keydown)="onPresentacionEnter($event)"
-                  >
-                    <mat-option
-                      *ngFor="
-                        let presentacion of selectedProducto?.presentaciones
-                      "
-                      [value]="presentacion"
-                    >
-                      {{ presentacion.cantidad | number : "1.0-3" }}
-                      {{ presentacion.tipoPresentacion?.descripcion }}
-                    </mat-option>
-                  </mat-select>
-                  <mat-icon matSuffix>category</mat-icon>
-                  <mat-error
-                    *ngIf="
-                      productSelectionFormGroup
-                        .get('presentacion')
-                        ?.hasError('required')
-                    "
-                  >
-                    Presentación es requerida
-                  </mat-error>
-                </mat-form-field>
-
-                <!-- Cantidad -->
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>CANTIDAD *</mat-label>
+        <div class="tab-content">
+          <!-- Product Search Section -->
+          <mat-card class="search-card">
+            <mat-card-content>
+              <div class="search-row">
+                <mat-form-field appearance="outline" class="search-field">
+                  <mat-label>CÓDIGO DE BARRA O DESCRIPCIÓN</mat-label>
                   <input
                     matInput
-                    #cantidadInput
-                    type="number"
-                    formControlName="cantidad"
-                    min="0.01"
-                    step="0.01"
-                    (keydown)="onCantidadEnter($event)"
+                    #buscarProductoDirectoInput
+                    [formControl]="buscarProductoDirectoControl"
+                    (keydown)="onBuscarProductoEnter($event)"
+                    placeholder="Ingrese código o descripción del producto..."
                   />
-                  <mat-icon matSuffix>inventory</mat-icon>
-                  <mat-error
-                    *ngIf="
-                      productSelectionFormGroup
-                        .get('cantidad')
-                        ?.hasError('required')
-                    "
+                  <mat-icon
+                    matSuffix
+                    class="search-icon"
+                    (click)="onSearchProductoDirecto()"
+                    >search</mat-icon
                   >
-                    Cantidad es requerida
-                  </mat-error>
-                  <mat-error
-                    *ngIf="
-                      productSelectionFormGroup.get('cantidad')?.hasError('min')
-                    "
-                  >
-                    Cantidad debe ser mayor a 0
-                  </mat-error>
                 </mat-form-field>
+                <button
+                  mat-icon-button
+                  color="primary"
+                  (click)="onSearchProductoDirecto()"
+                  class="search-btn"
+                >
+                  <mat-icon>search</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  (click)="clearAllSelections()"
+                  class="clear-btn"
+                  matTooltip="Limpiar búsqueda"
+                >
+                  <mat-icon>clear</mat-icon>
+                </button>
               </div>
+            </mat-card-content>
+          </mat-card>
 
-              <div class="form-row">
-                <!-- Precio por Presentación -->
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>PRECIO POR PRESENTACIÓN</mat-label>
-                  <input
-                    matInput
-                    #precioPorPresentacionInput
-                    type="text"
-                    formControlName="precioPorPresentacion"
-                    currencyMask
-                    [options]="currencyMask.currencyOptionsGuarani"
-                    (keydown)="onPrecioPorPresentacionEnter($event)"
-                  />
-                  <span matPrefix class="prefix-padding">Gs.&nbsp;</span>
-                  <mat-icon matSuffix>local_offer</mat-icon>
-                  <mat-error
-                    *ngIf="
-                      productSelectionFormGroup
-                        .get('precioPorPresentacion')
-                        ?.hasError('min')
-                    "
-                  >
-                    Precio debe ser mayor o igual a 0
-                  </mat-error>
-                </mat-form-field>
-
-                <!-- Precio Unitario -->
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>PRECIO UNITARIO *</mat-label>
-                  <input
-                    matInput
-                    #precioUnitarioInput
-                    type="text"
-                    formControlName="precioUnitario"
-                    currencyMask
-                    [options]="currencyMask.currencyOptionsGuarani"
-                    (keydown)="onPrecioUnitarioEnter($event)"
-                  />
-                  <span matPrefix class="prefix-padding">Gs.&nbsp;</span>
-                  <mat-error
-                    *ngIf="
-                      productSelectionFormGroup
-                        .get('precioUnitario')
-                        ?.hasError('required')
-                    "
-                  >
-                    Precio es requerido
-                  </mat-error>
-                  <mat-error
-                    *ngIf="
-                      productSelectionFormGroup
-                        .get('precioUnitario')
-                        ?.hasError('min')
-                    "
-                  >
-                    Precio debe ser mayor o igual a 0
-                  </mat-error>
-                </mat-form-field>
+          <!-- Product Configuration Form -->
+          <mat-card class="form-card" *ngIf="selectedProducto">
+            <mat-card-header>
+              <div class="w-100">
+                <mat-card-title class="titulo-center" style="font-size: medium">
+                  Configurar Producto
+                </mat-card-title>
+                <mat-card-subtitle class="selected-product-name">
+                  <div>
+                    <span class="titulo-color">Descripción:</span>
+                    {{ selectedProducto.descripcion }}
+                  </div>
+                  <div>
+                    <span class="titulo-color">Código:</span>
+                    {{ selectedProducto.codigoPrincipal }}
+                  </div>
+                </mat-card-subtitle>
               </div>
+            </mat-card-header>
 
-              <div class="form-row">
-                <!-- Descuento por Presentación -->
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>DESCUENTO POR PRESENTACIÓN</mat-label>
-                  <input
-                    matInput
-                    #descuentoPorPresentacionInput
-                    type="text"
-                    formControlName="descuentoPorPresentacion"
-                    currencyMask
-                    [options]="currencyMask.currencyOptionsGuarani"
-                    (keydown)="onDescuentoPorPresentacionEnter($event)"
-                  />
-                  <span matPrefix class="prefix-padding">Gs.&nbsp;</span>
-                  <mat-icon matSuffix>discount</mat-icon>
-                  <mat-error
-                    *ngIf="
-                      productSelectionFormGroup
-                        .get('descuentoPorPresentacion')
-                        ?.hasError('min')
+            <mat-card-content>
+              <div class="form-content-layout">
+                <!-- Product Image Section -->
+                <div class="product-image-container">
+                  <img
+                    [src]="
+                      selectedProducto?.imagenPrincipal || 'assets/no-image.png'
                     "
-                  >
-                    Descuento debe ser mayor o igual a 0
-                  </mat-error>
-                </mat-form-field>
+                    [alt]="selectedProducto?.descripcion || 'Producto'"
+                    class="product-image"
+                  />
+                </div>
 
-                <!-- Descuento Unitario -->
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>DESCUENTO UNITARIO</mat-label>
-                  <input
-                    matInput
-                    #descuentoUnitarioInput
-                    type="text"
-                    formControlName="descuentoUnitario"
-                    currencyMask
-                    [options]="currencyMask.currencyOptionsGuarani"
-                    (keydown)="onDescuentoUnitarioEnter($event)"
-                  />
-                  <span matPrefix class="prefix-padding">Gs.&nbsp;</span>
-                  <mat-icon matSuffix>money_off</mat-icon>
-                  <mat-error
-                    *ngIf="
-                      productSelectionFormGroup
-                        .get('descuentoUnitario')
-                        ?.hasError('min')
-                    "
+                <!-- Form Fields Section -->
+                <div class="form-fields-container">
+                  <form
+                    [formGroup]="productSelectionFormGroup"
+                    class="product-form"
                   >
-                    Descuento debe ser mayor o igual a 0
-                  </mat-error>
-                </mat-form-field>
+                    <div class="form-row">
+                      <!-- Presentación -->
+                      <mat-form-field appearance="outline" class="form-field">
+                        <mat-label>PRESENTACIÓN *</mat-label>
+                        <mat-select
+                          #presentacionSelect
+                          formControlName="presentacion"
+                          (keydown)="onPresentacionEnter($event)"
+                        >
+                          <mat-option
+                            *ngFor="
+                              let presentacion of selectedProducto?.presentaciones
+                            "
+                            [value]="presentacion"
+                          >
+                            {{ presentacion.cantidad | number : "1.0-3" }}
+                            {{ presentacion.tipoPresentacion?.descripcion }}
+                          </mat-option>
+                        </mat-select>
+                        <mat-icon matSuffix>category</mat-icon>
+                        <mat-error
+                          *ngIf="
+                            productSelectionFormGroup
+                              .get('presentacion')
+                              ?.hasError('required')
+                          "
+                        >
+                          Presentación es requerida
+                        </mat-error>
+                      </mat-form-field>
+
+                      <!-- Cantidad -->
+                      <mat-form-field appearance="outline" class="form-field">
+                        <mat-label>CANTIDAD *</mat-label>
+                        <input
+                          matInput
+                          #cantidadInput
+                          type="number"
+                          formControlName="cantidad"
+                          min="0.01"
+                          step="0.01"
+                          (keydown)="onCantidadEnter($event)"
+                        />
+                        <mat-icon matSuffix>inventory</mat-icon>
+                        <mat-error
+                          *ngIf="
+                            productSelectionFormGroup
+                              .get('cantidad')
+                              ?.hasError('required')
+                          "
+                        >
+                          Cantidad es requerida
+                        </mat-error>
+                        <mat-error
+                          *ngIf="
+                            productSelectionFormGroup
+                              .get('cantidad')
+                              ?.hasError('min')
+                          "
+                        >
+                          Cantidad debe ser mayor a 0
+                        </mat-error>
+                      </mat-form-field>
+                    </div>
+
+                    <div class="form-row">
+                      <!-- Precio por Presentación -->
+                      <mat-form-field appearance="outline" class="form-field">
+                        <mat-label>PRECIO POR PRESENTACIÓN</mat-label>
+                        <input
+                          matInput
+                          #precioPorPresentacionInput
+                          type="text"
+                          formControlName="precioPorPresentacion"
+                          currencyMask
+                          [options]="currencyMask.currencyOptionsGuarani"
+                          (keydown)="onPrecioPorPresentacionEnter($event)"
+                        />
+                        <span matPrefix class="prefix-padding">Gs.&nbsp;</span>
+                        <mat-icon matSuffix>local_offer</mat-icon>
+                        <mat-error
+                          *ngIf="
+                            productSelectionFormGroup
+                              .get('precioPorPresentacion')
+                              ?.hasError('min')
+                          "
+                        >
+                          Precio debe ser mayor o igual a 0
+                        </mat-error>
+                      </mat-form-field>
+
+                      <!-- Precio Unitario -->
+                      <mat-form-field appearance="outline" class="form-field">
+                        <mat-label>PRECIO UNITARIO *</mat-label>
+                        <input
+                          matInput
+                          #precioUnitarioInput
+                          type="text"
+                          formControlName="precioUnitario"
+                          currencyMask
+                          [options]="currencyMask.currencyOptionsGuarani"
+                          (keydown)="onPrecioUnitarioEnter($event)"
+                        />
+                        <span matPrefix class="prefix-padding">Gs.&nbsp;</span>
+                        <mat-error
+                          *ngIf="
+                            productSelectionFormGroup
+                              .get('precioUnitario')
+                              ?.hasError('required')
+                          "
+                        >
+                          Precio es requerido
+                        </mat-error>
+                        <mat-error
+                          *ngIf="
+                            productSelectionFormGroup
+                              .get('precioUnitario')
+                              ?.hasError('min')
+                          "
+                        >
+                          Precio debe ser mayor o igual a 0
+                        </mat-error>
+                      </mat-form-field>
+                    </div>
+
+                    <div class="form-row">
+                      <!-- Descuento por Presentación -->
+                      <mat-form-field appearance="outline" class="form-field">
+                        <mat-label>DESCUENTO POR PRESENTACIÓN</mat-label>
+                        <input
+                          matInput
+                          #descuentoPorPresentacionInput
+                          type="text"
+                          formControlName="descuentoPorPresentacion"
+                          currencyMask
+                          [options]="currencyMask.currencyOptionsGuarani"
+                          (keydown)="onDescuentoPorPresentacionEnter($event)"
+                        />
+                        <span matPrefix class="prefix-padding">Gs.&nbsp;</span>
+                        <mat-icon matSuffix>discount</mat-icon>
+                        <mat-error
+                          *ngIf="
+                            productSelectionFormGroup
+                              .get('descuentoPorPresentacion')
+                              ?.hasError('min')
+                          "
+                        >
+                          Descuento debe ser mayor o igual a 0
+                        </mat-error>
+                      </mat-form-field>
+
+                      <!-- Descuento Unitario -->
+                      <mat-form-field appearance="outline" class="form-field">
+                        <mat-label>DESCUENTO UNITARIO</mat-label>
+                        <input
+                          matInput
+                          #descuentoUnitarioInput
+                          type="text"
+                          formControlName="descuentoUnitario"
+                          currencyMask
+                          [options]="currencyMask.currencyOptionsGuarani"
+                          (keydown)="onDescuentoUnitarioEnter($event)"
+                        />
+                        <span matPrefix class="prefix-padding">Gs.&nbsp;</span>
+                        <mat-icon matSuffix>money_off</mat-icon>
+                        <mat-error
+                          *ngIf="
+                            productSelectionFormGroup
+                              .get('descuentoUnitario')
+                              ?.hasError('min')
+                          "
+                        >
+                          Descuento debe ser mayor o igual a 0
+                        </mat-error>
+                      </mat-form-field>
+                    </div>
+
+                    <!-- Observations Section - Full Width -->
+                    <div class="observations-section">
+                      <!-- Observations for Detalles Pedido Step -->
+                      <mat-form-field
+                        appearance="outline"
+                        class="form-field full-width"
+                        *ngIf="currentStep === 'DETALLES_PEDIDO'"
+                      >
+                        <mat-label>OBSERVACIONES</mat-label>
+                        <textarea
+                          matInput
+                          formControlName="obsCreacion"
+                          rows="2"
+                          maxlength="500"
+                          placeholder="Agregar observaciones sobre este item..."
+                        >
+                        </textarea>
+                        <mat-icon matSuffix>note</mat-icon>
+                        <mat-hint align="end">
+                          {{
+                            (
+                              productSelectionFormGroup.get("obsCreacion")
+                                ?.value || ""
+                            ).length
+                          }}/500
+                        </mat-hint>
+                        <mat-error
+                          *ngIf="
+                            productSelectionFormGroup
+                              .get('obsCreacion')
+                              ?.hasError('maxlength')
+                          "
+                        >
+                          Las observaciones no pueden exceder 500 caracteres
+                        </mat-error>
+                      </mat-form-field>
+
+                      <!-- Observations for Recepcion Nota Step -->
+                      <div
+                        *ngIf="currentStep === 'RECEPCION_NOTA'"
+                        class="multi-obs-container"
+                      >
+                        <!-- Current step observations (editable) -->
+                        <mat-form-field
+                          appearance="outline"
+                          class="form-field full-width"
+                        >
+                          <mat-label>OBSERVACIONES DE RECEPCIÓN NOTA</mat-label>
+                          <textarea
+                            matInput
+                            formControlName="obsRecepcionNota"
+                            rows="2"
+                            maxlength="500"
+                            placeholder="Agregar observaciones sobre la recepción de nota..."
+                          >
+                          </textarea>
+                          <mat-icon matSuffix>edit_note</mat-icon>
+                          <mat-hint align="end">
+                            {{
+                              (
+                                productSelectionFormGroup.get(
+                                  "obsRecepcionNota"
+                                )?.value || ""
+                              ).length
+                            }}/500
+                          </mat-hint>
+                          <mat-error
+                            *ngIf="
+                              productSelectionFormGroup
+                                .get('obsRecepcionNota')
+                                ?.hasError('maxlength')
+                            "
+                          >
+                            Las observaciones no pueden exceder 500 caracteres
+                          </mat-error>
+                        </mat-form-field>
+
+                        <!-- Previous step observations (read-only for reference) -->
+                        <mat-form-field
+                          appearance="outline"
+                          class="form-field full-width readonly-field"
+                          *ngIf="
+                            productSelectionFormGroup.get('obsCreacion')?.value
+                          "
+                        >
+                          <mat-label
+                            >OBSERVACIONES ORIGINALES (Solo lectura)</mat-label
+                          >
+                          <textarea
+                            matInput
+                            formControlName="obsCreacion"
+                            rows="1"
+                            readonly
+                          >
+                          </textarea>
+                          <mat-icon matSuffix>visibility</mat-icon>
+                        </mat-form-field>
+                      </div>
+
+                      <!-- Observations for Recepcion Producto Step -->
+                      <div
+                        *ngIf="currentStep === 'RECEPCION_PRODUCTO'"
+                        class="multi-obs-container"
+                      >
+                        <!-- Current step observations (editable) -->
+                        <mat-form-field
+                          appearance="outline"
+                          class="form-field full-width"
+                        >
+                          <mat-label
+                            >OBSERVACIONES DE RECEPCIÓN PRODUCTO</mat-label
+                          >
+                          <textarea
+                            matInput
+                            formControlName="obsRecepcionProducto"
+                            rows="2"
+                            maxlength="500"
+                            placeholder="Agregar observaciones sobre la recepción del producto..."
+                          >
+                          </textarea>
+                          <mat-icon matSuffix>inventory_2</mat-icon>
+                          <mat-hint align="end">
+                            {{
+                              (
+                                productSelectionFormGroup.get(
+                                  "obsRecepcionProducto"
+                                )?.value || ""
+                              ).length
+                            }}/500
+                          </mat-hint>
+                          <mat-error
+                            *ngIf="
+                              productSelectionFormGroup
+                                .get('obsRecepcionProducto')
+                                ?.hasError('maxlength')
+                            "
+                          >
+                            Las observaciones no pueden exceder 500 caracteres
+                          </mat-error>
+                        </mat-form-field>
+
+                        <!-- Previous steps observations (read-only for reference) -->
+                        <mat-form-field
+                          appearance="outline"
+                          class="form-field full-width readonly-field"
+                          *ngIf="
+                            productSelectionFormGroup.get('obsRecepcionNota')
+                              ?.value
+                          "
+                        >
+                          <mat-label
+                            >OBSERVACIONES DE RECEPCIÓN NOTA (Solo
+                            lectura)</mat-label
+                          >
+                          <textarea
+                            matInput
+                            formControlName="obsRecepcionNota"
+                            rows="1"
+                            readonly
+                          >
+                          </textarea>
+                          <mat-icon matSuffix>visibility</mat-icon>
+                        </mat-form-field>
+
+                        <mat-form-field
+                          appearance="outline"
+                          class="form-field full-width readonly-field"
+                          *ngIf="
+                            productSelectionFormGroup.get('obsCreacion')?.value
+                          "
+                        >
+                          <mat-label
+                            >OBSERVACIONES ORIGINALES (Solo lectura)</mat-label
+                          >
+                          <textarea
+                            matInput
+                            formControlName="obsCreacion"
+                            rows="1"
+                            readonly
+                          >
+                          </textarea>
+                          <mat-icon matSuffix>visibility</mat-icon>
+                        </mat-form-field>
+                      </div>
+                    </div>
+                  </form>
+                </div>
               </div>
 
               <!-- Total Preview -->
@@ -287,7 +473,10 @@
               >
                 <div class="totals-container">
                   <!-- Descuento Total Row -->
-                  <div class="total-row discount-total" *ngIf="totalDescuento > 0">
+                  <div
+                    class="total-row discount-total"
+                    *ngIf="totalDescuento > 0"
+                  >
                     <div class="total-label-container">
                       <mat-icon class="total-icon">local_offer</mat-icon>
                       <span class="total-label">Descuento Total:</span>
@@ -296,7 +485,7 @@
                       -Gs. {{ totalDescuento | number : "1.0-2" }}
                     </span>
                   </div>
-                  
+
                   <!-- Main Total Row -->
                   <div class="total-row main-total">
                     <div class="total-label-container">
@@ -309,296 +498,476 @@
                   </div>
                 </div>
               </div>
-            </form>
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
-    <div class="dialog-actions">
-      <!-- Price validation message on the left -->
-      <div class="price-validation-container">
-        <div
-          class="price-validation-message"
-          *ngIf="showPriceWarning"
-          [ngClass]="{
-            'price-higher': priceChangeType === 'higher',
-            'price-lower': priceChangeType === 'lower'
-          }"
-        >
-          <mat-icon class="warning-icon">{{
-            priceChangeType === "higher" ? "trending_up" : "trending_down"
-          }}</mat-icon>
-          {{ priceChangeMessage }}
-        </div>
-      </div>
-
-      <!-- Buttons on the right -->
-      <div class="dialog-buttons">
-        <button mat-button (click)="onCancel()" class="cancel-btn">
-          <mat-icon>close</mat-icon>
-          CANCELAR
-        </button>
-        <button
-          #agregarButton
-          mat-raised-button
-          color="primary"
-          (click)="onAddProductToPedido()"
-          [disabled]="isFormInvalidOrNoProduct"
-          (keydown)="onAgregarButtonEnter($event)"
-          class="add-btn"
-        >
-          <mat-icon>{{
-            data.isEditing ? "save" : "add_shopping_cart"
-          }}</mat-icon>
-          {{ data.isEditing ? "ACTUALIZAR PRODUCTO" : "AGREGAR AL PEDIDO" }}
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Lists Section (45%) -->
-  <div class="lists-section">
-    <!-- Left - Productos Proveedor -->
-    <div class="list-panel">
-      <mat-card class="list-card">
-        <mat-card-header>
-          <mat-card-title style="font-size: small" class="titulo-color">
-            Productos del Proveedor
-          </mat-card-title>
-        </mat-card-header>
-
-        <mat-card-content>
-          <!-- Search Bar -->
-          <mat-form-field appearance="outline" class="w-100 mb-2">
-            <mat-label>BUSCAR PRODUCTO</mat-label>
-            <input
-              matInput
-              [formControl]="buscarProductoControl"
-              placeholder="Código o descripción..."
-            />
-            <mat-icon matSuffix>search</mat-icon>
-          </mat-form-field>
-
-          <!-- Productos Table -->
-          <div class="list-table-container">
-            <table
-              mat-table
-              [dataSource]="productosProveedorDataSource"
-              class="w-100 compact-table"
-            >
-              <!-- Código Column -->
-              <ng-container matColumnDef="codigo">
-                <th mat-header-cell *matHeaderCellDef>CÓDIGO</th>
-                <td mat-cell *matCellDef="let elemento">
-                  <div class="code-display">
-                    {{ elemento.producto?.codigoPrincipal }}
-                  </div>
-                </td>
-              </ng-container>
-
-              <!-- Descripción Column -->
-              <ng-container matColumnDef="descripcion">
-                <th mat-header-cell *matHeaderCellDef>DESCRIPCIÓN</th>
-                <td mat-cell *matCellDef="let elemento">
-                  <div class="producto-info">
-                    <div class="product-name">
-                      {{ elemento.producto?.descripcion }}
-                    </div>
-                    <small class="text-muted">{{
-                      elemento.producto?.descripcionFactura
-                    }}</small>
-                  </div>
-                </td>
-              </ng-container>
-
-              <!-- Stock Column -->
-              <ng-container matColumnDef="stock">
-                <th mat-header-cell *matHeaderCellDef>STOCK</th>
-                <td mat-cell *matCellDef="let elemento">
-                  <span class="badge badge-info">
-                    {{ elemento.producto?.existenciaTotal || 0 }}
-                  </span>
-                </td>
-              </ng-container>
-
-              <!-- Acciones Column -->
-              <ng-container matColumnDef="acciones">
-                <th mat-header-cell *matHeaderCellDef>ACCIÓN</th>
-                <td mat-cell *matCellDef="let elemento">
-                  <button
-                    mat-raised-button
-                    color="primary"
-                    size="small"
-                    (click)="onProductoProveedorSelect(elemento)"
-                    [disabled]="selectedProductoProveedor?.id === elemento.id"
-                  >
-                    <mat-icon>{{
-                      selectedProductoProveedor?.id === elemento.id
-                        ? "check"
-                        : "arrow_forward"
-                    }}</mat-icon>
-                    {{
-                      selectedProductoProveedor?.id === elemento.id
-                        ? "SELECCIONADO"
-                        : "SELECCIONAR"
-                    }}
-                  </button>
-                </td>
-              </ng-container>
-
-              <tr
-                mat-header-row
-                *matHeaderRowDef="productosProveedorColumns"
-              ></tr>
-              <tr
-                mat-row
-                *matRowDef="let row; columns: productosProveedorColumns"
-                [class.selected-row]="selectedProductoProveedor?.id === row.id"
-              ></tr>
-            </table>
-          </div>
-
-          <!-- Loading indicator -->
-          <div *ngIf="isLoadingProductos" class="loading-indicator">
-            <mat-spinner diameter="24"></mat-spinner>
-            <p>Cargando productos...</p>
-          </div>
-
-          <!-- No data message -->
-          <div
-            *ngIf="
-              !isLoadingProductos &&
-              productosProveedorDataSource.data.length === 0
-            "
-            class="no-data-message"
-          >
-            <mat-icon>inventory_2</mat-icon>
-            <p>No hay productos disponibles</p>
-          </div>
-
-          <!-- Pagination -->
-          <mat-paginator
-            #productosProveedorPaginator
-            [length]="productosProveedorPage?.getTotalElements || 0"
-            [pageSize]="10"
-            [pageSizeOptions]="[5, 10, 15]"
-            (page)="onProductosProveedorPageChange($event)"
-            showFirstLastButtons
-          >
-          </mat-paginator>
-        </mat-card-content>
-      </mat-card>
-    </div>
-
-    <!-- Right - Historical Prices -->
-    <div class="list-panel">
-      <mat-card class="list-card">
-        <mat-card-header>
-          <mat-card-title style="font-size: small" class="titulo-color">
-            Historial de Precios
-          </mat-card-title>
-          <mat-card-subtitle *ngIf="selectedProducto">
-            {{ selectedProducto.descripcion }}
-          </mat-card-subtitle>
-        </mat-card-header>
-
-        <mat-card-content>
-          <!-- Historical Prices Table -->
-          <div class="list-table-container" *ngIf="selectedProducto">
-            <table
-              mat-table
-              [dataSource]="historicoComprasDataSource"
-              class="w-100 compact-table historic-table"
-              *ngIf="historicoComprasDataSource.data.length > 0"
-            >
-              <!-- Fecha Column -->
-              <ng-container matColumnDef="fecha">
-                <th mat-header-cell *matHeaderCellDef>FECHA</th>
-                <td mat-cell *matCellDef="let elemento">
-                  {{ elemento.creadoEn | date : "dd/MM/yyyy" }}
-                </td>
-              </ng-container>
-
-              <!-- Proveedor Column -->
-              <ng-container matColumnDef="proveedor">
-                <th mat-header-cell *matHeaderCellDef>PROVEEDOR</th>
-                <td mat-cell *matCellDef="let elemento">
-                  <div class="proveedor-info">
-                    {{ elemento.proveedor?.persona?.nombre || "N/A" }}
-                  </div>
-                </td>
-              </ng-container>
-
-              <!-- Cantidad Column -->
-              <ng-container matColumnDef="cantidad">
-                <th mat-header-cell *matHeaderCellDef>CANT.</th>
-                <td mat-cell *matCellDef="let elemento">
-                  {{ elemento.cantidad | number : "1.0-2" }}
-                </td>
-              </ng-container>
-
-              <!-- Precio Column -->
-              <ng-container matColumnDef="precio">
-                <th mat-header-cell *matHeaderCellDef>PRECIO</th>
-                <td mat-cell *matCellDef="let elemento">
-                  <div class="price-info">
-                    Gs.
-                    {{ elemento.precio | number : "1.2-2" }}
-                  </div>
-                </td>
-              </ng-container>
-
-              <!-- Acciones Column -->
-              <ng-container matColumnDef="acciones">
-                <th mat-header-cell *matHeaderCellDef>ACCIÓN</th>
-                <td mat-cell *matCellDef="let elemento">
-                  <button
-                    mat-icon-button
-                    color="primary"
-                    (click)="onRepeatFromHistory(elemento)"
-                    matTooltip="Usar estos valores"
-                  >
-                    <mat-icon>content_copy</mat-icon>
-                  </button>
-                </td>
-              </ng-container>
-
-              <tr
-                mat-header-row
-                *matHeaderRowDef="historicoComprasColumns"
-              ></tr>
-              <tr
-                mat-row
-                *matRowDef="let row; columns: historicoComprasColumns"
-              ></tr>
-            </table>
-
-            <!-- No historical data message -->
-            <div
-              *ngIf="
-                !isLoadingHistorico &&
-                historicoComprasDataSource.data.length === 0
-              "
-              class="no-data-message"
-            >
-              <mat-icon>timeline</mat-icon>
-              <p>No hay historial de precios disponible</p>
-            </div>
-          </div>
-
-          <!-- Loading indicator -->
-          <div *ngIf="isLoadingHistorico" class="loading-indicator">
-            <mat-spinner diameter="24"></mat-spinner>
-            <p>Cargando historial...</p>
-          </div>
+            </mat-card-content>
+          </mat-card>
 
           <!-- No product selected message -->
-          <div *ngIf="!selectedProducto" class="no-selection-message">
-            <mat-icon>info</mat-icon>
-            <p>Seleccione un producto para ver el historial de precios</p>
+          <div *ngIf="!selectedProducto" class="no-product-message">
+            <mat-icon>inventory_2</mat-icon>
+            <p>Busque y seleccione un producto para configurar</p>
           </div>
-        </mat-card-content>
-      </mat-card>
+
+          <!-- Buttons on the right -->
+          <div class="dialog-buttons">
+            <button mat-button (click)="onCancel()" class="cancel-btn">
+              <mat-icon>close</mat-icon>
+              Salir
+            </button>
+            <button
+              #agregarButton
+              mat-raised-button
+              color="primary"
+              (click)="onAddProductToPedido()"
+              [disabled]="isFormInvalidOrNoProduct"
+              (keydown)="onAgregarButtonEnter($event)"
+              class="add-btn"
+            >
+              <mat-icon>{{
+                data.isEditing ? "save" : "add_shopping_cart"
+              }}</mat-icon>
+              {{ data.isEditing ? "ACTUALIZAR PRODUCTO" : "AGREGAR AL PEDIDO" }}
+            </button>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Tab 2: Buscar Productos -->
+      <mat-tab>
+        <ng-template mat-tab-label> Buscar Productos </ng-template>
+
+        <div class="tab-content">
+          <div class="lists-section-tabs">
+            <!-- Left - Productos Proveedor -->
+            <div class="list-panel">
+              <mat-card class="list-card">
+                <mat-card-header>
+                  <mat-card-title class="titulo-center">
+                    Productos del Proveedor
+                  </mat-card-title>
+                </mat-card-header>
+
+                <mat-card-content>
+                  <!-- Search Bar -->
+                  <mat-form-field appearance="outline" class="w-100 mb-2">
+                    <mat-label>BUSCAR PRODUCTO</mat-label>
+                    <input
+                      matInput
+                      [formControl]="buscarProductoControl"
+                      placeholder="Código o descripción..."
+                    />
+                    <mat-icon matSuffix>search</mat-icon>
+                  </mat-form-field>
+
+                  <!-- Productos Table -->
+                  <div class="list-table-container">
+                    <table
+                      mat-table
+                      [dataSource]="productosProveedorDataSource"
+                      class="w-100 compact-table"
+                    >
+                      <!-- Código Column -->
+                      <ng-container matColumnDef="codigo">
+                        <th
+                          mat-header-cell
+                          *matHeaderCellDef
+                          class="titulo-center"
+                        >
+                          CÓDIGO
+                        </th>
+                        <td
+                          mat-cell
+                          *matCellDef="let elemento"
+                          class="titulo-center"
+                        >
+                          <div class="code-display">
+                            {{ elemento.producto?.codigoPrincipal }}
+                          </div>
+                        </td>
+                      </ng-container>
+
+                      <!-- Descripción Column -->
+                      <ng-container matColumnDef="descripcion">
+                        <th
+                          mat-header-cell
+                          *matHeaderCellDef
+                          class="titulo-center"
+                        >
+                          DESCRIPCIÓN
+                        </th>
+                        <td
+                          mat-cell
+                          *matCellDef="let elemento"
+                          class="titulo-center"
+                        >
+                          <div class="producto-info">
+                            <div class="product-name">
+                              {{ elemento.producto?.descripcion }}
+                            </div>
+                            <small class="text-muted">{{
+                              elemento.producto?.descripcionFactura
+                            }}</small>
+                          </div>
+                        </td>
+                      </ng-container>
+
+                      <!-- Stock Column -->
+                      <ng-container matColumnDef="stock">
+                        <th
+                          mat-header-cell
+                          *matHeaderCellDef
+                          class="titulo-center"
+                        >
+                          STOCK
+                        </th>
+                        <td
+                          mat-cell
+                          *matCellDef="let elemento"
+                          class="titulo-center"
+                        >
+                          <span class="badge badge-info">
+                            {{ elemento.producto?.existenciaTotal || 0 }}
+                          </span>
+                        </td>
+                      </ng-container>
+
+                      <!-- Acciones Column -->
+                      <ng-container matColumnDef="acciones">
+                        <th
+                          mat-header-cell
+                          *matHeaderCellDef
+                          class="titulo-center"
+                        >
+                          ACCIÓN
+                        </th>
+                        <td
+                          mat-cell
+                          *matCellDef="let elemento"
+                          class="titulo-center"
+                        >
+                          <button
+                            mat-raised-button
+                            color="primary"
+                            size="small"
+                            (click)="
+                              onProductoProveedorSelectAndSwitchTab(elemento)
+                            "
+                            [disabled]="
+                              selectedProductoProveedor?.id === elemento.id
+                            "
+                          >
+                            <mat-icon>{{
+                              selectedProductoProveedor?.id === elemento.id
+                                ? "check"
+                                : "arrow_forward"
+                            }}</mat-icon>
+                            {{
+                              selectedProductoProveedor?.id === elemento.id
+                                ? "SELECCIONADO"
+                                : "SELECCIONAR"
+                            }}
+                          </button>
+                        </td>
+                      </ng-container>
+
+                      <tr
+                        mat-header-row
+                        *matHeaderRowDef="productosProveedorColumns"
+                      ></tr>
+                      <tr
+                        mat-row
+                        *matRowDef="let row; columns: productosProveedorColumns"
+                        [class.selected-row]="
+                          selectedProductoProveedor?.id === row.id
+                        "
+                      ></tr>
+                    </table>
+                  </div>
+
+                  <!-- Loading indicator -->
+                  <div *ngIf="isLoadingProductos" class="loading-indicator">
+                    <mat-spinner diameter="24"></mat-spinner>
+                    <p>Cargando productos...</p>
+                  </div>
+
+                  <!-- No data message -->
+                  <div
+                    *ngIf="
+                      !isLoadingProductos &&
+                      productosProveedorDataSource.data.length === 0
+                    "
+                    class="no-data-message"
+                  >
+                    <mat-icon>inventory_2</mat-icon>
+                    <p>No hay productos disponibles</p>
+                  </div>
+
+                  <!-- Pagination -->
+                  <mat-paginator
+                    #productosProveedorPaginator
+                    [length]="productosProveedorPage?.getTotalElements || 0"
+                    [pageSize]="10"
+                    [pageSizeOptions]="[5, 10, 15]"
+                    (page)="onProductosProveedorPageChange($event)"
+                    showFirstLastButtons
+                  >
+                  </mat-paginator>
+                </mat-card-content>
+              </mat-card>
+            </div>
+
+            <!-- Right - Historical Prices -->
+            <div class="list-panel">
+              <mat-card class="list-card">
+                <mat-card-header>
+                  <mat-card-title class="titulo-center">
+                    Historial de Precios
+                  </mat-card-title>
+                  <mat-card-subtitle
+                    *ngIf="selectedProducto"
+                    class="titulo-center"
+                  >
+                    {{ selectedProducto.descripcion }}
+                  </mat-card-subtitle>
+                </mat-card-header>
+
+                <mat-card-content>
+                  <!-- Historical Prices Table -->
+                  <div class="list-table-container" *ngIf="selectedProducto">
+                    <table
+                      mat-table
+                      [dataSource]="historicoComprasDataSource"
+                      class="w-100 compact-table historic-table"
+                      *ngIf="historicoComprasDataSource.data.length > 0"
+                    >
+                      <!-- Fecha Column -->
+                      <ng-container matColumnDef="fecha">
+                        <th
+                          mat-header-cell
+                          *matHeaderCellDef
+                          class="titulo-center"
+                        >
+                          FECHA
+                        </th>
+                        <td
+                          mat-cell
+                          *matCellDef="let elemento"
+                          class="titulo-center"
+                        >
+                          {{ elemento.creadoEn | date : "dd/MM/yyyy" }}
+                        </td>
+                      </ng-container>
+
+                      <!-- Proveedor Column -->
+                      <ng-container matColumnDef="proveedor">
+                        <th
+                          mat-header-cell
+                          *matHeaderCellDef
+                          class="titulo-center"
+                        >
+                          PROVEEDOR
+                        </th>
+                        <td
+                          mat-cell
+                          *matCellDef="let elemento"
+                          class="titulo-center"
+                        >
+                          <div class="proveedor-info">
+                            {{ elemento.proveedor?.persona?.nombre || "N/A" }}
+                          </div>
+                        </td>
+                      </ng-container>
+
+                      <!-- Cantidad Column -->
+                      <ng-container matColumnDef="cantidad">
+                        <th
+                          mat-header-cell
+                          *matHeaderCellDef
+                          class="titulo-center"
+                        >
+                          CANT.
+                        </th>
+                        <td
+                          mat-cell
+                          *matCellDef="let elemento"
+                          class="titulo-center"
+                        >
+                          {{ elemento.cantidad | number : "1.0-2" }}
+                        </td>
+                      </ng-container>
+
+                      <!-- Precio Column -->
+                      <ng-container matColumnDef="precio">
+                        <th
+                          mat-header-cell
+                          *matHeaderCellDef
+                          class="titulo-center"
+                        >
+                          PRECIO
+                        </th>
+                        <td
+                          mat-cell
+                          *matCellDef="let elemento"
+                          class="titulo-center"
+                        >
+                          <div class="price-info">
+                            Gs.
+                            {{ elemento.precio | number : "1.2-2" }}
+                          </div>
+                        </td>
+                      </ng-container>
+
+                      <!-- Acciones Column -->
+                      <ng-container matColumnDef="acciones">
+                        <th
+                          mat-header-cell
+                          *matHeaderCellDef
+                          class="titulo-center"
+                        >
+                          ACCIÓN
+                        </th>
+                        <td
+                          mat-cell
+                          *matCellDef="let elemento"
+                          class="titulo-center"
+                        >
+                          <button
+                            mat-icon-button
+                            color="primary"
+                            (click)="onRepeatFromHistoryAndSwitchTab(elemento)"
+                            matTooltip="Usar estos valores"
+                          >
+                            <mat-icon>content_copy</mat-icon>
+                          </button>
+                        </td>
+                      </ng-container>
+
+                      <tr
+                        mat-header-row
+                        *matHeaderRowDef="historicoComprasColumns"
+                      ></tr>
+                      <tr
+                        mat-row
+                        *matRowDef="let row; columns: historicoComprasColumns"
+                      ></tr>
+                    </table>
+
+                    <!-- No historical data message -->
+                    <div
+                      *ngIf="
+                        !isLoadingHistorico &&
+                        historicoComprasDataSource.data.length === 0
+                      "
+                      class="no-data-message"
+                    >
+                      <mat-icon>timeline</mat-icon>
+                      <p>No hay historial de precios disponible</p>
+                    </div>
+                  </div>
+
+                  <!-- Loading indicator -->
+                  <div *ngIf="isLoadingHistorico" class="loading-indicator">
+                    <mat-spinner diameter="24"></mat-spinner>
+                    <p>Cargando historial...</p>
+                  </div>
+
+                  <!-- No product selected message -->
+                  <div *ngIf="!selectedProducto" class="no-selection-message">
+                    <mat-icon>info</mat-icon>
+                    <p>
+                      Seleccione un producto para ver el historial de precios
+                    </p>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Tab 3: Distribución Sucursales -->
+      <mat-tab [disabled]="!selectedProducto">
+        <ng-template mat-tab-label> Distribución Sucursales </ng-template>
+
+        <div class="tab-content">
+          <div class="sucursal-distribution-main" *ngIf="selectedProducto">
+            <!-- Embedded PedidoItemSucursalDialogComponent -->
+            <app-pedido-item-sucursal-dialog
+              style="height: 100%;"
+              [isEmbedded]="true"
+              [(embeddedPedidoItem)]="currentPedidoItemForEmbedded"
+              [embeddedAutoSet]="false"
+              (embeddedSaved)="onSucursalDistributionSaved($event)"
+              (embeddedCancelled)="onSucursalDistributionCancelled()">
+            </app-pedido-item-sucursal-dialog>
+          </div>
+          
+          <!-- No product selected message -->
+          <div *ngIf="!selectedProducto" class="no-product-selected">
+            <h3 class="titulo-center">Distribución por Sucursales</h3>
+            <mat-icon>store</mat-icon>
+            <p class="titulo-center">
+              Seleccione un producto primero para configurar la distribución por sucursales
+            </p>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Tab 4: Gestión Rechazos -->
+      <mat-tab [disabled]="!selectedProducto || !data.isEditing">
+        <ng-template mat-tab-label> Gestión Rechazos </ng-template>
+
+        <div class="tab-content">
+          <!-- Rejection management content will be embedded here -->
+          <div class="rejection-management-container" *ngIf="selectedProducto && data.isEditing">
+            <!-- Embedded ItemStatusDialogComponent -->
+            <app-item-status-dialog
+              [isEmbedded]="true"
+              [embeddedPedidoItem]="currentPedidoItemForEmbedded"
+              [embeddedIsReadOnly]="false"
+              (embeddedSaved)="onRejectionStatusSaved($event)"
+              (embeddedCancelled)="onRejectionStatusCancelled()">
+            </app-item-status-dialog>
+          </div>
+          
+          <!-- No editing mode message -->
+          <div *ngIf="!data.isEditing" class="no-editing-message">
+            <h3 class="titulo-center">Gestión de Rechazos</h3>
+            <mat-icon>block</mat-icon>
+            <p class="titulo-center">
+              La gestión de rechazos solo está disponible en modo edición
+            </p>
+          </div>
+          
+          <!-- No product selected message -->
+          <div *ngIf="!selectedProducto" class="no-product-selected">
+            <h3 class="titulo-center">Gestión de Rechazos</h3>
+            <mat-icon>inventory_2</mat-icon>
+            <p class="titulo-center">
+              Seleccione un producto primero para gestionar rechazos
+            </p>
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+
+  <!-- Dialog Actions -->
+  <div class="dialog-actions">
+    <!-- Price validation message on the left -->
+    <div class="price-validation-container">
+      <div
+        class="price-validation-message"
+        *ngIf="showPriceWarning"
+        [ngClass]="{
+          'price-higher': priceChangeType === 'higher',
+          'price-lower': priceChangeType === 'lower'
+        }"
+      >
+        <mat-icon class="warning-icon">{{
+          priceChangeType === "higher" ? "trending_up" : "trending_down"
+        }}</mat-icon>
+        {{ priceChangeMessage }}
+      </div>
     </div>
   </div>
 </div>

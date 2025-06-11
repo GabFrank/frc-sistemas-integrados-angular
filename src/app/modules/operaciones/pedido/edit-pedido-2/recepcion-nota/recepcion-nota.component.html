@@ -231,7 +231,6 @@
 
               <button
                 mat-icon-button
-                *ngIf="!item.isAssigned"
                 [matMenuTriggerFor]="itemMenu"
                 matTooltip="Acciones"
                 (click)="$event.stopPropagation()"
@@ -244,8 +243,23 @@
                   <mat-icon>edit</mat-icon>
                   <span>Editar Item</span>
                 </button>
+                
+                <button mat-menu-item (click)="onGestionarRechazoItem(item)">
+                  <mat-icon>block</mat-icon>
+                  <span>Gestionar Rechazo</span>
+                </button>
+                
+                <button 
+                  mat-menu-item 
+                  (click)="onVerRechazoItem(item)"
+                  *ngIf="item.motivoRechazoRecepcionNota">
+                  <mat-icon>visibility</mat-icon>
+                  <span>Ver Rechazo</span>
+                </button>
+                
                 <mat-divider></mat-divider>
-                <button mat-menu-item (click)="onDividirItem(item)">
+                
+                <button mat-menu-item (click)="onDividirItem(item)" *ngIf="!item.isAssigned">
                   <mat-icon>call_split</mat-icon>
                   <span>Dividir Item</span>
                 </button>

@@ -448,3 +448,71 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+// Embedded mode specific styles
+.main-container.embedded-mode {
+  padding: 0;
+  gap: 8px;
+  height: auto;
+  min-height: 400px;
+  
+  .product-info-section {
+    margin: 0;
+    padding: 16px;
+  }
+  
+  .action-buttons-section {
+    margin: 0;
+    padding: 12px 16px;
+  }
+  
+  .table-section {
+    margin: 0;
+    flex: 1;
+    min-height: 300px;
+    
+    .table-card {
+      padding: 16px;
+    }
+  }
+  
+  // Make the component more compact in embedded mode
+  .info-item {
+    min-width: 150px;
+    
+    .titulo-color {
+      font-size: 11px;
+    }
+    
+    .info-value {
+      font-size: 14px;
+    }
+  }
+  
+  .action-row {
+    gap: 12px;
+  }
+  
+  .table-header {
+    padding: 8px 12px;
+    
+    .header-cell {
+      font-size: 12px;
+    }
+  }
+  
+  .table-row {
+    padding: 8px 12px;
+  }
+  
+  // Responsive adjustments for embedded mode
+  @media (max-width: 768px) {
+    .info-row {
+      gap: 12px;
+    }
+    
+    .info-item {
+      min-width: 120px;
+    }
+  }
+}

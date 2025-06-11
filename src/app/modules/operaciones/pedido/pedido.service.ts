@@ -7,7 +7,7 @@ import {
   NotificacionSnackbarService,
 } from "../../../notificacion-snackbar.service";
 import { PedidoItem, PedidoItemInput, PedidoStep } from "./edit-pedido/pedido-item.model";
-import { Pedido, PedidoInput } from "./edit-pedido/pedido.model";
+import { Pedido, PedidoInput, PedidoRecepcionNotaSummary } from "./edit-pedido/pedido.model";
 import { PedidoInfoCompletaGQL } from "./graphql/pedidoInfoCompleta";
 import { PedidoInfoResumidoGQL } from "./graphql/pedidoInfoResumido";
 import { PedidoItemSobranteGQL } from "./graphql/pedidoItemSobrante";
@@ -33,6 +33,7 @@ import { PedidoItensFaltaVerificacionProductoGQL } from "./graphql/cantidadPedid
 import { PedidoItemGQL } from './graphql/pedidoItem';
 import { PedidoItemSucursalListGQL } from './graphql/pedidoItemSucursalList';
 import { VerificarDistribucionSucursalesGQL } from './graphql/verificarDistribucionSucursales';
+import { PedidoRecepcionNotaSummaryGQL } from './graphql/pedidoRecepcionNotaSummary';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -65,6 +66,7 @@ export class PedidoService {
     private pedidoItemGQL: PedidoItemGQL,
     private pedidoItemSucursalListGQL: PedidoItemSucursalListGQL,
     private verificarDistribucionSucursalesGQL: VerificarDistribucionSucursalesGQL,
+    private pedidoRecepcionNotaSummaryGQL: PedidoRecepcionNotaSummaryGQL,
   ) {}
 
   onGetPedidoInfoCompleta(id): Observable<Pedido> {
@@ -264,7 +266,13 @@ export class PedidoService {
   }
 
   onVerificarDistribucionSucursales(id): Observable<boolean> {
-    return this.genericService.onCustomQuery(this.verificarDistribucionSucursalesGQL, {id});
+    return this.genericService.onCustomQuery(this.verificarDistribucionSucursalesGQL, {
+      id,
+    });
+  }
+
+  onGetPedidoRecepcionNotaSummary(id: number): Observable<PedidoRecepcionNotaSummary> {
+    return this.genericService.onGetById(this.pedidoRecepcionNotaSummaryGQL, id);
   }
 
   // Step-aware methods for PedidoItem management

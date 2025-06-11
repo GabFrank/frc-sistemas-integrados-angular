@@ -1048,3 +1048,14 @@ export const verificarDistribucionSucursalesQuery = gql`
     data: verificarDistribucionSucursales(id: $id)
   }
 `;
+
+export const pedidoRecepcionNotaSummaryQuery = gql`
+  query ($id: ID!) {
+    data: pedidoRecepcionNotaSummary(id: $id) {
+      totalItems
+      assignedItems
+      pendingItems
+      totalNotas
+    }
+  }
+`;

@@ -122,6 +122,9 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
       diasCredito: this.diasCreditoControl,
       fechaEntrega: this.fechaEntregaControl
     });
+    
+    // Initialize vendedor control as disabled since no proveedor is selected initially
+    this.buscarVendedorControl.disable();
   }
 
   setupFormValidation(): void {
@@ -314,13 +317,31 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
         this.selectedFormaPago = this.formaPagoList.find(fp => fp.descripcion === 'CHEQUE');
       }
       
+      // Enable vendedor control when proveedor is selected
+      this.buscarVendedorControl.enable();
+      
       this.vendedorInput?.nativeElement.focus();
       this.emitPedidoChange();
     } else {
       this.selectedProveedor = null;
       this.vendedorList = [];
       this.buscarProveedorControl.setValue(null, { emitEvent: false });
+      
+      // Clear and disable vendedor control when proveedor is cleared
+      this.selectedVendedor = null;
+      this.buscarVendedorControl.setValue(null, { emitEvent: false });
+      this.buscarVendedorControl.disable();
+      
+      // Clear forma de pago when proveedor is cleared
+      this.selectedFormaPago = null;
+      
+      // Reset dias credito
+      this.diasCreditoControl.setValue(null);
+      
       this.vendedorInput?.nativeElement.focus();
+      
+      // Emit changes to update the selectedPedido object
+      this.emitPedidoChange();
     }
   }
 
@@ -383,9 +404,9 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
   handleFormaPagoSelectionChange(value: FormaPago): void {
     this.selectedFormaPago = value;
     
-    if (this.selectedFormaPago?.descripcion.includes('TARJETA')) {
+    if (this.selectedFormaPago?.descripcion?.includes('TARJETA')) {
       this.monedas = this.auxMonedas.filter(m => m.denominacion.includes('GUARANI'));
-    } else if (this.selectedFormaPago?.descripcion.includes('PIX')) {
+    } else if (this.selectedFormaPago?.descripcion?.includes('PIX')) {
       this.monedas = this.auxMonedas.filter(m => m.denominacion.includes('REAL'));
     } else {
       this.monedas = this.auxMonedas;
@@ -440,7 +461,12 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
       this.isEditing = false;
     } else {
       this.buscarProveedorControl.enable();
-      this.buscarVendedorControl.enable();
+      
+      // Only enable vendedor control if a proveedor is selected
+      if (this.selectedProveedor) {
+        this.buscarVendedorControl.enable();
+      }
+      
       this.sucursalInfluenciaControl.enable();
       this.sucursalEntregaControl.enable();
       this.tipoBoletaControl.enable();

@@ -1,0 +1,122 @@
+<div class="item-status-dialog" [class.embedded-mode]="isEmbedded">
+  <!-- Dialog Header - Only shown in dialog mode -->
+  <div class="dialog-header" *ngIf="showDialogHeader">
+    <h2 mat-dialog-title class="titulo-center">{{ dialogTitle }}</h2>
+    <button mat-icon-button mat-dialog-close class="close-button">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Dialog Content -->
+  <mat-dialog-content class="dialog-content">
+    <form [formGroup]="statusForm" class="status-form">
+      <!-- Product Information -->
+      <div class="product-info">
+        <mat-icon class="product-icon">inventory_2</mat-icon>
+        <div class="product-details">
+          <h3>{{ productDescription }}</h3>
+          <p class="product-code">Código: {{ currentPedidoItemForTemplate?.producto?.codigoPrincipal || 'N/A' }}</p>
+        </div>
+        <!-- Current status indicator -->
+        <div class="status-indicator" *ngIf="isCurrentlyRejected">
+          <mat-icon class="rejected-icon">error</mat-icon>
+          <span class="rejected-text">Rechazado</span>
+        </div>
+      </div>
+
+      <mat-divider class="section-divider"></mat-divider>
+
+      <!-- Rejection Toggle -->
+      <div class="rejection-section">
+        <mat-slide-toggle formControlName="isRejected" color="warn">
+          <span class="toggle-label">
+            {{ statusForm.get('isRejected')?.value ? 'Marcar como rechazado' : 'Remover rechazo' }}
+          </span>
+        </mat-slide-toggle>
+        <p class="toggle-description" *ngIf="!statusForm.get('isRejected')?.value">
+          Use esta opción para marcar el item como rechazado en la recepción
+        </p>
+      </div>
+
+      <!-- Rejection Motivos (shown only when rejected) -->
+      <div class="motivos-section" *ngIf="statusForm.get('isRejected')?.value">
+        <h4 class="section-title">
+          <mat-icon class="section-icon error-icon">error</mat-icon>
+          Motivos de Rechazo <span class="required">*</span>
+        </h4>
+        <p class="section-description">
+          Seleccione uno o más motivos por los cuales este item es rechazado
+        </p>
+        <mat-selection-list formControlName="motivoRechazo" class="motivos-list">
+          <mat-list-option 
+            *ngFor="let motivo of motivosRechazo" 
+            [value]="motivo"
+            class="motivo-option">
+            <mat-icon matListIcon class="motivo-icon">report_problem</mat-icon>
+            {{ getMotivoLabel(motivo) }}
+          </mat-list-option>
+        </mat-selection-list>
+      </div>
+
+      <!-- Instructions -->
+      <div class="instructions-section" *ngIf="!currentIsReadOnlyForTemplate">
+        <mat-icon class="info-icon">info</mat-icon>
+        <div class="instructions-text">
+          <p><strong>Nota:</strong> Los motivos de modificación se registran automáticamente al editar los datos del item.</p>
+          <p>Las observaciones pueden agregarse desde la opción "Editar Item".</p>
+        </div>
+      </div>
+    </form>
+  </mat-dialog-content>
+
+  <!-- Dialog Actions - Only shown in dialog mode -->
+  <mat-dialog-actions class="dialog-actions" *ngIf="showDialogHeader && !currentIsReadOnlyForTemplate">
+    <button 
+      mat-button 
+      type="button" 
+      (click)="onCancel()"
+      [disabled]="isProcessing">
+      Cancelar
+    </button>
+    <button 
+      mat-raised-button 
+      color="warn"
+      type="button"
+      (click)="onSave()"
+      [disabled]="!canSave">
+      <mat-icon *ngIf="isProcessing" class="processing-icon">hourglass_empty</mat-icon>
+      {{ isProcessing ? 'Guardando...' : (statusForm.get('isRejected')?.value ? 'Marcar como Rechazado' : 'Remover Rechazo') }}
+    </button>
+  </mat-dialog-actions>
+
+  <!-- Read-only actions - Only shown in dialog mode -->
+  <mat-dialog-actions class="dialog-actions" *ngIf="showDialogHeader && currentIsReadOnlyForTemplate">
+    <button mat-raised-button color="primary" mat-dialog-close>
+      Cerrar
+    </button>
+  </mat-dialog-actions>
+
+  <!-- Embedded mode actions -->
+  <div class="embedded-actions" *ngIf="isEmbedded && !currentIsReadOnlyForTemplate">
+    <button 
+      mat-button 
+      type="button" 
+      (click)="onCancel()"
+      [disabled]="isProcessing"
+      class="cancel-btn">
+      <mat-icon>close</mat-icon>
+      Cancelar
+    </button>
+    <button 
+      mat-raised-button 
+      color="warn"
+      type="button"
+      (click)="onSave()"
+      [disabled]="!canSave"
+      class="save-btn">
+      <mat-icon *ngIf="isProcessing" class="processing-icon">hourglass_empty</mat-icon>
+      <mat-icon *ngIf="!isProcessing">{{ statusForm.get('isRejected')?.value ? 'error' : 'check' }}</mat-icon>
+      {{ isProcessing ? 'Guardando...' : (statusForm.get('isRejected')?.value ? 'Marcar como Rechazado' : 'Remover Rechazo') }}
+    </button>
+  </div>
+</div> 

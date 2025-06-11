@@ -1,15 +1,16 @@
-// Main container - Full width and height, column layout with 10px gap
+// Main container - Full width and height, column layout with 5px gap
 .main-container {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%;
-  gap: 10px;
+  height: 100%; /* Use % */
+  gap: 5px; /* Reduced gap */
   padding: 0px;
   background-color: rgb(52, 52, 52);
+  overflow: hidden;
 }
 
-// Header section - 10% of height
+// Header section - Reduced height
 .header-section {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -17,28 +18,101 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 15px;
+  padding: 10px; /* Reduced padding */
   border-radius: 4px;
+  flex: 0 0 auto; /* Don't grow/shrink */
 }
 
-// Product form section - 45% of height
-.form-section {
-  flex: 0 0 45%;
+// Tabs container - Takes remaining space
+.tabs-container {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  margin-top: 15px;
+  overflow: hidden;
   margin: 0 10px;
+  min-height: 0;
 }
 
-// Lists section - 45% of height
-.lists-section {
-  flex: 0 0 45%;
+// Tab group styling
+.product-tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  
+  .mat-tab-group {
+    height: 100%;
+  }
+  
+  .mat-tab-body-wrapper {
+    flex: 1;
+    overflow: hidden;
+  }
+  
+  .mat-tab-body {
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  .mat-tab-body-content {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  // Tab header styling for dark mode
+  .mat-tab-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    
+    .mat-tab-label {
+      color: rgba(255, 255, 255, 0.7);
+      padding: 0 16px;
+      min-width: 120px;
+      
+      &:hover {
+        color: rgba(255, 255, 255, 0.9);
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+      
+      &.mat-tab-label-active {
+        color: #fff;
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+      
+      &.mat-tab-disabled {
+        color: rgba(255, 255, 255, 0.3);
+      }
+      
+      .mat-icon {
+        margin-right: 8px;
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+    
+    .mat-ink-bar {
+      background-color: #00e676;
+      height: 3px;
+    }
+  }
+}
+
+// Tab content styling - with padding
+.tab-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px;
+}
+
+// Lists section for tab 2
+.lists-section-tabs {
+  flex: 1;
   display: flex;
   flex-direction: row;
   gap: 10px;
   overflow: hidden;
-  margin: 0 10px;
+  height: 100%;
 }
 
 // Each list panel takes equal space
@@ -63,19 +137,41 @@
   border-radius: 4px;
 }
 
+// Form card that contains everything
+.form-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.form-card .mat-card-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 16px !important;
+}
+
 // Form layout
 .product-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px;
+  gap: 12px;
+  padding: 10px;
+  height: 100%;
+  overflow: hidden;
 }
 
 // Form content layout with image and fields side by side
 .form-content-layout {
   display: flex;
-  gap: 20px;
+  gap: 15px;
   align-items: flex-start;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 
 // Product image container
@@ -95,10 +191,42 @@
 // Form fields container
 .form-fields-container {
   flex: 1;
+  overflow: hidden;
+  min-height: 0;
   
   .product-form {
-    padding: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
   }
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.form-field {
+  flex: 1;
+}
+
+// Search card
+.search-card {
+  margin-bottom: 16px;
+  flex: 0 0 auto;
+}
+
+// Search row
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.search-field {
+  flex: 1;
 }
 
 // No product selected message
@@ -110,6 +238,7 @@
   padding: 40px 20px;
   text-align: center;
   color: rgba(255, 255, 255, 0.6);
+  flex: 1;
   
   mat-icon {
     font-size: 48px;
@@ -125,35 +254,76 @@
   }
 }
 
-.form-row {
+// No editing message and no product selected messages for tabs
+.no-editing-message,
+.no-product-selected {
   display: flex;
-  gap: 16px;
-}
-
-.form-field {
-  flex: 1;
-}
-
-// Search row
-.search-row {
-  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.search-field {
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
   flex: 1;
+  
+  h3 {
+    margin: 0 0 16px 0;
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  mat-icon {
+    font-size: 48px;
+    height: 48px;
+    width: 48px;
+    margin-bottom: 16px;
+    color: rgba(255, 255, 255, 0.4);
+  }
+  
+  p {
+    margin: 0;
+    font-size: 1rem;
+  }
 }
 
-// Dialog actions
+// Sucursal distribution container
+.sucursal-distribution-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+// Rejection management container
+.rejection-management-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+// Compact form fields
+.form-field .mat-form-field-wrapper {
+  padding-bottom: 0.5em !important;
+}
+
+.form-field .mat-form-field-infix {
+  padding: 0.3em 0 !important;
+}
+
+// Dialog actions - always visible at bottom
 .dialog-actions {
-  padding: 16px;
+  padding: 8px 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
+  flex: 0 0 auto;
+  background-color: rgb(52, 52, 52);
 }
 
 .price-validation-container {
@@ -166,13 +336,14 @@
   display: flex;
   gap: 12px;
   align-items: center;
+  justify-content: flex-end;
 }
 
-// Price validation messages - updated for new position
+// Price validation messages
 .price-validation-message {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: 6px;
   border-left: 4px solid;
   background-color: rgba(255, 255, 255, 0.08);
@@ -182,9 +353,9 @@
   max-width: 300px;
   
   .warning-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
   }
   
   &.price-higher {
@@ -210,7 +381,7 @@
 
 // Responsive design
 @media (max-width: 768px) {
-  .lists-section {
+  .lists-section-tabs {
     flex-direction: column;
   }
   
@@ -221,6 +392,10 @@
   .search-row {
     flex-direction: column;
     align-items: stretch;
+  }
+  
+  .form-content-layout {
+    flex-direction: column;
   }
 }
 
@@ -281,17 +456,7 @@
 }
 
 .total-label {
-  // font-weight: 600;
   color: rgba(255, 255, 255, 0.95);
-  
-  .discount-total & {
-    // font-size: 1.1rem;
-  }
-  
-  .main-total & {
-    // font-size: 1.3rem;
-    // font-weight: 700;
-  }
 }
 
 .total-value {
@@ -301,18 +466,410 @@
   
   &.discount-value {
     color: #ff9800;
-    // font-size: 1.2rem;
   }
   
   &.final-total {
     color: #4caf50;
-    // font-size: 1.5rem;
-    // font-weight: 800;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 }
 
 .prefix-padding {
   padding-left: 10px;
+}
+
+// Observations section styles - full width
+.observations-section {
+  margin-bottom: 10px;
+  width: 100%;
+  
+  .section-divider {
+    margin: 12px 0;
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  
+  .full-width {
+    width: 100%;
+  }
+  
+  .multi-obs-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    
+    .readonly-field {
+      .mat-form-field-wrapper {
+        background-color: rgba(255, 255, 255, 0.03);
+        border-radius: 4px;
+      }
+      
+      textarea {
+        color: rgba(255, 255, 255, 0.7);
+        cursor: default;
+      }
+      
+      .mat-form-field-label {
+        color: rgba(255, 255, 255, 0.6) !important;
+      }
+      
+      .mat-form-field-outline {
+        color: rgba(255, 255, 255, 0.2);
+      }
+    }
+  }
+  
+  // Specific styling for textarea in observations
+  textarea {
+    resize: none;
+    min-height: 40px !important;
+    font-family: 'Roboto', sans-serif;
+    font-size: 13px;
+    line-height: 1.3;
+  }
+  
+  // Style hints and counters
+  .mat-hint {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+  
+  // Style error messages for observations
+  .mat-error {
+    font-size: 10px;
+    color: #ff5252;
+  }
+
+  // Make observation form fields more compact
+  .mat-form-field-wrapper {
+    padding-bottom: 0.3em !important;
+  }
+  
+  .mat-form-field-infix {
+    padding: 0.2em 0 !important;
+  }
+}
+
+// ===============================
+// SUCURSAL DISTRIBUTION STYLES (TAB 3)
+// ===============================
+
+.sucursal-distribution-main {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.product-info-section {
+  flex: 0 0 auto;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.info-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  
+  .titulo-color {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  
+  .info-value {
+    color: #fff;
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+  }
+}
+
+.action-buttons-section {
+  flex: 0 0 auto;
+}
+
+.action-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  
+  .action-btn {
+    font-size: 12px;
+    padding: 8px 16px;
+    min-width: 140px;
+  }
+}
+
+.distribution-table-section {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.distribution-table-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px;
+}
+
+.distribution-table-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 2fr 0.5fr;
+  gap: 8px;
+  padding: 12px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  
+  .header-cell {
+    font-weight: 600;
+    color: #fff;
+    text-align: center;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+}
+
+.distribution-table-body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.distribution-table-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 2fr 0.5fr;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  align-items: center;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+.table-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  
+  .cell-value {
+    color: #fff;
+    font-size: 13px;
+    text-align: center;
+    
+    &.stock-value {
+      font-weight: 500;
+      color: #4caf50;
+    }
+    
+    &.stock-loading {
+      color: rgba(255, 255, 255, 0.6);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      
+      mat-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+        animation: spin 1s linear infinite;
+      }
+    }
+  }
+}
+
+.table-form-field {
+  width: 100%;
+  font-size: 12px;
+  
+  .mat-form-field-wrapper {
+    padding-bottom: 0.5em;
+  }
+  
+  .mat-form-field-infix {
+    padding: 0.2em 0;
+  }
+  
+  input, .mat-select {
+    font-size: 12px;
+    color: #fff;
+  }
+}
+
+.delete-btn {
+  color: #ff5252;
+  
+  &:hover {
+    background-color: rgba(255, 82, 82, 0.15);
+  }
+}
+
+.add-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.add-button-container {
+  display: flex;
+  justify-content: center;
+  
+  .add-fab-btn {
+    background-color: #00e676;
+    color: #000;
+    
+    &:hover {
+      background-color: #00c853;
+    }
+  }
+}
+
+.add-form-container {
+  display: flex;
+  justify-content: center;
+}
+
+.add-form-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  .add-form-field {
+    min-width: 200px;
+    
+    .mat-form-field {
+      width: 100%;
+    }
+  }
+  
+  .add-form-actions {
+    display: flex;
+    gap: 8px;
+    
+    .confirm-btn {
+      background-color: #00e676;
+      color: #000;
+      
+      &:hover {
+        background-color: #00c853;
+      }
+      
+      &:disabled {
+        background-color: rgba(255, 255, 255, 0.12);
+        color: rgba(255, 255, 255, 0.3);
+      }
+    }
+    
+    .cancel-btn {
+      background-color: #ff5252;
+      color: #fff;
+      
+      &:hover {
+        background-color: #f44336;
+      }
+    }
+  }
+}
+
+.no-distribution-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  flex: 1;
+  
+  mat-icon {
+    font-size: 48px;
+    height: 48px;
+    width: 48px;
+    margin-bottom: 16px;
+    color: rgba(255, 255, 255, 0.4);
+  }
+  
+  p {
+    margin: 0 0 16px 0;
+    font-size: 1rem;
+  }
+  
+  button {
+    margin-top: 8px;
+  }
+}
+
+.loading-distribution-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: rgba(255, 255, 255, 0.6);
+  flex: 1;
+  
+  mat-spinner {
+    margin-bottom: 16px;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 1rem;
+  }
+}
+
+// Responsive design for sucursal distribution
+@media (max-width: 768px) {
+  .distribution-table-header,
+  .distribution-table-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  
+  .info-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .action-row {
+    flex-direction: column;
+    
+    .action-btn {
+      width: 100%;
+    }
+  }
+}
+
+.total-preview {
+  margin-top: 5px;
+}
+
+// Animation for loading spinner
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 

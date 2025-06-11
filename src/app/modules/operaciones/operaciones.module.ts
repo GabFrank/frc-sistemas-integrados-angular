@@ -59,6 +59,7 @@ import { AddProductDialogComponent } from './pedido/edit-pedido-2/detalles-del-p
 import { RecepcionNotaComponent } from './pedido/edit-pedido-2/recepcion-nota/recepcion-nota.component';
 import { CrearNotaRecepcionDialogComponent } from './pedido/edit-pedido-2/recepcion-nota/crear-nota-recepcion-dialog/crear-nota-recepcion-dialog.component';
 import { ManageNotaItemsDialogComponent } from './pedido/edit-pedido-2/recepcion-nota/manage-nota-items-dialog/manage-nota-items-dialog.component';
+import { ItemStatusDialogComponent } from './pedido/edit-pedido-2/recepcion-nota/item-status-dialog/item-status-dialog.component';
 
 @NgModule({
   declarations: [
@@ -114,7 +115,11 @@ import { ManageNotaItemsDialogComponent } from './pedido/edit-pedido-2/recepcion
     AddProductDialogComponent,
     RecepcionNotaComponent,
     CrearNotaRecepcionDialogComponent,
-    ManageNotaItemsDialogComponent
+    ManageNotaItemsDialogComponent,
+    ItemStatusDialogComponent,
+    PedidoItemSucursalDialogComponent,
+    AddProductDialogComponent
+  
   ],
   imports: [
     CommonModule,
@@ -125,11 +130,11 @@ import { ManageNotaItemsDialogComponent } from './pedido/edit-pedido-2/recepcion
     SharedModule,
     InventarioModule,
     EmpresarialModule,
-    
   ],
   exports: [
     EditPedidoComponent,
-    EditPedido2Component
+    EditPedido2Component,
+    PedidoItemSucursalDialogComponent,
   ],
   providers:[
     { provide: LOCALE_ID, useValue: 'es-PY' } ,

@@ -322,7 +322,6 @@ export class PedidoItemInput {
   motivoRechazoRecepcionProducto: string
 }
 
-
 export enum PedidoItemMotivoModificacion {
   PRODUCTO_INCORRECTO = 'Producto incorrecto',
   PRESENTACION_INCORRECTA = 'Presentacion incorrecta',
@@ -340,4 +339,65 @@ export enum PedidoItemMotivoRechazo {
   PRODUCTO_AVERIADO = 'Producto averiado',
   PRECIO_INCORRECTO = 'Precio incorrecto',
   OTRO = 'Otro'
+}
+
+// Enums for motivos
+export enum MotivoModificacionRecepcionNota {
+  CANTIDAD_INCORRECTA = 'CANTIDAD_INCORRECTA',
+  PRESENTACION_INCORRECTA = 'PRESENTACION_INCORRECTA', 
+  PRECIO_INCORRECTO = 'PRECIO_INCORRECTO',
+  DESCUENTO_APLICADO = 'DESCUENTO_APLICADO',
+  VENCIMIENTO_DIFERENTE = 'VENCIMIENTO_DIFERENTE',
+  OBSERVACIONES_ADICIONALES = 'OBSERVACIONES_ADICIONALES'
+}
+
+export enum MotivoRechazoRecepcionNota {
+  PRODUCTO_FALTANTE = 'PRODUCTO_FALTANTE',
+  PRODUCTO_AVERIADO = 'PRODUCTO_AVERIADO',
+  PRODUCTO_VENCIDO = 'PRODUCTO_VENCIDO',
+  PRECIO_INCORRECTO = 'PRECIO_INCORRECTO',
+  CANTIDAD_INCORRECTA = 'CANTIDAD_INCORRECTA',
+  PRESENTACION_INCORRECTA = 'PRESENTACION_INCORRECTA',
+  CALIDAD_INSATISFACTORIA = 'CALIDAD_INSATISFACTORIA',
+  SIN_AUTORIZACION = 'SIN_AUTORIZACION'
+}
+
+// Helper class for motivo management
+export class MotivoHelper {
+  static getMotivoModificacionLabels(): { [key: string]: string } {
+    return {
+      [MotivoModificacionRecepcionNota.CANTIDAD_INCORRECTA]: 'Cantidad incorrecta',
+      [MotivoModificacionRecepcionNota.PRESENTACION_INCORRECTA]: 'Presentación incorrecta',
+      [MotivoModificacionRecepcionNota.PRECIO_INCORRECTO]: 'Precio incorrecto',
+      [MotivoModificacionRecepcionNota.DESCUENTO_APLICADO]: 'Descuento aplicado',
+      [MotivoModificacionRecepcionNota.VENCIMIENTO_DIFERENTE]: 'Vencimiento diferente',
+      [MotivoModificacionRecepcionNota.OBSERVACIONES_ADICIONALES]: 'Observaciones adicionales'
+    };
+  }
+
+  static getMotivoRechazoLabels(): { [key: string]: string } {
+    return {
+      [MotivoRechazoRecepcionNota.PRODUCTO_FALTANTE]: 'Producto faltante',
+      [MotivoRechazoRecepcionNota.PRODUCTO_AVERIADO]: 'Producto averiado',
+      [MotivoRechazoRecepcionNota.PRODUCTO_VENCIDO]: 'Producto vencido',
+      [MotivoRechazoRecepcionNota.PRECIO_INCORRECTO]: 'Precio incorrecto',
+      [MotivoRechazoRecepcionNota.CANTIDAD_INCORRECTA]: 'Cantidad incorrecta',
+      [MotivoRechazoRecepcionNota.PRESENTACION_INCORRECTA]: 'Presentación incorrecta',
+      [MotivoRechazoRecepcionNota.CALIDAD_INSATISFACTORIA]: 'Calidad insatisfactoria',
+      [MotivoRechazoRecepcionNota.SIN_AUTORIZACION]: 'Sin autorización'
+    };
+  }
+
+  static combineMotivos(motivos: string[]): string {
+    return motivos.join(',');
+  }
+
+  static separateMotivos(motivosString: string): string[] {
+    return motivosString ? motivosString.split(',').filter(m => m.trim()) : [];
+  }
+
+  static getMotivoLabel(motivo: string, isRechazo: boolean = false): string {
+    const labels = isRechazo ? this.getMotivoRechazoLabels() : this.getMotivoModificacionLabels();
+    return labels[motivo] || motivo;
+  }
 }

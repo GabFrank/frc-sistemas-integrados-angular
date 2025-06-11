@@ -79,3 +79,10 @@ export class PedidoInput {
   valorTotal: number;
   pedidoItemInputList: PedidoItemInput[]
 }
+
+export interface PedidoRecepcionNotaSummary {
+  totalItems: number;
+  assignedItems: number;
+  pendingItems: number;
+  totalNotas: number;
+}

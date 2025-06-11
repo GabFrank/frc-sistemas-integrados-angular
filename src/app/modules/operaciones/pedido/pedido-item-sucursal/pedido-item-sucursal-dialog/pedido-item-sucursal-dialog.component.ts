@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, ViewChild, ElementRef, AfterViewInit, QueryList, ViewChildren } from "@angular/core";
+import { Component, Inject, OnInit, ViewChild, ElementRef, AfterViewInit, QueryList, ViewChildren, Input, Output, EventEmitter, Optional, OnChanges, SimpleChanges } from "@angular/core";
 import { FormControl, Validators } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { MatSelect } from "@angular/material/select";
@@ -18,17 +18,29 @@ import { PedidoService } from "../../pedido.service";
 import { MatButton } from "@angular/material/button";
 
 @Component({
-  selector: "pedido-item-sucursal-dialog",
+  selector: "app-pedido-item-sucursal-dialog",
   templateUrl: "./pedido-item-sucursal-dialog.component.html",
   styleUrls: ["./pedido-item-sucursal-dialog.component.scss"],
 })
-export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit {
+export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit, OnChanges {
   @ViewChild('addButton') addButton: ElementRef;
   @ViewChild('saveButton', { static: false, read: MatButton }) saveButton: MatButton;
   
   // ViewChild references for form controls navigation
   @ViewChildren('cantidadInput') cantidadInputs: QueryList<ElementRef>;
   @ViewChildren('sucursalEntregaSelect') sucursalEntregaSelects: QueryList<MatSelect>;
+
+  // Embedded mode inputs
+  @Input() isEmbedded: boolean = false;
+  @Input() embeddedPedidoItem: PedidoItem | null = null;
+  @Input() embeddedSucursalInfluenciaList: Sucursal[] = [];
+  @Input() embeddedSucursalEntregaList: Sucursal[] = [];
+  @Input() embeddedAutoSet: boolean = false;
+
+  // Embedded mode outputs
+  @Output() embeddedPedidoItemChange = new EventEmitter<PedidoItem | null>();
+  @Output() embeddedSaved = new EventEmitter<{success: boolean, updatedPedidoItem?: PedidoItem, quantityChanged?: boolean}>();
+  @Output() embeddedCancelled = new EventEmitter<void>();
 
   // Navigation state management
   private selectOpenStates: boolean[] = [];
@@ -57,15 +69,18 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
   presentacionComputed: any = null;
   cantidadComputed: number = 0;
 
+  // Track quantity changes for embedded mode
+  private quantityWasChanged: boolean = false;
+
   constructor(
-    @Inject(MAT_DIALOG_DATA)
+    @Optional() @Inject(MAT_DIALOG_DATA)
     public data: {
       pedidoItem?: PedidoItem;
       sucursalInfluenciaList?: Sucursal[];
       sucursalEntregaList?: Sucursal[];
       autoSet?: boolean; // Si es true, se setea la cantidad y la sucursal de entrega por defecto
-    },
-    private dialogRef: MatDialogRef<PedidoItemSucursalDialogComponent>,
+    } | null,
+    @Optional() private dialogRef: MatDialogRef<PedidoItemSucursalDialogComponent>,
     private sucursalService: SucursalService,
     private movStockService: MovimientoStockService,
     private pedidoItemSucursalService: PedidoItemSucursalService,
@@ -74,11 +89,22 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
     private dialogosService: DialogosService,
     private pedidoService: PedidoService
   ) {
-    sucursalService.onGetAllSucursales().subscribe((sucRes) => {
+    // Only initialize from dialog data if not in embedded mode
+    if (!this.isEmbedded && this.data) {
+      this.initializeFromDialogData();
+    }
+  }
+
+  private initializeFromDialogData(): void {
+    this.sucursalService.onGetAllSucursales().subscribe((sucRes) => {
       this.sucursales = sucRes;
-      if (data.pedidoItem && data.sucursalInfluenciaList) {
-        this.selectedPedidoItem = data.pedidoItem;
-        this.sucursalInfluenciaList = data.sucursalInfluenciaList;
+      if (this.data?.pedidoItem && this.data?.sucursalInfluenciaList) {
+        // Convert plain object to PedidoItem instance
+        const pedidoItem = new PedidoItem();
+        Object.assign(pedidoItem, this.data.pedidoItem);
+        this.selectedPedidoItem = pedidoItem;
+        
+        this.sucursalInfluenciaList = this.data.sucursalInfluenciaList;
         this.updateComputedProperties();
         this.loadPedidoItemSucursalAndInitControls();
       }
@@ -86,19 +112,64 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
   }
 
   ngOnInit(): void {
-    if (this.data.autoSet) {
-      let pedidoItemSucursal = new PedidoItemSucursal();
-      pedidoItemSucursal.sucursal = this.data.sucursalInfluenciaList[0];
-      pedidoItemSucursal.sucursalEntrega = this.data.sucursalEntregaList[0];
-      pedidoItemSucursal.pedidoItem = this.data.pedidoItem;
-      // Use computed properties instead of direct field access
-      this.updateComputedProperties();
-      pedidoItemSucursal.cantidadPorUnidad = this.cantidadComputed * (this.presentacionComputed?.cantidad || 1);
-      pedidoItemSucursal.usuario = this.mainService.usuarioActual;
-      this.pedidoItemSucursalService.onSavePedidoItemSucursal(pedidoItemSucursal.toInput()).subscribe(res => {
-        this.dialogRef.close(true);
-      });
+    // Handle embedded mode initialization
+    if (this.isEmbedded) {
+      this.initializeEmbeddedMode();
+    } else if (this.data?.autoSet) {
+      this.handleAutoSet();
     }
+  }
+
+  private initializeEmbeddedMode(): void {
+    this.sucursalService.onGetAllSucursales().subscribe((sucRes) => {
+      this.sucursales = sucRes;
+      if (this.embeddedPedidoItem && this.embeddedSucursalInfluenciaList) {
+        // Convert plain object to PedidoItem instance if needed
+        let pedidoItem: PedidoItem;
+        if (this.embeddedPedidoItem instanceof PedidoItem) {
+          pedidoItem = this.embeddedPedidoItem;
+        } else {
+          pedidoItem = new PedidoItem();
+          Object.assign(pedidoItem, this.embeddedPedidoItem);
+        }
+        this.selectedPedidoItem = pedidoItem;
+        
+        this.sucursalInfluenciaList = this.embeddedSucursalInfluenciaList;
+        this.updateComputedProperties();
+        this.loadPedidoItemSucursalAndInitControls();
+      }
+    });
+  }
+
+  private handleAutoSet(): void {
+    if (!this.data) return;
+    
+    let pedidoItemSucursal = new PedidoItemSucursal();
+    pedidoItemSucursal.sucursal = this.data.sucursalInfluenciaList?.[0];
+    pedidoItemSucursal.sucursalEntrega = this.data.sucursalEntregaList?.[0];
+    
+    // Convert plain object to PedidoItem instance if needed
+    let pedidoItem: PedidoItem;
+    if (this.data.pedidoItem instanceof PedidoItem) {
+      pedidoItem = this.data.pedidoItem;
+    } else {
+      pedidoItem = new PedidoItem();
+      Object.assign(pedidoItem, this.data.pedidoItem);
+    }
+    pedidoItemSucursal.pedidoItem = pedidoItem;
+    this.selectedPedidoItem = pedidoItem;
+    
+    // Use computed properties instead of direct field access
+    this.updateComputedProperties();
+    pedidoItemSucursal.cantidadPorUnidad = this.cantidadComputed * (this.presentacionComputed?.cantidad || 1);
+    pedidoItemSucursal.usuario = this.mainService.usuarioActual;
+    this.pedidoItemSucursalService.onSavePedidoItemSucursal(pedidoItemSucursal.toInput()).subscribe(res => {
+      if (this.isEmbedded) {
+        this.embeddedSaved.emit({success: true, updatedPedidoItem: this.selectedPedidoItem, quantityChanged: this.quantityWasChanged});
+      } else {
+        this.dialogRef?.close(true);
+      }
+    });
   }
 
   private updateComputedProperties(): void {
@@ -109,6 +180,11 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
       // Get step-specific values using helper methods
       this.presentacionComputed = this.selectedPedidoItem.getFieldValueForStep('presentacion', this.currentStepComputed);
       this.cantidadComputed = this.selectedPedidoItem.getFieldValueForStep('cantidad', this.currentStepComputed);
+      
+      // Recalculate cantAgregada to ensure UI shows correct values
+      if (this.cantidadControls && this.cantidadControls.length > 0) {
+        this.calcularCantAdicionada();
+      }
     }
   }
 
@@ -457,7 +533,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
       }
 
       // Calcular y asignar cantidades según porcentaje de ventas
-      const cantidadTotal = this.selectedPedidoItem.cantidadCreacion;
+      const cantidadTotal = this.currentCantidad;
       let cantidadAsignada = 0;
 
       this.sucursalInfluenciaList.forEach((sucursal, index) => {
@@ -478,13 +554,18 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
   }
 
   onCancelar() {
-    this.dialogRef.close(true);
+    if (this.isEmbedded) {
+      this.embeddedCancelled.emit();
+    } else {
+      this.dialogRef?.close(true);
+    }
   }
+
   onGuardar() {
     // Calculate total distributed quantity
     const totalDistributed = this.cantidadControls.reduce((total, control) => 
       total + (control.value || 0), 0);
-    const originalQuantity = this.selectedPedidoItem.cantidadCreacion;
+    const originalQuantity = this.currentCantidad; // Use computed quantity instead of cantidadCreacion
     
     // Check if distributed quantity differs from original
     if (totalDistributed !== originalQuantity) {
@@ -529,8 +610,59 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
     const newValorTotal = (newQuantity * cantidadPresentacion) * (precioUnitario - descuentoUnitario);
     this.selectedPedidoItem.valorTotal = newValorTotal;
 
-    // Continue with the save process
-    this.proceedWithSave();
+    // Add automatic modification reason for quantity change
+    const currentStep = this.currentStepComputed;
+    if (currentStep === PedidoStep.RECEPCION_NOTA) {
+      this.selectedPedidoItem.motivoModificacionRecepcionNota = this.addMotivoToExisting(
+        this.selectedPedidoItem.motivoModificacionRecepcionNota || '', 
+        'CANTIDAD_INCORRECTA'
+      );
+      this.selectedPedidoItem.usuarioRecepcionNota = this.mainService.usuarioActual;
+    } else if (currentStep === PedidoStep.RECEPCION_PRODUCTO) {
+      this.selectedPedidoItem.motivoModificacionRecepcionProducto = this.addMotivoToExisting(
+        this.selectedPedidoItem.motivoModificacionRecepcionProducto || '', 
+        'CANTIDAD_INCORRECTA'
+      );
+      this.selectedPedidoItem.usuarioRecepcionProducto = this.mainService.usuarioActual;
+    }
+
+    // Mark that quantity was changed
+    this.quantityWasChanged = true;
+
+    // Save the updated pedido item to database
+    this.pedidoService.onSaveItem(this.selectedPedidoItem.toInput()).subscribe({
+      next: (savedItem) => {
+        // Update the local reference with saved data
+        Object.assign(this.selectedPedidoItem, savedItem);
+        this.updateComputedProperties();
+        
+        // Emit the updated pedidoItem for two-way binding
+        if (this.isEmbedded) {
+          this.embeddedPedidoItemChange.emit(this.selectedPedidoItem);
+        }
+        
+        // Continue with the save process
+        this.proceedWithSave();
+      },
+      error: (error) => {
+        console.error('Error saving pedido item:', error);
+        this.notificacionService.openWarn('Error al guardar los cambios del item');
+        this.quantityWasChanged = false; // Reset flag on error
+      }
+    });
+  }
+
+  private addMotivoToExisting(existingMotivos: string, newMotivo: string): string {
+    if (!existingMotivos || existingMotivos.trim() === '') {
+      return newMotivo;
+    }
+    
+    const motivos = existingMotivos.split(',').map(m => m.trim());
+    if (!motivos.includes(newMotivo)) {
+      motivos.push(newMotivo);
+    }
+    
+    return motivos.join(',');
   }
 
   private proceedWithSave(): void {
@@ -607,7 +739,11 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
       forkJoin(saveOperations).subscribe({
         next: (results) => {
           this.notificacionService.openSucess("Distribución guardada correctamente");
-          this.dialogRef.close(true);
+          if (this.isEmbedded) {
+            this.embeddedSaved.emit({success: true, updatedPedidoItem: this.selectedPedidoItem, quantityChanged: this.quantityWasChanged});
+          } else {
+            this.dialogRef?.close(true);
+          }
         },
         error: (error) => {
           this.notificacionService.openWarn("Error al guardar la distribución");
@@ -616,7 +752,11 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
       });
     } else {
       // No operations to save, just close
-      this.dialogRef.close(true);
+      if (this.isEmbedded) {
+        this.embeddedSaved.emit({success: true, updatedPedidoItem: this.selectedPedidoItem, quantityChanged: this.quantityWasChanged});
+      } else {
+        this.dialogRef?.close(true);
+      }
     }
   }
 
@@ -654,6 +794,41 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
       this.cantidadControls.splice(index, 1);
       this.sucursalEntregaControls.splice(index, 1);
       this.calcularCantAdicionada();
+    }
+  }
+
+  // Getter to determine if dialog header should be visible
+  get showDialogHeader(): boolean {
+    return !this.isEmbedded;
+  }
+
+  // Getter to determine dialog title
+  get dialogTitle(): string {
+    if (!this.selectedPedidoItem?.producto) {
+      return 'Distribución por Sucursales';
+    }
+    return `Distribución - ${this.selectedPedidoItem.producto.descripcion}`;
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['embeddedPedidoItem'] && this.embeddedPedidoItem && this.isEmbedded) {
+      // Convert plain object to PedidoItem instance if needed
+      let pedidoItem: PedidoItem;
+      if (this.embeddedPedidoItem instanceof PedidoItem) {
+        pedidoItem = this.embeddedPedidoItem;
+      } else {
+        pedidoItem = new PedidoItem();
+        Object.assign(pedidoItem, this.embeddedPedidoItem);
+      }
+      this.selectedPedidoItem = pedidoItem;
+      
+      // Update computed properties
+      this.updateComputedProperties();
+      
+      // Reload the data and reinitialize controls
+      if (this.sucursales && this.sucursales.length > 0) {
+        this.loadPedidoItemSucursalAndInitControls();
+      }
     }
   }
 }
