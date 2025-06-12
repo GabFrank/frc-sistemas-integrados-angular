@@ -108,6 +108,7 @@
                           #presentacionSelect
                           formControlName="presentacion"
                           (keydown)="onPresentacionEnter($event)"
+                          [compareWith]="comparePresentaciones"
                         >
                           <mat-option
                             *ngFor="
@@ -283,7 +284,7 @@
                       <mat-form-field
                         appearance="outline"
                         class="form-field full-width"
-                        *ngIf="currentStep === 'DETALLES_PEDIDO'"
+                        *ngIf="isDetallesPedidoStep"
                       >
                         <mat-label>OBSERVACIONES</mat-label>
                         <textarea
@@ -316,7 +317,7 @@
 
                       <!-- Observations for Recepcion Nota Step -->
                       <div
-                        *ngIf="currentStep === 'RECEPCION_NOTA'"
+                        *ngIf="isRecepcionNotaStep"
                         class="multi-obs-container"
                       >
                         <!-- Current step observations (editable) -->
@@ -378,7 +379,7 @@
 
                       <!-- Observations for Recepcion Producto Step -->
                       <div
-                        *ngIf="currentStep === 'RECEPCION_PRODUCTO'"
+                        *ngIf="isRecepcionProductoStep"
                         class="multi-obs-container"
                       >
                         <!-- Current step observations (editable) -->
@@ -921,6 +922,7 @@
           <div class="rejection-management-container" *ngIf="selectedProducto && data.isEditing">
             <!-- Embedded ItemStatusDialogComponent -->
             <app-item-status-dialog
+              style="height: 100%; width: 100%;"
               [isEmbedded]="true"
               [embeddedPedidoItem]="currentPedidoItemForEmbedded"
               [embeddedIsReadOnly]="false"

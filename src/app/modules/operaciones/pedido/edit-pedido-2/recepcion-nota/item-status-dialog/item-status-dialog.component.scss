@@ -1,13 +1,16 @@
 .item-status-dialog {
-  min-width: 500px;
-  max-width: 700px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #303030;
   
   .dialog-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0 24px;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid #424242;
     
     .close-button {
       margin-left: auto;
@@ -16,22 +19,27 @@
 
   .dialog-content {
     padding: 24px !important;
-    min-height: 300px;
-    max-height: 70vh;
+    flex: 1;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
   }
 
   .status-form {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+
     .product-info {
       display: flex;
       align-items: center;
       padding: 16px;
-      background-color: #f5f5f5;
+      background-color: #424242;
       border-radius: 8px;
       margin-bottom: 24px;
 
       .product-icon {
-        color: #2196f3;
+        color: #64b5f6;
         font-size: 36px;
         width: 36px;
         height: 36px;
@@ -44,12 +52,12 @@
         h3 {
           margin: 0 0 4px 0;
           font-weight: 500;
-          color: #333;
+          color: #fff;
         }
         
         .product-code {
           margin: 0;
-          color: #666;
+          color: #bdbdbd;
           font-size: 14px;
         }
       }
@@ -57,7 +65,7 @@
       .status-indicator {
         display: flex;
         align-items: center;
-        background-color: #ffebee;
+        background-color: rgba(244, 67, 54, 0.1);
         border: 1px solid #f44336;
         border-radius: 4px;
         padding: 8px 12px;
@@ -80,83 +88,123 @@
 
     .section-divider {
       margin: 24px 0;
+      border-color: #424242;
     }
 
     .rejection-section {
       margin-bottom: 24px;
       
-      .toggle-label {
-        font-weight: 500;
-        color: #d32f2f;
-      }
-
-      .toggle-description {
-        margin: 8px 0 0 0;
-        color: #666;
-        font-size: 14px;
+      ::ng-deep .mat-slide-toggle-label {
+        color: #fff;
       }
     }
 
     .motivos-section {
       margin-bottom: 24px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 50%;
 
       .section-title {
         display: flex;
         align-items: center;
         margin: 0 0 8px 0;
         font-weight: 500;
-        color: #333;
+        color: #fff;
 
         .section-icon {
           margin-right: 8px;
           
           &.error-icon {
-            color: #d32f2f;
+            color: #f44336;
           }
         }
 
         .required {
-          color: #d32f2f;
+          color: #f44336;
           margin-left: 4px;
         }
       }
 
       .section-description {
         margin: 0 0 16px 0;
-        color: #666;
+        color: #bdbdbd;
         font-size: 14px;
       }
 
       .motivos-list {
-        border: 1px solid #e0e0e0;
+        border: 1px solid #424242;
         border-radius: 8px;
-        max-height: 200px;
+        flex: 1;
         overflow-y: auto;
+        background-color: #424242;
 
         .motivo-option {
-          border-bottom: 1px solid #f0f0f0;
+          border-bottom: 1px solid #505050;
+          color: #fff;
 
           &:last-child {
             border-bottom: none;
           }
 
           .motivo-icon {
-            color: #666;
+            color: #bdbdbd;
             font-size: 18px;
             width: 18px;
             height: 18px;
           }
 
-          &.mat-list-option:hover {
-            background-color: #f8f9fa;
+          &.mat-list-option:hover:not([disabled]) {
+            background-color: #505050;
           }
 
-          &.mat-list-option.mat-selected {
-            background-color: #ffebee;
+          &.mat-list-option.mat-selected:not([disabled]) {
+            background-color: rgba(244, 67, 54, 0.1);
             
             .motivo-icon {
               color: #f44336;
             }
+          }
+
+          &.mat-list-option[disabled] {
+            opacity: 0.5;
+          }
+        }
+      }
+    }
+
+    .observaciones-section {
+      margin-bottom: 24px;
+
+      .full-width {
+        width: 100%;
+      }
+
+      ::ng-deep {
+        .mat-form-field-appearance-outline {
+          .mat-form-field-outline {
+            color: #424242;
+          }
+
+          .mat-form-field-outline-thick {
+            color: #616161;
+          }
+
+          &.mat-focused .mat-form-field-outline-thick {
+            color: #f44336;
+          }
+        }
+
+        .mat-form-field-label {
+          color: #bdbdbd;
+        }
+
+        .mat-input-element {
+          color: #fff;
+
+          &:disabled {
+            color: rgba(255, 255, 255, 0.5);
           }
         }
       }
@@ -166,12 +214,12 @@
       display: flex;
       align-items: flex-start;
       padding: 16px;
-      background-color: #e3f2fd;
+      background-color: rgba(33, 150, 243, 0.1);
       border-radius: 8px;
       margin-top: 24px;
 
       .info-icon {
-        color: #2196f3;
+        color: #64b5f6;
         font-size: 24px;
         width: 24px;
         height: 24px;
@@ -186,7 +234,7 @@
         p {
           margin: 0 0 8px 0;
           font-size: 14px;
-          color: #1976d2;
+          color: #90caf9;
 
           &:last-child {
             margin-bottom: 0;
@@ -194,6 +242,7 @@
 
           strong {
             font-weight: 600;
+            color: #64b5f6;
           }
         }
       }
@@ -202,8 +251,9 @@
 
   .dialog-actions {
     padding: 16px 24px !important;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid #424242;
     margin: 0;
+    background-color: #303030;
     
     button {
       margin-left: 8px;
@@ -218,74 +268,29 @@
       margin-right: 8px;
     }
   }
-}
 
-// Dark mode adjustments
-.dark-theme {
-  .item-status-dialog {
-    .dialog-header {
-      border-bottom-color: #424242;
-    }
+  &.embedded-mode {
+    .embedded-actions {
+      display: flex;
+      justify-content: flex-end;
+      padding: 16px 24px;
+      border-top: 1px solid #424242;
+      background-color: #303030;
 
-    .status-form {
-      .product-info {
-        background-color: #424242;
-        
-        .product-details {
-          h3 {
-            color: #fff;
-          }
-          
-          .product-code {
-            color: #ccc;
-          }
-        }
-
-        .status-indicator {
-          background-color: #424242;
-          border-color: #f44336;
-        }
+      button {
+        margin-left: 8px;
       }
-
-      .section-title {
-        color: #fff;
-      }
-
-      .motivos-list {
-        border-color: #616161;
-        
-        .motivo-option {
-          border-bottom-color: #424242;
-          
-          &.mat-list-option:hover {
-            background-color: #424242;
-          }
-
-          &.mat-list-option.mat-selected {
-            background-color: #424242;
-          }
-        }
-      }
-
-      .instructions-section {
-        background-color: #263238;
-        
-        .instructions-text p {
-          color: #81c784;
-        }
-      }
-    }
-
-    .dialog-actions {
-      border-top-color: #424242;
     }
   }
 }
 
-// Animations
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 // Responsive design
@@ -403,7 +408,8 @@
       }
       
       .motivos-list {
-        max-height: 160px;
+        max-height: none;
+        flex: 1;
       }
     }
     

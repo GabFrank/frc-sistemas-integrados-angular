@@ -31,6 +31,12 @@ interface PedidoItemWithStatus extends PedidoItem {
   isAssigned: boolean;
   notaNumero?: number;
   notaTipoBoleta?: string;
+  // Add computed display properties for estado-based field access
+  displayPresentacion?: any;
+  displayCantidad?: number;
+  displayPrecioUnitario?: number;
+  displayDescuentoUnitario?: number;
+  displayValorTotal?: number;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -175,15 +181,30 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         next: (response) => {
           this.pedidoItemsPage = response;
           
-          // Transform items with computed properties
+          // Transform items with computed properties using estado-based field access
           const itemsWithStatus: PedidoItemWithStatus[] = response.getContent.map(item => {
             // Create proper PedidoItem instance
             const pedidoItem = Object.assign(new PedidoItem(), item);
+            
+            // Add computed properties based on current pedido estado
+            const presentacion = pedidoItem.getFieldValueForEstado('presentacion', this.selectedPedido.estado);
+            const cantidad = pedidoItem.getFieldValueForEstado('cantidad', this.selectedPedido.estado);
+            const precioUnitario = pedidoItem.getFieldValueForEstado('precioUnitario', this.selectedPedido.estado);
+            const descuentoUnitario = pedidoItem.getFieldValueForEstado('descuentoUnitario', this.selectedPedido.estado);
+            
             return {
               ...pedidoItem,
               isAssigned: !!item.notaRecepcion,
               notaNumero: item.notaRecepcion?.numero,
-              notaTipoBoleta: item.notaRecepcion?.tipoBoleta
+              notaTipoBoleta: item.notaRecepcion?.tipoBoleta,
+              // Add computed properties for template display
+              displayPresentacion: presentacion,
+              displayCantidad: cantidad,
+              displayPrecioUnitario: precioUnitario,
+              displayDescuentoUnitario: descuentoUnitario,
+              displayValorTotal: presentacion && cantidad && precioUnitario 
+                ? (cantidad * presentacion.cantidad * (precioUnitario - (descuentoUnitario || 0)))
+                : item.valorTotal
             } as PedidoItemWithStatus;
           });
 

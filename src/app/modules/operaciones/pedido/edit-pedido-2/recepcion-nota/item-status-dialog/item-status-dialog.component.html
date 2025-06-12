@@ -15,7 +15,7 @@
         <mat-icon class="product-icon">inventory_2</mat-icon>
         <div class="product-details">
           <h3>{{ productDescription }}</h3>
-          <p class="product-code">Código: {{ currentPedidoItemForTemplate?.producto?.codigoPrincipal || 'N/A' }}</p>
+          <p class="product-code">Código: {{ currentPedidoItem?.producto?.codigoPrincipal || 'N/A' }}</p>
         </div>
         <!-- Current status indicator -->
         <div class="status-indicator" *ngIf="isCurrentlyRejected">
@@ -29,17 +29,12 @@
       <!-- Rejection Toggle -->
       <div class="rejection-section">
         <mat-slide-toggle formControlName="isRejected" color="warn">
-          <span class="toggle-label">
-            {{ statusForm.get('isRejected')?.value ? 'Marcar como rechazado' : 'Remover rechazo' }}
-          </span>
+          {{ isRejected ? 'Remover rechazo' : 'Marcar como rechazado' }}
         </mat-slide-toggle>
-        <p class="toggle-description" *ngIf="!statusForm.get('isRejected')?.value">
-          Use esta opción para marcar el item como rechazado en la recepción
-        </p>
       </div>
 
-      <!-- Rejection Motivos (shown only when rejected) -->
-      <div class="motivos-section" *ngIf="statusForm.get('isRejected')?.value">
+      <!-- Rejection Motivos (always shown) -->
+      <div class="motivos-section">
         <h4 class="section-title">
           <mat-icon class="section-icon error-icon">error</mat-icon>
           Motivos de Rechazo <span class="required">*</span>
@@ -53,24 +48,34 @@
             [value]="motivo"
             class="motivo-option">
             <mat-icon matListIcon class="motivo-icon">report_problem</mat-icon>
-            {{ getMotivoLabel(motivo) }}
+            {{ motivoLabels[motivo] || motivo }}
           </mat-list-option>
         </mat-selection-list>
       </div>
 
+      <!-- Observaciones Field -->
+      <div class="observaciones-section">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Observaciones</mat-label>
+          <textarea matInput
+                    formControlName="observaciones"
+                    [placeholder]="'Ingrese observaciones adicionales'"
+                    rows="3"></textarea>
+        </mat-form-field>
+      </div>
+
       <!-- Instructions -->
-      <div class="instructions-section" *ngIf="!currentIsReadOnlyForTemplate">
+      <div class="instructions-section" *ngIf="!currentIsReadOnly">
         <mat-icon class="info-icon">info</mat-icon>
         <div class="instructions-text">
           <p><strong>Nota:</strong> Los motivos de modificación se registran automáticamente al editar los datos del item.</p>
-          <p>Las observaciones pueden agregarse desde la opción "Editar Item".</p>
         </div>
       </div>
     </form>
   </mat-dialog-content>
 
   <!-- Dialog Actions - Only shown in dialog mode -->
-  <mat-dialog-actions class="dialog-actions" *ngIf="showDialogHeader && !currentIsReadOnlyForTemplate">
+  <mat-dialog-actions class="dialog-actions" *ngIf="showDialogHeader && !currentIsReadOnly">
     <button 
       mat-button 
       type="button" 
@@ -85,19 +90,19 @@
       (click)="onSave()"
       [disabled]="!canSave">
       <mat-icon *ngIf="isProcessing" class="processing-icon">hourglass_empty</mat-icon>
-      {{ isProcessing ? 'Guardando...' : (statusForm.get('isRejected')?.value ? 'Marcar como Rechazado' : 'Remover Rechazo') }}
+      {{ isProcessing ? 'Guardando...' : (isRejected ? 'Guardar Rechazo' : 'Remover Rechazo') }}
     </button>
   </mat-dialog-actions>
 
   <!-- Read-only actions - Only shown in dialog mode -->
-  <mat-dialog-actions class="dialog-actions" *ngIf="showDialogHeader && currentIsReadOnlyForTemplate">
+  <mat-dialog-actions class="dialog-actions" *ngIf="showDialogHeader && currentIsReadOnly">
     <button mat-raised-button color="primary" mat-dialog-close>
       Cerrar
     </button>
   </mat-dialog-actions>
 
   <!-- Embedded mode actions -->
-  <div class="embedded-actions" *ngIf="isEmbedded && !currentIsReadOnlyForTemplate">
+  <div class="embedded-actions" *ngIf="isEmbedded && !currentIsReadOnly">
     <button 
       mat-button 
       type="button" 
@@ -115,8 +120,8 @@
       [disabled]="!canSave"
       class="save-btn">
       <mat-icon *ngIf="isProcessing" class="processing-icon">hourglass_empty</mat-icon>
-      <mat-icon *ngIf="!isProcessing">{{ statusForm.get('isRejected')?.value ? 'error' : 'check' }}</mat-icon>
-      {{ isProcessing ? 'Guardando...' : (statusForm.get('isRejected')?.value ? 'Marcar como Rechazado' : 'Remover Rechazo') }}
+      <mat-icon *ngIf="!isProcessing">{{ isRejected ? 'error' : 'check' }}</mat-icon>
+      {{ isProcessing ? 'Guardando...' : (isRejected ? 'Guardar Rechazo' : 'Remover Rechazo') }}
     </button>
   </div>
 </div> 

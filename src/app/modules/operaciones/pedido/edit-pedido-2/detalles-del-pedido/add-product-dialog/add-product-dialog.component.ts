@@ -22,6 +22,7 @@ import { debounceTime, distinctUntilChanged } from "rxjs/operators";
 import { Pedido } from "../../../edit-pedido/pedido.model";
 import { PedidoItem } from "../../../edit-pedido/pedido-item.model";
 import { PedidoStep } from "../../../edit-pedido/pedido-item.model";
+import { PedidoEstado } from "../../../edit-pedido/pedido-enums";
 import { ProductoProveedor } from "../../../../../productos/producto-proveedor/producto-proveedor.model";
 import { Producto } from "../../../../../productos/producto/producto.model";
 import { CompraItem } from "../../../../compra/compra-item.model";
@@ -101,11 +102,14 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     descuentoPorPresentacion: new FormControl({ value: 0, disabled: true }, [
       Validators.min(0),
     ]),
-    // Add observations fields
+    // Add observations fields for all estados
     obsCreacion: new FormControl({ value: '', disabled: true }, [
       Validators.maxLength(500)
     ]),
     obsRecepcionNota: new FormControl({ value: '', disabled: true }, [
+      Validators.maxLength(500)
+    ]),
+    obsRecepcionProducto: new FormControl({ value: '', disabled: true }, [
       Validators.maxLength(500)
     ]),
   });
@@ -156,8 +160,16 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   priceChangePercentage = 0;
   showPriceWarning = false;
 
-  // Step context
+  // Step context - computed property instead of getter
   currentStep: PedidoStep = PedidoStep.DETALLES_PEDIDO;
+  
+  // Computed properties for template usage
+  isDetallesPedidoStep = false;
+  isRecepcionNotaStep = false;
+  isRecepcionProductoStep = false;
+  canModifyInCurrentStep = false;
+  currentStepDisplayName = '';
+  isFormInvalidOrNoProduct = true;
   
   // Modification tracking
   hasModifications = false;
@@ -205,8 +217,8 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     this.setupFormSubscriptions();
     this.loadProductosProveedor();
     
-    // Set current step context
-    this.currentStep = this.data.currentStep || PedidoStep.DETALLES_PEDIDO;
+    // Update computed properties
+    this.updateComputedProperties();
 
     // If editing an existing item, load its data
     if (this.data.isEditing && this.data.pedidoItem) {
@@ -237,6 +249,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       .pipe(untilDestroyed(this))
       .subscribe(() => {
         this.calculateTotalPreview();
+        this.updateComputedProperties();
       });
 
     // Handle precio calculations
@@ -398,6 +411,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
             descuentoPorPresentacion: 0,
           });
 
+          // Update computed properties
+          this.updateComputedProperties();
+
           // Update search field with product description
           this.buscarProductoDirectoControl.setValue(
             `${this.selectedProducto?.id} - ${this.selectedProducto?.descripcion}`
@@ -444,6 +460,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       descuentoPorPresentacion: 0,
     });
 
+    // Update computed properties
+    this.updateComputedProperties();
+
     // Update search field with product description
     this.buscarProductoDirectoControl.setValue(
       `${this.selectedProducto?.id} - ${this.selectedProducto?.descripcion}`
@@ -487,6 +506,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       descuentoUnitario: 0,
       descuentoPorPresentacion: 0,
     });
+
+    // Update computed properties
+    this.updateComputedProperties();
 
     // Update search field with product description
     this.buscarProductoDirectoControl.setValue(
@@ -551,39 +573,38 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     const pedidoItemData = this.data.pedidoItem;
     if (!pedidoItemData) return;
 
-    // Create a simple PedidoItem with form data - backend will handle all copying and validation
+    // Create a full copy of the existing pedido item to preserve all data
     const pedidoItemForSave = new PedidoItem();
-    pedidoItemForSave.id = pedidoItemData.id;
+    Object.assign(pedidoItemForSave, pedidoItemData);
     
-    // Send form data - backend will determine which step fields to populate based on Pedido state
+    // Only update the fields for the current estado - preserve all other fields
+    if (this.data.pedido.estado === PedidoEstado.ABIERTO || this.data.pedido.estado === PedidoEstado.ACTIVO) {
+      // Update Creation fields only
     pedidoItemForSave.presentacionCreacion = formValue.presentacion;
     pedidoItemForSave.cantidadCreacion = formValue.cantidad;
     pedidoItemForSave.precioUnitarioCreacion = formValue.precioUnitario;
     pedidoItemForSave.descuentoUnitarioCreacion = formValue.descuentoUnitario || 0;
     pedidoItemForSave.obsCreacion = formValue.obsCreacion || '';
-    
+    } else if (this.data.pedido.estado === PedidoEstado.EN_RECEPCION_NOTA) {
+      // Update RecepcionNota fields only - preserve Creacion and RecepcionProducto fields
     pedidoItemForSave.presentacionRecepcionNota = formValue.presentacion;
     pedidoItemForSave.cantidadRecepcionNota = formValue.cantidad;
     pedidoItemForSave.precioUnitarioRecepcionNota = formValue.precioUnitario;
     pedidoItemForSave.descuentoUnitarioRecepcionNota = formValue.descuentoUnitario || 0;
     pedidoItemForSave.obsRecepcionNota = formValue.obsRecepcionNota || '';
-    
+      pedidoItemForSave.usuarioRecepcionNota = this.mainService.usuarioActual;
+    } else if (this.data.pedido.estado === PedidoEstado.EN_RECEPCION_MERCADERIA) {
+      // Update RecepcionProducto fields only - preserve Creacion and RecepcionNota fields
     pedidoItemForSave.presentacionRecepcionProducto = formValue.presentacion;
     pedidoItemForSave.cantidadRecepcionProducto = formValue.cantidad;
     pedidoItemForSave.precioUnitarioRecepcionProducto = formValue.precioUnitario;
     pedidoItemForSave.descuentoUnitarioRecepcionProducto = formValue.descuentoUnitario || 0;
     pedidoItemForSave.obsRecepcionProducto = formValue.obsRecepcionProducto || '';
-
-    // Set current user for the step that might be active
-    pedidoItemForSave.usuarioRecepcionNota = this.mainService.usuarioActual;
     pedidoItemForSave.usuarioRecepcionProducto = this.mainService.usuarioActual;
+    }
 
     // Check if distribution changes occurred for UI feedback
     const needsDistributionUpdate = this.detectDistributionChanges(formValue);
-    
-    // Set navigation properties
-    pedidoItemForSave.pedido = { id: pedidoItemData.pedido?.id } as any;
-    pedidoItemForSave.producto = { id: pedidoItemData.producto?.id } as any;
     
     this.pedidoService
       .onSaveItem(pedidoItemForSave.toInput())
@@ -605,10 +626,10 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
             const updatedPedidoItem = new PedidoItem();
             Object.assign(updatedPedidoItem, response);
             
-            const presentacion = updatedPedidoItem.getFieldValueForStep('presentacion', this.currentStep);
-            const cantidad = updatedPedidoItem.getFieldValueForStep('cantidad', this.currentStep);
-            const precioUnitario = updatedPedidoItem.getFieldValueForStep('precioUnitario', this.currentStep);
-            const descuentoUnitario = updatedPedidoItem.getFieldValueForStep('descuentoUnitario', this.currentStep);
+            const presentacion = updatedPedidoItem.getFieldValueForEstado('presentacion', this.data.pedido.estado);
+            const cantidad = updatedPedidoItem.getFieldValueForEstado('cantidad', this.data.pedido.estado);
+            const precioUnitario = updatedPedidoItem.getFieldValueForEstado('precioUnitario', this.data.pedido.estado);
+            const descuentoUnitario = updatedPedidoItem.getFieldValueForEstado('descuentoUnitario', this.data.pedido.estado);
             
             // Update form with fresh data from database
             this.productSelectionFormGroup.patchValue({
@@ -633,12 +654,12 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
             }, 100);
           } else {
             // No distribution update needed, close dialog normally
-            this.dialogRef.close({ 
-              updated: true, 
-              pedidoItem: response, 
-              step: this.currentStep,
+          this.dialogRef.close({ 
+            updated: true, 
+            pedidoItem: response, 
+            step: this.currentStep,
               needsDistributionUpdate: false 
-            });
+          });
           }
         },
         error: () => {
@@ -679,25 +700,6 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       });
   }
 
-  // Method to determine if current step allows modifications
-  get canModifyInCurrentStep(): boolean {
-    return this.currentStep !== PedidoStep.DETALLES_PEDIDO || !this.data.isEditing;
-  }
-
-  // Method to get step display name for UI
-  get currentStepDisplayName(): string {
-    switch (this.currentStep) {
-      case PedidoStep.DETALLES_PEDIDO:
-        return 'Detalles del Pedido';
-      case PedidoStep.RECEPCION_NOTA:
-        return 'Recepción de Nota';
-      case PedidoStep.RECEPCION_PRODUCTO:
-        return 'Recepción de Producto';
-      default:
-        return 'Desconocido';
-    }
-  }
-
   calculateTotalPreview(): void {
     const formValue = this.productSelectionFormGroup.value;
     if (
@@ -735,6 +737,8 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     // Disable form controls when no product is selected
     this.disableFormControls();
     this.historicoComprasDataSource.data = [];
+    // Update computed properties
+    this.updateComputedProperties();
   }
 
   clearProductSelection(): void {
@@ -751,6 +755,8 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     // Disable form controls when no product is selected
     this.disableFormControls();
     this.historicoComprasDataSource.data = [];
+    // Update computed properties
+    this.updateComputedProperties();
   }
 
   // Pagination handlers
@@ -1109,6 +1115,11 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     const pedidoItemData = this.data.pedidoItem;
     if (!pedidoItemData) return;
 
+    // if data.pedido is not null, then set the pedidoItem.pedido to data.pedido
+    if (this.data.pedido) {
+      pedidoItemData.pedido = this.data.pedido;
+    }
+
     // Create a proper PedidoItem instance from the data
     const pedidoItem = new PedidoItem();
     Object.assign(pedidoItem, pedidoItemData);
@@ -1118,82 +1129,64 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     this.selectedProductoProveedor = null; // Clear proveedor selection since this is direct editing
 
     // Get step-appropriate values using the helper methods
-    const presentacion = pedidoItem.getFieldValueForStep('presentacion', this.currentStep);
-    const cantidad = pedidoItem.getFieldValueForStep('cantidad', this.currentStep);
-    const precioUnitario = pedidoItem.getFieldValueForStep('precioUnitario', this.currentStep);
-    const descuentoUnitario = pedidoItem.getFieldValueForStep('descuentoUnitario', this.currentStep);
-    const vencimiento = pedidoItem.getFieldValueForStep('vencimiento', this.currentStep);
-    const observaciones = pedidoItem.getFieldValueForStep('obs', this.currentStep);
+    const presentacion = pedidoItem.getFieldValueForEstado('presentacion', this.data.pedido.estado);
+    const cantidad = pedidoItem.getFieldValueForEstado('cantidad', this.data.pedido.estado);
+    const precioUnitario = pedidoItem.getFieldValueForEstado('precioUnitario', this.data.pedido.estado);
+    const descuentoUnitario = pedidoItem.getFieldValueForEstado('descuentoUnitario', this.data.pedido.estado);
+    const vencimiento = pedidoItem.getFieldValueForEstado('vencimiento', this.data.pedido.estado);
+    const observaciones = pedidoItem.getFieldValueForEstado('obs', this.data.pedido.estado);
 
-    // Find the presentacion in the producto's presentaciones list to ensure proper object reference
-    let selectedPresentacion = presentacion;
-    if (presentacion && this.selectedProducto?.presentaciones) {
-      const matchingPresentacion = this.selectedProducto.presentaciones.find(p => p.id === presentacion.id);
-      if (matchingPresentacion) {
-        selectedPresentacion = matchingPresentacion;
-      }
-    }
+    // log  estado based values
+    console.log('estado', this.data.pedido.estado);
+    console.log('presentacion', presentacion);
+    console.log('cantidad', cantidad);
+    console.log('precioUnitario', precioUnitario);
+    console.log('descuentoUnitario', descuentoUnitario);
+    console.log('observaciones', observaciones);
 
-    // Set original price for validation - always use the creation price as baseline
-    this.originalPrice = pedidoItem.precioUnitarioCreacion || 0;
-    this.clearPriceWarning();
+    // Find the matching presentacion from selectedProducto.presentaciones for proper mat-select binding
+    // This ensures object identity matching for Angular mat-select
+    const matchingPresentacion = presentacion && this.selectedProducto?.presentaciones
+      ? this.selectedProducto.presentaciones.find(p => p.id === presentacion.id)
+      : presentacion;
 
     // Store original values for change detection
-    this.originalPresentacionId = selectedPresentacion?.id || null;
-    this.originalCantidad = cantidad || null;
+    this.originalPresentacionId = presentacion?.id || null;
+    this.originalCantidad = cantidad;
+
+    // Set original price for validation
+    this.originalPrice = precioUnitario || 0;
+    this.clearPriceWarning();
 
     // Enable form controls
     this.enableFormControls();
 
-    // Load the form with step-appropriate data
-    const formData: any = {
-      presentacion: selectedPresentacion,
+    // Load form with pedido item data
+    this.productSelectionFormGroup.patchValue({
+      presentacion: matchingPresentacion,
       cantidad: cantidad,
       precioUnitario: precioUnitario,
-      precioPorPresentacion: selectedPresentacion?.cantidad
-        ? (precioUnitario || 0) * selectedPresentacion.cantidad
-        : 0,
+      precioPorPresentacion: matchingPresentacion?.cantidad ? precioUnitario * matchingPresentacion.cantidad : 0,
       descuentoUnitario: descuentoUnitario || 0,
-      descuentoPorPresentacion: selectedPresentacion?.cantidad
-        ? (descuentoUnitario || 0) * selectedPresentacion.cantidad
-        : 0,
-    };
+      descuentoPorPresentacion: matchingPresentacion?.cantidad ? (descuentoUnitario || 0) * matchingPresentacion.cantidad : 0,
+      obsCreacion: pedidoItem.obsCreacion || '',
+      obsRecepcionNota: pedidoItem.obsRecepcionNota || '',
+      obsRecepcionProducto: pedidoItem.obsRecepcionProducto || ''
+    });
 
-    // Add appropriate observations field based on current step
-    if (this.currentStep === PedidoStep.DETALLES_PEDIDO) {
-      formData.obsCreacion = observaciones || '';
-    } else if (this.currentStep === PedidoStep.RECEPCION_NOTA) {
-      formData.obsRecepcionNota = observaciones || '';
-      formData.obsCreacion = pedidoItem.obsCreacion || ''; // Also show creation obs for reference
-    } else if (this.currentStep === PedidoStep.RECEPCION_PRODUCTO) {
-      formData.obsRecepcionProducto = observaciones || '';
-      formData.obsCreacion = pedidoItem.obsCreacion || ''; // Also show creation obs for reference
-      formData.obsRecepcionNota = pedidoItem.obsRecepcionNota || ''; // Also show nota obs for reference
-    }
-
-    this.productSelectionFormGroup.patchValue(formData);
+    // Update computed properties
+    this.updateComputedProperties();
 
     // Update search field with product description
     this.buscarProductoDirectoControl.setValue(
-      `${this.selectedProducto?.id} - ${this.selectedProducto?.descripcion}`
+      `${pedidoItem.producto?.id} - ${pedidoItem.producto?.descripcion}`
     );
 
     // Load historical purchases for this product
     this.loadHistoricoCompras();
     
-    // Track if we're showing data from a different step (indicating potential modifications)
-    this.trackModificationStatus();
-  }
-
-  private trackModificationStatus(): void {
-    if (!this.data.pedidoItem) return;
-    
-    // Create a proper PedidoItem instance from the data
-    const pedidoItem = new PedidoItem();
-    Object.assign(pedidoItem, this.data.pedidoItem);
-    
-    // Check if current step has modifications compared to previous steps
-    this.hasModifications = pedidoItem.hasModificationsInStep(this.currentStep);
+    // Update current pedido item for embedded components
+    this.updateCurrentPedidoItemForEmbedded();
   }
 
   // Helper methods for enabling/disabling form controls
@@ -1205,18 +1198,20 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     this.productSelectionFormGroup.get("descuentoUnitario")?.enable();
     this.productSelectionFormGroup.get("descuentoPorPresentacion")?.enable();
     
-    // Enable appropriate observations field based on current step
-    if (this.currentStep === PedidoStep.DETALLES_PEDIDO) {
+    // First disable all observation fields, then enable the appropriate one
+    this.productSelectionFormGroup.get("obsCreacion")?.disable();
+    this.productSelectionFormGroup.get("obsRecepcionNota")?.disable();
+    this.productSelectionFormGroup.get("obsRecepcionProducto")?.disable();
+    
+    // Enable appropriate observations field based on pedido estado
+    if (this.data.pedido?.estado === PedidoEstado.ABIERTO || this.data.pedido?.estado === PedidoEstado.ACTIVO) {
       this.productSelectionFormGroup.get("obsCreacion")?.enable();
-    } else if (this.currentStep === PedidoStep.RECEPCION_NOTA) {
+    } else if (this.data.pedido?.estado === PedidoEstado.EN_RECEPCION_NOTA) {
       this.productSelectionFormGroup.get("obsRecepcionNota")?.enable();
-      // Keep obsCreacion as read-only for reference
-      this.productSelectionFormGroup.get("obsCreacion")?.disable();
-    } else if (this.currentStep === PedidoStep.RECEPCION_PRODUCTO) {
+      // Keep obsCreacion as read-only for reference - do not enable
+    } else if (this.data.pedido?.estado === PedidoEstado.EN_RECEPCION_MERCADERIA) {
       this.productSelectionFormGroup.get("obsRecepcionProducto")?.enable();
-      // Keep previous step obs as read-only for reference
-      this.productSelectionFormGroup.get("obsCreacion")?.disable();
-      this.productSelectionFormGroup.get("obsRecepcionNota")?.disable();
+      // Keep previous step obs as read-only for reference - do not enable
     }
   }
 
@@ -1229,26 +1224,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     this.productSelectionFormGroup.get("descuentoPorPresentacion")?.disable();
     this.productSelectionFormGroup.get("obsCreacion")?.disable();
     this.productSelectionFormGroup.get("obsRecepcionNota")?.disable();
-  }
-
-  // Getter for form validity check (to replace template disabled binding)
-  get isFormInvalidOrNoProduct(): boolean {
-    return this.productSelectionFormGroup.invalid || !this.selectedProducto;
-  }
-
-  onRepeatFromHistory(compraItem: any): void {
-    // Fill form with historical data
-    this.productSelectionFormGroup.patchValue({
-      cantidad: compraItem.cantidad,
-      precioUnitario: compraItem.precio,
-      descuentoUnitario: 0,
-    });
-  }
-
-  onRepeatFromHistoryAndSwitchTab(compraItem: any): void {
-    this.onRepeatFromHistory(compraItem);
-    // Switch to first tab (Configurar Producto)
-    this.selectedTabIndex = 0;
+    this.productSelectionFormGroup.get("obsRecepcionProducto")?.disable();
   }
 
   private detectDistributionChanges(formValue: any): boolean {
@@ -1261,61 +1237,6 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
     return currentPresentacionId !== this.originalPresentacionId || 
            currentCantidad !== this.originalCantidad;
-  }
-
-  // ===============================
-  // EMBEDDED COMPONENT EVENT HANDLERS
-  // ===============================
-
-  onSucursalDistributionSaved(result: {success: boolean, updatedPedidoItem?: PedidoItem, quantityChanged?: boolean}): void {
-    if (result.success) {
-      this.notificacionService.openSucess("Distribución de sucursales actualizada exitosamente");
-      
-      // If quantity was changed and we have an updated pedido item, update our data and form
-      if (result.quantityChanged && result.updatedPedidoItem) {
-        // Update the data reference with the saved item from database
-        if (this.data.pedidoItem) {
-          Object.assign(this.data.pedidoItem, result.updatedPedidoItem);
-        }
-        
-        // Update the currentPedidoItemForEmbedded to trigger ngOnChanges in embedded component
-        this.currentPedidoItemForEmbedded = result.updatedPedidoItem;
-        
-        // Update the form with the new quantity from the saved item
-        const newQuantity = result.updatedPedidoItem.getFieldValueForStep('cantidad', this.currentStep);
-        this.productSelectionFormGroup.patchValue({
-          cantidad: newQuantity
-        }, { emitEvent: false }); // Don't emit to avoid infinite loop
-        
-        // Recalculate totals
-        this.calculateTotalPreview();
-        
-        // Update the currentPedidoItemForEmbedded property to ensure embedded component gets refreshed data
-        this.updateCurrentPedidoItemForEmbedded();
-        
-        this.notificacionService.openSucess("Cantidad del item actualizada y guardada en el sistema");
-      }
-    }
-  }
-
-  onSucursalDistributionCancelled(): void {
-    // Handle cancellation if needed
-    this.onCancel();
-  }
-
-  onRejectionStatusSaved(result: any): void {
-    if (result.updated && result.pedidoItem) {
-      this.notificacionService.openSucess("Estado de rechazo actualizado exitosamente");
-      // Update the current pedido item with the returned data
-      if (this.data.pedidoItem) {
-        Object.assign(this.data.pedidoItem, result.pedidoItem);
-      }
-    }
-  }
-
-  onRejectionStatusCancelled(): void {
-    // Handle cancellation if needed
-    console.log("Rejection status management cancelled");
   }
 
   // Helper method to update the current pedido item for embedded components
@@ -1331,11 +1252,30 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       tempItem.producto = this.selectedProducto;
       tempItem.pedido = this.data.pedido;
       
+      // Set fields based on form values
       const formValue = this.productSelectionFormGroup.value;
-      tempItem.presentacionCreacion = formValue.presentacion;
-      tempItem.cantidadCreacion = formValue.cantidad || 1;
-      tempItem.precioUnitarioCreacion = formValue.precioUnitario || 0;
-      tempItem.descuentoUnitarioCreacion = formValue.descuentoUnitario || 0;
+      
+      // Set all fields to preserve data across estados
+      if (this.data.pedido.estado === PedidoEstado.ABIERTO || this.data.pedido.estado === PedidoEstado.ACTIVO) {
+        tempItem.presentacionCreacion = formValue.presentacion;
+        tempItem.cantidadCreacion = formValue.cantidad || 1;
+        tempItem.precioUnitarioCreacion = formValue.precioUnitario || 0;
+        tempItem.descuentoUnitarioCreacion = formValue.descuentoUnitario || 0;
+        tempItem.obsCreacion = formValue.obsCreacion || '';
+      } else if (this.data.pedido.estado === PedidoEstado.EN_RECEPCION_NOTA) {
+        tempItem.presentacionRecepcionNota = formValue.presentacion;
+        tempItem.cantidadRecepcionNota = formValue.cantidad || 1;
+        tempItem.precioUnitarioRecepcionNota = formValue.precioUnitario || 0;
+        tempItem.descuentoUnitarioRecepcionNota = formValue.descuentoUnitario || 0;
+        tempItem.obsRecepcionNota = formValue.obsRecepcionNota || '';
+      } else if (this.data.pedido.estado === PedidoEstado.EN_RECEPCION_MERCADERIA) {
+        tempItem.presentacionRecepcionProducto = formValue.presentacion;
+        tempItem.cantidadRecepcionProducto = formValue.cantidad || 1;
+        tempItem.precioUnitarioRecepcionProducto = formValue.precioUnitario || 0;
+        tempItem.descuentoUnitarioRecepcionProducto = formValue.descuentoUnitario || 0;
+        tempItem.obsRecepcionProducto = formValue.obsRecepcionProducto || '';
+      }
+      
       tempItem.usuarioCreacion = this.mainService.usuarioActual;
       this.currentPedidoItemForEmbedded = tempItem;
     } else {
@@ -1351,11 +1291,11 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
         Object.assign(this.data.pedidoItem, this.currentPedidoItemForEmbedded);
       }
       
-      // Update form values to reflect changes from embedded component
-      const updatedQuantity = this.currentPedidoItemForEmbedded.getFieldValueForStep('cantidad', this.currentStep);
-      const updatedPresentacion = this.currentPedidoItemForEmbedded.getFieldValueForStep('presentacion', this.currentStep);
-      const updatedPrecioUnitario = this.currentPedidoItemForEmbedded.getFieldValueForStep('precioUnitario', this.currentStep);
-      const updatedDescuentoUnitario = this.currentPedidoItemForEmbedded.getFieldValueForStep('descuentoUnitario', this.currentStep);
+      // Get the values for the current estado from the pedido item
+      const updatedQuantity = this.currentPedidoItemForEmbedded.getFieldValueForEstado('cantidad', this.data.pedido.estado);
+      const updatedPresentacion = this.currentPedidoItemForEmbedded.getFieldValueForEstado('presentacion', this.data.pedido.estado);
+      const updatedPrecioUnitario = this.currentPedidoItemForEmbedded.getFieldValueForEstado('precioUnitario', this.data.pedido.estado);
+      const updatedDescuentoUnitario = this.currentPedidoItemForEmbedded.getFieldValueForEstado('descuentoUnitario', this.data.pedido.estado);
       
       // Update form with the changed values
       this.productSelectionFormGroup.patchValue({
@@ -1370,5 +1310,122 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       // Recalculate totals
       this.calculateTotalPreview();
     }
+  }
+
+  // Event handlers for embedded components
+  onSucursalDistributionSaved(event: any): void {
+    // Handle sucursal distribution save event
+    if (event && this.currentPedidoItemForEmbedded) {
+      // Update the current pedido item with the saved distribution data
+      this.currentPedidoItemForEmbedded.pedidoItemSucursalList = event.pedidoItemSucursalList || [];
+      
+      // Trigger change detection
+      this.onPedidoItemChanged();
+      
+      // Show success message
+      this.notificacionService.openSucess('Distribución por sucursal guardada exitosamente');
+    }
+  }
+
+  onSucursalDistributionCancelled(): void {
+    // Handle sucursal distribution cancel event
+    // No specific action needed, just log for debugging
+    console.log('Sucursal distribution cancelled');
+  }
+
+  onRejectionStatusSaved(event: any): void {
+    // Handle rejection status save event
+    if (event && this.currentPedidoItemForEmbedded) {
+      // Update the current pedido item with the saved rejection data
+      // Use the appropriate rejection motivo field based on current pedido estado
+      if (this.data.pedido?.estado === PedidoEstado.EN_RECEPCION_NOTA) {
+        if (event.motivoRechazoRecepcionNota !== undefined) {
+          this.currentPedidoItemForEmbedded.motivoRechazoRecepcionNota = event.motivoRechazoRecepcionNota;
+        }
+      } else if (this.data.pedido?.estado === PedidoEstado.EN_RECEPCION_MERCADERIA) {
+        if (event.motivoRechazoRecepcionProducto !== undefined) {
+          this.currentPedidoItemForEmbedded.motivoRechazoRecepcionProducto = event.motivoRechazoRecepcionProducto;
+        }
+      }
+      
+      // Trigger change detection
+      this.onPedidoItemChanged();
+      
+      // Show success message
+      this.notificacionService.openSucess('Estado de rechazo guardado exitosamente');
+    }
+  }
+
+  onRejectionStatusCancelled(): void {
+    // Handle rejection status cancel event
+    // No specific action needed, just log for debugging
+    console.log('Rejection status cancelled');
+  }
+
+  onRepeatFromHistoryAndSwitchTab(compraItem: any): void {
+    this.onRepeatFromHistory(compraItem);
+    this.selectedTabIndex = 0;
+  }
+
+  onRepeatFromHistory(compraItem: any): void {
+    this.productSelectionFormGroup.patchValue({
+      cantidad: compraItem.cantidad,
+      precioUnitario: compraItem.precio,
+      descuentoUnitario: 0,
+    });
+  }
+
+  // Helper method for mat-select compareWith to properly compare presentacion objects
+  comparePresentaciones(p1: any, p2: any): boolean {
+    return p1 && p2 ? p1.id === p2.id : p1 === p2;
+  }
+
+  // Method to update computed properties for template usage
+  private updateComputedProperties(): void {
+    // Map pedido estado to PedidoStep for template compatibility
+    if (!this.data?.pedido?.estado) {
+      this.currentStep = PedidoStep.DETALLES_PEDIDO;
+    } else {
+      switch (this.data.pedido.estado) {
+        case PedidoEstado.ABIERTO:
+        case PedidoEstado.ACTIVO:
+          this.currentStep = PedidoStep.DETALLES_PEDIDO;
+          break;
+        case PedidoEstado.EN_RECEPCION_NOTA:
+          this.currentStep = PedidoStep.RECEPCION_NOTA;
+          break;
+        case PedidoEstado.EN_RECEPCION_MERCADERIA:
+        case PedidoEstado.CONCLUIDO:
+          this.currentStep = PedidoStep.RECEPCION_PRODUCTO;
+          break;
+        default:
+          this.currentStep = PedidoStep.DETALLES_PEDIDO;
+      }
+    }
+
+    // Update step flags
+    this.isDetallesPedidoStep = this.currentStep === PedidoStep.DETALLES_PEDIDO;
+    this.isRecepcionNotaStep = this.currentStep === PedidoStep.RECEPCION_NOTA;
+    this.isRecepcionProductoStep = this.currentStep === PedidoStep.RECEPCION_PRODUCTO;
+
+    // Update other computed properties
+    this.canModifyInCurrentStep = this.currentStep !== PedidoStep.DETALLES_PEDIDO || !this.data.isEditing;
+    
+    switch (this.currentStep) {
+      case PedidoStep.DETALLES_PEDIDO:
+        this.currentStepDisplayName = 'Detalles del Pedido';
+        break;
+      case PedidoStep.RECEPCION_NOTA:
+        this.currentStepDisplayName = 'Recepción de Nota';
+        break;
+      case PedidoStep.RECEPCION_PRODUCTO:
+        this.currentStepDisplayName = 'Recepción de Producto';
+        break;
+      default:
+        this.currentStepDisplayName = 'Desconocido';
+    }
+
+    // Update form validation
+    this.isFormInvalidOrNoProduct = this.productSelectionFormGroup.invalid || !this.selectedProducto;
   }
 }

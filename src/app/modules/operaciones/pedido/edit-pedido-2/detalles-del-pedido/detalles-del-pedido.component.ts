@@ -191,13 +191,28 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
           
           // Calculate computed properties for each item to avoid function calls in template
           const itemsWithComputedProps = response.getContent.map(item => {
-            const precioUnitario = item.precioUnitarioCreacion || 0;
-            const descuentoUnitario = item.descuentoUnitarioCreacion || 0;
-            const cantidadPresentacion = item.presentacionCreacion?.cantidad || 1;
-            const cantidadCreacion = item.cantidadCreacion || 0;
+            // Convert to PedidoItem instance to use helper methods
+            const pedidoItem = new PedidoItem();
+            Object.assign(pedidoItem, item);
             
-            // Calculate sucursal distribution status
-            const totalCantidadRequerida = cantidadCreacion * cantidadPresentacion;
+            // Use estado-based field access instead of hardcoded Creacion fields
+            const presentacion = pedidoItem.getFieldValueForEstado('presentacion', this.selectedPedido.estado);
+            const cantidad = pedidoItem.getFieldValueForEstado('cantidad', this.selectedPedido.estado);
+            const precioUnitario = pedidoItem.getFieldValueForEstado('precioUnitario', this.selectedPedido.estado) || 0;
+            const descuentoUnitario = pedidoItem.getFieldValueForEstado('descuentoUnitario', this.selectedPedido.estado) || 0;
+            const observaciones = pedidoItem.getFieldValueForEstado('obs', this.selectedPedido.estado);
+
+            console.log('estado', this.selectedPedido.estado);
+            console.log('presentacion', presentacion);
+            console.log('cantidad', cantidad);
+            console.log('precioUnitario', precioUnitario);
+            console.log('descuentoUnitario', descuentoUnitario);
+            console.log('observaciones', observaciones);
+            
+            const cantidadPresentacion = presentacion?.cantidad || 1;
+            
+            // Calculate sucursal distribution status using estado-based quantity
+            const totalCantidadRequerida = cantidad * cantidadPresentacion;
             const totalCantidadDistribuida = (item.pedidoItemSucursalList || [])
               .reduce((sum, sucursalItem) => sum + (sucursalItem.cantidadPorUnidad || 0), 0);
             
@@ -212,14 +227,20 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
               descuentoPorPresentacionCalculado: descuentoUnitario * cantidadPresentacion,
               netPrecioUnitarioCalculado: precioUnitario - descuentoUnitario,
               netPrecioPorPresentacionCalculado: (precioUnitario * cantidadPresentacion) - (descuentoUnitario * cantidadPresentacion),
-              // Total with discount applied
-              totalConDescuentoCalculado: cantidadCreacion * cantidadPresentacion * (precioUnitario - descuentoUnitario),
+              // Total with discount applied - using estado-based quantity
+              totalConDescuentoCalculado: cantidad * cantidadPresentacion * (precioUnitario - descuentoUnitario),
               // Sucursal distribution status
               isDistributionComplete: isDistributionComplete,
               distributionPercentage: distributionPercentage,
               totalCantidadRequerida: totalCantidadRequerida,
               totalCantidadDistribuida: totalCantidadDistribuida,
-              distributionStatusClass: isDistributionComplete ? 'distribution-complete' : 'distribution-incomplete'
+              distributionStatusClass: isDistributionComplete ? 'distribution-complete' : 'distribution-incomplete',
+              // Add estado-based computed fields for template access
+              currentPresentacion: presentacion,
+              currentCantidad: cantidad,
+              currentPrecioUnitario: precioUnitario,
+              currentDescuentoUnitario: descuentoUnitario,
+              currentObservaciones: observaciones
             });
             
             return computedItem;
@@ -362,8 +383,15 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
       return;
     }
 
+    // Convert to PedidoItem instance to use helper methods
+    const pedidoItemInstance = new PedidoItem();
+    Object.assign(pedidoItemInstance, pedidoItem);
+    
+    // Get estado-based quantity for display
+    const currentQuantity = pedidoItemInstance.getFieldValueForEstado('cantidad', this.selectedPedido.estado);
+
     // Ask for confirmation since deletion is irreversible
-    const message = `¿Está seguro que desea eliminar este item del pedido?\n\nProducto: ${pedidoItem.producto?.descripcion}\nCantidad: ${pedidoItem.cantidadCreacion}\n\nEsta acción es irreversible.`;
+    const message = `¿Está seguro que desea eliminar este item del pedido?\n\nProducto: ${pedidoItem.producto?.descripcion}\nCantidad: ${currentQuantity}\n\nEsta acción es irreversible.`;
     
     this.dialogosService.confirm(
       'Confirmar eliminación',
@@ -479,17 +507,19 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
     let cantidadItems = items.length;
 
     items.forEach(item => {
-      const precioUnitario = item.precioUnitarioCreacion || 0;
-      const descuentoUnitario = item.descuentoUnitarioCreacion || 0;
-      const cantidadPresentacion = item.presentacionCreacion?.cantidad || 1;
-      const cantidadCreacion = item.cantidadCreacion || 0;
+      // Use the computed properties that were calculated with estado-based field access
+      const computedItem = item as any;
+      const precioUnitario = computedItem.currentPrecioUnitario || 0;
+      const descuentoUnitario = computedItem.currentDescuentoUnitario || 0;
+      const cantidadPresentacion = computedItem.currentPresentacion?.cantidad || 1;
+      const cantidad = computedItem.currentCantidad || 0;
 
       // Total sin descuento: cantidad * presentacion * precio unitario
-      const itemTotalSinDescuento = cantidadCreacion * cantidadPresentacion * precioUnitario;
+      const itemTotalSinDescuento = cantidad * cantidadPresentacion * precioUnitario;
       totalSinDescuento += itemTotalSinDescuento;
 
       // Total descuento: cantidad * presentacion * descuento unitario
-      const itemDescuento = cantidadCreacion * cantidadPresentacion * descuentoUnitario;
+      const itemDescuento = cantidad * cantidadPresentacion * descuentoUnitario;
       totalDescuento += itemDescuento;
     });
 

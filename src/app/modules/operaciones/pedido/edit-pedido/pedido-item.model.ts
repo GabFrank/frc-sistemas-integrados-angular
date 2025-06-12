@@ -5,7 +5,7 @@ import { Producto } from "../../../productos/producto/producto.model";
 import { CompraItem } from "../../compra/compra-item.model";
 import { NotaRecepcion } from "../nota-recepcion/nota-recepcion.model";
 import { PedidoItemSucursal } from "../pedido-item-sucursal/pedido-item-sucursal.model";
-import { PedidoItemEstado } from "./pedido-enums";
+import { PedidoItemEstado, PedidoEstado } from "./pedido-enums";
 import { Pedido } from "./pedido.model";
 
 export enum PedidoStep {
@@ -67,8 +67,9 @@ export class PedidoItem {
   cancelado: boolean;
   verificadoRecepcionNota: boolean;
   verificadoRecepcionProducto: boolean;
-  motivoRechazoRecepcionNota: string
-  motivoRechazoRecepcionProducto: string
+  motivoRechazoRecepcionNota: string;
+  motivoRechazoRecepcionProducto: string;
+  observacionesRecepcionNota: string;
   pedidoItemSucursalList: PedidoItemSucursal[] = [];
   isDistribucionSucursalesCreacion: boolean;
   isDistribucionSucursalesRecepcion: boolean;
@@ -127,32 +128,33 @@ export class PedidoItem {
     input.verificadoRecepcionProducto = this.verificadoRecepcionProducto;
     input.motivoRechazoRecepcionNota = this.motivoRechazoRecepcionNota;
     input.motivoRechazoRecepcionProducto = this.motivoRechazoRecepcionProducto;
+    input.observacionesRecepcionNota = this.observacionesRecepcionNota;
     return input;
   }
 
-  // Helper method to get the appropriate field value based on current step
-  getFieldValueForStep(fieldName: string, step: PedidoStep): any {
-    switch (step) {
-      case PedidoStep.RECEPCION_PRODUCTO:
-        // Priority: RecepcionProducto -> RecepcionNota -> Creacion
-        const productoValue = this.getFieldValue(fieldName, 'RecepcionProducto');
-        if (productoValue !== null && productoValue !== undefined) return productoValue;
-        
-        const notaValue = this.getFieldValue(fieldName, 'RecepcionNota');
-        if (notaValue !== null && notaValue !== undefined) return notaValue;
-        
+  // Helper method to get the appropriate field value based on Pedido estado
+  getFieldValueForEstado(fieldName: string, pedidoEstado: PedidoEstado): any {
+    switch (pedidoEstado) {
+      case PedidoEstado.ABIERTO:
+      case PedidoEstado.ACTIVO:
+        // Always use Creacion fields
         return this.getFieldValue(fieldName, 'Creacion');
         
-      case PedidoStep.RECEPCION_NOTA:
-        // Priority: RecepcionNota -> Creacion
-        const recepcionNotaValue = this.getFieldValue(fieldName, 'RecepcionNota');
-        if (recepcionNotaValue !== null && recepcionNotaValue !== undefined) return recepcionNotaValue;
+      case PedidoEstado.EN_RECEPCION_NOTA:
+        // Use RecepcionNota fields (should be populated by backend when estado changed)
+        return this.getFieldValue(fieldName, 'RecepcionNota');
         
-        return this.getFieldValue(fieldName, 'Creacion');
+      case PedidoEstado.EN_RECEPCION_MERCADERIA:
+        // Use RecepcionProducto fields (should be populated by backend when estado changed)
+        return this.getFieldValue(fieldName, 'RecepcionProducto');
         
-      case PedidoStep.DETALLES_PEDIDO:
+      case PedidoEstado.CONCLUIDO:
+        // Use the final step (RecepcionProducto)
+        return this.getFieldValue(fieldName, 'RecepcionProducto');
+        
       default:
-        return this.getFieldValue(fieldName, 'Creacion');
+        // Default to Creacion fields for unknown estados
+        return null;
     }
   }
 
@@ -188,17 +190,21 @@ export class PedidoItem {
     return this[fullFieldName];
   }
 
-  // Helper method to set field value for specific step
-  setFieldValueForStep(fieldName: string, value: any, step: PedidoStep): void {
+  // Helper method to set field value for specific estado
+  setFieldValueForEstado(fieldName: string, value: any, pedidoEstado: PedidoEstado): void {
     let suffix: string;
-    switch (step) {
-      case PedidoStep.RECEPCION_PRODUCTO:
-        suffix = 'RecepcionProducto';
+    switch (pedidoEstado) {
+      case PedidoEstado.ABIERTO:
+      case PedidoEstado.ACTIVO:
+        suffix = 'Creacion';
         break;
-      case PedidoStep.RECEPCION_NOTA:
+      case PedidoEstado.EN_RECEPCION_NOTA:
         suffix = 'RecepcionNota';
         break;
-      case PedidoStep.DETALLES_PEDIDO:
+      case PedidoEstado.EN_RECEPCION_MERCADERIA:
+      case PedidoEstado.CONCLUIDO:
+        suffix = 'RecepcionProducto';
+        break;
       default:
         suffix = 'Creacion';
         break;
@@ -249,14 +255,10 @@ export class PedidoItem {
         
       case PedidoStep.RECEPCION_PRODUCTO:
         return fields.some(field => {
-          const productoValue = this.getFieldValue(field, 'RecepcionProducto');
-          const notaValue = this.getFieldValue(field, 'RecepcionNota');
+          const recepcionValue = this.getFieldValue(field, 'RecepcionProducto');
           const creacionValue = this.getFieldValue(field, 'Creacion');
-          
-          // Check if RecepcionProducto differs from the previous step values
-          const previousValue = notaValue !== null && notaValue !== undefined ? notaValue : creacionValue;
-          return productoValue !== null && productoValue !== undefined && 
-                 productoValue !== previousValue;
+          return recepcionValue !== null && recepcionValue !== undefined && 
+                 recepcionValue !== creacionValue;
         });
         
       default:
@@ -264,14 +266,77 @@ export class PedidoItem {
     }
   }
 
-  // Copy values from one step to another (for when no modifications are made)
+  // Copy values from one step to another
   copyStepValues(fromStep: PedidoStep, toStep: PedidoStep): void {
-    const fields = ['presentacion', 'cantidad', 'precioUnitario', 'descuentoUnitario', 'vencimiento', 'obs'];
+    const fields = ['presentacion', 'cantidad', 'precioUnitario', 'descuentoUnitario', 'vencimiento'];
     
     fields.forEach(field => {
       const value = this.getFieldValueForStep(field, fromStep);
-      this.setFieldValueForStep(field, value, toStep);
+      if (value !== null && value !== undefined) {
+        this.setFieldValueForStep(field, value, toStep);
+      }
     });
+  }
+
+  // Helper method to get field value for specific step
+  private getFieldValueForStep(fieldName: string, step: PedidoStep): any {
+    switch (step) {
+      case PedidoStep.DETALLES_PEDIDO:
+        return this.getFieldValue(fieldName, 'Creacion');
+      case PedidoStep.RECEPCION_NOTA:
+        return this.getFieldValue(fieldName, 'RecepcionNota');
+      case PedidoStep.RECEPCION_PRODUCTO:
+        return this.getFieldValue(fieldName, 'RecepcionProducto');
+      default:
+        return null;
+    }
+  }
+
+  // Helper method to set field value for specific step
+  private setFieldValueForStep(fieldName: string, value: any, step: PedidoStep): void {
+    switch (step) {
+      case PedidoStep.DETALLES_PEDIDO:
+        this.setFieldValue(fieldName, value, 'Creacion');
+        break;
+      case PedidoStep.RECEPCION_NOTA:
+        this.setFieldValue(fieldName, value, 'RecepcionNota');
+        break;
+      case PedidoStep.RECEPCION_PRODUCTO:
+        this.setFieldValue(fieldName, value, 'RecepcionProducto');
+        break;
+    }
+  }
+
+  // Helper method to set field value by suffix
+  private setFieldValue(fieldName: string, value: any, suffix: string): void {
+    let fullFieldName: string;
+    
+    // Map field names to actual property names
+    switch (fieldName) {
+      case 'presentacion':
+        fullFieldName = 'presentacion' + suffix;
+        break;
+      case 'cantidad':
+        fullFieldName = 'cantidad' + suffix;
+        break;
+      case 'precioUnitario':
+        fullFieldName = 'precioUnitario' + suffix;
+        break;
+      case 'descuentoUnitario':
+        fullFieldName = 'descuentoUnitario' + suffix;
+        break;
+      case 'vencimiento':
+        fullFieldName = 'vencimiento' + suffix;
+        break;
+      case 'obs':
+        fullFieldName = 'obs' + suffix;
+        break;
+      default:
+        fullFieldName = fieldName + suffix;
+        break;
+    }
+    
+    this[fullFieldName] = value;
   }
 }
 
@@ -318,8 +383,9 @@ export class PedidoItemInput {
   cancelado: boolean;
   verificadoRecepcionNota: boolean;
   verificadoRecepcionProducto: boolean;
-  motivoRechazoRecepcionNota: string
-  motivoRechazoRecepcionProducto: string
+  motivoRechazoRecepcionNota: string;
+  motivoRechazoRecepcionProducto: string;
+  observacionesRecepcionNota: string;
 }
 
 export enum PedidoItemMotivoModificacion {

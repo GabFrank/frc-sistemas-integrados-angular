@@ -1,7 +1,6 @@
 import { Component, Inject, OnInit, Input, Output, EventEmitter, Optional } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 import { PedidoItem, MotivoRechazoRecepcionNota, MotivoHelper } from '../../../edit-pedido/pedido-item.model';
 import { PedidoService } from '../../../pedido.service';
@@ -17,14 +16,12 @@ export interface ItemStatusDialogResult {
   pedidoItem?: PedidoItem;
 }
 
-@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-item-status-dialog',
   templateUrl: './item-status-dialog.component.html',
   styleUrls: ['./item-status-dialog.component.scss']
 })
 export class ItemStatusDialogComponent implements OnInit {
-
   // Embedded mode inputs
   @Input() isEmbedded: boolean = false;
   @Input() embeddedPedidoItem: PedidoItem | null = null;
@@ -34,29 +31,25 @@ export class ItemStatusDialogComponent implements OnInit {
   @Output() embeddedSaved = new EventEmitter<ItemStatusDialogResult>();
   @Output() embeddedCancelled = new EventEmitter<void>();
 
-  // Form group - only for rejection management
+  // Form group
   statusForm = new FormGroup({
-    motivoRechazo: new FormControl([]),
-    isRejected: new FormControl(false)
+    motivoRechazo: new FormControl([], [Validators.required]),
+    isRejected: new FormControl(false),
+    observaciones: new FormControl('', [Validators.maxLength(500)])
   });
 
-  // Available motivos for rejection only
+  // Available motivos for rejection
   motivosRechazo = Object.values(MotivoRechazoRecepcionNota);
+  motivoLabels = MotivoHelper.getMotivoRechazoLabels();
 
-  // Labels for display
-  motivoRechazoLabels = MotivoHelper.getMotivoRechazoLabels();
-
-  // Processing state
+  // UI State
   isProcessing = false;
-
-  // Properties for template (instead of getters for performance)
-  currentPedidoItemForTemplate: PedidoItem | null = null;
-  currentIsReadOnlyForTemplate: boolean = false;
-  showDialogHeader: boolean = true;
-  canSave: boolean = false;
-  dialogTitle: string = '';
-  productDescription: string = '';
-  isCurrentlyRejected: boolean = false;
+  showDialogHeader = true;
+  dialogTitle = '';
+  productDescription = '';
+  isCurrentlyRejected = false;
+  currentPedidoItem: PedidoItem | null = null;
+  currentIsReadOnly = false;
 
   constructor(
     @Optional() public dialogRef: MatDialogRef<ItemStatusDialogComponent>,
@@ -66,93 +59,99 @@ export class ItemStatusDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.updateTemplateProperties();
-    this.loadCurrentStatus();
+    this.initializeComponent();
     this.setupFormSubscriptions();
   }
 
-  private updateTemplateProperties(): void {
-    const itemData = this.getCurrentPedidoItem();
-    if (itemData) {
-      // Convert plain object to PedidoItem instance if needed
-      if (itemData instanceof PedidoItem) {
-        this.currentPedidoItemForTemplate = itemData;
-      } else {
-        const pedidoItem = new PedidoItem();
-        Object.assign(pedidoItem, itemData);
-        this.currentPedidoItemForTemplate = pedidoItem;
-      }
-    } else {
-      this.currentPedidoItemForTemplate = null;
+  get isRejected(): boolean {
+    return this.statusForm.get('isRejected')?.value || false;
+  }
+
+  get canSave(): boolean {
+    if (this.isProcessing || this.currentIsReadOnly || !this.statusForm.valid) {
+      return false;
     }
+
+    const isRejected = this.isRejected;
+    const hasMotivos = this.statusForm.get('motivoRechazo')?.value?.length > 0;
     
-    this.currentIsReadOnlyForTemplate = this.getCurrentIsReadOnly();
-    
-    // Update all other template properties
+    return !isRejected || (isRejected && hasMotivos);
+  }
+
+  private initializeComponent(): void {
+    // Initialize UI state
     this.showDialogHeader = !this.isEmbedded;
-    this.canSave = !this.isProcessing && !this.currentIsReadOnlyForTemplate && this.statusForm.valid;
-    this.dialogTitle = this.currentIsReadOnlyForTemplate 
+    this.currentIsReadOnly = this.getCurrentIsReadOnly();
+    this.currentPedidoItem = this.getCurrentPedidoItem();
+    
+    // Set dialog title
+    this.dialogTitle = this.currentIsReadOnly 
       ? 'Ver Estado de Rechazo'
       : 'Gestionar Rechazo del Item';
-    
-    const item = this.currentPedidoItemForTemplate;
-    this.productDescription = item 
-      ? `${item.producto?.descripcion || 'Producto'} - ${item.presentacionRecepcionNota?.cantidad || item.presentacionCreacion?.cantidad || 1}`
-      : 'Producto';
-    
-    this.isCurrentlyRejected = item 
-      ? !!(item.motivoRechazoRecepcionNota && item.motivoRechazoRecepcionNota.trim())
-      : false;
+
+    // Set product description
+    const item = this.currentPedidoItem;
+    if (item) {
+      this.productDescription = `${item.producto?.descripcion || 'Producto'} - ${item.presentacionRecepcionNota?.cantidad || item.presentacionCreacion?.cantidad || 1}`;
+      this.isCurrentlyRejected = !!(item.motivoRechazoRecepcionNota && item.motivoRechazoRecepcionNota.trim());
+    }
+
+    // Load current status
+    this.loadCurrentStatus();
   }
 
   private loadCurrentStatus(): void {
-    const itemData = this.getCurrentPedidoItem();
-    if (!itemData) return;
-    
-    // Convert plain object to PedidoItem instance if needed
-    let item: PedidoItem;
-    if (itemData instanceof PedidoItem) {
-      item = itemData;
-    } else {
-      item = new PedidoItem();
-      Object.assign(item, itemData);
-    }
-    
-    // Load existing rejection motivos
+    const item = this.currentPedidoItem;
+    if (!item) return;
+
     const existingMotivoRechazo = MotivoHelper.separateMotivos(item.motivoRechazoRecepcionNota || '');
     const hasRechazo = existingMotivoRechazo.length > 0;
 
     this.statusForm.patchValue({
       motivoRechazo: existingMotivoRechazo,
-      isRejected: hasRechazo
+      isRejected: hasRechazo,
+      observaciones: item.observacionesRecepcionNota || ''
     });
 
-    // Disable form if read-only
-    if (this.getCurrentIsReadOnly()) {
+    if (this.currentIsReadOnly) {
       this.statusForm.disable();
     }
   }
 
   private setupFormSubscriptions(): void {
-    // Clear rejection motivos when isRejected is false
-    this.statusForm.get('isRejected')?.valueChanges
-      .pipe(untilDestroyed(this))
-      .subscribe(isRejected => {
-        if (!isRejected) {
-          this.statusForm.get('motivoRechazo')?.setValue([]);
-        }
-      });
+    // Handle isRejected changes
+    this.statusForm.get('isRejected')?.valueChanges.subscribe(isRejected => {
+      if (!isRejected) {
+        this.statusForm.get('motivoRechazo')?.setValue([]);
+        this.statusForm.get('observaciones')?.setValue('');
+      }
+      this.updateFormState();
+    });
+  }
 
-    // Update template properties when form validity changes
-    this.statusForm.statusChanges
-      .pipe(untilDestroyed(this))
-      .subscribe(() => {
-        this.updateTemplateProperties();
-      });
+  private updateFormState(): void {
+    const isRejected = this.isRejected;
+    
+    // Update form validation
+    if (isRejected) {
+      this.statusForm.get('motivoRechazo')?.enable();
+      this.statusForm.get('observaciones')?.enable();
+    } else {
+      this.statusForm.get('motivoRechazo')?.disable();
+      this.statusForm.get('observaciones')?.disable();
+    }
+  }
+
+  onCancel(): void {
+    if (this.isEmbedded) {
+      this.embeddedCancelled.emit();
+    } else {
+      this.dialogRef?.close({ updated: false } as ItemStatusDialogResult);
+    }
   }
 
   onSave(): void {
-    if (this.statusForm.invalid || this.isProcessing) {
+    if (!this.canSave || this.isProcessing) {
       return;
     }
 
@@ -165,73 +164,53 @@ export class ItemStatusDialogComponent implements OnInit {
     }
 
     this.isProcessing = true;
-    // Update template properties when processing state changes
-    this.updateTemplateProperties();
 
     // Create updated pedido item
-    const currentItem = this.getCurrentPedidoItem();
+    const currentItem = this.currentPedidoItem;
     if (!currentItem) return;
 
     const updatedItem = new PedidoItem();
     Object.assign(updatedItem, currentItem);
 
-    // Update only the rejection field
+    // Update rejection fields
     updatedItem.motivoRechazoRecepcionNota = formValue.isRejected && formValue.motivoRechazo?.length > 0
       ? MotivoHelper.combineMotivos(formValue.motivoRechazo) 
       : '';
+    updatedItem.observacionesRecepcionNota = formValue.isRejected ? (formValue.observaciones || '').toUpperCase() : '';
 
     // Save the updated item
-    this.pedidoService.onSaveItem(updatedItem.toInput())
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (response) => {
-          this.isProcessing = false;
-          // Update template properties when processing state changes
-          this.updateTemplateProperties();
-          
-          const message = formValue.isRejected 
-            ? 'Item marcado como rechazado exitosamente'
-            : 'Rechazo del item removido exitosamente';
-          this.notificacionService.openSucess(message);
-          
-          const result: ItemStatusDialogResult = { 
-            updated: true, 
-            pedidoItem: response 
-          };
+    this.pedidoService.onSaveItem(updatedItem.toInput()).subscribe({
+      next: (response) => {
+        this.isProcessing = false;
+        
+        const message = formValue.isRejected 
+          ? 'Item marcado como rechazado exitosamente'
+          : 'Rechazo del item removido exitosamente';
+        this.notificacionService.openSucess(message);
+        
+        const result: ItemStatusDialogResult = { 
+          updated: true, 
+          pedidoItem: response 
+        };
 
-          if (this.isEmbedded) {
-            this.embeddedSaved.emit(result);
-          } else {
-            this.dialogRef?.close(result);
-          }
-        },
-        error: () => {
-          this.isProcessing = false;
-          // Update template properties when processing state changes
-          this.updateTemplateProperties();
-          this.notificacionService.openWarn('Error al actualizar estado del item');
+        if (this.isEmbedded) {
+          this.embeddedSaved.emit(result);
+        } else {
+          this.dialogRef?.close(result);
         }
-      });
+      },
+      error: () => {
+        this.isProcessing = false;
+        this.notificacionService.openWarn('Error al actualizar estado del item');
+      }
+    });
   }
 
-  onCancel(): void {
-    if (this.isEmbedded) {
-      this.embeddedCancelled.emit();
-    } else {
-      this.dialogRef?.close({ updated: false } as ItemStatusDialogResult);
-    }
-  }
-
-  // Helper methods to get current values from either embedded or dialog data
   private getCurrentPedidoItem(): PedidoItem | null {
     return this.isEmbedded ? this.embeddedPedidoItem : this.data?.pedidoItem || null;
   }
 
   private getCurrentIsReadOnly(): boolean {
     return this.isEmbedded ? this.embeddedIsReadOnly : this.data?.isReadOnly || false;
-  }
-
-  getMotivoLabel(motivo: string): string {
-    return MotivoHelper.getMotivoLabel(motivo, true);
   }
 } 

@@ -3,6 +3,7 @@ import { FormControl, Validators } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { MatSelect } from "@angular/material/select";
 import { PedidoItem, PedidoStep } from "../../edit-pedido/pedido-item.model";
+import { PedidoEstado } from "../../edit-pedido/pedido-enums";
 import { Sucursal } from "../../../../empresarial/sucursal/sucursal.model";
 import { SucursalService } from "../../../../empresarial/sucursal/sucursal.service";
 import { MovimientoStockService } from "../../../movimiento-stock/movimiento-stock.service";
@@ -177,9 +178,12 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
       // Determine current step from pedido estado
       this.currentStepComputed = this.pedidoService.getCurrentStepFromPedidoEstado(this.selectedPedidoItem.pedido?.estado);
       
-      // Get step-specific values using helper methods
-      this.presentacionComputed = this.selectedPedidoItem.getFieldValueForStep('presentacion', this.currentStepComputed);
-      this.cantidadComputed = this.selectedPedidoItem.getFieldValueForStep('cantidad', this.currentStepComputed);
+      // Get estado-specific values using helper methods
+      this.presentacionComputed = this.selectedPedidoItem.getFieldValueForEstado('presentacion', this.selectedPedidoItem.pedido?.estado);
+      this.cantidadComputed = this.selectedPedidoItem.getFieldValueForEstado('cantidad', this.selectedPedidoItem.pedido?.estado);
+
+      console.log('presentacionComputed', this.presentacionComputed);
+      console.log('cantidadComputed', this.cantidadComputed);
       
       // Recalculate cantAgregada to ensure UI shows correct values
       if (this.cantidadControls && this.cantidadControls.length > 0) {
@@ -435,8 +439,10 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
   }
 
   calcularCantAdicionada() {
+    console.log('cantidadControls', this.cantidadControls);
     this.cantAgregada = this.cantidadControls.reduce((total, control) => 
       total + (control.value || 0), 0);
+    console.log('cantAgregada', this.cantAgregada);
   }
 
   onAddSucursal() {
@@ -598,13 +604,13 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
   }
 
   private updatePedidoItemQuantityAndSave(newQuantity: number): void {
-    // Update the quantity in the pedido item using step-specific fields
-    this.selectedPedidoItem.setFieldValueForStep('cantidad', newQuantity, this.currentStepComputed);
+    // Update the quantity in the pedido item using estado-specific fields
+    this.selectedPedidoItem.setFieldValueForEstado('cantidad', newQuantity, this.selectedPedidoItem.pedido?.estado);
     
     // Also update valorTotal if needed
     const cantidadPresentacion = this.currentPresentacion?.cantidad || 1;
-    const precioUnitario = this.selectedPedidoItem.getFieldValueForStep('precioUnitario', this.currentStepComputed) || 0;
-    const descuentoUnitario = this.selectedPedidoItem.getFieldValueForStep('descuentoUnitario', this.currentStepComputed) || 0;
+    const precioUnitario = this.selectedPedidoItem.getFieldValueForEstado('precioUnitario', this.selectedPedidoItem.pedido?.estado) || 0;
+    const descuentoUnitario = this.selectedPedidoItem.getFieldValueForEstado('descuentoUnitario', this.selectedPedidoItem.pedido?.estado) || 0;
     
     // Calculate new total value
     const newValorTotal = (newQuantity * cantidadPresentacion) * (precioUnitario - descuentoUnitario);
