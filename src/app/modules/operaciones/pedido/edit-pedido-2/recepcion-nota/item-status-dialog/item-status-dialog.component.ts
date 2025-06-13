@@ -14,6 +14,9 @@ export interface ItemStatusDialogData {
 export interface ItemStatusDialogResult {
   updated: boolean;
   pedidoItem?: PedidoItem;
+  motivoRechazoRecepcionNota?: string;
+  obsRecepcionNota?: string;
+  cancelado?: boolean;
 }
 
 @Component({
@@ -110,7 +113,7 @@ export class ItemStatusDialogComponent implements OnInit {
     this.statusForm.patchValue({
       motivoRechazo: existingMotivoRechazo,
       isRejected: hasRechazo,
-      observaciones: item.observacionesRecepcionNota || ''
+      observaciones: item.obsRecepcionNota || ''
     });
 
     if (this.currentIsReadOnly) {
@@ -176,7 +179,10 @@ export class ItemStatusDialogComponent implements OnInit {
     updatedItem.motivoRechazoRecepcionNota = formValue.isRejected && formValue.motivoRechazo?.length > 0
       ? MotivoHelper.combineMotivos(formValue.motivoRechazo) 
       : '';
-    updatedItem.observacionesRecepcionNota = formValue.isRejected ? (formValue.observaciones || '').toUpperCase() : '';
+    updatedItem.obsRecepcionNota = formValue.isRejected ? (formValue.observaciones || '').toUpperCase() : '';
+    
+    // Set cancelado = true when item is rejected
+    updatedItem.cancelado = formValue.isRejected;
 
     // Save the updated item
     this.pedidoService.onSaveItem(updatedItem.toInput()).subscribe({
@@ -184,13 +190,16 @@ export class ItemStatusDialogComponent implements OnInit {
         this.isProcessing = false;
         
         const message = formValue.isRejected 
-          ? 'Item marcado como rechazado exitosamente'
+          ? 'Item marcado como rechazado y cancelado exitosamente'
           : 'Rechazo del item removido exitosamente';
         this.notificacionService.openSucess(message);
         
         const result: ItemStatusDialogResult = { 
           updated: true, 
-          pedidoItem: response 
+          pedidoItem: response,
+          motivoRechazoRecepcionNota: response.motivoRechazoRecepcionNota,
+          obsRecepcionNota: response.obsRecepcionNota,
+          cancelado: response.cancelado
         };
 
         if (this.isEmbedded) {

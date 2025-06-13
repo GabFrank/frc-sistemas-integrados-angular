@@ -6,7 +6,7 @@ import { MatDialog } from "@angular/material/dialog";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { MainService } from "../../../../main.service";
 import { PedidoService } from "../pedido.service";
-import { Pedido } from "../edit-pedido/pedido.model";
+import { Pedido, PedidoSummary } from "../edit-pedido/pedido.model";
 import { PedidoEstado } from "../edit-pedido/pedido-enums";
 import { PedidoItem, PedidoStep } from "../edit-pedido/pedido-item.model";
 import { Proveedor } from "../../../personas/proveedor/proveedor.model";
@@ -14,7 +14,7 @@ import { Vendedor } from "../../../personas/vendedor/vendedor.model";
 import { FormaPago } from "../../../financiero/forma-pago/forma-pago.model";
 import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
-import { AddProductDialogComponent, AddProductDialogData } from "./detalles-del-pedido/add-product-dialog/add-product-dialog.component";
+import { AddProductDialogComponent, AddProductDialogData, AddProductDialogResult } from "./detalles-del-pedido/add-product-dialog/add-product-dialog.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -75,6 +75,13 @@ export class EditPedido2Component implements OnInit {
   canGoToRecepcionNota = false;
   canAgregarProducto = false;
 
+  // Computed summary properties for header display (excluding cancelled items)
+  computedTotalSinDescuento = 0;
+  computedDescuentoTotal = 0;
+  computedTotalConDescuento = 0;
+  computedCantidadItems = 0;
+  computedCantidadItemsCancelados = 0;
+
   // Dummy step control for simple steps
   dummyStepControl = new FormControl();
 
@@ -97,6 +104,34 @@ export class EditPedido2Component implements OnInit {
           this.updateStepAccessibility();
           this.updateEstadoColor();
           this.updateButtonStates();
+          
+          // Update summary with a small delay to ensure backend changes are reflected
+          setTimeout(() => {
+            this.updatePedidoSummary();
+          }, 100);
+          
+          // Update step states after pedido is set and give Angular time to update
+          setTimeout(() => {
+            this.updateStepStates();
+          }, 100);
+        });
+    }
+  }
+
+  loadPedidoDataFresh(): void {
+    if (this.data?.tabData?.id) {
+      this.pedidoService
+        .onGetPedidoInfoCompletaFresh(this.data.tabData.id)
+        .subscribe((pedido) => {
+          this.selectedPedido = pedido;
+          this.updateStepAccessibility();
+          this.updateEstadoColor();
+          this.updateButtonStates();
+          
+          // Update summary with a small delay to ensure backend changes are reflected
+          setTimeout(() => {
+            this.updatePedidoSummary();
+          }, 100);
           
           // Update step states after pedido is set and give Angular time to update
           setTimeout(() => {
@@ -269,15 +304,53 @@ export class EditPedido2Component implements OnInit {
       disableClose: true
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result?.added || result?.updated) {
-        // Refresh pedido data after item is added/updated
-        this.loadPedidoData();
+    dialogRef.afterClosed().subscribe((result: AddProductDialogResult | undefined) => {
+      // Handle the new comprehensive result structure
+      if (result && !result.cancelled && result.needsUIRefresh) {
+        // Check if changes affect totals and need fresh data
+        const needsFreshData = result.productConfigurationChanged || 
+                              result.rejectionStatusChanged || 
+                              result.itemCancellationChanged ||
+                              result.added ||
+                              result.updated;
         
-        // Show appropriate message based on step
-        const action = result.added ? 'agregado' : 'actualizado';
-        const stepName = this.getStepDisplayName(result.step);
-        console.log(`Item ${action} en paso: ${stepName}`);
+        if (needsFreshData) {
+          // Use fresh data fetch for changes that affect totals
+          console.log('Changes detected that affect totals - using fresh data fetch');
+          this.loadPedidoDataFresh();
+        } else {
+          // Use regular data fetch for other changes
+          this.loadPedidoData();
+        }
+        
+        // Show appropriate message based on what changed
+        if (result.added) {
+          const stepName = this.getStepDisplayName(result.step!);
+          console.log(`Item agregado en paso: ${stepName}`);
+        }
+        
+        if (result.updated) {
+          const stepName = this.getStepDisplayName(result.step!);
+          console.log(`Item actualizado en paso: ${stepName}`);
+        }
+        
+        if (result.productConfigurationChanged) {
+          console.log('Product configuration was changed');
+        }
+        
+        if (result.sucursalDistributionChanged) {
+          console.log('Sucursal distribution was changed');
+        }
+        
+        if (result.rejectionStatusChanged) {
+          console.log('Rejection status was changed');
+        }
+        
+        if (result.itemCancellationChanged) {
+          console.log('Item cancellation status was changed - totals will be refreshed');
+        }
+      } else if (result?.cancelled) {
+        console.log('Dialog was cancelled');
       }
     });
   }
@@ -316,6 +389,7 @@ export class EditPedido2Component implements OnInit {
           this.updateStepAccessibility();
           this.updateEstadoColor();
           this.updateButtonStates();
+          this.updatePedidoSummary(); // Refresh summary after estado change
           
           // Move to step 2 (Recepcion de nota)
           this.goToStep(2);
@@ -332,6 +406,7 @@ export class EditPedido2Component implements OnInit {
   onPedidoChange(updatedPedido: Pedido): void {
     this.selectedPedido = updatedPedido;
     this.updateButtonStates();
+    this.updatePedidoSummary(); // Refresh summary when pedido changes
   }
 
   onStep1FormValidChange(isValid: boolean): void {
@@ -343,5 +418,52 @@ export class EditPedido2Component implements OnInit {
   onStep2FormValidChange(isValid: boolean): void {
     this.canAccessStep2 = isValid;
     this.stepsConfig[1].completed = isValid;
+  }
+
+  /**
+   * Centralized method to update pedido summary calculations
+   * Uses backend service to get accurate totals based on pedido estado
+   */
+  updatePedidoSummary(): void {
+    if (!this.selectedPedido?.id) {
+      // Reset to zero if no pedido
+      this.computedTotalSinDescuento = 0;
+      this.computedDescuentoTotal = 0;
+      this.computedTotalConDescuento = 0;
+      this.computedCantidadItems = 0;
+      this.computedCantidadItemsCancelados = 0;
+      return;
+    }
+
+    // Use backend service to get accurate summary
+    this.pedidoService.onGetPedidoSummary(this.selectedPedido.id)
+      .pipe(untilDestroyed(this))
+      .subscribe(
+        (summary) => {
+          this.computedTotalSinDescuento = summary.totalSinDescuento || 0;
+          this.computedDescuentoTotal = summary.totalDescuento || 0;
+          this.computedTotalConDescuento = summary.totalConDescuento || 0;
+          this.computedCantidadItems = summary.activeItems || 0;
+          this.computedCantidadItemsCancelados = summary.cancelledItems || 0;
+
+          console.log('Pedido Summary Updated from Backend:', {
+            totalSinDescuento: this.computedTotalSinDescuento,
+            descuentoTotal: this.computedDescuentoTotal,
+            totalConDescuento: this.computedTotalConDescuento,
+            cantidadItems: this.computedCantidadItems,
+            cantidadItemsCancelados: this.computedCantidadItemsCancelados,
+            estado: summary.estado
+          });
+        },
+        (error) => {
+          console.error('Error loading pedido summary:', error);
+          // Fallback to zero values on error
+          this.computedTotalSinDescuento = 0;
+          this.computedDescuentoTotal = 0;
+          this.computedTotalConDescuento = 0;
+          this.computedCantidadItems = 0;
+          this.computedCantidadItemsCancelados = 0;
+        }
+      );
   }
 }

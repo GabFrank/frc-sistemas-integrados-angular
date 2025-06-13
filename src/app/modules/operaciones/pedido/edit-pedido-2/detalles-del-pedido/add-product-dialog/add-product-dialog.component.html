@@ -1,11 +1,20 @@
 <div class="main-container">
   <div class="header-section">
-    <div style="font-size: 1.8rem; font-weight: 500">
-      {{
-        data.isEditing
-          ? "Editar Producto del Pedido"
-          : "Agregar Producto al Pedido"
-      }}
+    <div class="header-title-row">
+      <div style="font-size: 1.8rem; font-weight: 500">
+        {{
+          data.isEditing
+            ? "Editar Producto del Pedido"
+            : "Agregar Producto al Pedido"
+        }}
+      </div>
+      <!-- Canceled chip -->
+      <mat-chip-set *ngIf="isItemCanceled" class="status-chips">
+        <mat-chip class="canceled-chip">
+          <mat-icon matChipAvatar>cancel</mat-icon>
+          CANCELADO
+        </mat-chip>
+      </mat-chip-set>
     </div>
     <span class="provider-info">
       <span class="titulo-color">Proveedor:</span>
@@ -470,9 +479,28 @@
               <!-- Total Preview -->
               <div
                 class="total-preview"
-                *ngIf="totalPreview > 0 || totalDescuento > 0"
+                *ngIf="totalPreview > 0 || totalDescuento > 0 || showPriceWarning"
               >
                 <div class="totals-container">
+                  <!-- Dialog Actions -->
+                <!-- Price validation message on the left -->
+                <div class="price-validation-container">
+                  <div
+                    class="price-validation-message"
+                    *ngIf="showPriceWarning"
+                    [ngClass]="{
+                      'price-higher': priceChangeType === 'higher',
+                      'price-lower': priceChangeType === 'lower'
+                    }"
+                  >
+                    <mat-icon class="warning-icon">{{
+                      priceChangeType === "higher"
+                        ? "trending_up"
+                        : "trending_down"
+                    }}</mat-icon>
+                    {{ priceChangeMessage }}
+                  </div>
+                </div>
                   <!-- Descuento Total Row -->
                   <div
                     class="total-row discount-total"
@@ -510,7 +538,7 @@
 
           <!-- Buttons on the right -->
           <div class="dialog-buttons">
-            <button mat-button (click)="onCancel()" class="cancel-btn">
+            <button mat-button (click)="closeDialog()" class="cancel-btn">
               <mat-icon>close</mat-icon>
               Salir
             </button>
@@ -893,21 +921,23 @@
           <div class="sucursal-distribution-main" *ngIf="selectedProducto">
             <!-- Embedded PedidoItemSucursalDialogComponent -->
             <app-pedido-item-sucursal-dialog
-              style="height: 100%;"
+              style="height: 100%"
               [isEmbedded]="true"
               [(embeddedPedidoItem)]="currentPedidoItemForEmbedded"
               [embeddedAutoSet]="false"
               (embeddedSaved)="onSucursalDistributionSaved($event)"
-              (embeddedCancelled)="onSucursalDistributionCancelled()">
+              (embeddedCancelled)="onSucursalDistributionCancelled()"
+            >
             </app-pedido-item-sucursal-dialog>
           </div>
-          
+
           <!-- No product selected message -->
           <div *ngIf="!selectedProducto" class="no-product-selected">
             <h3 class="titulo-center">Distribución por Sucursales</h3>
             <mat-icon>store</mat-icon>
             <p class="titulo-center">
-              Seleccione un producto primero para configurar la distribución por sucursales
+              Seleccione un producto primero para configurar la distribución por
+              sucursales
             </p>
           </div>
         </div>
@@ -919,18 +949,22 @@
 
         <div class="tab-content">
           <!-- Rejection management content will be embedded here -->
-          <div class="rejection-management-container" *ngIf="selectedProducto && data.isEditing">
+          <div
+            class="rejection-management-container"
+            *ngIf="selectedProducto && data.isEditing"
+          >
             <!-- Embedded ItemStatusDialogComponent -->
             <app-item-status-dialog
-              style="height: 100%; width: 100%;"
+              style="height: 100%; width: 100%"
               [isEmbedded]="true"
               [embeddedPedidoItem]="currentPedidoItemForEmbedded"
               [embeddedIsReadOnly]="false"
               (embeddedSaved)="onRejectionStatusSaved($event)"
-              (embeddedCancelled)="onRejectionStatusCancelled()">
+              (embeddedCancelled)="onRejectionStatusCancelled()"
+            >
             </app-item-status-dialog>
           </div>
-          
+
           <!-- No editing mode message -->
           <div *ngIf="!data.isEditing" class="no-editing-message">
             <h3 class="titulo-center">Gestión de Rechazos</h3>
@@ -939,7 +973,7 @@
               La gestión de rechazos solo está disponible en modo edición
             </p>
           </div>
-          
+
           <!-- No product selected message -->
           <div *ngIf="!selectedProducto" class="no-product-selected">
             <h3 class="titulo-center">Gestión de Rechazos</h3>
@@ -951,25 +985,5 @@
         </div>
       </mat-tab>
     </mat-tab-group>
-  </div>
-
-  <!-- Dialog Actions -->
-  <div class="dialog-actions">
-    <!-- Price validation message on the left -->
-    <div class="price-validation-container">
-      <div
-        class="price-validation-message"
-        *ngIf="showPriceWarning"
-        [ngClass]="{
-          'price-higher': priceChangeType === 'higher',
-          'price-lower': priceChangeType === 'lower'
-        }"
-      >
-        <mat-icon class="warning-icon">{{
-          priceChangeType === "higher" ? "trending_up" : "trending_down"
-        }}</mat-icon>
-        {{ priceChangeMessage }}
-      </div>
-    </div>
   </div>
 </div>

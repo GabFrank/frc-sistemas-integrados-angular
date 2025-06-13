@@ -84,5 +84,16 @@ export interface PedidoRecepcionNotaSummary {
   totalItems: number;
   assignedItems: number;
   pendingItems: number;
+  cancelledItems: number;
   totalNotas: number;
+}
+
+export interface PedidoSummary {
+  totalItems: number;
+  cancelledItems: number;
+  activeItems: number;
+  totalSinDescuento: number;
+  totalDescuento: number;
+  totalConDescuento: number;
+  estado: PedidoEstado;
 }

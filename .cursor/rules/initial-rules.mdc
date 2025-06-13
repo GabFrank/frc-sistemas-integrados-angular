@@ -8,21 +8,21 @@ alwaysApply: true
 - **Cross-Project Problem Solving**: When encountering issues that span both frontend and backend (such as GraphQL schema mismatches, entity relationship problems, API inconsistencies, etc.), the agent should analyze and fix problems on both sides as needed, always informing the user of all changes made.
 
 For Angular Material
-- Our navigation is tab based and we use [tab.service.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/layouts/tab/tab.service.ts)
-- all crud operations for apollo on .service file must be done using [generic-crud.service.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/generics/generic-crud.service.ts)
-- Never use functions directly on html, this can cause angular bad performance
+- Our navigation is tab based and we use [tab.service.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/layouts/tab/tab.service.ts)
+- all crud operations for apollo on .service file must be done using [generic-crud.service.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/generics/generic-crud.service.ts)
+- Never use functions directly on html, this can cause angular bad performance, also never use getters or setters on html, has the same problem
 - always save string as uppercase, unless user explicitly indicate another way
 - always edit .ts and .js, example, main.ts and main.js (if exist), preload.ts and preload.js (if exists)
 - Do not create a agnular module for new components if i explicitly not ask to do, instead use the nearest module on path
-- for snackbar messages use [notificacion-snackbar.service.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/notificacion-snackbar.service.ts)
-- for dialogs use [dialogos.service.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/shared/components/dialogos/dialogos.service.ts)
+- for snackbar messages use [notificacion-snackbar.service.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/notificacion-snackbar.service.ts)
+- for dialogs use [dialogos.service.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/shared/components/dialogos/dialogos.service.ts)
 - never use white or light background color becouse our app is in always dark mode 
 - always center the text on tables, unless user explicitly ask to do other way
 - for graphql input clases, always use string for date fields, and on toInput() function convert date to string using dateToString 
-method from [dateUtils.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/commons/core/utils/dateUtils.ts)
+method from [dateUtils.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/commons/core/utils/dateUtils.ts)
 - do not use container class on components, becouse it is a defined class in Bootstraps and you will get a not desired result
 - on filters, do not filter on form control value changes, unless user explicitly ask
-- for graphql querys, we have a graphql file for each model, example: [graphql-query.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/modules/operaciones/pago/graphql/graphql-query.ts), and for each query and mutation there is a apollo service class, example: [getPagoDetalle.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/modules/operaciones/pago/pago-detalle/graphql/getPagoDetalle.ts)
+- for graphql querys, we have a graphql file for each model, example: [graphql-query.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/modules/operaciones/pago/graphql/graphql-query.ts), and for each query and mutation there is a apollo service class, example: [getPagoDetalle.ts](mdc:frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/frc-sistemas-informaticos/src/app/modules/operaciones/pago/pago-detalle/graphql/getPagoDetalle.ts)
 - pagination on graphql has this format:
 getTotalPages
       getTotalElements

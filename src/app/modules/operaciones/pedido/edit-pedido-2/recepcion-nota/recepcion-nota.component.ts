@@ -21,7 +21,7 @@ import { DialogosService } from '../../../../../shared/components/dialogos/dialo
 import { CrearNotaRecepcionDialogComponent } from './crear-nota-recepcion-dialog/crear-nota-recepcion-dialog.component';
 import { ManageNotaItemsDialogComponent } from './manage-nota-items-dialog/manage-nota-items-dialog.component';
 import { DividirItemDialogComponent } from '../../dividir-item-dialog/dividir-item-dialog.component';
-import { AddProductDialogComponent, AddProductDialogData } from '../detalles-del-pedido/add-product-dialog/add-product-dialog.component';
+import { AddProductDialogComponent, AddProductDialogData, AddProductDialogResult } from '../detalles-del-pedido/add-product-dialog/add-product-dialog.component';
 import { ItemStatusDialogComponent, ItemStatusDialogData } from './item-status-dialog/item-status-dialog.component';
 import { PedidoItemSucursalDialogComponent } from '../../pedido-item-sucursal/pedido-item-sucursal-dialog/pedido-item-sucursal-dialog.component';
 import { dateToString, parseShortDate } from '../../../../../commons/core/utils/dateUtils';
@@ -84,6 +84,7 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
   totalItems = 0;
   assignedItems = 0;
   pendingItems = 0;
+  cancelledItems = 0;
   totalNotas = 0;
 
   // Computed properties for template (to avoid function calls in HTML)
@@ -131,6 +132,7 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
     this.totalItems = 0;
     this.assignedItems = 0;
     this.pendingItems = 0;
+    this.cancelledItems = 0;
     this.totalNotas = 0;
     this.updateComputedProperties();
   }
@@ -233,6 +235,7 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
   private restoreSelections(): void {
     this.itemsSelection.clear();
     this.pedidoItemsDataSource.data.forEach(item => {
+      // Only allow selection of items that are not assigned (cancelled items can be selected)
       if (this.selectedItemIds.has(item.id) && !item.isAssigned) {
         this.itemsSelection.select(item);
       }
@@ -284,6 +287,7 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
             this.totalItems = summary.totalItems;
             this.assignedItems = summary.assignedItems;
             this.pendingItems = summary.pendingItems;
+            this.cancelledItems = summary.cancelledItems || 0; // Add cancelled items from summary
             this.totalNotas = summary.totalNotas;
             
             // Update computed properties
@@ -291,11 +295,13 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
           },
           error: () => {
             console.warn('Could not load pedido recepcion nota summary');
-            // Fallback to previous calculation method if needed
-            this.totalItems = 0;
-            this.assignedItems = 0;
-            this.pendingItems = 0;
-            this.totalNotas = 0;
+            // Fallback to calculating from current data
+            const currentItems = this.pedidoItemsDataSource.data;
+            this.totalItems = currentItems.length;
+            this.assignedItems = currentItems.filter(item => item.isAssigned).length;
+            this.cancelledItems = currentItems.filter(item => item.cancelado).length;
+            this.pendingItems = currentItems.filter(item => !item.isAssigned && !item.cancelado).length;
+            this.totalNotas = this.notasRecepcionDataSource.data.length;
             this.updateComputedProperties();
           }
         });
@@ -306,23 +312,41 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
     // Update moneda symbol
     this.monedaSymbol = this.selectedPedido?.moneda?.simbolo || 'Gs.';
     
-    // Update can create nota - use ID set for more accurate count
-    this.canCreateNotaComputed = this.selectedItemIds.size > 0;
+    // Update can create nota - use ID set for more accurate count (include cancelled items)
+    const availableItems = this.pedidoItemsDataSource.data.filter(item => !item.isAssigned);
+    const availableSelectedIds = Array.from(this.selectedItemIds).filter(id => {
+      const item = availableItems.find(i => i.id === id);
+      return item && !item.isAssigned;
+    });
+    this.canCreateNotaComputed = availableSelectedIds.length > 0;
     
-    // Update can assign items - use ID set for more accurate count
-    this.canAssignItemsComputed = this.selectedItemIds.size > 0 && !!this.selectedNotaRecepcion;
+    // Update can assign items - use ID set for more accurate count (include cancelled items)
+    this.canAssignItemsComputed = availableSelectedIds.length > 0 && !!this.selectedNotaRecepcion;
     
-    // Update all selected state - check both current page items and ID set
+    // Update all selected state - check both current page items and ID set (include cancelled items)
     const unassignedItems = this.pedidoItemsDataSource.data.filter(item => !item.isAssigned);
     const unassignedSelectedCount = unassignedItems.filter(item => this.selectedItemIds.has(item.id)).length;
     this.allSelectedComputed = unassignedItems.length > 0 && unassignedSelectedCount === unassignedItems.length;
     
     // Update items with computed properties
-    this.itemsWithComputedProperties = this.pedidoItemsDataSource.data.map(item => ({
-      ...item,
-      statusClass: item.isAssigned ? 'item-assigned' : 'item-pending',
-      statusText: item.isAssigned ? `Asig. a ${item.notaNumero}` : 'Pendiente'
-    }));
+    this.itemsWithComputedProperties = this.pedidoItemsDataSource.data.map(item => {
+      let statusClass = 'item-pending';
+      let statusText = 'Pendiente';
+      
+      if (item.cancelado) {
+        statusClass = 'item-cancelled';
+        statusText = 'CANCELADO';
+      } else if (item.isAssigned) {
+        statusClass = 'item-assigned';
+        statusText = `Asig. a ${item.notaNumero}`;
+      }
+      
+      return {
+        ...item,
+        statusClass: statusClass,
+        statusText: statusText
+      };
+    });
   }
 
   // Selection methods
@@ -338,7 +362,7 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
       unassignedItems.forEach(item => this.selectedItemIds.delete(item.id));
       this.itemsSelection.clear();
     } else {
-      // Select all unassigned items on current page
+      // Select all unassigned items on current page (including cancelled items)
       unassignedItems.forEach(item => this.selectedItemIds.add(item.id));
       unassignedItems.forEach(item => this.itemsSelection.select(item));
     }
@@ -348,6 +372,7 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
   }
 
   toggleItemSelection(item: PedidoItemWithStatus): void {
+    // Only allow selection of items that are not assigned (cancelled items can be selected)
     if (!item.isAssigned) {
       if (this.selectedItemIds.has(item.id)) {
         // Deselect item
@@ -666,22 +691,53 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
       disableClose: true
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result?.updated) {
-        this.notificacionService.openSucess('Item actualizado en recepción de nota');
+    dialogRef.afterClosed().subscribe((result: AddProductDialogResult | undefined) => {
+      // Handle the new comprehensive result structure
+      if (result && !result.cancelled && result.needsUIRefresh) {
+        // Show appropriate success message based on what changed
+        if (result.updated) {
+          this.notificacionService.openSucess('Item actualizado en recepción de nota');
+        }
         
-        // Reload data to reflect changes
-        this.loadPedidoItems();
-        this.loadNotasRecepcion();
-        this.updateSummary(); // Refresh summary from backend
+        // Handle specific changes with targeted updates
+        if (result.productConfigurationChanged) {
+          console.log('Product configuration was changed - refreshing items and summary');
+          // Product configuration changes affect items display and totals
+          this.loadPedidoItems();
+          this.updateSummary();
+        }
+        
+        if (result.rejectionStatusChanged || result.itemCancellationChanged) {
+          console.log('Rejection/cancellation status was changed - refreshing items and summary');
+          // Rejection/cancellation changes affect items display, summary, and selection state
+          this.loadPedidoItems();
+          this.updateSummary();
+          // Note: Cancelled items can still be selected for assignment to NotaRecepcion
+        }
+        
+        if (result.sucursalDistributionChanged) {
+          console.log('Sucursal distribution was changed - refreshing items only');
+          // Distribution changes only affect items display
+          this.loadPedidoItems();
+        }
+        
+        // If no specific changes detected but item was updated, do minimal refresh
+        if (result.updated && !result.productConfigurationChanged && 
+            !result.rejectionStatusChanged && !result.itemCancellationChanged && 
+            !result.sucursalDistributionChanged) {
+          console.log('Item updated with minimal changes - refreshing items only');
+          this.loadPedidoItems();
+        }
         
         // Check if distribution update is needed (presentacion or cantidad changed)
         if (result.needsDistributionUpdate) {
-          this.openSucursalDistributionDialog(result.pedidoItem);
+          this.openSucursalDistributionDialog(result.pedidoItem!);
         }
         
-        // Emit pedido change to update parent component
+        // Always emit pedido change for parent component updates
         this.pedidoChange.emit(this.selectedPedido);
+      } else if (result?.cancelled) {
+        console.log('Dialog was cancelled - no updates needed');
       }
     });
   }
@@ -745,19 +801,49 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
       disableClose: true
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result?.added) {
-        this.notificacionService.openSucess('Nuevo item agregado en recepción de nota');
+    dialogRef.afterClosed().subscribe((result: AddProductDialogResult | undefined) => {
+      // Handle the new comprehensive result structure
+      if (result && !result.cancelled && result.needsUIRefresh) {
+        // Show appropriate success message based on what changed
+        if (result.added) {
+          this.notificacionService.openSucess('Nuevo item agregado en recepción de nota');
+        }
         
-        // Reload data to reflect changes
+        // New items always require full refresh of items and summary
+        console.log('New item added - refreshing items and summary');
         this.loadPedidoItems();
-        this.loadNotasRecepcion();
-        this.updateSummary(); // Refresh summary from backend
+        this.updateSummary();
         
-        // Emit pedido change to update parent component
+        // Always emit pedido change for parent component updates
         this.pedidoChange.emit(this.selectedPedido);
+      } else if (result?.cancelled) {
+        console.log('Dialog was cancelled - no updates needed');
       }
     });
+  }
+
+  /**
+   * Clear selections for items that have been assigned to a nota recepcion
+   * since assigned items cannot be selected again
+   */
+  private clearSelectionsForAssignedItems(): void {
+    // Get current data to check for assigned items
+    const currentItems = this.pedidoItemsDataSource.data;
+    const assignedItemIds = currentItems
+      .filter(item => item.isAssigned)
+      .map(item => item.id);
+    
+    // Remove assigned items from selections
+    assignedItemIds.forEach(id => {
+      this.selectedItemIds.delete(id);
+      const item = currentItems.find(i => i.id === id);
+      if (item) {
+        this.itemsSelection.deselect(item);
+      }
+    });
+    
+    // Update computed properties after selection changes
+    this.updateComputedProperties();
   }
 
   // Method to open item rejection dialog
@@ -774,8 +860,10 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
 
     const dialogRef = this.dialog.open(ItemStatusDialogComponent, {
       data: dialogData,
-      width: '600px',
-      maxWidth: '90vw',
+      width: '50%',
+      maxWidth: '80%',
+      height: '70%',
+      maxHeight: '90vh',
       disableClose: true
     });
 
@@ -783,10 +871,12 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
       if (result?.updated) {
         this.notificacionService.openSucess('Estado de rechazo actualizado exitosamente');
         
-        // Reload data to reflect changes
+        // Targeted refresh - rejection status changes affect items display and summary
+        console.log('Rejection status updated - refreshing items and summary');
         this.loadPedidoItems();
-        this.loadNotasRecepcion();
-        this.updateSummary(); // Refresh summary from backend
+        this.updateSummary();
+        
+        // Note: Cancelled items can still be selected for assignment to NotaRecepcion
         
         // Emit pedido change to update parent component
         this.pedidoChange.emit(this.selectedPedido);
@@ -810,6 +900,8 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
       data: dialogData,
       width: '600px',
       maxWidth: '90vw',
+      height: '70%',
+      maxHeight: '90vh',
       disableClose: false
     });
   }

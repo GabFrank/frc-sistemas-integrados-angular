@@ -1055,7 +1055,22 @@ export const pedidoRecepcionNotaSummaryQuery = gql`
       totalItems
       assignedItems
       pendingItems
+      cancelledItems
       totalNotas
+    }
+  }
+`;
+
+export const pedidoSummaryQuery = gql`
+  query ($id: ID!) {
+    data: pedidoSummary(id: $id) {
+      totalItems
+      cancelledItems
+      activeItems
+      totalSinDescuento
+      totalDescuento
+      totalConDescuento
+      estado
     }
   }
 `;

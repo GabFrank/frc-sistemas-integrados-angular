@@ -21,6 +21,40 @@
   padding: 10px; /* Reduced padding */
   border-radius: 4px;
   flex: 0 0 auto; /* Don't grow/shrink */
+
+  .header-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .status-chips {
+    display: flex;
+    align-items: center;
+    
+    .canceled-chip {
+      background-color: #f44336 !important;
+      color: white !important;
+      font-weight: 600;
+      font-size: 12px;
+      
+      .mat-icon {
+        color: white !important;
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+
+  .provider-info {
+    margin-top: 8px;
+    font-size: 14px;
+    opacity: 0.9;
+  }
 }
 
 // Tabs container - Takes remaining space

@@ -7,7 +7,7 @@ import {
   NotificacionSnackbarService,
 } from "../../../notificacion-snackbar.service";
 import { PedidoItem, PedidoItemInput, PedidoStep } from "./edit-pedido/pedido-item.model";
-import { Pedido, PedidoInput, PedidoRecepcionNotaSummary } from "./edit-pedido/pedido.model";
+import { Pedido, PedidoInput, PedidoRecepcionNotaSummary, PedidoSummary } from "./edit-pedido/pedido.model";
 import { PedidoInfoCompletaGQL } from "./graphql/pedidoInfoCompleta";
 import { PedidoInfoResumidoGQL } from "./graphql/pedidoInfoResumido";
 import { PedidoItemSobranteGQL } from "./graphql/pedidoItemSobrante";
@@ -34,6 +34,7 @@ import { PedidoItemGQL } from './graphql/pedidoItem';
 import { PedidoItemSucursalListGQL } from './graphql/pedidoItemSucursalList';
 import { VerificarDistribucionSucursalesGQL } from './graphql/verificarDistribucionSucursales';
 import { PedidoRecepcionNotaSummaryGQL } from './graphql/pedidoRecepcionNotaSummary';
+import { PedidoSummaryGQL } from './graphql/pedidoSummary';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -67,10 +68,17 @@ export class PedidoService {
     private pedidoItemSucursalListGQL: PedidoItemSucursalListGQL,
     private verificarDistribucionSucursalesGQL: VerificarDistribucionSucursalesGQL,
     private pedidoRecepcionNotaSummaryGQL: PedidoRecepcionNotaSummaryGQL,
+    private pedidoSummaryGQL: PedidoSummaryGQL,
   ) {}
 
   onGetPedidoInfoCompleta(id): Observable<Pedido> {
     return this.genericService.onGetById(this.getPedidoPorId, id);
+  }
+
+  onGetPedidoInfoCompletaFresh(id): Observable<Pedido> {
+    return this.getPedidoPorId.fetch({ id }, { fetchPolicy: 'no-cache' }).pipe(
+      map((result) => result.data.data)
+    );
   }
 
   onGetPedidoInfoDetalle(id): Observable<Pedido> {
@@ -272,7 +280,15 @@ export class PedidoService {
   }
 
   onGetPedidoRecepcionNotaSummary(id: number): Observable<PedidoRecepcionNotaSummary> {
-    return this.genericService.onGetById(this.pedidoRecepcionNotaSummaryGQL, id);
+    return this.pedidoRecepcionNotaSummaryGQL.fetch({ id }).pipe(
+      map((result) => result.data.data)
+    );
+  }
+
+  onGetPedidoSummary(id: number): Observable<PedidoSummary> {
+    return this.pedidoSummaryGQL.fetch({ id }, { fetchPolicy: 'no-cache' }).pipe(
+      map((result) => result.data.data)
+    );
   }
 
   // Step-aware methods for PedidoItem management

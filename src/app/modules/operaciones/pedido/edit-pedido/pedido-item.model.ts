@@ -69,7 +69,6 @@ export class PedidoItem {
   verificadoRecepcionProducto: boolean;
   motivoRechazoRecepcionNota: string;
   motivoRechazoRecepcionProducto: string;
-  observacionesRecepcionNota: string;
   pedidoItemSucursalList: PedidoItemSucursal[] = [];
   isDistribucionSucursalesCreacion: boolean;
   isDistribucionSucursalesRecepcion: boolean;
@@ -128,7 +127,6 @@ export class PedidoItem {
     input.verificadoRecepcionProducto = this.verificadoRecepcionProducto;
     input.motivoRechazoRecepcionNota = this.motivoRechazoRecepcionNota;
     input.motivoRechazoRecepcionProducto = this.motivoRechazoRecepcionProducto;
-    input.observacionesRecepcionNota = this.observacionesRecepcionNota;
     return input;
   }
 
@@ -385,7 +383,6 @@ export class PedidoItemInput {
   verificadoRecepcionProducto: boolean;
   motivoRechazoRecepcionNota: string;
   motivoRechazoRecepcionProducto: string;
-  observacionesRecepcionNota: string;
 }
 
 export enum PedidoItemMotivoModificacion {

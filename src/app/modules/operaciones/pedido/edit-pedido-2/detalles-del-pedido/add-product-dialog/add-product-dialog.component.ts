@@ -50,6 +50,27 @@ export interface AddProductDialogData {
   currentStep?: PedidoStep; // Current step context
 }
 
+export interface AddProductDialogResult {
+  // Basic operation results
+  added?: boolean;
+  updated?: boolean;
+  cancelled?: boolean;
+  
+  // Change indicators
+  productConfigurationChanged?: boolean;
+  sucursalDistributionChanged?: boolean;
+  rejectionStatusChanged?: boolean;
+  itemCancellationChanged?: boolean;
+  needsDistributionUpdate?: boolean;
+  
+  // UI refresh indicator
+  needsUIRefresh?: boolean;
+  
+  // Data objects
+  pedidoItem?: PedidoItem;
+  step?: PedidoStep;
+}
+
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-add-product-dialog",
@@ -170,6 +191,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   canModifyInCurrentStep = false;
   currentStepDisplayName = '';
   isFormInvalidOrNoProduct = true;
+  isItemCanceled = false;
   
   // Modification tracking
   hasModifications = false;
@@ -183,6 +205,17 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
   // Current PedidoItem for embedded components (property instead of getter)
   private _currentPedidoItemForEmbedded: PedidoItem | null = null;
+
+  // Change tracking for UI refresh decisions
+  private changeTracker = {
+    productConfigurationChanged: false,
+    sucursalDistributionChanged: false,
+    rejectionStatusChanged: false,
+    itemCancellationChanged: false,
+    itemAdded: false,
+    itemUpdated: false,
+    needsDistributionUpdate: false
+  };
 
   get currentPedidoItemForEmbedded(): PedidoItem | null {
     return this._currentPedidoItemForEmbedded;
@@ -244,12 +277,17 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
         this.loadProductosProveedor();
       });
 
-    // Calculate total when form values change
+    // Calculate total when form values change and track modifications
     this.productSelectionFormGroup.valueChanges
       .pipe(untilDestroyed(this))
       .subscribe(() => {
         this.calculateTotalPreview();
         this.updateComputedProperties();
+        
+        // Mark product configuration as changed if form has been touched and we're editing
+        if (this.data.isEditing && this.productSelectionFormGroup.dirty) {
+          this.markProductConfigurationChanged();
+        }
       });
 
     // Handle precio calculations
@@ -603,8 +641,14 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     pedidoItemForSave.usuarioRecepcionProducto = this.mainService.usuarioActual;
     }
 
+    // Mark that product configuration has changed
+    this.markProductConfigurationChanged();
+
     // Check if distribution changes occurred for UI feedback
     const needsDistributionUpdate = this.detectDistributionChanges(formValue);
+    if (needsDistributionUpdate) {
+      this.changeTracker.needsDistributionUpdate = true;
+    }
     
     this.pedidoService
       .onSaveItem(pedidoItemForSave.toInput())
@@ -612,6 +656,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       .subscribe({
         next: (response) => {
           this.notificacionService.openSucess("Item actualizado exitosamente");
+          
+          // Mark that item was updated
+          this.changeTracker.itemUpdated = true;
           
           if (needsDistributionUpdate) {
             // Update the pedido item data with the response
@@ -654,12 +701,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
             }, 100);
           } else {
             // No distribution update needed, close dialog normally
-          this.dialogRef.close({ 
-            updated: true, 
-            pedidoItem: response, 
-            step: this.currentStep,
-              needsDistributionUpdate: false 
-          });
+            this.closeDialog({ 
+              pedidoItem: response
+            });
           }
         },
         error: () => {
@@ -685,6 +729,10 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       (formValue.precioUnitario - (formValue.descuentoUnitario || 0));
     pedidoItem.usuarioCreacion = this.mainService.usuarioActual;
 
+    // Mark that a new item is being added
+    this.changeTracker.itemAdded = true;
+    this.markProductConfigurationChanged();
+
     // Use toInput() directly to avoid transient instance issues
     this.pedidoService
       .onSaveItem(pedidoItem.toInput())
@@ -692,7 +740,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       .subscribe({
         next: (response) => {
           this.notificacionService.openSucess("Producto agregado al pedido");
-          this.dialogRef.close({ added: true, pedidoItem: response, step: this.currentStep });
+          this.closeDialog({ 
+            pedidoItem: response
+          });
         },
         error: () => {
           this.notificacionService.openWarn("Error al agregar producto al pedido");
@@ -769,8 +819,97 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     return this.data.pedido?.moneda?.simbolo || "$";
   }
 
-  onCancel(): void {
-    this.dialogRef.close({ added: false });
+  /**
+   * Centralized dialog close method that handles all situations
+   * and tells the parent component whether it needs to refresh the UI or not
+   */
+  closeDialog(additionalData: Partial<AddProductDialogResult> = {}): void {
+    // Determine if UI refresh is needed based on change tracker
+    const needsUIRefresh = this.shouldRefreshUI();
+    
+    // Determine if this is a cancellation:
+    // - If additionalData explicitly sets cancelled, use that
+    // - Otherwise, it's a cancellation only if no modifications were made
+    const isCancelled = additionalData.cancelled !== undefined 
+      ? additionalData.cancelled 
+      : !needsUIRefresh;
+    
+    // Create comprehensive result object
+    const dialogResult: AddProductDialogResult = {
+      // Basic operation results
+      added: this.changeTracker.itemAdded,
+      updated: this.changeTracker.itemUpdated,
+      cancelled: isCancelled,
+      
+      // Change indicators
+      productConfigurationChanged: this.changeTracker.productConfigurationChanged,
+      sucursalDistributionChanged: this.changeTracker.sucursalDistributionChanged,
+      rejectionStatusChanged: this.changeTracker.rejectionStatusChanged,
+      itemCancellationChanged: this.changeTracker.itemCancellationChanged,
+      needsDistributionUpdate: this.changeTracker.needsDistributionUpdate,
+      
+      // UI refresh indicator
+      needsUIRefresh: needsUIRefresh,
+      
+      // Data objects
+      pedidoItem: this.data.pedidoItem || additionalData.pedidoItem,
+      step: this.currentStep,
+      
+      // Additional result data (excluding cancelled since we calculated it above)
+      ...Object.fromEntries(Object.entries(additionalData).filter(([key]) => key !== 'cancelled'))
+    };
+
+    // Log for debugging
+    console.log('Dialog closing with result:', dialogResult);
+    
+    // Close dialog with comprehensive result
+    this.dialogRef.close(dialogResult);
+  }
+
+  /**
+   * Determines if the parent component should refresh its UI
+   * based on the changes made in this dialog
+   */
+  private shouldRefreshUI(): boolean {
+    return this.changeTracker.itemAdded ||
+           this.changeTracker.itemUpdated ||
+           this.changeTracker.productConfigurationChanged ||
+           this.changeTracker.sucursalDistributionChanged ||
+           this.changeTracker.rejectionStatusChanged ||
+           this.changeTracker.itemCancellationChanged;
+  }
+
+  /**
+   * Marks that product configuration has changed
+   * (presentacion, cantidad, precio, descuento, observaciones)
+   */
+  private markProductConfigurationChanged(): void {
+    this.changeTracker.productConfigurationChanged = true;
+    this.hasModifications = true;
+  }
+
+  /**
+   * Marks that sucursal distribution has changed
+   */
+  private markSucursalDistributionChanged(): void {
+    this.changeTracker.sucursalDistributionChanged = true;
+    this.hasModifications = true;
+  }
+
+  /**
+   * Marks that rejection status has changed
+   */
+  private markRejectionStatusChanged(): void {
+    this.changeTracker.rejectionStatusChanged = true;
+    this.hasModifications = true;
+  }
+
+  /**
+   * Marks that item cancellation status has changed
+   */
+  private markItemCancellationChanged(): void {
+    this.changeTracker.itemCancellationChanged = true;
+    this.hasModifications = true;
   }
 
   // Focus management methods
@@ -1309,6 +1448,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       
       // Recalculate totals
       this.calculateTotalPreview();
+      
+      // Update computed properties to reflect any status changes (like cancelado)
+      this.updateComputedProperties();
     }
   }
 
@@ -1318,6 +1460,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     if (event && this.currentPedidoItemForEmbedded) {
       // Update the current pedido item with the saved distribution data
       this.currentPedidoItemForEmbedded.pedidoItemSucursalList = event.pedidoItemSucursalList || [];
+      
+      // Mark that sucursal distribution has changed
+      this.markSucursalDistributionChanged();
       
       // Trigger change detection
       this.onPedidoItemChanged();
@@ -1336,16 +1481,36 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   onRejectionStatusSaved(event: any): void {
     // Handle rejection status save event
     if (event && this.currentPedidoItemForEmbedded) {
+      // Track if cancellation status changed
+      const previousCancelado = this.currentPedidoItemForEmbedded.cancelado;
+      
       // Update the current pedido item with the saved rejection data
       // Use the appropriate rejection motivo field based on current pedido estado
       if (this.data.pedido?.estado === PedidoEstado.EN_RECEPCION_NOTA) {
         if (event.motivoRechazoRecepcionNota !== undefined) {
           this.currentPedidoItemForEmbedded.motivoRechazoRecepcionNota = event.motivoRechazoRecepcionNota;
         }
+        if (event.obsRecepcionNota !== undefined) {
+          this.currentPedidoItemForEmbedded.obsRecepcionNota = event.obsRecepcionNota;
+        }
+        if (event.cancelado !== undefined) {
+          this.currentPedidoItemForEmbedded.cancelado = event.cancelado;
+        }
       } else if (this.data.pedido?.estado === PedidoEstado.EN_RECEPCION_MERCADERIA) {
         if (event.motivoRechazoRecepcionProducto !== undefined) {
           this.currentPedidoItemForEmbedded.motivoRechazoRecepcionProducto = event.motivoRechazoRecepcionProducto;
         }
+        if (event.cancelado !== undefined) {
+          this.currentPedidoItemForEmbedded.cancelado = event.cancelado;
+        }
+      }
+      
+      // Mark changes appropriately
+      this.markRejectionStatusChanged();
+      
+      // Check if cancellation status changed
+      if (previousCancelado !== this.currentPedidoItemForEmbedded.cancelado) {
+        this.markItemCancellationChanged();
       }
       
       // Trigger change detection
@@ -1358,8 +1523,8 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
   onRejectionStatusCancelled(): void {
     // Handle rejection status cancel event
-    // No specific action needed, just log for debugging
-    console.log('Rejection status cancelled');
+    // Close dialog - let closeDialog() determine if modifications were made
+    this.closeDialog();
   }
 
   onRepeatFromHistoryAndSwitchTab(compraItem: any): void {
@@ -1427,5 +1592,8 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
     // Update form validation
     this.isFormInvalidOrNoProduct = this.productSelectionFormGroup.invalid || !this.selectedProducto;
+    
+    // Check if item is canceled
+    this.isItemCanceled = this.data.isEditing && this.data.pedidoItem?.cancelado === true;
   }
 }

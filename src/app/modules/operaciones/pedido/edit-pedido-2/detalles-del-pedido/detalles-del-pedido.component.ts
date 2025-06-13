@@ -369,9 +369,25 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
       disableClose: false,
       autoFocus: false
     }).afterClosed().subscribe(result => {
-      if (result?.updated) {
+      // Handle the new comprehensive result structure
+      if (result && !result.cancelled && result.needsUIRefresh) {
+        // Show appropriate success message based on what changed
+        if (result.updated) {
+          console.log('Item was updated');
+        }
+        
+        if (result.productConfigurationChanged) {
+          console.log('Product configuration was changed');
+        }
+        
+        if (result.sucursalDistributionChanged) {
+          console.log('Sucursal distribution was changed');
+        }
+        
         this.loadPedidoItems(); // This will trigger updatePedidoTotals()
         this.pedidoChange.emit(this.selectedPedido);
+      } else if (result?.cancelled) {
+        console.log('Dialog was cancelled');
       }
     });
   }
@@ -477,13 +493,21 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result?.added) {
+      // Handle the new comprehensive result structure
+      if (result && !result.cancelled && result.needsUIRefresh) {
+        // Show appropriate success message based on what changed
+        if (result.added) {
+          console.log('New item was added');
+        }
+        
         this.loadPedidoItems(); // This will trigger updatePedidoTotals()
         
         // Open sucursal dialog if multiple sucursales
         if (this.selectedPedido.sucursalInfluenciaList?.length > 1 && result.pedidoItem) {
           this.openSucursalDialog(result.pedidoItem);
         }
+      } else if (result?.cancelled) {
+        console.log('Dialog was cancelled');
       }
     });
   }

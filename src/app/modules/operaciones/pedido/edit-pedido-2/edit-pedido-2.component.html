@@ -130,7 +130,7 @@
             <div class="info-label">Total sin Descuento</div>
             <div class="info-content">
               <div class="info-value">
-                {{ selectedPedido?.valorTotal | number : "1.0-2" }}
+                {{ computedTotalSinDescuento | number : "1.0-2" }}
               </div>
             </div>
           </div>
@@ -139,7 +139,7 @@
             <div class="info-label">Descuento</div>
             <div class="info-content">
               <div class="info-value">
-                {{ selectedPedido?.descuento | number : "1.0-2" }}
+                {{ computedDescuentoTotal | number : "1.0-2" }}
               </div>
             </div>
           </div>
@@ -148,10 +148,7 @@
             <div class="info-label">Total con Descuento</div>
             <div class="info-content">
               <div class="info-value">
-                {{
-                  (selectedPedido?.valorTotal || 0) -
-                    (selectedPedido?.descuento || 0) | currency : "" : ""
-                }}
+                {{ computedTotalConDescuento | currency : "" : "" }}
               </div>
             </div>
           </div>
@@ -160,7 +157,10 @@
             <div class="info-label">Cantidad de Items</div>
             <div class="info-content">
               <div class="info-value">
-                {{ selectedPedido?.cantPedidoItem || 0 }}
+                {{ computedCantidadItems || 0 }}
+                <span *ngIf="computedCantidadItemsCancelados > 0" class="cancelled-items-indicator">
+                  ({{ computedCantidadItemsCancelados }} cancelados)
+                </span>
               </div>
             </div>
           </div>

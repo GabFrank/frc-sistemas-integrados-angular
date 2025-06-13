@@ -4,20 +4,20 @@
   display: flex;
   flex-direction: column;
   background-color: #303030;
-  
+
   .dialog-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0 24px;
     border-bottom: 1px solid #424242;
-    
+
     .close-button {
       margin-left: auto;
     }
   }
 
-  .dialog-content {
+  .dialog-content-custom {
     padding: 24px !important;
     flex: 1;
     overflow-y: auto;
@@ -48,13 +48,13 @@
 
       .product-details {
         flex: 1;
-        
+
         h3 {
           margin: 0 0 4px 0;
           font-weight: 500;
           color: #fff;
         }
-        
+
         .product-code {
           margin: 0;
           color: #bdbdbd;
@@ -93,7 +93,7 @@
 
     .rejection-section {
       margin-bottom: 24px;
-      
+
       ::ng-deep .mat-slide-toggle-label {
         color: #fff;
       }
@@ -115,7 +115,7 @@
 
         .section-icon {
           margin-right: 8px;
-          
+
           &.error-icon {
             color: #f44336;
           }
@@ -161,7 +161,7 @@
 
           &.mat-list-option.mat-selected:not([disabled]) {
             background-color: rgba(244, 67, 54, 0.1);
-            
+
             .motivo-icon {
               color: #f44336;
             }
@@ -230,7 +230,7 @@
 
       .instructions-text {
         flex: 1;
-        
+
         p {
           margin: 0 0 8px 0;
           font-size: 14px;
@@ -254,10 +254,10 @@
     border-top: 1px solid #424242;
     margin: 0;
     background-color: #303030;
-    
+
     button {
       margin-left: 8px;
-      
+
       &:first-child {
         margin-left: 0;
       }
@@ -293,137 +293,94 @@
   }
 }
 
-// Responsive design
-@media (max-width: 768px) {
-  .item-status-dialog {
-    min-width: auto;
-    width: 95vw;
-    
-    .dialog-content {
-      padding: 16px !important;
-    }
-    
-    .status-form {
-      .product-info {
-        flex-direction: column;
-        text-align: center;
-        
-        .product-icon {
-          margin-right: 0;
-          margin-bottom: 8px;
-        }
-
-        .status-indicator {
-          margin-top: 12px;
-        }
-      }
-
-      .instructions-section {
-        flex-direction: column;
-        text-align: center;
-
-        .info-icon {
-          margin-right: 0;
-          margin-bottom: 8px;
-        }
-      }
-    }
-  }
-}
-
 // Embedded mode specific styles
 .item-status-dialog.embedded-mode {
-  min-width: auto;
-  max-width: none;
   width: 100%;
-  
-  .dialog-content {
+
+  .dialog-content-custom {
     padding: 16px !important;
-    min-height: auto;
-    max-height: none;
     overflow-y: visible;
   }
-  
+
   .status-form {
     .product-info {
       padding: 12px;
       margin-bottom: 16px;
-      
+
       .product-icon {
         font-size: 28px;
         width: 28px;
         height: 28px;
         margin-right: 12px;
       }
-      
+
       .product-details {
         h3 {
           font-size: 16px;
         }
-        
+
         .product-code {
           font-size: 12px;
         }
       }
-      
+
       .status-indicator {
         padding: 6px 10px;
-        
+
         .rejected-icon {
           font-size: 18px;
           width: 18px;
           height: 18px;
           margin-right: 6px;
         }
-        
+
         .rejected-text {
           font-size: 12px;
         }
       }
     }
-    
+
     .section-divider {
       margin: 16px 0;
     }
-    
+
     .rejection-section {
       margin-bottom: 16px;
-      
+
       .toggle-description {
         font-size: 12px;
       }
     }
-    
+
     .motivos-section {
       margin-bottom: 16px;
-      
+
       .section-title {
         font-size: 14px;
         margin-bottom: 6px;
       }
-      
+
       .section-description {
         font-size: 12px;
         margin-bottom: 12px;
       }
-      
+
       .motivos-list {
-        max-height: none;
         flex: 1;
       }
     }
-    
+
     .instructions-section {
       padding: 12px;
       margin-top: 16px;
-      
+
       .info-icon {
         font-size: 20px;
         width: 20px;
         height: 20px;
         margin-right: 10px;
       }
-      
+
       .instructions-text p {
         font-size: 12px;
       }
@@ -440,61 +397,33 @@
   padding: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   background-color: rgba(255, 255, 255, 0.02);
-  
-  .cancel-btn, .save-btn {
+
+  .cancel-btn,
+  .save-btn {
     display: flex;
     align-items: center;
     gap: 8px;
     font-size: 14px;
-    
+
     mat-icon {
       font-size: 18px;
       width: 18px;
       height: 18px;
     }
   }
-  
+
   .cancel-btn {
     color: rgba(255, 255, 255, 0.7);
-    
+
     &:hover {
       color: rgba(255, 255, 255, 0.9);
       background-color: rgba(255, 255, 255, 0.05);
     }
   }
-  
+
   .save-btn {
     .processing-icon {
       animation: spin 1s linear infinite;
     }
   }
 }
-
-// Responsive design for embedded mode
-@media (max-width: 768px) {
-  .item-status-dialog.embedded-mode {
-    .status-form .product-info {
-      flex-direction: column;
-      text-align: center;
-      
-      .product-icon {
-        margin-right: 0;
-        margin-bottom: 8px;
-      }
-      
-      .status-indicator {
-        margin-top: 8px;
-        align-self: center;
-      }
-    }
-    
-    .embedded-actions {
-      flex-direction: column;
-      
-      .cancel-btn, .save-btn {
-        width: 100%;
-        justify-content: center;
-      }
-    }
-  }
-} 

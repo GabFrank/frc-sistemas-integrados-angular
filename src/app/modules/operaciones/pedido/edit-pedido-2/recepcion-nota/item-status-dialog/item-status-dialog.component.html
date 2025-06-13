@@ -8,7 +8,7 @@
   </div>
 
   <!-- Dialog Content -->
-  <mat-dialog-content class="dialog-content">
+  <div class="dialog-content-custom">
     <form [formGroup]="statusForm" class="status-form">
       <!-- Product Information -->
       <div class="product-info">
@@ -72,7 +72,7 @@
         </div>
       </div>
     </form>
-  </mat-dialog-content>
+  </div>
 
   <!-- Dialog Actions - Only shown in dialog mode -->
   <mat-dialog-actions class="dialog-actions" *ngIf="showDialogHeader && !currentIsReadOnly">
@@ -81,7 +81,7 @@
       type="button" 
       (click)="onCancel()"
       [disabled]="isProcessing">
-      Cancelar
+      Salir
     </button>
     <button 
       mat-raised-button 
