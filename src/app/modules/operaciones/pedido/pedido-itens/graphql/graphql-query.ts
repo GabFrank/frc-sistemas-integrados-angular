@@ -258,6 +258,7 @@ export const savePedidoItem = gql`
       verificadoRecepcionProducto
       isDistribucionSucursalesCreacion
       isDistribucionSucursalesRecepcion
+      needsDistribucion
     }
   }
 `;

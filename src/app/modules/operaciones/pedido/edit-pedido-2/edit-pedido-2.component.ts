@@ -74,6 +74,9 @@ export class EditPedido2Component implements OnInit {
   // New properties for next step conditions
   canGoToRecepcionNota = false;
   canAgregarProducto = false;
+  
+  // **NEW**: Step validation properties
+  step3Valid = false; // Recepcion nota step validation
 
   // Computed summary properties for header display (excluding cancelled items)
   computedTotalSinDescuento = 0;
@@ -316,7 +319,6 @@ export class EditPedido2Component implements OnInit {
         
         if (needsFreshData) {
           // Use fresh data fetch for changes that affect totals
-          console.log('Changes detected that affect totals - using fresh data fetch');
           this.loadPedidoDataFresh();
         } else {
           // Use regular data fetch for other changes
@@ -326,31 +328,24 @@ export class EditPedido2Component implements OnInit {
         // Show appropriate message based on what changed
         if (result.added) {
           const stepName = this.getStepDisplayName(result.step!);
-          console.log(`Item agregado en paso: ${stepName}`);
         }
         
         if (result.updated) {
           const stepName = this.getStepDisplayName(result.step!);
-          console.log(`Item actualizado en paso: ${stepName}`);
         }
         
         if (result.productConfigurationChanged) {
-          console.log('Product configuration was changed');
         }
         
         if (result.sucursalDistributionChanged) {
-          console.log('Sucursal distribution was changed');
         }
         
         if (result.rejectionStatusChanged) {
-          console.log('Rejection status was changed');
         }
         
         if (result.itemCancellationChanged) {
-          console.log('Item cancellation status was changed - totals will be refreshed');
         }
       } else if (result?.cancelled) {
-        console.log('Dialog was cancelled');
       }
     });
   }
@@ -420,6 +415,12 @@ export class EditPedido2Component implements OnInit {
     this.stepsConfig[1].completed = isValid;
   }
 
+  onStep3ValidChange(isValid: boolean): void {
+    this.step3Valid = isValid;
+    // Update step completion status
+    this.stepsConfig[2].completed = isValid;
+  }
+
   /**
    * Centralized method to update pedido summary calculations
    * Uses backend service to get accurate totals based on pedido estado
@@ -445,15 +446,6 @@ export class EditPedido2Component implements OnInit {
           this.computedTotalConDescuento = summary.totalConDescuento || 0;
           this.computedCantidadItems = summary.activeItems || 0;
           this.computedCantidadItemsCancelados = summary.cancelledItems || 0;
-
-          console.log('Pedido Summary Updated from Backend:', {
-            totalSinDescuento: this.computedTotalSinDescuento,
-            descuentoTotal: this.computedDescuentoTotal,
-            totalConDescuento: this.computedTotalConDescuento,
-            cantidadItems: this.computedCantidadItems,
-            cantidadItemsCancelados: this.computedCantidadItemsCancelados,
-            estado: summary.estado
-          });
         },
         (error) => {
           console.error('Error loading pedido summary:', error);

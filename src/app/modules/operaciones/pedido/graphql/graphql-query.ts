@@ -495,6 +495,7 @@ export const pedidoItemPorNotaRecepcionQuery = gql`
         id
         isDistribucionSucursalesCreacion
         isDistribucionSucursalesRecepcion
+        needsDistribucion
         producto {
           id
           descripcion
@@ -1057,6 +1058,7 @@ export const pedidoRecepcionNotaSummaryQuery = gql`
       pendingItems
       cancelledItems
       totalNotas
+      itemsNeedingDistribution
     }
   }
 `;

@@ -18,10 +18,10 @@
     gap: 16px;
 
     .pedido-items-summary-card {
-      flex: 55%;
+      flex: 50%;
     }
     .notas-summary-card {
-      flex: 45%;
+      flex: 25%;
     }
 
     .summary-card {
@@ -488,6 +488,148 @@
       
       &::after {
         background-color: rgba(76, 175, 80, 0.4);
+      }
+    }
+  }
+}
+
+// Distribution status styles
+.distribution-summary-card {
+  flex: 25%;
+  .stat-number.distribution-needed {
+    color: #4caf50; // Green when 0 items need distribution
+    
+    &.has-items {
+      color: #ff9800; // Orange when items need distribution
+      animation: pulse 2s infinite;
+    }
+  }
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+// Nota row highlighting for distribution status
+.nota-row {
+  &.needs-distribution {
+    background-color: rgba(255, 152, 0, 0.1) !important; // Light orange background
+    border-left: 4px solid #ff9800 !important; // Orange left border
+  }
+}
+
+
+.status-legend {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+}
+
+.distribution-incomplete-legend {
+  background-color: #ff990098;
+}
+
+.legend-text {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+// **NEW**: Validation Summary Card Styles
+.validation-summary-card {
+  flex: 25%;
+  
+  &.validation-complete {
+    background-color: rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+  }
+  
+  &.validation-pending {
+    background-color: rgba(255, 152, 0, 0.1);
+    border: 1px solid rgba(255, 152, 0, 0.3);
+  }
+  
+  mat-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    .validation-icon-complete {
+      color: #4caf50;
+    }
+    
+    .validation-icon-pending {
+      color: #ff9800;
+      animation: pulse 2s infinite;
+    }
+  }
+  
+  .validation-status {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    
+    .validation-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      
+      &.validation-ok {
+        color: #4caf50;
+        
+        mat-icon {
+          color: #4caf50;
+        }
+      }
+      
+      &.validation-error {
+        color: #ff9800;
+        
+        mat-icon {
+          color: #ff9800;
+        }
+      }
+      
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+    
+    .validation-summary {
+      margin-top: 8px;
+      padding: 8px;
+      background-color: rgba(255, 152, 0, 0.1);
+      border-radius: 4px;
+      border-left: 3px solid #ff9800;
+      
+      small {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      
+      &.validation-complete-text {
+        background-color: rgba(76, 175, 80, 0.1);
+        border-left-color: #4caf50;
+        
+        small {
+          color: #4caf50;
+        }
       }
     }
   }

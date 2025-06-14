@@ -661,24 +661,22 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
           this.changeTracker.itemUpdated = true;
           
           if (needsDistributionUpdate) {
-            // Update the pedido item data with the response
+            // **STEP 1**: Update the main data reference with fresh database response
             if (this.data.pedidoItem) {
               Object.assign(this.data.pedidoItem, response);
             }
             
-            // Update the current pedido item for embedded components
-            this.updateCurrentPedidoItemForEmbedded();
-            
-            // Refresh the form with updated values from the saved response
+            // **STEP 2**: Create a proper PedidoItem instance from the fresh database response
             const updatedPedidoItem = new PedidoItem();
             Object.assign(updatedPedidoItem, response);
             
+            // **STEP 3**: Get estado-based values from the fresh database response (not form values)
             const presentacion = updatedPedidoItem.getFieldValueForEstado('presentacion', this.data.pedido.estado);
             const cantidad = updatedPedidoItem.getFieldValueForEstado('cantidad', this.data.pedido.estado);
             const precioUnitario = updatedPedidoItem.getFieldValueForEstado('precioUnitario', this.data.pedido.estado);
             const descuentoUnitario = updatedPedidoItem.getFieldValueForEstado('descuentoUnitario', this.data.pedido.estado);
             
-            // Update form with fresh data from database
+            // **STEP 4**: Update form with fresh data from database
             this.productSelectionFormGroup.patchValue({
               presentacion: presentacion,
               cantidad: cantidad,
@@ -688,13 +686,19 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
               descuentoPorPresentacion: presentacion?.cantidad ? (descuentoUnitario || 0) * presentacion.cantidad : 0,
             }, { emitEvent: false });
             
-            // Recalculate totals
+            // **STEP 5**: Recalculate totals based on fresh data
             this.calculateTotalPreview();
             
-            // Update the current pedido item for embedded components - this will trigger ngOnChanges
+            // **STEP 6**: NOW update the embedded component with the fresh database data
+            // This ensures the embedded component gets the correct presentacion and cantidad values
+            console.log('🔧 DISTRIBUTION UPDATE: Updating embedded component with fresh data');
+            console.log('📊 Fresh presentacion:', presentacion);
+            console.log('📊 Fresh cantidad:', cantidad);
+            console.log('📊 Fresh precioUnitario:', precioUnitario);
             this.updateCurrentPedidoItemForEmbedded();
+            console.log('✅ Embedded component updated with fresh database values');
             
-            // Navigate to Distribución Sucursales tab (index 2)
+            // **STEP 7**: Navigate to Distribución Sucursales tab (index 2)
             setTimeout(() => {
               this.selectedTabIndex = 2;
               this.notificacionService.openSucess("Diríjase a la pestaña 'Distribución Sucursales' para actualizar la distribución debido a los cambios realizados");
@@ -1263,10 +1267,37 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     const pedidoItem = new PedidoItem();
     Object.assign(pedidoItem, pedidoItemData);
 
-    // Set the selected product
+    // Set the selected product - but we need to make sure it has presentaciones loaded
     this.selectedProducto = pedidoItem.producto;
     this.selectedProductoProveedor = null; // Clear proveedor selection since this is direct editing
 
+    // Check if product has presentaciones loaded
+    if (!this.selectedProducto?.presentaciones || this.selectedProducto.presentaciones.length === 0) {
+      console.log('Product presentaciones not loaded, loading from service...');
+      
+      // Load product with presentaciones from service
+      this.productoService.getProducto(this.selectedProducto.id)
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (fullProduct) => {
+            console.log('Loaded full product:', fullProduct);
+            this.selectedProducto = fullProduct;
+            this.continueLoadingPedidoItem(pedidoItem);
+          },
+          error: (error) => {
+            console.error('Error loading product:', error);
+            this.notificacionService.openWarn('Error al cargar datos del producto');
+            // Continue with existing data anyway
+            this.continueLoadingPedidoItem(pedidoItem);
+          }
+        });
+    } else {
+      // Product already has presentaciones, continue directly
+      this.continueLoadingPedidoItem(pedidoItem);
+    }
+  }
+
+  private continueLoadingPedidoItem(pedidoItem: PedidoItem): void {
     // Get step-appropriate values using the helper methods
     const presentacion = pedidoItem.getFieldValueForEstado('presentacion', this.data.pedido.estado);
     const cantidad = pedidoItem.getFieldValueForEstado('cantidad', this.data.pedido.estado);
@@ -1288,6 +1319,8 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     const matchingPresentacion = presentacion && this.selectedProducto?.presentaciones
       ? this.selectedProducto.presentaciones.find(p => p.id === presentacion.id)
       : presentacion;
+
+    console.log('matchingPresentacion', matchingPresentacion);
 
     // Store original values for change detection
     this.originalPresentacionId = presentacion?.id || null;
@@ -1384,6 +1417,18 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       // Always create a new PedidoItem instance to ensure Angular change detection triggers
       const pedidoItem = new PedidoItem();
       Object.assign(pedidoItem, this.data.pedidoItem);
+      
+      // **CRITICAL**: Ensure the pedido reference is set correctly
+      if (this.data.pedido) {
+        pedidoItem.pedido = this.data.pedido;
+      }
+      
+      console.log('🔄 updateCurrentPedidoItemForEmbedded: Setting embedded item');
+      console.log('📋 PedidoItem ID:', pedidoItem.id);
+      console.log('📋 Current estado:', this.data.pedido?.estado);
+      console.log('📋 Presentacion for estado:', pedidoItem.getFieldValueForEstado('presentacion', this.data.pedido?.estado));
+      console.log('📋 Cantidad for estado:', pedidoItem.getFieldValueForEstado('cantidad', this.data.pedido?.estado));
+      
       this.currentPedidoItemForEmbedded = pedidoItem;
     } else if (this.selectedProducto && !this.data.isEditing) {
       // If no pedido item exists but we have a selected product, create a temporary one
@@ -1416,8 +1461,10 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       }
       
       tempItem.usuarioCreacion = this.mainService.usuarioActual;
+      console.log('🆕 updateCurrentPedidoItemForEmbedded: Creating temp item for new product');
       this.currentPedidoItemForEmbedded = tempItem;
     } else {
+      console.log('❌ updateCurrentPedidoItemForEmbedded: No data available, setting to null');
       this.currentPedidoItemForEmbedded = null;
     }
   }
@@ -1476,6 +1523,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     // Handle sucursal distribution cancel event
     // No specific action needed, just log for debugging
     console.log('Sucursal distribution cancelled');
+    this.closeDialog();
   }
 
   onRejectionStatusSaved(event: any): void {

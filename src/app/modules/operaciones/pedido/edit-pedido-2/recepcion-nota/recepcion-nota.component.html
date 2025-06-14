@@ -31,7 +31,14 @@
         color="accent"
         (click)="onAsignarItemsANota()"
         [disabled]="!canAssignItemsComputed || isProcessing"
-        [matTooltip]="selectedNotaRecepcion ? ('Asignar ' + selectedItemIds.size + ' item(s) a la Nota ' + selectedNotaRecepcion.numero) : 'Seleccione una nota primero'"
+        [matTooltip]="
+          selectedNotaRecepcion
+            ? 'Asignar ' +
+              selectedItemIds.size +
+              ' item(s) a la Nota ' +
+              selectedNotaRecepcion.numero
+            : 'Seleccione una nota primero'
+        "
         matTooltipPosition="above"
       >
         <mat-icon>assignment</mat-icon>
@@ -243,23 +250,28 @@
                   <mat-icon>edit</mat-icon>
                   <span>Editar Item</span>
                 </button>
-                
+
                 <button mat-menu-item (click)="onGestionarRechazoItem(item)">
                   <mat-icon>block</mat-icon>
                   <span>Gestionar Rechazo</span>
                 </button>
-                
-                <button 
-                  mat-menu-item 
+
+                <button
+                  mat-menu-item
                   (click)="onVerRechazoItem(item)"
-                  *ngIf="item.motivoRechazoRecepcionNota">
+                  *ngIf="item.motivoRechazoRecepcionNota"
+                >
                   <mat-icon>visibility</mat-icon>
                   <span>Ver Rechazo</span>
                 </button>
-                
+
                 <mat-divider></mat-divider>
-                
-                <button mat-menu-item (click)="onDividirItem(item)" *ngIf="!item.isAssigned">
+
+                <button
+                  mat-menu-item
+                  (click)="onDividirItem(item)"
+                  *ngIf="!item.isAssigned"
+                >
                   <mat-icon>call_split</mat-icon>
                   <span>Dividir Item</span>
                 </button>
@@ -274,7 +286,6 @@
           <tr
             mat-row
             *matRowDef="let row; columns: pedidoItemsColumns; let i = index"
-            [ngClass]="itemsWithComputedProperties[i]?.statusClass"
           ></tr>
         </table>
       </div>
@@ -314,6 +325,13 @@
     <div class="section-container notas-section">
       <div class="section-header">
         <h3 class="titulo-center">Notas de Recepción</h3>
+        <!-- Distribution Status Legend -->
+        <div class="status-legend">
+          <div class="legend-item">
+            <div class="legend-color distribution-incomplete-legend"></div>
+            <span class="legend-text">Distribución incompleta</span>
+          </div>
+        </div>
         <mat-form-field appearance="outline" class="search-field">
           <mat-label>Buscar por número</mat-label>
           <input
@@ -467,15 +485,17 @@
           ></tr>
           <tr
             mat-row
-            *matRowDef="let row; columns: notasRecepcionColumns"
+            *matRowDef="let row; columns: notasRecepcionColumns; let i = index"
             [ngClass]="{
-              'selected-nota': selectedNotaRecepcion?.id === row.id
+              'selected-nota': notasWithComputedProperties[i]?.isSelected,
+              'needs-distribution':
+                notasWithComputedProperties[i]?.needsDistribution
             }"
             (click)="onSelectNota(row)"
             (dblclick)="onGestionarItems(row)"
             class="clickable-row nota-row"
-            [attr.data-selected]="selectedNotaRecepcion?.id === row.id"
-            [matTooltip]="selectedNotaRecepcion?.id === row.id ? 'Nota seleccionada - Click para deseleccionar' : 'Click para seleccionar esta nota'"
+            [attr.data-selected]="notasWithComputedProperties[i]?.isSelected"
+            [matTooltip]="notasWithComputedProperties[i]?.tooltipText"
             matTooltipPosition="above"
           ></tr>
         </table>
@@ -551,6 +571,58 @@
             <div class="stat-item">
               <span class="stat-number">{{ totalNotas }}</span>
               <span class="stat-label">Total Notas</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- **NEW**: Distribution Status Card -->
+      <mat-card class="summary-card distribution-summary-card">
+        <mat-card-header>
+          <mat-card-title class="titulo-center"
+            >Estado Distribución</mat-card-title
+          >
+        </mat-card-header>
+        <mat-card-content>
+          <div class="summary-stats">
+            <div class="stat-item">
+              <span
+                class="stat-number distribution-needed"
+                [class.has-items]="itemsNeedingDistribution > 0"
+              >
+                {{ itemsNeedingDistribution }}
+              </span>
+              <span class="stat-label">Necesitan Distribución</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- **NEW**: Step Validation Status Card -->
+      <mat-card class="summary-card validation-summary-card" [ngClass]="{'validation-complete': canProceedToNextStepComputed, 'validation-pending': !canProceedToNextStepComputed}">
+        <mat-card-header>
+          <mat-card-title class="titulo-center">
+            <mat-icon [ngClass]="{'validation-icon-complete': canProceedToNextStepComputed, 'validation-icon-pending': !canProceedToNextStepComputed}">
+              {{ canProceedToNextStepComputed ? 'check_circle' : 'pending' }}
+            </mat-icon>
+            Estado del Paso
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="validation-status">
+            <div class="validation-item" [ngClass]="{'validation-ok': pendingItems === 0, 'validation-error': pendingItems > 0}">
+              <mat-icon>{{ pendingItems === 0 ? 'check' : 'close' }}</mat-icon>
+              <span>Items Pendientes: {{ pendingItems }}</span>
+            </div>
+            <div class="validation-item" [ngClass]="{'validation-ok': itemsNeedingDistribution === 0, 'validation-error': itemsNeedingDistribution > 0}">
+              <mat-icon>{{ itemsNeedingDistribution === 0 ? 'check' : 'close' }}</mat-icon>
+              <span>Items sin Distribución: {{ itemsNeedingDistribution }}</span>
+            </div>
+            <div class="validation-summary" *ngIf="!canProceedToNextStepComputed">
+              <small>Complete la asignación de todos los items y su distribución por sucursales para continuar al siguiente paso.</small>
+            </div>
+            <div class="validation-summary validation-complete-text" *ngIf="canProceedToNextStepComputed">
+              <small>✓ Todos los items están asignados y distribuidos. Puede continuar al siguiente paso.</small>
             </div>
           </div>
         </mat-card-content>

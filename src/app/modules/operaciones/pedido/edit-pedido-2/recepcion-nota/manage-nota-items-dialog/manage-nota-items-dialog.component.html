@@ -104,12 +104,24 @@
                   </div>
                 </td>
               </ng-container>
+
+              <!-- Estado Column -->
+              <ng-container matColumnDef="estado">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">Estado</th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  <mat-chip 
+                    [ngClass]="item.displayEstadoColorClass"
+                    class="estado-chip">
+                    {{ item.displayEstado }}
+                  </mat-chip>
+                </td>
+              </ng-container>
   
               <!-- Presentation Column -->
               <ng-container matColumnDef="presentacion">
                 <th mat-header-cell *matHeaderCellDef style="text-align: center;">Presentación</th>
                 <td mat-cell *matCellDef="let item" style="text-align: center;">
-                  {{ item.presentacionCreacion?.descripcion }}
+                  {{ item.displayPresentacion?.cantidad }}
                 </td>
               </ng-container>
   
@@ -117,7 +129,7 @@
               <ng-container matColumnDef="cantidad">
                 <th mat-header-cell *matHeaderCellDef style="text-align: center;">Cantidad</th>
                 <td mat-cell *matCellDef="let item" style="text-align: center;">
-                  {{ item.cantidadCreacion | number:'1.0-2' }}
+                  {{ item.displayCantidad | number:'1.0-2' }}
                 </td>
               </ng-container>
   
@@ -125,7 +137,7 @@
               <ng-container matColumnDef="precio">
                 <th mat-header-cell *matHeaderCellDef style="text-align: center;">Precio Unit.</th>
                 <td mat-cell *matCellDef="let item" style="text-align: center;">
-                  {{ monedaSymbolComputed }} {{ item.precioUnitarioCreacion | number:'1.0-2' }}
+                  {{ monedaSymbolComputed }} {{ item.displayPrecioUnitario | number:'1.0-2' }}
                 </td>
               </ng-container>
   
@@ -133,7 +145,19 @@
               <ng-container matColumnDef="total">
                 <th mat-header-cell *matHeaderCellDef style="text-align: center;">Total</th>
                 <td mat-cell *matCellDef="let item" style="text-align: center;" class="total-cell">
-                  {{ monedaSymbolComputed }} {{ item.valorTotal | number:'1.0-2' }}
+                  {{ monedaSymbolComputed }} {{ item.displayValorTotal | number:'1.0-2' }}
+                </td>
+              </ng-container>
+
+              <!-- Distribution Column -->
+              <ng-container matColumnDef="distribution">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">Distribución</th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  <mat-chip 
+                    [ngClass]="item.displayDistributionStatusClass"
+                    class="distribution-chip">
+                    {{ item.displayDistributionStatus }}
+                  </mat-chip>
                 </td>
               </ng-container>
   
@@ -141,6 +165,14 @@
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef style="text-align: center;">Acciones</th>
                 <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  <button 
+                    mat-icon-button 
+                    color="accent" 
+                    [disabled]="isProcessing"
+                    (click)="onEditItem(item)"
+                    matTooltip="Editar item">
+                    <mat-icon>edit</mat-icon>
+                  </button>
                   <button 
                     mat-icon-button 
                     color="warn" 
@@ -237,11 +269,23 @@
                 </td>
               </ng-container>
 
+              <!-- Estado Column -->
+              <ng-container matColumnDef="estado">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">Estado</th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  <mat-chip 
+                    [ngClass]="item.displayEstadoColorClass"
+                    class="estado-chip">
+                    {{ item.displayEstado }}
+                  </mat-chip>
+                </td>
+              </ng-container>
+
               <!-- Presentation Column -->
               <ng-container matColumnDef="presentacion">
                 <th mat-header-cell *matHeaderCellDef style="text-align: center;">Presentación</th>
                 <td mat-cell *matCellDef="let item" style="text-align: center;">
-                  {{ item.presentacionCreacion?.descripcion }}
+                  {{ item.displayPresentacion?.cantidad }}
                 </td>
               </ng-container>
 
@@ -249,7 +293,7 @@
               <ng-container matColumnDef="cantidad">
                 <th mat-header-cell *matHeaderCellDef style="text-align: center;">Cantidad</th>
                 <td mat-cell *matCellDef="let item" style="text-align: center;">
-                  {{ item.cantidadCreacion | number:'1.0-2' }}
+                  {{ item.displayCantidad | number:'1.0-2' }}
                 </td>
               </ng-container>
 
@@ -257,7 +301,7 @@
               <ng-container matColumnDef="precio">
                 <th mat-header-cell *matHeaderCellDef style="text-align: center;">Precio Unit.</th>
                 <td mat-cell *matCellDef="let item" style="text-align: center;">
-                  {{ monedaSymbolComputed }} {{ item.precioUnitarioCreacion | number:'1.0-2' }}
+                  {{ monedaSymbolComputed }} {{ item.displayPrecioUnitario | number:'1.0-2' }}
                 </td>
               </ng-container>
 
@@ -265,7 +309,19 @@
               <ng-container matColumnDef="total">
                 <th mat-header-cell *matHeaderCellDef style="text-align: center;">Total</th>
                 <td mat-cell *matCellDef="let item" style="text-align: center;" class="total-cell">
-                  {{ monedaSymbolComputed }} {{ item.valorTotal | number:'1.0-2' }}
+                  {{ monedaSymbolComputed }} {{ item.displayValorTotal | number:'1.0-2' }}
+                </td>
+              </ng-container>
+
+              <!-- Distribution Column -->
+              <ng-container matColumnDef="distribution">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center;">Distribución</th>
+                <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  <mat-chip 
+                    [ngClass]="item.displayDistributionStatusClass"
+                    class="distribution-chip">
+                    {{ item.displayDistributionStatus }}
+                  </mat-chip>
                 </td>
               </ng-container>
 
@@ -273,6 +329,14 @@
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef style="text-align: center;">Acciones</th>
                 <td mat-cell *matCellDef="let item" style="text-align: center;">
+                  <button 
+                    mat-icon-button 
+                    color="accent" 
+                    [disabled]="isProcessing"
+                    (click)="onEditItem(item)"
+                    matTooltip="Editar item">
+                    <mat-icon>edit</mat-icon>
+                  </button>
                   <button 
                     mat-icon-button 
                     color="primary" 

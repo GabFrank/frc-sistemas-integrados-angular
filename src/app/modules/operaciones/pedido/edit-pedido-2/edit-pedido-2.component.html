@@ -266,6 +266,7 @@
           <app-recepcion-nota 
             [selectedPedido]="selectedPedido"
             (pedidoChange)="onPedidoChange($event)"
+            (stepValidChange)="onStep3ValidChange($event)"
             style="flex: 1; min-height: 0;">
           </app-recepcion-nota>
           
@@ -273,7 +274,13 @@
             <button mat-button (click)="previousStep()">
               Anterior
             </button>
-            <button mat-raised-button color="primary" (click)="nextStep()">
+            <button 
+              mat-raised-button 
+              color="primary" 
+              (click)="nextStep()"
+              [disabled]="!step3Valid"
+              [matTooltip]="!step3Valid ? 'Complete la asignación de todos los items y distribución por sucursales antes de continuar' : ''"
+              matTooltipPosition="above">
               Siguiente
             </button>
           </div>

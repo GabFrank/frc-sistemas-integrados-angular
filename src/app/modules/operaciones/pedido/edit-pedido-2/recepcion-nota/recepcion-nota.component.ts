@@ -51,6 +51,7 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
 
   @Input() selectedPedido: Pedido;
   @Output() pedidoChange = new EventEmitter<Pedido>();
+  @Output() stepValidChange = new EventEmitter<boolean>();
 
   // Form controls
   searchItemsControl = new FormControl('');
@@ -86,13 +87,20 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
   pendingItems = 0;
   cancelledItems = 0;
   totalNotas = 0;
+  itemsNeedingDistribution = 0;
 
   // Computed properties for template (to avoid function calls in HTML)
   monedaSymbol = 'Gs.';
+  hasDataComputed = false;
+  isProcessingComputed = false;
   canCreateNotaComputed = false;
   canAssignItemsComputed = false;
+  // **NEW**: Computed properties for nota status to avoid function calls in template
+  notasWithComputedProperties: any[] = [];
   allSelectedComputed = false;
   itemsWithComputedProperties: any[] = [];
+  // **NEW**: Computed property for step validation
+  canProceedToNextStepComputed = false;
 
   constructor(
     private pedidoService: PedidoService,
@@ -134,6 +142,7 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
     this.pendingItems = 0;
     this.cancelledItems = 0;
     this.totalNotas = 0;
+    this.itemsNeedingDistribution = 0;
     this.updateComputedProperties();
   }
 
@@ -289,6 +298,7 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
             this.pendingItems = summary.pendingItems;
             this.cancelledItems = summary.cancelledItems || 0; // Add cancelled items from summary
             this.totalNotas = summary.totalNotas;
+            this.itemsNeedingDistribution = summary.itemsNeedingDistribution || 0;
             
             // Update computed properties
             this.updateComputedProperties();
@@ -302,6 +312,7 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
             this.cancelledItems = currentItems.filter(item => item.cancelado).length;
             this.pendingItems = currentItems.filter(item => !item.isAssigned && !item.cancelado).length;
             this.totalNotas = this.notasRecepcionDataSource.data.length;
+            this.itemsNeedingDistribution = 0; // Reset itemsNeedingDistribution
             this.updateComputedProperties();
           }
         });
@@ -309,44 +320,132 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
   }
 
   private updateComputedProperties(): void {
-    // Update moneda symbol
+    // Basic computed properties
     this.monedaSymbol = this.selectedPedido?.moneda?.simbolo || 'Gs.';
+    this.hasDataComputed = this.totalItems > 0 || this.totalNotas > 0;
+    this.isProcessingComputed = this.isProcessing;
+    this.canCreateNotaComputed = this.selectedPedido?.estado === 'ACTIVO' || this.selectedPedido?.estado === 'EN_RECEPCION_NOTA';
+    this.canAssignItemsComputed = this.selectedNotaRecepcion != null && this.pendingItems > 0;
+
+    // **NEW**: Step validation - can proceed if no pending items and no items needing distribution
+    const previousCanProceed = this.canProceedToNextStepComputed;
+    this.canProceedToNextStepComputed = this.pendingItems === 0 && this.itemsNeedingDistribution === 0;
     
-    // Update can create nota - use ID set for more accurate count (include cancelled items)
-    const availableItems = this.pedidoItemsDataSource.data.filter(item => !item.isAssigned);
-    const availableSelectedIds = Array.from(this.selectedItemIds).filter(id => {
-      const item = availableItems.find(i => i.id === id);
-      return item && !item.isAssigned;
-    });
-    this.canCreateNotaComputed = availableSelectedIds.length > 0;
+    // Emit step validation change if it changed
+    if (previousCanProceed !== this.canProceedToNextStepComputed) {
+      this.stepValidChange.emit(this.canProceedToNextStepComputed);
+    }
+
+    // **FIX**: Compute nota properties to avoid function calls in template
+    this.notasWithComputedProperties = this.notasRecepcionDataSource.data.map(nota => ({
+      ...nota,
+      needsDistribution: (nota.cantidadItensNecesitanDistribucion || 0) > 0,
+      isSelected: this.selectedNotaRecepcion?.id === nota.id,
+      tooltipText: this.calculateNotaTooltip(nota),
+      cssClasses: this.calculateNotaCssClasses(nota)
+    }));
+
+    // Existing item properties computation
+    this.itemsWithComputedProperties = this.pedidoItemsDataSource.data.map(item => ({
+      ...item,
+      statusText: this.getItemStatusText(item),
+      statusClass: this.getItemStatusClass(item),
+      displayPresentacion: item.getFieldValueForEstado ? 
+        item.getFieldValueForEstado('presentacion', this.selectedPedido?.estado) : 
+        item.presentacionCreacion,
+      displayCantidad: item.getFieldValueForEstado ? 
+        item.getFieldValueForEstado('cantidad', this.selectedPedido?.estado) : 
+        item.cantidadCreacion,
+      displayPrecioUnitario: item.getFieldValueForEstado ? 
+        item.getFieldValueForEstado('precioUnitario', this.selectedPedido?.estado) : 
+        item.precioUnitarioCreacion,
+      displayValorTotal: this.calculateItemTotal(item)
+    }));
+  }
+
+  /**
+   * Calculate tooltip text for nota (used in computed properties)
+   */
+  private calculateNotaTooltip(nota: NotaRecepcion): string {
+    const isSelected = this.selectedNotaRecepcion?.id === nota.id;
+    const needsDistribution = (nota.cantidadItensNecesitanDistribucion || 0) > 0;
     
-    // Update can assign items - use ID set for more accurate count (include cancelled items)
-    this.canAssignItemsComputed = availableSelectedIds.length > 0 && !!this.selectedNotaRecepcion;
+    if (isSelected && needsDistribution) {
+      return `Nota seleccionada - ${nota.cantidadItensNecesitanDistribucion} items necesitan distribución por sucursales`;
+    } else if (isSelected) {
+      return 'Nota seleccionada - Click para deseleccionar';
+    } else if (needsDistribution) {
+      return `Esta nota tiene ${nota.cantidadItensNecesitanDistribucion} items que necesitan distribución por sucursales`;
+    } else {
+      return 'Click para seleccionar esta nota';
+    }
+  }
+
+  /**
+   * Calculate CSS classes for nota (used in computed properties)
+   */
+  private calculateNotaCssClasses(nota: NotaRecepcion): string {
+    const classes = ['clickable-row', 'nota-row'];
     
-    // Update all selected state - check both current page items and ID set (include cancelled items)
-    const unassignedItems = this.pedidoItemsDataSource.data.filter(item => !item.isAssigned);
-    const unassignedSelectedCount = unassignedItems.filter(item => this.selectedItemIds.has(item.id)).length;
-    this.allSelectedComputed = unassignedItems.length > 0 && unassignedSelectedCount === unassignedItems.length;
+    if (this.selectedNotaRecepcion?.id === nota.id) {
+      classes.push('selected-nota');
+    }
     
-    // Update items with computed properties
-    this.itemsWithComputedProperties = this.pedidoItemsDataSource.data.map(item => {
-      let statusClass = 'item-pending';
-      let statusText = 'Pendiente';
-      
+    const needsDistribution = (nota.cantidadItensNecesitanDistribucion || 0) > 0;
+    if (needsDistribution) {
+      classes.push('needs-distribution');
+    }
+    
+    return classes.join(' ');
+  }
+
+  /**
+   * Get status text for item (used in computed properties)
+   */
+  private getItemStatusText(item: any): string {
       if (item.cancelado) {
-        statusClass = 'item-cancelled';
-        statusText = 'CANCELADO';
+      return 'CANCELADO';
       } else if (item.isAssigned) {
-        statusClass = 'item-assigned';
-        statusText = `Asig. a ${item.notaNumero}`;
-      }
-      
-      return {
-        ...item,
-        statusClass: statusClass,
-        statusText: statusText
-      };
-    });
+      return `Asig. a ${item.notaNumero}`;
+    } else {
+      return 'Pendiente';
+    }
+  }
+
+  /**
+   * Get status CSS class for item (used in computed properties)
+   */
+  private getItemStatusClass(item: any): string {
+    if (item.cancelado) {
+      return 'item-cancelled';
+    } else if (item.isAssigned) {
+      return 'item-assigned';
+    } else {
+      return 'item-pending';
+    }
+  }
+
+  /**
+   * Calculate total value for item (used in computed properties)
+   */
+  private calculateItemTotal(item: any): number {
+    const presentacion = item.getFieldValueForEstado ? 
+      item.getFieldValueForEstado('presentacion', this.selectedPedido?.estado) : 
+      item.presentacionCreacion;
+    const cantidad = item.getFieldValueForEstado ? 
+      item.getFieldValueForEstado('cantidad', this.selectedPedido?.estado) : 
+      item.cantidadCreacion;
+    const precioUnitario = item.getFieldValueForEstado ? 
+      item.getFieldValueForEstado('precioUnitario', this.selectedPedido?.estado) : 
+      item.precioUnitarioCreacion;
+    const descuentoUnitario = item.getFieldValueForEstado ? 
+      item.getFieldValueForEstado('descuentoUnitario', this.selectedPedido?.estado) : 
+      item.descuentoUnitarioCreacion || 0;
+
+    if (presentacion && cantidad && precioUnitario) {
+      return cantidad * presentacion.cantidad * (precioUnitario - descuentoUnitario);
+    }
+    return item.valorTotal || 0;
   }
 
   // Selection methods
@@ -597,7 +696,11 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result?.itemsChanged) {
+      if (result?.editItem) {
+        // Handle edit intent: open add-product-dialog with the item
+        console.log('result', result);
+        this.openAddProductDialogForEdit(result.editItem, nota);
+      } else if (result?.itemsChanged) {
         this.notificacionService.openSucess('Items gestionados exitosamente');
         
         // Refresh data and summary
@@ -607,6 +710,122 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         
         // Emit pedido change to update parent component
         this.pedidoChange.emit(this.selectedPedido);
+      }
+    });
+  }
+
+  private openAddProductDialogForEdit(itemWithStatus: any, nota: NotaRecepcion): void {
+    // Log the raw data to debug
+    console.log('Raw itemWithStatus data:', itemWithStatus);
+    console.log('Pedido estado:', this.selectedPedido.estado);
+    
+    // Convert the item data to PedidoItem format
+    const pedidoItem = new PedidoItem();
+    pedidoItem.id = itemWithStatus.id;
+    pedidoItem.pedido = this.selectedPedido; // Ensure pedido is set
+    pedidoItem.producto = itemWithStatus.producto;
+    pedidoItem.estado = itemWithStatus.estado;
+    pedidoItem.valorTotal = itemWithStatus.valorTotal;
+    
+    // **FIX ISSUE 1**: Set the notaRecepcion reference if the item is assigned
+    if (itemWithStatus.status === 'assigned' && itemWithStatus.notaRecepcionId) {
+      pedidoItem.notaRecepcion = nota; // Set the full NotaRecepcion object
+      console.log('Item is assigned to nota:', nota.id, 'Setting notaRecepcion reference');
+    } else {
+      console.log('Item is not assigned or missing notaRecepcionId');
+    }
+    
+    // Explicitly set all the estado-based fields from the original item
+    // This ensures the PedidoItem has all the data it needs
+    pedidoItem.presentacionCreacion = itemWithStatus.presentacionCreacion;
+    pedidoItem.cantidadCreacion = itemWithStatus.cantidadCreacion;
+    pedidoItem.precioUnitarioCreacion = itemWithStatus.precioUnitarioCreacion;
+    pedidoItem.descuentoUnitarioCreacion = itemWithStatus.descuentoUnitarioCreacion;
+    pedidoItem.obsCreacion = itemWithStatus.obsCreacion;
+    
+    // Set RecepcionNota fields if they exist
+    if (itemWithStatus.presentacionRecepcionNota) {
+      pedidoItem.presentacionRecepcionNota = itemWithStatus.presentacionRecepcionNota;
+    }
+    if (itemWithStatus.cantidadRecepcionNota !== undefined) {
+      pedidoItem.cantidadRecepcionNota = itemWithStatus.cantidadRecepcionNota;
+    }
+    if (itemWithStatus.precioUnitarioRecepcionNota !== undefined) {
+      pedidoItem.precioUnitarioRecepcionNota = itemWithStatus.precioUnitarioRecepcionNota;
+    }
+    if (itemWithStatus.descuentoUnitarioRecepcionNota !== undefined) {
+      pedidoItem.descuentoUnitarioRecepcionNota = itemWithStatus.descuentoUnitarioRecepcionNota;
+    }
+    if (itemWithStatus.obsRecepcionNota) {
+      pedidoItem.obsRecepcionNota = itemWithStatus.obsRecepcionNota;
+    }
+    
+    // Set RecepcionProducto fields if they exist
+    if (itemWithStatus.presentacionRecepcionProducto) {
+      pedidoItem.presentacionRecepcionProducto = itemWithStatus.presentacionRecepcionProducto;
+    }
+    if (itemWithStatus.cantidadRecepcionProducto !== undefined) {
+      pedidoItem.cantidadRecepcionProducto = itemWithStatus.cantidadRecepcionProducto;
+    }
+    if (itemWithStatus.precioUnitarioRecepcionProducto !== undefined) {
+      pedidoItem.precioUnitarioRecepcionProducto = itemWithStatus.precioUnitarioRecepcionProducto;
+    }
+    if (itemWithStatus.descuentoUnitarioRecepcionProducto !== undefined) {
+      pedidoItem.descuentoUnitarioRecepcionProducto = itemWithStatus.descuentoUnitarioRecepcionProducto;
+    }
+    if (itemWithStatus.obsRecepcionProducto) {
+      pedidoItem.obsRecepcionProducto = itemWithStatus.obsRecepcionProducto;
+    }
+
+    // Ensure the product has presentaciones loaded for mat-select
+    if (pedidoItem.producto && !pedidoItem.producto.presentaciones) {
+      console.warn('Product presentaciones not loaded, will be loaded by add-product-dialog');
+    }
+
+    console.log('Converted PedidoItem:', pedidoItem);
+
+    const dialogData: AddProductDialogData = {
+      pedido: this.selectedPedido,
+      pedidoItem: pedidoItem,
+      isEditing: true,
+      currentStep: this.getCurrentStep()
+    };
+
+    const dialogRef = this.dialog.open(AddProductDialogComponent, {
+      data: dialogData,
+      width: '95vw',
+      maxWidth: '1400px',
+      height: '90vh'
+    });
+
+    dialogRef.afterClosed().subscribe((result: AddProductDialogResult) => {
+      if (result?.needsUIRefresh) {
+        // Refresh all data
+        this.loadPedidoItems();
+        this.loadNotasRecepcion();
+        this.updateSummary();
+        this.pedidoChange.emit(this.selectedPedido);
+        
+        // Optionally reopen the manage dialog
+        this.showReOpenManageDialogOption(nota);
+      }
+    });
+  }
+
+  private getCurrentStep(): PedidoStep {
+    return PedidoStep.RECEPCION_NOTA;
+  }
+
+  private showReOpenManageDialogOption(nota: NotaRecepcion): void {
+    this.dialogosService.confirm(
+      'Gestionar Items',
+      '¿Desea volver a abrir el gestor de items para continuar gestionando?'
+    ).subscribe(reopen => {
+      if (reopen) {
+        // Small delay to ensure data is refreshed
+        setTimeout(() => {
+          this.onGestionarItems(nota);
+        }, 500);
       }
     });
   }
@@ -701,14 +920,12 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         
         // Handle specific changes with targeted updates
         if (result.productConfigurationChanged) {
-          console.log('Product configuration was changed - refreshing items and summary');
           // Product configuration changes affect items display and totals
           this.loadPedidoItems();
           this.updateSummary();
         }
         
         if (result.rejectionStatusChanged || result.itemCancellationChanged) {
-          console.log('Rejection/cancellation status was changed - refreshing items and summary');
           // Rejection/cancellation changes affect items display, summary, and selection state
           this.loadPedidoItems();
           this.updateSummary();
@@ -716,7 +933,6 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         }
         
         if (result.sucursalDistributionChanged) {
-          console.log('Sucursal distribution was changed - refreshing items only');
           // Distribution changes only affect items display
           this.loadPedidoItems();
         }
@@ -725,7 +941,6 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         if (result.updated && !result.productConfigurationChanged && 
             !result.rejectionStatusChanged && !result.itemCancellationChanged && 
             !result.sucursalDistributionChanged) {
-          console.log('Item updated with minimal changes - refreshing items only');
           this.loadPedidoItems();
         }
         
@@ -737,7 +952,7 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         // Always emit pedido change for parent component updates
         this.pedidoChange.emit(this.selectedPedido);
       } else if (result?.cancelled) {
-        console.log('Dialog was cancelled - no updates needed');
+        console.log('Dialog was cancelled - no updates n  eeded');
       }
     });
   }
@@ -810,7 +1025,6 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         }
         
         // New items always require full refresh of items and summary
-        console.log('New item added - refreshing items and summary');
         this.loadPedidoItems();
         this.updateSummary();
         
@@ -872,7 +1086,6 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         this.notificacionService.openSucess('Estado de rechazo actualizado exitosamente');
         
         // Targeted refresh - rejection status changes affect items display and summary
-        console.log('Rejection status updated - refreshing items and summary');
         this.loadPedidoItems();
         this.updateSummary();
         
@@ -904,5 +1117,10 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
       maxHeight: '90vh',
       disableClose: false
     });
+  }
+
+  // Utility methods
+  getMonedaSymbol(): string {
+    return this.selectedPedido?.moneda?.simbolo || 'Gs.';
   }
 } 

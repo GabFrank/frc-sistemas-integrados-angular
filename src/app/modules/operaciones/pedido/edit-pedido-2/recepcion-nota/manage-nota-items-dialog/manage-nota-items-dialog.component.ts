@@ -10,6 +10,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { NotaRecepcion } from '../../../nota-recepcion/nota-recepcion.model';
 import { Pedido } from '../../../edit-pedido/pedido.model';
 import { PedidoItem } from '../../../edit-pedido/pedido-item.model';
+import { PedidoItemEstado } from '../../../edit-pedido/pedido-enums';
 import { NotaRecepcionService } from '../../../nota-recepcion/nota-recepcion.service';
 import { PedidoService } from '../../../pedido.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
@@ -21,15 +22,33 @@ export interface ManageNotaItemsDialogData {
   pedido: Pedido;
 }
 
+export interface ManageNotaItemsDialogResult {
+  itemsChanged?: boolean;
+  editItem?: PedidoItemWithStatus;
+}
+
 interface PedidoItemWithStatus {
   id: number;
   producto: any;
-  presentacionCreacion: any;
-  cantidadCreacion: number;
-  precioUnitarioCreacion: number;
+  presentacion: any;
+  cantidad: number;
+  precioUnitario: number;
   valorTotal: number;
+  estado: PedidoItemEstado;
   status: 'assigned' | 'unassigned';
   notaRecepcionId?: number;
+  // Estado-based display fields
+  displayPresentacion: any;
+  displayCantidad: number;
+  displayPrecioUnitario: number;
+  displayValorTotal: number;
+  displayEstado: string;
+  displayEstadoColorClass: string;
+  // Distribution status fields
+  isDistribucionSucursalesCreacion: boolean;
+  isDistribucionSucursalesRecepcion: boolean;
+  displayDistributionStatus: string;
+  displayDistributionStatusClass: string;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -51,9 +70,9 @@ export class ManageNotaItemsDialogComponent implements OnInit {
   assignedItemsDataSource = new MatTableDataSource<PedidoItemWithStatus>([]);
   unassignedItemsDataSource = new MatTableDataSource<PedidoItemWithStatus>([]);
   
-  // Table columns
-  assignedItemsColumns = ['select', 'producto', 'presentacion', 'cantidad', 'precio', 'total', 'actions'];
-  unassignedItemsColumns = ['select', 'producto', 'presentacion', 'cantidad', 'precio', 'total', 'actions'];
+  // Table columns - add estado and distribution columns
+  assignedItemsColumns = ['select', 'producto', 'estado', 'presentacion', 'cantidad', 'precio', 'total', 'distribution', 'actions'];
+  unassignedItemsColumns = ['select', 'producto', 'estado', 'presentacion', 'cantidad', 'precio', 'total', 'distribution', 'actions'];
   
   // Selection models
   assignedSelection = new SelectionModel<PedidoItemWithStatus>(true, []);
@@ -188,11 +207,8 @@ export class ManageNotaItemsDialogComponent implements OnInit {
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (response) => {
-            const itemsWithStatus = response.getContent.map(item => ({
-              ...item,
-              status: 'assigned' as const,
-              notaRecepcionId: this.notaRecepcion.id
-            }));
+            // Transform items with estado-based computed properties
+            const itemsWithStatus = response.getContent.map(item => this.transformItemWithStatus(item, 'assigned'));
             
             this.assignedPage = {
               ...response,
@@ -222,10 +238,8 @@ export class ManageNotaItemsDialogComponent implements OnInit {
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (response) => {
-            const itemsWithStatus = response.getContent.map(item => ({
-              ...item,
-              status: 'unassigned' as const
-            }));
+            // Transform items with estado-based computed properties
+            const itemsWithStatus = response.getContent.map(item => this.transformItemWithStatus(item, 'unassigned'));
             
             this.unassignedPage = {
               ...response,
@@ -244,6 +258,106 @@ export class ManageNotaItemsDialogComponent implements OnInit {
           }
         });
     });
+  }
+
+  /**
+   * Transform a PedidoItem into PedidoItemWithStatus with estado-based computed properties
+   */
+  private transformItemWithStatus(item: any, status: 'assigned' | 'unassigned'): PedidoItemWithStatus {
+    // Create proper PedidoItem instance to use helper methods
+    const pedidoItem = new PedidoItem();
+    Object.assign(pedidoItem, item);
+    
+    // Get estado-based field values - if helper method fails, fall back to direct field access
+    let presentacion, cantidad, precioUnitario, descuentoUnitario;
+
+    console.log('pedido', this.pedido);
+    
+    try {
+      presentacion = pedidoItem.getFieldValueForEstado('presentacion', this.pedido.estado);
+      cantidad = pedidoItem.getFieldValueForEstado('cantidad', this.pedido.estado);
+      precioUnitario = pedidoItem.getFieldValueForEstado('precioUnitario', this.pedido.estado);
+      descuentoUnitario = pedidoItem.getFieldValueForEstado('descuentoUnitario', this.pedido.estado) || 0;
+    } catch (error) {
+      console.warn('Error using getFieldValueForEstado, falling back to direct field access:', error);
+      // Fallback to direct field access based on pedido estado
+      switch (this.pedido.estado) {
+        case 'EN_RECEPCION_NOTA':
+          presentacion = item.presentacionRecepcionNota || item.presentacionCreacion;
+          cantidad = item.cantidadRecepcionNota || item.cantidadCreacion;
+          precioUnitario = item.precioUnitarioRecepcionNota || item.precioUnitarioCreacion;
+          descuentoUnitario = item.descuentoUnitarioRecepcionNota || item.descuentoUnitarioCreacion || 0;
+          break;
+        case 'EN_RECEPCION_MERCADERIA':
+        case 'CONCLUIDO':
+          presentacion = item.presentacionRecepcionProducto || item.presentacionRecepcionNota || item.presentacionCreacion;
+          cantidad = item.cantidadRecepcionProducto || item.cantidadRecepcionNota || item.cantidadCreacion;
+          precioUnitario = item.precioUnitarioRecepcionProducto || item.precioUnitarioRecepcionNota || item.precioUnitarioCreacion;
+          descuentoUnitario = item.descuentoUnitarioRecepcionProducto || item.descuentoUnitarioRecepcionNota || item.descuentoUnitarioCreacion || 0;
+          break;
+        default:
+          // ABIERTO, ACTIVO, etc.
+          presentacion = item.presentacionCreacion;
+          cantidad = item.cantidadCreacion;
+          precioUnitario = item.precioUnitarioCreacion;
+          descuentoUnitario = item.descuentoUnitarioCreacion || 0;
+          break;
+      }
+    }
+   
+    // Calculate display values
+    const displayValorTotal = presentacion && cantidad && precioUnitario 
+      ? (cantidad * presentacion.cantidad * (precioUnitario - descuentoUnitario))
+      : item.valorTotal;
+
+    // Calculate distribution status using backend field
+    const needsDistribution = item.needsDistribucion;
+    const distributionStatus = needsDistribution ? 'Pendiente' : 'Completa';
+    const distributionStatusClass = needsDistribution ? 'distribution-pending' : 'distribution-complete';
+
+    return {
+      ...item,
+      status,
+      notaRecepcionId: status === 'assigned' ? this.notaRecepcion.id : undefined,
+      displayPresentacion: presentacion,
+      displayCantidad: cantidad,
+      displayPrecioUnitario: precioUnitario,
+      displayValorTotal: displayValorTotal,
+      displayEstado: item.cancelado ? 'Cancelado' : 'Activo',
+      displayEstadoColorClass: item.cancelado ? 'estado-cancelado' : 'estado-activo',
+      // Distribution status fields
+      isDistribucionSucursalesCreacion: item.isDistribucionSucursalesCreacion,
+      isDistribucionSucursalesRecepcion: item.isDistribucionSucursalesRecepcion,
+      displayDistributionStatus: distributionStatus,
+      displayDistributionStatusClass: distributionStatusClass
+    } as PedidoItemWithStatus;
+  }
+
+  /**
+   * Get display text for PedidoItemEstado
+   */
+  private getEstadoDisplayText(estado: PedidoItemEstado | string): string {
+    const estadoStr = typeof estado === 'string' ? estado : String(estado);
+    switch (estadoStr) {
+      case 'ACTIVO':
+      case PedidoItemEstado.ACTIVO:
+        return 'Activo';
+      case 'CANCELADO':
+      case PedidoItemEstado.CANCELADO:
+        return 'Cancelado';
+      case 'DEVOLUCION':
+      case PedidoItemEstado.DEVOLUCION:
+        return 'Devolución';
+      case 'CONCLUIDO':
+      case PedidoItemEstado.CONCLUIDO:
+        return 'Concluido';
+      case 'EN_FALTA':
+      case PedidoItemEstado.EN_FALTA:
+        return 'En Falta';
+      default:
+        console.warn('Unknown estado:', estado);
+        return 'Desconocido';
+    }
   }
 
   private loadAssignedItems(page = 0, size = 10): void {
@@ -452,6 +566,14 @@ export class ManageNotaItemsDialogComponent implements OnInit {
     }
   }
 
+  onEditItem(item: PedidoItemWithStatus): void {
+    // Close dialog with edit intent
+    this.dialogRef.close({ 
+      editItem: item, 
+      itemsChanged: false 
+    } as ManageNotaItemsDialogResult);
+  }
+
   // Pagination handlers
   onAssignedPageChange(event: any): void {
     this.loadAssignedItems(event.pageIndex, event.pageSize);
@@ -473,9 +595,9 @@ export class ManageNotaItemsDialogComponent implements OnInit {
     this.selectedAssignedCountComputed = this.selectedAssignedIds.size;
     this.selectedUnassignedCountComputed = this.selectedUnassignedIds.size;
     
-    // Totals
-    this.assignedTotalValueComputed = this.assignedItemsDataSource.data.reduce((total, item) => total + (item.valorTotal || 0), 0);
-    this.unassignedTotalValueComputed = this.unassignedItemsDataSource.data.reduce((total, item) => total + (item.valorTotal || 0), 0);
+    // Totals - use display values
+    this.assignedTotalValueComputed = this.assignedItemsDataSource.data.reduce((total, item) => total + (item.displayValorTotal || 0), 0);
+    this.unassignedTotalValueComputed = this.unassignedItemsDataSource.data.reduce((total, item) => total + (item.displayValorTotal || 0), 0);
     
     // Action states
     this.canRemoveItemsComputed = this.selectedAssignedIds.size > 0 && !this.isProcessing;

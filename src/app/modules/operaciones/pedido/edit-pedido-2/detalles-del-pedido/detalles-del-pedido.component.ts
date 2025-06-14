@@ -202,21 +202,18 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
             const descuentoUnitario = pedidoItem.getFieldValueForEstado('descuentoUnitario', this.selectedPedido.estado) || 0;
             const observaciones = pedidoItem.getFieldValueForEstado('obs', this.selectedPedido.estado);
 
-            console.log('estado', this.selectedPedido.estado);
-            console.log('presentacion', presentacion);
-            console.log('cantidad', cantidad);
-            console.log('precioUnitario', precioUnitario);
-            console.log('descuentoUnitario', descuentoUnitario);
-            console.log('observaciones', observaciones);
+            
             
             const cantidadPresentacion = presentacion?.cantidad || 1;
             
-            // Calculate sucursal distribution status using estado-based quantity
+            // Use backend-calculated distribution status
+            const needsDistribution = item.needsDistribucion;
+            const isDistributionComplete = !needsDistribution;
+            
+            // Calculate distribution percentage for display (optional)
             const totalCantidadRequerida = cantidad * cantidadPresentacion;
             const totalCantidadDistribuida = (item.pedidoItemSucursalList || [])
               .reduce((sum, sucursalItem) => sum + (sucursalItem.cantidadPorUnidad || 0), 0);
-            
-            const isDistributionComplete = totalCantidadDistribuida >= totalCantidadRequerida;
             const distributionPercentage = totalCantidadRequerida > 0 
               ? Math.round((totalCantidadDistribuida / totalCantidadRequerida) * 100) 
               : 0;
@@ -373,21 +370,17 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
       if (result && !result.cancelled && result.needsUIRefresh) {
         // Show appropriate success message based on what changed
         if (result.updated) {
-          console.log('Item was updated');
         }
         
         if (result.productConfigurationChanged) {
-          console.log('Product configuration was changed');
         }
         
         if (result.sucursalDistributionChanged) {
-          console.log('Sucursal distribution was changed');
         }
         
         this.loadPedidoItems(); // This will trigger updatePedidoTotals()
         this.pedidoChange.emit(this.selectedPedido);
       } else if (result?.cancelled) {
-        console.log('Dialog was cancelled');
       }
     });
   }
@@ -497,7 +490,6 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
       if (result && !result.cancelled && result.needsUIRefresh) {
         // Show appropriate success message based on what changed
         if (result.added) {
-          console.log('New item was added');
         }
         
         this.loadPedidoItems(); // This will trigger updatePedidoTotals()
@@ -507,7 +499,6 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
           this.openSucursalDialog(result.pedidoItem);
         }
       } else if (result?.cancelled) {
-        console.log('Dialog was cancelled');
       }
     });
   }

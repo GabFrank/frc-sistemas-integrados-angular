@@ -77,6 +77,7 @@ export const notaRecepcionPorPedidoIdQuery = gql`
       timbrado
       creadoEn
       cantidadItensVerificadoRecepcionMercaderia
+      cantidadItensNecesitanDistribucion
       usuario {
         id
         persona {
@@ -139,6 +140,7 @@ export const notaRecepcionPorPedidoIdAndNumeroQuery = gql`
         timbrado
         creadoEn
         cantidadItensVerificadoRecepcionMercaderia
+        cantidadItensNecesitanDistribucion
         usuario {
           id
           persona {

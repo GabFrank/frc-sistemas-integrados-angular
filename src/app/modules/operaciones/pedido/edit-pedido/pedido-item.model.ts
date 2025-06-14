@@ -72,6 +72,7 @@ export class PedidoItem {
   pedidoItemSucursalList: PedidoItemSucursal[] = [];
   isDistribucionSucursalesCreacion: boolean;
   isDistribucionSucursalesRecepcion: boolean;
+  needsDistribucion: boolean;
 
   toInput(): PedidoItemInput {
     let input = new PedidoItemInput();
