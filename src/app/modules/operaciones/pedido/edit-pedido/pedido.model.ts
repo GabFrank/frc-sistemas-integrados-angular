@@ -10,6 +10,7 @@ import { Compra } from '../../compra/compra.model';
 import { PedidoFechaEntrega } from '../pedido-fecha-entrega/pedido-fecha-entrega.model';
 import { PedidoSucursalEntrega } from '../pedido-sucursal-entrega/pedido-sucursal-entrega.model';
 import { PedidoSucursalInfluencia } from '../pedido-sucursal-influencia/pedido-sucursal-influencia.model';
+import { dateToString } from '../../../../commons/core/utils/dateUtils';
 
 export class Pedido {
   id: number;
@@ -39,6 +40,32 @@ export class Pedido {
   cantNotasCanceladas: number;
   pagado: boolean;
 
+  // Step tracking fields following the same pattern as PedidoItem
+  
+  // Step: Creacion (Datos del pedido)
+  usuarioCreacion: Usuario;
+  fechaInicioCreacion: Date;
+  fechaFinCreacion: Date;
+  progresoCreacion: number;
+  
+  // Step: Recepcion Nota
+  usuarioRecepcionNota: Usuario;
+  fechaInicioRecepcionNota: Date;
+  fechaFinRecepcionNota: Date;
+  progresoRecepcionNota: number;
+  
+  // Step: Recepcion Mercaderia
+  usuarioRecepcionMercaderia: Usuario;
+  fechaInicioRecepcionMercaderia: Date;
+  fechaFinRecepcionMercaderia: Date;
+  progresoRecepcionMercaderia: number;
+  
+  // Step: Solicitud Pago
+  usuarioSolicitudPago: Usuario;
+  fechaInicioSolicitudPago: Date;
+  fechaFinSolicitudPago: Date;
+  progresoSolicitudPago: number;
+
   toInput(): PedidoInput{
     let input = new PedidoInput();
     input.id = this.id;
@@ -59,6 +86,28 @@ export class Pedido {
       Object.assign(aux, p);
       input.pedidoItemInputList.push(aux.toInput())
     })
+    
+    // Step tracking fields
+    input.usuarioCreacionId = this.usuarioCreacion?.id;
+    input.fechaInicioCreacion = dateToString(this.fechaInicioCreacion);
+    input.fechaFinCreacion = dateToString(this.fechaFinCreacion);
+    input.progresoCreacion = this.progresoCreacion;
+    
+    input.usuarioRecepcionNotaId = this.usuarioRecepcionNota?.id;
+    input.fechaInicioRecepcionNota = dateToString(this.fechaInicioRecepcionNota);
+    input.fechaFinRecepcionNota = dateToString(this.fechaFinRecepcionNota);
+    input.progresoRecepcionNota = this.progresoRecepcionNota;
+    
+    input.usuarioRecepcionMercaderiaId = this.usuarioRecepcionMercaderia?.id;
+    input.fechaInicioRecepcionMercaderia = dateToString(this.fechaInicioRecepcionMercaderia);
+    input.fechaFinRecepcionMercaderia = dateToString(this.fechaFinRecepcionMercaderia);
+    input.progresoRecepcionMercaderia = this.progresoRecepcionMercaderia;
+    
+    input.usuarioSolicitudPagoId = this.usuarioSolicitudPago?.id;
+    input.fechaInicioSolicitudPago = dateToString(this.fechaInicioSolicitudPago);
+    input.fechaFinSolicitudPago = dateToString(this.fechaFinSolicitudPago);
+    input.progresoSolicitudPago = this.progresoSolicitudPago;
+    
     return input;
   }
 }
@@ -78,6 +127,27 @@ export class PedidoInput {
   usuarioId: number = null;
   valorTotal: number;
   pedidoItemInputList: PedidoItemInput[]
+  
+  // Step tracking fields
+  usuarioCreacionId: number;
+  fechaInicioCreacion: string;
+  fechaFinCreacion: string;
+  progresoCreacion: number;
+  
+  usuarioRecepcionNotaId: number;
+  fechaInicioRecepcionNota: string;
+  fechaFinRecepcionNota: string;
+  progresoRecepcionNota: number;
+  
+  usuarioRecepcionMercaderiaId: number;
+  fechaInicioRecepcionMercaderia: string;
+  fechaFinRecepcionMercaderia: string;
+  progresoRecepcionMercaderia: number;
+  
+  usuarioSolicitudPagoId: number;
+  fechaInicioSolicitudPago: string;
+  fechaFinSolicitudPago: string;
+  progresoSolicitudPago: number;
 }
 
 export interface PedidoRecepcionNotaSummary {

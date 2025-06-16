@@ -211,8 +211,8 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit, OnDestr
   // Tab navigation
   selectedTabIndex = 0;
 
-  // Current PedidoItem for embedded components (property instead of getter)
-  private _currentPedidoItemForEmbedded: PedidoItem | null = null;
+  // **FIX**: Public property for template access (no getter/setter performance issues)
+  currentPedidoItemForEmbedded: PedidoItem | null = null;
 
   // Change tracking for UI refresh decisions
   private changeTracker = {
@@ -224,23 +224,6 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit, OnDestr
     itemUpdated: false,
     needsDistributionUpdate: false
   };
-
-  get currentPedidoItemForEmbedded(): PedidoItem | null {
-    return this._currentPedidoItemForEmbedded;
-  }
-
-  set currentPedidoItemForEmbedded(value: PedidoItem | null) {
-    const previousValue = this._currentPedidoItemForEmbedded;
-    this._currentPedidoItemForEmbedded = value;
-    
-    // If this is a change from the embedded component (two-way binding), update the form
-    if (value && previousValue && value !== previousValue && this.data.isEditing) {
-      // Small delay to ensure the change is processed
-      setTimeout(() => {
-        this.onPedidoItemChanged();
-      }, 50);
-    }
-  }
 
   constructor(
     public dialogRef: MatDialogRef<AddProductDialogComponent>,
@@ -771,9 +754,23 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit, OnDestr
       .subscribe({
         next: (response) => {
           this.notificacionService.openSucess("Producto agregado al pedido");
-          this.closeDialog({ 
-            pedidoItem: response
-          });
+          
+          // **FIX**: Update data.pedidoItem with the fresh response from backend
+          this.data.pedidoItem = response;
+          this.data.isEditing = true; // Now we're in editing mode with a persisted item
+          
+          // **FIX**: Update the embedded component with the fresh database data
+          // This ensures the Distribution tab gets the correct presentacion and cantidad values
+          this.updateCurrentPedidoItemForEmbedded();
+          
+          // **FIX**: Navigate to Distribution Sucursales tab to allow distribution setup
+          this.selectedTabIndex = 2;
+          
+          // **FIX**: Show helpful message to guide user
+          this.notificacionService.openSucess("Producto agregado. Puede configurar la distribución por sucursales en esta pestaña.");
+          
+          // Force change detection to ensure UI updates
+          this.cdr.markForCheck();
         },
         error: () => {
           this.notificacionService.openWarn("Error al agregar producto al pedido");

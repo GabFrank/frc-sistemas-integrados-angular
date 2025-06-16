@@ -920,6 +920,7 @@
         <div class="tab-content">
           <div class="sucursal-distribution-main" *ngIf="selectedProducto">
             <!-- Embedded PedidoItemSucursalDialogComponent -->
+            <!-- **SIMPLIFIED**: No need to pass sucursal lists - component will extract from pedidoItem.pedido -->
             <app-pedido-item-sucursal-dialog
               style="height: 100%"
               [isEmbedded]="true"

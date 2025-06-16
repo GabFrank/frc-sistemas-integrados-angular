@@ -21,6 +21,7 @@
     color: white;
     display: flex;
     flex-direction: column;
+    position: relative;
     
     mat-card-header {
       padding-bottom: 8px;
@@ -94,6 +95,104 @@
         color: rgba(255, 255, 255, 0.6);
         font-style: italic;
       }
+    }
+  }
+
+  /* Step Summary Corner Styles */
+  .step-summary-corner {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    z-index: 10;
+
+    .step-summary-container {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      padding: 12px;
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+      .step-summary-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #f57c00;
+        text-align: center;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .step-items {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+
+        .step-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 4px 6px;
+          border-radius: 4px;
+          transition: all 0.3s ease;
+          background: rgba(255, 255, 255, 0.05);
+
+          .step-icon {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+            color: rgba(255, 255, 255, 0.5);
+          }
+
+          .step-label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+          }
+
+          &.active {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid rgba(255, 193, 7, 0.4);
+
+            .step-icon {
+              color: #ffc107;
+              animation: pulse 2s infinite;
+            }
+
+            .step-label {
+              color: #ffc107;
+              font-weight: 600;
+            }
+          }
+
+          &.completed {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid rgba(76, 175, 80, 0.4);
+
+            .step-icon {
+              color: #4caf50;
+            }
+
+            .step-label {
+              color: #4caf50;
+              font-weight: 600;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /* Pulse animation for active step */
+  @keyframes pulse {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
+    100% {
+      opacity: 1;
     }
   }
 }
@@ -180,11 +279,68 @@
     
     &.mat-raised-button {
       box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+      
+      // Special styling for Finalizar button
+      &[color="accent"] {
+        background-color: #f57c00;
+        color: white;
+        font-weight: 600;
+        min-width: 140px;
+        
+        mat-icon {
+          margin-right: 8px;
+        }
+        
+        &:hover {
+          background-color: #ef6c00;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+        
+        &:disabled {
+          background-color: #666;
+          color: #999;
+        }
+      }
     }
     
     &.mat-button {
       color: #e0e0e0;
     }
+  }
+}
+
+/* Enhanced Step Placeholder Styles */
+.step-placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #2a2a2a;
+  border: 2px dashed #666;
+  border-radius: 8px;
+  padding: 24px;
+  
+  .large-icon {
+    font-size: 5rem;
+    width: 5rem;
+    height: 5rem;
+    color: #777;
+    margin-bottom: 16px;
+  }
+  
+  p {
+    color: #aaa;
+    text-align: center;
+    font-style: italic;
+    font-size: 1.125rem;
+    margin: 0 0 12px 0;
+  }
+  
+  .step-placeholder-hint {
+    font-size: 1rem;
+    color: #888;
+    margin: 0;
   }
 }
 
@@ -209,6 +365,40 @@
         
         .info-secondary {
           font-size: 0.875rem;
+        }
+      }
+    }
+
+    /* Mobile adjustments for step summary */
+    .step-summary-corner {
+      top: 8px;
+      right: 8px;
+
+      .step-summary-container {
+        padding: 8px;
+        
+        .step-summary-title {
+          font-size: 0.8rem;
+          margin-bottom: 6px;
+        }
+
+        .step-items {
+          gap: 4px;
+
+          .step-item {
+            padding: 3px 4px;
+            gap: 6px;
+
+            .step-icon {
+              font-size: 14px;
+              width: 14px;
+              height: 14px;
+            }
+
+            .step-label {
+              font-size: 0.75rem;
+            }
+          }
         }
       }
     }
@@ -329,4 +519,5 @@
       background-color: #f44336;
     }
   }
-} 
+}
+

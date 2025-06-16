@@ -203,6 +203,47 @@ export const savePedido = gql`
           id
         }
       }
+      
+      # Step tracking fields
+      usuarioCreacion {
+        id
+        persona {
+          nombre
+        }
+      }
+      fechaInicioCreacion
+      fechaFinCreacion
+      progresoCreacion
+      
+      usuarioRecepcionNota {
+        id
+        persona {
+          nombre
+        }
+      }
+      fechaInicioRecepcionNota
+      fechaFinRecepcionNota
+      progresoRecepcionNota
+      
+      usuarioRecepcionMercaderia {
+        id
+        persona {
+          nombre
+        }
+      }
+      fechaInicioRecepcionMercaderia
+      fechaFinRecepcionMercaderia
+      progresoRecepcionMercaderia
+      
+      usuarioSolicitudPago {
+        id
+        persona {
+          nombre
+        }
+      }
+      fechaInicioSolicitudPago
+      fechaFinSolicitudPago
+      progresoSolicitudPago
     }
   }
 `;
@@ -358,6 +399,47 @@ export const pedidoInfoCompletaQuery = gql`
       cantNotasPagadas
       cantNotasCanceladas
       pagado
+      
+      # Step tracking fields
+      usuarioCreacion {
+        id
+        persona {
+          nombre
+        }
+      }
+      fechaInicioCreacion
+      fechaFinCreacion
+      progresoCreacion
+      
+      usuarioRecepcionNota {
+        id
+        persona {
+          nombre
+        }
+      }
+      fechaInicioRecepcionNota
+      fechaFinRecepcionNota
+      progresoRecepcionNota
+      
+      usuarioRecepcionMercaderia {
+        id
+        persona {
+          nombre
+        }
+      }
+      fechaInicioRecepcionMercaderia
+      fechaFinRecepcionMercaderia
+      progresoRecepcionMercaderia
+      
+      usuarioSolicitudPago {
+        id
+        persona {
+          nombre
+        }
+      }
+      fechaInicioSolicitudPago
+      fechaFinSolicitudPago
+      progresoSolicitudPago
     }
   }
 `;
@@ -592,6 +674,7 @@ export const pedidoItemPorPedidoPageQuery = gql`
       hasPrevious
       getContent {
         id
+        needsDistribucion
         producto {
           id
           descripcion

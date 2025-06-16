@@ -16,6 +16,31 @@
         </mat-card-title>
       </mat-card-header> -->
 
+      <!-- Step Summary in top-right corner -->
+      <div class="step-summary-corner" *ngIf="selectedPedido">
+        <div class="step-summary-container">
+          <div class="step-summary-title">Progreso de Etapas</div>
+          <div class="step-items">
+            <div class="step-item" [class.completed]="stepInfos.get('CREACION')?.status === 'COMPLETED'" [class.active]="stepInfos.get('CREACION')?.status === 'IN_PROGRESS'">
+              <mat-icon class="step-icon">description</mat-icon>
+              <span class="step-label">Creación</span>
+            </div>
+            <div class="step-item" [class.completed]="stepInfos.get('RECEPCION_NOTA')?.status === 'COMPLETED'" [class.active]="stepInfos.get('RECEPCION_NOTA')?.status === 'IN_PROGRESS'">
+              <mat-icon class="step-icon">receipt</mat-icon>
+              <span class="step-label">R. Nota</span>
+            </div>
+            <div class="step-item" [class.completed]="stepInfos.get('RECEPCION_MERCADERIA')?.status === 'COMPLETED'" [class.active]="stepInfos.get('RECEPCION_MERCADERIA')?.status === 'IN_PROGRESS'">
+              <mat-icon class="step-icon">inventory</mat-icon>
+              <span class="step-label">R. Mercadería</span>
+            </div>
+            <div class="step-item" [class.completed]="stepInfos.get('SOLICITUD_PAGO')?.status === 'COMPLETED'" [class.active]="stepInfos.get('SOLICITUD_PAGO')?.status === 'IN_PROGRESS'">
+              <mat-icon class="step-icon">payment</mat-icon>
+              <span class="step-label">S. Pago</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <mat-card-content>
         <div
           fxLayout="row"
@@ -148,7 +173,7 @@
             <div class="info-label">Total con Descuento</div>
             <div class="info-content">
               <div class="info-value">
-                {{ computedTotalConDescuento | currency : "" : "" }}
+                {{ computedTotalConDescuento | number : "1.0-2" }}
               </div>
             </div>
           </div>
@@ -250,11 +275,14 @@
             <button mat-button (click)="previousStep()">Anterior</button>
             <button
               mat-raised-button
-              color="primary"
-              (click)="goToRecepcionNota()"
+              color="accent"
+              (click)="finalizarCreacionPedido()"
               [disabled]="!canGoToRecepcionNota"
+              [matTooltip]="!canGoToRecepcionNota ? 'Complete todos los datos del pedido antes de finalizar' : 'Finalizar la creación del pedido y pasar a la siguiente etapa'"
+              matTooltipPosition="above"
             >
-              Siguiente
+              <mat-icon>check</mat-icon>
+              Finalizar
             </button>
           </div>
         </div>
@@ -263,23 +291,56 @@
       <!-- Step 3: Recepción de Nota -->
       <mat-step label="Recepción de Nota" [stepControl]="dummyStepControl">
         <div class="step-content" fxLayout="column" fxFill>
+
+          <!-- Main Content - Only show when step is active -->
           <app-recepcion-nota 
+            *ngIf="isRecepcionNotaActive"
             [selectedPedido]="selectedPedido"
             (pedidoChange)="onPedidoChange($event)"
             (stepValidChange)="onStep3ValidChange($event)"
             style="flex: 1; min-height: 0;">
           </app-recepcion-nota>
           
+          <!-- Placeholder when step not started -->
+          <div 
+            *ngIf="!isRecepcionNotaActive"
+            fxFlex
+            fxLayout="column"
+            fxLayoutAlign="center center"
+            class="step-placeholder">
+            <mat-icon class="large-icon">receipt</mat-icon>
+            <p>Haga clic en "Iniciar Recepción de Nota" para comenzar esta etapa</p>
+            <p class="step-placeholder-hint">
+              En esta etapa asignará los productos del pedido a notas de recepción
+              y distribuirá las cantidades por sucursales.
+            </p>
+          </div>
+          
           <div class="step-actions" fxLayout="row" fxLayoutAlign="space-between center" fxLayoutGap="10px">
             <button mat-button (click)="previousStep()">
               Anterior
             </button>
+            
+            <!-- Show "Iniciar Recepción de Nota" button when available -->
             <button 
+              *ngIf="showRecepcionNotaInitButton"
+              mat-raised-button 
+              color="accent"
+              (click)="beginRecepcionNotaStep()"
+              [disabled]="!canBeginRecepcionNota"
+              class="step-action-button">
+              <mat-icon>play_arrow</mat-icon>
+              Iniciar Recepción de Nota
+            </button>
+            
+            <!-- Show "Siguiente" button when step is active -->
+            <button 
+              *ngIf="!showRecepcionNotaInitButton"
               mat-raised-button 
               color="primary" 
               (click)="nextStep()"
-              [disabled]="!step3Valid"
-              [matTooltip]="!step3Valid ? 'Complete la asignación de todos los items y distribución por sucursales antes de continuar' : ''"
+              [disabled]="!step3Valid || !isRecepcionNotaActive"
+              [matTooltip]="nextButtonTooltip"
               matTooltipPosition="above">
               Siguiente
             </button>

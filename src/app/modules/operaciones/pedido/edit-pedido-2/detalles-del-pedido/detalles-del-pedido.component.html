@@ -221,7 +221,7 @@
           mat-row
           *matRowDef="let row; columns: pedidoItemsColumns"
           class="data-row"
-          [ngClass]="row.distributionStatusClass"
+          [ngClass]="row.needsDistribucion ? 'distribution-incomplete' : 'distribution-complete'"
         ></tr>
       </table>
     </div>

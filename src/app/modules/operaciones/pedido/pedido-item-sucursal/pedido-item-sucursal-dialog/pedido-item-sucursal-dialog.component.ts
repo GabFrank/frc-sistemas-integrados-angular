@@ -124,7 +124,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
   private initializeEmbeddedMode(): void {
     this.sucursalService.onGetAllSucursales().subscribe((sucRes) => {
       this.sucursales = sucRes;
-      if (this.embeddedPedidoItem && this.embeddedSucursalInfluenciaList) {
+      if (this.embeddedPedidoItem) {
         // Convert plain object to PedidoItem instance if needed
         let pedidoItem: PedidoItem;
         if (this.embeddedPedidoItem instanceof PedidoItem) {
@@ -135,7 +135,23 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
         }
         this.selectedPedidoItem = pedidoItem;
         
-        this.sucursalInfluenciaList = this.embeddedSucursalInfluenciaList;
+        // **FIX**: Extract sucursal lists from pedido data automatically
+        // First try embedded inputs, then fall back to pedido data
+        if (this.embeddedSucursalInfluenciaList && this.embeddedSucursalInfluenciaList.length > 0) {
+          this.sucursalInfluenciaList = this.embeddedSucursalInfluenciaList;
+        } else {
+          // Extract from pedido.sucursalInfluenciaList
+          this.sucursalInfluenciaList = (pedidoItem.pedido?.sucursalInfluenciaList || []).map(si => si.sucursal);
+        }
+        
+        // Set default sucursal entrega list for form controls
+        this.data = this.data || {};
+        if (!this.data.sucursalEntregaList && pedidoItem.pedido?.sucursalEntregaList) {
+          this.data.sucursalEntregaList = pedidoItem.pedido.sucursalEntregaList.map(se => se.sucursal);
+        } else if (this.embeddedSucursalEntregaList && this.embeddedSucursalEntregaList.length > 0) {
+          this.data.sucursalEntregaList = this.embeddedSucursalEntregaList;
+        }
+        
         this.updateComputedProperties();
         this.loadPedidoItemSucursalAndInitControls();
       }

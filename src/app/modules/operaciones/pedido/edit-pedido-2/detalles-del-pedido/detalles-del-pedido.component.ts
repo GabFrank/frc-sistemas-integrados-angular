@@ -325,10 +325,8 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
           this.loadPedidoItems(); // This will trigger updatePedidoTotals()
           this.clearProductSelection();
           
-          // Open sucursal dialog if multiple sucursales
-          if (this.selectedPedido.sucursalInfluenciaList?.length > 1) {
-            this.openSucursalDialog(response);
-          }
+          // **REMOVED**: Duplicate sucursal dialog opening - handled within add-product dialog
+          // Users should use the new AddProductDialogComponent for all product additions
         },
         error: () => {
           this.notificacionService.openWarn('Error al agregar producto al pedido');
@@ -494,10 +492,9 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
         
         this.loadPedidoItems(); // This will trigger updatePedidoTotals()
         
-        // Open sucursal dialog if multiple sucursales
-        if (this.selectedPedido.sucursalInfluenciaList?.length > 1 && result.pedidoItem) {
-          this.openSucursalDialog(result.pedidoItem);
-        }
+        // **REMOVED**: Duplicate sucursal dialog opening - now handled within the add-product dialog
+        // The embedded distribution tab in AddProductDialogComponent handles sucursal distribution
+        // No need for additional standalone dialog
       } else if (result?.cancelled) {
       }
     });
