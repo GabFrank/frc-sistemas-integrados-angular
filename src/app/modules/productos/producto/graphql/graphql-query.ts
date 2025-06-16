@@ -88,6 +88,7 @@ export const productoSearchPdv = gql`
       observacion
       codigoPrincipal
       precioPrincipal
+      activo
       costo {
         ultimoPrecioCompra
       }

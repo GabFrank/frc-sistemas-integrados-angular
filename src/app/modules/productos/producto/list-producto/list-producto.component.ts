@@ -185,19 +185,29 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       });
   }
 
-  onRowClick(row) {
-    this.selectedProducto = row;
-    this.selectedProducto.sucursales = [];
-    for(let sucursal of this.sucursales){
-      this.service.onGetStockPorProductoAndSucursal(this.selectedProducto.id, sucursal.id, true).subscribe(res => {
-        let existencia = new ExistenciaCostoPorSucursal();
-        existencia.sucursal = sucursal;
-        existencia.existencia = res;
-        this.selectedProducto.sucursales.push(existencia);
-      })
-    }
-    this.expandedProducto = this.selectedProducto;
+  onRowClick(row, isCurrentlyExpanded: boolean) {
+    if (!isCurrentlyExpanded) {
+      this.selectedProducto = row;
 
+      this.selectedProducto.sucursales = this.sucursales.map((s) => {
+        const existencia = new ExistenciaCostoPorSucursal();
+        existencia.sucursal = s;
+        existencia.existencia = null;
+        return existencia;
+      });
+
+      this.selectedProducto.sucursales.forEach((existenciaSucursal) => {
+        this.service
+          .onGetStockPorProductoAndSucursal(
+            this.selectedProducto.id,
+            existenciaSucursal.sucursal.id,
+            true
+          )
+          .subscribe((stock) => {
+            existenciaSucursal.existencia = stock;
+          });
+      });
+    }
   }
 
   onEditProducto(producto, i) {

@@ -239,7 +239,7 @@
         <td
           mat-cell
           *matCellDef="let producto"
-          style="text-align: start"
+          style="text-align: center"
           copiarAClipboard
         >
           {{ producto?.codigoPrincipal }}
@@ -278,7 +278,7 @@
           Activo
         </th>
         <td mat-cell *matCellDef="let producto" style="text-align: center">
-          {{ producto?.activo ? "Si" : "No" }}
+          {{ producto?.activo ? 'Si' : 'No' }}
         </td>
       </ng-container>
 
@@ -400,8 +400,8 @@
         [class.example-expanded-row]="expandedProducto === row"
         [class.selectedRow]="expandedProducto === row"
         (click)="
-          expandedProducto = expandedProducto === row ? null : row;
-          onRowClick(row)
+          onRowClick(row, expandedProducto === row);
+          expandedProducto = expandedProducto === row ? null : row
         "
       ></tr>
       <tr

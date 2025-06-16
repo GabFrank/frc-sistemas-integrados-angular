@@ -247,6 +247,7 @@ export const ventasPorCajaIdQuery = gql`
     $estado: VentaEstado
     $isDelivery: Boolean
     $monedaId: Int
+    $conDescuento: Boolean
   ) {
     data: ventasPorCajaId(
       idVenta: $idVenta
@@ -259,6 +260,7 @@ export const ventasPorCajaIdQuery = gql`
       estado: $estado
       isDelivery: $isDelivery
       monedaId: $monedaId
+      conDescuento: $conDescuento
     ) {
       getTotalPages
       getTotalElements

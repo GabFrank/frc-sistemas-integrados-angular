@@ -431,7 +431,6 @@
           fxLayoutAlign="start center"
           style="width: 100%"
           fxLayoutGap="10px"
-          fxLayoutAlign="start center"
         >
           <div fxFlex="15%">
             <mat-form-field style="width: 100%">
@@ -491,12 +490,15 @@
             </mat-form-field>
           </div>
         </div>
-        <div fxLayout="column" style="padding-top: 10px">
-            <div fxLayout="row" style="align-items: center">
-            <mat-label style="font-size: 14px;">Ventas con observaciones:</mat-label>
+        <div fxLayout="row" fxLayoutAlign="start center" style="padding-top: 10px;" fxLayoutGap="20px">
+          <div fxLayout="row" fxLayoutAlign="center center">
+            <mat-label style="font-size: 14px; margin-right: 5px; color: #f57c00">Ventas con observaciones:</mat-label>
             <mat-checkbox [formControl]="conObsControl"></mat-checkbox>
           </div>
-
+          <div fxLayout="row" fxLayoutAlign="center center">
+            <mat-label style="font-size: 14px; margin-right: 5px; color: #f57c00">Ventas con descuento:</mat-label>
+            <mat-checkbox [formControl]="conDescuentoControl"></mat-checkbox>
+          </div>
         </div>
       </div>
       <div

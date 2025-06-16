@@ -101,6 +101,7 @@ export class ListVentaComponent implements OnInit {
   estadoControl = new FormControl(null);
   filterChanged = true;
   conObsControl = new FormControl(false);
+  conDescuentoControl = new FormControl(false);
 
   length = 15;
   pageSize = 15;
@@ -164,7 +165,8 @@ export class ListVentaComponent implements OnInit {
       id: this.idVentaControl,
       formaPago: this.formaPagoControl,
       estado: this.estadoControl,
-      conObservacion: this.conObsControl
+      conObservacion: this.conObsControl,
+      conDescuento: this.conDescuentoControl
     });
 
     this.form.valueChanges.subscribe((res) => {
@@ -224,7 +226,8 @@ export class ListVentaComponent implements OnInit {
         this.formaPagoControl.value,
         this.estadoControl.value,
         this.modoControl.value,
-        this.monedaControl.value?.id
+        this.monedaControl.value?.id,
+        this.conDescuentoControl.value
       )
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
@@ -378,6 +381,7 @@ export class ListVentaComponent implements OnInit {
     this.selectedFormaPago = null;
     this.ventaDataSource.data = [];
     this.conObsControl.setValue(false);
+    this.conDescuentoControl.setValue(false);
   }
 
   onGoToRetiros() {
