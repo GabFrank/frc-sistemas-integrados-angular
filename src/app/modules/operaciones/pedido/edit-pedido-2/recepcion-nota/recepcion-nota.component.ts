@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, Output, EventEmitter, ViewChild } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, OnDestroy, SimpleChanges, Output, EventEmitter, ViewChild, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
@@ -43,9 +43,10 @@ interface PedidoItemWithStatus extends PedidoItem {
 @Component({
   selector: 'app-recepcion-nota',
   templateUrl: './recepcion-nota.component.html',
-  styleUrls: ['./recepcion-nota.component.scss']
+  styleUrls: ['./recepcion-nota.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class RecepcionNotaComponent implements OnInit, OnChanges {
+export class RecepcionNotaComponent implements OnInit, OnChanges, OnDestroy {
   @ViewChild('itemsPaginator') itemsPaginator: MatPaginator;
   @ViewChild('notasPaginator') notasPaginator: MatPaginator;
 
@@ -88,6 +89,8 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
   cancelledItems = 0;
   totalNotas = 0;
   itemsNeedingDistribution = 0;
+  // **NEW**: Track non-cancelled pending items for step validation
+  nonCancelledPendingItems = 0;
 
   // Computed properties for template (to avoid function calls in HTML)
   monedaSymbol = 'Gs.';
@@ -102,17 +105,55 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
   // **NEW**: Computed property for step validation
   canProceedToNextStepComputed = false;
 
+  // Debounce timeout reference
+  private updateComputedPropertiesTimeout: any = null;
+  
+  // **MEMORY MANAGEMENT**: Periodic cleanup interval
+  private cleanupInterval: any = null;
+
+  // Debounced version of updateComputedProperties to prevent excessive calls
+  private updateComputedPropertiesDebounced = () => {
+    if (this.updateComputedPropertiesTimeout) {
+      clearTimeout(this.updateComputedPropertiesTimeout);
+    }
+    this.updateComputedPropertiesTimeout = setTimeout(() => {
+      this.updateComputedPropertiesImmediate();
+    }, 10); // 10ms debounce
+  };
+
   constructor(
     private pedidoService: PedidoService,
     private notaRecepcionService: NotaRecepcionService,
     private mainService: MainService,
     private notificacionService: NotificacionSnackbarService,
     private dialog: MatDialog,
-    private dialogosService: DialogosService
+    private dialogosService: DialogosService,
+    private cdr: ChangeDetectorRef
   ) {}
+
+  ngOnDestroy(): void {
+    // Clean up the debounce timeout
+    if (this.updateComputedPropertiesTimeout) {
+      clearTimeout(this.updateComputedPropertiesTimeout);
+    }
+    
+    // Clean up periodic cleanup interval
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+    }
+    
+    // **MEMORY CLEANUP**: Prevent memory leaks by clearing sets and arrays
+    this.selectedItemIds.clear();
+    this.itemsSelection.clear();
+    this.notasWithComputedProperties = [];
+    this.itemsWithComputedProperties = [];
+    this.pedidoItemsDataSource.data = [];
+    this.notasRecepcionDataSource.data = [];
+  }
 
   ngOnInit(): void {
     this.setupFormSubscriptions();
+    this.setupPeriodicCleanup();
     // Don't load data here - wait for OnChanges
   }
 
@@ -121,11 +162,16 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
       const currentPedido = changes['selectedPedido'].currentValue;
       const previousPedido = changes['selectedPedido'].previousValue;
       
+      // **OPTIMIZED**: Skip if both are falsy (avoiding undefined -> null transitions)
+      if (!currentPedido && !previousPedido) {
+        return;
+      }
+      
       // Only load data if pedido is available and different from previous
       if (currentPedido && currentPedido.id && currentPedido !== previousPedido) {
         this.loadInitialData();
-      } else if (!currentPedido) {
-        // Clear data if pedido becomes null
+      } else if (!currentPedido && previousPedido) {
+        // Clear data if pedido becomes null (but only if it was previously not null)
         this.clearData();
       }
     }
@@ -143,6 +189,7 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
     this.cancelledItems = 0;
     this.totalNotas = 0;
     this.itemsNeedingDistribution = 0;
+    this.nonCancelledPendingItems = 0;
     this.updateComputedProperties();
   }
 
@@ -170,6 +217,26 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
       });
   }
 
+  private setupPeriodicCleanup(): void {
+    // **MEMORY MANAGEMENT**: Clean up selectedItemIds every 30 seconds to prevent memory leaks
+    this.cleanupInterval = setInterval(() => {
+      // Keep only IDs that are still present in current data
+      const currentIds = new Set(this.pedidoItemsDataSource.data.map(item => item.id));
+      const cleanedIds = new Set<number>();
+      
+      this.selectedItemIds.forEach(id => {
+        if (currentIds.has(id)) {
+          cleanedIds.add(id);
+        }
+      });
+      
+      // Only update if there's a difference to avoid unnecessary operations
+      if (cleanedIds.size !== this.selectedItemIds.size) {
+        this.selectedItemIds = cleanedIds;
+      }
+    }, 30000); // 30 seconds
+  }
+
   private loadInitialData(): void {
     if (this.selectedPedido?.id) {
       this.loadPedidoItems();
@@ -192,31 +259,35 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         next: (response) => {
           this.pedidoItemsPage = response;
           
-          // Transform items with computed properties using estado-based field access
+          // **OPTIMIZED**: Transform items with computed properties using estado-based field access
+          const currentEstado = this.selectedPedido.estado;
           const itemsWithStatus: PedidoItemWithStatus[] = response.getContent.map(item => {
-            // Create proper PedidoItem instance
-            const pedidoItem = Object.assign(new PedidoItem(), item);
+            // **OPTIMIZED**: Reuse existing instance to reduce object creation
+            const pedidoItem = item instanceof PedidoItem ? item : Object.assign(new PedidoItem(), item);
             
-            // Add computed properties based on current pedido estado
-            const presentacion = pedidoItem.getFieldValueForEstado('presentacion', this.selectedPedido.estado);
-            const cantidad = pedidoItem.getFieldValueForEstado('cantidad', this.selectedPedido.estado);
-            const precioUnitario = pedidoItem.getFieldValueForEstado('precioUnitario', this.selectedPedido.estado);
-            const descuentoUnitario = pedidoItem.getFieldValueForEstado('descuentoUnitario', this.selectedPedido.estado);
+            // **OPTIMIZED**: Cache estado-based field access calculations
+            const presentacion = pedidoItem.getFieldValueForEstado('presentacion', currentEstado);
+            const cantidad = pedidoItem.getFieldValueForEstado('cantidad', currentEstado);
+            const precioUnitario = pedidoItem.getFieldValueForEstado('precioUnitario', currentEstado);
+            const descuentoUnitario = pedidoItem.getFieldValueForEstado('descuentoUnitario', currentEstado);
             
-            return {
-              ...pedidoItem,
-              isAssigned: !!item.notaRecepcion,
-              notaNumero: item.notaRecepcion?.numero,
-              notaTipoBoleta: item.notaRecepcion?.tipoBoleta,
-              // Add computed properties for template display
-              displayPresentacion: presentacion,
-              displayCantidad: cantidad,
-              displayPrecioUnitario: precioUnitario,
-              displayDescuentoUnitario: descuentoUnitario,
-              displayValorTotal: presentacion && cantidad && precioUnitario 
-                ? (cantidad * presentacion.cantidad * (precioUnitario - (descuentoUnitario || 0)))
-                : item.valorTotal
-            } as PedidoItemWithStatus;
+            // **OPTIMIZED**: Calculate once instead of in template
+            const displayValorTotal = presentacion && cantidad && precioUnitario 
+              ? (cantidad * presentacion.cantidad * (precioUnitario - (descuentoUnitario || 0)))
+              : item.valorTotal;
+            
+            // **OPTIMIZED**: Direct assignment instead of spread operator for better performance
+            const itemWithStatus = pedidoItem as PedidoItemWithStatus;
+            itemWithStatus.isAssigned = !!item.notaRecepcion;
+            itemWithStatus.notaNumero = item.notaRecepcion?.numero;
+            itemWithStatus.notaTipoBoleta = item.notaRecepcion?.tipoBoleta;
+            itemWithStatus.displayPresentacion = presentacion;
+            itemWithStatus.displayCantidad = cantidad;
+            itemWithStatus.displayPrecioUnitario = precioUnitario;
+            itemWithStatus.displayDescuentoUnitario = descuentoUnitario;
+            itemWithStatus.displayValorTotal = displayValorTotal;
+            
+            return itemWithStatus;
           });
 
           this.pedidoItemsDataSource.data = itemsWithStatus;
@@ -231,7 +302,7 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
             this.itemsPaginator.pageSize = size;
           }
 
-          this.updateSummary();
+          // Don't call updateSummary() here - search/pagination doesn't change business data
           this.isLoadingItems = false;
         },
         error: () => {
@@ -276,7 +347,7 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
           this.notasPaginator.pageSize = size;
         }
 
-        this.updateSummary();
+        // Don't call updateSummary() here - search/pagination doesn't change business data
         this.isLoadingNotas = false;
       },
       error: () => {
@@ -300,8 +371,14 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
             this.totalNotas = summary.totalNotas;
             this.itemsNeedingDistribution = summary.itemsNeedingDistribution || 0;
             
+            // **NEW**: Calculate non-cancelled pending items for step validation
+            // ISSUE: Backend pendingItems calculation has a bug - it counts cancelled unassigned items as pending
+            // For now, we'll calculate it correctly here: totalItems - assignedItems - cancelledItems
+            this.nonCancelledPendingItems = Math.max(0, summary.totalItems - summary.assignedItems - (summary.cancelledItems || 0));
+            
             // Update computed properties
             this.updateComputedProperties();
+
           },
           error: () => {
             console.warn('Could not load pedido recepcion nota summary');
@@ -313,6 +390,9 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
             this.pendingItems = currentItems.filter(item => !item.isAssigned && !item.cancelado).length;
             this.totalNotas = this.notasRecepcionDataSource.data.length;
             this.itemsNeedingDistribution = 0; // Reset itemsNeedingDistribution
+            // **NEW**: For fallback, calculate non-cancelled pending items correctly
+            // The fallback already excludes cancelled items, so it's already correct
+            this.nonCancelledPendingItems = this.pendingItems;
             this.updateComputedProperties();
           }
         });
@@ -320,16 +400,26 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
   }
 
   private updateComputedProperties(): void {
+    // Call the debounced version to prevent excessive calls
+    this.updateComputedPropertiesDebounced();
+  }
+
+  private updateComputedPropertiesImmediate(): void {
     // Basic computed properties
     this.monedaSymbol = this.selectedPedido?.moneda?.simbolo || 'Gs.';
     this.hasDataComputed = this.totalItems > 0 || this.totalNotas > 0;
     this.isProcessingComputed = this.isProcessing;
     this.canCreateNotaComputed = this.selectedPedido?.estado === 'ACTIVO' || this.selectedPedido?.estado === 'EN_RECEPCION_NOTA';
-    this.canAssignItemsComputed = this.selectedNotaRecepcion != null && this.pendingItems > 0;
+    
+    // **UPDATED**: Allow assignment when there are selectable items (including cancelled items)
+    // Use actual UI selection count, not selectedItemIds.size to avoid stale selection state
+    const selectableItems = this.itemsSelection.selected.length;
+    this.canAssignItemsComputed = this.selectedNotaRecepcion != null && selectableItems > 0;
 
-    // **NEW**: Step validation - can proceed if no pending items and no items needing distribution
+    // **UPDATED**: Step validation - can proceed if no NON-CANCELLED pending items and no items needing distribution
+    // Cancelled items are optional to assign, so they don't block progression
     const previousCanProceed = this.canProceedToNextStepComputed;
-    this.canProceedToNextStepComputed = this.pendingItems === 0 && this.itemsNeedingDistribution === 0;
+    this.canProceedToNextStepComputed = this.nonCancelledPendingItems === 0 && this.itemsNeedingDistribution === 0;
     
     // Emit step validation change if it changed
     if (previousCanProceed !== this.canProceedToNextStepComputed) {
@@ -361,6 +451,9 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         item.precioUnitarioCreacion,
       displayValorTotal: this.calculateItemTotal(item)
     }));
+
+    // Manually trigger change detection for OnPush strategy
+    this.cdr.markForCheck();
   }
 
   /**
@@ -510,7 +603,10 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         // Refresh data and summary
         this.loadPedidoItems();
         this.loadNotasRecepcion();
-        this.updateSummary(); // Refresh summary from backend
+        // Add delay to ensure database changes are committed
+        setTimeout(() => {
+          this.updateSummary(); // Refresh summary from backend
+        }, 500);
         this.selectedNotaRecepcion = null;
         this.isProcessing = false;
         
@@ -538,7 +634,10 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         // Refresh data and summary
         this.loadPedidoItems();
         this.loadNotasRecepcion();
-        this.updateSummary(); // Refresh summary from backend
+        // Add delay to ensure database changes are committed
+        setTimeout(() => {
+          this.updateSummary(); // Refresh summary from backend
+        }, 500);
         
         // Emit pedido change to update parent component
         this.pedidoChange.emit(this.selectedPedido);
@@ -573,7 +672,10 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         // Refresh data and summary
         this.loadPedidoItems();
         this.loadNotasRecepcion();
-        this.updateSummary(); // Refresh summary from backend
+        // Add delay to ensure database changes are committed
+        setTimeout(() => {
+          this.updateSummary(); // Refresh summary from backend
+        }, 500);
         this.selectedNotaRecepcion = null;
         this.isProcessing = false;
         
@@ -612,7 +714,10 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
                 // Refresh data and summary
                 this.loadPedidoItems();
                 this.loadNotasRecepcion();
-                this.updateSummary(); // Refresh summary from backend
+                // Add delay to ensure database changes are committed
+                setTimeout(() => {
+                  this.updateSummary(); // Refresh summary from backend
+                }, 500);
                 
                 // Emit pedido change
                 this.pedidoChange.emit(this.selectedPedido);
@@ -665,7 +770,10 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
                 // Refresh data and summary
                 this.loadPedidoItems();
                 this.loadNotasRecepcion();
-                this.updateSummary(); // Refresh summary from backend
+                // Add delay to ensure database changes are committed
+                setTimeout(() => {
+                  this.updateSummary(); // Refresh summary from backend
+                }, 500);
                 
                 // Emit pedido change
                 this.pedidoChange.emit(this.selectedPedido);
@@ -698,7 +806,6 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
     dialogRef.afterClosed().subscribe(result => {
       if (result?.editItem) {
         // Handle edit intent: open add-product-dialog with the item
-        console.log('result', result);
         this.openAddProductDialogForEdit(result.editItem, nota);
       } else if (result?.itemsChanged) {
         this.notificacionService.openSucess('Items gestionados exitosamente');
@@ -706,7 +813,10 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         // Refresh data and summary
         this.loadPedidoItems();
         this.loadNotasRecepcion();
-        this.updateSummary(); // Refresh summary from backend
+        // Add delay to ensure database changes are committed
+        setTimeout(() => {
+          this.updateSummary(); // Refresh summary from backend
+        }, 500);
         
         // Emit pedido change to update parent component
         this.pedidoChange.emit(this.selectedPedido);
@@ -715,10 +825,6 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
   }
 
   private openAddProductDialogForEdit(itemWithStatus: any, nota: NotaRecepcion): void {
-    // Log the raw data to debug
-    console.log('Raw itemWithStatus data:', itemWithStatus);
-    console.log('Pedido estado:', this.selectedPedido.estado);
-    
     // Convert the item data to PedidoItem format
     const pedidoItem = new PedidoItem();
     pedidoItem.id = itemWithStatus.id;
@@ -730,9 +836,6 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
     // **FIX ISSUE 1**: Set the notaRecepcion reference if the item is assigned
     if (itemWithStatus.status === 'assigned' && itemWithStatus.notaRecepcionId) {
       pedidoItem.notaRecepcion = nota; // Set the full NotaRecepcion object
-      console.log('Item is assigned to nota:', nota.id, 'Setting notaRecepcion reference');
-    } else {
-      console.log('Item is not assigned or missing notaRecepcionId');
     }
     
     // Explicitly set all the estado-based fields from the original item
@@ -782,8 +885,6 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
       console.warn('Product presentaciones not loaded, will be loaded by add-product-dialog');
     }
 
-    console.log('Converted PedidoItem:', pedidoItem);
-
     const dialogData: AddProductDialogData = {
       pedido: this.selectedPedido,
       pedidoItem: pedidoItem,
@@ -803,7 +904,12 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         // Refresh all data
         this.loadPedidoItems();
         this.loadNotasRecepcion();
-        this.updateSummary();
+        
+        // Add delay before updating summary to ensure database changes are committed
+        setTimeout(() => {
+          this.updateSummary();
+        }, 500);
+        
         this.pedidoChange.emit(this.selectedPedido);
         
         // Optionally reopen the manage dialog
@@ -922,13 +1028,19 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         if (result.productConfigurationChanged) {
           // Product configuration changes affect items display and totals
           this.loadPedidoItems();
-          this.updateSummary();
+          // Add delay to ensure database changes are committed
+          setTimeout(() => {
+            this.updateSummary();
+          }, 500);
         }
         
         if (result.rejectionStatusChanged || result.itemCancellationChanged) {
           // Rejection/cancellation changes affect items display, summary, and selection state
           this.loadPedidoItems();
-          this.updateSummary();
+          // Add delay to ensure database changes are committed
+          setTimeout(() => {
+            this.updateSummary();
+          }, 500);
           // Note: Cancelled items can still be selected for assignment to NotaRecepcion
         }
         
@@ -942,6 +1054,10 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
             !result.rejectionStatusChanged && !result.itemCancellationChanged && 
             !result.sucursalDistributionChanged) {
           this.loadPedidoItems();
+          // Add delay to ensure database changes are committed
+          setTimeout(() => {
+            this.updateSummary();
+          }, 500);
         }
         
         // Check if distribution update is needed (presentacion or cantidad changed)
@@ -952,7 +1068,6 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         // Always emit pedido change for parent component updates
         this.pedidoChange.emit(this.selectedPedido);
       } else if (result?.cancelled) {
-        console.log('Dialog was cancelled - no updates n  eeded');
       }
     });
   }
@@ -987,7 +1102,10 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         
         // Reload data to reflect any changes
         this.loadPedidoItems();
-        this.updateSummary();
+        // Add delay to ensure database changes are committed
+        setTimeout(() => {
+          this.updateSummary();
+        }, 500);
         
         // Emit pedido change
         this.pedidoChange.emit(this.selectedPedido);
@@ -1026,12 +1144,14 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         
         // New items always require full refresh of items and summary
         this.loadPedidoItems();
-        this.updateSummary();
+        // Add delay to ensure database changes are committed
+        setTimeout(() => {
+          this.updateSummary();
+        }, 500);
         
         // Always emit pedido change for parent component updates
         this.pedidoChange.emit(this.selectedPedido);
       } else if (result?.cancelled) {
-        console.log('Dialog was cancelled - no updates needed');
       }
     });
   }
@@ -1087,7 +1207,10 @@ export class RecepcionNotaComponent implements OnInit, OnChanges {
         
         // Targeted refresh - rejection status changes affect items display and summary
         this.loadPedidoItems();
-        this.updateSummary();
+        // Add delay to ensure database changes are committed
+        setTimeout(() => {
+          this.updateSummary();
+        }, 500);
         
         // Note: Cancelled items can still be selected for assignment to NotaRecepcion
         

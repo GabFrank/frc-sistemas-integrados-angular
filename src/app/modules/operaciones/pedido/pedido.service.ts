@@ -76,9 +76,8 @@ export class PedidoService {
   }
 
   onGetPedidoInfoCompletaFresh(id): Observable<Pedido> {
-    return this.getPedidoPorId.fetch({ id }, { fetchPolicy: 'no-cache' }).pipe(
-      map((result) => result.data.data)
-    );
+    // Use generic service to ensure proper cache management and error handling
+    return this.genericService.onGetById(this.getPedidoPorId, id, null, null, true);
   }
 
   onGetPedidoInfoDetalle(id): Observable<Pedido> {
@@ -202,28 +201,10 @@ export class PedidoService {
     notaRecepcionId: number
   ): Observable<PedidoItem> {
     this.actualizarSub.next(true);
-    return new Observable((obs) => {
-      this.updateNotaRecepcionId
-        .mutate(
-          {
-            pedidoItemId,
-            notaRecepcionId,
-          },
-          { fetchPolicy: "no-cache", errorPolicy: "all" }
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-          } else {
-            console.log(res.errors);
-            this.notificacionBar.notification$.next({
-              texto: "Ups! Algo salió mal: " + res.errors[0].message,
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
-          }
-        });
+    // Use generic service to ensure proper cache management and error handling
+    return this.genericService.onCustomMutation(this.updateNotaRecepcionId, {
+      pedidoItemId,
+      notaRecepcionId,
     });
   }
 
@@ -280,15 +261,11 @@ export class PedidoService {
   }
 
   onGetPedidoRecepcionNotaSummary(id: number): Observable<PedidoRecepcionNotaSummary> {
-    return this.pedidoRecepcionNotaSummaryGQL.fetch({ id }).pipe(
-      map((result) => result.data.data)
-    );
+    return this.genericService.onCustomQuery(this.pedidoRecepcionNotaSummaryGQL, { id });
   }
 
   onGetPedidoSummary(id: number): Observable<PedidoSummary> {
-    return this.pedidoSummaryGQL.fetch({ id }, { fetchPolicy: 'no-cache' }).pipe(
-      map((result) => result.data.data)
-    );
+    return this.genericService.onCustomQuery(this.pedidoSummaryGQL, { id });
   }
 
   // Step-aware methods for PedidoItem management

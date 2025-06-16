@@ -5,6 +5,9 @@ import {
   ViewChild,
   ElementRef,
   AfterViewInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  OnDestroy,
 } from "@angular/core";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
 import { MatTableDataSource } from "@angular/material/table";
@@ -76,8 +79,9 @@ export interface AddProductDialogResult {
   selector: "app-add-product-dialog",
   templateUrl: "./add-product-dialog.component.html",
   styleUrls: ["./add-product-dialog.component.scss"],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class AddProductDialogComponent implements OnInit, AfterViewInit {
+export class AddProductDialogComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild("productosProveedorPaginator")
   productosProveedorPaginator: MatPaginator;
 
@@ -198,6 +202,10 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
   // Track original values for presentacion/cantidad changes
   originalPresentacionId: number | null = null;
+
+  // **PERFORMANCE**: Debounced calculation methods to prevent excessive calls
+  private calculationTimeout: any = null;
+  private updateComputedPropertiesTimeout: any = null;
   originalCantidad: number | null = null;
 
   // Tab navigation
@@ -243,8 +251,19 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     private mainService: MainService,
     private notificacionService: NotificacionSnackbarService,
     private matDialog: MatDialog,
-    private dialogosService: DialogosService
+    private dialogosService: DialogosService,
+    private cdr: ChangeDetectorRef
   ) {}
+
+  ngOnDestroy(): void {
+    // **PERFORMANCE**: Clean up timeouts to prevent memory leaks
+    if (this.calculationTimeout) {
+      clearTimeout(this.calculationTimeout);
+    }
+    if (this.updateComputedPropertiesTimeout) {
+      clearTimeout(this.updateComputedPropertiesTimeout);
+    }
+  }
 
   ngOnInit(): void {
     this.setupFormSubscriptions();
@@ -339,6 +358,8 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     if (!this.data.pedido?.proveedor) return;
 
     this.isLoadingProductos = true;
+    this.cdr.markForCheck(); // Trigger change detection for loading state
+    
     const texto = this.buscarProductoControl.value || "";
 
     this.productoProveedorService
@@ -349,9 +370,11 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
           this.productosProveedorPage = response;
           this.productosProveedorDataSource.data = response.getContent;
           this.isLoadingProductos = false;
+          this.cdr.markForCheck(); // Trigger change detection when loading completes
         },
         error: () => {
           this.isLoadingProductos = false;
+          this.cdr.markForCheck(); // Trigger change detection on error
           this.notificacionService.openWarn(
             "Error al cargar productos del proveedor"
           );
@@ -410,7 +433,6 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       .subscribe((res) => {
         this.isDialogOpen = false;
         const response: PdvSearchProductoResponseData = res;
-        console.log("response", response);
 
         if (response?.producto) {
           this.selectedProducto = response.producto;
@@ -517,6 +539,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
     // Update current pedido item for embedded components
     this.updateCurrentPedidoItemForEmbedded();
+    
+    // **FIX**: Trigger change detection for OnPush strategy
+    this.cdr.markForCheck();
   }
 
   onProductoProveedorSelect(productoProveedor: ProductoProveedor): void {
@@ -563,6 +588,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
     // Update current pedido item for embedded components
     this.updateCurrentPedidoItemForEmbedded();
+    
+    // **FIX**: Trigger change detection for OnPush strategy
+    this.cdr.markForCheck();
   }
 
   onProductoProveedorSelectAndSwitchTab(productoProveedor: ProductoProveedor): void {
@@ -575,6 +603,8 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     if (!this.selectedProducto?.id) return;
 
     this.isLoadingHistorico = true;
+    this.cdr.markForCheck(); // Trigger change detection for loading state
+    
     this.productoService
       .onGetProductoPorId(this.selectedProducto.id)
       .pipe(untilDestroyed(this))
@@ -583,9 +613,11 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
           this.historicoComprasDataSource.data =
             response.productoUltimasCompras || [];
           this.isLoadingHistorico = false;
+          this.cdr.markForCheck(); // Trigger change detection when loading completes
         },
         error: () => {
           this.isLoadingHistorico = false;
+          this.cdr.markForCheck(); // Trigger change detection on error
         },
       });
   }
@@ -691,12 +723,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
             
             // **STEP 6**: NOW update the embedded component with the fresh database data
             // This ensures the embedded component gets the correct presentacion and cantidad values
-            console.log('🔧 DISTRIBUTION UPDATE: Updating embedded component with fresh data');
-            console.log('📊 Fresh presentacion:', presentacion);
-            console.log('📊 Fresh cantidad:', cantidad);
-            console.log('📊 Fresh precioUnitario:', precioUnitario);
             this.updateCurrentPedidoItemForEmbedded();
-            console.log('✅ Embedded component updated with fresh database values');
             
             // **STEP 7**: Navigate to Distribución Sucursales tab (index 2)
             setTimeout(() => {
@@ -755,6 +782,21 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   }
 
   calculateTotalPreview(): void {
+    // **PERFORMANCE**: Debounce calculation to prevent excessive calls during form changes
+    this.calculateTotalPreviewDebounced();
+  }
+
+  private calculateTotalPreviewDebounced(): void {
+    if (this.calculationTimeout) {
+      clearTimeout(this.calculationTimeout);
+    }
+    
+    this.calculationTimeout = setTimeout(() => {
+      this.calculateTotalPreviewImmediate();
+    }, 50); // 50ms debounce for smooth UX but reduced calculations
+  }
+
+  private calculateTotalPreviewImmediate(): void {
     const formValue = this.productSelectionFormGroup.value;
     if (
       !formValue.presentacion ||
@@ -763,6 +805,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     ) {
       this.totalPreview = 0;
       this.totalDescuento = 0;
+      this.cdr.markForCheck(); // Trigger change detection for OnPush
       return;
     }
 
@@ -774,6 +817,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     const subtotal = cantidad * presentacionCantidad * precioUnitario;
     this.totalDescuento = cantidad * presentacionCantidad * descuentoUnitario;
     this.totalPreview = subtotal - this.totalDescuento;
+    
+    // **PERFORMANCE**: Manually trigger change detection for OnPush strategy
+    this.cdr.markForCheck();
   }
 
   clearAllSelections(): void {
@@ -863,9 +909,6 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       ...Object.fromEntries(Object.entries(additionalData).filter(([key]) => key !== 'cancelled'))
     };
 
-    // Log for debugging
-    console.log('Dialog closing with result:', dialogResult);
-    
     // Close dialog with comprehensive result
     this.dialogRef.close(dialogResult);
   }
@@ -1256,7 +1299,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
   private loadPedidoItemForEditing(): void {
     const pedidoItemData = this.data.pedidoItem;
-    if (!pedidoItemData) return;
+    if (!pedidoItemData) {
+      return;
+    }
 
     // if data.pedido is not null, then set the pedidoItem.pedido to data.pedido
     if (this.data.pedido) {
@@ -1273,19 +1318,22 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
     // Check if product has presentaciones loaded
     if (!this.selectedProducto?.presentaciones || this.selectedProducto.presentaciones.length === 0) {
-      console.log('Product presentaciones not loaded, loading from service...');
+      // **FIX**: Trigger loading state and change detection
+      this.isLoadingProductos = true;
+      this.cdr.markForCheck();
       
       // Load product with presentaciones from service
       this.productoService.getProducto(this.selectedProducto.id)
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (fullProduct) => {
-            console.log('Loaded full product:', fullProduct);
             this.selectedProducto = fullProduct;
+            this.isLoadingProductos = false;
             this.continueLoadingPedidoItem(pedidoItem);
           },
           error: (error) => {
-            console.error('Error loading product:', error);
+            console.error('❌ [AddProductDialog] Error loading product:', error);
+            this.isLoadingProductos = false;
             this.notificacionService.openWarn('Error al cargar datos del producto');
             // Continue with existing data anyway
             this.continueLoadingPedidoItem(pedidoItem);
@@ -1306,21 +1354,11 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     const vencimiento = pedidoItem.getFieldValueForEstado('vencimiento', this.data.pedido.estado);
     const observaciones = pedidoItem.getFieldValueForEstado('obs', this.data.pedido.estado);
 
-    // log  estado based values
-    console.log('estado', this.data.pedido.estado);
-    console.log('presentacion', presentacion);
-    console.log('cantidad', cantidad);
-    console.log('precioUnitario', precioUnitario);
-    console.log('descuentoUnitario', descuentoUnitario);
-    console.log('observaciones', observaciones);
-
     // Find the matching presentacion from selectedProducto.presentaciones for proper mat-select binding
     // This ensures object identity matching for Angular mat-select
     const matchingPresentacion = presentacion && this.selectedProducto?.presentaciones
       ? this.selectedProducto.presentaciones.find(p => p.id === presentacion.id)
       : presentacion;
-
-    console.log('matchingPresentacion', matchingPresentacion);
 
     // Store original values for change detection
     this.originalPresentacionId = presentacion?.id || null;
@@ -1346,6 +1384,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       obsRecepcionProducto: pedidoItem.obsRecepcionProducto || ''
     });
 
+    // **FIX**: Calculate total preview after loading data
+    this.calculateTotalPreview();
+
     // Update computed properties
     this.updateComputedProperties();
 
@@ -1359,6 +1400,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     
     // Update current pedido item for embedded components
     this.updateCurrentPedidoItemForEmbedded();
+    
+    // **CRITICAL FIX**: Manually trigger change detection for OnPush strategy after all data is loaded
+    this.cdr.markForCheck();
   }
 
   // Helper methods for enabling/disabling form controls
@@ -1385,6 +1429,9 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       this.productSelectionFormGroup.get("obsRecepcionProducto")?.enable();
       // Keep previous step obs as read-only for reference - do not enable
     }
+    
+    // **CRITICAL**: Trigger change detection after enabling controls for OnPush strategy
+    this.cdr.markForCheck();
   }
 
   private disableFormControls(): void {
@@ -1423,12 +1470,6 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
         pedidoItem.pedido = this.data.pedido;
       }
       
-      console.log('🔄 updateCurrentPedidoItemForEmbedded: Setting embedded item');
-      console.log('📋 PedidoItem ID:', pedidoItem.id);
-      console.log('📋 Current estado:', this.data.pedido?.estado);
-      console.log('📋 Presentacion for estado:', pedidoItem.getFieldValueForEstado('presentacion', this.data.pedido?.estado));
-      console.log('📋 Cantidad for estado:', pedidoItem.getFieldValueForEstado('cantidad', this.data.pedido?.estado));
-      
       this.currentPedidoItemForEmbedded = pedidoItem;
     } else if (this.selectedProducto && !this.data.isEditing) {
       // If no pedido item exists but we have a selected product, create a temporary one
@@ -1461,10 +1502,8 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       }
       
       tempItem.usuarioCreacion = this.mainService.usuarioActual;
-      console.log('🆕 updateCurrentPedidoItemForEmbedded: Creating temp item for new product');
       this.currentPedidoItemForEmbedded = tempItem;
     } else {
-      console.log('❌ updateCurrentPedidoItemForEmbedded: No data available, setting to null');
       this.currentPedidoItemForEmbedded = null;
     }
   }
@@ -1522,7 +1561,6 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
   onSucursalDistributionCancelled(): void {
     // Handle sucursal distribution cancel event
     // No specific action needed, just log for debugging
-    console.log('Sucursal distribution cancelled');
     this.closeDialog();
   }
 
@@ -1595,11 +1633,30 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
 
   // Method to update computed properties for template usage
   private updateComputedProperties(): void {
+    // **PERFORMANCE**: Debounce update to prevent excessive calls
+    this.updateComputedPropertiesDebounced();
+  }
+
+  private updateComputedPropertiesDebounced(): void {
+    if (this.updateComputedPropertiesTimeout) {
+      clearTimeout(this.updateComputedPropertiesTimeout);
+    }
+    
+    this.updateComputedPropertiesTimeout = setTimeout(() => {
+      this.updateComputedPropertiesImmediate();
+    }, 10); // 10ms debounce - shorter delay since this affects UI state
+  }
+
+  private updateComputedPropertiesImmediate(): void {
+    // **OPTIMIZED**: Cache estado for reuse
+    const pedidoEstado = this.data?.pedido?.estado;
+    
     // Map pedido estado to PedidoStep for template compatibility
-    if (!this.data?.pedido?.estado) {
+    if (!pedidoEstado) {
       this.currentStep = PedidoStep.DETALLES_PEDIDO;
     } else {
-      switch (this.data.pedido.estado) {
+      // **OPTIMIZED**: Use cached estado
+      switch (pedidoEstado) {
         case PedidoEstado.ABIERTO:
         case PedidoEstado.ACTIVO:
           this.currentStep = PedidoStep.DETALLES_PEDIDO;
@@ -1616,7 +1673,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
       }
     }
 
-    // Update step flags
+    // **OPTIMIZED**: Update step flags in batch
     this.isDetallesPedidoStep = this.currentStep === PedidoStep.DETALLES_PEDIDO;
     this.isRecepcionNotaStep = this.currentStep === PedidoStep.RECEPCION_NOTA;
     this.isRecepcionProductoStep = this.currentStep === PedidoStep.RECEPCION_PRODUCTO;
@@ -1624,24 +1681,21 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit {
     // Update other computed properties
     this.canModifyInCurrentStep = this.currentStep !== PedidoStep.DETALLES_PEDIDO || !this.data.isEditing;
     
-    switch (this.currentStep) {
-      case PedidoStep.DETALLES_PEDIDO:
-        this.currentStepDisplayName = 'Detalles del Pedido';
-        break;
-      case PedidoStep.RECEPCION_NOTA:
-        this.currentStepDisplayName = 'Recepción de Nota';
-        break;
-      case PedidoStep.RECEPCION_PRODUCTO:
-        this.currentStepDisplayName = 'Recepción de Producto';
-        break;
-      default:
-        this.currentStepDisplayName = 'Desconocido';
-    }
+    // **OPTIMIZED**: Use lookup for step display names
+    const stepDisplayNames = {
+      [PedidoStep.DETALLES_PEDIDO]: 'Detalles del Pedido',
+      [PedidoStep.RECEPCION_NOTA]: 'Recepción de Nota',
+      [PedidoStep.RECEPCION_PRODUCTO]: 'Recepción de Producto'
+    };
+    this.currentStepDisplayName = stepDisplayNames[this.currentStep] || 'Desconocido';
 
     // Update form validation
     this.isFormInvalidOrNoProduct = this.productSelectionFormGroup.invalid || !this.selectedProducto;
     
     // Check if item is canceled
     this.isItemCanceled = this.data.isEditing && this.data.pedidoItem?.cancelado === true;
+    
+    // **PERFORMANCE**: Manually trigger change detection for OnPush strategy
+    this.cdr.markForCheck();
   }
 }

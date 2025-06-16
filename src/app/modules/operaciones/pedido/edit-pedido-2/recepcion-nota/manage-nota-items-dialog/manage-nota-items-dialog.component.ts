@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, ViewChild, OnChanges } from '@angular/core';
+import { Component, Inject, OnInit, ViewChild, OnChanges, ChangeDetectionStrategy, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator } from '@angular/material/paginator';
@@ -27,23 +27,19 @@ export interface ManageNotaItemsDialogResult {
   editItem?: PedidoItemWithStatus;
 }
 
-interface PedidoItemWithStatus {
-  id: number;
-  producto: any;
-  presentacion: any;
-  cantidad: number;
-  precioUnitario: number;
-  valorTotal: number;
-  estado: PedidoItemEstado;
+interface PedidoItemWithStatus extends PedidoItem {
+  // Status-specific fields
   status: 'assigned' | 'unassigned';
   notaRecepcionId?: number;
-  // Estado-based display fields
+  
+  // Estado-based display fields (computed properties for template usage)
   displayPresentacion: any;
   displayCantidad: number;
   displayPrecioUnitario: number;
   displayValorTotal: number;
   displayEstado: string;
   displayEstadoColorClass: string;
+  
   // Distribution status fields
   isDistribucionSucursalesCreacion: boolean;
   isDistribucionSucursalesRecepcion: boolean;
@@ -55,9 +51,10 @@ interface PedidoItemWithStatus {
 @Component({
   selector: 'app-manage-nota-items-dialog',
   templateUrl: './manage-nota-items-dialog.component.html',
-  styleUrls: ['./manage-nota-items-dialog.component.scss']
+  styleUrls: ['./manage-nota-items-dialog.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ManageNotaItemsDialogComponent implements OnInit {
+export class ManageNotaItemsDialogComponent implements OnInit, OnDestroy {
   
   @ViewChild('assignedPaginator') assignedPaginator: MatPaginator;
   @ViewChild('unassignedPaginator') unassignedPaginator: MatPaginator;
@@ -108,16 +105,29 @@ export class ManageNotaItemsDialogComponent implements OnInit {
   canAddItemsComputed = false;
   hasDataComputed = false;
 
+  // **PERFORMANCE**: Cache for expensive estado calculations
+  private estadoCalculationCache = new Map<string, any>();
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: ManageNotaItemsDialogData,
     private dialogRef: MatDialogRef<ManageNotaItemsDialogComponent>,
     private notaRecepcionService: NotaRecepcionService,
     private pedidoService: PedidoService,
     private notificacionService: NotificacionSnackbarService,
-    private dialogosService: DialogosService
+    private dialogosService: DialogosService,
+    private cdr: ChangeDetectorRef
   ) {
     this.notaRecepcion = data.notaRecepcion;
     this.pedido = data.pedido;
+  }
+
+  ngOnDestroy(): void {
+    // **MEMORY CLEANUP**: Clear caches to prevent memory leaks
+    this.estadoCalculationCache.clear();
+    this.selectedAssignedIds.clear();
+    this.selectedUnassignedIds.clear();
+    this.assignedItemsDataSource.data = [];
+    this.unassignedItemsDataSource.data = [];
   }
 
   ngOnInit(): void {
@@ -262,26 +272,35 @@ export class ManageNotaItemsDialogComponent implements OnInit {
 
   /**
    * Transform a PedidoItem into PedidoItemWithStatus with estado-based computed properties
+   * **OPTIMIZED**: With caching and reduced object creation
    */
   private transformItemWithStatus(item: any, status: 'assigned' | 'unassigned'): PedidoItemWithStatus {
-    // Create proper PedidoItem instance to use helper methods
-    const pedidoItem = new PedidoItem();
-    Object.assign(pedidoItem, item);
+    
+    // **PERFORMANCE**: Check cache first to avoid expensive calculations
+    const cacheKey = `${item.id}-${status}-${this.pedido.estado}`;
+    if (this.estadoCalculationCache.has(cacheKey)) {
+      return this.estadoCalculationCache.get(cacheKey);
+    }
+    
+    // **OPTIMIZED**: Reuse existing instance if possible
+    const pedidoItem = item instanceof PedidoItem ? item : Object.assign(new PedidoItem(), item);
+    
+    // **OPTIMIZED**: Cache estado for reuse
+    const currentEstado = this.pedido.estado;
     
     // Get estado-based field values - if helper method fails, fall back to direct field access
     let presentacion, cantidad, precioUnitario, descuentoUnitario;
-
-    console.log('pedido', this.pedido);
     
     try {
-      presentacion = pedidoItem.getFieldValueForEstado('presentacion', this.pedido.estado);
-      cantidad = pedidoItem.getFieldValueForEstado('cantidad', this.pedido.estado);
-      precioUnitario = pedidoItem.getFieldValueForEstado('precioUnitario', this.pedido.estado);
-      descuentoUnitario = pedidoItem.getFieldValueForEstado('descuentoUnitario', this.pedido.estado) || 0;
+      presentacion = pedidoItem.getFieldValueForEstado('presentacion', currentEstado);
+      cantidad = pedidoItem.getFieldValueForEstado('cantidad', currentEstado);
+      precioUnitario = pedidoItem.getFieldValueForEstado('precioUnitario', currentEstado);
+      descuentoUnitario = pedidoItem.getFieldValueForEstado('descuentoUnitario', currentEstado) || 0;
     } catch (error) {
       console.warn('Error using getFieldValueForEstado, falling back to direct field access:', error);
-      // Fallback to direct field access based on pedido estado
-      switch (this.pedido.estado) {
+      
+      // **OPTIMIZED**: Switch statement with cached estado
+      switch (currentEstado) {
         case 'EN_RECEPCION_NOTA':
           presentacion = item.presentacionRecepcionNota || item.presentacionCreacion;
           cantidad = item.cantidadRecepcionNota || item.cantidadCreacion;
@@ -305,32 +324,45 @@ export class ManageNotaItemsDialogComponent implements OnInit {
       }
     }
    
-    // Calculate display values
+    // **OPTIMIZED**: Calculate once instead of in template
     const displayValorTotal = presentacion && cantidad && precioUnitario 
       ? (cantidad * presentacion.cantidad * (precioUnitario - descuentoUnitario))
       : item.valorTotal;
 
-    // Calculate distribution status using backend field
+    // **OPTIMIZED**: Simplified distribution status logic
     const needsDistribution = item.needsDistribucion;
     const distributionStatus = needsDistribution ? 'Pendiente' : 'Completa';
     const distributionStatusClass = needsDistribution ? 'distribution-pending' : 'distribution-complete';
 
-    return {
+    // **CRITICAL FIX**: Preserve ALL PedidoItem fields for add-product-dialog compatibility
+    // Create a complete PedidoItemWithStatus that includes all original PedidoItem data
+    const result: PedidoItemWithStatus = {
+      // Copy all original PedidoItem properties first
       ...item,
+      
+      // Override with status-specific properties
       status,
       notaRecepcionId: status === 'assigned' ? this.notaRecepcion.id : undefined,
+      
+      // Add computed display properties for template usage
       displayPresentacion: presentacion,
       displayCantidad: cantidad,
       displayPrecioUnitario: precioUnitario,
       displayValorTotal: displayValorTotal,
       displayEstado: item.cancelado ? 'Cancelado' : 'Activo',
       displayEstadoColorClass: item.cancelado ? 'estado-cancelado' : 'estado-activo',
-      // Distribution status fields
-      isDistribucionSucursalesCreacion: item.isDistribucionSucursalesCreacion,
-      isDistribucionSucursalesRecepcion: item.isDistribucionSucursalesRecepcion,
+      
+      // Add distribution status fields
+      isDistribucionSucursalesCreacion: item.isDistribucionSucursalesCreacion || false,
+      isDistribucionSucursalesRecepcion: item.isDistribucionSucursalesRecepcion || false,
       displayDistributionStatus: distributionStatus,
       displayDistributionStatusClass: distributionStatusClass
-    } as PedidoItemWithStatus;
+    };
+    
+    // **PERFORMANCE**: Cache the result for future use
+    this.estadoCalculationCache.set(cacheKey, result);
+    
+    return result;
   }
 
   /**
@@ -603,6 +635,9 @@ export class ManageNotaItemsDialogComponent implements OnInit {
     this.canRemoveItemsComputed = this.selectedAssignedIds.size > 0 && !this.isProcessing;
     this.canAddItemsComputed = this.selectedUnassignedIds.size > 0 && !this.isProcessing;
     this.hasDataComputed = this.assignedCountComputed > 0 || this.unassignedCountComputed > 0;
+    
+    // **PERFORMANCE**: Manually trigger change detection for OnPush strategy
+    this.cdr.markForCheck();
   }
 
   // Utility methods

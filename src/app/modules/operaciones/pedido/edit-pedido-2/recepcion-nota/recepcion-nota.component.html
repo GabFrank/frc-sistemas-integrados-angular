@@ -599,30 +599,62 @@
       </mat-card>
 
       <!-- **NEW**: Step Validation Status Card -->
-      <mat-card class="summary-card validation-summary-card" [ngClass]="{'validation-complete': canProceedToNextStepComputed, 'validation-pending': !canProceedToNextStepComputed}">
+      <mat-card
+        class="summary-card validation-summary-card"
+        [ngClass]="{
+          'validation-complete': canProceedToNextStepComputed,
+          'validation-pending': !canProceedToNextStepComputed
+        }"
+      >
         <mat-card-header>
           <mat-card-title class="titulo-center">
-            <mat-icon [ngClass]="{'validation-icon-complete': canProceedToNextStepComputed, 'validation-icon-pending': !canProceedToNextStepComputed}">
-              {{ canProceedToNextStepComputed ? 'check_circle' : 'pending' }}
+            <mat-icon
+              [ngClass]="{
+                'validation-icon-complete': canProceedToNextStepComputed,
+                'validation-icon-pending': !canProceedToNextStepComputed
+              }"
+            >
+              {{ canProceedToNextStepComputed ? "check_circle" : "pending" }}
             </mat-icon>
             Estado del Paso
           </mat-card-title>
         </mat-card-header>
         <mat-card-content>
           <div class="validation-status">
-            <div class="validation-item" [ngClass]="{'validation-ok': pendingItems === 0, 'validation-error': pendingItems > 0}">
-              <mat-icon>{{ pendingItems === 0 ? 'check' : 'close' }}</mat-icon>
-              <span>Items Pendientes: {{ pendingItems }}</span>
-            </div>
-            <div class="validation-item" [ngClass]="{'validation-ok': itemsNeedingDistribution === 0, 'validation-error': itemsNeedingDistribution > 0}">
-              <mat-icon>{{ itemsNeedingDistribution === 0 ? 'check' : 'close' }}</mat-icon>
-              <span>Items sin Distribución: {{ itemsNeedingDistribution }}</span>
-            </div>
-            <div class="validation-summary" *ngIf="!canProceedToNextStepComputed">
-              <small>Complete la asignación de todos los items y su distribución por sucursales para continuar al siguiente paso.</small>
-            </div>
-            <div class="validation-summary validation-complete-text" *ngIf="canProceedToNextStepComputed">
-              <small>✓ Todos los items están asignados y distribuidos. Puede continuar al siguiente paso.</small>
+            <div class="validation-items-wrapper">
+              <div
+                class="validation-item"
+                [ngClass]="{
+                  'validation-ok': pendingItems === 0,
+                  'validation-error': pendingItems > 0
+                }"
+              >
+                <mat-icon>{{
+                  pendingItems === 0 ? "check" : "close"
+                }}</mat-icon>
+                <!-- show cancelled items only -->
+                <span
+                  >Items Pendientes:
+                  {{ pendingItems - (cancelledItems || 0) }} 
+                  <span *ngIf="cancelledItems > 0" style="color: rgb(232, 48, 48)">
+                    ({{ cancelledItems }} cancelados)
+                  </span>
+                </span>
+              </div>
+              <div
+                class="validation-item"
+                [ngClass]="{
+                  'validation-ok': itemsNeedingDistribution === 0,
+                  'validation-error': itemsNeedingDistribution > 0
+                }"
+              >
+                <mat-icon>{{
+                  itemsNeedingDistribution === 0 ? "check" : "close"
+                }}</mat-icon>
+                <span
+                  >Items sin Distribución: {{ itemsNeedingDistribution }}</span
+                >
+              </div>
             </div>
           </div>
         </mat-card-content>
