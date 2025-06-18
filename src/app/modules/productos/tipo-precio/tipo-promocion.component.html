@@ -1,0 +1,25 @@
+<div class="container">
+  <h3>Inicialización de Tipos de Promoción</h3>
+  <p>Este proceso creará los nuevos tipos de precio necesarios para las promociones:</p>
+  <ul class="tipos-list">
+    <li><strong>PROMOCION_DESCUENTO</strong>: Para promociones con descuentos de precio</li>
+    <li><strong>PROMOCION_COMBO</strong>: Para promociones de cantidad (2x1, 3x2, etc.)</li>
+  </ul>
+  
+  <div class="actions">
+    <button 
+      mat-raised-button 
+      color="primary" 
+      (click)="inicializarTipos()"
+      [disabled]="procesando">
+      {{ procesando ? 'Procesando...' : 'Crear Tipos de Promoción' }}
+    </button>
+  </div>
+  
+  <div *ngIf="resultado" 
+       class="resultado"
+       [class.success]="resultado.success"
+       [class.error]="!resultado.success">
+    <p>{{ resultado.mensaje }}</p>
+  </div>
+</div> 

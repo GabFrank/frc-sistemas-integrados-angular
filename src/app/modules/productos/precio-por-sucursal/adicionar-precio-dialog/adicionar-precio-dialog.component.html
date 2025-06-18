@@ -3,7 +3,8 @@
     <div fxLayout="column" fxLayoutAlign="start">
       <div fxFlex style="width: 100%; text-align: center">
         <h3 *ngIf="selectedPrecioPorSucursal?.id != null">Editar Precio</h3>
-        <h3 *ngIf="selectedPrecioPorSucursal?.id == null">Nuevo Precio</h3>
+        <h3 *ngIf="selectedPrecioPorSucursal?.id == null && !esPromocion">Nuevo Precio</h3>
+        <h3 *ngIf="selectedPrecioPorSucursal?.id == null && esPromocion">Nueva Promoción</h3>
       </div>
       <div fxFlex>
         <mat-form-field style="width: 100%">
@@ -37,14 +38,56 @@
           </mat-error>
         </mat-form-field>
       </div>
-      <div fxLayout="row" style="height: 50px !important; padding-left: 20px">
-        <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center">
+
+      <!-- Selector de Sucursales para Promociones -->
+      <div fxFlex *ngIf="mostrarSelectorSucursales">
+        <mat-form-field style="width: 100%">
+          <mat-label>Sucursales</mat-label>
+          <mat-select #sucursalSelect multiple formControlName="sucursales">
+            <mat-select-trigger>
+              {{(sucursalesControl.value?.[0]?.nombre || '')}}
+              <span
+                *ngIf="(sucursalesControl.value?.length || 0) > 1"
+                class="example-additional-selection"
+              >
+                (+{{ (sucursalesControl.value?.length || 0) - 1 }}
+                {{ sucursalesControl.value?.length === 2 ? "otro" : "otros" }})
+              </span>
+            </mat-select-trigger>
+            <div
+              style="
+                width: 100%;
+                text-align: end;
+                padding-right: 10px;
+                padding-top: 10px;
+                font-size: 0.8em;
+                color: white;
+              "
+            >
+              <mat-icon (click)="sucursalSelect.close()">clear</mat-icon>
+            </div>
+            <mat-option [value]="null">Todas</mat-option>
+            <mat-option
+              *ngFor="let sucursal of sucursalesList"
+              [value]="sucursal"
+            > {{ sucursal.id}} -
+              {{ sucursal.nombre | titlecase }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="sucursalesControl.hasError('sucursalesRequeridas')">
+            Seleccione al menos una sucursal para la promoción
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div fxLayout="row" style="height: 50px !important; padding-left: 20px;">
+        <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center" *ngIf="!esPromocion">
           <mat-label fxFlex="40">Principal</mat-label>
           <mat-slide-toggle fxFlex formControlName="principal">
             {{ principalControl.value == true ? "Si" : "No" }}</mat-slide-toggle
           >
         </div>
-        <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center">
+        <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center" *ngIf="!esPromocion">
           <mat-label fxFlex="30">Activo</mat-label>
           <mat-slide-toggle fxFlex formControlName="activo">{{
             activoControl.value == true ? "Si" : "No"
@@ -68,12 +111,7 @@
             style="width: 70%"
             mat-raised-button
             [color]="isEditting ? 'accent' : 'primary'"
-            [disabled]="isEditting ? !formGroup.valid : false"
-            (click)="
-              isEditting ? onSave() : (isEditting = true);
-              formGroup.enable();
-              precioInput.focus()
-            "
+            (click)="isEditting ? onSave() : onEditar()"
           >
             {{ isEditting ? "Guardar" : "Editar" }}
           </button>
