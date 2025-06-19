@@ -16,176 +16,159 @@
         </mat-card-title>
       </mat-card-header> -->
 
-      <!-- Step Summary in top-right corner -->
-      <div class="step-summary-corner" *ngIf="selectedPedido">
-        <div class="step-summary-container">
-          <div class="step-summary-title">Progreso de Etapas</div>
-          <div class="step-items">
-            <div class="step-item" [class.completed]="stepInfos.get('CREACION')?.status === 'COMPLETED'" [class.active]="stepInfos.get('CREACION')?.status === 'IN_PROGRESS'">
-              <mat-icon class="step-icon">description</mat-icon>
-              <span class="step-label">Creación</span>
-            </div>
-            <div class="step-item" [class.completed]="stepInfos.get('RECEPCION_NOTA')?.status === 'COMPLETED'" [class.active]="stepInfos.get('RECEPCION_NOTA')?.status === 'IN_PROGRESS'">
-              <mat-icon class="step-icon">receipt</mat-icon>
-              <span class="step-label">R. Nota</span>
-            </div>
-            <div class="step-item" [class.completed]="stepInfos.get('RECEPCION_MERCADERIA')?.status === 'COMPLETED'" [class.active]="stepInfos.get('RECEPCION_MERCADERIA')?.status === 'IN_PROGRESS'">
-              <mat-icon class="step-icon">inventory</mat-icon>
-              <span class="step-label">R. Mercadería</span>
-            </div>
-            <div class="step-item" [class.completed]="stepInfos.get('SOLICITUD_PAGO')?.status === 'COMPLETED'" [class.active]="stepInfos.get('SOLICITUD_PAGO')?.status === 'IN_PROGRESS'">
-              <mat-icon class="step-icon">payment</mat-icon>
-              <span class="step-label">S. Pago</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <mat-card-content>
-        <div
-          fxLayout="row"
-          fxLayoutGap="32px"
-          fxLayout.xs="column"
-          fxLayoutGap.xs="16px"
-        >
-          <!-- Id del pedido -->
-          <div fxFlex="20">
-            <div class="info-label">Id del pedido</div>
-            <div class="info-content">
-              <div class="info-value">{{ selectedPedido?.id }}</div>
-            </div>
-          </div>
-          <!-- Proveedor Info -->
-          <div fxFlex="20">
-            <div class="info-label">Proveedor</div>
-            <div
-              class="info-content"
-              *ngIf="selectedPedido?.proveedor; else placeholderProveedor"
-            >
-              <div class="info-value">
-                {{ selectedPedido.proveedor.persona.nombre }}
-              </div>
-              <div class="info-secondary">
-                {{ selectedPedido.proveedor.persona.documento }}
-              </div>
-            </div>
-            <ng-template #placeholderProveedor>
-              <div class="info-placeholder">Sin proveedor asignado</div>
-            </ng-template>
-          </div>
-
-          <!-- Vendedor Info -->
-          <div fxFlex="20">
-            <div class="info-label">Vendedor</div>
-            <div
-              class="info-content"
-              *ngIf="selectedPedido?.vendedor; else placeholderVendedor"
-            >
-              <div class="info-value">
-                {{ selectedPedido.vendedor.persona.nombre }}
-              </div>
-              <div class="info-secondary">
-                {{ selectedPedido.vendedor.persona.documento }}
-              </div>
-            </div>
-            <ng-template #placeholderVendedor>
-              <div class="info-placeholder">Sin vendedor asignado</div>
-            </ng-template>
-          </div>
-
-          <!-- Forma de Pago Info -->
-          <div fxFlex="20">
-            <div class="info-label">Forma de Pago</div>
-            <div
-              class="info-content"
-              *ngIf="selectedPedido?.formaPago; else placeholderFormaPago"
-            >
-              <div class="info-value">
-                {{ selectedPedido.formaPago?.descripcion }}
-              </div>
-              <div class="info-secondary" *ngIf="selectedPedido.plazoCredito">
-                {{ selectedPedido.plazoCredito }} días
-              </div>
-            </div>
-            <ng-template #placeholderFormaPago>
-              <div class="info-placeholder">Sin forma de pago</div>
-            </ng-template>
-          </div>
-
-          <!-- Moneda Info -->
-          <div fxFlex="20">
-            <div class="info-label">Moneda</div>
-            <div
-              class="info-content"
-              *ngIf="selectedPedido?.moneda; else placeholderMoneda"
-            >
-              <div class="info-value">
-                {{ selectedPedido.moneda?.denominacion }}
-              </div>
-              <div class="info-secondary">
-                {{ selectedPedido.moneda?.simbolo }}
-              </div>
-            </div>
-            <ng-template #placeholderMoneda>
-              <div class="info-placeholder">Sin moneda definida</div>
-            </ng-template>
-          </div>
-        </div>
-
-        <!-- Totales Row -->
-        <div
-          fxLayout="row"
-          fxLayoutGap="32px"
-          fxLayout.xs="column"
-          fxLayoutGap.xs="16px"
-          style="margin-top: 16px"
-        >
-          <!-- estado del pedido -->
-          <div fxFlex="20">
-            <div class="info-label">Estado del pedido</div>
-            <div class="info-content">
-              <div class="chip-container">
-                <mat-chip [color]="estadoColor" selected="true">
+        <div fxLayout="row" fxLayoutGap="16px" fxLayout.xs="column" fxLayoutGap.xs="16px">
+          <!-- Left Side: Simple Pedido Status -->
+          <div fxFlex="20" fxFlex.xs="100">
+            <div class="pedido-status-card">
+              <div class="status-header">
+                <span class="pedido-id">Pedido #{{ selectedPedido?.id || 'Nuevo' }}</span>
+                <mat-chip [color]="estadoColor" selected="true" class="estado-chip">
                   {{ selectedPedido?.estado | enumToString }}
                 </mat-chip>
               </div>
-            </div>
-          </div>
-          <div fxFlex="20">
-            <div class="info-label">Total sin Descuento</div>
-            <div class="info-content">
-              <div class="info-value">
-                {{ computedTotalSinDescuento | number : "1.0-2" }}
+              
+              <div class="status-info" *ngIf="currentStepTrackingInfo">
+                <div class="info-item" *ngIf="currentStepTrackingInfo.startDate">
+                  <span class="info-text">Iniciado: {{ currentStepTrackingInfo.startDate | date:'dd/MM/yyyy' }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-text">{{ currentStepTrackingInfo.assignedUser?.persona?.nombre || 'Sin responsable asignado' }}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div fxFlex="20">
-            <div class="info-label">Descuento</div>
-            <div class="info-content">
-              <div class="info-value">
-                {{ computedDescuentoTotal | number : "1.0-2" }}
+          <!-- Right Side: Main Information -->
+          <div fxFlex="80" fxFlex.xs="100">
+            <div
+              fxLayout="row"
+              fxLayoutGap="24px"
+              fxLayout.xs="column"
+              fxLayoutGap.xs="16px"
+            >
+              <!-- Proveedor Info -->
+              <div fxFlex="25">
+                <div class="info-label">Proveedor</div>
+                <div
+                  class="info-content"
+                  *ngIf="selectedPedido?.proveedor; else placeholderProveedor"
+                >
+                  <div class="info-value">
+                    {{ selectedPedido.proveedor.persona.nombre }}
+                  </div>
+                  <div class="info-secondary">
+                    {{ selectedPedido.proveedor.persona.documento }}
+                  </div>
+                </div>
+                <ng-template #placeholderProveedor>
+                  <div class="info-placeholder">Sin proveedor asignado</div>
+                </ng-template>
+              </div>
+
+              <!-- Vendedor Info -->
+              <div fxFlex="25">
+                <div class="info-label">Vendedor</div>
+                <div
+                  class="info-content"
+                  *ngIf="selectedPedido?.vendedor; else placeholderVendedor"
+                >
+                  <div class="info-value">
+                    {{ selectedPedido.vendedor.persona.nombre }}
+                  </div>
+                  <div class="info-secondary">
+                    {{ selectedPedido.vendedor.persona.documento }}
+                  </div>
+                </div>
+                <ng-template #placeholderVendedor>
+                  <div class="info-placeholder">Sin vendedor asignado</div>
+                </ng-template>
+              </div>
+
+              <!-- Forma de Pago Info -->
+              <div fxFlex="25">
+                <div class="info-label">Forma de Pago</div>
+                <div
+                  class="info-content"
+                  *ngIf="selectedPedido?.formaPago; else placeholderFormaPago"
+                >
+                  <div class="info-value">
+                    {{ selectedPedido.formaPago?.descripcion }}
+                  </div>
+                  <div class="info-secondary" *ngIf="selectedPedido.plazoCredito">
+                    {{ selectedPedido.plazoCredito }} días
+                  </div>
+                </div>
+                <ng-template #placeholderFormaPago>
+                  <div class="info-placeholder">Sin forma de pago</div>
+                </ng-template>
+              </div>
+
+              <!-- Moneda Info -->
+              <div fxFlex="25">
+                <div class="info-label">Moneda</div>
+                <div
+                  class="info-content"
+                  *ngIf="selectedPedido?.moneda; else placeholderMoneda"
+                >
+                  <div class="info-value">
+                    {{ selectedPedido.moneda?.denominacion }}
+                  </div>
+                  <div class="info-secondary">
+                    {{ selectedPedido.moneda?.simbolo }}
+                  </div>
+                </div>
+                <ng-template #placeholderMoneda>
+                  <div class="info-placeholder">Sin moneda definida</div>
+                </ng-template>
               </div>
             </div>
-          </div>
 
-          <div fxFlex="20">
-            <div class="info-label">Total con Descuento</div>
-            <div class="info-content">
-              <div class="info-value">
-                {{ computedTotalConDescuento | number : "1.0-2" }}
+            <!-- Totales Row -->
+            <div
+              fxLayout="row"
+              fxLayoutGap="24px"
+              fxLayout.xs="column"
+              fxLayoutGap.xs="16px"
+              style="margin-top: 16px"
+            >
+              <div fxFlex="25">
+                <div class="info-label">Total sin Descuento</div>
+                <div class="info-content">
+                  <div class="info-value">
+                    {{ computedTotalSinDescuento | number : "1.0-2" }}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div fxFlex="20">
-            <div class="info-label">Cantidad de Items</div>
-            <div class="info-content">
-              <div class="info-value">
-                {{ computedCantidadItems || 0 }}
-                <span *ngIf="computedCantidadItemsCancelados > 0" class="cancelled-items-indicator">
-                  ({{ computedCantidadItemsCancelados }} cancelados)
-                </span>
+              <div fxFlex="25">
+                <div class="info-label">Descuento</div>
+                <div class="info-content">
+                  <div class="info-value">
+                    {{ computedDescuentoTotal | number : "1.0-2" }}
+                  </div>
+                </div>
+              </div>
+
+              <div fxFlex="25">
+                <div class="info-label">Total con Descuento</div>
+                <div class="info-content">
+                  <div class="info-value">
+                    {{ computedTotalConDescuento | number : "1.0-2" }}
+                  </div>
+                </div>
+              </div>
+
+              <div fxFlex="25">
+                <div class="info-label">Cantidad de Items</div>
+                <div class="info-content">
+                  <div class="info-value">
+                    {{ computedCantidadItems || 0 }}
+                    <span *ngIf="computedCantidadItemsCancelados > 0" class="cancelled-items-indicator">
+                      ({{ computedCantidadItemsCancelados }} cancelados)
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -350,7 +333,7 @@
 
       <!-- Step 4: Recepción de mercadería -->
       <mat-step
-        [stepControl]="null"
+        [stepControl]="dummyStepControl"
         [editable]="canAccessStep3"
         [completed]="stepsConfig[3].completed"
       >
@@ -362,22 +345,27 @@
         </ng-template>
 
         <div class="step-content" fxLayout="column" fxFill>
-          <h3>{{ stepsConfig[3].label }}</h3>
-          <p>
-            Verificación física de la mercadería recibida. Control de calidad y
-            confirmación de entrega.
-          </p>
-
-          <div
+          <!-- Main Content - Only show when step is accessible -->
+          <app-recepcion-mercaderia 
+            *ngIf="canAccessStep3"
+            [pedido]="selectedPedido"
+            (pedidoChange)="onPedidoChange($event)"
+            (stepValidChange)="onStep4ValidChange($event)"
+            style="flex: 1; min-height: 0;">
+          </app-recepcion-mercaderia>
+          
+          <!-- Placeholder when step not accessible -->
+          <div 
+            *ngIf="!canAccessStep3"
             fxFlex
             fxLayout="column"
             fxLayoutAlign="center center"
-            class="step-placeholder"
-          >
+            class="step-placeholder">
             <mat-icon class="large-icon">{{ stepsConfig[3].icon }}</mat-icon>
-            <p>
-              Aquí se implementará la funcionalidad para gestionar la recepción
-              de mercadería
+            <p>Complete la recepción de nota antes de continuar</p>
+            <p class="step-placeholder-hint">
+              Esta etapa se habilitará automáticamente cuando finalice
+              la recepción de nota en el paso anterior.
             </p>
           </div>
 

@@ -553,11 +553,12 @@ export const pedidoItemPorPedidoIdSobranteQuery = gql`
 
 export const pedidoItemPorNotaRecepcionQuery = gql`
   query (
-    $id: ID!
+    $id: ID
     $page: Int
     $size: Int
     $texto: String
     $verificado: Boolean
+    $pedidoId: ID
   ) {
     data: pedidoItemPorNotaRecepcion(
       id: $id
@@ -565,6 +566,7 @@ export const pedidoItemPorNotaRecepcionQuery = gql`
       size: $size
       texto: $texto
       verificado: $verificado
+      pedidoId: $pedidoId
     ) {
       getTotalPages
       getTotalElements
@@ -586,6 +588,7 @@ export const pedidoItemPorNotaRecepcionQuery = gql`
             cantidad
           }
           codigoPrincipal
+          vencimiento
         }
         presentacionCreacion {
           id
@@ -596,6 +599,20 @@ export const pedidoItemPorNotaRecepcionQuery = gql`
         }
         notaRecepcion {
           id
+          numero
+        }
+        pedidoItemSucursalList {
+          id
+          sucursal {
+            id
+            nombre
+          }
+          sucursalEntrega {
+            id
+            nombre
+          }
+          cantidadPorUnidad
+          cantidadPorUnidadRecibida
         }
         precioUnitarioCreacion
         descuentoUnitarioCreacion
@@ -1142,6 +1159,17 @@ export const pedidoRecepcionNotaSummaryQuery = gql`
       cancelledItems
       totalNotas
       itemsNeedingDistribution
+    }
+  }
+`;
+
+export const pedidoRecepcionMercaderiaSummaryQuery = gql`
+  query ($id: ID!) {
+    data: pedidoRecepcionMercaderiaSummary(id: $id) {
+      totalItems
+      verificados
+      pendientes
+      sucursales
     }
   }
 `;

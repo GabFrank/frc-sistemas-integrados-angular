@@ -61,6 +61,9 @@ import { CrearNotaRecepcionDialogComponent } from './pedido/edit-pedido-2/recepc
 import { ManageNotaItemsDialogComponent } from './pedido/edit-pedido-2/recepcion-nota/manage-nota-items-dialog/manage-nota-items-dialog.component';
 import { ItemStatusDialogComponent } from './pedido/edit-pedido-2/recepcion-nota/item-status-dialog/item-status-dialog.component';
 import { FinalizacionDialogComponent } from './pedido/edit-pedido-2/finalizacion-dialog/finalizacion-dialog.component';
+import { RecepcionMercaderiaComponent } from './pedido/edit-pedido-2/recepcion-mercaderia/recepcion-mercaderia.component';
+import { VerificarPedidoItemRecepcionMercaderiaComponent } from './pedido/edit-pedido-2/recepcion-mercaderia/verificar-pedido-item-recepcion-mercaderia/verificar-pedido-item-recepcion-mercaderia.component';
+import { SucursalDistributionDialogComponent } from './pedido/edit-pedido-2/recepcion-mercaderia/sucursal-distribution-dialog/sucursal-distribution-dialog.component';
 
 @NgModule({
   declarations: [
@@ -120,7 +123,10 @@ import { FinalizacionDialogComponent } from './pedido/edit-pedido-2/finalizacion
     ItemStatusDialogComponent,
     PedidoItemSucursalDialogComponent,
     AddProductDialogComponent,
-    FinalizacionDialogComponent
+    FinalizacionDialogComponent,
+    RecepcionMercaderiaComponent,
+    VerificarPedidoItemRecepcionMercaderiaComponent,
+    SucursalDistributionDialogComponent
   ],
   imports: [
     CommonModule,

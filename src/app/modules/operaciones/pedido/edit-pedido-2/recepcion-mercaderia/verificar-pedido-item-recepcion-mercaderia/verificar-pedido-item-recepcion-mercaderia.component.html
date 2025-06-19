@@ -1,0 +1,223 @@
+<div class="verification-dialog-container">
+  <!-- Dialog Header -->
+  <div mat-dialog-title class="dialog-header">
+    <div fxLayout="row" fxLayoutAlign="center center">
+      <h3>{{ dialogTitleComputed }}</h3>
+    </div>
+  </div>
+
+  <!-- Dialog Content -->
+  <div mat-dialog-content class="dialog-content">
+    <!-- Product Information Card -->
+    <mat-card class="product-info-card" appearance="outlined">
+      <mat-card-header>
+        <mat-card-title class="titulo">Información del Producto</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div fxLayout="row" fxLayoutGap="12px">
+          <div fxFlex="50" fxLayout="column" fxLayoutGap="12px">
+            <div>
+              <span class="titulo">Producto:</span>
+              <div>{{ productInfoComputed }}</div>
+            </div>
+          </div>
+          <div fxFlex="25" fxLayout="column" fxLayoutGap="12px">
+            <div><span class="titulo">Cantidad Esperada:</span></div>
+            <div>
+              {{ expectedQuantityComputed }}
+            </div>
+          </div>
+          <div
+            fxFlex="25"
+            fxLayout="column"
+            fxLayoutGap="12px"
+            *ngIf="pedidoItem.notaRecepcion?.numero"
+          >
+            <div>
+              <span class="titulo">Nota de Recepción:</span>
+              <div>#{{ pedidoItem.notaRecepcion.numero }}</div>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Verification Form -->
+    <form
+      [formGroup]="form"
+      fxLayout="column"
+      fxLayoutGap="16px"
+      class="verification-form"
+    >
+      <!-- First Row: Presentation and Product Quality -->
+      <div fxLayout="row" fxLayoutGap="16px" fxLayout.xs="column">
+        <!-- Presentation (moved to first position) -->
+        <mat-form-field appearance="outline" fxFlex="50" fxFlex.xs="100">
+          <mat-label>Presentación</mat-label>
+          <mat-select
+            #presentacionSelect
+            formControlName="nuevaPresentacion"
+            (keydown)="onPresentacionKeyDown($event)"
+            (selectionChange)="onPresentacionSelectionChange()"
+            (closed)="onPresentacionClosed()"
+          >
+            <mat-option [value]="originalPresentacion">
+              {{ originalPresentacion?.descripcion }} ({{
+                originalPresentacion?.cantidad
+              }})
+            </mat-option>
+            <!-- Additional presentation options would go here -->
+          </mat-select>
+          <mat-error *ngIf="nuevaPresentacionHasErrorComputed">
+            {{ nuevaPresentacionErrorComputed }}
+          </mat-error>
+          <mat-hint *ngIf="hasPresentacionChangesComputed" align="end">
+            <mat-icon class="hint-icon accent-color" style="font-size: 16px"
+              >info</mat-icon
+            >
+            Presentación modificada
+          </mat-hint>
+        </mat-form-field>
+
+        <!-- Product Quality Status -->
+        <mat-form-field appearance="outline" fxFlex="50" fxFlex.xs="100">
+          <mat-label>Estado del Producto</mat-label>
+          <mat-select
+            #estadoProductoSelect
+            formControlName="estadoProducto"
+            (keydown)="onEstadoProductoKeyDown($event)"
+            (selectionChange)="onEstadoProductoSelectionChange()"
+            (closed)="onEstadoProductoClosed()"
+          >
+            <mat-option
+              *ngFor="let option of qualityOptionsComputed"
+              [value]="option.value"
+            >
+              <div
+                fxLayout="row"
+                fxLayoutAlign="start center"
+                fxLayoutGap="8px"
+              >
+                <mat-icon [color]="option.color" class="option-icon">{{
+                  option.icon
+                }}</mat-icon>
+                <span>{{ option.label }}</span>
+              </div>
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="estadoProductoHasErrorComputed">
+            {{ estadoProductoErrorComputed }}
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Second Row: Expiration Date (conditional) -->
+      <div
+        *ngIf="showFechaVencimientoComputed"
+        fxLayout="row"
+        fxLayoutGap="16px"
+        fxLayout.xs="column"
+      >
+                  <!-- Expiration Date -->
+          <mat-form-field appearance="outline" fxFlex="50">
+            <mat-label>Fecha de Vencimiento</mat-label>
+            <input
+              #fechaVencimientoInput
+              matInput
+              formControlName="fechaVencimiento"
+              (keydown)="onFechaVencimientoKeyDown($event)"
+              (input)="onFechaVencimientoInput($event)"
+              placeholder="DD/MM/AAAA"
+              maxlength="10"
+            />
+            <mat-icon matSuffix>calendar_today</mat-icon>
+            <mat-error *ngIf="fechaVencimientoHasErrorComputed">
+              {{ fechaVencimientoErrorComputed }}
+            </mat-error>
+            <mat-hint>Formato: DD/MM/AAAA o DD/MM/AA</mat-hint>
+          </mat-form-field>
+        <!-- Received Quantity -->
+        <mat-form-field appearance="outline" fxFlex="50">
+          <mat-label>Cantidad Recibida</mat-label>
+          <input
+            #cantidadRecibidaInput
+            matInput
+            type="number"
+            formControlName="cantidadRecibida"
+            (keydown)="onCantidadRecibidaKeyDown($event)"
+            placeholder="Cantidad verificada"
+            min="0"
+            step="0.01"
+          />
+          <mat-error *ngIf="cantidadRecibidaHasErrorComputed">
+            {{ cantidadRecibidaErrorComputed }}
+          </mat-error>
+          <mat-hint *ngIf="hasQuantityChangesComputed" align="end">
+            <mat-icon class="hint-icon warn-color" style="font-size: 16px"
+              >warning</mat-icon
+            >
+            Cantidad diferente a la esperada
+          </mat-hint>
+        </mat-form-field>
+      </div>
+
+      <!-- Quality Issues Section (shown when quality is not good) -->
+      <div *ngIf="hasQualityIssuesComputed" class="quality-issues-section">
+        <mat-form-field appearance="outline" fxFlex="100">
+          <mat-label>Motivo del Rechazo/Observación</mat-label>
+          <textarea
+            #motivoRechazoTextarea
+            matInput
+            formControlName="motivoRechazo"
+            (keydown)="onMotivoRechazoKeyDown($event)"
+            placeholder="Describa el problema encontrado en el producto"
+            rows="3"
+          >
+          </textarea>
+          <mat-error *ngIf="motivoRechazoHasErrorComputed">
+            {{ motivoRechazoErrorComputed }}
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- General Observations -->
+      <mat-form-field appearance="outline" fxFlex="100">
+        <mat-label>Observaciones Generales</mat-label>
+        <textarea
+          #observacionesTextarea
+          matInput
+          formControlName="observaciones"
+          (keydown)="onObservacionesKeyDown($event)"
+          placeholder="Observaciones adicionales sobre la recepción"
+          rows="2"
+        >
+        </textarea>
+        <mat-error *ngIf="observacionesHasErrorComputed">
+          {{ observacionesErrorComputed }}
+        </mat-error>
+      </mat-form-field>
+    </form>
+  </div>
+
+  <!-- Dialog Actions -->
+  <div
+    mat-dialog-actions
+    class="dialog-actions"
+    fxLayout="row"
+    fxLayoutAlign="end center"
+    fxLayoutGap="16px"
+  >
+    <button #cancelButton mat-button (click)="cancel()" [disabled]="loading">
+      Cancelar
+    </button>
+
+    <button
+      #saveButton
+      mat-raised-button
+      (click)="save()"
+      [disabled]="!canVerifyComputed || loading"
+    >
+      {{ loading ? "Guardando..." : saveButtonTextComputed }}
+    </button>
+  </div>
+</div>

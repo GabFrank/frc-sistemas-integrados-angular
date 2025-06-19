@@ -132,6 +132,9 @@ export class EditPedido2Component implements OnInit {
   recepcionNotaStatusTitle = '';
   recepcionNotaStatusSubtitle: string | null = null;
   
+  // **NEW**: Current step tracking info for the status card
+  currentStepTrackingInfo: StepInfo | null = null;
+  
   // UI stepper index to step type mapping
   private stepperToStepType: Map<number, PedidoStepType> = new Map([
     [0, PedidoStepType.CREACION],     // Datos del pedido
@@ -360,6 +363,9 @@ export class EditPedido2Component implements OnInit {
    * CRITICAL: Update computed properties to avoid function calls in templates
    */
   private updateComputedProperties(): void {
+    // Current step tracking info based on current pedido estado
+    this.currentStepTrackingInfo = this.getCurrentStepTrackingInfo();
+    
     // Recepcion Nota step info
     this.recepcionNotaStepInfo = this.stepInfos.get(PedidoStepType.RECEPCION_NOTA) || null;
     
@@ -434,6 +440,7 @@ export class EditPedido2Component implements OnInit {
    * Clear computed properties when no data available
    */
   private clearComputedProperties(): void {
+    this.currentStepTrackingInfo = null;
     this.recepcionNotaStepInfo = null;
     this.showRecepcionNotaInitButton = false;
     this.canBeginRecepcionNota = false;
@@ -442,6 +449,41 @@ export class EditPedido2Component implements OnInit {
     this.recepcionNotaStatusIcon = '';
     this.recepcionNotaStatusTitle = '';
     this.recepcionNotaStatusSubtitle = null;
+  }
+
+  /**
+   * Get current step tracking info based on pedido estado
+   */
+  private getCurrentStepTrackingInfo(): StepInfo | null {
+    if (!this.selectedPedido) {
+      return null;
+    }
+
+    const estado = this.selectedPedido.estado;
+
+    switch (estado) {
+      case PedidoEstado.ABIERTO:
+      case PedidoEstado.ACTIVO:
+        // Both represent creation phase
+        return this.stepInfos.get(PedidoStepType.CREACION) || null;
+      case PedidoEstado.EN_RECEPCION_NOTA:
+        return this.stepInfos.get(PedidoStepType.RECEPCION_NOTA) || null;
+      case PedidoEstado.EN_RECEPCION_MERCADERIA:
+        return this.stepInfos.get(PedidoStepType.RECEPCION_MERCADERIA) || null;
+      case PedidoEstado.CONCLUIDO:
+        // For completed pedidos, show the last completed step
+        const solicitudPagoInfo = this.stepInfos.get(PedidoStepType.SOLICITUD_PAGO);
+        if (solicitudPagoInfo && solicitudPagoInfo.status === StepStatus.COMPLETED) {
+          return solicitudPagoInfo;
+        }
+        const recepcionMercaderiaInfo = this.stepInfos.get(PedidoStepType.RECEPCION_MERCADERIA);
+        if (recepcionMercaderiaInfo && recepcionMercaderiaInfo.status === StepStatus.COMPLETED) {
+          return recepcionMercaderiaInfo;
+        }
+        return this.stepInfos.get(PedidoStepType.RECEPCION_NOTA) || null;
+      default:
+        return null;
+    }
   }
 
   /**
@@ -1054,8 +1096,14 @@ export class EditPedido2Component implements OnInit {
 
   onPedidoChange(updatedPedido: Pedido): void {
     this.selectedPedido = updatedPedido;
+    this.updateStepStates();
+    this.updateStepAccessibility();
+    this.updateEstadoColor();
     this.updateButtonStates();
     this.updatePedidoSummary(); // Refresh summary when pedido changes
+    
+    // CRITICAL: Update step tracking info to refresh header status
+    this.updateStepTrackingInfo();
   }
 
   onStep1FormValidChange(isValid: boolean): void {
@@ -1075,6 +1123,11 @@ export class EditPedido2Component implements OnInit {
     this.stepsConfig[2].completed = isValid;
     // Update computed properties since step3Valid affects nextButtonTooltip
     this.updateComputedProperties();
+  }
+
+  onStep4ValidChange(isValid: boolean): void {
+    // TODO: Implement step 4 validation
+    this.stepsConfig[3].completed = isValid;
   }
 
   /**

@@ -167,7 +167,8 @@ export class PedidoService {
     page,
     size,
     texto?,
-    verificado?
+    verificado?,
+    pedidoId?
   ): Observable<PageInfo<PedidoItem>> {
     return this.genericService.onCustomQuery(this.pedidoItemPorNotaRecepcion, {
       id,
@@ -175,6 +176,7 @@ export class PedidoService {
       size,
       texto,
       verificado,
+      pedidoId,
     });
   }
 
