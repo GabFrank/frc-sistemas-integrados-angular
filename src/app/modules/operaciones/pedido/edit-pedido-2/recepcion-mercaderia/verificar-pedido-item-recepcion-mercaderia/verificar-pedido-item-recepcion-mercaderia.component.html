@@ -14,28 +14,38 @@
         <mat-card-title class="titulo">Información del Producto</mat-card-title>
       </mat-card-header>
       <mat-card-content>
-        <div fxLayout="row" fxLayoutGap="12px">
-          <div fxFlex="50" fxLayout="column" fxLayoutGap="12px">
-            <div>
-              <span class="titulo">Producto:</span>
-              <div>{{ productInfoComputed }}</div>
+        <div fxLayout="row" fxLayoutGap="16px" fxLayoutAlign="start start" fxLayout.xs="column" fxLayout.sm="column">
+          <!-- Product Image -->
+          <div fxFlex="none" fxFlex.xs="100" fxFlex.sm="100" class="product-image-container">
+            <img 
+              [src]="productImageSrcComputed" 
+              [alt]="pedidoItem.producto?.descripcion"
+              class="product-image"
+              (error)="onImageError($event)"
+              loading="lazy">
+          </div>
+          
+          <!-- Product Details -->
+          <div fxFlex fxLayout="column" fxLayoutGap="8px">
+            <div fxLayout="column">
+              <span class="titulo">Descripción:</span>
+              <div class="product-description" [copiarAClipboard]="pedidoItem.producto?.descripcion">{{ pedidoItem.producto?.descripcion }}</div>
+            </div>
+            <div fxLayout="column">
+              <span class="titulo">Código:</span>
+              <div class="product-code" [copiarAClipboard]="pedidoItem.producto?.codigoPrincipal">{{ pedidoItem.producto?.codigoPrincipal }}</div>
             </div>
           </div>
-          <div fxFlex="25" fxLayout="column" fxLayoutGap="12px">
-            <div><span class="titulo">Cantidad Esperada:</span></div>
+          
+          <!-- Quantity and Note Info -->
+          <div fxFlex="30" fxFlex.xs="100" fxFlex.sm="100" fxLayout="column" fxLayoutGap="12px">
             <div>
-              {{ expectedQuantityComputed }}
+              <span class="titulo">Cantidad Esperada:</span>
+              <div>({{ pedidoItem.presentacionRecepcionNota.cantidad | number:'1.0-2' }}) {{ pedidoItem.cantidadRecepcionNota | number:'1.0-2' }}</div>
             </div>
-          </div>
-          <div
-            fxFlex="25"
-            fxLayout="column"
-            fxLayoutGap="12px"
-            *ngIf="pedidoItem.notaRecepcion?.numero"
-          >
-            <div>
+            <div *ngIf="pedidoItem.notaRecepcion?.numero">
               <span class="titulo">Nota de Recepción:</span>
-              <div>#{{ pedidoItem.notaRecepcion.numero }}</div>
+              <div>#{{ pedidoItem.notaRecepcion.numero | number:'1.0-2' }}</div>
             </div>
           </div>
         </div>
@@ -98,9 +108,6 @@
                 fxLayoutAlign="start center"
                 fxLayoutGap="8px"
               >
-                <mat-icon [color]="option.color" class="option-icon">{{
-                  option.icon
-                }}</mat-icon>
                 <span>{{ option.label }}</span>
               </div>
             </mat-option>
@@ -216,6 +223,7 @@
       mat-raised-button
       (click)="save()"
       [disabled]="!canVerifyComputed || loading"
+      color="primary"
     >
       {{ loading ? "Guardando..." : saveButtonTextComputed }}
     </button>

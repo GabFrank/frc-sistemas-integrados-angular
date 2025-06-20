@@ -130,17 +130,35 @@ export class ItemStatusDialogComponent implements OnInit {
       }
       this.updateFormState();
     });
+
+    // Handle motivoRechazo changes - automatically turn on rejection slider when motivos are selected
+    this.statusForm.get('motivoRechazo')?.valueChanges.subscribe(motivos => {
+      const hasMotivos = motivos && motivos.length > 0;
+      const currentlyRejected = this.statusForm.get('isRejected')?.value;
+      
+      // If at least one motivo is selected and rejection is not already enabled, enable it
+      if (hasMotivos && !currentlyRejected) {
+        this.statusForm.get('isRejected')?.setValue(true, { emitEvent: false });
+        this.updateFormState();
+      }
+      // If no motivos are selected and rejection is enabled, disable it
+      else if (!hasMotivos && currentlyRejected) {
+        this.statusForm.get('isRejected')?.setValue(false, { emitEvent: false });
+        this.updateFormState();
+      }
+    });
   }
 
   private updateFormState(): void {
     const isRejected = this.isRejected;
     
-    // Update form validation
+    // Always keep motivoRechazo enabled so users can select motivos to trigger rejection
+    this.statusForm.get('motivoRechazo')?.enable();
+    
+    // Update observaciones field based on rejection state
     if (isRejected) {
-      this.statusForm.get('motivoRechazo')?.enable();
       this.statusForm.get('observaciones')?.enable();
     } else {
-      this.statusForm.get('motivoRechazo')?.disable();
       this.statusForm.get('observaciones')?.disable();
     }
   }

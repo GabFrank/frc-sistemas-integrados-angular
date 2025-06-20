@@ -1,10 +1,9 @@
 <div class="item-status-dialog" [class.embedded-mode]="isEmbedded">
   <!-- Dialog Header - Only shown in dialog mode -->
-  <div class="dialog-header" *ngIf="showDialogHeader">
-    <h2 mat-dialog-title class="titulo-center">{{ dialogTitle }}</h2>
-    <button mat-icon-button mat-dialog-close class="close-button">
-      <mat-icon>close</mat-icon>
-    </button>
+  <div class="dialog-header" *ngIf="showDialogHeader" mat-dialog-title>
+    <div fxLayout="row" fxLayoutAlign="center center">
+      <h3>{{ dialogTitle }}</h3>
+    </div>
   </div>
 
   <!-- Dialog Content -->
@@ -76,29 +75,33 @@
 
   <!-- Dialog Actions - Only shown in dialog mode -->
   <mat-dialog-actions class="dialog-actions" *ngIf="showDialogHeader && !currentIsReadOnly">
-    <button 
-      mat-button 
-      type="button" 
-      (click)="onCancel()"
-      [disabled]="isProcessing">
-      Salir
-    </button>
-    <button 
-      mat-raised-button 
-      color="warn"
-      type="button"
-      (click)="onSave()"
-      [disabled]="!canSave">
-      <mat-icon *ngIf="isProcessing" class="processing-icon">hourglass_empty</mat-icon>
-      {{ isProcessing ? 'Guardando...' : (isRejected ? 'Guardar Rechazo' : 'Remover Rechazo') }}
-    </button>
+    <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="8px" style="width: 100%;">
+      <button 
+        mat-button 
+        type="button" 
+        (click)="onCancel()"
+        [disabled]="isProcessing">
+        Salir
+      </button>
+      <button 
+        mat-raised-button 
+        color="warn"
+        type="button"
+        (click)="onSave()"
+        [disabled]="!canSave">
+        <mat-icon *ngIf="isProcessing" class="processing-icon">hourglass_empty</mat-icon>
+        {{ isProcessing ? 'Guardando...' : (isRejected ? 'Guardar Rechazo' : 'Remover Rechazo') }}
+      </button>
+    </div>
   </mat-dialog-actions>
 
   <!-- Read-only actions - Only shown in dialog mode -->
   <mat-dialog-actions class="dialog-actions" *ngIf="showDialogHeader && currentIsReadOnly">
-    <button mat-raised-button color="primary" mat-dialog-close>
-      Cerrar
-    </button>
+    <div fxLayout="row" fxLayoutAlign="end center" style="width: 100%;">
+      <button mat-raised-button color="primary" mat-dialog-close>
+        Cerrar
+      </button>
+    </div>
   </mat-dialog-actions>
 
   <!-- Embedded mode actions -->

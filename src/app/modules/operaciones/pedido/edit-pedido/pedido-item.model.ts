@@ -58,8 +58,8 @@ export class PedidoItem {
   obsCreacion: string;
   obsRecepcionNota: string;
   obsRecepcionProducto: string;
-  autorizacionRecepcionNota;
-  autorizacionRecepcionProducto;
+  autorizacionRecepcionNota: boolean;
+  autorizacionRecepcionProducto: boolean;
   autorizadoPorRecepcionNota: Usuario;
   autorizadoPorRecepcionProducto: Usuario;
   motivoModificacionRecepcionNota: string;
@@ -373,8 +373,8 @@ export class PedidoItemInput {
   obsCreacion: string;
   obsRecepcionNota: string;
   obsRecepcionProducto: string;
-  autorizacionRecepcionNota;
-  autorizacionRecepcionProducto;
+  autorizacionRecepcionNota: boolean;
+  autorizacionRecepcionProducto: boolean;
   autorizadoPorRecepcionNotaId: number;
   autorizadoPorRecepcionProductoId: number;
   motivoModificacionRecepcionNota: string;

@@ -179,7 +179,15 @@
 
   <!-- Stepper Container - 80% height -->
   <div class="stepper-container" style="height: 100%">
+    <!-- Loading State -->
+    <div *ngIf="!isDataLoaded" class="loading-placeholder">
+      <mat-spinner diameter="40"></mat-spinner>
+      <span>Cargando datos del pedido...</span>
+    </div>
+    
+    <!-- Stepper - Only render when data is loaded -->
     <mat-stepper
+      *ngIf="isDataLoaded"
       #stepper
       class="full-height-stepper"
       orientation="horizontal"

@@ -401,14 +401,21 @@
 /* Loading states */
 .loading-placeholder {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 200px;
+  height: 100%;
   background-color: #3a3a3a;
   color: #e0e0e0;
+  border-radius: 8px;
   
   mat-spinner {
-    margin-right: 16px;
+    margin-bottom: 16px;
+  }
+  
+  span {
+    font-size: 1.125rem;
+    color: #bbb;
   }
 }
 
@@ -418,18 +425,75 @@
 }
 
 /* Full height stepper solution */
-::ng-deep .mat-horizontal-stepper-wrapper {
-  height: 100%;
-  background-color: #2d2d2d;
-
-  .mat-horizontal-content-container {
+::ng-deep .full-height-stepper {
+  .mat-horizontal-stepper-wrapper {
     height: 100%;
     background-color: #2d2d2d;
+  }
+
+  .mat-horizontal-content-container {
+    height: calc(100% - 80px); // Subtract header height with some padding
+    background-color: #2d2d2d;
+    overflow: auto;
   }
 
   .mat-horizontal-stepper-content {
     height: 100%;
     background-color: #2d2d2d;
+    padding: 0; // Remove default padding
+    overflow: hidden;
+  }
+
+  .mat-stepper-horizontal {
+    background-color: #2d2d2d;
+  }
+
+  .mat-step-header {
+    background-color: transparent;
+    color: #e0e0e0;
+    transition: background-color 0.3s ease;
+    
+    // Only apply background to selected/active step (using correct Angular Material class)
+    &.mat-stepper-horizontal .mat-step-icon-selected,
+    &[aria-selected="true"],
+    &.mat-step-header-selected,
+    &:has(.mat-step-icon-selected) {
+      background-color: #3a3a3a;
+      
+      &.cdk-program-focused, &.cdk-keyboard-focused {
+        background-color: #4a4a4a;
+      }
+    }
+    
+    // Alternative approach - target by step state
+    &[ng-reflect-index] {
+      &:has(.mat-step-icon-state-number.mat-step-icon-selected),
+      &:has(.mat-step-icon.mat-step-icon-selected) {
+        background-color: #3a3a3a;
+      }
+    }
+    
+    // Hover effect for non-selected steps
+    &:not([aria-selected="true"]):hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    // Focus states for keyboard navigation
+    &.cdk-program-focused, &.cdk-keyboard-focused {
+      &:not([aria-selected="true"]) {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+    }
+  }
+  
+  // More specific selector for selected step
+  .mat-stepper-horizontal .mat-step-header[aria-selected="true"] {
+    background-color: #3a3a3a !important;
+  }
+  
+  // Target the step that contains the selected icon
+  .mat-step-header:has(.mat-step-icon-selected) {
+    background-color: #3a3a3a !important;
   }
 }
 

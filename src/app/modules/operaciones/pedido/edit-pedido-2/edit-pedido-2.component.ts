@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, ViewChild } from "@angular/core";
+import { Component, Input, OnInit, ViewChild, AfterViewInit, ChangeDetectorRef } from "@angular/core";
 import { FormControl, FormGroup } from "@angular/forms";
 import { MatStepper } from "@angular/material/stepper";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
@@ -52,13 +52,14 @@ export interface StepInfo {
   templateUrl: "./edit-pedido-2.component.html",
   styleUrls: ["./edit-pedido-2.component.scss"],
 })
-export class EditPedido2Component implements OnInit {
+export class EditPedido2Component implements OnInit, AfterViewInit {
   @ViewChild("stepper") stepper: MatStepper;
 
   @Input() data: Tab;
 
   selectedPedido: Pedido | null = null;
   currentStepIndex = 0;
+  isDataLoaded = false;
   stepsConfig = [
     {
       label: "Datos del pedido",
@@ -149,12 +150,41 @@ export class EditPedido2Component implements OnInit {
     private mainService: MainService,
     private matDialog: MatDialog,
     private dialogosService: DialogosService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.getCurrentUser();
     this.loadPedidoData();
+  }
+
+  ngAfterViewInit(): void {
+    // Fix stepper display issues by ensuring proper initialization after view is ready
+    if (this.stepper && this.selectedPedido) {
+      this.fixStepperDisplay();
+    }
+  }
+
+  /**
+   * Fix stepper display issues by forcing proper re-rendering
+   */
+  private fixStepperDisplay(): void {
+    if (this.stepper) {
+      // Force stepper to re-render its content
+      setTimeout(() => {
+        const targetIndex = this.currentStepIndex;
+        // Reset to step 0 first
+        this.stepper.selectedIndex = 0;
+        this.cdr.detectChanges();
+        
+        // Then set to target step
+        setTimeout(() => {
+          this.stepper.selectedIndex = targetIndex;
+          this.cdr.detectChanges();
+        }, 50);
+      }, 100);
+    }
   }
 
   /**
@@ -166,6 +196,7 @@ export class EditPedido2Component implements OnInit {
 
   loadPedidoData(): void {
     if (this.data?.tabData?.id) {
+      this.isDataLoaded = false;
       this.pedidoService
         .onGetPedidoInfoCompleta(this.data.tabData.id)
         .subscribe((pedido) => {
@@ -183,13 +214,18 @@ export class EditPedido2Component implements OnInit {
           // Update step states after pedido is set and give Angular time to update
           setTimeout(() => {
             this.updateStepStates();
-          }, 100);
+            this.isDataLoaded = true;
+            
+            // Fix stepper display after data is loaded
+            this.fixStepperDisplay();
+          }, 150);
         });
     }
   }
 
   loadPedidoDataFresh(): void {
     if (this.data?.tabData?.id) {
+      this.isDataLoaded = false;
       this.pedidoService
         .onGetPedidoInfoCompletaFresh(this.data.tabData.id)
         .subscribe((pedido) => {
@@ -207,7 +243,11 @@ export class EditPedido2Component implements OnInit {
           // Update step states after pedido is set and give Angular time to update
           setTimeout(() => {
             this.updateStepStates();
-          }, 100);
+            this.isDataLoaded = true;
+            
+            // Fix stepper display after data is loaded
+            this.fixStepperDisplay();
+          }, 150);
         });
     }
   }

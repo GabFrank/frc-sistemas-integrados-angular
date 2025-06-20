@@ -4,6 +4,7 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButton } from '@angular/material/button';
 import { MatSelect } from '@angular/material/select';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { throttleTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { PedidoItem } from '../../../edit-pedido/pedido-item.model';
 import { Presentacion } from '../../../../../productos/presentacion/presentacion.model';
@@ -70,6 +71,10 @@ export class VerificarPedidoItemRecepcionMercaderiaComponent implements OnInit {
   // Static data for template
   qualityOptionsComputed: QualityOption[] = [];
 
+  // Product image
+  productImageSrcComputed = '';
+  private defaultImagePath = 'assets/no-image.png';
+
   // Form field error states (pre-computed to avoid function calls in template)
   cantidadRecibidaErrorComputed = '';
   estadoProductoErrorComputed = '';
@@ -100,104 +105,82 @@ export class VerificarPedidoItemRecepcionMercaderiaComponent implements OnInit {
     private pedidoService: PedidoService,
     private notificacionService: NotificacionSnackbarService
   ) {
-    // Create a proper copy of the pedido item
     this.pedidoItem = new PedidoItem();
     Object.assign(this.pedidoItem, data.pedidoItem);
-    this.isEditing = data.isEditing;
+    this.isEditing = data.isEditing || false;
     
-    // Store original values
+    // Store original values for comparison
     this.originalQuantity = this.pedidoItem.cantidadRecepcionNota || this.pedidoItem.cantidadCreacion || 0;
     this.originalPresentacion = this.pedidoItem.presentacionRecepcionNota || this.pedidoItem.presentacionCreacion || null;
     
-    // Initialize static computed properties
-    this.initializeStaticComputedProperties();
   }
 
   ngOnInit(): void {
+    this.initializeStaticComputedProperties();
     this.initializeForm();
+    this.setupFormValidation();
     this.checkFechaVencimientoVisibility();
     this.updateAllComputedProperties();
-    this.setupFormValidation();
-    
-    // Set initial focus after view init
     setTimeout(() => {
       this.setInitialFocus();
-    }, 200);
+    }, 100);
   }
 
   /**
-   * Initialize static computed properties that don't change
+   * Initialize computed properties that don't change during component lifecycle
    */
   private initializeStaticComputedProperties(): void {
-    // Product info
-    this.productInfoComputed = `${this.pedidoItem.producto?.descripcion} - ${this.pedidoItem.producto?.codigoPrincipal}`;
+    this.productInfoComputed = this.pedidoItem.producto?.descripcion || 'Producto sin descripción';
     
-    // Expected quantity
-    this.expectedQuantityComputed = `${this.originalQuantity} ${this.originalPresentacion?.descripcion || ''}`;
+    const presentacionDesc = this.originalPresentacion?.descripcion || '';
+    this.expectedQuantityComputed = `${this.originalQuantity}${presentacionDesc ? ' ' + presentacionDesc : ''}`;
     
-    // Quality options
+    this.productImageSrcComputed = this.pedidoItem.producto?.imagenPrincipal || this.defaultImagePath;
+    
     this.qualityOptionsComputed = [
-      { value: 'BUENO', label: 'Bueno', icon: 'check_circle', color: 'accent' },
-      { value: 'REGULAR', label: 'Regular', icon: 'warning', color: 'warn' },
-      { value: 'MALO', label: 'Malo', icon: 'error', color: 'warn' },
-      { value: 'DAÑADO', label: 'Dañado', icon: 'broken_image', color: 'warn' }
+      { value: 'BUENO', label: 'Bueno', icon: 'thumb_up', color: 'primary' },
+      { value: 'MALO', label: 'Malo', icon: 'thumb_down', color: 'warn' },
+      { value: 'DAÑADO', label: 'Dañado', icon: 'warning', color: 'warn' }
     ];
   }
 
   /**
-   * Initialize the verification form
+   * Initialize the reactive form with current item data
    */
   private initializeForm(): void {
-    const currentDate = new Date();
-    const defaultExpiration = new Date();
-    defaultExpiration.setFullYear(currentDate.getFullYear() + 1); // Default 1 year from now
-
-    // Get existing date or use default, then format as string
-    const existingDate = this.pedidoItem.vencimientoRecepcionProducto || 
-                        this.pedidoItem.vencimientoRecepcionNota ||
-                        this.pedidoItem.vencimientoCreacion ||
-                        defaultExpiration;
+    // Get the most recent or relevant expiration date
+    const defaultExpiration = this.pedidoItem.vencimientoRecepcionProducto || 
+                             this.pedidoItem.vencimientoRecepcionNota || 
+                             this.pedidoItem.vencimientoCreacion || new Date();
+    
+    let existingDate: Date | null = null;
+    if (defaultExpiration) {
+      if (typeof defaultExpiration === 'string') {
+        existingDate = new Date(defaultExpiration);
+      } else {
+        existingDate = defaultExpiration;
+      }
+    }
     
     const formattedDate = this.formatDateForInput(existingDate);
+    
+    // Determine initial values based on editing mode
+    const cantidadInitialValue = this.isEditing ? this.pedidoItem.cantidadRecepcionProducto : this.originalQuantity;
+    const presentacionInitialValue = this.isEditing ? 
+      (this.pedidoItem.presentacionRecepcionProducto || this.originalPresentacion) : 
+      this.originalPresentacion;
+    const motivoRechazoInitialValue = this.isEditing ? (this.pedidoItem.motivoRechazoRecepcionProducto || '') : '';
+    const observacionesInitialValue = this.isEditing ? (this.pedidoItem.obsRecepcionProducto || '') : '';
+    const verificadoInitialValue = this.isEditing ? this.pedidoItem.verificadoRecepcionProducto : false;
 
     this.form = this.fb.group({
-      // Quantity verification
-      cantidadRecibida: [
-        this.pedidoItem.cantidadRecepcionProducto || this.originalQuantity,
-        [Validators.required, Validators.min(0)]
-      ],
-      
-      // Quality control
-      estadoProducto: [
-        'BUENO', // Default to good quality
-        [Validators.required]
-      ],
-      
-      // Expiration date (as formatted string for manual input)
-      fechaVencimiento: [
-        formattedDate
-      ],
-      
-      // Presentation changes
-      nuevaPresentacion: [
-        this.pedidoItem.presentacionRecepcionProducto ||
-        this.originalPresentacion
-      ],
-      
-      // Rejection reasons (if applicable)
-      motivoRechazo: [
-        this.pedidoItem.motivoRechazoRecepcionProducto || ''
-      ],
-      
-      // Observations
-      observaciones: [
-        this.pedidoItem.obsRecepcionProducto || ''
-      ],
-      
-      // Verification status
-      verificado: [
-        this.pedidoItem.verificadoRecepcionProducto || false
-      ]
+      cantidadRecibida: [cantidadInitialValue, [Validators.required, Validators.min(0)]],
+      estadoProducto: ['BUENO', [Validators.required]],
+      fechaVencimiento: [formattedDate, []],
+      nuevaPresentacion: [presentacionInitialValue, []],
+      motivoRechazo: [motivoRechazoInitialValue, []],
+      observaciones: [observacionesInitialValue, []],
+      verificado: [verificadoInitialValue]
     });
   }
 
@@ -221,27 +204,38 @@ export class VerificarPedidoItemRecepcionMercaderiaComponent implements OnInit {
    * Setup form validation and change detection
    */
   private setupFormValidation(): void {
-    // Watch for changes that affect verification ability
     this.form.valueChanges
-      .pipe(untilDestroyed(this))
+      .pipe(
+        throttleTime(150), // Wait 150ms between updates
+        distinctUntilChanged(), // Only emit when value actually changes
+        untilDestroyed(this)
+      )
       .subscribe(() => {
         this.updateAllComputedProperties();
       });
 
-    // Specific validations for quality control
+    // Specific validations for quality control - immediate update for business logic
     this.form.get('estadoProducto')?.valueChanges
-      .pipe(untilDestroyed(this))
+      .pipe(
+        distinctUntilChanged(),
+        untilDestroyed(this)
+      )
       .subscribe(estado => {
         this.updateQualityValidation(estado);
-        this.updateAllComputedProperties();
+        // Only update computed properties if quality validation changes things
+        this.updateComputedPropertiesSelectively();
       });
 
-    // Quantity validation
+    // Quantity validation - immediate update for business logic
     this.form.get('cantidadRecibida')?.valueChanges
-      .pipe(untilDestroyed(this))
+      .pipe(
+        distinctUntilChanged(),
+        untilDestroyed(this)
+      )
       .subscribe(cantidad => {
         this.updateQuantityValidation(cantidad);
-        this.updateAllComputedProperties();
+        // Only update computed properties if quantity validation changes things
+        this.updateComputedPropertiesSelectively();
       });
   }
 
@@ -263,6 +257,22 @@ export class VerificarPedidoItemRecepcionMercaderiaComponent implements OnInit {
     this.hasQualityIssuesComputed = formValues.estadoProducto !== 'BUENO';
     
     // Update form field errors
+    this.updateFormErrorComputedProperties();
+  }
+
+  /**
+   * PERFORMANCE OPTIMIZATION: Selective update for specific validation changes
+   * Only updates properties that might have changed due to business logic
+   */
+  private updateComputedPropertiesSelectively(): void {
+    // Only update the validation state and related flags
+    this.canVerifyComputed = this.form.valid && (this.form.get('cantidadRecibida')?.value || 0) > 0;
+    
+    const formValues = this.form.value;
+    this.hasQuantityChangesComputed = (formValues.cantidadRecibida || 0) !== this.originalQuantity;
+    this.hasQualityIssuesComputed = formValues.estadoProducto !== 'BUENO';
+    
+    // Update only error properties - don't update static properties unnecessarily
     this.updateFormErrorComputedProperties();
   }
 
@@ -341,16 +351,28 @@ export class VerificarPedidoItemRecepcionMercaderiaComponent implements OnInit {
     const updatedItem = new PedidoItem();
     Object.assign(updatedItem, this.pedidoItem);
 
-    // Convert formatted date string to Date object for backend
+    // Convert formatted date string to Date object for the model, but it will be converted to string in toInput()
     const fechaVencimientoDate = this.getDateObjectFromFormattedString(formValues.fechaVencimiento);
 
     // Update verification fields with form data
     updatedItem.cantidadRecepcionProducto = formValues.cantidadRecibida;
-    updatedItem.vencimientoRecepcionProducto = fechaVencimientoDate;
+    updatedItem.vencimientoRecepcionProducto = fechaVencimientoDate; // This will be converted to string in toInput()
     updatedItem.presentacionRecepcionProducto = formValues.nuevaPresentacion;
     updatedItem.motivoRechazoRecepcionProducto = formValues.motivoRechazo || null;
     updatedItem.obsRecepcionProducto = formValues.observaciones || null;
     updatedItem.verificadoRecepcionProducto = true;
+
+    // Ensure all boolean fields are properly set to avoid ModelMapper conversion errors
+    updatedItem.bonificacion = updatedItem.bonificacion === true;
+    updatedItem.frio = updatedItem.frio === true;
+    updatedItem.cancelado = updatedItem.cancelado === true;
+    updatedItem.verificadoRecepcionNota = updatedItem.verificadoRecepcionNota === true;
+    updatedItem.verificadoRecepcionProducto = true; // This one we're explicitly setting
+    updatedItem.autorizacionRecepcionNota = updatedItem.autorizacionRecepcionNota === true;
+    updatedItem.autorizacionRecepcionProducto = updatedItem.autorizacionRecepcionProducto === true;
+    updatedItem.isDistribucionSucursalesCreacion = updatedItem.isDistribucionSucursalesCreacion === true;
+    updatedItem.isDistribucionSucursalesRecepcion = updatedItem.isDistribucionSucursalesRecepcion === true;
+    updatedItem.needsDistribucion = updatedItem.needsDistribucion === true;
 
     // Save to backend using the PedidoService
     this.pedidoService.onSaveItem(updatedItem.toInput())
@@ -462,14 +484,17 @@ export class VerificarPedidoItemRecepcionMercaderiaComponent implements OnInit {
    * Check if fecha vencimiento should be visible based on producto.vencimiento
    */
   private checkFechaVencimientoVisibility(): void {
-    this.showFechaVencimientoComputed = this.pedidoItem?.producto?.vencimiento === true;
+    // PERFORMANCE OPTIMIZATION: Removed excessive logging
+    this.showFechaVencimientoComputed = !!this.pedidoItem?.producto?.vencimiento;
   }
 
   /**
    * Set initial focus based on fecha vencimiento visibility
    */
   private setInitialFocus(): void {
+    console.log('setting initial focus', this.showFechaVencimientoComputed, this.fechaVencimientoInput);
     if (this.showFechaVencimientoComputed && this.fechaVencimientoInput?.nativeElement) {
+      console.log('focusing fecha vencimiento', this.showFechaVencimientoComputed);
       this.fechaVencimientoInput.nativeElement.focus();
       this.fechaVencimientoInput.nativeElement.select();
     } else if (this.cantidadRecibidaInput?.nativeElement) {
@@ -806,5 +831,12 @@ export class VerificarPedidoItemRecepcionMercaderiaComponent implements OnInit {
     if (this.motivoRechazoTextarea?.nativeElement) {
       this.motivoRechazoTextarea.nativeElement.focus();
     }
+  }
+
+  /**
+   * Handle image loading errors by showing default image
+   */
+  onImageError(event: any): void {
+    event.target.src = this.defaultImagePath;
   }
 } 

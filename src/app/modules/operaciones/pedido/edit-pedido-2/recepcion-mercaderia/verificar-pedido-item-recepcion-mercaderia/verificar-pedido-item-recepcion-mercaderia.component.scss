@@ -24,22 +24,73 @@
     overflow-y: auto;
     
     .product-info-card {
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       
-      mat-card-title {
-        font-size: 1rem;
-        font-weight: 500;
+      .product-image-container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-width: 150px;
+        max-width: 150px;
+        
+        // Responsive image sizing
+        @media (max-width: 768px) {
+          justify-content: center;
+          margin-bottom: 16px;
+          min-width: 120px;
+          max-width: 120px;
+        }
+        
+        .product-image {
+          width: 150px;
+          height: 150px;
+          object-fit: cover;
+          border-radius: 8px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          background-color: rgba(255, 255, 255, 0.05);
+          transition: all 0.3s ease;
+          
+          // Responsive image sizing
+          @media (max-width: 768px) {
+            width: 120px;
+            height: 120px;
+          }
+          
+          &:hover {
+            transform: scale(1.02);
+            border-color: rgba(255, 255, 255, 0.2);
+          }
+        }
       }
       
-      mat-card-content {
-        padding-top: 8px;
+      .product-description {
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.9);
+        margin-top: 4px;
+        line-height: 1.4;
         
-        div {
-          line-height: 1.6;
-          
-          strong {
-            margin-right: 8px;
-          }
+        // Responsive text sizing
+        @media (max-width: 768px) {
+          font-size: 1rem;
+          text-align: center;
+        }
+      }
+      
+      .product-code {
+        font-family: 'Courier New', monospace;
+        font-size: small;
+        color: rgba(255, 255, 255, 0.7);
+        background-color: rgba(255, 255, 255, 0.05);
+        padding: 4px 8px;
+        border-radius: 4px;
+        display: inline-block;
+        margin-top: 4px;
+        
+        // Responsive styling
+        @media (max-width: 768px) {
+          font-size: 0.9rem;
+          display: block;
+          text-align: center;
         }
       }
     }

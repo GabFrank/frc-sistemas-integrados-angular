@@ -1,6 +1,5 @@
 .recepcion-mercaderia-container {
   height: 100%;
-
 }
 
 // Step Status Card
@@ -8,35 +7,35 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   margin-bottom: 16px;
-  
+
   .step-status-icon {
     font-size: 32px;
     height: 32px;
     width: 32px;
   }
-  
+
   .step-status-title {
     margin: 0;
     font-size: 18px;
     font-weight: 500;
     color: white;
   }
-  
+
   .step-status-subtitle {
     margin: 4px 0 0 0;
     font-size: 14px;
     color: rgba(255, 255, 255, 0.8);
   }
-  
+
   .step-action-button {
     background-color: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
-    
+
     &:hover {
       background-color: rgba(255, 255, 255, 0.2);
     }
-    
+
     mat-icon {
       margin-right: 8px;
     }
@@ -46,24 +45,24 @@
 // Summary Card
 .summary-card {
   margin-bottom: 16px;
-  
+
   .summary-item {
     text-align: center;
-    
+
     .summary-number {
       font-size: large;
       font-weight: 600;
       color: #dedede;
-      
+
       &.accent-color {
         color: #4caf50;
       }
-      
+
       &.warn-color {
         color: #ff9800;
       }
     }
-    
+
     .summary-label {
       font-size: small;
       color: #aaaaaa;
@@ -76,23 +75,23 @@
 // Controls Card
 .controls-card {
   margin-bottom: 16px;
-  
+
   .search-field {
     width: 300px;
-    
+
     @media (max-width: 768px) {
       width: 200px;
     }
   }
-  
+
   .filter-field {
     width: 150px;
   }
-  
+
   mat-button-toggle-group {
     mat-button-toggle {
       border: 1px solid #ddd;
-      
+
       &.mat-button-toggle-checked {
         background-color: #667eea;
         color: white;
@@ -105,36 +104,36 @@
 .items-table-card {
   flex: 1;
   min-height: 0;
-  
+
   .table-container {
     height: 100%;
     overflow: auto;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    
+
     .full-width-table {
       width: 100%;
-      
+
       .mat-header-cell {
         background-color: #f8f9fa;
         color: #333;
         font-weight: 600;
         border-bottom: 2px solid #dee2e6;
-        
+
         &.text-center {
           text-align: center;
         }
       }
-      
+
       .mat-cell {
         padding: 12px 8px;
         border-bottom: 1px solid #f0f0f0;
-        
+
         &.text-center {
           text-align: center;
         }
-        
+
         // Product Information
         .product-description {
           font-weight: 500;
@@ -142,75 +141,45 @@
           font-size: 14px;
           line-height: 1.3;
         }
-        
+
         .product-code {
           font-size: 12px;
           color: #666;
           margin-top: 2px;
         }
-        
+
         // Status Information
         .status-text {
           font-size: 12px;
           margin-left: 4px;
-          
+
           &.accent-text {
             color: #4caf50;
             font-weight: 500;
           }
-          
+
           &.warn-text {
             color: #ff9800;
             font-weight: 500;
           }
         }
-        
+
         // Quantity Information
         .verified-quantity {
           color: #4caf50;
           font-weight: 600;
           font-size: 14px;
         }
-        
+
         .pending-text {
           color: #ff9800;
           font-style: italic;
           font-size: 12px;
         }
-        
-        // Status chips
-        .status-chip {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          min-height: 28px;
-          padding: 4px 8px;
-          border-radius: 16px;
-          font-size: 12px;
-          font-weight: 500;
-
-          .chip-icon {
-            font-size: 16px;
-            width: 16px;
-            height: 16px;
-          }
-
-          &.verified {
-            background-color: rgba(76, 175, 80, 0.1);
-            color: #4caf50;
-            border: 1px solid rgba(76, 175, 80, 0.3);
-          }
-
-          &.pending {
-            background-color: rgba(255, 152, 0, 0.1);
-            color: #ff9800;
-            border: 1px solid rgba(255, 152, 0, 0.3);
-          }
-        }
 
         // Nota numero
         .nota-numero {
-          font-family: 'Roboto Mono', monospace;
+          font-family: "Roboto Mono", monospace;
           font-weight: 500;
           color: #667eea;
           background: rgba(102, 126, 234, 0.1);
@@ -223,7 +192,7 @@
           color: #999;
           font-style: italic;
         }
-        
+
         // Distribution
         .no-distribution {
           color: #999;
@@ -232,7 +201,7 @@
           display: flex;
           align-items: center;
           justify-content: center;
-          
+
           mat-icon {
             margin-right: 4px;
             font-size: 16px;
@@ -240,20 +209,20 @@
             width: 16px;
           }
         }
-        
+
         .distribution-warning {
           margin-top: 4px;
           display: flex;
           align-items: center;
           justify-content: center;
-          
+
           mat-icon {
             font-size: 16px;
             height: 16px;
             width: 16px;
           }
         }
-        
+
         // Chip styling
         mat-chip-listbox {
           mat-chip {
@@ -264,37 +233,37 @@
           }
         }
       }
-      
+
       .mat-row {
         &:hover {
           background-color: #f8f9fa;
         }
-        
+
         &:nth-child(even) {
           background-color: #fdfdfd;
         }
-        
+
         // Row styling based on verification status
         &.verified-row {
           border-left: 3px solid #4caf50;
         }
-        
+
         &.pending-row {
           border-left: 3px solid #ff9800;
         }
       }
     }
   }
-  
+
   .loading-container {
     height: 200px;
     color: #666;
   }
-  
+
   .no-data-message {
     height: 200px;
     color: #666;
-    
+
     mat-icon {
       font-size: 48px;
       height: 48px;
@@ -302,7 +271,7 @@
       color: #ccc;
       margin-right: 16px;
     }
-    
+
     span {
       font-size: 16px;
     }
@@ -317,7 +286,7 @@
   text-align: center;
   color: #fff;
   margin: 32px;
-  
+
   .large-icon {
     font-size: 80px;
     height: 80px;
@@ -325,18 +294,18 @@
     color: #ddd;
     margin-bottom: 24px;
   }
-  
+
   h3 {
     color: #333;
     margin: 0 0 16px 0;
     font-size: 24px;
     font-weight: 400;
   }
-  
+
   p {
     margin: 0 0 8px 0;
     line-height: 1.5;
-    
+
     &.step-placeholder-hint {
       color: #999;
       font-size: 14px;
@@ -344,15 +313,15 @@
       margin: 16px auto 24px auto;
     }
   }
-  
+
   .step-features {
     max-width: 400px;
     margin: 0 auto;
-    
+
     div {
       color: #555;
       font-size: 14px;
-      
+
       mat-icon {
         font-size: 18px;
         height: 18px;
@@ -366,7 +335,7 @@
 .mat-card {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  
+
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     transition: box-shadow 0.3s ease;
@@ -377,7 +346,7 @@
   .mat-form-field-outline {
     color: #ddd;
   }
-  
+
   &.mat-focused .mat-form-field-outline-thick {
     color: #667eea;
   }
@@ -397,26 +366,26 @@
 @media (max-width: 768px) {
   .recepcion-mercaderia-container {
   }
-  
+
   .step-status-card {
     .step-status-title {
       font-size: 16px;
     }
-    
+
     .step-action-button {
       padding: 8px 16px;
-      
+
       mat-icon {
         margin-right: 4px;
       }
     }
   }
-  
+
   .summary-card {
     mat-card-content {
       flex-direction: column;
       gap: 16px;
-      
+
       .summary-item {
         .summary-number {
           font-size: large;
@@ -424,57 +393,58 @@
       }
     }
   }
-  
+
   .controls-card {
     div:first-child {
       flex-direction: column;
       align-items: flex-start;
       gap: 8px;
     }
-    
+
     div:last-child {
       flex-direction: column;
       gap: 8px;
-      
+
       .search-field {
         width: 100%;
       }
-      
+
       .filter-field {
         width: 100%;
       }
     }
   }
-  
+
   .items-table-card {
     .table-container {
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      
+
       .items-table {
-        .mat-cell, .mat-header-cell {
+        .mat-cell,
+        .mat-header-cell {
           padding: 8px 4px;
           font-size: 12px;
-          
-          &:nth-child(n+6) {
+
+          &:nth-child(n + 6) {
             display: none; // Hide less important columns on mobile
           }
         }
       }
     }
   }
-  
+
   .step-placeholder {
     margin: 16px;
     padding: 32px 16px;
-    
+
     .large-icon {
       font-size: 60px;
       height: 60px;
       width: 60px;
     }
-    
+
     h3 {
       font-size: 20px;
     }
@@ -528,7 +498,7 @@
   color: #999;
   font-size: 12px;
   text-align: center;
-  
+
   mat-icon {
     font-size: 16px;
     height: 16px;
@@ -547,17 +517,17 @@
   font-size: 11px;
   min-height: 24px;
   margin: 2px;
-  
+
   &.mat-chip-selected.mat-accent {
     cursor: pointer;
     transition: all 0.2s ease;
-    
+
     &:hover {
       background-color: var(--accent-color-dark) !important;
       transform: scale(1.05);
     }
   }
-  
+
   .mat-chip-trailing-icon {
     font-size: 14px;
     margin-left: 4px;
@@ -567,7 +537,7 @@
 // Nota Recepcion filter field styling
 .filter-field {
   width: 180px;
-  
+
   .mat-select-value {
     font-size: 14px;
   }
@@ -576,16 +546,52 @@
 // Distribution warning styling
 .distribution-warning {
   margin-top: 4px;
-  
+
   mat-icon {
     font-size: 16px;
     height: 16px;
     width: 16px;
     vertical-align: middle;
   }
-  
+
   .warning-text {
     margin-left: 4px;
     vertical-align: middle;
   }
-} 
+}
+
+// Status chips
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+
+  .chip-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &.verified {
+    background-color: rgba(76, 175, 79, 0.508);
+    color: #4caf50;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+  }
+
+  &.pending {
+    background-color: rgba(255, 153, 0, 0.499);
+    color: #ff9800;
+    border: 1px solid rgba(255, 152, 0, 0.3);
+  }
+
+  &.canceled {
+    background-color: rgba(244, 67, 54, 0.1);
+    color: #f44336;
+    border: 1px solid rgba(244, 67, 54, 0.3);
+  }
+}

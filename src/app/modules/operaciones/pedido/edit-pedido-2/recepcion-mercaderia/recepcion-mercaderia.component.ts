@@ -30,7 +30,8 @@ import {
   VerificarPedidoItemRecepcionMercaderiaDialogData, 
   VerificarPedidoItemRecepcionMercaderiaDialogResult 
 } from './verificar-pedido-item-recepcion-mercaderia/verificar-pedido-item-recepcion-mercaderia.component';
-import { SucursalDistributionDialogComponent, SucursalDistributionDialogData } from './sucursal-distribution-dialog/sucursal-distribution-dialog.component';
+import { PedidoItemSucursalDialogComponent } from '../../pedido-item-sucursal/pedido-item-sucursal-dialog/pedido-item-sucursal-dialog.component';
+import { ItemStatusDialogComponent, ItemStatusDialogData, ItemStatusDialogResult } from '../recepcion-nota/item-status-dialog/item-status-dialog.component';
 
 // Recepcion Mercaderia specific types
 export interface RecepcionMercaderiaSummary {
@@ -413,7 +414,6 @@ export class RecepcionMercaderiaComponent implements OnInit, OnChanges {
    * Handle pagination change
    */
   onPageChange(event: PageEvent): void {
-    console.log('📦 RecepcionMercaderia: Page change:', event);
     this.pageSize = event.pageSize;
     this.pageIndex = event.pageIndex;
     this.loadPedidoItems();
@@ -820,8 +820,16 @@ export class RecepcionMercaderiaComponent implements OnInit, OnChanges {
 
   // Item verification methods
   verifyItem(item: PedidoItem): void {
+    
+    
     // Prevent opening dialog if already saving
     if (this.savingVerification) {
+      return;
+    }
+    
+    // Check if item is canceled and show warning dialog
+    if (item.cancelado || item.motivoRechazoRecepcionNota) {
+      this.showCanceledItemWarning(item);
       return;
     }
     
@@ -838,6 +846,88 @@ export class RecepcionMercaderiaComponent implements OnInit, OnChanges {
   }
 
   /**
+   * Show warning dialog when user tries to verify a canceled item
+   */
+  private showCanceledItemWarning(item: PedidoItem): void {
+    
+    
+    const productDescription = `${item.producto?.descripcion || 'Producto'} - ${item.producto?.codigoPrincipal || ''}`;
+    
+    const message = `El item "${productDescription}" está marcado como rechazado/cancelado.\n\n` +
+      `¿Desea eliminar el motivo de rechazo y marcarlo como disponible para verificación?\n\n` +
+      `Esta acción eliminará:\n` +
+      `• Motivo de rechazo: ${item.motivoRechazoRecepcionNota || 'No especificado'}\n` +
+      `• Observaciones: ${item.obsRecepcionNota || 'Sin observaciones'}\n` +
+      `• Estado cancelado`;
+
+    this.dialogosService.confirm(
+      'Confirmar eliminación de rechazo',
+      message
+    ).subscribe(result => {
+      if (result) {
+        this.removeCancelationAndVerify(item);
+      }
+    });
+  }
+
+  /**
+   * Remove cancelation/rejection data and proceed with verification
+   */
+  private removeCancelationAndVerify(item: PedidoItem): void {
+    
+    // Store original producto data to preserve missing fields
+    const originalProducto = item.producto;
+    
+    // Create updated item with rejection data cleared
+    const updatedItem = new PedidoItem();
+    Object.assign(updatedItem, item);
+    
+    // Clear rejection/cancelation fields
+    updatedItem.motivoRechazoRecepcionNota = '';
+    updatedItem.obsRecepcionNota = '';
+    updatedItem.cancelado = false;
+
+
+    // Save the updated item to backend
+    this.pedidoService.onSaveItem(updatedItem.toInput()).subscribe({
+      next: (savedItem) => {
+        
+        
+        // CRITICAL FIX: Restore original producto data if backend didn't return complete data
+        if (originalProducto && (!savedItem.producto?.vencimiento && originalProducto.vencimiento !== undefined)) {
+          
+          
+          // Preserve the original complete producto object
+          savedItem.producto = { ...savedItem.producto, ...originalProducto };
+          
+          
+        }
+        
+        // Update local item with cleared fields
+        this.updateLocalItem(savedItem);
+        
+        // Show success message
+        this.notificacionService.openSucess('Motivo de rechazo eliminado. Item disponible para verificación.');
+        
+        // Open verification dialog after clearing rejection
+        
+        setTimeout(() => {
+          this.openVerificationDialog(savedItem, false);
+        }, 300);
+        
+        // Refresh summary data
+        setTimeout(() => {
+          this.loadSummary();
+        }, 500);
+      },
+      error: (error) => {
+        
+        this.notificacionService.openWarn('Error al eliminar el motivo de rechazo');
+      }
+    });
+  }
+
+  /**
    * Open verification dialog for an item
    */
   private openVerificationDialog(item: PedidoItem, isEditing: boolean): void {
@@ -845,6 +935,8 @@ export class RecepcionMercaderiaComponent implements OnInit, OnChanges {
       pedidoItem: item,
       isEditing: isEditing
     };
+
+
 
     const dialogRef = this.matDialog.open(VerificarPedidoItemRecepcionMercaderiaComponent, {
       data: dialogData,
@@ -856,11 +948,19 @@ export class RecepcionMercaderiaComponent implements OnInit, OnChanges {
       panelClass: ['modern-dialog', 'verification-dialog']
     });
 
+
+
     dialogRef.afterClosed().subscribe((result: VerificarPedidoItemRecepcionMercaderiaDialogResult) => {
       if (result?.confirmed && result.needsUIRefresh) {
-        // Update the item in our local arrays
+        // Update the item in our local arrays with selective field updates
         if (result.updatedItem) {
           this.updateLocalItem(result.updatedItem);
+          
+          // Show success message based on verification action
+          const message = result.updatedItem.verificadoRecepcionProducto 
+            ? 'Item verificado exitosamente'
+            : 'Verificación del item actualizada exitosamente';
+          this.notificacionService.openSucess(message);
         }
         
         // Only refresh summary data (no need for full reload)
@@ -872,114 +972,77 @@ export class RecepcionMercaderiaComponent implements OnInit, OnChanges {
   }
 
   /**
-   * Update item in local arrays without full reload
+   * Update a single item in the local data and recompute only its properties
    */
   private updateLocalItem(updatedItem: PedidoItem): void {
     // Update the item in the current page data
     const tableData = this.dataSource.data;
     const tableIndex = tableData.findIndex(item => item.id === updatedItem.id);
     if (tableIndex !== -1) {
-      tableData[tableIndex] = updatedItem;
-      this.dataSource.data = [...tableData]; // Trigger change detection
+      const existingItem = tableData[tableIndex];
       
-      // Recompute properties for updated data
-      this.computeItemProperties();
+      // Only update specific fields to preserve other data that might be missing from dialog response
+      existingItem.verificadoRecepcionProducto = updatedItem.verificadoRecepcionProducto;
+      existingItem.cantidadRecepcionProducto = updatedItem.cantidadRecepcionProducto;
+      existingItem.vencimientoRecepcionProducto = updatedItem.vencimientoRecepcionProducto;
+      existingItem.usuarioRecepcionProducto = updatedItem.usuarioRecepcionProducto;
+      existingItem.obsRecepcionProducto = updatedItem.obsRecepcionProducto;
+      
+      // Update rejection fields if they exist in the updated item
+      if (updatedItem.hasOwnProperty('motivoRechazoRecepcionNota')) {
+        existingItem.motivoRechazoRecepcionNota = updatedItem.motivoRechazoRecepcionNota;
+      }
+      if (updatedItem.hasOwnProperty('obsRecepcionNota')) {
+        existingItem.obsRecepcionNota = updatedItem.obsRecepcionNota;
+      }
+      if (updatedItem.hasOwnProperty('cancelado')) {
+        existingItem.cancelado = updatedItem.cancelado;
+      }
+      
+      // PERFORMANCE OPTIMIZATION: Only recompute properties for this specific item
+      this.updateSingleItemComputedProperties(existingItem as any, tableIndex);
+      
+      // Trigger change detection with updated array
+      this.dataSource.data = [...tableData];
     }
 
     // Update step validation based on new data
     this.updateStepValidation();
   }
 
-  viewDistribution(item: PedidoItem): void {
-    const dialogData: SucursalDistributionDialogData = {
-      pedidoItem: item
+  /**
+   * PERFORMANCE OPTIMIZATION: Update computed properties for a single item only
+   */
+  private updateSingleItemComputedProperties(item: any, index: number): void {
+    // Update computed properties for this item only
+    item.computedVerificationStatusIcon = this.getVerificationStatusIcon(item);
+    item.computedVerificationStatusText = this.getVerificationStatusText(item);
+    item.computedStatusChipClass = this.getStatusChipClass(item);
+    item.computedPresentacionDisplay = this.computePresentacionDisplay(item);
+    item.computedCantidadDisplay = this.computeCantidadDisplay(item);
+    item.computedNotaNumeroDisplay = this.computeNotaNumeroDisplay(item);
+    item.computedGroupedSucursales = this.getGroupedSucursales(item);
+    item.computedHasNotaNumero = !!item.notaRecepcion?.numero;
+    
+    // Update the Map entry for this item
+    const computedProps = {
+      verificationStatusIcon: item.computedVerificationStatusIcon,
+      verificationStatusColor: this.getVerificationStatusColor(item),
+      verificationStatusText: item.computedVerificationStatusText,
+      hasDistributionIssues: this.hasDistributionIssues(item),
+      groupedSucursales: item.computedGroupedSucursales,
+      statusChipClass: item.computedStatusChipClass,
+      presentacionDisplay: item.computedPresentacionDisplay,
+      cantidadDisplay: item.computedCantidadDisplay,
+      notaNumeroDisplay: item.computedNotaNumeroDisplay
     };
-
-    this.matDialog.open(SucursalDistributionDialogComponent, {
-      data: dialogData,
-      width: '600px',
-      maxWidth: '90vw',
-      maxHeight: '80vh',
-      disableClose: false,
-      autoFocus: false,
-      panelClass: ['modern-dialog', 'sucursal-distribution-dialog']
-    });
-  }
-
-  /**
-   * Get verification status icon for an item
-   */
-  getVerificationStatusIcon(item: PedidoItem): string {
-    return item.verificadoRecepcionProducto ? 'check_circle' : 'pending';
-  }
-
-  /**
-   * Get verification status color for an item
-   */
-  getVerificationStatusColor(item: PedidoItem): string {
-    return item.verificadoRecepcionProducto ? 'accent' : 'warn';
-  }
-
-  /**
-   * Get verification status text for an item
-   */
-  getVerificationStatusText(item: PedidoItem): string {
-    return item.verificadoRecepcionProducto ? 'Verificado' : 'Pendiente';
-  }
-
-  /**
-   * Check if item has distribution issues
-   */
-  hasDistributionIssues(item: PedidoItem): boolean {
-    if (!item.pedidoItemSucursalList?.length) {
-      return true;
-    }
     
-    const totalDistributed = item.pedidoItemSucursalList.reduce((sum, dist) => 
-      sum + (dist.cantidadPorUnidad || 0), 0);
-    
-    return totalDistributed !== (item.cantidadRecepcionProducto || item.cantidadCreacion || 0);
-  }
-
-  /**
-   * Get grouped sucursales for display in table
-   * Returns first few sucursales, and count if there are more
-   */
-  getGroupedSucursales(item: PedidoItem): { sucursales: any[], hasMore: boolean, totalCount: number } {
-    if (!item.pedidoItemSucursalList?.length) {
-      return { sucursales: [], hasMore: false, totalCount: 0 };
-    }
-
-    // Group by sucursal and sum quantities
-    const sucursalMap = new Map<number, { sucursal: any, totalCantidad: number }>();
-    
-    item.pedidoItemSucursalList.forEach(dist => {
-      if (dist.sucursalEntrega?.id) {
-        const sucursalId = dist.sucursalEntrega.id;
-        
-        if (!sucursalMap.has(sucursalId)) {
-          sucursalMap.set(sucursalId, {
-            sucursal: dist.sucursalEntrega,
-            totalCantidad: 0
-          });
-        }
-        
-        sucursalMap.get(sucursalId)!.totalCantidad += dist.cantidadPorUnidad || 0;
-      }
-    });
-    
-    const allSucursales = Array.from(sucursalMap.values());
-    const maxDisplay = 2; // Show first 2 sucursales
-    
-    return {
-      sucursales: allSucursales.slice(0, maxDisplay),
-      hasMore: allSucursales.length > maxDisplay,
-      totalCount: allSucursales.length
-    };
+    this.itemComputedProperties.set(item.id.toString(), computedProps);
   }
 
   /**
    * Compute properties for all items to avoid function calls in template
+   * PERFORMANCE OPTIMIZATION: Made more efficient, removed excessive logging
    */
   private computeItemProperties(): void {
     this.itemComputedProperties.clear();
@@ -991,7 +1054,8 @@ export class RecepcionMercaderiaComponent implements OnInit, OnChanges {
       // Add computed properties to the item
       enhancedItem.computedVerificationStatusIcon = this.getVerificationStatusIcon(item);
       enhancedItem.computedVerificationStatusText = this.getVerificationStatusText(item);
-      enhancedItem.computedStatusChipClass = 'status-chip ' + (item.verificadoRecepcionProducto ? 'verified' : 'pending');
+      enhancedItem.computedStatusChipClass = this.getStatusChipClass(item);
+      // PERFORMANCE OPTIMIZATION: Removed excessive logging that was called for every item
       enhancedItem.computedPresentacionDisplay = this.computePresentacionDisplay(item);
       enhancedItem.computedCantidadDisplay = this.computeCantidadDisplay(item);
       enhancedItem.computedNotaNumeroDisplay = this.computeNotaNumeroDisplay(item);
@@ -1044,5 +1108,164 @@ export class RecepcionMercaderiaComponent implements OnInit, OnChanges {
       return item.notaRecepcion.numero;
     }
     return 'Sin nota';
+  }
+
+  viewDistribution(item: PedidoItem): void {
+    // Extract sucursal lists from pedido for the dialog
+    const sucursalInfluenciaList = item.pedido?.sucursalInfluenciaList?.map(si => si.sucursal) || [];
+    const sucursalEntregaList = item.pedido?.sucursalEntregaList?.map(se => se.sucursal) || [];
+
+    const dialogData = {
+      pedidoItem: item,
+      sucursalInfluenciaList: sucursalInfluenciaList,
+      sucursalEntregaList: sucursalEntregaList,
+      autoSet: false,
+      readOnly: true // View-only mode for recepcion-mercaderia
+    };
+
+    // Open in view-only mode by setting isEmbedded to false but in read-only context
+    const dialogRef = this.matDialog.open(PedidoItemSucursalDialogComponent, {
+      data: dialogData,
+      width: '90%',
+      maxWidth: '1000px',
+      maxHeight: '90vh',
+      disableClose: false,
+      autoFocus: false,
+      panelClass: ['modern-dialog', 'view-distribution-dialog']
+    });
+
+    // The dialog will be in view mode since we're not enabling editing
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        // Refresh data if any changes were made
+        this.loadSummary();
+      }
+    });
+  }
+
+  /**
+   * Open dialog to manage rejection status for an item
+   */
+  manageRejection(item: PedidoItem): void {
+    const dialogData: ItemStatusDialogData = {
+      pedidoItem: item,
+      isReadOnly: false
+    };
+
+    const dialogRef = this.matDialog.open(ItemStatusDialogComponent, {
+      data: dialogData,
+      width: '50%',
+      height: '80%',
+      disableClose: false,
+      autoFocus: false,
+      panelClass: ['modern-dialog', 'item-status-dialog']
+    });
+
+    dialogRef.afterClosed().subscribe((result: ItemStatusDialogResult) => {
+      if (result?.updated && result.pedidoItem) {
+        // Update the item in our local arrays with selective field updates
+        this.updateLocalItem(result.pedidoItem);
+        
+        // Show success message based on the action performed
+        let message = 'Estado de rechazo actualizado exitosamente';
+        if (result.cancelado) {
+          message = 'Item marcado como rechazado y cancelado exitosamente';
+        } else if (result.motivoRechazoRecepcionNota === '' || !result.motivoRechazoRecepcionNota) {
+          message = 'Motivo de rechazo eliminado exitosamente';
+        }
+        
+        this.notificacionService.openSucess(message);
+        
+        // Refresh summary data
+        setTimeout(() => {
+          this.loadSummary();
+        }, 500);
+      }
+    });
+  }
+
+  /**
+   * Get verification status icon for an item
+   */
+  getVerificationStatusIcon(item: PedidoItem): string {
+    return item.verificadoRecepcionProducto ? 'check_circle' : 'pending';
+  }
+
+  /**
+   * Get verification status color for an item
+   */
+  getVerificationStatusColor(item: PedidoItem): string {
+    return item.verificadoRecepcionProducto ? 'accent' : 'warn';
+  }
+
+  /**
+   * Get verification status text for an item
+   */
+  getVerificationStatusText(item: PedidoItem): string {
+    if (item.cancelado) {
+      return 'Cancelado';
+    }
+    return item.verificadoRecepcionProducto ? 'Verificado' : 'Pendiente';
+  }
+
+  /**
+   * Get status chip CSS class for an item
+   */
+  getStatusChipClass(item: PedidoItem): string {
+    if (item.cancelado) {
+      return 'status-chip canceled';
+    }
+    return 'status-chip ' + (item.verificadoRecepcionProducto ? 'verified' : 'pending');
+  }
+
+  /**
+   * Check if item has distribution issues
+   */
+  hasDistributionIssues(item: PedidoItem): boolean {
+    if (!item.pedidoItemSucursalList?.length) {
+      return true;
+    }
+    
+    const totalDistributed = item.pedidoItemSucursalList.reduce((sum, dist) => 
+      sum + (dist.cantidadPorUnidad || 0), 0);
+    
+    return totalDistributed !== (item.cantidadRecepcionProducto || item.cantidadCreacion || 0);
+  }
+
+  /**
+   * Get grouped sucursales for display in table
+   * Returns first few sucursales, and count if there are more
+   */
+  getGroupedSucursales(item: PedidoItem): { sucursales: any[], hasMore: boolean, totalCount: number } {
+    if (!item.pedidoItemSucursalList?.length) {
+      return { sucursales: [], hasMore: false, totalCount: 0 };
+    }
+
+    // Group by sucursal and sum quantities
+    const sucursalMap = new Map<number, { sucursal: any, totalCantidad: number }>();
+    
+    item.pedidoItemSucursalList.forEach(dist => {
+      if (dist.sucursalEntrega?.id) {
+        const sucursalId = dist.sucursalEntrega.id;
+        
+        if (!sucursalMap.has(sucursalId)) {
+          sucursalMap.set(sucursalId, {
+            sucursal: dist.sucursalEntrega,
+            totalCantidad: 0
+          });
+        }
+        
+        sucursalMap.get(sucursalId)!.totalCantidad += dist.cantidadPorUnidad || 0;
+      }
+    });
+    
+    const allSucursales = Array.from(sucursalMap.values());
+    const maxDisplay = 2; // Show first 2 sucursales
+    
+    return {
+      sucursales: allSucursales.slice(0, maxDisplay),
+      hasMore: allSucursales.length > maxDisplay,
+      totalCount: allSucursales.length
+    };
   }
 } 
