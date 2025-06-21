@@ -46,11 +46,14 @@ import {
   PdvSearchProductoResponseData,
 } from "../../../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
 
+
+
 export interface AddProductDialogData {
   pedido: Pedido;
   pedidoItem?: PedidoItem; // Optional - for editing existing items
   isEditing?: boolean; // Flag to indicate edit mode
   currentStep?: PedidoStep; // Current step context
+  readOnly?: boolean; // Flag to indicate read-only mode (view only)
 }
 
 export interface AddProductDialogResult {
@@ -99,6 +102,8 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit, OnDestr
   @ViewChild("descuentoPorPresentacionInput")
   descuentoPorPresentacionInput: ElementRef<HTMLInputElement>;
   @ViewChild("agregarButton") agregarButton: MatButton;
+  
+
 
   // Form controls
   buscarProductoControl = new FormControl("");
@@ -196,6 +201,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit, OnDestr
   currentStepDisplayName = '';
   isFormInvalidOrNoProduct = true;
   isItemCanceled = false;
+  isReadOnlyMode = false; // NEW: Read-only mode flag
   
   // Modification tracking
   hasModifications = false;
@@ -249,10 +255,11 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit, OnDestr
   }
 
   ngOnInit(): void {
+    // **OPTIMIZED**: Set read-only mode first, then initialize everything else
+    this.isReadOnlyMode = this.data?.readOnly === true;
+    
     this.setupFormSubscriptions();
     this.loadProductosProveedor();
-    
-    // Update computed properties
     this.updateComputedProperties();
 
     // If editing an existing item, load its data
@@ -1404,6 +1411,12 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit, OnDestr
 
   // Helper methods for enabling/disabling form controls
   private enableFormControls(): void {
+    // **NEW**: Don't enable any controls if in read-only mode
+    if (this.isReadOnlyMode) {
+      this.disableFormControls();
+      return;
+    }
+    
     this.productSelectionFormGroup.get("presentacion")?.enable();
     this.productSelectionFormGroup.get("cantidad")?.enable();
     this.productSelectionFormGroup.get("precioUnitario")?.enable();
@@ -1648,6 +1661,8 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit, OnDestr
     // **OPTIMIZED**: Cache estado for reuse
     const pedidoEstado = this.data?.pedido?.estado;
     
+
+    
     // Map pedido estado to PedidoStep for template compatibility
     if (!pedidoEstado) {
       this.currentStep = PedidoStep.DETALLES_PEDIDO;
@@ -1676,7 +1691,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit, OnDestr
     this.isRecepcionProductoStep = this.currentStep === PedidoStep.RECEPCION_PRODUCTO;
 
     // Update other computed properties
-    this.canModifyInCurrentStep = this.currentStep !== PedidoStep.DETALLES_PEDIDO || !this.data.isEditing;
+    this.canModifyInCurrentStep = !this.isReadOnlyMode && (this.currentStep !== PedidoStep.DETALLES_PEDIDO || !this.data.isEditing);
     
     // **OPTIMIZED**: Use lookup for step display names
     const stepDisplayNames = {

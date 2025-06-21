@@ -243,12 +243,27 @@ export class VerificarPedidoItemRecepcionMercaderiaComponent implements OnInit {
    * Update all computed properties for template binding (avoiding function calls in template)
    */
   private updateAllComputedProperties(): void {
+    // Get current verificado state
+    const isVerified = this.form.get('verificado')?.value;
+    
     // Dialog title and button text
     this.dialogTitleComputed = this.isEditing ? 'Editar Verificación' : 'Verificar Producto';
-    this.saveButtonTextComputed = this.isEditing ? 'Guardar Cambios' : 'Verificar Producto';
     
-    // Check if form is valid and can be verified
-    this.canVerifyComputed = this.form.valid && (this.form.get('cantidadRecibida')?.value || 0) > 0;
+    // Update save button text based on verification state
+    if (isVerified) {
+      this.saveButtonTextComputed = this.isEditing ? 'Guardar Cambios' : 'Verificar Producto';
+    } else {
+      this.saveButtonTextComputed = 'Remover Verificación';
+    }
+    
+    // Check if form can be saved - always allow saving if verification is unchecked
+    // If verification is checked, validate normally
+    if (isVerified) {
+      this.canVerifyComputed = this.form.valid && (this.form.get('cantidadRecibida')?.value || 0) > 0;
+    } else {
+      // If unchecking verification, always allow saving (no validation needed)
+      this.canVerifyComputed = true;
+    }
     
     // Check for changes
     const formValues = this.form.value;
@@ -265,8 +280,22 @@ export class VerificarPedidoItemRecepcionMercaderiaComponent implements OnInit {
    * Only updates properties that might have changed due to business logic
    */
   private updateComputedPropertiesSelectively(): void {
-    // Only update the validation state and related flags
-    this.canVerifyComputed = this.form.valid && (this.form.get('cantidadRecibida')?.value || 0) > 0;
+    // Get current verificado state
+    const isVerified = this.form.get('verificado')?.value;
+    
+    // Update save button text based on verification state
+    if (isVerified) {
+      this.saveButtonTextComputed = this.isEditing ? 'Guardar Cambios' : 'Verificar Producto';
+    } else {
+      this.saveButtonTextComputed = 'Remover Verificación';
+    }
+    
+    // Check if form can be saved - always allow saving if verification is unchecked
+    if (isVerified) {
+      this.canVerifyComputed = this.form.valid && (this.form.get('cantidadRecibida')?.value || 0) > 0;
+    } else {
+      this.canVerifyComputed = true;
+    }
     
     const formValues = this.form.value;
     this.hasQuantityChangesComputed = (formValues.cantidadRecibida || 0) !== this.originalQuantity;
@@ -351,23 +380,40 @@ export class VerificarPedidoItemRecepcionMercaderiaComponent implements OnInit {
     const updatedItem = new PedidoItem();
     Object.assign(updatedItem, this.pedidoItem);
 
-    // Convert formatted date string to Date object for the model, but it will be converted to string in toInput()
-    const fechaVencimientoDate = this.getDateObjectFromFormattedString(formValues.fechaVencimiento);
+    // Check if user wants to unverify the item (return to initial state)
+    const isVerified = formValues.verificado;
+
+    if (isVerified) {
+      // Convert formatted date string to Date object for the model, but it will be converted to string in toInput()
+      const fechaVencimientoDate = this.getDateObjectFromFormattedString(formValues.fechaVencimiento);
 
     // Update verification fields with form data
     updatedItem.cantidadRecepcionProducto = formValues.cantidadRecibida;
-    updatedItem.vencimientoRecepcionProducto = fechaVencimientoDate; // This will be converted to string in toInput()
+      updatedItem.vencimientoRecepcionProducto = fechaVencimientoDate; // This will be converted to string in toInput()
     updatedItem.presentacionRecepcionProducto = formValues.nuevaPresentacion;
     updatedItem.motivoRechazoRecepcionProducto = formValues.motivoRechazo || null;
     updatedItem.obsRecepcionProducto = formValues.observaciones || null;
     updatedItem.verificadoRecepcionProducto = true;
+    } else {
+      // User unchecked verification - return item to initial state
+      // Clear all RecepcionProducto fields to return to unverified state
+      updatedItem.cantidadRecepcionProducto = null;
+      updatedItem.vencimientoRecepcionProducto = null;
+      updatedItem.presentacionRecepcionProducto = null;
+      updatedItem.motivoRechazoRecepcionProducto = null;
+      updatedItem.obsRecepcionProducto = null;
+      updatedItem.verificadoRecepcionProducto = false;
+      updatedItem.usuarioRecepcionProducto = null;
+      updatedItem.autorizacionRecepcionProducto = null;
+      updatedItem.autorizadoPorRecepcionProducto = null;
+    }
 
     // Ensure all boolean fields are properly set to avoid ModelMapper conversion errors
     updatedItem.bonificacion = updatedItem.bonificacion === true;
     updatedItem.frio = updatedItem.frio === true;
     updatedItem.cancelado = updatedItem.cancelado === true;
     updatedItem.verificadoRecepcionNota = updatedItem.verificadoRecepcionNota === true;
-    updatedItem.verificadoRecepcionProducto = true; // This one we're explicitly setting
+    updatedItem.verificadoRecepcionProducto = isVerified; // Set based on checkbox state
     updatedItem.autorizacionRecepcionNota = updatedItem.autorizacionRecepcionNota === true;
     updatedItem.autorizacionRecepcionProducto = updatedItem.autorizacionRecepcionProducto === true;
     updatedItem.isDistribucionSucursalesCreacion = updatedItem.isDistribucionSucursalesCreacion === true;
@@ -381,9 +427,9 @@ export class VerificarPedidoItemRecepcionMercaderiaComponent implements OnInit {
         next: (savedItem) => {
           this.loading = false;
           
-          const message = this.isEditing ? 
-            'Verificación actualizada exitosamente' : 
-            'Producto verificado exitosamente';
+          const message = isVerified ? 
+            (this.isEditing ? 'Verificación actualizada exitosamente' : 'Producto verificado exitosamente') :
+            'Verificación removida exitosamente. Item retornado al estado inicial.';
           
           this.notificacionService.openSucess(message);
           

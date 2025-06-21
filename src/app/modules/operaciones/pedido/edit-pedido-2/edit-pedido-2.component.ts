@@ -108,6 +108,7 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
   
   // **NEW**: Step validation properties
   step3Valid = false; // Recepcion nota step validation
+  step4Valid = false; // Recepcion mercaderia step validation
 
   // Computed summary properties for header display (excluding cancelled items)
   computedTotalSinDescuento = 0;
@@ -135,6 +136,9 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
   
   // **NEW**: Current step tracking info for the status card
   currentStepTrackingInfo: StepInfo | null = null;
+  
+  // **NEW**: Recepcion mercaderia computed properties
+  recepcionMercaderiaButtonTooltip = '';
   
   // UI stepper index to step type mapping
   private stepperToStepType: Map<number, PedidoStepType> = new Map([
@@ -400,73 +404,38 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
   }
 
   /**
-   * CRITICAL: Update computed properties to avoid function calls in templates
+   * Update computed properties for template binding
    */
   private updateComputedProperties(): void {
-    // Current step tracking info based on current pedido estado
+    if (!this.selectedPedido) {
+      this.clearComputedProperties();
+      return;
+    }
+
+    // Get step info first
+    this.recepcionNotaStepInfo = this.getRecepcionNotaStepInfo();
     this.currentStepTrackingInfo = this.getCurrentStepTrackingInfo();
-    
-    // Recepcion Nota step info
-    this.recepcionNotaStepInfo = this.stepInfos.get(PedidoStepType.RECEPCION_NOTA) || null;
-    
+
+    // Update computed flags for Recepcion Nota step
     if (this.recepcionNotaStepInfo) {
       this.showRecepcionNotaInitButton = this.recepcionNotaStepInfo.status === StepStatus.AVAILABLE && this.recepcionNotaStepInfo.canStart;
       this.canBeginRecepcionNota = this.recepcionNotaStepInfo.canStart && this.recepcionNotaStepInfo.status === StepStatus.AVAILABLE;
       this.isRecepcionNotaActive = this.recepcionNotaStepInfo.status === StepStatus.IN_PROGRESS || this.recepcionNotaStepInfo.status === StepStatus.COMPLETED;
       
-      // Status icon
-      switch (this.recepcionNotaStepInfo.status) {
-        case StepStatus.NOT_STARTED:
-          this.recepcionNotaStatusIcon = 'radio_button_unchecked';
-          break;
-        case StepStatus.AVAILABLE:
-          this.recepcionNotaStatusIcon = 'play_circle_outline';
-          break;
-        case StepStatus.IN_PROGRESS:
-          this.recepcionNotaStatusIcon = 'pending';
-          break;
-        case StepStatus.COMPLETED:
-          this.recepcionNotaStatusIcon = 'check_circle';
-          break;
-        default:
-          this.recepcionNotaStatusIcon = 'radio_button_unchecked';
-          break;
-      }
-      
-      // Status title
-      switch (this.recepcionNotaStepInfo.status) {
-        case StepStatus.NOT_STARTED:
-          this.recepcionNotaStatusTitle = 'Etapa no iniciada';
-          break;
-        case StepStatus.AVAILABLE:
-          this.recepcionNotaStatusTitle = 'Lista para iniciar';
-          break;
-        case StepStatus.IN_PROGRESS:
-          this.recepcionNotaStatusTitle = `En progreso (${this.recepcionNotaStepInfo.progress || 0}%)`;
-          break;
-        case StepStatus.COMPLETED:
-          this.recepcionNotaStatusTitle = 'Etapa completada';
-          break;
-        default:
-          this.recepcionNotaStatusTitle = 'Estado desconocido';
-          break;
-      }
-      
-      // Status subtitle
-      if (this.recepcionNotaStepInfo.assignedUser && this.recepcionNotaStepInfo.startDate) {
-        const userName = this.recepcionNotaStepInfo.assignedUser.persona?.nombre || 'Usuario';
-        const startDate = new Date(this.recepcionNotaStepInfo.startDate).toLocaleString();
-        this.recepcionNotaStatusSubtitle = `Iniciado por ${userName} el ${startDate}`;
-      } else if (this.recepcionNotaStepInfo.status === StepStatus.AVAILABLE) {
-        this.recepcionNotaStatusSubtitle = 'Haga clic en "Iniciar" para comenzar esta etapa';
-      } else {
-        this.recepcionNotaStatusSubtitle = null;
-      }
+      // Recepcion Nota status properties
+      this.recepcionNotaStatusIcon = this.getStepStatusIcon(this.recepcionNotaStepInfo);
+      this.recepcionNotaStatusTitle = this.getStepStatusTitle(this.recepcionNotaStepInfo);
+      this.recepcionNotaStatusSubtitle = this.getStepStatusSubtitle(this.recepcionNotaStepInfo);
     } else {
-      this.clearComputedProperties();
+      this.showRecepcionNotaInitButton = false;
+      this.canBeginRecepcionNota = false;
+      this.isRecepcionNotaActive = false;
+      this.recepcionNotaStatusIcon = '';
+      this.recepcionNotaStatusTitle = '';
+      this.recepcionNotaStatusSubtitle = null;
     }
-    
-    // Next button tooltip
+
+    // Update Next button tooltip for step 3
     if (!this.isRecepcionNotaActive) {
       this.nextButtonTooltip = 'Debe iniciar la recepción de nota antes de continuar';
     } else if (!this.step3Valid) {
@@ -474,13 +443,21 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
     } else {
       this.nextButtonTooltip = 'Finalizar recepción de nota y pasar a recepción de mercadería';
     }
+
+    // **NEW**: Update Recepcion Mercaderia button tooltip
+    if (!this.canAccessStep3) {
+      this.recepcionMercaderiaButtonTooltip = 'Complete la recepción de nota antes de continuar';
+    } else if (!this.step4Valid) {
+      this.recepcionMercaderiaButtonTooltip = 'Complete la verificación de todos los items antes de finalizar';
+    } else {
+      this.recepcionMercaderiaButtonTooltip = 'Finalizar recepción de mercadería. Se crearán movimientos de stock y se actualizarán precios si es necesario';
+    }
   }
 
   /**
-   * Clear computed properties when no data available
+   * Clear computed properties when no pedido data
    */
   private clearComputedProperties(): void {
-    this.currentStepTrackingInfo = null;
     this.recepcionNotaStepInfo = null;
     this.showRecepcionNotaInitButton = false;
     this.canBeginRecepcionNota = false;
@@ -489,6 +466,8 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
     this.recepcionNotaStatusIcon = '';
     this.recepcionNotaStatusTitle = '';
     this.recepcionNotaStatusSubtitle = null;
+    this.currentStepTrackingInfo = null;
+    this.recepcionMercaderiaButtonTooltip = '';
   }
 
   /**
@@ -1166,8 +1145,11 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
   }
 
   onStep4ValidChange(isValid: boolean): void {
-    // TODO: Implement step 4 validation
+    this.step4Valid = isValid;
+    // Update step completion status
     this.stepsConfig[3].completed = isValid;
+    // Update computed properties to refresh UI state
+    this.updateComputedProperties();
   }
 
   /**
@@ -1311,5 +1293,71 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
     } else {
       return 'Finalizar recepción de nota y pasar a recepción de mercadería';
     }
+  }
+
+  /**
+   * Show confirmation dialog before finalizing recepcion mercaderia step
+   */
+  finalizarRecepcionMercaderiaConDialog(): void {
+    if (!this.selectedPedido || !this.step4Valid) {
+      return;
+    }
+
+    const message = `¿Está seguro que desea finalizar la recepción de mercadería?\n\n` +
+      `Esta acción:\n` +
+      `• Creará movimientos de stock para cada producto en cada sucursal\n` +
+      `• Modificará precios y costos de productos si es necesario\n` +
+      `• Cambiará el estado del pedido a la siguiente etapa\n\n` +
+      `Esta operación no se puede deshacer.`;
+
+    this.dialogosService.confirm(
+      'Confirmar finalización de recepción de mercadería',
+      message
+    ).subscribe(result => {
+      if (result) {
+        this.finalizarRecepcionMercaderia();
+      }
+    });
+  }
+
+  /**
+   * Execute recepcion mercaderia finalization
+   */
+  private finalizarRecepcionMercaderia(): void {
+    if (!this.selectedPedido?.id) {
+      return;
+    }
+
+    // Call backend to finalize pedido and move to next step
+    this.pedidoService.onFinalizarPedido(this.selectedPedido.id, PedidoEstado.CONCLUIDO)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (updatedPedido) => {
+          // Update local pedido data
+          this.selectedPedido = updatedPedido;
+          
+          // Refresh all computed properties and step states
+          this.updateStepStates();
+          this.updateStepAccessibility();
+          this.updateEstadoColor();
+          this.updateButtonStates();
+          this.updatePedidoSummary();
+          this.updateStepTrackingInfo();
+          
+          // Show success notification
+          this.notificacionService.openSucess(
+            "Recepción de mercadería finalizada exitosamente. Se han creado los movimientos de stock y actualizado precios."
+          );
+          
+          // Move to next step (Solicitud de pago)
+          this.goToStep(4);
+        },
+        error: (error) => {
+          console.error('Error al finalizar recepción de mercadería:', error);
+          this.notificacionService.openWarn(
+            "Error al finalizar la recepción de mercadería. Por favor, inténtelo nuevamente."
+          );
+        }
+      });
   }
 }

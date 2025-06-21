@@ -3,9 +3,11 @@
     <div class="header-title-row">
       <div style="font-size: 1.8rem; font-weight: 500">
         {{
-          data.isEditing
-            ? "Editar Producto del Pedido"
-            : "Agregar Producto al Pedido"
+          isReadOnlyMode
+            ? "Ver Detalles del Producto"
+            : (data.isEditing
+                ? "Editar Producto del Pedido"
+                : "Agregar Producto al Pedido")
         }}
       </div>
       <!-- Canceled chip -->
@@ -27,11 +29,13 @@
     <mat-tab-group [(selectedIndex)]="selectedTabIndex" class="product-tabs">
       <!-- Tab 1: Configurar Producto -->
       <mat-tab>
-        <ng-template mat-tab-label> Configurar Producto </ng-template>
+        <ng-template mat-tab-label> 
+          {{ isReadOnlyMode ? "Ver Producto" : "Configurar Producto" }}
+        </ng-template>
 
         <div class="tab-content">
-          <!-- Product Search Section -->
-          <mat-card class="search-card">
+          <!-- Product Search Section - Hidden in read-only mode -->
+          <mat-card class="search-card" *ngIf="!isReadOnlyMode">
             <mat-card-content>
               <div class="search-row">
                 <mat-form-field appearance="outline" class="search-field">
@@ -547,9 +551,10 @@
               mat-raised-button
               color="primary"
               (click)="onAddProductToPedido()"
-              [disabled]="isFormInvalidOrNoProduct"
+              [disabled]="isFormInvalidOrNoProduct || isReadOnlyMode"
               (keydown)="onAgregarButtonEnter($event)"
               class="add-btn"
+              *ngIf="!isReadOnlyMode"
             >
               <mat-icon>{{
                 data.isEditing ? "save" : "add_shopping_cart"
@@ -561,7 +566,7 @@
       </mat-tab>
 
       <!-- Tab 2: Buscar Productos -->
-      <mat-tab>
+      <mat-tab [disabled]="isReadOnlyMode">
         <ng-template mat-tab-label> Buscar Productos </ng-template>
 
         <div class="tab-content">
@@ -926,6 +931,7 @@
               [isEmbedded]="true"
               [(embeddedPedidoItem)]="currentPedidoItemForEmbedded"
               [embeddedAutoSet]="false"
+              [embeddedIsReadOnly]="isReadOnlyMode"
               (embeddedSaved)="onSucursalDistributionSaved($event)"
               (embeddedCancelled)="onSucursalDistributionCancelled()"
             >
@@ -945,21 +951,21 @@
       </mat-tab>
 
       <!-- Tab 4: Gestión Rechazos -->
-      <mat-tab [disabled]="!selectedProducto || !data.isEditing">
+      <mat-tab [disabled]="!selectedProducto || (!data.isEditing && !isReadOnlyMode)">
         <ng-template mat-tab-label> Gestión Rechazos </ng-template>
 
         <div class="tab-content">
           <!-- Rejection management content will be embedded here -->
           <div
             class="rejection-management-container"
-            *ngIf="selectedProducto && data.isEditing"
+            *ngIf="selectedProducto && (data.isEditing || isReadOnlyMode)"
           >
             <!-- Embedded ItemStatusDialogComponent -->
             <app-item-status-dialog
               style="height: 100%; width: 100%"
               [isEmbedded]="true"
               [embeddedPedidoItem]="currentPedidoItemForEmbedded"
-              [embeddedIsReadOnly]="false"
+              [embeddedIsReadOnly]="isReadOnlyMode"
               (embeddedSaved)="onRejectionStatusSaved($event)"
               (embeddedCancelled)="onRejectionStatusCancelled()"
             >
@@ -967,7 +973,7 @@
           </div>
 
           <!-- No editing mode message -->
-          <div *ngIf="!data.isEditing" class="no-editing-message">
+          <div *ngIf="!data.isEditing && !isReadOnlyMode" class="no-editing-message">
             <h3 class="titulo-center">Gestión de Rechazos</h3>
             <mat-icon>block</mat-icon>
             <p class="titulo-center">

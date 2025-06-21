@@ -34,12 +34,8 @@ export class ItemStatusDialogComponent implements OnInit {
   @Output() embeddedSaved = new EventEmitter<ItemStatusDialogResult>();
   @Output() embeddedCancelled = new EventEmitter<void>();
 
-  // Form group
-  statusForm = new FormGroup({
-    motivoRechazo: new FormControl([], [Validators.required]),
-    isRejected: new FormControl(false),
-    observaciones: new FormControl('', [Validators.maxLength(500)])
-  });
+  // Form group - will be initialized in ngOnInit based on read-only state
+  statusForm: FormGroup;
 
   // Available motivos for rejection
   motivosRechazo = Object.values(MotivoRechazoRecepcionNota);
@@ -54,6 +50,15 @@ export class ItemStatusDialogComponent implements OnInit {
   currentPedidoItem: PedidoItem | null = null;
   currentIsReadOnly = false;
 
+  // **NEW**: Computed properties for template usage (no getters/functions)
+  isRejectedComputed = false;
+  canSaveComputed = false;
+  toggleLabelComputed = '';
+  observacionesLabelComputed = '';
+  observacionesPlaceholderComputed = '';
+  saveButtonTextComputed = '';
+  saveButtonIconComputed = '';
+
   constructor(
     @Optional() public dialogRef: MatDialogRef<ItemStatusDialogComponent>,
     @Optional() @Inject(MAT_DIALOG_DATA) public data: ItemStatusDialogData | null,
@@ -66,26 +71,74 @@ export class ItemStatusDialogComponent implements OnInit {
     this.setupFormSubscriptions();
   }
 
-  get isRejected(): boolean {
-    return this.statusForm.get('isRejected')?.value || false;
-  }
 
-  get canSave(): boolean {
-    if (this.isProcessing || this.currentIsReadOnly || !this.statusForm.valid) {
-      return false;
+
+  // **NEW**: Method to update all computed properties at once
+  private updateComputedProperties(): void {
+    // Update isRejected computed property
+    this.isRejectedComputed = this.statusForm.get('isRejected')?.value || false;
+
+    // Update canSave computed property
+    if (this.currentIsReadOnly || this.isProcessing || !this.statusForm.valid) {
+      this.canSaveComputed = false;
+    } else {
+      const hasMotivos = this.statusForm.get('motivoRechazo')?.value?.length > 0;
+      this.canSaveComputed = !this.isRejectedComputed || (this.isRejectedComputed && hasMotivos);
     }
 
-    const isRejected = this.isRejected;
-    const hasMotivos = this.statusForm.get('motivoRechazo')?.value?.length > 0;
-    
-    return !isRejected || (isRejected && hasMotivos);
+    // Update toggle label
+    if (this.currentIsReadOnly) {
+      this.toggleLabelComputed = this.isRejectedComputed ? 'Está rechazado' : 'No está rechazado';
+    } else {
+      this.toggleLabelComputed = this.isRejectedComputed ? 'Remover rechazo' : 'Marcar como rechazado';
+    }
+
+    // Update observaciones labels
+    this.observacionesLabelComputed = this.currentIsReadOnly ? 'Observaciones (Solo lectura)' : 'Observaciones';
+    this.observacionesPlaceholderComputed = this.currentIsReadOnly ? 'Sin observaciones adicionales' : 'Ingrese observaciones adicionales';
+
+    // Update save button text and icon
+    if (this.isProcessing) {
+      this.saveButtonTextComputed = 'Guardando...';
+      this.saveButtonIconComputed = 'hourglass_empty';
+    } else {
+      this.saveButtonTextComputed = this.isRejectedComputed ? 'Guardar Rechazo' : 'Remover Rechazo';
+      this.saveButtonIconComputed = this.isRejectedComputed ? 'error' : 'check';
+    }
+  }
+
+  private createFormWithDisabledState(): void {
+    // **NEW**: Create form controls with proper disabled state from the start
+    if (this.currentIsReadOnly) {
+      // Create all controls as disabled for read-only mode
+      this.statusForm = new FormGroup({
+        motivoRechazo: new FormControl({value: [], disabled: true}, [Validators.required]),
+        isRejected: new FormControl({value: false, disabled: true}),
+        observaciones: new FormControl({value: '', disabled: true}, [Validators.maxLength(500)])
+      });
+      // **NEW**: Disable the entire form group for read-only mode
+      this.statusForm.disable();
+    } else {
+      // Create controls normally for editable mode
+      this.statusForm = new FormGroup({
+        motivoRechazo: new FormControl([], [Validators.required]),
+        isRejected: new FormControl(false),
+        observaciones: new FormControl('', [Validators.maxLength(500)])
+      });
+    }
   }
 
   private initializeComponent(): void {
     // Initialize UI state
     this.showDialogHeader = !this.isEmbedded;
+    
+
+    
     this.currentIsReadOnly = this.getCurrentIsReadOnly();
     this.currentPedidoItem = this.getCurrentPedidoItem();
+    
+    // **NEW**: Create form with proper disabled state from the start
+    this.createFormWithDisabledState();
     
     // Set dialog title
     this.dialogTitle = this.currentIsReadOnly 
@@ -99,8 +152,9 @@ export class ItemStatusDialogComponent implements OnInit {
       this.isCurrentlyRejected = !!(item.motivoRechazoRecepcionNota && item.motivoRechazoRecepcionNota.trim());
     }
 
-    // Load current status
+    // Load current status and update computed properties
     this.loadCurrentStatus();
+    this.updateComputedProperties();
   }
 
   private loadCurrentStatus(): void {
@@ -110,58 +164,51 @@ export class ItemStatusDialogComponent implements OnInit {
     const existingMotivoRechazo = MotivoHelper.separateMotivos(item.motivoRechazoRecepcionNota || '');
     const hasRechazo = existingMotivoRechazo.length > 0;
 
+    // **SIMPLIFIED**: Just patch values - disabled state is already set in form creation
     this.statusForm.patchValue({
       motivoRechazo: existingMotivoRechazo,
       isRejected: hasRechazo,
       observaciones: item.obsRecepcionNota || ''
     });
-
-    if (this.currentIsReadOnly) {
-      this.statusForm.disable();
-    }
   }
 
   private setupFormSubscriptions(): void {
-    // Handle isRejected changes
+    // **SIMPLIFIED**: Don't set up form subscriptions if in read-only mode
+    if (this.currentIsReadOnly) {
+      return;
+    }
+
+    // Handle isRejected changes - simple logic and update computed properties
     this.statusForm.get('isRejected')?.valueChanges.subscribe(isRejected => {
       if (!isRejected) {
         this.statusForm.get('motivoRechazo')?.setValue([]);
         this.statusForm.get('observaciones')?.setValue('');
+        this.statusForm.get('observaciones')?.disable();
+      } else {
+        this.statusForm.get('observaciones')?.enable();
       }
-      this.updateFormState();
+      // **NEW**: Update computed properties when form changes
+      this.updateComputedProperties();
     });
 
-    // Handle motivoRechazo changes - automatically turn on rejection slider when motivos are selected
+    // Handle motivoRechazo changes - simple logic and update computed properties
     this.statusForm.get('motivoRechazo')?.valueChanges.subscribe(motivos => {
       const hasMotivos = motivos && motivos.length > 0;
       const currentlyRejected = this.statusForm.get('isRejected')?.value;
       
-      // If at least one motivo is selected and rejection is not already enabled, enable it
       if (hasMotivos && !currentlyRejected) {
         this.statusForm.get('isRejected')?.setValue(true, { emitEvent: false });
-        this.updateFormState();
-      }
-      // If no motivos are selected and rejection is enabled, disable it
-      else if (!hasMotivos && currentlyRejected) {
+        this.statusForm.get('observaciones')?.enable();
+      } else if (!hasMotivos && currentlyRejected) {
         this.statusForm.get('isRejected')?.setValue(false, { emitEvent: false });
-        this.updateFormState();
+        this.statusForm.get('observaciones')?.disable();
       }
+      // **NEW**: Update computed properties when form changes
+      this.updateComputedProperties();
     });
   }
 
-  private updateFormState(): void {
-    const isRejected = this.isRejected;
-    
-    // Always keep motivoRechazo enabled so users can select motivos to trigger rejection
-    this.statusForm.get('motivoRechazo')?.enable();
-    
-    // Update observaciones field based on rejection state
-    if (isRejected) {
-      this.statusForm.get('observaciones')?.enable();
-    } else {
-      this.statusForm.get('observaciones')?.disable();
-    }
-  }
+
 
   onCancel(): void {
     if (this.isEmbedded) {
@@ -172,7 +219,8 @@ export class ItemStatusDialogComponent implements OnInit {
   }
 
   onSave(): void {
-    if (!this.canSave || this.isProcessing) {
+    // **CRITICAL FIX**: Prevent saving in read-only mode
+    if (this.currentIsReadOnly || !this.canSaveComputed || this.isProcessing) {
       return;
     }
 
@@ -185,6 +233,7 @@ export class ItemStatusDialogComponent implements OnInit {
     }
 
     this.isProcessing = true;
+    this.updateComputedProperties(); // Update UI for processing state
 
     // Create updated pedido item
     const currentItem = this.currentPedidoItem;
@@ -206,6 +255,7 @@ export class ItemStatusDialogComponent implements OnInit {
     this.pedidoService.onSaveItem(updatedItem.toInput()).subscribe({
       next: (response) => {
         this.isProcessing = false;
+        this.updateComputedProperties(); // Update UI when processing completes
         
         const message = formValue.isRejected 
           ? 'Item marcado como rechazado y cancelado exitosamente'
@@ -228,6 +278,7 @@ export class ItemStatusDialogComponent implements OnInit {
       },
       error: () => {
         this.isProcessing = false;
+        this.updateComputedProperties(); // Update UI when processing fails
         this.notificacionService.openWarn('Error al actualizar estado del item');
       }
     });

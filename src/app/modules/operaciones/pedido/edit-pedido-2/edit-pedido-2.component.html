@@ -387,10 +387,12 @@
             <button
               mat-raised-button
               color="primary"
-              (click)="nextStep()"
-              [disabled]="!canAccessStep4"
+              (click)="finalizarRecepcionMercaderiaConDialog()"
+              [disabled]="!step4Valid || !canAccessStep3 || selectedPedido?.estado === 'CONCLUIDO'"
+              [matTooltip]="selectedPedido?.estado === 'CONCLUIDO' ? 'Esta etapa ya ha sido completada' : recepcionMercaderiaButtonTooltip"
+              matTooltipPosition="above"
             >
-              Siguiente
+              {{ selectedPedido?.estado === 'CONCLUIDO' ? 'Completado' : 'Siguiente' }}
             </button>
           </div>
         </div>

@@ -203,6 +203,23 @@
           {{ observacionesErrorComputed }}
         </mat-error>
       </mat-form-field>
+
+      <!-- Verification Status Checkbox -->
+      <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px" class="verification-checkbox-section">
+        <mat-checkbox 
+          formControlName="verificado"
+          color="primary"
+        >
+          Marcar como verificado
+        </mat-checkbox>
+        <mat-icon 
+          class="info-icon" 
+          matTooltip="Desmarque esta opción para devolver el item al estado inicial sin verificación"
+          matTooltipPosition="right"
+        >
+          info_outline
+        </mat-icon>
+      </div>
     </form>
   </div>
 

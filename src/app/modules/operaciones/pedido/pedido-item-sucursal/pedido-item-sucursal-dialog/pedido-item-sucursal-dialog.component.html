@@ -40,7 +40,7 @@
   </div>
 
   <!-- Action Buttons Section -->
-  <div class="action-buttons-section">
+  <div class="action-buttons-section" *ngIf="showActionButtons">
     <div class="action-row">
       <app-boton
         (clickEvent)="cantidadesPorIgual()"
@@ -76,7 +76,7 @@
         <div class="header-cell">Stock Disponible</div>
         <div class="header-cell">Cantidad</div>
         <div class="header-cell">Sucursal de entrega</div>
-        <div class="header-cell">Acciones</div>
+        <div class="header-cell" *ngIf="showActionButtons">Acciones</div>
       </div>
 
       <!-- Data Rows -->
@@ -132,7 +132,7 @@
               </mat-select>
             </mat-form-field>
           </div>
-          <div class="table-cell">
+          <div class="table-cell" *ngIf="showActionButtons">
             <button
               mat-icon-button
               color="warn"
@@ -147,7 +147,7 @@
       </div>
 
       <!-- Add New Sucursal Section -->
-      <div class="add-section">
+      <div class="add-section" *ngIf="showActionButtons">
         <div *ngIf="!isAddNewSucursal" class="add-button-container">
           <button
             mat-fab
@@ -202,7 +202,7 @@
     <div class="footer-buttons">
       <button mat-button (click)="onCancelar()" class="cancel-btn">
         <mat-icon>close</mat-icon>
-        Salir
+        {{ isReadOnlyMode ? 'Cerrar' : 'Salir' }}
       </button>
       <button
         #saveButton
@@ -210,6 +210,7 @@
         (click)="onGuardar()"
         color="primary"
         class="save-btn"
+        *ngIf="showActionButtons"
       >
         <mat-icon>save</mat-icon>
         Guardar

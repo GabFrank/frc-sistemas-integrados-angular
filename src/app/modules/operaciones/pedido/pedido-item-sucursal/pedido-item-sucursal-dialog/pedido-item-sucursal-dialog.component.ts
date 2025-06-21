@@ -37,6 +37,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
   @Input() embeddedSucursalInfluenciaList: Sucursal[] = [];
   @Input() embeddedSucursalEntregaList: Sucursal[] = [];
   @Input() embeddedAutoSet: boolean = false;
+  @Input() embeddedIsReadOnly: boolean = false; // NEW: Read-only mode for embedded mode
 
   // Embedded mode outputs
   @Output() embeddedPedidoItemChange = new EventEmitter<PedidoItem | null>();
@@ -317,7 +318,13 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
         item.cantidadPorUnidad / (this.currentPresentacion?.cantidad || 1),
         [Validators.required, Validators.min(0)]
       );
-      cantidadControl.valueChanges.subscribe(() => this.calcularCantAdicionada());
+      
+      // **NEW**: Disable control if in read-only mode
+      if (this.embeddedIsReadOnly) {
+        cantidadControl.disable();
+      } else {
+        cantidadControl.valueChanges.subscribe(() => this.calcularCantAdicionada());
+      }
       this.cantidadControls.push(cantidadControl);
 
       // Create sucursal entrega control
@@ -325,6 +332,11 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
         item.sucursalEntrega ? this.sucursales.find(s => s.id === item.sucursalEntrega.id) : null,
         Validators.required
       );
+      
+      // **NEW**: Disable control if in read-only mode
+      if (this.embeddedIsReadOnly) {
+        sucursalEntregaControl.disable();
+      }
       this.sucursalEntregaControls.push(sucursalEntregaControl);
       
       // Initialize navigation state
@@ -471,15 +483,29 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
       Validators.required,
       Validators.min(0),
     ]);
-    control.valueChanges.subscribe(() => {
-      this.calcularCantAdicionada();
-    });
+    
+    // **NEW**: Disable control if in read-only mode
+    if (this.embeddedIsReadOnly) {
+      control.disable();
+    } else {
+      control.valueChanges.subscribe(() => {
+        this.calcularCantAdicionada();
+      });
+    }
     
     this.cantidadControls.push(control);
-    this.sucursalEntregaControls.push(new FormControl(
+    
+    const sucursalEntregaControl = new FormControl(
       this.sucEntregaPorDefecto,
       Validators.required
-    ));
+    );
+    
+    // **NEW**: Disable control if in read-only mode
+    if (this.embeddedIsReadOnly) {
+      sucursalEntregaControl.disable();
+    }
+    
+    this.sucursalEntregaControls.push(sucursalEntregaControl);
 
     // Create and add new PedidoItemSucursal to the list
     const newPedidoItemSucursal = new PedidoItemSucursal();
@@ -827,9 +853,20 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
   // Getter to determine dialog title
   get dialogTitle(): string {
     if (!this.selectedPedidoItem?.producto) {
-      return 'Distribución por Sucursales';
+      return this.embeddedIsReadOnly ? 'Ver Distribución por Sucursales' : 'Distribución por Sucursales';
     }
-    return `Distribución - ${this.selectedPedidoItem.producto.descripcion}`;
+    const prefix = this.embeddedIsReadOnly ? 'Ver' : 'Distribución';
+    return `${prefix} - ${this.selectedPedidoItem.producto.descripcion}`;
+  }
+
+  // **NEW**: Getter to check if controls should be disabled
+  get isReadOnlyMode(): boolean {
+    return this.embeddedIsReadOnly;
+  }
+
+  // **NEW**: Getter to check if action buttons should be visible
+  get showActionButtons(): boolean {
+    return !this.embeddedIsReadOnly;
   }
 
   ngOnChanges(changes: SimpleChanges) {

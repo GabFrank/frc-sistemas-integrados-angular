@@ -27,8 +27,10 @@
 
       <!-- Rejection Toggle -->
       <div class="rejection-section">
-        <mat-slide-toggle formControlName="isRejected" color="warn">
-          {{ isRejected ? 'Remover rechazo' : 'Marcar como rechazado' }}
+        <mat-slide-toggle 
+          formControlName="isRejected" 
+          color="primary">
+          {{ toggleLabelComputed }}
         </mat-slide-toggle>
       </div>
 
@@ -41,7 +43,9 @@
         <p class="section-description">
           Seleccione uno o más motivos por los cuales este item es rechazado
         </p>
-        <mat-selection-list formControlName="motivoRechazo" class="motivos-list">
+        <mat-selection-list 
+          formControlName="motivoRechazo" 
+          class="motivos-list">
           <mat-list-option 
             *ngFor="let motivo of motivosRechazo" 
             [value]="motivo"
@@ -55,10 +59,11 @@
       <!-- Observaciones Field -->
       <div class="observaciones-section">
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Observaciones</mat-label>
+          <mat-label>{{ observacionesLabelComputed }}</mat-label>
           <textarea matInput
                     formControlName="observaciones"
-                    [placeholder]="'Ingrese observaciones adicionales'"
+                    [placeholder]="observacionesPlaceholderComputed"
+                    [readonly]="currentIsReadOnly"
                     rows="3"></textarea>
         </mat-form-field>
       </div>
@@ -85,12 +90,12 @@
       </button>
       <button 
         mat-raised-button 
-        color="warn"
+        color="primary"
         type="button"
         (click)="onSave()"
-        [disabled]="!canSave">
-        <mat-icon *ngIf="isProcessing" class="processing-icon">hourglass_empty</mat-icon>
-        {{ isProcessing ? 'Guardando...' : (isRejected ? 'Guardar Rechazo' : 'Remover Rechazo') }}
+        [disabled]="!canSaveComputed">
+        <mat-icon *ngIf="isProcessing" class="processing-icon">{{ saveButtonIconComputed }}</mat-icon>
+        {{ saveButtonTextComputed }}
       </button>
     </div>
   </mat-dialog-actions>
@@ -117,14 +122,27 @@
     </button>
     <button 
       mat-raised-button 
-      color="warn"
+      color="primary"
       type="button"
       (click)="onSave()"
-      [disabled]="!canSave"
+      [disabled]="!canSaveComputed"
       class="save-btn">
-      <mat-icon *ngIf="isProcessing" class="processing-icon">hourglass_empty</mat-icon>
-      <mat-icon *ngIf="!isProcessing">{{ isRejected ? 'error' : 'check' }}</mat-icon>
-      {{ isProcessing ? 'Guardando...' : (isRejected ? 'Guardar Rechazo' : 'Remover Rechazo') }}
+      <mat-icon *ngIf="isProcessing" class="processing-icon">{{ saveButtonIconComputed }}</mat-icon>
+      <mat-icon *ngIf="!isProcessing">{{ saveButtonIconComputed }}</mat-icon>
+      {{ saveButtonTextComputed }}
+    </button>
+  </div>
+
+  <!-- Embedded mode read-only actions -->
+  <div class="embedded-actions" *ngIf="isEmbedded && currentIsReadOnly">
+    <button 
+      mat-raised-button 
+      color="primary"
+      type="button" 
+      (click)="onCancel()"
+      class="close-btn">
+      <mat-icon>close</mat-icon>
+      Cerrar
     </button>
   </div>
 </div> 

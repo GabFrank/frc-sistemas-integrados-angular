@@ -32,6 +32,7 @@ import {
 } from './verificar-pedido-item-recepcion-mercaderia/verificar-pedido-item-recepcion-mercaderia.component';
 import { PedidoItemSucursalDialogComponent } from '../../pedido-item-sucursal/pedido-item-sucursal-dialog/pedido-item-sucursal-dialog.component';
 import { ItemStatusDialogComponent, ItemStatusDialogData, ItemStatusDialogResult } from '../recepcion-nota/item-status-dialog/item-status-dialog.component';
+import { AddProductDialogComponent } from '../detalles-del-pedido/add-product-dialog/add-product-dialog.component';
 
 // Recepcion Mercaderia specific types
 export interface RecepcionMercaderiaSummary {
@@ -1182,6 +1183,52 @@ export class RecepcionMercaderiaComponent implements OnInit, OnChanges {
         }, 500);
       }
     });
+  }
+
+  /**
+   * **NEW**: View item details in read-only mode when pedido is CONCLUIDO
+   */
+  viewItemDetails(item: PedidoItem): void {
+    if (!item || !this.pedido) {
+      this.notificacionService.openWarn('Item no válido');
+      return;
+    }
+
+    const dialogData = {
+        pedido: this.pedido,
+        pedidoItem: item,
+        isEditing: true,
+        readOnly: true, // **NEW**: Set read-only mode
+        currentStep: this.getCurrentStepFromEstado()
+      };
+
+      const dialogRef = this.matDialog.open(AddProductDialogComponent, {
+        data: dialogData,
+        width: '90%',
+        maxWidth: '1200px',
+        height: '80%',
+        disableClose: false, // Allow closing since it's read-only
+        autoFocus: false,
+        panelClass: ['modern-dialog', 'no-padding-dialog']
+      });
+
+      // No need to handle result since it's read-only
+      dialogRef.afterClosed().subscribe(() => {
+        // Dialog closed, no action needed
+      });
+    }
+
+  /**
+   * Helper method to get current step from pedido estado
+   */
+  private getCurrentStepFromEstado(): any {
+    if (!this.pedido) return null;
+    
+    // Return a simple step object for read-only mode
+    return {
+      stepType: 'RECEPCION_MERCADERIA',
+      status: 'COMPLETED'
+    };
   }
 
   /**
