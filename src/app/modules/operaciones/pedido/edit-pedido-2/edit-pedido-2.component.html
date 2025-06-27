@@ -283,6 +283,16 @@
       <mat-step label="Recepción de Nota" [stepControl]="dummyStepControl">
         <div class="step-content" fxLayout="column" fxFill>
 
+          <!-- Step initialization UI -->
+          <app-step-initialization
+            *ngIf="!isRecepcionNotaActive"
+            [stepInfo]="recepcionNotaStepInfo"
+            [isProcessing]="false"
+            customActionText="Iniciar Recepción de Nota"
+            (initiateStep)="beginRecepcionNotaStep()"
+            style="flex: 1; min-height: 0;">
+          </app-step-initialization>
+
           <!-- Main Content - Only show when step is active -->
           <app-recepcion-nota 
             *ngIf="isRecepcionNotaActive"
@@ -292,41 +302,14 @@
             style="flex: 1; min-height: 0;">
           </app-recepcion-nota>
           
-          <!-- Placeholder when step not started -->
-          <div 
-            *ngIf="!isRecepcionNotaActive"
-            fxFlex
-            fxLayout="column"
-            fxLayoutAlign="center center"
-            class="step-placeholder">
-            <mat-icon class="large-icon">receipt</mat-icon>
-            <p>Haga clic en "Iniciar Recepción de Nota" para comenzar esta etapa</p>
-            <p class="step-placeholder-hint">
-              En esta etapa asignará los productos del pedido a notas de recepción
-              y distribuirá las cantidades por sucursales.
-            </p>
-          </div>
-          
           <div class="step-actions" fxLayout="row" fxLayoutAlign="space-between center" fxLayoutGap="10px">
             <button mat-button (click)="previousStep()">
               Anterior
             </button>
             
-            <!-- Show "Iniciar Recepción de Nota" button when available -->
-            <button 
-              *ngIf="showRecepcionNotaInitButton"
-              mat-raised-button 
-              color="accent"
-              (click)="beginRecepcionNotaStep()"
-              [disabled]="!canBeginRecepcionNota"
-              class="step-action-button">
-              <mat-icon>play_arrow</mat-icon>
-              Iniciar Recepción de Nota
-            </button>
-            
             <!-- Show "Siguiente" button when step is active -->
             <button 
-              *ngIf="!showRecepcionNotaInitButton"
+              *ngIf="isRecepcionNotaActive"
               mat-raised-button 
               color="primary" 
               (click)="nextStep()"
@@ -412,22 +395,39 @@
         </ng-template>
 
         <div class="step-content" fxLayout="column" fxFill>
-          <h3>{{ stepsConfig[4].label }}</h3>
-          <p>
-            Generación de solicitud de pago al proveedor. Revisión final y
-            confirmación del proceso.
-          </p>
 
-          <div
+          <!-- Step initialization UI -->
+          <app-step-initialization
+            *ngIf="!isSolicitudPagoActive && canAccessStep4"
+            [stepInfo]="solicitudPagoStepInfo"
+            [isProcessing]="false"
+            customActionText="Iniciar Solicitud de Pago"
+            (initiateStep)="beginSolicitudPagoStep()"
+            style="flex: 1; min-height: 0;">
+          </app-step-initialization>
+
+          <!-- Main Content - Only show when step is active -->
+          <app-solicitud-pago 
+            *ngIf="isSolicitudPagoActive"
+            [pedido]="selectedPedido"
+            [isStepActive]="isSolicitudPagoActive"
+            (pedidoChange)="onPedidoChange($event)"
+            (stepValidChange)="onStep5ValidChange($event)"
+            style="flex: 1; min-height: 0;">
+          </app-solicitud-pago>
+          
+          <!-- Placeholder when step not accessible -->
+          <div 
+            *ngIf="!canAccessStep4"
             fxFlex
             fxLayout="column"
             fxLayoutAlign="center center"
-            class="step-placeholder"
-          >
+            class="step-placeholder">
             <mat-icon class="large-icon">{{ stepsConfig[4].icon }}</mat-icon>
-            <p>
-              Aquí se implementará la funcionalidad para gestionar la solicitud
-              de pago
+            <p>Complete la recepción de mercadería antes de continuar</p>
+            <p class="step-placeholder-hint">
+              Esta etapa se habilitará automáticamente cuando finalice
+              la recepción de mercadería en el paso anterior.
             </p>
           </div>
 
@@ -438,7 +438,15 @@
             fxLayoutGap="10px"
           >
             <button mat-button (click)="previousStep()">Anterior</button>
-            <button mat-raised-button color="accent" (click)="completePedido()">
+            <button
+              *ngIf="isSolicitudPagoActive"
+              mat-raised-button
+              color="primary"
+              (click)="completePedido()"
+              [disabled]="!step5Valid || !canAccessStep4"
+              [matTooltip]="!step5Valid ? 'Complete la solicitud de pago antes de finalizar' : 'Finalizar pedido'"
+              matTooltipPosition="above"
+            >
               Completar Pedido
             </button>
           </div>

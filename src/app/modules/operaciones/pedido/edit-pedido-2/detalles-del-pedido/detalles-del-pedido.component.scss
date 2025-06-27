@@ -1,5 +1,8 @@
+@import '../shared-stepper-styles';
+
 /* Full height container with flexbox */
 .detalles-container {
+  @include step-container;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -108,38 +111,34 @@
 /* Table styling for dark theme */
 .table-container {
   overflow-y: auto;
-  border: 1px solid #555;
+  border: 1px solid $border-secondary;
   border-radius: 8px;
   margin: 16px 24px 0;
+  @include custom-scrollbar;
 }
 
 .items-table {
-  background: #3e3e42 !important;
+  @extend .unified-table;
   height: 100%;
 }
 
 .header-row {
-  background: #4a4a4e !important;
+  background: $table-header-background !important;
 }
 
 .header-cell {
-  background: #4a4a4e !important;
-  color: #ffffff !important;
-  font-weight: 600;
-  border-bottom: 1px solid #555;
+  @include table-header;
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
 .data-cell {
-  background: #3e3e42 !important;
-  color: #ffffff !important;
-  border-bottom: 1px solid #555;
+  @include table-content;
 }
 
-.data-row:hover {
-  background: #4a4a4e !important;
+.data-row {
+  @include table-row-hover;
 }
 
 /* Product info with barcode */

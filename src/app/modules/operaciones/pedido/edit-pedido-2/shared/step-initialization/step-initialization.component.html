@@ -1,0 +1,86 @@
+<div class="step-initialization-wrapper" *ngIf="stepInfo" style="display: flex; flex-direction: row; gap: 10px; justify-content: center; align-items: center; height: 100%;">
+  
+  <!-- Step Status Card -->
+  <mat-card [class]="statusCardClass" appearance="outlined" style="width: 100%;">
+    <mat-card-content>
+      
+      <!-- Status Header -->
+      <div class="status-header">
+        <mat-icon [class]="statusIconClass">{{ stepStatusIcon }}</mat-icon>
+        <div class="status-text">
+          <h3 class="status-title">{{ stepStatusTitle }}</h3>
+          <p class="status-subtitle" *ngIf="stepStatusSubtitle">{{ stepStatusSubtitle }}</p>
+        </div>
+      </div>
+
+      <!-- Progress Bar (only show for IN_PROGRESS status) -->
+      <div class="progress-section" *ngIf="showProgressSection">
+        <mat-progress-bar 
+          mode="determinate" 
+          [value]="progressBarValue"
+          [color]="progressBarColor">
+        </mat-progress-bar>
+        <span class="progress-text">{{ progressText }}</span>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons" *ngIf="showInitButton || showViewDetailsButton">
+        
+        <!-- Initiate Step Button -->
+        <button 
+          mat-raised-button 
+          color="primary"
+          class="action-button initiate-button"
+          [disabled]="!canInitiateStep || isProcessing"
+          (click)="onInitiateStep()"
+          *ngIf="showInitButton">
+          
+          <mat-icon *ngIf="isProcessing">hourglass_empty</mat-icon>
+          <mat-icon *ngIf="!isProcessing">play_arrow</mat-icon>
+          
+          <span *ngIf="!isProcessing">{{ actionButtonText }}</span>
+          <span *ngIf="isProcessing">Iniciando...</span>
+        </button>
+
+        <!-- View Details Button (for completed steps) -->
+        <button 
+          mat-stroked-button 
+          color="accent"
+          class="action-button view-details-button"
+          (click)="onViewDetails()"
+          *ngIf="showViewDetailsButton">
+          
+          <mat-icon>visibility</mat-icon>
+          <span>Ver Detalles</span>
+        </button>
+
+      </div>
+
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Additional Information Card (for certain statuses) -->
+  <mat-card class="info-card" appearance="outlined" *ngIf="showInfoCard">
+    <mat-card-content>
+      <div class="info-content">
+        <mat-icon class="info-icon">info</mat-icon>
+        <div class="info-text">
+          <p>Esta etapa estará disponible una vez que complete la etapa anterior.</p>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+</div>
+
+<!-- Fallback when no step info is provided -->
+<div class="no-step-info" *ngIf="!stepInfo">
+  <mat-card appearance="outlined">
+    <mat-card-content>
+      <div class="error-content">
+        <mat-icon class="error-icon">error_outline</mat-icon>
+        <p>Información de etapa no disponible</p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div> 

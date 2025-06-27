@@ -1318,6 +1318,7 @@ export class AddProductDialogComponent implements OnInit, AfterViewInit, OnDestr
 
     // Set the selected product - but we need to make sure it has presentaciones loaded
     this.selectedProducto = pedidoItem.producto;
+    console.log('selectedProducto', this.selectedProducto);
     this.selectedProductoProveedor = null; // Clear proveedor selection since this is direct editing
 
     // Check if product has presentaciones loaded

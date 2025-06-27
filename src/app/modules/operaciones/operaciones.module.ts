@@ -63,6 +63,11 @@ import { ItemStatusDialogComponent } from './pedido/edit-pedido-2/recepcion-nota
 import { FinalizacionDialogComponent } from './pedido/edit-pedido-2/finalizacion-dialog/finalizacion-dialog.component';
 import { RecepcionMercaderiaComponent } from './pedido/edit-pedido-2/recepcion-mercaderia/recepcion-mercaderia.component';
 import { VerificarPedidoItemRecepcionMercaderiaComponent } from './pedido/edit-pedido-2/recepcion-mercaderia/verificar-pedido-item-recepcion-mercaderia/verificar-pedido-item-recepcion-mercaderia.component';
+import { SolicitudPagoComponent } from './pedido/edit-pedido-2/solicitud-pago/solicitud-pago.component';
+import { ConfirmarFinalizacionDialogComponent } from './pedido/edit-pedido-2/solicitud-pago/dialogs/confirmar-finalizacion-dialog/confirmar-finalizacion-dialog.component';
+import { CrearGrupoDialogComponent } from './pedido/edit-pedido-2/solicitud-pago/dialogs/crear-grupo-dialog/crear-grupo-dialog.component';
+import { SeleccionarGrupoExistenteDialogComponent } from './pedido/edit-pedido-2/solicitud-pago/dialogs/seleccionar-grupo-existente-dialog/seleccionar-grupo-existente-dialog.component';
+import { StepInitializationComponent } from './pedido/edit-pedido-2/shared/step-initialization/step-initialization.component';
 
 @NgModule({
   declarations: [
@@ -124,7 +129,12 @@ import { VerificarPedidoItemRecepcionMercaderiaComponent } from './pedido/edit-p
     AddProductDialogComponent,
     FinalizacionDialogComponent,
     RecepcionMercaderiaComponent,
-    VerificarPedidoItemRecepcionMercaderiaComponent
+    VerificarPedidoItemRecepcionMercaderiaComponent,
+    SolicitudPagoComponent,
+    ConfirmarFinalizacionDialogComponent,
+    CrearGrupoDialogComponent,
+    SeleccionarGrupoExistenteDialogComponent,
+    StepInitializationComponent
   ],
   imports: [
     CommonModule,

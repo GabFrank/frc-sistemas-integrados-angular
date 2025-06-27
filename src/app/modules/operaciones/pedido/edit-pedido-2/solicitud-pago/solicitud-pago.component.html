@@ -1,0 +1,274 @@
+<div class="solicitud-pago-container">
+  <!-- Active Step Content -->
+  <div *ngIf="isStepActive" class="step-content">
+    
+    <!-- Initial Loading State (only for first time loading) -->
+    <div *ngIf="(loadingNotas || loadingGrupos || loadingSummary) && !loadingGruposPagination" class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Cargando datos...</p>
+    </div>
+
+    <!-- No Data Message -->
+    <div *ngIf="showNoDataMessage && !loadingNotas && !loadingGrupos && !loadingGruposPagination" class="no-data-container">
+      <mat-icon class="no-data-icon">info</mat-icon>
+      <h4>No hay notas de recepción disponibles</h4>
+      <p>No se encontraron notas para agrupar en este pedido.</p>
+    </div>
+
+    <!-- Main Content Layout -->
+    <div *ngIf="(!loadingNotas && !loadingGrupos && !showNoDataMessage) || loadingGruposPagination" class="main-content">
+      
+      <!-- Two Panel Layout -->
+      <div class="panels-container">
+        
+        <!-- Left Panel: Notas Sin Agrupar -->
+        <mat-card class="left-panel">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>assignment</mat-icon>
+              Notas Sin Agrupar ({{ notasSinAgrupar.length }})
+            </mat-card-title>
+          </mat-card-header>
+          
+          <mat-card-content>
+            <!-- Selection Actions -->
+            <div *ngIf="showSelectionActions" class="selection-actions">
+              <div class="selection-info">
+                <span>{{ notasSeleccionadas.size }} nota(s) seleccionada(s)</span>
+                <button mat-button (click)="clearSelection()">
+                  <mat-icon>clear</mat-icon>
+                  Limpiar
+                </button>
+              </div>
+              
+              <div class="action-buttons">
+                <button 
+                  mat-raised-button 
+                  color="primary"
+                  [disabled]="processingGrouping"
+                  (click)="onCrearGrupoNuevo()">
+                  <mat-icon>add</mat-icon>
+                  Crear Grupo Nuevo
+                </button>
+              </div>
+            </div>
+
+            <!-- Notas List -->
+            <div class="notas-list" *ngIf="enhancedNotasSinAgrupar.length > 0">
+              <mat-card 
+                *ngFor="let nota of enhancedNotasSinAgrupar" 
+                class="nota-card"
+                [class.selected]="nota.computedSeleccionado"
+                (click)="toggleNotaSelection(nota)">
+                
+                <mat-card-content>
+                  <div class="nota-header">
+                    <mat-checkbox 
+                      [checked]="nota.computedSeleccionado"
+                      (click)="$event.stopPropagation()"
+                      (change)="toggleNotaSelection(nota)">
+                    </mat-checkbox>
+                    <strong>Nota #{{ nota.numero }}</strong>
+                  </div>
+                  
+                  <div class="nota-details">
+                    <div class="detail-row">
+                      <mat-icon>event</mat-icon>
+                      <span>{{ nota.computedFechaDisplay }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <mat-icon>monetization_on</mat-icon>
+                      <span>{{ nota.computedValorDisplay }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <mat-icon>inventory</mat-icon>
+                      <span>{{ nota.computedItemsDisplay }}</span>
+                    </div>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            </div>
+
+            <div *ngIf="enhancedNotasSinAgrupar.length === 0 && !loadingNotas" class="empty-state">
+              <div *ngIf="summaryData.totalNotas > 0">
+                <mat-icon>check_circle</mat-icon>
+                <p><strong>Todas las notas han sido agrupadas</strong></p>
+                <p class="empty-subtitle">{{ summaryData.totalNotas }} nota(s) ya están asignadas a grupos</p>
+              </div>
+              <div *ngIf="summaryData.totalNotas === 0">
+                <mat-icon>info</mat-icon>
+                <p><strong>No hay notas disponibles</strong></p>
+                <p class="empty-subtitle">No se encontraron notas de recepción para este pedido</p>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Right Panel: Grupos Creados -->
+        <mat-card class="right-panel">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>group_work</mat-icon>
+              Grupos Disponibles
+            </mat-card-title>
+            <mat-card-subtitle *ngIf="gruposPagination.totalElements > 0">
+              {{ gruposPagination.totalElements }} grupos total - Página {{ gruposPagination.currentPage + 1 }} de {{ gruposPagination.totalPages }}
+            </mat-card-subtitle>
+          </mat-card-header>
+          
+          <mat-card-content class="grupos-content-container">
+            <!-- Pagination Loading Overlay -->
+            <div *ngIf="loadingGruposPagination" class="pagination-loading-overlay">
+              <mat-spinner diameter="30"></mat-spinner>
+              <span>Cargando página...</span>
+            </div>
+            <!-- Pagination Controls Top -->
+            <div *ngIf="gruposPagination.totalElements > gruposPagination.pageSize" class="pagination-controls top">
+              <mat-paginator
+                [length]="gruposPagination.totalElements"
+                [pageSize]="gruposPagination.pageSize"
+                [pageIndex]="gruposPagination.currentPage"
+                [pageSizeOptions]="[5, 10, 15, 20]"
+                [disabled]="loadingGrupos || loadingGruposPagination"
+                (page)="onGruposPageChange($event)"
+                showFirstLastButtons>
+              </mat-paginator>
+            </div>
+
+            <div class="grupos-list" *ngIf="enhancedGruposCreados.length > 0">
+              <mat-card 
+                *ngFor="let grupo of enhancedGruposCreados; trackBy: trackGrupoById" 
+                class="grupo-card"
+                [class.assignable]="showSelectionActions && grupo.puedeAgregarNotas"
+                [class.disabled]="!grupo.puedeAgregarNotas">
+                
+                <mat-card-content>
+                  <div class="grupo-header">
+                    <h4>{{ grupo.computedTituloDisplay }}</h4>
+                    <mat-chip [class]="grupo.computedEstadoChipClass">
+                      {{ grupo.grupo.estado }}
+                    </mat-chip>
+                  </div>
+                  
+                  <div class="grupo-info">
+                    <p class="creation-info">{{ grupo.computedInfoDisplay }}</p>
+                    <p class="notes-info">
+                      <mat-icon>description</mat-icon>
+                      {{ grupo.grupo.cantNotas || 0 }} nota(s)
+                    </p>
+                    <p class="value-info">
+                      <mat-icon>monetization_on</mat-icon>
+                      {{ grupo.computedValorDisplay }}
+                    </p>
+                    <p class="sucursal-info" *ngIf="grupo.grupo.sucursal">
+                      <mat-icon>location_on</mat-icon>
+                      {{ grupo.grupo.sucursal.nombre }}
+                    </p>
+                  </div>
+                  
+                  <!-- Assignment button - appears when notes are selected -->
+                  <div class="assignment-action" *ngIf="showSelectionActions && grupo.puedeAgregarNotas">
+                    <button 
+                      mat-raised-button 
+                      color="primary"
+                      class="assign-button"
+                      [disabled]="processingGrouping"
+                      (click)="onAsignarNotasAGrupo(grupo)"
+                      title="Asignar {{ notasSeleccionadas.size }} nota(s) seleccionada(s) a este grupo">
+                      <mat-icon>assignment</mat-icon>
+                      Asignar a este grupo
+                      <span class="notes-count">({{ notasSeleccionadas.size }})</span>
+                    </button>
+                  </div>
+                  
+                  <!-- Management actions - shown when no notes are selected -->
+                  <div class="grupo-actions" *ngIf="!showSelectionActions">
+                    <button 
+                      mat-button 
+                      color="primary"
+                      [disabled]="!grupo.computedPuedeGestionar || processingGrouping"
+                      (click)="onGestionarGrupo(grupo)"
+                      title="Gestionar notas del grupo">
+                      <mat-icon>edit</mat-icon>
+                      Gestionar
+                    </button>
+                    
+                    <button 
+                      mat-button 
+                      color="warn"
+                      [disabled]="!grupo.puedeEliminar || processingGrouping"
+                      (click)="onEliminarGrupo(grupo)"
+                      title="Eliminar grupo">
+                      <mat-icon>delete</mat-icon>
+                      Eliminar
+                    </button>
+                  </div>
+                </mat-card-content>
+              </mat-card>
+            </div>
+
+            <!-- Pagination Controls Bottom -->
+            <div *ngIf="gruposPagination.totalElements > gruposPagination.pageSize && enhancedGruposCreados.length > 0" class="pagination-controls bottom">
+              <mat-paginator
+                [length]="gruposPagination.totalElements"
+                [pageSize]="gruposPagination.pageSize"
+                [pageIndex]="gruposPagination.currentPage"
+                [pageSizeOptions]="[5, 10, 15, 20]"
+                [disabled]="loadingGrupos || loadingGruposPagination"
+                (page)="onGruposPageChange($event)"
+                showFirstLastButtons>
+              </mat-paginator>
+            </div>
+
+            <div *ngIf="enhancedGruposCreados.length === 0 && !loadingGrupos" class="empty-state">
+              <div *ngIf="gruposPagination.totalElements === 0">
+                <mat-icon>group_work</mat-icon>
+                <p><strong>No hay grupos disponibles</strong></p>
+                <p class="empty-subtitle">No existen grupos para este proveedor que puedan recibir notas</p>
+              </div>
+              <div *ngIf="gruposPagination.totalElements > 0" class="no-results">
+                <mat-icon>search_off</mat-icon>
+                <p><strong>No hay resultados en esta página</strong></p>
+                <p class="empty-subtitle">{{ gruposPagination.totalElements }} grupos disponibles en total</p>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- Summary Panel -->
+      <mat-card class="summary-panel">
+        <mat-card-content>
+          <div class="summary-content">
+            <div class="summary-stats">
+              <div class="stat-item">
+                <span class="stat-label">Total notas:</span>
+                <span class="stat-value">{{ summaryData.totalNotas }}</span>
+              </div>
+              <div class="stat-divider">|</div>
+              <div class="stat-item">
+                <span class="stat-label">Agrupadas:</span>
+                <span class="stat-value">{{ summaryData.notasAgrupadas }}</span>
+              </div>
+              <div class="stat-divider">|</div>
+              <div class="stat-item">
+                <span class="stat-label">Sin agrupar:</span>
+                <span class="stat-value" [class.warning]="summaryData.notasSinAgrupar > 0">
+                  {{ summaryData.notasSinAgrupar }}
+                </span>
+              </div>
+            </div>
+            
+            <!-- Status indicator instead of buttons -->
+            <div class="summary-status">
+              <div class="status-indicator" [class.ready]="canProceedToNextStep" [class.pending]="!canProceedToNextStep">
+                <mat-icon>{{ canProceedToNextStep ? 'check_circle' : 'pending' }}</mat-icon>
+                <span>{{ canProceedToNextStep ? 'Listo para finalizar' : 'Complete la agrupación' }}</span>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div> 

@@ -33,7 +33,29 @@
           {{ isReadOnlyMode ? "Ver Producto" : "Configurar Producto" }}
         </ng-template>
 
-        <div class="tab-content">
+        <div class="tab-content" style="gap: 10px;">
+          <!-- Product Information Section - Shown in read-only mode -->
+          <div class="product-info-section" *ngIf="isReadOnlyMode && selectedProducto">
+            <div class="info-row">
+              <div class="info-item" style="flex: 30%;">
+                <span class="titulo-center">Descripción:</span>
+                <h3 class="info-value">{{ selectedProducto?.descripcion }}</h3>
+              </div>
+              <div class="info-item" style="flex: 20%;">
+                <span class="titulo-center">Código Principal:</span>
+                <h3 class="info-value">{{ selectedProducto?.codigoPrincipal || 'No disponible' }}</h3>
+              </div>
+              <div class="info-item" style="flex: 20%;">
+                <span class="titulo-center">Precio Principal:</span>
+                <h3 class="info-value">Gs. {{ (selectedProducto?.precioPrincipal | number : "1.0-2") || '0.00' }}</h3>
+              </div>
+              <div class="info-item" style="flex: 20%;">
+                <span class="titulo-center">Costo Medio:</span>
+                <h3 class="info-value">Gs. {{ (selectedProducto?.costo?.costoMedio | number : "1.0-2") || '0.00' }}</h3>
+              </div>
+            </div>
+          </div>
+
           <!-- Product Search Section - Hidden in read-only mode -->
           <mat-card class="search-card" *ngIf="!isReadOnlyMode">
             <mat-card-content>
@@ -76,23 +98,7 @@
 
           <!-- Product Configuration Form -->
           <mat-card class="form-card" *ngIf="selectedProducto">
-            <mat-card-header>
-              <div class="w-100">
-                <mat-card-title class="titulo-center" style="font-size: medium">
-                  Configurar Producto
-                </mat-card-title>
-                <mat-card-subtitle class="selected-product-name">
-                  <div>
-                    <span class="titulo-color">Descripción:</span>
-                    {{ selectedProducto.descripcion }}
-                  </div>
-                  <div>
-                    <span class="titulo-color">Código:</span>
-                    {{ selectedProducto.codigoPrincipal }}
-                  </div>
-                </mat-card-subtitle>
-              </div>
-            </mat-card-header>
+            
 
             <mat-card-content>
               <div class="form-content-layout">
@@ -922,7 +928,7 @@
       <mat-tab [disabled]="!selectedProducto">
         <ng-template mat-tab-label> Distribución Sucursales </ng-template>
 
-        <div class="tab-content">
+        <div class="tab-content-embedded">
           <div class="sucursal-distribution-main" *ngIf="selectedProducto">
             <!-- Embedded PedidoItemSucursalDialogComponent -->
             <!-- **SIMPLIFIED**: No need to pass sucursal lists - component will extract from pedidoItem.pedido -->
@@ -954,7 +960,7 @@
       <mat-tab [disabled]="!selectedProducto || (!data.isEditing && !isReadOnlyMode)">
         <ng-template mat-tab-label> Gestión Rechazos </ng-template>
 
-        <div class="tab-content">
+        <div class="tab-content-embedded">
           <!-- Rejection management content will be embedded here -->
           <div
             class="rejection-management-container"

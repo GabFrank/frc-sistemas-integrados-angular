@@ -2,6 +2,7 @@ import { dateToString } from "../../../../../commons/core/utils/dateUtils";
 import { Sucursal } from "../../../../empresarial/sucursal/sucursal.model";
 import { Proveedor } from "../../../../personas/proveedor/proveedor.model";
 import { Usuario } from "../../../../personas/usuarios/usuario.model";
+import { SolicitudPago } from "../../../solicitud-pago/solicitud-pago.model";
 
 
 export class NotaRecepcionAgrupada {
@@ -12,6 +13,8 @@ export class NotaRecepcionAgrupada {
   usuario: Usuario;
   estado: NotaRecepcionAgrupadaEstado;
   cantNotas:number;
+  valorTotal: number;
+  solicitudPago: SolicitudPago;
 
 
   toInput(): NotaRecepcionAgrupadaInput {

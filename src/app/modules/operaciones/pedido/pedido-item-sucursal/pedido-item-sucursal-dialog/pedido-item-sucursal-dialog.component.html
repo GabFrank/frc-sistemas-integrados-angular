@@ -11,26 +11,26 @@
   <!-- Product Info Section -->
   <div class="product-info-section">
     <div class="info-row">
-      <div class="info-item">
+      <div class="info-item" style="flex: 30%;">
         <span class="titulo-color">Producto:</span>
         <h3 class="info-value">
           {{ selectedPedidoItem?.producto?.id }} -
           {{ selectedPedidoItem?.producto?.descripcion }}
         </h3>
       </div>
-      <div class="info-item">
+      <div class="info-item" style="flex: 20%;">
         <span class="titulo-color">Presentación:</span>
         <h3 class="info-value">
           {{ currentPresentacion?.cantidad }}
         </h3>
       </div>
-      <div class="info-item">
+      <div class="info-item" style="flex: 20%;">
         <span class="titulo-color">Cantidad Total:</span>
         <h3 class="info-value">
           {{ currentCantidad | number : "1.0-2" }}
         </h3>
       </div>
-      <div class="info-item">
+      <div class="info-item" style="flex: 20%;">
         <span class="titulo-color">Sobrante:</span>
         <h3 class="info-value">
           {{ currentCantidad - cantAgregada | number : "1.0-2" }}

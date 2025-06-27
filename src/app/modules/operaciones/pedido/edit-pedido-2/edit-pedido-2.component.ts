@@ -17,6 +17,7 @@ import { Moneda } from "../../../financiero/moneda/moneda.model";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { AddProductDialogComponent, AddProductDialogData, AddProductDialogResult } from "./detalles-del-pedido/add-product-dialog/add-product-dialog.component";
 import { FinalizacionDialogComponent, FinalizacionDialogData, FinalizacionDialogResult } from "./finalizacion-dialog/finalizacion-dialog.component";
+import { SolicitudPagoComponent } from "./solicitud-pago/solicitud-pago.component";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { NotificacionSnackbarService, NotificacionColor } from "../../../../notificacion-snackbar.service";
 
@@ -54,6 +55,7 @@ export interface StepInfo {
 })
 export class EditPedido2Component implements OnInit, AfterViewInit {
   @ViewChild("stepper") stepper: MatStepper;
+  @ViewChild(SolicitudPagoComponent) solicitudPagoComponent: SolicitudPagoComponent;
 
   @Input() data: Tab;
 
@@ -100,6 +102,7 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
   canAccessStep2 = false;
   canAccessStep3 = false;
   canAccessStep4 = false;
+  canAccessStep5 = false;
   step1FormValid = false;
   
   // New properties for next step conditions
@@ -109,6 +112,7 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
   // **NEW**: Step validation properties
   step3Valid = false; // Recepcion nota step validation
   step4Valid = false; // Recepcion mercaderia step validation
+  step5Valid = false; // Solicitud pago step validation
 
   // Computed summary properties for header display (excluding cancelled items)
   computedTotalSinDescuento = 0;
@@ -126,19 +130,18 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
 
   // **COMPUTED PROPERTIES**: To avoid function calls in templates (CRITICAL for performance)
   recepcionNotaStepInfo: StepInfo | null = null;
-  showRecepcionNotaInitButton = false;
-  canBeginRecepcionNota = false;
   isRecepcionNotaActive = false;
   nextButtonTooltip = '';
-  recepcionNotaStatusIcon = '';
-  recepcionNotaStatusTitle = '';
-  recepcionNotaStatusSubtitle: string | null = null;
   
   // **NEW**: Current step tracking info for the status card
   currentStepTrackingInfo: StepInfo | null = null;
   
   // **NEW**: Recepcion mercaderia computed properties
   recepcionMercaderiaButtonTooltip = '';
+  
+  // **NEW**: Solicitud pago computed properties
+  solicitudPagoStepInfo: StepInfo | null = null;
+  isSolicitudPagoActive = false;
   
   // UI stepper index to step type mapping
   private stepperToStepType: Map<number, PedidoStepType> = new Map([
@@ -277,8 +280,11 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
       case PedidoEstado.EN_RECEPCION_MERCADERIA:
         this.currentStepIndex = 3;
         break;
-      case PedidoEstado.CONCLUIDO:
+      case PedidoEstado.EN_SOLICITUD_PAGO:
         this.currentStepIndex = 4;
+        break;
+      case PedidoEstado.CONCLUIDO:
+        this.currentStepIndex = 4; // Show completed solicitud pago step
         break;
       default:
         this.currentStepIndex = 0;
@@ -302,11 +308,16 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
     this.canAccessStep2 = false;
     this.canAccessStep3 = false;
     this.canAccessStep4 = false;
+    this.canAccessStep5 = false;
 
     // Set accessibility based on estado
     // Note: ABIERTO and ACTIVO both represent creation phase and allow access to steps 0 & 1
     switch (estado) {
       case PedidoEstado.CONCLUIDO:
+        this.canAccessStep5 = true;
+        this.canAccessStep4 = true;
+      // fall through
+      case PedidoEstado.EN_SOLICITUD_PAGO:
         this.canAccessStep4 = true;
       // fall through
       case PedidoEstado.EN_RECEPCION_MERCADERIA:
@@ -346,6 +357,7 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
         break;
       case PedidoEstado.EN_RECEPCION_NOTA:
       case PedidoEstado.EN_RECEPCION_MERCADERIA:
+      case PedidoEstado.EN_SOLICITUD_PAGO:
         this.estadoColor = "warn";
         break;
       case PedidoEstado.CONCLUIDO:
@@ -418,21 +430,9 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
 
     // Update computed flags for Recepcion Nota step
     if (this.recepcionNotaStepInfo) {
-      this.showRecepcionNotaInitButton = this.recepcionNotaStepInfo.status === StepStatus.AVAILABLE && this.recepcionNotaStepInfo.canStart;
-      this.canBeginRecepcionNota = this.recepcionNotaStepInfo.canStart && this.recepcionNotaStepInfo.status === StepStatus.AVAILABLE;
       this.isRecepcionNotaActive = this.recepcionNotaStepInfo.status === StepStatus.IN_PROGRESS || this.recepcionNotaStepInfo.status === StepStatus.COMPLETED;
-      
-      // Recepcion Nota status properties
-      this.recepcionNotaStatusIcon = this.getStepStatusIcon(this.recepcionNotaStepInfo);
-      this.recepcionNotaStatusTitle = this.getStepStatusTitle(this.recepcionNotaStepInfo);
-      this.recepcionNotaStatusSubtitle = this.getStepStatusSubtitle(this.recepcionNotaStepInfo);
     } else {
-      this.showRecepcionNotaInitButton = false;
-      this.canBeginRecepcionNota = false;
       this.isRecepcionNotaActive = false;
-      this.recepcionNotaStatusIcon = '';
-      this.recepcionNotaStatusTitle = '';
-      this.recepcionNotaStatusSubtitle = null;
     }
 
     // Update Next button tooltip for step 3
@@ -452,6 +452,14 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
     } else {
       this.recepcionMercaderiaButtonTooltip = 'Finalizar recepción de mercadería. Se crearán movimientos de stock y se actualizarán precios si es necesario';
     }
+
+    // **NEW**: Update Solicitud Pago step computed properties
+    this.solicitudPagoStepInfo = this.getSolicitudPagoStepInfo();
+    if (this.solicitudPagoStepInfo) {
+      this.isSolicitudPagoActive = this.solicitudPagoStepInfo.status === StepStatus.IN_PROGRESS || this.solicitudPagoStepInfo.status === StepStatus.COMPLETED;
+    } else {
+      this.isSolicitudPagoActive = false;
+    }
   }
 
   /**
@@ -459,15 +467,12 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
    */
   private clearComputedProperties(): void {
     this.recepcionNotaStepInfo = null;
-    this.showRecepcionNotaInitButton = false;
-    this.canBeginRecepcionNota = false;
     this.isRecepcionNotaActive = false;
     this.nextButtonTooltip = '';
-    this.recepcionNotaStatusIcon = '';
-    this.recepcionNotaStatusTitle = '';
-    this.recepcionNotaStatusSubtitle = null;
     this.currentStepTrackingInfo = null;
     this.recepcionMercaderiaButtonTooltip = '';
+    this.solicitudPagoStepInfo = null;
+    this.isSolicitudPagoActive = false;
   }
 
   /**
@@ -489,17 +494,11 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
         return this.stepInfos.get(PedidoStepType.RECEPCION_NOTA) || null;
       case PedidoEstado.EN_RECEPCION_MERCADERIA:
         return this.stepInfos.get(PedidoStepType.RECEPCION_MERCADERIA) || null;
+      case PedidoEstado.EN_SOLICITUD_PAGO:
+        return this.stepInfos.get(PedidoStepType.SOLICITUD_PAGO) || null;
       case PedidoEstado.CONCLUIDO:
-        // For completed pedidos, show the last completed step
-        const solicitudPagoInfo = this.stepInfos.get(PedidoStepType.SOLICITUD_PAGO);
-        if (solicitudPagoInfo && solicitudPagoInfo.status === StepStatus.COMPLETED) {
-          return solicitudPagoInfo;
-        }
-        const recepcionMercaderiaInfo = this.stepInfos.get(PedidoStepType.RECEPCION_MERCADERIA);
-        if (recepcionMercaderiaInfo && recepcionMercaderiaInfo.status === StepStatus.COMPLETED) {
-          return recepcionMercaderiaInfo;
-        }
-        return this.stepInfos.get(PedidoStepType.RECEPCION_NOTA) || null;
+        // For completed pedidos, show the last completed step (solicitud pago)
+        return this.stepInfos.get(PedidoStepType.SOLICITUD_PAGO) || null;
       default:
         return null;
     }
@@ -610,15 +609,18 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
     switch (stepType) {
       case PedidoStepType.CREACION:
         return estado === PedidoEstado.ABIERTO || estado === PedidoEstado.ACTIVO;
-      case PedidoStepType.RECEPCION_NOTA:
-        return estado === PedidoEstado.EN_RECEPCION_NOTA || 
-               estado === PedidoEstado.EN_RECEPCION_MERCADERIA || 
+            case PedidoStepType.RECEPCION_NOTA:
+        return estado === PedidoEstado.EN_RECEPCION_NOTA ||
+               estado === PedidoEstado.EN_RECEPCION_MERCADERIA ||
+               estado === PedidoEstado.EN_SOLICITUD_PAGO ||
                estado === PedidoEstado.CONCLUIDO;
       case PedidoStepType.RECEPCION_MERCADERIA:
-        return estado === PedidoEstado.EN_RECEPCION_MERCADERIA || 
+        return estado === PedidoEstado.EN_RECEPCION_MERCADERIA ||
+               estado === PedidoEstado.EN_SOLICITUD_PAGO ||
                estado === PedidoEstado.CONCLUIDO;
       case PedidoStepType.SOLICITUD_PAGO:
-        return estado === PedidoEstado.CONCLUIDO;
+        return estado === PedidoEstado.EN_SOLICITUD_PAGO ||
+               estado === PedidoEstado.CONCLUIDO;
       default:
         return false;
     }
@@ -645,8 +647,7 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
         // Add specific conditions for mercaderia reception
         return true;
       case PedidoStepType.SOLICITUD_PAGO:
-        // Add specific conditions for payment request
-        return true;
+        return this.step5Valid;
       default:
         return false;
     }
@@ -1111,7 +1112,28 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
       );
   }
 
-  completePedido(): void {}
+  completePedido(): void {
+    if (!this.selectedPedido || !this.step5Valid) {
+      this.notificacionService.openWarn('Complete todos los pasos antes de finalizar el pedido');
+      return;
+    }
+
+    if (!this.solicitudPagoComponent) {
+      this.notificacionService.openWarn('Error: Componente de solicitud de pago no disponible');
+      return;
+    }
+
+    // Call the child component's finalization method
+    this.solicitudPagoComponent.finalizarSolicitudPago().then((success) => {
+      if (success) {
+        // Additional completion logic if needed
+        console.log('Pedido completado exitosamente');
+      }
+    }).catch((error) => {
+      console.error('Error completing pedido:', error);
+      this.notificacionService.openWarn('Error al completar el pedido');
+    });
+  }
 
   onPedidoChange(updatedPedido: Pedido): void {
     this.selectedPedido = updatedPedido;
@@ -1148,6 +1170,14 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
     this.step4Valid = isValid;
     // Update step completion status
     this.stepsConfig[3].completed = isValid;
+    // Update computed properties to refresh UI state
+    this.updateComputedProperties();
+  }
+
+  onStep5ValidChange(isValid: boolean): void {
+    this.step5Valid = isValid;
+    // Update step completion status
+    this.stepsConfig[4].completed = isValid;
     // Update computed properties to refresh UI state
     this.updateComputedProperties();
   }
@@ -1197,6 +1227,13 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
    */
   getRecepcionNotaStepInfo(): StepInfo | null {
     return this.stepInfos.get(PedidoStepType.RECEPCION_NOTA) || null;
+  }
+
+  /**
+   * Get step info for the Solicitud Pago step
+   */
+  getSolicitudPagoStepInfo(): StepInfo | null {
+    return this.stepInfos.get(PedidoStepType.SOLICITUD_PAGO) || null;
   }
 
   /**
@@ -1275,6 +1312,16 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
   }
 
   /**
+   * Begin the Solicitud Pago step
+   */
+  beginSolicitudPagoStep(): void {
+    this.beginStep(PedidoStepType.SOLICITUD_PAGO);
+    
+    // Show success message
+    this.notificacionService.openSucess("Iniciando solicitud de pago. Ahora puede agrupar las notas de recepción para su procesamiento.");
+  }
+
+  /**
    * Check if the Recepcion Nota step is currently active
    */
   isRecepcionNotaStepActive(): boolean {
@@ -1329,7 +1376,7 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
     }
 
     // Call backend to finalize pedido and move to next step
-    this.pedidoService.onFinalizarPedido(this.selectedPedido.id, PedidoEstado.CONCLUIDO)
+    this.pedidoService.onFinalizarPedido(this.selectedPedido.id, PedidoEstado.EN_SOLICITUD_PAGO)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (updatedPedido) => {
@@ -1346,7 +1393,7 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
           
           // Show success notification
           this.notificacionService.openSucess(
-            "Recepción de mercadería finalizada exitosamente. Se han creado los movimientos de stock y actualizado precios."
+            "Recepción de mercadería finalizada exitosamente. Se han creado los movimientos de stock y actualizado precios. Ahora puede proceder con la solicitud de pago."
           );
           
           // Move to next step (Solicitud de pago)

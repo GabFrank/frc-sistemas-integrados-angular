@@ -588,6 +588,10 @@ export const pedidoItemPorNotaRecepcionQuery = gql`
             cantidad
           }
           codigoPrincipal
+          precioPrincipal
+          costo {
+            costoMedio
+          }
           vencimiento
         }
         presentacionCreacion {

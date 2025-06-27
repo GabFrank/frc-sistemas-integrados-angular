@@ -1,4 +1,4 @@
-  import { Injectable, Injector } from "@angular/core";
+import { Injectable, Injector } from "@angular/core";
 import { Mutation, Query, Subscription } from "apollo-angular";
 import { Observable, timeout } from "rxjs";
 import { MainService } from "../main.service";
@@ -11,6 +11,7 @@ import { DialogosService } from "../shared/components/dialogos/dialogos.service"
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { dateToString } from "../commons/core/utils/dateUtils";
 import { CargandoDialogService } from "../shared/components/cargando-dialog/cargando-dialog.service";
+import { Apollo } from "apollo-angular";
 
 /**
  * Interfaz para gestionar el manejo de errores en una solicitud GraphQL.
@@ -58,7 +59,8 @@ export class GenericCrudService {
     private dialogoService: DialogosService,
     private notificacionBar: NotificacionSnackbarService,
     private cargandoService: CargandoDialogService,
-    private injector: Injector
+    private injector: Injector,
+    private apollo: Apollo
   ) {
     setTimeout(() => (this.mainService = injector.get(MainService)));
   }
@@ -113,15 +115,16 @@ export class GenericCrudService {
         ? this.cargandoService.openDialog(false, "Buscando...")
         : {};
     return new Observable((obs) => {
-      gql
-        .fetch(data, {
-          fetchPolicy: "no-cache",
-          errorPolicy: "all",
-          context: {
-            clientName: servidor == null || servidor ? "servidor" : null,
-            fetchOptions: { signal },
-          },
-        })
+      this.apollo.query({
+        query: gql.document,
+        variables: data,
+        fetchPolicy: 'no-cache',
+        errorPolicy: 'all',
+        context: {
+          clientName: servidor == null || servidor ? "servidor" : null,
+          fetchOptions: { signal },
+        },
+      })
         .pipe(
           untilDestroyed(this),
           timeout(300000) // Adjust as per your needs

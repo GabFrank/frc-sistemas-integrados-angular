@@ -1,0 +1,217 @@
+.step-initialization-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+// Step Status Card Styles
+.step-status-card {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  background: #424242; // Dark grey background
+  border: none; // Remove all borders
+  border-left: 4px solid;
+  border-image: linear-gradient(135deg, #667eea89 0%, #764ba29a 100%) 1;
+
+  mat-card-content {
+    padding: 24px;
+  }
+}
+
+// Status Header
+.status-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+
+  .status-icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 4px;
+    color: #ccc; // Simple grey color for all states
+  }
+
+  .status-text {
+    flex: 1;
+
+    .status-title {
+      margin: 0 0 8px 0;
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: #fff; // White text for dark background
+      line-height: 1.2;
+    }
+
+    .status-subtitle {
+      margin: 0;
+      font-size: 0.95rem;
+      color: #ccc; // Light grey text for dark background
+      line-height: 1.4;
+    }
+  }
+}
+
+// Progress Section
+.progress-section {
+  margin: 16px 0;
+
+  mat-progress-bar {
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .progress-text {
+    font-size: 0.85rem;
+    color: #ccc; // Light grey text for dark background
+    font-weight: 500;
+  }
+}
+
+// Action Buttons
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+
+  .action-button {
+    min-width: 140px;
+    height: 44px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 0.95rem;
+
+    mat-icon {
+      margin-right: 8px;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    &.initiate-button {
+      // Button will use Angular Material primary color automatically
+      &:disabled {
+        background: #666;
+        color: #999;
+        opacity: 0.7;
+      }
+    }
+
+    &.view-details-button {
+      border: 2px solid #4caf50;
+      color: #4caf50;
+
+      &:hover {
+        background: rgba(76, 175, 80, 0.1);
+      }
+    }
+  }
+}
+
+// Info Card
+.info-card {
+  border-radius: 8px;
+  background: #424242; // Dark grey background
+  border: 1px solid #616161; // Dark border
+
+  .info-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+
+    .info-icon {
+      color: #ccc; // Light grey icon
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+
+    .info-text {
+      flex: 1;
+
+      p {
+        margin: 0;
+        color: #ccc; // Light grey text
+        font-size: 0.9rem;
+      }
+    }
+  }
+}
+
+// No Step Info Fallback
+.no-step-info {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px;
+
+  .error-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px;
+    text-align: center;
+
+    .error-icon {
+      color: #f44336;
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+    }
+
+    p {
+      margin: 0;
+      color: #666;
+      font-size: 1rem;
+    }
+  }
+}
+
+// No animations for simplified design
+
+// Responsive Design
+@media (max-width: 768px) {
+  .step-initialization-wrapper {
+    padding: 12px;
+  }
+
+  .step-status-card mat-card-content {
+    padding: 16px;
+  }
+
+  .status-header {
+    .status-icon {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+    }
+
+    .status-text .status-title {
+      font-size: 1.25rem;
+    }
+  }
+
+  .action-buttons {
+    .action-button {
+      min-width: 120px;
+      height: 40px;
+      font-size: 0.9rem;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+}
+
+// Note: Dark theme is now the default style above 

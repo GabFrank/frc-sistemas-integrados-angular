@@ -1,59 +1,40 @@
+@import '../shared-stepper-styles';
+
 .datos-pedido-container {
+  @include step-container;
   height: 100%;
-  background-color: #3a3a3a;
   padding: 24px;
-  border-radius: 8px;
-  color: #e0e0e0;
-  overflow-y: auto;
-  box-sizing: border-box;
 
   // Form field styling for dark theme
+  @include form-field-styling;
+  
   ::ng-deep {
     .mat-form-field {
-      .mat-form-field-label {
-        color: #e0e0e0 !important;
-        font-weight: 500;
-      }
-
       .mat-form-field-underline {
         background-color: rgba(255, 255, 255, 0.3);
       }
 
       .mat-form-field-ripple {
-        background-color: #2196f3;
+        background-color: $color-info;
       }
 
       .mat-input-element {
-        color: #e0e0e0;
-        
         &::placeholder {
-          color: rgba(255, 255, 255, 0.6);
+          color: $text-muted;
         }
       }
 
-      .mat-select-value {
-        color: #e0e0e0;
-      }
-
       .mat-select-placeholder {
-        color: rgba(255, 255, 255, 0.6);
+        color: $text-muted;
       }
 
       .mat-form-field-prefix,
       .mat-form-field-suffix {
-        color: rgba(255, 255, 255, 0.7);
+        color: $text-secondary;
       }
 
       // Outline styling
       &.mat-form-field-appearance-outline {
-        .mat-form-field-outline {
-          color: rgba(255, 255, 255, 0.3);
-        }
-
-        &.mat-focused .mat-form-field-outline-thick {
-          color: #2196f3;
-        }
-
         &:hover:not(.mat-focused) .mat-form-field-outline {
           color: rgba(255, 255, 255, 0.5);
         }
@@ -62,12 +43,12 @@
       // Error styling
       &.mat-form-field-invalid {
         .mat-form-field-outline-thick {
-          color: #f44336 !important;
+          color: $color-error !important;
         }
       }
 
       .mat-error {
-        color: #f44336;
+        color: $color-error;
         font-size: 0.85rem;
         font-weight: 500;
       }

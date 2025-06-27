@@ -1,4 +1,7 @@
+@import '../shared-stepper-styles';
+
 .recepcion-mercaderia-container {
+  @include step-container;
   height: 100%;
 }
 
@@ -44,6 +47,7 @@
 
 // Summary Card
 .summary-card {
+  @include information-section;
   margin-bottom: 16px;
 
   .summary-item {
@@ -52,20 +56,20 @@
     .summary-number {
       font-size: large;
       font-weight: 600;
-      color: #dedede;
+      color: $text-primary;
 
       &.accent-color {
-        color: #4caf50;
+        color: $color-success;
       }
 
       &.warn-color {
-        color: #ff9800;
+        color: $color-warning;
       }
     }
 
     .summary-label {
       font-size: small;
-      color: #aaaaaa;
+      color: $text-secondary;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -116,10 +120,8 @@
       width: 100%;
 
       .mat-header-cell {
-        background-color: #f8f9fa;
-        color: #333;
-        font-weight: 600;
-        border-bottom: 2px solid #dee2e6;
+        @include table-header;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.2);
 
         &.text-center {
           text-align: center;
@@ -127,8 +129,8 @@
       }
 
       .mat-cell {
+        @include table-content;
         padding: 12px 8px;
-        border-bottom: 1px solid #f0f0f0;
 
         &.text-center {
           text-align: center;
@@ -137,14 +139,14 @@
         // Product Information
         .product-description {
           font-weight: 500;
-          color: #333;
+          color: $text-primary;
           font-size: 14px;
           line-height: 1.3;
         }
 
         .product-code {
           font-size: 12px;
-          color: #666;
+          color: $text-secondary;
           margin-top: 2px;
         }
 
@@ -154,12 +156,12 @@
           margin-left: 4px;
 
           &.accent-text {
-            color: #4caf50;
+            color: $color-success;
             font-weight: 500;
           }
 
           &.warn-text {
-            color: #ff9800;
+            color: $color-warning;
             font-weight: 500;
           }
         }

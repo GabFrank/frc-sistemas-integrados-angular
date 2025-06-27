@@ -1,0 +1,143 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <h3 mat-dialog-title style="text-align: center;">
+      Confirmar creación de Solicitud de Pago
+    </h3>
+  </div>
+
+  <mat-dialog-content class="dialog-content">
+    
+    <!-- Summary Card -->
+    <mat-card class="summary-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>summarize</mat-icon>
+          Resumen de la Solicitud
+        </mat-card-title>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <mat-icon>business</mat-icon>
+            <div class="summary-text">
+              <span class="label">Proveedor:</span>
+              <span class="value">{{ proveedorNombre }}</span>
+            </div>
+          </div>
+          
+          <div class="summary-item">
+            <mat-icon>monetization_on</mat-icon>
+            <div class="summary-text">
+              <span class="label">Valor Total:</span>
+              <span class="value amount">{{ totalValorDisplay }}</span>
+            </div>
+          </div>
+          
+          <div class="summary-item">
+            <mat-icon>group_work</mat-icon>
+            <div class="summary-text">
+              <span class="label">Grupos Creados:</span>
+              <span class="value">{{ totalGrupos }}</span>
+            </div>
+          </div>
+          
+          <div class="summary-item">
+            <mat-icon>description</mat-icon>
+            <div class="summary-text">
+              <span class="label">Notas Agrupadas:</span>
+              <span class="value">{{ totalNotas }}</span>
+            </div>
+          </div>
+          
+          <div class="summary-item highlight">
+            <mat-icon>request_quote</mat-icon>
+            <div class="summary-text">
+              <span class="label">Solicitudes por Crear:</span>
+              <span class="value">{{ solicitudesPorCrear }}</span>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Groups Detail -->
+    <mat-card class="groups-card" *ngIf="gruposDisplay.length > 0">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>list</mat-icon>
+          Detalle de Grupos
+        </mat-card-title>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <div class="groups-list">
+          <div 
+            *ngFor="let grupo of gruposDisplay" 
+            class="group-item"
+            [class.grupo-externo]="grupo.esExterno">
+            
+            <div class="group-header">
+              <h4>{{ grupo.titulo }}</h4>
+              <mat-chip [color]="grupo.esExterno ? 'accent' : 'primary'" selected>
+                {{ grupo.esExterno ? 'Existente' : 'Nuevo' }}
+              </mat-chip>
+            </div>
+            
+            <div class="group-details">
+              <div class="detail-item">
+                <mat-icon>description</mat-icon>
+                <span>{{ grupo.cantidadNotas }} nota(s)</span>
+              </div>
+              <div class="detail-item">
+                <mat-icon>monetization_on</mat-icon>
+                <span>{{ grupo.valorDisplay }}</span>
+              </div>
+              <div class="detail-item">
+                <mat-icon>info</mat-icon>
+                <span>Estado: {{ grupo.estado }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Warning Notice -->
+    <mat-card class="warning-card">
+      <mat-card-content>
+        <div class="warning-content">
+          <mat-icon class="warning-icon">warning</mat-icon>
+          <div class="warning-text">
+            <h4>Importante:</h4>
+            <ul>
+              <li>Se crearán <strong>{{ solicitudesPorCrear }} solicitud(es) de pago</strong> para el equipo de finanzas</li>
+              <li>Los grupos quedarán marcados como <strong>CONCLUIDO</strong></li>
+              <li>Las solicitudes serán enviadas automáticamente al módulo de pagos</li>
+            </ul>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="dialog-actions">
+    <button 
+      mat-button 
+      (click)="onCancelar()"
+      class="cancel-button">
+      <mat-icon>cancel</mat-icon>
+      Cancelar
+    </button>
+    
+    <button 
+      mat-raised-button 
+      color="primary"
+      (click)="onConfirmar()"
+      class="confirm-button">
+      <mat-icon>assignment_turned_in</mat-icon>
+      Finalizar Solicitud de Pago
+    </button>
+  </mat-dialog-actions>
+</div> 

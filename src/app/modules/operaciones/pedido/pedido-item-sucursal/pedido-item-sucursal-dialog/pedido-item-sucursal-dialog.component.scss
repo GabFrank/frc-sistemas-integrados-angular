@@ -1,3 +1,5 @@
+@import '../../edit-pedido-2/shared-stepper-styles';
+
 // Main container - Full width and height, column layout with 10px gap
 .main-container {
   display: flex;
@@ -6,14 +8,14 @@
   height: 100%;
   gap: 10px;
   padding: 0px;
-  background-color: rgb(52, 52, 52);
-  color: white;
+  background-color: $step-background-primary;
+  color: $text-primary;
 }
 
 // Header section with gradient background - NO PADDING/MARGIN
 .header-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  @include header-gradient;
+  color: $text-primary;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -35,7 +37,7 @@
   margin: 0 10px;
   background-color: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid $border-primary;
   
   .info-row {
     display: flex;
@@ -64,10 +66,11 @@
     }
     
     .info-value {
-      color: white;
+      color: $text-primary;
       font-weight: 600;
       margin: 0;
       word-break: break-word;
+      text-align: center;
     }
   }
 }
@@ -100,8 +103,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background-color: rgba(255, 255, 255, 0.02) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid $border-primary;
     border-radius: 8px;
     padding: 0; // Removed padding
   }
@@ -110,15 +112,13 @@
 // Table styling with specific column widths
 .table-header {
   display: flex;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: $table-header-background;
   border-radius: 8px 8px 0 0;
   padding: 12px 16px;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 2px solid $border-secondary;
   
   .header-cell {
-    font-weight: 600;
-    color: white;
-    text-align: center;
+    @include table-header;
     
     // Specific column widths
     &:nth-child(1) { // Sucursal de influencia
@@ -151,11 +151,11 @@
     display: flex;
     align-items: center;
     padding: 12px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid $border-secondary;
     transition: background-color 0.2s ease;
     
     &:hover {
-      background-color: rgba(255, 255, 255, 0.05);
+      @include table-row-hover;
     }
     
     &:last-child {
@@ -191,12 +191,12 @@
     }
     
     .cell-value {
-      color: white;
+      color: $text-primary;
       font-weight: 500;
     }
     
     .stock-value {
-      color: #4CAF50; // Green color for stock
+      color: $color-success;
       font-weight: 600;
       padding: 4px 8px;
       border-radius: 4px;
@@ -205,7 +205,7 @@
     }
     
     .stock-loading {
-      color: #FF9800; // Orange color for loading
+      color: $color-warning;
       font-weight: 500;
       padding: 4px 8px;
       border-radius: 4px;
@@ -238,7 +238,7 @@
       
       ::ng-deep input, 
       ::ng-deep .mat-mdc-select-value {
-        color: white !important;
+        color: $text-primary !important;
       }
       
       ::ng-deep .mat-mdc-select-arrow {
@@ -248,7 +248,7 @@
     
     .delete-btn {
       background-color: rgba(244, 67, 54, 0.1) !important;
-      color: #f44336 !important;
+      color: $color-error !important;
       border: 1px solid rgba(244, 67, 54, 0.3);
       
       &:hover {
@@ -331,7 +331,7 @@
 .footer-section {
   padding: 16px 20px;
   margin: 0 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid $border-primary;
   // Removed background-color
   border-radius: 0 0 8px 8px;
   
@@ -342,12 +342,12 @@
     align-items: center;
     
     .cancel-btn {
-      color: rgba(255, 255, 255, 0.7) !important;
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: $text-secondary !important;
+      border: 1px solid $border-secondary;
       
       &:hover {
         background-color: rgba(255, 255, 255, 0.05) !important;
-        color: white !important;
+        color: $text-primary !important;
       }
     }
 
@@ -455,6 +455,7 @@
   gap: 8px;
   height: auto;
   min-height: 400px;
+  background-color: transparent; // Inherit from parent
   
   .product-info-section {
     margin: 0;

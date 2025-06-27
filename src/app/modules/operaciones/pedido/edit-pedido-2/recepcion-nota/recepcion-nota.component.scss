@@ -1,4 +1,7 @@
+@import '../shared-stepper-styles';
+
 .recepcion-nota-container {
+  @include step-container;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -26,8 +29,8 @@
 
     .summary-card {
       min-width: 250px;
-      background-color: rgba(40, 40, 40, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background-color: $information-section-background;
+      border: 1px solid $border-primary;
 
       mat-card-title {
         font-size: 16px;
@@ -125,11 +128,10 @@
   }
 
   .section-container {
+    @include information-section;
     display: flex;
     flex-direction: column;
     min-height: 0;
-    background-color: rgba(40, 40, 40, 0.5);
-    border-radius: 8px;
     padding: 16px;
 
     .section-header {
@@ -140,9 +142,7 @@
       flex-shrink: 0;
 
       h3 {
-        margin: 0;
-        font-size: 18px;
-        font-weight: 500;
+        @include section-title;
       }
 
       .search-field {
@@ -159,8 +159,9 @@
       flex: 1;
       overflow: auto;
       min-height: 0;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid $border-secondary;
       border-radius: 4px;
+      @include custom-scrollbar;
     }
 
     .loading-container {
@@ -215,20 +216,15 @@
 // Table Styles
 .items-table,
 .notas-table {
-  width: 100%;
-  background-color: transparent;
+  @extend .unified-table;
 
   .header-cell {
-    background-color: rgba(60, 60, 60, 0.8);
-    color: rgba(255, 255, 255, 0.9);
-    font-weight: 600;
+    @include table-header;
     font-size: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   }
 
   .data-cell {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.9);
+    @include table-content;
 
     &.text-center {
       text-align: center;
@@ -243,25 +239,19 @@
   }
 
   .mat-row {
+    @include table-row-hover;
     transition: background-color 0.2s ease;
 
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.05);
-    }
-
     &.item-assigned {
-      background-color: rgba(76, 175, 80, 0.1);
-      border-left: 3px solid #4caf50;
+      @extend .status-assigned;
     }
 
     &.item-pending {
-      background-color: rgba(255, 152, 0, 0.1);
-      border-left: 3px solid #ff9800;
+      @extend .status-pending;
     }
 
     &.item-cancelled {
-      background-color: rgba(244, 67, 54, 0.1);
-      border-left: 3px solid #f44336;
+      @extend .status-cancelled;
     }
 
     &.selected-nota {
