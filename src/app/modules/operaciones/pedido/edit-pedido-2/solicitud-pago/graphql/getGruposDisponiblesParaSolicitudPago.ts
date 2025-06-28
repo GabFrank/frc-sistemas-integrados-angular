@@ -18,6 +18,7 @@ export class GetGruposDisponiblesParaSolicitudPagoGQL extends Query<any> {
         hasPrevious
         getContent {
           id
+          pedidoId
           estado
           cantNotas
           valorTotal

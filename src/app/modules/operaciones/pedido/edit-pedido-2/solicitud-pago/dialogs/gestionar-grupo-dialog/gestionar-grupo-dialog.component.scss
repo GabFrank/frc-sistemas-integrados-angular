@@ -1,0 +1,445 @@
+.dialog-container {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  animation: slideInUp 0.3s ease-out;
+  background-color: #2d2d2d; // Darker main background like edit-pedido-2
+}
+
+// Dialog Header with App's Standard Gradient
+.dialog-header {
+  width: 100%;
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); // Using app's standard gradient
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+  position: relative;
+
+  // Subtle pattern overlay for texture
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.03)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.03)"/><circle cx="50" cy="50" r="0.5" fill="rgba(255,255,255,0.02)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    pointer-events: none;
+  }
+
+  h3 {
+    margin: 0;
+  }
+}
+
+.dialog-content {
+  flex: 1;
+  padding: 16px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background-color: #2d2d2d; // Match edit-pedido-2 background
+}
+
+// Grupo Information Section - Simple list layout
+.grupo-info-section {
+  background-color: #3a3a3a; // Match step-content background from edit-pedido-2
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); // Match header gradient
+    border-radius: 12px 12px 0 0;
+  }
+
+  .info-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 1.1em;
+    
+    mat-icon {
+      color: #f57c00; // Using app's standard icon color
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+  }
+  
+  .info-list {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .info-item {
+    display: flex;
+    flex: 24%;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    
+    span:first-child {
+      color: #f57c00; // Using app's standard label color
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      min-width: 150px;
+    }
+    
+    .info-value {
+      
+      &.highlight {
+        color: #24af24;
+      }
+    }
+    
+    mat-chip {
+      margin: 0;
+    }
+  }
+}
+
+// Notas Card Styles
+.notas-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  flex: 1;
+  
+  mat-card-header {
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #ffffff;
+      font-weight: 500;
+      
+      mat-icon {
+        color: #4fc3f7;
+      }
+    }
+  }
+}
+
+// Search Styles
+.search-container {
+  margin-bottom: 16px;
+  
+  .search-field {
+    width: 100%;
+    max-width: 400px;
+    
+    ::ng-deep {
+      .mat-form-field-appearance-outline .mat-form-field-outline {
+        color: rgba(255, 255, 255, 0.3);
+      }
+      
+      .mat-form-field-appearance-outline.mat-focused .mat-form-field-outline-thick {
+        color: #4fc3f7;
+      }
+      
+      .mat-form-field-label {
+        color: rgba(255, 255, 255, 0.7);
+      }
+      
+      .mat-input-element {
+        color: #ffffff;
+      }
+      
+      .mat-icon {
+        color: rgba(255, 255, 255, 0.7);
+      }
+    }
+  }
+}
+
+// Table Styles
+.table-container {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.notas-table {
+  width: 100%;
+  background: transparent;
+  
+  ::ng-deep {
+    .mat-header-cell {
+      background: rgba(255, 255, 255, 0.05);
+      color: #4fc3f7;
+      font-weight: 600;
+      border-bottom: 2px solid rgba(79, 195, 247, 0.3);
+    }
+    
+    .mat-cell {
+      color: #ffffff;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .mat-row:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+  }
+  
+  .text-center {
+    text-align: center;
+  }
+  
+  strong {
+    color: #34b425;
+  }
+}
+
+// Loading and Empty States
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #ffffff;
+  
+  mat-spinner {
+    margin-bottom: 16px;
+  }
+  
+  p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  
+  mat-icon {
+    font-size: 48px;
+    height: 48px;
+    width: 48px;
+    margin-bottom: 16px;
+    color: rgba(255, 255, 255, 0.4);
+  }
+  
+  h3 {
+    margin: 0 0 8px 0;
+    color: #ffffff;
+  }
+  
+  p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+// Estado chips
+.estado-concluido {
+  background-color: #4caf50;
+  color: white;
+}
+
+.estado-pendiente {
+  background-color: #ff9800;
+  color: white;
+}
+
+.estado-en-proceso {
+  background-color: #2196f3;
+  color: white;
+}
+
+// Dialog Actions
+.dialog-actions {
+  padding: 16px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.02);
+  
+  .actions-container {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+}
+
+// Animation for dialog entrance
+@keyframes slideInUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .dialog-container {
+    min-height: 500px;
+    max-height: 90vh;
+  }
+  
+  .dialog-header, .dialog-content, .dialog-actions {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  
+  .info-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    
+    span:first-child {
+      min-width: unset;
+    }
+    
+    .info-value {
+      text-align: left;
+    }
+  }
+  
+  .actions-container {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+}
+
+// Paginator Styles
+::ng-deep {
+  .mat-paginator {
+    background: rgba(255, 255, 255, 0.02);
+    color: #ffffff;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    
+    .mat-paginator-page-size-label,
+    .mat-paginator-range-label {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .mat-icon-button {
+      color: #ffffff;
+      
+      &:disabled {
+        color: rgba(255, 255, 255, 0.3);
+      }
+    }
+    
+    .mat-select {
+      color: #ffffff;
+    }
+  }
+}
+
+// Form Field Overrides for Dark Theme
+::ng-deep {
+  .mat-form-field-appearance-outline {
+    .mat-form-field-outline {
+      color: rgba(255, 255, 255, 0.3);
+    }
+    
+    &.mat-focused .mat-form-field-outline-thick {
+      color: #4fc3f7;
+    }
+    
+    .mat-form-field-label {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    &.mat-focused .mat-form-field-label {
+      color: #4fc3f7;
+    }
+  }
+  
+  .mat-input-element {
+    color: #ffffff;
+  }
+  
+  .mat-input-element::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+}
+
+// No actions text styling
+.no-actions-text {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  font-style: italic;
+  cursor: help;
+}
+
+// Actions buttons container
+.actions-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  
+  .mat-icon-button {
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    
+    .mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+  
+  .no-actions-text {
+    margin-left: 8px;
+  }
+}
+
+// Reabrir Grupo Container
+.reabrir-grupo-container {
+  text-align: right;
+  
+  .mat-raised-button {
+    margin-bottom: 8px;
+    
+    .mat-icon {
+      margin-right: 8px;
+    }
+  }
+  
+  .reabrir-info {
+    margin: 0;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.4;
+  }
+} 

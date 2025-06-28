@@ -443,11 +443,11 @@
               mat-raised-button
               color="primary"
               (click)="completePedido()"
-              [disabled]="!step5Valid || !canAccessStep4"
-              [matTooltip]="!step5Valid ? 'Complete la solicitud de pago antes de finalizar' : 'Finalizar pedido'"
+              [disabled]="!step5Valid || !canAccessStep4 || selectedPedido?.estado === 'CONCLUIDO'"
+              [matTooltip]="selectedPedido?.estado === 'CONCLUIDO' ? 'El pedido ya ha sido completado' : (!step5Valid ? 'Complete la solicitud de pago antes de finalizar' : 'Finalizar pedido')"
               matTooltipPosition="above"
             >
-              Completar Pedido
+              {{ selectedPedido?.estado === 'CONCLUIDO' ? 'Completado' : 'Completar Pedido' }}
             </button>
           </div>
         </div>

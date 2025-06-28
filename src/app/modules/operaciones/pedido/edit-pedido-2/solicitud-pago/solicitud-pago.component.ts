@@ -33,6 +33,7 @@ import { EliminarNotaRecepcionAgrupadaGQL } from './graphql/eliminarNotaRecepcio
 import { ConfirmarFinalizacionDialogComponent, ConfirmarFinalizacionDialogData, ConfirmarFinalizacionDialogResult } from './dialogs/confirmar-finalizacion-dialog/confirmar-finalizacion-dialog.component';
 import { CrearGrupoDialogComponent, CrearGrupoDialogData, CrearGrupoDialogResult } from './dialogs/crear-grupo-dialog/crear-grupo-dialog.component';
 import { SeleccionarGrupoExistenteDialogComponent, SeleccionarGrupoExistenteDialogData, SeleccionarGrupoExistenteDialogResult } from './dialogs/seleccionar-grupo-existente-dialog/seleccionar-grupo-existente-dialog.component';
+import { GestionarGrupoDialogComponent, GestionarGrupoDialogData, GestionarGrupoDialogResult } from './dialogs/gestionar-grupo-dialog/gestionar-grupo-dialog.component';
 
 // Solicitud Pago specific types
 export interface SolicitudPagoSummaryData {
@@ -51,6 +52,7 @@ export interface NotaRecepcionAgrupadaInfo {
   valorTotal: number;
   puedeAgregarNotas: boolean;
   puedeEliminar: boolean;
+  puedeVerSolicitudPago: boolean;
   esGrupoExterno: boolean;
 }
 
@@ -459,14 +461,30 @@ export class SolicitudPagoComponent implements OnInit, OnChanges, OnDestroy {
         }
         
         // Transform grupos for display - all are "local" to this pedido
-        const transformedGrupos: NotaRecepcionAgrupadaInfo[] = gruposFromPedido.map(grupo => ({
-          grupo: grupo,
-          notasAsignadas: [], // Will be populated if needed
-          valorTotal: grupo.valorTotal || 0,
-          puedeAgregarNotas: grupo.estado !== 'CONCLUIDO', // Can't add notes to concluded grupos
-          puedeEliminar: grupo.estado !== 'CONCLUIDO' && !grupo.solicitudPago, // Can't delete if has SolicitudPago
-          esGrupoExterno: false // All grupos are "local" to this pedido
-        }));
+        const transformedGrupos: NotaRecepcionAgrupadaInfo[] = gruposFromPedido.map(grupo => {
+          // Enhanced business logic for CONCLUIDO grupos with SolicitudPago
+          const hasSolicitudPago = !!grupo.solicitudPago;
+          const solicitudPagoHasPago = hasSolicitudPago && !!grupo.solicitudPago.pago?.id;
+          const isConcluido = grupo.estado === 'CONCLUIDO';
+          
+          // Business rules:
+          // - Can add notes: Only if not CONCLUIDO
+          // - Can eliminate: If not CONCLUIDO OR (is CONCLUIDO + has SolicitudPago + SolicitudPago has NO pago)
+          // - Can view SolicitudPago: If has SolicitudPago
+          const puedeAgregarNotas = !isConcluido;
+          const puedeEliminar = !isConcluido || (isConcluido && hasSolicitudPago && !solicitudPagoHasPago);
+          const puedeVerSolicitudPago = hasSolicitudPago;
+          
+          return {
+            grupo: grupo,
+            notasAsignadas: [], // Will be populated if needed
+            valorTotal: grupo.valorTotal || 0,
+            puedeAgregarNotas: puedeAgregarNotas,
+            puedeEliminar: puedeEliminar,
+            puedeVerSolicitudPago: puedeVerSolicitudPago,
+            esGrupoExterno: false // All grupos are "local" to this pedido
+          };
+        });
         
         const newData = transformedGrupos;
         const dataChanged = this.hasDataChanged(this.gruposCreados, newData, 'grupo.id');
@@ -638,14 +656,24 @@ export class SolicitudPagoComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
 
+    const hasSolicitudPago = !!grupoInfo.grupo.solicitudPago;
+    const solicitudPagoId = hasSolicitudPago ? grupoInfo.grupo.solicitudPago.id : null;
+    
     const title = `Eliminar Grupo #${grupoInfo.grupo.id}`;
     const message1 = `¿Está seguro de eliminar este grupo?`;
     const warnings = [
       `Proveedor: ${grupoInfo.grupo.proveedor?.persona?.nombre || 'N/A'}`,
+      `Estado: ${grupoInfo.grupo.estado}`,
       `Cantidad de notas: ${grupoInfo.grupo.cantNotas || 0}`,
-      `Las notas quedarán sin agrupar y deberán ser reagrupadas`,
-      `Esta acción no se puede deshacer`
+      `Las notas quedarán sin agrupar y deberán ser reagrupadas`
     ];
+
+    // Add warning about SolicitudPago deletion if applicable
+    if (hasSolicitudPago) {
+      warnings.push(`⚠️ ATENCIÓN: También se eliminará la Solicitud de Pago #${solicitudPagoId} asociada a este grupo`);
+    }
+    
+    warnings.push(`Esta acción no se puede deshacer`);
 
     this.dialogosService.confirm(
       title,
@@ -714,31 +742,137 @@ export class SolicitudPagoComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
 
-    // Show grupo details using the correct DialogosService method
-    const title = `Gestionar Grupo #${grupoInfo.grupo.id}`;
-    const message1 = `Estado: ${grupoInfo.grupo.estado}`;
+    if (!this.pedido) {
+      this.notificacionService.openWarn('Error: No se encontró el pedido');
+      return;
+    }
+
+    // Open the new gestionar grupo dialog
+    const dialogData: GestionarGrupoDialogData = {
+      grupo: grupoInfo.grupo,
+      pedido: this.pedido,
+      puedeEliminar: grupoInfo.puedeEliminar,
+      puedeAgregarNotas: grupoInfo.puedeAgregarNotas
+    };
+
+    const dialogRef = this.matDialog.open(GestionarGrupoDialogComponent, {
+      data: dialogData,
+      width: '60%',
+      height: '70%',
+      maxWidth: '1200px',
+      maxHeight: '90vh',
+      disableClose: false,
+      autoFocus: false
+    });
+
+    // Setup interval to check for changes without closing the dialog
+    const changeCheckInterval = setInterval(() => {
+      if (dialogRef.componentInstance && (dialogRef.componentInstance as any)._lastChangeResult) {
+        const result = (dialogRef.componentInstance as any)._lastChangeResult;
+        
+        if (result?.accion === 'REABRIR_GRUPO') {
+          // Handle grupo reopening - refresh data and notify parent if pedido estado changed
+          this.loadDataIntelligently('step_change');
+          
+          if (result.pedidoEstadoCambiado) {
+            // Emit event to parent component to refresh pedido data
+            this.pedidoChange.emit(this.pedido);
+          }
+          
+          // Clear the change result to avoid processing it again
+          (dialogRef.componentInstance as any)._lastChangeResult = null;
+        } else if (result?.accion === 'DESVINCULAR_NOTA') {
+          // Handle nota desvinculation - refresh both notas sin agrupar and grupos
+          this.loadDataIntelligently('assign_notes'); // This will refresh notas, grupos, and summary
+          
+          // Clear the change result to avoid processing it again
+          (dialogRef.componentInstance as any)._lastChangeResult = null;
+        }
+      }
+    }, 1000);
+
+    dialogRef.afterClosed().subscribe((result: GestionarGrupoDialogResult) => {
+      // Clear the interval when dialog closes
+      clearInterval(changeCheckInterval);
+      
+      if (result?.accion === 'ELIMINAR_GRUPO') {
+        // Execute grupo deletion
+        this.ejecutarEliminacionGrupo(result.grupoAfectado.id);
+      } else if (result?.accion === 'EDITAR_NOTA') {
+        // TODO: Navigate to nota editing or open nota details dialog
+        this.notificacionService.openSucess(`Función de editar nota será implementada próximamente`);
+        console.log('Edit nota requested:', result.notaSeleccionada);
+      } else if (result?.accion === 'REABRIR_GRUPO') {
+        // Handle grupo reopening - refresh data and notify parent if pedido estado changed
+        this.loadDataIntelligently('step_change');
+        
+        if (result.pedidoEstadoCambiado) {
+          // Emit event to parent component to refresh pedido data
+          this.pedidoChange.emit(this.pedido);
+        }
+        
+        this.notificacionService.openSucess(
+          `Grupo #${result.grupoAfectado?.id} reabierto exitosamente. ` +
+          `El proceso de solicitud de pago debe ser concluido nuevamente.`
+        );
+      } else if (result?.accion === 'DESVINCULAR_NOTA') {
+        // Handle nota desvinculation - refresh both notas sin agrupar and grupos
+        this.loadDataIntelligently('assign_notes'); // This will refresh notas, grupos, and summary
+        
+        this.notificacionService.openSucess(
+          `Nota #${result.notaSeleccionada?.numero} desvinculada exitosamente. ` +
+          `Las listas han sido actualizadas.`
+        );
+      }
+    });
+  }
+
+  /**
+   * NEW: Open dialog to view SolicitudPago details
+   * This method will open a dedicated dialog for viewing/managing the SolicitudPago
+   * Dialog implementation will be added later
+   */
+  onVerSolicitudPago(grupoInfo: NotaRecepcionAgrupadaInfo): void {
+    if (!grupoInfo || !grupoInfo.grupo || !grupoInfo.grupo.solicitudPago) {
+      this.notificacionService.openWarn('Error: No se encontró la solicitud de pago asociada');
+      return;
+    }
+
+    // TODO: Implement dedicated SolicitudPago dialog
+    // For now, show basic information using the confirmation dialog
+    const solicitudPago = grupoInfo.grupo.solicitudPago;
+    const title = `Solicitud de Pago #${solicitudPago.id}`;
+    const message1 = `Estado: ${solicitudPago.estado || 'N/A'}`;
     const detailsMessages = [
+      `Grupo asociado: #${grupoInfo.grupo.id}`,
       `Proveedor: ${grupoInfo.grupo.proveedor?.persona?.nombre || 'N/A'}`,
-      `Cantidad de notas: ${grupoInfo.grupo.cantNotas || 0}`,
       `Valor total: ${this.formatCurrency(grupoInfo.valorTotal)}`,
-      `Creado: ${this.formatDate(grupoInfo.grupo.creadoEn)}`,
-      `Usuario: ${grupoInfo.grupo.usuario?.nickname || 'N/A'}`
+      `Fecha creación: ${this.formatDate(solicitudPago.creadoEn)}`,
+      `Usuario creación: ${solicitudPago.usuario?.nickname || solicitudPago.usuario?.persona?.nombre || 'N/A'}`
     ];
 
-    if (grupoInfo.esGrupoExterno) {
-      detailsMessages.push('Tipo: Grupo externo');
+    if (solicitudPago.pago) {
+      detailsMessages.push(`--- PAGO ASOCIADO ---`);
+      detailsMessages.push(`Pago #${solicitudPago.pago.id}`);
+      detailsMessages.push(`Estado: ${solicitudPago.pago.estado}`);
+      detailsMessages.push(`Fecha: ${this.formatDate(solicitudPago.pago.creadoEn)}`);
+      detailsMessages.push(`Usuario pago: ${solicitudPago.pago.usuario?.nickname || solicitudPago.pago.usuario?.persona?.nombre || 'N/A'}`);
+    } else {
+      detailsMessages.push(`--- SIN PAGO ASOCIADO ---`);
+      detailsMessages.push(`Esta solicitud aún no tiene un pago registrado`);
     }
 
     this.dialogosService.confirm(
       title,
       message1,
-      'Detalles del grupo:',
+      'Detalles de la solicitud de pago:',
       detailsMessages,
       false, // action = false means only "Cerrar" button
       null,
       null
     ).subscribe(result => {
-      // For now, just close. Later we can add specific management actions
+      // TODO: Later we can add navigation to SolicitudPago management
+      console.log('Ver Solicitud Pago clicked for:', solicitudPago.id);
     });
   }
 
@@ -814,7 +948,8 @@ export class SolicitudPagoComponent implements OnInit, OnChanges, OnDestroy {
       computedValorDisplay: this.formatCurrency(grupoInfo.valorTotal),
       computedNotasDisplay: this.getGrupoNotasDisplay(grupoInfo),
       computedEstadoChipClass: this.getEstadoChipClass(grupoInfo.grupo.estado),
-      computedPuedeGestionar: grupoInfo.puedeAgregarNotas
+      computedPuedeGestionar: grupoInfo.puedeAgregarNotas || grupoInfo.puedeEliminar, // Enable if can add notes OR can eliminate
+      computedMostrarVerSolicitudPago: grupoInfo.puedeVerSolicitudPago
     }));
   }
 

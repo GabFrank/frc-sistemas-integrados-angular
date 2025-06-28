@@ -20,6 +20,7 @@ import { PageInfo } from '../../../../../../app.component';
 export interface ManageNotaItemsDialogData {
   notaRecepcion: NotaRecepcion;
   pedido: Pedido;
+  readOnlyMode?: boolean;
 }
 
 export interface ManageNotaItemsDialogResult {
@@ -62,6 +63,7 @@ export class ManageNotaItemsDialogComponent implements OnInit, OnDestroy {
   // Data
   notaRecepcion: NotaRecepcion;
   pedido: Pedido;
+  readOnlyMode = false;
   
   // Table data sources
   assignedItemsDataSource = new MatTableDataSource<PedidoItemWithStatus>([]);
@@ -70,6 +72,10 @@ export class ManageNotaItemsDialogComponent implements OnInit, OnDestroy {
   // Table columns - add estado and distribution columns
   assignedItemsColumns = ['select', 'producto', 'estado', 'presentacion', 'cantidad', 'precio', 'total', 'distribution', 'actions'];
   unassignedItemsColumns = ['select', 'producto', 'estado', 'presentacion', 'cantidad', 'precio', 'total', 'distribution', 'actions'];
+  
+  // Computed columns based on read-only mode
+  assignedItemsColumnsComputed: string[] = [];
+  unassignedItemsColumnsComputed: string[] = [];
   
   // Selection models
   assignedSelection = new SelectionModel<PedidoItemWithStatus>(true, []);
@@ -119,6 +125,7 @@ export class ManageNotaItemsDialogComponent implements OnInit, OnDestroy {
   ) {
     this.notaRecepcion = data.notaRecepcion;
     this.pedido = data.pedido;
+    this.readOnlyMode = data.readOnlyMode || false;
   }
 
   ngOnDestroy(): void {
@@ -619,7 +626,17 @@ export class ManageNotaItemsDialogComponent implements OnInit, OnDestroy {
   private updateComputedProperties(): void {
     // Basic info
     this.monedaSymbolComputed = this.pedido?.moneda?.simbolo || 'Gs.';
-    this.dialogTitleComputed = `Gestionar Items - Nota #${this.notaRecepcion?.numero}`;
+    this.dialogTitleComputed = this.readOnlyMode 
+      ? `Ver Items - Nota #${this.notaRecepcion?.numero} (Solo Lectura)`
+      : `Gestionar Items - Nota #${this.notaRecepcion?.numero}`;
+    
+    // Update computed columns based on read-only mode
+    this.assignedItemsColumnsComputed = this.readOnlyMode 
+      ? ['producto', 'estado', 'presentacion', 'cantidad', 'precio', 'total', 'distribution']
+      : this.assignedItemsColumns;
+    this.unassignedItemsColumnsComputed = this.readOnlyMode 
+      ? ['producto', 'estado', 'presentacion', 'cantidad', 'precio', 'total', 'distribution']
+      : this.unassignedItemsColumns;
     
     // Counts
     this.assignedCountComputed = this.assignedPage?.getTotalElements || 0;
@@ -632,8 +649,8 @@ export class ManageNotaItemsDialogComponent implements OnInit, OnDestroy {
     this.unassignedTotalValueComputed = this.unassignedItemsDataSource.data.reduce((total, item) => total + (item.displayValorTotal || 0), 0);
     
     // Action states
-    this.canRemoveItemsComputed = this.selectedAssignedIds.size > 0 && !this.isProcessing;
-    this.canAddItemsComputed = this.selectedUnassignedIds.size > 0 && !this.isProcessing;
+    this.canRemoveItemsComputed = this.selectedAssignedIds.size > 0 && !this.isProcessing && !this.readOnlyMode;
+    this.canAddItemsComputed = this.selectedUnassignedIds.size > 0 && !this.isProcessing && !this.readOnlyMode;
     this.hasDataComputed = this.assignedCountComputed > 0 || this.unassignedCountComputed > 0;
     
     // **PERFORMANCE**: Manually trigger change detection for OnPush strategy

@@ -7,6 +7,7 @@ import { SolicitudPago } from "../../../solicitud-pago/solicitud-pago.model";
 
 export class NotaRecepcionAgrupada {
   id: number;
+  pedidoId: number;
   proveedor: Proveedor;
   sucursal: Sucursal;
   creadoEn: Date;
@@ -20,6 +21,7 @@ export class NotaRecepcionAgrupada {
   toInput(): NotaRecepcionAgrupadaInput {
     let input = new NotaRecepcionAgrupadaInput();
     input.id = this.id;
+    input.pedidoId = this.pedidoId;
     input.proveedorId = this.proveedor?.id;
     input.sucursalId = this.sucursal?.id;
     input.usuarioId = this.usuario?.id;
@@ -31,6 +33,7 @@ export class NotaRecepcionAgrupada {
 
 export class NotaRecepcionAgrupadaInput {
   id: number;
+  pedidoId: number;
   proveedorId: number;
   sucursalId: number;
   creadoEn: string;

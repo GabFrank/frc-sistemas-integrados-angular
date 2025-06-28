@@ -140,7 +140,7 @@
                 *ngFor="let grupo of enhancedGruposCreados; trackBy: trackGrupoById" 
                 class="grupo-card"
                 [class.assignable]="showSelectionActions && grupo.puedeAgregarNotas"
-                [class.disabled]="!grupo.puedeAgregarNotas">
+                [class.disabled]="!grupo.computedPuedeGestionar && !grupo.puedeEliminar">
                 
                 <mat-card-content>
                   <div class="grupo-header">
@@ -193,12 +193,24 @@
                       Gestionar
                     </button>
                     
+                    <!-- NEW: Ver Solicitud de Pago button -->
+                    <button 
+                      mat-button 
+                      color="accent"
+                      *ngIf="grupo.computedMostrarVerSolicitudPago"
+                      [disabled]="processingGrouping"
+                      (click)="onVerSolicitudPago(grupo)"
+                      title="Ver detalles de la solicitud de pago asociada">
+                      <mat-icon>receipt_long</mat-icon>
+                      Ver Solicitud de Pago
+                    </button>
+                    
                     <button 
                       mat-button 
                       color="warn"
                       [disabled]="!grupo.puedeEliminar || processingGrouping"
                       (click)="onEliminarGrupo(grupo)"
-                      title="Eliminar grupo">
+                      title="Eliminar grupo y solicitud de pago (si aplica)">
                       <mat-icon>delete</mat-icon>
                       Eliminar
                     </button>

@@ -4,10 +4,12 @@ import { Usuario } from "../../../personas/usuarios/usuario.model"
 import { Compra } from "../../compra/compra.model"
 import { PedidoItem } from "../edit-pedido/pedido-item.model"
 import { Pedido } from "../edit-pedido/pedido.model"
+import { NotaRecepcionAgrupada } from "./nota-recepcion-agrupada/nota-recepcion-agrupada.model"
 
 export class NotaRecepcion {
     id:number
     pedido: Pedido
+    notaRecepcionAgrupada: NotaRecepcionAgrupada
     compra: Compra
     documento: Documento
     tipoBoleta: string
@@ -36,6 +38,7 @@ export class NotaRecepcion {
         input.usuarioId = this.usuario?.id
         input.pedidoId = this.pedido?.id
         input.compraId = this.compra?.id
+        input.notaRecepcionAgrupadaId = this.notaRecepcionAgrupada?.id
         input.tipoBoleta = this.tipoBoleta
         input.fecha = dateToString(this.fecha)
         input.creadoEn = dateToString(this.creadoEn)
@@ -46,6 +49,7 @@ export class NotaRecepcion {
 export class NotaRecepcionInput {
     id:number
     pedidoId: number
+    notaRecepcionAgrupadaId: number
     compraId: number
     documentoId: number
     tipoBoleta: string

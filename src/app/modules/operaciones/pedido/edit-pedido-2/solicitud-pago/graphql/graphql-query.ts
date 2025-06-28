@@ -49,6 +49,9 @@ export const GET_GRUPOS_DISPONIBLES = gql`
       hasPrevious
       getContent {
         id
+        pedido {
+          id
+        }
         estado
         creadoEn
         cantNotas
@@ -87,6 +90,9 @@ export const GET_GRUPOS_CREADOS = gql`
     data: gruposCreadosParaPedido(pedidoId: $pedidoId) {
       grupo {
         id
+        pedido {
+          id
+        }
         estado
         creadoEn
         cantNotas
@@ -137,6 +143,9 @@ export const CREAR_GRUPO_Y_ASIGNAR = gql`
     ) {
       grupo {
         id
+        pedido {
+          id
+        }
         estado
         creadoEn
         cantNotas
@@ -180,6 +189,9 @@ export const ASIGNAR_NOTAS_A_GRUPO_EXISTENTE = gql`
     ) {
       grupo {
         id
+        pedido {
+          id
+        }
         estado
         creadoEn
         cantNotas
