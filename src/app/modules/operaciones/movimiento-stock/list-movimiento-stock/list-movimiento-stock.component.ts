@@ -146,7 +146,7 @@ export class ListMovimientoStockComponent implements OnInit {
   ngOnInit(): void {
     let hoy = new Date();
     let aux = new Date();
-    aux.setDate(hoy.getDate() - 2);
+    aux.setDate(hoy.getDate() - 7);
 
     this.fechaInicioControl.setValue(aux);
     this.fechaFinalControl.setValue(hoy);
@@ -242,6 +242,7 @@ export class ListMovimientoStockComponent implements OnInit {
     fechaFin.setHours(horaFinal.getHours());
     fechaFin.setMinutes(horaFinal.getMinutes());
     fechaFin.setSeconds(horaFinal.getSeconds());
+
     this.service
       .onGetMovimientoStockPorFiltros(
         dateToString(fechaInicial),
@@ -256,7 +257,7 @@ export class ListMovimientoStockComponent implements OnInit {
       .subscribe((res) => {
         this.selectedPageInfo = res;
         this.dataSource.data = res.getContent;
-        console.log(res.getContent);
+        this.procesarDataDeAjustes();
       });
   }
   onReferenciaClick(movimiento: MovimientoStock) {
@@ -456,11 +457,23 @@ export class ListMovimientoStockComponent implements OnInit {
   }
 
   onClickRow(movimiento: MovimientoStock, index: number) {
+    if (movimiento.data && typeof movimiento.data === 'string') {
+      try {
+        movimiento.data = JSON.parse(movimiento.data);
+        this.dataSource.data = updateDataSource(
+          this.dataSource.data,
+          movimiento,
+          index
+        );
+        return;
+      } catch (e) {
+        console.warn('Error al procesar data del backend:', e); 
+      }
+    }
+
     if (movimiento.data == null) {
       switch (movimiento.tipoMovimiento) {
         case TipoMovimiento.VENTA:
-          //esta buscando por venta pero deberia de ser venta item,
-          //la referencia es venta item
           this.ventaService
             .onGetVentaItemPorId(movimiento.referencia, movimiento.sucursalId)
             .subscribe((ventaItem) => {
@@ -490,20 +503,27 @@ export class ListMovimientoStockComponent implements OnInit {
           break;
 
         case TipoMovimiento.AJUSTE:          
-          this.inventarioService
-            .onGetInventarioProductoItem(movimiento.referencia)
-            .subscribe((res) => {
-              if (res != null) {
-                console.log(res);
-                movimiento.data = res;
-              }
-            });
+          this.service.onGetStockAntesDeFecha(
+            movimiento.producto.id,
+            movimiento.sucursalId,
+            this.formatearFechaParaBackend(movimiento.creadoEn)
+          ).subscribe({
+            next: (stockPrevio) => {
+              console.log('Stock previo obtenido:', stockPrevio, 'para movimiento:', movimiento.id);
+              this.procesarMovimientoConStock(movimiento, index, stockPrevio || 0);
+            },
+            error: (error) => {
+              console.error('Error al obtener stock anterior:', error);
+              // Usar 0 como fallback si no se puede obtener el stock anterior
+              this.procesarMovimientoConStock(movimiento, index, 0);
+            }
+          });
           break;
 
         default:
           break;
       }
-      if (movimiento.data != null) {
+      if (movimiento.data != null && movimiento.tipoMovimiento !== TipoMovimiento.AJUSTE) {
         this.dataSource.data = updateDataSource(
           this.dataSource.data,
           movimiento,
@@ -555,5 +575,139 @@ export class ListMovimientoStockComponent implements OnInit {
       totalFinal: this.totalFinal,
       totalRecibido: this.totalRecibido,
     };
+  }
+
+  formatearFechaParaBackend(fecha: Date | string): string {
+    if (!fecha) return '';
+    
+    let fechaDate: Date;
+    if (typeof fecha === 'string') {
+      fechaDate = new Date(fecha);
+    } else {
+      fechaDate = fecha;
+    }
+    
+    const year = fechaDate.getFullYear();
+    const month = String(fechaDate.getMonth() + 1).padStart(2, '0');
+    const day = String(fechaDate.getDate()).padStart(2, '0');
+    const hours = String(fechaDate.getHours()).padStart(2, '0');
+    const minutes = String(fechaDate.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  }
+
+  // Método helper para verificar si es ajuste manual
+  esAjusteManual(movimiento: MovimientoStock): boolean {
+    return Number(movimiento.referencia) === Number(movimiento.producto?.id);
+  }
+
+  procesarDataDeAjustes() {
+    console.log('Procesando data de ajustes para', this.dataSource.data?.length, 'movimientos');
+    this.dataSource.data.forEach((movimiento, index) => {
+      if (movimiento.tipoMovimiento === TipoMovimiento.AJUSTE) {
+        console.log('Procesando ajuste:', movimiento.id, 'data actual:', movimiento.data);
+        
+        if (movimiento.data && typeof movimiento.data === 'string') {
+          try {
+            movimiento.data = JSON.parse(movimiento.data);
+            console.log('Data parseada desde string:', movimiento.data);
+          } catch (e) {
+            console.warn('Error al procesar data del backend:', e);
+          }
+        }
+        else if (!movimiento.data) {
+          console.log('Calculando data para ajuste sin data:', movimiento.id);
+          this.calcularDataParaAjuste(movimiento, index);
+        } else {
+          console.log('Ajuste ya tiene data:', movimiento.data);
+        }
+      }
+    });
+  }
+
+  calcularDataParaAjuste(movimiento: MovimientoStock, index: number) {
+    const fechaFormateada = this.formatearFechaParaBackend(movimiento.creadoEn);
+    
+    this.service.onGetStockAntesDeFecha(
+      movimiento.producto.id,
+      movimiento.sucursalId,
+      fechaFormateada
+    ).subscribe({
+      next: (stockPrevio) => {
+        if (stockPrevio !== undefined && stockPrevio !== null) {
+          this.procesarMovimientoConStock(movimiento, index, stockPrevio);
+        }
+      },
+      error: (error) => {
+        console.error('Error al obtener stock antes de fecha:', error);
+      }
+    });
+  }
+
+  procesarMovimientoConStock(movimiento: MovimientoStock, index: number, stockPrevio: number) {
+    // Convertir ambos a números para comparar correctamente
+    const referenciaNum = Number(movimiento.referencia);
+    const productoIdNum = Number(movimiento.producto?.id);
+    const esAjusteManual = referenciaNum === productoIdNum;
+    
+    console.log('Procesando movimiento:', {
+      id: movimiento.id,
+      referencia: movimiento.referencia,
+      productoId: movimiento.producto?.id,
+      referenciaNum: referenciaNum,
+      productoIdNum: productoIdNum,
+      esAjusteManual: esAjusteManual,
+      stockPrevio: stockPrevio,
+      cantidad: movimiento.cantidad
+    });
+
+    if (esAjusteManual) {
+      // Es un ajuste manual
+      movimiento.data = {
+        tipo: 'AJUSTE_MANUAL',
+        producto: movimiento.producto,
+        observacion: 'Ajuste manual de stock realizado desde la gestión de productos',
+        cantidadPrevia: stockPrevio,
+        cantidadFinal: stockPrevio + movimiento.cantidad
+      };
+      console.log('Data de ajuste manual creada:', movimiento.data);
+      this.dataSource.data = updateDataSource(
+        this.dataSource.data,
+        movimiento,
+        index
+      );
+    } else {
+      // Es un ajuste por inventario
+      this.inventarioService.onGetInventarioProductoItem(movimiento.referencia)
+        .subscribe((res) => {
+          if (res != null) {
+            movimiento.data = {
+              ...res,
+              tipo: 'AJUSTE_INVENTARIO',
+              cantidadPrevia: stockPrevio,
+              cantidadFinal: stockPrevio + movimiento.cantidad
+            };
+            console.log('Data de ajuste por inventario creada:', movimiento.data);
+            this.dataSource.data = updateDataSource(
+              this.dataSource.data,
+              movimiento,
+              index
+            );
+          } else {
+            console.warn('No se encontró inventario item para referencia:', movimiento.referencia);
+            // Crear data básica aunque no se encuentre el inventario
+            movimiento.data = {
+              tipo: 'AJUSTE_INVENTARIO',
+              cantidadPrevia: stockPrevio,
+              cantidadFinal: stockPrevio + movimiento.cantidad
+            };
+            this.dataSource.data = updateDataSource(
+              this.dataSource.data,
+              movimiento,
+              index
+            );
+          }
+        });
+    }
   }
 }

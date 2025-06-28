@@ -19,3 +19,20 @@ input {
   background: #38853c;
 }
 
+.nombre-cell {
+  text-align: left;
+  padding: 8px;
+  width: 70%;
+}
+
+.stock-cell {
+  text-align: center;
+  padding: 8px;
+  width: 30%;
+}
+
+.titulo-cell {
+  text-align: left;
+  padding: 8px;
+  width: 70%;
+}

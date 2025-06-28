@@ -1,0 +1,155 @@
+# REGLA: Prohibición de Getters Problemáticos en Angular
+
+## ❌ PROHIBIDO - Getters que causan problemas de performance
+
+### Ejemplos de getters que NUNCA debes crear:
+
+```typescript
+// ❌ MAL - Se ejecuta en cada ciclo de detección
+get diferencia(): number {
+  return this.cantidadControl.value - this.stockActual;
+}
+
+// ❌ MAL - Acceso a propiedades anidadas
+get producto(): Producto {
+  return this.data.producto;
+}
+
+// ❌ MAL - Evaluaciones condicionales
+get isEnabled(): boolean {
+  return this.stockFiltroControl.value === 'positivo' || this.stockFiltroControl.value === 'negativo';
+}
+
+// ❌ MAL - Cálculos matemáticos
+get variacionPorcentual(): number {
+  if (!this.costoActual) return 0;
+  return ((this.costoControl.value || 0) - this.costoActual) / this.costoActual * 100;
+}
+
+// ❌ MAL - Llamadas a métodos
+get formattedValue(): string {
+  return this.formatValue(this.control.value);
+}
+```
+
+## ✅ CORRECTO - Alternativas optimizadas
+
+### Patrón 1: Propiedades + Métodos de cálculo
+
+```typescript
+// ✅ BIEN - Propiedad que se actualiza solo cuando es necesario
+diferencia: number = 0;
+variacionPorcentual: number = 0;
+isEnabled: boolean = false;
+
+ngOnInit(): void {
+  // Cálculo inicial
+  this.calcularDiferencia();
+  this.calcularVariacionPorcentual();
+  this.updateIsEnabled();
+  
+  // Actualizar solo cuando cambie el control
+  this.cantidadControl.valueChanges.subscribe(() => {
+    this.calcularDiferencia();
+  });
+  
+  this.costoControl.valueChanges.subscribe(() => {
+    this.calcularVariacionPorcentual();
+  });
+  
+  this.stockFiltroControl.valueChanges.subscribe(() => {
+    this.updateIsEnabled();
+  });
+}
+
+calcularDiferencia(): void {
+  this.diferencia = (this.cantidadControl.value || 0) - this.stockActual;
+}
+
+calcularVariacionPorcentual(): void {
+  if (!this.costoActual) {
+    this.variacionPorcentual = 0;
+    return;
+  }
+  this.variacionPorcentual = ((this.costoControl.value || 0) - this.costoActual) / this.costoActual * 100;
+}
+
+updateIsEnabled(): void {
+  this.isEnabled = this.stockFiltroControl.value === 'positivo' || this.stockFiltroControl.value === 'negativo';
+}
+```
+
+### Patrón 2: Referencias directas en templates
+
+```typescript
+// ❌ MAL - Getter proxy
+get producto(): Producto {
+  return this.data.producto;
+}
+```
+
+```html
+<!-- ❌ MAL - Usar getter -->
+{{ producto?.descripcion }}
+
+<!-- ✅ BIEN - Referencia directa -->
+{{ data.producto?.descripcion }}
+```
+
+## 🔍 Cómo detectar getters problemáticos
+
+### Señales de alerta:
+1. **Console.log en getters** - Si ves logs repetitivos, hay un getter problemático
+2. **Cálculos en getters** - Cualquier operación matemática o lógica
+3. **Acceso a FormControls** - `this.control.value` en getters
+4. **Llamadas a métodos** - Cualquier `this.method()` en getters
+5. **Evaluaciones condicionales** - `if`, operadores ternarios, `&&`, `||`
+
+### Herramientas de detección:
+```bash
+# Buscar getters sospechosos
+grep -r "get [a-zA-Z]*(): " src/app/
+grep -r "console.log" src/app/ | grep -E "\.(get|getter)"
+```
+
+## 📋 Checklist antes de crear un getter
+
+❓ **¿El getter hace cálculos?** → ❌ NO crear, usar propiedad + método
+❓ **¿El getter accesa FormControls?** → ❌ NO crear, usar valueChanges
+❓ **¿El getter evalúa condiciones?** → ❌ NO crear, usar propiedad + método
+❓ **¿El getter es solo un proxy simple?** → ❌ NO crear, usar referencia directa
+❓ **¿El getter accesa propiedades estáticas?** → ✅ PUEDE ser OK
+
+## 🎯 Únicos casos donde los getters son aceptables
+
+```typescript
+// ✅ OK - Solo para acceso a propiedades estáticas/constantes
+get ROLES() {
+  return ROLES; // constante importada
+}
+
+// ✅ OK - Solo para propiedades inmutables del servicio
+get currentUser() {
+  return this.authService.currentUser; // propiedad que no cambia frecuentemente
+}
+```
+
+## ⚡ Beneficios de seguir esta regla
+
+1. **Performance mejorado** - Menos cálculos repetitivos
+2. **Debugging más fácil** - No más logs infinitos
+3. **Código más predecible** - Cálculos explícitos
+4. **Mejor experiencia de usuario** - Interfaces más fluidas
+5. **Menor consumo de CPU** - Especialmente en listas largas
+
+## 🚨 Consecuencias de NO seguir esta regla
+
+1. **Performance degradado** - Cálculos en cada ciclo de detección
+2. **Logs infinitos** - Console.log que se repiten constantemente
+3. **Interfaces lentas** - Especialmente en componentes con muchos elementos
+4. **Debugging difícil** - Difícil identificar problemas de performance
+5. **Experiencia de usuario pobre** - Aplicación que se siente lenta
+
+---
+
+**Recuerda:** Los getters en Angular se ejecutan en CADA ciclo de detección de cambios. Si un getter hace cualquier tipo de cálculo o evaluación, se ejecutará cientos de veces por segundo, causando problemas serios de performance. 

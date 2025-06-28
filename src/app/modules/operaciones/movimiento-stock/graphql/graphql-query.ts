@@ -209,3 +209,43 @@ export const findStockPorTipoMovimientoQuery = gql`
     }
   }
 `;
+
+export const saveMovimientoStockMutationQuery = gql`
+    mutation saveMovimientoStock($movimientoStock: MovimientoStockInput!) {
+      data: saveMovimientoStock(movimientoStock: $movimientoStock) {
+        id
+        sucursalId
+        producto {
+          id
+          descripcion
+        }
+        tipoMovimiento
+        referencia
+        cantidad
+        estado
+        creadoEn
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+        sucursal {
+          id
+          nombre
+        }
+      }
+    }
+  `;
+
+export const stockPrevioAjusteQuery = gql`
+  query getStockPrevioAjuste($productoId: ID!, $movimientoId: ID!, $sucursalId: ID!) {
+    data: stockByProductoIdExeptMovimientoId(productoId: $productoId, movimientoId: $movimientoId, sucursalId: $sucursalId)
+  }
+`;
+
+export const stockAntesDeFechaQuery = gql`
+  query getStockAntesDeFecha($productoId: ID!, $sucursalId: ID!, $fecha: String!) {
+    data: stockByProductoIdAntesDeFecha(productoId: $productoId, sucursalId: $sucursalId, fecha: $fecha)
+  }
+`;

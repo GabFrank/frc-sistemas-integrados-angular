@@ -6,8 +6,8 @@
 }
 
 .mat-column-acciones {
-  width: 80px;
-  max-width: 80px;
+  width: 120px;
+  max-width: 120px;
 }
 
 .mat-column-id {
@@ -15,9 +15,77 @@
   max-width: 100px;
 }
 
-.container-fluid {
+// Layout principal del diálogo
+.dialog-container {
+  display: flex;
+  flex-direction: column;
   height: 90vh;
+  max-height: 90vh;
+  padding: 16px;
+  overflow: hidden;
+}
+
+// Header del diálogo
+.dialog-header {
+  flex-shrink: 0;
+  margin-bottom: 16px;
+}
+
+// Contenido principal (tabla)
+.dialog-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; // Importante para que funcione el scroll
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+// Container de la tabla con scroll
+.table-container {
+  flex: 1;
   overflow: auto;
+  border-radius: 4px;
+}
+
+// Loading container
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  flex: 1;
+}
+
+.loading-text {
+  margin-top: 16px;
+  color: #666;
+}
+
+// Paginador
+.dialog-paginator {
+  flex-shrink: 0;
+  background: white;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.06);
+  border-radius: 0 0 4px 4px;
+  margin-top: -8px;
+}
+
+// Footer con botón de salir
+.dialog-footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 16px;
+  margin-top: 8px;
+  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.btn-salir {
+  width: 120px;
 }
 
 table {
@@ -41,4 +109,14 @@ mat-card {
 
 mat-spinner {
   margin: 0 auto;
+}
+
+// Asegurar que las headers de la tabla se mantengan fijas
+.mat-header-row {
+  position: sticky;
+  top: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(5px);
+  z-index: 10;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
