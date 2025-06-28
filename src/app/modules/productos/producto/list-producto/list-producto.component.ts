@@ -61,7 +61,10 @@ import { SubfamiliasSearchGQL } from "../../sub-familia/graphql/subfamiliasSearc
 import { SearchSubfamiliaByDescripcionGQL } from "../../sub-familia/graphql/searchByDescripcion";
 import { AjustarStockDialogComponent, AjustarStockDialogData } from "../ajustar-stock-dialog/ajustar-stock-dialog.component";
 import { AjustarCostoDialogComponent, AjustarCostoDialogData } from "../ajustar-costo-dialog/ajustar-costo-dialog.component";
+<<<<<<< HEAD
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+=======
+>>>>>>> 969569b (FD-33: ajuste costo + stock funcionando)
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -137,8 +140,11 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     { value: 'positivo', label: 'POSITIVO' },
     { value: 'negativo', label: 'NEGATIVO' }
   ];
+<<<<<<< HEAD
 
   isGenerarPdfDisabled: boolean = true;
+=======
+>>>>>>> 969569b (FD-33: ajuste costo + stock funcionando)
 
   constructor(
     private injector: Injector,
@@ -310,8 +316,11 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     this.costoCeroControl.setValue(null);
     this.stockFiltroControl.setValue('todos');
     this.sucursalFiltroControl.setValue(null);
+<<<<<<< HEAD
     
     this.isGenerarPdfDisabled = true;
+=======
+>>>>>>> 969569b (FD-33: ajuste costo + stock funcionando)
   }
 
   onAddProducto() {
@@ -446,6 +455,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       }
     });
   }
+<<<<<<< HEAD
 
   onGenerarReporte() {
     if (!this.validarCondicionesParaReporte()) {
@@ -511,4 +521,6 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       }
     });
   }
+=======
+>>>>>>> 969569b (FD-33: ajuste costo + stock funcionando)
 }
