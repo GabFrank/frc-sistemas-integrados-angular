@@ -16,6 +16,18 @@ export class MovimientoStock {
     estado: boolean;
     creadoEn: Date;
     usuario: Usuario;
-    data: any;
+    data?: any; // Calculado dinámicamente en el frontend
+}
+
+export interface MovimientoStockInput {
+    id: number;
+    sucursalId: number;
+    productoId: number;
+    codigoId?: number;
+    tipoMovimiento: TipoMovimiento;
+    referencia: number;
+    cantidad: number;
+    estado: boolean;
+    usuarioId: number;
 }
 

@@ -87,8 +87,36 @@ export class ProductoService {
     // })
   }
 
-  onSearchWithFilters(texto: string, codigo: string, activo, stock, balanza, subfamilia, vencimiento, page, size, servidor = true): Observable<PageInfo<Producto>>{
-    return this.genericService.onCustomQuery(this.searchWithFilters, {texto, codigo, activo, stock, balanza, subfamilia, vencimiento, page, size}, servidor);
+  onSearchWithFilters(
+    texto: string, 
+    codigo: string, 
+    activo, 
+    stock, 
+    balanza, 
+    subfamilia, 
+    vencimiento, 
+    costoCero, 
+    stockFiltro, 
+    sucursalId, 
+    page, 
+    size, 
+    servidor = true
+  ): Observable<PageInfo<Producto>>{
+    return this.genericService.onCustomQuery(this.searchWithFilters, {
+      texto, 
+      codigo, 
+      activo, 
+      stock, 
+      balanza, 
+      subfamilia, 
+      vencimiento, 
+      costoCero, 
+      stockFiltro, 
+      sucursalId, 
+      page, 
+      size
+    }, 
+    servidor);
   }
 
   onGetStockPorProductoAndSucursal(proId, sucId, servidor = true){

@@ -27,6 +27,8 @@ import { AddEnvaseDialogComponent } from './envase/add-envase-dialog/add-envase-
 import { ProductosDashboardComponent } from './productos-dashboard/productos-dashboard.component';
 import { ListGrupoComponent } from './list-grupo/list-grupo.component';
 import { PrintLabelDialogComponent } from './producto/list-producto/print-label-dialog/print-label-dialog.component';
+import { AjustarStockDialogComponent } from './producto/ajustar-stock-dialog/ajustar-stock-dialog.component';
+import { AjustarCostoDialogComponent } from './producto/ajustar-costo-dialog/ajustar-costo-dialog.component';
 
 
 
@@ -53,7 +55,9 @@ import { PrintLabelDialogComponent } from './producto/list-producto/print-label-
     AddEnvaseDialogComponent,
     ProductosDashboardComponent,
     ListGrupoComponent,
-    PrintLabelDialogComponent
+    PrintLabelDialogComponent,
+    AjustarStockDialogComponent,
+    AjustarCostoDialogComponent
   ],
   imports: [
     CommonModule,

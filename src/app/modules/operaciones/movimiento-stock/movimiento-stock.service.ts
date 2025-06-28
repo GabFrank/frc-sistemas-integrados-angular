@@ -17,9 +17,9 @@ import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { PageInfo } from "../../../app.component";
 import { GetStockPorFiltrosGQL } from "./graphql/getStockByFilters";
 import { GetStockPorTipoMovimientoByFiltersGQL, StockPorTipoMovimientoDto } from "./graphql/getStockPorTipoMovimientoByFilters";
-import { Apollo } from 'apollo-angular';
-import gql from 'graphql-tag';
-import { map } from 'rxjs';
+import { SaveMovimientoStockGQL } from "./graphql/saveMovimientoStock";
+import { GetStockPrevioAjusteGQL } from "./graphql/getStockPrevioAjuste";
+import { GetStockAntesDeFechaGQL } from "./graphql/getStockAntesDeFecha";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -34,7 +34,9 @@ export class MovimientoStockService {
     private genericService: GenericCrudService,
     private getStockWithFilters: GetStockPorFiltrosGQL,
     private getStockPorTipoMovimiento: GetStockPorTipoMovimientoByFiltersGQL,
-    private apollo: Apollo
+    private saveMovimientoStockGQL: SaveMovimientoStockGQL,
+    private getStockPrevioAjusteGQL: GetStockPrevioAjusteGQL,
+    private getStockAntesDeFechaGQL: GetStockAntesDeFechaGQL
   ) { }
 
 
@@ -128,4 +130,26 @@ export class MovimientoStockService {
   //     sucursalId
   //   });
   // }
+
+  onSaveMovimientoStock(movimientoStock: any, servidor = true): Observable<MovimientoStock> {
+    return this.genericService.onCustomMutation(this.saveMovimientoStockGQL, {
+      movimientoStock: movimientoStock
+    }, servidor);
+  }
+
+  onGetStockPrevioAjuste(productoId: number, movimientoId: number, sucursalId: number, servidor = true): Observable<number> {
+    return this.genericService.onCustomQuery(this.getStockPrevioAjusteGQL, {
+      productoId,
+      movimientoId,
+      sucursalId
+    }, servidor);
+  }
+
+  onGetStockAntesDeFecha(productoId: number, sucursalId: number, fecha: string, servidor = true): Observable<number> {
+    return this.genericService.onCustomQuery(this.getStockAntesDeFechaGQL, {
+      productoId,
+      sucursalId,
+      fecha
+    }, servidor);
+  }
 }

@@ -4,6 +4,8 @@
   (resetFiltro)="resetFiltro()"
   (adicionar)="onAddProducto()"
   [isAdicionar]="true"
+  [isCustom]="true"
+  customName="Generar Pdf"
 >
   <div filtros>
     <div
@@ -12,7 +14,7 @@
       fxLayoutGap="10px"
       style="width: 100%"
     >
-      <div fxFlex="50" fxLayout="column">
+      <div fxFlex="45" fxLayout="column">
         <div fxLayout="row" fxLayoutAlign="start space-between">
           <div fxFlex="90" fxLayout="column" fxLayoutAlign="center start">
             <span style="width: 100%">
@@ -49,6 +51,146 @@
             </mat-checkbox>
           </section>
         </div>
+      </div>
+      <div fxFlex="9" fxLayout="column" fxLayoutAlign="center start">
+        <mat-label style="padding-left: 5px; color: #f57c00"
+            >Estado</mat-label
+          >
+          <mat-checkbox
+            [checked]="activoControl.value == true"
+            [indeterminate]="activoControl.value == null"
+            (click)="
+              activoControl.setValue(
+                activoControl.value === null
+                  ? true
+                  : activoControl.value === true
+                  ? false
+                  : null
+              )
+            "
+          >
+            {{
+              activoControl.value == null
+                ? "Todos"
+                : activoControl.value == true
+                ? "Activos"
+                : "Inactivos"
+            }}
+          </mat-checkbox>
+        </div>
+      <div fxFlex="11" fxLayout="column" fxLayoutAlign="center start">
+        <mat-label style="padding-left: 5px; color: #f57c00"
+            >Movimienta stock</mat-label
+          >
+          <mat-checkbox
+            [checked]="stockControl.value == true"
+            [indeterminate]="stockControl.value == null"
+            (click)="
+              stockControl.setValue(
+                stockControl.value === null
+                  ? true
+                  : stockControl.value === true
+                  ? false
+                  : null
+              )
+            "
+          >
+            {{
+              stockControl.value == null
+                ? "Todos"
+                : stockControl.value == true
+                ? "Si"
+                : "No"
+            }}
+          </mat-checkbox>
+        </div>
+      <div fxFlex="11" fxLayout="column" fxLayoutAlign="center start">
+        <mat-label style="padding-left: 5px; color: #f57c00"
+            >Pesable</mat-label
+          >
+          <mat-checkbox
+            [checked]="balanzaControl.value == true"
+            [indeterminate]="balanzaControl.value == null"
+            (click)="
+              balanzaControl.setValue(
+                balanzaControl.value === null
+                  ? true
+                  : balanzaControl.value === true
+                  ? false
+                  : null
+              )
+            "
+          >
+            {{
+              balanzaControl.value == null
+                ? "Todos"
+                : balanzaControl.value == true
+                ? "Si"
+                : "No"
+            }}
+          </mat-checkbox>
+        </div>
+      <div fxFlex="11" fxLayout="column" fxLayoutAlign="center start">
+        <mat-label style="padding-left: 5px; color: #f57c00"
+            >Posee vencimiento</mat-label
+          >
+          <mat-checkbox
+            [checked]="vencimientoControl.value == true"
+            [indeterminate]="vencimientoControl.value == null"
+            (click)="
+              vencimientoControl.setValue(
+                vencimientoControl.value === null
+                  ? true
+                  : vencimientoControl.value === true
+                  ? false
+                  : null
+              )
+            "
+          >
+            {{
+              vencimientoControl.value == null
+                ? "Todos"
+                : vencimientoControl.value == true
+                ? "Si"
+                : "No"
+            }}
+          </mat-checkbox>
+      </div>
+      <div fxFlex="11" fxLayout="column" fxLayoutAlign="center start">
+        <mat-label style="padding-left: 5px; color: #f57c00"
+          >Costo cero</mat-label
+        >
+        <mat-checkbox
+          [checked]="costoCeroControl.value == true"
+          [indeterminate]="costoCeroControl.value == null"
+          (click)="
+            costoCeroControl.setValue(
+              costoCeroControl.value === null
+                ? true
+                : costoCeroControl.value === true
+                ? false
+                : null
+            )
+          "
+        >
+          {{
+            costoCeroControl.value == null
+              ? "Todos"
+              : costoCeroControl.value == true
+              ? "Si"
+              : "No"
+          }}
+        </mat-checkbox>
+      </div>
+    </div>
+
+    <div
+      fxLayout="row"
+      fxLayoutAlign="start center"
+      fxLayoutGap="10px"
+      style="width: 100%"
+    >
+      <div fxFlex="42" fxLayout="column">
         <div fxLayout="row" fxLayoutAlign="start center">
           <mat-form-field style="width: 100%">
             <mat-label>Subfamilia</mat-label>
@@ -75,112 +217,40 @@
           </mat-form-field>
         </div>
       </div>
-      <div fxFlex="25" fxLayout="column">
-        <div fxLayout="column">
-          <mat-label style="padding-left: 10px; color: #f57c00"
-            >Estado</mat-label
-          >
-          <mat-checkbox
-            [checked]="activoControl.value == true"
-            [indeterminate]="activoControl.value == null"
-            (click)="
-              activoControl.setValue(
-                activoControl.value === null
-                  ? true
-                  : activoControl.value === true
-                  ? false
-                  : null
-              )
-            "
-          >
-            {{
-              activoControl.value == null
-                ? "Todos"
-                : activoControl.value == true
-                ? "Activos"
-                : "Inactivos"
-            }}
-          </mat-checkbox>
+      <!-- Mat-selects de Stock y Sucursal -->
+      <div fxFlex="55" fxLayout="row" fxLayoutGap="15px">
+        <div fxFlex="50">
+          <mat-form-field style="width: 100%">
+            <mat-label>Stock</mat-label>
+            <mat-select 
+              [formControl]="stockFiltroControl"
+              (selectionChange)="onStockFiltroChange()"
+            >
+              <mat-option 
+                *ngFor="let option of stockOptions" 
+                [value]="option.value"
+              >
+                {{ option.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
         </div>
-        <div fxLayout="column">
-          <mat-label style="padding-left: 10px; color: #f57c00"
-            >Movimienta stock</mat-label
-          >
-          <mat-checkbox
-            [checked]="stockControl.value == true"
-            [indeterminate]="stockControl.value == null"
-            (click)="
-              stockControl.setValue(
-                stockControl.value === null
-                  ? true
-                  : stockControl.value === true
-                  ? false
-                  : null
-              )
-            "
-          >
-            {{
-              stockControl.value == null
-                ? "Todos"
-                : stockControl.value == true
-                ? "Si"
-                : "No"
-            }}
-          </mat-checkbox>
-        </div>
-      </div>
-      <div fxFlex="25">
-        <div fxLayout="column">
-          <mat-label style="padding-left: 10px; color: #f57c00"
-            >Pesable</mat-label
-          >
-          <mat-checkbox
-            [checked]="balanzaControl.value == true"
-            [indeterminate]="balanzaControl.value == null"
-            (click)="
-              balanzaControl.setValue(
-                balanzaControl.value === null
-                  ? true
-                  : balanzaControl.value === true
-                  ? false
-                  : null
-              )
-            "
-          >
-            {{
-              balanzaControl.value == null
-                ? "Todos"
-                : balanzaControl.value == true
-                ? "Si"
-                : "No"
-            }}
-          </mat-checkbox>
-        </div>
-        <div fxLayout="column">
-          <mat-label style="padding-left: 10px; color: #f57c00"
-            >Posee vencimiento</mat-label
-          >
-          <mat-checkbox
-            [checked]="vencimientoControl.value == true"
-            [indeterminate]="vencimientoControl.value == null"
-            (click)="
-              vencimientoControl.setValue(
-                vencimientoControl.value === null
-                  ? true
-                  : vencimientoControl.value === true
-                  ? false
-                  : null
-              )
-            "
-          >
-            {{
-              vencimientoControl.value == null
-                ? "Todos"
-                : vencimientoControl.value == true
-                ? "Si"
-                : "No"
-            }}
-          </mat-checkbox>
+        <div fxFlex="50">
+          <mat-form-field style="width: 100%" 
+          [hidden]="!isSucursalSelectEnabled">
+            <mat-label>Sucursal</mat-label>
+            <mat-select 
+              [formControl]="sucursalFiltroControl"
+            >
+              <mat-option [value]="null">Seleccionar sucursal</mat-option>
+              <mat-option 
+                *ngFor="let sucursal of sucursales" 
+                [value]="sucursal.id"
+              >
+               {{ sucursal.id }} - {{ sucursal.nombre }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
         </div>
       </div>
     </div>
@@ -312,6 +382,7 @@
                 )
               "
             >
+              <mat-icon>edit</mat-icon>
               Editar
             </button>
             <button
@@ -328,6 +399,30 @@
             >
               Ver movimientos
             </button> -->
+            <button
+              mat-menu-item
+              (click)="onAjustarStock(producto)"
+              *ngIf="
+                mainService.usuarioActual?.roles.includes(
+                  ROLES.EDITAR_PRODUCTOS
+                )
+              "
+            >
+              <mat-icon>production_quantity_limits</mat-icon>
+              Ajustar stock
+            </button>
+            <button
+              mat-menu-item
+              (click)="onAjustarCosto(producto)"
+              *ngIf="
+                mainService.usuarioActual?.roles.includes(
+                  ROLES.EDITAR_PRODUCTOS
+                )
+              "
+            >
+              <mat-icon>price_change</mat-icon>
+              Ajustar costo
+            </button>
           </mat-menu>
         </td>
       </ng-container>
@@ -350,7 +445,13 @@
             style="text-align: center"
             fxLayout="row" fxLayoutAlign="center center"
           >
-            <div fxFlex="50" style="width: 100%; margin: 10px; height: 50vh; overflow-y: auto;">
+            <div 
+              fxFlex="50" 
+              style="width: 100%; 
+              margin: 10px; 
+              max-height: 150px; 
+              overflow-y: auto;"
+            >
               <mat-card fxLayout="column" fxLayoutAlign="start start"
                 style="padding: 10px; background-color: rgb(32, 32, 32);">
                 
@@ -359,33 +460,40 @@
                 
                 <!-- Show sucursal data when loaded -->
                 <div *ngIf="producto?.sucursales" fxLayout="column" style="width: 100%">
-                  <div style="text-align: center; margin-bottom: 10px">Stock por Sucursal</div>
-                  <table style="width: 100%">
-                    <thead>
-                      <tr>
-                        <th class="titulo" style="text-align: left; padding: 8px">Sucursal</th>
-                        <th class="titulo" style="text-align: center; padding: 8px">Stock Disponible</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr *ngFor="let sucursal of producto?.sucursales" >
-                        <td class="highlight-cell" style="text-align: left; padding: 8px" id="nombre">{{ sucursal.sucursal.nombre | uppercase }}</td>
-                        <td class="highlight-cell" style="text-align: center; padding: 8px" id="stock">
-                          <ng-container *ngIf="sucursal.existencia != null; else loadingTemplate">
-                            {{ sucursal.existencia | number:'1.0-2' }}
-                          </ng-container>
-                          <ng-template #loadingTemplate>
-                            <mat-spinner diameter="24" style="margin: 0 auto;"></mat-spinner>
-                          </ng-template>
-                        </td>
-                      </tr>
-                      <tr *ngIf="!producto?.sucursales?.length">
-                        <td colspan="2" style="text-align: center; padding: 16px;">
-                          No hay sucursales disponibles
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  <div style="text-align: center; margin-bottom: 10px">
+                    {{ sucursalFiltroControl.value && isSucursalSelectEnabled ? 
+                    'Stock en Sucursal Seleccionada' : 'Stock por Sucursal' }}
+                  </div>
+                  <div style="max-height: 425px; overflow-y: auto;">
+                    <table style="width: 100%; table-layout: fixed;">
+                      <thead>
+                        <tr>
+                          <th class="titulo titulo-cell" >Sucursal</th>
+                          <th class="titulo stock-cell">Stock Disponible</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let sucursal of producto?.sucursales">
+                          <td class="highlight-cell nombre-cell" id="nombre">
+                            {{ sucursal.sucursal.nombre | uppercase }}
+                          </td>
+                          <td class="highlight-cell stock-cell" id="stock">
+                            <ng-container *ngIf="sucursal.existencia != null; else loadingTemplate">
+                              {{ sucursal.existencia | number:'1.0-2' }}
+                            </ng-container>
+                            <ng-template #loadingTemplate>
+                              <mat-spinner diameter="24" style="margin: 0 auto;"></mat-spinner>
+                            </ng-template>
+                          </td>
+                        </tr>
+                        <tr *ngIf="!producto?.sucursales?.length">
+                          <td colspan="2" style="text-align: center; padding: 16px;">
+                            No hay sucursales disponibles
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </mat-card>
             </div>

@@ -179,6 +179,9 @@ export const searchProductoWithFilters = gql`
     $balanza: Boolean
     $subfamilia: Int
     $vencimiento: Boolean
+    $costoCero: Boolean
+    $stockFiltro: String
+    $sucursalId: Int
     $page: Int
     $size: Int
   ) {
@@ -190,6 +193,9 @@ export const searchProductoWithFilters = gql`
       balanza: $balanza
       subfamilia: $subfamilia
       vencimiento: $vencimiento
+      costoCero: $costoCero
+      stockFiltro: $stockFiltro
+      sucursalId: $sucursalId
       page: $page
       size: $size
     ) {

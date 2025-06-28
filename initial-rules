@@ -1,0 +1,12 @@
+Rules you have to read before any work
+
+For Angular Material
+- Our navigation is tab based and we use [tab.service.ts](mdc:src/app/layouts/tab/tab.service.ts)
+- all crud operations for apollo on .service file must be done using [generic-crud.service.ts](mdc:src/app/generics/generic-crud.service.ts)
+- Never use functions directly on html, this can cause angular bad performance
+- **NEVER create getters that perform calculations, call methods, or access complex properties in Angular components.** Getters are executed on every change detection cycle and cause severe performance issues. Instead:
+  - Use **properties** that are calculated once and updated only when needed
+  - Subscribe to **valueChanges** of FormControls to recalculate properties
+  - Calculate values in **ngOnInit**, **ngAfterViewInit** or specific methods
+  - Examples of FORBIDDEN getters: `get diferencia() { return this.value1 - this.value2; }`, `get producto() { return this.data.producto; }`, `get isEnabled() { return this.control.value === 'something'; }`
+  - Examples of CORRECT approach: Use properties like `diferencia: number = 0` and update with methods like `calcularDiferencia()`
