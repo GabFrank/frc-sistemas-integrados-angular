@@ -1,25 +1,34 @@
-import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
-import { SolicitudPago, SolicitudPagoEstado, TipoSolicitudPago } from './solicitud-pago.model';
-import { SolicitudPagoQuery } from './graphql/solicitudPago';
-import { SolicitudPagoPorUsuarioIdQuery } from './graphql/solicitudPagoPorUsuarioId';
-import { SaveSolicitudPagoMutation } from './graphql/saveSolicitudPago';
-import { SolicitudPagoConFiltrosQuery } from './graphql/solicitudPagoConFiltros';
-import { PageInfo } from '../../../app.component';
+import { Injectable } from "@angular/core";
+import { Observable } from "rxjs";
+import { GenericCrudService } from "../../../generics/generic-crud.service";
+import {
+  SolicitudPago,
+  SolicitudPagoEstado,
+  TipoSolicitudPago,
+} from "./solicitud-pago.model";
+import { SolicitudPagoQuery } from "./graphql/solicitudPago";
+import { SolicitudPagoPorUsuarioIdQuery } from "./graphql/solicitudPagoPorUsuarioId";
+import { SaveSolicitudPagoMutation } from "./graphql/saveSolicitudPago";
+import { SolicitudPagoConFiltrosQuery } from "./graphql/solicitudPagoConFiltros";
+import {
+  ImprimirSolicitudPagoMutation,
+  ImprimirSolicitudPagoVariables,
+} from "./graphql/imprimirSolicitudPago";
+import { PageInfo } from "../../../app.component";
+import { dateToString } from "../../../commons/core/utils/dateUtils";
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: "root",
 })
 export class SolicitudPagoService {
-
   constructor(
     private genericService: GenericCrudService,
     private getSolicitudPago: SolicitudPagoQuery,
     private getSolicitudPagoPorUsuarioId: SolicitudPagoPorUsuarioIdQuery,
     private saveSolicitudPagoMutation: SaveSolicitudPagoMutation,
-    private solicitudPagoConFiltrosQuery: SolicitudPagoConFiltrosQuery
-  ) { }
+    private solicitudPagoConFiltrosQuery: SolicitudPagoConFiltrosQuery,
+    private imprimirSolicitudPagoMutation: ImprimirSolicitudPagoMutation,
+  ) {}
 
   /**
    * Obtiene una solicitud de pago por su ID
@@ -36,7 +45,10 @@ export class SolicitudPagoService {
    * @returns Observable con un array de solicitudes de pago
    */
   onGetSolicitudPagoPorUsuarioId(usuarioId): Observable<SolicitudPago[]> {
-    return this.genericService.onGetById(this.getSolicitudPagoPorUsuarioId, usuarioId);
+    return this.genericService.onGetById(
+      this.getSolicitudPagoPorUsuarioId,
+      usuarioId
+    );
   }
 
   /**
@@ -45,7 +57,9 @@ export class SolicitudPagoService {
    * @returns Observable con la solicitud de pago guardada
    */
   onSaveSolicitudPago(input): Observable<SolicitudPago> {
-    return this.genericService.onSave(this.saveSolicitudPagoMutation, { entity: input });
+    return this.genericService.onSave(this.saveSolicitudPagoMutation, {
+      entity: input,
+    });
   }
 
   /**
@@ -71,8 +85,9 @@ export class SolicitudPagoService {
     pageSize = 25
   ): Observable<PageInfo<SolicitudPago>> {
     // Handle reference ID - only set if it's not empty or whitespace
-    const refId = referenciaId && referenciaId.trim() !== '' ? referenciaId : null;
-    
+    const refId =
+      referenciaId && referenciaId.trim() !== "" ? referenciaId : null;
+
     // Convert solicitudPagoId to string if provided, otherwise null
     const idStr = solicitudPagoId ? solicitudPagoId.toString() : null;
 
@@ -80,7 +95,7 @@ export class SolicitudPagoService {
     return this.genericService.onCustomQuery(
       this.solicitudPagoConFiltrosQuery,
       {
-        solicitudPagoId: idStr,  // New parameter for direct ID lookup
+        solicitudPagoId: idStr, // New parameter for direct ID lookup
         referenciaId: refId,
         tipo: tipo || null,
         estado: estado || null,
@@ -91,4 +106,40 @@ export class SolicitudPagoService {
       }
     );
   }
-} 
+
+  /**
+   * Imprime una solicitud de pago con los datos del formulario
+   * @param solicitudPagoId ID de la solicitud de pago
+   * @param proveedorNombre Nombre del proveedor para la impresión
+   * @param fechaDePago Fecha de pago
+   * @param formaPago Forma de pago
+   * @param nominal Si es cheque nominal (solo para cheques)
+   * @param tipoImpresion true = PDF, false = Ticket 58mm
+   * @param printerName Nombre de impresora (opcional, para tickets)
+   * @returns Observable con el resultado (PDF base64 o confirmación de ticket)
+   */
+  onImprimirSolicitudPago(
+    solicitudPagoId: number,
+    proveedorNombre: string,
+    fechaDePago: Date,
+    formaPago: string,
+    nominal?: boolean,
+    tipoImpresion: boolean = true,
+    printerName?: string
+  ): Observable<string> {
+    const variables: ImprimirSolicitudPagoVariables = {
+      solicitudPagoId,
+      proveedorNombre,
+      fechaDePago: dateToString(fechaDePago),
+      formaPago,
+      nominal,
+      tipoImpresion,
+      printerName,
+    };
+    // here we need to use the genericService.onCustomMutation because the mutation is not a standard mutation
+    return this.genericService.onCustomMutation(
+      this.imprimirSolicitudPagoMutation,
+      variables
+    );
+  }
+}

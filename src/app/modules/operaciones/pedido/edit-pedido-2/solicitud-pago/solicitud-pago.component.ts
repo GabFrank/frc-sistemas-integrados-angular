@@ -34,6 +34,14 @@ import { ConfirmarFinalizacionDialogComponent, ConfirmarFinalizacionDialogData, 
 import { CrearGrupoDialogComponent, CrearGrupoDialogData, CrearGrupoDialogResult } from './dialogs/crear-grupo-dialog/crear-grupo-dialog.component';
 import { SeleccionarGrupoExistenteDialogComponent, SeleccionarGrupoExistenteDialogData, SeleccionarGrupoExistenteDialogResult } from './dialogs/seleccionar-grupo-existente-dialog/seleccionar-grupo-existente-dialog.component';
 import { GestionarGrupoDialogComponent, GestionarGrupoDialogData, GestionarGrupoDialogResult } from './dialogs/gestionar-grupo-dialog/gestionar-grupo-dialog.component';
+import { ImprimirSolicitudPagoDialogComponent, ImprimirSolicitudPagoDialogData, ImprimirSolicitudPagoDialogResult } from './dialogs/imprimir-solicitud-pago-dialog/imprimir-solicitud-pago-dialog.component';
+
+// Services for printing
+import { SolicitudPagoService } from '../../../solicitud-pago/solicitud-pago.service';
+import { ReporteService } from '../../../../reportes/reporte.service';
+import { TabService } from '../../../../../layouts/tab/tab.service';
+import { Tab } from '../../../../../layouts/tab/tab.model';
+import { ReportesComponent } from '../../../../reportes/reportes/reportes.component';
 
 // Solicitud Pago specific types
 export interface SolicitudPagoSummaryData {
@@ -186,7 +194,11 @@ export class SolicitudPagoComponent implements OnInit, OnChanges, OnDestroy {
     private crearGrupoYAsignarGQL: CrearGrupoYAsignarGQL,
     private asignarNotasAGrupoGQL: AsignarNotasAGrupoGQL,
     private finalizarSolicitudPagoStepGQL: FinalizarSolicitudPagoStepGQL,
-    private eliminarNotaRecepcionAgrupadaGQL: EliminarNotaRecepcionAgrupadaGQL
+    private eliminarNotaRecepcionAgrupadaGQL: EliminarNotaRecepcionAgrupadaGQL,
+    // Services for printing
+    private solicitudPagoService: SolicitudPagoService,
+    private reporteService: ReporteService,
+    private tabService: TabService
     // private getGruposCreadosGQL: GetGruposCreadosGQL // COMMENTED OUT - having GraphQL issues
     // private notaRecepcionAgrupadaService: NotaRecepcionAgrupadaService // Not needed - using new specific GQL instead
   ) {
@@ -828,51 +840,33 @@ export class SolicitudPagoComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   /**
-   * NEW: Open dialog to view SolicitudPago details
-   * This method will open a dedicated dialog for viewing/managing the SolicitudPago
-   * Dialog implementation will be added later
+   * NEW: Open dialog to print SolicitudPago
+   * This method opens the imprimir-solicitud-pago-dialog component
    */
-  onVerSolicitudPago(grupoInfo: NotaRecepcionAgrupadaInfo): void {
+  onImprimirSolicitudPago(grupoInfo: NotaRecepcionAgrupadaInfo): void {
     if (!grupoInfo || !grupoInfo.grupo || !grupoInfo.grupo.solicitudPago) {
       this.notificacionService.openWarn('Error: No se encontró la solicitud de pago asociada');
       return;
     }
 
-    // TODO: Implement dedicated SolicitudPago dialog
-    // For now, show basic information using the confirmation dialog
-    const solicitudPago = grupoInfo.grupo.solicitudPago;
-    const title = `Solicitud de Pago #${solicitudPago.id}`;
-    const message1 = `Estado: ${solicitudPago.estado || 'N/A'}`;
-    const detailsMessages = [
-      `Grupo asociado: #${grupoInfo.grupo.id}`,
-      `Proveedor: ${grupoInfo.grupo.proveedor?.persona?.nombre || 'N/A'}`,
-      `Valor total: ${this.formatCurrency(grupoInfo.valorTotal)}`,
-      `Fecha creación: ${this.formatDate(solicitudPago.creadoEn)}`,
-      `Usuario creación: ${solicitudPago.usuario?.nickname || solicitudPago.usuario?.persona?.nombre || 'N/A'}`
-    ];
+    // Open the new imprimir solicitud pago dialog
+    const dialogData: ImprimirSolicitudPagoDialogData = {
+      grupo: grupoInfo.grupo,
+      pedido: this.pedido
+    };
 
-    if (solicitudPago.pago) {
-      detailsMessages.push(`--- PAGO ASOCIADO ---`);
-      detailsMessages.push(`Pago #${solicitudPago.pago.id}`);
-      detailsMessages.push(`Estado: ${solicitudPago.pago.estado}`);
-      detailsMessages.push(`Fecha: ${this.formatDate(solicitudPago.pago.creadoEn)}`);
-      detailsMessages.push(`Usuario pago: ${solicitudPago.pago.usuario?.nickname || solicitudPago.pago.usuario?.persona?.nombre || 'N/A'}`);
-    } else {
-      detailsMessages.push(`--- SIN PAGO ASOCIADO ---`);
-      detailsMessages.push(`Esta solicitud aún no tiene un pago registrado`);
-    }
+    const dialogRef = this.matDialog.open(ImprimirSolicitudPagoDialogComponent, {
+      data: dialogData,
+      width: '70%',
+      height: '80%',
+      disableClose: false,
+      autoFocus: false
+    });
 
-    this.dialogosService.confirm(
-      title,
-      message1,
-      'Detalles de la solicitud de pago:',
-      detailsMessages,
-      false, // action = false means only "Cerrar" button
-      null,
-      null
-    ).subscribe(result => {
-      // TODO: Later we can add navigation to SolicitudPago management
-      console.log('Ver Solicitud Pago clicked for:', solicitudPago.id);
+    dialogRef.afterClosed().subscribe((result: ImprimirSolicitudPagoDialogResult) => {
+      if (result?.accion === 'IMPRIMIR' && result.datosImpresion) {
+        this.ejecutarImpresionSolicitudPago(grupoInfo.grupo.solicitudPago.id, result.datosImpresion);
+      }
     });
   }
 
@@ -1227,6 +1221,48 @@ export class SolicitudPagoComponent implements OnInit, OnChanges, OnDestroy {
         console.error('Error assigning notes to grupo:', error);
         this.notificacionService.openWarn('Error al asignar las notas al grupo');
         this.processingGrouping = false;
+      }
+    });
+  }
+
+  /**
+   * Ejecuta la impresión de la solicitud de pago con los datos del formulario
+   */
+  private ejecutarImpresionSolicitudPago(solicitudPagoId: number, datosImpresion: any): void {
+    const tipoStr = datosImpresion.tipoImpresion ? 'PDF' : 'Ticket (58mm)';
+    
+    this.solicitudPagoService.onImprimirSolicitudPago(
+      solicitudPagoId,
+      datosImpresion.proveedorNombre,
+      datosImpresion.fechaDePago,
+      datosImpresion.formaPago?.descripcion || '',
+      datosImpresion.nominal,
+      datosImpresion.tipoImpresion
+    ).pipe(untilDestroyed(this)).subscribe({
+      next: (resultado: string) => {
+        if (datosImpresion.tipoImpresion) {
+          // Es PDF - abrir en componente de reportes
+          if (resultado && resultado !== 'TICKET_PRINTED') {
+            this.reporteService.onAdd(`Solicitud de Pago ${solicitudPagoId}`, resultado);
+            this.tabService.addTab(
+              new Tab(ReportesComponent, 'Reportes', null, SolicitudPagoComponent)
+            );
+            this.notificacionService.openSucess('PDF generado exitosamente');
+          } else {
+            this.notificacionService.openWarn('Error al generar el PDF');
+          }
+        } else {
+          // Es Ticket - solo mostrar confirmación
+          if (resultado === 'TICKET_PRINTED') {
+            this.notificacionService.openSucess('Ticket impreso exitosamente');
+          } else {
+            this.notificacionService.openWarn('Error al imprimir el ticket');
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error al imprimir solicitud de pago:', error);
+        this.notificacionService.openWarn('Error al procesar la impresión: ' + (error.message || 'Error desconocido'));
       }
     });
   }

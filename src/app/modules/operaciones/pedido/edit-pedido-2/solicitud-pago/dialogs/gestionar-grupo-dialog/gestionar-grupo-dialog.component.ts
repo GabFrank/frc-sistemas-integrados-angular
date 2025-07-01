@@ -303,6 +303,16 @@ export class GestionarGrupoDialogComponent implements OnInit, AfterViewInit, OnD
       return;
     }
 
+    // Create a copy of the pedido with adjusted estado for proper data display
+    // When pedido is in EN_SOLICITUD_PAGO or CONCLUIDO, we want to show recepcion mercaderia data
+    const pedidoForDialog = { ...this.pedido };
+    
+    // If pedido is in EN_SOLICITUD_PAGO or CONCLUIDO, temporarily set it to EN_RECEPCION_MERCADERIA
+    // so that manage-nota-items-dialog displays the correct data (recepcion mercaderia fields)
+    if (pedidoForDialog.estado === PedidoEstado.EN_SOLICITUD_PAGO || pedidoForDialog.estado === PedidoEstado.CONCLUIDO) {
+      pedidoForDialog.estado = PedidoEstado.EN_RECEPCION_MERCADERIA;
+    }
+
     // Open the manage nota items dialog in read-only mode
     const dialogRef = this.dialog.open(ManageNotaItemsDialogComponent, {
       width: '95vw',
@@ -310,7 +320,7 @@ export class GestionarGrupoDialogComponent implements OnInit, AfterViewInit, OnD
       maxWidth: '1400px',
       data: {
         notaRecepcion: nota,
-        pedido: this.pedido,
+        pedido: pedidoForDialog, // Use the adjusted pedido
         readOnlyMode: true // Add read-only mode flag
       },
       disableClose: false

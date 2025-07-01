@@ -183,9 +183,20 @@
                   
                   <!-- Management actions - shown when no notes are selected -->
                   <div class="grupo-actions" *ngIf="!showSelectionActions">
+                    <!-- NEW: Imprimir Solicitud de Pago button - moved to left side -->
                     <button 
                       mat-button 
-                      color="primary"
+                      color="accent"
+                      *ngIf="grupo.computedMostrarVerSolicitudPago"
+                      [disabled]="processingGrouping"
+                      (click)="onImprimirSolicitudPago(grupo)"
+                      title="Imprimir solicitud de pago">
+                      <mat-icon>print</mat-icon>
+                      Imprimir Solicitud de Pago
+                    </button>
+                    
+                    <button 
+                      mat-button 
                       [disabled]="!grupo.computedPuedeGestionar || processingGrouping"
                       (click)="onGestionarGrupo(grupo)"
                       title="Gestionar notas del grupo">
@@ -193,21 +204,9 @@
                       Gestionar
                     </button>
                     
-                    <!-- NEW: Ver Solicitud de Pago button -->
                     <button 
                       mat-button 
-                      color="accent"
-                      *ngIf="grupo.computedMostrarVerSolicitudPago"
-                      [disabled]="processingGrouping"
-                      (click)="onVerSolicitudPago(grupo)"
-                      title="Ver detalles de la solicitud de pago asociada">
-                      <mat-icon>receipt_long</mat-icon>
-                      Ver Solicitud de Pago
-                    </button>
-                    
-                    <button 
-                      mat-button 
-                      color="warn"
+                      color="primary"
                       [disabled]="!grupo.puedeEliminar || processingGrouping"
                       (click)="onEliminarGrupo(grupo)"
                       title="Eliminar grupo y solicitud de pago (si aplica)">

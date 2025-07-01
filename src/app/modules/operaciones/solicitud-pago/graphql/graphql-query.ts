@@ -107,4 +107,26 @@ export const saveSolicitudPago = gql`
     }
   }
   ${solicitudPagoFragment}
+`;
+
+export const imprimirSolicitudPago = gql`
+  mutation(
+    $solicitudPagoId: ID!,
+    $proveedorNombre: String!,
+    $fechaDePago: String!,
+    $formaPago: String!,
+    $nominal: Boolean,
+    $tipoImpresion: Boolean!,
+    $printerName: String
+  ) {
+    data: imprimirSolicitudPago(
+      solicitudPagoId: $solicitudPagoId,
+      proveedorNombre: $proveedorNombre,
+      fechaDePago: $fechaDePago,
+      formaPago: $formaPago,
+      nominal: $nominal,
+      tipoImpresion: $tipoImpresion,
+      printerName: $printerName
+    )
+  }
 `; 

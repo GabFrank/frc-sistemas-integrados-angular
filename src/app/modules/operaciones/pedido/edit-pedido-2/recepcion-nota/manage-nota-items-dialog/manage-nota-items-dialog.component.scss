@@ -144,7 +144,7 @@
 }
 
 .items-section {
-  height: 50%;
+  flex: 1; // Use flex instead of fixed height to allow dynamic sizing
   min-height: 0; // Important for flex children to shrink
   background-color: #3a3a3a;
   border-radius: 12px;

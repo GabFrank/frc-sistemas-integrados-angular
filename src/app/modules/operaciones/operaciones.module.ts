@@ -69,6 +69,7 @@ import { CrearGrupoDialogComponent } from './pedido/edit-pedido-2/solicitud-pago
 import { SeleccionarGrupoExistenteDialogComponent } from './pedido/edit-pedido-2/solicitud-pago/dialogs/seleccionar-grupo-existente-dialog/seleccionar-grupo-existente-dialog.component';
 import { StepInitializationComponent } from './pedido/edit-pedido-2/shared/step-initialization/step-initialization.component';
 import { GestionarGrupoDialogComponent } from './pedido/edit-pedido-2/solicitud-pago/dialogs/gestionar-grupo-dialog/gestionar-grupo-dialog.component';
+import { ImprimirSolicitudPagoDialogComponent } from './pedido/edit-pedido-2/solicitud-pago/dialogs/imprimir-solicitud-pago-dialog/imprimir-solicitud-pago-dialog.component';
 
 @NgModule({
   declarations: [
@@ -136,6 +137,7 @@ import { GestionarGrupoDialogComponent } from './pedido/edit-pedido-2/solicitud-
     CrearGrupoDialogComponent,
     SeleccionarGrupoExistenteDialogComponent,
     GestionarGrupoDialogComponent,
+    ImprimirSolicitudPagoDialogComponent,
     StepInitializationComponent
   ],
   imports: [
