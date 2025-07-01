@@ -58,6 +58,9 @@ export class GenericListComponent implements OnInit {
   disableFilter: boolean;
 
   @Input()
+  disableCustom: boolean;
+
+  @Input()
   data
 
   @Input()

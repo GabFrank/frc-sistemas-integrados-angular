@@ -680,3 +680,35 @@ export const imprimirCodigoBarraQuery = gql`
     data: imprimirCodigoBarra(codigoId: $codigoId)
   }
 `;
+
+export const exportarReporteConFiltrosQuery = gql`
+    query (
+      $texto: String, 
+      $codigo: Boolean, 
+      $activo: Boolean, 
+      $stock: Boolean, 
+      $balanza: Boolean, 
+      $vencimiento: Boolean, 
+      $costoCero: Boolean, 
+      $subfamiliaId: ID, 
+      $stockFiltro: String, 
+      $sucursalId: ID, 
+      $usuarioId: ID, 
+      $usuario: String
+    ) {
+      data: exportarReporteConFiltros(
+        texto: $texto, 
+        codigo: $codigo, 
+        activo: $activo, 
+        stock: $stock, 
+        balanza: $balanza, 
+        vencimiento: $vencimiento, 
+        costoCero: $costoCero, 
+        subfamiliaId: $subfamiliaId, 
+        stockFiltro: $stockFiltro, 
+        sucursalId: $sucursalId, 
+        usuarioId: $usuarioId, 
+        usuario: $usuario
+      )
+    }
+  `;
