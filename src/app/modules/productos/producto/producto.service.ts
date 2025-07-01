@@ -42,6 +42,7 @@ import { Codigo } from "../codigo/codigo.model";
 import { ProductoStockGQL } from "./graphql/productoStock";
 import { PageInfo } from "../../../app.component";
 import { SearchProductoWithFiltersGQL } from "./graphql/searchWithFilters";
+import { ExportarProductoConFiltrosGQL } from "./graphql/exportarReporteConFiltros";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -68,6 +69,7 @@ export class ProductoService {
     private genericService: GenericCrudService,
     private getProductoParaPedido: ProductoParaPedidoGQL,
     private exportarReporte: ExportarProductoGQL,
+    private exportarReporteConFiltros: ExportarProductoConFiltrosGQL,
     private findByPdvGrupoProductoId: FindByPdvGrupoProductoIdGQL,
     private productoPorCodigo: ProductoPorCodigoGQL,
     private reporteLucroPorProducto: ReporteLucroPorProductoGQL,
@@ -177,6 +179,10 @@ export class ProductoService {
 
   onExportarReporte(texto: string, servidor = true): Observable<string> {
     return this.genericService.onCustomQuery(this.exportarReporte, {texto}, servidor);
+  }
+
+  onExportarReporteConFiltros(parametros: any, servidor = true): Observable<string> {
+    return this.genericService.onCustomQuery(this.exportarReporteConFiltros, parametros, servidor);
   }
 
   onFindByPdvGrupoProductoId(id, servidor = true): Observable<Producto[]> {

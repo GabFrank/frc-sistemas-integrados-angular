@@ -3,8 +3,10 @@
   (filtrar)="onFiltrar()"
   (resetFiltro)="resetFiltro()"
   (adicionar)="onAddProducto()"
+  (customFunction)="onGenerarReporte()"
   [isAdicionar]="true"
   [isCustom]="true"
+  [disableCustom]="isGenerarPdfDisabled"
   customName="Generar Pdf"
 >
   <div filtros>

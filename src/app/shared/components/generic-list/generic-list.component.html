@@ -41,7 +41,11 @@
           <app-boton (clickEvent)="onAdd()" nombre="+ Adicionar"></app-boton>
         </div>
         <div *ngIf="isCustom" class="boton">
-          <app-boton (clickEvent)="onCustomFunc()" [nombre]="customName"></app-boton>
+          <app-boton 
+            (clickEvent)="onCustomFunc()" 
+            [nombre]="customName"
+            [disableExpression]="disableCustom">
+          </app-boton>
         </div>
       </div>
     </mat-card>

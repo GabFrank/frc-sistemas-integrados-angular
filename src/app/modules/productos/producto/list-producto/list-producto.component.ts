@@ -61,6 +61,7 @@ import { SubfamiliasSearchGQL } from "../../sub-familia/graphql/subfamiliasSearc
 import { SearchSubfamiliaByDescripcionGQL } from "../../sub-familia/graphql/searchByDescripcion";
 import { AjustarStockDialogComponent, AjustarStockDialogData } from "../ajustar-stock-dialog/ajustar-stock-dialog.component";
 import { AjustarCostoDialogComponent, AjustarCostoDialogData } from "../ajustar-costo-dialog/ajustar-costo-dialog.component";
+import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -137,6 +138,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     { value: 'negativo', label: 'NEGATIVO' }
   ];
 
+  isGenerarPdfDisabled: boolean = true;
+
   constructor(
     private injector: Injector,
     private tabService: TabService,
@@ -151,6 +154,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     private movimientoStockService: MovimientoStockService,
     private thermalPrinterService: ThermalPrinterService,
     private snackBar: MatSnackBar,
+    private notificacionService: NotificacionSnackbarService
   ) {
     setTimeout(() => (this.service = injector.get(ProductoService)));
   }
@@ -205,6 +209,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         this.selectedPageInfo = res;
         this.dataSource.data = res.getContent;
         this.isSearching = false;
+        
+        this.isGenerarPdfDisabled = !res.getContent || res.getContent.length === 0;
       });
   }
 
@@ -304,6 +310,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     this.costoCeroControl.setValue(null);
     this.stockFiltroControl.setValue('todos');
     this.sucursalFiltroControl.setValue(null);
+    
+    this.isGenerarPdfDisabled = true;
   }
 
   onAddProducto() {
@@ -435,6 +443,71 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       if (result) {
         this.expandedProducto = null;
         this.onFiltrar();
+      }
+    });
+  }
+
+  onGenerarReporte() {
+    if (!this.validarCondicionesParaReporte()) {
+      return;
+    }
+
+    const parametrosReporte = this.construirParametrosReporte();
+    this.ejecutarGeneracionReporte(parametrosReporte);
+  }
+
+  validarCondicionesParaReporte(): boolean {
+    if (!this.dataSource.data || this.dataSource.data.length === 0) {
+      this.notificacionService.openWarn('No hay productos para generar el reporte');
+      return false;
+    }
+
+    if (!this.mainService.usuarioActual) {
+      this.notificacionService.openWarn('Error: Usuario no identificado');
+      return false;
+    }
+
+    return true;
+  }
+
+  construirParametrosReporte(): any {
+    return {
+      texto: this.filtroProductoControl.value || '',
+      codigo: this.filtroCodigoControl.value || false,
+      activo: this.activoControl.value,
+      stock: this.stockControl.value,
+      balanza: this.balanzaControl.value,
+      vencimiento: this.vencimientoControl.value,
+      costoCero: this.costoCeroControl.value,
+      subfamiliaId: this.selectedSubfamilia?.id || null,
+      stockFiltro: this.stockFiltroControl.value !== 'todos' ? this.stockFiltroControl.value : null,
+      sucursalId: (this.sucursalFiltroControl.value && this.isSucursalSelectEnabled) ? this.sucursalFiltroControl.value : null,
+      usuarioId: this.mainService.usuarioActual.id,
+      usuario: this.mainService.usuarioActual.nickname || this.mainService.usuarioActual.persona?.nombre || 'Usuario'
+    };
+  }
+
+  ejecutarGeneracionReporte(parametrosReporte: any) {
+    
+    const loadingRef = this.cargandoDialog.openDialog(false, 'Generando reporte de productos...');
+
+    this.service.onExportarReporteConFiltros(parametrosReporte).subscribe({
+      next: (response) => {
+        this.cargandoDialog.closeDialog(loadingRef.requestId);
+        if (response) {
+          this.reporteService.onAdd(`Reporte de productos ${new Date().toLocaleString()}`, response);
+          this.tabService.addTab(
+            new Tab(ReportesComponent, "Reportes", null, ListProductoComponent)
+          );
+          this.notificacionService.openSucess('Reporte generado exitosamente');
+        } else {
+          this.notificacionService.openAlgoSalioMal('Error al generar el reporte');
+        }
+      },
+      error: (error) => {
+        this.cargandoDialog.closeDialog(loadingRef.requestId);
+        console.error('Error al generar reporte:', error);
+        this.notificacionService.openAlgoSalioMal('Error al generar el reporte');
       }
     });
   }
