@@ -65,6 +65,7 @@ export const ventaQuery = gql`
       creadoEn
       usuario {
         id
+        nickname
       }
       ventaItemList {
         id
