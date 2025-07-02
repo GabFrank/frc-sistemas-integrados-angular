@@ -1273,10 +1273,14 @@ export class RecepcionMercaderiaComponent implements OnInit, OnChanges {
       return true;
     }
     
-    const totalDistributed = item.pedidoItemSucursalList.reduce((sum, dist) => 
-      sum + (dist.cantidadPorUnidad || 0), 0);
+    // Convert cantidad por unidad to cantidad por presentacion for comparison
+    const presentacionCantidad = item.presentacionRecepcionNota?.cantidad || item.presentacionCreacion?.cantidad || 1;
+    const totalDistributed = item.pedidoItemSucursalList.reduce((sum, dist) => {
+      const cantidadPorPresentacion = (dist.cantidadPorUnidad || 0) / presentacionCantidad;
+      return sum + cantidadPorPresentacion;
+    }, 0);
     
-    return totalDistributed !== (item.cantidadRecepcionProducto || item.cantidadCreacion || 0);
+    return Math.abs(totalDistributed - (item.cantidadRecepcionProducto || item.cantidadCreacion || 0)) > 0.001;
   }
 
   /**
@@ -1288,8 +1292,9 @@ export class RecepcionMercaderiaComponent implements OnInit, OnChanges {
       return { sucursales: [], hasMore: false, totalCount: 0 };
     }
 
-    // Group by sucursal and sum quantities
+    // Group by sucursal and sum quantities (convert to presentacion)
     const sucursalMap = new Map<number, { sucursal: any, totalCantidad: number }>();
+    const presentacionCantidad = item.presentacionRecepcionNota?.cantidad || item.presentacionCreacion?.cantidad || 1;
     
     item.pedidoItemSucursalList.forEach(dist => {
       if (dist.sucursalEntrega?.id) {
@@ -1302,7 +1307,9 @@ export class RecepcionMercaderiaComponent implements OnInit, OnChanges {
           });
         }
         
-        sucursalMap.get(sucursalId)!.totalCantidad += dist.cantidadPorUnidad || 0;
+        // Convert from unidad to presentacion for display consistency
+        const cantidadPorPresentacion = (dist.cantidadPorUnidad || 0) / presentacionCantidad;
+        sucursalMap.get(sucursalId)!.totalCantidad += cantidadPorPresentacion;
       }
     });
     

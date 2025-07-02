@@ -109,9 +109,9 @@ export class VerificarPedidoItemRecepcionMercaderiaComponent implements OnInit {
     Object.assign(this.pedidoItem, data.pedidoItem);
     this.isEditing = data.isEditing || false;
     
-    // Store original values for comparison
-    this.originalQuantity = this.pedidoItem.cantidadRecepcionNota || this.pedidoItem.cantidadCreacion || 0;
-    this.originalPresentacion = this.pedidoItem.presentacionRecepcionNota || this.pedidoItem.presentacionCreacion || null;
+    // Store original values for comparison - in RecepcionMercaderia step use RecepcionProducto values first
+    this.originalQuantity = this.pedidoItem.cantidadRecepcionProducto || this.pedidoItem.cantidadRecepcionNota || this.pedidoItem.cantidadCreacion || 0;
+    this.originalPresentacion = this.pedidoItem.presentacionRecepcionProducto || this.pedidoItem.presentacionRecepcionNota || this.pedidoItem.presentacionCreacion || null;
     
   }
 
@@ -148,7 +148,7 @@ export class VerificarPedidoItemRecepcionMercaderiaComponent implements OnInit {
    * Initialize the reactive form with current item data
    */
   private initializeForm(): void {
-    // Get the most recent or relevant expiration date
+    // Get the most recent or relevant expiration date - prioritize RecepcionProducto in this step
     const defaultExpiration = this.pedidoItem.vencimientoRecepcionProducto || 
                              this.pedidoItem.vencimientoRecepcionNota || 
                              this.pedidoItem.vencimientoCreacion || new Date();
@@ -164,14 +164,18 @@ export class VerificarPedidoItemRecepcionMercaderiaComponent implements OnInit {
     
     const formattedDate = this.formatDateForInput(existingDate);
     
-    // Determine initial values based on editing mode
-    const cantidadInitialValue = this.isEditing ? this.pedidoItem.cantidadRecepcionProducto : this.originalQuantity;
+    // Determine initial values based on editing mode - prioritize RecepcionProducto values in this step
+    const cantidadInitialValue = this.isEditing ? 
+      (this.pedidoItem.cantidadRecepcionProducto || this.originalQuantity) : this.originalQuantity;
     const presentacionInitialValue = this.isEditing ? 
       (this.pedidoItem.presentacionRecepcionProducto || this.originalPresentacion) : 
       this.originalPresentacion;
-    const motivoRechazoInitialValue = this.isEditing ? (this.pedidoItem.motivoRechazoRecepcionProducto || '') : '';
-    const observacionesInitialValue = this.isEditing ? (this.pedidoItem.obsRecepcionProducto || '') : '';
-    const verificadoInitialValue = this.isEditing ? this.pedidoItem.verificadoRecepcionProducto : false;
+    const motivoRechazoInitialValue = this.isEditing ? 
+      (this.pedidoItem.motivoRechazoRecepcionProducto || '') : '';
+    const observacionesInitialValue = this.isEditing ? 
+      (this.pedidoItem.obsRecepcionProducto || '') : '';
+    const verificadoInitialValue = this.isEditing ? 
+      (this.pedidoItem.verificadoRecepcionProducto !== null ? this.pedidoItem.verificadoRecepcionProducto : true) : true;
 
     this.form = this.fb.group({
       cantidadRecibida: [cantidadInitialValue, [Validators.required, Validators.min(0)]],
@@ -420,33 +424,74 @@ export class VerificarPedidoItemRecepcionMercaderiaComponent implements OnInit {
     updatedItem.isDistribucionSucursalesRecepcion = updatedItem.isDistribucionSucursalesRecepcion === true;
     updatedItem.needsDistribucion = updatedItem.needsDistribucion === true;
 
-    // Save to backend using the PedidoService
-    this.pedidoService.onSaveItem(updatedItem.toInput())
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (savedItem) => {
-          this.loading = false;
-          
-          const message = isVerified ? 
-            (this.isEditing ? 'Verificación actualizada exitosamente' : 'Producto verificado exitosamente') :
-            'Verificación removida exitosamente. Item retornado al estado inicial.';
-          
-          this.notificacionService.openSucess(message);
-          
-          const result: VerificarPedidoItemRecepcionMercaderiaDialogResult = {
-            confirmed: true,
-            updatedItem: savedItem,
-            needsUIRefresh: true
-          };
-          
-          this.dialogRef.close(result);
-        },
-        error: (error) => {
-          this.loading = false;
-          console.error('Error saving verification:', error);
-          this.notificacionService.openWarn('Error al guardar la verificación');
-        }
-      });
+    // **STRATEGY**: First save form data, then call verification method
+    // This ensures all form changes are saved before updating PedidoItemSucursal records
+    
+    if (isVerified) {
+      // Step 1: Save the updated item data first
+      this.pedidoService.onSaveItem(updatedItem.toInput())
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (savedItemWithData) => {
+            // Step 2: Call verification method to update PedidoItemSucursal records
+            this.pedidoService.onVerificarItemRecepcionProducto(this.pedidoItem.id, true)
+              .pipe(untilDestroyed(this))
+              .subscribe({
+                next: (verifiedItem) => {
+                  this.loading = false;
+                  
+                  const message = this.isEditing ? 
+                    'Verificación actualizada exitosamente' : 
+                    'Producto verificado exitosamente';
+                  
+                  this.notificacionService.openSucess(message);
+                  
+                  const result: VerificarPedidoItemRecepcionMercaderiaDialogResult = {
+                    confirmed: true,
+                    updatedItem: verifiedItem,
+                    needsUIRefresh: true
+                  };
+                  
+                  this.dialogRef.close(result);
+                },
+                error: (error) => {
+                  this.loading = false;
+                  console.error('Error in verification step:', error);
+                  this.notificacionService.openWarn('Error al verificar el producto');
+                }
+              });
+          },
+          error: (error) => {
+            this.loading = false;
+            console.error('Error saving item data:', error);
+            this.notificacionService.openWarn('Error al guardar los datos del producto');
+          }
+        });
+    } else {
+      // For unverification, just call the verification method with false
+      this.pedidoService.onVerificarItemRecepcionProducto(this.pedidoItem.id, false)
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (unverifiedItem) => {
+            this.loading = false;
+            
+            this.notificacionService.openSucess('Verificación removida exitosamente. Item retornado al estado inicial.');
+            
+            const result: VerificarPedidoItemRecepcionMercaderiaDialogResult = {
+              confirmed: true,
+              updatedItem: unverifiedItem,
+              needsUIRefresh: true
+            };
+            
+            this.dialogRef.close(result);
+          },
+          error: (error) => {
+            this.loading = false;
+            console.error('Error removing verification:', error);
+            this.notificacionService.openWarn('Error al remover la verificación');
+          }
+        });
+    }
   }
 
   /**

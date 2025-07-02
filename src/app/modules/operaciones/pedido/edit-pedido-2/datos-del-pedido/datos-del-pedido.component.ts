@@ -109,6 +109,10 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
       if (changes['selectedPedido'].currentValue && this.sucursalList && this.monedas && this.formaPagoList) {
         this.cargarDatosPedido();
       }
+      // **FIX**: Validate step completion whenever pedido changes
+      setTimeout(() => {
+        this.validateAndEmitStepCompletion();
+      }, 100);
     }
   }
 
@@ -129,13 +133,25 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
 
   setupFormValidation(): void {
     this.datosFormGroup.statusChanges.subscribe(status => {
-      const isFormaPagoValid = this.selectedFormaPago != null;
-      const isMonedaValid = this.selectedMoneda != null;
-      const areFechasValid = this.initialDates && this.initialDates.length > 0;
-      
-      const isValid = status === 'VALID' && isFormaPagoValid && isMonedaValid && areFechasValid;
-      this.formValid.emit(isValid);
+      this.validateAndEmitStepCompletion();
     });
+  }
+
+  /**
+   * Validate step completion including pedido ID existence
+   */
+  private validateAndEmitStepCompletion(): void {
+    const isFormaPagoValid = this.selectedFormaPago != null;
+    const isMonedaValid = this.selectedMoneda != null;
+    const areFechasValid = this.initialDates && this.initialDates.length > 0;
+    const isBasicFormValid = this.datosFormGroup.valid;
+    
+    // **CRITICAL**: Step is only complete if pedido has been saved (has ID)
+    const isPedidoSaved = this.selectedPedido?.id != null;
+    
+    const isStepCompleted = isBasicFormValid && isFormaPagoValid && isMonedaValid && areFechasValid && isPedidoSaved;
+    
+    this.formValid.emit(isStepCompleted);
   }
 
   loadInitialData(): void {
@@ -421,6 +437,7 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
   }
 
   handleDatesChanged(dates: Date[]): void {
+    this.initialDates = dates; // **FIX**: Update initialDates when dates change
     this.fechaEntregaControl.setValue(dates);
     this.emitPedidoChange();
   }
@@ -537,6 +554,11 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
     this.selectedPedido.plazoCredito = this.diasCreditoControl.value;
 
     this.pedidoChange.emit(this.selectedPedido);
+    
+    // **FIX**: Validate step completion when any form data changes
+    setTimeout(() => {
+      this.validateAndEmitStepCompletion();
+    }, 10);
   }
 
   async onGuardar(): Promise<Pedido> {
@@ -563,6 +585,18 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
             this.selectedPedido.creadoEn = pedidoRes.creadoEn;
             this.idControl.setValue(this.selectedPedido.id);
             this.cambiarEstado(true);
+            
+            // **CRITICAL**: First emit the updated pedido to parent component
+            this.pedidoChange.emit(this.selectedPedido);
+            
+            // **NEW**: Inform parent that step is now valid after save
+            this.formValid.emit(true);
+            
+            // **FIX**: Validate step completion when any form data changes
+            setTimeout(() => {
+              this.validateAndEmitStepCompletion();
+            }, 10);
+            
             this.notificacionService.openSucess('PEDIDO GUARDADO CORRECTAMENTE');
             resolve(pedidoRes);
           } else {
@@ -586,4 +620,4 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
     
     return isBasicFormValid && isFormaPagoValid && isMonedaValid && areFechasValid;
   }
-} 
+}

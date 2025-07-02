@@ -336,9 +336,19 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
 
   openSucursalDialog(pedidoItem: PedidoItem, isEditing: boolean = false): void {
     // isEditting true significa que se esta editando un item del pedido, por lo que no se debe setear la sucursal de entrega por defecto
+    
+    // **FIX**: Ensure pedido reference is set on the pedidoItem before passing to dialog
+    // Create a proper PedidoItem instance with pedido reference
+    const pedidoItemForDialog = new PedidoItem();
+    Object.assign(pedidoItemForDialog, pedidoItem);
+    
+    // **CRITICAL**: Set the pedido reference to ensure estado-based field access works
+    pedidoItemForDialog.pedido = this.selectedPedido;
+    
     this.dialog.open(PedidoItemSucursalDialogComponent, {
       data: {
-        pedidoItem,
+        pedidoItem: pedidoItemForDialog,
+        pedido: this.selectedPedido, // **NEW**: Also pass pedido reference explicitly
         sucursalInfluenciaList: this.selectedPedido.sucursalInfluenciaList?.map(s => s.sucursal),
         sucursalEntregaList: this.selectedPedido.sucursalEntregaList?.map(s => s.sucursal),
         autoSet: this.selectedPedido.sucursalInfluenciaList?.length === 1 && !isEditing

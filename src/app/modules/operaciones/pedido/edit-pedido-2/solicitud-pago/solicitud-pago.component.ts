@@ -303,7 +303,7 @@ export class SolicitudPagoComponent implements OnInit, OnChanges, OnDestroy {
                this.loadingCoordinator.dataChangeFlags.gruposChanged ||
                this.loadingCoordinator.dataChangeFlags.summaryChanged;
       case 'finalize':
-        return false; // Finalization doesn't require data reload
+        return true; // **FIX**: Finalization requires reload to show new SolicitudPago data
       default:
         return false;
     }
@@ -325,7 +325,7 @@ export class SolicitudPagoComponent implements OnInit, OnChanges, OnDestroy {
       case 'delete_group':
         return ['notas', 'grupos', 'summary']; // Group deletion affects all
       case 'finalize':
-        return []; // No reload needed for finalization
+        return ['grupos', 'summary']; // **FIX**: Reload grupos and summary after finalization to show new SolicitudPago data
       default:
         return [];
     }
@@ -1094,7 +1094,18 @@ export class SolicitudPagoComponent implements OnInit, OnChanges, OnDestroy {
             this.pedido.estado = PedidoEstado.CONCLUIDO;
             this.pedidoChange.emit(this.pedido);
             
-            this.triggerComputedPropertiesUpdate();
+            // **FIX**: Mark data as changed to force reload of grupos with new SolicitudPago data
+            this.loadingCoordinator.dataChangeFlags = {
+              notasChanged: true,
+              gruposChanged: true,
+              summaryChanged: true
+            };
+            
+            // **CRITICAL**: Reload grupos data to show the newly created SolicitudPago and enable "Imprimir" buttons
+            setTimeout(() => {
+              this.loadDataIntelligently('finalize');
+              this.triggerComputedPropertiesUpdate();
+            }, 800); // Increased delay to ensure backend data consistency
             
             this.notificacionService.openSucess(`Solicitudes de pago creadas exitosamente (${solicitudesCreadas.length})`);
             this.processingGrouping = false;

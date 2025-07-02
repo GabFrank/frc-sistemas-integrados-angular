@@ -78,6 +78,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
     @Optional() @Inject(MAT_DIALOG_DATA)
     public data: {
       pedidoItem?: PedidoItem;
+      pedido?: any; // **NEW**: Explicit pedido reference for estado-based field access
       sucursalInfluenciaList?: Sucursal[];
       sucursalEntregaList?: Sucursal[];
       autoSet?: boolean; // Si es true, se setea la cantidad y la sucursal de entrega por defecto
@@ -104,8 +105,16 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
         // Convert plain object to PedidoItem instance
         const pedidoItem = new PedidoItem();
         Object.assign(pedidoItem, this.data.pedidoItem);
-        this.selectedPedidoItem = pedidoItem;
         
+        // **CRITICAL FIX**: Ensure pedido reference is set correctly for estado-based field access
+        if (this.data.pedido) {
+          pedidoItem.pedido = this.data.pedido;
+        } else if (!pedidoItem.pedido && this.data.pedidoItem?.pedido) {
+          // Fallback: if no explicit pedido passed, use the one from pedidoItem
+          pedidoItem.pedido = this.data.pedidoItem.pedido;
+        }
+        
+        this.selectedPedidoItem = pedidoItem;
         this.sucursalInfluenciaList = this.data.sucursalInfluenciaList;
         this.updateComputedProperties();
         this.loadPedidoItemSucursalAndInitControls();
@@ -192,6 +201,10 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
 
   private updateComputedProperties(): void {
     if (this.selectedPedidoItem) {
+      // **DEBUG**: Log pedido estado to ensure it's available
+      console.log('🔍 [SucursalDialog] updateComputedProperties()');
+      console.log('🔍 [SucursalDialog] selectedPedidoItem.pedido?.estado:', this.selectedPedidoItem.pedido?.estado);
+      
       // Determine current step from pedido estado
       this.currentStepComputed = this.pedidoService.getCurrentStepFromPedidoEstado(this.selectedPedidoItem.pedido?.estado);
       
@@ -199,8 +212,8 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
       this.presentacionComputed = this.selectedPedidoItem.getFieldValueForEstado('presentacion', this.selectedPedidoItem.pedido?.estado);
       this.cantidadComputed = this.selectedPedidoItem.getFieldValueForEstado('cantidad', this.selectedPedidoItem.pedido?.estado);
 
-      console.log('presentacionComputed', this.presentacionComputed);
-      console.log('cantidadComputed', this.cantidadComputed);
+      console.log('🔍 [SucursalDialog] presentacionComputed:', this.presentacionComputed);
+      console.log('🔍 [SucursalDialog] cantidadComputed:', this.cantidadComputed);
       
       // Recalculate cantAgregada to ensure UI shows correct values
       if (this.cantidadControls && this.cantidadControls.length > 0) {

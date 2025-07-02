@@ -121,7 +121,14 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
   computedCantidadItems = 0;
   computedCantidadItemsCancelados = 0;
 
-  // Dummy step control for simple steps
+  // Individual step controls for linear stepper navigation
+  step1StepControl = new FormControl(false);
+  step2StepControl = new FormControl(false);
+  step3StepControl = new FormControl(false);
+  step4StepControl = new FormControl(false);
+  step5StepControl = new FormControl(false);
+  
+  // Dummy step control for compatibility (not used)
   dummyStepControl = new FormControl();
 
   // **NEW**: Step tracking properties
@@ -137,6 +144,8 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
   currentStepTrackingInfo: StepInfo | null = null;
   
   // **NEW**: Recepcion mercaderia computed properties
+  recepcionMercaderiaStepInfo: StepInfo | null = null;
+  isRecepcionMercaderiaActive = false;
   recepcionMercaderiaButtonTooltip = '';
   
   // **NEW**: Solicitud pago computed properties
@@ -227,7 +236,71 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
             this.fixStepperDisplay();
           }, 150);
         });
+    } else {
+      // Handle new pedido case (no ID available)
+      this.initializeNewPedido();
     }
+  }
+
+  /**
+   * Initialize component for a new pedido (no existing ID)
+   */
+  private initializeNewPedido(): void {
+    // Reset pedido to null for new pedido
+    this.selectedPedido = null;
+    
+    // Set default values for new pedido
+    this.currentStepIndex = 0;
+    
+    // Initialize step configuration for new pedido
+    this.stepsConfig.forEach((step, index) => {
+      step.completed = false;
+      step.accessible = index === 0; // Only first step accessible for new pedido
+    });
+    
+    // Set accessibility flags
+    this.canAccessStep0 = true;
+    this.canAccessStep1 = false;
+    this.canAccessStep2 = false;
+    this.canAccessStep3 = false;
+    this.canAccessStep4 = false;
+    this.canAccessStep5 = false;
+    
+    // Reset computed summary values
+    this.computedTotalSinDescuento = 0;
+    this.computedDescuentoTotal = 0;
+    this.computedTotalConDescuento = 0;
+    this.computedCantidadItems = 0;
+    this.computedCantidadItemsCancelados = 0;
+    
+    // Reset button states
+    this.canGoToRecepcionNota = false;
+    this.canAgregarProducto = false;
+    
+    // Set default estado color
+    this.estadoColor = "primary";
+    
+    // Clear step tracking info
+    this.stepInfos.clear();
+    this.clearComputedProperties();
+    
+    // **FIX**: Initialize step controls for new pedido
+    this.step1StepControl.setValue(false);
+    this.step1StepControl.setErrors({ invalid: true });
+    this.step2StepControl.setValue(false);
+    this.step2StepControl.setErrors({ invalid: true });
+    this.step3StepControl.setValue(false);
+    this.step3StepControl.setErrors({ invalid: true });
+    this.step4StepControl.setValue(false);
+    this.step4StepControl.setErrors({ invalid: true });
+    this.step5StepControl.setValue(false);
+    this.step5StepControl.setErrors({ invalid: true });
+    
+    // CRITICAL: Set data loaded to true to hide loading spinner
+    this.isDataLoaded = true;
+    
+    // Trigger change detection
+    this.cdr.detectChanges();
   }
 
   loadPedidoDataFresh(): void {
@@ -263,6 +336,9 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
     if (!this.selectedPedido) return;
     
     const estado = this.selectedPedido.estado;
+    
+    // **FIX**: Update step controls based on current pedido state
+    this.updateStepControls();
     
     // Calculate currentStepIndex based on pedido estado
     // Note: ABIERTO and ACTIVO both represent creation phase
@@ -329,9 +405,10 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
       case PedidoEstado.ACTIVO:
       case PedidoEstado.ABIERTO:
       default:
-        // Both ABIERTO and ACTIVO allow access to creation steps (0 & 1)
+        // Both ABIERTO and ACTIVO allow access to creation steps (0)
         this.canAccessStep0 = true;
-        this.canAccessStep1 = true;
+        // **FIX**: Step 1 (Detalles del pedido) solo accesible si es válido (pedido guardado)
+        this.canAccessStep1 = this.step1FormValid;
         break;
     }
 
@@ -382,15 +459,65 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
 
     // "Siguiente" button to go to "Recepcion de nota" step is enabled when:
     // 1. Pedido exists (already checked above)
-    // 2. Pedido has at least one pedido item created
-    // 3. Current estado is in creation phase (ABIERTO or ACTIVO)
+    // 2. Step 1 (Datos del pedido) is valid (includes pedido.id existence)
+    // 3. Step 2 (Detalles del pedido) is valid (has at least one item)
+    // 4. Current estado is in creation phase (ABIERTO or ACTIVO)
     this.canGoToRecepcionNota = 
       isInCreationPhase &&
+      this.step1FormValid && // **FIX**: Step 1 must be valid (includes pedido saved with ID)
+      this.canAccessStep2 && // **FIX**: Step 2 must be valid (has items)
       this.selectedPedido.cantPedidoItem &&
       this.selectedPedido.cantPedidoItem > 0;
 
     // "Agregar producto" button is enabled when pedido is in creation phase
     this.canAgregarProducto = isInCreationPhase;
+  }
+
+  /**
+   * Update step controls based on current validation states
+   * This ensures linear stepper navigation works correctly
+   */
+  private updateStepControls(): void {
+    console.log('[EditPedido2] updateStepControls - step1FormValid:', this.step1FormValid, 'pedido ID:', this.selectedPedido?.id);
+    // Update Step 1 control based on step1FormValid
+    this.step1StepControl.setValue(this.step1FormValid);
+    if (this.step1FormValid) {
+      this.step1StepControl.setErrors(null);
+    } else {
+      this.step1StepControl.setErrors({ invalid: true });
+    }
+
+    // Update Step 2 control based on canAccessStep2
+    this.step2StepControl.setValue(this.canAccessStep2);
+    if (this.canAccessStep2) {
+      this.step2StepControl.setErrors(null);
+    } else {
+      this.step2StepControl.setErrors({ invalid: true });
+    }
+
+    // Update Step 3 control based on step3Valid
+    this.step3StepControl.setValue(this.step3Valid);
+    if (this.step3Valid) {
+      this.step3StepControl.setErrors(null);
+    } else {
+      this.step3StepControl.setErrors({ invalid: true });
+    }
+
+    // Update Step 4 control based on step4Valid
+    this.step4StepControl.setValue(this.step4Valid);
+    if (this.step4Valid) {
+      this.step4StepControl.setErrors(null);
+    } else {
+      this.step4StepControl.setErrors({ invalid: true });
+    }
+
+    // Update Step 5 control based on step5Valid
+    this.step5StepControl.setValue(this.step5Valid);
+    if (this.step5Valid) {
+      this.step5StepControl.setErrors(null);
+    } else {
+      this.step5StepControl.setErrors({ invalid: true });
+    }
   }
 
   // **NEW**: Step tracking methods
@@ -426,6 +553,7 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
 
     // Get step info first
     this.recepcionNotaStepInfo = this.getRecepcionNotaStepInfo();
+    this.recepcionMercaderiaStepInfo = this.getRecepcionMercaderiaStepInfo();
     this.currentStepTrackingInfo = this.getCurrentStepTrackingInfo();
 
     // Update computed flags for Recepcion Nota step
@@ -433,6 +561,13 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
       this.isRecepcionNotaActive = this.recepcionNotaStepInfo.status === StepStatus.IN_PROGRESS || this.recepcionNotaStepInfo.status === StepStatus.COMPLETED;
     } else {
       this.isRecepcionNotaActive = false;
+    }
+
+    // **NEW**: Update computed flags for Recepcion Mercaderia step
+    if (this.recepcionMercaderiaStepInfo) {
+      this.isRecepcionMercaderiaActive = this.recepcionMercaderiaStepInfo.status === StepStatus.IN_PROGRESS || this.recepcionMercaderiaStepInfo.status === StepStatus.COMPLETED;
+    } else {
+      this.isRecepcionMercaderiaActive = false;
     }
 
     // Update Next button tooltip for step 3
@@ -470,6 +605,8 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
     this.isRecepcionNotaActive = false;
     this.nextButtonTooltip = '';
     this.currentStepTrackingInfo = null;
+    this.recepcionMercaderiaStepInfo = null;
+    this.isRecepcionMercaderiaActive = false;
     this.recepcionMercaderiaButtonTooltip = '';
     this.solicitudPagoStepInfo = null;
     this.isSolicitudPagoActive = false;
@@ -1136,6 +1273,7 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
   }
 
   onPedidoChange(updatedPedido: Pedido): void {
+    console.log('[EditPedido2] onPedidoChange - pedido ID:', updatedPedido?.id);
     this.selectedPedido = updatedPedido;
     this.updateStepStates();
     this.updateStepAccessibility();
@@ -1145,23 +1283,62 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
     
     // CRITICAL: Update step tracking info to refresh header status
     this.updateStepTrackingInfo();
+    
+    // CRITICAL: Update step controls after pedido changes (especially for new ID)
+    this.updateStepControls();
   }
 
   onStep1FormValidChange(isValid: boolean): void {
+    console.log('[EditPedido2] onStep1FormValidChange - isValid:', isValid, 'pedido ID:', this.selectedPedido?.id);
     this.step1FormValid = isValid;
     this.canAccessStep1 = isValid;
     this.stepsConfig[0].completed = isValid;
+    
+    // **FIX**: Update step control for linear stepper navigation
+    this.step1StepControl.setValue(isValid);
+    if (isValid) {
+      this.step1StepControl.setErrors(null);
+    } else {
+      this.step1StepControl.setErrors({ invalid: true });
+    }
+    
+    // **FIX**: Update button states when step 1 validation changes
+    this.updateButtonStates();
+
+    // **NEW**: Recalculate step accessibility and controls to avoid stale states
+    this.updateStepAccessibility();
+    this.updateStepControls();
   }
 
   onStep2FormValidChange(isValid: boolean): void {
     this.canAccessStep2 = isValid;
     this.stepsConfig[1].completed = isValid;
+    
+    // **FIX**: Update step control for linear stepper navigation
+    this.step2StepControl.setValue(isValid);
+    if (isValid) {
+      this.step2StepControl.setErrors(null);
+    } else {
+      this.step2StepControl.setErrors({ invalid: true });
+    }
+    
+    // **FIX**: Update button states when step 2 validation changes
+    this.updateButtonStates();
   }
 
   onStep3ValidChange(isValid: boolean): void {
     this.step3Valid = isValid;
     // Update step completion status
     this.stepsConfig[2].completed = isValid;
+    
+    // **FIX**: Update step control for linear stepper navigation
+    this.step3StepControl.setValue(isValid);
+    if (isValid) {
+      this.step3StepControl.setErrors(null);
+    } else {
+      this.step3StepControl.setErrors({ invalid: true });
+    }
+    
     // Update computed properties since step3Valid affects nextButtonTooltip
     this.updateComputedProperties();
   }
@@ -1170,6 +1347,15 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
     this.step4Valid = isValid;
     // Update step completion status
     this.stepsConfig[3].completed = isValid;
+    
+    // **FIX**: Update step control for linear stepper navigation
+    this.step4StepControl.setValue(isValid);
+    if (isValid) {
+      this.step4StepControl.setErrors(null);
+    } else {
+      this.step4StepControl.setErrors({ invalid: true });
+    }
+    
     // Update computed properties to refresh UI state
     this.updateComputedProperties();
   }
@@ -1178,6 +1364,15 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
     this.step5Valid = isValid;
     // Update step completion status
     this.stepsConfig[4].completed = isValid;
+    
+    // **FIX**: Update step control for linear stepper navigation
+    this.step5StepControl.setValue(isValid);
+    if (isValid) {
+      this.step5StepControl.setErrors(null);
+    } else {
+      this.step5StepControl.setErrors({ invalid: true });
+    }
+    
     // Update computed properties to refresh UI state
     this.updateComputedProperties();
   }
@@ -1227,6 +1422,13 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
    */
   getRecepcionNotaStepInfo(): StepInfo | null {
     return this.stepInfos.get(PedidoStepType.RECEPCION_NOTA) || null;
+  }
+
+  /**
+   * Get step info for the Recepcion Mercaderia step
+   */
+  getRecepcionMercaderiaStepInfo(): StepInfo | null {
+    return this.stepInfos.get(PedidoStepType.RECEPCION_MERCADERIA) || null;
   }
 
   /**
@@ -1309,6 +1511,16 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
     
     // Show success message
     this.notificacionService.openSucess("Iniciando recepción de nota. Ahora puede asignar productos a notas de recepción.");
+  }
+
+  /**
+   * Begin the Recepcion Mercaderia step
+   */
+  beginRecepcionMercaderiaStep(): void {
+    this.beginStep(PedidoStepType.RECEPCION_MERCADERIA);
+    
+    // Show success message
+    this.notificacionService.openSucess("Iniciando recepción de mercadería. Ahora puede verificar los productos recibidos.");
   }
 
   /**

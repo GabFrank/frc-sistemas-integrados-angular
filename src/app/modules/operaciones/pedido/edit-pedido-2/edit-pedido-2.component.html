@@ -191,14 +191,15 @@
       #stepper
       class="full-height-stepper"
       orientation="horizontal"
-      linear="false"
+      linear="true"
       [selectedIndex]="currentStepIndex"
     >
       <!-- Step 1: Datos del pedido -->
       <mat-step
-        [stepControl]="null"
-        [editable]="canAccessStep0"
+        [stepControl]="step1StepControl"
+        [editable]="true"
         [completed]="stepsConfig[0].completed"
+        [optional]="false"
       >
         <ng-template matStepLabel>
           <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
@@ -236,9 +237,10 @@
 
       <!-- Step 2: Detalles del pedido -->
       <mat-step
-        [stepControl]="null"
+        [stepControl]="step2StepControl"
         [editable]="canAccessStep1"
         [completed]="stepsConfig[1].completed"
+        [optional]="false"
       >
         <ng-template matStepLabel>
           <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
@@ -280,7 +282,13 @@
       </mat-step>
 
       <!-- Step 3: Recepción de Nota -->
-      <mat-step label="Recepción de Nota" [stepControl]="dummyStepControl">
+      <mat-step 
+        label="Recepción de Nota" 
+        [stepControl]="step3StepControl"
+        [editable]="canGoToRecepcionNota"
+        [completed]="stepsConfig[2].completed"
+        [optional]="false">
+      
         <div class="step-content" fxLayout="column" fxFill>
 
           <!-- Step initialization UI -->
@@ -324,9 +332,10 @@
 
       <!-- Step 4: Recepción de mercadería -->
       <mat-step
-        [stepControl]="dummyStepControl"
+        [stepControl]="step4StepControl"
         [editable]="canAccessStep3"
         [completed]="stepsConfig[3].completed"
+        [optional]="false"
       >
         <ng-template matStepLabel>
           <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
@@ -336,9 +345,20 @@
         </ng-template>
 
         <div class="step-content" fxLayout="column" fxFill>
-          <!-- Main Content - Only show when step is accessible -->
+
+          <!-- Step initialization UI -->
+          <app-step-initialization
+            *ngIf="!isRecepcionMercaderiaActive && canAccessStep3"
+            [stepInfo]="recepcionMercaderiaStepInfo"
+            [isProcessing]="false"
+            customActionText="Iniciar Recepción de Mercadería"
+            (initiateStep)="beginRecepcionMercaderiaStep()"
+            style="flex: 1; min-height: 0;">
+          </app-step-initialization>
+
+          <!-- Main Content - Only show when step is active -->
           <app-recepcion-mercaderia 
-            *ngIf="canAccessStep3"
+            *ngIf="isRecepcionMercaderiaActive"
             [pedido]="selectedPedido"
             (pedidoChange)="onPedidoChange($event)"
             (stepValidChange)="onStep4ValidChange($event)"
@@ -383,9 +403,10 @@
 
       <!-- Step 5: Solicitud de pago -->
       <mat-step
-        [stepControl]="null"
+        [stepControl]="step5StepControl"
         [editable]="canAccessStep4"
         [completed]="stepsConfig[4].completed"
+        [optional]="false"
       >
         <ng-template matStepLabel>
           <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
