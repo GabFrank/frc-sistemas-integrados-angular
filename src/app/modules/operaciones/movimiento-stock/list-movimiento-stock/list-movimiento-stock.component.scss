@@ -92,3 +92,25 @@ input {
   color: #ff9800; 
   font-weight: bold;
 }
+
+.info-container {
+  width: 100%;
+  text-align: center;
+  background-color: rgb(52, 52, 52);
+  padding: 8px;
+  margin-top: 10px;
+}
+
+.detalle-container {
+  width: 100%;
+  text-align: center;
+  background-color: rgb(52, 52, 52);
+  padding: 10px;
+}
+
+.movimiento-container {
+  padding-top: 20px;
+  padding-bottom: 20px;
+  width: 100%;
+  background-color: rgb(32, 32, 32);
+}
