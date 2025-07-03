@@ -472,64 +472,138 @@ export class ListMovimientoStockComponent implements OnInit {
     }
 
     if (movimiento.data == null) {
-      switch (movimiento.tipoMovimiento) {
-        case TipoMovimiento.VENTA:
-          this.ventaService
-            .onGetVentaItemPorId(movimiento.referencia, movimiento.sucursalId)
-            .subscribe((ventaItem) => {
-              if (ventaItem != null) {
-                this.ventaService
-                  .onGetPorId(ventaItem.venta.id, ventaItem.sucursalId)
-                  .subscribe((venta) => {
-                    movimiento.data = {};
-                    movimiento.data["venta"] = venta;
-                    movimiento.data["totales"] = this.getTotales(venta);
-                    console.log(movimiento.data);
-                  });
-              } else {
-              }
-            });
-          break;
-        case TipoMovimiento.TRANSFERENCIA:
-          this.transferenciaService
-            .onGetTransferenciaItem(movimiento.referencia)
-            .subscribe((res) => {
-              if (res != null) {
-                console.log(res);
+      if (movimiento.tipoMovimiento !== TipoMovimiento.AJUSTE) {
+        this.obtenerStockAnteriorYProcesarMovimiento(movimiento, index);
+      } else {
+        this.service.onGetStockAntesDeFecha(
+          movimiento.producto.id,
+          movimiento.sucursalId,
+          this.formatearFechaParaBackend(movimiento.creadoEn)
+        ).subscribe({
+          next: (stockPrevio) => {
+            console.log('Stock previo obtenido:', stockPrevio, 'para movimiento:', movimiento.id);
+            this.procesarMovimientoConStock(movimiento, index, stockPrevio || 0);
+          },
+          error: (error) => {
+            console.error('Error al obtener stock anterior:', error);
+            this.procesarMovimientoConStock(movimiento, index, 0);
+          }
+        });
+      }
+    }
+  }
 
-                movimiento.data = res;
-              }
-            });
-          break;
+  obtenerStockAnteriorYProcesarMovimiento(movimiento: MovimientoStock, index: number) {
+    const fechaFormateada = this.formatearFechaParaBackend(movimiento.creadoEn);
+    this.service.onGetStockAntesDeFecha(
+      movimiento.producto.id,
+      movimiento.sucursalId,
+      fechaFormateada
+    ).subscribe({
+      next: (stockPrevio) => {
+        this.procesarMovimientoConStockAnterior(movimiento, index, stockPrevio || 0);
+      },
+      error: (error) => {
+        console.error('Error al obtener stock anterior para movimiento:', movimiento.tipoMovimiento, error);
+        this.procesarMovimientoConStockAnterior(movimiento, index, 0);
+      }
+    });
+  }
 
-        case TipoMovimiento.AJUSTE:          
-          this.service.onGetStockAntesDeFecha(
-            movimiento.producto.id,
-            movimiento.sucursalId,
-            this.formatearFechaParaBackend(movimiento.creadoEn)
-          ).subscribe({
-            next: (stockPrevio) => {
-              console.log('Stock previo obtenido:', stockPrevio, 'para movimiento:', movimiento.id);
-              this.procesarMovimientoConStock(movimiento, index, stockPrevio || 0);
-            },
-            error: (error) => {
-              console.error('Error al obtener stock anterior:', error);
-              // Usar 0 como fallback si no se puede obtener el stock anterior
-              this.procesarMovimientoConStock(movimiento, index, 0);
+  procesarMovimientoConStockAnterior(movimiento: MovimientoStock, index: number, stockPrevio: number) {
+    switch (movimiento.tipoMovimiento) {
+      case TipoMovimiento.VENTA:
+        this.ventaService
+          .onGetVentaItemPorId(movimiento.referencia, movimiento.sucursalId)
+          .subscribe((ventaItem) => {
+            if (ventaItem != null) {
+              this.ventaService
+                .onGetPorId(ventaItem.venta.id, ventaItem.sucursalId)
+                .subscribe((venta) => {
+                  movimiento.data = {
+                    venta: venta,
+                    totales: this.getTotales(venta),
+                    stockAnterior: stockPrevio,
+                    stockFinal: stockPrevio + movimiento.cantidad
+                  };
+                  console.log('Data de venta con stock anterior:', movimiento.data);
+                  this.dataSource.data = updateDataSource(
+                    this.dataSource.data,
+                    movimiento,
+                    index
+                  );
+                });
+            } else {
+              // Si no se encuentra el venta item, crear data básica
+              movimiento.data = {
+                stockAnterior: stockPrevio,
+                stockFinal: stockPrevio + movimiento.cantidad
+              };
+              this.dataSource.data = updateDataSource(
+                this.dataSource.data,
+                movimiento,
+                index
+              );
             }
           });
-          break;
+        break;
 
-        default:
-          break;
-      }
-      if (movimiento.data != null && movimiento.tipoMovimiento !== TipoMovimiento.AJUSTE) {
+      case TipoMovimiento.TRANSFERENCIA:
+        this.transferenciaService
+          .onGetTransferenciaItem(movimiento.referencia)
+          .subscribe((res) => {
+            if (res != null) {
+              movimiento.data = {
+                ...res,
+                stockAnterior: stockPrevio,
+                stockFinal: stockPrevio + movimiento.cantidad
+              };
+              console.log('Data de transferencia con stock anterior:', movimiento.data);
+              } else {
+              movimiento.data = {
+                stockAnterior: stockPrevio,
+                stockFinal: stockPrevio + movimiento.cantidad
+              };
+            }
+            this.dataSource.data = updateDataSource(
+              this.dataSource.data,
+              movimiento,
+              index
+            );
+          });
+        break;
+
+      case TipoMovimiento.COMPRA:
+      case TipoMovimiento.DEVOLUCION:
+      case TipoMovimiento.DESCARTE:
+      case TipoMovimiento.CALCULO:
+      case TipoMovimiento.ENTRADA:
+      case TipoMovimiento.SALIDA:
+        movimiento.data = {
+          tipo: movimiento.tipoMovimiento,
+          referencia: movimiento.referencia,
+          stockAnterior: stockPrevio,
+          stockFinal: stockPrevio + movimiento.cantidad
+        };
+        console.log(`Data de ${movimiento.tipoMovimiento} con stock anterior:`, movimiento.data);
         this.dataSource.data = updateDataSource(
           this.dataSource.data,
           movimiento,
           index
         );
-      }
+        break;
+
+      default:
+        movimiento.data = {
+          stockAnterior: stockPrevio,
+          stockFinal: stockPrevio + movimiento.cantidad
+        };
+        this.dataSource.data = updateDataSource(
+          this.dataSource.data,
+          movimiento,
+          index
+        );
+        break;
     }
   }
 

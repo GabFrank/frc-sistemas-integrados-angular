@@ -339,27 +339,20 @@ export class ListVentaCreditoComponent implements OnInit {
                 this.notificacionService.openSucess(
                   "Venta a crédito cancelada con éxito"
                 );
-                // Guardamos los ids actualmente seleccionados para restaurarlos luego
                 const selectedIds: number[] = this.selection.selected.map((vc: VentaCredito) => vc.id);
 
-                // Aseguramos que el item cancelado permanezca seleccionado si ya lo estaba
                 if (this.selection.isSelected(ventaCredito) && !selectedIds.includes(ventaCredito.id)) {
                   selectedIds.push(ventaCredito.id);
                 }
 
-                // Refrescamos los datos desde el servidor y restauramos la selección
                 this.onFiltrar().then(() => {
-                  // Limpiamos la selección actual
                   this.selection.clear();
 
-                  // Restauramos las filas que estaban seleccionadas
                   this.dataSource.data.forEach((row) => {
                     if (selectedIds.includes(row.id)) {
                       this.selection.select(row);
                     }
                   });
-
-                  // Recalculamos los estados para habilitar/deshabilitar botones
                   this.verificarEstados();
                 });
               } else {

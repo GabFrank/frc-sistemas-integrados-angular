@@ -353,7 +353,7 @@
             <div *ngIf="movimiento?.tipoMovimiento === 'AJUSTE'" class="ajuste-stock">
               <span style="color: #ffffff;">
                 {{ (movimiento?.cantidad >= 0 ? '+' : '') }}
-                {{ movimiento?.cantidad | number : "1.0-2" }}
+            {{ movimiento?.cantidad | number : "1.0-2" }}
               </span>
               <span *ngIf="movimiento?.data?.cantidadPrevia !== undefined" 
                 class="cantidad-previa"
@@ -459,6 +459,7 @@
                     style="width: 100%; text-align: center; padding: 10px"
                   >
                     <br />
+                    
                     <div
                       fxFlex="5%"
                       style="
@@ -690,6 +691,33 @@
                         }}
                       </div>
                     </div>
+                    
+                    <!-- Información de Stock al final -->
+                    <div *ngIf="movimiento?.data?.stockAnterior !== undefined"
+                      fxFlex="5%"
+                      class="info-container"
+                    >
+                      <div fxLayout="row" fxLayoutAlign="space-around center" fxLayoutGap="20px">
+                        <div fxLayout="column" fxLayoutAlign="center center">
+                          <div class="titulo" style="font-size: 0.9em;">Stock Anterior</div>
+                          <div style="color: #2196f3; font-weight: bold;">
+                            {{ movimiento?.data?.stockAnterior | number : "1.0-2" }}
+                          </div>
+                        </div>
+                        <div fxLayout="column" fxLayoutAlign="center center">
+                          <div class="titulo" style="font-size: 0.9em;">Movimiento</div>
+                          <div [style.color]="movimiento?.cantidad >= 0 ? '#4caf50' : '#f44336'" style="font-weight: bold;">
+                            {{ (movimiento?.cantidad >= 0 ? '+' : '') }}{{ movimiento?.cantidad | number : "1.0-2" }}
+                          </div>
+                        </div>
+                        <div fxLayout="column" fxLayoutAlign="center center">
+                          <div class="titulo" style="font-size: 0.9em;">Stock Final</div>
+                          <div class="titulo"style="font-weight: bold;">
+                            {{ movimiento?.data?.stockFinal | number : "1.0-2" }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </ng-container>
@@ -697,53 +725,78 @@
                 *ngIf="movimiento.tipoMovimiento == 'TRANSFERENCIA'"
               >
                 <div
-                  style="
-                    padding-top: 20px;
-                    padding-bottom: 20px;
-                    width: 100%;
-                    background-color: rgb(32, 32, 32);
-                  "
-                  fxLayout="row"
-                  fxLayoutAlign="start center"
+                  class="movimiento-container"
+                  fxLayout="column"
+                  fxLayoutGap="15px"
                 >
-                  <div fxFlex="20">
-                    <div fxLayout="row" fxLayoutAlign="space-between center">
-                      <div class="titulo" style="padding: 5px">
-                        Id de transferencia:
-                      </div>
-                      <div style="padding: 5px">
-                        {{ movimiento.data?.transferencia?.id }}
-                      </div>
-                    </div>
-                    <div fxLayout="row" fxLayoutAlign="space-between center">
-                      <div class="titulo" style="padding: 5px">
-                        Fecha de transferencia:
-                      </div>
-                      <div style="padding: 5px">
-                        {{ movimiento.data?.transferencia?.creadoEn | date: 'short' }}
-                      </div>
-                    </div>
+                  <div
+                    fxFlex="5%"
+                    class="detalle-container"
+                  >
+                    Detalle de la Transferencia de Stock
                   </div>
-                  <div fxFlex="20">
-                    <div fxLayout="row" fxLayoutAlign="space-between center">
-                      <div class="titulo" style="padding: 5px">
-                        Suc. Origen:
+
+                  <div fxLayout="row" fxLayoutGap="20px" style="padding: 0 20px;">
+                    <!-- Información del Producto y Sucursales -->
+                    <div fxFlex="40">
+                      <div 
+                        fxLayout="row" 
+                        fxLayoutAlign="space-between center" 
+                        class="info-stock"
+                      >
+                        <div class="titulo">Sucursal Origen:</div>
+                        <div>{{ movimiento.data?.transferencia?.sucursalOrigen?.nombre | uppercase }}</div>
                       </div>
-                      <div style="padding: 5px">
-                        {{
-                          movimiento.data?.transferencia?.sucursalOrigen?.nombre
-                        }}
+                      <div 
+                        fxLayout="row" 
+                        fxLayoutAlign="space-between center" 
+                        class="info-stock"
+                      >
+                        <div class="titulo">Sucursal Destino:</div>
+                        <div>{{ movimiento.data?.transferencia?.sucursalDestino?.nombre | uppercase }}</div>
+                      </div>
+                      <div 
+                        fxLayout="row" 
+                        fxLayoutAlign="space-between center" 
+                        class="info-stock"
+                      >
+                        <div class="titulo">Id Transferencia:</div>
+                        <div>{{ movimiento.data?.transferencia?.id }}</div>
                       </div>
                     </div>
-                    <div fxLayout="row" fxLayoutAlign="space-between center">
-                      <div class="titulo" style="padding: 5px">
-                        Suc. Destino:
+
+                    <!-- Información de Cantidades -->
+                    <div fxFlex="40">
+                      <div 
+                        fxLayout="row" 
+                        fxLayoutAlign="space-between center" 
+                        class="info-stock"
+                      >
+                        <div class="titulo">Stock Anterior:</div>
+                        <div style="color: #2196f3;">
+                          {{ movimiento?.data?.stockAnterior | number : '1.0-2' }}
+                        </div>
                       </div>
-                      <div style="padding: 5px">
-                        {{
-                          movimiento.data?.transferencia?.sucursalDestino
-                            ?.nombre
-                        }}
+                      <div 
+                        fxLayout="row" 
+                        fxLayoutAlign="space-between center" 
+                        class="info-stock"
+                      >
+                        <div class="titulo">Transferido:</div>
+                        <div [style.color]="movimiento?.cantidad >= 0 ? '#4caf50' : '#f44336'">
+                          {{ (movimiento?.cantidad >= 0 ? '+' : '') }}
+                          {{ movimiento?.cantidad | number : '1.0-2' }}
+                        </div>
+                      </div>
+                      <div 
+                        fxLayout="row" 
+                        fxLayoutAlign="space-between center" 
+                        class="info-stock"
+                      >
+                        <div class="titulo" style="font-weight: bold;">Stock Final:</div>
+                        <div class="stock-final">
+                          {{ movimiento?.data?.stockFinal | number : '1.0-2' }}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -751,24 +804,14 @@
               </ng-container>
               <ng-container *ngIf="movimiento.tipoMovimiento == 'AJUSTE'">
                 <div
-                  style="
-                    padding-top: 20px;
-                    padding-bottom: 20px;
-                    width: 100%;
-                    background-color: rgb(32, 32, 32);
-                  "
+                  class="movimiento-container"
                   fxLayout="column"
                   fxLayoutGap="15px"
                 >
-                                    <div
+                  <div
                     fxFlex="5%"
-                    style="
-                      width: 100%;
-                      text-align: center;
-                      background-color: rgb(52, 52, 52);
-                      padding: 10px;
-                    "
-                  >
+                    class="detalle-container"
+                >
                     Detalle del Ajuste de Stock
                   </div>
                   
@@ -832,6 +875,104 @@
                         <div class="titulo" style="font-weight: bold;">Stock Final:</div>
                         <div class="stock-final">
                           {{ movimiento?.data?.cantidadFinal | number : "1.0-2" }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </ng-container>
+              
+              <!-- Sección genérica para otros tipos de movimientos -->
+              <ng-container *ngIf="movimiento.tipoMovimiento == 'COMPRA' || 
+                                   movimiento.tipoMovimiento == 'DEVOLUCION' || 
+                                   movimiento.tipoMovimiento == 'DESCARTE' || 
+                                   movimiento.tipoMovimiento == 'CALCULO' || 
+                                   movimiento.tipoMovimiento == 'ENTRADA' || 
+                                   movimiento.tipoMovimiento == 'SALIDA'">
+                <div
+                  class="movimiento-container"
+                  fxLayout="column"
+                  fxLayoutGap="15px"
+                >
+                  <div
+                    fxFlex="5%"
+                    class="detalle-container"
+                  >
+                    Detalle del Movimiento - {{ movimiento?.tipoMovimiento | titlecase }}
+                  </div>
+                  
+                  <div fxLayout="row" fxLayoutGap="20px" style="padding: 0 20px;">
+                    <!-- Información del Producto y Sucursal -->
+                    <div fxFlex="50">
+                      <div 
+                        fxLayout="row" 
+                        fxLayoutAlign="space-between center" 
+                        style="padding: 8px 0;"
+                      >
+                        <div class="titulo">Producto:</div>
+                        <div>{{ movimiento?.producto?.descripcion | titlecase }}</div>
+                      </div>
+                      <div 
+                        fxLayout="row" 
+                        fxLayoutAlign="space-between center" 
+                        style="padding: 8px 0;"
+                      >
+                        <div class="titulo">Sucursal:</div>
+                        <div>{{ movimiento?.sucursal?.nombre | uppercase }}</div>
+                      </div>
+                    </div>
+                    
+                    <div fxFlex="50">
+                      <div 
+                        fxLayout="row" 
+                        fxLayoutAlign="space-between center" 
+                        style="padding: 8px 0;"
+                      >
+                        <div class="titulo">Tipo:</div>
+                        <div>{{ movimiento?.tipoMovimiento | titlecase }}</div>
+                      </div>
+                      <div 
+                        fxLayout="row" 
+                        fxLayoutAlign="space-between center" 
+                        style="padding: 8px 0;"
+                        *ngIf="movimiento?.data?.referencia"
+                      >
+                        <div class="titulo">Referencia:</div>
+                        <div>{{ movimiento?.data?.referencia }}</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div *ngIf="movimiento?.data?.stockAnterior !== undefined"
+                    fxFlex="5%"
+                    class="info-container"
+                  >
+                    <div 
+                      fxLayout="row" 
+                      fxLayoutAlign="space-around center" 
+                      fxLayoutGap="20px"
+                    >
+                      <div fxLayout="column" fxLayoutAlign="center center">
+                        <div class="titulo" style="font-size: 0.9em;">Stock Anterior</div>
+                        <div style="color: #2196f3; font-weight: bold;">
+                          {{ movimiento?.data?.stockAnterior | number : "1.0-2" }}
+                        </div>
+                      </div>
+                      <div fxLayout="column" fxLayoutAlign="center center">
+                        <div class="titulo" style="font-size: 0.9em;">Movimiento</div>
+                        <div 
+                          [style.color]="movimiento?.cantidad >= 0 ? 
+                          '#4caf50' : '#f44336'" 
+                          style="font-weight: bold;"
+                        >
+                          {{ (movimiento?.cantidad >= 0 ? '+' : '') }}
+                          {{ movimiento?.cantidad | number : "1.0-2" }}
+                        </div>
+                      </div>
+                      <div fxLayout="column" fxLayoutAlign="center center">
+                        <div class="titulo" style="font-size: 0.9em;">Stock Final</div>
+                        <div class="titulo" style="font-weight: bold;">
+                          {{ movimiento?.data?.stockFinal | number : "1.0-2" }}
                         </div>
                       </div>
                     </div>
