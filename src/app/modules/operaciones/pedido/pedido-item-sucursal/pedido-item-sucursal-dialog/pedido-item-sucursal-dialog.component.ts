@@ -73,6 +73,11 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
 
   // Track quantity changes for embedded mode
   private quantityWasChanged: boolean = false;
+  
+  // Save button state
+  isSaveButtonEnabled: boolean = false;
+
+  private updateComputedPropertiesTimeout: any;
 
   constructor(
     @Optional() @Inject(MAT_DIALOG_DATA)
@@ -188,6 +193,10 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
     
     // Use computed properties instead of direct field access
     this.updateComputedProperties();
+    // throw error if presentacionComputed is null
+    if (!this.presentacionComputed) {
+      throw new Error('presentacionComputed is null');
+    }
     pedidoItemSucursal.cantidadPorUnidad = this.cantidadComputed * (this.presentacionComputed?.cantidad || 1);
     pedidoItemSucursal.usuario = this.mainService.usuarioActual;
     this.pedidoItemSucursalService.onSavePedidoItemSucursal(pedidoItemSucursal.toInput()).subscribe(res => {
@@ -200,26 +209,34 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
   }
 
   private updateComputedProperties(): void {
+    // **PERFORMANCE**: Debounce update to prevent excessive calls
+    this.updateComputedPropertiesDebounced();
+  }
+
+  private updateComputedPropertiesImmediate(): void {
     if (this.selectedPedidoItem) {
-      // **DEBUG**: Log pedido estado to ensure it's available
-      console.log('🔍 [SucursalDialog] updateComputedProperties()');
-      console.log('🔍 [SucursalDialog] selectedPedidoItem.pedido?.estado:', this.selectedPedidoItem.pedido?.estado);
-      
       // Determine current step from pedido estado
       this.currentStepComputed = this.pedidoService.getCurrentStepFromPedidoEstado(this.selectedPedidoItem.pedido?.estado);
       
       // Get estado-specific values using helper methods
       this.presentacionComputed = this.selectedPedidoItem.getFieldValueForEstado('presentacion', this.selectedPedidoItem.pedido?.estado);
       this.cantidadComputed = this.selectedPedidoItem.getFieldValueForEstado('cantidad', this.selectedPedidoItem.pedido?.estado);
-
-      console.log('🔍 [SucursalDialog] presentacionComputed:', this.presentacionComputed);
-      console.log('🔍 [SucursalDialog] cantidadComputed:', this.cantidadComputed);
       
       // Recalculate cantAgregada to ensure UI shows correct values
       if (this.cantidadControls && this.cantidadControls.length > 0) {
         this.calcularCantAdicionada();
       }
     }
+  }
+
+  private updateComputedPropertiesDebounced(): void {
+    if (this.updateComputedPropertiesTimeout) {
+      clearTimeout(this.updateComputedPropertiesTimeout);
+    }
+    
+    this.updateComputedPropertiesTimeout = setTimeout(() => {
+      this.updateComputedPropertiesImmediate();
+    }, 10); // 10ms debounce - shorter delay since this affects UI state
   }
 
   // Getters for template
@@ -336,7 +353,10 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
       if (this.embeddedIsReadOnly) {
         cantidadControl.disable();
       } else {
-        cantidadControl.valueChanges.subscribe(() => this.calcularCantAdicionada());
+        cantidadControl.valueChanges.subscribe(() => {
+          this.calcularCantAdicionada();
+          this.updateSaveButtonState();
+        });
       }
       this.cantidadControls.push(cantidadControl);
 
@@ -349,6 +369,10 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
       // **NEW**: Disable control if in read-only mode
       if (this.embeddedIsReadOnly) {
         sucursalEntregaControl.disable();
+      } else {
+        sucursalEntregaControl.valueChanges.subscribe(() => {
+          this.updateSaveButtonState();
+        });
       }
       this.sucursalEntregaControls.push(sucursalEntregaControl);
       
@@ -359,6 +383,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
 
     this.sucursalEntregaLoaded = true;
     this.calcularCantAdicionada();
+    this.updateSaveButtonState();
   }
 
   // Focus management methods
@@ -474,8 +499,9 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
         // The first sucursal gets the base plus the remainder; others get the base value.
         const cantidadAsignada = index === 0 ? base + remainder : base;
         this.cantidadControls[index].setValue(cantidadAsignada);
-        this.calcularCantAdicionada();
       });
+      this.calcularCantAdicionada();
+      this.updateSaveButtonState();
     }
   }
 
@@ -503,6 +529,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
     } else {
       control.valueChanges.subscribe(() => {
         this.calcularCantAdicionada();
+        this.updateSaveButtonState();
       });
     }
     
@@ -516,6 +543,10 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
     // **NEW**: Disable control if in read-only mode
     if (this.embeddedIsReadOnly) {
       sucursalEntregaControl.disable();
+    } else {
+      sucursalEntregaControl.valueChanges.subscribe(() => {
+        this.updateSaveButtonState();
+      });
     }
     
     this.sucursalEntregaControls.push(sucursalEntregaControl);
@@ -555,6 +586,9 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
     // Update navigation state arrays
     this.selectOpenStates.push(false);
     this.selectEnterCounts.push(0);
+    
+    // Update save button state
+    this.updateSaveButtonState();
   }
 
   cantidadesSegunMovimiento() {
@@ -611,6 +645,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
       });
 
       this.calcularCantAdicionada();
+      this.updateSaveButtonState();
     });
   }
 
@@ -659,13 +694,20 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
   }
 
   private updatePedidoItemQuantityAndSave(newQuantity: number): void {
-    // Update the quantity in the pedido item using estado-specific fields
-    this.selectedPedidoItem.setFieldValueForEstado('cantidad', newQuantity, this.selectedPedidoItem.pedido?.estado);
+    // throw error if currentPresentacion is null
+    if (!this.currentPresentacion) {
+      throw new Error('currentPresentacion is null');
+    }
     
     // Also update valorTotal if needed
     const cantidadPresentacion = this.currentPresentacion?.cantidad || 1;
     const precioUnitario = this.selectedPedidoItem.getFieldValueForEstado('precioUnitario', this.selectedPedidoItem.pedido?.estado) || 0;
     const descuentoUnitario = this.selectedPedidoItem.getFieldValueForEstado('descuentoUnitario', this.selectedPedidoItem.pedido?.estado) || 0;
+
+
+    // Update the quantity in the pedido item using estado-specific fields
+    this.selectedPedidoItem.setFieldValueForEstado('cantidad', newQuantity, this.selectedPedidoItem.pedido?.estado);
+
     
     // Calculate new total value
     const newValorTotal = (newQuantity * cantidadPresentacion) * (precioUnitario - descuentoUnitario);
@@ -693,9 +735,20 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
     // Save the updated pedido item to database
     this.pedidoService.onSaveItem(this.selectedPedidoItem.toInput()).subscribe({
       next: (savedItem) => {
+        // **FIX**: Preserve the pedido reference before Object.assign overwrites it
+        const originalPedido = this.selectedPedidoItem.pedido;
+        
         // Update the local reference with saved data
         Object.assign(this.selectedPedidoItem, savedItem);
-        this.updateComputedProperties();
+        
+        // **FIX**: Restore the pedido reference after Object.assign
+        this.selectedPedidoItem.pedido = originalPedido;
+        
+        // **FIX**: Call updateComputedPropertiesImmediate() synchronously to ensure
+        // currentPresentacion is updated before proceedWithSave() is called
+        // This solves the bug where cantidadPorUnidad was saved as presentations instead of units
+        // because currentPresentacion was null due to the debounce delay in updateComputedProperties()
+        this.updateComputedPropertiesImmediate();
         
         // Emit the updated pedidoItem for two-way binding
         if (this.isEmbedded) {
@@ -758,7 +811,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
 
           const pedidoItemSucursal = new PedidoItemSucursal();
           Object.assign(pedidoItemSucursal, item);
-          pedidoItemSucursal.cantidadPorUnidad = cantidad * (this.currentPresentacion?.cantidad || 1);
+                      pedidoItemSucursal.cantidadPorUnidad = cantidad * (this.currentPresentacion?.cantidad || 1);
           pedidoItemSucursal.sucursalEntrega = sucursalEntrega;
           
           saveOperations.push(
@@ -799,7 +852,26 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
     if (saveOperations.length > 0) {
       forkJoin(saveOperations).subscribe({
         next: (results) => {
+          // Update local items with saved data (including new IDs)
+          let resultIndex = 0;
+          for (let i = 0; i < this.pedidoItemSucursalList.length; i++) {
+            const item = this.pedidoItemSucursalList[i];
+            const cantidad = this.cantidadControls[i].value;
+            const sucursalEntrega = this.sucursalEntregaControls[i].value;
+            
+            if (cantidad > 0 && sucursalEntrega && resultIndex < results.length) {
+              // Update the local item with the saved data
+              Object.assign(item, results[resultIndex]);
+              resultIndex++;
+            }
+          }
+          
+          // Update existingPedidoItemSucursales to reflect the current saved state
+          this.existingPedidoItemSucursales = [...this.pedidoItemSucursalList.filter(item => item.id)];
+          
           this.notificacionService.openSucess("Distribución guardada correctamente");
+          // Update save button state after successful save
+          this.updateSaveButtonState();
           if (this.isEmbedded) {
             this.embeddedSaved.emit({success: true, updatedPedidoItem: this.selectedPedidoItem, quantityChanged: this.quantityWasChanged});
           } else {
@@ -813,6 +885,8 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
       });
     } else {
       // No operations to save, just close
+      // Update save button state
+      this.updateSaveButtonState();
       if (this.isEmbedded) {
         this.embeddedSaved.emit({success: true, updatedPedidoItem: this.selectedPedidoItem, quantityChanged: this.quantityWasChanged});
       } else {
@@ -828,6 +902,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
         this.sucursalEntregaControls.forEach((control, index) => {
           control.setValue(sucursal);
         });
+        this.updateSaveButtonState();
       }
     });
   }
@@ -843,6 +918,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
           this.cantidadControls.splice(index, 1);
           this.sucursalEntregaControls.splice(index, 1);
           this.calcularCantAdicionada();
+          this.updateSaveButtonState();
           this.notificacionService.openSucess('Elemento eliminado correctamente');
         },
         error: (error) => {
@@ -855,6 +931,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
       this.cantidadControls.splice(index, 1);
       this.sucursalEntregaControls.splice(index, 1);
       this.calcularCantAdicionada();
+      this.updateSaveButtonState();
     }
   }
 
@@ -880,6 +957,46 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit,
   // **NEW**: Getter to check if action buttons should be visible
   get showActionButtons(): boolean {
     return !this.embeddedIsReadOnly;
+  }
+
+  // **NEW**: Method to update save button state
+  private updateSaveButtonState(): void {
+    if (this.embeddedIsReadOnly || !this.sucursalEntregaLoaded) {
+      this.isSaveButtonEnabled = false;
+      return;
+    }
+    
+    // Check if there are any items with quantity > 0 that need to be saved
+    let hasChangesToSave = false;
+    
+    for (let i = 0; i < this.pedidoItemSucursalList.length; i++) {
+      const item = this.pedidoItemSucursalList[i];
+      const cantidad = this.cantidadControls[i]?.value || 0;
+      const sucursalEntrega = this.sucursalEntregaControls[i]?.value;
+      
+      if (cantidad > 0 && sucursalEntrega) {
+        // Check if this is a new item (no id) or if values have changed
+        if (!item.id) {
+          // New item with quantity > 0
+          hasChangesToSave = true;
+          break;
+        } else {
+          // Existing item - check if values have changed
+          const originalCantidad = item.cantidadPorUnidad / (this.currentPresentacion?.cantidad || 1);
+          const currentCantidad = cantidad;
+          const originalSucursalEntrega = item.sucursalEntrega;
+          const currentSucursalEntrega = sucursalEntrega;
+          
+          if (originalCantidad !== currentCantidad || 
+              originalSucursalEntrega?.id !== currentSucursalEntrega?.id) {
+            hasChangesToSave = true;
+            break;
+          }
+        }
+      }
+    }
+    
+    this.isSaveButtonEnabled = hasChangesToSave;
   }
 
   ngOnChanges(changes: SimpleChanges) {

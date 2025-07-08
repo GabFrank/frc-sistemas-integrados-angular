@@ -60,6 +60,7 @@ import { A11yModule } from '@angular/cdk/a11y';
 import { ConfiguracionFullDialogComponent } from './components/configuracion-full-dialog/configuracion-full-dialog.component';
 import { ConfiguracionDialogComponent } from './components/configuracion-dialog/configuracion-dialog.component';
 import { SideMiniVariantComponent } from './components/side-mini-variant/side-mini-variant.component';
+import { CellFormatPipe } from '../commons/core/pipes/cell-format.pipe';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -105,7 +106,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     DataDisplayComponent,
     ConfiguracionFullDialogComponent,
     ConfiguracionDialogComponent,
-    SideMiniVariantComponent
+    SideMiniVariantComponent,
+    CellFormatPipe
   ],
   imports: [
     CommonModule,
@@ -155,7 +157,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     NgxSpinnerModule,
     DataDisplayComponent,
     A11yModule,
-    ConfiguracionDialogComponent
+    ConfiguracionDialogComponent,
+    CellFormatPipe
   ],
   providers: [NgxImageCompressService, provideEnvironmentNgxMask(options), DecimalPipe, MatTooltip, TitleCasePipe, DatePipe, EnumToStringPipe]
 })

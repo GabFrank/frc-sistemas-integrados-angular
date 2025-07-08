@@ -33,6 +33,7 @@ export const proveedoresSearchByPersona = gql`
         id
         nombre
         documento
+        apodo
       }
       vendedores {
         id
@@ -40,6 +41,7 @@ export const proveedoresSearchByPersona = gql`
           id
           nombre
           documento
+          apodo
         }
       }
       credito

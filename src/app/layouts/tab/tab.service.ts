@@ -72,7 +72,9 @@ export class TabService implements OnInit {
     // this.addTab(new Tab(EditPedidoComponent, 'Pedido 1', new TabData(1, {id: 1}), null))
     // Test both components - remove one when testing the other
     // this.addTab(new Tab(EditPedidoComponent, 'Pedido 2 (Original)', new TabData(2, {id: 2}), null))
-    this.addTab(new Tab(EditPedido2Component, 'Pedido 5', new TabData(5, {id: 5}), null))
+    // this.addTab(new Tab(EditPedido2Component, 'Pedido 14', new TabData(14, {id: 14}), null))
+    // open edit pedido 2 for a new pedido
+    this.addTab(new Tab(EditPedido2Component, 'Nuevo Pedido', null, null))
     this.tabSub.next(this.tabs);
   }
   

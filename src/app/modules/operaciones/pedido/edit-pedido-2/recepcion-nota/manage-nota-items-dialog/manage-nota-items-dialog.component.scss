@@ -287,12 +287,8 @@
 
 .items-table {
   width: 100%;
-  background-color: rgba(255, 255, 255, 0.05);
   
   th {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #f57c00;
-    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
@@ -366,37 +362,37 @@
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
 
-  button {
-    min-width: 120px;
-    height: 42px;
-    border-radius: 8px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    transition: all 0.3s ease;
+  // button {
+  //   min-width: 120px;
+  //   height: 42px;
+  //   border-radius: 8px;
+  //   font-weight: 600;
+  //   text-transform: uppercase;
+  //   letter-spacing: 0.5px;
+  //   transition: all 0.3s ease;
 
-    &[color="primary"] {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); // Using app's standard gradient
-      color: #ffffff;
-      border: none;
+  //   &[color="primary"] {
+  //     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); // Using app's standard gradient
+  //     color: #ffffff;
+  //     border: none;
 
-      &:hover:not(:disabled) {
-        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%); // Darker version for hover
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(103, 126, 234, 0.4);
-      }
+  //     &:hover:not(:disabled) {
+  //       background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%); // Darker version for hover
+  //       transform: translateY(-2px);
+  //       box-shadow: 0 6px 20px rgba(103, 126, 234, 0.4);
+  //     }
 
-      &:disabled {
-        background: rgba(255, 255, 255, 0.1);
-        color: rgba(255, 255, 255, 0.5);
-      }
-    }
+  //     &:disabled {
+  //       background: rgba(255, 255, 255, 0.1);
+  //       color: rgba(255, 255, 255, 0.5);
+  //     }
+  //   }
 
-    mat-icon {
-      margin-right: 8px;
-      font-size: 18px;
-    }
-  }
+  //   mat-icon {
+  //     margin-right: 8px;
+  //     font-size: 18px;
+  //   }
+  // }
 }
 
 // Responsive Design

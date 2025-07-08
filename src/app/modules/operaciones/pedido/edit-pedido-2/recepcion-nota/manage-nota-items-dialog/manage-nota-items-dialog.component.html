@@ -60,7 +60,7 @@
             </mat-form-field>
             <button 
               mat-raised-button 
-              color="warn" 
+              color="primary" 
               [disabled]="!canRemoveItemsComputed"
               (click)="onRemoveSelectedItems()"
               *ngIf="!readOnlyMode"
@@ -176,7 +176,7 @@
                   </button>
                   <button 
                     mat-icon-button 
-                    color="warn" 
+                    color="primary" 
                     [disabled]="isProcessing"
                     (click)="onRemoveItem(item)"
                     matTooltip="Remover de la nota">
@@ -210,7 +210,7 @@
       </div>
 
       <!-- Unassigned Items Section -->
-      <div class="items-section unassigned-section" *ngIf="!readOnlyMode">
+      <div class="items-section unassigned-section" *ngIf="!readOnlyMode && unassignedItemsDataSource.data.length > 0">
         <div class="section-header">
           <div class="section-title">
             <mat-icon>add_shopping_cart</mat-icon>
@@ -379,8 +379,6 @@
   <!-- Dialog Actions -->
   <div class="dialog-actions">
     <button mat-raised-button color="primary" (click)="onClose()" [disabled]="isProcessing">
-      <mat-icon *ngIf="isProcessing">hourglass_empty</mat-icon>
-      <mat-icon *ngIf="!isProcessing">close</mat-icon>
       Cerrar
     </button>
   </div>

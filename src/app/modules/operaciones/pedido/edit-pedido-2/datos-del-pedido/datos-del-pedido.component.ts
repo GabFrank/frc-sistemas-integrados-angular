@@ -1,55 +1,68 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, ViewChild, ElementRef, Output, EventEmitter } from '@angular/core';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { MatSelect } from '@angular/material/select';
-import { MatDatepicker } from '@angular/material/datepicker';
-import { MatDialog } from '@angular/material/dialog';
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { forkJoin } from 'rxjs';
+import {
+  Component,
+  Input,
+  OnInit,
+  OnChanges,
+  SimpleChanges,
+  ViewChild,
+  ElementRef,
+  Output,
+  EventEmitter,
+} from "@angular/core";
+import { FormControl, FormGroup, Validators } from "@angular/forms";
+import { MatSelect } from "@angular/material/select";
+import { MatDatepicker } from "@angular/material/datepicker";
+import { MatDialog } from "@angular/material/dialog";
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { forkJoin } from "rxjs";
 
-import { Pedido } from '../../edit-pedido/pedido.model';
-import { PedidoEstado } from '../../edit-pedido/pedido-enums';
-import { Proveedor } from '../../../../personas/proveedor/proveedor.model';
-import { Vendedor } from '../../../../personas/vendedor/vendedor.model';
-import { FormaPago } from '../../../../financiero/forma-pago/forma-pago.model';
-import { Moneda } from '../../../../financiero/moneda/moneda.model';
-import { Sucursal } from '../../../../empresarial/sucursal/sucursal.model';
+import { Pedido } from "../../edit-pedido/pedido.model";
+import { PedidoEstado } from "../../edit-pedido/pedido-enums";
+import { Proveedor } from "../../../../personas/proveedor/proveedor.model";
+import { Vendedor } from "../../../../personas/vendedor/vendedor.model";
+import { FormaPago } from "../../../../financiero/forma-pago/forma-pago.model";
+import { Moneda } from "../../../../financiero/moneda/moneda.model";
+import { Sucursal } from "../../../../empresarial/sucursal/sucursal.model";
 
-import { ProveedorService } from '../../../../personas/proveedor/proveedor.service';
-import { VendedorService } from '../../../../personas/vendedor/vendedor.service';
-import { FormaPagoService } from '../../../../financiero/forma-pago/forma-pago.service';
-import { MonedaService } from '../../../../financiero/moneda/moneda.service';
-import { SucursalService } from '../../../../empresarial/sucursal/sucursal.service';
-import { PedidoService } from '../../pedido.service';
-import { MainService } from '../../../../../main.service';
+import { ProveedorService } from "../../../../personas/proveedor/proveedor.service";
+import { VendedorService } from "../../../../personas/vendedor/vendedor.service";
+import { FormaPagoService } from "../../../../financiero/forma-pago/forma-pago.service";
+import { MonedaService } from "../../../../financiero/moneda/moneda.service";
+import { SucursalService } from "../../../../empresarial/sucursal/sucursal.service";
+import { PedidoService } from "../../pedido.service";
+import { MainService } from "../../../../../main.service";
 
-import { FrcSearchableSelectComponent } from '../../../../../shared/components/frc-searchable-select/frc-searchable-select.component';
-import { SearchListDialogComponent, SearchListtDialogData, TableData } from '../../../../../shared/components/search-list-dialog/search-list-dialog.component';
-import { AdicionarProveedorDialogComponent } from '../../../../personas/proveedor/adicionar-proveedor-dialog/adicionar-proveedor-dialog.component';
-import { NotificacionSnackbarService } from '../../../../../notificacion-snackbar.service';
-import { DialogosService } from '../../../../../shared/components/dialogos/dialogos.service';
-import { dateToString } from '../../../../../commons/core/utils/dateUtils';
+import { FrcSearchableSelectComponent } from "../../../../../shared/components/frc-searchable-select/frc-searchable-select.component";
+import {
+  SearchListDialogComponent,
+  SearchListtDialogData,
+  TableData,
+} from "../../../../../shared/components/search-list-dialog/search-list-dialog.component";
+import { AdicionarProveedorDialogComponent } from "../../../../personas/proveedor/adicionar-proveedor-dialog/adicionar-proveedor-dialog.component";
+import { NotificacionSnackbarService } from "../../../../../notificacion-snackbar.service";
+import { DialogosService } from "../../../../../shared/components/dialogos/dialogos.service";
+import { dateToString } from "../../../../../commons/core/utils/dateUtils";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
-  selector: 'app-datos-del-pedido',
-  templateUrl: './datos-del-pedido.component.html',
-  styleUrls: ['./datos-del-pedido.component.scss']
+  selector: "app-datos-del-pedido",
+  templateUrl: "./datos-del-pedido.component.html",
+  styleUrls: ["./datos-del-pedido.component.scss"],
 })
 export class DatosDelPedidoComponent implements OnInit, OnChanges {
-
-  @ViewChild('proveedorInput', { static: false }) proveedorInput: ElementRef;
-  @ViewChild('vendedorInput', { static: false }) vendedorInput: ElementRef;
-  @ViewChild('sucursalInfluenciaSelect', { static: false, read: MatSelect })
+  @ViewChild("proveedorInput", { static: false }) proveedorInput: ElementRef;
+  @ViewChild("vendedorInput", { static: false }) vendedorInput: ElementRef;
+  @ViewChild("sucursalInfluenciaSelect", { static: false, read: MatSelect })
   sucursalInfluenciaSelect: MatSelect;
-  @ViewChild('sucursalEntregaSelect', { static: false, read: MatSelect })
+  @ViewChild("sucursalEntregaSelect", { static: false, read: MatSelect })
   sucursalEntregaSelect: MatSelect;
-  @ViewChild('diasCreditoInput', { static: false })
+  @ViewChild("diasCreditoInput", { static: false })
   diasCreditoInput: ElementRef;
-  @ViewChild('formaPagoSelect', { read: FrcSearchableSelectComponent })
+  @ViewChild("formaPagoSelect", { read: FrcSearchableSelectComponent })
   formaPagoSelect: FrcSearchableSelectComponent;
-  @ViewChild('monedaSelect', { read: FrcSearchableSelectComponent })
+  @ViewChild("monedaSelect", { read: FrcSearchableSelectComponent })
   monedaSelect: FrcSearchableSelectComponent;
-  @ViewChild('picker') picker: MatDatepicker<Date>;
+  @ViewChild("picker") picker: MatDatepicker<Date>;
 
   @Input() selectedPedido: Pedido | null = null;
   @Output() pedidoChange = new EventEmitter<Pedido>();
@@ -62,7 +75,7 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
   buscarVendedorControl = new FormControl(null);
   sucursalInfluenciaControl = new FormControl(null, Validators.required);
   sucursalEntregaControl = new FormControl(null, Validators.required);
-  tipoBoletaControl = new FormControl('LEGAL', Validators.required);
+  tipoBoletaControl = new FormControl("LEGAL", Validators.required);
   diasCreditoControl = new FormControl(null);
   fechaEntregaControl = new FormControl(null, Validators.required);
 
@@ -75,7 +88,7 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
   // Lists
   vendedorList: Vendedor[] = [];
   sucursalList: Sucursal[] = [];
-  tipoBoletaList: string[] = ['LEGAL', 'COMUN', 'OTRO'];
+  tipoBoletaList: string[] = ["LEGAL", "COMUN", "OTRO"];
   formaPagoList: FormaPago[] = [];
   monedas: Moneda[] = [];
   auxMonedas: Moneda[] = [];
@@ -84,6 +97,9 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
   // Flags
   isEditing = true;
   isLoading = false;
+
+  // **OPTIMIZATION**: Track last emitted validation state to prevent duplicate emissions
+  private lastEmittedValidState: boolean | null = null;
 
   constructor(
     private proveedorService: ProveedorService,
@@ -105,14 +121,23 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['selectedPedido']) {
-      if (changes['selectedPedido'].currentValue && this.sucursalList && this.monedas && this.formaPagoList) {
+    if (changes["selectedPedido"] && this.selectedPedido) {
+      console.log(
+        "[DatosDelPedido] ngOnChanges - pedido ID changed to:",
+        this.selectedPedido.id
+      );
+
+      // **OPTIMIZATION**: Reset validation state when pedido changes
+      this.lastEmittedValidState = null;
+
+      // Only reload data if pedido ID actually changed
+      const previousPedido = changes["selectedPedido"].previousValue;
+      if (!previousPedido || previousPedido.id !== this.selectedPedido.id) {
         this.cargarDatosPedido();
       }
-      // **FIX**: Validate step completion whenever pedido changes
-      setTimeout(() => {
-        this.validateAndEmitStepCompletion();
-      }, 100);
+
+      // Always validate step completion when pedido changes
+      this.validateAndEmitStepCompletion();
     }
   }
 
@@ -124,15 +149,15 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
       sucursalEntrega: this.sucursalEntregaControl,
       tipoBoleta: this.tipoBoletaControl,
       diasCredito: this.diasCreditoControl,
-      fechaEntrega: this.fechaEntregaControl
+      fechaEntrega: this.fechaEntregaControl,
     });
-    
+
     // Initialize vendedor control as disabled since no proveedor is selected initially
     this.buscarVendedorControl.disable();
   }
 
   setupFormValidation(): void {
-    this.datosFormGroup.statusChanges.subscribe(status => {
+    this.datosFormGroup.statusChanges.subscribe((status) => {
       this.validateAndEmitStepCompletion();
     });
   }
@@ -144,42 +169,59 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
     const isFormaPagoValid = this.selectedFormaPago != null;
     const isMonedaValid = this.selectedMoneda != null;
     const areFechasValid = this.initialDates && this.initialDates.length > 0;
-    const isBasicFormValid = this.datosFormGroup.valid;
-    
+    // Si todos los controles están deshabilitados Angular establece el estado del formulario como "DISABLED". En ese caso
+    // el formulario ya fue guardado y consideramos que es **válido** para la lógica de pasos.
+    // De este modo evitamos que el botón "Siguiente" (etapa Datos del pedido) se deshabilite después de guardar y bloquear el formulario.
+    const isBasicFormValid =
+      this.datosFormGroup.disabled || this.datosFormGroup.valid;
+
     // **CRITICAL**: Step is only complete if pedido has been saved (has ID)
     const isPedidoSaved = this.selectedPedido?.id != null;
-    
-    const isStepCompleted = isBasicFormValid && isFormaPagoValid && isMonedaValid && areFechasValid && isPedidoSaved;
-    
-    this.formValid.emit(isStepCompleted);
+
+    const isStepCompleted =
+      isBasicFormValid &&
+      isFormaPagoValid &&
+      isMonedaValid &&
+      areFechasValid &&
+      isPedidoSaved;
+
+    // **OPTIMIZATION**: Only emit if validation state actually changed
+    if (this.lastEmittedValidState !== isStepCompleted) {
+      this.lastEmittedValidState = isStepCompleted;
+      this.formValid.emit(isStepCompleted);
+    }
   }
 
   loadInitialData(): void {
     this.isLoading = true;
-    
+
     forkJoin({
-      sucursales: this.sucursalService.onGetAllSucursales().pipe(untilDestroyed(this)),
+      sucursales: this.sucursalService
+        .onGetAllSucursales()
+        .pipe(untilDestroyed(this)),
       monedas: this.monedaService.onGetAll().pipe(untilDestroyed(this)),
-      formasPago: this.formaPagoService.onGetAllFormaPago().pipe(untilDestroyed(this))
+      formasPago: this.formaPagoService
+        .onGetAllFormaPago()
+        .pipe(untilDestroyed(this)),
     }).subscribe({
       next: ({ sucursales, monedas, formasPago }) => {
-        this.sucursalList = sucursales.filter(s => s.deposito === true);
+        this.sucursalList = sucursales.filter((s) => s.deposito === true);
         this.monedas = monedas;
         this.auxMonedas = monedas;
         this.formaPagoList = formasPago;
-        
+
         // Load pedido data if it already exists
         if (this.selectedPedido) {
           this.cargarDatosPedido();
         }
-        
+
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('Error loading initial data:', error);
-        this.notificacionService.openAlgoSalioMal('AL CARGAR DATOS INICIALES');
+        console.error("Error loading initial data:", error);
+        this.notificacionService.openAlgoSalioMal("AL CARGAR DATOS INICIALES");
         this.isLoading = false;
-      }
+      },
     });
   }
 
@@ -195,7 +237,7 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
       this.onSelectProveedor(this.selectedPedido.proveedor);
     }
 
-    // Load vendedor  
+    // Load vendedor
     if (this.selectedPedido.vendedor) {
       this.vendedorList = [this.selectedPedido.vendedor];
       this.onSelectVendedor(this.selectedPedido.vendedor);
@@ -203,12 +245,13 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
 
     // Load sucursales de influencia
     if (this.selectedPedido.sucursalInfluenciaList?.length > 0) {
-      const sucursalInfluenciaList = this.selectedPedido.sucursalInfluenciaList.map(
-        sucursalInfluencia => sucursalInfluencia.sucursal
-      );
+      const sucursalInfluenciaList =
+        this.selectedPedido.sucursalInfluenciaList.map(
+          (sucursalInfluencia) => sucursalInfluencia.sucursal
+        );
       this.sucursalInfluenciaControl.setValue(
-        this.sucursalList.filter(s => 
-          sucursalInfluenciaList.map(s2 => s2.id).includes(s.id)
+        this.sucursalList.filter((s) =>
+          sucursalInfluenciaList.map((s2) => s2.id).includes(s.id)
         )
       );
     }
@@ -216,11 +259,11 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
     // Load sucursales de entrega
     if (this.selectedPedido.sucursalEntregaList?.length > 0) {
       const sucursalEntregaList = this.selectedPedido.sucursalEntregaList.map(
-        sucursalEntrega => sucursalEntrega.sucursal
+        (sucursalEntrega) => sucursalEntrega.sucursal
       );
       this.sucursalEntregaControl.setValue(
-        this.sucursalList.filter(s => 
-          sucursalEntregaList.map(s2 => s2.id).includes(s.id)
+        this.sucursalList.filter((s) =>
+          sucursalEntregaList.map((s2) => s2.id).includes(s.id)
         )
       );
     }
@@ -228,7 +271,7 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
     // Load fechas de entrega
     if (this.selectedPedido.fechaEntregaList?.length > 0) {
       const fechaEntregaList = this.selectedPedido.fechaEntregaList.map(
-        fechaEntrega => new Date(fechaEntrega.fechaEntrega)
+        (fechaEntrega) => new Date(fechaEntrega.fechaEntrega)
       );
       this.initialDates = fechaEntregaList;
       this.fechaEntregaControl.setValue(fechaEntregaList);
@@ -241,14 +284,18 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
     // Load forma de pago
     if (this.selectedPedido.formaPago) {
       this.handleFormaPagoSelectionChange(
-        this.formaPagoList.find(forma => forma.id === this.selectedPedido.formaPago.id)
+        this.formaPagoList.find(
+          (forma) => forma.id === this.selectedPedido.formaPago.id
+        )
       );
     }
 
     // Load moneda
     if (this.selectedPedido.moneda) {
       this.handleMonedaSelectionChange(
-        this.monedas.find(moneda => moneda.id === this.selectedPedido.moneda.id)
+        this.monedas.find(
+          (moneda) => moneda.id === this.selectedPedido.moneda.id
+        )
       );
     }
 
@@ -262,7 +309,8 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
       const texto: string = this.buscarProveedorControl.value;
       if (!isNaN(+texto)) {
         // Search by ID
-        this.proveedorService.onGetPorId(+texto)
+        this.proveedorService
+          .onGetPorId(+texto)
           .pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (res) {
@@ -271,7 +319,10 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
               this.onSearchProveedorPorTexto();
             }
           });
-      } else if (this.selectedProveedor && texto.includes(this.selectedProveedor.persona.nombre)) {
+      } else if (
+        this.selectedProveedor &&
+        texto.includes(this.selectedProveedor.persona.nombre)
+      ) {
         this.vendedorInput?.nativeElement.focus();
       } else {
         this.onSearchProveedorPorTexto();
@@ -283,40 +334,60 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
 
   onSearchProveedorPorTexto(): void {
     const tableData: TableData[] = [
-      { id: 'id', nombre: 'Id' },
-      { id: 'nombre', nombre: 'Nombre', nested: true, nestedId: 'persona' },
-      { id: 'documento', nombre: 'RUC/CI', nested: true, nestedId: 'persona' }
+      { id: "id", nombre: "Id", width: "10%" },
+      {
+        id: "persona.nombre",
+        nombre: "Nombre",
+        width: "35%",
+      },
+      {
+        id: "persona.apodo",
+        nombre: "Apodo",
+        width: "35%",
+      },
+      {
+        id: "persona.documento",
+        nombre: "RUC/CI",
+        width: "20%",
+      },
     ];
 
     const data: SearchListtDialogData = {
       query: this.proveedorService.proveedorSearch,
       tableData: tableData,
-      titulo: 'BUSCAR PROVEEDOR',
+      titulo: "BUSCAR PROVEEDOR",
       search: true,
       texto: this.buscarProveedorControl.value,
       inicialSearch: this.buscarProveedorControl.valid,
-      isAdicionar: true
+      isAdicionar: true,
+      textHint: "Buscar proveedor por id, nombre o RUC/CI",
     };
 
-    this.dialog.open(SearchListDialogComponent, {
-      data: data,
-      width: '60%',
-      height: '80%'
-    }).afterClosed().subscribe((res: Proveedor) => {
-      if (res) {
-        if (res['adicionar'] === true) {
-          this.dialog.open(AdicionarProveedorDialogComponent, {
-            width: '600px'
-          }).afterClosed().subscribe((proveedorRes) => {
-            if (proveedorRes?.id) {
-              this.onSelectProveedor(proveedorRes);
-            }
-          });
-        } else if (res?.id) {
-          this.onSelectProveedor(res);
+    this.dialog
+      .open(SearchListDialogComponent, {
+        data: data,
+        width: "60%",
+        height: "80%",
+      })
+      .afterClosed()
+      .subscribe((res: Proveedor) => {
+        if (res) {
+          if (res["adicionar"] === true) {
+            this.dialog
+              .open(AdicionarProveedorDialogComponent, {
+                width: "600px",
+              })
+              .afterClosed()
+              .subscribe((proveedorRes) => {
+                if (proveedorRes?.id) {
+                  this.onSelectProveedor(proveedorRes);
+                }
+              });
+          } else if (res?.id) {
+            this.onSelectProveedor(res);
+          }
         }
-      }
-    });
+      });
   }
 
   onSelectProveedor(proveedor: Proveedor): void {
@@ -326,36 +397,38 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
       this.buscarProveedorControl.setValue(
         `${this.selectedProveedor.id} - ${this.selectedProveedor.persona.nombre}`
       );
-      
+
       this.diasCreditoControl.setValue(this.selectedProveedor.chequeDias);
-      
+
       if (proveedor.credito) {
-        this.selectedFormaPago = this.formaPagoList.find(fp => fp.descripcion === 'CHEQUE');
+        this.selectedFormaPago = this.formaPagoList.find(
+          (fp) => fp.descripcion === "CHEQUE"
+        );
       }
-      
+
       // Enable vendedor control when proveedor is selected
       this.buscarVendedorControl.enable();
-      
+
       this.vendedorInput?.nativeElement.focus();
       this.emitPedidoChange();
     } else {
       this.selectedProveedor = null;
       this.vendedorList = [];
       this.buscarProveedorControl.setValue(null, { emitEvent: false });
-      
+
       // Clear and disable vendedor control when proveedor is cleared
       this.selectedVendedor = null;
       this.buscarVendedorControl.setValue(null, { emitEvent: false });
       this.buscarVendedorControl.disable();
-      
+
       // Clear forma de pago when proveedor is cleared
       this.selectedFormaPago = null;
-      
+
       // Reset dias credito
       this.diasCreditoControl.setValue(null);
-      
+
       this.vendedorInput?.nativeElement.focus();
-      
+
       // Emit changes to update the selectedPedido object
       this.emitPedidoChange();
     }
@@ -367,31 +440,47 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
 
   onBuscarVendedor(): void {
     const tableData: TableData[] = [
-      { id: 'id', nombre: 'Id' },
-      { id: 'nombre', nombre: 'Nombre', nested: true, nestedId: 'persona' },
-      { id: 'documento', nombre: 'RUC/CI', nested: true, nestedId: 'persona' }
+      { id: "id", nombre: "Id", width: "10%" },
+      {
+        id: "persona.nombre",
+        nombre: "Nombre",
+        width: "35%",
+      },
+      {
+        id: "persona.apodo",
+        nombre: "Apodo",
+        width: "35%",
+      },
+      {
+        id: "persona.documento",
+        nombre: "RUC/CI",
+        width: "20%",
+      },
     ];
 
     const data: SearchListtDialogData = {
       query: this.vendedorService.vendedorSearch,
       tableData: tableData,
-      titulo: 'BUSCAR VENDEDOR',
+      titulo: "BUSCAR VENDEDOR",
       search: false,
       texto: this.buscarVendedorControl.value,
       inicialSearch: false,
       inicialData: this.vendedorList,
-      isAdicionar: false
+      isAdicionar: false,
     };
 
-    this.dialog.open(SearchListDialogComponent, {
-      data: data,
-      width: '60%',
-      height: '80%'
-    }).afterClosed().subscribe((res: Vendedor) => {
-      if (res?.id) {
-        this.onSelectVendedor(res);
-      }
-    });
+    this.dialog
+      .open(SearchListDialogComponent, {
+        data: data,
+        width: "60%",
+        height: "80%",
+      })
+      .afterClosed()
+      .subscribe((res: Vendedor) => {
+        if (res?.id) {
+          this.onSelectVendedor(res);
+        }
+      });
   }
 
   onSelectVendedor(vendedor: Vendedor, focus = true): void {
@@ -419,15 +508,19 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
 
   handleFormaPagoSelectionChange(value: FormaPago): void {
     this.selectedFormaPago = value;
-    
-    if (this.selectedFormaPago?.descripcion?.includes('TARJETA')) {
-      this.monedas = this.auxMonedas.filter(m => m.denominacion.includes('GUARANI'));
-    } else if (this.selectedFormaPago?.descripcion?.includes('PIX')) {
-      this.monedas = this.auxMonedas.filter(m => m.denominacion.includes('REAL'));
+
+    if (this.selectedFormaPago?.descripcion?.includes("TARJETA")) {
+      this.monedas = this.auxMonedas.filter((m) =>
+        m.denominacion.includes("GUARANI")
+      );
+    } else if (this.selectedFormaPago?.descripcion?.includes("PIX")) {
+      this.monedas = this.auxMonedas.filter((m) =>
+        m.denominacion.includes("REAL")
+      );
     } else {
       this.monedas = this.auxMonedas;
     }
-    
+
     this.emitPedidoChange();
   }
 
@@ -443,8 +536,13 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
   }
 
   onSetSucEntrega(): void {
-    if (this.sucursalInfluenciaControl.value && this.sucursalInfluenciaControl.value.length === 1) {
-      this.sucursalEntregaControl.setValue(this.sucursalInfluenciaControl.value);
+    if (
+      this.sucursalInfluenciaControl.value &&
+      this.sucursalInfluenciaControl.value.length === 1
+    ) {
+      this.sucursalEntregaControl.setValue(
+        this.sucursalInfluenciaControl.value
+      );
     }
   }
 
@@ -474,22 +572,22 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
       this.tipoBoletaControl.disable();
       this.diasCreditoControl.disable();
       this.fechaEntregaControl.disable();
-      
+
       this.isEditing = false;
     } else {
       this.buscarProveedorControl.enable();
-      
+
       // Only enable vendedor control if a proveedor is selected
       if (this.selectedProveedor) {
         this.buscarVendedorControl.enable();
       }
-      
+
       this.sucursalInfluenciaControl.enable();
       this.sucursalEntregaControl.enable();
       this.tipoBoletaControl.enable();
       this.diasCreditoControl.enable();
       this.fechaEntregaControl.enable();
-      
+
       this.isEditing = true;
     }
   }
@@ -500,43 +598,47 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
 
   onEliminar(): void {
     if (!this.selectedPedido?.id) {
-      this.notificacionService.openWarn('NO HAY PEDIDO PARA ELIMINAR');
+      this.notificacionService.openWarn("NO HAY PEDIDO PARA ELIMINAR");
       return;
     }
 
-    this.dialogoService.confirm(
-      'CONFIRMAR ELIMINACIÓN',
-      `¿Está seguro que desea eliminar el pedido #${this.selectedPedido.id}?`,
-      'Esta acción no se puede deshacer',
-      null,
-      true,
-      'ELIMINAR',
-      'CANCELAR'
-    ).subscribe(confirmed => {
-      if (confirmed) {
-        this.notificacionService.openWarn('FUNCIÓN DE ELIMINAR PEDIDO NO IMPLEMENTADA AÚN');
-        // TODO: Implement delete functionality when available
-        // this.pedidoService.onDeletePedido(this.selectedPedido.id)
-        //   .pipe(untilDestroyed(this))
-        //   .subscribe({
-        //     next: () => {
-        //       this.notificacionService.openSucess('PEDIDO ELIMINADO CORRECTAMENTE');
-        //       // Reset form or navigate back
-        //       this.selectedPedido = null;
-        //       this.datosFormGroup.reset();
-        //       this.selectedProveedor = null;
-        //       this.selectedVendedor = null;
-        //       this.selectedFormaPago = null;
-        //       this.selectedMoneda = null;
-        //       this.initialDates = [];
-        //     },
-        //     error: (error) => {
-        //       console.error('Error deleting pedido:', error);
-        //       this.notificacionService.openAlgoSalioMal('AL ELIMINAR PEDIDO');
-        //     }
-        //   });
-      }
-    });
+    this.dialogoService
+      .confirm(
+        "CONFIRMAR ELIMINACIÓN",
+        `¿Está seguro que desea eliminar el pedido #${this.selectedPedido.id}?`,
+        "Esta acción no se puede deshacer",
+        null,
+        true,
+        "ELIMINAR",
+        "CANCELAR"
+      )
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.notificacionService.openWarn(
+            "FUNCIÓN DE ELIMINAR PEDIDO NO IMPLEMENTADA AÚN"
+          );
+          // TODO: Implement delete functionality when available
+          // this.pedidoService.onDeletePedido(this.selectedPedido.id)
+          //   .pipe(untilDestroyed(this))
+          //   .subscribe({
+          //     next: () => {
+          //       this.notificacionService.openSucess('PEDIDO ELIMINADO CORRECTAMENTE');
+          //       // Reset form or navigate back
+          //       this.selectedPedido = null;
+          //       this.datosFormGroup.reset();
+          //       this.selectedProveedor = null;
+          //       this.selectedVendedor = null;
+          //       this.selectedFormaPago = null;
+          //       this.selectedMoneda = null;
+          //       this.initialDates = [];
+          //     },
+          //     error: (error) => {
+          //       console.error('Error deleting pedido:', error);
+          //       this.notificacionService.openAlgoSalioMal('AL ELIMINAR PEDIDO');
+          //     }
+          //   });
+        }
+      });
   }
 
   emitPedidoChange(): void {
@@ -554,61 +656,69 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
     this.selectedPedido.plazoCredito = this.diasCreditoControl.value;
 
     this.pedidoChange.emit(this.selectedPedido);
-    
-    // **FIX**: Validate step completion when any form data changes
-    setTimeout(() => {
-      this.validateAndEmitStepCompletion();
-    }, 10);
+
+    // **FIX**: Remove setTimeout to prevent infinite loops
+    // Validate immediately instead of using setTimeout
+    this.validateAndEmitStepCompletion();
   }
 
   async onGuardar(): Promise<Pedido> {
     return new Promise((resolve, reject) => {
       if (!this.isFormValid()) {
-        this.notificacionService.openWarn('COMPLETE TODOS LOS CAMPOS REQUERIDOS');
-        reject('Formulario inválido');
+        this.notificacionService.openWarn(
+          "COMPLETE TODOS LOS CAMPOS REQUERIDOS"
+        );
+        reject("Formulario inválido");
         return;
       }
 
       this.emitPedidoChange();
       let pedidoaux = new Pedido();
       Object.assign(pedidoaux, this.selectedPedido); //this is to avoid error .toInput() is not a function
-      this.pedidoService.onSaveFull(
-        pedidoaux.toInput(),
-        this.fechaEntregaControl.value?.map((entity: Date) => dateToString(entity)),
-        this.sucursalEntregaControl.value?.map((entity: Sucursal) => entity.id),
-        this.sucursalInfluenciaControl.value?.map((entity: Sucursal) => entity.id),
-        this.mainService.usuarioActual.id
-      ).pipe(untilDestroyed(this)).subscribe({
-        next: (pedidoRes) => {
-          if (pedidoRes) {
-            this.selectedPedido.id = pedidoRes.id;
-            this.selectedPedido.creadoEn = pedidoRes.creadoEn;
-            this.idControl.setValue(this.selectedPedido.id);
-            this.cambiarEstado(true);
-            
-            // **CRITICAL**: First emit the updated pedido to parent component
-            this.pedidoChange.emit(this.selectedPedido);
-            
-            // **NEW**: Inform parent that step is now valid after save
-            this.formValid.emit(true);
-            
-            // **FIX**: Validate step completion when any form data changes
-            setTimeout(() => {
+      this.pedidoService
+        .onSaveFull(
+          pedidoaux.toInput(),
+          this.fechaEntregaControl.value?.map((entity: Date) =>
+            dateToString(entity)
+          ),
+          this.sucursalEntregaControl.value?.map(
+            (entity: Sucursal) => entity.id
+          ),
+          this.sucursalInfluenciaControl.value?.map(
+            (entity: Sucursal) => entity.id
+          ),
+          this.mainService.usuarioActual.id
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (pedidoRes) => {
+            if (pedidoRes) {
+              this.selectedPedido.id = pedidoRes.id;
+              this.selectedPedido.creadoEn = pedidoRes.creadoEn;
+              this.idControl.setValue(this.selectedPedido.id);
+              this.cambiarEstado(true);
+
+              // **CRITICAL**: First emit the updated pedido to parent component
+              this.pedidoChange.emit(this.selectedPedido);
+
+              // **FIX**: Remove multiple setTimeout calls that cause infinite loops
+              // Validate step completion once after save
               this.validateAndEmitStepCompletion();
-            }, 10);
-            
-            this.notificacionService.openSucess('PEDIDO GUARDADO CORRECTAMENTE');
-            resolve(pedidoRes);
-          } else {
-            reject('Error al guardar');
-          }
-        },
-        error: (error) => {
-          console.error('Error saving pedido:', error);
-          this.notificacionService.openAlgoSalioMal('AL GUARDAR PEDIDO');
-          reject(error);
-        }
-      });
+
+              this.notificacionService.openSucess(
+                "PEDIDO GUARDADO CORRECTAMENTE"
+              );
+              resolve(pedidoRes);
+            } else {
+              reject("Error al guardar");
+            }
+          },
+          error: (error) => {
+            console.error("Error saving pedido:", error);
+            this.notificacionService.openAlgoSalioMal("AL GUARDAR PEDIDO");
+            reject(error);
+          },
+        });
     });
   }
 
@@ -617,7 +727,9 @@ export class DatosDelPedidoComponent implements OnInit, OnChanges {
     const isFormaPagoValid = this.selectedFormaPago != null;
     const isMonedaValid = this.selectedMoneda != null;
     const areFechasValid = this.initialDates && this.initialDates.length > 0;
-    
-    return isBasicFormValid && isFormaPagoValid && isMonedaValid && areFechasValid;
+
+    return (
+      isBasicFormValid && isFormaPagoValid && isMonedaValid && areFechasValid
+    );
   }
 }

@@ -118,9 +118,9 @@
     </form>
 
     <!-- Selected Items Preview (only when creating with items) -->
-    <div class="selected-items-preview" *ngIf="selectedItemsCountComputed > 0 && !isEditMode">
+    <div class="selected-items-preview" *ngIf="selectedItemsCountComputed > 0 && !isEditMode" style="height: 100%; display: flex; flex-direction: column;">
       <div style="color: rgba(255, 255, 255, 0.644); font-size:medium; padding-bottom: 10px">Items que se asignarán a esta nota</div>
-      <div class="items-list">
+      <div class="items-list" style="flex: 1; overflow-y: auto;">
         <div class="item-row" *ngFor="let item of selectedItems">
           <div class="item-info">
             <span class="item-name">{{ item.producto?.descripcion }}</span>
@@ -156,9 +156,6 @@
       (keydown)="onSaveButtonKeyDown($event)"
       #saveButton
     >
-      <mat-icon *ngIf="isSaving">hourglass_empty</mat-icon>
-      <mat-icon *ngIf="!isSaving && !isEditMode">add</mat-icon>
-      <mat-icon *ngIf="!isSaving && isEditMode">save</mat-icon>
       {{ saveButtonTextComputed }}
     </button>
   </div>

@@ -211,6 +211,7 @@
         color="primary"
         class="save-btn"
         *ngIf="showActionButtons"
+        [disabled]="!isSaveButtonEnabled"
       >
         <mat-icon>save</mat-icon>
         Guardar

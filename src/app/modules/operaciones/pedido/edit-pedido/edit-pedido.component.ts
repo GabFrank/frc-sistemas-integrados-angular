@@ -668,16 +668,12 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
         nombre: "Id",
       },
       {
-        id: "nombre",
+        id: "persona.nombre",
         nombre: "Nombre",
-        nested: true,
-        nestedId: "persona",
       },
       {
-        id: "documento",
+        id: "persona.documento",
         nombre: "RUC/CI",
-        nested: true,
-        nestedId: "persona",
       },
     ];
     let data: SearchListtDialogData = {
@@ -792,18 +788,22 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
       {
         id: "id",
         nombre: "Id",
+        width: "10%"
       },
       {
-        id: "nombre",
+        id: "persona.nombre",
         nombre: "Nombre",
-        nested: true,
-        nestedId: "persona",
+        width: "35%"
       },
       {
-        id: "documento",
+        id: "persona.apodo",
+        nombre: "Apodo",
+        width: "35%"
+      },
+      {
+        id: "persona.documento",
         nombre: "RUC/CI",
-        nested: true,
-        nestedId: "persona",
+        width: "20%"
       },
     ];
     let data: SearchListtDialogData = {

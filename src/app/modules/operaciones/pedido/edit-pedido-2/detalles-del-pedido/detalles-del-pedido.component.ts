@@ -79,6 +79,9 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
   isLoadingProductos = false;
   isLoadingHistorico = false;
 
+  // **OPTIMIZATION**: Track last emitted validation state to prevent duplicate emissions
+  private lastEmittedValidState: boolean | null = null;
+
   constructor(
     private productoProveedorService: ProductoProveedorService,
     private pedidoService: PedidoService,
@@ -93,19 +96,34 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
     this.setupFormSubscriptions();
     this.setupDataSourceFiltering();
     this.loadInitialData();
+    
+    // Emit initial form validity state
+    setTimeout(() => {
+      this.updateFormValidity();
+    }, 200);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['selectedPedido'] && this.selectedPedido) {
-      this.loadPedidoItems();
-      if (this.selectedPedido.proveedor) {
-        this.loadProductosProveedor();
-      }
+    if (changes['selectedPedido']) {
+      // **OPTIMIZATION**: Reset validation state when pedido changes
+      this.lastEmittedValidState = null;
       
-      // Ensure totals are calculated when pedido changes
-      setTimeout(() => {
-        this.updatePedidoTotals();
-      }, 100);
+      if (this.selectedPedido) {
+        this.loadPedidoItems();
+        if (this.selectedPedido.proveedor) {
+          this.loadProductosProveedor();
+        }
+        // Calculate totals with a small delay
+        setTimeout(() => {
+          this.updatePedidoTotals();
+        }, 100);
+      } else {
+        // Clear data when no pedido
+        this.pedidoItemsDataSource.data = [];
+        this.productosProveedorDataSource.data = [];
+      }
+      // Always update form validity when pedido changes
+      this.updateFormValidity();
     }
   }
 
@@ -322,7 +340,7 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
       .subscribe({
         next: (response) => {
           this.notificacionService.openSucess('Producto agregado al pedido');
-          this.loadPedidoItems(); // This will trigger updatePedidoTotals()
+          this.loadPedidoItems(); // This will trigger updatePedidoTotals() and updateFormValidity()
           this.clearProductSelection();
           
           // **REMOVED**: Duplicate sucursal dialog opening - handled within add-product dialog
@@ -357,7 +375,7 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
       height: '60%'
     }).afterClosed().subscribe(result => {
       if (result) {
-        this.loadPedidoItems();
+        this.loadPedidoItems(); // This will trigger updateFormValidity() through updatePedidoTotals()
       }
     });
   }
@@ -559,6 +577,37 @@ export class DetallesDelPedidoComponent implements OnInit, OnChanges {
 
     // Emit the updated pedido to parent component
     this.pedidoChange.emit(this.selectedPedido);
+    
+    // Update form validity based on current state
+    this.updateFormValidity();
+  }
+
+  /**
+   * Update form validity and emit to parent component
+   * Step 2 is valid when:
+   * 1. Pedido has at least one item
+   * Note: Distribution by sucursales is optional and not required to advance to next step
+   */
+  private updateFormValidity(): void {
+    // **FIX**: This method should only validate form state, NOT reload data
+    // Data loading should be handled separately in ngOnChanges or explicit refresh calls
+    
+    if (!this.selectedPedido) {
+      if (this.lastEmittedValidState !== false) {
+        this.lastEmittedValidState = false;
+        this.formValid.emit(false);
+      }
+      return;
+    }
+
+    const hasItems = this.selectedPedido.cantPedidoItem && this.selectedPedido.cantPedidoItem > 0;
+    const isValid = hasItems;
+
+    // **OPTIMIZATION**: Only emit if validation state actually changed
+    if (this.lastEmittedValidState !== isValid) {
+      this.lastEmittedValidState = isValid;
+      this.formValid.emit(isValid);
+    }
   }
 
   /**

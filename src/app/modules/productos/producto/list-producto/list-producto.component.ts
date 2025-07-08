@@ -270,11 +270,8 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         nombre: "Id",
       },
       {
-        id: "nombre",
+        id: "familia.nombre",
         nombre: "Familia",
-        nested: true,
-        nestedId: "familia",
-        nestedColumnId: "familia",
       },
       {
         id: "nombre",

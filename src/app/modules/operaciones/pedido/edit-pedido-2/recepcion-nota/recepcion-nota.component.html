@@ -68,7 +68,7 @@
     <!-- Items Section -->
     <div class="section-container pedido-items-section">
       <div class="section-header">
-        <h3 class="titulo-center">Items del Pedido</h3>
+        <h3>Items del Pedido</h3>
         <mat-form-field appearance="outline" class="search-field">
           <mat-label>Buscar items</mat-label>
           <input
@@ -324,7 +324,7 @@
     <!-- Notas Section -->
     <div class="section-container notas-section">
       <div class="section-header">
-        <h3 class="titulo-center">Notas de Recepción</h3>
+        <h3>Notas de Recepción</h3>
         <!-- Distribution Status Legend -->
         <div class="status-legend">
           <div class="legend-item">
@@ -443,7 +443,7 @@
               </button>
 
               <mat-menu #notaMenu="matMenu">
-                <button mat-menu-item (click)="onSelectNota(nota)">
+                <!-- <button mat-menu-item (click)="onSelectNota(nota)">
                   <mat-icon>
                     {{
                       selectedNotaRecepcion?.id === nota.id
@@ -458,7 +458,7 @@
                         : "Seleccionar para asignación"
                     }}
                   </span>
-                </button>
+                </button> -->
                 <button mat-menu-item (click)="onGestionarItems(nota)">
                   <mat-icon>edit_note</mat-icon>
                   <span>Gestionar Items</span>

@@ -478,45 +478,55 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
    * This ensures linear stepper navigation works correctly
    */
   private updateStepControls(): void {
-    console.log('[EditPedido2] updateStepControls - step1FormValid:', this.step1FormValid, 'pedido ID:', this.selectedPedido?.id);
-    // Update Step 1 control based on step1FormValid
-    this.step1StepControl.setValue(this.step1FormValid);
-    if (this.step1FormValid) {
-      this.step1StepControl.setErrors(null);
-    } else {
-      this.step1StepControl.setErrors({ invalid: true });
+    // **FIX**: Only update controls if their values actually changed to prevent loops
+    if (this.step1StepControl.value !== this.step1FormValid) {
+      // Update Step 1 control based on step1FormValid
+      this.step1StepControl.setValue(this.step1FormValid);
+      if (this.step1FormValid) {
+        this.step1StepControl.setErrors(null);
+      } else {
+        this.step1StepControl.setErrors({ invalid: true });
+      }
     }
 
     // Update Step 2 control based on canAccessStep2
-    this.step2StepControl.setValue(this.canAccessStep2);
-    if (this.canAccessStep2) {
-      this.step2StepControl.setErrors(null);
-    } else {
-      this.step2StepControl.setErrors({ invalid: true });
+    if (this.step2StepControl.value !== this.canAccessStep2) {
+      this.step2StepControl.setValue(this.canAccessStep2);
+      if (this.canAccessStep2) {
+        this.step2StepControl.setErrors(null);
+      } else {
+        this.step2StepControl.setErrors({ invalid: true });
+      }
     }
 
     // Update Step 3 control based on step3Valid
-    this.step3StepControl.setValue(this.step3Valid);
-    if (this.step3Valid) {
-      this.step3StepControl.setErrors(null);
-    } else {
-      this.step3StepControl.setErrors({ invalid: true });
+    if (this.step3StepControl.value !== this.step3Valid) {
+      this.step3StepControl.setValue(this.step3Valid);
+      if (this.step3Valid) {
+        this.step3StepControl.setErrors(null);
+      } else {
+        this.step3StepControl.setErrors({ invalid: true });
+      }
     }
 
     // Update Step 4 control based on step4Valid
-    this.step4StepControl.setValue(this.step4Valid);
-    if (this.step4Valid) {
-      this.step4StepControl.setErrors(null);
-    } else {
-      this.step4StepControl.setErrors({ invalid: true });
+    if (this.step4StepControl.value !== this.step4Valid) {
+      this.step4StepControl.setValue(this.step4Valid);
+      if (this.step4Valid) {
+        this.step4StepControl.setErrors(null);
+      } else {
+        this.step4StepControl.setErrors({ invalid: true });
+      }
     }
 
     // Update Step 5 control based on step5Valid
-    this.step5StepControl.setValue(this.step5Valid);
-    if (this.step5Valid) {
-      this.step5StepControl.setErrors(null);
-    } else {
-      this.step5StepControl.setErrors({ invalid: true });
+    if (this.step5StepControl.value !== this.step5Valid) {
+      this.step5StepControl.setValue(this.step5Valid);
+      if (this.step5Valid) {
+        this.step5StepControl.setErrors(null);
+      } else {
+        this.step5StepControl.setErrors({ invalid: true });
+      }
     }
   }
 
@@ -1273,7 +1283,12 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
   }
 
   onPedidoChange(updatedPedido: Pedido): void {
-    console.log('[EditPedido2] onPedidoChange - pedido ID:', updatedPedido?.id);
+    // **FIX**: Prevent infinite loops by checking if pedido actually changed
+    if (this.selectedPedido?.id === updatedPedido?.id && 
+        this.selectedPedido?.estado === updatedPedido?.estado) {
+      return;
+    }
+    
     this.selectedPedido = updatedPedido;
     this.updateStepStates();
     this.updateStepAccessibility();
@@ -1289,7 +1304,11 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
   }
 
   onStep1FormValidChange(isValid: boolean): void {
-    console.log('[EditPedido2] onStep1FormValidChange - isValid:', isValid, 'pedido ID:', this.selectedPedido?.id);
+    // **FIX**: Prevent infinite loops by checking if validation state actually changed
+    if (this.step1FormValid === isValid) {
+      return;
+    }
+    
     this.step1FormValid = isValid;
     this.canAccessStep1 = isValid;
     this.stepsConfig[0].completed = isValid;
@@ -1304,10 +1323,6 @@ export class EditPedido2Component implements OnInit, AfterViewInit {
     
     // **FIX**: Update button states when step 1 validation changes
     this.updateButtonStates();
-
-    // **NEW**: Recalculate step accessibility and controls to avoid stale states
-    this.updateStepAccessibility();
-    this.updateStepControls();
   }
 
   onStep2FormValidChange(isValid: boolean): void {

@@ -213,7 +213,6 @@
   }
 
   .items-list {
-    max-height: 300px;
     overflow-y: auto;
     margin-bottom: 16px;
 
@@ -311,40 +310,6 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     transition: all 0.3s ease;
-
-    &[color="primary"] {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #ffffff;
-      border: none;
-
-      &:hover:not(:disabled) {
-        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(103, 126, 234, 0.4);
-      }
-
-      &:disabled {
-        background: rgba(255, 255, 255, 0.1);
-        color: rgba(255, 255, 255, 0.5);
-      }
-    }
-
-    &:not([color]) {
-      background: transparent;
-      color: rgba(255, 255, 255, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: #ffffff;
-        border-color: rgba(255, 255, 255, 0.5);
-      }
-    }
-
-    mat-icon {
-      margin-right: 8px;
-      font-size: 18px;
-    }
   }
 }
 

@@ -33,7 +33,7 @@ export class ProveedorService {
     return this.genericService.onGetByTexto(this.proveedorSearch, text);
   }
 
-  onSave(input): Observable<Proveedor[]> {
+  onSave(input): Observable<Proveedor> {
     return this.genericService.onSave(this.saveProveedor, input);
   }
 
@@ -54,16 +54,12 @@ export class ProveedorService {
         nombre: "Id",
       },
       {
-        id: "nombre",
+        id: "persona.nombre",
         nombre: "Nombre",
-        nested: true,
-        nestedId: "persona",
       },
       {
-        id: "documento",
+        id: "persona.documento",
         nombre: "RUC/CI",
-        nested: true,
-        nestedId: "persona",
       },
     ];
 

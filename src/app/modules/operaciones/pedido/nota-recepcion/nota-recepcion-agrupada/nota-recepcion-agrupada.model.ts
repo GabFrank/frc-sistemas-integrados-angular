@@ -3,11 +3,12 @@ import { Sucursal } from "../../../../empresarial/sucursal/sucursal.model";
 import { Proveedor } from "../../../../personas/proveedor/proveedor.model";
 import { Usuario } from "../../../../personas/usuarios/usuario.model";
 import { SolicitudPago } from "../../../solicitud-pago/solicitud-pago.model";
+import { Pedido } from "../../edit-pedido/pedido.model";
 
 
 export class NotaRecepcionAgrupada {
   id: number;
-  pedidoId: number;
+  pedido: Pedido;
   proveedor: Proveedor;
   sucursal: Sucursal;
   creadoEn: Date;
@@ -21,7 +22,7 @@ export class NotaRecepcionAgrupada {
   toInput(): NotaRecepcionAgrupadaInput {
     let input = new NotaRecepcionAgrupadaInput();
     input.id = this.id;
-    input.pedidoId = this.pedidoId;
+    input.pedidoId = this.pedido?.id;
     input.proveedorId = this.proveedor?.id;
     input.sucursalId = this.sucursal?.id;
     input.usuarioId = this.usuario?.id;

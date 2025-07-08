@@ -4,14 +4,28 @@ import { MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
 import { Query } from "apollo-angular";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { SelectionModel } from "@angular/cdk/collections";
+import { PageInfo } from "../../../app.component";
+import { PageEvent } from "@angular/material/paginator";
 
+/**
+ * Interfaz que define la estructura de los datos de una columna en la tabla
+ * @property id - Identificador único del campo. Para campos anidados, usar notación de puntos (ej: 'pedido.proveedor.persona.nombre').
+ * @property nombre - Nombre/título que se mostrará en la columna
+ * @property width - Ancho de la columna (opcional)
+ * @property nestedId - (Legacy) Primera parte del objeto anidado. La nueva forma es usar notación de puntos en `id`.
+ * @property nestedColumnId - ID personalizado para la columna
+ * @property pipe - Nombre del pipe a aplicar al valor (ej: 'date', 'number', 'currency')
+ * @property pipeArgs - Argumentos para el pipe (ej: 'shortDate', '1.0-2')
+ */
 export interface TableData {
   id: string
   nombre: string
   width?: string
-  nested?: boolean
-  nestedId?: string
   nestedColumnId?: string
+  pipe?: string
+  pipeArgs?: string
 }
 
 export class SearchListtDialogData {
@@ -27,12 +41,8 @@ export class SearchListtDialogData {
   queryData?: any;
   paginator?: boolean;
   isServidor?: boolean = true;
+  textHint?: string;
 }
-
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { SelectionModel } from "@angular/cdk/collections";
-import { PageInfo } from "../../../app.component";
-import { PageEvent } from "@angular/material/paginator";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -54,27 +64,49 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
   pageIndex = 0;
   pageSize = 15;
 
+  // **PERFORMANCE**: Computed properties for template usage (avoid getters/functions in template)
+  dialogTitleComputed = '';
+  hasDataComputed = false;
+  isLoadingComputed = false;
+  hasSelectedItemComputed = false;
+  showPaginatorComputed = false;
+  showAdicionarButtonComputed = false;
+  searchPlaceholderComputed = '';
+
+  // **PERFORMANCE**: Loading states
+  private isSearching = false;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: SearchListtDialogData,
     private matDialogRef: MatDialogRef<SearchListDialogComponent>,
     private genericCrudService: GenericCrudService
   ) {
+    // Initialize display columns
     data?.tableData.forEach(e => {
       this.displayedColumns.push(e.id)
     })
+    
+    // Set initial data if provided
     if (data?.inicialData != null) {
       this.dataSource.data = data.inicialData;
     }
+    
+    // Initialize query data
     if(data?.queryData != null){
       this.queryData = data.queryData;
     }
+    
+    // Set initial search text
     if(data?.queryData?.texto != null){
       this.buscarControl.setValue(data?.queryData?.texto)
     }
   }
 
   ngOnInit(): void {
+    // **PERFORMANCE**: Initialize computed properties
+    this.updateComputedProperties();
+    
+    // Perform initial search if configured
     if (this.data?.inicialSearch) {
       if (this.data?.texto != null) {
         this.buscarControl.setValue(this.data.texto)
@@ -83,10 +115,10 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
         this.onSearch();
       }, 500);
     }
-
   }
 
   ngAfterViewInit(): void {
+    // Setup keyboard navigation for table rows
     this.container.nativeElement.addEventListener("keydown", (e) => {
       if (e.key == 'ArrowUp') {
         this.onArrowDown(true)
@@ -95,6 +127,7 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
       }
     });
 
+    // Optional: Reset focus when rows change
     // this.tableRows.changes.subscribe(() => {
     //   this.focusRow(0); // Whenever the rows change, reset the focus to the first row
     // });
@@ -114,61 +147,155 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
         this.selectedItem = this.dataSource.data[currentIndex];
       }
       this.tableRows.toArray()[currentIndex].nativeElement.focus();
+      
+      // **PERFORMANCE**: Update computed properties after selection change
+      this.updateComputedProperties();
     }
   }
 
-  onBuscar() {
+  onBuscar(): void {
     this.onSearch()
   }
 
-  onSearch() {
+  onSearch(): void {
+    // **PERFORMANCE**: Prevent multiple simultaneous searches
+    if (this.isSearching) {
+      return;
+    }
+
+    this.isSearching = true;
+    this.isLoadingComputed = true;
+    this.updateComputedProperties();
+
     let text = this.buscarControl.value;
     if (text != null) text = text.toUpperCase()
+    
     if( this.queryData!=null && text != null){
       this.queryData.texto = text;
     } else {
       this.queryData = {texto: text}
     }
+    
     if(this.data?.paginator == true){
       this.queryData.page = this.pageIndex;
       this.queryData.size = this.pageSize;
     }
+    
     this.genericCrudService
-      .onCustomQuery(this.data.query, this.queryData, this.data.isServidor).pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res != null) {
-          if(this.data?.paginator == true){
-            this.selectedPageInfo = res;
-            this.dataSource.data = this.selectedPageInfo?.getContent;
+      .onCustomQuery(this.data.query, this.queryData, this.data.isServidor)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (res) => {
+          if (res != null) {
+            if(this.data?.paginator == true){
+              this.selectedPageInfo = res;
+              this.dataSource.data = this.selectedPageInfo?.getContent || [];
+            } else {
+              this.dataSource.data = res || [];
+            }
           } else {
-            this.dataSource.data = res;
+            this.dataSource.data = [];
           }
+          
+          this.isSearching = false;
+          this.isLoadingComputed = false;
+          this.updateComputedProperties();
+        },
+        error: (error) => {
+          console.error('Search error:', error);
+          this.dataSource.data = [];
+          this.isSearching = false;
+          this.isLoadingComputed = false;
+          this.updateComputedProperties();
         }
       });
   }
 
-  onRowSelect(row) {
-    if (row == this.selectedItem) this.matDialogRef.close(row)
+  onRowSelect(row): void {
+    if (row == this.selectedItem) {
+      // Double-click behavior: close dialog with selection
+      this.matDialogRef.close(row)
+      return;
+    }
+    
     this.selectedItem = row;
+    this.updateComputedProperties();
   }
 
-  onAceptar() {
+  onAceptar(): void {
     this.matDialogRef.close(this.selectedItem)
   }
 
-  onCancelar() {
+  onCancelar(): void {
     this.matDialogRef.close()
   }
 
-  onAdicionar() {
+  onAdicionar(): void {
     this.matDialogRef.close({adicionar: true})
   }
 
-  handlePageEvent(e: PageEvent) {
+  handlePageEvent(e: PageEvent): void {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
     this.onSearch();
   }
 
+  /**
+   * **PERFORMANCE**: Update computed properties for template usage
+   * This avoids function calls and getters in templates which cause performance issues
+   */
+  private updateComputedProperties(): void {
+    // Dialog title
+    this.dialogTitleComputed = this.data?.titulo || 'Buscar';
+    
+    // Data state
+    this.hasDataComputed = this.dataSource.data.length > 0;
+    
+    // Selection state
+    this.hasSelectedItemComputed = this.selectedItem != null;
+    
+    // Pagination
+    this.showPaginatorComputed = this.data?.paginator === true && this.selectedPageInfo != null;
+    
+    // Adicionar button
+    this.showAdicionarButtonComputed = this.data?.isAdicionar === true;
+    
+    // Search placeholder
+    this.searchPlaceholderComputed = this.data?.textHint || 'Ingrese texto para buscar...';
+  }
 
+  /**
+   * **PERFORMANCE**: Method to check if an item is selected (for template usage)
+   */
+  isItemSelected(item: any): boolean {
+    return this.selectedItem === item;
+  }
+
+  /**
+   * **PERFORMANCE**: Method to get total elements count (for template usage)
+   */
+  getTotalElementsCount(): number {
+    return this.selectedPageInfo?.getTotalElements || 0;
+  }
+
+  /**
+   * Clear search and reset to initial state
+   */
+  clearSearch(): void {
+    this.buscarControl.setValue('');
+    this.selectedItem = null;
+    this.pageIndex = 0;
+    this.dataSource.data = this.data?.inicialData || [];
+    this.updateComputedProperties();
+  }
+
+  /**
+   * Focus on search input field
+   */
+  focusSearchField(): void {
+    const searchInput = this.container?.nativeElement?.querySelector('input[matInput]');
+    if (searchInput) {
+      searchInput.focus();
+    }
+  }
 }

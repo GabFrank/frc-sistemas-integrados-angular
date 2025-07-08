@@ -83,8 +83,6 @@ $color-info: #2196f3;
 }
 
 @mixin section-title {
-  color: $text-accent;
-  font-size: 18px;
   font-weight: 600;
   margin: 0 0 16px 0;
   text-transform: uppercase;
