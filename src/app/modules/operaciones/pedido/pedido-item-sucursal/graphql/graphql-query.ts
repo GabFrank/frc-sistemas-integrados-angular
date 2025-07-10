@@ -9,16 +9,36 @@ export const pedidoItemSucursalQuery = gql`
       }
       sucursal {
         id
+        nombre
       }
       sucursalEntrega {
         id
+        nombre
       }
       cantidadPorUnidad
       cantidadPorUnidadRecibida
+      cantidadPorUnidadRechazada
+      rechazado
+      motivoRechazo
+      modificado
+      motivoModificacion
+      usuarioRecepcion {
+        id
+        persona {
+          nombre
+        }
+      }
+      fechaRecepcion
+      verificado
+      observacion
       creadoEn
       usuario {
         id
+        persona {
+          nombre
+        }
       }
+      stockDisponible
     }
   }
 `;
@@ -32,16 +52,36 @@ export const pedidoItensSucursalQuery = gql`
       }
       sucursal {
         id
+        nombre
       }
       sucursalEntrega {
         id
+        nombre
       }
       cantidadPorUnidad
       cantidadPorUnidadRecibida
+      cantidadPorUnidadRechazada
+      rechazado
+      motivoRechazo
+      modificado
+      motivoModificacion
+      usuarioRecepcion {
+        id
+        persona {
+          nombre
+        }
+      }
+      fechaRecepcion
+      verificado
+      observacion
       creadoEn
       usuario {
         id
+        persona {
+          nombre
+        }
       }
+      stockDisponible
     }
   }
 `;
@@ -61,16 +101,36 @@ export const savePedidoItemSucursalMutation = gql`
       }
       sucursal {
         id
+        nombre
       }
       sucursalEntrega {
         id
+        nombre
       }
       cantidadPorUnidad
       cantidadPorUnidadRecibida
+      cantidadPorUnidadRechazada
+      rechazado
+      motivoRechazo
+      modificado
+      motivoModificacion
+      usuarioRecepcion {
+        id
+        persona {
+          nombre
+        }
+      }
+      fechaRecepcion
+      verificado
+      observacion
       creadoEn
       usuario {
         id
+        persona {
+          nombre
+        }
       }
+      stockDisponible
     }
   }
 `;
@@ -98,10 +158,27 @@ export const pedidoItensSucursalByPedidoItemQuery = gql`
       }
       cantidadPorUnidad
       cantidadPorUnidadRecibida
+      cantidadPorUnidadRechazada
+      rechazado
+      motivoRechazo
+      modificado
+      motivoModificacion
+      usuarioRecepcion {
+        id
+        persona {
+          nombre
+        }
+      }
+      fechaRecepcion
+      verificado
+      observacion
       stockDisponible
       creadoEn
       usuario {
         id
+        persona {
+          nombre
+        }
       }
     }
   }
