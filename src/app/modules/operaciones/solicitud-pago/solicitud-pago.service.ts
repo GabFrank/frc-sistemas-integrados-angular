@@ -4,7 +4,7 @@ import { GenericCrudService } from "../../../generics/generic-crud.service";
 import {
   SolicitudPago,
   SolicitudPagoEstado,
-  TipoSolicitudPago,
+  SolicitudPagoMultipleRecepcionesInput,
 } from "./solicitud-pago.model";
 import { SolicitudPagoQuery } from "./graphql/solicitudPago";
 import { SolicitudPagoPorUsuarioIdQuery } from "./graphql/solicitudPagoPorUsuarioId";
@@ -16,6 +16,7 @@ import {
 } from "./graphql/imprimirSolicitudPago";
 import { PageInfo } from "../../../app.component";
 import { dateToString } from "../../../commons/core/utils/dateUtils";
+import { CrearSolicitudPagoMultipleRecepcionesGQL } from "./graphql/crearSolicitudPagoMultipleRecepciones";
 
 @Injectable({
   providedIn: "root",
@@ -28,6 +29,7 @@ export class SolicitudPagoService {
     private saveSolicitudPagoMutation: SaveSolicitudPagoMutation,
     private solicitudPagoConFiltrosQuery: SolicitudPagoConFiltrosQuery,
     private imprimirSolicitudPagoMutation: ImprimirSolicitudPagoMutation,
+    private crearSolicitudPagoMultipleRecepcionesGQL: CrearSolicitudPagoMultipleRecepcionesGQL
   ) {}
 
   /**
@@ -52,7 +54,7 @@ export class SolicitudPagoService {
   }
 
   /**
-   * Guarda una solicitud de pago
+   * Guarda una solicitud de pago (para edición o creación manual)
    * @param input Datos de la solicitud de pago a guardar
    * @returns Observable con la solicitud de pago guardada
    */
@@ -63,10 +65,22 @@ export class SolicitudPagoService {
   }
 
   /**
+   * Crea una nueva solicitud de pago a partir de una o más recepciones de mercadería.
+   * Este es el método principal para el nuevo flujo de trabajo.
+   * @param input Objeto con los IDs de las recepciones y otros datos necesarios.
+   * @returns Observable con la solicitud de pago creada.
+   */
+  onCrearSolicitudPagoMultipleRecepciones(input: SolicitudPagoMultipleRecepcionesInput): Observable<SolicitudPago> {
+    return this.genericService.onCustomMutation(
+      this.crearSolicitudPagoMultipleRecepcionesGQL,
+      { entity: input }
+    );
+  }
+
+
+  /**
    * Busca solicitudes de pago aplicando filtros
    * @param solicitudPagoId ID directo de la solicitud de pago (opcional)
-   * @param referenciaId ID de referencia a buscar (opcional)
-   * @param tipo Tipo de solicitud de pago (opcional)
    * @param estado Estado de la solicitud de pago (opcional)
    * @param fechaInicio Fecha de inicio para filtrar (opcional)
    * @param fechaFin Fecha de fin para filtrar (opcional)
@@ -76,17 +90,12 @@ export class SolicitudPagoService {
    */
   onSearchConFiltros(
     solicitudPagoId?: number,
-    referenciaId?: string,
-    tipo?: TipoSolicitudPago,
     estado?: SolicitudPagoEstado,
     fechaInicio?: string,
     fechaFin?: string,
     pageIndex = 0,
     pageSize = 25
   ): Observable<PageInfo<SolicitudPago>> {
-    // Handle reference ID - only set if it's not empty or whitespace
-    const refId =
-      referenciaId && referenciaId.trim() !== "" ? referenciaId : null;
 
     // Convert solicitudPagoId to string if provided, otherwise null
     const idStr = solicitudPagoId ? solicitudPagoId.toString() : null;
@@ -96,8 +105,6 @@ export class SolicitudPagoService {
       this.solicitudPagoConFiltrosQuery,
       {
         solicitudPagoId: idStr, // New parameter for direct ID lookup
-        referenciaId: refId,
-        tipo: tipo || null,
         estado: estado || null,
         fechaInicio: fechaInicio || null,
         fechaFin: fechaFin || null,

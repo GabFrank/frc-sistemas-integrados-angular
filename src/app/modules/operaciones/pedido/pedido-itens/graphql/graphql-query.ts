@@ -13,9 +13,8 @@ export const pedidoItensQuery = gql`
       id
       cantidad
     }
-    cantidadCreacion
-    precioUnitarioCreacion
-    descuentoUnitarioCreacion
+    cantidadSolicitada
+    precioUnitarioSolicitado
     valorTotal
     bonificacion
     bonificacionDetalle
@@ -57,9 +56,8 @@ export const pedidoItensSearch = gql`
         id
         cantidad
       }
-      cantidadCreacion
-      precioUnitarioCreacion
-      descuentoUnitarioCreacion
+      cantidadSolicitada
+      precioUnitarioSolicitado
       valorTotal
       bonificacion
       bonificacionDetalle
@@ -100,9 +98,8 @@ export const pedidoItemQuery = gql`
         id
         cantidad
       }
-      cantidadCreacion
-      precioUnitarioCreacion
-      descuentoUnitarioCreacion
+      cantidadSolicitada
+      precioUnitarioSolicitado
       valorTotal
       bonificacion
       bonificacionDetalle
@@ -144,9 +141,8 @@ export const pedidoItemPorPedidoIdQuery = gql`
         id
         cantidad
       }
-      cantidadCreacion
-      precioUnitarioCreacion
-      descuentoUnitarioCreacion
+      cantidadSolicitada
+      precioUnitarioSolicitado
       valorTotal
       bonificacion
       bonificacionDetalle
@@ -200,9 +196,8 @@ export const savePedidoItem = gql`
       notaRecepcion {
         id
       }
-      cantidadCreacion
-      precioUnitarioCreacion
-      descuentoUnitarioCreacion
+      cantidadSolicitada
+      precioUnitarioSolicitado
       valorTotal
       bonificacion
       bonificacionDetalle
@@ -216,49 +211,26 @@ export const savePedidoItem = gql`
       compraItem {
         id
       }
-      precioUnitarioRecepcionNota
-      descuentoUnitarioRecepcionNota
-      vencimientoRecepcionNota
-      presentacionRecepcionNota {
+      
+      # Legacy computed fields for compatibility
+      precioUnitario
+      cantidad
+      presentacion {
         id
         cantidad
       }
-      cantidadRecepcionNota
-      precioUnitarioRecepcionProducto
-      descuentoUnitarioRecepcionProducto
-      vencimientoRecepcionProducto
-      presentacionRecepcionProducto {
+      pedidoItemSucursalList {
         id
-        cantidad
+        sucursal {
+          id
+          nombre
+        }
+        sucursalEntrega {
+          id
+          nombre
+        }
+        cantidadPorUnidad
       }
-      cantidadRecepcionProducto
-      usuarioRecepcionNota {
-        id
-      }
-      usuarioRecepcionProducto {
-        id
-      }
-      obsCreacion
-      obsRecepcionNota
-      obsRecepcionProducto
-      autorizacionRecepcionNota
-      autorizacionRecepcionProducto
-      autorizadoPorRecepcionNota {
-        id
-      }
-      autorizadoPorRecepcionProducto {
-        id
-      }
-      motivoModificacionRecepcionNota
-      motivoModificacionRecepcionProducto
-      motivoRechazoRecepcionNota
-      motivoRechazoRecepcionProducto
-      cancelado
-      verificadoRecepcionNota
-      verificadoRecepcionProducto
-      isDistribucionSucursalesCreacion
-      isDistribucionSucursalesRecepcion
-      needsDistribucion
     }
   }
 `;

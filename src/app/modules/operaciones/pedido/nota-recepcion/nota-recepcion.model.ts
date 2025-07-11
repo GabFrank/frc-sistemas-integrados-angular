@@ -1,15 +1,16 @@
 import { dateToString } from "../../../../commons/core/utils/dateUtils"
+import { Moneda } from "../../../financiero/moneda/moneda.model"
 import { Documento } from "../../../financiero/documento/documento.model"
 import { Usuario } from "../../../personas/usuarios/usuario.model"
 import { Compra } from "../../compra/compra.model"
 import { PedidoItem } from "../edit-pedido/pedido-item.model"
 import { Pedido } from "../edit-pedido/pedido.model"
-import { NotaRecepcionAgrupada } from "./nota-recepcion-agrupada/nota-recepcion-agrupada.model"
+import { NotaRecepcionEstado } from "./nota-recepcion.enum"
 
 export class NotaRecepcion {
     id:number
     pedido: Pedido
-    notaRecepcionAgrupada: NotaRecepcionAgrupada
+    // notaRecepcionAgrupada: NotaRecepcionAgrupada // ELIMINADO
     compra: Compra
     documento: Documento
     tipoBoleta: string
@@ -25,6 +26,10 @@ export class NotaRecepcion {
     cantidadItens: number = 0;
     cantidadItensVerificadoRecepcionMercaderia: number = 0;
     cantidadItensNecesitanDistribucion: number;
+    // NUEVOS CAMPOS
+    moneda: Moneda;
+    cotizacion: number;
+    estado: NotaRecepcionEstado;
 
     toInput(): NotaRecepcionInput {
         let input = new NotaRecepcionInput;
@@ -38,10 +43,13 @@ export class NotaRecepcion {
         input.usuarioId = this.usuario?.id
         input.pedidoId = this.pedido?.id
         input.compraId = this.compra?.id
-        input.notaRecepcionAgrupadaId = this.notaRecepcionAgrupada?.id
         input.tipoBoleta = this.tipoBoleta
         input.fecha = dateToString(this.fecha)
         input.creadoEn = dateToString(this.creadoEn)
+        // Mapeo de campos nuevos ELIMINADO porque no están en el Input del backend
+        // input.monedaId = this.moneda?.id;
+        // input.cotizacion = this.cotizacion;
+        // input.estado = this.estado;
         return input;
     }
 }
@@ -49,7 +57,7 @@ export class NotaRecepcion {
 export class NotaRecepcionInput {
     id:number
     pedidoId: number
-    notaRecepcionAgrupadaId: number
+    // notaRecepcionAgrupadaId: number // ELIMINADO
     compraId: number
     documentoId: number
     tipoBoleta: string
@@ -61,4 +69,8 @@ export class NotaRecepcionInput {
     creadoEn: string
     fecha: string
     usuarioId: number
+    // Campos eliminados para coincidir con el backend:
+    // monedaId: number;
+    // cotizacion: number;
+    // estado: NotaRecepcionEstado;
 }

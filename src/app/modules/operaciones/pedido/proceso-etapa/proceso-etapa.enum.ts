@@ -1,0 +1,13 @@
+export enum ProcesoEtapaTipo {
+    CREACION = 'CREACION',
+    RECEPCION_NOTA = 'RECEPCION_NOTA',
+    RECEPCION_MERCADERIA = 'RECEPCION_MERCADERIA',
+    PAGO = 'PAGO'
+}
+
+export enum ProcesoEtapaEstado {
+    PENDIENTE = 'PENDIENTE',
+    EN_PROCESO = 'EN_PROCESO',
+    FINALIZADA = 'FINALIZADA',
+    OMITIDA = 'OMITIDA'
+} 

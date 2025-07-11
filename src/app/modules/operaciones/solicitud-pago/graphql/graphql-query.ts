@@ -13,8 +13,6 @@ export const solicitudPagoFragment = gql`
     }
     creadoEn
     estado
-    tipo
-    referenciaId
     pago {
       estado
       id
@@ -43,6 +41,16 @@ export const solicitudPagoFragment = gql`
         }
       }
     }
+    recepcionMercaderiaList {
+      id
+      fecha
+      proveedor {
+        id
+        persona {
+          nombre
+        }
+      }
+    }
   }
 `;
 
@@ -67,8 +75,6 @@ export const solicitudPago = gql`
 export const solicitudPagoConFiltros = gql`
   query(
     $solicitudPagoId: ID,
-    $referenciaId: ID, 
-    $tipo: TipoSolicitudPago, 
     $estado: SolicitudPagoEstado, 
     $fechaInicio: String, 
     $fechaFin: String, 
@@ -77,8 +83,6 @@ export const solicitudPagoConFiltros = gql`
   ) {
     data: solicitudPagoConFiltros(
       solicitudPagoId: $solicitudPagoId,
-      referenciaId: $referenciaId,
-      tipo: $tipo,
       estado: $estado,
       fechaInicio: $fechaInicio,
       fechaFin: $fechaFin,

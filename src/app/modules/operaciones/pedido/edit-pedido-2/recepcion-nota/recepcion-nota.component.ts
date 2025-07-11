@@ -8,7 +8,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { SelectionModel } from '@angular/cdk/collections';
 
 import { Pedido } from '../../edit-pedido/pedido.model';
-import { PedidoItem, PedidoStep } from '../../edit-pedido/pedido-item.model';
+import { PedidoItem } from '../../edit-pedido/pedido-item.model';
 import { NotaRecepcion } from '../../nota-recepcion/nota-recepcion.model';
 import { PageInfo } from '../../../../../app.component';
 
@@ -241,7 +241,6 @@ export class RecepcionNotaComponent implements OnInit, OnChanges, OnDestroy {
     if (this.selectedPedido?.id) {
       this.loadPedidoItems();
       this.loadNotasRecepcion();
-      this.updateSummary(); // Load summary from backend
       this.updateComputedProperties();
     }
   }
@@ -253,7 +252,13 @@ export class RecepcionNotaComponent implements OnInit, OnChanges, OnDestroy {
     const searchText = this.searchItemsControl.value || '';
 
     // Load items that can be assigned to notas (not assigned yet or need reassignment)
-    this.pedidoService.onGetPedidoItemSobrantes(this.selectedPedido.id, page, size, searchText)
+    this.pedidoService
+      .onGetPedidoItemPorPedido(
+        this.selectedPedido.id,
+        page,
+        size,
+        searchText
+      )
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (response) => {
@@ -889,7 +894,6 @@ export class RecepcionNotaComponent implements OnInit, OnChanges, OnDestroy {
       pedido: this.selectedPedido,
       pedidoItem: pedidoItem,
       isEditing: true,
-      currentStep: this.getCurrentStep()
     };
 
     const dialogRef = this.dialog.open(AddProductDialogComponent, {
@@ -916,10 +920,6 @@ export class RecepcionNotaComponent implements OnInit, OnChanges, OnDestroy {
         this.showReOpenManageDialogOption(nota);
       }
     });
-  }
-
-  private getCurrentStep(): PedidoStep {
-    return PedidoStep.RECEPCION_NOTA;
   }
 
   private showReOpenManageDialogOption(nota: NotaRecepcion): void {
@@ -1005,7 +1005,6 @@ export class RecepcionNotaComponent implements OnInit, OnChanges, OnDestroy {
       pedido: this.selectedPedido,
       pedidoItem: item,
       isEditing: true,
-      currentStep: PedidoStep.RECEPCION_NOTA
     };
 
     const dialogRef = this.dialog.open(AddProductDialogComponent, {
@@ -1123,7 +1122,6 @@ export class RecepcionNotaComponent implements OnInit, OnChanges, OnDestroy {
     const dialogData: AddProductDialogData = {
       pedido: this.selectedPedido,
       isEditing: false,
-      currentStep: PedidoStep.RECEPCION_NOTA
     };
 
     const dialogRef = this.dialog.open(AddProductDialogComponent, {

@@ -1,5 +1,45 @@
 import gql from "graphql-tag";
 
+export const NotaRecepcionFragment = gql`
+  fragment NotaRecepcionFragment on NotaRecepcion {
+    id
+    pedido {
+      id
+    }
+    compra {
+      id
+    }
+    documento {
+      id
+      descripcion
+    }
+    valor
+    descuento
+    tipoBoleta
+    pagado
+    numero
+    timbrado
+    creadoEn
+    cantidadItensVerificadoRecepcionMercaderia
+    cantidadItensNecesitanDistribucion
+    usuario {
+      id
+      persona {
+        nombre
+      }
+    }
+    cantidadItens
+    fecha
+    # NUEVOS CAMPOS
+    moneda {
+      id
+      denominacion
+      simbolo
+    }
+    cotizacion
+  }
+`;
+
 export const notaRecepcionsQuery = gql`
   {
     id
@@ -29,65 +69,19 @@ export const notaRecepcionsQuery = gql`
 export const notaRecepcionQuery = gql`
   query ($id: ID!) {
     data: notaRecepcion(id: $id) {
-      id
-      pedido {
-        id
-      }
-      compra {
-        id
-      }
-      documento {
-        id
-        descripcion
-        activo
-      }
-      valor
-      descuento
-      pagado
-      numero
-      timbrado
-      creadoEn
-      cantidadItensVerificadoRecepcionMercaderia
-      usuario {
-        id
-      }
+      ...NotaRecepcionFragment
     }
   }
+  ${NotaRecepcionFragment}
 `;
 
 export const notaRecepcionPorPedidoIdQuery = gql`
   query ($id: ID!) {
     data: notaRecepcionPorPedidoId(id: $id) {
-      id
-      pedido {
-        id
-      }
-      compra {
-        id
-      }
-      documento {
-        id
-        descripcion
-      }
-      valor
-      descuento
-      tipoBoleta
-      pagado
-      numero
-      timbrado
-      creadoEn
-      cantidadItensVerificadoRecepcionMercaderia
-      cantidadItensNecesitanDistribucion
-      usuario {
-        id
-        persona {
-          nombre
-        }
-      }
-      cantidadItens
-      fecha
+      ...NotaRecepcionFragment
     }
   }
+  ${NotaRecepcionFragment}
 `;
 
 export const saveNotaRecepcion = gql`
@@ -95,6 +89,13 @@ export const saveNotaRecepcion = gql`
     data: saveNotaRecepcion(entity: $entity) {
       id
       valor
+      # Devuelve los nuevos campos también para mantener el objeto actualizado
+      moneda {
+        id
+        denominacion
+        simbolo
+      }
+      cotizacion
     }
   }
 `;
@@ -121,37 +122,11 @@ export const notaRecepcionPorPedidoIdAndNumeroQuery = gql`
       hasNext
       hasPrevious
       getContent {
-        id
-        pedido {
-          id
-        }
-        compra {
-          id
-        }
-        documento {
-          id
-          descripcion
-        }
-        valor
-        descuento
-        tipoBoleta
-        pagado
-        numero
-        timbrado
-        creadoEn
-        cantidadItensVerificadoRecepcionMercaderia
-        cantidadItensNecesitanDistribucion
-        usuario {
-          id
-          persona {
-            nombre
-          }
-        }
-        cantidadItens
-        fecha
+        ...NotaRecepcionFragment
       }
     }
   }
+  ${NotaRecepcionFragment}
 `;
 
 export const countNotaRecepcionPorPedidoId = gql`
