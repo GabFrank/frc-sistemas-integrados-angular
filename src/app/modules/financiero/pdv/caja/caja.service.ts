@@ -20,6 +20,7 @@ import { BalancePorFechaGQL } from "./graphql/balancePorFecha";
 import { environment } from "../../../../../environments/environment";
 import { BalancePorCajaIdGQL } from "./graphql/imprimirBalance copy";
 import { CajasWithFiltersGQL } from "./graphql/cajaWithFilters";
+import { CajasAnalisisDiferenciasGQL } from "../../analisis-diferencia/graphql/cajasAnalisisDiferencias";
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { BalancePorCajaIdAndSucursalIdGQL } from "./graphql/balancePorCajaIdAndSucursalId";
 import { CajaSimplePorIdGQL } from "./graphql/cajaSimplePorId";
@@ -47,6 +48,7 @@ export class CajaService {
     private balancePorFecha: BalancePorFechaGQL,
     private balancePorCajaId: BalancePorCajaIdGQL,
     private cajasWithFilters: CajasWithFiltersGQL,
+    private cajasAnalisisDiferencias: CajasAnalisisDiferenciasGQL,
     private balancePorCajaIdAndSucursalId: BalancePorCajaIdAndSucursalIdGQL,
     private verificarCaja: VerificarCajaGQL,
     private cajaAbiertoPorSucursal: CajaAbiertoPorSucursalGQL,
@@ -89,6 +91,39 @@ export class CajaService {
       verificado,
       page,
       size
+    }, servidor);
+  }
+
+  onGetCajasAnalisisDiferencias(
+    cajaId: number,
+    cajaAnteriorId: number,
+    estado: PdvCajaEstado,
+    maletinId: number,
+    maletinDescripcion: string,
+    cajeroId: number,
+    fechaInicio: Date,
+    fechaFin: Date,
+    sucId: number,
+    verificado: boolean,
+    page: number,
+    size: number,
+    difEstado: string = null,
+    servidor: boolean = true
+  ) {
+    return this.genericService.onCustomQuery(this.cajasAnalisisDiferencias, {
+      cajaId,
+      cajaAnteriorId,
+      estado,
+      maletinId,
+      maletinDescripcion,
+      cajeroId,
+      fechaInicio: dateToString(fechaInicio),
+      fechaFin: dateToString(fechaFin),
+      sucId,
+      verificado,
+      page,
+      size,
+      difEstado
     }, servidor);
   }
 

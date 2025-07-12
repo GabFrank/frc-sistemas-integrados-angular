@@ -1,0 +1,197 @@
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.filters-container {
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  flex-shrink: 0; /* Evita que el contenedor de filtros se encoja */
+}
+
+.tables-content-wrapper {
+  flex: 1; /* Ocupa el espacio restante */
+  display: flex;
+  gap: 16px;
+  min-height: 0; /* Clave para que el flex-item se encoja */
+}
+
+.table-wrapper {
+  flex: 1; /* Cada tabla ocupa 50% del espacio */
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  min-width: 0; /* Clave para que el flex-item se encoja */
+}
+
+.inner-table-container {
+  flex: 1 1 auto;
+  overflow: auto;
+  min-height: 0;
+}
+
+.column-header {
+  padding: 0 16px 16px 16px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  h3, h4 {
+    margin: 0;
+  }
+}
+
+.filters-container .column-header {
+  padding: 0 0 16px 0;
+}
+
+.table-wrapper .mat-mdc-header-row {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #3c3c3c; 
+}
+
+.table-wrapper mat-paginator {
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: #3c3c3c;
+}
+
+.filters-row {
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+th.mdc-data-table__header-cell {
+  padding: 0 8px 0 8px !important;
+}
+
+td.mdc-data-table__cell {
+  padding: 0 8px 0 8px !important;
+}
+
+.mat-paginator {
+  flex-shrink: 0;
+}
+
+mat-chip {
+  height: 22px !important;
+  font-size: 12px !important;
+  padding: 4px 8px !important;
+  line-height: 14px !important;
+  border-width: 1px;
+  border-style: solid;
+
+  &.chip-con-diferencia {
+    color: #f44336 !important;
+    background-color: #f44336 !important;
+
+    ::ng-deep .mat-mdc-chip-text-label,
+    ::ng-deep .mdc-evolution-chip__text-label {
+      color: #ffffff !important;
+      padding-top: 3px;
+    }
+  }
+
+  &.chip-sin-diferencia {
+    color: #4caf50 !important;
+    background-color: #4caf50 !important;
+
+    ::ng-deep .mat-mdc-chip-text-label,
+    ::ng-deep .mdc-evolution-chip__text-label {
+      color: #ffffff !important;
+      padding-top: 3px;
+    }
+  }
+
+  &.chip-sin-datos {
+    color: rgb(255, 255, 255) !important;
+    border-color: rgb(255, 255, 255) !important;
+
+    ::ng-deep .mat-mdc-chip-text-label,
+    ::ng-deep .mdc-evolution-chip__text-label {
+      color: #ffffff !important;
+      padding-top: 3px;
+    }
+  }
+}
+
+.monto-coincide {
+  color: #4caf50 !important;
+  font-weight: bold;
+}
+
+.monto-diferencia {
+  color: #f44336 !important;
+  font-weight: bold;
+}
+
+:host ::ng-deep {
+  .mat-mdc-header-cell {
+    text-align: center !important;
+  }
+
+  .table-wrapper .mat-sort-header-container {
+    justify-content: center;
+    text-align: center !important; 
+  }
+}
+
+td.mat-cell.center {
+  text-align: center;
+}
+
+td.mat-cell.left {
+  text-align: left;
+}
+
+td.mat-cell.align-icon {
+  display: flex;
+  align-items: center;
+  gap: 5px; 
+}
+
+.icon-link {
+  color: white;
+  font-size: 1.4em;
+  padding: 7px 0 0 5px;
+}
+
+.info-diferencia {
+  padding: 8px; 
+  border-bottom: 1px solid #444;
+}
+
+.movimiento-container {
+  padding-top: 20px;
+  padding-bottom: 20px;
+  width: 100%;
+  background-color: rgb(32, 32, 32);
+}
+
+.example-element-detail {
+  background-color: transparent;
+  padding: 0;
+}
+
+tr.example-detail-row {
+  height: 0;
+}
+
+.maletin-form-field {
+  width: 250px;
+  max-width: 250px;
+  min-width: 250px;
+}
+
+.no-padding {
+  td.mdc-data-table__cell {
+    padding: 0 !important;
+  }
+}
