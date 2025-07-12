@@ -523,6 +523,145 @@ export const cajasWithFilters = gql`
             nombre
           }
         }
+        conteoApertura {
+          id
+          observacion
+          creadoEn
+          conteoMonedaList {
+            id
+            monedaBilletes {
+              id
+              moneda {
+                id
+                denominacion
+              }
+              valor
+            }
+            cantidad
+          }
+        }
+        conteoCierre {
+          id
+          observacion
+          creadoEn
+          conteoMonedaList {
+            id
+            monedaBilletes {
+              id
+              moneda {
+                id
+                denominacion
+              }
+              valor
+            }
+            cantidad
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const cajasAnalisisDiferencias = gql`
+  query (
+    $cajaId: ID
+    $cajaAnteriorId: ID
+    $estado: PdvCajaEstado
+    $maletinId: ID
+    $maletinDescripcion: String
+    $cajeroId: ID
+    $fechaInicio: String
+    $fechaFin: String
+    $sucId: ID
+    $verificado: Boolean,
+    $difEstado: String,
+    $page: Int
+    $size: Int
+  ) {
+    data: cajasAnalisisDiferencias(
+      cajaId: $cajaId
+      cajaAnteriorId: $cajaAnteriorId
+      estado: $estado
+      maletinId: $maletinId
+      maletinDescripcion: $maletinDescripcion
+      cajeroId: $cajeroId
+      fechaInicio: $fechaInicio
+      fechaFin: $fechaFin
+      sucId: $sucId
+      verificado: $verificado
+      difEstado: $difEstado
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        sucursal {
+          id
+          nombre
+        }
+        sucursalId
+        descripcion
+        activo
+        estado
+        tuvoProblema
+        fechaApertura
+        fechaCierre
+        observacion
+        verificado
+        maletin {
+          id
+          descripcion
+        }
+        creadoEn
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+        cajaAnteriorId
+        estadoDiferenciaConsecutiva
+        conteoApertura {
+          id
+          observacion
+          creadoEn
+          conteoMonedaList {
+            id
+            monedaBilletes {
+              id
+              moneda {
+                id
+                denominacion
+              }
+              valor
+            }
+            cantidad
+          }
+        }
+        conteoCierre {
+          id
+          observacion
+          creadoEn
+          conteoMonedaList {
+            id
+            monedaBilletes {
+              id
+              moneda {
+                id
+                denominacion
+              }
+              valor
+            }
+            cantidad
+          }
+        }
       }
     }
   }

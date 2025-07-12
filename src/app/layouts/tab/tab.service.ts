@@ -31,6 +31,7 @@ import { ListVentaComponent } from '../../modules/operaciones/venta/list-venta/l
 import { AddVentaObservacionComponent } from '../../modules/operaciones/venta-observacion/add-venta-observacion/add-venta-observacion.component';
 import { MainVentaObservacionComponent } from '../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component';
 import { MainCajaObservacionComponent } from '../../modules/financiero/pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component';
+import { AnalisisDiferenciaComponent } from '../../modules/financiero/analisis-diferencia/analisis-diferencia.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -40,9 +41,11 @@ export enum TABS {
 export class TabData {
   id?: number
   data?: any;
-  constructor(id?, data?) {
+  goToSection?: string; // Nueva propiedad para indicar la sección destino
+  constructor(id?, data?, goToSection?) {
     this.id = id
     this.data = data
+    this.goToSection = goToSection
   }
 }
 

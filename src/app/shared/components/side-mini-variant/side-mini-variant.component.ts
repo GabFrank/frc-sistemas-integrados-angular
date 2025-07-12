@@ -40,6 +40,8 @@ import { ListReplicationTablesComponent } from '../../../modules/configuracion/l
 import { MainVentaObservacionComponent } from "../../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component";
 import { MainCajaObservacionComponent } from "../../../modules/financiero/pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component";
 import { Subscription } from 'rxjs';
+import { AnalisisDiferenciaComponent } from '../../../modules/financiero/analisis-diferencia/analisis-diferencia.component';
+
 
 // Define interfaces for the navigation items structure
 interface BaseNavigationItem {
@@ -220,6 +222,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Lucro por producto', 
           icon: 'trending_up', 
           action: 'lucro-por-producto',
+          visibilityRoles: [ROLES.ADMIN]
+        },
+        {
+          name: 'Análisis de diferencias',
+          icon: 'equalizer',
+          action: 'analisis-diferencias',
           visibilityRoles: [ROLES.ADMIN]
         }
       ]
@@ -549,6 +557,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-facturas":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListFacturaLegalComponent, "Lista de facturas");
+        break;
+      case "analisis-diferencias":
+        this.openTabIfAuthorized(ROLES.ADMIN, AnalisisDiferenciaComponent, "Análisis de diferencias");
         break;
       case "list-sucursal":
         this.openTabIfAuthorized(ROLES.ADMIN, ListSucursalComponent, "Lista de sucursales");

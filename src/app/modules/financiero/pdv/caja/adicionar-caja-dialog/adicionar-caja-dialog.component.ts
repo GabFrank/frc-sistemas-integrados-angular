@@ -150,6 +150,15 @@ export class AdicionarCajaDialogComponent implements OnInit {
             this.selectedCaja = res;
             this.isCierre = this.selectedCaja?.conteoCierre != null;
             this.cargarDatos();
+            
+            const targetSection = this.data?.tabData?.goToSection;
+            if (targetSection) {
+              console.log('Navegando automáticamente a:', targetSection);
+              setTimeout(() => {
+                this.goTo(targetSection);
+              }, 1000);
+            }
+            
             this.deliveryService
               .onDeliveryPorCajaIdAndEstado(this.selectedCaja.id, [
                 DeliveryEstado.ABIERTO,

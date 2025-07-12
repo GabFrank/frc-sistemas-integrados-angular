@@ -2,7 +2,6 @@ import { NgModule } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { BancoComponent } from "./banco/banco.component";
 import { CambioComponent } from "./cambio/cambio.component";
-import { CuentaBancaria } from "./cuenta-bancaria/cuenta-bancaria.model";
 import { CuentaBancariaComponent } from "./cuenta-bancaria/cuenta-bancaria.component";
 import { FinancieroDashboardComponent } from "./financiero-dashboard/financiero-dashboard.component";
 import { FormaPagoComponent } from "./forma-pago/forma-pago.component";
@@ -38,7 +37,8 @@ import { AddCajaMotivoObsDialogComponent } from './pdv/caja-motivo-observacion/a
 import { AddCajaObservacionComponent } from "./pdv/caja-observacion/add-caja-observacion-dialog/add-caja-observacion-dialog.component";
 import { MainCajaObservacionComponent } from './pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component';
 import { CajaObservacionDashboardComponent } from './pdv/caja-observacion/caja-observacion-dashboard/caja-observacion-dashboard.component';
-
+import { AnalisisDiferenciaComponent } from './analisis-diferencia/analisis-diferencia.component';
+import { SearchMaletinGQL } from './maletin/graphql/searchMaletin';
 
 @NgModule({
   declarations: [
@@ -75,6 +75,10 @@ import { CajaObservacionDashboardComponent } from './pdv/caja-observacion/caja-o
     AddCajaObservacionComponent,
     MainCajaObservacionComponent,
     CajaObservacionDashboardComponent,
+    AnalisisDiferenciaComponent,
+  ],
+  providers: [
+    SearchMaletinGQL
   ],
   imports: [
     CommonModule,
