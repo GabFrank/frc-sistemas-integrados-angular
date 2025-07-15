@@ -1,9 +1,9 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup } from '@angular/forms';
+import { FormBuilder, FormGroup, FormControl } from '@angular/forms';
 import { PageEvent } from '@angular/material/paginator';
 import { PageInfo } from '../../../app.component';
 import { MatTableDataSource } from '@angular/material/table';
-import { PdvCaja, PdvCajaEstado } from '../pdv/caja/caja.model';
+import { PdvCaja, PdvCajaEstado, CajaBalance } from '../pdv/caja/caja.model';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 
 type DataRow = Omit<PdvCaja, 'toInput'> & { 
@@ -13,8 +13,18 @@ type DataRow = Omit<PdvCaja, 'toInput'> & {
   montosCalculados?: {
     apertura: { gs: number, rs: number, ds: number },
     cierre: { gs: number, rs: number, ds: number }
-  }
+  };
+  balance?: CajaBalance;
 };
+
+enum EstadoDiferencia {
+  SIN_DIFERENCIA = 'SIN_DIFERENCIA',
+  POCA_DIFERENCIA = 'POCA_DIFERENCIA',
+  MEDIA_DIFERENCIA = 'MEDIA_DIFERENCIA',
+  CON_DIFERENCIA = 'CON_DIFERENCIA',
+  MUCHA_DIFERENCIA = 'MUCHA_DIFERENCIA',
+  SIN_DATOS = 'SIN_DATOS'
+}
 import { CajaService } from '../pdv/caja/caja.service';
 import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
 import { SucursalService } from '../../empresarial/sucursal/sucursal.service';
@@ -28,8 +38,13 @@ import { MatDialog } from '@angular/material/dialog';
 import { SearchListDialogComponent, SearchListtDialogData } from '../../../shared/components/search-list-dialog/search-list-dialog.component';
 import { Maletin } from '../maletin/maletin.model';
 import { SearchMaletinGQL } from '../maletin/graphql/searchMaletin';
+import { VentaService } from '../../operaciones/venta/venta.service';
+import { Venta } from '../../operaciones/venta/venta.model';
+import { MonedaService } from '../moneda/moneda.service';
+import { Moneda } from '../moneda/moneda.model';
+import { of, forkJoin, combineLatest, BehaviorSubject } from 'rxjs';
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'analisis-diferencia',
   templateUrl: './analisis-diferencia.component.html',
@@ -44,7 +59,21 @@ import { SearchMaletinGQL } from '../maletin/graphql/searchMaletin';
 })
 export class AnalisisDiferenciaComponent implements OnInit {
 
-  // Table 1 (Diferencia de maletín)
+  isLoadingMaletin = false;
+  isLoadingCaja = false;
+  isLoadingInitialData = true;
+  isLoadingGlobal = false;
+  
+  private loadingMaletinSubject = new BehaviorSubject<boolean>(false);
+  private loadingCajaSubject = new BehaviorSubject<boolean>(false);
+  
+  private bothTablesLoaded$ = combineLatest([
+    this.loadingMaletinSubject,
+    this.loadingCajaSubject
+  ]).pipe(
+    untilDestroyed(this)
+  );
+
   diferenciaMaletinColumns: string[] = ['cierre', 'sucursal', 'maletin', 'cierreCaja', 'aperturaCaja', 'estado'];
   diferenciaMaletinDataSource = new MatTableDataSource<DataRow>([]);
   diferenciaMaletinFilters: FormGroup;
@@ -52,10 +81,24 @@ export class AnalisisDiferenciaComponent implements OnInit {
   selectedPageInfo: PageInfo<PdvCaja>;
   pageIndexMaletin: number = 0;
   pageSizeMaletin: number = 10;
-  expandedElement: DataRow | null = null;
+  expandedElementMaletin: DataRow | null = null;
 
-  // Sucursal list for selectors
+  diferenciaCajaDataSource = new MatTableDataSource<DataRow>([]);
+  diferenciaCajaColumns: string[] = ['fechaApertura', 'sucursal', 'maletin', 'cierreCaja', 'estado'];
+  diferenciaCajaFilters: FormGroup;
+  totalElementsCaja: number = 0;
+  selectedPageInfoCaja: PageInfo<PdvCaja>;
+  pageIndexCaja: number = 0;
+  pageSizeCaja: number = 10;
+  expandedElementCaja: DataRow | null = null;
+
   sucursalList: Sucursal[] = [];
+  
+  monedasList: Moneda[] = [];
+  
+  globalCajaFilter = new FormControl('');
+  
+  private verificarCompletado: () => void;
 
   constructor(
     private fb: FormBuilder,
@@ -64,14 +107,84 @@ export class AnalisisDiferenciaComponent implements OnInit {
     private router: Router,
     private tabService: TabService,
     private matDialog: MatDialog,
-    private searchMaletinGQL: SearchMaletinGQL
+    private searchMaletinGQL: SearchMaletinGQL,
+    private ventaService: VentaService,
+    private monedaService: MonedaService
   ) { }
 
   ngOnInit(): void {
     this.initForms();
-    this.loadSucursales();
-    this.loadDiferenciasMaletin();
+    this.loadInitialData();
     this.subscribeToFilterChanges();
+  }
+
+  loadInitialData(): void {
+    this.isLoadingInitialData = true;
+    
+    forkJoin({
+      sucursales: this.sucursalService.onGetAllSucursales(true, true),
+      monedas: this.monedaService.onGetAll(false)
+    }).pipe(untilDestroyed(this)).subscribe({
+      next: (results) => {
+        this.sucursalList = results.sucursales?.filter(sucursal => 
+          sucursal.nombre != "SERVIDOR" && sucursal.nombre != "COMPRAS") || [];
+        
+        this.monedasList = results.monedas || [];
+        
+        setTimeout(() => {
+          this.loadTablesData();
+        }, 200);
+      },
+      error: (error) => {
+        console.error('Error cargando datos iniciales:', error);
+        setTimeout(() => {
+          this.loadTablesData();
+        }, 200);
+      }
+    });
+  }
+
+  loadTablesData(): void {
+    this.isLoadingInitialData = false;
+    
+    setTimeout(() => {
+      this.isLoadingMaletin = true;
+      this.isLoadingCaja = true;
+      
+      this.loadDiferenciasMaletin();
+      this.loadDiferenciasCaja();
+    }, 100); 
+  }
+
+  calcularEstadoDiferencia(diferenciaGs: number, diferenciaRs: number, diferenciaDs: number): string {
+    const monedaReal = this.monedasList.find(m => m.denominacion === 'REAL');
+    const monedaDolar = this.monedasList.find(m => m.denominacion === 'DOLAR');
+    
+    const cotizacionReal = monedaReal?.cambio || 130;
+    const cotizacionDolar = monedaDolar?.cambio || 7000;
+    
+    const diferenciaTotalGs = Math.abs(diferenciaGs || 0) + 
+                             Math.abs(diferenciaRs || 0) * cotizacionReal + 
+                             Math.abs(diferenciaDs || 0) * cotizacionDolar;
+    
+    const UMBRAL_POCA_DIFERENCIA = 5000;
+    const UMBRAL_MEDIA_DIFERENCIA = 20000;
+    const UMBRAL_CON_DIFERENCIA = 50000;
+    const UMBRAL_MUCHA_DIFERENCIA = 100000;
+    
+    if (diferenciaTotalGs === 0) {
+      return EstadoDiferencia.SIN_DIFERENCIA;
+    } else if (diferenciaTotalGs <= UMBRAL_POCA_DIFERENCIA) {
+      return EstadoDiferencia.POCA_DIFERENCIA;
+    } else if (diferenciaTotalGs <= UMBRAL_MEDIA_DIFERENCIA) {
+      return EstadoDiferencia.MEDIA_DIFERENCIA;
+    } else if (diferenciaTotalGs <= UMBRAL_CON_DIFERENCIA) {
+      return EstadoDiferencia.CON_DIFERENCIA;
+    } else if (diferenciaTotalGs <= UMBRAL_MUCHA_DIFERENCIA) {
+      return EstadoDiferencia.CON_DIFERENCIA;
+    } else {
+      return EstadoDiferencia.MUCHA_DIFERENCIA;
+    }
   }
 
   initForms(): void {
@@ -85,15 +198,18 @@ export class AnalisisDiferenciaComponent implements OnInit {
       estadoDiferencia: ['TODAS'],
       sucursalId: [null]
     });
+
+    this.diferenciaCajaFilters = this.fb.group({
+      fechaApertura: [fechaInicial],
+      maletinDescripcion: [null],
+      maletinId: [null],
+      cajaAnteriorId: [null],
+      estadoDiferencia: ['TODAS'],
+      sucursalId: [null]
+    });
   }
 
-  loadSucursales(): void {
-    this.sucursalService.onGetAllSucursales(true, true).subscribe(res => {
-      this.sucursalList = res?.filter(sucursal => 
-        sucursal.nombre != "SERVIDOR" && sucursal.nombre != "COMPRAS");
-      
-    })
-  }
+
 
   subscribeToFilterChanges(): void {
     this.diferenciaMaletinFilters.valueChanges.pipe(
@@ -104,9 +220,24 @@ export class AnalisisDiferenciaComponent implements OnInit {
       this.pageIndexMaletin = 0;
       this.loadDiferenciasMaletin();
     });
+
+    this.diferenciaCajaFilters.valueChanges.pipe(
+      debounceTime(500),
+      distinctUntilChanged(),
+      untilDestroyed(this)
+    ).subscribe(() => {
+      this.pageIndexCaja = 0;
+      this.loadDiferenciasCaja();
+    });
   }
 
-  loadDiferenciasMaletin(): void {
+  loadDiferenciasMaletin() {
+    this.isLoadingMaletin = true;
+    this.loadingMaletinSubject.next(true);
+    
+    const minLoadingTime = 300;
+    const startTime = Date.now();
+    
     const filters = this.diferenciaMaletinFilters.value;
     const estadoFiltrado = filters.estadoDiferencia !== 'TODAS' ? filters.estadoDiferencia : null;
 
@@ -131,11 +262,21 @@ export class AnalisisDiferenciaComponent implements OnInit {
     let fechaFin: Date = null;
 
     if (filters.fechaCierre) {
-      fechaInicio = new Date(filters.fechaCierre);
-      fechaInicio.setHours(0, 0, 0, 0);
+      const fechaSeleccionada = new Date(filters.fechaCierre);
+      
+      fechaInicio = new Date(
+        fechaSeleccionada.getFullYear(),
+        fechaSeleccionada.getMonth(),
+        fechaSeleccionada.getDate(),
+        0, 0, 0, 0
+      );
 
-      fechaFin = new Date(filters.fechaCierre);
-      fechaFin.setHours(23, 59, 59, 999);
+      fechaFin = new Date(
+        fechaSeleccionada.getFullYear(),
+        fechaSeleccionada.getMonth(),
+        fechaSeleccionada.getDate(),
+        23, 59, 59, 999
+      );
     } else {
       const hayFiltrosDeIdUnicos = cajaAnteriorId || maletinDescripcion;
       if (!hayFiltrosDeIdUnicos) {
@@ -165,16 +306,16 @@ export class AnalisisDiferenciaComponent implements OnInit {
     };
 
     this.cajaService.onGetCajasAnalisisDiferencias(
-      null, // cajaId
+      null,
       params.cajaAnteriorId,
       estadoBackend,
-      null, // maletinId
+      null, 
       params.maletinDescripcion,
-      null, // cajeroId
+      null,
       params.fechaInicio,
       params.fechaFin,
       params.sucursalId,
-      null, // verificado
+      null,  
       params.page,
       params.size,
       filtrarDiferenciaFront ? estadoFiltrado : null
@@ -193,61 +334,145 @@ export class AnalisisDiferenciaComponent implements OnInit {
       this.diferenciaMaletinDataSource.data = dataAugmented;
       this.totalElementsMaletin = this.selectedPageInfo?.getTotalElements || 0;
       
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+      
+      setTimeout(() => {
+        this.isLoadingMaletin = false;
+        this.loadingMaletinSubject.next(false);
+      }, remainingTime);
+      
     }, (error: any) => {
       console.error('Error en la petición:', error);
+      
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+      
+      setTimeout(() => {
+        this.isLoadingMaletin = false;
+        this.loadingMaletinSubject.next(false);
+      }, remainingTime);
     });
   }
 
-  handlePageEventMaletin(event: PageEvent): void {
+  handlePageEventMaletin(event: PageEvent) {
     this.pageIndexMaletin = event.pageIndex;
     this.pageSizeMaletin = event.pageSize;
     this.loadDiferenciasMaletin();
   }
 
-  limpiarFiltros(): void {
+  limpiarFiltros() {
     const fechaInicial = new Date();
     fechaInicial.setDate(fechaInicial.getDate() - 1);
     
-    this.diferenciaMaletinFilters.reset({
+    this.pageIndexMaletin = 0;
+    
+    this.diferenciaMaletinFilters.patchValue({
       fechaCierre: fechaInicial,
       maletinDescripcion: null,
       cajaAnteriorId: null,
       estadoDiferencia: 'TODAS',
       sucursalId: null
-    });
-    this.pageIndexMaletin = 0;
+    }, { emitEvent: false });
+    
     this.loadDiferenciasMaletin();
   }
 
-  onGoToCaja(cajaId: number, tipo: 'apertura' | 'cierre'): void {
+  filtrarGlobal() {
+    const cajaId = this.globalCajaFilter.value;
+    
+    if (cajaId) {
+      this.isLoadingGlobal = true;
+      
+      this.diferenciaMaletinFilters.patchValue({
+        fechaCierre: null,
+        cajaAnteriorId: cajaId
+      }, { emitEvent: false });
+      
+      this.diferenciaCajaFilters.patchValue({
+        fechaApertura: null,
+        cajaAnteriorId: cajaId
+      }, { emitEvent: false });
+      
+      this.bothTablesLoaded$.subscribe(([maletin, caja]) => {
+        if (!maletin && !caja && this.isLoadingGlobal) {
+          this.isLoadingGlobal = false;
+        }
+      });
+      
+      this.pageIndexMaletin = 0;
+      this.pageIndexCaja = 0;
+      
+      this.loadDiferenciasMaletin();
+      this.loadDiferenciasCaja();
+    }
+  }
+
+  limpiarFiltrosGlobal() {
+    this.globalCajaFilter.setValue('');
+    
+    const fechaInicial = new Date();
+    fechaInicial.setDate(fechaInicial.getDate() - 1);
+    
+    this.pageIndexMaletin = 0;
+    this.pageIndexCaja = 0;
+    
+    this.diferenciaMaletinFilters.patchValue({
+      fechaCierre: fechaInicial,
+      maletinDescripcion: null,
+      cajaAnteriorId: null,
+      estadoDiferencia: 'TODAS',
+      sucursalId: null
+    }, { emitEvent: false });
+    
+    this.diferenciaCajaFilters.patchValue({
+      fechaApertura: fechaInicial,
+      sucursalId: null,
+      maletinId: null,
+      maletinDescripcion: '',
+      cajaAnteriorId: null,
+      estadoDiferencia: 'TODAS'
+    }, { emitEvent: false });
+    
+    this.loadDiferenciasMaletin();
+    this.loadDiferenciasCaja();
+  }
+
+  onGoToCaja(cajaId: number, tipo: 'apertura' | 'cierre') {
     if (!cajaId) return;
   
+    let cajaEncontrada = null;
+    
     if (tipo === 'cierre') {
-      const cajaConCierre = this.diferenciaMaletinDataSource.data.find(c => c.cajaAnteriorId === cajaId);
-      if (cajaConCierre) {
+      cajaEncontrada = this.diferenciaMaletinDataSource.data.find(c => c.cajaAnteriorId === cajaId) ||
+                      this.diferenciaCajaDataSource.data.find(c => c.cajaAnteriorId === cajaId);
+      
+      if (cajaEncontrada) {
         const cajaAnterior = {
-          id: cajaConCierre.cajaAnteriorId,
-          sucursalId: cajaConCierre.sucursalId,
-          sucursal: cajaConCierre.sucursal
+          id: cajaEncontrada.cajaAnteriorId,
+          sucursalId: cajaEncontrada.sucursalId,
+          sucursal: cajaEncontrada.sucursal
         };
         this.tabService.addTab(
           new Tab(
             AdicionarCajaDialogComponent,
-            "Cierre de caja " + cajaConCierre.cajaAnteriorId,
-            new TabData(cajaConCierre.cajaAnteriorId, cajaAnterior, "cierre")
+            "Cierre de caja " + cajaEncontrada.cajaAnteriorId,
+            new TabData(cajaEncontrada.cajaAnteriorId, cajaAnterior, "cierre")
           )
         );
       } else {
         this.openFallbackTab(cajaId);
       }
     } else {
-      const cajaApertura = this.diferenciaMaletinDataSource.data.find(c => c.id === cajaId);
-      if (cajaApertura) {
+      cajaEncontrada = this.diferenciaMaletinDataSource.data.find(c => c.id === cajaId) ||
+                      this.diferenciaCajaDataSource.data.find(c => c.id === cajaId);
+      
+      if (cajaEncontrada) {
         this.tabService.addTab(
           new Tab(
             AdicionarCajaDialogComponent,
-            "Apertura de caja " + cajaApertura.id,
-            new TabData(cajaApertura.id, cajaApertura, "apertura")
+            "Apertura de caja " + cajaEncontrada.id,
+            new TabData(cajaEncontrada.id, cajaEncontrada, "apertura")
           )
         );
       } else {
@@ -256,10 +481,10 @@ export class AnalisisDiferenciaComponent implements OnInit {
     }
   }
 
-  openFallbackTab(cajaId: number): void {
-    console.warn('Caja no encontrada en los datos actuales. Abriendo pestaña de fallback. ID:', cajaId);
-    
-    const primerItem = this.diferenciaMaletinDataSource.data[0];
+  openFallbackTab(cajaId: number) {
+    const primerItemMaletin = this.diferenciaMaletinDataSource.data[0];
+    const primerItemCaja = this.diferenciaCajaDataSource.data[0];
+    const primerItem = primerItemMaletin || primerItemCaja;    
     const fallbackData = primerItem ? {
       id: cajaId,
       sucursalId: primerItem.sucursalId,
@@ -273,9 +498,9 @@ export class AnalisisDiferenciaComponent implements OnInit {
         new TabData(cajaId, fallbackData)
       )
     );
-    }
+  }
 
-  tieneOtrosFiltros(): boolean {
+  tieneOtrosFiltros() {
     const filters = this.diferenciaMaletinFilters.value;
     const cajaAnteriorId = filters.cajaAnteriorId && filters.cajaAnteriorId.toString().trim() !== '';
     const maletinDescripcion = filters.maletinDescripcion && filters.maletinDescripcion.toString().trim() !== '';
@@ -285,7 +510,7 @@ export class AnalisisDiferenciaComponent implements OnInit {
     return cajaAnteriorId || maletinDescripcion || sucursalId || estadoDiferencia;
   }
 
-  getOrdenamientoActual(): string {
+  getOrdenamientoActual() {
     const filters = this.diferenciaMaletinFilters.value;
     const tieneFecha = !!filters.fechaCierre;
     const tieneOtrosFiltros = this.tieneOtrosFiltros();
@@ -298,7 +523,7 @@ export class AnalisisDiferenciaComponent implements OnInit {
     return 'Estándar';
   }
 
-  onMaletinSearch(): void {
+  onMaletinSearch() {
     const sucId = this.diferenciaMaletinFilters.value.sucursalId;
 
     let data: SearchListtDialogData = {
@@ -327,36 +552,110 @@ export class AnalisisDiferenciaComponent implements OnInit {
     });
   }
 
-  onSelectMaletin(maletin: Maletin): void {
+  onSelectMaletin(maletin: Maletin) {
     this.diferenciaMaletinFilters.patchValue({
       maletinDescripcion: maletin?.descripcion
     });
   }
 
-  clearMaletinFilter(): void {
+  clearMaletinFilter() {
     this.diferenciaMaletinFilters.patchValue({
       maletinDescripcion: null
     });
   }
 
-  onClickRow(element: DataRow, index: number): void {
-    if (this.expandedElement === element) {
+  onMaletinSearchCaja() {
+    const sucId = this.diferenciaCajaFilters.value.sucursalId;
 
-      if (!element.montosCalculados) {
-        const aperturaMontos = this.calculateTotalesByConteo(element.conteoApertura);
-        element.montosCalculados = {
-          apertura: aperturaMontos,
-          cierre: { gs: 0, rs: 0, ds: 0 }
-        };
+    let data: SearchListtDialogData = {
+      titulo: "Buscar maletín",
+      tableData: [
+        { id: "id", nombre: "Id", width: "10%" },
+        { id: "descripcion", nombre: "Descripción", width: "50%" },
+        { id: "abierto", nombre: "Abierto", width: "40%" },
+      ],
+      query: this.searchMaletinGQL,
+      queryData: {
+        sucId: sucId,
+        texto: null
+      },
+      inicialSearch: true,
+    };
+
+    this.matDialog.open(SearchListDialogComponent, {
+      data: data,
+      height: '80vh',
+      width: '70vw',
+    }).afterClosed().pipe(untilDestroyed(this)).subscribe((res: Maletin) => {
+      if (res != null) {
+        this.onSelectMaletinCaja(res);
       }
-      
-      if (element.cajaAnteriorId && !element.cajaAnteriorData) {
-        this.loadCajaAnteriorData(element);
-      }
+    });
+  }
+
+  onSelectMaletinCaja(maletin: Maletin) {
+    this.diferenciaCajaFilters.patchValue({
+      maletinDescripcion: maletin?.descripcion,
+      maletinId: maletin?.id
+    });
+  }
+
+  clearMaletinFilterCaja() {
+    this.diferenciaCajaFilters.patchValue({
+      maletinDescripcion: null,
+      maletinId: null
+    });
+  }
+
+  onClickRow(element: DataRow, index: number) {
+    
+    const isSecondTable = this.diferenciaCajaDataSource.data.includes(element);
+    
+    if (isSecondTable) {
+      this.loadCajaBalanceReal(element);
+    } else {
+      this.loadCajaBalance(element);
+      this.loadCajaAnteriorData(element);
+      this.calculateMontos(element);
     }
   }
 
-  loadCajaAnteriorData(item: DataRow): void {
+  onClickRowMaletin(element: DataRow, index: number) {
+    this.expandedElementMaletin = this.expandedElementMaletin === element ? null : element;
+    this.onClickRow(element, index);
+  }
+
+  onClickRowCaja(element: DataRow, index: number) {
+    this.expandedElementCaja = this.expandedElementCaja === element ? null : element;
+    this.onClickRow(element, index);
+  }
+
+  loadCajaBalance(item: DataRow) {
+    if (!item.id || !item.sucursal?.id) {
+      console.warn('No se puede cargar balance de caja - faltan datos:', {
+        cajaId: item.id,
+        sucursalId: item.sucursal?.id
+      });
+      return;
+    }
+
+    this.cajaService.onCajaBalancePorIdAndSucursalId(item.id, item.sucursal.id, true)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (balance) => {
+          if (balance) {
+            item.balance = balance;
+          } else {
+            console.warn('No se encontró balance para la caja:', item.id);
+          }
+        },
+        error: (error) => {
+          console.error('Error al cargar balance de caja:', error);
+        }
+      });
+  }
+
+  loadCajaAnteriorData(item: DataRow) {
     if (!item.cajaAnteriorId || !item.sucursal?.id) {
       console.warn('No se puede cargar datos de caja anterior - faltan datos:', {
         cajaAnteriorId: item.cajaAnteriorId,
@@ -382,7 +681,7 @@ export class AnalisisDiferenciaComponent implements OnInit {
       });
   }
 
-  calculateMontos(item: DataRow): void {
+  calculateMontos(item: DataRow) {
     const aperturaMontos = this.calculateTotalesByConteo(item.conteoApertura);
     const cierreMontos = this.calculateTotalesByConteo(item.cajaAnteriorData?.conteoCierre);
 
@@ -392,7 +691,7 @@ export class AnalisisDiferenciaComponent implements OnInit {
     };
   }
 
-  calculateTotalesByConteo(conteo: any): { gs: number, rs: number, ds: number } {
+  calculateTotalesByConteo(conteo: any) {
     const totales = { gs: 0, rs: 0, ds: 0 };
     
     if (!conteo) {
@@ -432,9 +731,382 @@ export class AnalisisDiferenciaComponent implements OnInit {
     return totales;
   }
 
+  loadDiferenciasCaja() {
+    this.isLoadingCaja = true;
+    this.loadingCajaSubject.next(true);
+    
+    const minLoadingTime = 300;
+    const startTime = Date.now();
+    
+    const filters = this.diferenciaCajaFilters.value;
+
+    let fechaInicio: Date = null;
+    let fechaFin: Date = null;
+    
+    if (filters.fechaApertura) {
+      const fechaSeleccionada = new Date(filters.fechaApertura);
+      
+      fechaInicio = new Date(
+        fechaSeleccionada.getFullYear(),
+        fechaSeleccionada.getMonth(),
+        fechaSeleccionada.getDate(),
+        0, 0, 0, 0
+      );
+
+      fechaFin = new Date(
+        fechaSeleccionada.getFullYear(),
+        fechaSeleccionada.getMonth(),
+        fechaSeleccionada.getDate(),
+        23, 59, 59, 999
+      );
+    }
+
+    let maletinId: number = null;
+    if (filters.maletinId) {
+      maletinId = filters.maletinId;
+    }
+
+    let cajaAnteriorId: number = null;
+    if (filters.cajaAnteriorId && filters.cajaAnteriorId.toString().trim() !== '') {
+      cajaAnteriorId = parseInt(filters.cajaAnteriorId.toString());
+    }
+
+    const params = {
+      fechaInicio,
+      fechaFin,
+      maletinId,
+      cajaAnteriorId,
+      sucursalId: filters.sucursalId || null,
+      estadoDiferencia: filters.estadoDiferencia || 'TODAS'
+    };
 
 
-  // Table 2 (placeholder)
-  detalle2DataSource = new MatTableDataSource<any>([]);
-  detalle2Columns: string[] = ['fechaApertura', 'sucursal', 'maletin', 'cajaNro', 'estado'];
+    this.cajaService.onGetCajasAnalisisDiferencias(
+      null, 
+      cajaAnteriorId, 
+      null, 
+      maletinId, 
+      null, 
+      null, 
+      fechaInicio, 
+      fechaFin, 
+      params.sucursalId, 
+      null, 
+      this.pageIndexCaja, 
+      this.pageSizeCaja, 
+      null 
+    ).pipe(untilDestroyed(this)).subscribe((response: any) => {
+      
+      const responseData = response?.data || response;
+      
+      this.selectedPageInfoCaja = responseData as PageInfo<PdvCaja>;
+      const rawData = (this.selectedPageInfoCaja?.getContent as any[]) || [];
+
+      let filteredByDate = rawData;
+
+      const dataAugmented: DataRow[] = filteredByDate.map(c => {
+        return {
+          ...(c as any),
+          estadoDiferencia: 'SIN_DATOS'
+        };
+      });
+
+      this.cargarBalancesYCalcularEstados(dataAugmented, params.estadoDiferencia, startTime, minLoadingTime);
+      
+    }, (error: any) => {
+      console.error(' Error en la petición de diferencias de caja:', error);
+      
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+      
+      setTimeout(() => {
+        this.isLoadingCaja = false;
+        this.loadingCajaSubject.next(false);
+      }, remainingTime);
+    });
+  }
+
+  cargarBalancesYCalcularEstados(dataAugmented: DataRow[], estadoFiltro: string, startTime?: number, minLoadingTime?: number) {
+    
+    let cajasProcesadas = 0;
+    const totalCajas = dataAugmented.length;
+    
+    if (totalCajas === 0) {
+      this.diferenciaCajaDataSource.data = [];
+      this.totalElementsCaja = 0;
+      
+      if (startTime && minLoadingTime) {
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+        
+        setTimeout(() => {
+          this.isLoadingCaja = false;
+          this.loadingCajaSubject.next(false);
+        }, remainingTime);
+      } else {
+        this.isLoadingCaja = false;
+        this.loadingCajaSubject.next(false);
+      }
+      return;
+    }
+
+    dataAugmented.forEach((item, index) => {
+      const cajaIdParaBalance = item.cajaAnteriorId || item.id;
+      
+      if (!cajaIdParaBalance || !item.sucursal?.id) {
+        console.warn('No se puede cargar balance para caja - faltan datos:', {
+          cajaId: cajaIdParaBalance,
+          sucursalId: item.sucursal?.id
+        });
+        cajasProcesadas++;
+        this.verificarCompletado();
+        return;
+      }
+
+      this.cajaService.onCajaBalancePorIdAndSucursalId(cajaIdParaBalance, item.sucursal.id, true)
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (balance) => {
+            if (balance) {
+              
+              item.balance = balance;
+              
+              const diferenciaGs = balance.diferenciaGs || 0;
+              const diferenciaRs = balance.diferenciaRs || 0;
+              const diferenciaDs = balance.diferenciaDs || 0;
+              
+              item.estadoDiferencia = this.calcularEstadoDiferencia(diferenciaGs, diferenciaRs, diferenciaDs);
+              
+            } else {
+              console.warn('No se encontró balance para la caja:', cajaIdParaBalance);
+              item.estadoDiferencia = 'SIN_DATOS';
+            }
+            
+            cajasProcesadas++;
+            this.verificarCompletado();
+          },
+          error: (error) => {
+            console.error('Error al cargar balance de caja:', error);
+            item.estadoDiferencia = 'SIN_DATOS';
+            cajasProcesadas++;
+            this.verificarCompletado();
+          }
+        });
+    });
+
+    const verificarCompletado = () => {
+      if (cajasProcesadas === totalCajas) {
+        
+        let filteredData = dataAugmented;
+        if (estadoFiltro && estadoFiltro !== 'TODAS') {
+          filteredData = dataAugmented.filter(item => item.estadoDiferencia === estadoFiltro);
+        }
+
+        this.diferenciaCajaDataSource.data = filteredData;
+        this.totalElementsCaja = this.selectedPageInfoCaja?.getTotalElements || filteredData.length;
+        
+        if (startTime && minLoadingTime) {
+          const elapsedTime = Date.now() - startTime;
+          const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+          
+          setTimeout(() => {
+            this.isLoadingCaja = false;
+            this.loadingCajaSubject.next(false);
+          }, remainingTime);
+        } else {
+          this.isLoadingCaja = false;
+          this.loadingCajaSubject.next(false);
+        }
+      }
+    };
+
+    this.verificarCompletado = verificarCompletado;
+  }
+
+  tieneDiferenciaEnCaja(caja: any) {
+    if (!caja.balance) {
+      return false;
+    }
+    
+    const diferenciaGs = caja.balance.diferenciaGs || 0;
+    const diferenciaRs = caja.balance.diferenciaRs || 0;
+    const diferenciaDs = caja.balance.diferenciaDs || 0;
+    
+    const tieneDiferencia = diferenciaGs !== 0 || diferenciaRs !== 0 || diferenciaDs !== 0;
+    
+    return tieneDiferencia;
+  }
+
+  loadCajaBalanceReal(item: DataRow) {
+
+    const cajaIdParaBalance = item.cajaAnteriorId || item.id;
+    
+    if (!cajaIdParaBalance || !item.sucursal?.id) {
+      console.warn('No se puede cargar balance real de caja - faltan datos:', {
+        cajaId: cajaIdParaBalance,
+        sucursalId: item.sucursal?.id
+      });
+      return;
+    }
+
+    this.cajaService.onCajaBalancePorIdAndSucursalId(cajaIdParaBalance, item.sucursal.id, true)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (balance) => {
+          if (balance) {
+            item.balance = balance;
+            
+            const diferenciaGs = balance.diferenciaGs || 0;
+            const diferenciaRs = balance.diferenciaRs || 0;
+            const diferenciaDs = balance.diferenciaDs || 0;
+            
+            item.estadoDiferencia = this.calcularEstadoDiferencia(diferenciaGs, diferenciaRs, diferenciaDs);
+            
+          } else {
+            console.warn('No se encontró balance para la caja:', cajaIdParaBalance);
+            item.estadoDiferencia = 'SIN_DATOS';
+          }
+        },
+        error: (error) => {
+          console.error('Error al cargar balance de caja:', error);
+          item.estadoDiferencia = 'SIN_DATOS';
+        }
+      });
+  }
+
+  async calculateTotalesFromVentas(cajaId: number, sucursalId: number) {
+    return new Promise((resolve) => {
+      this.ventaService.onSearch(
+        null, 
+        cajaId, 
+        0, 
+        1000, 
+        true, 
+        sucursalId, 
+        null, 
+        null,
+        null, 
+        null, 
+        null
+      ).pipe(untilDestroyed(this)).subscribe((response) => {
+        if (response && response.getContent) {
+          const ventas: Venta[] = response.getContent;
+
+          const ventasCompletas: Venta[] = [];
+          let ventasProcesadas = 0;
+
+          if (ventas.length === 0) {
+            resolve({
+              totalRecibidoGs: 0,
+              totalRecibidoRs: 0,
+              totalRecibidoDs: 0,
+              totalTarjeta: 0,
+              totalCredito: 0,
+              totalFinal: 0,
+              diferenciaGs: 0,
+              diferenciaRs: 0,
+              diferenciaDs: 0
+            });
+            return;
+          }
+
+          ventas.forEach((venta, index) => {
+            this.ventaService.onGetPorId(venta.id, venta.sucursalId, true)
+              .pipe(untilDestroyed(this))
+              .subscribe((ventaCompleta) => {
+                if (ventaCompleta) {
+                  ventasCompletas.push(ventaCompleta);
+                }
+                ventasProcesadas++;
+
+                if (ventasProcesadas === ventas.length) {
+                  this.calcularTotalesDeVentas(ventasCompletas, cajaId, resolve);
+                }
+              });
+          });
+        } else {
+          console.warn(`No se encontraron ventas para la caja ${cajaId}`);
+          resolve(null);
+        }
+      });
+    });
+  }
+
+  private calcularTotalesDeVentas(ventas: Venta[], cajaId: number, resolve: Function) {
+    let totalRecibidoGs = 0;
+    let totalRecibidoRs = 0;
+    let totalRecibidoDs = 0;
+    let totalRecibido = 0;
+    let totalTarjeta = 0;
+    let totalCredito = 0;
+    let totalFinal = 0;
+
+    ventas.forEach((venta, index) => {
+
+      if (venta.cobro && venta.cobro.cobroDetalleList) {
+        venta.cobro.cobroDetalleList.forEach((cobroDetalle) => {
+
+          if (cobroDetalle.moneda.denominacion === "GUARANI") {
+            if (cobroDetalle.pago || cobroDetalle.vuelto) {
+              totalRecibidoGs += cobroDetalle.valor;
+              totalRecibido += cobroDetalle.valor;
+              totalFinal += cobroDetalle.valor;
+            } else if (cobroDetalle.aumento) {
+            } else if (cobroDetalle.descuento) {
+            }
+          } else if (cobroDetalle.moneda.denominacion === "REAL") {
+            if (cobroDetalle.pago || cobroDetalle.vuelto) {
+              totalRecibidoRs += cobroDetalle.valor;
+              totalRecibido += cobroDetalle.valor * cobroDetalle.cambio;
+              totalFinal += cobroDetalle.valor * cobroDetalle.cambio;
+            }
+          } else if (cobroDetalle.moneda.denominacion === "DOLAR") {
+            if (cobroDetalle.pago || cobroDetalle.vuelto) {
+              totalRecibidoDs += cobroDetalle.valor;
+              totalRecibido += cobroDetalle.valor * cobroDetalle.cambio;
+              totalFinal += cobroDetalle.valor * cobroDetalle.cambio;
+            }
+          }
+          
+          if (cobroDetalle.formaPago) {
+            if (cobroDetalle.formaPago.descripcion.toLowerCase().includes('tarjeta')) {
+              totalTarjeta += cobroDetalle.valor * cobroDetalle.cambio;
+            } else if (cobroDetalle.formaPago.descripcion.toLowerCase().includes('crédito') || 
+                     cobroDetalle.formaPago.descripcion.toLowerCase().includes('credito')) {
+              totalCredito += cobroDetalle.valor * cobroDetalle.cambio;
+            }
+          }
+        });
+      }
+    });
+
+    resolve({
+      totalRecibidoGs,
+      totalRecibidoRs,
+      totalRecibidoDs,
+      totalTarjeta,
+      totalCredito,
+      totalFinal,
+      diferenciaGs: 0,
+      diferenciaRs: 0,
+      diferenciaDs: 0 
+    });
+  }
+
+  handlePageEventCaja(event: PageEvent) {
+    this.pageIndexCaja = event.pageIndex;
+    this.pageSizeCaja = event.pageSize;
+    this.loadDiferenciasCaja();
+  }
+
+  tieneOtrosFiltrosCaja() {
+    const filters = this.diferenciaCajaFilters.value;
+    const cajaAnteriorId = filters.cajaAnteriorId && filters.cajaAnteriorId.toString().trim() !== '';
+    const maletinDescripcion = filters.maletinDescripcion && filters.maletinDescripcion.toString().trim() !== '';
+    const sucursalId = filters.sucursalId && filters.sucursalId.toString().trim() !== '';
+    const estadoDiferencia = filters.estadoDiferencia && filters.estadoDiferencia !== 'TODAS';
+    
+    return cajaAnteriorId || maletinDescripcion || sucursalId || estadoDiferencia;
+  }
+
 }
