@@ -18,8 +18,7 @@ export const sucursalesQuery = gql
       puerto
       direccion
       nroDelivery
-      isConfigured
-        
+      isConfigured 
     }
   }`;
 

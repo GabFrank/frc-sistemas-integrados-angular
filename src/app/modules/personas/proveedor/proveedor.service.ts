@@ -14,6 +14,7 @@ import {
 } from "../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { AdicionarProveedorDialogComponent } from "./adicionar-proveedor-dialog/adicionar-proveedor-dialog.component";
+import { ProveedoresSearchByPersonaPageGQL } from "./graphql/proveedorSearchByPersonaPage";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -26,6 +27,7 @@ export class ProveedorService {
     private saveProveedor: SaveProveedorGQL,
     private proveedorPorId: ProveedorByIdGQL,
     private proveedorPorPersona: ProveedorPorPersonaGQL,
+    private proveedorSearchByPersonaPage: ProveedoresSearchByPersonaPageGQL,
     private dialog: MatDialog
   ) {}
 
@@ -55,7 +57,11 @@ export class ProveedorService {
       },
       {
         id: "persona.nombre",
-        nombre: "Nombre",
+        nombre: "Razon Social",
+      },
+      {
+        id: "persona.apodo",
+        nombre: "Nombre Comercial",
       },
       {
         id: "persona.documento",
@@ -64,13 +70,19 @@ export class ProveedorService {
     ];
 
     let data: SearchListtDialogData = {
-      query: this.proveedorSearch,
+      query: this.proveedorSearchByPersonaPage,
       tableData: tableData,
       titulo: "Buscar proveedor",
       search: true,
       texto: texto,
       inicialSearch: texto != null,
       isAdicionar: true,
+      paginator: true,
+      queryData: {
+        texto: texto,
+        page: 0,
+        size: 10,
+      },
     };
 
     // Return an observable that chains the dialog operations

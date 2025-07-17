@@ -185,3 +185,41 @@ export const deleteProveedorQuery = gql`
     deleteProveedor(id: $id)
   }
 `;
+
+// create a query for proveedorSearchByPersonaPage(texto: String, page: Int, size: Int): ProveedorPage
+// type ProveedorPage {
+//   getTotalPages: Int
+//   getTotalElements: Int
+//   getNumberOfElements: Int
+//   isFirst: Boolean
+//   isLast: Boolean
+//   hasNext: Boolean
+//   hasPrevious: Boolean
+//   getContent: [Proveedor]
+//   getPageable: Pageable
+// }
+
+export const proveedorSearchByPersonaPage = gql`
+  query ($texto: String, $page: Int, $size: Int) {
+    data: proveedorSearchByPersonaPage(texto: $texto, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        persona {
+          id
+          nombre
+          documento
+          apodo
+        }
+      }
+    }
+  }
+`;
+
+

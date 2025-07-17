@@ -60,4 +60,8 @@ export class MonedaService {
   onGetAll(servidor: boolean = true): Observable<Moneda[]>{
     return this.genericService.onGetAll(this.getAllMonedas, null, null, servidor);
   }
+
+  currencyOptionsByMoneda(moneda: Moneda): any {
+    return moneda.denominacion  === 'GUARANI' ? this.currencyOptionsGuarani : this.currencyOptionsNoGuarani;
+  }
 }

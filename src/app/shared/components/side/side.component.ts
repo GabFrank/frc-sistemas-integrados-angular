@@ -12,7 +12,6 @@ import { ListCajaComponent } from "../../../modules/financiero/pdv/caja/list-caj
 import { DeliveryDashboardComponent } from '../../../modules/operaciones/delivery/delivery-dashboard/delivery-dashboard.component';
 import { EntradaSalidaComponent } from "../../../modules/operaciones/entrada-salida/entrada-salida.component";
 import { ListMovimientoStockComponent } from "../../../modules/operaciones/movimiento-stock/list-movimiento-stock/list-movimiento-stock.component";
-import { PedidoDashboardComponent } from '../../../modules/operaciones/pedido/pedido-dashboard/pedido-dashboard.component';
 import { LucroPorProductoComponent } from '../../../modules/operaciones/venta/reportes/lucro-por-producto/lucro-por-producto.component';
 import { UltimasCajasDialogComponent } from '../../../modules/pdv/comercial/venta-touch/ultimas-cajas-dialog/ultimas-cajas-dialog.component';
 import { VentaTouchComponent } from "../../../modules/pdv/comercial/venta-touch/venta-touch.component";
@@ -35,7 +34,6 @@ import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesio
 import { MainVentaObservacionComponent } from "../../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component";
 import { MainCajaObservacionComponent } from "../../../modules/financiero/pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component";
 import { ListSucursalComponent } from "../../../modules/empresarial/sucursal/list-sucursal/list-sucursal.component";
-import { ListSolicitudPagoComponent } from "../../../modules/operaciones/solicitud-pago/list-solicitud-pago/list-solicitud-pago.component";
 import { ThermalPrinterComponent } from '../../../modules/configuracion/thermal-printer/thermal-printer.component';
 import { ListReplicationComponent } from '../../../modules/configuracion/logical-replication/list-replication/list-replication.component';
 import { ListReplicationTablesComponent } from '../../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
@@ -213,9 +211,9 @@ export class SideComponent implements OnInit {
         // );
         break;
       case "list-pedido":
-        this.tabService.addTab(
-          new Tab(PedidoDashboardComponent, "Gestion de pedidos", null, null)
-        );
+        // this.tabService.addTab(
+        //   new Tab(PedidoDashboardComponent, "Gestion de pedidos", null, null)
+        // );
         break;
       case "pdv-restaurant":
         // this.tabService.addTab(
@@ -336,9 +334,9 @@ export class SideComponent implements OnInit {
         if (
           this.mainService.usuarioActual?.roles.includes(ROLES.ANALISIS_DE_CAJA)
         ) {
-          this.tabService.addTab(
-            new Tab(ListSolicitudPagoComponent, "Lista de solicitudes de pago", null, null)
-          );
+          // this.tabService.addTab(
+          //   new Tab(ListSolicitudPagoComponent, "Lista de solicitudes de pago", null, null)
+          // );
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }

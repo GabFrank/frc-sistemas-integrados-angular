@@ -1,7 +1,7 @@
 import { Usuario } from '../../personas/usuarios/usuario.model';
 import { Presentacion } from '../../productos/presentacion/presentacion.model';
 import { Producto } from '../../productos/producto/producto.model';
-import { PedidoItem } from '../pedido/edit-pedido/pedido-item.model';
+// import { PedidoItem } from '../pedido/edit-pedido/pedido-item.model';
 import { CompraItemEstado } from './compra-enums';
 import { Compra } from './compra.model';
 
@@ -21,7 +21,7 @@ export class CompraItem {
   estado: CompraItemEstado;
   creadoEn: Date;
   usuario: Usuario;
-  pedidoItem: PedidoItem;
+  // pedidoItem: PedidoItem;
   verificado: boolean
 
   toInput(): CompraItemInput {
@@ -40,7 +40,7 @@ export class CompraItem {
     input.estado = this.estado;
     input.creadoEn = this.creadoEn
     input.usuarioId = this.usuario?.id
-    input.pedidoItemId = this.pedidoItem?.id
+    // input.pedidoItemId = this.pedidoItem?.id
     input.verificado = this.verificado
     return input;
   }
@@ -70,7 +70,7 @@ export class CompraItemInput {
   estado: CompraItemEstado;
   creadoEn: Date;
   usuarioId: number = null;
-  pedidoItemId: number;
+  // pedidoItemId: number;
   verificado: boolean
 
 }

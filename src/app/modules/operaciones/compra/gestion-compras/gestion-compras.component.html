@@ -1,0 +1,818 @@
+<div class="gestion-compras-container">
+  <!-- Fixed Header Section -->
+  <div class="pedido-header">
+    <mat-card class="header-card">
+      <mat-card-header>
+        <mat-card-title>
+          Gestión de Compras
+          <mat-chip-listbox>
+            <mat-chip-option [color]="estadoChipColorComputed" selected>
+              {{ headerDataComputed.estado }}
+            </mat-chip-option>
+            <mat-chip-option *ngIf="isEditMode" color="primary" selected>
+              <mat-icon>edit</mat-icon>
+              Modo Edición
+            </mat-chip-option>
+            <mat-chip-option *ngIf="loadingPedido" color="warn" selected>
+              <mat-icon>hourglass_empty</mat-icon>
+              Cargando...
+            </mat-chip-option>
+          </mat-chip-listbox>
+        </mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="pedido-status-card">
+          <div class="status-header">
+            <div class="pedido-id">
+              Pedido Nro: {{ headerDataComputed.id || "Nuevo" }}
+            </div>
+          </div>
+
+          <div class="status-info">
+            <div class="info-item">
+              <div class="info-label">Proveedor</div>
+              <div class="info-content">
+                <div class="info-value">
+                  {{ headerDataComputed.proveedor || "No seleccionado" }}
+                </div>
+              </div>
+            </div>
+
+            <div class="info-item">
+              <div class="info-label">Fecha Creación</div>
+              <div class="info-content">
+                <div class="info-value">
+                  {{ headerDataComputed.fechaCreacion | date : "shortDate" }}
+                </div>
+              </div>
+            </div>
+
+            <div class="info-item">
+              <div class="info-label">Monto Total</div>
+              <div class="info-content">
+                <div class="info-value">
+                  <!-- {{headerDataComputed.moneda.simbolo}}  -->
+                  {{ headerDataComputed.montoTotal | number : "1.0-2" }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Main Content with Tabs -->
+  <div class="tabs-container">
+    <mat-tab-group
+      class="full-height-stepper"
+      [(selectedIndex)]="selectedTabIndex"
+      (selectedIndexChange)="onTabChange($event)"
+    >
+      <!-- Tab 1: Datos Generales -->
+      <mat-tab
+        label="1. Datos Generales"
+        [disabled]="datosGeneralesTabState === 'disabled'"
+      >
+        <ng-template matTabContent>
+          <div class="tab-content">
+            <h3>1. Datos Generales del Pedido</h3>
+            <p>Configure los datos principales del pedido de compra.</p>
+
+            <form [formGroup]="datosGeneralesForm" class="datos-generales-form">
+              <div class="form-row">
+                <!-- Proveedor -->
+                <div style="flex: 1" *ngIf="!showProveedorCard">
+                  <mat-form-field appearance="outline" style="width: 100%">
+                    <mat-label>Proveedor</mat-label>
+                    <input
+                      matInput
+                      formControlName="proveedor"
+                      placeholder="Buscar proveedor..."
+                      (keydown.enter)="onBuscarProveedor()"
+                    />
+                    <button
+                      mat-icon-button
+                      matSuffix
+                      type="button"
+                      (click)="onBuscarProveedor()"
+                    >
+                      <mat-icon>search</mat-icon>
+                    </button>
+                    <mat-error
+                      *ngIf="
+                        datosGeneralesForm
+                          .get('proveedor')
+                          ?.hasError('required')
+                      "
+                    >
+                      El proveedor es requerido
+                    </mat-error>
+                  </mat-form-field>
+                </div>
+
+                <!-- Proveedor Card -->
+                <div
+                  style="flex: 1"
+                  *ngIf="showProveedorCard && selectedProveedorComputed"
+                  class="proveedor-card"
+                >
+                  <mat-card class="selected-proveedor-card" style="width: 100%">
+                    <mat-card-content
+                      style="padding-top: 0px; padding-bottom: 0px"
+                    >
+                      <div class="proveedor-info">
+                        <div class="proveedor-details">
+                          <div class="proveedor-id">
+                            <mat-icon class="info-icon">badge</mat-icon>
+                            <span
+                              >ID:
+                              {{ selectedProveedorComputed.persona.id }}</span
+                            >
+                          </div>
+                          <div class="proveedor-nombre">
+                            <mat-icon class="info-icon">person</mat-icon>
+                            <span>{{
+                              selectedProveedorComputed.persona.nombre
+                            }}</span>
+                          </div>
+                          <div class="proveedor-documento">
+                            <mat-icon class="info-icon"
+                              >assignment_ind</mat-icon
+                            >
+                            <span>{{
+                              selectedProveedorComputed.persona.documento
+                            }}</span>
+                          </div>
+                        </div>
+                        <div class="proveedor-actions">
+                          <button
+                            mat-icon-button
+                            color="warn"
+                            (click)="onRemoverProveedor()"
+                            matTooltip="Remover proveedor"
+                          >
+                            <mat-icon>close</mat-icon>
+                          </button>
+                        </div>
+                      </div>
+                    </mat-card-content>
+                  </mat-card>
+                </div>
+
+                <!-- Vendedor -->
+                <mat-form-field appearance="outline">
+                  <mat-label>Vendedor</mat-label>
+                  <input
+                    matInput
+                    formControlName="vendedor"
+                    [value]="vendedorDisplayTextComputed"
+                    placeholder="Buscar vendedor..."
+                    readonly
+                  />
+                  <button
+                    mat-icon-button
+                    matSuffix
+                    type="button"
+                    (click)="onBuscarVendedor()"
+                  >
+                    <mat-icon>search</mat-icon>
+                  </button>
+                  <mat-error
+                    *ngIf="
+                      datosGeneralesForm.get('vendedor')?.hasError('required')
+                    "
+                  >
+                    El vendedor es requerido
+                  </mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="form-row">
+                <!-- Sucursales de Entrega -->
+                <mat-form-field appearance="outline">
+                  <mat-label>Sucursales de Entrega</mat-label>
+                  <mat-select
+                    formControlName="sucursalesEntrega"
+                    multiple
+                    panelClass="custom-select-panel"
+                  >
+                    <mat-select-trigger>
+                      {{
+                        datosGeneralesForm.get("sucursalesEntrega")?.value
+                          ?.length > 0
+                          ? (datosGeneralesForm.get("sucursalesEntrega")
+                              ?.value[0]?.nombre | titlecase) +
+                            (datosGeneralesForm.get("sucursalesEntrega")?.value
+                              ?.length > 1
+                              ? " (+" +
+                                (datosGeneralesForm.get("sucursalesEntrega")
+                                  ?.value?.length -
+                                  1) +
+                                ")"
+                              : "")
+                          : "Ninguna seleccionada"
+                      }}
+                    </mat-select-trigger>
+                    <mat-option
+                      *ngFor="let sucursal of sucursales"
+                      [value]="sucursal"
+                    >
+                      {{ sucursal.nombre | titlecase }}
+                    </mat-option>
+                  </mat-select>
+                  <mat-error
+                    *ngIf="
+                      datosGeneralesForm
+                        .get('sucursalesEntrega')
+                        ?.hasError('required')
+                    "
+                  >
+                    Debe seleccionar al menos una sucursal de entrega
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Sucursales de Influencia -->
+                <mat-form-field appearance="outline">
+                  <mat-label>Sucursales de Influencia</mat-label>
+                  <mat-select formControlName="sucursalesInfluencia" multiple>
+                    <mat-select-trigger>
+                      {{
+                        datosGeneralesForm.get("sucursalesInfluencia")?.value
+                          ?.length > 0
+                          ? (datosGeneralesForm.get("sucursalesInfluencia")
+                              ?.value[0]?.nombre | titlecase) +
+                            (datosGeneralesForm.get("sucursalesInfluencia")
+                              ?.value?.length > 1
+                              ? " (+" +
+                                (datosGeneralesForm.get("sucursalesInfluencia")
+                                  ?.value?.length -
+                                  1) +
+                                ")"
+                              : "")
+                          : "Ninguna seleccionada"
+                      }}
+                    </mat-select-trigger>
+                    <mat-option
+                      *ngFor="let sucursal of sucursales"
+                      [value]="sucursal"
+                    >
+                      {{ sucursal.nombre | titlecase }}
+                    </mat-option>
+                  </mat-select>
+                  <mat-error
+                    *ngIf="
+                      datosGeneralesForm
+                        .get('sucursalesInfluencia')
+                        ?.hasError('required')
+                    "
+                  >
+                    Debe seleccionar al menos una sucursal de influencia
+                  </mat-error>
+                </mat-form-field>
+              </div>
+
+              <div class="form-row">
+                <!-- Moneda -->
+                <mat-form-field appearance="outline">
+                  <mat-label>Moneda</mat-label>
+                  <mat-select formControlName="moneda" #monedaSelect>
+                    <mat-option *ngFor="let moneda of monedas" [value]="moneda">
+                      {{ moneda.denominacion | titlecase }} -
+                      {{ moneda.simbolo }}
+                    </mat-option>
+                  </mat-select>
+                  <mat-error
+                    *ngIf="
+                      datosGeneralesForm.get('moneda')?.hasError('required')
+                    "
+                  >
+                    La moneda es requerida
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Forma de Pago -->
+                <mat-form-field appearance="outline">
+                  <mat-label>Forma de Pago</mat-label>
+                  <mat-select
+                    formControlName="formaPago"
+                    (selectionChange)="onFormaPagoChange()"
+                  >
+                    <mat-option
+                      *ngFor="let formaPago of formasPago"
+                      [value]="formaPago"
+                    >
+                      {{ formaPago.descripcion | titlecase }}
+                    </mat-option>
+                  </mat-select>
+                  <mat-error
+                    *ngIf="
+                      datosGeneralesForm.get('formaPago')?.hasError('required')
+                    "
+                  >
+                    La forma de pago es requerida
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Plazo Crédito (solo si es crédito) -->
+                <mat-form-field
+                  appearance="outline"
+                >
+                  <mat-label>Plazo (días)</mat-label>
+                  <input
+                    matInput
+                    type="number"
+                    formControlName="plazoCredito"
+                    placeholder="Ej: 30"
+                  />
+                  <mat-error
+                    *ngIf="
+                      datosGeneralesForm
+                        .get('plazoCredito')
+                        ?.hasError('required')
+                    "
+                  >
+                    El plazo es requerido para crédito
+                  </mat-error>
+                </mat-form-field>
+              </div>
+            </form>
+          </div>
+
+          <div class="tab-actions">
+            <button
+              mat-raised-button
+              color="accent"
+              [disabled]="step1ButtonDisabledComputed"
+              (click)="onContinuarStep1()"
+            >
+              {{ step1ButtonTextComputed }}
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          </div>
+        </ng-template>
+      </mat-tab>
+
+      <!-- Tab 2: Ítems del Pedido -->
+      <mat-tab
+        label="2. Ítems del Pedido"
+        [disabled]="itemsTabState === 'disabled'"
+      >
+        <ng-template matTabContent>
+          <div class="tab-content">
+            <h3>2. Ítems del Pedido</h3>
+            <p>
+              Añada, edite y distribuya los productos solicitados en este
+              pedido.
+            </p>
+
+            <mat-card class="items-summary-container">
+              <div class="summary-card">
+                <mat-card-content class="items-pedido-summary">
+                  <div class="summary-item">
+                    <mat-icon>shopping_cart</mat-icon>
+                    <span>Total de Ítems:</span>
+                    <span class="summary-value">{{ itemsCountComputed }}</span>
+                  </div>
+                  <div class="summary-item">
+                    <mat-icon class="check-icon">check_circle</mat-icon>
+                    <span>Distribución Completa:</span>
+                    <span class="summary-value success">{{
+                      distributedItemsCountComputed
+                    }}</span>
+                  </div>
+                  <div class="summary-item">
+                    <mat-icon class="pending-icon">pending</mat-icon>
+                    <span>Distribución Pendiente:</span>
+                    <span class="summary-value warning">{{
+                      pendingDistributionCountComputed
+                    }}</span>
+                  </div>
+                </mat-card-content>
+              </div>
+
+              <div class="items-actions">
+                <button mat-raised-button color="primary" (click)="onAddItem()">
+                  <mat-icon>add</mat-icon>
+                  Añadir Ítem
+                </button>
+              </div>
+            </mat-card>
+
+            <div class="table-container mat-elevation-z4">
+              <table
+                mat-table
+                [dataSource]="itemsDataSource"
+                class="items-table"
+              >
+                <!-- Producto Column -->
+                <ng-container matColumnDef="producto">
+                  <th mat-header-cell *matHeaderCellDef style="width: 30%;">Producto</th>
+                  <td mat-cell *matCellDef="let item" style="width: 30%;">
+                    <div class="product-cell">
+                      <span class="product-name" copiarAClipboard="item.producto.descripcion">{{
+                        item.producto.id }} - {{
+                        item.producto.descripcion
+                      }}</span>
+                      <span class="product-code"
+                        copiarAClipboard="item.producto.codigoPrincipal">({{ item.producto.codigoPrincipal }})</span
+                      >
+                      <mat-chip-option
+                        *ngIf="item.esBonificacion"
+                        class="bonificacion-chip"
+                        color="accent"
+                        selected
+                        disabled
+                        >Bonificación</mat-chip-option
+                      >
+                    </div>
+                  </td>
+                </ng-container>
+
+                <!-- Presentacion Column -->
+                <ng-container matColumnDef="presentacion">
+                  <th mat-header-cell *matHeaderCellDef class="text-center">Presentación</th>
+                  <td mat-cell *matCellDef="let item" class="text-center">
+                    {{ item.presentacionCreacion.cantidad | number: "1.0-2" }}
+                  </td>
+                </ng-container>
+
+                <!-- Cantidad Solicitada Column -->
+                <ng-container matColumnDef="cantidadSolicitada">
+                  <th mat-header-cell *matHeaderCellDef class="text-center">Cantidad</th>
+                  <td mat-cell *matCellDef="let item" class="text-center">
+                    {{ item.cantidadSolicitada / item.presentacionCreacion.cantidad | number: "1.0-2" }} ({{ item.cantidadSolicitada | number: "1.0-2" }} unidades)
+                  </td>
+                </ng-container>
+
+                <!-- Precio Unitario Column -->
+                <ng-container matColumnDef="precioUnitario">
+                  <th mat-header-cell *matHeaderCellDef class="text-center">Precio Unitario</th>
+                  <td mat-cell *matCellDef="let item" class="text-center" copiarAClipboard="item.precioUnitarioSolicitado">
+                    {{ item.precioUnitarioSolicitado | number : "1.0-2" }}
+                  </td>
+                </ng-container>
+
+                <!-- Subtotal Column -->
+                <ng-container matColumnDef="subtotal">
+                  <th mat-header-cell *matHeaderCellDef class="text-center">Subtotal</th>
+                  <td mat-cell *matCellDef="let item" class="text-center" copiarAClipboard="item.subtotalComputed">
+                    {{ item.subtotalComputed | number : "1.0-2" }}
+                  </td>
+                </ng-container>
+
+                <!-- Distribucion Column -->
+                <ng-container matColumnDef="distribucion">
+                  <th mat-header-cell *matHeaderCellDef class="text-center">Distribución</th>
+                  <td mat-cell *matCellDef="let item" class="text-center">
+                    <mat-chip-option
+                      [ngClass]="item.distributionStatusClassComputed"
+                      selected
+                      disabled
+                    >
+                      {{ item.distributionStatusTextComputed }}
+                    </mat-chip-option>
+                  </td>
+                </ng-container>
+
+                <!-- Vencimiento Column -->
+                <ng-container matColumnDef="vencimiento">
+                  <th mat-header-cell *matHeaderCellDef class="text-center">Vencimiento</th>
+                  <td mat-cell *matCellDef="let item" class="text-center" copiarAClipboard="item.vencimientoEsperado">
+                    {{ (item.vencimientoEsperado | date : "dd/MM/yyyy") || 'N/A' }}
+                  </td>
+                </ng-container>
+
+                <!-- Acciones Column -->
+                <ng-container matColumnDef="acciones">
+                  <th mat-header-cell *matHeaderCellDef style="width: 10%;">Acciones</th>
+                  <td mat-cell *matCellDef="let item; let i = index" style="width: 10%;">
+                    <button
+                      mat-icon-button
+                      [matMenuTriggerFor]="menu"
+                      aria-label="Acciones del ítem"
+                    >
+                      <mat-icon>more_vert</mat-icon>
+                    </button>
+                    <mat-menu #menu="matMenu">
+                      <button mat-menu-item (click)="onDistributeItem(item, i)">
+                        <mat-icon>call_split</mat-icon>
+                        <span>Distribuir</span>
+                      </button>
+                      <button mat-menu-item (click)="onEditItem(item, i)">
+                        <mat-icon>edit</mat-icon>
+                        <span>Editar</span>
+                      </button>
+                      <button mat-menu-item (click)="onDeleteItem(item, i)">
+                        <mat-icon>delete</mat-icon>
+                        <span>Eliminar</span>
+                      </button>
+                    </mat-menu>
+                  </td>
+                </ng-container>
+
+                <tr
+                  mat-header-row
+                  *matHeaderRowDef="itemsDisplayedColumns"
+                ></tr>
+                <tr
+                  mat-row
+                  *matRowDef="let row; columns: itemsDisplayedColumns"
+                ></tr>
+
+                
+              </table>
+              <!-- adicionar un div que indique que no hay items en la tabla, con un icono de shopping_cart y un texto que indique que no hay items en el pedido -->
+              <div class="no-items-container" *ngIf="itemsDataSource.data.length === 0">
+                <mat-icon>shopping_cart</mat-icon>
+                <span>No hay ítems en este pedido. Haga clic en "Añadir Ítem" para comenzar.</span>
+              </div>
+              <mat-paginator
+                [pageSizeOptions]="[5, 10, 25]"
+                showFirstLastButtons
+                aria-label="Select page of users"
+              >
+              </mat-paginator>
+            </div>
+          </div>
+          <div class="tab-actions">
+            <button
+              mat-raised-button
+              color="accent"
+              [disabled]="step2ButtonDisabledComputed"
+              (click)="onFinalizarPlanificacion()"
+            >
+              {{ step2ButtonTextComputed }}
+              <mat-icon>flag</mat-icon>
+            </button>
+          </div>
+        </ng-template>
+      </mat-tab>
+
+      <!-- Tab 3: Recepción de Notas -->
+      <mat-tab
+        label="3. Recepción Documental"
+        [disabled]="notasTabState === 'disabled'"
+      >
+        <ng-template matTabContent>
+          <div class="tab-content">
+            <h3>3. Recepción y Conciliación de Notas</h3>
+            <p>
+              Registre las facturas del proveedor y concílielas con los ítems
+              del pedido.
+            </p>
+
+            <!-- Layout de dos paneles -->
+            <div class="two-panel-layout">
+              <!-- Panel Izquierdo: Ítems Pendientes -->
+              <div class="panel panel-left">
+                <div class="panel-header">
+                  <h4>Ítems Pendientes de Conciliar</h4>
+                  <div class="panel-actions">
+                    <button
+                      mat-raised-button
+                      color="primary"
+                      [disabled]="!canCreateNotaForItemsComputed"
+                      (click)="onCrearNuevaNotaParaItems()"
+                    >
+                      <mat-icon>note_add</mat-icon>
+                      Crear Nota para Ítems
+                    </button>
+                    <button
+                      mat-button
+                      [disabled]="!canAssignItemsToNotaComputed"
+                      (click)="onAsignarItemsALaNota()"
+                    >
+                      <mat-icon>assignment_turned_in</mat-icon>
+                      Asignar a Nota
+                    </button>
+                  </div>
+                </div>
+
+                <div class="table-container mat-elevation-z4">
+                  <table
+                    mat-table
+                    [dataSource]="itemsPendientesDataSource"
+                    class="items-table"
+                  >
+                    <!-- Checkbox Column -->
+                    <ng-container matColumnDef="seleccionar">
+                      <th mat-header-cell *matHeaderCellDef>
+                        <mat-checkbox
+                          (change)="onToggleAllItemsPendientes($event.checked)"
+                          [checked]="
+                            selectedItemsPendientes.length ===
+                              itemsPendientesDataSource.data.length &&
+                            itemsPendientesDataSource.data.length > 0
+                          "
+                          [indeterminate]="
+                            selectedItemsPendientes.length > 0 &&
+                            selectedItemsPendientes.length <
+                              itemsPendientesDataSource.data.length
+                          "
+                        ></mat-checkbox>
+                      </th>
+                      <td mat-cell *matCellDef="let item">
+                        <mat-checkbox
+                          (change)="onToggleItemPendiente(item, $event.checked)"
+                          [checked]="item.isSelectedComputed"
+                        ></mat-checkbox>
+                      </td>
+                    </ng-container>
+
+                    <!-- Producto Column -->
+                    <ng-container matColumnDef="producto">
+                      <th mat-header-cell *matHeaderCellDef>Producto</th>
+                      <td mat-cell *matCellDef="let item">
+                        {{ item.producto.descripcion }}
+                      </td>
+                    </ng-container>
+
+                    <!-- Cantidad Pendiente Column -->
+                    <ng-container matColumnDef="cantidadPendiente">
+                      <th mat-header-cell *matHeaderCellDef>Cant. Pendiente</th>
+                      <td mat-cell *matCellDef="let item">
+                        {{ item.cantidadSolicitada | number }}
+                      </td>
+                    </ng-container>
+
+                    <!-- Estado Distribucion Column -->
+                    <ng-container matColumnDef="estadoDistribucion">
+                      <th mat-header-cell *matHeaderCellDef>Distribución</th>
+                      <td mat-cell *matCellDef="let item">
+                        <mat-chip-option
+                          [ngClass]="item.distributionStatusClassComputed"
+                          selected
+                          disabled
+                        >
+                          {{ item.distributionStatusTextComputed }}
+                        </mat-chip-option>
+                      </td>
+                    </ng-container>
+
+                    <!-- Acciones Column -->
+                    <ng-container matColumnDef="acciones">
+                      <th mat-header-cell *matHeaderCellDef>Acciones</th>
+                      <td mat-cell *matCellDef="let item">
+                        <button
+                          mat-icon-button
+                          [matMenuTriggerFor]="menuItemPendiente"
+                        >
+                          <mat-icon>more_vert</mat-icon>
+                        </button>
+                        <mat-menu #menuItemPendiente="matMenu">
+                          <button mat-menu-item>
+                            <mat-icon>edit</mat-icon>
+                            <span>Dividir Ítem</span>
+                          </button>
+                        </mat-menu>
+                      </td>
+                    </ng-container>
+
+                    <tr
+                      mat-header-row
+                      *matHeaderRowDef="itemsPendientesDisplayedColumns"
+                    ></tr>
+                    <tr
+                      mat-row
+                      *matRowDef="
+                        let row;
+                        columns: itemsPendientesDisplayedColumns
+                      "
+                    ></tr>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Panel Derecho: Notas de Recepción -->
+              <div class="panel panel-right">
+                <div class="panel-header">
+                  <h4>Notas de Recepción Registradas</h4>
+                </div>
+                <div class="table-container mat-elevation-z4">
+                  <table
+                    mat-table
+                    [dataSource]="notasRecepcionDataSource"
+                    class="items-table"
+                  >
+                    <!-- Numero Column -->
+                    <ng-container matColumnDef="numero">
+                      <th mat-header-cell *matHeaderCellDef>Número</th>
+                      <td mat-cell *matCellDef="let nota">{{ nota.numero }}</td>
+                    </ng-container>
+
+                    <!-- Fecha Column -->
+                    <ng-container matColumnDef="fecha">
+                      <th mat-header-cell *matHeaderCellDef>Fecha</th>
+                      <td mat-cell *matCellDef="let nota">
+                        {{ nota.fechaFormattedComputed }}
+                      </td>
+                    </ng-container>
+
+                    <!-- Estado Column -->
+                    <ng-container matColumnDef="estado">
+                      <th mat-header-cell *matHeaderCellDef>Estado</th>
+                      <td mat-cell *matCellDef="let nota">
+                        <mat-chip-option
+                          [color]="nota.estadoChipColorComputed"
+                          selected
+                          disabled
+                        >
+                          {{ nota.estadoDisplayNameComputed }}
+                        </mat-chip-option>
+                      </td>
+                    </ng-container>
+
+                    <!-- Acciones Column -->
+                    <ng-container matColumnDef="acciones">
+                      <th mat-header-cell *matHeaderCellDef>Acciones</th>
+                      <td mat-cell *matCellDef="let nota; let i = index">
+                        <button mat-icon-button [matMenuTriggerFor]="menuNota">
+                          <mat-icon>more_vert</mat-icon>
+                        </button>
+                        <mat-menu #menuNota="matMenu">
+                          <button
+                            mat-menu-item
+                            (click)="onGestionarItemsDeLaNota(nota)"
+                          >
+                            <mat-icon>list_alt</mat-icon>
+                            <span>Gestionar Ítems</span>
+                          </button>
+                          <button
+                            mat-menu-item
+                            (click)="onEditNotaRecepcion(nota, i)"
+                          >
+                            <mat-icon>edit</mat-icon>
+                            <span>Editar Nota</span>
+                          </button>
+                          <button
+                            mat-menu-item
+                            (click)="onDeleteNotaRecepcion(i)"
+                          >
+                            <mat-icon>delete</mat-icon>
+                            <span>Eliminar Nota</span>
+                          </button>
+                        </mat-menu>
+                      </td>
+                    </ng-container>
+
+                    <tr
+                      mat-header-row
+                      *matHeaderRowDef="notasRecepcionDisplayedColumns"
+                    ></tr>
+                    <tr
+                      mat-row
+                      *matRowDef="
+                        let row;
+                        columns: notasRecepcionDisplayedColumns
+                      "
+                      (click)="onSelectNotaRecepcion(row)"
+                      [class.selected-row]="row.isSelectedComputed"
+                    ></tr>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tab-actions">
+            <button
+              mat-raised-button
+              color="accent"
+              (click)="onFinalizarConciliacion()"
+            >
+              Finalizar Conciliación
+              <mat-icon>done_all</mat-icon>
+            </button>
+          </div>
+        </ng-template>
+      </mat-tab>
+
+      <!-- Tab 4: Recepción de Mercadería -->
+      <mat-tab
+        label="4. Recepción Física"
+        [disabled]="mercaderiaTabState === 'disabled'"
+      >
+        <ng-template matTabContent>
+          <div class="tab-content">
+            <h3>4. Verificación Física de Mercadería</h3>
+            <p>Contenido para la recepción de mercadería...</p>
+          </div>
+        </ng-template>
+      </mat-tab>
+
+      <!-- Tab 5: Solicitud de Pago -->
+      <mat-tab
+        label="5. Solicitud de Pago"
+        [disabled]="pagoTabState === 'disabled'"
+      >
+        <ng-template matTabContent>
+          <div class="tab-content">
+            <h3>5. Solicitud de Pago</h3>
+            <p>Contenido para la solicitud de pago...</p>
+          </div>
+        </ng-template>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div>

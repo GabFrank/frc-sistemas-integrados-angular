@@ -8,7 +8,7 @@ import { FinancieroDashboardComponent } from '../../../financiero/financiero-das
 import { ListGastosComponent } from '../../../financiero/gastos/list-gastos/list-gastos.component';
 import { ListRetiroComponent } from '../../../financiero/retiro/list-retiro/list-retiro.component';
 import { ROLES } from '../../../personas/roles/roles.enum';
-import { ListPedidoComponent } from '../../pedido/list-pedido/list-pedido.component';
+// import { ListPedidoComponent } from '../../pedido/list-pedido/list-pedido.component';
 
 interface ItemDashboard {
   titulo: string;
@@ -41,7 +41,7 @@ export class CompraDashboardComponent {
         ROLES.ADMIN
       ) || true
     ) {
-      this.tabService.addTab(new Tab(ListPedidoComponent, 'Lista de pedidos', null, CompraDashboardComponent))
+      // this.tabService.addTab(new Tab(ListPedidoComponent, 'Lista de pedidos', null, CompraDashboardComponent))
     } else {
       this.notificacionService.openWarn('No tenés acceso a esta opción. ')
     }
