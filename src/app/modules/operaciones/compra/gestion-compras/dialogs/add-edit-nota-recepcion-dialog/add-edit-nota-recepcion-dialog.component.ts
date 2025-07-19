@@ -1,14 +1,19 @@
-import { Component, Inject, OnInit, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, Inject, OnInit, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButton } from '@angular/material/button';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator } from '@angular/material/paginator';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
-import { NotaRecepcion, NotaRecepcionEstado, TipoBoleta } from '../../nota-recepcion.model';
+import { NotaRecepcion, NotaRecepcionEstado, TipoBoleta, NotaRecepcionInput } from '../../nota-recepcion.model';
 import { NotaRecepcionItem, NotaRecepcionItemEstado } from '../../nota-recepcion-item.model';
 import { Pedido } from '../../pedido.model';
-import { Moneda } from '../../moneda.model';
+import { Moneda } from '../../../../../financiero/moneda/moneda.model';
+import { MonedaService } from '../../../../../financiero/moneda/moneda.service';
+import { PedidoService } from '../../../pedido.service';
+import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
 
 export interface AddEditNotaRecepcionDialogData {
   nota?: NotaRecepcion;
@@ -24,6 +29,12 @@ export interface AddEditNotaRecepcionDialogData {
 export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewInit {
   @ViewChild('guardarButton', { static: false }) guardarButton!: MatButton;
   @ViewChild(MatPaginator, { static: false }) paginator!: MatPaginator;
+  
+  // ViewChild para los campos del formulario
+  @ViewChild('tipoBoletaSelect', { static: false }) tipoBoletaSelect!: any;
+  @ViewChild('numeroInput', { static: false }) numeroInput!: any;
+  @ViewChild('timbradoInput', { static: false }) timbradoInput!: any;
+  @ViewChild('fechaInput', { static: false }) fechaInput!: any;
 
   notaRecepcionForm: FormGroup;
   dialogTitle: string;
@@ -37,7 +48,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
 
   // Propiedades para la tabla de ítems
   itemsDataSource = new MatTableDataSource<NotaRecepcionItem>([]);
-  displayedColumns: string[] = ['producto', 'cantidad', 'precio', 'subtotal', 'estado', 'acciones'];
+  displayedColumns: string[] = ['producto', 'presentacion', 'cantidad', 'precio', 'subtotal', 'vencimiento', 'acciones'];
 
   // PROPIEDADES COMPUTADAS - NO usar funciones en templates
   // Error states para cada campo
@@ -71,43 +82,66 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
 
   // Bandera para saber si ya se creó la nota
   private notaCreada: boolean = false;
+  
+  // Subject para manejo de memoria
+  private destroy$ = new Subject<void>();
+  
+  // Loading states
+  loadingMonedas = false;
+  loadingItems = false;
+  savingNota = false;
+  
+  // Estados para manejo de selects en navegación
+  tipoBoletaSelectOpen = false;
+  monedaSelectOpen = false;
 
   constructor(
     public dialogRef: MatDialogRef<AddEditNotaRecepcionDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: AddEditNotaRecepcionDialogData,
-    private formBuilder: FormBuilder
+    private formBuilder: FormBuilder,
+    private monedaService: MonedaService,
+    private pedidoService: PedidoService,
+    private notificacionService: NotificacionSnackbarService
   ) {
     this.dialogTitle = data.isEdit ? 'Editar Nota de Recepción' : 'Nueva Nota de Recepción';
     this.actionButtonText = data.isEdit ? 'Actualizar' : 'Crear';
-    this.initializeMockData();
     this.notaCreada = false;
   }
 
-  private initializeMockData(): void {
-    // Crear monedas mock
-    const usd = new Moneda();
-    usd.id = 1;
-    usd.nombre = 'USD';
-    usd.simbolo = '$';
-
-    const pyg = new Moneda();
-    pyg.id = 2;
-    pyg.nombre = 'PYG';
-    pyg.simbolo = 'Gs.';
-
-    const eur = new Moneda();
-    eur.id = 3;
-    eur.nombre = 'EUR';
-    eur.simbolo = '€';
-
-    this.monedas = [usd, pyg, eur];
+  private loadMonedas(): void {
+    this.loadingMonedas = true;
+    
+    this.monedaService.onGetAll()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (monedas: Moneda[]) => {
+          this.monedas = monedas;
+          this.loadingMonedas = false;
+          
+          // Si no hay moneda seleccionada, usar la primera disponible
+          if (this.notaRecepcionForm && !this.notaRecepcionForm.get('moneda')?.value && monedas.length > 0) {
+            this.notaRecepcionForm.patchValue({ moneda: monedas[0] });
+          }
+        },
+        error: (error) => {
+          console.error('Error al cargar monedas:', error);
+          this.notificacionService.openAlgoSalioMal('Error al cargar las monedas');
+          this.loadingMonedas = false;
+        }
+      });
   }
 
   ngOnInit(): void {
+    this.loadMonedas();
     this.initializeForm();
     this.setupKeyboardNavigation();
     this.loadItems();
     this.updateComputedProperties();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   ngAfterViewInit(): void {
@@ -118,6 +152,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   }
 
   private initializeForm(): void {
+    console.log('data.nota', this.data.nota);
     this.notaRecepcionForm = this.formBuilder.group({
       numero: [
         this.data.nota?.numero || '', 
@@ -131,7 +166,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         [Validators.required]
       ],
       fecha: [
-        this.data.nota?.fecha || new Date(),
+        this.data.nota?.fecha ? new Date(this.data.nota.fecha) : new Date(),
         [Validators.required]
       ],
       moneda: [
@@ -157,85 +192,132 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   }
 
   private loadItems(): void {
-    // Siempre mostrar el panel de ítems, incluso si no hay ítems
-    // En modo edición, cargar ítems reales; en modo creación, mostrar lista vacía
+    this.loadingItems = true;
+    
     if (this.data.isEdit && this.data.nota) {
-      // En producción, cargar los ítems desde el servicio
-      // Por ahora, datos mock para mostrar funcionalidad
-      const item1 = new NotaRecepcionItem();
-      item1.id = 1;
-      item1.notaRecepcion = this.data.nota;
-      item1.pedidoItem = null;
-      item1.cantidadEnNota = 10;
-      item1.precioUnitarioEnNota = 15.50;
-      item1.esBonificacion = false;
-      item1.vencimientoEnNota = new Date();
-      item1.estado = NotaRecepcionItemEstado.CONCILIADO;
-      item1.motivoRechazo = null;
-
-      const item2 = new NotaRecepcionItem();
-      item2.id = 2;
-      item2.notaRecepcion = this.data.nota;
-      item2.pedidoItem = null;
-      item2.cantidadEnNota = 5;
-      item2.precioUnitarioEnNota = 25.00;
-      item2.esBonificacion = false;
-      item2.vencimientoEnNota = new Date();
-      item2.estado = NotaRecepcionItemEstado.CONCILIADO;
-      item2.motivoRechazo = null;
-
-      const item3 = new NotaRecepcionItem();
-      item3.id = 3;
-      item3.notaRecepcion = this.data.nota;
-      item3.pedidoItem = null;
-      item3.cantidadEnNota = 8;
-      item3.precioUnitarioEnNota = 12.75;
-      item3.esBonificacion = false;
-      item3.vencimientoEnNota = new Date();
-      item3.estado = NotaRecepcionItemEstado.CONCILIADO;
-      item3.motivoRechazo = null;
-
-      const mockItems: NotaRecepcionItem[] = [item1, item2, item3];
-      this.itemsDataSource.data = mockItems;
+      // En modo edición, cargar ítems reales de la nota
+      this.pedidoService.onGetNotaRecepcionItemListPorNotaRecepcionId(this.data.nota.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (items: NotaRecepcionItem[]) => {
+            console.log('Ítems de nota de recepción cargados:', items);
+            this.itemsDataSource.data = items;
+            this.loadingItems = false;
+            this.updateComputedProperties();
+          },
+          error: (error) => {
+            console.error('Error al cargar ítems de nota de recepción:', error);
+            this.notificacionService.openAlgoSalioMal('Error al cargar los ítems de la nota de recepción');
+            this.itemsDataSource.data = [];
+            this.loadingItems = false;
+            this.updateComputedProperties();
+          }
+        });
     } else {
       // En modo creación, mostrar lista vacía
       this.itemsDataSource.data = [];
+      this.loadingItems = false;
+      this.updateComputedProperties();
     }
-    
-    // Configurar paginador después de que se inicialice
-    this.updateComputedProperties();
   }
 
   private setupKeyboardNavigation(): void {
-    // Navegación con Enter key solamente
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        const activeElement = document.activeElement as HTMLElement;
-        const formControlName = activeElement?.getAttribute('formControlName');
-        
-        if (formControlName) {
-          event.preventDefault();
-          this.handleEnterNavigation(formControlName);
-        }
-      }
-    });
+    // Sistema de navegación eliminado para evitar conflictos
+    // Ahora usamos solo los eventos individuales de cada campo
+    console.log('Sistema de navegación por teclado configurado');
   }
 
-  private handleEnterNavigation(currentField: string): void {
-    // Orden especificado por el usuario: tipo boleta → numero → timbrado → fecha → botón Crear
-    const navigationMap: { [key: string]: string } = {
-      'tipoBoleta': 'numero',
-      'numero': 'timbrado',
-      'timbrado': 'fecha',
-      'fecha': 'guardarButton'
-    };
+  private focusNextField(fieldName: string): void {
+    switch (fieldName) {
+      case 'numero':
+        if (this.numeroInput) {
+          this.numeroInput.nativeElement.focus();
+        }
+        break;
+      case 'timbrado':
+        if (this.timbradoInput) {
+          this.timbradoInput.nativeElement.focus();
+        }
+        break;
+      case 'fecha':
+        if (this.fechaInput) {
+          this.fechaInput.nativeElement.focus();
+        }
+        break;
+    }
+  }
 
-    const nextField = navigationMap[currentField];
-    
-    // Validar campo actual antes de navegar
-    const currentControl = this.notaRecepcionForm.get(currentField);
+  // Métodos para manejar eventos de selects
+  onTipoBoletaOpened(): void {
+    this.tipoBoletaSelectOpen = true;
+  }
+
+  onTipoBoletaClosed(): void {
+    this.tipoBoletaSelectOpen = false;
+    // Si el campo es válido, navegar al siguiente
+    const currentControl = this.notaRecepcionForm.get('tipoBoleta');
     if (currentControl && currentControl.valid) {
-      if (nextField === 'guardarButton') {
+      setTimeout(() => {
+        this.focusNextField('numero');
+      }, 100);
+    }
+  }
+
+  onTipoBoletaSelectionChange(): void {
+    // Cuando se selecciona una opción, cerrar el select y navegar
+    if (this.tipoBoletaSelectOpen) {
+      this.tipoBoletaSelectOpen = false;
+      setTimeout(() => {
+        this.focusNextField('numero');
+      }, 100);
+    }
+  }
+
+  onTipoBoletaKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (!this.tipoBoletaSelectOpen) {
+        // Si el select no está abierto, abrirlo
+        if (this.tipoBoletaSelect) {
+          this.tipoBoletaSelect.open();
+        }
+      } else {
+        // Si el select está abierto, cerrarlo y navegar al siguiente
+        if (this.tipoBoletaSelect) {
+          this.tipoBoletaSelect.close();
+        }
+      }
+    }
+  }
+
+  // Métodos para manejar keydown en inputs
+  onNumeroKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const currentControl = this.notaRecepcionForm.get('numero');
+      if (currentControl && currentControl.valid) {
+        // Navegar al timbrado sin validar si es válido (no es requerido)
+        this.focusNextField('timbrado');
+      } else {
+        currentControl?.markAsTouched();
+        this.updateComputedProperties();
+      }
+    }
+  }
+
+  onTimbradoKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      // El campo timbrado no es requerido, por lo que siempre navegamos al siguiente
+      this.focusNextField('fecha');
+    }
+  }
+
+  onFechaKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const currentControl = this.notaRecepcionForm.get('fecha');
+      if (currentControl && currentControl.valid) {
         // Enfocar botón guardar
         setTimeout(() => {
           if (this.guardarButton) {
@@ -243,16 +325,24 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
           }
         }, 100);
       } else {
-        // Enfocar siguiente campo
-        const nextElement = document.querySelector(`[formControlName="${nextField}"]`) as HTMLElement;
-        if (nextElement) {
-          nextElement.focus();
-        }
+        currentControl?.markAsTouched();
+        this.updateComputedProperties();
       }
-    } else {
-      // Marcar campo como touched para mostrar errores
-      currentControl?.markAsTouched();
-      this.updateComputedProperties();
+    }
+  }
+
+  onGuardarButtonKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (this.notaRecepcionForm.valid) {
+        this.onSave();
+      } else {
+        // Marcar todos los campos como touched para mostrar errores
+        Object.keys(this.notaRecepcionForm.controls).forEach(key => {
+          this.notaRecepcionForm.get(key)?.markAsTouched();
+        });
+        this.updateComputedProperties();
+      }
     }
   }
 
@@ -322,12 +412,18 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   private updateItemsComputedData(): void {
     this.computedItemsData = this.itemsDataSource.data.map(item => ({
       ...item,
-      productoNombre: 'Producto Mock ' + item.id,
+      productoNombre: item.producto?.descripcion || item.pedidoItem?.producto?.descripcion || 'Producto no especificado',
+      presentacionDisplay: item.presentacionEnNota?.descripcion || '',
+      presentacionCantidad: item.presentacionEnNota?.cantidad || 1,
       cantidadDisplay: item.cantidadEnNota || 0,
-      precioDisplay: item.precioUnitarioEnNota,
-      subtotalDisplay: item.cantidadEnNota * item.precioUnitarioEnNota,
+      cantidadPorPresentacion: item.presentacionEnNota?.cantidad ? (item.cantidadEnNota || 0) / item.presentacionEnNota.cantidad : item.cantidadEnNota || 0,
+      precioDisplay: item.precioUnitarioEnNota || 0,
+      subtotalDisplay: (item.cantidadEnNota || 0) * (item.precioUnitarioEnNota || 0),
       estadoChipClass: this.getItemEstadoChipClassInternal(item.estado),
-      estadoDisplayName: this.getItemEstadoDisplayNameInternal(item.estado)
+      estadoDisplayName: this.getItemEstadoDisplayNameInternal(item.estado),
+      vencimientoDisplay: item.vencimientoEnNota ? this.formatDate(new Date(item.vencimientoEnNota)) : 'N/A',
+      esBonificacionDisplay: item.esBonificacion ? 'Sí' : 'No',
+      rowColorClass: this.getRowColorClassInternal(item.estado)
     }));
   }
 
@@ -392,6 +488,17 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     }
   }
 
+  private getRowColorClassInternal(estado: NotaRecepcionItemEstado): string {
+    switch (estado) {
+      case NotaRecepcionItemEstado.CONCILIADO:
+        return 'row-conciliado';
+      case NotaRecepcionItemEstado.RECHAZADO:
+        return 'row-rechazado';
+      default:
+        return 'row-pendiente';
+    }
+  }
+
   // Métodos para manejo de ítems
   onAddItem(): void {
     // TODO: Implementar diálogo para agregar ítem
@@ -414,56 +521,99 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
 
   onSave(): void {
     if (this.notaRecepcionForm.valid) {
+      this.savingNota = true;
       const formValue = this.notaRecepcionForm.value;
       
-      let nota: NotaRecepcion;
+      // Limpiar y convertir datos del formulario
+      const cleanFormValue = this.cleanFormData(formValue);
       
       if (this.data.isEdit && this.data.nota) {
         // Edit existing nota
-        nota = Object.assign(new NotaRecepcion(), this.data.nota);
+        const nota = Object.assign(new NotaRecepcion(), this.data.nota);
         
-        // Update editable properties from form
-        nota.numero = formValue.numero;
-        nota.timbrado = formValue.timbrado;
-        nota.tipoBoleta = formValue.tipoBoleta;
-        nota.fecha = formValue.fecha;
-        nota.moneda = formValue.moneda;
-        nota.cotizacion = formValue.cotizacion;
+        // Update editable properties from form with proper type conversions
+        nota.numero = Number(cleanFormValue.numero);
+        nota.timbrado = cleanFormValue.timbrado ? Number(cleanFormValue.timbrado) : null;
+        nota.tipoBoleta = cleanFormValue.tipoBoleta;
+        nota.fecha = cleanFormValue.fecha;
+        nota.moneda = cleanFormValue.moneda;
+        nota.cotizacion = Number(cleanFormValue.cotizacion);
         
-        // En modo edición, cerrar diálogo normalmente
-        this.dialogRef.close(nota);
+        // Convertir a input para el backend
+        const notaInput = nota.toInput();
+        
+        // Llamar servicio real para actualizar
+        this.pedidoService.onSaveNotaRecepcion(notaInput)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: (notaActualizada) => {
+              this.savingNota = false;
+              
+              // Actualizar datos con la nota actualizada
+              this.data.nota = notaActualizada;
+              
+              // Recargar ítems después de actualizar
+              this.loadItemsAfterCreation();
+              
+              this.notificacionService.openSucess('Nota de recepción actualizada exitosamente');
+            },
+            error: (error) => {
+              console.error('Error al actualizar nota de recepción:', error);
+              this.savingNota = false;
+              this.notificacionService.openAlgoSalioMal('Error al actualizar la nota de recepción');
+            }
+          });
+        
       } else {
         // Create new nota
-        nota = Object.assign(new NotaRecepcion(), {
-          pedido: this.data.pedido!,
-          creadoEn: new Date(),
-          estado: NotaRecepcionEstado.PENDIENTE_CONCILIACION,
-          pagado: false
-        });
+        const nota = new NotaRecepcion();
         
-        // Update editable properties from form
-        nota.numero = formValue.numero;
-        nota.timbrado = formValue.timbrado;
-        nota.tipoBoleta = formValue.tipoBoleta;
-        nota.fecha = formValue.fecha;
-        nota.moneda = formValue.moneda;
-        nota.cotizacion = formValue.cotizacion;
+        // Set properties from form with proper type conversions
+        nota.numero = Number(cleanFormValue.numero);
+        nota.timbrado = cleanFormValue.timbrado ? Number(cleanFormValue.timbrado) : null;
+        nota.tipoBoleta = cleanFormValue.tipoBoleta;
+        nota.fecha = cleanFormValue.fecha;
+        nota.moneda = cleanFormValue.moneda;
+        nota.cotizacion = Number(cleanFormValue.cotizacion);
+        nota.pedido = this.data.pedido!;
+        nota.creadoEn = new Date();
+        nota.estado = NotaRecepcionEstado.PENDIENTE_CONCILIACION;
+        nota.pagado = false;
         
-        // En modo creación, no cerrar diálogo
-        // Cambiar título y botón text
-        this.dialogTitle = 'Editar Nota de Recepción';
-        this.actionButtonText = 'Actualizar';
-        this.notaCreada = true;
+        // Convertir a input para el backend
+        const notaInput = nota.toInput();
         
-        // Simular que ahora tenemos la nota creada
-        this.data.nota = nota;
-        this.data.isEdit = true;
-        
-        // Cargar items (simulado)
-        this.loadItemsAfterCreation();
-        
-        // Dar foco al botón Cancelar
-        this.focusCancelButton();
+        // Llamar servicio real para crear
+        this.pedidoService.onSaveNotaRecepcion(notaInput)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: (notaCreada) => {
+              this.savingNota = false;
+              
+              // En modo creación, no cerrar diálogo
+              // Cambiar título y botón text
+              this.dialogTitle = 'Editar Nota de Recepción';
+              this.actionButtonText = 'Actualizar';
+              this.notaCreada = true;
+              
+              // Actualizar datos con la nota creada
+              this.data.nota = notaCreada;
+              this.data.isEdit = true;
+              
+              // Recargar ítems después de crear la nota
+              this.loadItemsAfterCreation();
+              
+              // Dar foco al botón Cancelar
+              this.focusCancelButton();
+              
+              this.notificacionService.openSucess('Nota de recepción creada exitosamente');
+            },
+            error: (error) => {
+              console.error('Error al crear nota de recepción:', error);
+              this.savingNota = false;
+              this.notificacionService.openAlgoSalioMal('Error al crear la nota de recepción');
+            }
+          });
       }
     } else {
       // Mark all fields as touched to show validation errors
@@ -475,45 +625,26 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   }
 
   private loadItemsAfterCreation(): void {
-    // Cargar items mock después de crear la nota
-    const item1 = new NotaRecepcionItem();
-    item1.id = 1;
-    item1.notaRecepcion = this.data.nota!;
-    item1.pedidoItem = null;
-    item1.cantidadEnNota = 10;
-    item1.precioUnitarioEnNota = 15.50;
-    item1.esBonificacion = false;
-    item1.vencimientoEnNota = new Date();
-    item1.estado = NotaRecepcionItemEstado.CONCILIADO;
-    item1.motivoRechazo = null;
-
-    const item2 = new NotaRecepcionItem();
-    item2.id = 2;
-    item2.notaRecepcion = this.data.nota!;
-    item2.pedidoItem = null;
-    item2.cantidadEnNota = 5;
-    item2.precioUnitarioEnNota = 25.00;
-    item2.esBonificacion = false;
-    item2.vencimientoEnNota = new Date();
-    item2.estado = NotaRecepcionItemEstado.CONCILIADO;
-    item2.motivoRechazo = null;
-
-    const item3 = new NotaRecepcionItem();
-    item3.id = 3;
-    item3.notaRecepcion = this.data.nota!;
-    item3.pedidoItem = null;
-    item3.cantidadEnNota = 8;
-    item3.precioUnitarioEnNota = 12.75;
-    item3.esBonificacion = false;
-    item3.vencimientoEnNota = new Date();
-    item3.estado = NotaRecepcionItemEstado.CONCILIADO;
-    item3.motivoRechazo = null;
-
-    const mockItems: NotaRecepcionItem[] = [item1, item2, item3];
-    this.itemsDataSource.data = mockItems;
-    
-    // Actualizar propiedades computadas
-    this.updateComputedProperties();
+    // Recargar ítems después de crear la nota
+    if (this.data.nota?.id) {
+      this.pedidoService.onGetNotaRecepcionItemListPorNotaRecepcionId(this.data.nota.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (items: NotaRecepcionItem[]) => {
+            console.log('Ítems recargados después de crear nota:', items);
+            this.itemsDataSource.data = items;
+            this.updateComputedProperties();
+          },
+          error: (error) => {
+            console.error('Error al recargar ítems después de crear nota:', error);
+            this.itemsDataSource.data = [];
+            this.updateComputedProperties();
+          }
+        });
+    } else {
+      this.itemsDataSource.data = [];
+      this.updateComputedProperties();
+    }
   }
 
   private focusCancelButton(): void {
@@ -525,4 +656,64 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       }
     }, 100);
   }
-} 
+
+  /**
+   * Formatea una fecha para mostrar en la UI
+   * @param date - Fecha a formatear
+   * @returns String formateado
+   */
+  private formatDate(date: Date): string {
+    if (!date) return '';
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  }
+
+  /**
+   * Limpia y convierte los datos del formulario a los tipos correctos
+   * @param formValue - Valores del formulario
+   * @returns Datos limpios con tipos correctos
+   */
+  private cleanFormData(formValue: any): any {
+    return {
+      numero: formValue.numero?.toString().trim() || '',
+      timbrado: formValue.timbrado?.toString().trim() || '',
+      tipoBoleta: formValue.tipoBoleta || '',
+      fecha: formValue.fecha || new Date(),
+      moneda: formValue.moneda || null,
+      cotizacion: formValue.cotizacion?.toString().trim() || '0',
+      estado: formValue.estado || NotaRecepcionEstado.PENDIENTE_CONCILIACION,
+      pagado: formValue.pagado || false
+    };
+  }
+}
+
+/*
+TODO: Implementar servicios del backend para NotaRecepcion
+
+1. Crear/Actualizar NotaRecepcion:
+   - Implementar servicio para guardar nueva nota de recepción
+   - Implementar servicio para actualizar nota existente
+   - Usar GenericCrudService con GraphQL mutations
+
+2. Cargar ítems de NotaRecepcion:
+   - Implementar servicio para cargar NotaRecepcionItem por notaId
+   - Implementar servicio para cargar ítems después de crear nota
+   - Usar GenericCrudService con GraphQL queries
+
+3. CRUD de NotaRecepcionItem:
+   - Implementar servicios para agregar, editar, eliminar ítems
+   - Implementar diálogos para gestionar ítems individuales
+   - Usar GenericCrudService con GraphQL mutations
+
+4. Validaciones del backend:
+   - Verificar que el número de nota sea único por pedido
+   - Validar que la cotización sea mayor a 0
+   - Validar que la fecha sea válida
+
+5. Integración con pedido:
+   - Actualizar estado del pedido cuando se crea/actualiza nota
+   - Sincronizar con el flujo de recepción de mercadería
+*/ 

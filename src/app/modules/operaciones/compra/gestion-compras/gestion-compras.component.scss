@@ -188,7 +188,7 @@
 .tab-content {
   height: 100%;
   width: 100%;
-  padding: 24px;
+  padding: 16px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   display: flex;
@@ -198,10 +198,58 @@
 
   h3 {
     margin: 0 0 12px 0;
-    color: #f0f0f0;
-    font-size: 1.75rem;
-    font-weight: 500;
-    flex-shrink: 0;
+  }
+
+  // Estilos para el campo de búsqueda
+  .search-container {
+    margin-bottom: 16px;
+    
+    .search-field {
+      width: 100%;
+      max-width: 400px;
+      
+      ::ng-deep .mat-mdc-form-field {
+        color: #f0f0f0;
+      }
+      
+      ::ng-deep .mat-mdc-form-field-outline-thick,
+      ::ng-deep .mat-mdc-form-field.mat-focused .mat-mdc-form-field-label {
+        color: #667eea !important;
+      }
+      
+      ::ng-deep .mat-mdc-input-element {
+        color: #ffffff;
+      }
+      
+      ::ng-deep .mat-mdc-form-field-label {
+        color: rgba(255, 255, 255, 0.7);
+      }
+      
+      ::ng-deep .mat-mdc-form-field-outline {
+        background-color: rgba(255, 255, 255, 0.42);
+      }
+    }
+  }
+
+  // Estilos para el indicador de carga
+  .loading-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 32px;
+    color: #bbbbbb;
+    
+    mat-spinner {
+      ::ng-deep .mat-mdc-progress-spinner-circle {
+        stroke: #667eea;
+      }
+    }
+    
+        span {
+      font-size: 14px;
+      font-weight: 500;
+    }
   }
 
   p {
@@ -416,6 +464,23 @@
   &.estado-cancelado {
     background-color: #f44336 !important;
     color: white !important;
+  }
+}
+
+/* Step 3: Items pendientes table styling - Asegurar que los chips usen los mismos estilos */
+.items-pendientes-table {
+  ::ng-deep .mat-chip {
+    font-weight: 600;
+
+    &.estado-activo {
+      background-color: #4caf50 !important;
+      color: white !important;
+    }
+
+    &.estado-pendiente {
+      background-color: #f57c00 !important;
+      color: white !important;
+    }
   }
 }
 
@@ -636,30 +701,29 @@
 // Step 3: Layout de dos paneles según manual
 .two-panel-layout {
   display: flex;
-  gap: 16px;
-  height: 600px;
-  margin: 16px 0;
+  height: 100%;
+  margin-right: 16px;
 
   .left-panel {
     flex: 0 0 60%;
     display: flex;
     flex-direction: column;
-    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
     overflow: hidden;
+    margin-right: 16px;
+    background-color: #2d2d2d;
   }
 
   .right-panel {
     flex: 0 0 40%;
     display: flex;
     flex-direction: column;
-    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 8px;
     overflow: hidden;
+    background-color: #2d2d2d;
   }
 
   .panel-header {
-    background-color: #3a3a3a;
     padding: 16px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 
@@ -673,6 +737,40 @@
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+
+      .search-field {
+        width: 50%;
+        padding-left: 10px;
+        
+        ::ng-deep .mat-mdc-form-field {
+          color: #f0f0f0;
+        }
+        
+        ::ng-deep .mat-mdc-form-field-outline-thick,
+        ::ng-deep .mat-mdc-form-field.mat-focused .mat-mdc-form-field-label {
+          color: #667eea !important;
+        }
+        
+        ::ng-deep .mat-mdc-input-element {
+          color: #ffffff;
+        }
+        
+        ::ng-deep .mat-mdc-form-field-label {
+          color: rgba(255, 255, 255, 0.7);
+        }
+        
+        ::ng-deep .mat-mdc-form-field-outline {
+          background-color: rgba(255, 255, 255, 0.42);
+        }
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 8px;
+        padding-right: 10px;
+      }
 
       button {
         mat-icon {
@@ -866,4 +964,58 @@
     font-size: x-small;
     color: #f57c00;
   }
+}
+
+// Distribution status styles for mat-chip-option
+::ng-deep .estado-activo {
+  background-color: #4caf50 !important;
+  color: white !important;
+  
+  &.mat-mdc-chip-selected {
+    background-color: #45a049 !important;
+  }
+  
+  &:hover {
+    background-color: #45a049 !important;
+  }
+}
+
+::ng-deep .estado-pendiente {
+  background-color: #ff9800 !important;
+  color: white !important;
+  
+  &.mat-mdc-chip-selected {
+    background-color: #f57c00 !important;
+  }
+  
+  &:hover {
+    background-color: #f57c00 !important;
+  }
+}
+
+// Botón Asignar en tabla de notas
+.assign-button {
+  min-width: 80px;
+  height: 32px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0 12px;
+  
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// Ajuste para columna de acciones cuando hay botón asignar
+.actions-cell {
+  min-width: 100px;
+  text-align: center;
 }

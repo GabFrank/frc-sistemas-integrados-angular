@@ -1,5 +1,77 @@
 # Manual de Implementación Frontend: Flujo de Compras Refactorizado (Versión 2.0)
 
+## 📊 **RESUMEN EJECUTIVO DEL PROGRESO**
+
+### **Estado General del Proyecto:**
+- **Fase 1 (Migración a Tabs):** ✅ **COMPLETADA**
+- **Fase 2 (Planificación del Pedido):** ✅ **COMPLETADA**
+- **Fase 3 (Recepción de Notas):** 🔄 **EN PROGRESO**
+- **Fase 4 (Recepción Física):** ⏳ **PENDIENTE**
+- **Fase 5 (Solicitud de Pago):** ⏳ **PENDIENTE**
+
+### **Funcionalidades Implementadas:**
+✅ **Tab 1 - Datos Generales:** Formulario completo con validaciones, búsquedas integradas, guardado backend
+✅ **Tab 2 - Items del Pedido:** Tabla funcional, diálogos implementados, distribución de items, finalización de planificación
+🔄 **Tab 3 - Recepción de Notas:** Layout básico implementado, modelos creados, diálogo de nota de recepción funcional, tabla de ítems con presentación y colores de estado
+
+### **Próximo Hito:**
+**Completar Fase 3 (Recepción de Notas)** - Implementar funcionalidades CRUD completas para ítems de nota de recepción y finalizar integración backend.
+
+### **🔧 CORRECCIÓN CRÍTICA APLICADA:**
+**Problema:** Error al finalizar pedido - "Solo se pueden finalizar pedidos en estado ABIERTO"
+**Causa:** El método `finalizarCreacion()` validaba `PedidoEstado` en lugar de usar `ProcesoEtapa`
+**Solución:** Actualizado el método para usar `ProcesoEtapa` como sistema principal de estados
+**Impacto:** Ahora el sistema usa correctamente el nuevo flujo de etapas granular
+
+### **🗑️ ELIMINACIÓN COMPLETA DE PEDIDOESTADO:**
+**Decisión:** Eliminado completamente `PedidoEstado` para evitar confusiones futuras
+**Cambios aplicados:**
+- ✅ Migración V78: Eliminado campo `estado` de tabla `pedido`
+- ✅ Eliminado enum `PedidoEstado` del backend y frontend
+- ✅ Actualizada entidad `Pedido` sin campo estado
+- ✅ Actualizado `PedidoService` sin referencias a PedidoEstado
+- ✅ Actualizado `PedidoRepository` sin filtros por estado
+- ✅ Actualizado GraphQL schema sin PedidoEstado
+- ✅ Actualizado `PedidoInput` sin campo estado
+- ✅ Actualizado frontend models sin PedidoEstado
+
+**Resultado:** Sistema completamente basado en `ProcesoEtapa` para gestión de estados
+
+### **🔧 CORRECCIÓN CRÍTICA DE PRESENTACIÓN EN NOTA RECEPCIÓN ITEM:**
+**Problema:** Al conciliar un `PedidoItem` y crear un `NotaRecepcionItem`, la presentación no se copiaba correctamente.
+**Causa:** 
+- Backend: Faltaba `notaRecepcionItem.setPresentacionEnNota(pedidoItem.getPresentacionCreacion())` en `NotaRecepcionService.java`
+- Frontend: Modelo `NotaRecepcionItem` no incluía campo `presentacionEnNota` y método `toInput()` no enviaba `presentacionEnNotaId`
+**Solución:** 
+- ✅ Backend: Agregado mapeo de presentación en `asignarItemsANota()` y `saveNotaRecepcionItem()`
+- ✅ Frontend: Agregado campo `presentacionEnNota` en modelo y `presentacionEnNotaId` en `toInput()`
+- ✅ GraphQL: Agregado mapeo de `presentacionEnNotaId` en resolver con inyección de `PresentacionService`
+**Impacto:** Ahora la presentación se copia correctamente del pedido a la nota de recepción, manteniendo trazabilidad completa
+
+### **🔧 CORRECCIÓN CRÍTICA DE ESTADOS:**
+**Problema:** Error `"valor de entrada é inválido para enum operaciones.proceso_etapa_estado: FINALIZADA"`
+**Causa:** Inconsistencia entre nombres de estados en BD (`COMPLETADA`) vs código (`FINALIZADA`)
+**Solución:** Estandarizado todos los estados según el manual:
+- ✅ `PENDIENTE`
+- ✅ `EN_PROCESO` 
+- ✅ `COMPLETADA` (corregido de FINALIZADA)
+- ✅ `OMITIDA`
+**Archivos corregidos:** Backend enum, Frontend enum, GraphQL schema, ProcesoEtapaService
+
+### **🔧 MIGRACIÓN V82: CAMPOS FALTANTES EN NOTA_RECEPCION**
+**Problema:** Discrepancias críticas entre modelo Java y estructura de BD en tablas `nota_recepcion` y `nota_recepcion_item`
+**Causa:** Campos faltantes en BD que son críticos para el flujo de conciliación documental
+**Solución:** Migración V82 que agrega:
+- ✅ **Enum `nota_recepcion_estado`:** PENDIENTE_CONCILIACION, CONCILIADA, EN_RECEPCION, RECEPCION_PARCIAL, RECEPCION_COMPLETA, CERRADA
+- ✅ **Campos en `nota_recepcion`:** moneda_id (NOT NULL), cotizacion, estado (NOT NULL)
+- ✅ **Campos en `nota_recepcion_item`:** cantidad_en_nota, precio_unitario_en_nota, producto_id
+- ✅ **Foreign Keys:** moneda_id → financiero.moneda, producto_id → productos.producto
+- ✅ **Índices:** Para optimizar consultas por estado, moneda, producto, cantidad
+- ✅ **Comentarios:** Documentación completa de cada campo
+**Impacto:** Ahora la BD coincide con el modelo Java y permite implementar el flujo completo de conciliación
+
+---
+
 ## 1. Introducción y Filosofía
 
 Este documento es la guía definitiva para el desarrollo de la interfaz de usuario (UI) del módulo de compras. El nuevo backend está diseñado bajo un principio de **desacoplamiento de responsabilidades**, separando claramente la *planificación* (el pedido), la *realidad documental* (la nota del proveedor) y la *realidad física* (la mercadería recibida).
@@ -793,7 +865,93 @@ El sistema maneja situaciones reales donde la recepción no coincide con lo plan
 
 ---
 
-## 7. Checklist de Implementación
+## 7. Avances Técnicos del Día - Tabla de Ítems de Nota de Recepción
+
+### **🔧 Mejoras Implementadas en `add-edit-nota-recepcion-dialog.component.ts`:**
+
+#### **1. Nueva Estructura de Tabla:**
+- **Columna Presentación:** Muestra nombre de presentación y cantidad de unidades
+- **Columna Cantidad:** Muestra cantidad por presentación y unidades totales
+- **Precios sin símbolos:** Removidos símbolos de moneda para mayor claridad
+- **Colores de fila:** Implementados con 50% opacidad según estado del ítem
+
+#### **2. Propiedades Computadas Agregadas:**
+```typescript
+// En updateItemsComputedData()
+presentacionDisplay: item.presentacionEnNota?.descripcion || 'Sin presentación',
+presentacionCantidad: item.presentacionEnNota?.cantidad || 1,
+cantidadPorPresentacion: item.presentacionEnNota?.cantidad ? 
+  (item.cantidadEnNota || 0) / item.presentacionEnNota.cantidad : item.cantidadEnNota || 0,
+rowColorClass: this.getRowColorClassInternal(item.estado)
+```
+
+#### **3. Sistema de Colores de Estado:**
+- **Verde (row-conciliado):** Ítems conciliados correctamente
+- **Naranja (row-pendiente):** Ítems pendientes de conciliación  
+- **Rojo (row-rechazado):** Ítems rechazados
+
+#### **4. Leyenda Visual:**
+- Agregada leyenda junto al título "Ítems de la Nota"
+- Muestra significado de cada color con cuadrados de ejemplo
+- Texto explicativo para cada estado
+
+#### **5. Estilos CSS Implementados:**
+```scss
+// Colores de fila
+.mat-cell {
+  &.row-conciliado { background-color: rgba(76, 175, 80, 0.5); }
+  &.row-pendiente { background-color: rgba(245, 124, 0, 0.5); }
+  &.row-rechazado { background-color: rgba(244, 67, 54, 0.5); }
+}
+
+// Información de presentación y cantidad
+.presentacion-info, .cantidad-info {
+  .presentacion-name, .cantidad-presentacion {
+    font-weight: 500; color: #ffffff; margin-bottom: 2px;
+  }
+  .presentacion-cantidad, .cantidad-unidades {
+    font-size: 11px; color: #bbbbbb; font-style: italic;
+  }
+}
+```
+
+### **🔧 Corrección de Presentación en Backend:**
+
+#### **1. NotaRecepcionService.java:**
+```java
+// Agregado en asignarItemsANota()
+notaRecepcionItem.setPresentacionEnNota(pedidoItem.getPresentacionCreacion());
+```
+
+#### **2. NotaRecepcionItemGraphQL.java:**
+```java
+// Agregado mapeo de presentación
+if(input.getPresentacionEnNotaId()!=null) 
+  e.setPresentacionEnNota(presentacionService.findById(input.getPresentacionEnNotaId()).orElse(null));
+```
+
+#### **3. Frontend Models:**
+```typescript
+// Agregado en NotaRecepcionItem
+presentacionEnNota: Presentacion | null;
+
+// Agregado en toInput()
+presentacionEnNotaId: this?.presentacionEnNota?.id,
+```
+
+### **📊 Resultado Visual:**
+La tabla ahora muestra información completa y clara:
+- **Producto:** Nombre y código del producto
+- **Presentación:** "Caja (24 unid.)" 
+- **Cantidad:** "5.00 (120 unid.)" (5 presentaciones de 24 unidades)
+- **Precio:** "1,250.00" (sin símbolos de moneda)
+- **Subtotal:** "6,250.00"
+- **Vencimiento:** "15/12/2024"
+- **Estado:** Indicado por color de fila + leyenda
+
+---
+
+## 8. Checklist de Implementación
 
 Esta es la lista de tareas detallada para la construcción del nuevo módulo de compras. Se debe seguir en orden para asegurar una implementación estructurada.
 
@@ -811,7 +969,7 @@ Esta es la lista de tareas detallada para la construcción del nuevo módulo de 
 
 **Estado:** ✅ **COMPLETADA PARCIALMENTE** - La estructura base está lista. Las nuevas tareas se enfocan en la migración de la navegación.
 
-### **Fase 2: Planificación del Pedido (Pestañas 1 y 2)** 🔄 EN PROGRESO
+### **Fase 2: Planificación del Pedido (Pestañas 1 y 2)** ✅ **COMPLETADA**
 
 #### Pestaña 1: Datos Generales ✅ COMPLETADA
 -   [x] **Layout:** Crear el formulario reactivo para los datos de la cabecera (Proveedor, Moneda, Forma de Pago, etc.).
@@ -843,14 +1001,14 @@ Esta es la lista de tareas detallada para la construcción del nuevo módulo de 
 
 **Estado:** ✅ **COMPLETADA** - Formulario funcional con validaciones, búsquedas integradas, guardado backend y navegación implementados.
 
-#### Pestaña 2: Ítems del Pedido ✅ LAYOUT COMPLETADO
+#### Pestaña 2: Ítems del Pedido ✅ COMPLETADA
 -   [x] **Layout:** Crear la tabla de ítems (`mat-table`) con paginación y el `mat-menu` para las acciones por fila.
--   [ ] **Layout:** Crear el diálogo "Añadir/Editar Ítem", incluyendo todos sus campos, validaciones y la navegación por tabs interna.
--   [ ] **Layout:** Crear el diálogo "Distribuir Ítem" para asignar cantidades a las sucursales.
+-   [x] **Layout:** Crear el diálogo "Añadir/Editar Ítem", incluyendo todos sus campos, validaciones y la navegación por tabs interna.
+-   [x] **Layout:** Crear el diálogo "Distribuir Ítem" para asignar cantidades a las sucursales.
 -   [x] **Mock Data:** Conectar la tabla de ítems a una lista de `PedidoItem` falsos del pedido mock.
 -   [x] **Lógica UI:** Implementar métodos de acción (añadir, editar, distribuir, eliminar ítems).
 -   [x] **Propiedades Computadas:** Implementar contadores y estados calculados para evitar funciones en templates.
--   [ ] **Integración Backend (Plan de Acción):**
+-   [x] **Integración Backend (Plan de Acción):**
     -   **Tarea B.1 (Lógica de Distribución - CRÍTICO):**
         -   [x] Crear `PedidoItemDistribucionGraphQL.java`.
         *   [x] Crear input `PedidoItemDistribucionInput.java`.
@@ -859,29 +1017,135 @@ Esta es la lista de tareas detallada para la construcción del nuevo módulo de 
         *   [x] **COMPLETADO:** Crear input `NotaRecepcionItemDistribucionInput.java`.
         *   [x] **COMPLETADO:** Implementar mutaciones para gestionar `NotaRecepcionItemDistribucion`.
     -   **Tarea F.1 (Cargar Ítems):**
-        *   [ ] Conectar tabla de ítems a la query `pedidoItemPorPedidoPage`.
+        *   [x] Conectar tabla de ítems a la query `pedidoItemPorPedidoPage`.
     -   **Tarea F.2 (Diálogos de Ítem):**
-        *   [ ] Usar `pdv-search-producto-dialog.component.ts` para la búsqueda de productos.
-        *   [ ] Conectar diálogo "Añadir/Editar Ítem" a la mutación `savePedidoItem`.
-        *   [ ] Conectar diálogo "Distribuir Ítem" a la nueva mutación `savePedidoItemDistribuciones`.
+        *   [x] Usar `pdv-search-producto-dialog.component.ts` para la búsqueda de productos.
+        *   [x] Conectar diálogo "Añadir/Editar Ítem" a la mutación `savePedidoItem`.
+        *   [x] Conectar diálogo "Distribuir Ítem" a la nueva mutación `savePedidoItemDistribuciones`.
     -   **Tarea F.3 (Acciones):**
-        *   [ ] Conectar botón "Eliminar" a la mutación `deletePedidoItem`.
-        *   [ ] Conectar botón "Finalizar Planificación" a la mutación `finalizarCreacionPedido`.
+        *   [x] Conectar botón "Eliminar" a la mutación `deletePedidoItem`.
+        *   [x] Conectar botón "Finalizar Planificación" a la mutación `finalizarCreacionPedido`.
 
-**Estado:** ✅ **LAYOUT COMPLETADO** - Tabla funcional con mock data, acciones implementadas. Pendiente: diálogos e integración backend.
+**Estado:** ✅ **COMPLETADA** - Tabla funcional con integración backend completa, diálogos implementados y probados, finalización de planificación conectada al backend.
 
 > **Nota Importante:** La lógica de validación ha sido actualizada para **no requerir distribuciones completas** antes de finalizar la planificación. El botón "Finalizar Planificación" ahora solo requiere que existan ítems en el pedido.
 
-### **Fase 3: Recepción de Notas (Pestaña 3)** 🔄 EN PROGRESO
+### **Fase 3: Recepción de Notas (Pestaña 3)** 🔄 **EN PROGRESO**
+
+#### Estado Actual:
 -   [x] **Layout:** Implementar interfaz de dos paneles para conciliación documental.
 -   [x] **Layout:** Implementar tabla de `PedidoItem` pendientes (panel izquierdo).
 -   [x] **Layout:** Implementar tabla de `NotaRecepcion` (panel derecho) con acciones.
 -   [x] **Layout:** Crear diálogo "Añadir/Editar Nota" para la cabecera de la nota (`NotaRecepcion`).
--   [ ] **Layout:** Crear diálogo de **Conciliación de Ítem**. Este diálogo debe permitir:
-    -   Modificar `cantidad` y `precio` para crear el `NotaRecepcionItem` (para manejar discrepancias).
-    -   Dividir la cantidad de un `PedidoItem` (conciliación parcial).
-    -   Marcar el `NotaRecepcionItem` como `RECHAZADO`, solicitando un motivo.
-    -   **NUEVA FUNCIONALIDAD:** Distribuir el `NotaRecepcionItem` a sucursales usando `NotaRecepcionItemDistribucion`.
 -   [x] **Modelo:** Crear modelo `NotaRecepcion` (anteriormente `NotaProveedor`) con enums como `NotaRecepcionEstado`.
 -   [x] **Modelo:** Crear modelo `NotaRecepcionItemDistribucion` para capturar la distribución documental.
--   [x] **Modelo:** Crear modelo `
+-   [x] **Modelo:** Crear modelo `NotaRecepcionItem` para la conciliación de ítems.
+-   [x] **Backend:** Servicios GraphQL disponibles para `NotaRecepcion`, `NotaRecepcionItem`, `NotaRecepcionItemDistribucion`.
+
+#### Próximas Tareas Críticas (Orden de Implementación):
+
+**Tarea 3.1: Integración Backend - Carga de Ítems Pendientes** ✅ **COMPLETADA**
+-   [x] **Conectar tabla de `PedidoItem` pendientes:**
+    -   [x] Usar query `pedidoItemPorPedidoPage` con filtros para obtener solo ítems con cantidad > 0 por conciliar.
+    -   [x] Implementar paginación en el panel izquierdo.
+    -   [x] Calcular `cantidadPendiente` = `cantidadSolicitada` - `sum(cantidadEnNota)` de todos los `NotaRecepcionItem` asociados.
+    -   [x] Mostrar solo ítems con `cantidadPendiente > 0`.
+    -   [x] Implementar filtros de búsqueda por producto.
+
+**Tarea 3.1.1: Sistema de Lazy Loading para Tabs** ✅ **COMPLETADA**
+-   [x] **Implementar carga diferida de datos por tab:**
+    -   [x] Crear sistema de rastreo de tabs cargados (`loadedTabs: Set<number>`).
+    -   [x] Modificar `onTabChange()` para cargar datos solo en primera visita.
+    -   [x] Implementar `loadTabDataIfNeeded()` que verifica si el tab ya fue cargado.
+    -   [x] Crear `markTabAsUnloaded()` para forzar recarga después de operaciones CRUD.
+    -   [x] Crear `reloadTabData()` para recarga inmediata cuando sea necesario.
+    -   [x] Actualizar todos los métodos CRUD para marcar tabs afectados como no cargados.
+    -   [x] Optimizar rendimiento: solo se cargan datos cuando el usuario accede al tab.
+    -   [x] **Corregir carga inicial:** Cargar datos del tab inicial según estado del pedido.
+    -   [x] **Modo creación:** Cargar datos del Tab 0 (Datos Generales) automáticamente.
+    -   [x] **Modo edición:** Cargar datos del tab correspondiente según etapa actual del pedido.
+    -   [x] **Optimizar carga de datos:** Eliminar cargas innecesarias de ítems y resumen al inicio.
+    -   [x] **Resumen básico:** Crear `loadPedidoResumenBasico()` para header sin datos de ítems.
+    -   [x] **Resumen completo:** Cargar resumen completo solo cuando se accede al tab de ítems.
+    -   [x] Agregar indicador de carga durante las consultas.
+    -   [x] Implementar carga automática al cambiar al Tab 3.
+
+**Tarea 3.2: Integración Backend - Carga de Notas de Recepción** ✅ **COMPLETADA**
+-   [x] **Conectar tabla de `NotaRecepcion`:**
+    -   [x] Crear queries GraphQL para notas de recepción (`notaRecepcionPorPedidoIdQuery`, `notaRecepcionPorPedidoIdAndNumeroPageQuery`).
+    -   [x] Crear servicios GraphQL (`GetNotaRecepcionPorPedidoIdGQL`, `GetNotaRecepcionPorPedidoIdAndNumeroPageGQL`).
+    -   [x] Agregar métodos al `PedidoService` para cargar notas de recepción.
+    -   [x] Implementar paginación en el panel derecho.
+    -   [x] Implementar filtros de búsqueda por número de nota.
+    -   [x] Agregar indicador de carga durante las consultas.
+    -   [x] Implementar carga automática al cambiar al Tab 3.
+    -   [x] Procesar notas para mostrar propiedades computadas (fecha formateada, estado con colores).
+
+**Tarea 3.3: Diálogo de Nota de Recepción - Funcionalidades Avanzadas** ✅ **COMPLETADA**
+-   [x] **Actualizar tabla de ítems en `add-edit-nota-recepcion-dialog`:**
+    -   [x] Agregar columna "Presentación" que muestra nombre y cantidad de unidades.
+    -   [x] Modificar columna "Cantidad" para mostrar cantidad por presentación y unidades totales.
+    -   [x] Remover símbolos de moneda de precios (mostrar solo números).
+    -   [x] Remover columna "Estado" de la tabla.
+    -   [x] Implementar colores de fila por estado (50% opacidad): Verde (Conciliado), Naranja (Pendiente), Rojo (Rechazado).
+    -   [x] Agregar leyenda de colores junto al título "Ítems de la Nota".
+    -   [x] Implementar estilos CSS para presentación, cantidad y colores de fila.
+    -   [x] Corregir problema de presentación no copiada al crear `NotaRecepcionItem`.
+
+**Tarea 3.4: Funcionalidades CRUD para Ítems de Nota de Recepción** 🔄 **EN PROGRESO**
+-   [ ] **Implementar eliminación de ítems:**
+    -   [ ] Conectar botón "Eliminar" en menú de acciones de tabla de ítems.
+    -   [ ] Implementar confirmación antes de eliminar.
+    -   [ ] Conectar con mutación `deleteNotaRecepcionItem`.
+    -   [ ] Recargar tabla después de eliminación exitosa.
+    -   [ ] Mostrar notificaciones de éxito/error.
+-   [ ] **Implementar edición de ítems:**
+    -   [ ] Crear diálogo `edit-nota-recepcion-item-dialog` para modificar ítems existentes.
+    -   [ ] Formulario para editar cantidad, precio, presentación, vencimiento.
+    -   [ ] Opción para marcar como rechazado con motivo.
+    -   [ ] Validaciones de cantidad y precio.
+    -   [ ] Conectar con mutación `saveNotaRecepcionItem`.
+-   [ ] **Implementar adición de ítems:**
+    -   [ ] Conectar botón "Agregar Ítem" en diálogo de nota.
+    -   [ ] Crear diálogo `add-nota-recepcion-item-dialog` para nuevos ítems.
+    -   [ ] Búsqueda de productos con `SearchListDialogComponent`.
+    -   [ ] Selección de presentación y cálculo de cantidades.
+    -   [ ] Validaciones y guardado con `saveNotaRecepcionItem`.
+
+**Tarea 3.5: Diálogo de Conciliación de Ítems (CRÍTICO)**
+-   [ ] **Crear componente `conciliar-item-dialog`:**
+    -   [ ] Formulario para modificar `cantidad` y `precio` del `NotaRecepcionItem`.
+    -   [ ] Opción para marcar como `RECHAZADO` con campo obligatorio `motivoRechazo`.
+    -   [ ] **NUEVA FUNCIONALIDAD:** Distribución documental usando `NotaRecepcionItemDistribucion`.
+    -   [ ] Validaciones: cantidad no puede exceder `cantidadPendiente` del `PedidoItem`.
+    -   [ ] Integración con mutación `saveNotaRecepcionItem`.
+
+**Tarea 3.6: Mutaciones Backend**
+-   [x] **Implementar mutaciones para `NotaRecepcion`:**
+    -   [x] Conectar `saveNotaRecepcion` para crear/editar notas.
+    -   [ ] Conectar `deleteNotaRecepcion` para eliminar notas.
+-   [x] **Implementar mutaciones para `NotaRecepcionItem`:**
+    -   [x] Conectar `saveNotaRecepcionItem` para conciliar ítems.
+    -   [ ] Conectar `deleteNotaRecepcionItem` para eliminar ítems.
+-   [x] **Implementar mutaciones para `NotaRecepcionItemDistribucion`:**
+    -   [x] Conectar `saveNotaRecepcionItemDistribuciones` para distribución documental.
+    -   [x] Conectar `replaceNotaRecepcionItemDistribuciones` para reemplazar distribuciones.
+
+**Tarea 3.7: Lógica de Negocio Avanzada**
+-   [ ] **Implementar lógica de conciliación parcial:**
+    -   [ ] Un `PedidoItem` puede ser conciliado por múltiples `NotaRecepcionItem`.
+    -   [ ] Calcular `cantidadPendiente` en tiempo real después de cada conciliación.
+    -   [ ] Actualizar UI automáticamente cuando cambie la cantidad pendiente.
+-   [ ] **Implementar lógica de rechazo documental:**
+    -   [ ] Ítems rechazados no pasan a la etapa de recepción física.
+    -   [ ] Mostrar visualmente ítems rechazados en la tabla.
+-   [ ] **Implementar validaciones de finalización:**
+    -   [ ] Verificar que existan notas registradas.
+    -   [ ] Verificar que todos los ítems del pedido estén conciliados o rechazados.
+    -   [ ] Conectar botón "Finalizar Conciliación" a mutación de finalización de etapa.
+-   [ ] **Implementar navegación automática:**
+    -   [ ] Al finalizar conciliación, avanzar automáticamente al Tab 4 (Recepción de Mercadería).
+
+**Estado:** 🔄 **EN PROGRESO** - Layout básico implementado, modelos creados, servicios backend disponibles. **Tarea 3.1 completada:** Integración backend para carga de ítems pendientes con paginación. **Tarea 3.1.1 completada:** Sistema de lazy loading implementado para optimizar rendimiento. **Tarea 3.2 completada:** Integración backend para carga de notas de recepción con paginación y búsqueda. **Tarea 3.3 completada:** Diálogo de nota de recepción con tabla de ítems avanzada, colores de estado y presentación. **Migración V82 completada:** Estructura de BD corregida para coincidir con modelos Java. **Corrección de presentación completada:** Problema de presentación no copiada resuelto en backend y frontend. 
+
+**🎯 PRÓXIMO PASO PRIORITARIO:** Tarea 3.4 - Implementar eliminación de ítems desde el diálogo `add-edit-nota-recepcion-dialog.component.ts` conectando el botón "Eliminar" en el menú de acciones de la tabla de ítems con la mutación `deleteNotaRecepcionItem`.

@@ -13,7 +13,7 @@ export enum ProcesoEtapaTipo {
 export enum ProcesoEtapaEstado {
   PENDIENTE = 'PENDIENTE',
   EN_PROCESO = 'EN_PROCESO',
-  FINALIZADA = 'FINALIZADA',
+  COMPLETADA = 'COMPLETADA',
   OMITIDA = 'OMITIDA'
 }
 

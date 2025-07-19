@@ -13,6 +13,7 @@ export const pedidoItemQuery = gql`
       esBonificacion
       estado
       creadoEn
+      distribucionConcluida
       producto {
         id
         descripcion
@@ -31,7 +32,6 @@ export const pedidoItemQuery = gql`
       }
       pedido {
         id
-        estado
       }
       usuarioCreacion {
         id
@@ -54,6 +54,7 @@ export const pedidoItemsByPedidoQuery = gql`
       esBonificacion
       estado
       creadoEn
+      distribucionConcluida
       producto {
         id
         descripcion
@@ -72,7 +73,6 @@ export const pedidoItemsByPedidoQuery = gql`
       }
       pedido {
         id
-        estado
       }
       usuarioCreacion {
         id
@@ -106,8 +106,9 @@ export const pedidoItemsByPedidoPageQuery = gql`
         vencimientoEsperado
         observacion
         esBonificacion
-        estado
         creadoEn
+        distribucionConcluida
+        cantidadPendiente
         producto {
           id
           descripcion
@@ -126,7 +127,6 @@ export const pedidoItemsByPedidoPageQuery = gql`
         }
         pedido {
           id
-          estado
         }
         usuarioCreacion {
           id
@@ -152,6 +152,7 @@ export const savePedidoItemMutation = gql`
       esBonificacion
       estado
       creadoEn
+      distribucionConcluida
       producto {
         id
         descripcion
@@ -170,7 +171,6 @@ export const savePedidoItemMutation = gql`
       }
       pedido {
         id
-        estado
       }
       usuarioCreacion {
         id

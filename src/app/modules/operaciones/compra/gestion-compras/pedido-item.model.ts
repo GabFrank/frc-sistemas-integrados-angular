@@ -29,6 +29,8 @@ export class PedidoItem {
   // Campos adicionales para frontend (no están en GraphQL pero pueden ser útiles)
   presentacion?: Presentacion;
   precioUnitarioPorPresentacion?: number;
+  distribucionConcluida?: boolean; // Status de distribución
+  cantidadPendiente?: number; // Cantidad pendiente de conciliar
 
   toInput(): PedidoItemInput {
     let input = new PedidoItemInput();

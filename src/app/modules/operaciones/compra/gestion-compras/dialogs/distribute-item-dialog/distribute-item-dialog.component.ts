@@ -5,6 +5,8 @@ import { Producto } from '../../../../../productos/producto/producto.model';
 import { PedidoItem } from '../../pedido-item.model';
 import { PedidoItemDistribucion, PedidoItemDistribucionInput } from '../../pedido-item-distribucion.model';
 import { Sucursal } from '../../../../../empresarial/sucursal/sucursal.model';
+import { PedidoService } from '../../../pedido.service';
+import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
 
 export interface DistributeItemDialogData {
   item: PedidoItem;
@@ -15,9 +17,9 @@ export interface DistributeItemDialogData {
 }
 
 export interface DistributeItemDialogResult {
-  distribuciones: PedidoItemDistribucionInput[];
+  success: boolean;
   action: 'save' | 'delete' | 'cancel';
-  distribucionesToDelete?: number[]; // IDs de distribuciones a eliminar
+  message?: string;
 }
 
 @Component({
@@ -73,15 +75,22 @@ export class DistributeItemDialogComponent implements OnInit {
   discrepanciaClassComputed = '';
   discrepanciaIconComputed = '';
 
+  // Loading state
+  savingComputed = false;
+
   constructor(
     private formBuilder: FormBuilder,
     private dialogRef: MatDialogRef<DistributeItemDialogComponent>,
+    private pedidoService: PedidoService,
+    private notificacionService: NotificacionSnackbarService,
     @Inject(MAT_DIALOG_DATA) public data: DistributeItemDialogData
   ) {
     this.initializeForm();
   }
 
   ngOnInit(): void {
+    // Calcular propiedades de presentación ANTES de cargar distribuciones
+    this.calculatePresentationProperties();
     this.loadDistribuciones();
     this.updateComputedProperties();
     this.setupFormSubscriptions();
@@ -91,6 +100,13 @@ export class DistributeItemDialogComponent implements OnInit {
     this.distribucionForm = this.formBuilder.group({
       distribuciones: this.formBuilder.array([])
     });
+  }
+
+  private calculatePresentationProperties(): void {
+    // Calcular información de la presentación ANTES de cargar distribuciones
+    this.cantidadPorPresentacionComputed = this.data.item.presentacionCreacion?.cantidad || 1;
+    this.presentacionCreacionComputed = this.data.item.presentacionCreacion?.descripcion || 'unidad';
+    this.cantidadSolicitadaPorPresentacionComputed = this.data.item.cantidadSolicitada / this.cantidadPorPresentacionComputed;
   }
 
   private loadDistribuciones(): void {
@@ -144,9 +160,7 @@ export class DistributeItemDialogComponent implements OnInit {
     this.cantidadSolicitadaComputed = this.data.item.cantidadSolicitada;
     
     // Calcular información de la presentación
-    this.cantidadPorPresentacionComputed = this.data.item.presentacionCreacion?.cantidad || 1;
-    this.presentacionCreacionComputed = this.data.item.presentacionCreacion?.descripcion || 'unidad';
-    this.cantidadSolicitadaPorPresentacionComputed = this.cantidadSolicitadaComputed / this.cantidadPorPresentacionComputed;
+    this.calculatePresentationProperties();
     
     // Configurar la unidad para mostrar en el template
     this.unidadMostrarComputed = this.distribuyePorPresentacion ? this.presentacionCreacionComputed : 'unidades';
@@ -233,6 +247,8 @@ export class DistributeItemDialogComponent implements OnInit {
   onToggleDistribucionMode(): void {
     this.distribuyePorPresentacion = !this.distribuyePorPresentacion;
     
+    // Calcular propiedades de presentación ANTES de recargar distribuciones
+    this.calculatePresentationProperties();
     // Recargar distribuciones con el nuevo modo
     this.loadDistribuciones();
     this.updateComputedProperties();
@@ -345,16 +361,25 @@ export class DistributeItemDialogComponent implements OnInit {
       return;
     }
 
+    if (this.savingComputed) {
+      return;
+    }
+
+    this.savingComputed = true;
+
     // Check for discrepancy and ask user if they want to update the original quantity
+    // for now, do not let user to continue if there is a discrepancy
     if (this.hasDiscrepanciaComputed) {
       const message = this.discrepanciaMostrarComputed > 0 
-        ? `La cantidad distribuida (${this.totalAsignadoFormattedComputed} ${this.unidadMostrarComputed}) es mayor a la solicitada (${this.cantidadSolicitadaFormattedComputed} ${this.unidadMostrarComputed}). ¿Desea actualizar la cantidad solicitada?`
-        : `La cantidad distribuida (${this.totalAsignadoFormattedComputed} ${this.unidadMostrarComputed}) es menor a la solicitada (${this.cantidadSolicitadaFormattedComputed} ${this.unidadMostrarComputed}). ¿Desea actualizar la cantidad solicitada?`;
-      
-      if (confirm(message)) {
-        // User confirmed to update the original quantity
-        // This would be handled by the parent component
-      }
+        ? `La cantidad distribuida (${this.totalAsignadoFormattedComputed} ${this.unidadMostrarComputed}) es mayor a la solicitada (${this.cantidadSolicitadaFormattedComputed} ${this.unidadMostrarComputed}).`
+        : `La cantidad distribuida (${this.totalAsignadoFormattedComputed} ${this.unidadMostrarComputed}) es menor a la solicitada (${this.cantidadSolicitadaFormattedComputed} ${this.unidadMostrarComputed}).`;
+      this.notificacionService.openAlgoSalioMal(message);
+      return;
+
+      // if (confirm(message)) {
+      //   // User confirmed to update the original quantity
+      //   // This would be handled by the parent component
+      // }
     }
 
     const formValue = this.distribucionForm.value;
@@ -388,13 +413,70 @@ export class DistributeItemDialogComponent implements OnInit {
       }
     });
 
-    const result: DistributeItemDialogResult = {
-      distribuciones: distribuciones,
-      action: 'save',
-      distribucionesToDelete: distribucionesToDelete.length > 0 ? distribucionesToDelete : undefined
+    // Ejecutar operaciones de guardado y eliminación
+    this.executeSaveOperations(distribuciones, distribucionesToDelete);
+  }
+
+  private executeSaveOperations(distribuciones: PedidoItemDistribucionInput[], distribucionesToDelete: number[]): void {
+    let operationsCompleted = 0;
+    let totalOperations = 0;
+    let hasErrors = false;
+
+    // Contar operaciones totales
+    if (distribuciones.length > 0) totalOperations++;
+    if (distribucionesToDelete.length > 0) totalOperations++;
+
+    if (totalOperations === 0) {
+      // No hay operaciones que realizar
+      this.savingComputed = false;
+      this.dialogRef.close({ success: true, action: 'save' });
+      return;
+    }
+
+    const checkCompletion = () => {
+      operationsCompleted++;
+      if (operationsCompleted >= totalOperations) {
+        this.savingComputed = false;
+        if (hasErrors) {
+          this.dialogRef.close({ success: false, action: 'save' });
+        } else {
+          this.notificacionService.openSucess("Distribuciones guardadas exitosamente");
+          this.dialogRef.close({ success: true, action: 'save' });
+        }
+      }
     };
 
-    this.dialogRef.close(result);
+    // Guardar distribuciones con cantidad > 0
+    if (distribuciones.length > 0) {
+      this.pedidoService.onSavePedidoItemDistribuciones(this.data.item.id, distribuciones as any).subscribe({
+        next: (savedDistribuciones) => {
+          console.log('Distribuciones guardadas:', savedDistribuciones);
+          checkCompletion();
+        },
+        error: (error) => {
+          console.error("Error guardando distribuciones:", error);
+          this.notificacionService.openAlgoSalioMal("Error al guardar las distribuciones");
+          hasErrors = true;
+          checkCompletion();
+        }
+      });
+    }
+
+    // Eliminar distribuciones con cantidad = 0
+    if (distribucionesToDelete.length > 0) {
+      this.pedidoService.onDeletePedidoItemDistribuciones(distribucionesToDelete).subscribe({
+        next: (deleted) => {
+          console.log('Distribuciones eliminadas:', deleted);
+          checkCompletion();
+        },
+        error: (error) => {
+          console.error("Error eliminando distribuciones:", error);
+          this.notificacionService.openAlgoSalioMal("Error al eliminar las distribuciones");
+          hasErrors = true;
+          checkCompletion();
+        }
+      });
+    }
   }
 
   onDeleteDistribuciones(): void {
@@ -402,18 +484,31 @@ export class DistributeItemDialogComponent implements OnInit {
       return;
     }
 
-    const result: DistributeItemDialogResult = {
-      distribuciones: [],
-      action: 'delete',
-      distribucionesToDelete: this.distribucionesSeleccionadas
-    };
+    if (this.savingComputed) {
+      return;
+    }
 
-    this.dialogRef.close(result);
+    this.savingComputed = true;
+
+    this.pedidoService.onDeletePedidoItemDistribuciones(this.distribucionesSeleccionadas).subscribe({
+      next: (deleted) => {
+        console.log('Distribuciones eliminadas:', deleted);
+        this.savingComputed = false;
+        this.notificacionService.openSucess("Distribuciones eliminadas exitosamente");
+        this.dialogRef.close({ success: true, action: 'delete' });
+      },
+      error: (error) => {
+        console.error("Error eliminando distribuciones:", error);
+        this.savingComputed = false;
+        this.notificacionService.openAlgoSalioMal("Error al eliminar las distribuciones");
+        this.dialogRef.close({ success: false, action: 'delete' });
+      }
+    });
   }
 
   onCancel(): void {
     const result: DistributeItemDialogResult = {
-      distribuciones: [],
+      success: false,
       action: 'cancel'
     };
     this.dialogRef.close(result);

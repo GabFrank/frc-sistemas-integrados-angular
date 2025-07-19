@@ -74,7 +74,7 @@
           </mat-card>
         </div>
 
-        <!-- Fila 2: Presentación -->
+        <!-- Fila 2: Presentación y Cantidad -->
         <div class="form-row" *ngIf="productoSelectedComputed">
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Presentación</mat-label>
@@ -87,7 +87,8 @@
                 *ngFor="let presentacion of presentacionesDisponibles"
                 [value]="presentacion"
               >
-                {{ presentacion.descripcion }} (x{{ presentacion.cantidad }})
+              <!-- show only cantidad -->
+                {{ presentacion.cantidad }}
               </mat-option>
             </mat-select>
             <mat-error
@@ -96,10 +97,7 @@
               Debe seleccionar una presentación
             </mat-error>
           </mat-form-field>
-        </div>
 
-        <!-- Fila 3: Cantidad -->
-        <div class="form-row" *ngIf="productoSelectedComputed">
           <mat-form-field appearance="outline">
             <mat-label>Cantidad por Presentación</mat-label>
             <input
@@ -112,10 +110,13 @@
               (keydown)="onCantidadKeydown($event)"
             />
             <mat-hint *ngIf="cantidadEnUnidadesBaseComputed > 0">
-              = {{ cantidadEnUnidadesBaseComputed | number: '1.0-2' }} unidades base
+              = {{ cantidadEnUnidadesBaseComputed | number : "1.0-2" }} unidades
+              base
             </mat-hint>
             <mat-error
-              *ngIf="itemForm.get('cantidadPorPresentacion')?.hasError('required')"
+              *ngIf="
+                itemForm.get('cantidadPorPresentacion')?.hasError('required')
+              "
             >
               La cantidad es requerida
             </mat-error>
@@ -126,6 +127,11 @@
             </mat-error>
           </mat-form-field>
         </div>
+
+        <!-- Fila 3: Cantidad -->
+        <!-- <div class="form-row" *ngIf="productoSelectedComputed">
+          
+        </div> -->
 
         <!-- Fila 4: Precios y Bonificación -->
         <div class="form-row" *ngIf="productoSelectedComputed">
@@ -262,11 +268,18 @@
       color="accent"
       [disabled]="!canSaveComputed"
       (click)="onSave()"
+      (keydown)="onGuardarKeydown($event)"
       class="save-btn"
     >
       <mat-icon *ngIf="!savingComputed">save</mat-icon>
-      <mat-icon *ngIf="savingComputed" class="spinning">hourglass_empty</mat-icon>
-      {{ savingComputed ? 'Guardando...' : (data.isEdit ? "Actualizar" : "Guardar") + " Ítem" }}
+      <mat-icon *ngIf="savingComputed" class="spinning"
+        >hourglass_empty</mat-icon
+      >
+      {{
+        savingComputed
+          ? "Guardando..."
+          : (data.isEdit ? "Actualizar" : "Guardar") + " Ítem"
+      }}
     </button>
   </div>
 </div>

@@ -8,16 +8,7 @@ import { PedidoSucursalEntrega } from './models/pedido-sucursal-entrega.model';
 import { PedidoSucursalInfluencia } from './models/pedido-sucursal-influencia.model';
 import { ProcesoEtapa } from './proceso-etapa.model';
 
-export enum PedidoEstado {
-  ABIERTO = 'ABIERTO',
-  ACTIVO = 'ACTIVO',
-  EN_RECEPCION_NOTA = 'EN_RECEPCION_NOTA',
-  EN_RECEPCION_MERCADERIA = 'EN_RECEPCION_MERCADERIA',
-  EN_SOLICITUD_PAGO = 'EN_SOLICITUD_PAGO',
-  EN_PLANIFICACION = 'EN_PLANIFICACION',
-  CONCLUIDO = 'CONCLUIDO',
-  CANCELADO = 'CANCELADO'
-}
+
 
 export class Pedido {
   id: number;
@@ -27,7 +18,7 @@ export class Pedido {
   tipoBoleta: string;
   moneda: Moneda;
   plazoCredito: number;
-  estado: PedidoEstado;
+
   creadoEn: Date;
   usuario: Usuario;
 
@@ -45,7 +36,7 @@ export class Pedido {
     input.tipoBoleta = this?.tipoBoleta;
     input.monedaId = this?.moneda?.id;
     input.plazoCredito = this?.plazoCredito;
-    input.estado = this?.estado;
+
     input.creadoEn = dateToString(this?.creadoEn);
     input.usuarioId = this?.usuario?.id;
     return input;
@@ -60,7 +51,7 @@ export class PedidoInput {
   tipoBoleta?: string;
   monedaId?: number;
   plazoCredito?: number;
-  estado?: PedidoEstado;
+
   creadoEn?: string;
   usuarioId?: number;
 } 

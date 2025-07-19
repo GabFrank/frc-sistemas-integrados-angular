@@ -30,7 +30,7 @@ export const pedidoQuery = gql`
         simbolo
       }
       plazoCredito
-      estado
+
       creadoEn
       usuario {
         id
@@ -81,7 +81,7 @@ export const pedidosQuery = gql`
         denominacion
       }
       plazoCredito
-      estado
+
       creadoEn
       usuario {
         id
@@ -128,7 +128,7 @@ export const savePedidoMutation = gql`
         denominacion
       }
       plazoCredito
-      estado
+
       creadoEn
       usuario {
         id
@@ -179,7 +179,7 @@ export const savePedidoFullMutation = gql`
         denominacion
       }
       plazoCredito
-      estado
+
       creadoEn
       usuario {
         id
@@ -207,7 +207,7 @@ export const finalizarCreacionPedidoMutation = gql`
   mutation finalizarCreacionPedido($pedidoId: ID!) {
     data: finalizarCreacionPedido(pedidoId: $pedidoId) {
       id
-      estado
+
       creadoEn
     }
   }
@@ -228,6 +228,7 @@ export const pedidoItemDistribucionQuery = gql`
       pedidoItem {
         id
         cantidadSolicitada
+        distribucionConcluida
         producto {
           id
           descripcion
@@ -255,6 +256,7 @@ export const pedidoItemDistribucionesByPedidoItemIdQuery = gql`
       pedidoItem {
         id
         cantidadSolicitada
+        distribucionConcluida
         producto {
           id
           descripcion
@@ -282,6 +284,7 @@ export const pedidoItemDistribucionesBySucursalIdQuery = gql`
       pedidoItem {
         id
         cantidadSolicitada
+        distribucionConcluida
         producto {
           id
           descripcion
@@ -309,6 +312,7 @@ export const pedidoItemDistribucionesBySucursalInfluenciaIdQuery = gql`
       pedidoItem {
         id
         cantidadSolicitada
+        distribucionConcluida
         producto {
           id
           descripcion
@@ -335,8 +339,6 @@ export const countPedidoItemDistribucionQuery = gql`
   }
 `;
 
-
-
 // ===== PEDIDO ITEM DISTRIBUCION MUTATIONS =====
 
 export const savePedidoItemDistribucionMutation = gql`
@@ -346,6 +348,7 @@ export const savePedidoItemDistribucionMutation = gql`
       pedidoItem {
         id
         cantidadSolicitada
+        distribucionConcluida
         producto {
           id
           descripcion
@@ -373,12 +376,19 @@ export const deletePedidoItemDistribucionMutation = gql`
 `;
 
 export const savePedidoItemDistribucionesMutation = gql`
-  mutation savePedidoItemDistribuciones($pedidoItemId: ID!, $inputs: [PedidoItemDistribucionInput]!) {
-    data: savePedidoItemDistribuciones(pedidoItemId: $pedidoItemId, inputs: $inputs) {
+  mutation savePedidoItemDistribuciones(
+    $pedidoItemId: ID!
+    $inputs: [PedidoItemDistribucionInput]!
+  ) {
+    data: savePedidoItemDistribuciones(
+      pedidoItemId: $pedidoItemId
+      inputs: $inputs
+    ) {
       id
       pedidoItem {
         id
         cantidadSolicitada
+        distribucionConcluida
         producto {
           id
           descripcion
@@ -400,12 +410,19 @@ export const savePedidoItemDistribucionesMutation = gql`
 `;
 
 export const replacePedidoItemDistribucionesMutation = gql`
-  mutation replacePedidoItemDistribuciones($pedidoItemId: ID!, $inputs: [PedidoItemDistribucionInput]!) {
-    data: replacePedidoItemDistribuciones(pedidoItemId: $pedidoItemId, inputs: $inputs) {
+  mutation replacePedidoItemDistribuciones(
+    $pedidoItemId: ID!
+    $inputs: [PedidoItemDistribucionInput]!
+  ) {
+    data: replacePedidoItemDistribuciones(
+      pedidoItemId: $pedidoItemId
+      inputs: $inputs
+    ) {
       id
       pedidoItem {
         id
         cantidadSolicitada
+        distribucionConcluida
         producto {
           id
           descripcion
@@ -428,7 +445,9 @@ export const replacePedidoItemDistribucionesMutation = gql`
 
 export const deletePedidoItemDistribucionesByPedidoItemIdMutation = gql`
   mutation deletePedidoItemDistribucionesByPedidoItemId($pedidoItemId: ID!) {
-    data: deletePedidoItemDistribucionesByPedidoItemId(pedidoItemId: $pedidoItemId)
+    data: deletePedidoItemDistribucionesByPedidoItemId(
+      pedidoItemId: $pedidoItemId
+    )
   }
 `;
 
@@ -470,7 +489,9 @@ export const notaRecepcionItemDistribucionQuery = gql`
 
 export const notaRecepcionItemDistribucionesByNotaRecepcionItemIdQuery = gql`
   query ($notaRecepcionItemId: ID!) {
-    data: notaRecepcionItemDistribucionesByNotaRecepcionItemId(notaRecepcionItemId: $notaRecepcionItemId) {
+    data: notaRecepcionItemDistribucionesByNotaRecepcionItemId(
+      notaRecepcionItemId: $notaRecepcionItemId
+    ) {
       id
       notaRecepcionItem {
         id
@@ -494,7 +515,9 @@ export const notaRecepcionItemDistribucionesByNotaRecepcionItemIdQuery = gql`
 
 export const notaRecepcionItemDistribucionesBySucursalEntregaIdQuery = gql`
   query ($sucursalId: ID!) {
-    data: notaRecepcionItemDistribucionesBySucursalEntregaId(sucursalId: $sucursalId) {
+    data: notaRecepcionItemDistribucionesBySucursalEntregaId(
+      sucursalId: $sucursalId
+    ) {
       id
       notaRecepcionItem {
         id
@@ -522,7 +545,9 @@ export const notaRecepcionItemDistribucionesBySucursalEntregaIdQuery = gql`
 
 export const notaRecepcionItemDistribucionesByNotaRecepcionIdQuery = gql`
   query ($notaRecepcionId: ID!) {
-    data: notaRecepcionItemDistribucionesByNotaRecepcionId(notaRecepcionId: $notaRecepcionId) {
+    data: notaRecepcionItemDistribucionesByNotaRecepcionId(
+      notaRecepcionId: $notaRecepcionId
+    ) {
       id
       notaRecepcionItem {
         id
@@ -550,14 +575,16 @@ export const notaRecepcionItemDistribucionesByNotaRecepcionIdQuery = gql`
 
 export const totalDistributedQuantityByNotaRecepcionItemIdQuery = gql`
   query ($notaRecepcionItemId: ID!) {
-    data: totalDistributedQuantityByNotaRecepcionItemId(notaRecepcionItemId: $notaRecepcionItemId)
+    data: totalDistributedQuantityByNotaRecepcionItemId(
+      notaRecepcionItemId: $notaRecepcionItemId
+    )
   }
 `;
 
 export const distributedQuantityByNotaRecepcionItemIdAndSucursalIdQuery = gql`
   query ($notaRecepcionItemId: ID!, $sucursalId: ID!) {
     data: distributedQuantityByNotaRecepcionItemIdAndSucursalId(
-      notaRecepcionItemId: $notaRecepcionItemId, 
+      notaRecepcionItemId: $notaRecepcionItemId
       sucursalId: $sucursalId
     )
   }
@@ -566,7 +593,9 @@ export const distributedQuantityByNotaRecepcionItemIdAndSucursalIdQuery = gql`
 // ===== NOTA RECEPCION ITEM DISTRIBUCION MUTATIONS =====
 
 export const saveNotaRecepcionItemDistribucionMutation = gql`
-  mutation saveNotaRecepcionItemDistribucion($input: NotaRecepcionItemDistribucionInput!) {
+  mutation saveNotaRecepcionItemDistribucion(
+    $input: NotaRecepcionItemDistribucionInput!
+  ) {
     data: saveNotaRecepcionItemDistribucion(input: $input) {
       id
       notaRecepcionItem {
@@ -590,7 +619,9 @@ export const saveNotaRecepcionItemDistribucionMutation = gql`
 `;
 
 export const saveNotaRecepcionItemDistribucionesMutation = gql`
-  mutation saveNotaRecepcionItemDistribuciones($inputs: [NotaRecepcionItemDistribucionInput]!) {
+  mutation saveNotaRecepcionItemDistribuciones(
+    $inputs: [NotaRecepcionItemDistribucionInput]!
+  ) {
     data: saveNotaRecepcionItemDistribuciones(inputs: $inputs) {
       id
       notaRecepcionItem {
@@ -614,8 +645,14 @@ export const saveNotaRecepcionItemDistribucionesMutation = gql`
 `;
 
 export const replaceNotaRecepcionItemDistribucionesMutation = gql`
-  mutation replaceNotaRecepcionItemDistribuciones($notaRecepcionItemId: ID!, $inputs: [NotaRecepcionItemDistribucionInput]!) {
-    data: replaceNotaRecepcionItemDistribuciones(notaRecepcionItemId: $notaRecepcionItemId, inputs: $inputs) {
+  mutation replaceNotaRecepcionItemDistribuciones(
+    $notaRecepcionItemId: ID!
+    $inputs: [NotaRecepcionItemDistribucionInput]!
+  ) {
+    data: replaceNotaRecepcionItemDistribuciones(
+      notaRecepcionItemId: $notaRecepcionItemId
+      inputs: $inputs
+    ) {
       id
       notaRecepcionItem {
         id
@@ -644,7 +681,467 @@ export const deleteNotaRecepcionItemDistribucionMutation = gql`
 `;
 
 export const deleteNotaRecepcionItemDistribucionesByNotaRecepcionItemIdMutation = gql`
-  mutation deleteNotaRecepcionItemDistribucionesByNotaRecepcionItemId($notaRecepcionItemId: ID!) {
-    data: deleteNotaRecepcionItemDistribucionesByNotaRecepcionItemId(notaRecepcionItemId: $notaRecepcionItemId)
+  mutation deleteNotaRecepcionItemDistribucionesByNotaRecepcionItemId(
+    $notaRecepcionItemId: ID!
+  ) {
+    data: deleteNotaRecepcionItemDistribucionesByNotaRecepcionItemId(
+      notaRecepcionItemId: $notaRecepcionItemId
+    )
+  }
+`;
+
+export const getPedidoResumenQuery = gql`
+  query GetPedidoResumen($pedidoId: ID!) {
+    data: getPedidoResumen(pedidoId: $pedidoId) {
+      pedidoId
+      etapaActual {
+        id
+        pedido {
+          id
+        }
+        tipoEtapa
+        estadoEtapa
+        fechaInicio
+        fechaFin
+        usuarioInicio {
+          id
+          persona {
+            nombre
+          }
+        }
+        creadoEn
+      }
+      cantidadItems
+      valorTotal
+      cantidadItemsConDistribucionCompleta
+      cantidadItemsPendientesDistribucion
+    }
+  }
+`;
+
+// ===== NOTA RECEPCION QUERIES =====
+
+export const notaRecepcionPorPedidoIdQuery = gql`
+  query NotaRecepcionPorPedidoId($pedidoId: ID!) {
+    data: notaRecepcionPorPedidoId(id: $pedidoId) {
+      id
+      numero
+      fecha
+      estado
+      pedido {
+        id
+      }
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      creadoEn
+    }
+  }
+`;
+
+export const notaRecepcionPorPedidoIdAndNumeroPageQuery = gql`
+  query NotaRecepcionPorPedidoIdAndNumeroPage($pedidoId: ID!, $numero: Int, $page: Int!, $size: Int!) {
+    data: notaRecepcionPorPedidoIdAndNumero(id: $pedidoId, numero: $numero, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        numero
+        fecha
+        estado
+        pedido {
+          id
+        }
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+        creadoEn
+      }
+    }
+  }
+`;
+
+// ===== NOTA RECEPCION CRUD MUTATIONS =====
+
+export const saveNotaRecepcionMutation = gql`
+  mutation SaveNotaRecepcion($entity: NotaRecepcionInput!) {
+    data: saveNotaRecepcion(entity: $entity) {
+      id
+      numero
+      tipoBoleta
+      timbrado
+      fecha
+      cotizacion
+      estado
+      pagado
+      creadoEn
+      pedido {
+        id
+      }
+      moneda {
+        id
+        denominacion
+        simbolo
+      }
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
+export const deleteNotaRecepcionMutation = gql`
+  mutation DeleteNotaRecepcion($id: ID!) {
+    data: deleteNotaRecepcion(id: $id)
+  }
+`;
+
+// ===== NOTA RECEPCION CRUD QUERIES =====
+
+export const getNotaRecepcionByIdQuery = gql`
+  query GetNotaRecepcionById($id: ID!) {
+    data: notaRecepcion(id: $id) {
+      id
+      numero
+      tipoBoleta
+      timbrado
+      fecha
+      cotizacion
+      estado
+      pagado
+      creadoEn
+      pedido {
+        id
+      }
+      moneda {
+        id
+        denominacion
+        simbolo
+      }
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
+export const getNotaRecepcionsQuery = gql`
+  query GetNotaRecepcions($page: Int, $size: Int) {
+    data: notaRecepcions(page: $page, size: $size) {
+      id
+      numero
+      tipoBoleta
+      timbrado
+      fecha
+      cotizacion
+      estado
+      pagado
+      creadoEn
+      pedido {
+        id
+      }
+      moneda {
+        id
+        denominacion
+        simbolo
+      }
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
+export const countNotaRecepcionQuery = gql`
+  query CountNotaRecepcion {
+    data: countNotaRecepcion
+  }
+`;
+
+export const countNotaRecepcionPorPedidoIdQuery = gql`
+  query CountNotaRecepcionPorPedidoId($id: ID!) {
+    data: countNotaRecepcionPorPedidoId(id: $id)
+  }
+`;
+
+// ===== NOTA RECEPCION ITEM QUERIES =====
+
+export const notaRecepcionItemQuery = gql`
+  query NotaRecepcionItem($id: ID!) {
+    data: notaRecepcionItem(id: $id) {
+      id
+      notaRecepcion {
+        id
+        numero
+        fecha
+        estado
+      }
+      pedidoItem {
+        id
+        cantidadSolicitada
+        precioUnitarioSolicitado
+        producto {
+          id
+          descripcion
+          codigoPrincipal
+        }
+      }
+      producto {
+        id
+        descripcion
+        codigoPrincipal
+      }
+      presentacionEnNota {
+        id
+        cantidad
+        descripcion
+      }
+      cantidadEnNota
+      precioUnitarioEnNota
+      esBonificacion
+      vencimientoEnNota
+      observacion
+      estado
+      motivoRechazo
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
+export const notaRecepcionItemListQuery = gql`
+  query NotaRecepcionItemList($page: Int!, $size: Int!) {
+    data: notaRecepcionItemList(page: $page, size: $size) {
+      id
+      notaRecepcion {
+        id
+        numero
+        fecha
+        estado
+      }
+      pedidoItem {
+        id
+        cantidadSolicitada
+        precioUnitarioSolicitado
+        producto {
+          id
+          descripcion
+          codigoPrincipal
+        }
+      }
+      producto {
+        id
+        descripcion
+        codigoPrincipal
+      }
+      presentacionEnNota {
+        id
+        cantidad
+        descripcion
+      }
+      cantidadEnNota
+      precioUnitarioEnNota
+      esBonificacion
+      vencimientoEnNota
+      observacion
+      estado
+      motivoRechazo
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
+export const notaRecepcionItemListPorNotaRecepcionIdQuery = gql`
+  query NotaRecepcionItemListPorNotaRecepcionId($id: ID!) {
+    data: notaRecepcionItemListPorNotaRecepcionId(id: $id) {
+      id
+      notaRecepcion {
+        id
+        numero
+        fecha
+        estado
+      }
+      pedidoItem {
+        id
+        cantidadSolicitada
+        precioUnitarioSolicitado
+        producto {
+          id
+          descripcion
+          codigoPrincipal
+        }
+      }
+      producto {
+        id
+        descripcion
+        codigoPrincipal
+      }
+      presentacionEnNota {
+        id
+        cantidad
+        descripcion
+      }
+      cantidadEnNota
+      precioUnitarioEnNota
+      esBonificacion
+      vencimientoEnNota
+      observacion
+      estado
+      motivoRechazo
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
+export const countNotaRecepcionItemQuery = gql`
+  query CountNotaRecepcionItem {
+    data: countNotaRecepcionItem
+  }
+`;
+
+// ===== NOTA RECEPCION ITEM MUTATIONS =====
+
+export const saveNotaRecepcionItemMutation = gql`
+  mutation SaveNotaRecepcionItem($NotaRecepcionItem: NotaRecepcionItemInput!) {
+    data: saveNotaRecepcionItem(NotaRecepcionItem: $NotaRecepcionItem) {
+      id
+      notaRecepcion {
+        id
+        numero
+        fecha
+        estado
+      }
+      pedidoItem {
+        id
+        cantidadSolicitada
+        precioUnitarioSolicitado
+        producto {
+          id
+          descripcion
+          codigoPrincipal
+        }
+      }
+      producto {
+        id
+        descripcion
+        codigoPrincipal
+      }
+      presentacionEnNota {
+        id
+        cantidad
+        descripcion
+      }
+      cantidadEnNota
+      precioUnitarioEnNota
+      esBonificacion
+      vencimientoEnNota
+      observacion
+      estado
+      motivoRechazo
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
+export const deleteNotaRecepcionItemMutation = gql`
+  mutation DeleteNotaRecepcionItem($id: ID!) {
+    data: deleteNotaRecepcionItem(id: $id)
+  }
+`;
+
+export const adicionarItensMutation = gql`
+  mutation AdicionarItens($id: ID, $notaRecepcionItemInputList: [NotaRecepcionItemInput]) {
+    data: adicionarItens(id: $id, notaRecepcionItemInputList: $notaRecepcionItemInputList) {
+      id
+      notaRecepcion {
+        id
+        numero
+        fecha
+        estado
+      }
+      pedidoItem {
+        id
+        cantidadSolicitada
+        precioUnitarioSolicitado
+        producto {
+          id
+          descripcion
+          codigoPrincipal
+        }
+      }
+      producto {
+        id
+        descripcion
+        codigoPrincipal
+      }
+      presentacionEnNota {
+        id
+        cantidad
+        descripcion
+      }
+      cantidadEnNota
+      precioUnitarioEnNota
+      esBonificacion
+      vencimientoEnNota
+      observacion
+      estado
+      motivoRechazo
+      creadoEn
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
+export const removerItensMutation = gql`
+  mutation RemoverItens($id: ID, $notaRecepcionItemInputList: [NotaRecepcionItemInput]) {
+    data: removerItens(id: $id, notaRecepcionItemInputList: $notaRecepcionItemInputList)
   }
 `;
