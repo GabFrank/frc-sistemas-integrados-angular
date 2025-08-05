@@ -25,7 +25,18 @@ import {
 import {
   AddEditNotaRecepcionDialogComponent,
   AddEditNotaRecepcionDialogData,
+  AddEditNotaRecepcionDialogResult,
 } from "./dialogs/add-edit-nota-recepcion-dialog/add-edit-nota-recepcion-dialog.component";
+import {
+  DividirItemDialogComponent,
+  DividirItemDialogData,
+  DividirItemDialogResult,
+} from "./dialogs/dividir-item-dialog/dividir-item-dialog.component";
+import {
+  RechazarItemDialogComponent,
+  RechazarItemDialogData,
+  RechazarItemDialogResult,
+} from "./dialogs/rechazar-item-dialog/rechazar-item-dialog.component";
 import { Pedido } from "./pedido.model";
 import { PedidoItem, PedidoItemEstado } from "./pedido-item.model";
 import { PedidoItemDistribucion } from "./pedido-item-distribucion.model";
@@ -103,6 +114,12 @@ interface MockNotaRecepcion extends NotaRecepcion {
   estadoChipColorComputed: string;
   estadoDisplayNameComputed: string;
   isSelectedComputed: boolean;
+  // Propiedades específicas para notas de rechazo
+  isNotaRechazoComputed: boolean;
+  // Propiedad para el monto total de la nota
+  montoComputed: number;
+  // Propiedad para el valor total calculado en el backend
+  valorTotal?: number;
 }
 
 type TabState = "disabled" | "readonly" | "editable";
@@ -212,7 +229,7 @@ export class GestionComprasComponent
 
   // Panel Derecho (40%): Notas de Recepción Registradas
   notasRecepcionDataSource = new MatTableDataSource<MockNotaRecepcion>([]);
-  notasRecepcionDisplayedColumns = ["numero", "fecha", "estado", "acciones"];
+  notasRecepcionDisplayedColumns = ["numero", "fecha", "monto", "estado", "acciones"];
   selectedNotaRecepcion: MockNotaRecepcion | null = null;
 
   // Paginación para notas de recepción
@@ -227,6 +244,7 @@ export class GestionComprasComponent
   notasRecepcionCountComputed = 0;
   canCreateNotaForItemsComputed = false;
   canAssignItemsToNotaComputed = false;
+  canFinalizarConciliacionComputed = false;
 
   // Sistema de lazy loading para tabs
   loadedTabs: Set<number> = new Set();
@@ -431,8 +449,8 @@ export class GestionComprasComponent
 
           this.loadingPedido = false;
           
-          // Cargar solo el resumen básico para el header (sin datos de ítems)
-          this.loadPedidoResumenBasico();
+          // Cargar el resumen completo del pedido desde el backend
+          this.loadPedidoResumen();
           
           this.updateComputedProperties();
 
@@ -453,11 +471,14 @@ export class GestionComprasComponent
   private loadPedidoResumen(): void {
     if (!this.pedidoId) return;
 
+    console.log('Cargando resumen del pedido con ID:', this.pedidoId);
+
     this.pedidoService.onGetPedidoResumen(this.pedidoId).subscribe({
       next: (resumen) => {
         this.pedidoResumen = resumen;
-        this.updateComputedProperties();
         console.log("Resumen del pedido cargado:", resumen);
+        console.log("Valor total del resumen:", resumen.valorTotal);
+        this.updateComputedProperties();
       },
       error: (error) => {
         console.error("Error cargando resumen del pedido:", error);
@@ -668,12 +689,12 @@ export class GestionComprasComponent
                    "No seleccionado",
         fechaCreacion: this.currentPedido?.creadoEn || new Date(),
         estado: this.getEstadoFromResumen(this.pedidoResumen.etapaActual),
-        montoTotal: this.pedidoResumen.valorTotal,
+        montoTotal: this.calculateMontoTotalEditMode(),
         moneda: this.currentPedido?.moneda || null,
         plazoCredito: this.currentPedido?.plazoCredito || 0,
       };
     } else {
-      // Modo creación o sin resumen - usar cálculo local
+      // Modo creación o sin resumen - usar cálculo local del pedido original
       this.headerDataComputed = {
         id: this.currentPedido?.id || undefined,
         proveedor: this.currentPedido?.proveedor?.persona?.nombre ||
@@ -715,6 +736,32 @@ export class GestionComprasComponent
     }, 0);
   }
 
+  private calculateMontoTotalEditMode(): number {
+    // En modo edición, calcular el monto total de las facturas actuales (notas de recepción)
+    // según el manual: "Monto total de las facturas actuales"
+    
+    console.log('Calculando monto total en modo edición:');
+    console.log('- pedidoResumen:', this.pedidoResumen);
+    console.log('- pedidoResumen.valorTotal:', this.pedidoResumen?.valorTotal);
+    
+    // Si tenemos el resumen del backend, usar el valorTotal que representa las facturas actuales
+    if (this.pedidoResumen && this.pedidoResumen.valorTotal !== undefined) {
+      console.log('- Usando valorTotal del resumen:', this.pedidoResumen.valorTotal);
+      return this.pedidoResumen.valorTotal;
+    }
+    
+    // Fallback: calcular desde los ítems del pedido (monto original)
+    const items = this.itemsDataSource.data;
+    const totalFromItems = items.reduce((sum, item) => {
+      return sum + (item.cantidadSolicitada * item.precioUnitarioSolicitado);
+    }, 0);
+    
+    console.log('- Usando cálculo desde ítems:', totalFromItems);
+    console.log('- Cantidad de ítems:', items.length);
+    
+    return totalFromItems;
+  }
+
   private updateStep3ComputedProperties(): void {
     // Update panel izquierdo (ítems pendientes)
     const itemsPendientes = this.itemsPendientesDataSource.data;
@@ -727,6 +774,25 @@ export class GestionComprasComponent
     // Update computed flags for buttons
     this.canCreateNotaForItemsComputed = this.selectedItemsPendientes.length > 0;
     this.canAssignItemsToNotaComputed = this.selectedItemsPendientes.length > 0; // Solo requiere ítems seleccionados
+    
+    // Validar si se puede finalizar la conciliación
+    // Solo habilitado si:
+    // 1. Hay al menos una nota de recepción
+    // 2. La etapa actual es RECEPCION_NOTA con estado EN_PROCESO
+    let etapaCorrecta = false;
+    let estadoCorrecto = false;
+    
+    if (this.currentPedido?.procesoEtapas) {
+      const etapaRecepcionNota = this.currentPedido.procesoEtapas.find(
+        e => e.tipoEtapa === ProcesoEtapaTipo.RECEPCION_NOTA
+      );
+      etapaCorrecta = !!etapaRecepcionNota;
+      estadoCorrecto = etapaRecepcionNota?.estadoEtapa === ProcesoEtapaEstado.EN_PROCESO;
+    }
+    
+    this.canFinalizarConciliacionComputed = this.notasRecepcionCountComputed > 0 && 
+                                          etapaCorrecta && 
+                                          estadoCorrecto;
 
     // Update computed properties for each item
     itemsPendientes.forEach((item) => {
@@ -779,19 +845,37 @@ export class GestionComprasComponent
     // Items form is always valid for navigation purposes
   }
 
-  private calculateNotaComputedProperties(nota: NotaRecepcion): void {
-    // Calculate formatted date
-    // TODO: Implementar algo aqui
-    // nota.fechaFormattedComputed = this.formatDate(nota.fecha);
+  private calculateNotaComputedProperties(nota: MockNotaRecepcion): void {
+    // Calculate formatted date with robust validation
+    if (nota.fecha) {
+      try {
+        // Asegurar que la fecha sea un objeto Date válido
+        const fecha = nota.fecha instanceof Date ? nota.fecha : new Date(nota.fecha);
+        nota.fechaFormattedComputed = this.formatDate(fecha);
+      } catch (error) {
+        console.warn('Error formateando fecha de nota:', error);
+        nota.fechaFormattedComputed = 'Fecha inválida';
+      }
+    } else {
+      nota.fechaFormattedComputed = 'Sin fecha';
+    }
 
-    // // Calculate chip color
-    // nota.estadoChipColorComputed = this.getEstadoNotaRecepcionChipColor(nota.estado);
+    // Calculate chip color
+    nota.estadoChipColorComputed = this.getEstadoNotaRecepcionChipColor(nota.estado);
 
-    // // Calculate display name
-    // nota.estadoDisplayNameComputed = this.getEstadoNotaRecepcionDisplayName(nota.estado);
+    // Calculate display name
+    nota.estadoDisplayNameComputed = this.getEstadoNotaRecepcionDisplayName(nota.estado);
 
-    // // Calculate selection status
-    // nota.isSelectedComputed = this.isNotaRecepcionSelected(nota);
+    // Calculate selection status
+    nota.isSelectedComputed = this.isNotaRecepcionSelected(nota);
+
+    // Calculate monto total de la nota
+    nota.montoComputed = this.calculateNotaMonto(nota);
+  }
+
+  private calculateNotaMonto(nota: MockNotaRecepcion): number {
+    // Usar el valorTotal calculado en el backend
+    return nota.valorTotal || 0;
   }
 
   private getEstadoGeneral(): string {
@@ -1432,6 +1516,7 @@ export class GestionComprasComponent
 
   /**
    * Carga las notas de recepción del pedido para el Tab 3
+   * Incluye tanto notas normales como notas de rechazo
    */
   private loadNotasRecepcionData(): void {
     if (!this.currentPedido?.id) return;
@@ -1450,7 +1535,7 @@ export class GestionComprasComponent
         next: (response) => {
           console.log("Notas de recepción cargadas:", response);
           
-          // Procesar notas para mostrar
+          // Procesar notas para mostrar (incluye notas normales y de rechazo)
           const processedNotas = (response.getContent || []).map((nota: NotaRecepcion) => {
             const mockNota = this.processNotaForDisplay(nota) as MockNotaRecepcion;
             return mockNota;
@@ -1492,14 +1577,37 @@ export class GestionComprasComponent
    * Procesa una nota de recepción para añadir propiedades computadas necesarias para la UI
    */
   private processNotaForDisplay(nota: NotaRecepcion): any {
+    // Debug: Log para verificar si el campo esNotaRechazo está presente
+    console.log('Procesando nota:', {
+      id: nota.id,
+      numero: nota.numero,
+      esNotaRechazo: nota.esNotaRechazo,
+      tipoBoleta: nota.tipoBoleta
+    });
+
+    const isNotaRechazo = this.isNotaRechazo(nota);
+
     const processedNota = {
       ...nota,
       // Añadir propiedades computadas necesarias para la UI
       fechaFormattedComputed: nota.fecha ? this.formatDate(new Date(nota.fecha)) : '',
-      estadoChipColorComputed: this.getEstadoNotaRecepcionChipColor(nota.estado),
-      estadoDisplayNameComputed: this.getEstadoNotaRecepcionDisplayName(nota.estado),
-      isSelectedComputed: false
+      estadoChipColorComputed: isNotaRechazo ? 'warn' : this.getEstadoNotaRecepcionChipColor(nota.estado),
+      estadoDisplayNameComputed: isNotaRechazo ? 'Nota de Rechazo' : this.getEstadoNotaRecepcionDisplayName(nota.estado),
+      isSelectedComputed: false,
+      // Propiedades específicas para notas de rechazo
+      isNotaRechazoComputed: isNotaRechazo,
+      // Propiedad para el monto total de la nota
+      montoComputed: 0, // This should be calculated based on the actual data
     };
+
+    // Debug: Log del resultado procesado
+    console.log('Nota procesada:', {
+      id: processedNota.id,
+      numero: processedNota.numero,
+      isNotaRechazoComputed: processedNota.isNotaRechazoComputed,
+      estadoDisplayNameComputed: processedNota.estadoDisplayNameComputed,
+      estadoChipColorComputed: processedNota.estadoChipColorComputed
+    });
 
     return processedNota;
   }
@@ -1622,6 +1730,8 @@ export class GestionComprasComponent
     const dialogData: AddEditNotaRecepcionDialogData = {
       pedido: this.currentPedido as Pedido,
       isEdit: false,
+      selectedItemsToAssign: this.selectedItemsPendientes, // Pasar ítems seleccionados
+      autoAssignItems: true // Habilitar asignación automática
     };
 
     const dialogRef = this.dialog.open(AddEditNotaRecepcionDialogComponent, {
@@ -1632,20 +1742,27 @@ export class GestionComprasComponent
       autoFocus: true,
     });
 
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        console.log("Nueva nota creada:", result);
+    dialogRef.afterClosed().subscribe((result: AddEditNotaRecepcionDialogResult) => {
+      if (result && result.changesMade) {
+        console.log("Nueva nota creada con ítems asignados:", result);
 
-        // Add to panel derecho
-        const currentData = this.notasRecepcionDataSource.data;
-        result.id = currentData.length + 1; // Mock ID
-        currentData.push(result);
-        this.notasRecepcionDataSource.data = [...currentData];
+        // Limpiar selección de ítems
+        this.selectedItemsPendientes = [];
 
-        // Asignar ítems seleccionados a la nueva nota (simulado)
-        this.asignarItemsANota(result);
+        // Recargar datos reales del backend
+        this.markTabAsUnloaded(2);
+        this.reloadTabData(2);
 
         this.updateComputedProperties();
+        
+        // Mostrar notificación si hay mensaje
+        if (result.message) {
+          this.notificacionService.openSucess(result.message);
+        } else {
+          this.notificacionService.openSucess("Nota de recepción creada exitosamente");
+        }
+      } else if (result) {
+        console.log("Diálogo cerrado sin cambios:", result);
       }
     });
   }
@@ -1664,8 +1781,8 @@ export class GestionComprasComponent
       autoFocus: true,
     });
 
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
+    dialogRef.afterClosed().subscribe((result: AddEditNotaRecepcionDialogResult) => {
+      if (result && result.changesMade) {
         console.log("Nueva nota creada:", result);
 
         // Recargar datos reales del backend
@@ -1673,7 +1790,15 @@ export class GestionComprasComponent
         this.reloadTabData(2);
 
         this.updateComputedProperties();
-        this.notificacionService.openSucess("Nota de recepción creada exitosamente");
+        
+        // Mostrar notificación si hay mensaje
+        if (result.message) {
+          this.notificacionService.openSucess(result.message);
+        } else {
+          this.notificacionService.openSucess("Nota de recepción creada exitosamente");
+        }
+      } else if (result) {
+        console.log("Diálogo cerrado sin cambios:", result);
       }
     });
   }
@@ -1698,24 +1823,34 @@ export class GestionComprasComponent
       .subscribe({
         next: (result) => {
           if (result.success) {
-            this.notificacionService.openSucess(result.message);
-            
             // Limpiar selección
             this.selectedItemsPendientes = [];
             
             // Recargar datos para reflejar los cambios
-            this.markTabAsUnloaded(3);
-            this.reloadTabData(3);
+            // Tab 2: Recepción Documental (items pendientes y notas)
+            this.markTabAsUnloaded(2);
+            this.reloadTabData(2);
             
             this.updateComputedProperties();
+            
+            // Mostrar mensaje apropiado basado en si hay errores
+            if (result.errores && result.errores.length > 0) {
+              // Algunos ítems se asignaron, otros no
+              const errores = result.errores.map(e => `Ítem ${e.pedidoItemId}: ${e.error}`).join('\n');
+              this.notificacionService.openWarn(`${result.message}\n\nErrores:\n${errores}`);
+            } else {
+              // Todos los ítems se asignaron exitosamente
+              this.notificacionService.openSucess(result.message);
+            }
           } else {
+            // Fallo completo
             this.notificacionService.openAlgoSalioMal(result.message);
-          }
-          
-          // Mostrar errores específicos si los hay
-          if (result.errores && result.errores.length > 0) {
-            const errores = result.errores.map(e => `Ítem ${e.pedidoItemId}: ${e.error}`).join('\n');
-            this.notificacionService.openAlgoSalioMal(`Errores en la asignación:\n${errores}`);
+            
+            // Mostrar errores específicos si los hay
+            if (result.errores && result.errores.length > 0) {
+              const errores = result.errores.map(e => `Ítem ${e.pedidoItemId}: ${e.error}`).join('\n');
+              this.notificacionService.openAlgoSalioMal(`Errores en la asignación:\n${errores}`);
+            }
           }
         },
         error: (error) => {
@@ -1741,15 +1876,23 @@ export class GestionComprasComponent
       autoFocus: true,
     });
 
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        console.log("Nota actualizada:", result);
+    dialogRef.afterClosed().subscribe((result: AddEditNotaRecepcionDialogResult) => {
+      if (result && result.changesMade) {
+        console.log("Cambios detectados en nota de recepción:", result);
 
         // Recargar datos reales del backend
         this.markTabAsUnloaded(2);
         this.reloadTabData(2);
 
+        // Actualizar propiedades computadas incluyendo el monto total
         this.updateComputedProperties();
+        
+        // Mostrar notificación si hay mensaje
+        if (result.message) {
+          this.notificacionService.openSucess(result.message);
+        }
+      } else if (result) {
+        console.log("Diálogo cerrado sin cambios:", result);
       }
     });
   }
@@ -1759,66 +1902,168 @@ export class GestionComprasComponent
     console.log("Gestionar ítems de la nota:", nota.numero);
   }
 
+  onDividirItem(item: MockPedidoItem): void {
+    if (!item.cantidadPendienteComputed || item.cantidadPendienteComputed <= 0) {
+      this.notificacionService.openAlgoSalioMal('No hay cantidad pendiente para dividir');
+      return;
+    }
+
+    const dialogData: DividirItemDialogData = {
+      pedidoItem: item,
+      notaRecepcion: this.selectedNotaRecepcion || undefined,
+      notasDisponibles: this.notasRecepcionDataSource.data,
+      pedidoId: this.pedidoId || 0
+    };
+
+    const dialogRef = this.dialog.open(DividirItemDialogComponent, {
+      data: dialogData,
+      width: '50%',
+      height: '60%',
+    });
+
+    dialogRef.afterClosed().subscribe((result: DividirItemDialogResult) => {
+      if (result?.success) {
+        this.notificacionService.openSucess(result.message || 'Ítem dividido exitosamente');
+        
+        // Recargar datos del tab 3
+        this.markTabAsUnloaded(2);
+        this.loadTabDataIfNeeded(2);
+      }
+    });
+  }
+
+  onRechazarItem(item: MockPedidoItem): void {
+    if (!item.cantidadPendienteComputed || item.cantidadPendienteComputed <= 0) {
+      this.notificacionService.openAlgoSalioMal('No hay cantidad pendiente para rechazar');
+      return;
+    }
+
+    const dialogData: RechazarItemDialogData = {
+      pedidoItem: item,
+      notasDisponibles: this.notasRecepcionDataSource.data,
+      pedidoId: this.pedidoId || 0
+    };
+
+    const dialogRef = this.dialog.open(RechazarItemDialogComponent, {
+      data: dialogData,
+      width: '50%',
+      height: '70%',
+    });
+
+    dialogRef.afterClosed().subscribe((result: RechazarItemDialogResult) => {
+      if (result?.success) {
+        this.notificacionService.openSucess(result.message || 'Ítem rechazado exitosamente');
+        
+        // Recargar datos del tab 3
+        this.markTabAsUnloaded(2);
+        this.loadTabDataIfNeeded(2);
+      }
+    });
+  }
+
   onDeleteNotaRecepcion(index: number): void {
     const nota = this.notasRecepcionDataSource.data[index];
 
-    // TODO: Use DialogosService for confirmation
-    if (confirm(`¿Está seguro de eliminar la nota ${nota.numero}?`)) {
-      // Llamar servicio real para eliminar
-      this.pedidoService.onDeleteNotaRecepcion(nota.id)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (success) => {
-            if (success) {
-              // Si era la nota seleccionada, limpiar selección
-              if (this.selectedNotaRecepcion === nota) {
-                this.selectedNotaRecepcion = null;
+    // Usar DialogosService para confirmación (patrón estándar del proyecto)
+    this.dialogosService.confirm(
+      'Eliminar Nota de Recepción',
+      `¿Está seguro de eliminar la nota ${nota.numero}?`
+    ).subscribe(confirmed => {
+      if (confirmed) {
+        // Llamar servicio real para eliminar
+        this.pedidoService.onDeleteNotaRecepcion(nota.id)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: (success) => {
+              if (success) {
+                // Si era la nota seleccionada, limpiar selección
+                if (this.selectedNotaRecepcion === nota) {
+                  this.selectedNotaRecepcion = null;
+                }
+
+                // Recargar datos reales del backend
+                this.markTabAsUnloaded(2);
+                this.reloadTabData(2);
+
+                this.updateComputedProperties();
+                this.notificacionService.openSucess("Nota de recepción eliminada exitosamente");
+              } else {
+                this.notificacionService.openAlgoSalioMal("Error al eliminar la nota de recepción");
               }
-
-              // Recargar datos reales del backend
-              this.markTabAsUnloaded(2);
-              this.reloadTabData(2);
-
-              this.updateComputedProperties();
-              this.notificacionService.openSucess("Nota de recepción eliminada exitosamente");
-            } else {
+            },
+            error: (error) => {
+              console.error('Error al eliminar nota de recepción:', error);
               this.notificacionService.openAlgoSalioMal("Error al eliminar la nota de recepción");
             }
-          },
-          error: (error) => {
-            console.error('Error al eliminar nota de recepción:', error);
-            this.notificacionService.openAlgoSalioMal("Error al eliminar la nota de recepción");
-          }
-        });
-    }
+          });
+      }
+    });
   }
 
   onFinalizarConciliacion(): void {
-    console.log("Finalizando conciliación documental");
-    // TODO: Implement backend integration with strict validations per manual
+    if (!this.currentPedido?.id) {
+      this.notificacionService.openAlgoSalioMal("No hay pedido seleccionado");
+      return;
+    }
 
     // Validaciones según manual:
     // 1. Se verifica que existan notas registradas
     if (this.notasRecepcionCountComputed === 0) {
-      alert("Debe registrar al menos una nota de recepción para finalizar la conciliación.");
+      this.notificacionService.openAlgoSalioMal("Debe registrar al menos una nota de recepción para finalizar la conciliación.");
       return;
     }
 
-    // Simular la actualización de estado en el pedido actual
-    if (this.currentPedido && this.currentPedido.procesoEtapas) {
-      const etapaRecepcionNota = this.currentPedido.procesoEtapas.find((e) => e.tipoEtapa === ProcesoEtapaTipo.RECEPCION_NOTA);
-      if (etapaRecepcionNota) {
-        etapaRecepcionNota.estadoEtapa = ProcesoEtapaEstado.COMPLETADA;
+    // 2. Validar que la etapa actual sea RECEPCION_NOTA con estado EN_PROCESO
+    if (this.currentPedido.procesoEtapas) {
+      const etapaRecepcionNota = this.currentPedido.procesoEtapas.find(
+        e => e.tipoEtapa === ProcesoEtapaTipo.RECEPCION_NOTA
+      );
+      
+      if (!etapaRecepcionNota) {
+        this.notificacionService.openAlgoSalioMal("El pedido no está en la etapa de Recepción de Notas.");
+        return;
       }
-
-      const etapaRecepcionMercaderia = this.currentPedido.procesoEtapas.find((e) => e.tipoEtapa === ProcesoEtapaTipo.RECEPCION_MERCADERIA);
-      if (etapaRecepcionMercaderia) {
-        etapaRecepcionMercaderia.estadoEtapa = ProcesoEtapaEstado.EN_PROCESO;
+      
+      if (etapaRecepcionNota.estadoEtapa !== ProcesoEtapaEstado.EN_PROCESO) {
+        this.notificacionService.openAlgoSalioMal("La etapa de Recepción de Notas no está en proceso. No se puede finalizar la conciliación.");
+        return;
       }
     }
 
-    this.updateComputedProperties();
-    this.selectedTabIndex = 3; // Navegar a la pestaña de Mercadería
+    // Mostrar confirmación
+    this.dialogosService.confirm(
+      "Finalizar Conciliación Documental",
+      "¿Está seguro de que desea finalizar la conciliación documental? Esta acción no se puede deshacer."
+    ).subscribe(confirmed => {
+      if (confirmed) {
+        // Llamar al backend para finalizar la recepción de notas
+        this.pedidoService.onFinalizarRecepcionNotas(this.currentPedido.id).subscribe({
+          next: (pedidoActualizado) => {
+            console.log("Conciliación documental finalizada exitosamente:", pedidoActualizado);
+            this.currentPedido = pedidoActualizado;
+            
+            // Recargar resumen del pedido para actualizar header
+            this.loadPedidoResumen();
+            
+            // Actualizar propiedades computadas
+            this.updateComputedProperties();
+            
+            // Actualizar estados de tabs basado en la nueva etapa
+            this.updateTabStates(ProcesoEtapaTipo.RECEPCION_MERCADERIA);
+            
+            // Mostrar mensaje de éxito
+            this.notificacionService.openSucess("Conciliación documental finalizada exitosamente. El pedido ha avanzado a la etapa de Recepción de Mercadería.");
+            
+            // Navegar a la pestaña de Recepción de Mercadería
+            this.selectedTabIndex = 3;
+          },
+          error: (error) => {
+            console.error("Error finalizando conciliación documental:", error);
+            this.notificacionService.openAlgoSalioMal("Error al finalizar la conciliación documental: " + (error.message || "Error desconocido"));
+          }
+        });
+      }
+    });
   }
 
   // Utility methods
@@ -1831,6 +2076,10 @@ export class GestionComprasComponent
   }
 
   formatDate(date: Date): string {
+    // Validar que la fecha sea válida antes de formatearla
+    if (!date || isNaN(date.getTime())) {
+      return 'Fecha inválida';
+    }
     return new Intl.DateTimeFormat("es-PY").format(date);
   }
 
@@ -1857,11 +2106,11 @@ export class GestionComprasComponent
         return "accent"; // Green
       case NotaRecepcionEstado.EN_RECEPCION:
       case NotaRecepcionEstado.RECEPCION_PARCIAL:
-        return "primary"; // Blue/Orange
+        return "accent"; // Green para notas normales
       case NotaRecepcionEstado.PENDIENTE_CONCILIACION:
-        return "warn"; // Yellow
+        return "accent"; // Green para notas normales
       default:
-        return "primary";
+        return "accent"; // Green por defecto
     }
   }
 
@@ -1884,6 +2133,17 @@ export class GestionComprasComponent
     }
   }
 
+  /**
+   * Determina si una nota es de rechazo basándose en múltiples indicadores
+   */
+  isNotaRechazo(nota: NotaRecepcion): boolean {
+    return nota.esNotaRechazo || 
+           nota.tipoBoleta === 'RECHAZO_NO_ENTREGADO' ||
+           !nota.numero; // Notas sin número suelen ser de rechazo
+  }
+
+
+
   // Método para verificar si se puede navegar a un paso específico
   canNavigateToStep(stepIndex: number): boolean {
     if (!this.isEditMode) {
@@ -1898,6 +2158,44 @@ export class GestionComprasComponent
       case 3: return this.mercaderiaTabState !== "disabled";
       case 4: return this.pagoTabState !== "disabled";
       default: return false;
+    }
+  }
+
+  /**
+   * Maneja el evento cuando se finaliza la recepción física
+   */
+  onRecepcionFinalizada(): void {
+    console.log('Recepción física finalizada - Actualizando estados y navegando...');
+    
+    // 1. Recargar datos del pedido para obtener el estado actualizado
+    this.loadPedidoResumen();
+    
+    // 2. Actualizar header con nuevos datos
+    this.updateHeaderData();
+    
+    // 3. Actualizar estados de tabs
+    this.updateTabStates(ProcesoEtapaTipo.SOLICITUD_PAGO);
+    
+    // 4. Navegar automáticamente al tab de Solicitud de Pago
+    setTimeout(() => {
+      this.selectedTabIndex = 4; // Tab de Solicitud de Pago
+      this.loadTabDataIfNeeded(4);
+    }, 100);
+    
+    // 5. Mostrar notificación de éxito
+    this.notificacionService.openSucess('Recepción física completada. Navegando a Solicitud de Pago.');
+    
+    console.log('Navegación completada - Tab actual:', this.selectedTabIndex);
+  }
+
+  /**
+   * Actualiza los datos del header del pedido
+   */
+  private updateHeaderData(): void {
+    if (this.pedidoResumen) {
+      this.headerDataComputed.estado = this.getEstadoFromResumen(this.pedidoResumen.etapaActual);
+      this.headerDataComputed.montoTotal = this.calculateMontoTotalEditMode();
+      this.estadoChipColorComputed = this.getEstadoChipColor();
     }
   }
 }

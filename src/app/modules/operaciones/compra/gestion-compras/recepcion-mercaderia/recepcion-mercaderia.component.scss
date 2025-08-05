@@ -1,0 +1,706 @@
+.recepcion-mercaderia-container {
+  width: 100%;
+  height: 100%;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  // Header Card - Siguiendo patrón del proyecto
+  .header-card {
+    background: #2d2d2d;
+    border: 1px solid #444;
+    border-radius: 8px;
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+
+      .header-title {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        mat-icon {
+          color: #f57c00;
+          font-size: 24px;
+          width: 24px;
+          height: 24px;
+        }
+
+        h3 {
+          margin: 0;
+          color: #f57c00;
+          font-weight: 500;
+          font-size: 18px;
+        }
+      }
+
+      .header-controls {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 16px;
+
+        .header-form {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+
+          .sucursales-field {
+            flex: 1;
+
+            .sucursales-count {
+              color: #f57c00;
+              font-weight: 500;
+              font-size: 12px;
+            }
+
+            // Estilos para las opciones del select
+            ::ng-deep .mat-select-panel {
+              .select-all-option {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 0;
+                font-weight: 500;
+                color: #f57c00;
+                border-bottom: 1px solid #444;
+
+                mat-icon {
+                  font-size: 18px;
+                  width: 18px;
+                  height: 18px;
+                  color: #f57c00;
+                }
+
+                span {
+                  color: #f57c00;
+                  font-weight: 500;
+                }
+              }
+
+              .sucursal-option {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 4px 0;
+
+                mat-icon {
+                  font-size: 16px;
+                  width: 16px;
+                  height: 16px;
+                  color: #ccc;
+                }
+
+                span {
+                  color: #ffffff;
+                }
+              }
+
+              // Separador
+              mat-divider {
+                margin: 8px 0;
+                border-color: #444;
+              }
+            }
+          }
+
+          .modo-field {
+            flex: 1;
+          }
+
+          .toggle-field {
+            flex: 1;
+          }
+
+          .modo-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            mat-icon {
+              font-size: 16px;
+              width: 16px;
+              height: 16px;
+              color: #f57c00;
+            }
+
+            span {
+              color: #ffffff;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Verificación Principal
+  .verificacion-section {
+    // Dos Paneles Layout - Siguiendo patrón del proyecto
+    flex: 1;
+    .dos-paneles-container {
+      height: 100%;
+      display: flex;
+      gap: 20px;
+
+      .panel {
+        flex: 1;
+        background: #2d2d2d;
+        border: 1px solid #444;
+        border-radius: 8px;
+        overflow: hidden;
+
+        .header-content {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          gap: 16px;
+
+          .header-left {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+
+            mat-card-title {
+              margin: 0;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              color: #f57c00;
+              font-weight: 500;
+              font-size: 18px;
+
+              mat-icon {
+                color: #f57c00;
+                font-size: 20px;
+                width: 20px;
+                height: 20px;
+              }
+            }
+
+            mat-card-subtitle {
+              margin: 0;
+              color: #ccc;
+              font-size: 14px;
+            }
+          }
+
+          .header-right {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+
+            .search-field {
+              width: 100%;
+              max-width: 400px;
+
+              ::ng-deep .mat-form-field-wrapper {
+                margin: 0;
+                padding: 0;
+              }
+
+              ::ng-deep .mat-form-field-outline {
+                color: #444;
+              }
+
+              ::ng-deep .mat-form-field-label {
+                color: #ccc;
+              }
+
+              ::ng-deep .mat-input-element {
+                color: #fff;
+              }
+
+              ::ng-deep .mat-form-field-hint {
+                color: #888;
+                font-size: 12px;
+              }
+
+              ::ng-deep .mat-icon {
+                color: #f57c00;
+              }
+
+              ::ng-deep .mat-icon-button {
+                color: #f57c00;
+                
+                &:hover {
+                  background-color: rgba(245, 124, 0, 0.1);
+                }
+              }
+            }
+          }
+        }
+
+        .mat-mdc-card-content {
+          padding: 0;
+          flex: 1;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+
+        }
+      }
+
+      .left-panel {
+        background-color: #2d2d2d;
+        flex: 2;
+      }
+
+      .right-panel {
+        background-color: #2d2d2d;
+        flex: 1;
+      }
+    }
+
+    // Un Panel Layout
+    .un-panel-container {
+      .productos-card {
+        background-color: #2d2d2d;
+        border: 1px solid #555;
+        border-radius: 8px;
+
+        .mat-mdc-card-header {
+          padding: 16px;
+
+          .mat-mdc-card-title {
+            color: #ffa726;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 12px 0;
+
+            mat-icon {
+              color: #ffa726;
+              font-size: 20px;
+              width: 20px;
+              height: 20px;
+            }
+          }
+
+          .mat-mdc-card-subtitle {
+            color: #cccccc;
+            margin: 4px 0 0 0;
+            font-size: 14px;
+          }
+        }
+
+        .productos-info {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          padding: 40px;
+          border-radius: 6px;
+          border: 1px solid #444;
+
+          mat-icon {
+            color: #ff9800;
+            font-size: 24px;
+            width: 24px;
+            height: 24px;
+          }
+
+          span {
+            color: #cccccc;
+            font-size: 16px;
+          }
+        }
+      }
+    }
+  }
+
+  // Estados y Chips - Siguiendo patrón del proyecto
+  .estado-pendiente {
+    background-color: #ff9800 !important;
+    color: #ffffff !important;
+  }
+
+  .estado-verificado {
+    background-color: #4caf50 !important;
+    color: #ffffff !important;
+  }
+
+  .estado-rechazado {
+    background-color: #f44336 !important;
+    color: #ffffff !important;
+  }
+
+  .estado-parcial {
+    background-color: #2196f3 !important;
+    color: #ffffff !important;
+  }
+
+  .estado-conciliado {
+    background-color: #4caf50 !important;
+    color: #ffffff !important;
+  }
+
+  // Producto Info
+  .producto-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .producto-codigo {
+      font-weight: 500;
+      color: #f57c00;
+      font-size: 12px;
+    }
+
+    .producto-descripcion {
+      color: #ffffff;
+      font-size: 14px;
+    }
+  }
+
+  // Sucursal Info
+  .sucursal-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    .sucursal-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      color: #f57c00;
+    }
+
+    .sucursal-nombre {
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 500;
+    }
+  }
+
+  .no-sucursal {
+    color: #888;
+    font-size: 12px;
+    font-style: italic;
+  }
+
+  // Acciones
+  .acciones-buttons {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+  }
+
+  // Estados de cantidad
+  .verificado {
+    color: #4caf50 !important;
+    font-weight: 500;
+  }
+
+  .rechazado {
+    color: #f44336 !important;
+    font-weight: 500;
+  }
+
+  // Estados de carga y mensajes - Siguiendo patrón del proyecto
+  .loading-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.04);
+    border-radius: 4px;
+    margin-bottom: 16px;
+    
+    span {
+      font-size: 14px;
+      color: rgba(0, 0, 0, 0.6);
+    }
+  }
+
+  .no-items,
+  .no-selection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px;
+
+    mat-icon {
+      color: #666;
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+    }
+
+    span {
+      color: #666;
+      font-size: 16px;
+      text-align: center;
+    }
+  }
+
+  // Paginador - Siguiendo patrón del proyecto
+  ::ng-deep .mat-mdc-paginator {
+    border-top: 1px solid #555;
+
+    .mat-mdc-paginator-container {
+      color: #ffffff;
+    }
+
+    .mat-mdc-paginator-page-size-label {
+      color: #cccccc;
+    }
+
+    .mat-mdc-paginator-range-label {
+      color: #cccccc;
+    }
+
+    .mat-mdc-paginator-navigation-previous,
+    .mat-mdc-paginator-navigation-next,
+    .mat-mdc-paginator-navigation-first,
+    .mat-mdc-paginator-navigation-last {
+      color: #2196f3;
+    }
+  }
+
+  // Form Fields - Siguiendo patrón del proyecto
+  ::ng-deep .mat-mdc-form-field {
+    .mat-mdc-form-field-label {
+      color: #cccccc;
+    }
+
+    .mat-mdc-input-element {
+      color: #ffffff;
+    }
+
+    .mat-mdc-form-field-outline {
+      color: #555;
+    }
+
+    .mat-mdc-form-field-outline-thick {
+      color: #2196f3;
+    }
+  }
+
+  // Select - Siguiendo patrón del proyecto
+  ::ng-deep .mat-mdc-select {
+    color: #ffffff;
+  }
+
+  ::ng-deep .mat-mdc-select-arrow {
+    color: #cccccc;
+  }
+
+  // Slide Toggle - Siguiendo patrón del proyecto
+  ::ng-deep .mat-mdc-slide-toggle {
+    .mat-mdc-slide-toggle-bar {
+      background-color: #555;
+    }
+
+    .mat-mdc-slide-toggle-thumb {
+      background-color: #cccccc;
+    }
+
+    &.mat-mdc-slide-toggle-checked {
+      .mat-mdc-slide-toggle-bar {
+        background-color: #2196f3;
+      }
+
+      .mat-mdc-slide-toggle-thumb {
+        background-color: #ffffff;
+      }
+    }
+
+    .mat-mdc-slide-toggle-label {
+      color: #ffffff;
+    }
+  }
+
+  // Responsive - Manteniendo el layout responsive
+  @media (max-width: 768px) {
+    .dos-paneles-container {
+      flex-direction: column;
+      height: auto;
+
+      .left-panel,
+      .right-panel {
+        flex: none;
+      }
+    }
+
+    .header-content {
+      flex-direction: column;
+      gap: 16px;
+
+      .header-controls {
+        width: 100%;
+
+        .header-form {
+          flex-direction: column;
+          width: 100%;
+
+          .sucursales-field,
+          .modo-field {
+            width: 100%;
+            min-width: auto;
+          }
+        }
+      }
+    }
+  }
+} 
+
+.items-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+  .cantidad-esperada {
+    font-weight: 600;
+    color: #2196f3;
+  }
+
+  .cantidad-total {
+    margin-top: 2px;
+    
+    .text-muted {
+      color: #666;
+      font-size: 0.75em;
+    }
+  }
+
+  .presentacion-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    
+    .presentacion-cantidad {
+      font-weight: 600;
+      color: #f57c00;
+      font-size: 14px;
+    }
+    
+    .text-muted {
+      color: #666;
+      font-size: 0.75em;
+      text-align: center;
+    }
+  }
+
+.configuracion-recepcion {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  
+  .config-item {
+    flex: 1;
+    min-width: 200px;
+    
+    mat-label {
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.87);
+      margin-bottom: 8px;
+      display: block;
+    }
+    
+    mat-select, mat-slide-toggle {
+      width: 100%;
+    }
+    
+    // Estilos para campos deshabilitados
+    mat-select[disabled], mat-slide-toggle[disabled] {
+      opacity: 0.6;
+    }
+    
+    mat-hint {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 4px;
+    }
+  }
+}
+
+// Animación de parpadeo para iconos de cancelar verificación
+.parpadeando {
+  animation: parpadeo 1s ease-in-out infinite;
+  
+  mat-icon {
+    animation: parpadeo-icono 1s ease-in-out infinite;
+  }
+}
+
+@keyframes parpadeo {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes parpadeo-icono {
+  0%, 100% {
+    color: #f44336; // warn color
+    transform: scale(1);
+  }
+  50% {
+    color: #ff7961; // lighter red
+    transform: scale(1.2);
+  }
+}
+
+// Botón Finalizar - Esquina derecha inferior
+.finalizar-button-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  
+  .finalizar-button {
+    background-color: #4caf50 !important;
+    color: #ffffff !important;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background-color: #45a049 !important;
+      box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+      transform: translateY(-2px);
+    }
+    
+    &:disabled {
+      background-color: #666 !important;
+      color: #999 !important;
+      box-shadow: none;
+      transform: none;
+      cursor: not-allowed;
+    }
+    
+    mat-icon {
+      margin-right: 8px;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}

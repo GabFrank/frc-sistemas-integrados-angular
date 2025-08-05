@@ -747,9 +747,13 @@
                           <mat-icon>more_vert</mat-icon>
                         </button>
                         <mat-menu #menuItemPendiente="matMenu">
-                          <button mat-menu-item>
+                          <button mat-menu-item (click)="onDividirItem(item)">
                             <mat-icon>edit</mat-icon>
                             <span>Dividir Item</span>
+                          </button>
+                          <button mat-menu-item (click)="onRechazarItem(item)" [disabled]="!item.cantidadPendienteComputed || item.cantidadPendienteComputed <= 0">
+                            <mat-icon>block</mat-icon>
+                            <span>Rechazar Item</span>
                           </button>
                         </mat-menu>
                       </td>
@@ -827,22 +831,30 @@
                   >
                     <!-- Numero Column -->
                     <ng-container matColumnDef="numero">
-                      <th mat-header-cell *matHeaderCellDef style="width: 30%; text-align: center;">Número</th>
-                      <td mat-cell *matCellDef="let nota" style="width: 30%; text-align: center;">{{ nota.numero }}</td>
+                      <th mat-header-cell *matHeaderCellDef style="width: 20%; text-align: center;">Número</th>
+                      <td mat-cell *matCellDef="let nota" style="width: 20%; text-align: center;">{{ nota.numero }}</td>
                     </ng-container>
 
                     <!-- Fecha Column -->
                     <ng-container matColumnDef="fecha">
-                      <th mat-header-cell *matHeaderCellDef style="width: 30%; text-align: center;">Fecha</th>
-                      <td mat-cell *matCellDef="let nota" style="width: 30%; text-align: center;">
+                      <th mat-header-cell *matHeaderCellDef style="width: 20%; text-align: center;">Fecha</th>
+                      <td mat-cell *matCellDef="let nota" style="width: 20%; text-align: center;">
                         {{ nota.fechaFormattedComputed }}
+                      </td>
+                    </ng-container>
+
+                    <!-- Monto Column -->
+                    <ng-container matColumnDef="monto">
+                      <th mat-header-cell *matHeaderCellDef style="width: 20%; text-align: center;">Monto</th>
+                      <td mat-cell *matCellDef="let nota" style="width: 20%; text-align: center;">
+                        {{ nota.montoComputed | number:'1.0-2' }}
                       </td>
                     </ng-container>
 
                     <!-- Estado Column -->
                     <ng-container matColumnDef="estado">
-                      <th mat-header-cell *matHeaderCellDef style="width: 30%; text-align: center;">Estado</th>
-                      <td mat-cell *matCellDef="let nota" style="width: 30%; text-align: center;">
+                      <th mat-header-cell *matHeaderCellDef style="width: 25%; text-align: center;">Estado</th>
+                      <td mat-cell *matCellDef="let nota" style="width: 25%; text-align: center;">
                         <mat-chip-option
                           [color]="nota.estadoChipColorComputed"
                           selected
@@ -855,8 +867,8 @@
 
                     <!-- Acciones Column -->
                     <ng-container matColumnDef="acciones">
-                      <th mat-header-cell *matHeaderCellDef style="width: 10%; text-align: center;">Acciones</th>
-                      <td mat-cell *matCellDef="let nota; let i = index" style="width: 10%; text-align: center;">
+                      <th mat-header-cell *matHeaderCellDef style="width: 15%; text-align: center;">Acciones</th>
+                      <td mat-cell *matCellDef="let nota; let i = index" style="width: 15%; text-align: center;">
                         <!-- Botón Asignar cuando hay ítems seleccionados -->
                         <button 
                           *ngIf="selectedItemsPendientes.length > 0"
@@ -939,6 +951,7 @@
             <button
               mat-raised-button
               color="accent"
+              [disabled]="!canFinalizarConciliacionComputed"
               (click)="onFinalizarConciliacion()"
             >
               Finalizar Conciliación
@@ -953,10 +966,14 @@
         label="4. Recepción Fisica"
         [disabled]="mercaderiaTabState === 'disabled'"
       >
-        <ng-template matTabContent>
-          <div class="tab-content">
-            <h3>4. Verificación Fisica de Mercaderia</h3>
-            <p>Contenido para la recepción de mercaderia...</p>
+        <ng-template matTabContent style="height: 100%;">
+          <div class="tab-content" style="height: 100%;">
+            <app-recepcion-mercaderia 
+              [pedidoId]="pedidoId"
+              [pedido]="currentPedido"
+              (recepcionFinalizada)="onRecepcionFinalizada()"
+              style="height: 100%;">
+            </app-recepcion-mercaderia>
           </div>
         </ng-template>
       </mat-tab>

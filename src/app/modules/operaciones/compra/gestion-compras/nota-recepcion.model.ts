@@ -30,8 +30,10 @@ export class NotaRecepcion {
   cotizacion: number;
   estado: NotaRecepcionEstado;
   pagado: boolean;
+  esNotaRechazo: boolean;
   creadoEn: Date;
   usuario: Usuario;
+  valorTotal?: number; // Campo para el valor total calculado
 
   toInput(): NotaRecepcionInput {
     let input = new NotaRecepcionInput();
@@ -47,6 +49,7 @@ export class NotaRecepcion {
     input.cotizacion = this?.cotizacion || 0;
     input.estado = this?.estado || NotaRecepcionEstado.PENDIENTE_CONCILIACION;
     input.pagado = this?.pagado || false;
+    input.esNotaRechazo = this?.esNotaRechazo || false;
     input.creadoEn = dateToString(this?.creadoEn);
     input.usuarioId = this?.usuario?.id || undefined;
     return input;
@@ -66,6 +69,7 @@ export class NotaRecepcionInput {
   cotizacion: number;
   estado: NotaRecepcionEstado;
   pagado: boolean;
+  esNotaRechazo: boolean;
   creadoEn?: string;
   usuarioId?: number;
 }

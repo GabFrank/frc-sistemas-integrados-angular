@@ -21,6 +21,9 @@ export class RecepcionMercaderia {
   estado: RecepcionMercaderiaEstado;
   usuario: Usuario;
 
+  // Campo para manejar recepción automática
+  selectedRecepcionMercaderia?: RecepcionMercaderia;
+
   constructor() {
     this.id = 0;
     this.proveedor = new Proveedor();

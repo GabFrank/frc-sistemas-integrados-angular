@@ -41,12 +41,45 @@ mat-dialog-content {
       overflow-y: auto;
       max-height: 100%;
 
-      .panel-title {
-        color: #f57c00;
-        margin-bottom: 20px;
-        margin-top: 0;
-        text-transform: uppercase;
-      }
+              .panel-title {
+          color: #f57c00;
+          margin-bottom: 20px;
+          margin-top: 0;
+          text-transform: uppercase;
+        }
+
+        // Indicador de asignación automática
+        .assignment-status-card {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px;
+          margin-bottom: 16px;
+          border-radius: 8px;
+          background: rgba(245, 124, 0, 0.1);
+          border: 1px solid rgba(245, 124, 0, 0.3);
+
+          .assignment-icon {
+            color: #f57c00;
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+          }
+
+          .assignment-text {
+            font-size: 13px;
+            font-weight: 500;
+            color: #f57c00;
+
+            &.estado-pendiente {
+              color: #f57c00;
+            }
+
+            &.estado-activo {
+              color: #4caf50;
+            }
+          }
+        }
 
       .form-container {
         display: flex;
@@ -188,39 +221,75 @@ mat-dialog-content {
           text-transform: uppercase;
         }
 
-        .color-legend {
+        .header-actions {
           display: flex;
-          gap: 16px;
           align-items: center;
+          gap: 20px;
 
-          .legend-item {
+          .color-legend {
             display: flex;
+            gap: 16px;
             align-items: center;
-            gap: 6px;
 
-            .legend-color {
-              width: 16px;
-              height: 16px;
-              border-radius: 3px;
-              border: 1px solid rgba(255, 255, 255, 0.3);
+            .legend-item {
+              display: flex;
+              align-items: center;
+              gap: 6px;
 
-              &.row-conciliado {
-                background-color: rgba(76, 175, 80, 0.5);
+              .legend-color {
+                width: 16px;
+                height: 16px;
+                border-radius: 3px;
+                border: 1px solid rgba(255, 255, 255, 0.3);
+
+                &.row-conciliado {
+                  background-color: rgba(76, 175, 80, 0.5);
+                }
+
+                &.row-pendiente {
+                  background-color: rgba(245, 124, 0, 0.5);
+                }
+
+                &.row-rechazado {
+                  background-color: rgba(244, 67, 54, 0.5);
+                }
               }
 
-              &.row-pendiente {
-                background-color: rgba(245, 124, 0, 0.5);
-              }
-
-              &.row-rechazado {
-                background-color: rgba(244, 67, 54, 0.5);
+              .legend-text {
+                font-size: 12px;
+                color: #bbbbbb;
+                font-weight: 500;
               }
             }
+          }
 
-            .legend-text {
-              font-size: 12px;
-              color: #bbbbbb;
-              font-weight: 500;
+          .add-item-button {
+            background-color: #f57c00;
+            color: white;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            transition: background-color 0.2s ease;
+
+            &:hover:not(:disabled) {
+              background-color: #e65100;
+            }
+
+            &:disabled {
+              background-color: #666666;
+              color: #999999;
+              cursor: not-allowed;
+            }
+
+            mat-icon {
+              font-size: 18px;
+              width: 18px;
+              height: 18px;
             }
           }
         }
@@ -545,6 +614,39 @@ button[disabled] {
   .cantidad-unidades {
     font-size: 11px;
     color: #bbbbbb;
+    font-style: italic;
+  }
+}
+
+.distribucion-info {
+  text-align: center;
+  
+  .distribucion-status {
+    margin-bottom: 4px;
+    
+    .status-chip {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      
+      &.estado-activo {
+        background-color: #4caf50;
+        color: white;
+      }
+      
+      &.estado-pendiente {
+        background-color: #ff9800;
+        color: white;
+      }
+    }
+  }
+
+  .cantidad-pendiente {
+    font-size: 11px;
+    color: #ff9800;
+    font-weight: 500;
     font-style: italic;
   }
 }

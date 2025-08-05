@@ -72,7 +72,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private configService: ConfiguracionService,
     private dialogoService: DialogosService,
     private usuarioService: UsuarioService
-  ) {}
+  ) {
+    setTimeout(() => {
+      console.log(this.mainService.usuarioActual);
+    }, 2000);
+  }
 
   ngOnInit(): void {
     // Get config and set isLocal flag

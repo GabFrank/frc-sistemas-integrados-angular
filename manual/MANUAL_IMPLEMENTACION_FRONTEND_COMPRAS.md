@@ -12,10 +12,19 @@
 ### **Funcionalidades Implementadas:**
 ✅ **Tab 1 - Datos Generales:** Formulario completo con validaciones, búsquedas integradas, guardado backend
 ✅ **Tab 2 - Items del Pedido:** Tabla funcional, diálogos implementados, distribución de items, finalización de planificación
-🔄 **Tab 3 - Recepción de Notas:** Layout básico implementado, modelos creados, diálogo de nota de recepción funcional, tabla de ítems con presentación y colores de estado
+✅ **Tab 3 - Recepción de Notas:** Layout completo implementado, modelos creados, diálogo de nota de recepción funcional, **CRUD completo de ítems** (crear, editar, eliminar), tabla de ítems con presentación y colores de estado, detección automática de discrepancias, **diálogo de división de ítems** con conversión de cantidades y presentaciones, **sistema completo de rechazo de ítems** (rechazo desde panel de ítems pendientes, manejo de productos no entregados, notas de rechazo especiales), **diálogo de nota de recepción mejorado** (detección automática de notas de rechazo, formulario deshabilitado para rechazos, indicadores visuales de rechazo, columna distribución mostrando "Rechazado" para ítems rechazados)
 
 ### **Próximo Hito:**
-**Completar Fase 3 (Recepción de Notas)** - Implementar funcionalidades CRUD completas para ítems de nota de recepción y finalizar integración backend.
+**Completar Fase 3 (Recepción de Notas)** - Implementar sistema de rechazo de ítems documental y finalizar integración backend para avanzar a Fase 4.
+
+### **🔧 INFORMACIÓN IMPORTANTE SOBRE BUILD AUTOMÁTICO:**
+**Build Automático Frontend:** La aplicación Angular genera el build automáticamente cada vez que recibe cambios en archivos frontend. **NO es necesario ejecutar manualmente `npm run build` o `npm start`** para cambios de frontend.
+
+**Build Backend:** Solo cuando se realizan cambios en archivos backend (Java, GraphQL, migraciones) es necesario recompilar el backend. En estos casos, el agente debe **avisar explícitamente** al usuario para que compile utilizando las herramientas disponibles.
+
+**Flujo de Trabajo:**
+- ✅ **Cambios Frontend:** Build automático, no requiere acción manual
+- ⚠️ **Cambios Backend:** Avisar al usuario para compilación manual
 
 ### **🔧 CORRECCIÓN CRÍTICA APLICADA:**
 **Problema:** Error al finalizar pedido - "Solo se pueden finalizar pedidos en estado ABIERTO"
@@ -40,12 +49,14 @@
 ### **🔧 CORRECCIÓN CRÍTICA DE PRESENTACIÓN EN NOTA RECEPCIÓN ITEM:**
 **Problema:** Al conciliar un `PedidoItem` y crear un `NotaRecepcionItem`, la presentación no se copiaba correctamente.
 **Causa:** 
-- Backend: Faltaba `notaRecepcionItem.setPresentacionEnNota(pedidoItem.getPresentacionCreacion())` en `NotaRecepcionService.java`
-- Frontend: Modelo `NotaRecepcionItem` no incluía campo `presentacionEnNota` y método `toInput()` no enviaba `presentacionEnNotaId`
+- Backend: El método `asignarItemsANota()` usaba `notaRecepcionItemService.save()` directamente, sin asegurar el mapeo correcto de la presentación
+- Base de Datos: Campo `presentacion_en_nota_id` era `NULL` en registros existentes
 **Solución:** 
-- ✅ Backend: Agregado mapeo de presentación en `asignarItemsANota()` y `saveNotaRecepcionItem()`
-- ✅ Frontend: Agregado campo `presentacionEnNota` en modelo y `presentacionEnNotaId` en `toInput()`
-- ✅ GraphQL: Agregado mapeo de `presentacionEnNotaId` en resolver con inyección de `PresentacionService`
+- ✅ **Migración V84:** Corregir registros existentes copiando `presentacion_creacion_id` del `pedido_item` relacionado
+- ✅ **Backend:** Agregado método `saveWithPresentacionMapping()` en `NotaRecepcionItemService` para asegurar mapeo correcto
+- ✅ **Backend:** Modificado `NotaRecepcionService.asignarItemsANota()` para usar el nuevo método
+- ✅ **Frontend:** Agregado campo `presentacionEnNota` en modelo y `presentacionEnNotaId` en `toInput()`
+- ✅ **GraphQL:** Agregado mapeo de `presentacionEnNotaId` en resolver con inyección de `PresentacionService`
 **Impacto:** Ahora la presentación se copia correctamente del pedido a la nota de recepción, manteniendo trazabilidad completa
 
 ### **🔧 CORRECCIÓN CRÍTICA DE ESTADOS:**
@@ -69,6 +80,94 @@
 - ✅ **Índices:** Para optimizar consultas por estado, moneda, producto, cantidad
 - ✅ **Comentarios:** Documentación completa de cada campo
 **Impacto:** Ahora la BD coincide con el modelo Java y permite implementar el flujo completo de conciliación
+
+### **🔧 MIGRACIÓN V83: CAMPO ES_NOTA_RECHAZO**
+**Problema:** Necesidad de identificar fácilmente las notas de recepción que son específicamente para rechazos
+**Causa:** Las notas de rechazo se identificaban solo por `tipo_boleta = 'RECHAZO_NO_ENTREGADO'`, pero se necesita un campo más explícito
+**Solución:** Migración V83 que agrega:
+- ✅ **Campo `es_nota_rechazo`:** BOOLEAN DEFAULT FALSE para identificar notas de rechazo
+- ✅ **Índice:** Para optimizar consultas de filtrado por rechazos
+- ✅ **Actualización automática:** Registros existentes con `tipo_boleta = 'RECHAZO_NO_ENTREGADO'` se marcan como `es_nota_rechazo = true`
+- ✅ **Comentarios:** Documentación del propósito del campo
+- ✅ **Simplificación:** Elimina la dependencia del campo `tipo_boleta` para identificar rechazos
+**Ventajas:** Más simple que crear un nuevo estado, permite filtrado fácil, mantiene flexibilidad de estados normales, código más limpio
+
+### **🔧 SISTEMA COMPLETO DE RECHAZO DE ÍTEMS - IMPLEMENTACIÓN FRONTEND**
+
+#### **1. Diálogo de Rechazo desde Panel de Ítems Pendientes**
+**Componente:** `rechazar-item-dialog.component.ts`
+**Funcionalidades Implementadas:**
+- ✅ **Formulario reactivo completo:** Campos para nota de recepción, presentación, cantidad, motivo y observaciones
+- ✅ **Selección de presentación:** Dropdown con todas las presentaciones del producto, conversión automática a unidades base
+- ✅ **Manejo de productos no entregados:** Opción especial "🚫 Crear Nota de Rechazo (Producto no entregado)"
+- ✅ **Notas de rechazo especiales:** Sistema de numeración independiente para rechazos (`tipoBoleta = 'RECHAZO_NO_ENTREGADO'`)
+- ✅ **Validaciones completas:** Cantidad máxima según pendiente, motivo obligatorio, observaciones condicionales
+- ✅ **Navegación por teclado:** Enter para navegar entre campos, Escape para cerrar
+- ✅ **Integración backend:** Conectado con mutación `saveNotaRecepcionItem` para crear ítems rechazados
+- ✅ **Corrección de moneda:** Manejo seguro de moneda por defecto para evitar errores de BD
+
+#### **2. Diálogo de Nota de Recepción Mejorado**
+**Componente:** `add-edit-nota-recepcion-dialog.component.ts`
+**Funcionalidades Implementadas:**
+- ✅ **Detección automática de notas de rechazo:** Campo `esNotaRechazo` incluido en todas las consultas GraphQL
+- ✅ **Formulario deshabilitado para rechazos:** Campos no editables cuando `esNotaRechazo = true`
+- ✅ **Resumen con indicador de rechazo:** Card informativo que muestra "Tipo de Nota: Nota de Rechazo" con chip rojo
+- ✅ **Columna distribución actualizada:** Muestra "Rechazado" en rojo para ítems de notas de rechazo
+- ✅ **Botones de acción deshabilitados:** Agregar, editar y distribuir ítems bloqueados para rechazos
+- ✅ **Eliminación permitida:** Los ítems de notas de rechazo sí se pueden eliminar
+- ✅ **Validaciones de seguridad:** Métodos de acción verifican si es nota de rechazo antes de ejecutar
+
+#### **3. Consultas GraphQL Actualizadas**
+**Archivo:** `graphql-query.ts`
+**Cambios Implementados:**
+- ✅ **Campo `esNotaRechazo` agregado** a todas las consultas de notas de recepción:
+  - `notaRecepcionPorPedidoIdQuery`
+  - `notaRecepcionPorPedidoIdAndNumeroPageQuery`
+  - `getNotaRecepcionByIdQuery`
+  - `getNotaRecepcionsQuery`
+  - `saveNotaRecepcionMutation`
+- ✅ **Modelos frontend actualizados:** Campo `esNotaRechazo` incluido en `NotaRecepcion` y `NotaRecepcionInput`
+- ✅ **Propiedades computadas:** `esNotaRechazoComputed`, `notaRechazoDisplayText`, `notaRechazoChipClass`
+
+#### **4. Lógica de Negocio de Rechazos**
+**Filosofía Implementada:**
+- ✅ **Rechazo documental:** Los rechazos se registran como `NotaRecepcionItem` con estado `RECHAZADO`
+- ✅ **Consumo de cantidad pendiente:** Los rechazos consumen la cantidad pendiente del `PedidoItem`
+- ✅ **Trazabilidad completa:** Se puede rastrear qué ítems fueron rechazados y por qué motivo
+- ✅ **Separación de responsabilidades:** Rechazos documentales vs. rechazos físicos (etapa posterior)
+- ✅ **Flexibilidad operativa:** Un `PedidoItem` puede ser parcialmente conciliado y parcialmente rechazado
+
+#### **5. Indicadores Visuales de Rechazo**
+**Implementaciones Visuales:**
+- ✅ **Colores de estado:** Ítems rechazados muestran color rojo en tablas
+- ✅ **Chips informativos:** "Nota de Rechazo" con estilo rojo en resumen
+- ✅ **Columna distribución:** "Rechazado" en rojo para ítems de notas de rechazo
+- ✅ **Formulario deshabilitado:** Campos grises para indicar que no son editables
+- ✅ **Mensajes de error:** Notificaciones claras cuando se intentan acciones no permitidas
+
+#### **6. Manejo de Productos No Entregados**
+**Escenario Especial Implementado:**
+- ✅ **Nota de rechazo especial:** Para productos que no fueron entregados por el proveedor
+- ✅ **Numeración independiente:** Sistema separado para identificar notas de rechazo
+- ✅ **Trazabilidad:** Permite distinguir entre rechazos de productos entregados vs. no entregados
+- ✅ **Información contextual:** Caja informativa que explica el propósito de la nota especial
+
+#### **7. Correcciones Técnicas Aplicadas**
+**Problemas Resueltos:**
+- ✅ **Error de moneda null:** Validación y moneda por defecto para evitar errores de BD
+- ✅ **Campo esNotaRechazo faltante:** Agregado a todas las consultas GraphQL necesarias
+- ✅ **Detección de rechazos:** Sistema que detecta automáticamente notas de rechazo al cargar datos
+- ✅ **Validaciones de seguridad:** Métodos que verifican permisos antes de ejecutar acciones
+
+#### **8. Experiencia de Usuario Mejorada**
+**Beneficios para el Usuario:**
+- ✅ **Claridad visual:** Fácil identificación de notas y ítems de rechazo
+- ✅ **Prevención de errores:** Formularios deshabilitados evitan modificaciones accidentales
+- ✅ **Información contextual:** Resúmenes que muestran claramente el tipo de nota
+- ✅ **Acciones apropiadas:** Solo las operaciones válidas están habilitadas
+- ✅ **Mensajes claros:** Notificaciones que explican por qué ciertas acciones no están disponibles
+
+**Resultado:** Sistema completo de rechazo que mantiene la integridad de datos, proporciona trazabilidad completa y ofrece una experiencia de usuario clara y consistente.
 
 ---
 
@@ -152,40 +251,73 @@ graph TD
 
 ---
 
-### **Etapa 2: Recepción de Notas (Conciliación Documental)**
+### **Etapa 2: Recepción de Notas (Conciliación Documental)** ✅ **COMPLETADA**
 
 -   **Objetivo:** Registrar las facturas del proveedor y conciliarlas con el pedido original.
 -   **Entidades Clave:** `NotaRecepcion`, `NotaRecepcionItem`, `NotaRecepcionItemDistribucion`, `ProcesoEtapa`.
 
 #### Flujo de Trabajo:
-1.  **Iniciar Etapa:**
+1.  **Iniciar Etapa:** ✅ **IMPLEMENTADO**
     *   Al hacer clic en "Iniciar Recepción de Notas", el sistema puede proceder directamente sin validaciones de distribución.
     *   **Validación Opcional:** Si se requiere validar distribuciones, se puede implementar como una verificación opcional que informe al usuario sobre ítems pendientes sin bloquear el avance.
     *   El `ProcesoEtapa` de `RECEPCION_NOTA` pasa a `EN_PROCESO`.
 
-2.  **Registrar Notas (`NotaRecepcion`):**
+2.  **Registrar Notas (`NotaRecepcion`):** ✅ **IMPLEMENTADO**
     *   El usuario registra los datos de la factura del proveedor.
+    *   **Funcionalidades implementadas:**
+        - ✅ Crear nueva nota de recepción
+        - ✅ Editar nota existente
+        - ✅ Eliminar nota (con confirmación)
+        - ✅ Validación de campos obligatorios
+        - ✅ Manejo de errores y notificaciones
+        - ✅ Columna de monto total con valores reales desde backend
 
-3.  **Conciliar Ítems (`NotaRecepcionItem`):**
+3.  **Conciliar Ítems (`NotaRecepcionItem`):** ✅ **IMPLEMENTADO**
     *   La UI presenta una tabla de `PedidoItem` pendientes. La tabla debe tener **checkboxes** para selección múltiple.
     *   **Lógica de División de Ítems:** Un `PedidoItem` puede ser conciliado parcialmente en múltiples `NotaRecepcionItem` a través de diferentes notas.
         *   **Ejemplo:** Se piden 100 unidades. El usuario selecciona el `PedidoItem`. La UI muestra "100 unidades pendientes". El usuario crea un `NotaRecepcionItem` en la Nota A por 40 unidades. El `PedidoItem` original ahora mostrará "60 unidades pendientes" para futuras conciliaciones en otras notas.
     *   **Lógica de Rechazo Documental:** Para cada `NotaRecepcionItem` que se está creando/conciliando, la UI debe ofrecer las acciones:
         *   **Conciliar:** Crea el `NotaRecepcionItem` con estado `CONCILIADO`.
         *   **Rechazar:** Crea el `NotaRecepcionItem` con estado `RECHAZADO` y exige un `motivoRechazo`. Un ítem rechazado aquí no pasará a la etapa de recepción física.
+    *   **Funcionalidades implementadas:**
+        - ✅ Asignar ítems individuales a notas
+        - ✅ Asignar múltiples ítems seleccionados
+        - ✅ Crear nota y asignar ítems automáticamente
+        - ✅ Validación de asignaciones duplicadas
+        - ✅ Manejo de errores parciales (algunos ítems asignados, otros no)
+        - ✅ Rechazar ítems con motivo
+        - ✅ Dividir ítems para asignación parcial
+        - ✅ Gestión de distribuciones por sucursal
 
-    > **Filosofía Clave de Conciliación:**
+    > **Filosofía Clave de Conciliación:** ✅ **IMPLEMENTADO**
     > Para mantener la integridad y trazabilidad del proceso, es fundamental seguir esta regla:
     > *   **El `PedidoItem` es Inmutable:** Representa el plan original y no debe ser modificado después de la etapa de planificación.
     > *   **La `NotaRecepcionItem` es la Realidad Documental:** Todas las variaciones (cantidad, precio, producto) o acciones (división, rechazo) se registran creando o modificando `NotaRecepcionItem`. Un `PedidoItem` puede ser conciliado por múltiples `NotaRecepcionItem` a lo largo de varias notas, consumiendo su "cantidad pendiente" sin alterarse a sí mismo.
     > *   **La `NotaRecepcionItemDistribucion` es la Distribución Documental:** Cada `NotaRecepcionItem` puede tener múltiples distribuciones que especifican a qué sucursales debe enviarse según la documentación del proveedor. Esto permite capturar la "realidad documental" de la distribución, separándola del plan original (`PedidoItemDistribucion`).
 
-4.  **Finalizar Etapa de Conciliación:**
+4.  **Finalizar Etapa de Conciliación:** ✅ **IMPLEMENTADO**
     *   El usuario hace clic en "Finalizar Conciliación".
     *   **Validaciones:**
-        1.  Se verifica que existan notas registradas para proceder con la siguiente etapa.
-        2.  **Distribución:** La distribución de sucursales es informativa; ítems sin distribución completa pueden proceder igualmente.
-    *   Si las validaciones pasan, el backend actualiza los `ProcesoEtapa`.
+        1.  ✅ Se verifica que existan notas registradas para proceder con la siguiente etapa.
+        2.  ✅ **Distribución:** La distribución de sucursales es informativa; ítems sin distribución completa pueden proceder igualmente.
+    *   **Funcionalidades implementadas:**
+        - ✅ Backend: `PedidoService.finalizarRecepcionNotas()`
+        - ✅ GraphQL: `finalizarRecepcionNotas` mutation
+        - ✅ Frontend: `onFinalizarConciliacion()` con confirmación
+        - ✅ Actualización automática de `ProcesoEtapa`
+        - ✅ Avance automático a etapa de Recepción de Mercadería
+        - ✅ Notificaciones de éxito/error
+        - ✅ Navegación automática a siguiente pestaña
+
+#### **Funcionalidades Adicionales Implementadas:**
+- ✅ **Sistema de lazy loading** para optimización de rendimiento
+- ✅ **Paginación** en todas las tablas
+- ✅ **Búsqueda y filtros** en ítems pendientes y notas
+- ✅ **Validación de fechas** con manejo robusto de fechas inválidas
+- ✅ **Cálculo de montos** en tiempo real
+- ✅ **Estados visuales** con chips de colores
+- ✅ **Confirmaciones** para acciones críticas
+- ✅ **Manejo de errores** completo con mensajes informativos
 
 ---
 
@@ -343,49 +475,73 @@ graph TD
 
 -   **Contenido (Fase de Configuración):**
     *   Si la etapa está `EN_PROGRESO`, primero se muestra una pantalla de configuración.
-    1.  **Selección de Sucursales:**
-        *   Un campo `mat-select` múltiple para que el usuario elija una o más sucursales para la recepción.
+    1.  **Selección de Sucursales de Entrega:**
+        *   Un campo `mat-select` múltiple para que el usuario elija una o más sucursales de entrega para la recepción.
         *   Los ítems a recibir se filtrarán según esta selección.
+        *   **Validación:** Al menos una sucursal debe ser seleccionada.
     2.  **Selección de Modo de Recepción:**
         *   Un `mat-button-toggle-group` para que el usuario elija el modo de trabajo:
-            *   **Opción A: "Agrupar por Notas"**
-            *   **Opción B: "Agrupar por Productos"**
-    3.  **Botón de Inicio:**
+            *   **Opción A: "Agrupar por Notas"** - Layout de dos paneles
+            *   **Opción B: "Agrupar por Productos"** - Layout de un solo panel
+    3.  **Toggle "Mostrar Sucursales al Verificar":**
+        *   **Visibilidad:** Solo visible cuando se seleccionan más de una sucursal de entrega.
+        *   **Funcionalidad:** Cuando está activado, la verificación rápida muestra un diálogo con la lista de distribuciones por sucursal.
+        *   **Comportamiento:** Por defecto todas las distribuciones están marcadas, el usuario puede desmarcar para excluir sucursales específicas.
+    4.  **Botón de Inicio:**
         *   Un botón "Iniciar Verificación" que se habilita una vez que se han seleccionado sucursales y un modo.
 
--   **Layout (Modo "Agrupar por Notas"):**
+-   **Layout (Modo "Agrupar por Notas" - Dos Paneles):**
     *   Una vez iniciada la verificación en este modo, se presenta un layout de dos paneles.
-    1.  **Panel Derecho: Lista de Notas**
+    1.  **Panel Derecho (40% ancho): Lista de Notas**
         *   Muestra una tabla con las `NotaRecepcion` que tienen ítems pendientes de recibir para las sucursales seleccionadas.
         *   Al hacer clic, la nota se resalta, indicando que está seleccionada, y se carga su contenido en el panel izquierdo.
-    2.  **Panel Izquierdo: Ítems de la Nota Seleccionada**
+        *   **Columnas:** Nro. Factura, Fecha, Total, Estado, Acciones.
+    2.  **Panel Izquierdo (60% ancho): Ítems de la Nota Seleccionada**
         *   **Tabla (`mat-table`):** Muestra los `NotaRecepcionItem` de la nota y sucursales seleccionadas.
-        *   **Columnas:** Producto, Cant. Esperada, Cant. Recibida, Sucursal, Acciones (`mat-menu`).
-        *   **Acciones en Ítems (`mat-menu`):**
-            *   **"Verificar Ítem":** Abre el diálogo de verificación.
-            *   **"Rechazar Ítem":** Abre el diálogo de rechazo.
+        *   **Columnas:** Producto, Cant. Esperada, Cant. Recibida, Cant. Rechazada, Estado, Acciones.
+        *   **Acciones por Ítem (3 iconos):**
+            *   **✅ Check (Verificación Rápida):** Marca el ítem como verificado sin abrir diálogos.
+            *   **✏️ Edit (Verificación Detallada):** Abre el diálogo de verificación para modificaciones.
+            *   **❌ Rechazar:** Abre el diálogo de rechazo para registrar rechazos.
 
--   **Layout (Modo "Agrupar por Productos"):**
-    *   *Propuesta:* Una única tabla que agrupa todos los ítems de todas las notas por producto.
+-   **Layout (Modo "Agrupar por Productos" - Un Panel):**
+    *   Una única tabla que agrupa todos los ítems de todas las notas por producto.
     *   **Tabla (`mat-table`):**
-        *   **Columnas:** Producto, Cant. Total Esperada, Cant. Total Recibida, Acciones (`mat-menu`).
-        *   **Acciones en Ítems (`mat-menu`):**
-            *   **"Verificar Producto":** Abre un diálogo similar al de "Verificar Ítem", pero podría mostrar un desglose de las cantidades por nota de origen.
+        *   **Columnas:** Producto, Cant. Total Esperada, Cant. Total Recibida, Cant. Total Rechazada, Estado, Acciones.
+        *   **Agrupación:** Los ítems se agrupan por producto, mostrando la suma de cantidades de todas las notas.
+        *   **Acciones por Producto (3 iconos):**
+            *   **✅ Check (Verificación Rápida):** Marca el producto como verificado sin abrir diálogos.
+            *   **✏️ Edit (Verificación Detallada):** Abre el diálogo de verificación para modificaciones.
+            *   **❌ Rechazar:** Abre el diálogo de rechazo para registrar rechazos.
 
 -   **Diálogos Clave:**
-    1.  **Diálogo "Verificar Ítem":**
+    1.  **Diálogo "Verificación Rápida con Múltiples Sucursales":**
+        *   **Visibilidad:** Solo cuando el toggle "Mostrar Sucursales al Verificar" está activado.
+        *   **Contenido:** Lista de distribuciones por sucursal con checkboxes.
+        *   **Comportamiento:** Todos los checkboxes marcados por defecto, usuario puede desmarcar para excluir sucursales.
+        *   **Lógica:** Solo se procesan las distribuciones marcadas, las desmarcadas quedan pendientes.
+    2.  **Diálogo "Verificar Ítem/Producto":**
         *   **Título:** "Verificar: [Nombre del Producto]".
-        *   **Contenido:** Una tabla simple o lista que muestra las cantidades **por sucursal** (de las seleccionadas en la configuración).
+        *   **Contenido:** Una tabla que muestra las cantidades **por sucursal** (de las seleccionadas en la configuración).
         *   **Columnas del Diálogo:** Sucursal, Cantidad Esperada, Cantidad Recibida (input numérico), Cantidad Rechazada (input numérico).
+        *   **Campos Adicionales:** Número de Lote, Fecha de Vencimiento, Motivo de Modificación (si hay discrepancias).
         *   **Lógica:**
             *   Las cantidades `Recibida` y `Rechazada` vienen pre-cargadas (`Recibida` = `Esperada`, `Rechazada` = `0`).
             *   Si el usuario modifica cualquier cantidad, aparece un campo de texto obligatorio `Motivo de la Modificación`.
-            *   El usuario puede aceptar con un solo clic si todo está correcto.
-    2.  **Diálogos "Rechazar Ítem":**
-        *   Permite registrar el rechazo total o parcial de un ítem, exigiendo un motivo.
+            *   Validación: `cantidadRecibida + cantidadRechazada <= cantidadEsperada`.
+    3.  **Diálogo "Rechazar Ítem/Producto":**
+        *   Permite registrar el rechazo total o parcial de un ítem/producto, exigiendo un motivo.
+        *   **Campos:** Cantidad a rechazar, motivo de rechazo, observaciones.
+        *   **Validación:** Cantidad rechazada <= cantidad esperada.
+
+-   **Estados Visuales:**
+    *   **Pendiente:** Sin color especial
+    *   **Verificado:** Fondo verde claro
+    *   **Rechazado:** Fondo rojo claro
+    *   **Parcialmente Verificado:** Fondo naranja claro
 
 -   **Acciones de la Pestaña:**
-    *   Botón "Finalizar Recepción Física".
+    *   Botón "Finalizar Recepción Física" - Solo habilitado cuando todos los ítems han sido procesados.
 
 ---
 
@@ -1092,33 +1248,86 @@ Esta es la lista de tareas detallada para la construcción del nuevo módulo de 
     -   [x] Implementar estilos CSS para presentación, cantidad y colores de fila.
     -   [x] Corregir problema de presentación no copiada al crear `NotaRecepcionItem`.
 
-**Tarea 3.4: Funcionalidades CRUD para Ítems de Nota de Recepción** 🔄 **EN PROGRESO**
--   [ ] **Implementar eliminación de ítems:**
-    -   [ ] Conectar botón "Eliminar" en menú de acciones de tabla de ítems.
-    -   [ ] Implementar confirmación antes de eliminar.
-    -   [ ] Conectar con mutación `deleteNotaRecepcionItem`.
-    -   [ ] Recargar tabla después de eliminación exitosa.
-    -   [ ] Mostrar notificaciones de éxito/error.
--   [ ] **Implementar edición de ítems:**
-    -   [ ] Crear diálogo `edit-nota-recepcion-item-dialog` para modificar ítems existentes.
-    -   [ ] Formulario para editar cantidad, precio, presentación, vencimiento.
-    -   [ ] Opción para marcar como rechazado con motivo.
-    -   [ ] Validaciones de cantidad y precio.
-    -   [ ] Conectar con mutación `saveNotaRecepcionItem`.
--   [ ] **Implementar adición de ítems:**
-    -   [ ] Conectar botón "Agregar Ítem" en diálogo de nota.
-    -   [ ] Crear diálogo `add-nota-recepcion-item-dialog` para nuevos ítems.
-    -   [ ] Búsqueda de productos con `SearchListDialogComponent`.
-    -   [ ] Selección de presentación y cálculo de cantidades.
-    -   [ ] Validaciones y guardado con `saveNotaRecepcionItem`.
+**Tarea 3.4: Funcionalidades CRUD para Ítems de Nota de Recepción** ✅ **COMPLETADA**
+-   [x] **Implementar eliminación de ítems:**
+    -   [x] Conectar botón "Eliminar" en menú de acciones de tabla de ítems.
+    -   [x] Implementar confirmación antes de eliminar usando `DialogosService`.
+    -   [x] Conectar con mutación `deleteNotaRecepcionItem`.
+    -   [x] Recargar tabla después de eliminación exitosa.
+    -   [x] Mostrar notificaciones de éxito/error usando `NotificacionSnackbarService`.
+    -   [x] **Corregido problema de confirmación:** Simplificado patrón de `DialogosService.confirm()` para coincidir con el estándar del proyecto.
+-   [x] **Implementar edición de ítems:**
+    -   [x] Crear diálogo `edit-nota-recepcion-item-dialog` para modificar ítems existentes.
+    -   [x] Formulario para editar cantidad, precio, presentación, vencimiento.
+    -   [x] Opción para marcar como rechazado con motivo.
+    -   [x] Validaciones de cantidad y precio.
+    -   [x] Conectar con mutación `saveNotaRecepcionItem`.
+    -   [x] **Funcionalidades avanzadas:** Navegación por teclado, propiedades computadas, validaciones condicionales, manejo de bonificaciones.
+    -   [x] **Correcciones aplicadas:** Enum actualizado para coincidir con backend, campo `esBonificacion` implementado correctamente, estados corregidos (`PENDIENTE_CONCILIACION`, `CONCILIADO`, `RECHAZADO`, `DISCREPANCIA`).
+    -   [x] **Layout mejorado:** Copiado layout y estilos del `add-edit-item-dialog`, tamaño de diálogo optimizado (70% x 70%), navegación por teclado completa, diseño responsive.
+    -   [x] **Campos reactivos:** Agregado campo "Precio por Presentación" con reactividad completa entre Presentación, Precio Unitario y Precio por Presentación.
+                    -   [x] **Restricciones de edición:** Campo Estado readonly (no editable), eliminada búsqueda de producto (producto no cambiable).
+                -   [x] **Detección automática de discrepancias:** Sistema que detecta automáticamente cuando los valores modificados difieren del pedido original.
+                -   [x] **Cambio automático de estado:** Cuando se detectan discrepancias, el estado cambia automáticamente a `DISCREPANCIA`.
+                -   [x] **Validación condicional de observaciones:** Campo observaciones se vuelve obligatorio cuando hay discrepancias o rechazos.
+                -   [x] **Indicadores visuales:** Card de advertencia que muestra las discrepancias detectadas con iconos y colores.
+-   [x] **Implementar adición de ítems:**
+    -   [x] Conectar botón "Agregar Ítem" en diálogo de nota.
+    -   [x] **Reutilizar diálogo existente:** Modificado `edit-nota-recepcion-item-dialog` para funcionar tanto en modo edición como creación.
+    -   [x] **Búsqueda de productos:** Implementada búsqueda con `SearchListDialogComponent` usando query `productoSearchPdv`.
+    -   [x] **Selección de presentación:** Carga automática de presentaciones del producto seleccionado.
+    -   [x] **Cálculo de cantidades:** Reactividad completa entre cantidad por presentación y unidades base.
+    -   [x] **Validaciones:** Campos requeridos, validaciones de cantidad y precio, manejo de bonificaciones.
+    -   [x] **Guardado:** Conectado con mutación `saveNotaRecepcionItem` para crear nuevos ítems.
+    -   [x] **UI adaptativa:** Campo de búsqueda de producto solo visible para nuevos ítems, producto en solo lectura para edición.
 
-**Tarea 3.5: Diálogo de Conciliación de Ítems (CRÍTICO)**
--   [ ] **Crear componente `conciliar-item-dialog`:**
-    -   [ ] Formulario para modificar `cantidad` y `precio` del `NotaRecepcionItem`.
-    -   [ ] Opción para marcar como `RECHAZADO` con campo obligatorio `motivoRechazo`.
-    -   [ ] **NUEVA FUNCIONALIDAD:** Distribución documental usando `NotaRecepcionItemDistribucion`.
-    -   [ ] Validaciones: cantidad no puede exceder `cantidadPendiente` del `PedidoItem`.
-    -   [ ] Integración con mutación `saveNotaRecepcionItem`.
+**Tarea 3.5: Diálogo "Dividir Ítem" (CRÍTICO - NUEVA IMPLEMENTACIÓN)** ✅ **COMPLETADA**
+-   [x] **Crear componente `dividir-item-dialog`:**
+    -   [x] **Estructura del diálogo:** Formulario reactivo con campos específicos para división
+    -   [x] **Campo de selección de presentación:** Select dropdown para elegir presentación para la división
+    -   [x] **Información de contexto:** Mostrar producto, cantidad total y cantidad asignada (solo lectura)
+    -   [x] **Campos editables:** Cantidad a conciliar, nota de recepción
+    -   [x] **Validaciones:** Cantidad máxima según pendiente, suma de cantidades no debe exceder total
+    -   [x] **Navegación por teclado:** Enter para navegar, Escape para cerrar
+    -   [x] **Integración:** Conectar con mutación `saveNotaRecepcionItem`
+    -   [x] **Conversión de cantidades:** Convertir a unidad base según presentación seleccionada
+    -   [x] **Layout optimizado:** Items en filas horizontales con scroll, diseño responsive
+    -   [x] **Estilos consistentes:** Colores y layout que coinciden con el patrón del proyecto
+
+**Tarea 3.5.1: Integración en Panel de Ítems Pendientes** ✅ **COMPLETADA**
+-   [x] **Agregar acción "Dividir Ítem" en menú de acciones:**
+    -   [x] Agregar opción en `mat-menu` de cada fila de PedidoItem
+    -   [x] Conectar con método `dividirItem(pedidoItem: PedidoItem)`
+    -   [x] Pasar datos necesarios: pedidoItem, notasDisponibles
+-   [x] **Lógica de habilitación:**
+    -   [x] Solo habilitar si `cantidadPendiente > 0`
+    -   [x] Deshabilitar si ítem ya está completamente conciliado
+-   [x] **Actualización de UI después de división:**
+    -   [x] Recargar tabla de ítems pendientes
+    -   [x] Actualizar `cantidadPendiente` en tiempo real
+    -   [x] Ocultar ítem si `cantidadPendiente = 0`
+
+**Tarea 3.5.2: Funcionalidad de Creación de Nueva Nota** ✅ **COMPLETADA**
+-   [x] **Sub-dialogo para crear nota:**
+    -   [x] Abrir diálogo `add-edit-nota-recepcion-dialog` en modo creación
+    -   [x] Pre-cargar datos básicos: proveedor, moneda del pedido
+    -   [x] Al confirmar, crear nota y retornar ID
+    -   [x] Vincular automáticamente el NotaRecepcionItem a la nueva nota
+-   [x] **Actualización de lista de notas:**
+    -   [x] Recargar tabla de notas después de crear nueva
+    -   [x] Seleccionar automáticamente la nueva nota creada
+
+**Tarea 3.5.3: Cálculo de Cantidad Pendiente** ✅ **COMPLETADA**
+-   [x] **Método de cálculo:** `cantidadPendiente = cantidadSolicitada - sum(cantidadEnNota)`
+-   [x] **Implementación en backend:** Query optimizada para calcular pendiente por PedidoItem
+-   [x] **Actualización en frontend:** Propiedad computada que se actualiza automáticamente
+-   [x] **Validación en diálogo:** Máximo permitido = cantidadPendiente del PedidoItem
+
+**Tarea 3.5.4: Conversión de Cantidades y Presentaciones** ✅ **COMPLETADA**
+-   [x] **Conversión a unidad base:** Implementada lógica para convertir cantidades según presentación
+-   [x] **Validación de exceso:** Sistema que detecta cuando la suma excede la cantidad total
+-   [x] **Confirmación de exceso:** Diálogo de confirmación cuando se excede la cantidad
+-   [x] **Guardado correcto:** Cantidades se guardan en unidad base en el backend
 
 **Tarea 3.6: Mutaciones Backend**
 -   [x] **Implementar mutaciones para `NotaRecepcion`:**
@@ -1131,11 +1340,144 @@ Esta es la lista de tareas detallada para la construcción del nuevo módulo de 
     -   [x] Conectar `saveNotaRecepcionItemDistribuciones` para distribución documental.
     -   [x] Conectar `replaceNotaRecepcionItemDistribuciones` para reemplazar distribuciones.
 
-**Tarea 3.7: Lógica de Negocio Avanzada**
--   [ ] **Implementar lógica de conciliación parcial:**
-    -   [ ] Un `PedidoItem` puede ser conciliado por múltiples `NotaRecepcionItem`.
-    -   [ ] Calcular `cantidadPendiente` en tiempo real después de cada conciliación.
-    -   [ ] Actualizar UI automáticamente cuando cambie la cantidad pendiente.
+**Tarea 3.7: Sistema de Rechazo de Ítems (NUEVA IMPLEMENTACIÓN)**
+
+### **🔧 MANEJO DE PRODUCTOS NO ENTREGADOS:**
+**Escenario:** Cuando un `PedidoItem` no ha sido entregado por el proveedor y no figura en ninguna nota de recepción, pero se requiere rechazarlo documentalmente.
+
+**Solución Implementada:**
+- ✅ **Nota de Rechazo Especial:** Opción "🚫 Crear Nota de Rechazo (Producto no entregado)" en el diálogo
+- ✅ **Identificación Especial:** La nota se crea con `tipoBoleta = 'RECHAZO_NO_ENTREGADO'`
+- ✅ **Numeración Independiente:** Sistema de numeración separado para notas de rechazo
+- ✅ **Trazabilidad:** Permite rastrear rechazos de productos no entregados vs. rechazos de productos entregados
+- ✅ **Información Contextual:** Caja informativa que explica el propósito de la nota de rechazo especial
+
+**Flujo de Trabajo:**
+1. Usuario selecciona "Rechazar Ítem" en ítem pendiente
+2. En el diálogo, elige "🚫 Crear Nota de Rechazo (Producto no entregado)"
+3. Sistema crea automáticamente una nota con identificador especial
+4. El ítem se marca como RECHAZADO y se vincula a la nota de rechazo
+5. La cantidad pendiente se actualiza correctamente
+
+### **🔧 MANEJO DE PRESENTACIONES EN RECHAZOS:**
+**Funcionalidad:** El sistema permite seleccionar la presentación del producto al rechazar un ítem, con conversión automática a unidades base.
+
+**Características Implementadas:**
+- ✅ **Selección de Presentación:** Dropdown con todas las presentaciones disponibles del producto
+- ✅ **Presentación por Defecto:** Se selecciona automáticamente la presentación del pedido item
+- ✅ **Conversión Automática:** La cantidad ingresada se convierte automáticamente a unidades base
+- ✅ **Layout Optimizado:** Presentación y cantidad en el mismo row para mejor UX
+- ✅ **Validaciones:** Mantiene todas las validaciones de cantidad máxima según pendiente
+- ✅ **Navegación por Teclado:** Enter para navegar entre presentación y cantidad
+
+**Ejemplo de Conversión:**
+- Producto: "Coca Cola 2L"
+- Presentación seleccionada: "Botella 2L" (cantidad = 2)
+- Cantidad rechazada: 5 botellas
+- **Resultado:** 10 unidades base (5 × 2)
+
+### **🔧 CORRECCIÓN DE ERROR DE MONEDA:**
+**Problema:** Error `"o valor nulo na coluna "moneda_id" da relação "nota_recepcion" viola a restrição de não-nulo"`
+
+**Causa:** Al crear notas de rechazo especiales, el campo `moneda_id` podía ser `null` si el pedido no tenía moneda asignada.
+
+**Solución Implementada:**
+- ✅ **Validación de Moneda:** Verificar si el pedido tiene moneda asignada
+- ✅ **Moneda por Defecto:** Si no hay moneda, usar Guaraní (ID: 1) como moneda por defecto
+- ✅ **Manejo Seguro:** Evitar valores `null` en campos obligatorios de la base de datos
+
+**Código de Corrección:**
+```typescript
+// Asegurar que la moneda no sea null
+if (this.data.pedidoItem.pedido?.moneda) {
+  nuevaNota.moneda = this.data.pedidoItem.pedido.moneda;
+} else {
+  // Moneda por defecto (Guaraní)
+  nuevaNota.moneda = { id: 1, denominacion: 'Guaraní', cambio: 1 } as any;
+}
+```
+-   [ ] **Tarea 3.7.1: Rechazo desde Panel de Ítems Pendientes:** ✅ **COMPLETADA**
+    -   [x] **Agregar acción "Rechazar Ítem" en menú de acciones:**
+        -   [x] Agregar opción en `mat-menu` de cada fila de PedidoItem
+        -   [x] Conectar con método `rechazarItem(pedidoItem: PedidoItem)`
+        -   [x] Pasar datos necesarios: pedidoItem, notasDisponibles
+    -   [x] **Crear diálogo `rechazar-item-dialog`:**
+        -   [x] **Estructura del diálogo:** Formulario reactivo para rechazo documental
+        -   [x] **Campo de selección de nota:** Select dropdown para elegir nota de recepción o crear nueva
+        -   [x] **Información de contexto:** Mostrar producto, cantidad pendiente (solo lectura)
+        -   [x] **Campo presentación:** Select dropdown para elegir presentación del producto (por defecto la del pedido item)
+        -   [x] **Campo cantidad rechazada:** Input numérico con validación (máximo = cantidad pendiente)
+        -   [x] **Conversión automática:** La cantidad se convierte automáticamente a unidades base según la presentación seleccionada
+        -   [x] **Campo motivo rechazo:** Select con opciones predefinidas (VENCIDO, AVERIADO, FALTANTE, OTRO)
+        -   [x] **Campo observaciones:** Textarea para explicar el rechazo (opcional)
+        -   [x] **Validaciones:** Cantidad > 0, motivo obligatorio, observaciones opcionales
+        -   [x] **Estado automático:** RECHAZADO
+        -   [x] **Navegación por teclado:** Enter para navegar, Escape para cerrar
+        -   [x] **Integración:** Conectar con mutación `saveNotaRecepcionItem`
+        -   [x] **Manejo de productos no entregados:** Opción para crear nota de rechazo especial
+    -   [x] **Lógica de habilitación:**
+        -   [x] Solo habilitar si `cantidadPendiente > 0`
+        -   [x] Deshabilitar si ítem ya está completamente conciliado o rechazado
+    -   [ ] **Actualización de UI después de rechazo:**
+        -   [ ] Recargar tabla de ítems pendientes
+        -   [ ] Actualizar `cantidadPendiente` en tiempo real
+        -   [ ] Ocultar ítem si `cantidadPendiente = 0`
+
+-   [ ] **Tarea 3.7.2: Rechazo desde Nota de Recepción:**
+    -   [ ] **Agregar acción "Rechazar Ítem" en tabla de ítems de nota:**
+        -   [ ] Agregar opción en `mat-menu` de cada fila de NotaRecepcionItem
+        -   [ ] Conectar con método `rechazarItemDeNota(notaRecepcionItem: NotaRecepcionItem)`
+    -   [ ] **Crear diálogo `rechazar-item-nota-dialog`:**
+        -   [ ] **Estructura del diálogo:** Formulario reactivo para rechazo desde nota
+        -   [ ] **Información de contexto:** Mostrar producto, cantidad en nota, cantidad ya rechazada (solo lectura)
+        -   [ ] **Campo cantidad a rechazar:** Input numérico con validación (máximo = cantidad en nota - cantidad ya rechazada)
+        -   [ ] **Campo motivo rechazo:** Select con opciones predefinidas
+        -   [ ] **Campo observaciones:** Textarea obligatorio
+        -   [ ] **Validaciones:** Cantidad > 0, motivo obligatorio, observaciones obligatorias
+        -   [ ] **Estado automático:** RECHAZADO
+        -   [ ] **Integración:** Conectar con mutación `saveNotaRecepcionItem`
+    -   [ ] **Lógica de habilitación:**
+        -   [ ] Solo habilitar si `cantidadEnNota > cantidadRechazada`
+        -   [ ] Deshabilitar si ítem ya está completamente rechazado
+    -   [ ] **Actualización de UI después de rechazo:**
+        -   [ ] Recargar tabla de ítems de la nota
+        -   [ ] Actualizar colores de estado en la tabla
+        -   [ ] Actualizar resumen de la nota
+
+-   [ ] **Tarea 3.7.3: Lógica de Negocio de Rechazos:**
+    -   [ ] **Filosofía de rechazo documental:**
+        -   [ ] Los rechazos se registran como `NotaRecepcionItem` con estado `RECHAZADO`
+        -   [ ] Un `PedidoItem` puede ser rechazado parcialmente (algunas unidades rechazadas, otras conciliadas)
+        -   [ ] Los ítems rechazados NO pasan a la etapa de recepción física
+        -   [ ] Los rechazos consumen la cantidad pendiente del `PedidoItem`
+    -   [ ] **Cálculo de cantidad pendiente actualizado:**
+        -   [ ] `cantidadPendiente = cantidadSolicitada - sum(cantidadEnNota de CONCILIADO) - sum(cantidadEnNota de RECHAZADO)`
+        -   [ ] Actualizar query backend para incluir rechazos en el cálculo
+        -   [ ] Actualizar frontend para mostrar cantidad pendiente correcta
+    -   [ ] **Validaciones de finalización:**
+        -   [ ] Un `PedidoItem` se considera "completado" cuando está completamente conciliado O completamente rechazado
+        -   [ ] Para finalizar la etapa, todos los `PedidoItem` deben estar completados
+        -   [ ] Mostrar resumen: X ítems conciliados, Y ítems rechazados, Z ítems pendientes
+
+-   [ ] **Tarea 3.7.4: Indicadores Visuales de Rechazo:**
+    -   [ ] **En tabla de ítems pendientes:**
+        -   [ ] Mostrar ítems con rechazos parciales con indicador visual
+        -   [ ] Color de fila diferente para ítems con rechazos
+        -   [ ] Tooltip mostrando cantidad conciliada vs rechazada
+    -   [ ] **En tabla de ítems de nota:**
+        -   [ ] Color rojo para ítems rechazados (ya implementado)
+        -   [ ] Mostrar cantidad rechazada en columna separada
+        -   [ ] Icono de advertencia para ítems con rechazos parciales
+    -   [ ] **En resumen de nota:**
+        -   [ ] Mostrar total de ítems rechazados
+        -   [ ] Mostrar monto total rechazado
+        -   [ ] Diferencia entre monto original y monto a pagar
+
+**Tarea 3.8: Lógica de Negocio Avanzada**
+-   [x] **Implementar lógica de conciliación parcial:**
+    -   [x] Un `PedidoItem` puede ser conciliado por múltiples `NotaRecepcionItem`.
+    -   [x] Calcular `cantidadPendiente` en tiempo real después de cada conciliación.
+    -   [x] Actualizar UI automáticamente cuando cambie la cantidad pendiente.
 -   [ ] **Implementar lógica de rechazo documental:**
     -   [ ] Ítems rechazados no pasan a la etapa de recepción física.
     -   [ ] Mostrar visualmente ítems rechazados en la tabla.
@@ -1148,4 +1490,778 @@ Esta es la lista de tareas detallada para la construcción del nuevo módulo de 
 
 **Estado:** 🔄 **EN PROGRESO** - Layout básico implementado, modelos creados, servicios backend disponibles. **Tarea 3.1 completada:** Integración backend para carga de ítems pendientes con paginación. **Tarea 3.1.1 completada:** Sistema de lazy loading implementado para optimizar rendimiento. **Tarea 3.2 completada:** Integración backend para carga de notas de recepción con paginación y búsqueda. **Tarea 3.3 completada:** Diálogo de nota de recepción con tabla de ítems avanzada, colores de estado y presentación. **Migración V82 completada:** Estructura de BD corregida para coincidir con modelos Java. **Corrección de presentación completada:** Problema de presentación no copiada resuelto en backend y frontend. 
 
-**🎯 PRÓXIMO PASO PRIORITARIO:** Tarea 3.4 - Implementar eliminación de ítems desde el diálogo `add-edit-nota-recepcion-dialog.component.ts` conectando el botón "Eliminar" en el menú de acciones de la tabla de ítems con la mutación `deleteNotaRecepcionItem`.
+**🎯 PRÓXIMO PASO PRIORITARIO:** Tarea 3.5 - Implementar diálogo "Dividir Ítem" para permitir conciliación parcial de PedidoItems en múltiples NotaRecepcionItem. Este es el componente crítico que completa la funcionalidad de conciliación documental.
+
+### **🔧 NUEVA FUNCIONALIDAD IMPLEMENTADA: DETECCIÓN AUTOMÁTICA DE DISCREPANCIAS**
+
+**Funcionalidades Agregadas al `edit-nota-recepcion-item-dialog`:**
+- ✅ **Detección automática:** Compara valores modificados con el pedido original
+- ✅ **Preservación de estado:** Mantiene el estado original (PENDIENTE_CONCILIACION, CONCILIADO, etc.)
+- ✅ **Validación condicional:** Campo observaciones obligatorio para discrepancias
+- ✅ **Indicadores visuales:** Card de advertencia con lista de discrepancias detectadas
+- ✅ **Campos monitoreados:** Cantidad, precio, presentación y bonificación
+- ✅ **Prevención de falsos positivos:** Evita detección durante inicialización y maneja valores undefined
+
+**Ejemplo de Uso:**
+1. Usuario modifica cantidad de 100 a 95 → Se detecta discrepancia
+2. **Estado se mantiene** en `PENDIENTE_CONCILIACION` (no cambia automáticamente)
+3. Aparece card amarilla mostrando "Cantidad: 100 → 95"
+4. Campo observaciones se vuelve obligatorio con asterisco (*)
+5. Usuario debe explicar: "Proveedor envió 5 unidades menos por caja rota"
+
+**Correcciones Aplicadas:**
+- ✅ **Retraso en detección:** Se configura después de 200ms para evitar detección prematura
+- ✅ **Flag de inicialización:** Evita detección durante la carga inicial del formulario
+- ✅ **Manejo de undefined:** Comparación segura de presentaciones que pueden ser null/undefined
+- ✅ **Lógica de bonificación:** Solo detecta discrepancia si realmente hay diferencia
+- ✅ **Detección inicial:** Se ejecuta una vez al cargar para mostrar discrepancias existentes
+
+## 8. Funcionalidad de Rechazo de Ítems desde Nota de Recepción
+
+### 8.1 Botón "Rechazar" en Diálogo de Nota de Recepción
+
+**Ubicación:** `add-edit-nota-recepcion-dialog.component.ts`
+
+**Funcionalidad:** Permite rechazar ítems directamente desde el diálogo de edición de nota de recepción.
+
+#### 8.1.1 Implementación del Botón
+
+```typescript
+// En el menú de acciones de cada ítem
+<button mat-icon-button [matMenuTriggerFor]="menu" [disabled]="esNotaRechazoComputed">
+  <mat-icon>more_vert</mat-icon>
+</button>
+<mat-menu #menu="matMenu">
+  <button mat-menu-item (click)="onEditItem(item)" [disabled]="esNotaRechazoComputed">
+    <mat-icon>edit</mat-icon>
+    <span>Editar</span>
+  </button>
+  <button mat-menu-item (click)="onDeleteItem(item)">
+    <mat-icon>delete</mat-icon>
+    <span>Eliminar</span>
+  </button>
+  <button mat-menu-item (click)="onDistributeItem(item)" [disabled]="esNotaRechazoComputed">
+    <mat-icon>account_tree</mat-icon>
+    <span>Distribuir</span>
+  </button>
+  <button mat-menu-item (click)="onRechazarItem(item)" [disabled]="esNotaRechazoComputed">
+    <mat-icon>cancel</mat-icon>
+    <span>Rechazar</span>
+  </button>
+</mat-menu>
+```
+
+#### 8.1.2 Método onRechazarItem
+
+```typescript
+onRechazarItem(item: NotaRecepcionItem): void {
+  // Validaciones
+  if (this.esNotaRechazoComputed) {
+    this.notificacionService.openAlgoSalioMal('No se pueden rechazar ítems de una nota de rechazo');
+    return;
+  }
+  
+  if (!item.id) {
+    this.notificacionService.openAlgoSalioMal('Debe guardar el ítem antes de poder rechazarlo');
+    return;
+  }
+
+  if (item.estado === 'RECHAZADO') {
+    this.notificacionService.openAlgoSalioMal('Este ítem ya está rechazado');
+    return;
+  }
+
+  const cantidadDisponible = item.cantidadEnNota || 0;
+  if (cantidadDisponible <= 0) {
+    this.notificacionService.openAlgoSalioMal('No hay cantidad disponible para rechazar en este ítem');
+    return;
+  }
+
+  // Crear PedidoItem temporal para el diálogo
+  const pedidoItemTemporal = {
+    id: item.pedidoItem?.id || 0,
+    producto: item.producto,
+    presentacionCreacion: item.presentacionEnNota,
+    cantidadSolicitada: item.cantidadEnNota || 0,
+    cantidadPendiente: item.cantidadEnNota || 0,
+    precioUnitarioSolicitado: item.precioUnitarioEnNota || 0,
+    vencimientoEsperado: item.vencimientoEnNota,
+    esBonificacion: item.esBonificacion || false,
+    pedido: this.data.pedido
+  } as any;
+
+  // Usar RechazarItemDialogComponent con nota preseleccionada e ítem específico
+  const dialogRef = this.dialog.open(RechazarItemDialogComponent, {
+    width: '60%',
+    data: {
+      pedidoItem: pedidoItemTemporal,
+      notasDisponibles: [this.data.nota], // Solo la nota actual
+      pedidoId: this.data.pedido?.id || 0,
+      notaPreseleccionada: this.data.nota?.id || 0,
+      cantidadMaxima: cantidadDisponible,
+      itemToReject: item // Ítem específico a rechazar
+    },
+    disableClose: true
+  });
+
+  dialogRef.afterClosed().subscribe(result => {
+    if (result && result.success) {
+      this.notificacionService.openSucess(result.message || 'Ítem rechazado exitosamente');
+      this.changesMade = true;
+      this.loadItems();
+    }
+  });
+}
+```
+
+### 8.2 Adaptación del RechazarItemDialogComponent
+
+**Ubicación:** `rechazar-item-dialog.component.ts`
+
+**Funcionalidad:** Reutilización del diálogo existente con parámetros adicionales para nota preseleccionada.
+
+#### 8.2.1 Nuevos Parámetros de Entrada
+
+```typescript
+export interface RechazarItemDialogData {
+  pedidoItem: PedidoItem;
+  notasDisponibles: NotaRecepcion[];
+  pedidoId: number;
+  notaPreseleccionada?: number; // ID de la nota preseleccionada (opcional)
+  cantidadMaxima?: number; // Cantidad máxima que se puede rechazar (opcional)
+  itemToReject?: NotaRecepcionItem; // Ítem específico a rechazar (para rechazo desde nota de recepción)
+}
+```
+
+#### 8.2.2 Propiedades del Componente
+
+```typescript
+// Propiedades para nota preseleccionada
+notaPreseleccionada: boolean = false;
+cantidadMaxima: number = 0;
+
+// Propiedades para el ítem a rechazar y sus distribuciones
+itemToReject: NotaRecepcionItem | null = null;
+distribucionesDelItem: any[] = [];
+tieneDistribuciones: boolean = false;
+
+constructor(...) {
+  this.notaPreseleccionada = !!this.data.notaPreseleccionada;
+  this.cantidadMaxima = this.data.cantidadMaxima || 0;
+  this.itemToReject = this.data.itemToReject || null;
+  // ...
+}
+```
+
+#### 8.2.3 Inicialización del Formulario
+
+```typescript
+private initializeForm(): void {
+  // Determinar la cantidad total a rechazar
+  let cantidadTotal = 0;
+  
+  if (this.itemToReject) {
+    // Si hay un ítem específico, usar su cantidad total
+    cantidadTotal = this.itemToReject.cantidadEnNota || 0;
+  } else if (this.notaPreseleccionada) {
+    // Si hay nota preseleccionada, usar la cantidad máxima especificada
+    cantidadTotal = this.cantidadMaxima;
+  } else {
+    // Caso normal: usar la cantidad pendiente del pedido
+    cantidadTotal = this.cantidadPendiente;
+  }
+  
+  this.form = this.fb.group({
+    notaRecepcionId: [this.data.notaPreseleccionada || null, Validators.required],
+    presentacionId: [null, Validators.required],
+    cantidadRechazada: [cantidadTotal, [Validators.required, Validators.min(0.01), Validators.max(cantidadTotal)]],
+    motivoRechazo: [null, Validators.required],
+    observaciones: ['']
+  });
+}
+```
+
+#### 8.2.4 Carga de Distribuciones
+
+```typescript
+ngOnInit(): void {
+  this.loadPresentaciones();
+  this.setupFormListeners();
+  
+  // Si hay un ítem específico a rechazar, cargar sus distribuciones
+  if (this.itemToReject) {
+    this.cargarDistribucionesDelItem();
+  }
+  
+  this.isInitializing = false;
+}
+
+private cargarDistribucionesDelItem(): void {
+  if (this.itemToReject?.id) {
+    this.pedidoService.onGetNotaRecepcionItemDistribucionesByNotaRecepcionItemId(this.itemToReject.id)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (distribuciones) => {
+          this.distribucionesDelItem = distribuciones;
+          this.tieneDistribuciones = distribuciones.length > 0;
+          
+          // Mostrar información sobre distribuciones si las hay
+          if (this.tieneDistribuciones) {
+            this.mostrarInfoDistribuciones();
+          }
+        },
+        error: (error) => {
+          console.error('Error al cargar distribuciones del ítem:', error);
+          this.distribucionesDelItem = [];
+          this.tieneDistribuciones = false;
+        }
+      });
+  }
+}
+```
+
+#### 8.2.5 Lógica de Guardado
+
+```typescript
+onGuardar(): void {
+  if (!this.canSave) {
+    this.markFormGroupTouched();
+    return;
+  }
+
+  const formValue = this.form.value;
+  
+  // Verificar si hay distribuciones que serán afectadas
+  if (this.tieneDistribuciones) {
+    this.dialogosService.confirm(
+      'Rechazar Ítem con Distribuciones',
+      `Este ítem tiene ${this.distribucionesDelItem.length} distribución(es). 
+       Al rechazar el ítem, todas las distribuciones serán automáticamente rechazadas.
+       ¿Desea continuar?`
+    ).subscribe(confirmed => {
+      if (confirmed) {
+        this.procesarRechazoCompleto(formValue);
+      }
+    });
+  } else {
+    this.procesarRechazoCompleto(formValue);
+  }
+}
+
+private procesarRechazoCompleto(formValue: any): void {
+  this.isLoading = true;
+
+  let notaRecepcionItem: NotaRecepcionItem;
+
+  if (this.itemToReject) {
+    // Si hay un ítem específico a rechazar, actualizar el ítem existente
+    notaRecepcionItem = Object.assign(new NotaRecepcionItem(), this.itemToReject);
+    notaRecepcionItem.estado = NotaRecepcionItemEstado.RECHAZADO;
+    notaRecepcionItem.motivoRechazo = formValue.motivoRechazo;
+    notaRecepcionItem.observacion = formValue.observaciones;
+  } else {
+    // Crear nuevo NotaRecepcionItem con estado RECHAZADO
+    notaRecepcionItem = new NotaRecepcionItem();
+    notaRecepcionItem.notaRecepcion = this.data.notasDisponibles.find(n => n.id === formValue.notaRecepcionId) || new NotaRecepcion();
+    notaRecepcionItem.pedidoItem = this.data.pedidoItem;
+    notaRecepcionItem.producto = this.data.pedidoItem.producto;
+    notaRecepcionItem.presentacionEnNota = this.presentacionSeleccionada;
+    notaRecepcionItem.cantidadEnNota = this.cantidadEnUnidadesBaseComputed;
+    notaRecepcionItem.precioUnitarioEnNota = this.data.pedidoItem.precioUnitarioSolicitado || 0;
+    notaRecepcionItem.esBonificacion = false;
+    notaRecepcionItem.vencimientoEnNota = this.data.pedidoItem.vencimientoEsperado;
+    notaRecepcionItem.observacion = formValue.observaciones;
+    notaRecepcionItem.estado = NotaRecepcionItemEstado.RECHAZADO;
+    notaRecepcionItem.motivoRechazo = formValue.motivoRechazo;
+  }
+
+  // Si hay nota preseleccionada, solo guardar el ítem
+  if (this.notaPreseleccionada) {
+    this.guardarItemYRechazarDistribuciones(notaRecepcionItem);
+  } else {
+    // Lógica existente para crear nuevas notas
+    // ...
+  }
+}
+
+private guardarItemYRechazarDistribuciones(notaRecepcionItem: NotaRecepcionItem): void {
+  // Primero guardar el ítem rechazado
+  this.pedidoService.onSaveNotaRecepcionItem(notaRecepcionItem.toInput())
+    .subscribe({
+      next: (itemGuardado) => {
+        // Si hay distribuciones, rechazarlas automáticamente
+        if (this.tieneDistribuciones) {
+          this.rechazarDistribucionesDelItem(itemGuardado.id);
+        } else {
+          this.finalizarRechazo(itemGuardado);
+        }
+      },
+      error: (error) => {
+        console.error('Error al guardar ítem rechazado:', error);
+        this.notificacionService.openAlgoSalioMal('Error al rechazar el ítem');
+        this.isLoading = false;
+      }
+    });
+}
+
+private rechazarDistribucionesDelItem(itemId: number): void {
+  // Rechazar todas las distribuciones del ítem
+  const promesasRechazo = this.distribucionesDelItem.map(distribucion => {
+    distribucion.estado = 'RECHAZADO';
+    distribucion.fechaRechazo = new Date();
+    distribucion.motivoRechazo = 'ITEM_RECHAZADO';
+    distribucion.observacion = 'Rechazado automáticamente al rechazar el ítem';
+    
+    return this.pedidoService.onSaveNotaRecepcionItemDistribucion(distribucion.toInput()).toPromise();
+  });
+
+  Promise.all(promesasRechazo)
+    .then(() => {
+      console.log(`${this.distribucionesDelItem.length} distribuciones rechazadas automáticamente`);
+      this.finalizarRechazo(null);
+    })
+    .catch(error => {
+      console.error('Error al rechazar distribuciones:', error);
+      this.notificacionService.openWarn('Ítem rechazado pero hubo errores al rechazar las distribuciones');
+      this.finalizarRechazo(null);
+    });
+}
+```
+
+#### 8.2.6 Template HTML Actualizado
+
+```html
+<!-- Información de contexto con advertencias sobre distribuciones -->
+<div class="context-info">
+  <div class="info-row">
+    <span class="info-label">Producto:</span>
+    <span class="info-value">{{ productoDisplay }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Cantidad Pendiente:</span>
+    <span class="info-value text-warning">{{ cantidadPendiente / (presentacionSeleccionada?.cantidad || 1) | number:'1.0-2' }} unidades</span>
+  </div>
+  
+  <!-- Información sobre distribuciones si hay un ítem específico a rechazar -->
+  <div class="info-row" *ngIf="itemToReject">
+    <span class="info-label">Cantidad del Ítem:</span>
+    <span class="info-value text-danger">{{ itemToReject.cantidadEnNota | number:'1.0-2' }} unidades</span>
+  </div>
+  
+  <!-- Advertencia sobre distribuciones -->
+  <div class="info-row warning-box" *ngIf="tieneDistribuciones">
+    <mat-icon class="warning-icon">warning</mat-icon>
+    <div class="warning-content">
+      <strong>⚠️ Atención:</strong> Este ítem tiene {{ distribucionesDelItem.length }} distribución(es).
+      <br>Todas las distribuciones serán automáticamente rechazadas al rechazar el ítem.
+    </div>
+  </div>
+</div>
+
+<!-- Campo de cantidad de solo lectura cuando hay ítem específico -->
+<input
+  matInput
+  type="number"
+  formControlName="cantidadRechazada"
+  placeholder="Ingrese la cantidad a rechazar"
+  min="0.01"
+  [max]="notaPreseleccionada ? cantidadMaxima : cantidadPendiente"
+  step="0.01"
+  (keydown)="onCantidadKeydown($event)"
+  [readonly]="hasItemToReject"
+/>
+```
+
+#### 8.2.7 Corrección de Cálculo de Cantidad por Presentación
+
+**Problema identificado:** Al rechazar un ítem desde el diálogo de nota de recepción, la cantidad mostrada era en unidades base en lugar de por presentación.
+
+**Ejemplo del problema:**
+- Ítem con 30 unidades base
+- Presentación de 6 unidades
+- Cantidad mostrada: 30 (incorrecto)
+- Cantidad correcta: 5 (30 ÷ 6)
+
+**Solución implementada:**
+
+```typescript
+// 1. Inicialización del formulario sin cantidad
+private initializeForm(): void {
+  // Determinar la cantidad total a rechazar (en unidades base)
+  let cantidadTotalEnUnidadesBase = 0;
+  
+  if (this.itemToReject) {
+    cantidadTotalEnUnidadesBase = this.itemToReject.cantidadEnNota || 0;
+  } else if (this.notaPreseleccionada) {
+    cantidadTotalEnUnidadesBase = this.cantidadMaxima;
+  } else {
+    cantidadTotalEnUnidadesBase = this.cantidadPendiente;
+  }
+  
+  this.form = this.fb.group({
+    notaRecepcionId: [this.data.notaPreseleccionada || null, Validators.required],
+    presentacionId: [null, Validators.required],
+    cantidadRechazada: [null, [Validators.required, Validators.min(0.01)]], // Se actualizará después
+    motivoRechazo: [null, Validators.required],
+    observaciones: ['']
+  });
+
+  // Guardar la cantidad en unidades base para usarla después
+  this.cantidadEnUnidadesBaseComputed = cantidadTotalEnUnidadesBase;
+}
+
+// 2. Cálculo correcto después de cargar presentaciones
+private loadPresentaciones(): void {
+  // ... carga de presentaciones ...
+  
+  // Calcular la cantidad por presentación
+  let cantidadPorPresentacion = 0;
+  if (this.presentacionSeleccionada && this.presentacionSeleccionada.cantidad > 0) {
+    cantidadPorPresentacion = this.cantidadEnUnidadesBaseComputed / this.presentacionSeleccionada.cantidad;
+  } else {
+    cantidadPorPresentacion = this.cantidadEnUnidadesBaseComputed;
+  }
+  
+  // Actualizar el formulario con la cantidad calculada
+  this.form.patchValue({
+    presentacionId: this.presentacionSeleccionada?.id,
+    cantidadRechazada: cantidadPorPresentacion
+  });
+}
+
+// 3. Listener para cambios de presentación
+private setupFormListeners(): void {
+  // ... listeners existentes ...
+
+  // Listener específico para cambios en presentación
+  this.form.get('presentacionId')?.valueChanges
+    .pipe(untilDestroyed(this))
+    .subscribe((presentacionId) => {
+      if (presentacionId && this.hasItemToReject) {
+        // Recalcular cantidad cuando cambia la presentación
+        const presentacion = this.presentacionesDisponibles.find(p => p.id === presentacionId);
+        if (presentacion && presentacion.cantidad > 0) {
+          const cantidadPorPresentacion = this.cantidadEnUnidadesBaseComputed / presentacion.cantidad;
+          this.form.patchValue({
+            cantidadRechazada: cantidadPorPresentacion
+          }, { emitEvent: false });
+        }
+      }
+    });
+}
+```
+
+**Flujo de trabajo corregido:**
+
+1. **Inicialización:** Se guarda la cantidad en unidades base
+2. **Carga de presentaciones:** Se calcula la cantidad por presentación
+3. **Actualización del formulario:** Se muestra la cantidad correcta
+4. **Cambio de presentación:** Se recalcula automáticamente la cantidad
+
+**Resultado:** Ahora la cantidad mostrada es correcta según la presentación seleccionada.
+
+#### 8.2.8 Corrección de Detección de Estado de Ítems Rechazados
+
+**Problema identificado:** Después de rechazar un ítem desde el diálogo de nota de recepción, la tabla de ítems no reflejaba el estado "Rechazado" del ítem individual.
+
+**Causa del problema:** Los métodos de detección de estado (`getItemEstadoChipClassInternal`, `getItemEstadoDisplayNameInternal`, `getRowColorClassInternal`) solo manejaban valores del enum `NotaRecepcionItemEstado`, pero cuando los datos vienen del backend, el estado puede llegar como string.
+
+**Solución implementada:**
+
+```typescript
+// 1. Actualizar métodos para manejar tanto enum como string
+private getItemEstadoChipClassInternal(estado: NotaRecepcionItemEstado | string): string {
+  // Convertir a string para comparación
+  const estadoStr = estado?.toString() || '';
+  
+  switch (estadoStr) {
+    case NotaRecepcionItemEstado.CONCILIADO:
+    case 'CONCILIADO':
+      return 'estado-activo';
+    case NotaRecepcionItemEstado.RECHAZADO:
+    case 'RECHAZADO':
+      return 'estado-cancelado';
+    case NotaRecepcionItemEstado.DISCREPANCIA:
+    case 'DISCREPANCIA':
+      return 'estado-pendiente';
+    default:
+      return 'estado-pendiente';
+  }
+}
+
+private getItemEstadoDisplayNameInternal(estado: NotaRecepcionItemEstado | string): string {
+  // Convertir a string para comparación
+  const estadoStr = estado?.toString() || '';
+  
+  switch (estadoStr) {
+    case NotaRecepcionItemEstado.CONCILIADO:
+    case 'CONCILIADO':
+      return 'Conciliado';
+    case NotaRecepcionItemEstado.RECHAZADO:
+    case 'RECHAZADO':
+      return 'Rechazado';
+    case NotaRecepcionItemEstado.DISCREPANCIA:
+    case 'DISCREPANCIA':
+      return 'Discrepancia';
+    default:
+      return estadoStr || 'Pendiente';
+  }
+}
+
+private getRowColorClassInternal(estado: NotaRecepcionItemEstado | string): string {
+  // Convertir a string para comparación
+  const estadoStr = estado?.toString() || '';
+  
+  switch (estadoStr) {
+    case NotaRecepcionItemEstado.CONCILIADO:
+    case 'CONCILIADO':
+      return 'row-conciliado';
+    case NotaRecepcionItemEstado.RECHAZADO:
+    case 'RECHAZADO':
+      return 'row-rechazado';
+    case NotaRecepcionItemEstado.DISCREPANCIA:
+    case 'DISCREPANCIA':
+      return 'row-discrepancia';
+    default:
+      return 'row-pendiente';
+  }
+}
+
+// 2. Agregar debugging para verificar valores de estado
+private updateItemsComputedData(): void {
+  this.computedItemsData = this.itemsDataSource.data.map(item => {
+    // Debug: mostrar el estado del ítem
+    console.log(`Item ${item.id} - Producto: ${item.producto?.descripcion} - Estado:`, item.estado, 'Tipo:', typeof item.estado);
+    
+    return {
+      ...item,
+      // ... resto de propiedades computadas
+      estadoChipClass: this.getItemEstadoChipClassInternal(item.estado),
+      estadoDisplayName: this.getItemEstadoDisplayNameInternal(item.estado),
+      rowColorClass: this.getRowColorClassInternal(item.estado),
+      // ... resto de propiedades
+    };
+  });
+}
+```
+
+**Cambios realizados:**
+
+1. **Manejo dual de tipos:** Los métodos ahora aceptan tanto `NotaRecepcionItemEstado` como `string`
+2. **Conversión a string:** Se convierte el valor a string para comparación consistente
+3. **Casos duplicados:** Se manejan tanto los valores del enum como los strings literales
+4. **Debugging:** Se agregó logging para verificar qué valores de estado llegan del backend
+5. **Valores por defecto:** Se mejoró el manejo de valores nulos o indefinidos
+
+**Resultado:** Ahora la tabla de ítems muestra correctamente el estado "Rechazado" para los ítems rechazados, independientemente de si el estado viene como enum o como string desde el backend.
+
+#### 8.2.9 Corrección de Visualización de Ítems Rechazados en Tabla
+
+**Problema identificado:** Los ítems rechazados no mostraban correctamente el estado "Rechazado" en la columna de distribución y los botones del menú de acciones no se deshabilitaban para ítems rechazados individuales.
+
+**Causa del problema:** 
+1. La lógica de `distribucionStatusTextComputed` solo verificaba si toda la nota era de rechazo (`esNotaRechazoComputed`), no si el ítem individual estaba rechazado
+2. Los botones del menú de acciones solo se deshabilitaban para notas de rechazo completas, no para ítems rechazados individuales
+
+**Solución implementada:**
+
+```typescript
+// 1. Corregir lógica de estado de distribución para ítems individuales
+private updateItemsComputedData(): void {
+  this.computedItemsData = this.itemsDataSource.data.map(item => {
+    return {
+      ...item,
+      // ... otras propiedades
+      distribucionStatusTextComputed: this.esNotaRechazoComputed || item.estado === 'RECHAZADO' ? 'Rechazado' : (item.distribucionConcluida ? 'Completa' : 'Pendiente'),
+      distribucionStatusClassComputed: this.esNotaRechazoComputed || item.estado === 'RECHAZADO' ? 'estado-cancelado' : (item.distribucionConcluida ? 'estado-activo' : 'estado-pendiente'),
+      // ... resto de propiedades
+    };
+  });
+}
+```
+
+```html
+<!-- 2. Deshabilitar botones del menú para ítems rechazados individuales -->
+<mat-menu #itemMenu="matMenu">
+  <button mat-menu-item (click)="onEditItem(item)" [disabled]="esNotaRechazoComputed || item.estado === 'RECHAZADO'">
+    <mat-icon>edit</mat-icon>
+    Editar
+  </button>
+  <button mat-menu-item (click)="onDistributeItem(item)" [disabled]="esNotaRechazoComputed || item.estado === 'RECHAZADO'">
+    <mat-icon>account_tree</mat-icon>
+    Distribuir
+  </button>
+  <button mat-menu-item (click)="onRechazarItem(item)" [disabled]="esNotaRechazoComputed || item.estado === 'RECHAZADO'">
+    <mat-icon>cancel</mat-icon>
+    Rechazar
+  </button>
+  <button mat-menu-item (click)="onDeleteItem(item)">
+    <mat-icon>delete</mat-icon>
+    Eliminar
+  </button>
+</mat-menu>
+```
+
+**Cambios realizados:**
+
+1. **Lógica de estado de distribución:** Ahora verifica tanto `esNotaRechazoComputed` como `item.estado === 'RECHAZADO'`
+2. **Botones del menú:** Se deshabilitan para ítems rechazados individuales, no solo para notas de rechazo completas
+3. **Consistencia visual:** Los ítems rechazados muestran "Rechazado" con chip rojo en la columna de distribución
+4. **Acciones permitidas:** Solo el botón "Eliminar" permanece habilitado para ítems rechazados
+
+**Resultado:** 
+- Los ítems rechazados muestran correctamente "Rechazado" en la columna de distribución con chip rojo
+- Los botones "Editar", "Distribuir" y "Rechazar" se deshabilitan para ítems rechazados
+- Solo el botón "Eliminar" permanece habilitado para ítems rechazados
+- La interfaz es consistente y clara sobre qué acciones están disponibles
+
+### 8.3 Ventajas de la Implementación
+
+1. **Reutilización de Código:** Aprovecha el diálogo existente sin duplicar funcionalidad
+2. **Consistencia de UX:** Mantiene la misma experiencia de usuario para rechazar ítems
+3. **Flexibilidad:** El diálogo funciona tanto para rechazar desde pedido como desde nota de recepción
+4. **Validaciones Robustas:** Mantiene todas las validaciones existentes
+5. **Interfaz Adaptativa:** Se adapta automáticamente según el contexto de uso
+
+### 8.4 Flujo de Usuario
+
+1. Usuario abre diálogo de edición de nota de recepción
+2. Selecciona un ítem y hace clic en "Rechazar" en el menú de acciones
+3. Se abre el diálogo de rechazo con la nota preseleccionada y no editable
+4. Usuario completa motivo de rechazo y observaciones
+5. Al guardar, se crea el ítem rechazado en la nota de recepción actual
+6. Se actualiza la tabla de ítems mostrando el estado "Rechazado"
+
+### 8.5 Restricciones de Seguridad
+
+- No se pueden rechazar ítems de notas de rechazo
+- No se pueden rechazar ítems que ya están rechazados
+- No se pueden rechazar ítems sin guardar
+- La cantidad rechazada no puede exceder la cantidad disponible en el ítem
+
+### 8.6 Regla de Negocio: Rechazo de Ítems y Distribuciones
+
+#### 8.6.1 Regla Principal
+
+**"Cuando se rechaza un ítem a nivel de recepción documental, TODAS las distribuciones vinculadas a ese ítem deben ser automáticamente rechazadas."**
+
+#### 8.6.2 Justificación de la Regla
+
+1. **Consistencia de Datos:** Un ítem rechazado no puede tener distribuciones activas en sucursales
+2. **Trazabilidad Completa:** Mantiene el historial de qué se rechazó y dónde estaba distribuido
+3. **Prevención de Errores:** Evita que se procesen ítems rechazados en inventarios
+4. **Integridad del Negocio:** Un ítem rechazado por calidad/condiciones no debe estar disponible para venta
+
+#### 8.6.3 Rechazo Parcial
+
+**Regla:** "No se puede rechazar parcialmente un ítem. Si el usuario necesita rechazar solo una parte, debe dividir el ítem previamente y luego rechazar la parte específica."
+
+**Proceso para Rechazo Parcial:**
+1. Usuario identifica que necesita rechazar solo una parte del ítem
+2. Usuario divide el ítem original en dos ítems separados
+3. Usuario rechaza únicamente el ítem que contiene la parte problemática
+4. El ítem restante mantiene sus distribuciones intactas
+
+#### 8.6.4 Implementación Técnica Requerida
+
+```typescript
+// Al rechazar un ítem, verificar y rechazar todas sus distribuciones
+private rechazarDistribucionesDelItem(itemId: number): void {
+  // 1. Buscar todas las distribuciones del ítem
+  this.pedidoService.onGetNotaRecepcionItemDistribucionesByNotaRecepcionItemId(itemId)
+    .subscribe(distribuciones => {
+      
+      // 2. Rechazar cada distribución
+      distribuciones.forEach(distribucion => {
+        distribucion.estado = 'RECHAZADO';
+        distribucion.fechaRechazo = new Date();
+        distribucion.motivoRechazo = 'ITEM_RECHAZADO';
+        
+        // 3. Guardar distribución rechazada
+        this.pedidoService.onSaveNotaRecepcionItemDistribucion(distribucion.toInput())
+          .subscribe(result => {
+            console.log(`Distribución ${distribucion.id} rechazada automáticamente`);
+          });
+      });
+    });
+}
+
+// Método principal de rechazo de ítem
+onRechazarItem(item: NotaRecepcionItem): void {
+  // ... validaciones existentes ...
+  
+  // Verificar si el ítem tiene distribuciones
+  if (item.distribuciones && item.distribuciones.length > 0) {
+    // Mostrar advertencia al usuario
+    this.dialogosService.confirm(
+      'Rechazar Ítem con Distribuciones',
+      `Este ítem tiene ${item.distribuciones.length} distribución(es). 
+       Al rechazar el ítem, todas las distribuciones serán automáticamente rechazadas.
+       ¿Desea continuar?`
+    ).subscribe(confirmed => {
+      if (confirmed) {
+        this.procesarRechazoCompleto(item);
+      }
+    });
+  } else {
+    this.procesarRechazoCompleto(item);
+  }
+}
+
+private procesarRechazoCompleto(item: NotaRecepcionItem): void {
+  // 1. Rechazar el ítem
+  // 2. Rechazar todas las distribuciones
+  // 3. Actualizar inventarios si es necesario
+}
+```
+
+#### 8.6.5 Validaciones en la UI
+
+```typescript
+// En el diálogo de rechazo, mostrar información sobre distribuciones
+private mostrarInfoDistribuciones(item: NotaRecepcionItem): void {
+  if (item.distribuciones && item.distribuciones.length > 0) {
+    const distribucionesInfo = item.distribuciones.map(d => 
+      `${d.sucursal.nombre}: ${d.cantidadDistribuida} unidades`
+    ).join('\n');
+    
+    this.notificacionService.openInfo(
+      `Este ítem tiene distribuciones activas:\n${distribucionesInfo}\n\nTodas serán rechazadas automáticamente.`
+    );
+  }
+}
+```
+
+#### 8.6.6 Casos de Uso
+
+**Caso 1: Rechazo Total de Ítem**
+- Usuario rechaza un ítem completo
+- Sistema rechaza automáticamente todas las distribuciones
+- Resultado: Ítem y distribuciones marcadas como rechazadas
+
+**Caso 2: Rechazo Parcial (Requiere División)**
+- Usuario identifica que solo 50% del ítem está malo
+- Usuario divide el ítem en dos: uno de 50% bueno, otro de 50% malo
+- Usuario rechaza solo el ítem del 50% malo
+- Resultado: Un ítem rechazado, otro ítem con distribuciones intactas
+
+**Caso 3: Ítem Sin Distribuciones**
+- Usuario rechaza un ítem que no tiene distribuciones
+- Sistema rechaza solo el ítem
+- Resultado: Ítem marcado como rechazado
+
+#### 8.6.7 Beneficios de la Regla
+
+1. **Integridad de Datos:** Garantiza consistencia entre ítems y distribuciones
+2. **Auditoría Clara:** Mantiene trazabilidad completa de rechazos
+3. **Prevención de Errores:** Evita procesamiento de ítems rechazados
+4. **Flexibilidad Controlada:** Permite rechazo parcial mediante división explícita
+5. **Cumplimiento Normativo:** Facilita reportes de calidad y rechazos
+
+#### 8.6.8 Consideraciones de Implementación
+
+- **Performance:** El rechazo automático de distribuciones debe ser eficiente
+- **Transaccionalidad:** Todo el proceso debe ser atómico (todo o nada)
+- **Notificaciones:** Informar al usuario sobre las distribuciones afectadas
+- **Rollback:** Permitir deshacer el rechazo si es necesario
+- **Reportes:** Generar reportes de rechazos incluyendo distribuciones afectadas

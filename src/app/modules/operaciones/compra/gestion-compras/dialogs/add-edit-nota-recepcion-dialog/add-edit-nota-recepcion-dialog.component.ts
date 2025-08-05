@@ -1,6 +1,6 @@
 import { Component, Inject, OnInit, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialog } from '@angular/material/dialog';
 import { MatButton } from '@angular/material/button';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator } from '@angular/material/paginator';
@@ -14,11 +14,25 @@ import { Moneda } from '../../../../../financiero/moneda/moneda.model';
 import { MonedaService } from '../../../../../financiero/moneda/moneda.service';
 import { PedidoService } from '../../../pedido.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
+import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
+import { EditNotaRecepcionItemDialogComponent } from '../edit-nota-recepcion-item-dialog/edit-nota-recepcion-item-dialog.component';
+import { DistributeNotaRecepcionItemDialogComponent } from '../distribute-nota-recepcion-item-dialog/distribute-nota-recepcion-item-dialog.component';
+import { RechazarItemDialogComponent } from '../rechazar-item-dialog/rechazar-item-dialog.component';
 
 export interface AddEditNotaRecepcionDialogData {
   nota?: NotaRecepcion;
   pedido?: Pedido;
   isEdit: boolean;
+  // Nuevos campos para asignación automática de ítems
+  selectedItemsToAssign?: any[]; // MockPedidoItem[] from parent component
+  autoAssignItems?: boolean; // Flag para indicar si debe asignar ítems automáticamente
+}
+
+export interface AddEditNotaRecepcionDialogResult {
+  success: boolean;
+  message?: string;
+  changesMade: boolean;
+  operation?: 'created' | 'updated' | 'deleted_item' | 'no_changes';
 }
 
 @Component({
@@ -48,7 +62,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
 
   // Propiedades para la tabla de ítems
   itemsDataSource = new MatTableDataSource<NotaRecepcionItem>([]);
-  displayedColumns: string[] = ['producto', 'presentacion', 'cantidad', 'precio', 'subtotal', 'vencimiento', 'acciones'];
+  displayedColumns: string[] = ['producto', 'presentacion', 'cantidad', 'precio', 'subtotal', 'vencimiento', 'distribucion', 'acciones'];
 
   // PROPIEDADES COMPUTADAS - NO usar funciones en templates
   // Error states para cada campo
@@ -76,12 +90,30 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   estadoChipClass: string = '';
   pagadoDisplayText: string = '';
   pagadoChipClass: string = '';
+  
+  // Propiedades para notas de rechazo
+  esNotaRechazoComputed: boolean = false;
+  notaRechazoDisplayText: string = '';
+  notaRechazoChipClass: string = '';
 
   // Propiedades computadas para items (se actualizan cuando cambia itemsDataSource)
   computedItemsData: any[] = [];
 
+  // Propiedades para asignación automática
+  assignmentStatusText: string = '';
+  assignmentStatusClass: string = '';
+  showAssignmentStatus: boolean = false;
+
   // Bandera para saber si ya se creó la nota
   private notaCreada: boolean = false;
+  
+  // Bandera para rastrear si se hicieron cambios en el diálogo
+  private changesMade: boolean = false;
+  
+  // Propiedades para asignación automática de ítems
+  private selectedItemsToAssign: any[] = [];
+  private autoAssignItems: boolean = false;
+  private assigningItems: boolean = false;
   
   // Subject para manejo de memoria
   private destroy$ = new Subject<void>();
@@ -101,11 +133,22 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     private formBuilder: FormBuilder,
     private monedaService: MonedaService,
     private pedidoService: PedidoService,
-    private notificacionService: NotificacionSnackbarService
+    private notificacionService: NotificacionSnackbarService,
+    private dialogosService: DialogosService,
+    private dialog: MatDialog
   ) {
     this.dialogTitle = data.isEdit ? 'Editar Nota de Recepción' : 'Nueva Nota de Recepción';
     this.actionButtonText = data.isEdit ? 'Actualizar' : 'Crear';
     this.notaCreada = false;
+    
+    // Inicializar propiedades para asignación automática
+    this.selectedItemsToAssign = data.selectedItemsToAssign || [];
+    this.autoAssignItems = data.autoAssignItems || false;
+    
+    // Ajustar título si se van a asignar ítems automáticamente
+    if (this.autoAssignItems && this.selectedItemsToAssign.length > 0) {
+      this.dialogTitle = `Nueva Nota de Recepción (${this.selectedItemsToAssign.length} ítems seleccionados)`;
+    }
   }
 
   private loadMonedas(): void {
@@ -137,6 +180,11 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     this.setupKeyboardNavigation();
     this.loadItems();
     this.updateComputedProperties();
+    
+    // Si es nota de rechazo, deshabilitar el formulario
+    if (this.data.nota?.esNotaRechazo) {
+      this.notaRecepcionForm.disable();
+    }
   }
 
   ngOnDestroy(): void {
@@ -355,6 +403,9 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     
     // Actualizar datos computados de items
     this.updateItemsComputedData();
+    
+    // Actualizar estado de asignación automática
+    this.updateAssignmentStatus();
   }
 
   private updateErrorStates(): void {
@@ -407,24 +458,55 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     const pagadoValue = this.notaRecepcionForm.get('pagado')?.value;
     this.pagadoDisplayText = pagadoValue ? 'Sí' : 'No';
     this.pagadoChipClass = pagadoValue ? 'true' : 'false';
+    
+    // Propiedades para notas de rechazo
+    this.esNotaRechazoComputed = this.data.nota?.esNotaRechazo || false;
+    this.notaRechazoDisplayText = this.esNotaRechazoComputed ? 'Nota de Rechazo' : '';
+    this.notaRechazoChipClass = this.esNotaRechazoComputed ? 'estado-cancelado' : '';
   }
 
   private updateItemsComputedData(): void {
-    this.computedItemsData = this.itemsDataSource.data.map(item => ({
-      ...item,
-      productoNombre: item.producto?.descripcion || item.pedidoItem?.producto?.descripcion || 'Producto no especificado',
-      presentacionDisplay: item.presentacionEnNota?.descripcion || '',
-      presentacionCantidad: item.presentacionEnNota?.cantidad || 1,
-      cantidadDisplay: item.cantidadEnNota || 0,
-      cantidadPorPresentacion: item.presentacionEnNota?.cantidad ? (item.cantidadEnNota || 0) / item.presentacionEnNota.cantidad : item.cantidadEnNota || 0,
-      precioDisplay: item.precioUnitarioEnNota || 0,
-      subtotalDisplay: (item.cantidadEnNota || 0) * (item.precioUnitarioEnNota || 0),
-      estadoChipClass: this.getItemEstadoChipClassInternal(item.estado),
-      estadoDisplayName: this.getItemEstadoDisplayNameInternal(item.estado),
-      vencimientoDisplay: item.vencimientoEnNota ? this.formatDate(new Date(item.vencimientoEnNota)) : 'N/A',
-      esBonificacionDisplay: item.esBonificacion ? 'Sí' : 'No',
-      rowColorClass: this.getRowColorClassInternal(item.estado)
-    }));
+    this.computedItemsData = this.itemsDataSource.data.map(item => {
+      // Debug: mostrar el estado del ítem
+      console.log(`Item ${item.id} - Producto: ${item.producto?.descripcion} - Estado:`, item.estado, 'Tipo:', typeof item.estado);
+      
+      return {
+        ...item,
+        productoNombre: item.producto?.descripcion || item.pedidoItem?.producto?.descripcion || 'Producto no especificado',
+        presentacionDisplay: item.presentacionEnNota?.descripcion || '',
+        presentacionCantidad: item.presentacionEnNota?.cantidad || 1,
+        cantidadDisplay: item.cantidadEnNota || 0,
+        cantidadPorPresentacion: item.presentacionEnNota?.cantidad ? (item.cantidadEnNota || 0) / item.presentacionEnNota.cantidad : item.cantidadEnNota || 0,
+        precioDisplay: item.precioUnitarioEnNota || 0,
+        subtotalDisplay: (item.cantidadEnNota || 0) * (item.precioUnitarioEnNota || 0),
+        estadoChipClass: this.getItemEstadoChipClassInternal(item.estado),
+        estadoDisplayName: this.getItemEstadoDisplayNameInternal(item.estado),
+        vencimientoDisplay: item.vencimientoEnNota ? this.formatDate(new Date(item.vencimientoEnNota)) : 'N/A',
+        esBonificacionDisplay: item.esBonificacion ? 'Sí' : 'No',
+        rowColorClass: this.getRowColorClassInternal(item.estado),
+        // Nuevos campos de distribución
+        distribucionStatusTextComputed: this.esNotaRechazoComputed || item.estado === 'RECHAZADO' ? 'Rechazado' : (item.distribucionConcluida ? 'Completa' : 'Pendiente'),
+        distribucionStatusClassComputed: this.esNotaRechazoComputed || item.estado === 'RECHAZADO' ? 'estado-cancelado' : (item.distribucionConcluida ? 'estado-activo' : 'estado-pendiente'),
+        cantidadPendienteComputed: item.cantidadPendiente || 0
+      };
+    });
+  }
+
+  private updateAssignmentStatus(): void {
+    this.showAssignmentStatus = this.autoAssignItems && this.selectedItemsToAssign.length > 0;
+    
+    if (this.showAssignmentStatus) {
+      if (this.assigningItems) {
+        this.assignmentStatusText = `Asignando ${this.selectedItemsToAssign.length} ítems...`;
+        this.assignmentStatusClass = 'estado-pendiente';
+      } else {
+        this.assignmentStatusText = `${this.selectedItemsToAssign.length} ítems serán asignados automáticamente`;
+        this.assignmentStatusClass = 'estado-activo';
+      }
+    } else {
+      this.assignmentStatusText = '';
+      this.assignmentStatusClass = '';
+    }
   }
 
   // Métodos internos para computar valores (NO usar en templates)
@@ -466,34 +548,58 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     }
   }
 
-  private getItemEstadoChipClassInternal(estado: NotaRecepcionItemEstado): string {
-    switch (estado) {
+  private getItemEstadoChipClassInternal(estado: NotaRecepcionItemEstado | string): string {
+    // Convertir a string para comparación
+    const estadoStr = estado?.toString() || '';
+    
+    switch (estadoStr) {
       case NotaRecepcionItemEstado.CONCILIADO:
+      case 'CONCILIADO':
         return 'estado-activo';
       case NotaRecepcionItemEstado.RECHAZADO:
+      case 'RECHAZADO':
         return 'estado-cancelado';
+      case NotaRecepcionItemEstado.DISCREPANCIA:
+      case 'DISCREPANCIA':
+        return 'estado-pendiente';
       default:
         return 'estado-pendiente';
     }
   }
 
-  private getItemEstadoDisplayNameInternal(estado: NotaRecepcionItemEstado): string {
-    switch (estado) {
+  private getItemEstadoDisplayNameInternal(estado: NotaRecepcionItemEstado | string): string {
+    // Convertir a string para comparación
+    const estadoStr = estado?.toString() || '';
+    
+    switch (estadoStr) {
       case NotaRecepcionItemEstado.CONCILIADO:
+      case 'CONCILIADO':
         return 'Conciliado';
       case NotaRecepcionItemEstado.RECHAZADO:
+      case 'RECHAZADO':
         return 'Rechazado';
+      case NotaRecepcionItemEstado.DISCREPANCIA:
+      case 'DISCREPANCIA':
+        return 'Discrepancia';
       default:
-        return estado || '';
+        return estadoStr || 'Pendiente';
     }
   }
 
-  private getRowColorClassInternal(estado: NotaRecepcionItemEstado): string {
-    switch (estado) {
+  private getRowColorClassInternal(estado: NotaRecepcionItemEstado | string): string {
+    // Convertir a string para comparación
+    const estadoStr = estado?.toString() || '';
+    
+    switch (estadoStr) {
       case NotaRecepcionItemEstado.CONCILIADO:
+      case 'CONCILIADO':
         return 'row-conciliado';
       case NotaRecepcionItemEstado.RECHAZADO:
+      case 'RECHAZADO':
         return 'row-rechazado';
+      case NotaRecepcionItemEstado.DISCREPANCIA:
+      case 'DISCREPANCIA':
+        return 'row-discrepancia';
       default:
         return 'row-pendiente';
     }
@@ -501,25 +607,271 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
 
   // Métodos para manejo de ítems
   onAddItem(): void {
-    // TODO: Implementar diálogo para agregar ítem
-    console.log('Agregar ítem');
+    // No permitir agregar ítems si es nota de rechazo
+    if (this.esNotaRechazoComputed) {
+      this.notificacionService.openAlgoSalioMal('No se pueden agregar ítems a una nota de rechazo');
+      return;
+    }
+    
+    // Verificar que la nota esté creada
+    if (!this.data.nota?.id) {
+      this.notificacionService.openAlgoSalioMal('Debe guardar la nota antes de agregar ítems');
+      return;
+    }
+
+    // Abrir diálogo para agregar nuevo ítem
+    const dialogRef = this.dialog.open(EditNotaRecepcionItemDialogComponent, {
+      width: '70%',
+      height: '70%',
+      data: {
+        notaRecepcionId: this.data.nota.id,
+        isNewItem: true
+      },
+      disableClose: true
+    });
+
+    // Manejar resultado del diálogo
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        console.log('Ítem agregado:', result);
+        this.notificacionService.openSucess('Ítem agregado exitosamente');
+        // Recargar la tabla de ítems
+        this.loadItems();
+      }
+    });
   }
 
   onEditItem(item: NotaRecepcionItem): void {
-    // TODO: Implementar diálogo para editar ítem
+    // No permitir editar ítems si es nota de rechazo
+    if (this.esNotaRechazoComputed) {
+      this.notificacionService.openAlgoSalioMal('No se pueden editar ítems de una nota de rechazo');
+      return;
+    }
+    
     console.log('Editar ítem', item);
+    
+    // Abrir diálogo de edición
+    const dialogRef = this.dialog.open(EditNotaRecepcionItemDialogComponent, {
+      width: '70%',
+      height: '70%',
+      data: {
+        item: item,
+        notaRecepcionId: this.data.nota?.id || 0
+      },
+      disableClose: true
+    });
+
+    // Manejar resultado del diálogo
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        console.log('Ítem actualizado:', result);
+        this.notificacionService.openSucess('Ítem actualizado exitosamente');
+        // Recargar la tabla de ítems
+        this.loadItems();
+      }
+    });
   }
 
   onDeleteItem(item: NotaRecepcionItem): void {
-    // TODO: Implementar confirmación y eliminación
-    console.log('Eliminar ítem', item);
+    console.log('onDeleteItem llamado con:', item);
+    
+    // Mostrar confirmación antes de eliminar (usando patrón simple)
+    this.dialogosService.confirm(
+      'Eliminar Ítem',
+      `¿Está seguro de que desea eliminar el ítem "${item.producto?.descripcion || 'Producto'}"?`
+    ).subscribe(confirmed => {
+      console.log('Resultado del diálogo de confirmación:', confirmed);
+      if (confirmed) {
+        console.log('Usuario confirmó eliminación, llamando deleteItem');
+        this.deleteItem(item);
+      } else {
+        console.log('Usuario canceló eliminación');
+      }
+    });
+  }
+
+  private deleteItem(item: NotaRecepcionItem): void {
+    console.log('deleteItem llamado con:', item);
+    
+    if (!item.id) {
+      console.log('Ítem sin ID, no se puede eliminar');
+      this.notificacionService.openAlgoSalioMal('No se puede eliminar un ítem sin ID');
+      return;
+    }
+
+    console.log('Eliminando ítem con ID:', item.id);
+
+    // Llamar servicio para eliminar
+    this.pedidoService.onDeleteNotaRecepcionItem(item.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (success) => {
+          console.log('Respuesta del servicio de eliminación:', success);
+          if (success) {
+            this.notificacionService.openSucess('Ítem eliminado exitosamente');
+            // Marcar que se hicieron cambios
+            this.changesMade = true;
+            // Recargar la tabla de ítems
+            this.loadItems();
+          } else {
+            this.notificacionService.openAlgoSalioMal('No se pudo eliminar el ítem');
+          }
+        },
+        error: (error) => {
+          console.error('Error al eliminar ítem:', error);
+          this.notificacionService.openAlgoSalioMal('Error al eliminar el ítem');
+        }
+      });
+  }
+
+  onDistributeItem(item: NotaRecepcionItem): void {
+    // No permitir distribuir ítems si es nota de rechazo
+    if (this.esNotaRechazoComputed) {
+      this.notificacionService.openAlgoSalioMal('No se pueden distribuir ítems de una nota de rechazo');
+      return;
+    }
+    
+    // Verificar que el ítem tenga ID (esté guardado)
+    if (!item.id) {
+      this.notificacionService.openAlgoSalioMal('Debe guardar el ítem antes de poder distribuirlo');
+      return;
+    }
+
+    console.log('Abriendo diálogo de distribución para item:', item);
+    console.log('Item ID:', item.id);
+
+    // Cargar las distribuciones existentes del ítem
+    this.pedidoService.onGetNotaRecepcionItemDistribucionesByNotaRecepcionItemId(item.id).subscribe({
+      next: (distribuciones) => {
+        console.log('Distribuciones cargadas:', distribuciones);
+        
+        // Cargar las sucursales del pedido
+        const sucursalesInfluencia = this.data.pedido?.sucursalInfluenciaList?.map(psi => psi.sucursal) || [];
+        const sucursalesEntrega = this.data.pedido?.sucursalEntregaList?.map(pse => pse.sucursal) || [];
+        
+        console.log('Sucursales de influencia:', sucursalesInfluencia);
+        console.log('Sucursales de entrega:', sucursalesEntrega);
+
+        // Abrir el diálogo de distribución
+        const dialogRef = this.dialog.open(DistributeNotaRecepcionItemDialogComponent, {
+          width: '80%',
+          height: '80%',
+          data: {
+            item: item,
+            distribuciones: distribuciones,
+            sucursalesInfluencia: sucursalesInfluencia,
+            sucursalesEntrega: sucursalesEntrega,
+            title: `Distribuir: ${item.producto.descripcion}`
+          }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+          if (result && result.success) {
+            this.notificacionService.openSucess(result.message || 'Distribución actualizada correctamente');
+            // Recargar los ítems para actualizar el estado de distribución
+            this.loadItems();
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Error al cargar distribuciones:', error);
+        this.notificacionService.openAlgoSalioMal('Error al cargar las distribuciones: ' + error.message);
+      }
+    });
+  }
+
+  onRechazarItem(item: NotaRecepcionItem): void {
+    // No permitir rechazar ítems si es nota de rechazo
+    if (this.esNotaRechazoComputed) {
+      this.notificacionService.openAlgoSalioMal('No se pueden rechazar ítems de una nota de rechazo');
+      return;
+    }
+    
+    // Verificar que el ítem tenga ID (esté guardado)
+    if (!item.id) {
+      this.notificacionService.openAlgoSalioMal('Debe guardar el ítem antes de poder rechazarlo');
+      return;
+    }
+
+    console.log('Abriendo diálogo de rechazo para item:', item);
+    console.log('Item ID:', item.id);
+
+    // Verificar si el ítem ya está rechazado
+    if (item.estado === 'RECHAZADO') {
+      this.notificacionService.openAlgoSalioMal('Este ítem ya está rechazado');
+      return;
+    }
+
+    // Para rechazar desde nota de recepción, usamos la cantidad completa del ítem
+    const cantidadDisponible = item.cantidadEnNota || 0;
+    
+    if (cantidadDisponible <= 0) {
+      this.notificacionService.openAlgoSalioMal('No hay cantidad disponible para rechazar en este ítem');
+      return;
+    }
+
+    // Crear un PedidoItem temporal para el diálogo de rechazo
+    const pedidoItemTemporal = {
+      id: item.pedidoItem?.id || 0,
+      producto: item.producto,
+      presentacionCreacion: item.presentacionEnNota,
+      cantidadSolicitada: item.cantidadEnNota || 0,
+      cantidadPendiente: item.cantidadEnNota || 0, // Usar la cantidad completa del ítem
+      precioUnitarioSolicitado: item.precioUnitarioEnNota || 0,
+      vencimientoEsperado: item.vencimientoEnNota,
+      esBonificacion: item.esBonificacion || false,
+      pedido: this.data.pedido
+    } as any;
+
+    // Usar el diálogo específico de rechazo con la nota preseleccionada
+    const dialogRef = this.dialog.open(RechazarItemDialogComponent, {
+      width: '60%',
+      data: {
+        pedidoItem: pedidoItemTemporal,
+        notasDisponibles: [this.data.nota], // Solo la nota actual
+        pedidoId: this.data.pedido?.id || 0,
+        notaPreseleccionada: this.data.nota?.id || 0, // Nota preseleccionada
+        cantidadMaxima: cantidadDisponible, // Cantidad máxima que se puede rechazar
+        itemToReject: item // Ítem específico a rechazar
+      },
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.success) {
+        console.log('Ítem rechazado:', result);
+        this.notificacionService.openSucess(result.message || 'Ítem rechazado exitosamente');
+        // Marcar que se hicieron cambios
+        this.changesMade = true;
+        // Recargar la tabla de ítems
+        this.loadItems();
+      }
+    });
   }
 
   onCancel(): void {
-    this.dialogRef.close();
+    // Devolver resultado indicando si se hicieron cambios
+    const result: AddEditNotaRecepcionDialogResult = {
+      success: true,
+      changesMade: this.changesMade,
+      operation: this.changesMade ? 'updated' : 'no_changes',
+      message: this.changesMade ? 
+        (this.autoAssignItems && this.selectedItemsToAssign.length > 0 ? 
+          `Nota creada y ${this.selectedItemsToAssign.length} ítems asignados exitosamente` : 
+          'Cambios realizados en la nota de recepción') : 
+        'No se realizaron cambios'
+    };
+    
+    this.dialogRef.close(result);
   }
 
   onSave(): void {
+    // No permitir guardar si es nota de rechazo
+    if (this.esNotaRechazoComputed) {
+      this.notificacionService.openAlgoSalioMal('Las notas de rechazo no son editables');
+      return;
+    }
+    
     if (this.notaRecepcionForm.valid) {
       this.savingNota = true;
       const formValue = this.notaRecepcionForm.value;
@@ -551,6 +903,9 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
               
               // Actualizar datos con la nota actualizada
               this.data.nota = notaActualizada;
+              
+              // Marcar que se hicieron cambios
+              this.changesMade = true;
               
               // Recargar ítems después de actualizar
               this.loadItemsAfterCreation();
@@ -600,6 +955,9 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
               this.data.nota = notaCreada;
               this.data.isEdit = true;
               
+              // Marcar que se hicieron cambios
+              this.changesMade = true;
+              
               // Recargar ítems después de crear la nota
               this.loadItemsAfterCreation();
               
@@ -634,6 +992,11 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
             console.log('Ítems recargados después de crear nota:', items);
             this.itemsDataSource.data = items;
             this.updateComputedProperties();
+            
+            // Si hay ítems para asignar automáticamente, hacerlo ahora
+            if (this.autoAssignItems && this.selectedItemsToAssign.length > 0) {
+              this.assignSelectedItemsToNote();
+            }
           },
           error: (error) => {
             console.error('Error al recargar ítems después de crear nota:', error);
@@ -644,6 +1007,73 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     } else {
       this.itemsDataSource.data = [];
       this.updateComputedProperties();
+    }
+  }
+
+  /**
+   * Asigna automáticamente los ítems seleccionados a la nota recién creada
+   */
+  private assignSelectedItemsToNote(): void {
+    if (!this.data.nota?.id || this.selectedItemsToAssign.length === 0 || this.assigningItems) {
+      return;
+    }
+
+    this.assigningItems = true;
+    console.log('Asignando ítems automáticamente:', this.selectedItemsToAssign);
+
+    const pedidoItemIds = this.selectedItemsToAssign.map(item => item.id);
+
+    this.pedidoService.onAsignarItemsANota(this.data.nota.id, pedidoItemIds)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (result) => {
+          this.assigningItems = false;
+          
+          if (result.success) {
+            // Recargar ítems para mostrar los nuevos ítems asignados
+            this.loadItemsAfterAssignment();
+            
+            // Mostrar mensaje apropiado
+            if (result.errores && result.errores.length > 0) {
+              const errores = result.errores.map(e => `Ítem ${e.pedidoItemId}: ${e.error}`).join('\n');
+              this.notificacionService.openWarn(`${result.message}\n\nErrores:\n${errores}`);
+            } else {
+              this.notificacionService.openSucess(result.message);
+            }
+          } else {
+            this.notificacionService.openAlgoSalioMal(result.message);
+          }
+        },
+        error: (error) => {
+          this.assigningItems = false;
+          console.error('Error al asignar ítems automáticamente:', error);
+          this.notificacionService.openAlgoSalioMal('Error al asignar ítems automáticamente');
+        }
+      });
+  }
+
+  /**
+   * Recarga los ítems después de la asignación automática
+   */
+  private loadItemsAfterAssignment(): void {
+    if (this.data.nota?.id) {
+      this.pedidoService.onGetNotaRecepcionItemListPorNotaRecepcionId(this.data.nota.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (items: NotaRecepcionItem[]) => {
+            console.log('Ítems recargados después de asignación automática:', items);
+            this.itemsDataSource.data = items;
+            this.updateComputedProperties();
+            
+            // Marcar que se hicieron cambios
+            this.changesMade = true;
+          },
+          error: (error) => {
+            console.error('Error al recargar ítems después de asignación:', error);
+            this.itemsDataSource.data = [];
+            this.updateComputedProperties();
+          }
+        });
     }
   }
 

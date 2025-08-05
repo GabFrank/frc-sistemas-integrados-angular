@@ -6,15 +6,17 @@ import { dateToString } from "../../../../../commons/core/utils/dateUtils";
 export class NotaRecepcionItemDistribucion {
   id: number;
   notaRecepcionItem: NotaRecepcionItem;
+  sucursalInfluencia: Sucursal | null;
   sucursalEntrega: Sucursal;
   cantidad: number;
   creadoEn: Date;
-  usuario: Usuario;
+  usuario: Usuario | null;
 
   toInput(): NotaRecepcionItemDistribucionInput {
     let input = new NotaRecepcionItemDistribucionInput();
     input.id = this.id;
     input.notaRecepcionItemId = this.notaRecepcionItem?.id;
+    input.sucursalInfluenciaId = this.sucursalInfluencia?.id;
     input.sucursalEntregaId = this.sucursalEntrega?.id;
     input.cantidad = this.cantidad;
     input.creadoEn = dateToString(this.creadoEn);
@@ -26,8 +28,9 @@ export class NotaRecepcionItemDistribucion {
 export class NotaRecepcionItemDistribucionInput {
   id: number;
   notaRecepcionItemId: number;
+  sucursalInfluenciaId: number | null;
   sucursalEntregaId: number;
   cantidad: number;
   creadoEn: string;
-  usuarioId: number;
+  usuarioId: number | null;
 } 

@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 
 // GraphQL imports
@@ -45,9 +46,26 @@ import { AsignarItemsANotaGQL, AsignacionResult } from './gestion-compras/graphq
 import { GetNotaRecepcionItemGQL } from './gestion-compras/graphql/getNotaRecepcionItem';
 import { GetNotaRecepcionItemListGQL } from './gestion-compras/graphql/getNotaRecepcionItemList';
 import { GetNotaRecepcionItemListPorNotaRecepcionIdGQL } from './gestion-compras/graphql/getNotaRecepcionItemListPorNotaRecepcionId';
+import { GetNotaRecepcionItemListPorNotaRecepcionIdYSucursalesGQL } from './gestion-compras/graphql/getNotaRecepcionItemListPorNotaRecepcionIdYSucursales';
 import { SaveNotaRecepcionItemGQL } from './gestion-compras/graphql/saveNotaRecepcionItem';
 import { DeleteNotaRecepcionItemGQL } from './gestion-compras/graphql/deleteNotaRecepcionItem';
 import { NotaRecepcionItem } from './gestion-compras/nota-recepcion-item.model';
+import { FinalizarRecepcionNotasGQL } from './gestion-compras/graphql/finalizarRecepcionNotas';
+
+// RecepcionMercaderia imports
+import { GetSucursalesDisponiblesRecepcionFisicaGQL } from './gestion-compras/graphql/getSucursalesDisponiblesRecepcionFisica';
+import { GetNotasRecepcionDisponiblesGQL } from './gestion-compras/recepcion-mercaderia/graphql/get-notas-recepcion-disponibles';
+import { SaveRecepcionMercaderiaGQL } from './gestion-compras/recepcion-mercaderia/graphql/save-recepcion-mercaderia';
+import { SaveRecepcionMercaderiaItemGQL } from './gestion-compras/recepcion-mercaderia/graphql/save-recepcion-mercaderia-item';
+import { RechazarItemGQL, RechazarItemInput } from './gestion-compras/recepcion-mercaderia/graphql/rechazarItemGQL';
+import { CancelarVerificacionGQL } from './gestion-compras/recepcion-mercaderia/graphql/cancelarVerificacion';
+import { CancelarRechazoGQL } from './gestion-compras/recepcion-mercaderia/graphql/cancelarRechazo';
+import { ValidarFinalizacionRecepcionPorPedidoGQL } from './gestion-compras/recepcion-mercaderia/graphql/validarFinalizacionRecepcionPorPedido';
+import { FinalizarRecepcionFisicaPorPedidoGQL } from './gestion-compras/recepcion-mercaderia/graphql/finalizarRecepcionFisicaPorPedido';
+
+// Models
+import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
+import { RecepcionMercaderiaItem } from './gestion-compras/recepcion-mercaderia-item.model';
 
 @Injectable({
   providedIn: 'root'
@@ -75,6 +93,7 @@ export class PedidoService {
     private saveNotaRecepcionItemDistribucionesGQL: SaveNotaRecepcionItemDistribucionesGQL,
     private replaceNotaRecepcionItemDistribucionesGQL: ReplaceNotaRecepcionItemDistribucionesGQL,
     private finalizarCreacionPedidoGQL: FinalizarCreacionPedidoGQL,
+    private finalizarRecepcionNotasGQL: FinalizarRecepcionNotasGQL,
     // NotaRecepcion services
     private getNotaRecepcionPorPedidoIdGQL: GetNotaRecepcionPorPedidoIdGQL,
     private getNotaRecepcionPorPedidoIdAndNumeroPageGQL: GetNotaRecepcionPorPedidoIdAndNumeroPageGQL,
@@ -86,8 +105,19 @@ export class PedidoService {
     private getNotaRecepcionItemGQL: GetNotaRecepcionItemGQL,
     private getNotaRecepcionItemListGQL: GetNotaRecepcionItemListGQL,
     private getNotaRecepcionItemListPorNotaRecepcionIdGQL: GetNotaRecepcionItemListPorNotaRecepcionIdGQL,
+    private getNotaRecepcionItemListPorNotaRecepcionIdYSucursalesGQL: GetNotaRecepcionItemListPorNotaRecepcionIdYSucursalesGQL,
     private saveNotaRecepcionItemGQL: SaveNotaRecepcionItemGQL,
-    private deleteNotaRecepcionItemGQL: DeleteNotaRecepcionItemGQL
+    private deleteNotaRecepcionItemGQL: DeleteNotaRecepcionItemGQL,
+    // RecepcionMercaderia services
+    private getSucursalesDisponiblesRecepcionFisicaGQL: GetSucursalesDisponiblesRecepcionFisicaGQL,
+    private getNotasRecepcionDisponiblesGQL: GetNotasRecepcionDisponiblesGQL,
+    private saveRecepcionMercaderiaGQL: SaveRecepcionMercaderiaGQL,
+    private saveRecepcionMercaderiaItemGQL: SaveRecepcionMercaderiaItemGQL,
+    private rechazarItemGQL: RechazarItemGQL,
+    private cancelarVerificacionGQL: CancelarVerificacionGQL,
+    private cancelarRechazoGQL: CancelarRechazoGQL,
+    private validarFinalizacionRecepcionPorPedidoGQL: ValidarFinalizacionRecepcionPorPedidoGQL,
+    private finalizarRecepcionFisicaPorPedidoGQL: FinalizarRecepcionFisicaPorPedidoGQL
   ) {}
 
   /**
@@ -310,6 +340,19 @@ export class PedidoService {
     return this.genericCrudService.onCustomMutation(this.finalizarCreacionPedidoGQL, data);
   }
 
+  /**
+   * Finaliza la etapa de recepción de notas de un pedido y avanza a la siguiente etapa
+   * @param pedidoId - ID del pedido a finalizar
+   * @returns Observable<Pedido>
+   */
+  onFinalizarRecepcionNotas(pedidoId: number): Observable<Pedido> {
+    const data = {
+      pedidoId: pedidoId
+    };
+    
+    return this.genericCrudService.onCustomMutation(this.finalizarRecepcionNotasGQL, data);
+  }
+
   // ===============================================
   // NOTA RECEPCION METHODS
   // ===============================================
@@ -421,6 +464,34 @@ export class PedidoService {
   }
 
   /**
+   * Obtiene ítems de nota de recepción por ID de nota de recepción y sucursales
+   * @param notaRecepcionId - ID de la nota de recepción
+   * @param sucursales - Array de IDs de sucursales
+   * @param page - Número de página
+   * @param size - Tamaño de página
+   * @param filtroVerificacion - Filtro de verificación (TODOS, PENDIENTES, VERIFICADOS, RECHAZADOS)
+   * @param filtroTexto - Filtro de texto para búsqueda por código de barras o nombre
+   * @returns Observable<PageInfo<NotaRecepcionItem>>
+   */
+  onGetNotaRecepcionItemListPorNotaRecepcionIdYSucursales(
+    notaRecepcionId: number, 
+    sucursales: number[], 
+    page: number, 
+    size: number,
+    filtroVerificacion: 'TODOS' | 'PENDIENTES' | 'VERIFICADOS' | 'RECHAZADOS' = 'PENDIENTES',
+    filtroTexto?: string
+  ): Observable<PageInfo<NotaRecepcionItem>> {
+    return this.genericCrudService.onCustomQuery(this.getNotaRecepcionItemListPorNotaRecepcionIdYSucursalesGQL, { 
+      notaRecepcionId, 
+      sucursalesIds: sucursales,
+      page,
+      size,
+      filtroVerificacion,
+      filtroTexto
+    });
+  }
+
+  /**
    * Guarda un ítem de nota de recepción
    * @param notaRecepcionItemInput - Datos del ítem a guardar
    * @returns Observable<NotaRecepcionItem>
@@ -444,5 +515,99 @@ export class PedidoService {
     };
     
     return this.genericCrudService.onCustomMutation(this.deleteNotaRecepcionItemGQL, data);
+  }
+
+  // ===============================================
+  // RECEPCION MERCADERIA METHODS
+  // ===============================================
+
+  /**
+   * Obtiene las sucursales disponibles para recepción física de un pedido
+   * @param pedidoId - ID del pedido
+   * @returns Observable<Sucursal[]>
+   */
+  onGetSucursalesDisponiblesRecepcionFisica(pedidoId: number): Observable<Sucursal[]> {
+    return this.genericCrudService.onCustomQuery(this.getSucursalesDisponiblesRecepcionFisicaGQL, { pedidoId });
+  }
+
+  /**
+   * Guarda una recepción de mercadería
+   * @param recepcionMercaderiaInput - Datos de la recepción a guardar
+   * @returns Observable<any>
+   */
+  onSaveRecepcionMercaderia(recepcionMercaderiaInput: any): Observable<any> {
+    const data = {
+      entity: recepcionMercaderiaInput
+    };
+    
+    return this.genericCrudService.onCustomMutation(this.saveRecepcionMercaderiaGQL, data);
+  }
+
+  /**
+   * Guarda un ítem de recepción de mercadería
+   * @param recepcionMercaderiaItemInput - Datos del ítem a guardar
+   * @returns Observable<RecepcionMercaderiaItem>
+   */
+  onSaveRecepcionMercaderiaItem(recepcionMercaderiaItemInput: any): Observable<RecepcionMercaderiaItem> {
+    const data = {
+      entity: recepcionMercaderiaItemInput
+    };
+    
+    return this.genericCrudService.onCustomMutation(this.saveRecepcionMercaderiaItemGQL, data);
+  }
+
+  /**
+   * Rechaza un ítem de recepción de mercadería
+   * @param rechazarItemInput - Datos del ítem a rechazar
+   * @returns Observable<any>
+   */
+  onRechazarItem(rechazarItemInput: RechazarItemInput): Observable<any> {
+    return this.genericCrudService.onCustomMutation(this.rechazarItemGQL, rechazarItemInput);
+  }
+
+  /**
+   * Cancela la verificación de un ítem de recepción de mercadería
+   * @param notaRecepcionItemId - ID del NotaRecepcionItem
+   * @param sucursalId - ID de la sucursal
+   * @returns Observable<any>
+   */
+  onCancelarVerificacion(notaRecepcionItemId: number, sucursalId: number): Observable<any> {
+    return this.genericCrudService.onCustomMutation(this.cancelarVerificacionGQL, { notaRecepcionItemId, sucursalId });
+  }
+
+  /**
+   * Cancela el rechazo de un ítem de recepción de mercadería
+   * @param notaRecepcionItemId - ID del NotaRecepcionItem
+   * @param sucursalId - ID de la sucursal
+   * @returns Observable<any>
+   */
+  onCancelarRechazo(notaRecepcionItemId: number, sucursalId: number): Observable<any> {
+    return this.genericCrudService.onCustomMutation(this.cancelarRechazoGQL, { notaRecepcionItemId, sucursalId });
+  }
+
+  /**
+   * Valida si se puede finalizar la recepción física por pedido
+   * @param pedidoId - ID del pedido
+   * @param sucursalesIds - Lista de IDs de sucursales
+   * @returns Observable<any>
+   */
+  onValidarFinalizacionRecepcionPorPedido(pedidoId: number, sucursalesIds: number[]): Observable<any> {
+    return this.genericCrudService.onCustomMutation(this.validarFinalizacionRecepcionPorPedidoGQL, {
+      pedidoId,
+      sucursalesIds
+    });
+  }
+
+  /**
+   * Finaliza la recepción física por pedido
+   * @param pedidoId - ID del pedido
+   * @param sucursalesIds - Lista de IDs de sucursales
+   * @returns Observable<any>
+   */
+  onFinalizarRecepcionFisicaPorPedido(pedidoId: number, sucursalesIds: number[]): Observable<any> {
+    return this.genericCrudService.onCustomMutation(this.finalizarRecepcionFisicaPorPedidoGQL, {
+      pedidoId,
+      sucursalesIds
+    });
   }
 } 

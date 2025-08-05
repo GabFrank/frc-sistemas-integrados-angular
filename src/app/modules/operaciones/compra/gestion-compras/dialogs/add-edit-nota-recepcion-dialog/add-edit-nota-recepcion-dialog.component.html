@@ -10,6 +10,12 @@
         <form [formGroup]="notaRecepcionForm" class="form-container">
           <h4 class="panel-title">Datos de la Nota {{data.nota?.id ? 'CON ID: ' + data.nota.id : ''}}</h4>
           
+          <!-- Indicador de asignación automática -->
+          <div *ngIf="showAssignmentStatus" class="assignment-status-card">
+            <mat-icon class="assignment-icon">assignment</mat-icon>
+            <span class="assignment-text" [class]="assignmentStatusClass">{{ assignmentStatusText }}</span>
+          </div>
+
           <!-- Fila 1: Tipo Boleta -->
           <div class="form-row">
             <mat-form-field appearance="outline" class="field-full">
@@ -144,6 +150,13 @@
             <mat-card class="info-card">
               <mat-card-content>
                 <div class="info-grid">
+                  <!-- Mostrar tipo de nota si es de rechazo -->
+                  <div class="info-item" *ngIf="esNotaRechazoComputed">
+                    <span class="info-label">Tipo de Nota:</span>
+                    <mat-chip [ngClass]="notaRechazoChipClass">
+                      {{ notaRechazoDisplayText }}
+                    </mat-chip>
+                  </div>
                   <div class="info-item">
                     <span class="info-label">Total de Ítems:</span>
                     <span class="info-value">{{ totalItemsComputed }}</span>
@@ -176,19 +189,33 @@
         <div class="items-section">
           <div class="panel-header">
             <h4 class="panel-title">Ítems de la Nota</h4>
-            <div class="color-legend">
-              <span class="legend-item">
-                <span class="legend-color row-conciliado"></span>
-                <span class="legend-text">Conciliado</span>
-              </span>
-              <span class="legend-item">
-                <span class="legend-color row-pendiente"></span>
-                <span class="legend-text">Pendiente</span>
-              </span>
-              <span class="legend-item">
-                <span class="legend-color row-rechazado"></span>
-                <span class="legend-text">Rechazado</span>
-              </span>
+            <div class="header-actions">
+              <div class="color-legend">
+                <span class="legend-item">
+                  <span class="legend-color row-conciliado"></span>
+                  <span class="legend-text">Conciliado</span>
+                </span>
+                <span class="legend-item">
+                  <span class="legend-color row-pendiente"></span>
+                  <span class="legend-text">Pendiente</span>
+                </span>
+                <span class="legend-item">
+                  <span class="legend-color row-rechazado"></span>
+                  <span class="legend-text">Rechazado</span>
+                </span>
+              </div>
+              <button
+                mat-raised-button
+                color="accent"
+                type="button"
+                (click)="onAddItem()"
+                [disabled]="!data.nota?.id || esNotaRechazoComputed"
+                class="add-item-button"
+                matTooltip="Agregar nuevo ítem a la nota"
+              >
+                <mat-icon>add</mat-icon>
+                Agregar Ítem
+              </button>
             </div>
           </div>
           
@@ -262,6 +289,20 @@
                 </td>
               </ng-container>
 
+              <!-- Columna Distribución -->
+              <ng-container matColumnDef="distribucion">
+                <th mat-header-cell *matHeaderCellDef class="text-center">Distribución</th>
+                <td mat-cell *matCellDef="let item" class="text-center" [ngClass]="item.rowColorClass">
+                  <div class="distribucion-info">
+                    <div class="distribucion-status">
+                      <span class="status-chip" [ngClass]="item.distribucionStatusClassComputed">
+                        {{ item.distribucionStatusTextComputed }}
+                      </span>
+                    </div>
+                  </div>
+                </td>
+              </ng-container>
+
               <!-- Columna Acciones -->
               <ng-container matColumnDef="acciones">
                 <th mat-header-cell *matHeaderCellDef class="text-center">Acciones</th>
@@ -270,9 +311,17 @@
                     <mat-icon>more_vert</mat-icon>
                   </button>
                   <mat-menu #itemMenu="matMenu">
-                    <button mat-menu-item (click)="onEditItem(item)">
+                    <button mat-menu-item (click)="onEditItem(item)" [disabled]="esNotaRechazoComputed || item.estado === 'RECHAZADO'">
                       <mat-icon>edit</mat-icon>
                       Editar
+                    </button>
+                    <button mat-menu-item (click)="onDistributeItem(item)" [disabled]="esNotaRechazoComputed || item.estado === 'RECHAZADO'">
+                      <mat-icon>account_tree</mat-icon>
+                      Distribuir
+                    </button>
+                    <button mat-menu-item (click)="onRechazarItem(item)" [disabled]="esNotaRechazoComputed || item.estado === 'RECHAZADO'">
+                      <mat-icon>cancel</mat-icon>
+                      Rechazar
                     </button>
                     <button mat-menu-item (click)="onDeleteItem(item)">
                       <mat-icon>delete</mat-icon>
@@ -312,7 +361,7 @@
       #guardarButton
       (click)="onSave()"
       (keydown)="onGuardarButtonKeydown($event)"
-      [disabled]="notaRecepcionForm.invalid"
+      [disabled]="notaRecepcionForm.invalid || esNotaRechazoComputed"
       class="save-button"
     >
       {{ actionButtonText }}

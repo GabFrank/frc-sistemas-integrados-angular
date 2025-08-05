@@ -39,3 +39,8 @@ getTotalPages
 - do not use Dynamic imports unless we really need
 - for keyboard navigation in forms: use Enter key to navigate between form fields, use ViewChild with MatButton to focus buttons, implement keydown handlers for each form field that move focus to the next field using document.querySelector, for textarea fields check !event.shiftKey to allow line breaks with Shift+Enter, for mat-select components DO NOT use keydown events - instead use (selectionChange) and (closed) events to navigate after user selects option and dropdown closes, use setTimeout with small delay to ensure dropdown is properly closed before focusing next field, ALWAYS validate current field before allowing navigation to next field using formControl.valid, if field is invalid mark as touched and call updateComputedProperties to show error message, only allow navigation if current field is valid
 - If there is a complex/heavy logic computation, always prefer do it on backend.
+
+## Build and Compilation Rules
+- **Frontend Build Automation**: The Angular application automatically generates builds when frontend files are modified. DO NOT manually run `npm run build` or `npm start` for frontend changes.
+- **Backend Compilation**: Only when backend files are modified (Java, GraphQL, migrations) is manual compilation required. In these cases, ALWAYS notify the user explicitly to compile using available tools.
+- **Workflow**: Frontend changes = automatic build, Backend changes = notify user for manual compilation.

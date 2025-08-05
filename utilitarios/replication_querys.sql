@@ -51,15 +51,15 @@ DROP SUBSCRIPTION subscription_name;
 
 -- reset subscriber
 -- disable subscription
-ALTER SUBSCRIPTION filial5_sub disable;
+ALTER SUBSCRIPTION filial25_sub disable;
 -- set replication slot none on subscriber
-ALTER SUBSCRIPTION filial5_sub SET (slot_name = 'filial5_sub');
+ALTER SUBSCRIPTION filial25_sub SET (slot_name = 'filial25_sub');
 -- delete replication slot on publisher
-SELECT pg_drop_replication_slot('filial5_sub');
+SELECT pg_drop_replication_slot('filial25_sub');
 -- recreate replication slot on publisher
-SELECT * FROM pg_create_logical_replication_slot('filial5_sub', 'pgoutput');
+SELECT * FROM pg_create_logical_replication_slot('filial25_sub', 'pgoutput');
 -- enable subscription on subscriber
-ALTER SUBSCRIPTION filial5_sub enable;
+ALTER SUBSCRIPTION filial25_sub enable;
 
 
 
@@ -76,16 +76,16 @@ SELECT subname, pid, received_lsn - replay_lsn AS replication_lag
 FROM pg_stat_subscription;
 
 -- script para crear subscription para el servidor
-CREATE SUBSCRIPTION filial24_sub
-CONNECTION 'dbname=general host=172.25.1.24 user=franco password=franco port=5551'
-PUBLICATION filial24_pub WITH (copy_data = false, origin = 'none');
+CREATE SUBSCRIPTION filial25_sub
+CONNECTION 'dbname=general host=172.25.1.25 user=franco password=franco port=5551'
+PUBLICATION filial25_pub WITH (copy_data = false, origin = 'none');
 
 -- script para crear subscription para la filial
-CREATE SUBSCRIPTION central_filial24_sub
+CREATE SUBSCRIPTION central_filial25_sub
 CONNECTION 'dbname=bodega host=172.25.1.200 user=franco password=franco port=5551'
-PUBLICATION central_filial24_pub WITH (copy_data = false, origin = 'none');
+PUBLICATION central_filial25_pub WITH (copy_data = false, origin = 'none');
 
-CREATE SUBSCRIPTION filial24_central_sub
+CREATE SUBSCRIPTION filial25_central_sub
 CONNECTION 'dbname=bodega host=172.25.1.200 user=franco password=franco port=5551'
 PUBLICATION central_pub WITH (copy_data = false, origin = 'none');
 
@@ -96,7 +96,7 @@ ALTER PUBLICATION central_filial4_pub ADD TABLE operaciones.stock_por_producto_s
 
 
 -- creat publicacion simples para filiales
-CREATE PUBLICATION filial5_pub FOR TABLE 
+CREATE PUBLICATION filial25_pub FOR TABLE 
     administrativo.marcacion, 
     configuraciones.inicio_sesion, 
     financiero.cambio_caja, 
@@ -126,33 +126,33 @@ CREATE PUBLICATION filial5_pub FOR TABLE
     operaciones.vuelto_item;
 
 -- script para crear la publicacion bidireccional en el servidor
-    CREATE PUBLICATION central_filial5_pub FOR TABLE 
-    administrativo.marcacion WHERE (sucursal_id = 5), 
-    configuraciones.inicio_sesion WHERE (sucursal_id = 5), 
-    financiero.cambio_caja WHERE (sucursal_id = 5), 
-    financiero.conteo WHERE (sucursal_id = 5), 
-    financiero.conteo_moneda WHERE (sucursal_id = 5), 
-    financiero.factura_legal WHERE (sucursal_id = 5), 
-    financiero.factura_legal_item WHERE (sucursal_id = 5), 
-    financiero.gasto WHERE (sucursal_id = 5), 
-    financiero.gasto_detalle WHERE (sucursal_id = 5), 
-    financiero.maletin WHERE (sucursal_id = 5), 
-    financiero.movimiento_caja WHERE (sucursal_id = 5), 
-    financiero.pdv_caja WHERE (sucursal_id = 5), 
-    financiero.retiro WHERE (sucursal_id = 5), 
-    financiero.retiro_detalle WHERE (sucursal_id = 5), 
-    financiero.sencillo WHERE (sucursal_id = 5), 
-    financiero.sencillo_detalle WHERE (sucursal_id = 5), 
-    financiero.venta_credito WHERE (sucursal_id = 5), 
-    financiero.venta_credito_cuota WHERE (sucursal_id = 5), 
-    operaciones.cobro WHERE (sucursal_id = 5), 
-    operaciones.cobro_detalle WHERE (sucursal_id = 5), 
-    operaciones.delivery WHERE (sucursal_id = 5), 
-    operaciones.movimiento_stock WHERE (sucursal_id = 5), 
-    operaciones.venta WHERE (sucursal_id = 5), 
-    operaciones.venta_item WHERE (sucursal_id = 5), 
-    operaciones.vuelto WHERE (sucursal_id = 5), 
-    operaciones.vuelto_item WHERE (sucursal_id = 5);
+    CREATE PUBLICATION central_filial25_pub FOR TABLE 
+    administrativo.marcacion WHERE (sucursal_id = 25), 
+    configuraciones.inicio_sesion WHERE (sucursal_id = 25), 
+    financiero.cambio_caja WHERE (sucursal_id = 25), 
+    financiero.conteo WHERE (sucursal_id = 25), 
+    financiero.conteo_moneda WHERE (sucursal_id = 25), 
+    financiero.factura_legal WHERE (sucursal_id = 25), 
+    financiero.factura_legal_item WHERE (sucursal_id = 25), 
+    financiero.gasto WHERE (sucursal_id = 25), 
+    financiero.gasto_detalle WHERE (sucursal_id = 25), 
+    financiero.maletin WHERE (sucursal_id = 25), 
+    financiero.movimiento_caja WHERE (sucursal_id = 25), 
+    financiero.pdv_caja WHERE (sucursal_id = 25), 
+    financiero.retiro WHERE (sucursal_id = 25), 
+    financiero.retiro_detalle WHERE (sucursal_id = 25), 
+    financiero.sencillo WHERE (sucursal_id = 25), 
+    financiero.sencillo_detalle WHERE (sucursal_id = 25), 
+    financiero.venta_credito WHERE (sucursal_id = 25), 
+    financiero.venta_credito_cuota WHERE (sucursal_id = 25), 
+    operaciones.cobro WHERE (sucursal_id = 25), 
+    operaciones.cobro_detalle WHERE (sucursal_id = 25), 
+    operaciones.delivery WHERE (sucursal_id = 25), 
+    operaciones.movimiento_stock WHERE (sucursal_id = 25), 
+    operaciones.venta WHERE (sucursal_id = 25), 
+    operaciones.venta_item WHERE (sucursal_id = 25), 
+    operaciones.vuelto WHERE (sucursal_id = 25), 
+    operaciones.vuelto_item WHERE (sucursal_id = 25);
 
     -- script para crear publicacion del servidor a filiales
     CREATE PUBLICATION central_pub FOR TABLE

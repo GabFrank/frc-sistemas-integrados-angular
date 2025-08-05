@@ -46,6 +46,14 @@ import { GestionComprasComponent } from './compra/gestion-compras/gestion-compra
 import { AddEditItemDialogComponent } from './compra/gestion-compras/dialogs/add-edit-item-dialog/add-edit-item-dialog.component';
 import { DistributeItemDialogComponent } from './compra/gestion-compras/dialogs/distribute-item-dialog/distribute-item-dialog.component';
 import { AddEditNotaRecepcionDialogComponent } from './compra/gestion-compras/dialogs/add-edit-nota-recepcion-dialog/add-edit-nota-recepcion-dialog.component';
+import { EditNotaRecepcionItemDialogComponent } from './compra/gestion-compras/dialogs/edit-nota-recepcion-item-dialog/edit-nota-recepcion-item-dialog.component';
+import { DistributeNotaRecepcionItemDialogComponent } from './compra/gestion-compras/dialogs/distribute-nota-recepcion-item-dialog/distribute-nota-recepcion-item-dialog.component';
+import { DividirItemDialogComponent } from './compra/gestion-compras/dialogs/dividir-item-dialog/dividir-item-dialog.component';
+import { RechazarItemDialogComponent } from './compra/gestion-compras/dialogs/rechazar-item-dialog/rechazar-item-dialog.component';
+import { RecepcionMercaderiaComponent } from './compra/gestion-compras/recepcion-mercaderia/recepcion-mercaderia.component';
+import { RecepcionMercaderiaVerificarItemDialogComponent } from './compra/gestion-compras/recepcion-mercaderia/recepcion-mercaderia-verificar-item-dialog/recepcion-mercaderia-verificar-item-dialog.component';
+import { RecepcionMercaderiaRechazarItemDialogComponent } from './compra/gestion-compras/recepcion-mercaderia/recepcion-mercaderia-rechazar-item-dialog/recepcion-mercaderia-rechazar-item-dialog.component';
+import { VerificacionRapidaSucursalesDialogComponent } from './compra/gestion-compras/recepcion-mercaderia/verificacion-rapida-sucursales-dialog/verificacion-rapida-sucursales-dialog.component';
 
 @NgModule({
   declarations: [
@@ -86,6 +94,14 @@ import { AddEditNotaRecepcionDialogComponent } from './compra/gestion-compras/di
     AddEditItemDialogComponent,
     DistributeItemDialogComponent,
     AddEditNotaRecepcionDialogComponent,
+    EditNotaRecepcionItemDialogComponent,
+    DistributeNotaRecepcionItemDialogComponent,
+    DividirItemDialogComponent,
+    RechazarItemDialogComponent,
+    RecepcionMercaderiaComponent,
+    RecepcionMercaderiaVerificarItemDialogComponent,
+    RecepcionMercaderiaRechazarItemDialogComponent,
+    VerificacionRapidaSucursalesDialogComponent,
   ],
   imports: [
     CommonModule,

@@ -497,6 +497,10 @@ export const notaRecepcionItemDistribucionesByNotaRecepcionItemIdQuery = gql`
         id
         cantidadEnNota
       }
+      sucursalInfluencia {
+        id
+        nombre
+      }
       sucursalEntrega {
         id
         nombre
@@ -527,6 +531,10 @@ export const notaRecepcionItemDistribucionesBySucursalEntregaIdQuery = gql`
           descripcion
         }
       }
+      sucursalInfluencia {
+        id
+        nombre
+      }
       sucursalEntrega {
         id
         nombre
@@ -556,6 +564,10 @@ export const notaRecepcionItemDistribucionesByNotaRecepcionIdQuery = gql`
           id
           descripcion
         }
+      }
+      sucursalInfluencia {
+        id
+        nombre
       }
       sucursalEntrega {
         id
@@ -728,6 +740,8 @@ export const notaRecepcionPorPedidoIdQuery = gql`
       numero
       fecha
       estado
+      esNotaRechazo
+      valorTotal
       pedido {
         id
       }
@@ -757,6 +771,8 @@ export const notaRecepcionPorPedidoIdAndNumeroPageQuery = gql`
         numero
         fecha
         estado
+        esNotaRechazo
+        valorTotal
         pedido {
           id
         }
@@ -785,6 +801,7 @@ export const saveNotaRecepcionMutation = gql`
       cotizacion
       estado
       pagado
+      esNotaRechazo
       creadoEn
       pedido {
         id
@@ -823,6 +840,7 @@ export const getNotaRecepcionByIdQuery = gql`
       cotizacion
       estado
       pagado
+      esNotaRechazo
       creadoEn
       pedido {
         id
@@ -853,6 +871,7 @@ export const getNotaRecepcionsQuery = gql`
       cotizacion
       estado
       pagado
+      esNotaRechazo
       creadoEn
       pedido {
         id
@@ -924,6 +943,8 @@ export const notaRecepcionItemQuery = gql`
       estado
       motivoRechazo
       creadoEn
+      distribucionConcluida
+      cantidadPendiente
       usuario {
         id
         persona {
@@ -972,6 +993,8 @@ export const notaRecepcionItemListQuery = gql`
       estado
       motivoRechazo
       creadoEn
+      distribucionConcluida
+      cantidadPendiente
       usuario {
         id
         persona {
@@ -994,6 +1017,11 @@ export const notaRecepcionItemListPorNotaRecepcionIdQuery = gql`
       }
       pedidoItem {
         id
+        presentacionCreacion {
+          id
+          cantidad
+          descripcion
+        }
         cantidadSolicitada
         precioUnitarioSolicitado
         producto {
@@ -1020,6 +1048,8 @@ export const notaRecepcionItemListPorNotaRecepcionIdQuery = gql`
       estado
       motivoRechazo
       creadoEn
+      distribucionConcluida
+      cantidadPendiente
       usuario {
         id
         persona {
@@ -1143,5 +1173,156 @@ export const adicionarItensMutation = gql`
 export const removerItensMutation = gql`
   mutation RemoverItens($id: ID, $notaRecepcionItemInputList: [NotaRecepcionItemInput]) {
     data: removerItens(id: $id, notaRecepcionItemInputList: $notaRecepcionItemInputList)
+  }
+`;
+
+export const finalizarRecepcionNotasMutation = gql`
+  mutation FinalizarRecepcionNotas($pedidoId: ID!) {
+    data: finalizarRecepcionNotas(pedidoId: $pedidoId) {
+      id
+      proveedor {
+        id
+        persona {
+          nombre
+        }
+      }
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      creadoEn
+      moneda {
+        id
+        denominacion
+      }
+      formaPago {
+        id
+        descripcion
+      }
+      plazoCredito
+      procesoEtapas {
+        id
+        tipoEtapa
+        estadoEtapa
+        fechaInicio
+        fechaFin
+        usuarioInicio {
+          id
+          persona {
+            nombre
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const getSucursalesDisponiblesRecepcionFisicaQuery = gql`
+  query GetSucursalesDisponiblesRecepcionFisica($pedidoId: ID!) {
+    data: getSucursalesDisponiblesRecepcionFisica(pedidoId: $pedidoId) {
+      id
+      nombre
+      localizacion
+      direccion
+      nroDelivery
+      deposito
+      depositoPredeterminado
+      ip
+      puerto
+      codigoEstablecimientoFactura
+      isConfigured
+      creadoEn
+      ciudad {
+        id
+        descripcion
+      }
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;
+
+export const getNotaRecepcionItemListPorNotaRecepcionIdYSucursalesQuery = gql`
+  query GetNotaRecepcionItemListPorNotaRecepcionIdYSucursales($notaRecepcionId: ID!, $sucursalesIds: [ID!]!, $page: Int!, $size: Int!, $filtroVerificacion: FiltroVerificacion = PENDIENTES, $filtroTexto: String) {
+    data: notaRecepcionItemListPorNotaRecepcionIdYSucursales(notaRecepcionId: $notaRecepcionId, sucursalesIds: $sucursalesIds, page: $page, size: $size, filtroVerificacion: $filtroVerificacion, filtroTexto: $filtroTexto) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        notaRecepcion {
+          id
+          numero
+          fecha
+          estado
+        }
+        pedidoItem {
+          id
+          presentacionCreacion {
+            id
+            cantidad
+            descripcion
+          }
+          cantidadSolicitada
+          precioUnitarioSolicitado
+          producto {
+            id
+            descripcion
+            codigoPrincipal
+          }
+        }
+        producto {
+          id
+          descripcion
+          codigoPrincipal
+        }
+        presentacionEnNota {
+          id
+          cantidad
+          descripcion
+        }
+        cantidadEnNota
+        precioUnitarioEnNota
+        esBonificacion
+        vencimientoEnNota
+        observacion
+        estado
+        motivoRechazo
+        creadoEn
+        distribucionConcluida
+        cantidadPendiente
+        cantidadRecibida
+        cantidadRechazada
+        estadoRecepcion
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+        notaRecepcionItemDistribuciones {
+          id
+          sucursalEntrega {
+            id
+            nombre
+          }
+          sucursalInfluencia {
+            id
+            nombre
+          }
+          cantidad
+        }
+      }
+    }
   }
 `;
