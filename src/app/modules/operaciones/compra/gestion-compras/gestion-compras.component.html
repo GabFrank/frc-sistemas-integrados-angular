@@ -985,8 +985,11 @@
       >
         <ng-template matTabContent>
           <div class="tab-content">
-            <h3>5. Solicitud de Pago</h3>
-            <p>Contenido para la solicitud de pago...</p>
+            <app-solicitud-pago-compra
+              [pedido]="currentPedido"
+              [isEditMode]="isEditMode"
+              [pagoTabState]="pagoTabState">
+            </app-solicitud-pago-compra>
           </div>
         </ng-template>
       </mat-tab>

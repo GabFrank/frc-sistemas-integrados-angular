@@ -27,7 +27,7 @@ export class ReportesComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.reporteList = [];
     this.reporteSub = this.reporteService.sub.pipe(untilDestroyed(this)).subscribe((res) => {
-      if (res != null) {
+      if (res != null && res.length > 0) {
         this.reporteList = res;
         this.onSelectReporte(
           this.reporteList[this.reporteList.length - 1],
@@ -39,12 +39,14 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   onSelectReporte(reporte: ReporteData, i) {
     this.selectedReporte = reporte;
-    this.reporteList[i].currentPage = this.currentPage;
+    if (this.reporteList && this.reporteList[i]) {
+      this.reporteList[i].currentPage = this.currentPage;
+    }
   }
 
   onClose(i) {
     this.reporteService.onRemove(i);
-    if (this.reporteList.length > 0) {
+    if (this.reporteList && this.reporteList.length > 0) {
       this.onSelectReporte(this.reporteList[this.reporteList.length - 1], i);
     }
   }

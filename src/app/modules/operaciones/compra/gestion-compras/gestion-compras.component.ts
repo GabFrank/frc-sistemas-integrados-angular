@@ -967,23 +967,16 @@ export class GestionComprasComponent
         activeTabIndex = 3;
         break;
 
-      case ProcesoEtapaTipo.SOLICITUD_PAGO:
-        this.datosGeneralesTabState = "readonly";
-        this.itemsTabState = "readonly";
-        this.notasTabState = "readonly";
-        this.mercaderiaTabState = "readonly";
-        this.pagoTabState = "editable";
-        activeTabIndex = 4;
-        break;
+              case ProcesoEtapaTipo.SOLICITUD_PAGO:
+          this.datosGeneralesTabState = "readonly";
+          this.itemsTabState = "readonly";
+          this.notasTabState = "readonly";
+          this.mercaderiaTabState = "readonly";
+          this.pagoTabState = "editable";
+          activeTabIndex = 4;
+          break;
 
-      case ProcesoEtapaTipo.PAGO:
-        this.datosGeneralesTabState = "readonly";
-        this.itemsTabState = "readonly";
-        this.notasTabState = "readonly";
-        this.mercaderiaTabState = "readonly";
-        this.pagoTabState = "readonly"; // Process finished
-        activeTabIndex = 4;
-        break;
+
     }
 
     setTimeout(() => {

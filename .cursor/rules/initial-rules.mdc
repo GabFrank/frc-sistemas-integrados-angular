@@ -40,6 +40,13 @@ getTotalPages
 - for keyboard navigation in forms: use Enter key to navigate between form fields, use ViewChild with MatButton to focus buttons, implement keydown handlers for each form field that move focus to the next field using document.querySelector, for textarea fields check !event.shiftKey to allow line breaks with Shift+Enter, for mat-select components DO NOT use keydown events - instead use (selectionChange) and (closed) events to navigate after user selects option and dropdown closes, use setTimeout with small delay to ensure dropdown is properly closed before focusing next field, ALWAYS validate current field before allowing navigation to next field using formControl.valid, if field is invalid mark as touched and call updateComputedProperties to show error message, only allow navigation if current field is valid
 - If there is a complex/heavy logic computation, always prefer do it on backend.
 
+## Database Verification Rules
+- **CRITICAL**: Before modifying any existing entity or creating a new entity, ALWAYS consult the database using MCP PostgreSQL queries to verify the current structure, constraints, and data types. This prevents errors and ensures migrations are correctly aligned with the actual database state.
+- **Entity Structure Verification**: Use queries like `SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_schema = 'operaciones' AND table_name = 'table_name'` to understand current structure.
+- **Enum Verification**: Check existing enums with `SELECT t.typname, e.enumlabel FROM pg_type t JOIN pg_enum e ON t.oid = e.enumtypid WHERE t.typname LIKE '%enum_name%'`.
+- **Constraint Verification**: Verify foreign keys and constraints before creating new relationships.
+- **Data Migration Planning**: When restructuring entities, always check existing data count and plan migration strategy accordingly.
+
 ## Build and Compilation Rules
 - **Frontend Build Automation**: The Angular application automatically generates builds when frontend files are modified. DO NOT manually run `npm run build` or `npm start` for frontend changes.
 - **Backend Compilation**: Only when backend files are modified (Java, GraphQL, migrations) is manual compilation required. In these cases, ALWAYS notify the user explicitly to compile using available tools.

@@ -1326,3 +1326,212 @@ export const getNotaRecepcionItemListPorNotaRecepcionIdYSucursalesQuery = gql`
     }
   }
 `;
+
+// ===== SOLICITUD DE PAGO QUERIES =====
+
+export const solicitudesPagoPorPedidoQuery = gql`
+  query ($pedidoId: ID!) {
+    data: solicitudesPagoPorPedido(pedidoId: $pedidoId) {
+      id
+      numeroSolicitud
+      fechaSolicitud
+      fechaPagoPropuesta
+      montoTotal
+      estado
+      observaciones
+      creadoEn
+      proveedor {
+        id
+        persona {
+          nombre
+          documento
+        }
+      }
+      moneda {
+        id
+        denominacion
+        simbolo
+      }
+      formaPago {
+        id
+        descripcion
+      }
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      pago {
+        id
+        estado
+        creadoEn
+      }
+      notasRecepcion {
+        id
+        montoIncluido
+        creadoEn
+        notaRecepcion {
+          id
+          numero
+          fecha
+          estado
+          valorTotal
+        }
+      }
+    }
+  }
+`;
+
+export const solicitudPagoQuery = gql`
+  query ($id: ID!) {
+    data: solicitudPago(id: $id) {
+      id
+      numeroSolicitud
+      fechaSolicitud
+      fechaPagoPropuesta
+      montoTotal
+      estado
+      observaciones
+      creadoEn
+      proveedor {
+        id
+        persona {
+          nombre
+          documento
+        }
+      }
+      moneda {
+        id
+        denominacion
+        simbolo
+      }
+      formaPago {
+        id
+        descripcion
+      }
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      pago {
+        id
+        estado
+        creadoEn
+      }
+      notasRecepcion {
+        id
+        montoIncluido
+        creadoEn
+        notaRecepcion {
+          id
+          numero
+          fecha
+          estado
+          valorTotal
+        }
+      }
+    }
+  }
+`;
+
+export const notasDisponiblesParaPagoQuery = gql`
+  query ($pedidoId: ID!) {
+    data: notasDisponiblesParaPago(pedidoId: $pedidoId) {
+      id
+      numero
+      fecha
+      estado
+      valorTotal
+      moneda {
+        id
+        denominacion
+        simbolo
+      }
+      pedido {
+        id
+        proveedor {
+          id
+          persona {
+            nombre
+          }
+        }
+      }
+    }
+  }
+`;
+
+// ===== SOLICITUD DE PAGO MUTATIONS =====
+
+export const saveSolicitudPagoMutation = gql`
+  mutation ($entity: SolicitudPagoInput!) {
+    data: saveSolicitudPago(entity: $entity) {
+      id
+      numeroSolicitud
+      fechaSolicitud
+      fechaPagoPropuesta
+      montoTotal
+      estado
+      observaciones
+      creadoEn
+      proveedor {
+        id
+        persona {
+          nombre
+          documento
+        }
+      }
+      moneda {
+        id
+        denominacion
+        simbolo
+      }
+      formaPago {
+        id
+        descripcion
+      }
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      notasRecepcion {
+        id
+        montoIncluido
+        creadoEn
+        notaRecepcion {
+          id
+          numero
+          fecha
+          estado
+          valorTotal
+        }
+      }
+    }
+  }
+`;
+
+export const deleteSolicitudPagoMutation = gql`
+  mutation ($id: ID!) {
+    data: deleteSolicitudPago(id: $id)
+  }
+`;
+
+export const actualizarEstadoSolicitudPagoMutation = gql`
+  mutation ($id: ID!, $estado: SolicitudPagoEstado!) {
+    data: actualizarEstadoSolicitudPago(id: $id, estado: $estado) {
+      id
+      estado
+      fechaSolicitud
+    }
+  }
+`;
+
+export const imprimirSolicitudPagoPDFMutation = gql`
+  mutation ($solicitudPagoId: ID!) {
+    data: imprimirSolicitudPagoPDF(solicitudPagoId: $solicitudPagoId)
+  }
+`;
