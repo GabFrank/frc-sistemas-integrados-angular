@@ -902,8 +902,22 @@
                     <div fxFlex="1">
                       <mat-divider></mat-divider>
                     </div>
-                    <div fxFlex fxLayout="row">
-                      <div fxFlex="70%"></div>
+                    <div fxFlex fxLayout="row" style="padding-top: 5px">
+                      <ng-container *ngIf="venta?.delivery?.fechaConcluido; else noDelivery">
+                        <div fxFlex="15%">Delivery concluido:</div>
+                        <div fxFlex="15%">
+                          {{
+                            venta?.delivery?.fechaConcluido
+                              | date : "dd/MM/yyyy HH:mm"
+                          }}
+                        </div>
+                      </ng-container>
+                      <ng-template #noDelivery>
+                        <div fxFlex="30%"></div>
+                      </ng-template>
+
+                      <div fxFlex="40%"></div>
+
                       <div fxFlex="15%">Total final:</div>
                       <div fxFlex="15%">
                         {{ totalFinal | number : "1.0-0" }}

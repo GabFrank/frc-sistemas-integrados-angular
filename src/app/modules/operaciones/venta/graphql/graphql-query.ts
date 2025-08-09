@@ -125,6 +125,7 @@ export const ventaQuery = gql`
           valor
         }
         estado
+        fechaConcluido
       }
     }
   }
@@ -290,6 +291,7 @@ export const ventasPorCajaIdQuery = gql`
             valor
           }
           estado
+          fechaConcluido
         }
       }
     }
