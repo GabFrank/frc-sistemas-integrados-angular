@@ -21,6 +21,7 @@ export class Delivery {
     vuelto: Vuelto;
     barrio: Barrio;
     duracion: any;
+    fechaConcluido: Date;
 
     toInput(): DeliveryInput {
         let input = new DeliveryInput()
@@ -35,6 +36,7 @@ export class Delivery {
         input.usuarioId = this.usuario?.id
         input.barrioId = this.barrio?.id
         input.vueltoId = this.vuelto?.id
+        input.fechaConcluido = this.fechaConcluido
         return input;
     }
 }

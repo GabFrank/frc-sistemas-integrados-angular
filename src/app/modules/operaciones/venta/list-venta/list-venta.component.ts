@@ -468,21 +468,20 @@ export class ListVentaComponent implements OnInit {
       });
   }
 
-onObservado(ventas: Venta[]): Venta[] {
-  ventas.forEach((venta) => {
-    venta['hasObservation'] = this.ventaObservacionList 
-      ? this.ventaObservacionList.some((obs) => obs.venta.id === venta.id)
-      : false;
-  });
+  onObservado(ventas: Venta[]): Venta[] {
+    ventas.forEach((venta) => {
+      venta['hasObservation'] = this.ventaObservacionList 
+        ? this.ventaObservacionList.some((obs) => obs.venta.id === venta.id)
+        : false;
+    });
 
-  if (this.conObsControl.value) {
-    ventas = ventas.filter((sale) => sale['hasObservation']);
+    if (this.conObsControl.value) {
+      ventas = ventas.filter((sale) => sale['hasObservation']);
+    }
+
+    return ventas;
   }
-
-  return ventas;
-}
  
-
   onListObservaciones(venta: Venta) {
     const dialogRef = this.matDialog
       .open(VentaObservacionDashboardComponent, {
