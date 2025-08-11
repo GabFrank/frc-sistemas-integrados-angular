@@ -199,28 +199,41 @@ export class ListMovimientoStockComponent implements OnInit {
 
     // if sucursalid list is not empty, get stock for each sucursal and sum itm add logs  
     if (sucursalIdList.length > 0 && !isPagination) {
-      sucursalIdList.forEach((sucursalId) => {
-        this.service.onGetStockPorProducto(this.selectedProducto?.id, sucursalId).subscribe((res) => {
-          this.stockTotal += res;
+      if (this.selectedProducto?.id) {
+        sucursalIdList.forEach((sucursalId) => {
+          this.service
+            .onGetStockPorProducto(this.selectedProducto.id, sucursalId)
+            .subscribe((res) => {
+              this.stockTotal += res;
+            });
         });
-      });
+      } else {
+        // Notificar que se requiere seleccionar un producto para esta métrica específica
+        this.notificacionService.openWarn(
+          "Debe seleccionar un producto para realizar la búsqueda"
+        );
+      }
 
       this.service
-      .onGetStockPorTipoMovimiento(
-        dateToString(fechaInicial),
-        dateToString(fechaFin),
-        this.sucursalIdList,
-        this.selectedProducto?.id,
-        this.tipoMovimientoControl.value,
-        this.selectedUsuario?.id
-      )
-      .subscribe((res: StockPorTipoMovimientoDto[]) => {
-        console.log(res);
-        res.forEach((t) => {
-          this.stockPorRangoFecha += t.stock;
+        .onGetStockPorTipoMovimiento(
+          dateToString(fechaInicial),
+          dateToString(fechaFin),
+          this.sucursalIdList,
+          this.selectedProducto?.id,
+          this.tipoMovimientoControl.value,
+          this.selectedUsuario?.id
+        )
+        .subscribe((res: StockPorTipoMovimientoDto[]) => {
+          console.log(res);
+          if (Array.isArray(res)) {
+            res.forEach((t) => {
+              this.stockPorRangoFecha += t.stock;
+            });
+            this.stockPorTipoMovimiento = res;
+          } else {
+            this.stockPorTipoMovimiento = [];
+          }
         });
-        this.stockPorTipoMovimiento = res;
-      });
     }
   }
 
@@ -255,8 +268,13 @@ export class ListMovimientoStockComponent implements OnInit {
         this.size
       )
       .subscribe((res) => {
+        if (!res) {
+          this.selectedPageInfo = null;
+          this.dataSource.data = [];
+          return;
+        }
         this.selectedPageInfo = res;
-        this.dataSource.data = res.getContent;
+        this.dataSource.data = res.getContent || [];
         this.procesarDataDeAjustes();
       });
   }

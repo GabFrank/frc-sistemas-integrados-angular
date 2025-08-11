@@ -1,7 +1,7 @@
 <div style="padding: 20px; min-height: 300px;" fxLayout="column">
   <div style="width: 100%;" fxLayoutAlign="center">
       <button 
-          fxFlex="90" 
+          fxFlex="50" 
           mat-raised-button 
           color="accent"
           (click)="openNewObservacion(selectedVenta)"
@@ -36,8 +36,13 @@
       <td mat-cell *matCellDef="let observacion"> {{ observacion?.usuario?.persona?.nombre | uppercase }} </td>
     </ng-container>
 
-    <tr mat-header-row *matHeaderRowDef="['id', 'descripcion', 'subcategoria', 'encargado']"></tr>
-    <tr mat-row *matRowDef="let row; columns: ['id', 'descripcion', 'subcategoria', 'encargado']"></tr>
+    <ng-container matColumnDef="creadoEn">
+      <th mat-header-cell *matHeaderCellDef>Creado En</th>
+      <td mat-cell *matCellDef="let observacion"> {{ observacion?.creadoEn | date : "dd/MM/yyyy HH:mm" }} </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="['id', 'descripcion', 'subcategoria', 'encargado', 'creadoEn']"></tr>
+    <tr mat-row *matRowDef="let row; columns: ['id', 'descripcion', 'subcategoria', 'encargado', 'creadoEn']"></tr>
   </table>
   </div>
 </div>
