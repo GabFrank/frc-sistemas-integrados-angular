@@ -65,7 +65,7 @@ export class TabService implements OnInit {
 
     this.tabs = [
       // new Tab(VentaTouchComponent, 'Venta', null, null),
-      new Tab(AnalisisDiferenciaComponent, 'Análisis de diferencias', null, null)
+      // new Tab(AnalisisDiferenciaComponent, 'Análisis de diferencias', null, null)
     ];
 
     // this.addTab(new Tab(EditTransferenciaComponent, 'Transferencia 56', new TabData(56, {id: 56}), null))

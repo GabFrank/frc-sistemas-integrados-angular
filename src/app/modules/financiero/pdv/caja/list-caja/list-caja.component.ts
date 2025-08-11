@@ -266,7 +266,7 @@ export class ListCajaComponent implements OnInit {
   irObservacion(caja: PdvCaja) {
     const dialogRef = this.matDialog
       .open(CajaObservacionDashboardComponent, {
-        width: "950px",
+        width: "1950px",
         height: "550px",
         data: { caja: caja }
       })

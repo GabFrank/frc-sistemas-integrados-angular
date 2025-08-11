@@ -485,7 +485,7 @@ export class ListVentaComponent implements OnInit {
   onListObservaciones(venta: Venta) {
     const dialogRef = this.matDialog
       .open(VentaObservacionDashboardComponent, {
-        width: "950px",
+        width: "1950px",
         height: "550px",
         data: { venta: venta }
       })
