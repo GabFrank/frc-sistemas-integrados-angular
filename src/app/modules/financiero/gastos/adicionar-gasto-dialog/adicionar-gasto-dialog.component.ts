@@ -10,6 +10,7 @@ import { FormControl } from "@angular/forms";
 import { MatDialogRef, MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { MatStepper } from "@angular/material/stepper";
 import { MatTableDataSource } from "@angular/material/table";
+import { MatAutocompleteTrigger } from "@angular/material/autocomplete";
 import { Subscription } from "rxjs";
 import {
   orderByIdDesc,
@@ -56,6 +57,8 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   @ViewChild("guaraniVueltoGs", { static: false })
   guaraniVueltoGsInput: ElementRef;
   @ViewChild("stepper", { static: false }) stepper: MatStepper;
+  @ViewChild("responsableInput", { read: MatAutocompleteTrigger, static: false })
+  responsableAutocomplete: MatAutocompleteTrigger;
 
   isVuelto = false;
 
@@ -234,6 +237,12 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
         { emitEvent: false }
       );
 
+      if (this.responsableTimer != null) {
+        clearTimeout(this.responsableTimer);
+      }
+      this.responsableList = [];
+      this.responsableAutocomplete?.closePanel();
+
       setTimeout(() => {
         this.responsableInput?.nativeElement?.blur();
         setTimeout(() => {
@@ -311,9 +320,11 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
   onResponsableAutocompleteClose() {
     setTimeout(() => {
       this.responsableInput.nativeElement.blur();
-      setTimeout(() => {
-        this.responsableInput.nativeElement.select();
-      }, 50);
+      if (!this.selectedResponsable) {
+        setTimeout(() => {
+          this.responsableInput.nativeElement.select();
+        }, 50);
+      }
     }, 100);
   }
 
