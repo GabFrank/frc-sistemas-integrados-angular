@@ -4,7 +4,7 @@
   (resetFiltro)="resetFiltro()"
   (adicionar)="onAddProducto()"
   (customFunction)="onGenerarReporte()"
-  [isAdicionar]="true"
+  [isAdicionar]="isAdicionarEnabled"
   [isCustom]="true"
 <<<<<<< HEAD
   [disableCustom]="isGenerarPdfDisabled"
@@ -209,7 +209,7 @@
             <span matTextSuffix>
               <mat-icon
                 (click)="onBuscarSubfamilia(); $event.stopPropagation()"
-                class="highlight-hover"
+                class="icon"
                 >search</mat-icon
               >
               <mat-icon

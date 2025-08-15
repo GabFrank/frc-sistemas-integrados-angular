@@ -39,6 +39,7 @@ export const sucursalesSearch = gql
       creadoEn
       usuario{
         id
+        nickname
       }
       ip
       puerto

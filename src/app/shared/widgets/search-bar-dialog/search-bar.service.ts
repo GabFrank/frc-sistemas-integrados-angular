@@ -35,7 +35,8 @@ export interface SearchData {
   component?: Type<any>,
   producto?: Producto,
   data?: any;
-  role?: string;
+  role?: string; // Mantener para compatibilidad hacia atrás
+  visibilityRoles?: string[]; // Nueva propiedad para múltiples roles
 }
 
 export class SearchDataResult {
@@ -45,20 +46,20 @@ export class SearchDataResult {
 
 export const componenteList: SearchData[] =
   [
-    { title: 'Lista de Productos', component: ListProductoComponent },
-    { title: 'Lista de Transferencias', component: ListTransferenciaComponent, role: ROLES.VER_TRANSFERENCIA },
-    { title: 'Nueva Transferencia', component: EditTransferenciaComponent, role: ROLES.CREAR_TRANSFERENCIA },
-    { title: 'Cotización', component: CambioComponent },
-    { title: 'Funcionarios', component: FuncionarioDashboardComponent, role: ROLES.VER_FUNCIONARIOS },
-    { title: 'Actualizacion', component: ListActualizacionComponent },
-    { title: 'Lista de cajas', component: ListCajaComponent, role: ROLES.ANALISIS_DE_CAJA },
-    { title: 'Lista de sectores', component: ListSectorComponent },
-    { title: 'Solicitar Recursos', component: SolicitarRecursosDialogComponent, role: ROLES.SOPORTE },
-    { title: 'Precio del Delivery', component: PrecioDeliveryComponent },
-    { title: 'Lista de clientes', component: ListClientesComponent, role: ROLES.ADMIN },
-    { title: 'Lista de retiros', component: ListRetiroComponent, role: ROLES.ANALISIS_DE_CAJA },
-    { title: 'Lista de gastos', component: ListGastosComponent, role: ROLES.ANALISIS_DE_CAJA },
-    { title: 'Lucro por producto', component: LucroPorProductoComponent, role: ROLES.ADMIN }
+    { title: 'Lista de Productos', component: ListProductoComponent, visibilityRoles: [ROLES.VER_PRODUCTOS] },
+    { title: 'Lista de Transferencias', component: ListTransferenciaComponent, visibilityRoles: [ROLES.VER_TRANSFERENCIA] },
+    { title: 'Nueva Transferencia', component: EditTransferenciaComponent, visibilityRoles: [ROLES.CREAR_TRANSFERENCIA] },
+    { title: 'Cotización', component: CambioComponent, visibilityRoles: [ROLES.CAMBIAR_COTIZACION] },
+    { title: 'Funcionarios', component: FuncionarioDashboardComponent, visibilityRoles: [ROLES.VER_FUNCIONARIOS] },
+    { title: 'Actualizacion', component: ListActualizacionComponent, visibilityRoles: [ROLES.ADMIN] },
+    { title: 'Lista de cajas', component: ListCajaComponent, visibilityRoles: [ROLES.ANALISIS_DE_CAJA] },
+    { title: 'Lista de sectores', component: ListSectorComponent, visibilityRoles: [ROLES.ADMIN] },
+    { title: 'Solicitar Recursos', component: SolicitarRecursosDialogComponent, visibilityRoles: [ROLES.SOPORTE] },
+    { title: 'Precio del Delivery', component: PrecioDeliveryComponent, visibilityRoles: [ROLES.ADMIN] },
+    { title: 'Lista de clientes', component: ListClientesComponent, visibilityRoles: [ROLES.VER_PERSONAS] },
+    { title: 'Lista de retiros', component: ListRetiroComponent, visibilityRoles: [ROLES.ANALISIS_DE_CAJA] },
+    { title: 'Lista de gastos', component: ListGastosComponent, visibilityRoles: [ROLES.ANALISIS_DE_CAJA] },
+    { title: 'Lucro por producto', component: LucroPorProductoComponent, visibilityRoles: [ROLES.ADMIN] }
   ]
 
 @UntilDestroy()

@@ -143,8 +143,12 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 <<<<<<< HEAD
 
   isGenerarPdfDisabled: boolean = true;
+<<<<<<< HEAD
 =======
 >>>>>>> 969569b (FD-33: ajuste costo + stock funcionando)
+=======
+  isAdicionarEnabled: boolean = false;
+>>>>>>> 07478e9 (FD-52: acceso restringido en search-bar)
 
   constructor(
     private injector: Injector,
@@ -169,6 +173,7 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     this.service = this.injector.get(ProductoService);
     this.cargarSucursales();
     this.updateSucursalSelectEnabled();
+    this.updatePermisos();
     
     this.stockFiltroControl.valueChanges.subscribe(() => {
       this.updateSucursalSelectEnabled();
@@ -401,6 +406,10 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   updateSucursalSelectEnabled() {
     this.isSucursalSelectEnabled = 
     this.stockFiltroControl.value === 'positivo' || this.stockFiltroControl.value === 'negativo';
+  }
+
+  updatePermisos() {
+    this.isAdicionarEnabled = this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) || false;
   }
 
   onAjustarStock(producto: Producto) {
