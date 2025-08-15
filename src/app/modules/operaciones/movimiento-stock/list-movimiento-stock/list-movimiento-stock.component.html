@@ -155,7 +155,7 @@
             </mat-form-field>
           </div>
           <div fxFlex="10%" style="text-align: center">
-            <mat-icon style="font-size: 2em" (click)="onBuscarProducto()"
+            <mat-icon class="icon" (click)="onBuscarProducto()"
               >search</mat-icon
             >
           </div>
@@ -245,7 +245,7 @@
           </mat-form-field>
         </div>
         <div fxFlex="10%" style="text-align: center">
-          <mat-icon style="font-size: 2em" (click)="onBuscarUsuario()"
+          <mat-icon class="icon" (click)="onBuscarUsuario()"
             >search</mat-icon
           >
         </div>
@@ -272,7 +272,7 @@
       fxFlex="20"
       fxLayout="column"
       fxLayoutGap="10px"
-      style="background-color: rgb(32, 32, 32)"
+      style="background-color: rgb(32, 32, 32);"
     >
       <br />
       <div class="titulo-center">Resumen</div>
@@ -314,7 +314,11 @@
 
     <div
       fxFlex="80"
-      style="height: 100%; background-color: rgb(70, 70, 70)"
+      style="
+        height: 100%; 
+        background-color: rgb(70, 70, 70); 
+        max-height: 70vh; 
+        overflow-y: auto;"
       fxLayout="column"
       fxLayoutAlign="space-between start"
     >

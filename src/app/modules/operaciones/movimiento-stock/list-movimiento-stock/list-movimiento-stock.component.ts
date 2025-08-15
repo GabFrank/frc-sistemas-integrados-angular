@@ -44,7 +44,7 @@ import { PageEvent } from "@angular/material/paginator";
 import { Time } from "@angular/common";
 import { stringToTime } from "../../../../commons/core/utils/string-utils";
 import { StockPorTipoMovimientoDto } from "../graphql/getStockPorTipoMovimientoByFilters";
-import { TabService } from "../../../../layouts/tab/tab.service";
+import { TabService, TabData } from "../../../../layouts/tab/tab.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { ListVentaComponent } from "../../venta/list-venta/list-venta.component";
 import { VentaService } from "../../venta/venta.service";
@@ -52,6 +52,8 @@ import { TransferenciaService } from "../../transferencia/transferencia.service"
 import { InventarioService } from "../../inventario/inventario.service";
 import { Venta } from "../../venta/venta.model";
 import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
+import { EditTransferenciaComponent } from "../../transferencia/edit-transferencia/edit-transferencia.component";
+import { ListInventarioComponent } from "../../inventario/list-inventario/list-inventario.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -282,14 +284,174 @@ export class ListMovimientoStockComponent implements OnInit {
     console.log(movimiento);
     switch (movimiento.tipoMovimiento) {
       case TipoMovimiento.VENTA:
+        this.irAVenta(movimiento);
         break;
       case TipoMovimiento.AJUSTE:
+        this.irAInventario(movimiento);
         break;
       case TipoMovimiento.TRANSFERENCIA:
+        this.irATransferencia(movimiento);
         break;
 
       default:
         break;
+    }
+  }
+
+  irAVenta(movimiento: MovimientoStock) {
+    
+    if (movimiento.referencia) {
+      if (movimiento.data && movimiento.data.venta && movimiento.data.venta.caja) {
+        const venta = movimiento.data.venta;
+        this.abrirTabVenta(venta);
+        return;
+      }
+      
+      this.ventaService
+        .onGetPorId(movimiento.referencia, movimiento.sucursalId, true)
+        .subscribe((venta) => {
+          
+          if (venta) {
+            if (venta.caja) {
+              this.abrirTabVenta(venta);
+            } else {
+              this.notificacionService.openWarn(
+                "La venta no tiene una caja asociada"
+              );
+            }
+          } else {
+            this.notificacionService.openWarn(
+              "Despliegue el item para ir a la venta"
+            );
+          }
+        },
+        (error) => {
+          this.notificacionService.openWarn(
+            "Error al obtener la información de la venta: " + (error.message || error)
+          );
+        });
+    } else {
+      this.notificacionService.openWarn(
+        "No se encontró la referencia de la venta"
+      );
+    }
+  }
+
+    private abrirTabVenta(venta: any) {
+ 
+    const caja = {
+      ...venta.caja,
+      sucursalId: venta.sucursalId
+    };
+    
+    let tabData: TabData = new TabData();
+    tabData.data = caja;
+    
+    this.tabService.addTab(
+      new Tab(
+        ListVentaComponent,
+        `Ventas de caja ${caja.id}`,
+        tabData,
+        ListMovimientoStockComponent
+      )
+    );
+  }
+
+  irATransferencia(movimiento: MovimientoStock) {
+    if (movimiento.referencia) {
+      
+      if (movimiento.data && movimiento.data.transferencia) {
+        this.abrirTabTransferencia(movimiento.data.transferencia);
+        return;
+      }
+      
+      this.transferenciaService
+        .onGetTransferenciaItem(movimiento.referencia)
+        .subscribe((transferenciaItem) => {
+          if (transferenciaItem && transferenciaItem.transferencia) {
+            this.abrirTabTransferencia(transferenciaItem.transferencia);
+          } else {
+            this.notificacionService.openWarn(
+              "No se pudo obtener la información de la transferencia"
+            );
+          }
+        },
+        (error) => {
+          console.error('Error al obtener la transferencia:', error);
+          this.notificacionService.openWarn(
+            "Error al obtener la información de la transferencia: " + (error.message || error)
+          );
+        });
+    } else {
+      this.notificacionService.openWarn(
+        "No se encontró la referencia de la transferencia"
+      );
+    }
+  }
+
+  private abrirTabTransferencia(transferencia: any) {
+    let tabData: TabData = new TabData();
+    tabData.id = transferencia.id;
+    
+    this.tabService.addTab(
+      new Tab(
+        EditTransferenciaComponent,
+        `Transferencia ${transferencia.id}`,
+        tabData,
+        ListMovimientoStockComponent
+      )
+    );
+  }
+
+  irAInventario(movimiento: MovimientoStock) {
+    if (movimiento.referencia) {
+      const esAjusteManual = Number(movimiento.referencia) === Number(movimiento.producto?.id);
+      
+      // Preparar datos comunes para el filtrado
+      const datosComunes = {
+        producto: movimiento.producto,
+        usuario: movimiento.usuario,
+        sucursalId: movimiento.sucursalId,
+        fecha: movimiento.creadoEn,
+        esAjusteManual: esAjusteManual
+      };
+      
+      if (esAjusteManual) {
+        let tabData: TabData = new TabData();
+        tabData.data = {
+          ...datosComunes,
+          productoId: movimiento.producto?.id
+        };
+        
+        this.tabService.addTab(
+          new Tab(
+            ListInventarioComponent,
+            `Inventario Manual`,
+            tabData,
+            ListMovimientoStockComponent
+          )
+        );
+      } else {
+        let tabData: TabData = new TabData();
+        tabData.data = {
+          ...datosComunes,
+          inventarioItemId: movimiento.referencia,
+          productoId: movimiento.producto?.id
+        };
+        
+        this.tabService.addTab(
+          new Tab(
+            ListInventarioComponent,
+            `Inventario Item ${movimiento.referencia}`,
+            tabData,
+            ListMovimientoStockComponent
+          )
+        );
+      }
+    } else {
+      this.notificacionService.openWarn(
+        "No se encontró la referencia del ajuste"
+      );
     }
   }
 
@@ -754,7 +916,6 @@ export class ListMovimientoStockComponent implements OnInit {
     });
 
     if (esAjusteManual) {
-      // Es un ajuste manual
       movimiento.data = {
         tipo: 'AJUSTE_MANUAL',
         producto: movimiento.producto,
@@ -769,7 +930,6 @@ export class ListMovimientoStockComponent implements OnInit {
         index
       );
     } else {
-      // Es un ajuste por inventario
       this.inventarioService.onGetInventarioProductoItem(movimiento.referencia)
         .subscribe((res) => {
           if (res != null) {
