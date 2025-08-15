@@ -120,6 +120,7 @@ export const savePersona = gql`
       apodo
       nacimiento
       documento
+      email
       sexo
       direccion
       telefono
