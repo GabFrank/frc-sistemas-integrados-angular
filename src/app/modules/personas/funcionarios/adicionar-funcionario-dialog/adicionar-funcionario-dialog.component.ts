@@ -101,7 +101,7 @@ export class AdicionarFuncionarioDialogComponent implements OnInit {
 
       forkJoin(
         {
-          sucResult: this.sucursalService.onGetAllSucursales(),
+          sucResult: this.sucursalService.onGetAllSucursales(true, true),
           monedaResult: this.monedaService.onGetAll()
         }
       ).subscribe((res) => {
