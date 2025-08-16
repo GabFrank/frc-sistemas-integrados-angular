@@ -471,7 +471,9 @@ export class ListVentaComponent implements OnInit {
   onObservado(ventas: Venta[]): Venta[] {
     ventas.forEach((venta) => {
       venta['hasObservation'] = this.ventaObservacionList 
-        ? this.ventaObservacionList.some((obs) => obs.venta.id === venta.id)
+        ? this.ventaObservacionList.some((obs) => 
+            obs.venta.id === venta.id && obs.sucursal.id === venta.sucursalId
+          )
         : false;
     });
 

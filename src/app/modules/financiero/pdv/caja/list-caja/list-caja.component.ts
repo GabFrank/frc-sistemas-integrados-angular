@@ -252,7 +252,9 @@ export class ListCajaComponent implements OnInit {
   onObservado(cajas: PdvCaja[]): PdvCaja[] {
     cajas.forEach((caja) => {
       caja['hasObservation'] = this.cajaObservacionList
-        ? this.cajaObservacionList.some((obs) => obs.pdvCaja && obs.pdvCaja.id === caja.id)
+        ? this.cajaObservacionList.some((obs) => 
+            obs.pdvCaja && obs.pdvCaja.id === caja.id && obs.sucursal.id === caja.sucursalId
+          )
         : false;
     });
   
