@@ -39,6 +39,10 @@ import { MainCajaObservacionComponent } from './pdv/caja-observacion/main-caja-o
 import { CajaObservacionDashboardComponent } from './pdv/caja-observacion/caja-observacion-dashboard/caja-observacion-dashboard.component';
 import { AnalisisDiferenciaComponent } from './analisis-diferencia/analisis-diferencia.component';
 import { SearchMaletinGQL } from './maletin/graphql/searchMaletin';
+import { FinancieroRoutingModule } from './financiero-routing.module';
+import { DteListComponent } from './dte/dte-list/dte-list.component';
+import { EventoDteDialogComponent } from './dte/evento-dte-dialog/evento-dte-dialog.component';
+import { EventosDteViewDialogComponent } from './dte/eventos-dte-view-dialog/eventos-dte-view-dialog.component';
 
 @NgModule({
   declarations: [
@@ -76,6 +80,9 @@ import { SearchMaletinGQL } from './maletin/graphql/searchMaletin';
     MainCajaObservacionComponent,
     CajaObservacionDashboardComponent,
     AnalisisDiferenciaComponent,
+    DteListComponent,
+    EventoDteDialogComponent,
+    EventosDteViewDialogComponent,
   ],
   providers: [
     SearchMaletinGQL
@@ -87,6 +94,7 @@ import { SearchMaletinGQL } from './maletin/graphql/searchMaletin';
     FormsModule,
     MaterialModule,
     SharedModule,
+    FinancieroRoutingModule,
   ],
 })
 export class FinancieroModule {}

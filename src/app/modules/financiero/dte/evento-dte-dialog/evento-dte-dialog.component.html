@@ -1,0 +1,53 @@
+<h2 mat-dialog-title style="margin-bottom: 0px">
+  {{ data?.titulo || 'Registrar Evento DTE' }}
+</h2>
+<div 
+  mat-dialog-content 
+  [formGroup]="form" 
+  fxLayout="column" 
+  fxLayoutGap="16px"
+  style="padding-top: 5px"
+>
+  <mat-form-field appearance="outline" style="padding-bottom: 10px">
+    <mat-label>{{ motivoLabel }}</mat-label>
+    <input matInput formControlName="motivo"/>
+    <mat-error *ngIf="form.controls.motivo.hasError('required')">
+      Motivo es requerido
+    </mat-error>
+    <mat-hint align="end">
+      {{ form.controls.motivo.value?.length || 0 }}/500
+    </mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" style="margin-top: 10px">
+    <mat-label>{{ observacionLabel }}</mat-label>
+    <textarea 
+      matInput 
+      formControlName="observacion" 
+      rows="3">
+    </textarea>
+    <mat-error *ngIf="form.controls.observacion.hasError('required')">
+      Observación es requerida
+    </mat-error>
+    <mat-hint align="end">
+      {{ form.controls.observacion.value?.length || 0 }}/2000
+    </mat-hint>
+  </mat-form-field>
+</div>
+<div mat-dialog-actions align="end">
+  <button 
+    mat-raised-button 
+    color="primary" 
+    (click)="cancelar()"
+  >
+    Cancelar
+  </button>
+  <button 
+    mat-raised-button 
+    color="accent" 
+    [disabled]="form.invalid" 
+    (click)="confirmar()"
+  >
+    Confirmar
+  </button>
+</div>

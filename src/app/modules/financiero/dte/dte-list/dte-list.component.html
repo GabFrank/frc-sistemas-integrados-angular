@@ -1,0 +1,183 @@
+<div fxLayout="column" fxLayoutGap="16px">
+  <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
+    <span class="metric-badge metric-primary">Total: {{ metrics?.total || 0 }}</span>
+    <span class="metric-badge metric-tertiary">Pendientes: {{ metrics?.pendientes || 0 }}</span>
+    <span class="metric-badge metric-tertiary">Generados: {{ metrics?.generados || 0 }}</span>
+    <span class="metric-badge metric-tertiary">Enviados: {{ metrics?.enviados || 0 }}</span>
+    <span class="metric-badge metric-tertiary">Aprobados: {{ metrics?.aprobados || 0 }}</span>
+    <span class="metric-badge metric-warn">Rechazados: {{ metrics?.rechazados || 0 }}</span>
+    <span class="metric-badge metric-warn">Cancelados: {{ metrics?.cancelados || 0 }}</span>
+  </div>
+
+  <form 
+    [formGroup]="filtroForm" 
+    fxLayout="row" 
+    fxLayoutGap="16px" 
+    fxLayoutAlign="start center"
+  >
+    <mat-form-field appearance="outline">
+      <mat-label>Estado</mat-label>
+      <mat-select [formControl]="estadoControl">
+        <mat-option [value]="null">Todos</mat-option>
+        <mat-option value="PENDIENTE">PENDIENTE</mat-option>
+        <mat-option value="GENERADO">GENERADO</mat-option>
+        <mat-option value="ENVIADO">ENVIADO</mat-option>
+        <mat-option value="APROBADO">APROBADO</mat-option>
+        <mat-option value="RECHAZADO">RECHAZADO</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>CDC</mat-label>
+      <input matInput [formControl]="cdcControl" placeholder="Buscar por CDC" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Sucursal</mat-label>
+      <mat-select [formControl]="sucursalIdControl">
+        <mat-option [value]="null">Todas</mat-option>
+        <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal.id">
+          {{ sucursal.id }} - {{ sucursal.nombre }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Desde</mat-label>
+      <input 
+        matInput 
+        [matDatepicker]="pickerDesde" 
+        [formControl]="fechaInicioControl" 
+      />
+      <mat-datepicker-toggle matSuffix [for]="pickerDesde"></mat-datepicker-toggle>
+      <mat-datepicker #pickerDesde></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Hasta</mat-label>
+      <input matInput [matDatepicker]="pickerHasta" [formControl]="fechaFinalControl" />
+      <mat-datepicker-toggle matSuffix [for]="pickerHasta"></mat-datepicker-toggle>
+      <mat-datepicker #pickerHasta></mat-datepicker>
+    </mat-form-field>
+
+    <button 
+      mat-raised-button 
+      color="primary" 
+      (click)="buscar()"
+    >
+      Buscar
+    </button>
+    <button 
+      mat-raised-button 
+      color="accent" 
+      (click)="enviarLote()"
+    >
+      Enviar lote (mock)
+    </button>
+    <button 
+      mat-raised-button 
+      color="accent" 
+      (click)="consultarLotes()"
+    >
+      Consultar lotes (mock)
+    </button>
+    <button 
+      mat-raised-button 
+      color="accent" 
+      (click)="seedMock()"
+    >
+      Generar datos mock
+    </button>
+    <button 
+      mat-raised-button 
+      color="warn" 
+      (click)="wipeData()"
+    >
+      Limpiar datos
+    </button>
+  </form>
+
+  <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
+    <ng-container matColumnDef="id">
+      <th mat-header-cell *matHeaderCellDef>ID</th>
+      <td mat-cell *matCellDef="let d">{{ d.id }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="cdc">
+      <th mat-header-cell *matHeaderCellDef>CDC</th>
+      <td mat-cell copiarAClipboard *matCellDef="let d">{{ d.cdc }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="estadoSifen">
+      <th mat-header-cell *matHeaderCellDef>Estado</th>
+      <td mat-cell *matCellDef="let d">
+        <span 
+          class="estado-badge"
+          [class]="'estado-' + d.estadoSifen?.toLowerCase()"
+          matTooltip="{{ d.mensajeSifen || '' }}"
+          [matTooltipDisabled]="!d.mensajeSifen"
+        >
+          {{ d.estadoDesc || d.estadoSifen }}
+        </span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="creadoEn">
+      <th mat-header-cell *matHeaderCellDef>Creado</th>
+      <td mat-cell *matCellDef="let d">{{ d.creadoEn | date:'short' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="menu">
+      <th mat-header-cell *matHeaderCellDef>Acciones</th>
+      <td mat-cell *matCellDef="let d">
+        <button mat-icon-button [matMenuTriggerFor]="menuRef">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #menuRef="matMenu">
+          <button mat-menu-item (click)="onXml(d)">
+            <mat-icon>description</mat-icon>
+            <span>{{ d.xmlActionText }}</span>
+          </button>
+          <button mat-menu-item [disabled]="d.estadoSifen !== 'APROBADO'" (click)="generarQr(d)">
+            <mat-icon>qr_code_2</mat-icon>
+            <span>Generar QR</span>
+          </button>
+          <button mat-menu-item [disabled]="d.estadoSifen !== 'APROBADO'" (click)="registrarCancelacion(d)">
+            <mat-icon>cancel</mat-icon>
+            <span>Registrar Cancelación</span>
+          </button>
+          <button mat-menu-item (click)="registrarConformidad(d)">
+            <mat-icon>thumb_up</mat-icon>
+            <span>Conformidad del receptor</span>
+          </button>
+          <button mat-menu-item (click)="registrarDisconformidad(d)">
+            <mat-icon>thumb_down</mat-icon>
+            <span>Disconformidad del receptor</span>
+          </button>
+          <button mat-menu-item (click)="registrarInutilizacion(d)">
+            <mat-icon>block</mat-icon>
+            <span>Inutilización</span>
+          </button>
+          <button mat-menu-item (click)="verEventos(d)">
+            <mat-icon>schedule</mat-icon>
+            <span>Ver eventos</span>
+          </button>
+        </mat-menu>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+  </table>
+
+  <mat-paginator
+    [length]="selectedPageInfo?.getTotalElements || 0"
+    [pageIndex]="pageIndex"
+    [pageSize]="pageSize"
+    [pageSizeOptions]="[10, 15, 25, 50]"
+    showFirstLastButtons
+    (page)="onPage($event)"
+  ></mat-paginator>
+</div>
+
+

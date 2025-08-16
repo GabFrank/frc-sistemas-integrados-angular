@@ -1,0 +1,100 @@
+.mat-form-field {
+  min-width: 200px;
+}
+
+table {
+  width: 100%;
+}
+
+// Ancho proporcional de columnas
+.mat-column-id {
+  width: 8%;
+  min-width: 60px;
+}
+
+.mat-column-cdc {
+  width: 25%;
+  min-width: 200px;
+  max-width: 300px;
+}
+
+.mat-column-estadoSifen {
+  width: 15%;
+  min-width: 120px;
+}
+
+.mat-column-creadoEn {
+  width: 20%;
+  min-width: 150px;
+}
+
+.mat-column-menu {
+  width: 12%;
+  min-width: 80px;
+}
+
+form {
+  margin-left: 16px;
+  margin-top: 6px;
+}
+
+// Estilos para badges de estado
+.estado-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+  text-align: center;
+  min-width: 80px;
+}
+
+.estado-pendiente {
+  background-color: #ff9800;
+}
+
+.estado-generado {
+  background-color: #2196f3;
+}
+
+.estado-enviado {
+  background-color: #9c27b0;
+}
+
+.estado-aprobado {
+  background-color: #4caf50;
+}
+
+.estado-rechazado {
+  background-color: #f44336;
+}
+
+.metric-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #e0e0e0;
+}
+.metric-primary {
+  background: #1976d2;
+  color: #fff;
+}
+.metric-accent {
+  background: #0288d1;
+  color: #fff;
+}
+.metric-warn {
+  background: #d32f2f;
+  color: #fff;
+}
+
+.metric-tertiary {
+  background: #581ca1;
+  color: #fff;
+}
+

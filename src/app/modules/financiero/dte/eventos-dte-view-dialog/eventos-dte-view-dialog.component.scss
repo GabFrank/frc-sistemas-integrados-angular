@@ -1,0 +1,12 @@
+.events-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.events-table th, .events-table td {
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  padding: 8px 6px;
+}
+.events-table th {
+  text-align: left;
+  font-weight: 600;
+}
