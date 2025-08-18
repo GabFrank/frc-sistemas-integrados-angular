@@ -131,7 +131,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
   }
 
   cargarDatos() {
-    this.isServidor = this.data.isServidor ? this.data.isServidor : false;
+    this.isServidor = true;
 
     if (this.data.venta != null) {
       this.totalFinalControl.setValue(this.data?.venta?.totalGs);
@@ -454,6 +454,79 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
       )
       .subscribe((res) => {
         if (res) {
+          // Forzar operaciones de cliente/persona al servidor central
+          this.isServidor = true;
+
+          const saveCliente = () => {
+            // Intento principal: servidor central
+            this.clienteService
+              .onSaveCliente(this.selectedCliente.toInput(), true)
+              .subscribe({
+                next: (saveRes) => {
+                  this.selectedCliente = saveRes;
+                  this.onSaveFactura();
+                },
+                error: () => {
+                  // Fallback: intentar en servidor local
+                  this.clienteService
+                    .onSaveCliente(this.selectedCliente.toInput(), false)
+                    .subscribe({
+                      next: (saveResLocal) => {
+                        this.selectedCliente = saveResLocal;
+                        this.onSaveFactura();
+                      },
+                      error: () => {
+                        // Solo entonces hacer bypass
+                        this.onSaveFactura();
+                      },
+                    });
+                },
+              });
+          };
+
+          const asegurarPersona = () => {
+            if (this.selectedCliente?.persona?.id) return saveCliente();
+            // Intentar obtener persona por documento en el servidor central
+            this.personaService
+              .onSearch(this.rucControl.value, true)
+              .subscribe({
+                next: (lista) => {
+                  const p = lista?.find(x => (x.documento || '').toLocaleLowerCase() === (this.rucControl.value || '').toLocaleLowerCase());
+                  if (p?.id) {
+                    this.selectedCliente.persona = p;
+                    return saveCliente();
+                  } else {
+                    // Crear persona en el servidor central
+                    const pNueva = new Persona();
+                    pNueva.nombre = this.clienteDescripcionControl.value;
+                    pNueva.documento = this.rucControl.value;
+                    pNueva.direccion = this.direccionControl.value;
+                    pNueva.isCliente = true;
+                    const personaInput: any = pNueva.toInput();
+                    delete personaInput.isCliente;
+                    delete personaInput.isProveedor;
+                    delete personaInput.isFuncionario;
+                    this.personaService
+                      .onSavePersona(personaInput, true)
+                      .subscribe({
+                        next: (pGuardada) => {
+                          this.selectedCliente.persona = pGuardada;
+                          return saveCliente();
+                        },
+                        error: () => {
+                          // Bypass si no se puede crear persona
+                          this.onSaveFactura();
+                        },
+                      });
+                  }
+                },
+                error: () => {
+                  // Bypass si no se puede consultar persona
+                  this.onSaveFactura();
+                },
+              });
+          };
+
           if (this.selectedCliente?.id == null) {
             if (this.selectedCliente == null)
               this.selectedCliente = new Cliente();
@@ -462,23 +535,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
             this.selectedCliente.tributa = this.tributaControl.value;
             this.selectedCliente.documento = this.rucControl.value;
             this.selectedCliente.verificadoSet = false;
-            this.clienteService
-              .onSaveCliente(this.selectedCliente.toInput(), this.isServidor)
-              .subscribe({
-                next: (saveRes) => {
-                  console.log("guardado sin error");
-
-                  this.selectedCliente = saveRes;
-                  this.onSaveFactura();
-                },
-                error: (error) => {
-                  console.log("arrojo un error");
-                  this.onSaveFactura();
-                },
-                complete: () => {
-                  console.log("entro al complete");
-                },
-              });
+            asegurarPersona();
           } else {
             this.onSaveFactura();
           }
