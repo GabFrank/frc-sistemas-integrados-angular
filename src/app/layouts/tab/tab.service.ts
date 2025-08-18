@@ -32,6 +32,7 @@ import { AddVentaObservacionComponent } from '../../modules/operaciones/venta-ob
 import { MainVentaObservacionComponent } from '../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component';
 import { MainCajaObservacionComponent } from '../../modules/financiero/pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component';
 import { AnalisisDiferenciaComponent } from '../../modules/financiero/analisis-diferencia/analisis-diferencia.component';
+import { DteListComponent } from '../../modules/financiero/dte/dte-list/dte-list.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',

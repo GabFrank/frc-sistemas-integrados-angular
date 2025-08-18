@@ -10,6 +10,7 @@ import { EventosDteViewDialogComponent } from "../eventos-dte-view-dialog/evento
 import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { DteRechazadosRecientesGQL } from "../graphql/dteRechazadosRecientes";
+import { SelectionModel } from "@angular/cdk/collections";
 
 interface DocumentoElectronicoView extends DocumentoElectronicoDto {
   xmlActionText?: string;
@@ -46,9 +47,10 @@ const ESTADO_DESC: { [k: string]: string } = {
 })
 export class DteListComponent implements OnInit {
   dataSource = new MatTableDataSource<DocumentoElectronicoView>([]);
-  displayedColumns = ["id", "cdc", "estadoSifen", "creadoEn", "menu"];
+  displayedColumns = ["select","id", "cdc", "estadoSifen", "creadoEn", "menu"];
 
   sucursalList: Sucursal[] = [];
+  selection = new SelectionModel<any>(true, []);
 
   pageIndex = 0;
   pageSize = 15;
@@ -59,6 +61,7 @@ export class DteListComponent implements OnInit {
   fechaFinalControl = new FormControl();
   cdcControl = new FormControl<string | null>(null);
   sucursalIdControl = new FormControl<number | null>(null);
+  fechaFormGroup: FormGroup;
   filtroForm: FormGroup;
 
   metrics: DteMetricsView;
@@ -70,12 +73,17 @@ export class DteListComponent implements OnInit {
     const hoy = new Date();
     const desde = new Date();
     desde.setDate(hoy.getDate() - 7);
+
     this.fechaInicioControl.setValue(desde);
     this.fechaFinalControl.setValue(hoy);
+
+    this.fechaFormGroup = new FormGroup({
+      inicio: this.fechaInicioControl,
+      fin: this.fechaFinalControl,
+    });
+
     this.filtroForm = new FormGroup({
       estado: this.estadoControl,
-      fechaDesde: this.fechaInicioControl,
-      fechaHasta: this.fechaFinalControl,
       cdc: this.cdcControl,
       sucursalId: this.sucursalIdControl,
     });
@@ -92,7 +100,7 @@ export class DteListComponent implements OnInit {
     });
   }
 
-  private cargarMetrics() {
+  cargarMetrics() {
     this.dteService.metrics()
       .pipe(untilDestroyed(this))
       .subscribe((m: any) => {
@@ -100,10 +108,25 @@ export class DteListComponent implements OnInit {
       });
   }
 
-  private cargarRechazadosRecientes() {
+  cargarRechazadosRecientes() {
     this.dteRechazadosGQL.fetch({ limit: 5 }).pipe(untilDestroyed(this)).subscribe((res: any) => {
       this.rechazadosRecientes = (res?.data?.data || []) as any;
     });
+  }
+
+  isAllSelected() {
+    const numSelected = this.selection.selected.length;
+    const numRows = this.dataSource.data.length;
+    return numSelected === numRows;
+  }
+
+  masterToggle() {
+    if (this.isAllSelected()) {
+      this.selection.clear();
+      return;
+    }
+
+    this.selection.select(...this.dataSource.data);
   }
 
   onPage(e: PageEvent) {
@@ -126,8 +149,8 @@ export class DteListComponent implements OnInit {
 
   buscar() {
     const estado = this.estadoControl.value;
-    const fechaDesde = this.fechaInicioControl.value;
-    const fechaHasta = this.fechaFinalControl.value;
+    const fechaDesde = this.fechaFormGroup.get('inicio').value;
+    const fechaHasta = this.fechaFormGroup.get('fin').value;
     const cdc = (this.cdcControl.value || undefined) as string | undefined;
     const sucursalId = (this.sucursalIdControl.value || undefined) as number | undefined;
     

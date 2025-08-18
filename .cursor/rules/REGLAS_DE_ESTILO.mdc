@@ -1,0 +1,94 @@
+# Reglas de Estilo para Componentes de Angular (HTML)
+
+Este documento define las convenciones de estilo y formato para los archivos HTML de los componentes de Angular en este proyecto. El objetivo es mantener un código limpio, legible y consistente, siguiendo las preferencias del desarrollador.
+
+## 1. Indentación
+
+-   Utilizar **2 espacios** para la indentación de elementos anidados. No usar tabulaciones.
+
+    *Ejemplo:*
+    ```html
+    <div>
+      <p>
+        Contenido...
+      </p>
+    </div>
+    ```
+
+## 2. Longitud de Línea y Atributos
+
+-   Para etiquetas HTML con múltiples atributos o atributos largos, cada atributo debe colocarse en una nueva línea e indentarse para mejorar la legibilidad.
+
+    *Ejemplo Incorrecto:*
+    ```html
+    <button mat-raised-button color="primary" (click)="loadData()" style="margin-right: 8px;">Filtrar</button>
+    ```
+
+    *Ejemplo Correcto:*
+    ```html
+    <button 
+      mat-raised-button 
+      color="primary" 
+      (click)="loadData()" 
+      style="margin-right: 8px;"
+    >
+      Filtrar
+    </button>
+    ```
+
+## 3. Estructura de Formularios y Filtros con Flex-Layout
+
+-   Al diseñar formularios o secciones de filtros, agrupar los campos en filas utilizando `fxLayout="row"`.
+-   Cada fila no debe contener más de **4 `mat-form-field`** (o campos de formulario equivalentes).
+-   Si una fila requiere más de 4 campos, o si los campos son demasiado anchos y comprometen la legibilidad, se debe crear una nueva fila (`div` con `fxLayout="row"`).
+-   Utilizar `fxFlex` para distribuir el espacio de manera equitativa entre los campos. Por ejemplo, `fxFlex="25%"` para 4 campos.
+-   Aplicar espaciado entre los campos con `fxLayoutGap`.
+
+    *Ejemplo de estructura:*
+    ```html
+    <div class="filters-row" [formGroup]="filters">
+      <!-- Primera fila de filtros -->
+      <div fxLayout="row" fxLayoutGap="16px">
+        <mat-form-field fxFlex="25%" appearance="outline">
+          <!-- ... -->
+        </mat-form-field>
+        <mat-form-field fxFlex="25%" appearance="outline">
+          <!-- ... -->
+        </mat-form-field>
+        <mat-form-field fxFlex="25%" appearance="outline">
+          <!-- ... -->
+        </mat-form-field>
+        <mat-form-field fxFlex="25%" appearance="outline">
+          <!-- ... -->
+        </mat-form-field>
+      </div>
+
+      <!-- Segunda fila de filtros (si es necesario) -->
+      <div fxLayout="row" fxLayoutGap="16px">
+        <mat-form-field fxFlex="100%" appearance="outline">
+          <!-- Un campo que ocupa toda la fila -->
+        </mat-form-field>
+      </div>
+    </div>
+    ```
+
+## 4. Estructura de Tablas (`mat-table`)
+
+-   Las definiciones de las columnas (`ng-container`) deben estar claramente separadas.
+-   Las directivas `mat-header-row` y `mat-row` deben tener sus atributos en líneas separadas si son complejos.
+
+    *Ejemplo:*
+    ```html
+    <tr 
+      mat-header-row 
+      *matHeaderRowDef="displayedColumns; sticky: true"
+    ></tr>
+    <tr 
+      mat-row 
+      *matRowDef="let row; columns: displayedColumns;"
+    ></tr>
+    ```
+
+## Resumen
+
+El objetivo principal es la **legibilidad**. El código debe ser fácil de seguir visualmente. Prefiere dividir la lógica y los atributos en múltiples líneas en lugar de tener líneas muy largas y complejas. 

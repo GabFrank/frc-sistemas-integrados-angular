@@ -33,9 +33,15 @@ table {
   min-width: 80px;
 }
 
+.mat-column-select {
+  width: 5%;
+  min-width: 40px;
+}
+
 form {
   margin-left: 16px;
   margin-top: 6px;
+  margin-bottom: 6px
 }
 
 // Estilos para badges de estado
@@ -96,5 +102,21 @@ form {
 .metric-tertiary {
   background: #581ca1;
   color: #fff;
+}
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+.dte-list-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-wrapper {
+  flex: 1 1 auto;
+  overflow: auto;
 }
 
