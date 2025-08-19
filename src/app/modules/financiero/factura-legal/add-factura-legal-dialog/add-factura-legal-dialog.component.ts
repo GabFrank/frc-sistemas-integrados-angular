@@ -175,7 +175,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
         this.tributaControl.setValue(true);
         this.cargandoService.openDialog();
         this.clienteService
-          .onGetClientePorPersonaDocumento(this.rucControl.value, this.isServidor)
+          .onGetClientePorPersonaDocumento(this.rucControl.value, false)
           .pipe(untilDestroyed(this))
           .subscribe((res) => {
             this.cargandoService.closeDialog();
