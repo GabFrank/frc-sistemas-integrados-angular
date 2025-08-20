@@ -18,6 +18,12 @@ export class NumericOnlyDirective {
       event.preventDefault();
       return;
     }
+
+    // Block negative sign
+    if (event.key === '-') {
+      event.preventDefault();
+      return;
+    }
   
     // Check if it's a number
     const isNumber = new RegExp(/^\d+$/).test(event.key);
@@ -28,8 +34,9 @@ export class NumericOnlyDirective {
 
   @HostListener('input', ['$event']) onInput(event: InputEvent) {
     // Sanitize value on any input (including paste/composition)
+    // Only remove negative signs, keep dots for formatting
     const currentValue: string = this.el.nativeElement.value ?? '';
-    const sanitizedValue = currentValue.replace(/[^\d]/g, '');
+    const sanitizedValue = currentValue.replace(/-/g, '');
     if (sanitizedValue !== currentValue) {
       this.el.nativeElement.value = sanitizedValue;
     }
