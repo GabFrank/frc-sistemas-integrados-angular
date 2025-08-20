@@ -611,7 +611,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
       facturaItemInputList.push(f.toInput());
     });
     this.facturaService
-      .onSaveFactura(factura.toInput(), facturaItemInputList, this.isServidor)
+      .onSaveFactura(factura.toInput(), facturaItemInputList, false)
       .pipe(untilDestroyed(this))
       .subscribe((res: TimbradoDetalle) => {
         if (res != null) {
