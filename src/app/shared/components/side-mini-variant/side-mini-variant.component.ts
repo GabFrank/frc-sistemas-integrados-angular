@@ -41,7 +41,6 @@ import { MainVentaObservacionComponent } from "../../../modules/operaciones/vent
 import { MainCajaObservacionComponent } from "../../../modules/financiero/pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component";
 import { Subscription } from 'rxjs';
 import { AnalisisDiferenciaComponent } from '../../../modules/financiero/analisis-diferencia/analisis-diferencia.component';
-import { DteListComponent } from '../../../modules/financiero/dte/dte-list/dte-list.component';
 
 
 // Define interfaces for the navigation items structure
@@ -232,12 +231,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           action: 'analisis-diferencias',
           visibilityRoles: [ROLES.ADMIN]
         },
-        {
-          name: 'DTE',
-          icon: 'qr_code_2',
-          action: 'list-dte',
-          visibilityRoles: [ROLES.ADMIN]
-        }
       ]
     },
     {
@@ -568,9 +561,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "analisis-diferencias":
         this.openTabIfAuthorized(ROLES.ADMIN, AnalisisDiferenciaComponent, "Análisis de diferencias");
-        break;
-      case "list-dte":
-        this.openTabIfAuthorized(ROLES.ADMIN, DteListComponent, "DTE");
         break;
       case "list-sucursal":
         this.openTabIfAuthorized(ROLES.ADMIN, ListSucursalComponent, "Lista de sucursales");
