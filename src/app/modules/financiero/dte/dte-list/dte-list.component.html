@@ -1,15 +1,5 @@
-<div class="dte-list-container" fxLayout="column">
-  <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px">
-    <span class="metric-badge metric-primary">Total: {{ metrics?.total || 0 }}</span>
-    <span class="metric-badge metric-tertiary">Pendientes: {{ metrics?.pendientes || 0 }}</span>
-    <span class="metric-badge metric-tertiary">Generados: {{ metrics?.generados || 0 }}</span>
-    <span class="metric-badge metric-tertiary">Enviados: {{ metrics?.enviados || 0 }}</span>
-    <span class="metric-badge metric-tertiary">Aprobados: {{ metrics?.aprobados || 0 }}</span>
-    <span class="metric-badge metric-warn">Rechazados: {{ metrics?.rechazados || 0 }}</span>
-    <span class="metric-badge metric-warn">Cancelados: {{ metrics?.cancelados || 0 }}</span>
-  </div>
-
-  <form 
+<div class="dte-list-container" fxLayout="column"> 
+ <form 
     [formGroup]="filtroForm" 
     fxLayout="row" 
     fxLayoutGap="16px" 
@@ -42,8 +32,8 @@
       </mat-select>
     </mat-form-field>
 
-    <div fxFlex="20%" style="text-align: center">
-      <mat-form-field style="width: 100%">
+    <div style="text-align: center">
+      <mat-form-field appearance="outline">
         <mat-label>Rango de fecha</mat-label>
         <mat-date-range-input
           [formGroup]="fechaFormGroup"
@@ -94,6 +84,16 @@
       Limpiar datos
     </button>
   </form>
+
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px" style="margin-bottom: 7px; margin-left: 16px;">
+      <span class="metric-badge metric-primary">Total: {{ metrics?.total || 0 }}</span>
+      <span class="metric-badge metric-tertiary">Pendientes: {{ metrics?.pendientes || 0 }}</span>
+      <span class="metric-badge metric-tertiary">Generados: {{ metrics?.generados || 0 }}</span>
+      <span class="metric-badge metric-tertiary">Enviados: {{ metrics?.enviados || 0 }}</span>
+      <span class="metric-badge metric-tertiary">Aprobados: {{ metrics?.aprobados || 0 }}</span>
+      <span class="metric-badge metric-warn">Rechazados: {{ metrics?.rechazados || 0 }}</span>
+      <span class="metric-badge metric-warn">Cancelados: {{ metrics?.cancelados || 0 }}</span>
+    </div>
 
   <div class="table-wrapper mat-elevation-z8">
     <table mat-table [dataSource]="dataSource">
