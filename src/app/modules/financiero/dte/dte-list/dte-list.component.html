@@ -59,6 +59,7 @@
       mat-raised-button 
       color="accent" 
       (click)="enviarLote()"
+      [hidden]="selection.selected?.length == 0"
     >
       Enviar lote (mock)
     </button>
@@ -66,6 +67,7 @@
       mat-raised-button 
       color="accent" 
       (click)="consultarLotes()"
+      [hidden]="selection.selected?.length == 0"
     >
       Consultar lotes (mock)
     </button>
@@ -73,6 +75,7 @@
       mat-raised-button 
       color="accent" 
       (click)="seedMock()"
+      [hidden]="selection.selected?.length == 0"
     >
       Generar datos mock
     </button>
@@ -87,12 +90,12 @@
 
     <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="8px" style="margin-bottom: 7px; margin-left: 16px;">
       <span class="metric-badge metric-primary">Total: {{ metrics?.total || 0 }}</span>
-      <span class="metric-badge metric-tertiary">Pendientes: {{ metrics?.pendientes || 0 }}</span>
-      <span class="metric-badge metric-tertiary">Generados: {{ metrics?.generados || 0 }}</span>
-      <span class="metric-badge metric-tertiary">Enviados: {{ metrics?.enviados || 0 }}</span>
-      <span class="metric-badge metric-tertiary">Aprobados: {{ metrics?.aprobados || 0 }}</span>
-      <span class="metric-badge metric-warn">Rechazados: {{ metrics?.rechazados || 0 }}</span>
-      <span class="metric-badge metric-warn">Cancelados: {{ metrics?.cancelados || 0 }}</span>
+      <span class="metric-badge metric-warn">Pendientes: {{ metrics?.pendientes || 0 }}</span>
+      <span class="metric-badge metric-warn">Generados: {{ metrics?.generados || 0 }}</span>
+      <span class="metric-badge metric-warn">Enviados: {{ metrics?.enviados || 0 }}</span>
+      <span class="metric-badge metric-success">Aprobados: {{ metrics?.aprobados || 0 }}</span>
+      <span class="metric-badge metric-danger">Rechazados: {{ metrics?.rechazados || 0 }}</span>
+      <span class="metric-badge metric-danger">Cancelados: {{ metrics?.cancelados || 0 }}</span>
     </div>
 
   <div class="table-wrapper mat-elevation-z8">

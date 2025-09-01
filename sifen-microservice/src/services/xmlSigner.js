@@ -8,7 +8,13 @@ class XmlSigner {
   constructor() {
     this.certificate = null;
     this.privateKey = null;
-    this.cargarCertificado();
+    
+    // Solo cargar certificado si está configurado
+    if (config.certificate && config.certificate.path) {
+      this.cargarCertificado();
+    } else {
+      logger.warn('No hay certificado configurado, usando modo de desarrollo');
+    }
   }
 
   /**

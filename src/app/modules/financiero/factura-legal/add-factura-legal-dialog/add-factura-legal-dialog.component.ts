@@ -175,7 +175,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
         this.tributaControl.setValue(true);
         this.cargandoService.openDialog();
         this.clienteService
-          .onGetClientePorPersonaDocumento(this.rucControl.value, this.isServidor)
+          .onGetClientePorPersonaDocumento(this.rucControl.value, false)
           .pipe(untilDestroyed(this))
           .subscribe((res) => {
             this.cargandoService.closeDialog();
@@ -600,7 +600,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     });
     // Intento principal: servidor central. Si falla, fallback al servidor local
     this.facturaService
-      .onSaveFactura(factura.toInput(), facturaItemInputList, true)
+      .onSaveFactura(factura.toInput(), facturaItemInputList, false)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res: TimbradoDetalle) => {

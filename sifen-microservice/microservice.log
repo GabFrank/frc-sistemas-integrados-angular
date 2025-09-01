@@ -1,0 +1,201 @@
+nohup: ignoring input
+
+> sifen-microservice@1.0.0 start
+> node src/index.js
+
+[32minfo[39m: Certificado cargado exitosamente {"issuer":"CODE100 S.A.","subject":"GUILLERMO FRANCO AREVALOS","timestamp":"2025-08-30 14:07:23","validFrom":"2025-08-20T14:53:41.000Z","validTo":"2026-08-20T14:53:41.000Z"}
+[32minfo[39m: 🚀 SIFEN Microservice iniciado en puerto 3001 {"timestamp":"2025-08-30 14:07:23"}
+[32minfo[39m: 📊 Entorno: development {"timestamp":"2025-08-30 14:07:23"}
+[32minfo[39m: 🔗 Backend Java: http://localhost:8081 {"timestamp":"2025-08-30 14:07:23"}
+[32minfo[39m: 🌐 SIFEN URL: https://sifen.set.gov.py {"timestamp":"2025-08-30 14:07:23"}
+[32minfo[39m: 📝 Health check: http://localhost:3001/health {"timestamp":"2025-08-30 14:07:23"}
+[32minfo[39m: GET /api/documento/80012345001001000553981202508280001100000256/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:08:21","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80012345001001000553981202508280001100000256 {"timestamp":"2025-08-30 14:08:21"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80012345001001000553981202508280001100000256 {"timestamp":"2025-08-30 14:08:21"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:08:21","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:08:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80012345001001000553981202508280001100000256: 200 {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:08:22"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: [SIFEN] Estado del documento 80012345001001000553981202508280001100000256: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: Estado consultado para CDC 80012345001001000553981202508280001100000256: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: GET /api/documento/80012345001001000553921202508280001100000526/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:08:22","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80012345001001000553921202508280001100000526 {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80012345001001000553921202508280001100000526 {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:08:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:08:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80012345001001000553921202508280001100000526: 200 {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:08:22"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: [SIFEN] Estado del documento 80012345001001000553921202508280001100000526: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: Estado consultado para CDC 80012345001001000553921202508280001100000526: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: GET /api/documento/80099482001002000000621202508290000950000080/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:08:22","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80099482001002000000621202508290000950000080 {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80099482001002000000621202508290000950000080 {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:08:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:08:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80099482001002000000621202508290000950000080: 200 {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:08:22"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: [SIFEN] Estado del documento 80099482001002000000621202508290000950000080: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: Estado consultado para CDC 80099482001002000000621202508290000950000080: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: GET /api/documento/80099482001002000000571202508290000050000737/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:08:22","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80099482001002000000571202508290000050000737 {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80099482001002000000571202508290000050000737 {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:08:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:08:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80099482001002000000571202508290000050000737: 200 {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:08:22"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: [SIFEN] Estado del documento 80099482001002000000571202508290000050000737: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: Estado consultado para CDC 80099482001002000000571202508290000050000737: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: GET /api/documento/80099482001002000000371202508280000250000138/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:08:22","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80099482001002000000371202508280000250000138 {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80099482001002000000371202508280000250000138 {"timestamp":"2025-08-30 14:08:22"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:08:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:08:23","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80099482001002000000371202508280000250000138: 200 {"timestamp":"2025-08-30 14:08:23"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:08:23"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:08:23"}
+[32minfo[39m: [SIFEN] Estado del documento 80099482001002000000371202508280000250000138: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:08:23"}
+[32minfo[39m: Estado consultado para CDC 80099482001002000000371202508280000250000138: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:08:23"}
+[32minfo[39m: GET /api/documento/80099482001002000000271202508270163000000171/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:08:23","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80099482001002000000271202508270163000000171 {"timestamp":"2025-08-30 14:08:23"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80099482001002000000271202508270163000000171 {"timestamp":"2025-08-30 14:08:23"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:08:23","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:08:23","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80099482001002000000271202508270163000000171: 200 {"timestamp":"2025-08-30 14:08:23"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:08:23"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:08:23"}
+[32minfo[39m: [SIFEN] Estado del documento 80099482001002000000271202508270163000000171: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:08:23"}
+[32minfo[39m: Estado consultado para CDC 80099482001002000000271202508270163000000171: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:08:23"}
+[32minfo[39m: GET /api/documento/80012345001001000553981202508280001100000256/estado {"ip":"::1","timestamp":"2025-08-30 14:08:54","userAgent":"curl/8.6.0"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80012345001001000553981202508280001100000256 {"timestamp":"2025-08-30 14:08:54"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80012345001001000553981202508280001100000256 {"timestamp":"2025-08-30 14:08:54"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:08:54","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:08:54","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80012345001001000553981202508280001100000256: 200 {"timestamp":"2025-08-30 14:08:54"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:08:54"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:08:54"}
+[32minfo[39m: [SIFEN] Estado del documento 80012345001001000553981202508280001100000256: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:08:54"}
+[32minfo[39m: Estado consultado para CDC 80012345001001000553981202508280001100000256: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:08:54"}
+[32minfo[39m: GET /api/documento/80012345001001000553981202508280001100000256/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:11:21","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80012345001001000553981202508280001100000256 {"timestamp":"2025-08-30 14:11:21"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80012345001001000553981202508280001100000256 {"timestamp":"2025-08-30 14:11:21"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:11:21","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:11:21","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80012345001001000553981202508280001100000256: 200 {"timestamp":"2025-08-30 14:11:21"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:11:21"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:11:21"}
+[32minfo[39m: [SIFEN] Estado del documento 80012345001001000553981202508280001100000256: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:11:21"}
+[32minfo[39m: Estado consultado para CDC 80012345001001000553981202508280001100000256: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:11:21"}
+[32minfo[39m: GET /api/documento/80012345001001000553921202508280001100000526/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:11:21","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80012345001001000553921202508280001100000526 {"timestamp":"2025-08-30 14:11:21"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80012345001001000553921202508280001100000526 {"timestamp":"2025-08-30 14:11:21"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:11:21","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:11:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80012345001001000553921202508280001100000526: 200 {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:11:22"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: [SIFEN] Estado del documento 80012345001001000553921202508280001100000526: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: Estado consultado para CDC 80012345001001000553921202508280001100000526: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: GET /api/documento/80099482001002000000621202508290000950000080/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:11:22","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80099482001002000000621202508290000950000080 {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80099482001002000000621202508290000950000080 {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:11:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:11:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80099482001002000000621202508290000950000080: 200 {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:11:22"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: [SIFEN] Estado del documento 80099482001002000000621202508290000950000080: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: Estado consultado para CDC 80099482001002000000621202508290000950000080: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: GET /api/documento/80099482001002000000571202508290000050000737/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:11:22","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80099482001002000000571202508290000050000737 {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80099482001002000000571202508290000050000737 {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:11:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:11:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80099482001002000000571202508290000050000737: 200 {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:11:22"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: [SIFEN] Estado del documento 80099482001002000000571202508290000050000737: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: Estado consultado para CDC 80099482001002000000571202508290000050000737: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: GET /api/documento/80099482001002000000371202508280000250000138/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:11:22","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80099482001002000000371202508280000250000138 {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80099482001002000000371202508280000250000138 {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:11:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:11:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80099482001002000000371202508280000250000138: 200 {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:11:22"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: [SIFEN] Estado del documento 80099482001002000000371202508280000250000138: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: Estado consultado para CDC 80099482001002000000371202508280000250000138: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: GET /api/documento/80099482001002000000271202508270163000000171/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:11:22","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80099482001002000000271202508270163000000171 {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80099482001002000000271202508270163000000171 {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:11:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:11:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80099482001002000000271202508270163000000171: 200 {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:11:22"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: [SIFEN] Estado del documento 80099482001002000000271202508270163000000171: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: Estado consultado para CDC 80099482001002000000271202508270163000000171: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:11:22"}
+[32minfo[39m: GET /api/documento/80012345001001000553981202508280001100000256/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:14:21","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80012345001001000553981202508280001100000256 {"timestamp":"2025-08-30 14:14:21"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80012345001001000553981202508280001100000256 {"timestamp":"2025-08-30 14:14:21"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:14:21","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:14:21","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80012345001001000553981202508280001100000256: 200 {"timestamp":"2025-08-30 14:14:21"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:14:21"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:14:21"}
+[32minfo[39m: [SIFEN] Estado del documento 80012345001001000553981202508280001100000256: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:14:21"}
+[32minfo[39m: Estado consultado para CDC 80012345001001000553981202508280001100000256: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:14:21"}
+[32minfo[39m: GET /api/documento/80012345001001000553921202508280001100000526/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:14:21","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80012345001001000553921202508280001100000526 {"timestamp":"2025-08-30 14:14:21"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80012345001001000553921202508280001100000526 {"timestamp":"2025-08-30 14:14:21"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:14:21","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:14:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80012345001001000553921202508280001100000526: 200 {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:14:22"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: [SIFEN] Estado del documento 80012345001001000553921202508280001100000526: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: Estado consultado para CDC 80012345001001000553921202508280001100000526: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: GET /api/documento/80099482001002000000621202508290000950000080/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:14:22","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80099482001002000000621202508290000950000080 {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80099482001002000000621202508290000950000080 {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:14:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:14:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80099482001002000000621202508290000950000080: 200 {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:14:22"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: [SIFEN] Estado del documento 80099482001002000000621202508290000950000080: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: Estado consultado para CDC 80099482001002000000621202508290000950000080: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: GET /api/documento/80099482001002000000571202508290000050000737/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:14:22","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80099482001002000000571202508290000050000737 {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80099482001002000000571202508290000050000737 {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:14:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:14:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80099482001002000000571202508290000050000737: 200 {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:14:22"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: [SIFEN] Estado del documento 80099482001002000000571202508290000050000737: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: Estado consultado para CDC 80099482001002000000571202508290000050000737: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: GET /api/documento/80099482001002000000371202508280000250000138/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:14:22","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80099482001002000000371202508280000250000138 {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80099482001002000000371202508280000250000138 {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:14:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:14:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80099482001002000000371202508280000250000138: 200 {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:14:22"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: [SIFEN] Estado del documento 80099482001002000000371202508280000250000138: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: Estado consultado para CDC 80099482001002000000371202508280000250000138: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: GET /api/documento/80099482001002000000271202508270163000000171/estado {"ip":"::ffff:127.0.0.1","timestamp":"2025-08-30 14:14:22","userAgent":"Java/1.8.0_452"}
+[32minfo[39m: Consultando estado individual del documento CDC: 80099482001002000000271202508270163000000171 {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: [SIFEN] Consultando estado individual del documento CDC: 80099482001002000000271202508270163000000171 {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: Enviando request a SIFEN {"data":"XML presente","method":"post","timestamp":"2025-08-30 14:14:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: Respuesta recibida de SIFEN {"status":200,"timestamp":"2025-08-30 14:14:22","url":"https://sifen-test.set.gov.py/de/ws/consultas/consulta"}
+[32minfo[39m: [SIFEN] Respuesta recibida para CDC 80099482001002000000271202508270163000000171: 200 {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: [SIFEN] Procesando respuesta de consulta individual: {"timestamp":"2025-08-30 14:14:22"}
+[33mwarn[39m: [SIFEN] Estado no reconocido en respuesta de SIFEN {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: [SIFEN] Estado del documento 80099482001002000000271202508270163000000171: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:14:22"}
+[32minfo[39m: Estado consultado para CDC 80099482001002000000271202508270163000000171: ESTADO_DESCONOCIDO {"timestamp":"2025-08-30 14:14:22"}

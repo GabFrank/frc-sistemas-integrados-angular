@@ -90,17 +90,22 @@ form {
   background: #1976d2;
   color: #fff;
 }
-.metric-accent {
-  background: #0288d1;
+.metric-danger {
+  background: #f44336;
   color: #fff;
 }
 .metric-warn {
-  background: #d32f2f;
+  background: #ff9800;
   color: #fff;
 }
 
 .metric-tertiary {
   background: #581ca1;
+  color: #fff;
+}
+
+.metric-success {
+  background: #4caf50;
   color: #fff;
 }
 
