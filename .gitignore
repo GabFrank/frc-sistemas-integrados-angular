@@ -53,3 +53,9 @@ testem.log
 .DS_Store
 Thumbs.db
 electron-printer/
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
