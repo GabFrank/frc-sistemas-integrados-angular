@@ -1,0 +1,39 @@
+DIAGNÓSTICO DE FIRMA XML PARA SIFEN
+===================================
+
+Fecha: 2025-09-06T19:43:51.578Z
+Archivo analizado: xml-sifen-FINAL-V25.xml
+
+ESTRUCTURA XML-DSIG:
+- Namespace ds:: ✅
+- Elemento Signature: ✅
+- SignedInfo: ✅
+- SignatureValue: ✅
+- KeyInfo: ✅
+- X509Certificate: ✅
+
+TRANSFORMACIONES:
+- Exclusive C14N: ✅
+- Enveloped Signature: ✅
+- Orden correcto: ✅
+
+ALGORITMOS:
+- SHA256 Digest: ✅
+- RSA-SHA256 Signature: ✅
+- C14N Canonicalization: ✅
+
+VALORES DE FIRMA:
+- DigestValue: 4YpKvvOy8HcVknxnXCdmUhBJvBPBen...
+- SignatureValue: qDCC1YpivG+xN3StrOIJ+ryFuxWocM...
+- Certificate: ✅ PRESENTE
+
+INTEGRIDAD:
+- Sin valores dummy: ✅
+- Una sola firma: ✅
+- Estructura válida: ✅
+
+PROBLEMAS ENCONTRADOS: 0
+
+
+CONCLUSION:
+XML técnicamente correcto. Problema probablemente en configuración del certificado con SIFEN/MIC.

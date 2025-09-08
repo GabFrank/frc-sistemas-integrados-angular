@@ -33,7 +33,6 @@ import { MainVentaObservacionComponent } from '../../modules/operaciones/venta-o
 import { MainCajaObservacionComponent } from '../../modules/financiero/pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component';
 import { AnalisisDiferenciaComponent } from '../../modules/financiero/analisis-diferencia/analisis-diferencia.component';
 import { DteListComponent } from '../../modules/financiero/dte/dte-list/dte-list.component';
-import { DteTestComponent } from '../../modules/financiero/dte/dte-test.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -67,7 +66,7 @@ export class TabService implements OnInit {
 
     this.tabs = [
       // new Tab(VentaTouchComponent, 'Venta', null, null),
-      new Tab(DteTestComponent, 'DTE TEST', null, null)
+      new Tab(DteListComponent, 'Documento electrónico', null, null) 
     ];
 
     // this.addTab(new Tab(EditTransferenciaComponent, 'Transferencia 56', new TabData(56, {id: 56}), null))

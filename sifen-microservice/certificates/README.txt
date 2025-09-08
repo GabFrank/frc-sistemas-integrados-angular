@@ -5,8 +5,9 @@ En esta carpeta debes colocar tu certificado digital (.pfx) para la firma de DTE
 INSTRUCCIONES:
 1. Coloca tu archivo .pfx en esta carpeta
 2. Actualiza la configuración en src/config/config.js:
-   - certificate.path: './certificates/tu-archivo.pfx'
-   - certificate.password: 'tu-contraseña'
+
+   - certificates.path: './certificates/tu-archivo.pfx'
+   - certificates.password: 'tu-contraseña'
 
 IMPORTANTE:
 - El certificado debe estar vigente
@@ -16,4 +17,4 @@ IMPORTANTE:
 EJEMPLO:
 Si tu archivo se llama "mi-certificado.pfx":
 - Colócalo aquí: ./certificates/mi-certificado.pfx
-- En config.js: certificate.path: './certificates/mi-certificado.pfx'
+- En config.js: certificates.path: './certificates/mi-certificado.pfx'

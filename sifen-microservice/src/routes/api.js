@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const dteGenerator = require('../services/dteGenerator');
+const DteGenerator = require('../services/dteGenerator');
+const dteGenerator = new DteGenerator();
 const xmlSigner = require('../services/xmlSigner');
+const xmlValidator = require('../services/xmlValidator');
 const SifenClient = require('../services/sifenClient');
 const sifenClient = new SifenClient();
 const logger = require('../utils/logger');
@@ -112,7 +114,8 @@ async function obtenerDatosFacturaReal(facturaId, sucursalId) {
  * Transforma los datos del backend al formato esperado por el generador
  */
 function transformarDatosFactura(datosBackend, facturaId) {
-  return {
+
+  const resultado = {
     id: facturaId,
     emisor: {
       ruc: datosBackend.emisor?.ruc || '80012345',
@@ -130,7 +133,7 @@ function transformarDatosFactura(datosBackend, facturaId) {
       email: datosBackend.receptor?.email || ''
     },
     documento: {
-      tipo: datosBackend.documento?.tipo || 1,
+      tipo: datosBackend.documento?.tipo || '01', // 01 = Factura Electrónica según manual SIFEN
       numero: datosBackend.documento?.numero || facturaId.toString().padStart(6, '0'),
       fecha: datosBackend.documento?.fecha || new Date().toISOString(),
       moneda: datosBackend.documento?.moneda || 'PYG',
@@ -159,6 +162,8 @@ function transformarDatosFactura(datosBackend, facturaId) {
       total: datosBackend.totales?.total || 1100
     }
   };
+
+  return resultado;
 }
 
 // Ruta de salud
@@ -170,21 +175,122 @@ router.get('/health', (req, res) => {
   });
 });
 
-// Endpoint de prueba para comunicación con backend
-router.get('/test-backend-communication', (req, res) => {
-  res.json({
-    status: 'OK',
-    message: 'Comunicación exitosa con el microservicio Node.js',
-    timestamp: new Date().toISOString(),
-    microservice: 'SIFEN Node.js',
-    version: '1.0.0',
-    endpoints: {
-      generar: '/api/documento/generar',
-      enviarLote: '/api/lote/enviar',
-      consultarLote: '/api/lote/:id',
-      registrarEvento: '/api/evento/registrar'
+// Endpoint para probar consulta específica de factura
+router.get('/test-factura/:facturaId/:sucursalId', async (req, res) => {
+  try {
+    const { facturaId, sucursalId } = req.params;
+    logger.info('Probando consulta específica de factura', { facturaId, sucursalId });
+
+    // Obtener datos reales de la factura desde el backend Java
+    const datosFactura = await obtenerDatosFacturaReal(facturaId, sucursalId);
+
+    if (!datosFactura) {
+      return res.status(404).json({
+        success: false,
+        error: 'Factura no encontrada en el backend',
+        facturaId,
+        sucursalId
+      });
     }
-  });
+
+    logger.info('Factura encontrada exitosamente', {
+      facturaId,
+      emisorRuc: datosFactura.emisor?.ruc,
+      receptorRuc: datosFactura.receptor?.ruc
+    });
+
+    res.json({
+      success: true,
+      message: 'Factura consultada exitosamente',
+      timestamp: new Date().toISOString(),
+      factura: {
+        id: datosFactura.id,
+        numero: datosFactura.documento?.numero,
+        emisor: {
+          ruc: datosFactura.emisor?.ruc,
+          razonSocial: datosFactura.emisor?.razonSocial
+        },
+        receptor: {
+          ruc: datosFactura.receptor?.ruc,
+          razonSocial: datosFactura.receptor?.razonSocial
+        }
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error probando consulta de factura', {
+      error: error.message,
+      facturaId: req.params.facturaId,
+      sucursalId: req.params.sucursalId
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Error consultando factura: ' + error.message,
+      timestamp: new Date().toISOString(),
+      facturaId: req.params.facturaId,
+      sucursalId: req.params.sucursalId
+    });
+  }
+});
+
+// Endpoint de prueba para comunicación con backend
+router.get('/test-backend-communication', async (req, res) => {
+  try {
+    logger.info('Probando comunicación con backend Java');
+
+    // URL del backend Java
+    const backendUrl = config.backend.url;
+    const testUrl = `${backendUrl}/api/sifen/test`;
+
+    logger.info('Consultando endpoint de prueba del backend', { url: testUrl });
+
+    // Realizar consulta HTTP al backend Java
+    const response = await axios.get(testUrl, {
+      timeout: 5000,
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (response.status === 200) {
+      logger.info('Comunicación con backend exitosa', { backendResponse: response.data });
+      res.json({
+        status: 'OK',
+        message: 'Comunicación exitosa entre microservicio Node.js y backend Java',
+        timestamp: new Date().toISOString(),
+        microservice: 'SIFEN Node.js',
+        backend: {
+          url: backendUrl,
+          status: response.data.status,
+          endpoints: response.data.endpoints
+        },
+        endpoints: {
+          generar: '/api/documento/generar',
+          enviarLote: '/api/lote/enviar',
+          consultarLote: '/api/lote/:id',
+          registrarEvento: '/api/evento/registrar'
+        }
+      });
+    } else {
+      throw new Error(`Respuesta inesperada del backend: ${response.status}`);
+    }
+
+  } catch (error) {
+    logger.error('Error en comunicación con backend', {
+      error: error.message,
+      backendUrl: config.backend.url
+    });
+
+    res.status(500).json({
+      status: 'ERROR',
+      message: 'Error de comunicación con backend Java',
+      timestamp: new Date().toISOString(),
+      error: error.message,
+      backendUrl: config.backend.url,
+      microservice: 'SIFEN Node.js'
+    });
+  }
 });
 
 // Generar DTE desde factura legal
@@ -475,6 +581,207 @@ router.get('/documento/:cdc/estado', async (req, res) => {
         res.status(500).json({
             success: false,
             error: `Error interno: ${error.message}`
+        });
+    }
+});
+
+// Endpoint para validar XML contra esquema XSD de SIFEN
+router.post('/validar-xml', async (req, res) => {
+    try {
+        const { xmlContent } = req.body;
+
+        if (!xmlContent) {
+            return res.status(400).json({
+                success: false,
+                error: 'XML content es requerido'
+            });
+        }
+
+        logger.info('Validando XML contra esquema SIFEN');
+
+        const resultado = xmlValidator.validarXml(xmlContent);
+
+        // Log detallado para desarrollo
+        if (process.env.NODE_ENV !== 'production') {
+            logger.info('Resultado de validación XSD:', {
+                valido: resultado.valido,
+                mensaje: resultado.mensaje,
+                cantidadErrores: resultado.errores.length,
+                cantidadAdvertencias: resultado.advertencias.length
+            });
+        }
+
+        res.json({
+            success: true,
+            validacion: {
+                valido: resultado.valido,
+                mensaje: resultado.mensaje,
+                errores: resultado.errores,
+                advertencias: resultado.advertencias,
+                timestamp: new Date().toISOString()
+            }
+        });
+
+    } catch (error) {
+        logger.error('Error en validación XSD:', error.message);
+        res.status(500).json({
+            success: false,
+            error: `Error en validación: ${error.message}`,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Endpoint para obtener información del esquema XSD
+router.get('/esquema-info', (req, res) => {
+    try {
+        const info = xmlValidator.getInformacionEsquema();
+
+        res.json({
+            success: true,
+            esquema: info,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        logger.error('Error obteniendo información del esquema:', error.message);
+        res.status(500).json({
+            success: false,
+            error: `Error obteniendo información: ${error.message}`
+        });
+    }
+});
+
+// Endpoint para validar XML con pre-validador oficial de SIFEN
+router.post('/validar-xml-oficial', async (req, res) => {
+    try {
+        const { xmlContent } = req.body;
+
+        if (!xmlContent) {
+            return res.status(400).json({
+                success: false,
+                error: 'XML content es requerido'
+            });
+        }
+
+        logger.info('Validando XML con pre-validador oficial de SIFEN');
+
+        const resultado = await sifenClient.validarXmlOficial(xmlContent);
+
+        res.json({
+            success: true,
+            validacion: resultado,
+            fuente: 'PREVALIDADOR_OFICIAL_SIFEN',
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        logger.error('Error en validación oficial:', error.message);
+        res.status(500).json({
+            success: false,
+            error: `Error en validación oficial: ${error.message}`,
+            fuente: 'PREVALIDADOR_OFICIAL_SIFEN',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Endpoint para validación completa (local XSD + oficial SIFEN)
+router.post('/validar-xml-completo', async (req, res) => {
+    try {
+        const { xmlContent } = req.body;
+
+        if (!xmlContent) {
+            return res.status(400).json({
+                success: false,
+                error: 'XML content es requerido'
+            });
+        }
+
+        logger.info('Ejecutando validación completa (local + oficial)');
+
+        const resultado = await sifenClient.validarXmlCompleto(xmlContent);
+
+        res.json({
+            success: true,
+            validacion: resultado,
+            fuente: 'VALIDACION_COMPLETA',
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        logger.error('Error en validación completa:', error.message);
+        res.status(500).json({
+            success: false,
+            error: `Error en validación completa: ${error.message}`,
+            fuente: 'VALIDACION_COMPLETA',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Endpoint para comparar validaciones (útil para debugging)
+router.post('/comparar-validaciones', async (req, res) => {
+    try {
+        const { xmlContent } = req.body;
+
+        if (!xmlContent) {
+            return res.status(400).json({
+                success: false,
+                error: 'XML content es requerido'
+            });
+        }
+
+        logger.info('Comparando validaciones local vs oficial');
+
+        // Validación local
+        const validacionLocal = xmlValidator.validarXml(xmlContent);
+
+        // Validación oficial (siempre se ejecuta para comparación)
+        const validacionOficial = await sifenClient.validarXmlOficial(xmlContent);
+
+        // Comparación detallada
+        const comparacion = {
+            resumen: {
+                local: {
+                    valido: validacionLocal.valido,
+                    errores: validacionLocal.errores.length,
+                    mensaje: validacionLocal.mensaje
+                },
+                oficial: {
+                    valido: validacionOficial.valido,
+                    errores: validacionOficial.errores.length,
+                    mensaje: validacionOficial.mensaje
+                },
+                coincidencia: validacionLocal.valido === validacionOficial.valido,
+                ambosValidos: validacionLocal.valido && validacionOficial.valido
+            },
+            detalles: {
+                local: validacionLocal,
+                oficial: validacionOficial
+            }
+        };
+
+        logger.info('Comparación completada:', {
+            local: comparacion.resumen.local.valido,
+            oficial: comparacion.resumen.oficial.valido,
+            coincidencia: comparacion.resumen.coincidencia
+        });
+
+        res.json({
+            success: true,
+            comparacion: comparacion,
+            fuente: 'COMPARACION_VALIDACIONES',
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        logger.error('Error en comparación de validaciones:', error.message);
+        res.status(500).json({
+            success: false,
+            error: `Error en comparación: ${error.message}`,
+            fuente: 'COMPARACION_VALIDACIONES',
+            timestamp: new Date().toISOString()
         });
     }
 });

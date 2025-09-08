@@ -3,21 +3,20 @@ import { Observable } from "rxjs";
 import { GenericCrudService } from "../../../generics/generic-crud.service";
 import { DocumentosElectronicosGQL } from "./graphql/documentosElectronicos";
 import { GenerarDocumentoElectronicoGQL } from "./graphql/generarDocumentoElectronico";
-import { EnviarLoteNowGQL } from "./graphql/enviarLoteNow";
-import { ConsultarLotesNowGQL } from "./graphql/consultarLotesNow";
 import { dateToString } from "../../../commons/core/utils/dateUtils";
 import { ReintentarGeneracionDteGQL } from "./graphql/reintentarGeneracionDte";
-import { SeedDteMockGQL } from "./graphql/seedDteMock";
-import { WipeDteDataGQL } from "./graphql/wipeDteData";
 import { DocumentoElectronicoByIdGQL } from "./graphql/documentoElectronicoById";
 import { RegistrarEventoDteGQL, EventoDteDto } from "./graphql/registrarEventoDte";
 import { EventosPorDteGQL } from "./graphql/eventosPorDte";
-import { DteMetricsGQL, DteMetrics } from "./graphql/dteMetrics";
+import { DteMetricsGQL } from "./graphql/dteMetrics";
 
 export interface DocumentoElectronicoDto {
   id: number;
   cdc: string;
   estadoSifen: string;
+  sucursal: {
+    nombre: string;
+  };
   urlQr: string;
   creadoEn: string;
   mensajeSifen?: string;
@@ -44,11 +43,7 @@ export class DteService {
     private genericService: GenericCrudService,
     private documentosGQL: DocumentosElectronicosGQL,
     private generarGQL: GenerarDocumentoElectronicoGQL,
-    private enviarLoteGQL: EnviarLoteNowGQL,
-    private consultarLotesGQL: ConsultarLotesNowGQL,
     private reintentarGeneracionGQL: ReintentarGeneracionDteGQL,
-    private seedDteMockGQL: SeedDteMockGQL,
-    private wipeDteDataGQL: WipeDteDataGQL,
     private docByIdGQL: DocumentoElectronicoByIdGQL,
     private registrarEventoGQL: RegistrarEventoDteGQL,
     private eventosPorDteGQL: EventosPorDteGQL,
@@ -59,7 +54,18 @@ export class DteService {
     // Formatear fechas para GraphQL en formato compatible con stringToDate del backend
     const fechaDesdeStr = fechaDesde ? dateToString(fechaDesde, "yyyy-MM-dd'T'HH:mm:ss") : undefined;
     const fechaHastaStr = fechaHasta ? dateToString(fechaHasta, "yyyy-MM-dd'T'HH:mm:ss") : undefined;
-    
+
+    // Debug temporal
+    console.log('DEBUG Frontend - Enviando a backend:', {
+      page,
+      size,
+      estado,
+      fechaDesde: fechaDesdeStr,
+      fechaHasta: fechaHastaStr,
+      cdc,
+      sucursalId
+    });
+
     return this.genericService.onCustomQuery(this.documentosGQL, {
       page,
       size,
@@ -76,14 +82,6 @@ export class DteService {
     return this.genericService.onCustomMutation(this.generarGQL, { ventaId, sucursalId, usuarioId }, servidor);
   }
 
-  enviarLoteNow(servidor = true): Observable<{ id: number; idProtocoloSifen: string; estadoSifen: string; }> {
-    const usuarioId = Number(localStorage.getItem('usuarioId')) || undefined;
-    return this.genericService.onCustomMutation(this.enviarLoteGQL, { usuarioId }, servidor);
-  }
-
-  consultarLotesNow(servidor = true): Observable<boolean> {
-    return this.genericService.onCustomMutation(this.consultarLotesGQL, {}, servidor);
-  }
 
   reintentarGeneracion(dteId: number, servidor = true): Observable<DocumentoElectronicoDto> {
     const usuarioId = Number(localStorage.getItem('usuarioId')) || undefined;
@@ -97,14 +95,6 @@ export class DteService {
 
   listarEventos(dteId: number, servidor = true) {
     return this.genericService.onCustomQuery(this.eventosPorDteGQL, { dteId }, servidor);
-  }
-
-  seedMock(cantidad = 20, diasAtras = 30, servidor = true): Observable<boolean> {
-    return this.genericService.onCustomMutation(this.seedDteMockGQL, { cantidad, diasAtras }, servidor);
-  }
-
-  wipeData(servidor = true): Observable<boolean> {
-    return this.genericService.onCustomMutation(this.wipeDteDataGQL, {}, servidor);
   }
 
   getById(id: number, servidor = true) {

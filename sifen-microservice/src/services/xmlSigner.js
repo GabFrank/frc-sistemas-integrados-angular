@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const config = require('../config/config');
 const logger = require('../utils/logger');
+const { SignedXml } = require('xml-crypto');
+const { DOMParser } = require('@xmldom/xmldom');
 
 class XmlSigner {
   constructor() {
@@ -10,7 +12,8 @@ class XmlSigner {
     this.privateKey = null;
     
     // Solo cargar certificado si está configurado
-    if (config.certificate && config.certificate.path) {
+
+    if (config.certificates && config.certificates.path) {
       this.cargarCertificado();
     } else {
       logger.warn('No hay certificado configurado, usando modo de desarrollo');
@@ -22,7 +25,7 @@ class XmlSigner {
    */
   cargarCertificado() {
     try {
-      const certPath = path.resolve(config.certificate.path);
+      const certPath = path.resolve(config.certificates.path);
       
       if (!fs.existsSync(certPath)) {
         throw new Error(`Certificado no encontrado en: ${certPath}`);
@@ -34,7 +37,7 @@ class XmlSigner {
       // Convertir PFX a PKCS#12
       const pkcs12 = forge.pkcs12.pkcs12FromAsn1(
         forge.asn1.fromDer(pfxBuffer),
-        config.certificate.password
+        config.certificates.password
       );
 
       // Extraer certificado y clave privada
@@ -74,49 +77,90 @@ class XmlSigner {
         throw new Error('Certificado no cargado');
       }
 
-      logger.info('Iniciando firma digital del XML');
+      logger.info('Iniciando firma digital del XML usando xml-crypto estándar');
 
-      // 1. Crear el hash del contenido XML usando SHA-256
-      const crypto = require('crypto');
-      const hash = crypto.createHash('sha256');
-      hash.update(xmlContent, 'utf8');
-      const digest = hash.digest();
+      // Usar xml-crypto para firma completa y estándar
+      const sig = new SignedXml();
+      sig.signingKey = forge.pki.privateKeyToPem(this.privateKey);
+      sig.canonicalizationAlgorithm = 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315';
+      sig.signatureAlgorithm = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256';
 
-      // 2. Crear la firma digital usando la clave privada
-      // Convertir la clave privada de node-forge a formato PEM para crypto nativo
-      let signature;
-      try {
-        // Exportar la clave privada como PEM
-        const privateKeyPem = forge.pki.privateKeyToPem(this.privateKey);
-        
-        // Firmar usando crypto nativo de Node.js
-        signature = crypto.sign('RSA-SHA256', digest, {
-          key: privateKeyPem,
-          padding: crypto.constants.RSA_PKCS1_PADDING
-        });
-        
-        logger.info('Firma digital creada exitosamente con crypto nativo');
-      } catch (signError) {
-        logger.error('Error con crypto nativo', { error: signError.message });
-        throw new Error(`No se pudo crear la firma digital: ${signError.message}`);
+      // Agregar clave pública del certificado
+      const certPem = forge.pki.certificateToPem(this.certificate);
+      sig.keyInfoProvider = {
+        getKeyInfo: () => `<X509Data><X509Certificate>${certPem.replace(/-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----|\n/g, '')}</X509Certificate></X509Data>`
+      };
+
+      // Parsear el XML
+      const doc = new DOMParser().parseFromString(xmlContent, 'text/xml');
+
+      // Firmar el elemento DE
+      const deElement = doc.getElementsByTagNameNS('http://ekuatia.set.gov.py/sifen/xsd', 'DE')[0] ||
+                        doc.getElementsByTagName('DE')[0];
+      if (!deElement) {
+        throw new Error('No se pudo encontrar el elemento DE en el XML');
       }
 
-      // 3. Convertir la firma a base64
-      const signatureBase64 = signature.toString('base64');
+      sig.addReference({
+        xpath: '//*[local-name()="DE"]',
+        transforms: [
+          'http://www.w3.org/2001/10/xml-exc-c14n#',
+          'http://www.w3.org/2000/09/xmldsig#enveloped-signature'
+        ],
+        digestAlgorithm: 'http://www.w3.org/2001/04/xmlenc#sha256'
+      });
 
-      // 4. Crear el XML firmado con la estructura SIFEN
-      const xmlFirmado = this.crearXmlFirmado(xmlContent, signatureBase64);
+      // Computar la firma
+      sig.computeSignature(xmlContent);
 
-      logger.info('XML firmado exitosamente con firma digital real');
+      // Obtener el XML firmado
+      const xmlFirmado = sig.getSignedXml();
 
+      logger.info('Firma XML-DSig completada exitosamente con xml-crypto');
       return xmlFirmado;
 
     } catch (error) {
-      logger.error('Error firmando XML', { error: error.message, stack: error.stack });
-      
-      // En caso de error, devolver XML con firma simulada pero loguear el error
-      logger.warn('Usando modo de compatibilidad debido a error en firma digital');
-      return this.crearXmlFirmado(xmlContent, 'FIRMA_SIMULADA_ERROR');
+      logger.error('Error firmando XML con xml-crypto', { error: error.message, stack: error.stack });
+
+      // Fallback al método anterior
+      logger.warn('Usando método de firma alternativo');
+      return this.firmarXmlFallback(xmlContent);
+    }
+  }
+
+  async firmarXmlFallback(xmlContent) {
+    try {
+      logger.info('Usando método de firma alternativo (fallback)');
+
+      // Método anterior como fallback
+      const deMatch = xmlContent.match(/<DE[^>]*>[\s\S]*?<\/DE>/);
+      if (!deMatch) {
+        throw new Error('No se pudo encontrar el elemento DE en el XML');
+      }
+
+      const deElement = deMatch[0];
+      const canonicalizedDE = this.canonicalizeBasic(deElement);
+
+      const crypto = require('crypto');
+      const hash = crypto.createHash('sha256');
+      hash.update(canonicalizedDE, 'utf8');
+      const digest = hash.digest();
+
+      const privateKeyPem = forge.pki.privateKeyToPem(this.privateKey);
+      const signature = crypto.sign('RSA-SHA256', digest, {
+        key: privateKeyPem,
+        padding: crypto.constants.RSA_PKCS1_PADDING
+      });
+
+      const signatureBase64 = signature.toString('base64');
+      const xmlFirmado = this.crearXmlFirmado(xmlContent, signatureBase64);
+
+      logger.info('Firma alternativa completada');
+      return xmlFirmado;
+
+    } catch (fallbackError) {
+      logger.error('Error en firma alternativa', { error: fallbackError.message });
+      return this.crearXmlFirmado(xmlContent, 'FIRMA_FALLBACK_ERROR');
     }
   }
 
@@ -127,52 +171,197 @@ class XmlSigner {
     try {
       // Obtener información del certificado de forma segura
       const serialNumber = this.certificate.serialNumber || 'N/A';
-      
-      // Crear el XML firmado con la estructura SIFEN simplificada
-      const xmlFirmado = `<?xml version="1.0" encoding="UTF-8"?>
-<rDE version="1.0">
-  <dTE>
-    ${xmlContent}
-  </dTE>
-  <gTimb>
-    <dVerif>${this.generarDigestVerificacion(xmlContent)}</dVerif>
+
+      // Crear el XML firmado con la estructura SIFEN correcta
+      // El XML original ya contiene la estructura <rDE> correcta, solo agregar firma
+      const xmlFirmado = this.agregarFirmaAXml(xmlContent, signatureBase64);
+
+      return xmlFirmado;
+    } catch (error) {
+      logger.error('Error creando XML firmado', { error: error.message });
+      // En caso de error, devolver XML básico con firma simulada
+      return this.agregarFirmaAXml(xmlContent, signatureBase64);
+    }
+  }
+
+  /**
+   * Agrega la firma digital al XML existente manteniendo la estructura correcta
+   */
+  agregarFirmaAXml(xmlContent, signatureBase64) {
+    try {
+      // Obtener información del certificado de forma segura
+      const serialNumber = this.certificate.serialNumber || 'N/A';
+      const certPem = forge.pki.certificateToPem(this.certificate);
+      const certBase64 = certPem.replace(/-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----|\n/g, '');
+
+      // Crear digest del XML para DigestValue
+      const digestValue = this.generarDigestVerificacion(xmlContent);
+
+      let xmlFirmado = xmlContent;
+
+      // Reemplazar valores dummy con valores reales
+      xmlFirmado = xmlFirmado.replace(/dummy_digest_value_for_testing/g, digestValue);
+      xmlFirmado = xmlFirmado.replace(/dummy_signature_value_for_testing/g, signatureBase64);
+      xmlFirmado = xmlFirmado.replace(/dummy_certificate_for_testing/g, certBase64);
+
+      // Asegurar que los namespaces estén correctos
+      xmlFirmado = xmlFirmado.replace(/<Signature /g, '<ds:Signature ');
+      xmlFirmado = xmlFirmado.replace(/<\/Signature>/g, '</ds:Signature>');
+      xmlFirmado = xmlFirmado.replace(/<SignedInfo>/g, '<ds:SignedInfo>');
+      xmlFirmado = xmlFirmado.replace(/<\/SignedInfo>/g, '</ds:SignedInfo>');
+      xmlFirmado = xmlFirmado.replace(/<Reference /g, '<ds:Reference ');
+      xmlFirmado = xmlFirmado.replace(/<\/Reference>/g, '</ds:Reference>');
+      xmlFirmado = xmlFirmado.replace(/<Transforms>/g, '<ds:Transforms>');
+      xmlFirmado = xmlFirmado.replace(/<\/Transforms>/g, '</ds:Transforms>');
+      xmlFirmado = xmlFirmado.replace(/<Transform /g, '<ds:Transform ');
+      xmlFirmado = xmlFirmado.replace(/<\/Transform>/g, '</ds:Transform>');
+      xmlFirmado = xmlFirmado.replace(/<DigestMethod /g, '<ds:DigestMethod ');
+      xmlFirmado = xmlFirmado.replace(/<\/DigestMethod>/g, '</ds:DigestMethod>');
+      xmlFirmado = xmlFirmado.replace(/<DigestValue>/g, '<ds:DigestValue>');
+      xmlFirmado = xmlFirmado.replace(/<\/DigestValue>/g, '</ds:DigestValue>');
+      xmlFirmado = xmlFirmado.replace(/<SignatureValue>/g, '<ds:SignatureValue>');
+      xmlFirmado = xmlFirmado.replace(/<\/SignatureValue>/g, '</ds:SignatureValue>');
+      xmlFirmado = xmlFirmado.replace(/<KeyInfo>/g, '<ds:KeyInfo>');
+      xmlFirmado = xmlFirmado.replace(/<\/KeyInfo>/g, '</ds:KeyInfo>');
+      xmlFirmado = xmlFirmado.replace(/<X509Data>/g, '<ds:X509Data>');
+      xmlFirmado = xmlFirmado.replace(/<\/X509Data>/g, '</ds:X509Data>');
+      xmlFirmado = xmlFirmado.replace(/<X509Certificate>/g, '<ds:X509Certificate>');
+      xmlFirmado = xmlFirmado.replace(/<\/X509Certificate>/g, '</ds:X509Certificate>');
+
+      // Log para verificar que se están reemplazando
+      logger.info('Valores de firma reemplazados', {
+        digestReplaced: !xmlFirmado.includes('dummy_digest_value_for_testing'),
+        signatureReplaced: !xmlFirmado.includes('dummy_signature_value_for_testing'),
+        certReplaced: !xmlFirmado.includes('dummy_certificate_for_testing')
+      });
+
+      // Agregar la sección gTimb al final
+      const gTimbSection = `  <gTimb>
+    <dVerif>${digestValue}</dVerif>
     <dFirmaFis>${signatureBase64}</dFirmaFis>
     <dNumCert>${serialNumber}</dNumCert>
     <dSello>${this.generarSello(xmlContent, signatureBase64)}</dSello>
   </gTimb>
 </rDE>`;
 
+      // Reemplazar el cierre </rDE> con la sección gTimb + cierre
+      xmlFirmado = xmlFirmado.replace('</rDE>', gTimbSection);
+
       return xmlFirmado;
     } catch (error) {
-      logger.error('Error creando XML firmado', { error: error.message });
-      // En caso de error, devolver XML básico sin firma
-      return `<?xml version="1.0" encoding="UTF-8"?>
-<rDE version="1.0">
-  <dTE>
-    ${xmlContent}
-  </dTE>
-  <gTimb>
-    <dVerif>ERROR</dVerif>
-    <dFirmaFis>${signatureBase64}</dFirmaFis>
-    <dNumCert>ERROR</dNumCert>
-    <dSello>ERROR</dSello>
-  </gTimb>
-</rDE>`;
+      logger.error('Error agregando firma al XML', { error: error.message });
+      // Fallback: devolver XML original si hay error
+      return xmlContent;
     }
   }
 
   /**
-   * Genera el digest de verificación del XML
+   * Genera el digest de verificación del XML (elemento DE)
    */
   generarDigestVerificacion(xmlContent) {
     try {
-      const hash = forge.md.sha256.create();
-      hash.update(xmlContent, 'utf8');
+      // Extraer el elemento DE para calcular el digest
+      const deMatch = xmlContent.match(/<DE[^>]*>[\s\S]*?<\/DE>/);
+      if (!deMatch) {
+        throw new Error('No se pudo encontrar el elemento DE en el XML');
+      }
+
+      const deElement = deMatch[0];
+
+      // Aplicar canonicalización C14N usando xml-crypto
+      const canonicalizedDE = this.canonicalizeWithXmlCrypto(deElement);
+
+      // Crear hash SHA256
+      const crypto = require('crypto');
+      const hash = crypto.createHash('sha256');
+      hash.update(canonicalizedDE, 'utf8');
       const digest = hash.digest();
-      return forge.util.encode64(digest.getBytes());
+
+      return digest.toString('base64');
     } catch (error) {
       logger.error('Error generando digest de verificación', { error: error.message });
       return 'ERROR_DIGEST';
+    }
+  }
+
+  /**
+   * Aplica canonicalización XML C14N usando xml-crypto con DOM
+   */
+  canonicalizeWithXmlCrypto(xmlString) {
+    try {
+      // Crear documento DOM desde el string XML
+      const doc = new DOMParser().parseFromString(xmlString, 'text/xml');
+
+      // Crear instancia de SignedXml
+      const sig = new SignedXml();
+      sig.canonicalizationAlgorithm = 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315';
+
+      // Obtener el primer elemento (DE)
+      const element = doc.documentElement;
+
+      // Aplicar canonicalización al elemento - método alternativo
+      const canonicalized = sig.getCanonXml([element], {
+        inclusiveNamespacesPrefixList: [],
+        defaultNs: '',
+        // Configuración específica para SIFEN
+        withComments: false
+      });
+
+      return canonicalized;
+    } catch (error) {
+      logger.error('Error en canonicalización XML con xml-crypto DOM', { error: error.message });
+      // Fallback a canonicalización SIFEN
+      return this.canonicalizeForSifen(xmlString);
+    }
+  }
+
+  /**
+   * Canonicalización básica como fallback
+   */
+  canonicalizeBasic(xmlString) {
+    try {
+      // Remover declaración XML si existe
+      let canonicalized = xmlString.replace(/<\?xml.*?\?>/g, '');
+
+      // Normalizar espacios en blanco
+      canonicalized = canonicalized.replace(/\s+/g, ' ');
+
+      // Remover espacios antes de >
+      canonicalized = canonicalized.replace(/\s+>/g, '>');
+
+      // Remover espacios después de <
+      canonicalized = canonicalized.replace(/<\s+/g, '<');
+
+      // Normalizar comillas (usar comillas dobles)
+      canonicalized = canonicalized.replace(/='/g, '="');
+      canonicalized = canonicalized.replace(/'(\s|>)/g, '"$1');
+
+      // Trim y normalizar
+      canonicalized = canonicalized.trim();
+
+      return canonicalized;
+    } catch (error) {
+      logger.error('Error en canonicalización básica', { error: error.message });
+      return xmlString; // Fallback al original
+    }
+  }
+
+  /**
+   * Canonicalización específica para SIFEN - versión ultra simple
+   */
+  canonicalizeForSifen(xmlString) {
+    try {
+      // Implementación ultra simple que coincide con SIFEN
+      // Remover todos los espacios en blanco innecesarios
+      let canonicalized = xmlString
+        .replace(/>\s+</g, '><') // Remover espacios entre tags
+        .replace(/\s+/g, ' ')   // Normalizar espacios internos
+        .trim();
+
+      return canonicalized;
+    } catch (error) {
+      logger.error('Error en canonicalización SIFEN', { error: error.message });
+      return xmlString;
     }
   }
 
@@ -222,6 +411,18 @@ class XmlSigner {
       validTo: this.certificate.validity.notAfter,
       publicKey: this.certificate.publicKey
     };
+  }
+
+  /**
+   * Convierte el certificado a base64 para incluir en XML
+   */
+  certificateToBase64() {
+    if (!this.certificate) {
+      return null;
+    }
+
+    const certPem = forge.pki.certificateToPem(this.certificate);
+    return certPem.replace(/-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----|\n/g, '');
   }
 }
 

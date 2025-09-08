@@ -58,6 +58,10 @@ form {
   min-width: 80px;
 }
 
+.estado-desconocido {
+  background-color: #9e9e9e;
+}
+
 .estado-pendiente {
   background-color: #ff9800;
 }
@@ -70,11 +74,51 @@ form {
   background-color: #9c27b0;
 }
 
+.estado-recibido-por-sifen {
+  background-color: #2196f3;
+}
+
+.estado-recibido_por_sifen {
+  background-color: #2196f3;
+}
+
 .estado-aprobado {
   background-color: #4caf50;
 }
 
 .estado-rechazado {
+  background-color: #f44336;
+}
+
+.estado-pendiente-aprobacion {
+  background-color: #ff9800;
+}
+
+.estado-pendiente_aprobacion {
+  background-color: #ff9800;
+}
+
+.estado-cancelado {
+  background-color: #f44336;
+}
+
+.estado-error-envio {
+  background-color: #f44336;
+}
+
+.estado-error-consulta {
+  background-color: #f44336;
+}
+
+.estado-procesado-ok {
+  background-color: #4caf50;
+}
+
+.estado-procesado-parcial {
+  background-color: #ff9800;
+}
+
+.estado-procesado-error {
   background-color: #f44336;
 }
 
@@ -125,3 +169,13 @@ form {
   overflow: auto;
 }
 
+:host ::ng-deep {
+  .mat-mdc-header-cell {
+    text-align: center !important;
+  }
+
+  .table-wrapper .mat-sort-header-container {
+    justify-content: center;
+    text-align: center !important; 
+  }
+}

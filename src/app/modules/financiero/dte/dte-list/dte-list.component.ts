@@ -29,6 +29,7 @@ interface DteMetricsView {
 
 const ESTADO_DESC: { [k: string]: string } = {
   PENDIENTE: 'Pendiente',
+  PENDIENTE_APROBACION: 'Pendiente de aprobación',
   GENERADO: 'Generado',
   ENVIADO: 'Enviado',
   RECIBIDO_POR_SIFEN: 'Recibido por SIFEN',
@@ -37,6 +38,9 @@ const ESTADO_DESC: { [k: string]: string } = {
   APROBADO: 'Aprobado',
   RECHAZADO: 'Rechazado',
   CANCELADO: 'Cancelado',
+  ERROR_ENVIO: 'Error de envío',
+  ERROR_CONSULTA: 'Error de consulta',
+  PROCESADO_PARCIAL: 'Procesado parcialmente',
 };
 
 @UntilDestroy({ checkProperties: true })
@@ -47,7 +51,7 @@ const ESTADO_DESC: { [k: string]: string } = {
 })
 export class DteListComponent implements OnInit {
   dataSource = new MatTableDataSource<DocumentoElectronicoView>([]);
-  displayedColumns = ["select","id", "cdc", "estadoSifen", "creadoEn", "menu"];
+  displayedColumns = ["select","id", "cdc", "sucursal", "estadoSifen", "creadoEn", "menu"];
 
   sucursalList: Sucursal[] = [];
   selection = new SelectionModel<any>(true, []);
@@ -67,12 +71,18 @@ export class DteListComponent implements OnInit {
   metrics: DteMetricsView;
   rechazadosRecientes: DocumentoElectronicoView[] = [];
 
-  constructor(private dteService: DteService, private dialog: MatDialog, private sucursalService: SucursalService, private dteRechazadosGQL: DteRechazadosRecientesGQL) {}
+  constructor(
+    private dteService: DteService, 
+    private dialog: MatDialog, 
+    private sucursalService: SucursalService, 
+    private dteRechazadosGQL: DteRechazadosRecientesGQL
+  ) {}
 
   ngOnInit(): void {
+    // Configurar fechas de los últimos 30 días para capturar todos los registros
     const hoy = new Date();
     const desde = new Date();
-    desde.setDate(hoy.getDate() - 7);
+    desde.setDate(hoy.getDate() - 7); // Cambiado de 7 a 30 días
 
     this.fechaInicioControl.setValue(desde);
     this.fechaFinalControl.setValue(hoy);
@@ -135,11 +145,12 @@ export class DteListComponent implements OnInit {
     this.buscar();
   }
 
-  private computeXmlActionText(estado: string | null | undefined): string {
-    return estado === 'GENERADO' || estado === 'APROBADO' ? 'Descargar XML' : 'Generar XML';
+  computeXmlActionText(estado: string) {
+    return estado === 'GENERADO' || estado === 'APROBADO' ? 'Descargar XML' :
+           estado === 'PENDIENTE' || estado === 'PENDIENTE_APROBACION' ? 'Esperando aprobación' : 'Generar XML';
   }
 
-  private mapToView(data: DocumentoElectronicoDto[]): DocumentoElectronicoView[] {
+  private mapToView(data: DocumentoElectronicoDto[]) {
     return (data || []).map(d => ({
       ...d,
       xmlActionText: this.computeXmlActionText(d?.estadoSifen),
@@ -149,14 +160,15 @@ export class DteListComponent implements OnInit {
 
   buscar() {
     const estado = this.estadoControl.value;
-    const fechaDesde = this.fechaFormGroup.get('inicio').value;
-    const fechaHasta = this.fechaFormGroup.get('fin').value;
-    const cdc = (this.cdcControl.value || undefined) as string | undefined;
+    const fechaDesde = this.fechaFormGroup.get('inicio')?.value;
+    const fechaHasta = this.fechaFormGroup.get('fin')?.value;
+    const cdc = this.cdcControl.value;
     const sucursalId = (this.sucursalIdControl.value || undefined) as number | undefined;
-    
-    const fechaDesdeDate = fechaDesde instanceof Date ? fechaDesde : new Date(fechaDesde);
-    const fechaHastaDate = fechaHasta instanceof Date ? fechaHasta : new Date(fechaHasta);
-    
+
+    // Solo convertir fechas si existen valores válidos
+    const fechaDesdeDate = fechaDesde ? (fechaDesde instanceof Date ? fechaDesde : new Date(fechaDesde)) : undefined;
+    const fechaHastaDate = fechaHasta ? (fechaHasta instanceof Date ? fechaHasta : new Date(fechaHasta)) : undefined;
+
     this.dteService
       .listar(this.pageIndex, this.pageSize, estado, fechaDesdeDate, fechaHastaDate, true, cdc, sucursalId)
       .pipe(untilDestroyed(this))
@@ -171,28 +183,14 @@ export class DteListComponent implements OnInit {
       });
   }
 
-  generar(ventaId: number, sucursalId: number) {
+  onGenerar(ventaId: number, sucursalId: number) {
     this.dteService
       .generar(ventaId, sucursalId)
       .pipe(untilDestroyed(this))
       .subscribe(() => { this.buscar(); this.cargarMetrics(); });
   }
 
-  enviarLote() {
-    this.dteService
-      .enviarLoteNow()
-      .pipe(untilDestroyed(this))
-      .subscribe(() => { this.buscar(); this.cargarMetrics(); });
-  }
-
-  consultarLotes() {
-    this.dteService
-      .consultarLotesNow()
-      .pipe(untilDestroyed(this))
-      .subscribe(() => { this.buscar(); this.cargarMetrics(); });
-  }
-
-  reintentar(d: DocumentoElectronicoDto) {
+  onReintentar(d: DocumentoElectronicoDto) {
     if (!d?.id) return;
     this.dteService
       .reintentarGeneracion(d.id)
@@ -200,15 +198,14 @@ export class DteListComponent implements OnInit {
       .subscribe(() => { this.buscar(); this.cargarMetrics(); });
   }
 
-  seedMock() {
-    this.dteService.seedMock(30, 45).pipe(untilDestroyed(this)).subscribe(() => { this.buscar(); this.cargarMetrics(); });
+  limpiarFiltros() {
+    this.cdcControl.setValue(null);
+    this.sucursalIdControl.setValue(null);
+    this.estadoControl.setValue(null);
+    
   }
 
-  wipeData() {
-    this.dteService.wipeData().pipe(untilDestroyed(this)).subscribe(() => { this.buscar(); this.cargarMetrics(); });
-  }
-
-  onXml(d: DocumentoElectronicoView) {
+  onXml(d: DocumentoElectronicoDto) {
     if (!d?.id) return;
     if (d.estadoSifen === 'GENERADO' || d.estadoSifen === 'APROBADO') {
       // Descargar
@@ -226,13 +223,16 @@ export class DteListComponent implements OnInit {
           a.click();
           URL.revokeObjectURL(url);
         });
+    } else if (d.estadoSifen === 'PENDIENTE' || d.estadoSifen === 'PENDIENTE_APROBACION') {
+      // Mostrar mensaje de que está esperando aprobación
+      console.log('Documento pendiente de aprobación, esperando consulta automática');
     } else {
       // Generar
-      this.reintentar(d);
+      this.onReintentar(d);
     }
   }
 
-  registrarCancelacion(d: DocumentoElectronicoDto) {
+  onRegistrarCancelacion(d: DocumentoElectronicoDto) {
     if (!d?.id) return;
     const ref = this.dialog.open(EventoDteDialogComponent, {
       width: '480px',
@@ -249,7 +249,7 @@ export class DteListComponent implements OnInit {
       });
   }
 
-  registrarConformidad(d: DocumentoElectronicoDto) {
+  onRegistrarConformidad(d: DocumentoElectronicoDto) {
     if (!d?.id) return;
     const ref = this.dialog.open(EventoDteDialogComponent, {
       width: '480px',
@@ -266,7 +266,7 @@ export class DteListComponent implements OnInit {
       });
   }
 
-  registrarDisconformidad(d: DocumentoElectronicoDto) {
+  onRegistrarDisconformidad(d: DocumentoElectronicoDto) {
     if (!d?.id) return;
     const ref = this.dialog.open(EventoDteDialogComponent, {
       width: '480px',
@@ -283,7 +283,7 @@ export class DteListComponent implements OnInit {
       });
   }
 
-  registrarInutilizacion(d: DocumentoElectronicoDto) {
+  onRegistrarInutilizacion(d: DocumentoElectronicoDto) {
     if (!d?.id) return;
     const ref = this.dialog.open(EventoDteDialogComponent, {
       width: '480px',
@@ -300,12 +300,12 @@ export class DteListComponent implements OnInit {
       });
   }
 
-  generarQr(d: DocumentoElectronicoDto) {
+  onGenerarQr(d: DocumentoElectronicoDto) {
     if (!d?.urlQr) return;
     window.open(d.urlQr, '_blank');
   }
 
-  verEventos(d: DocumentoElectronicoDto) {
+  onVerEventos(d: DocumentoElectronicoDto) {
     if (!d?.id) return;
     this.dialog.open(EventosDteViewDialogComponent, {
       width: '720px',

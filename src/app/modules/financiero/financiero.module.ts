@@ -43,7 +43,6 @@ import { FinancieroRoutingModule } from './financiero-routing.module';
 import { DteListComponent } from './dte/dte-list/dte-list.component';
 import { EventoDteDialogComponent } from './dte/evento-dte-dialog/evento-dte-dialog.component';
 import { EventosDteViewDialogComponent } from './dte/eventos-dte-view-dialog/eventos-dte-view-dialog.component';
-import { DteTestComponent } from './dte/dte-test.component';
 
 @NgModule({
   declarations: [
@@ -96,7 +95,6 @@ import { DteTestComponent } from './dte/dte-test.component';
     MaterialModule,
     SharedModule,
     FinancieroRoutingModule,
-    DteTestComponent,
   ],
 })
 export class FinancieroModule {}

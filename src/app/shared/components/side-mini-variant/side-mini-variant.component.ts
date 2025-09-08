@@ -42,7 +42,6 @@ import { MainCajaObservacionComponent } from "../../../modules/financiero/pdv/ca
 import { Subscription } from 'rxjs';
 import { AnalisisDiferenciaComponent } from '../../../modules/financiero/analisis-diferencia/analisis-diferencia.component';
 import { DteListComponent } from '../../../modules/financiero/dte/dte-list/dte-list.component';
-import { DteTestComponent } from '../../../modules/financiero/dte/dte-test.component';
 
 
 // Define interfaces for the navigation items structure

@@ -13,11 +13,13 @@ const healthRoutes = require('./routes/health');
 // Crear aplicación Express
 const app = express();
 
-// Configurar rate limiting
+// Configurar rate limiting optimizado
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // máximo 100 requests por ventana
-  message: 'Demasiadas requests desde esta IP, intenta más tarde.'
+  max: 500, // máximo 500 requests por ventana (incrementado por optimización del backend)
+  message: 'Demasiadas requests desde esta IP, intenta más tarde.',
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 
 // Middleware de seguridad y rendimiento

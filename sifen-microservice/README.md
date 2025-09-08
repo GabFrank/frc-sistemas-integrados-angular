@@ -1,147 +1,175 @@
 # SIFEN Microservice
 
-Microservicio para generación y envío de DTEs (Documentos Tributarios Electrónicos) a SIFEN Paraguay.
+Microservicio para generación de DTEs (Documentos Tributarios Electrónicos) según especificaciones de SIFEN Paraguay.
 
-## Características
+## 🚀 Inicio Rápido
 
-- ✅ Generación de XMLs DTE según especificación SIFEN
-- ✅ Firma digital con certificados .pfx
-- ✅ Envío de lotes a SIFEN
-- ✅ Consulta de estado de lotes
-- ✅ Registro de eventos DTE (cancelación, conformidad, etc.)
-- ✅ Sistema de logging robusto
-- ✅ Manejo de errores y reintentos
-- ✅ API REST completa
-
-## Instalación
-
-1. **Clonar el repositorio**
 ```bash
-git clone <url-del-repositorio>
-cd sifen-microservice
-```
-
-2. **Instalar dependencias**
-```bash
+# Instalar dependencias
 npm install
+
+# Generar XML válido para SIFEN
+node generar-xml-sifen.js
+
+# Iniciar microservicio
+npm start
 ```
 
-3. **Configurar certificado**
-   - Coloca tu archivo `.pfx` en la carpeta `certificates/`
-   - Actualiza la configuración en `src/config/config.js`
+## 📋 Funcionalidades Core
 
-4. **Configurar variables de entorno**
-   - Crea un archivo `.env` basado en el ejemplo
-   - Actualiza las URLs de SIFEN según tu entorno
+- ✅ Generación de XML válido contra esquema XSD oficial
+- ✅ Firma digital con certificados PKCS#12
+- ✅ Validación XSD automática integrada
+- ✅ Integración con pre-validador oficial de SIFEN
+- ✅ API REST completa para generación y validación de facturas
 
-## Configuración
+## 🔧 Endpoints Principales
 
-### Certificado Digital
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `POST` | `/api/documento/generar` | Generar DTE desde datos de factura |
+| `POST` | `/api/validar-xml` | Validar XML contra esquema XSD |
+| `POST` | `/api/validar-xml-oficial` | Validar con pre-validador oficial SIFEN |
+| `POST` | `/api/validar-xml-completo` | Validación completa (local + oficial) |
+| `POST` | `/api/comparar-validaciones` | Comparar resultados de ambas validaciones |
+| `GET` | `/api/esquema-info` | Información del esquema XSD |
 
-1. Coloca tu archivo `.pfx` en `certificates/`
-2. Actualiza la ruta y contraseña en `src/config/config.js`:
-
-```javascript
-certificate: {
-  path: './certificates/tu-certificado.pfx',
-  password: 'tu-contraseña-aqui'
-}
-```
-
-### URLs de SIFEN
-
-Actualiza las URLs según tu entorno:
-
-```javascript
-sifen: {
-  baseUrl: 'https://ekuatia.set.gov.py', // Producción
-  testUrl: 'https://ekuatia.set.gov.py',  // Pruebas
-  // ...
-}
-```
-
-## Uso
-
-### Iniciar el servidor
+## 🧪 Generación de XML
 
 ```bash
-# Desarrollo
+# Generar XML válido para SIFEN
+node generar-xml-sifen.js
+
+# Configurar certificado (opcional)
+node config-certificado.js
+
+# Ejecutar solo validación XSD local
+node -e "require('./src/services/xmlValidator').getInformacionEsquema()"
+```
+
+### 📄 Archivo Principal: `generar-xml-sifen.js`
+
+Este es el archivo principal para generar XML válido para SIFEN:
+
+- ✅ **Genera XML válido** contra esquema XSD oficial
+- ✅ **Incluye referencias XSD** para pre-validador oficial
+- ✅ **Validación automática** integrada
+- ✅ **Ejemplo completo** con datos de prueba
+- ✅ **Comentarios detallados** en el código
+
+**Uso:**
+```bash
+node generar-xml-sifen.js
+```
+
+## 📁 Estructura Limpia
+
+```
+src/
+├── services/          # Servicios core
+│   ├── dteGenerator.js    # Generador de DTEs
+│   ├── xmlSigner.js       # Firma digital
+│   ├── xmlValidator.js    # Validación XSD
+│   └── sifenClient.js     # Cliente SIFEN
+├── utils/             # Utilidades
+│   ├── xmlBuilder.js      # Constructor de XML
+│   └── logger.js          # Logging
+├── routes/            # Endpoints API
+│   └── api.js            # API principal
+├── schemas/           # Esquemas XSD
+│   └── sifen-v150.xsd    # Esquema oficial SIFEN
+└── config/            # Configuración
+    └── config.js          # Configuración principal
+```
+
+## ⚙️ Configuración
+
+Archivo `.env`:
+```bash
+PORT=3001
+CERTIFICATE_PATH=./certificates/franco-arevalos-sa.pfx
+CERTIFICATE_PASSWORD=tu_password
+```
+
+## 🏗️ Arquitectura
+
+1. **Generación**: Construye XML válido según esquema SIFEN
+2. **Validación**: Verifica XML contra XSD antes de firmar
+3. **Firma**: Aplica firma digital usando certificado
+4. **Envío**: Envía documento a SIFEN (opcional)
+
+## 📊 Logs
+
+Los logs se guardan en `logs/` con rotación automática:
+- `sifen-microservice.log` - Logs principales
+- `error.log` - Solo errores
+
+## 🔧 Desarrollo
+
+```bash
+# Desarrollo con recarga automática
 npm run dev
 
 # Producción
 npm start
 ```
 
-### Endpoints disponibles
+## 🌐 Pre-validador Oficial SIFEN
 
-- `GET /` - Información del servicio
-- `GET /api/health` - Estado de salud
-- `POST /api/generar` - Generar DTE
-- `POST /api/enviar-lote` - Enviar lote de DTEs
-- `GET /api/consultar-lote/:protocoloId` - Consultar estado de lote
-- `POST /api/registrar-evento` - Registrar evento DTE
+El microservicio incluye integración con el pre-validador oficial de SIFEN:
 
-### Ejemplo de uso
+### URLs Oficiales:
+- **Validador**: https://ekuatia.set.gov.py/prevalidador/validacion
+- **Instructivo**: https://ekuatia.set.gov.py/prevalidador/instructivo
+
+### Estrategias de Validación:
+
+1. **Validación Local XSD** (Recomendada para desarrollo)
+   - ✅ Rápida y confiable
+   - ✅ Sin dependencias externas
+   - ✅ Validación completa del esquema
+
+2. **Validación Oficial** (Para producción)
+   - ⚠️ Puede requerir interacción web completa
+   - ⚠️ Dependiente de conectividad
+   - ✅ Validación oficial de SIFEN
+
+3. **Validación Completa** (Mejor opción)
+   - ✅ Combina ambas validaciones
+   - ✅ Mayor confiabilidad
+   - ✅ Comparación de resultados
+
+### Ejemplo de Validación Completa:
 
 ```bash
-# Generar DTE
-curl -X POST http://localhost:3001/api/generar \
+# Validar XML con ambas estrategias
+curl -X POST http://localhost:3001/api/validar-xml-completo \
   -H "Content-Type: application/json" \
-  -d '{"facturaLegalId": 123, "sucursalId": 1}'
-
-# Enviar lote
-curl -X POST http://localhost:3001/api/enviar-lote \
-  -H "Content-Type: application/json" \
-  -d '{"xmls": ["<xml1>", "<xml2>"]}'
+  -d '{"xmlContent": "<?xml version=\"1.0\"..."}'
 ```
 
-## Estructura del Proyecto
+## 🧹 Mantenimiento
 
-```
-sifen-microservice/
-├── src/
-│   ├── config/          # Configuración
-│   ├── services/        # Lógica de negocio
-│   ├── utils/           # Utilidades
-│   ├── routes/          # Rutas de la API
-│   └── index.js         # Servidor principal
-├── certificates/         # Certificados digitales
-├── logs/                # Archivos de log
-├── package.json
-└── README.md
+```bash
+# Limpiar logs antiguos
+rm -f logs/*.log.*
+
+# Limpiar cache de node_modules
+rm -rf node_modules/.cache
+
+# Verificar configuración del certificado
+node config-certificado.js
 ```
 
-## Desarrollo
+## 🔧 Desarrollo Avanzado
 
-### Scripts disponibles
+```bash
+# Ejecutar solo validación XSD local
+node -e "require('./src/services/xmlValidator').getInformacionEsquema()"
 
-- `npm start` - Iniciar servidor
-- `npm run dev` - Iniciar en modo desarrollo con nodemon
-- `npm test` - Ejecutar tests
+# Ver logs en tiempo real
+tail -f logs/sifen-microservice.log
 
-### Logs
-
-Los logs se guardan en la carpeta `logs/`:
-- `sifen.log` - Logs generales
-- `error.log` - Solo errores
-- `exceptions.log` - Excepciones no capturadas
-
-## Integración con Backend
-
-Este microservicio se integra con tu backend Spring Boot a través de:
-
-1. **DteNodeClient** - Cliente HTTP para comunicación
-2. **Configuración** - URLs y timeouts configurables
-3. **Manejo de errores** - Reintentos automáticos y logging
-
-## Próximos Pasos
-
-1. **Configurar certificado real** - Reemplazar datos mock
-2. **Integrar con base de datos** - Obtener datos reales de facturas
-3. **Implementar validaciones SIFEN** - Validar XMLs antes del envío
-4. **Monitoreo** - Métricas y alertas
-5. **Tests** - Cobertura completa de tests
-
-## Soporte
-
-Para soporte técnico o preguntas, contacta al equipo de desarrollo.
+# Probar endpoints de la API
+curl http://localhost:3001/health
+```

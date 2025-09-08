@@ -30,6 +30,9 @@ export const documentosElectronicosQuery = gql`
         id
         cdc
         estadoSifen
+        sucursal {
+          nombre
+        }
         urlQr
         creadoEn
         mensajeSifen
@@ -43,6 +46,9 @@ export const generarDocumentoElectronicoMutation = gql`
     data: generarDocumentoElectronico(ventaId: $ventaId, sucursalId: $sucursalId, usuarioId: $usuarioId) {
       id
       cdc
+      sucursal {
+        nombre
+      }
       estadoSifen
       urlQr
       creadoEn
@@ -71,6 +77,9 @@ export const reintentarGeneracionDteMutation = gql`
     data: reintentarGeneracionDte(dteId: $dteId, usuarioId: $usuarioId) {
       id
       cdc
+      sucursal {
+        nombre
+      }
       estadoSifen
       urlQr
       xmlFirmado
@@ -107,23 +116,14 @@ export const eventosPorDteQuery = gql`
   }
 `;
 
-export const seedDteMockMutation = gql`
-  mutation ($cantidad: Int, $diasAtras: Int) {
-    data: seedDteMock(cantidad: $cantidad, diasAtras: $diasAtras)
-  }
-`;
-
-export const wipeDteDataMutation = gql`
-  mutation {
-    data: wipeDteData
-  }
-`;
-
 export const documentoElectronicoByIdQuery = gql`
   query ($id: ID!) {
     data: documentoElectronico(id: $id) {
       id
       cdc
+      sucursal {
+        nombre
+      }
       estadoSifen
       urlQr
       xmlFirmado

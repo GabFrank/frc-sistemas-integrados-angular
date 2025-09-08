@@ -1,80 +1,44 @@
 const axios = require('axios');
-const https = require('https');
-const fs = require('fs');
 const config = require('../config/config');
 const logger = require('../utils/logger');
 
 class SifenClient {
-  constructor() {
-    this.baseUrl = config.sifen.baseUrl;
-    this.timeout = config.sifen.timeout;
-    this.maxRetries = config.sifen.maxRetries;
-    this.retryDelay = config.sifen.retryDelay;
-    this.backoffMultiplier = config.sifen.backoffMultiplier;
+    constructor() {
+        this.baseUrl = config.sifen.baseUrl;
+        this.prevalidadorUrl = 'https://ekuatia.set.gov.py/prevalidador/validacion';
+        this.timeout = config.sifen.timeout;
+        this.maxRetries = config.sifen.maxRetries;
+        this.retryDelay = config.sifen.retryDelay;
+        this.backoffMultiplier = config.sifen.backoffMultiplier;
 
-    // Configurar agente HTTPS con certificado de cliente
-    this.configurarAgenteHTTPS();
-
-    // Configurar axios con interceptores y reintentos
-    this.httpClient = axios.create({
-      baseURL: this.baseUrl,
-      timeout: this.timeout,
-      httpsAgent: this.httpsAgent,
-      headers: {
-        'Content-Type': 'application/xml',
-        'Accept': 'application/xml, text/html, text/plain',
-        'User-Agent': 'SIFEN-Microservice/1.0',
-        'Connection': 'keep-alive'
-      }
-    });
-
-    this.configurarInterceptores();
-    this.configurarReintentos();
-    
-    logger.info(`SifenClient inicializado - Base URL: ${this.baseUrl}, Timeout: ${this.timeout}ms, Max Retries: ${this.maxRetries}`);
-  }
-
-  /**
-   * Configura el agente HTTPS con certificado de cliente para autenticación mutua
-   */
-  configurarAgenteHTTPS() {
-    try {
-      // Verificar si existe el archivo del certificado
-      if (!fs.existsSync(config.certificates.path)) {
-        logger.warn(`[SIFEN] Certificado no encontrado en ${config.certificates.path}, usando configuración sin certificado`);
-        this.httpsAgent = new https.Agent({
-          rejectUnauthorized: false, // Solo para desarrollo/test
-          keepAlive: true
+        // Configurar axios con interceptores y reintentos
+        this.httpClient = axios.create({
+            baseURL: this.baseUrl,
+            timeout: this.timeout,
+            headers: {
+                'Content-Type': 'application/xml',
+                'Accept': 'application/xml, text/html, text/plain',
+                'User-Agent': 'SIFEN-Microservice/1.0',
+                'Connection': 'keep-alive'
+            }
         });
-        return;
-      }
 
-      // Leer el certificado PFX
-      const pfxBuffer = fs.readFileSync(config.certificates.path);
+        // Cliente específico para el pre-validador
+        this.prevalidadorClient = axios.create({
+            baseURL: 'https://ekuatia.set.gov.py',
+            timeout: 30000, // 30 segundos para el pre-validador
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'text/html, application/xml',
+                'User-Agent': 'SIFEN-Microservice/1.0'
+            }
+        });
 
-      // Configurar agente HTTPS con certificado de cliente
-      this.httpsAgent = new https.Agent({
-        pfx: pfxBuffer,
-        passphrase: config.certificates.password,
-        rejectUnauthorized: false, // Solo para desarrollo/test - en producción debería ser true
-        keepAlive: true,
-        timeout: this.timeout,
-        // Configuración adicional para BIG-IP APM
-        ciphers: 'HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA',
-        secureProtocol: 'TLSv1_2_method'
-      });
+        this.configurarInterceptores();
+        this.configurarReintentos();
 
-      logger.info(`[SIFEN] Agente HTTPS configurado con certificado de cliente: ${config.certificates.path}`);
-
-    } catch (error) {
-      logger.error(`[SIFEN] Error configurando agente HTTPS: ${error.message}`);
-      // Fallback: agente sin certificado
-      this.httpsAgent = new https.Agent({
-        rejectUnauthorized: false,
-        keepAlive: true
-      });
+        logger.info(`SifenClient inicializado - Base URL: ${this.baseUrl}, Pre-validador: ${this.prevalidadorUrl}`);
     }
-  }
 
   /**
    * Configura interceptores para logging
@@ -596,7 +560,7 @@ class SifenClient {
    * Prepara el XML del lote para envío
    */
   prepararLote(xmls) {
-    const loteXml = `<?xml version="1.0" encoding="UTF-8"?>
+    const loteXml = `<?xml version="150" encoding="UTF-8"?>
 <rLote version="1.0">
   <dId>${this.generarIdLote()}</dId>
   <dFecLote>${this.formatearFecha(new Date())}</dFecLote>
@@ -617,7 +581,7 @@ class SifenClient {
    * Prepara el XML del evento para envío
    */
   prepararEvento(cdc, tipoEvento, motivo, observacion) {
-    const eventoXml = `<?xml version="1.0" encoding="UTF-8"?>
+    const eventoXml = `<?xml version="150" encoding="UTF-8"?>
 <rEvento version="1.0">
   <dId>${this.generarIdEvento()}</dId>
   <dFecEvento>${this.formatearFecha(new Date())}</dFecEvento>
@@ -708,95 +672,42 @@ class SifenClient {
   }
 
     /**
-     * Intenta obtener una sesión válida con BIG-IP APM
-     * @returns {Promise<void>}
-     */
-    async obtenerSesionBigIP() {
-        try {
-            logger.info(`[SIFEN] Intentando obtener sesión BIG-IP...`);
-
-            // Hacer una petición inicial para obtener cookies de sesión
-            const sessionConfig = {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'es-ES,es;q=0.8,en-US;q=0.5,en;q=0.3',
-                    'Accept-Encoding': 'gzip, deflate, br',
-                    'Connection': 'keep-alive',
-                    'Upgrade-Insecure-Requests': '1'
-                },
-                timeout: 10000,
-                maxRedirects: 5,
-                withCredentials: true
-            };
-
-            // Intentar acceder a la página principal para obtener sesión
-            const response = await this.httpClient.get(`${this.baseUrl}/`, sessionConfig);
-
-            // Verificar si obtuvimos una respuesta válida (no redirect a hangup)
-            if (response.data && !response.data.toLowerCase().includes('hangup')) {
-                logger.info(`[SIFEN] Sesión BIG-IP obtenida exitosamente`);
-                return true;
-            } else {
-                logger.warn(`[SIFEN] BIG-IP redirigió a hangup, intentando con página de login`);
-                throw new Error('BIG-IP redirigió a hangup');
-            }
-
-        } catch (error) {
-            logger.warn(`[SIFEN] Error obteniendo sesión BIG-IP: ${error.message}`);
-
-            // Intentar con un endpoint alternativo que podría estar disponible
-            try {
-                logger.info(`[SIFEN] Intentando endpoint alternativo para sesión...`);
-                const altResponse = await this.httpClient.get(`${this.baseUrl}/de/ws/consultas`, {
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                        'Accept': 'application/xml, text/xml'
-                    },
-                    timeout: 5000,
-                    maxRedirects: 3
-                });
-
-                if (altResponse.data && !altResponse.data.toLowerCase().includes('hangup')) {
-                    logger.info(`[SIFEN] Sesión obtenida con endpoint alternativo`);
-                    return true;
-                }
-            } catch (altError) {
-                logger.warn(`[SIFEN] Endpoint alternativo también falló: ${altError.message}`);
-            }
-
-            // Si todo falla, continuar sin sesión (puede que funcione en algunos casos)
-            logger.warn(`[SIFEN] Continuando sin sesión BIG-IP - puede fallar`);
-            return false;
-        }
-    }
-
-    /**
      * Consulta el estado individual de un documento en SIFEN
      * @param {string} cdc - Código de Control del documento
      * @returns {Promise<Object>} - Estado del documento
      */
     async consultarEstadoIndividual(cdc) {
         try {
-            // Intentar obtener sesión de BIG-IP primero
-            await this.obtenerSesionBigIP();
-        } catch (error) {
-            logger.warn(`[SIFEN] No se pudo obtener sesión BIG-IP: ${error.message}`);
-        }
-        try {
             logger.info(`[SIFEN] Consultando estado individual del documento CDC: ${cdc}`);
-            
-            // Probar ambos formatos SOAP para encontrar el correcto
+            logger.info(`[SIFEN] === USANDO FORMATOS MANUAL TÉCNICO SIFEN v150 ===`);
+
+            // Probar formatos incluyendo consulta REST según documentación SIFEN
             const formatosSoap = [
                 {
-                    nombre: 'Formato 1 (con namespace)',
-                    envelope: this.construirSoapConsultaIndividual(cdc),
-                    soapAction: 'http://ekuatia.set.gov.py/sifen/xsd/rConsultarDE'
+                    nombre: 'Consulta REST Directa',
+                    envelope: null, // No necesita envelope para REST
+                    soapAction: '',
+                    contentType: 'application/json',
+                    method: 'GET',
+                    useSoap: false
                 },
                 {
-                    nombre: 'Formato 2 (sin namespace)',
-                    envelope: this.construirSoapConsultaIndividualAlternativo(cdc),
-                    soapAction: 'http://ekuatia.set.gov.py/sifen/xsd/rConsultarDE'
+                    nombre: 'Manual Técnico SIFEN v150',
+                    envelope: this.construirSoapConsultaIndividualManualTecnico(cdc),
+                    soapAction: '',
+                    contentType: 'text/xml; charset=utf-8'
+                },
+                {
+                    nombre: 'Formato Consulta DE Oficial',
+                    envelope: this.construirSoapConsultaIndividualOficial(cdc),
+                    soapAction: 'rConsultarDE',
+                    contentType: 'text/xml; charset=utf-8'
+                },
+                {
+                    nombre: 'Formato con Certificado Digital',
+                    envelope: this.construirSoapConsultaIndividualConCertificado(cdc),
+                    soapAction: 'rConsultarDE',
+                    contentType: 'text/xml; charset=utf-8'
                 }
             ];
             
@@ -805,97 +716,113 @@ class SifenClient {
             for (const formato of formatosSoap) {
                 try {
                     logger.info(`[SIFEN] Probando ${formato.nombre}`);
-                    
-                    // Configurar headers para SOAP con timeouts específicos
+
+                    let dataToSend = formato.envelope;
+                    let requestMethod = 'post';
+
+                    // Si es consulta REST directa, usar GET
+                    if (formato.nombre === 'Consulta REST Directa') {
+                        requestMethod = 'get';
+                        dataToSend = null; // GET no necesita body
+                    } else {
+                        // Si es el formato con certificado digital, firmar el XML
+                        if (formato.nombre === 'Formato con Certificado Digital') {
+                            try {
+                                logger.info(`[SIFEN] Firmando XML con certificado digital para ${formato.nombre}`);
+                                const xmlSigner = require('../services/xmlSigner');
+                                dataToSend = await xmlSigner.firmarXml(dataToSend);
+                                logger.info(`[SIFEN] XML firmado exitosamente`);
+                            } catch (signError) {
+                                logger.warn(`[SIFEN] Error al firmar XML: ${signError.message}`);
+                                // Continuar sin firma si hay error
+                            }
+                        }
+                    }
+
+                    // Configurar headers específicos para cada formato
+                    const headers = {
+                        'User-Agent': 'SIFEN-Client/1.0',
+                        'Accept-Encoding': 'gzip, deflate',
+                        'Connection': 'keep-alive'
+                    };
+
+                    // Headers específicos según el tipo de consulta
+                    if (formato.nombre === 'Consulta REST Directa') {
+                        headers['Accept'] = 'application/json, text/plain, */*';
+                    } else {
+                        headers['Content-Type'] = formato.contentType;
+                        headers['Accept'] = 'text/xml, application/xml, application/soap+xml, */*';
+                        // Solo incluir SOAPAction si no está vacío
+                        if (formato.soapAction) {
+                            headers['SOAPAction'] = formato.soapAction;
+                        }
+                    }
+
                     const requestConfig = {
-                        headers: {
-                            'Content-Type': 'text/xml; charset=utf-8',
-                            'SOAPAction': formato.soapAction
-                        },
+                        headers: headers,
                         timeout: config.sifen.readTimeout,
                         httpsAgent: this.httpsAgent
                     };
-                    
+
                     logger.info(`[SIFEN] Enviando consulta individual a SIFEN con timeout: ${requestConfig.timeout}ms`);
-                    
-                    // Probar diferentes endpoints para consulta individual según documentación SIFEN
-                    const endpointsConsulta = [
-                        // Endpoints principales según documentación
-                        `${this.baseUrl}/de/ws/consultas/consulta`,
-                        `${this.baseUrl}/de/ws/sync/consulta`,
-                        `${this.baseUrl}/de/ws/async/consulta`,
 
-                        // Endpoints alternativos que podrían funcionar
-                        `${this.baseUrl}/de/ws/consultas/consulta-lote`,
-                        `${this.baseUrl}/de/ws/consultas/estado-documento`,
-                        `${this.baseUrl}/de/ws/sync/estado`,
-                        `${this.baseUrl}/de/ws/async/estado`,
+                    // Intentar múltiples endpoints según documentación SIFEN
+                    let response;
+                    const endpoints = formato.nombre === 'Consulta REST Directa' ?
+                        [
+                            `${this.baseUrl}/consulta/consulta?cdc=${cdc}`,
+                            `${this.baseUrl}/de/consulta?cdc=${cdc}`,
+                            `${this.baseUrl}/consulta?cdc=${cdc}`
+                        ] :
+                        [
+                            `${this.baseUrl}/de/ws/consultas/consulta`,
+                            `${this.baseUrl}/de/ws/consulta/consulta`,
+                            `${this.baseUrl}/consulta`
+                        ];
 
-                        // Endpoint raíz de consultas
-                        `${this.baseUrl}/de/ws/consultas`
-                    ];
-
-                    let response = null;
-                    let endpointExitoso = null;
-
-                    for (const endpoint of endpointsConsulta) {
-                        // Probar primero POST (SOAP estándar)
+                    for (const endpoint of endpoints) {
                         try {
-                            logger.info(`[SIFEN] Probando endpoint POST: ${endpoint}`);
-                            response = await this.httpClient.post(endpoint, formato.envelope, requestConfig);
+                            logger.info(`[SIFEN] Intentando endpoint: ${endpoint}`);
 
-                            // Verificar si la respuesta es válida (no BIG-IP)
-                            if (response.data && !response.data.toLowerCase().includes('big-ip')) {
-                                endpointExitoso = endpoint;
-                                logger.info(`[SIFEN] Endpoint exitoso (POST): ${endpoint}`);
-                                break;
+                            if (requestMethod === 'get') {
+                                response = await this.httpClient.get(endpoint, requestConfig);
                             } else {
-                                logger.warn(`[SIFEN] Endpoint POST ${endpoint} devolvió BIG-IP`);
+                                response = await this.httpClient.post(endpoint, dataToSend, requestConfig);
                             }
-                        } catch (error) {
-                            logger.warn(`[SIFEN] Endpoint POST ${endpoint} falló: ${error.message}`);
-                        }
 
-                        // Si POST falló, probar GET con parámetros para algunos endpoints
-                        if (!endpointExitoso) {
-                            try {
-                                logger.info(`[SIFEN] Probando endpoint GET: ${endpoint}?cdc=${cdc}`);
-                                const getConfig = {
-                                    ...requestConfig,
-                                    headers: {
-                                        ...requestConfig.headers,
-                                        'Accept': 'application/xml, text/xml, application/soap+xml'
-                                    }
-                                };
-                                response = await this.httpClient.get(`${endpoint}?cdc=${cdc}`, getConfig);
-
-                                // Verificar si la respuesta es válida (no BIG-IP)
-                                if (response.data && !response.data.toLowerCase().includes('big-ip')) {
-                                    endpointExitoso = endpoint;
-                                    logger.info(`[SIFEN] Endpoint exitoso (GET): ${endpoint}`);
-                                    break;
-                                } else {
-                                    logger.warn(`[SIFEN] Endpoint GET ${endpoint} devolvió BIG-IP`);
-                                }
-                            } catch (error) {
-                                logger.warn(`[SIFEN] Endpoint GET ${endpoint} falló: ${error.message}`);
+                            logger.info(`[SIFEN] Endpoint exitoso: ${endpoint}`);
+                            break; // Si funciona, salir del loop
+                        } catch (endpointError) {
+                            logger.warn(`[SIFEN] Endpoint falló: ${endpoint} - ${endpointError.message}`);
+                            if (endpoint === endpoints[endpoints.length - 1]) {
+                                throw endpointError; // Si es el último endpoint, lanzar el error
                             }
                         }
                     }
+                    
+                                        logger.info(`[SIFEN] Respuesta recibida para CDC ${cdc}: ${response.status}`);
 
-                    if (!response || !endpointExitoso) {
-                        throw new Error(`Todos los endpoints devolvieron BIG-IP para ${formato.nombre}`);
+                    // Log detallado de la respuesta para debugging (solo en desarrollo)
+                    if (config.nodeEnv !== 'production') {
+                        logger.info(`[SIFEN] Contenido de respuesta (primeros 500 caracteres):`, {
+                            contentType: response.headers['content-type'],
+                            contentLength: response.headers['content-length'],
+                            data: response.data ? response.data.substring(0, 500) : 'Sin datos'
+                        });
                     }
 
-                    logger.info(`[SIFEN] Respuesta recibida para CDC ${cdc}: ${response.status} (usando endpoint: ${endpointExitoso})`);
-
-                    // La verificación de BIG-IP ya se hizo en el loop de endpoints
-                    logger.info(`[SIFEN] Formato exitoso: ${formato.nombre}`);
-
-                    // Procesar respuesta SOAP
-                    const resultado = this.procesarRespuestaConsultaIndividual(response.data);
-                    logger.info(`[SIFEN] Estado del documento ${cdc}: ${resultado.estado}`);
-                    return resultado;
+                    // Verificar si la respuesta es válida (no BIG-IP)
+                    if (response.data && !response.data.toLowerCase().includes('big-ip')) {
+                        logger.info(`[SIFEN] Formato exitoso: ${formato.nombre}`);
+                        
+                        // Procesar respuesta SOAP
+                        const resultado = this.procesarRespuestaConsultaIndividual(response.data);
+                        logger.info(`[SIFEN] Estado del documento ${cdc}: ${resultado.estado}`);
+                        return resultado;
+                    } else {
+                        logger.warn(`[SIFEN] Formato ${formato.nombre} devolvió BIG-IP, probando siguiente...`);
+                        ultimoError = new Error(`Respuesta BIG-IP con ${formato.nombre}`);
+                    }
                     
                 } catch (error) {
                     logger.warn(`[SIFEN] Error con ${formato.nombre}: ${error.message}`);
@@ -944,37 +871,109 @@ class SifenClient {
     }
     
     /**
-     * Construye el XML SOAP para consulta individual
+     * Construye el XML SOAP oficial según especificaciones SIFEN
      * @param {string} cdc - Código de Control del documento
      * @returns {string} - XML SOAP
      */
-    construirSoapConsultaIndividual(cdc) {
-        // Formato SOAP 1.1 estándar para SIFEN
-        return `<?xml version="1.0" encoding="UTF-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns1="http://ekuatia.set.gov.py/sifen/xsd">
-   <soap:Header/>
-   <soap:Body>
-      <ns1:rConsultarDE>
-         <ns1:dId>${cdc}</ns1:dId>
-      </ns1:rConsultarDE>
-   </soap:Body>
-</soap:Envelope>`;
-    }
-
-    /**
-     * Construye el XML SOAP alternativo para consulta individual (formato SIFEN)
-     * @param {string} cdc - Código de Control del documento
-     * @returns {string} - XML SOAP alternativo
-     */
-    construirSoapConsultaIndividualAlternativo(cdc) {
-        // Formato alternativo basado en documentación SIFEN
-        return `<?xml version="1.0" encoding="UTF-8"?>
+    construirSoapConsultaIndividualOficial(cdc) {
+        // Formato oficial basado en documentación SIFEN
+        return `<?xml version="150" encoding="UTF-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
    <soap:Header/>
    <soap:Body>
       <rConsultarDE xmlns="http://ekuatia.set.gov.py/sifen/xsd">
          <dId>${cdc}</dId>
       </rConsultarDE>
+   </soap:Body>
+</soap:Envelope>`;
+    }
+
+    /**
+     * Construye el XML SOAP según formato DNIT
+     * @param {string} cdc - Código de Control del documento
+     * @returns {string} - XML SOAP
+     */
+    construirSoapConsultaIndividualDNIT(cdc) {
+        // Formato basado en documentación DNIT
+        return `<?xml version="150" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:dnit="http://dnit.gov.py/sifen">
+   <soap:Header/>
+   <soap:Body>
+      <dnit:rConsultarDE>
+         <dnit:dId>${cdc}</dnit:dId>
+      </dnit:rConsultarDE>
+   </soap:Body>
+</soap:Envelope>`;
+    }
+
+    /**
+     * Construye el XML SOAP según Manual Técnico SIFEN v150
+     * @param {string} cdc - Código de Control del documento
+     * @returns {string} - XML SOAP
+     */
+    construirSoapConsultaIndividualManualTecnico(cdc) {
+        // Formato basado en Manual Técnico SIFEN v150 - Consulta DE síncrona
+        return `<?xml version="150" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+   <soap:Header/>
+   <soap:Body>
+      <rConsultarDE xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+         <dId>${cdc}</dId>
+      </rConsultarDE>
+   </soap:Body>
+</soap:Envelope>`;
+    }
+
+    /**
+     * Construye el XML SOAP según Esquema XML v150
+     * @param {string} cdc - Código de Control del documento
+     * @returns {string} - XML SOAP
+     */
+    construirSoapConsultaIndividualEsquema150(cdc) {
+        // Formato basado en SiRecepDE_v150.xsd - Consulta DE según esquema oficial
+        return `<?xml version="150" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+   <soap:Header/>
+   <soap:Body>
+      <ns1:rConsultarDE xmlns:ns1="http://ekuatia.set.gov.py/sifen/xsd" xsi:schemaLocation="http://ekuatia.set.gov.py/sifen/xsd SiRecepDE_v150.xsd">
+         <ns1:dId xsi:type="xsd:string">${cdc}</ns1:dId>
+      </ns1:rConsultarDE>
+   </soap:Body>
+</soap:Envelope>`;
+    }
+
+    /**
+     * Construye el XML SOAP con certificado digital según Manual Técnico SIFEN v150
+     * @param {string} cdc - Código de Control del documento
+     * @returns {string} - XML SOAP preparado para firma digital
+     */
+    construirSoapConsultaIndividualConCertificado(cdc) {
+        // Formato básico según Manual Técnico - será firmado digitalmente
+        return `<?xml version="150" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+   <soap:Header/>
+   <soap:Body>
+      <rConsultarDE xmlns="http://ekuatia.set.gov.py/sifen/xsd" Id="ConsultaDE">
+         <dId>${cdc}</dId>
+      </rConsultarDE>
+   </soap:Body>
+</soap:Envelope>`;
+    }
+
+    /**
+     * Construye el XML SOAP según formato SET (Secretaría de Estado de Tributación)
+     * @param {string} cdc - Código de Control del documento
+     * @returns {string} - XML SOAP
+     */
+    construirSoapConsultaIndividualSET(cdc) {
+        // Formato basado en estándares SET actualizado con namespace correcto
+        return `<?xml version="150" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+   <soap:Header/>
+   <soap:Body>
+      <consultarDE xmlns="http://ekuatia.set.gov.py/sifen/xsd">
+         <cdc>${cdc}</cdc>
+      </consultarDE>
    </soap:Body>
 </soap:Envelope>`;
     }
@@ -1447,6 +1446,208 @@ class SifenClient {
         // Estado no reconocido
         logger.warn(`Estado SIFEN no reconocido: ${estadoSifen}`);
         return 'ESTADO_DESCONOCIDO';
+    }
+
+    /**
+     * Valida XML usando el pre-validador oficial de SIFEN
+     * @param {string} xmlContent - Contenido XML a validar
+     * @returns {Object} Resultado de la validación oficial
+     */
+    async validarXmlOficial(xmlContent) {
+        try {
+            logger.info('[SIFEN] Iniciando validación oficial en pre-validador...');
+
+            // Preparar datos para el formulario
+            const formData = new URLSearchParams();
+            formData.append('xml', xmlContent);
+            formData.append('submit', 'Validar');
+
+            const response = await this.prevalidadorClient.post('/prevalidador/validacion', formData, {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            });
+
+            logger.info(`[SIFEN] Pre-validador respondió con status: ${response.status}`);
+
+            // Analizar la respuesta HTML
+            const resultado = this.analizarRespuestaPrevalidador(response.data);
+
+            logger.info(`[SIFEN] Validación oficial completada: ${resultado.valido ? 'VÁLIDO' : 'INVÁLIDO'}`);
+
+            return {
+                valido: resultado.valido,
+                mensaje: resultado.mensaje,
+                errores: resultado.errores,
+                advertencias: resultado.advertencias,
+                fuente: 'PREVALIDADOR_OFICIAL_SIFEN',
+                timestamp: new Date().toISOString()
+            };
+
+        } catch (error) {
+            logger.error('[SIFEN] Error en validación oficial:', {
+                message: error.message,
+                status: error.response?.status,
+                data: error.response?.data?.substring(0, 200)
+            });
+
+            return {
+                valido: false,
+                mensaje: `Error en pre-validador oficial: ${error.message}`,
+                errores: [{
+                    mensaje: error.message,
+                    tipo: 'ERROR_CONEXION_PREVALIDADOR'
+                }],
+                advertencias: [],
+                fuente: 'PREVALIDADOR_OFICIAL_SIFEN',
+                timestamp: new Date().toISOString()
+            };
+        }
+    }
+
+    /**
+     * Analiza la respuesta HTML del pre-validador oficial
+     * @param {string} htmlResponse - Respuesta HTML del pre-validador
+     * @returns {Object} Resultado analizado
+     */
+    analizarRespuestaPrevalidador(htmlResponse) {
+        try {
+            // Verificar si es una página de aplicación (Angular)
+            if (htmlResponse.includes('<app-root>') || htmlResponse.includes('<script src="main.')) {
+                logger.warn('[SIFEN] Pre-validador devolvió página de aplicación, no resultado de validación');
+                return {
+                    valido: false,
+                    mensaje: 'Pre-validador devolvió página de aplicación - endpoint podría requerir sesión o método diferente',
+                    errores: [{
+                        mensaje: 'El pre-validador requiere interacción web completa',
+                        tipo: 'REQUIERE_SESION_WEB'
+                    }],
+                    advertencias: ['Usar validación local XSD como alternativa']
+                };
+            }
+
+            // Buscar indicadores de validación en el HTML
+            const esValido = !htmlResponse.toLowerCase().includes('error') &&
+                           !htmlResponse.toLowerCase().includes('inválido') &&
+                           !htmlResponse.toLowerCase().includes('incorrecto') &&
+                           (htmlResponse.toLowerCase().includes('válido') ||
+                            htmlResponse.toLowerCase().includes('correcto') ||
+                            htmlResponse.toLowerCase().includes('success') ||
+                            htmlResponse.toLowerCase().includes('valid'));
+
+            // Extraer mensajes de error (búsqueda mejorada)
+            const errores = [];
+            const advertencias = [];
+
+            // Buscar patrones más específicos de errores
+            const errorPatterns = [
+                /error[^>]*>([^<]+)/gi,
+                /alert[^>]*>([^<]+)/gi,
+                /danger[^>]*>([^<]+)/gi,
+                /invalid[^>]*>([^<]+)/gi,
+                /incorrect[^>]*>([^<]+)/gi,
+                /class="[^"]*error[^"]*"[^>]*>([^<]+)/gi,
+                /class="[^"]*invalid[^"]*"[^>]*>([^<]+)/gi
+            ];
+
+            errorPatterns.forEach(pattern => {
+                let match;
+                while ((match = pattern.exec(htmlResponse)) !== null) {
+                    const mensaje = match[1].trim();
+                    if (mensaje && mensaje.length > 3) { // Ignorar mensajes muy cortos
+                        errores.push({
+                            mensaje: mensaje,
+                            tipo: 'ERROR_HTML'
+                        });
+                    }
+                }
+            });
+
+            // Buscar mensajes de éxito
+            const successPatterns = [
+                /success[^>]*>([^<]+)/gi,
+                /valid[^>]*>([^<]+)/gi,
+                /correct[^>]*>([^<]+)/gi,
+                /class="[^"]*success[^"]*"[^>]*>([^<]+)/gi
+            ];
+
+            successPatterns.forEach(pattern => {
+                let match;
+                while ((match = pattern.exec(htmlResponse)) !== null) {
+                    const mensaje = match[1].trim();
+                    if (mensaje && mensaje.length > 3) {
+                        advertencias.push({
+                            mensaje: `Mensaje positivo: ${mensaje}`,
+                            tipo: 'MENSAJE_POSITIVO'
+                        });
+                    }
+                }
+            });
+
+            // Si no encontramos indicadores claros, asumir inválido por precaución
+            if (!esValido && errores.length === 0) {
+                errores.push({
+                    mensaje: 'No se encontraron indicadores claros de validación en la respuesta',
+                    tipo: 'SIN_INDICADORES_VALIDACION'
+                });
+            }
+
+            return {
+                valido: esValido,
+                mensaje: esValido ? 'XML válido según pre-validador oficial' : 'XML inválido o respuesta no clara del pre-validador oficial',
+                errores: errores,
+                advertencias: advertencias
+            };
+
+        } catch (error) {
+            logger.error('Error analizando respuesta del pre-validador:', error.message);
+            return {
+                valido: false,
+                mensaje: 'Error analizando respuesta del pre-validador',
+                errores: [{
+                    mensaje: `Error de análisis: ${error.message}`,
+                    tipo: 'ERROR_ANALISIS'
+                }],
+                advertencias: []
+            };
+        }
+    }
+
+    /**
+     * Validación doble: local XSD + oficial SIFEN
+     * @param {string} xmlContent - Contenido XML a validar
+     * @returns {Object} Resultado de ambas validaciones
+     */
+    async validarXmlCompleto(xmlContent) {
+        const XmlValidator = require('./xmlValidator');
+
+        logger.info('🔍 Iniciando validación completa (local + oficial)...');
+
+        // Validación local
+        const validacionLocal = XmlValidator.validarXml(xmlContent);
+
+        // Validación oficial (solo si la local pasa)
+        let validacionOficial = null;
+        if (validacionLocal.valido) {
+            validacionOficial = await this.validarXmlOficial(xmlContent);
+        }
+
+        const resultadoCompleto = {
+            validacionLocal: validacionLocal,
+            validacionOficial: validacionOficial,
+            validoGeneral: validacionLocal.valido && (!validacionOficial || validacionOficial.valido),
+            resumen: {
+                local: validacionLocal.valido ? 'VÁLIDO' : 'INVÁLIDO',
+                oficial: validacionOficial ? (validacionOficial.valido ? 'VÁLIDO' : 'INVÁLIDO') : 'NO EJECUTADO',
+                general: null
+            }
+        };
+
+        resultadoCompleto.resumen.general = resultadoCompleto.validoGeneral ? 'VÁLIDO' : 'INVÁLIDO';
+
+        logger.info('✅ Validación completa finalizada:', resultadoCompleto.resumen);
+
+        return resultadoCompleto;
     }
 }
 
