@@ -1,201 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<rDE xmlns="http://ekuatia.set.gov.py/sifen/xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ekuatia.set.gov.py/sifen/xsd siRecepDE_v150.xsd">
-  <dVerFor>150</dVerFor>
-  <DE Id="01800994825001000000671202509060000025000123">
-    <dDVId>1</dDVId>
-    <dFecFirma>2025-09-06T15:49:44</dFecFirma>
-    <dSisFact>1</dSisFact>
-    <gOpeDE>
-      <iTipEmi>1</iTipEmi>
-      <dDesTipEmi>Normal</dDesTipEmi>
-      <dCodSeg>123456789</dCodSeg>
-      <dInfoEmi>Emision normal</dInfoEmi>
-      <dInfoFisc>Factura electrónica</dInfoFisc>
-    </gOpeDE>
-    <gTimb>
-      <iTiDE>1</iTiDE>
-      <dDesTiDE>Factura electrónica</dDesTiDE>
-      <dNumTim>12345678</dNumTim>
-      <dEst>001</dEst>
-      <dPunExp>001</dPunExp>
-      <dNumDoc>0000067</dNumDoc>
-      <dSerieNum>AA</dSerieNum>
-      <dFeIniT>2025-01-01</dFeIniT>
-    </gTimb>
-    <gDatGralOpe>
-      <dFeEmiDE>2025-09-05T20:00:00</dFeEmiDE>
-      <gOpeCom>
-        <iTipTra>1</iTipTra>
-        <dDesTipTra>Venta de mercadería</dDesTipTra>
-        <iTImp>1</iTImp>
-        <dDesTImp>IVA</dDesTImp>
-        <cMoneOpe>PYG</cMoneOpe>
-        <dDesMoneOpe>Guarani</dDesMoneOpe>
-      </gOpeCom>
-      <gEmis>
-        <dRucEm>80099482</dRucEm>
-        <dDVEmi>5</dDVEmi>
-        <iTipCont>1</iTipCont>
-        <cTipReg>8</cTipReg>
-        <dNomEmi>FRANCO AREVALOS S.A.</dNomEmi>
-        <dNomFanEmi>FRANCO AREVALOS S.A.</dNomFanEmi>
-        <dDirEmi>Dirección de la empresa</dDirEmi>
-        <dNumCas>0</dNumCas>
-        <cDepEmi>19</cDepEmi>
-        <dDesDepEmi>CANINDEYU</dDesDepEmi>
-        <cDisEmi>207</cDisEmi>
-        <dDesDisEmi>SALTO DEL GUAIRA</dDesDisEmi>
-        <cCiuEmi>4738</cCiuEmi>
-        <dDesCiuEmi>SALTO DEL GUAIRA</dDesCiuEmi>
-        <dTelEmi>021123456</dTelEmi>
-        <dEmailE>info@empresa.com.py</dEmailE>
-        <dDenSuc>FRANCO AREVALOS S.A.</dDenSuc>
-        <gActEco>
-          <cActEco>47112</cActEco>
-          <dDesActEco>Comercio al por menor en mini mercados y despensas</dDesActEco>
-        </gActEco>
-        <gActEco>
-          <cActEco>47190</cActEco>
-          <dDesActEco>Comercio al por menor de otros productos en comercios no especializados</dDesActEco>
-        </gActEco>
-        <gActEco>
-          <cActEco>47220</cActEco>
-          <dDesActEco>Comercio al por menor de bebidas</dDesActEco>
-        </gActEco>
-        <gActEco>
-          <cActEco>56101</cActEco>
-          <dDesActEco>Restaurante y parrilladas</dDesActEco>
-        </gActEco>
-      </gEmis>
-      <gDatRec>
-        <iNatRec>1</iNatRec>
-        <iTiOpe>1</iTiOpe>
-        <cPaisRec>PRY</cPaisRec>
-        <dDesPaisRe>Paraguay</dDesPaisRe>
-        <iTiContRec>1</iTiContRec>
-        <dRucRec>5533191</dRucRec>
-        <dDVRec>7</dDVRec>
-        <iTipIDRec>1</iTipIDRec>
-        <dNomRec>JORGE LUIS CAMPUZANO BENITEZ</dNomRec>
-        <dDirRec>Dirección Cliente</dDirRec>
-        <dNumCasRec>0</dNumCasRec>
-        <cDepRec>19</cDepRec>
-        <dDesDepRec>CANINDEYU</dDesDepRec>
-        <cCiuRec>4851</cCiuRec>
-        <dDesCiuRec>SALTOS DEL GUAIRA</dDesCiuRec>
-        <dTelRec>0211234567</dTelRec>
-        <dEmailRec>cliente@email.com</dEmailRec>
-        <dCodCliente>173</dCodCliente>
-      </gDatRec>
-    </gDatGralOpe>
-    <gDtipDE>
-      <gCamFE>
-        <iIndPres>1</iIndPres>
-        <dDesIndPres>Operación presencial</dDesIndPres>
-      </gCamFE>
-      <gCamCond>
-        <iCondOpe>2</iCondOpe>
-        <dDCondOpe>Crédito</dDCondOpe>
-        <gPagCred>
-          <iCondCred>1</iCondCred>
-          <dDCondCred>Plazo</dDCondCred>
-          <dPlazoCre>30</dPlazoCre>
-        </gPagCred>
-      </gCamCond>
-      <gCamItem>
-        <dCodInt>001</dCodInt>
-        <dDesProSer>Producto de prueba</dDesProSer>
-        <cUniMed>77</cUniMed>
-        <dDesUniMed>UNI</dDesUniMed>
-        <dCantProSer>1.000</dCantProSer>
-        <gValorItem>
-          <dPUniProSer>25000</dPUniProSer>
-          <dTotBruOpeItem>25000</dTotBruOpeItem>
-          <gValorRestaItem>
-            <dDescItem>0</dDescItem>
-            <dPorcDesIt>0.00</dPorcDesIt>
-            <dDescGloItem>0.00</dDescGloItem>
-            <dAntPreUniIt>0</dAntPreUniIt>
-            <dAntGloPreUniIt>0</dAntGloPreUniIt>
-            <dTotOpeItem>25000</dTotOpeItem>
-          </gValorRestaItem>
-        </gValorItem>
-        <gCamIVA>
-          <iAfecIVA>1</iAfecIVA>
-          <dDesAfecIVA>Gravado IVA</dDesAfecIVA>
-          <dPropIVA>100.00</dPropIVA>
-          <dTasaIVA>10</dTasaIVA>
-          <dBasGravIVA>22727</dBasGravIVA>
-          <dLiqIVAItem>2273</dLiqIVAItem>
-          <dBasExe>0</dBasExe>
-        </gCamIVA>
-      </gCamItem>
-      <gCamEsp>
-        <gGrupSup>
-          <dNomCaj>CAMION1</dNomCaj>
-        </gGrupSup>
-      </gCamEsp>
-    </gDtipDE>
-    <gTotSub>
-      <dSubExe>0</dSubExe>
-      <dSubExo>0</dSubExo>
-      <dSub5>0</dSub5>
-      <dSub10>25000</dSub10>
-      <dTotOpe>25000</dTotOpe>
-      <dTotDesc>0.000</dTotDesc>
-      <dTotDescGlotem>0.00</dTotDescGlotem>
-      <dTotAntItem>0</dTotAntItem>
-      <dTotAnt>0</dTotAnt>
-      <dPorcDescTotal>0.00</dPorcDescTotal>
-      <dDescTotal>0.000</dDescTotal>
-      <dAnticipo>0</dAnticipo>
-      <dRedon>0</dRedon>
-      <dComi>0</dComi>
-      <dTotGralOpe>25000</dTotGralOpe>
-      <dIVA5>0</dIVA5>
-      <dIVA10>2273</dIVA10>
-      <dLiqTotIVA5>0</dLiqTotIVA5>
-      <dLiqTotIVA10>0</dLiqTotIVA10>
-      <dIVAComi>0</dIVAComi>
-      <dTotIVA>2273</dTotIVA>
-      <dBaseGrav5>0</dBaseGrav5>
-      <dBaseGrav10>22727</dBaseGrav10>
-      <dTBasGraIVA>22727</dTBasGraIVA>
-    </gTotSub>
-    <gCamGen>
-      <dOrdCompra>0</dOrdCompra>
-    </gCamGen>
-  </DE>
-  <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
-    <ds:SignedInfo>
-      <ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
-      <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
-      <ds:Reference URI="#01800994825001000000671202509060000025000123">
-        <ds:Transforms>
-          <ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
-          <ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
-        </ds:Transforms>
-        <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
-        <ds:DigestValue>PYvRw6tDziu9YQDpbhUNaWTvLHRhbRcQ0ZTlkOA5NH4=</ds:DigestValue>
-      </ds:Reference>
-    </ds:SignedInfo>
-    <ds:SignatureValue>CtumIX8g4na6yLSc+adoCoqSHZI+noyKzcwvQzOPYt0GMwbbtTy0wR4/EnBEteYkHWY1vdZQBqlLq4RfRsr3UU64D4iz590G7uOIfoOwOIVHOGdQXktjW446+t2lNy1u4DHhpaKaY/2twhCVJang5JrjpPlRja0+2kWw3+JB+ZQ7Jyxx4Sni4HHC39VyGbqYlDb4vOanCzEmE40Ap3mkoO5VbwKyXyfknIXXQ7DGeLCO8I6QqkaCrUeLFuFnxuCDBAbglAQFC7ytddyWnAYCWSdiutTpI443Y9XlA3IlA3e34ExK6ZUC68Iq0gvuzwDECZU2WjxoTLzfs+8Uu79tGA==</ds:SignatureValue>
-    <ds:KeyInfo>
-      <ds:X509Data>
-        <ds:X509Certificate>MIIIEDCCBfigAwIBAgIRAPdmqMI0j5WSS+6qirOz9powDQYJKoZIhvcNAQELBQAwgYUxCzAJBgNVBAYTAlBZMQ0wCwYDVQQKEwRJQ1BQMTgwNgYDVQQLEy9QcmVzdGFkb3IgQ3VhbGlmaWNhZG8gZGUgU2VydmljaW9zIGRlIENvbmZpYW56YTEVMBMGA1UEAxMMQ09ERTEwMCBTLkEuMRYwFAYDVQQFEw1SVUM4MDA4MDYxMC03MB4XDTI1MDgyMDE0NTM0MVoXDTI2MDgyMDE0NTM0MVowga0xCzAJBgNVBAYTAlBZMSswKQYDVQQKEyJDRVJUSUZJQ0FETyBDVUFMSUZJQ0FETyBUUklCVVRBUklPMQswCQYDVQQLEwJGMTEYMBYGA1UEBBMPRlJBTkNPIEFSRVZBTE9TMRIwEAYDVQQqEwlHVUlMTEVSTU8xIjAgBgNVBAMTGUdVSUxMRVJNTyBGUkFOQ08gQVJFVkFMT1MxEjAQBgNVBAUTCUNJMzQ5OTkxNzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAOgtYrO0ZYGFgS8qlCWbrFyyH4iu0xHrl3DE2G8cT47i68efq23BV2ijojZU5NeXUhr+2YlDYxumU9CR9PbVSzcbZBhcC4bz8KgPIxnYEAK/FnDE/noFmzCgQlcDTmsoHzNrYYUElW237aM3HWz0e0M7jWXdHXbKHAI8HHJv8Pk2IAaMwT4r2oDamjQ09EjTd6+nj5hNYkD761cBz08LFypEz2cug0nw+yvDSAXcKa75IHapv5H0rKfeZoVjtJ/qaHeWkdWfXl1JplbQ5wIMrStrPQaZ3gTh/MoP0DtJkZ14/jR7IhiEY6jksa3H74L6bUgHrxvAjF8kTf1Mi4atF3kCAwEAAaOCA08wggNLMAwGA1UdEwEB/wQCMAAwHQYDVR0OBBYEFDzKVu9Va8AxsP2t2CQ8FIaWSZnkMB8GA1UdIwQYMBaAFL41VGJoYOcm0zHBX5ex4vZkzgf1MA4GA1UdDwEB/wQEAwIF4DCBxQYDVR0RBIG9MIG6gRVHVUlNRU1PODFASE9UTUFJTC5DT02kgaAwgZ0xKTAnBgNVBAoTIEZSQU5DTyBBUkVWQUxPUyBTT0NJRURBRCBBTk9OSU1BMRMwEQYDVQQLEwpESVJFQ1RPUklPMRcwFQYDVQQMEw5WSUNFUFJFU0lERU5URTEqMCgGA1UEDQwhRklSTUEgRUxFQ1RSw5NOSUNBIGRlIG5pdmVsIG1lZGlvMRYwFAYDVQQFEw1SVUM4MDA5OTQ4Mi01MIH3BgNVHSAEge8wgewwgekGCysGAQQBg65wAQEEMIHZMEYGCCsGAQUFBwIBFjpodHRwczovL2NvZGUxMDAuY29tLnB5L3JlcG9zaXRvcmlvLWRlLWRvY3VtZW50b3MtcHVibGljb3MvMIGOBggrBgEFBQcCAjCBgQx/Y2VydGlmaWNhZG8gY3VhbGlmaWNhZG8gZGUgZmlybWEgZWxlY3Ryw7NuaWNhIHRpcG8gRjEgc3VqZXRhIGEgbGFzIGNvbmRpY2lvbmVzIGRlIHVzbyBleHB1ZXN0YXMgZW4gbGEgRFBDIGRlbCBQQ1NDIENPREUxMDAgUy5BLjB7BgNVHR8EdDByMDegNaAzhjFodHRwOi8vcGNhMS5jb2RlMTAwLmNvbS5weS9jcmxzL2NhLWNvZGUxMDAtc2EuY3JsMDegNaAzhjFodHRwOi8vcGNhMi5jb2RlMTAwLmNvbS5weS9jcmxzL2NhLWNvZGUxMDAtc2EuY3JsMCAGA1UdJQEB/wQWMBQGCCsGAQUFBwMCBggrBgEFBQcDATCBiQYIKwYBBQUHAQEEfTB7MDkGCCsGAQUFBzABhi1odHRwOi8vb2NzcC5jb2RlMTAwLmNvbS5weS9vY3NwL2NhLWNvZGUxMDAtc2EwPgYIKwYBBQUHMAKGMmh0dHA6Ly9wY2ExLmNvZGUxMDAuY29tLnB5L2NlcnRzL2NhLWNvZGUxMDAtc2EuY2VyMA0GCSqGSIb3DQEBCwUAA4ICAQAeb6SDm3hZVNA6T4lvgY4PmVYYgmXon9VDLJzy3/lM7prW0S5X6Nw8t5WQkZ+GSZv35/XlLuIXmkS0C8ZxQbf6EGmp+sV+S6qVL7MVSN8nNx/bZfeO6yz8k+n1+v8Yq0mRmblqTNL5FZuRkvs/c36pV2BMK2kNRYDnNCEhicwcGB/ay4zDirLDo5f0EYPdG2Xp2iTiFPWzNyScKJMP1sQWOPaiPNo5Y1+d7hldCPgsNIWDlMt5ahkcow5qF/br4dLb1gilI5kZ0Ugg3b9rUus3LArEOXtrRqlxrnqWcwmAe+uD6pSkX4p5uNtIfn7MbjTUqv4vLZWkwjVCZHCbnJG++g4RhHeLNg3psIWCjSi96nQmvIySy/pRlqMRDknEA7ln0Br6IM+xAzf8AUPcg31E3/thSx5yW1WhgvEhIhLei4DKCxdmEpFdHRR1bwC/CSe+GWZBSA1NgkrEu8przJyeGYoM9WhmZJRa6r5g1qhsiBrx0PB9lw+qZcT8NyXCUCuV6KtmGiPYrdxiMGdZXy5a08lI2DBLz/u2DWqlFDuK+bQmCF1C9pGNvBBZFO90gP0UmtLg3UPrhBY2tdSpKg/gmrp5NcyIqcmXDaLroAfj1EvShlQNmL2EL7IZRvVcZlNPSzHaLeHHt/jmOytcFbMvvF+bxU5T2qevcukilvkdFw==</ds:X509Certificate>
-      </ds:X509Data>
-    </ds:KeyInfo>
-  </ds:Signature>
-  <gCamFuFD>
-    <dCarQR>01800994825001000000671202509060000025000123</dCarQR>
-    <dInfAdic>Factura electrónica generada por sistema</dInfAdic>
-  </gCamFuFD>
-  <dProtAut>000000</dProtAut>
-  <xContEv/>
-  <gTimb>
-    <dVerif>PYvRw6tDziu9YQDpbhUNaWTvLHRhbRcQ0ZTlkOA5NH4=</dVerif>
-    <dFirmaFis>CtumIX8g4na6yLSc+adoCoqSHZI+noyKzcwvQzOPYt0GMwbbtTy0wR4/EnBEteYkHWY1vdZQBqlLq4RfRsr3UU64D4iz590G7uOIfoOwOIVHOGdQXktjW446+t2lNy1u4DHhpaKaY/2twhCVJang5JrjpPlRja0+2kWw3+JB+ZQ7Jyxx4Sni4HHC39VyGbqYlDb4vOanCzEmE40Ap3mkoO5VbwKyXyfknIXXQ7DGeLCO8I6QqkaCrUeLFuFnxuCDBAbglAQFC7ytddyWnAYCWSdiutTpI443Y9XlA3IlA3e34ExK6ZUC68Iq0gvuzwDECZU2WjxoTLzfs+8Uu79tGA==</dFirmaFis>
-    <dNumCert>00f766a8c2348f95924beeaa8ab3b3f69a</dNumCert>
-    <dSello>gEKUlb5p524cfyw++tu3MBWqV7+dVdMavSGyqf+TrHo=</dSello>
-  </gTimb>
-</rDE>

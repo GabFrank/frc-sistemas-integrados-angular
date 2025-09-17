@@ -138,7 +138,6 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     { value: 'negativo', label: 'NEGATIVO' }
   ];
 
-  isGenerarPdfDisabled: boolean = true;
   isAdicionarEnabled: boolean = false;
 
   constructor(
@@ -211,8 +210,6 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         this.selectedPageInfo = res;
         this.dataSource.data = res.getContent;
         this.isSearching = false;
-        
-        this.isGenerarPdfDisabled = !res.getContent || res.getContent.length === 0;
       });
   }
 
@@ -312,7 +309,6 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     this.costoCeroControl.setValue(null);
     this.stockFiltroControl.setValue('todos');
     this.sucursalFiltroControl.setValue(null);
-    this.isGenerarPdfDisabled = true;
   }
 
   onAddProducto() {

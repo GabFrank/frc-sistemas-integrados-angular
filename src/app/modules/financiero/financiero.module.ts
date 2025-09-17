@@ -40,9 +40,6 @@ import { CajaObservacionDashboardComponent } from './pdv/caja-observacion/caja-o
 import { AnalisisDiferenciaComponent } from './analisis-diferencia/analisis-diferencia.component';
 import { SearchMaletinGQL } from './maletin/graphql/searchMaletin';
 import { FinancieroRoutingModule } from './financiero-routing.module';
-import { DteListComponent } from './dte/dte-list/dte-list.component';
-import { EventoDteDialogComponent } from './dte/evento-dte-dialog/evento-dte-dialog.component';
-import { EventosDteViewDialogComponent } from './dte/eventos-dte-view-dialog/eventos-dte-view-dialog.component';
 
 @NgModule({
   declarations: [
@@ -80,9 +77,6 @@ import { EventosDteViewDialogComponent } from './dte/eventos-dte-view-dialog/eve
     MainCajaObservacionComponent,
     CajaObservacionDashboardComponent,
     AnalisisDiferenciaComponent,
-    DteListComponent,
-    EventoDteDialogComponent,
-    EventosDteViewDialogComponent,
   ],
   providers: [
     SearchMaletinGQL

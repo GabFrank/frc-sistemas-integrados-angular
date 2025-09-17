@@ -1,6 +1,6 @@
 {
   "serverIp": "localhost",
-  "serverPort": "8082",
+  "serverPort": "8081",
   "serverCentralIp": "localhost",
   "serverCentralPort": "8081",
   "local": "Caja 1",
@@ -8,7 +8,7 @@
   "modo": "NOT",
   "pdvId": 1,
   "isConfigured": true,
-  "isLocal": true,
+  "isLocal": false,
   "printers": {
     "ticket": "ticket_soporte",
     "factura": "factura"
