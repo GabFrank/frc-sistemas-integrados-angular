@@ -1,0 +1,547 @@
+<app-generic-list
+  [data]="dataSource.data"
+  (filtrar)="onSearch()"
+  (resetFiltro)="onResetFiltro()"
+  (adicionar)="onNewTimbrado()"
+  [isAdicionar]="true"
+>
+  <div filtros fxLayout="column" fxLayoutGap="20px">
+    <div
+      fxLayout="row"
+      fxLayoutAlign="start center"
+      fxLayoutGap="10px"
+      style="width: 100%"
+    >
+      <div fxFlex="15%">
+        <mat-form-field appearance="outline" style="width: 100%">
+          <mat-label>Número</mat-label>
+            <input 
+              type="text" 
+              matInput 
+              [formControl]="buscarControl" 
+              (keyup.enter)="onSearch()"
+            />
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+  <div
+    table
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+  >
+    <table 
+      mat-table 
+      style="width: 100%"
+      multiTemplateDataRows 
+      [dataSource]="dataSource" 
+      class="mat-elevation-z8" 
+    >
+      <!-- ID Column -->
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef>Id</th>
+        <td mat-cell *matCellDef="let timbrado">
+          {{ timbrado.id }}
+        </td>
+      </ng-container>
+      
+      <!-- Razón Social Column -->
+      <ng-container matColumnDef="razonSocial">
+        <th mat-header-cell *matHeaderCellDef>Razón Social</th>
+        <td mat-cell *matCellDef="let timbrado">
+          {{ timbrado.razonSocial }}
+        </td>
+      </ng-container>
+      
+      <!-- RUC Column -->
+      <ng-container matColumnDef="ruc">
+        <th mat-header-cell *matHeaderCellDef>RUC</th>
+        <td mat-cell *matCellDef="let timbrado">
+          {{ timbrado.ruc }}</td>
+      </ng-container>
+      
+      <!-- Número Column -->
+      <ng-container matColumnDef="numero">
+        <th mat-header-cell *matHeaderCellDef>Número</th>
+        <td mat-cell *matCellDef="let timbrado">
+          {{ timbrado.numero }}</td>
+      </ng-container>
+      
+      <!-- Fecha Inicio Column -->
+      <ng-container matColumnDef="fechaInicio">
+        <th mat-header-cell *matHeaderCellDef>Fecha Inicio</th>
+        <td mat-cell *matCellDef="let timbrado">
+          {{ timbrado.fechaInicioFormateada }}
+        </td>
+      </ng-container>
+      
+      <!-- Fecha Fin Column -->
+      <ng-container matColumnDef="fechaFin">
+        <th mat-header-cell *matHeaderCellDef>Fecha Fin</th>
+        <td mat-cell *matCellDef="let timbrado">
+          {{ timbrado.fechaFinFormateada || '-' }}
+        </td>
+      </ng-container>
+      
+      <!-- Es Electrónico Column -->
+      <ng-container matColumnDef="isElectronico">
+        <th mat-header-cell *matHeaderCellDef>Electrónico</th>
+        <td mat-cell *matCellDef="let timbrado">
+          {{ timbrado.isElectronico ? 'Sí' : 'No' }}
+        </td>
+      </ng-container>
+      
+      <!-- Activo Column -->
+      <ng-container matColumnDef="activo">
+        <th mat-header-cell *matHeaderCellDef>Activo</th>
+        <td mat-cell *matCellDef="let timbrado">
+          {{ timbrado.activo ? 'Si' : 'No' }}
+        </td>
+      </ng-container>
+      
+      <!-- Creado En Column -->
+      <ng-container matColumnDef="creadoEn">
+        <th mat-header-cell *matHeaderCellDef>Creado En</th>
+        <td mat-cell *matCellDef="let timbrado">
+          {{ timbrado.creadoEnFormateado || '-' }}
+        </td>
+      </ng-container>
+      
+      <!-- Actions Column -->
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>...</th>
+        <td mat-cell *matCellDef="let timbrado; let i = index">
+          <button 
+            mat-icon-button 
+            [matMenuTriggerFor]="menu" 
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onEditTimbrado(timbrado, i)">
+              <mat-icon>edit</mat-icon>
+              Editar
+            </button>
+            <button mat-menu-item (click)="onNewTimbradoDetalle(timbrado)">
+              <mat-icon>add</mat-icon>
+              Adicionar detalle
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <!-- Expandable Detail Row -->
+      <ng-container matColumnDef="expandedDetail">
+        <td 
+          mat-cell 
+          class="expanded"
+          *matCellDef="let timbrado" 
+          [attr.colspan]="displayedColumns.length" 
+          style="background-color: rgb(32, 32, 32)" 
+        >
+          <div 
+            fxLayout="column" 
+            style="text-align: center" 
+            fxLayoutAlign="start start"
+            class="example-element-detail" 
+            [@detailExpand]="timbrado == expandedTimbrado ? 'expanded' : 'collapsed'" 
+          >
+            <div 
+              *ngIf="timbrado == expandedTimbrado"
+              style="padding: 20px; width: 100%; background-color: rgb(32, 32, 32);"
+            >
+              <div 
+                fxLayout="row" fxLayoutGap="20px" style="width: 100%; height: 500px;">
+                <div 
+                  *ngIf="timbrado.isElectronico" 
+                  fxFlex="50%" 
+                  style="overflow-y: auto;"
+                >
+                  <!-- Información de Documento Electrónico -->
+                  <mat-card appearance="outlined" class="detail-card">
+                    <mat-card-header class="card-header-compact">
+                      <mat-card-title class="card-title-compact">
+                        Documento Electrónico
+                      </mat-card-title>
+                    </mat-card-header>
+                    <mat-card-content class="card-content-compact">
+                      <div fxLayout="row" fxLayoutGap="15px" fxLayoutWrap>
+                        <div fxFlex="48" fxLayout="column" class="field-container">
+                          <label class="field-label">Tipo Sociedad:</label>
+                          <span class="field-value">
+                            {{ timbrado.tipoSociedad || '-' }}
+                          </span>
+                        </div>
+                        <div fxFlex="48" fxLayout="column" class="field-container">
+                          <label class="field-label">CSC:</label>
+                          <span class="field-value">
+                            {{ timbrado.csc || '-' }}
+                          </span>
+                        </div>
+                        <div fxFlex="100" fxLayout="column" class="field-container">
+                          <label class="field-label">Email:</label>
+                          <span class="field-value">
+                            {{ timbrado.email || '-' }}
+                          </span>
+                        </div>
+                      </div>
+                    </mat-card-content>
+                  </mat-card>
+                  <div fxLayout="row" fxLayoutGap="20px" style="width: 100%; height: 75%;">
+                    <!-- Domicilio Fiscal (50) -->
+                    <div fxFlex="50" fxLayout="column">
+                      <mat-card 
+                        appearance="outlined" 
+                        class="detail-card-timbrado-detalle" 
+                        style="height: 100%; display: flex; flex-direction: column;"
+                      >
+                        <mat-card-header class="card-header-compact">
+                          <mat-card-title class="card-title-compact">
+                            Domicilio Fiscal
+                          </mat-card-title>
+                        </mat-card-header>
+                        <mat-card-content 
+                          class="card-content-compact" 
+                          style="
+                            flex: 1; 
+                            overflow-y: auto; 
+                            display: flex; 
+                            flex-direction: column; 
+                            justify-content: space-between;
+                          "
+                        >
+                          <div fxLayout="row" fxLayoutGap="15px" fxLayoutWrap style="flex: 1;">
+                            <div 
+                              fxFlex="48" 
+                              fxLayout="column" 
+                              class="field-container" 
+                              style="justify-content: center;"
+                            >
+                              <label class="field-label">Departamento:</label>
+                              <span class="field-value">
+                                {{ timbrado.domicilioFiscalDepartamento || '-' }}
+                              </span>
+                            </div>
+                            <div 
+                              fxFlex="48" 
+                              fxLayout="column" 
+                              class="field-container" 
+                              style="justify-content: center;"
+                            >
+                              <label class="field-label">Ciudad:</label>
+                              <span class="field-value">
+                                {{ timbrado.domicilioFiscalCiudad || '-' }}
+                              </span>
+                            </div>
+                          </div>
+                          <div fxLayout="row" fxLayoutGap="15px" fxLayoutWrap style="flex: 1;">
+                            <div 
+                              fxFlex="48" 
+                              fxLayout="column" 
+                              class="field-container" 
+                              style="justify-content: center;"
+                            >
+                              <label class="field-label">Localidad:</label>
+                              <span class="field-value">
+                                {{ timbrado.domicilioFiscalLocalidad || '-' }}
+                              </span>
+                            </div>
+                            <div 
+                              fxFlex="48" 
+                              fxLayout="column" 
+                              class="field-container" 
+                              style="justify-content: center;"
+                            >
+                              <label class="field-label">Barrio:</label>
+                              <span class="field-value">
+                                {{ timbrado.domicilioFiscalBarrio || '-' }}
+                              </span>
+                            </div>
+                          </div>
+                          <div fxLayout="row" fxLayoutGap="15px" fxLayoutWrap style="flex: 1;">
+                            <div 
+                              fxFlex="48" 
+                              fxLayout="column" 
+                              class="field-container" 
+                              style="justify-content: center"
+                            >
+                              <label class="field-label">Código:</label>
+                              <span class="field-value">
+                                {{ timbrado.domicilioFiscalCodigoCiudad || '-' }}
+                              </span>
+                            </div>
+                            <div 
+                              fxFlex="48" 
+                              fxLayout="column" 
+                              class="field-container" 
+                              style="justify-content: center"
+                            >
+                              <label class="field-label">Dirección:</label>
+                              <span class="field-value">
+                                {{ timbrado.domicilioFiscalDireccion || '-' }}
+                              </span>
+                            </div>
+                          </div>
+                        </mat-card-content>
+                      </mat-card>
+                    </div>
+                    <div fxFlex="50" fxLayout="column">
+                      <mat-card 
+                        appearance="outlined" 
+                        class="detail-card-timbrado-detalle" 
+                        style="height: 100%; display: flex; flex-direction: column;"
+                      >
+                        <mat-card-header class="card-header-compact">
+                          <mat-card-title 
+                            class="card-title-compact" 
+                            style="align-items: center;"
+                          >
+                            Actividades Económicas
+                          </mat-card-title>
+                        </mat-card-header>
+                        <mat-card-content 
+                          class="card-content-compact" 
+                          style="flex: 1; overflow-y: auto;"
+                        >
+                          <div fxLayout="column" fxLayoutGap="8px" style="height: 100%;">
+                            <div class="activity-section" fxFlex="none">
+                              <h4 class="activity-title">Principal</h4>
+                              <div fxLayout="row" fxLayoutGap="15px">
+                                <div fxFlex="15" fxLayout="column" class="field-container">
+                                  <label class="field-label">Código:</label>
+                                  <span class="field-value">
+                                    {{ timbrado.codActividadEconomicaPrincipal || '-' }}
+                                  </span>
+                                </div>
+                                <div fxFlex="85" fxLayout="column" class="field-container">
+                                  <label class="field-label">Descripción:</label>
+                                  <span class="field-value">
+                                    {{ timbrado.descActividadEconomicaPrincipal || '-' }}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="activity-section" fxFlex>
+                              <h4 class="activity-title">Secundarias</h4>
+                              <div fxLayout="row" fxLayoutGap="15px" style="height: 100%;">
+                                <div fxFlex="15" fxLayout="column" class="field-container">
+                                  <label class="field-label">Códigos:</label>
+                                  <span class="field-value">
+                                    {{ timbrado.listCodigoActividadEconomicaSecundaria || '-' }}
+                                  </span>
+                                </div>
+                                <div fxFlex="85" fxLayout="column" class="field-container">
+                                  <label class="field-label">Descripciones:</label>
+                                  <span class="field-value" style="word-break: break-word;">
+                                    {{ timbrado.listDescripcionActividadEconomicaSecundaria || '-' }}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </mat-card-content>
+                      </mat-card>
+                    </div>
+                  </div>
+                </div>
+                <div [fxFlex]="timbrado.isElectronico ? '50%' : '100%'" fxLayout="column">
+                  <div *ngIf="timbradoDetalleDataSource.data.length === 0" class="no-detail">
+                    <h1>SIN DETALLE</h1>
+                  </div>
+                  <div style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+                    <div style="flex: 1; overflow: auto;">
+                      <table 
+                        mat-table 
+                        style="width: 100%;" 
+                        multiTemplateDataRows
+                        class="mat-elevation-z2" 
+                        [dataSource]="timbradoDetalleDataSource" 
+                        [hidden]="timbradoDetalleDataSource.data.length === 0" 
+                      >
+                        <!-- ID Column -->
+                        <ng-container matColumnDef="id">
+                          <th mat-header-cell *matHeaderCellDef>Id</th>
+                          <td mat-cell *matCellDef="let item">
+                            {{item.id}}
+                          </td>
+                        </ng-container>
+                        
+                        <!-- Sucursal Column -->
+                        <ng-container matColumnDef="sucursal">
+                          <th mat-header-cell *matHeaderCellDef>Sucursal</th>
+                          <td mat-cell *matCellDef="let item">
+                            {{item.sucursal || '-'}}
+                          </td>
+                        </ng-container>
+                        
+                        <!-- Punto Column -->
+                        <ng-container matColumnDef="caja">
+                          <th mat-header-cell *matHeaderCellDef>Caja</th>
+                          <td mat-cell *matCellDef="let item">
+                            {{item.puntoDeVenta?.nombre || '-'}}
+                          </td>
+                        </ng-container>
+                        
+                        <!-- Punto Expedición Column -->
+                        <ng-container matColumnDef="puntoExpedicion">
+                          <th mat-header-cell *matHeaderCellDef>Punto Expedición</th>
+                          <td mat-cell *matCellDef="let item">
+                            {{item.puntoExpedicion}}
+                          </td>
+                        </ng-container>
+                        
+                        <!-- Activo Column -->
+                        <ng-container matColumnDef="activo">
+                          <th mat-header-cell *matHeaderCellDef>Activo</th>
+                          <td mat-cell *matCellDef="let item">
+                              {{item.activo ? 'Si' : 'No'}}
+                          </td>
+                        </ng-container>
+                        
+                        <!-- Actions Column -->
+                        <ng-container matColumnDef="acciones">
+                          <th mat-header-cell *matHeaderCellDef>...</th>
+                          <td mat-cell *matCellDef="let item; let i = index">
+                            <button 
+                              mat-icon-button 
+                              color="primary" 
+                              matTooltip="Editar"
+                              (click)="
+                                onEditTimbradoDetalle(item, i); 
+                                $event.stopPropagation()
+                              "
+                            >
+                              <mat-icon>edit</mat-icon>
+                            </button>
+                          </td>
+                        </ng-container>
+                        
+                        <!-- Expanded Detail Column -->
+                        <ng-container matColumnDef="timbradoDetalleExpandedDetail">
+                          <td 
+                            mat-cell 
+                            *matCellDef="let timbradoDetalle" 
+                            class="timbrado-detalle-expanded-cell"
+                            [attr.colspan]="timbradoDetalleDisplayedColumns.length" 
+                          >
+                            <div 
+                              class="timbrado-detalle-expanded-content" 
+                              *ngIf="expandedTimbradoDetalleId === timbradoDetalle.id"
+                              [@detailExpand]="expandedTimbradoDetalleId === timbradoDetalle.id ?
+                              'expanded' : 'collapsed'"
+                            >
+                              <div style="padding: 16px;">
+                                <mat-card appearance="outlined" class="detail-card-timbrado-detalle">
+                                  <mat-card-header class="card-header-compact">
+                                    <mat-card-title class="card-title-compact">
+                                      Detalles del Rango
+                                    </mat-card-title>
+                                  </mat-card-header>
+                                  <mat-card-content class="card-content-compact">
+                                    <div fxLayout="row" fxLayoutGap="15px" fxLayoutWrap>
+                                      <div fxFlex="24" fxLayout="column" class="field-container">
+                                        <label class="field-label">Cantidad:</label>
+                                        <span class="field-value">
+                                          {{ timbradoDetalle.cantidad || '-' }}
+                                        </span>
+                                      </div>
+                                      <div fxFlex="24" fxLayout="column" class="field-container">
+                                        <label class="field-label">Rango Desde:</label>
+                                        <span class="field-value">
+                                          {{ timbradoDetalle.rangoDesde || '-' }}
+                                        </span>
+                                      </div>
+                                      <div fxFlex="24" fxLayout="column" class="field-container">
+                                        <label class="field-label">Rango Hasta:</label>
+                                        <span class="field-value">
+                                          {{ timbradoDetalle.rangoHasta || '-' }}
+                                        </span>
+                                      </div>
+                                      <div fxFlex="24" fxLayout="column" class="field-container">
+                                        <label class="field-label">Cantidad Actual:</label>
+                                        <span class="field-value">
+                                          {{ timbradoDetalle.numeroActual || '-' }}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </mat-card-content>
+                                </mat-card>
+                              </div>
+                            </div>
+                          </td>
+                        </ng-container>
+                        <tr mat-header-row *matHeaderRowDef="timbradoDetalleDisplayedColumns"></tr>
+                        <tr 
+                          mat-row 
+                          *matRowDef="
+                            let row; 
+                            columns: timbradoDetalleDisplayedColumns; 
+                            when: isTimbradoDetalleRow" 
+                          class="example-element-row" 
+                          [class.example-expanded-row]="expandedTimbradoDetalleId === row.id" 
+                          [class.selectedRow]="expandedTimbradoDetalleId === row.id"
+                          (click)="onClickTimbradoDetalleRow(row)">
+                        </tr>
+                        <tr 
+                          mat-row 
+                          *matRowDef="let row; 
+                          columns: ['timbradoDetalleExpandedDetail']" 
+                          class="example-detail-row">
+                        </tr>
+                      </table>
+                    </div>
+
+                    <!-- Paginador para TimbradoDetalles -->
+                    <mat-paginator
+                      #paginatorTimbradoDetalle
+                      [pageSizeOptions]="[10, 15, 25]"
+                      [pageSize]="currentTimbradoDetallePageSize"
+                      [attr.data-trigger]="paginatorUpdateTrigger"
+                      [pageIndex]="currentTimbradoDetallePageIndex"
+                      (page)="handleTimbradoDetallePageEvent($event)"
+                      [length]="selectedTimbradoDetallePageInfo?.getTotalElements"
+                      style="
+                        background-color: rgb(60, 60, 60); 
+                        border-top: 1px solid rgb(80, 80, 80);">
+                    </mat-paginator>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr
+        mat-row 
+        *matRowDef="
+          let row; 
+          columns: displayedColumns; 
+          when: isTimbradoRow" 
+        class="example-element-row" 
+        [class.example-expanded-row]="expandedTimbrado === row" 
+        [class.selectedRow]="expandedTimbrado === row"
+        (click)="onToggleTimbradoExpansion(row)"></tr>
+      <tr 
+        mat-row 
+        *matRowDef="let row; 
+        columns: ['expandedDetail']" 
+        class="example-detail-row">
+      </tr>
+    </table>
+    
+    <mat-paginator
+      #paginatorTimbrado
+      [pageSize]="pageSize" 
+      [pageIndex]="pageIndex" 
+      (page)="handlePageEvent($event)" 
+      itemsPerPageLabel="Itens por pagina" 
+      [pageSizeOptions]="[15, 25, 50, 100]" 
+      [length]="selectedPageInfo?.getTotalElements" 
+      showFirstLastButtons>
+    </mat-paginator>
+  </div>
+</app-generic-list>

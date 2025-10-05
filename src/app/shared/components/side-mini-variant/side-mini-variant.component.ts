@@ -41,6 +41,7 @@ import { MainVentaObservacionComponent } from "../../../modules/operaciones/vent
 import { MainCajaObservacionComponent } from "../../../modules/financiero/pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component";
 import { Subscription } from 'rxjs';
 import { AnalisisDiferenciaComponent } from '../../../modules/financiero/analisis-diferencia/analisis-diferencia.component';
+import { ListTimbradoComponent } from '../../../modules/financiero/timbrado/list-timbrado/list-timbrado.component';
 
 
 // Define interfaces for the navigation items structure
@@ -183,6 +184,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       requiresServerMode: false,
       visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION],
       items: [
+        {
+          name: 'Análisis de diferencias',
+          icon: 'equalizer',
+          action: 'analisis-diferencias',
+          visibilityRoles: [ROLES.ADMIN]
+        },
         { 
           name: 'Cotización', 
           icon: 'monetization_on', 
@@ -214,6 +221,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
         },
         { 
+          name: 'Timbrado', 
+          icon: 'text_snippet', 
+          action: 'list-timbrado',
+          visibilityRoles: [ROLES.ADMIN]
+        },
+        { 
           name: 'Maletines', 
           icon: 'work', 
           action: 'list-maletin',
@@ -226,13 +239,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.ADMIN]
         },
         {
-          name: 'Análisis de diferencias',
-          icon: 'equalizer',
-          action: 'analisis-diferencias',
-          visibilityRoles: [ROLES.ADMIN]
-        },
-        {
-          name: 'DTE',
+          name: 'Documento Electrónico',
           icon: 'qr_code_2',
           action: 'list-dte',
           visibilityRoles: [ROLES.ADMIN]
@@ -543,6 +550,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-cotizacion":
         this.openTabIfAuthorized(ROLES.CAMBIAR_COTIZACION, CambioComponent, "Cotizaciónes");
+        break;
+      case "list-timbrado":
+        this.openTabIfAuthorized(ROLES.ADMIN, ListTimbradoComponent, "Timbrado");
         break;
       case "list-roles":
         this.openTabIfAuthorized(ROLES.SOPORTE, ListRolesComponent, "Lista de roles");

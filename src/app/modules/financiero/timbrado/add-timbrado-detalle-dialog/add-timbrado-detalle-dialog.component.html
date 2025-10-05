@@ -1,0 +1,213 @@
+<div 
+  class="dialog-container"
+  fxLayout="column"
+  fxLayoutGap="8px"
+  style="margin: 20px;"
+>
+  <h2 mat-dialog-title>
+    {{ selectedTimbradoDetalle?.id != null ? 'Editar Timbrado Detalle' : 'Nuevo Timbrado Detalle' }}
+  </h2>
+  <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="25px">
+    <!-- LAYOUT PARA TIMBRADO ELECTRÓNICO (layout actual) -->
+    <div *ngIf="timbradoPadre?.isElectronico" fxLayout="row" fxLayoutGap="10px">
+      <div fxFlex="50%">
+        <mat-form-field appearance="outline" style="width: 100%">
+          <mat-label>Sucursal</mat-label>
+          <mat-select [formControl]="sucursalControl">
+            <mat-option *ngFor="let sucursal of sucursales" [value]="sucursal">
+              {{ sucursal.id }} - {{ sucursal.nombre}}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="25%">
+        <mat-form-field appearance="outline" style="width: 100%">
+          <mat-label>Punto de Venta</mat-label>
+          <mat-select [formControl]="puntoVentaControl">
+            <mat-option 
+              *ngFor="let puntoVenta of puntosDeVentaFiltrados" 
+              [value]="puntoVenta"
+            >
+              {{ puntoVenta.nombre }}
+            </mat-option>
+            <mat-option 
+              *ngIf="puntosDeVentaFiltrados.length === 0 && 
+              sucursalControl.value" disabled
+            >
+              No hay puntos de venta disponibles
+            </mat-option>
+          </mat-select>  
+        </mat-form-field>
+      </div>
+      <div fxFlex="25%">
+        <mat-form-field appearance="outline" style="width: 100%">
+          <mat-label>Punto Expedición</mat-label>
+          <input matInput [formControl]="puntoExpedicionControl"/>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- LAYOUT PARA TIMBRADO NO ELECTRÓNICO (layout optimizado) -->
+    <div 
+      fxLayout="column" 
+      fxLayoutGap="10px"
+      *ngIf="!timbradoPadre?.isElectronico" 
+    >
+      <!-- Fila 1: Sucursal (75%) + Punto de Venta (25%) -->
+      <div fxLayout="row" fxLayoutGap="10px">
+        <div fxFlex="75%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Sucursal</mat-label>
+            <mat-select [formControl]="sucursalControl">
+              <mat-option *ngFor="let sucursal of sucursales" [value]="sucursal">
+                {{ sucursal.id }} - {{ sucursal.nombre}}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <div fxFlex="25%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Punto de Venta</mat-label>
+            <mat-select [formControl]="puntoVentaControl">
+              <mat-option 
+                *ngFor="let puntoVenta of puntosDeVentaFiltrados" 
+                [value]="puntoVenta"
+              >
+                {{ puntoVenta.nombre }}
+              </mat-option>
+              <mat-option 
+                *ngIf="puntosDeVentaFiltrados.length === 0 && 
+                sucursalControl.value" disabled
+              >
+                No hay puntos de venta disponibles
+              </mat-option>
+            </mat-select>  
+          </mat-form-field>
+        </div>
+      </div>
+      <!-- Fila 2: Punto Expedición (50%) + Cantidad (50%) -->
+      <div fxLayout="row" fxLayoutGap="10px">
+        <div fxFlex="50%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Punto Expedición</mat-label>
+            <input matInput [formControl]="puntoExpedicionControl"/>
+          </mat-form-field>
+        </div>
+        <div fxFlex="50%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Cantidad</mat-label>
+            <input matInput type="number" [formControl]="cantidadControl"/>
+          </mat-form-field>
+        </div>
+      </div>
+    </div>
+    <!-- Segunda fila solo para modo electrónico: Departamento + Ciudad -->
+    <div 
+    fxLayout="row" 
+    fxLayoutGap="10px" 
+    fxLayoutAlign="start center"
+    *ngIf="timbradoPadre?.isElectronico" 
+    >
+      <div fxFlex="50%">
+        <mat-form-field appearance="outline" style="width: 100%">
+          <mat-label>Departamento</mat-label>
+          <input matInput [formControl]="departamentoControl"/>
+        </mat-form-field>
+      </div>
+      <div fxFlex="50%">
+        <mat-form-field appearance="outline" style="width: 100%">
+          <mat-label>Ciudad</mat-label>
+          <input matInput [formControl]="ciudadControl"/>
+        </mat-form-field>
+      </div>
+    </div>
+    <div 
+      fxLayout="row" 
+      fxLayoutGap="10px" 
+      fxLayoutAlign="start center" 
+      *ngIf="timbradoPadre?.isElectronico"
+    >
+      <div fxFlex="40%">
+        <mat-form-field appearance="outline" style="width: 100%">
+          <mat-label>Localidad</mat-label>
+          <input matInput [formControl]="localidadControl"/>
+        </mat-form-field>
+      </div>
+      <div fxFlex="35%">
+        <mat-form-field appearance="outline" style="width: 100%">
+          <mat-label>Barrio</mat-label>
+          <input matInput [formControl]="barrioControl"/>
+        </mat-form-field>
+      </div>
+      <div fxFlex="25%">
+        <mat-form-field appearance="outline" style="width: 100%">
+          <mat-label>Teléfono</mat-label>
+          <input matInput [formControl]="telefonoControl"/>
+        </mat-form-field>
+      </div>
+    </div>
+    <div 
+      fxLayout="row" 
+      fxLayoutGap="10px" 
+      fxLayoutAlign="start center" 
+      *ngIf="timbradoPadre?.isElectronico"
+    >
+      <div fxFlex="18%">
+        <mat-form-field appearance="outline" style="width: 100%">
+          <mat-label>Cód. Ciudad</mat-label>
+          <input matInput [formControl]="codCiudadControl"/>
+        </mat-form-field>
+      </div>
+      <div fxFlex="68%">
+        <mat-form-field appearance="outline" style="width: 100%">
+          <mat-label>Dirección</mat-label>
+          <input matInput [formControl]="direccionControl"/>
+        </mat-form-field>
+      </div>
+      <div fxFlex="15%" style="text-align: center">
+        <mat-slide-toggle 
+          [formControl]="activoControl" 
+          [checked]="activoControl.value"
+        >
+          Activo
+        </mat-slide-toggle>
+      </div>
+    </div>
+    <!-- Mostrar solo el toggle Activo cuando no es electrónico -->
+    <div 
+      fxLayout="row" 
+      fxLayoutAlign="end center" 
+      *ngIf="!timbradoPadre?.isElectronico"
+    >
+      <div>
+        <mat-slide-toggle 
+          [formControl]="activoControl" 
+          [checked]="activoControl.value"
+        >
+          Activo
+        </mat-slide-toggle>
+      </div>
+    </div>
+  </form>
+  <div
+    fxLayout="row"
+    fxLayoutAlign="end center"
+    fxLayoutGap="10px"
+  >
+    <button 
+      mat-raised-button 
+      color="primary"
+      (click)="onCancelar()"
+    >
+      Cancelar
+    </button>
+    <button 
+      mat-raised-button 
+      color="accent"
+      (click)="isEditing ? onGuardar() : onHabilitarEdicion()"
+      [disabled]="isEditing && formGroup.invalid"
+    >
+      {{ isEditing ? 'Guardar' : 'Editar' }}
+    </button>
+  </div>
+</div>

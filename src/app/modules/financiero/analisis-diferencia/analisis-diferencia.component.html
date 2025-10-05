@@ -19,20 +19,20 @@
       </mat-form-field>
       <button 
         mat-raised-button 
-        color="primary" 
+        color="accent" 
         (click)="filtrarGlobal()"
         [disabled]="isLoadingGlobal || !globalCajaFilter.value"
       >
         <mat-icon *ngIf="isLoadingGlobal">refresh</mat-icon>
-        {{ isLoadingGlobal ? 'Filtrando...' : 'Filtrar' }}
+        {{ isLoadingGlobal ? 'Buscando...' : 'Buscar' }}
       </button>
       <button 
         mat-raised-button
-        color="accent" 
+        color="primary" 
         (click)="limpiarFiltrosGlobal()"
         [disabled]="isLoadingGlobal"
       >
-        Limpiar
+        Limpiar Filtro
       </button>
     </div>
   </div>

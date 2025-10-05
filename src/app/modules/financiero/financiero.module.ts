@@ -40,6 +40,10 @@ import { CajaObservacionDashboardComponent } from './pdv/caja-observacion/caja-o
 import { AnalisisDiferenciaComponent } from './analisis-diferencia/analisis-diferencia.component';
 import { SearchMaletinGQL } from './maletin/graphql/searchMaletin';
 import { FinancieroRoutingModule } from './financiero-routing.module';
+import { ListTimbradoComponent } from "./timbrado/list-timbrado/list-timbrado.component";
+import { AddTimbradoDialogComponent } from "./timbrado/add-timbrado-dialog/add-timbrado-dialog.component";
+import { AddTimbradoDetalleDialogComponent } from "./timbrado/add-timbrado-detalle-dialog/add-timbrado-detalle-dialog.component";
+import { BootstrapModule } from "../../commons/core/bootstrap.module";
 
 @NgModule({
   declarations: [
@@ -77,6 +81,9 @@ import { FinancieroRoutingModule } from './financiero-routing.module';
     MainCajaObservacionComponent,
     CajaObservacionDashboardComponent,
     AnalisisDiferenciaComponent,
+    ListTimbradoComponent,
+    AddTimbradoDialogComponent,
+    AddTimbradoDetalleDialogComponent
   ],
   providers: [
     SearchMaletinGQL
@@ -89,6 +96,7 @@ import { FinancieroRoutingModule } from './financiero-routing.module';
     MaterialModule,
     SharedModule,
     FinancieroRoutingModule,
-  ],
+    BootstrapModule
+],
 })
 export class FinancieroModule {}
