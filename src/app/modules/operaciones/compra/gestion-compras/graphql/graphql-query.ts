@@ -50,6 +50,20 @@ export const pedidoQuery = gql`
           nombre
         }
       }
+      procesoEtapas {
+        id
+        tipoEtapa
+        estadoEtapa
+        fechaInicio
+        fechaFin
+        usuarioInicio {
+          id
+          persona {
+            nombre
+          }
+        }
+        creadoEn
+      }
     }
   }
 `;
@@ -78,7 +92,7 @@ export const pedidosQuery = gql`
       }
       moneda {
         id
-        denominacion
+          denominacion
       }
       plazoCredito
 
@@ -88,6 +102,20 @@ export const pedidosQuery = gql`
         persona {
           nombre
         }
+      }
+      procesoEtapas {
+        id
+        tipoEtapa
+        estadoEtapa
+        fechaInicio
+        fechaFin
+        usuarioInicio {
+          id
+          persona {
+            nombre
+          }
+        }
+        creadoEn
       }
     }
   }

@@ -19,6 +19,7 @@ export class Sucursal {
   nroDelivery: string;
   isConfigured: boolean;
   sectorList: Sector[];
+  activo: boolean;
 
   toInput(): any {
     return {
@@ -35,7 +36,8 @@ export class Sucursal {
       puerto: this.puerto,
       direccion: this.direccion,
       nroDelivery: this.nroDelivery,
-      isConfigured: this.isConfigured
+      isConfigured: this.isConfigured,
+      activo: this.activo
     };
   }
 }

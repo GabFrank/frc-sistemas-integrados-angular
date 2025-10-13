@@ -3,6 +3,7 @@ import { BehaviorSubject } from 'rxjs';
 import { CargandoDialogService } from './../../shared/components/cargando-dialog/cargando-dialog.service';
 import { Tab } from './tab.model';
 import { GestionComprasComponent } from '../../modules/operaciones/compra/gestion-compras/gestion-compras.component';
+import { ListCompraComponent } from '../../modules/operaciones/compra/list-compra/list-compra.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -45,7 +46,9 @@ export class TabService implements OnInit {
     // this.addTab(new Tab(EditPedidoComponent, 'Pedido 2 (Original)', new TabData(2, {id: 2}), null))
     // this.addTab(new Tab(EditPedido2Component, 'Pedido 14', new TabData(14, {id: 14}), null))
     // open edit pedido 2 for a new pedido
-    this.addTab(new Tab(GestionComprasComponent, 'Pedido 23', new TabData(23, {id: 23}), null))
+    // list pedidos
+    // this.addTab(new Tab(ListCompraComponent, 'Lista de compras', null, null))
+    this.addTab(new Tab(GestionComprasComponent, 'Pedido 24', new TabData(24, {id: 24}), null))
     this.tabSub.next(this.tabs);
   }
   

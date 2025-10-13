@@ -45,6 +45,7 @@ export class EditSucursalDialogComponent implements OnInit {
   direccionControl = new FormControl(null);
   nroDeliveryControl = new FormControl(null);
   isConfiguredControl = new FormControl(false);
+  activoControl = new FormControl(true); // Por defecto activo
 
   // Lists for selects
   ciudadList: Ciudad[] = [];
@@ -76,7 +77,8 @@ export class EditSucursalDialogComponent implements OnInit {
       // Add new fields to form group
       direccion: this.direccionControl,
       nroDelivery: this.nroDeliveryControl,
-      isConfigured: this.isConfiguredControl
+      isConfigured: this.isConfiguredControl,
+      activo: this.activoControl
     });
 
     // Load initial data
@@ -127,6 +129,7 @@ export class EditSucursalDialogComponent implements OnInit {
     this.direccionControl.setValue(this.selectedSucursal.direccion);
     this.nroDeliveryControl.setValue(this.selectedSucursal.nroDelivery);
     this.isConfiguredControl.setValue(this.selectedSucursal.isConfigured);
+    this.activoControl.setValue(this.selectedSucursal.activo ?? true);
     
     this.formGroup.disable();
   }
@@ -162,6 +165,7 @@ export class EditSucursalDialogComponent implements OnInit {
     this.selectedSucursal.direccion = this.direccionControl.value?.toUpperCase();
     this.selectedSucursal.nroDelivery = this.nroDeliveryControl.value?.toUpperCase();
     this.selectedSucursal.isConfigured = this.isConfiguredControl.value;
+    this.selectedSucursal.activo = this.activoControl.value;
     
     // Set user if new sucursal
     if (!this.selectedSucursal.id) {

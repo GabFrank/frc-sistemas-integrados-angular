@@ -124,6 +124,18 @@ interface MockNotaRecepcion extends NotaRecepcion {
 
 type TabState = "disabled" | "readonly" | "editable";
 
+/**
+ * Componente principal para la gestión de compras
+ * 
+ * Comportamiento:
+ * - Si se recibe un ID de pedido: Modo edición - cargar pedido existente
+ * - Si NO se recibe ID: Modo nueva compra - solo habilitar tab de Datos Generales
+ * 
+ * En modo nueva compra:
+ * - Solo se puede acceder al tab de Datos Generales
+ * - Los otros tabs están deshabilitados hasta que se guarde el pedido
+ * - Al guardar el pedido, se cambia automáticamente a modo edición
+ */
 @Component({
   selector: "app-gestion-compras",
   templateUrl: "./gestion-compras.component.html",
@@ -179,8 +191,7 @@ export class GestionComprasComponent
   isFormaPagoCreditoComputed = false;
   step1ButtonDisabledComputed = true;
   step1ButtonTextComputed = "Guardar y Continuar";
-  step2ButtonDisabledComputed = true;
-  step2ButtonTextComputed = "Finalizar Planificación";
+  canFinalizarPlanificacionComputed = false; // Para el botón Finalizar Planificación
 
   // Forms
   datosGeneralesForm: FormGroup;
@@ -205,8 +216,7 @@ export class GestionComprasComponent
   itemsCountComputed = 0;
   distributedItemsCountComputed = 0;
   pendingDistributionCountComputed = 0;
-  hasItemsComputed = false;
-  canFinalizePlanningComputed = false;
+  // Removed hasItemsComputed and canFinalizePlanningComputed - using direct logic in template
 
   // Step 3: Layout de dos paneles según manual
   // Panel Izquierdo (60%): Ítems del Pedido Pendientes de Conciliar
@@ -283,20 +293,22 @@ export class GestionComprasComponent
   }
 
   ngOnInit(): void {
-    // Verificar si se recibió un ID de pedido desde TabData
-    if (this.data?.tabData?.data?.id) {
-      this.pedidoId = this.data.tabData.data.id;
+    const pedidoId = this.data?.tabData?.data?.id;
+    
+    if (pedidoId) {
+      this.pedidoId = pedidoId;
       this.isEditMode = true;
-      console.log("Cargando pedido existente con ID:", this.pedidoId);
+    } else {
+      this.pedidoId = null;
+      this.isEditMode = false;
     }
 
     this.loadInitialData();
 
-    // Si hay un ID, cargar el pedido
-    if (this.pedidoId) {
+    if (this.isEditMode && this.pedidoId) {
       this.loadPedidoExistente();
     } else {
-      // Modo creación: cargar datos del tab inicial (Datos Generales)
+      this.setupNuevaCompraState();
       this.loadTabDataIfNeeded(0);
     }
 
@@ -315,6 +327,8 @@ export class GestionComprasComponent
     if (this.notasRecepcionPaginator) {
       this.notasRecepcionDataSource.paginator = this.notasRecepcionPaginator;
     }
+
+    // Estado de tabs configurado
   }
 
   ngOnDestroy(): void {
@@ -429,7 +443,48 @@ export class GestionComprasComponent
     });
   }
 
+  /**
+   * Configura el estado inicial para una nueva compra
+   * Establece los estados de tabs y propiedades iniciales
+   */
+  private setupNuevaCompraState(): void {
+    // Configurar estados de tabs para nueva compra
+    this.datosGeneralesTabState = "editable";
+    this.itemsTabState = "editable";
+    this.notasTabState = "disabled";
+    this.mercaderiaTabState = "disabled";
+    this.pagoTabState = "disabled";
+    
+    // Configurar propiedades de habilitación de tabs
+    this.tabDatosGeneralesEnabled = true;
+    this.tabItemsEnabled = true;
+    this.tabNotasEnabled = false;
+    this.tabMercaderiaEnabled = false;
+    this.tabPagoEnabled = false;
+    
+    // Establecer tab inicial
+    this.selectedTabIndex = 0;
+    this.previousTabIndex = 0;
+    this.isTabLoaded = true;
+    
+    // Limpiar datos de carga
+    this.loadingPedido = false;
+    this.currentPedido = null;
+    this.pedidoResumen = null;
+    
+    // Limpiar conjunto de tabs cargados
+    this.loadedTabs.clear();
+  }
+
+  /**
+   * Carga un pedido existente desde el backend
+   * Solo se ejecuta cuando isEditMode = true y hay un pedidoId
+   */
   private loadPedidoExistente(): void {
+    if (!this.pedidoId || !this.isEditMode) {
+      return;
+    }
+
     this.loadingPedido = true;
 
     // Cargar pedido, ítems y etapa actual en paralelo
@@ -443,6 +498,11 @@ export class GestionComprasComponent
           this.currentPedido = result.pedido;
           this.loadPedidoIntoForm(result.pedido);
 
+          console.log("📦 Pedido cargado del backend:", result.pedido);
+          console.log("  - ID:", result.pedido.id);
+          console.log("  - procesoEtapas:", result.pedido.procesoEtapas);
+          console.log("  - Cantidad de etapas:", result.pedido.procesoEtapas?.length || 0);
+
           // Determinar el estado de los tabs y el tab activo
           // Esto también cargará automáticamente los datos del tab inicial
           this.updateTabStates(result.etapaActual);
@@ -454,12 +514,11 @@ export class GestionComprasComponent
           
           this.updateComputedProperties();
 
-          console.log("Pedido cargado exitosamente:", result.pedido);
-          console.log("Etapa actual:", result.etapaActual);
+          // Pedido cargado exitosamente
         },
         error: (error) => {
-          console.error("Error cargando datos del pedido:", error);
-          this.notificacionService.openAlgoSalioMal("Error al cargar los datos del pedido");
+          console.error("Error cargando datos del pedido existente:", error);
+          this.notificacionService.openAlgoSalioMal("Error al cargar los datos del pedido existente");
           this.loadingPedido = false;
         },
       });
@@ -471,13 +530,9 @@ export class GestionComprasComponent
   private loadPedidoResumen(): void {
     if (!this.pedidoId) return;
 
-    console.log('Cargando resumen del pedido con ID:', this.pedidoId);
-
     this.pedidoService.onGetPedidoResumen(this.pedidoId).subscribe({
       next: (resumen) => {
         this.pedidoResumen = resumen;
-        console.log("Resumen del pedido cargado:", resumen);
-        console.log("Valor total del resumen:", resumen.valorTotal);
         this.updateComputedProperties();
       },
       error: (error) => {
@@ -542,17 +597,45 @@ export class GestionComprasComponent
     return this.isEditMode ? "Actualizar Datos Generales" : "Guardar y Continuar";
   }
 
-  getStep2ButtonText(): string {
-    return this.isEditMode ? "Actualizar Planificación" : "Finalizar Planificación";
-  }
+  // Removed getStep2ButtonText() - using direct text in template
 
   shouldDisableStep1Button(): boolean {
     // make disabled if form is not touched by user
     return this.datosGeneralesForm.invalid || this.datosGeneralesTabState !== "editable" || !this.datosGeneralesForm.dirty;
   }
 
-  shouldDisableStep2Button(): boolean {
-    return !this.canFinalizePlanningComputed || this.itemsTabState !== "editable";
+  /**
+   * Calcula si se puede finalizar la planificación del pedido
+   * Solo habilitado si:
+   * 1. Hay ítems en el pedido
+   * 2. La etapa es CREACION
+   * 3. El estado es EN_PROCESO
+   */
+  private canFinalizarPlanificacion(): boolean {
+    // Verificar que hay ítems
+    const hasItems = this.itemsDataSource.data.length > 0;
+    
+    // Verificar etapa y estado
+    let etapaCorrecta = false;
+    let estadoCorrecto = false;
+    
+    if (this.currentPedido?.procesoEtapas) {
+      const etapaCreacion = this.currentPedido.procesoEtapas.find(
+        e => e.tipoEtapa === ProcesoEtapaTipo.CREACION
+      );
+      etapaCorrecta = !!etapaCreacion;
+      estadoCorrecto = etapaCreacion?.estadoEtapa === ProcesoEtapaEstado.EN_PROCESO;
+    }
+    
+    const canFinalizar = hasItems && etapaCorrecta && estadoCorrecto;
+    
+    console.log("🔍 DEBUG Finalizar Planificación:");
+    console.log("  - hasItems:", hasItems);
+    console.log("  - etapaCorrecta:", etapaCorrecta);
+    console.log("  - estadoCorrecto:", estadoCorrecto);
+    console.log("  - canFinalizar:", canFinalizar);
+    
+    return canFinalizar;
   }
 
   // Step 1: Modificar el comportamiento del botón
@@ -676,11 +759,20 @@ export class GestionComprasComponent
   }
 
   private updateComputedProperties(): void {
+    console.log("updateComputedProperties - Estado actual:", {
+      isEditMode: this.isEditMode,
+      pedidoId: this.pedidoId,
+      selectedTabIndex: this.selectedTabIndex,
+      datosGeneralesTabState: this.datosGeneralesTabState,
+      hasCurrentPedido: !!this.currentPedido,
+      hasPedidoResumen: !!this.pedidoResumen
+    });
+
     // Update header data from form values or current pedido
     const formValue = this.datosGeneralesForm.value;
 
     // Si estamos en modo edición y tenemos resumen del backend, usarlo
-    if (this.isEditMode && this.pedidoResumen) {
+    if (this.isEditMode && this.pedidoResumen && this.currentPedido) {
       this.headerDataComputed = {
         id: this.currentPedido?.id || undefined,
         proveedor: this.currentPedido?.proveedor?.persona?.nombre ||
@@ -694,18 +786,17 @@ export class GestionComprasComponent
         plazoCredito: this.currentPedido?.plazoCredito || 0,
       };
     } else {
-      // Modo creación o sin resumen - usar cálculo local del pedido original
+      // Modo nueva compra o sin resumen - usar datos del formulario y valores por defecto
       this.headerDataComputed = {
-        id: this.currentPedido?.id || undefined,
-        proveedor: this.currentPedido?.proveedor?.persona?.nombre ||
-                   this.selectedProveedorComputed?.persona?.nombre ||
+        id: undefined, // Nueva compra no tiene ID
+        proveedor: this.selectedProveedorComputed?.persona?.nombre ||
                    formValue.proveedor?.persona?.nombre ||
                    "No seleccionado",
-        fechaCreacion: this.currentPedido?.creadoEn || new Date(),
-        estado: this.getEstadoGeneral(),
+        fechaCreacion: new Date(), // Fecha actual para nueva compra
+        estado: "EN PLANIFICACIÓN", // Estado inicial para nueva compra
         montoTotal: this.calculateMontoTotal(),
-        moneda: this.currentPedido?.moneda || null,
-        plazoCredito: this.currentPedido?.plazoCredito || 0,
+        moneda: formValue.moneda || null,
+        plazoCredito: formValue.plazoCredito || 0,
       };
     }
 
@@ -724,8 +815,8 @@ export class GestionComprasComponent
     this.isFormaPagoCreditoComputed = this.isFormaPagoCredito();
     this.step1ButtonDisabledComputed = this.shouldDisableStep1Button();
     this.step1ButtonTextComputed = this.getStep1ButtonText();
-    this.step2ButtonDisabledComputed = this.shouldDisableStep2Button();
-    this.step2ButtonTextComputed = this.getStep2ButtonText();
+    
+    console.log("📊 updateComputedProperties - canFinalizarPlanificacionComputed:", this.canFinalizarPlanificacionComputed);
   }
 
   private calculateMontoTotal(): number {
@@ -773,12 +864,15 @@ export class GestionComprasComponent
 
     // Update computed flags for buttons
     this.canCreateNotaForItemsComputed = this.selectedItemsPendientes.length > 0;
-    this.canAssignItemsToNotaComputed = this.selectedItemsPendientes.length > 0; // Solo requiere ítems seleccionados
+    this.canAssignItemsToNotaComputed = this.selectedItemsPendientes.length > 0;
+    
+    // === DEBUG: Botón "Finalizar Conciliación" ===
+    console.log("🔍 DEBUG Finalizar Conciliación:");
+    console.log("  - notasRecepcionCountComputed:", this.notasRecepcionCountComputed);
+    console.log("  - notasRecepcion.data.length:", notasRecepcion.length);
+    console.log("  - currentPedido?.procesoEtapas:", this.currentPedido?.procesoEtapas);
     
     // Validar si se puede finalizar la conciliación
-    // Solo habilitado si:
-    // 1. Hay al menos una nota de recepción
-    // 2. La etapa actual es RECEPCION_NOTA con estado EN_PROCESO
     let etapaCorrecta = false;
     let estadoCorrecto = false;
     
@@ -788,11 +882,22 @@ export class GestionComprasComponent
       );
       etapaCorrecta = !!etapaRecepcionNota;
       estadoCorrecto = etapaRecepcionNota?.estadoEtapa === ProcesoEtapaEstado.EN_PROCESO;
+      
+      console.log("  - etapaRecepcionNota encontrada:", etapaRecepcionNota);
+      console.log("  - etapaCorrecta:", etapaCorrecta);
+      console.log("  - estadoCorrecto:", estadoCorrecto);
+      console.log("  - estadoEtapa:", etapaRecepcionNota?.estadoEtapa);
+    } else {
+      console.log("  - ❌ NO hay procesoEtapas en currentPedido");
     }
     
     this.canFinalizarConciliacionComputed = this.notasRecepcionCountComputed > 0 && 
                                           etapaCorrecta && 
                                           estadoCorrecto;
+    
+    console.log("  - canFinalizarConciliacionComputed:", this.canFinalizarConciliacionComputed);
+    console.log("  - Condición final:", `${this.notasRecepcionCountComputed} > 0 && ${etapaCorrecta} && ${estadoCorrecto}`);
+    console.log("=== FIN DEBUG ===");
 
     // Update computed properties for each item
     itemsPendientes.forEach((item) => {
@@ -807,10 +912,11 @@ export class GestionComprasComponent
 
   private updateItemsComputedProperties(): void {
     const items = this.itemsDataSource.data;
+    
+    // Update items computed properties
 
     // Update basic counts from items data
     this.itemsCountComputed = items.length;
-    this.hasItemsComputed = items.length > 0;
 
     // Use backend data for distribution counts if available, otherwise calculate locally
     if (this.pedidoResumen) {
@@ -830,8 +936,8 @@ export class GestionComprasComponent
       this.pendingDistributionCountComputed = this.itemsCountComputed - this.distributedItemsCountComputed;
     }
 
-    // Can finalize planning if there are items (distribution completion no longer required)
-    this.canFinalizePlanningComputed = this.hasItemsComputed;
+    // Calcular si se puede finalizar la planificación
+    this.canFinalizarPlanificacionComputed = this.canFinalizarPlanificacion();
 
     // Update computed properties for each item
     items.forEach((item) => {
@@ -930,15 +1036,29 @@ export class GestionComprasComponent
   private updateTabStates(etapaActual: ProcesoEtapaTipo | null): void {
     let activeTabIndex = 0;
 
-    // Default state: a new pedido or loading state
+    console.log("updateTabStates - Parámetros:", {
+      etapaActual,
+      isEditMode: this.isEditMode,
+      pedidoId: this.pedidoId
+    });
+
+    // Si es una nueva compra, NO modificar el estado ya configurado
+    if (!this.isEditMode || !this.pedidoId) {
+      console.log("updateTabStates: Nueva compra detectada - manteniendo estado ya configurado");
+      return;
+    }
+
+    // Default state para pedidos existentes
     this.datosGeneralesTabState = "editable";
     this.itemsTabState = "disabled";
     this.notasTabState = "disabled";
     this.mercaderiaTabState = "disabled";
     this.pagoTabState = "disabled";
 
-    if (!this.isEditMode || !etapaActual) {
-      console.log("Navegando a la pestaña de Datos Generales");
+    // Si no hay etapa actual, mantener solo el primer tab habilitado
+    if (!etapaActual) {
+      console.log("Pedido existente sin etapa definida - solo habilitando tab de Datos Generales");
+      this.datosGeneralesTabState = "editable";
       this.selectedTabIndex = 0;
       return;
     }
@@ -967,16 +1087,14 @@ export class GestionComprasComponent
         activeTabIndex = 3;
         break;
 
-              case ProcesoEtapaTipo.SOLICITUD_PAGO:
-          this.datosGeneralesTabState = "readonly";
-          this.itemsTabState = "readonly";
-          this.notasTabState = "readonly";
-          this.mercaderiaTabState = "readonly";
-          this.pagoTabState = "editable";
-          activeTabIndex = 4;
-          break;
-
-
+      case ProcesoEtapaTipo.SOLICITUD_PAGO:
+        this.datosGeneralesTabState = "readonly";
+        this.itemsTabState = "readonly";
+        this.notasTabState = "readonly";
+        this.mercaderiaTabState = "readonly";
+        this.pagoTabState = "editable";
+        activeTabIndex = 4;
+        break;
     }
 
     setTimeout(() => {
@@ -991,6 +1109,22 @@ export class GestionComprasComponent
   // Event handler para cambio de tab
   onTabChange(newIndex: number): void {
     const previousIndex = this.previousTabIndex;
+    
+    console.log("🔄 onTabChange() ejecutado");
+    console.log("  - Tab anterior:", previousIndex);
+    console.log("  - Tab nuevo:", newIndex);
+    console.log("  - isEditMode:", this.isEditMode);
+
+    // Si es una nueva compra, permitir acceso a tabs 0 y 1
+    if (!this.isEditMode && newIndex > 1) {
+      console.log("Nueva compra: Solo se puede acceder a los tabs de Datos Generales e Items");
+      this.notificacionService.openWarn("En una nueva compra solo se puede acceder a los tabs de Datos Generales e Items");
+      // Revertir al tab anterior
+      setTimeout(() => {
+        this.selectedTabIndex = previousIndex;
+      }, 0);
+      return;
+    }
 
     // Check if navigating away from the first tab with unsaved changes
     if (previousIndex === 0 && this.datosGeneralesForm.dirty) {
@@ -1029,16 +1163,30 @@ export class GestionComprasComponent
         console.log("Tab 0 (Datos Generales) marcado como cargado");
         break;
       case 1: // Tab 2: Ítems del Pedido
+        console.log("📋 Cargando Tab 1: Items del Pedido");
+        console.log("  - currentPedido?.id:", this.currentPedido?.id);
         if (this.currentPedido?.id) {
+          // Pedido existente: cargar ítems del backend
           this.loadItemsData();
           // Cargar el resumen completo cuando se accede al tab de ítems
           this.loadPedidoResumen();
+          console.log("  - Datos del tab 1 cargados");
+        } else {
+          // Nueva compra: inicializar tab de ítems vacío
+          console.log("  - Nueva compra: Inicializando tab de ítems vacío");
+          this.itemsDataSource.data = [];
+          this.updateItemsComputedProperties();
         }
         break;
       case 2: // Tab 3: Recepción de Notas
+        console.log("📋 Cargando Tab 3: Recepción de Notas");
+        console.log("  - currentPedido?.id:", this.currentPedido?.id);
         if (this.currentPedido?.id) {
           this.loadItemsPendientesData();
           this.loadNotasRecepcionData();
+          console.log("  - Datos del tab 3 cargados");
+        } else {
+          console.log("  - ❌ No hay currentPedido.id, no se cargan datos");
         }
         break;
       case 3: // Tab 4: Recepción de Mercadería
@@ -1057,6 +1205,12 @@ export class GestionComprasComponent
    * Carga los datos del tab solo si no han sido cargados previamente (lazy loading)
    */
   private loadTabDataIfNeeded(tabIndex: number): void {
+    // Si es una nueva compra, permitir acceso al tab 1 (Items) pero no a otros
+    if (!this.isEditMode && tabIndex > 1) {
+      console.log(`Nueva compra: Tab ${tabIndex} no disponible, solo se puede acceder a tabs 0 y 1`);
+      return;
+    }
+
     // Si el tab ya fue cargado, no hacer nada
     if (this.loadedTabs.has(tabIndex)) {
       console.log(`Tab ${tabIndex} ya fue cargado previamente, saltando carga`);
@@ -1426,9 +1580,13 @@ export class GestionComprasComponent
       return;
     }
 
+    console.log("📦 loadItemsData() ejecutado");
+    console.log("  - currentPedido.id:", this.currentPedido.id);
+
     this.pedidoService.onGetPedidoItemsByPedidoId(this.currentPedido.id).subscribe({
       next: (items) => {
-        console.log("Ítems cargados:", items);
+        console.log("📦 Ítems cargados del backend:", items);
+        console.log("  - Cantidad de ítems:", items.length);
         
         // Procesar los ítems y añadir propiedades computadas
         const processedItems = items.map(item => this.processItemForDisplay(item));
@@ -1436,6 +1594,7 @@ export class GestionComprasComponent
         // Actualizar la tabla
         this.itemsDataSource.data = processedItems;
         
+        console.log("📦 Llamando a updateItemsComputedProperties()");
         // Actualizar propiedades computadas
         this.updateItemsComputedProperties();
       },
@@ -1514,6 +1673,9 @@ export class GestionComprasComponent
   private loadNotasRecepcionData(): void {
     if (!this.currentPedido?.id) return;
 
+    console.log("📄 loadNotasRecepcionData() ejecutado");
+    console.log("  - currentPedido.id:", this.currentPedido.id);
+    
     this.notasRecepcionLoading = true;
 
     this.pedidoService
@@ -1526,7 +1688,9 @@ export class GestionComprasComponent
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          console.log("Notas de recepción cargadas:", response);
+          console.log("📄 Notas de recepción cargadas del backend:", response);
+          console.log("  - response.getContent:", response.getContent);
+          console.log("  - Cantidad de notas:", response.getContent?.length || 0);
           
           // Procesar notas para mostrar (incluye notas normales y de rechazo)
           const processedNotas = (response.getContent || []).map((nota: NotaRecepcion) => {
@@ -1534,10 +1698,14 @@ export class GestionComprasComponent
             return mockNota;
           });
 
+          console.log("📄 Notas procesadas para UI:", processedNotas);
+          console.log("  - Cantidad de notas procesadas:", processedNotas.length);
+          
           this.notasRecepcionDataSource.data = processedNotas;
           this.notasRecepcionTotalElements = response.getTotalElements || 0;
           this.notasRecepcionLoading = false;
           
+          console.log("📄 Llamando a updateStep3ComputedProperties()");
           this.updateStep3ComputedProperties();
         },
         error: (error) => {
@@ -1606,13 +1774,17 @@ export class GestionComprasComponent
   }
 
   onFinalizarPlanificacion(): void {
+    console.log("🚀 onFinalizarPlanificacion() ejecutado");
+    console.log("  - currentPedido?.id:", this.currentPedido?.id);
+    console.log("  - canFinalizarPlanificacionComputed:", this.canFinalizarPlanificacionComputed);
+    
     if (!this.currentPedido?.id) {
       this.notificacionService.openAlgoSalioMal("No hay pedido seleccionado");
       return;
     }
 
     // Validar que hay ítems en el pedido
-    if (!this.hasItemsComputed) {
+    if (this.itemsDataSource.data.length === 0) {
       this.notificacionService.openAlgoSalioMal("Debe agregar al menos un ítem al pedido antes de finalizar la planificación");
       return;
     }
@@ -1994,6 +2166,10 @@ export class GestionComprasComponent
   }
 
   onFinalizarConciliacion(): void {
+    console.log("🚀 onFinalizarConciliacion() ejecutado");
+    console.log("  - currentPedido?.id:", this.currentPedido?.id);
+    console.log("  - canFinalizarConciliacionComputed:", this.canFinalizarConciliacionComputed);
+    
     if (!this.currentPedido?.id) {
       this.notificacionService.openAlgoSalioMal("No hay pedido seleccionado");
       return;
@@ -2140,7 +2316,8 @@ export class GestionComprasComponent
   // Método para verificar si se puede navegar a un paso específico
   canNavigateToStep(stepIndex: number): boolean {
     if (!this.isEditMode) {
-      return stepIndex <= this.selectedTabIndex;
+      // Para nueva compra, permitir acceso a tabs 0 (Datos Generales) y 1 (Items)
+      return stepIndex === 0 || stepIndex === 1;
     }
 
     // En modo edición, permitir navegar a cualquier paso que no esté deshabilitado

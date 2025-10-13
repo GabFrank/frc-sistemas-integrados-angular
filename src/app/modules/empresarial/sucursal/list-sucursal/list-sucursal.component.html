@@ -1,5 +1,3 @@
-<p>list-sucursal works!</p>
-
 <app-generic-list
   [data]="dataSource.data"
   (filtrar)="onFiltrar()"
@@ -15,7 +13,7 @@
       style="width: 100%"
     >
       <!-- Main search filter -->
-      <div fxFlex="40%">
+      <div fxFlex="35%">
         <mat-form-field style="width: 90%">
           <mat-label>Buscar por nombre o localización</mat-label>
           <input
@@ -36,6 +34,18 @@
             <mat-option [value]="null">Todos</mat-option>
             <mat-option [value]="true">Si</mat-option>
             <mat-option [value]="false">No</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <!-- Estado Activo filter -->
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Estado</mat-label>
+          <mat-select [formControl]="activoControl" name="activo">
+            <mat-option *ngFor="let option of activoOptions" [value]="option.value">
+              {{ option.label }}
+            </mat-option>
           </mat-select>
         </mat-form-field>
       </div>
@@ -122,6 +132,21 @@
         </th>
         <td mat-cell *matCellDef="let sucursal" style="text-align: center">
           {{ sucursal?.codigoEstablecimientoFactura }}
+        </td>
+      </ng-container>
+
+      <!-- Estado Activo Column -->
+      <ng-container matColumnDef="activo">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Estado
+        </th>
+        <td mat-cell *matCellDef="let sucursal" style="text-align: center">
+          <span 
+            [style.color]="sucursal?.activo ? '#4caf50' : '#f44336'"
+            [style.fontWeight]="'bold'"
+          >
+            {{ sucursal?.activo ? 'Activa' : 'Inactiva' }}
+          </span>
         </td>
       </ng-container>
 

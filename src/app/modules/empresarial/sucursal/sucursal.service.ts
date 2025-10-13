@@ -19,6 +19,7 @@ import { MatDialog } from "@angular/material/dialog";
 import { Apollo } from 'apollo-angular';
 import { map } from 'rxjs';
 import { SucursalesSearchGQL } from "./graphql/sucursalesSearch";
+import { SucursalesSearchConFiltrosGQL } from "./graphql/sucursalesSearchConFiltros";
 import { PageInfo } from "../../../app.component";
 import { QueryRef } from 'apollo-angular';
 import { SaveSucursalGQL } from "./graphql/saveSucursal";
@@ -42,6 +43,7 @@ export class SucursalService {
   constructor(
     private getAllSucursales: SucursalesGQL,
     private sucursalesSearch: SucursalesSearchGQL,
+    private sucursalesSearchConFiltros: SucursalesSearchConFiltrosGQL,
     private notificacionBar: NotificacionSnackbarService,
     private getSucursalActual: SucursalActualGQL,
     private http: HttpClient,
@@ -58,12 +60,13 @@ export class SucursalService {
   ) {
   }
 
-  onSearchConFiltros(term: string, deposito: boolean, pageIndex: number, pageSize: number, servidor: boolean = true): Observable<PageInfo<Sucursal>> {
+  onSearchConFiltros(term: string, deposito: boolean, activo: boolean | null, pageIndex: number, pageSize: number, servidor: boolean = true): Observable<PageInfo<Sucursal>> {
     return this.genericService.onCustomQuery(
-      this.sucursalesSearch,
+      this.sucursalesSearchConFiltros,
       {
         texto: term,
         deposito: deposito,
+        activo: activo,
         page: pageIndex,
         size: pageSize
       },
@@ -71,11 +74,11 @@ export class SucursalService {
     ).pipe(
       map((res: any) => {
         const pageInfo = new PageInfo<Sucursal>();
-        pageInfo.getContent = res;
-        pageInfo.getTotalElements = res.length;
-        pageInfo.getNumberOfElements = res.length;
+        pageInfo.getContent = res || [];
+        pageInfo.getTotalElements = res ? res.length : 0;
+        pageInfo.getNumberOfElements = res ? res.length : 0;
         pageInfo.isFirst = pageIndex === 0;
-        pageInfo.isLast = true; // Assuming this is the last page
+        pageInfo.isLast = true; // Como no tenemos paginación real, siempre es la última página
         pageInfo.hasNext = false;
         pageInfo.hasPrevious = pageIndex > 0;
         return pageInfo;

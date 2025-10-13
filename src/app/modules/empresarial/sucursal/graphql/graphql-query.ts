@@ -19,6 +19,7 @@ export const sucursalesQuery = gql
       direccion
       nroDelivery
       isConfigured 
+      activo
     }
   }`;
 
@@ -41,7 +42,32 @@ export const sucursalesSearch = gql
       direccion
       nroDelivery
       isConfigured
+      activo
         
+    }
+  }`
+
+export const sucursalesSearchConFiltros = gql
+  `query($texto: String, $deposito: Boolean, $activo: Boolean, $page: Int, $size: Int){
+    data : findByNombreConFiltros(nombre: $texto, deposito: $deposito, activo: $activo, page: $page, size: $size){
+      id
+      nombre
+      localizacion
+      ciudad{
+        id
+        descripcion
+      }
+      creadoEn
+      usuario{
+        id
+      }
+      deposito
+      ip
+      puerto
+      direccion
+      nroDelivery
+      isConfigured
+      activo
     }
   }`
 
@@ -63,6 +89,7 @@ export const sucursalQuery = gql
       direccion
       nroDelivery
       isConfigured
+      activo
         
     }
   }`
@@ -80,6 +107,7 @@ export const sucursalActualQuery = gql
       direccion
       nroDelivery
       isConfigured
+      activo
     }
   }`
 
@@ -97,6 +125,7 @@ export const saveSucursal = gql
         direccion
         nroDelivery
         isConfigured
+        activo
       }
     }`
 

@@ -610,10 +610,10 @@
             <button
               mat-raised-button
               color="accent"
-              [disabled]="step2ButtonDisabledComputed"
+              [disabled]="!canFinalizarPlanificacionComputed"
               (click)="onFinalizarPlanificacion()"
             >
-              {{ step2ButtonTextComputed }}
+              Finalizar Planificación
               <mat-icon>flag</mat-icon>
             </button>
           </div>

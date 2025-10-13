@@ -51,6 +51,7 @@ export class ListSucursalComponent implements OnInit {
     "deposito",
     "depositoPredeterminado",
     "codigoEstablecimientoFactura",
+    "activo",
     "usuario",
     "acciones"
   ]
@@ -58,6 +59,7 @@ export class ListSucursalComponent implements OnInit {
   // Create form controls for filters
   buscarControl = new FormControl(null);
   depositoControl = new FormControl(null);
+  activoControl = new FormControl('ACTIVAS'); // Por defecto mostrar solo activas
   
   dataSource = new MatTableDataSource<Sucursal>([]);
   isLastPage = false;
@@ -70,6 +72,13 @@ export class ListSucursalComponent implements OnInit {
   pageIndex = 0;
   pageEvent: PageEvent;
   selectedPageInfo: PageInfo<Sucursal>;
+
+  // Opciones para el filtro de estado activo
+  activoOptions = [
+    { value: 'TODAS', label: 'Todas' },
+    { value: 'ACTIVAS', label: 'Activas' },
+    { value: 'INACTIVAS', label: 'Inactivas' }
+  ];
 
   constructor(
     private sucursalService: SucursalService,
@@ -106,13 +115,29 @@ export class ListSucursalComponent implements OnInit {
       this.pageIndex = 0;
       this.onFiltrar();
     })
+
+    // Activo filter control
+    this.activoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
+      this.pageIndex = 0;
+      this.onFiltrar();
+    })
   }
 
   onFiltrar() {
+    // Convertir el valor del filtro activo a boolean para el backend
+    let activoFilter: boolean | null = null;
+    if (this.activoControl.value === 'ACTIVAS') {
+      activoFilter = true;
+    } else if (this.activoControl.value === 'INACTIVAS') {
+      activoFilter = false;
+    }
+    // Si es 'TODAS', activoFilter será null
+
     // Call service search method with filters
     this.sucursalService.onSearchConFiltros(
       this.buscarControl.value?.toUpperCase(), 
       this.depositoControl.value,
+      activoFilter,
       this.pageIndex, 
       this.pageSize
     ).pipe(untilDestroyed(this)).subscribe(res => {
@@ -129,6 +154,7 @@ export class ListSucursalComponent implements OnInit {
     this.selectedPageInfo = null;
     this.buscarControl.setValue(null);
     this.depositoControl.setValue(null);
+    this.activoControl.setValue('ACTIVAS');
   }
 
   onEditSucursal(sucursal: Sucursal, i) {
