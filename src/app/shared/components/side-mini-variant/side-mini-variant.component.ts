@@ -42,6 +42,7 @@ import { MainCajaObservacionComponent } from "../../../modules/financiero/pdv/ca
 import { Subscription } from 'rxjs';
 import { AnalisisDiferenciaComponent } from '../../../modules/financiero/analisis-diferencia/analisis-diferencia.component';
 import { ListTimbradoComponent } from '../../../modules/financiero/timbrado/list-timbrado/list-timbrado.component';
+import { ListLoteDeComponent } from '../../../modules/financiero/documento-electronico/lote-de/list-lote-de/list-lote-de.component';
 
 
 // Define interfaces for the navigation items structure
@@ -239,9 +240,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.ADMIN]
         },
         {
-          name: 'Documento Electrónico',
+          name: 'Documento electrónico',
           icon: 'qr_code_2',
-          action: 'list-dte',
+          action: 'list-lote-de',
           visibilityRoles: [ROLES.ADMIN]
         }
       ]
@@ -577,6 +578,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "analisis-diferencias":
         this.openTabIfAuthorized(ROLES.ADMIN, AnalisisDiferenciaComponent, "Análisis de diferencias");
+        break;
+      case "list-lote-de":
+        this.openTabIfAuthorized(ROLES.ADMIN, ListLoteDeComponent, "Lotes DE");
         break;
       case "list-sucursal":
         this.openTabIfAuthorized(ROLES.ADMIN, ListSucursalComponent, "Lista de sucursales");

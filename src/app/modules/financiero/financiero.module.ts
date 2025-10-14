@@ -44,6 +44,7 @@ import { ListTimbradoComponent } from "./timbrado/list-timbrado/list-timbrado.co
 import { AddTimbradoDialogComponent } from "./timbrado/add-timbrado-dialog/add-timbrado-dialog.component";
 import { AddTimbradoDetalleDialogComponent } from "./timbrado/add-timbrado-detalle-dialog/add-timbrado-detalle-dialog.component";
 import { BootstrapModule } from "../../commons/core/bootstrap.module";
+import { ListLoteDeComponent } from './documento-electronico/lote-de/list-lote-de/list-lote-de.component';
 
 @NgModule({
   declarations: [
@@ -83,7 +84,9 @@ import { BootstrapModule } from "../../commons/core/bootstrap.module";
     AnalisisDiferenciaComponent,
     ListTimbradoComponent,
     AddTimbradoDialogComponent,
-    AddTimbradoDetalleDialogComponent
+    AddTimbradoDetalleDialogComponent,
+    ListLoteDeComponent
+
   ],
   providers: [
     SearchMaletinGQL

@@ -337,7 +337,7 @@ export class ListMovimientoStockComponent implements OnInit {
     }
   }
 
-    private abrirTabVenta(venta: any) {
+  abrirTabVenta(venta: any) {
  
     const caja = {
       ...venta.caja,
@@ -389,7 +389,7 @@ export class ListMovimientoStockComponent implements OnInit {
     }
   }
 
-  private abrirTabTransferencia(transferencia: any) {
+  abrirTabTransferencia(transferencia: any) {
     let tabData: TabData = new TabData();
     tabData.id = transferencia.id;
     
