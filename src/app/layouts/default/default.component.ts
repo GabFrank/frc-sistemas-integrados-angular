@@ -4,8 +4,6 @@ import { Tab } from "../tab/tab.model";
 import { MatDialog } from "@angular/material/dialog";
 import { CloseTabPopupComponent } from "./close-tab-popup.component";
 import { WindowInfoService } from "../../shared/services/window-info.service";
-import { Observable } from "rxjs/internal/Observable";
-import { fromEvent } from "rxjs";
 import { MainService } from "../../main.service";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
@@ -36,21 +34,23 @@ export class DefaultComponent implements OnInit {
     public windowInfo: WindowInfoService,
     private mainService: MainService
   ) {
-    // We no longer need auto-expand on mouse movement since the sidebar is always visible
-    // in its mini form and will expand when clicked
   }
 
   ngOnInit(): void {
-    this.mainService.authenticationSub.subscribe((res) => {
-      if (res) {
-        this.tabService.tabSub
-        .pipe(untilDestroyed(this))
-        .subscribe((tabs) => {
-          this.tabs = tabs;
-          this.selectedTab = tabs.findIndex((tab) => tab.active);
-        });
-      }
-    });
+    this.mainService.authenticationSub
+      .pipe(untilDestroyed(this))
+      .subscribe((res) => {
+        if (res) {
+          this.tabService.tabSub
+          .pipe(untilDestroyed(this))
+          .subscribe((tabs) => {
+            this.tabs = tabs;
+            this.selectedTab = tabs.findIndex((tab) => tab.active);
+          });
+        } else {
+          this.sideBarOpen = false;
+        }
+      });
   }
 
   tabChanged(event): void {
@@ -60,17 +60,9 @@ export class DefaultComponent implements OnInit {
   removeTab(index: number): void {
     this.openDialog(index);
   }
-
-  /**
-   * Toggle the sidebar state when the menu button is clicked
-   */
   toggleSideNav(): void {
     this.sideBarOpen = !this.sideBarOpen;
   }
-
-  /**
-   * Set the sidebar state based on the event from the side-mini-variant component
-   */
   setSideNav(isExpanded: boolean): void {
     this.sideBarOpen = isExpanded;
   }

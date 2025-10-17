@@ -1,14 +1,14 @@
 {
-  "serverIp": "172.25.1.5",
-  "serverPort": "8082",
-  "serverCentralIp": "172.25.1.200",
+  "serverIp": "159.203.86.103",
+  "serverPort": "8081",
+  "serverCentralIp": "159.203.86.103",
   "serverCentralPort": "8081",
   "local": "Caja 1",
   "precios": "EXPO, EXPO-DEPOSITO",
   "modo": "NOT",
   "pdvId": 1,
   "isConfigured": true,
-  "isLocal": true,
+  "isLocal": false,
   "printers": {
     "ticket": "ticket",
     "factura": "factura"

@@ -4,6 +4,7 @@ import { ElectronService } from '../../../commons/core/electron/electron.service
 import { Tab } from "../../../layouts/tab/tab.model";
 import { TabService } from "../../../layouts/tab/tab.service";
 import { MainService } from "../../../main.service";
+import { LoginDialogService } from "../../services/login-dialog.service";
 import { ListRolesComponent } from '../../../modules/configuracion/roles/list-roles/list-roles.component';
 import { FinancieroDashboardComponent } from "../../../modules/financiero/financiero-dashboard/financiero-dashboard.component";
 import { ListGastosComponent } from "../../../modules/financiero/gastos/list-gastos/list-gastos.component";
@@ -48,8 +49,6 @@ import { ListReplicationTablesComponent } from '../../../modules/configuracion/l
 export class SideComponent implements OnInit {
 
   isTest = false;
-  
-  // Menu visibility properties
   isPdvVisible = false;
   isAdminSectionVisible = false;
   isInventarioSectionVisible = false;
@@ -66,19 +65,17 @@ export class SideComponent implements OnInit {
     private cargandoDialogService: CargandoDialogService,
     private electronService: ElectronService,
     private notificacionService: NotificacionSnackbarService,
-    private usuarioService: UsuarioService
+    private usuarioService: UsuarioService,
+    private loginDialogService: LoginDialogService
   ) {
 
   }
 
   ngOnInit(): void {
-    // Initialize menu visibility
-    //log the user roles
     console.log(this.mainService.usuarioActual?.roles);
 
     this.updateMenuVisibility();
-    
-    // Subscribe to changes in authentication status to update menu visibility
+
     this.mainService.authenticationSub.subscribe(isAuthenticated => {
       if (isAuthenticated) {
         this.updateMenuVisibility();
@@ -88,29 +85,23 @@ export class SideComponent implements OnInit {
     });
   }
 
-  /**
-   * Updates all menu visibility properties based on current user roles and local mode
-   */
   updateMenuVisibility(): void {
-    // PDV section is visible only in local mode
     this.isPdvVisible = this.mainService.isLocal();
-    
-    // Other sections are visible based on user roles
     this.isAdminSectionVisible = this.hasAnyRole([ROLES.ADMIN, ROLES.SOPORTE]);
-    
+
     this.isInventarioSectionVisible = this.hasAnyRole([
-      ROLES.VER_INVENTARIO, 
-      ROLES.CREAR_INVENTARIO, 
+      ROLES.VER_INVENTARIO,
+      ROLES.CREAR_INVENTARIO,
       ROLES.PARTICIPAR_DEL_INVENTARIO,
       ROLES.VER_MOVIMIENTO_DE_STOCK
     ]);
-    
+
     this.isFinancieroSectionVisible = this.hasAnyRole([
       ROLES.ANALISIS_DE_CAJA,
       ROLES.ANALISIS_CONTABLE,
       ROLES.CAMBIAR_COTIZACION
     ]);
-    
+
     this.isPersonasSectionVisible = this.hasAnyRole([
       ROLES.VER_PERSONAS,
       ROLES.EDITAR_PERSONAS,
@@ -120,7 +111,7 @@ export class SideComponent implements OnInit {
       ROLES.CREAR_FUNCIONARIOS,
       ROLES.EDITAR_FUNCIONARIOS
     ]);
-    
+
     this.isProductosSectionVisible = this.hasAnyRole([
       ROLES.VER_PRODUCTOS,
       ROLES.EDITAR_PRODUCTOS,
@@ -128,18 +119,14 @@ export class SideComponent implements OnInit {
       ROLES.EDITAR_PRECIOS,
       ROLES.VER_PRECIO_COSTO
     ]);
-    
+
     this.isOperacionesSectionVisible = this.hasAnyRole([
       ROLES.VER_TRANSFERENCIA,
       ROLES.CREAR_TRANSFERENCIA
     ]);
-    
+
     this.isConfiguracionSectionVisible = this.hasAnyRole([ROLES.ADMIN, "CONFIGURACION", ROLES.SOPORTE]);
   }
-
-  /**
-   * Reset all menu visibility to false
-   */
   resetMenuVisibility(): void {
     this.isPdvVisible = false;
     this.isAdminSectionVisible = false;
@@ -162,7 +149,6 @@ export class SideComponent implements OnInit {
   }
 
   onItemClick(tab: string): void {
-    // this.isTest = this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
     switch (tab) {
       case "list-persona":
         if (this.mainService.usuarioActual?.roles.includes(ROLES.VER_PERSONAS)) {
@@ -208,9 +194,6 @@ export class SideComponent implements OnInit {
         }
         break;
       case "list-compra":
-        // this.tabService.addTab(
-        //   new Tab(ListCompraComponent, "Compras", null, null)
-        // );
         break;
       case "list-pedido":
         this.tabService.addTab(
@@ -218,9 +201,6 @@ export class SideComponent implements OnInit {
         );
         break;
       case "pdv-restaurant":
-        // this.tabService.addTab(
-        //   new Tab(RestaurantComponent, "Venta Restaurant", null, null)
-        // );
         break;
       case "funcionario-dashboard":
         if (
@@ -234,19 +214,10 @@ export class SideComponent implements OnInit {
         }
         break;
       case "list-paises":
-        // this.tabService.addTab(
-        //   new Tab(ListPaisComponent, "Países", null, null)
-        // );
         break;
       case "list-ciudades":
-        // this.tabService.addTab(
-        //   new Tab(ListCiudadComponent, "Ciudades", null, null)
-        // );
         break;
       case "list-necesidad":
-        // this.tabService.addTab(
-        //   new Tab(ListNecesidadComponent, "Necesidades", null, null)
-        // );
         break;
       case "pdv-venta-touch":
         if ((this.mainService.usuarioActual?.roles.includes(ROLES.VENTA_TOUCH))) {
@@ -332,7 +303,7 @@ export class SideComponent implements OnInit {
           this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
-        case "list-pagos":
+      case "list-pagos":
         if (
           this.mainService.usuarioActual?.roles.includes(ROLES.ANALISIS_DE_CAJA)
         ) {
@@ -415,7 +386,7 @@ export class SideComponent implements OnInit {
           this.tabService.addTab(
             new Tab(MainCajaObservacionComponent, "Observación de Cajas", null, null)
           );
-        } 
+        }
         else {
           this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
@@ -448,7 +419,7 @@ export class SideComponent implements OnInit {
           );
         }
         break;
-        case "list-sucursal":
+      case "list-sucursal":
         if (
           this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
         ) {
@@ -459,7 +430,7 @@ export class SideComponent implements OnInit {
         break;
       case "thermal-printer":
         if (
-          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN) || 
+          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN) ||
           this.mainService.usuarioActual?.roles.includes("CONFIGURACION")
         ) {
           this.tabService.addTab(
@@ -495,29 +466,26 @@ export class SideComponent implements OnInit {
   async onLogout() {
     let inicioSesion = new InicioSesion();
     Object.assign(inicioSesion, this.mainService.usuarioActual.inicioSesion);
-    inicioSesion.horaFin = new Date();  
-    if(inicioSesion != null && inicioSesion?.sucursal != null){
+    inicioSesion.horaFin = new Date();
+    if (inicioSesion != null && inicioSesion?.sucursal != null) {
       await new Promise((resolve, rejects) => {
         this.usuarioService
           .onSaveInicioSesion(inicioSesion.toInput())
           .subscribe((res) => {
             resolve(res);
           });
-      }); 
-    }  
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuarioId");
-    this.mainService.usuarioActual = null;
-    this.mainService.logged = false;
+      });
+    }
+    this.mainService.logout();
     this.tabService.removeAllTabs();
-    this.electronService.relaunch();
+    this.loginDialogService.openLoginDialog();
   }
 
   onLogin() {
     this.electronService.relaunch()
   }
 
-  onReiniciar(){
+  onReiniciar() {
     this.electronService.relaunch()
   }
 }
