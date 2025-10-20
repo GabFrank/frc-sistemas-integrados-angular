@@ -1,4 +1,28 @@
 {
-    "editor.fontFamily": "Firacode"
+    "editor.fontFamily": "Firacode",
+    "sqltools.connections": [
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5552,
+            "driver": "PostgreSQL",
+            "name": "general",
+            "database": "general-fact-test",
+            "username": "franco",
+            "password": "franco"
+        },
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5551,
+            "driver": "PostgreSQL",
+            "name": "bodega",
+            "database": "bodega-fact-test",
+            "username": "franco",
+            "password": "franco"
+        }
+    ]
     // "js/ts.implicitProjectConfig.experimentalDecorators": true
 }

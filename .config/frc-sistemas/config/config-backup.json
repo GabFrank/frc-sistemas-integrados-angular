@@ -1,12 +1,12 @@
 {
-  "serverIp": "172.25.1.5",
+  "serverIp": "localhost",
   "serverPort": "8082",
-  "serverCentralIp": "172.25.1.200",
+  "serverCentralIp": "localhost",
   "serverCentralPort": "8081",
   "local": "Caja 1",
   "precios": "EXPO, EXPO-DEPOSITO",
   "modo": "NOT",
-  "pdvId": 1,
+  "pdvId": 25,
   "isConfigured": true,
   "isLocal": true,
   "printers": {
