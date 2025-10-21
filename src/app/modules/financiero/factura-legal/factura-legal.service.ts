@@ -23,6 +23,7 @@ import { GenerarExcelFacturasGQL } from "./graphql/generarExcelFacturas";
 import { GenerarExcelFacturasZipGQL } from "./graphql/generarExcelFacturasZip";
 import { ConfiguracionService } from "../../../shared/services/configuracion.service";
 import { TimbradoDetalle } from "../timbrado/timbrado.modal";
+import { FacturaLegalByCdcGQL } from "./graphql/get-factura-legal-by-cdc.gql";
 
 @Injectable({
   providedIn: "root",
@@ -41,7 +42,8 @@ export class FacturaLegalService {
     private getResumenFacturas: ResumenFacturasGQL,
     private generarExcelFacturasZip: GenerarExcelFacturasZipGQL,
     private generarExcelFacturas: GenerarExcelFacturasGQL,
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private facturaLegalByCdcGQL: FacturaLegalByCdcGQL
   ) {}
 
   onSaveFactura(
@@ -98,6 +100,8 @@ export class FacturaLegalService {
     iva5?: boolean,
     iva10?: boolean,
     full?: boolean,
+    isElectronico?: boolean,
+    activo?: boolean,
     servidor: boolean = true
   ) {
     return this.genericService.onCustomQuery(
@@ -112,6 +116,8 @@ export class FacturaLegalService {
         nombre,
         iva5,
         iva10,
+        isElectronico,
+        activo
       },
       servidor
     );
@@ -119,6 +125,10 @@ export class FacturaLegalService {
 
   onGetFacturaLegal(id, sucId, servidor: boolean = true): Observable<FacturaLegal> {
     return this.genericService.onGetById(this.facturaLegalPorId, id, null, null, servidor, sucId);
+  }
+
+  onGetFacturaLegalByCdc(cdc: string, servidor: boolean = true): Observable<FacturaLegal>{
+    return this.genericService.onCustomQuery(this.facturaLegalByCdcGQL, {cdc}, servidor)
   }
 
   onGenerarExcelFacturas(

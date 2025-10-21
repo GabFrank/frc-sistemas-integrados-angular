@@ -380,4 +380,69 @@ export class ListReplicationComponent implements OnInit {
   getSelectedBranchName(): string {
     return this.selectedBranchName;
   }
+
+  /**
+   * Refresh a single subscription
+   * @param item The subscription to refresh
+   */
+  refreshSubscription(item: LogicalReplication): void {
+    if (this.isLocalMode) {
+      // Refresh local subscription
+      this.logicalReplicationService.refreshSubscription(item.name)
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (result) => {
+            if (result?.success) {
+              this.loadSubscriptions();
+            }
+            // The service already shows success/error messages
+          }
+        });
+    } else {
+      // Refresh remote subscription
+      const sucursalId = this.selectedSucursalControl.value;
+      this.logicalReplicationService.refreshRemoteSubscription(sucursalId, item.name)
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (result) => {
+            if (result?.success) {
+              this.loadSubscriptions();
+            }
+            // The service already shows success/error messages
+          }
+        });
+    }
+  }
+
+  /**
+   * Refresh all subscriptions
+   */
+  refreshAllSubscriptions(): void {
+    if (this.isLocalMode) {
+      // Refresh all local subscriptions
+      this.logicalReplicationService.refreshAllSubscriptions()
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (result) => {
+            if (result?.success) {
+              this.loadSubscriptions();
+            }
+            // The service already shows success/error messages
+          }
+        });
+    } else {
+      // Refresh all remote subscriptions
+      const sucursalId = this.selectedSucursalControl.value;
+      this.logicalReplicationService.refreshAllRemoteSubscriptions(sucursalId)
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (result) => {
+            if (result?.success) {
+              this.loadSubscriptions();
+            }
+            // The service already shows success/error messages
+          }
+        });
+    }
+  }
 } 

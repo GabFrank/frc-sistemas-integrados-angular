@@ -1,16 +1,16 @@
 {
   "serverIp": "localhost",
-  "serverPort": "8081",
+  "serverPort": "8082",
   "serverCentralIp": "localhost",
   "serverCentralPort": "8081",
   "local": "Caja 1",
   "precios": "EXPO, EXPO-DEPOSITO",
   "modo": "NOT",
-  "pdvId": 1,
+  "pdvId": 25,
   "isConfigured": true,
-  "isLocal": false,
+  "isLocal": true,
   "printers": {
-    "ticket": "ticket_soporte",
+    "ticket": "ticket",
     "factura": "factura"
   }
 }

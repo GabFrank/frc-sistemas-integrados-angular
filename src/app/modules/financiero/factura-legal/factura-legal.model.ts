@@ -33,6 +33,7 @@ export class FacturaLegal {
     sucursalId: number
     facturaLegalItemList: FacturaLegalItem[]
     sucursal:Sucursal
+    activo: boolean
 
     toInput(): FacturaLegalInput {
         let input = new FacturaLegalInput;
@@ -56,6 +57,7 @@ export class FacturaLegal {
         input.viaTributaria = this.viaTributaria
         input.sucursalId = this.sucursalId
         input.descuento = this.descuento
+        input.activo = this.activo
         return input;
     }
 }
@@ -81,6 +83,7 @@ export class FacturaLegalInput {
     totalFinal: number
     descuento: number
     usuarioId: number
+    activo: boolean
 }
 
 export class FacturaLegalItem {

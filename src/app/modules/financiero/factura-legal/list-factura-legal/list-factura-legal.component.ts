@@ -52,6 +52,9 @@ export class ListFacturaLegalComponent implements OnInit {
   sucursalControl = new FormControl([], Validators.required);
   nombreControl = new FormControl(null);
   rucControl = new FormControl(null);
+  cdcControl = new FormControl(null);
+  tipoControl = new FormControl('TODOS');
+  estadoControl = new FormControl('TODOS');
   fechaInicioControl = new FormControl(null, Validators.required);
   fechaFinControl = new FormControl(null, Validators.required);
   iva5Control = new FormControl(true);
@@ -133,6 +136,30 @@ export class ListFacturaLegalComponent implements OnInit {
       this.onFilter();
     }, 0);
 
+    this.cdcControl.valueChanges.subscribe(res => {
+      if (res) {
+        this.sucursalControl.disable();
+        this.nombreControl.disable();
+        this.rucControl.disable();
+        this.fechaInicioControl.disable();
+        this.fechaFinControl.disable();
+        this.iva5Control.disable();
+        this.iva10Control.disable();
+        this.tipoControl.disable();
+        this.estadoControl.disable();
+      } else {
+        this.sucursalControl.enable();
+        this.nombreControl.enable();
+        this.rucControl.enable();
+        this.fechaInicioControl.enable();
+        this.fechaFinControl.enable();
+        this.iva5Control.enable();
+        this.iva10Control.enable();
+        this.tipoControl.enable();
+        this.estadoControl.enable();
+      }
+    });
+
     this.fechaFormGroup = new FormGroup({
       inicio: this.fechaInicioControl,
       fin: this.fechaFinControl,
@@ -188,9 +215,19 @@ export class ListFacturaLegalComponent implements OnInit {
   }
 
   onGetFacturas() {
-    if (this.fechaFormGroup.valid && this.sucursalControl.valid) {
+    if (this.cdcControl.value) {
+      this.facturaService.onGetFacturaLegalByCdc(this.cdcControl.value).subscribe(res => {
+        if (res) {
+          this.dataSource.data = [res];
+        } else {
+          this.dataSource.data = [];
+        }
+      })
+    } else if (this.fechaFormGroup.valid && this.sucursalControl.valid) {
       let fechaInicio = dateToString(this.fechaInicioControl.value);
       let fechaFin = dateToString(this.fechaFinControl.value);
+      let isElectronico = this.tipoControl.value === 'ELECTRONICO' ? true : this.tipoControl.value === 'AUTOIMPRESO' ? false : null;
+      let activo = this.estadoControl.value === 'ACTIVOS' ? true : this.estadoControl.value === 'INACTIVOS' ? false : null;
       this.facturaService
         .onGetAllFacturasLegales(
           this.pageIndex,
@@ -205,7 +242,10 @@ export class ListFacturaLegalComponent implements OnInit {
             ? `%${this.nombreControl.value?.toUpperCase()}%`
             : null,
           this.iva5Control.value,
-          this.iva10Control.value
+          this.iva10Control.value,
+          false,
+          isElectronico,
+          activo
         )
         .subscribe((res) => {
           this.selectedPageInfo = res;

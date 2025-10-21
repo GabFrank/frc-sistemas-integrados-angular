@@ -102,7 +102,7 @@
         fxLayoutGap="10px"
         style="width: 100%"
       >
-        <div fxFlex="50%">
+        <div fxFlex="33%">
           <mat-form-field style="width: 100%">
             <mat-label>Nombre del cliente</mat-label>
             <input
@@ -114,7 +114,7 @@
             />
           </mat-form-field>
         </div>
-        <div fxFlex="50%">
+        <div fxFlex="33%">
           <mat-form-field style="width: 100%">
             <mat-label>Ruc del cliente</mat-label>
             <input
@@ -124,6 +124,44 @@
               [bdcWalkTriggerFor]="facturaStep4"
               (keyup.enter)="onFilter()"
             />
+          </mat-form-field>
+        </div>
+        <div fxFlex="34%">
+          <mat-form-field style="width: 100%">
+            <mat-label>CDC</mat-label>
+            <input
+              type="text"
+              matInput
+              [formControl]="cdcControl"
+              (keyup.enter)="onFilter()"
+            />
+          </mat-form-field>
+        </div>
+      </div>
+      <div
+        fxLayout="row"
+        fxLayoutAlign="start center"
+        fxLayoutGap="10px"
+        style="width: 100%"
+      >
+        <div fxFlex="50%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Tipo</mat-label>
+            <mat-select [formControl]="tipoControl">
+              <mat-option value="TODOS">Todos</mat-option>
+              <mat-option value="AUTOIMPRESO">Autoimpreso</mat-option>
+              <mat-option value="ELECTRONICO">Electrónico</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <div fxFlex="50%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Estado</mat-label>
+            <mat-select [formControl]="estadoControl">
+              <mat-option value="TODOS">Todos</mat-option>
+              <mat-option value="ACTIVOS">Activos</mat-option>
+              <mat-option value="INACTIVOS">Inactivos</mat-option>
+            </mat-select>
           </mat-form-field>
         </div>
       </div>

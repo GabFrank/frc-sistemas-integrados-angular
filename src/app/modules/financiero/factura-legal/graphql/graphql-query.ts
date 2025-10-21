@@ -1,27 +1,31 @@
-import gql from "graphql-tag";
+import { gql } from "apollo-angular";
 
 export const facturaLegalesQuery = gql`
-  query (
+  query facturaLegales(
     $page: Int
     $size: Int
-    $fechaInicio: String!
-    $fechaFin: String!
     $sucId: [ID]
+    $fechaInicio: String
+    $fechaFin: String
     $ruc: String
     $nombre: String
     $iva5: Boolean
     $iva10: Boolean
+    $isElectronico: Boolean
+    $activo: Boolean
   ) {
-    data: facturaLegales(
+    facturaLegales(
       page: $page
       size: $size
+      sucId: $sucId
       fechaInicio: $fechaInicio
       fechaFin: $fechaFin
-      sucId: $sucId
-      nombre: $nombre
       ruc: $ruc
+      nombre: $nombre
       iva5: $iva5
       iva10: $iva10
+      isElectronico: $isElectronico
+      activo: $activo
     ) {
       getTotalPages
       getTotalElements
@@ -32,23 +36,15 @@ export const facturaLegalesQuery = gql`
       hasPrevious
       getContent {
         id
-        viaTributaria
-        numeroFactura
-        fecha
-        credito
+        sucursalId
         nombre
         ruc
-        direccion
-        ivaParcial0
-        ivaParcial5
-        ivaParcial10
-        totalParcial0
-        totalParcial5
-        totalParcial10
         totalFinal
         creadoEn
-        sucursalId
-        descuento
+        sucursal {
+          id
+          nombre
+        }
       }
     }
   }

@@ -462,4 +462,40 @@ export const UPDATE_REPLICATION_SERVICE_TABLES_MUTATION = gql`
   mutation UpdateReplicationServiceTables {
     data:updateReplicationServiceTables
   }
+`;
+
+export const REFRESH_SUBSCRIPTION_MUTATION = gql`
+  mutation RefreshSubscription($subscriptionName: String!) {
+    data:refreshSubscription(subscriptionName: $subscriptionName) {
+      success
+      message
+    }
+  }
+`;
+
+export const REFRESH_ALL_SUBSCRIPTIONS_MUTATION = gql`
+  mutation RefreshAllSubscriptions {
+    data:refreshAllSubscriptions {
+      success
+      message
+    }
+  }
+`;
+
+export const REFRESH_REMOTE_SUBSCRIPTION_MUTATION = gql`
+  mutation RefreshRemoteSubscription($branchSucursalId: ID!, $subscriptionName: String!) {
+    data:refreshRemoteSubscription(branchSucursalId: $branchSucursalId, subscriptionName: $subscriptionName) {
+      success
+      message
+    }
+  }
+`;
+
+export const REFRESH_ALL_REMOTE_SUBSCRIPTIONS_MUTATION = gql`
+  mutation RefreshAllRemoteSubscriptions($branchSucursalId: ID!) {
+    data:refreshAllRemoteSubscriptions(branchSucursalId: $branchSucursalId) {
+      success
+      message
+    }
+  }
 `; 

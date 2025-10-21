@@ -77,7 +77,7 @@ FROM pg_stat_subscription;
 
 -- script para crear subscription para el servidor
 CREATE SUBSCRIPTION filial24_sub
-CONNECTION 'dbname=general host=172.25.1.24 user=franco password=franco port=5551'
+CONNECTION 'dbname=general host=localhost user=franco password=franco port=5552'
 PUBLICATION filial24_pub WITH (copy_data = false, origin = 'none');
 
 -- script para crear subscription para la filial
@@ -126,33 +126,33 @@ CREATE PUBLICATION filial5_pub FOR TABLE
     operaciones.vuelto_item;
 
 -- script para crear la publicacion bidireccional en el servidor
-    CREATE PUBLICATION central_filial5_pub FOR TABLE 
-    administrativo.marcacion WHERE (sucursal_id = 5), 
-    configuraciones.inicio_sesion WHERE (sucursal_id = 5), 
-    financiero.cambio_caja WHERE (sucursal_id = 5), 
-    financiero.conteo WHERE (sucursal_id = 5), 
-    financiero.conteo_moneda WHERE (sucursal_id = 5), 
-    financiero.factura_legal WHERE (sucursal_id = 5), 
-    financiero.factura_legal_item WHERE (sucursal_id = 5), 
-    financiero.gasto WHERE (sucursal_id = 5), 
-    financiero.gasto_detalle WHERE (sucursal_id = 5), 
-    financiero.maletin WHERE (sucursal_id = 5), 
-    financiero.movimiento_caja WHERE (sucursal_id = 5), 
-    financiero.pdv_caja WHERE (sucursal_id = 5), 
-    financiero.retiro WHERE (sucursal_id = 5), 
-    financiero.retiro_detalle WHERE (sucursal_id = 5), 
-    financiero.sencillo WHERE (sucursal_id = 5), 
-    financiero.sencillo_detalle WHERE (sucursal_id = 5), 
-    financiero.venta_credito WHERE (sucursal_id = 5), 
-    financiero.venta_credito_cuota WHERE (sucursal_id = 5), 
-    operaciones.cobro WHERE (sucursal_id = 5), 
-    operaciones.cobro_detalle WHERE (sucursal_id = 5), 
-    operaciones.delivery WHERE (sucursal_id = 5), 
-    operaciones.movimiento_stock WHERE (sucursal_id = 5), 
-    operaciones.venta WHERE (sucursal_id = 5), 
-    operaciones.venta_item WHERE (sucursal_id = 5), 
-    operaciones.vuelto WHERE (sucursal_id = 5), 
-    operaciones.vuelto_item WHERE (sucursal_id = 5);
+    CREATE PUBLICATION central_filial24_pub FOR TABLE 
+    administrativo.marcacion WHERE (sucursal_id = 24), 
+    configuraciones.inicio_sesion WHERE (sucursal_id = 24), 
+    financiero.cambio_caja WHERE (sucursal_id = 24), 
+    financiero.conteo WHERE (sucursal_id = 24), 
+    financiero.conteo_moneda WHERE (sucursal_id = 24), 
+    financiero.factura_legal WHERE (sucursal_id = 24), 
+    financiero.factura_legal_item WHERE (sucursal_id = 24), 
+    financiero.gasto WHERE (sucursal_id = 24), 
+    financiero.gasto_detalle WHERE (sucursal_id = 24), 
+    financiero.maletin WHERE (sucursal_id = 24), 
+    financiero.movimiento_caja WHERE (sucursal_id = 24), 
+    financiero.pdv_caja WHERE (sucursal_id = 24), 
+    financiero.retiro WHERE (sucursal_id = 24), 
+    financiero.retiro_detalle WHERE (sucursal_id = 24), 
+    financiero.sencillo WHERE (sucursal_id = 24), 
+    financiero.sencillo_detalle WHERE (sucursal_id = 24), 
+    financiero.venta_credito WHERE (sucursal_id = 24), 
+    financiero.venta_credito_cuota WHERE (sucursal_id = 24), 
+    operaciones.cobro WHERE (sucursal_id = 24), 
+    operaciones.cobro_detalle WHERE (sucursal_id = 24), 
+    operaciones.delivery WHERE (sucursal_id = 24), 
+    operaciones.movimiento_stock WHERE (sucursal_id = 24), 
+    operaciones.venta WHERE (sucursal_id = 24), 
+    operaciones.venta_item WHERE (sucursal_id = 24), 
+    operaciones.vuelto WHERE (sucursal_id = 24), 
+    operaciones.vuelto_item WHERE (sucursal_id = 24);
 
     -- script para crear publicacion del servidor a filiales
     CREATE PUBLICATION central_pub FOR TABLE
