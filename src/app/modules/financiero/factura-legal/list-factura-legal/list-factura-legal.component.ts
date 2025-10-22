@@ -248,6 +248,7 @@ export class ListFacturaLegalComponent implements OnInit {
           activo
         )
         .subscribe((res) => {
+          console.log(res);
           this.selectedPageInfo = res;
           this.dataSource.data = this.selectedPageInfo?.getContent;
         });

@@ -14,7 +14,7 @@ export const facturaLegalesQuery = gql`
     $isElectronico: Boolean
     $activo: Boolean
   ) {
-    facturaLegales(
+    data: facturaLegales(
       page: $page
       size: $size
       sucId: $sucId
@@ -231,7 +231,7 @@ export const saveFacturaLegal = gql`
 
 export const deleteFacturaLegalQuery = gql`
   mutation deleteFacturaLegal($id: ID!, $sucId: ID) {
-    deleteFacturaLegal(id: $id, sucId: $sucId)
+    data: deleteFacturaLegal(id: $id, sucId: $sucId)
   }
 `;
 

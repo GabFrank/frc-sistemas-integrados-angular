@@ -9,7 +9,7 @@ import gql from "graphql-tag";
 export class FacturaLegalByCdcGQL extends Query<FacturaLegal> {
   document = gql`
     query FacturaLegalByCdc($cdc: String!) {
-      facturaLegalByCdc(cdc: $cdc) {
+      data: facturaLegalByCdc(cdc: $cdc) {
         id
         sucursalId
         nombre

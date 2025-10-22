@@ -146,6 +146,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
         facturaItem.total = v.cantidad * v.precio;
         facturaItem.iva;
         facturaItem.presentacion = v.presentacion;
+        facturaItem.producto = v.producto;
         facturaItemList.push(facturaItem);
       });
       this.cantidadHojas = Math.floor(facturaItemList.length / 7) + 1;
