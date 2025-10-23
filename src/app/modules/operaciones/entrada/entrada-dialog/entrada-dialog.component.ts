@@ -188,7 +188,7 @@ export class EntradaDialogComponent implements OnInit {
   }
 
   buscarSucursales() {
-    this.sucursalService.onGetAllSucursales(true, true).pipe(untilDestroyed(this)).subscribe((res) => {
+    this.sucursalService.onGetAllSucursalesByActive(true, true).pipe(untilDestroyed(this)).subscribe((res) => {
       this.sucursalList = res.sort((a, b) => {
         if (a.nombre < b.nombre) {
           return -1;

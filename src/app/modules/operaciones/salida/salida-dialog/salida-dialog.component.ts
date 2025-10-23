@@ -158,7 +158,7 @@ export class SalidaDialogComponent implements OnInit {
   }
 
   buscarSucursales() {
-    this.sucursalService.onGetAllSucursales(true, true).pipe(untilDestroyed(this)).subscribe((res) => {
+    this.sucursalService.onGetAllSucursalesByActive(true, true).pipe(untilDestroyed(this)).subscribe((res) => {
       this.sucursalList = res;
     });
   }

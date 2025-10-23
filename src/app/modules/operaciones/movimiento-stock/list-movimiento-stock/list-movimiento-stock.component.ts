@@ -165,7 +165,7 @@ export class ListMovimientoStockComponent implements OnInit {
 
     setTimeout(() => {
       this.sucursalService
-        .onGetAllSucursales(true, true)
+        .onGetAllSucursalesByActive(true, true)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.sucursalList = res.filter((s) => {

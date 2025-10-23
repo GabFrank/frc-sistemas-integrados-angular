@@ -45,7 +45,7 @@ export class AdicionarMaletinDialogComponent implements OnInit {
     this.idControl.disable();
     this.creadoEnControl.disable();
     this.usuarioControl.disable();
-    this.sucursalService.onGetAllSucursales(true, true).subscribe((res) => {
+    this.sucursalService.onGetAllSucursalesByActive(true, true).subscribe((res) => {
       this.sucursalList = res;
     });
   }

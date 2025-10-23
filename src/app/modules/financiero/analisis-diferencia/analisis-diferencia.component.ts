@@ -122,7 +122,7 @@ export class AnalisisDiferenciaComponent implements OnInit {
     this.isLoadingInitialData = true;
     
     forkJoin({
-      sucursales: this.sucursalService.onGetAllSucursales(true, true),
+      sucursales: this.sucursalService.onGetAllSucursalesByActive(true, true),
       monedas: this.monedaService.onGetAll(false)
     }).pipe(untilDestroyed(this)).subscribe({
       next: (results) => {

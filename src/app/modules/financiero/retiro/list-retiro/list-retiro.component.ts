@@ -74,7 +74,7 @@ export class ListRetiroComponent implements OnInit {
       sucursalControl: this.sucOrigenControl
     })
 
-    this.sucursalService.onGetAllSucursales(true, true).subscribe((res) => {
+    this.sucursalService.onGetAllSucursalesByActive(true, true).subscribe((res) => {
       this.sucursalList = res.filter(s => s.id != 0)
       this.sucOrigenControl.setValue(this.sucursalList.find(s => s.id == this.data?.tabData?.data?.sucursal?.id))
       this.idCajaControl.setValue(this.data?.tabData?.data?.caja?.id);

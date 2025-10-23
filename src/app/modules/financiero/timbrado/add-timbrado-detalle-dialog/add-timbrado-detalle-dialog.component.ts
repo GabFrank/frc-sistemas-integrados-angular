@@ -120,7 +120,7 @@ export class AddTimbradoDetalleDialogComponent implements OnInit {
 
   loadInitialData() {
     forkJoin({
-      sucursales: this.sucursalService.onGetAllSucursales(true, true),
+      sucursales: this.sucursalService.onGetAllSucursalesByActive(true, true),
       puntoDeVentas: this.puntoDeVentaService.onGetAllPuntoDeVentas(true)
     }).pipe(untilDestroyed(this)).subscribe({
       next: ({ sucursales, puntoDeVentas }) => {

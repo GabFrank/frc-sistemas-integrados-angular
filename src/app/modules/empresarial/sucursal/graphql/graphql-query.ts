@@ -1,5 +1,7 @@
 import gql from 'graphql-tag';
 
+// TODO: Agregar activo a la query de sucursales
+
 export const sucursalesQuery = gql
   `{
     data: sucursales {
@@ -22,7 +24,6 @@ export const sucursalesQuery = gql
       deposito
       codigoEstablecimientoFactura
       isConfigured
-      activo
     }
   }`;
 
@@ -49,7 +50,6 @@ export const sucursalesSearch = gql
       deposito
       codigoEstablecimientoFactura
       isConfigured
-      activo
     }
   }`
 
@@ -74,7 +74,6 @@ export const sucursalQuery = gql
       deposito
       codigoEstablecimientoFactura
       isConfigured
-      activo
     }
   }`
 
@@ -94,7 +93,6 @@ export const sucursalActualQuery = gql
       deposito
       codigoEstablecimientoFactura
       isConfigured
-      activo
     }
   }`
 
@@ -115,7 +113,6 @@ export const saveSucursal = gql
         deposito
         codigoEstablecimientoFactura
         isConfigured
-        activo
       }
     }`
 

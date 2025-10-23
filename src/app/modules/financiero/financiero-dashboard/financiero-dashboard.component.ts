@@ -112,7 +112,7 @@ export class FinancieroDashboardComponent implements OnInit {
   }
   
   cargarSucursales(): void {
-    this.sucursalService.onGetAllSucursales(true, true).subscribe((res) => {
+    this.sucursalService.onGetAllSucursalesByActive(true, true).subscribe((res) => {
       if (res) {
         this.sucursales = res;
       }

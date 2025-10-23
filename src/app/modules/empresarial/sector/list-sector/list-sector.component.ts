@@ -69,7 +69,7 @@ export class ListSectorComponent implements OnInit {
 
   ngOnInit(): void {
     this.sucursalList = []
-    this.sucursalService.onGetAllSucursales(true, true).subscribe((res) => {
+    this.sucursalService.onGetAllSucursalesByActive(true, true).subscribe((res) => {
       this.sucursalList = res.filter(s => s.id != 0);
     })
   }

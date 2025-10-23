@@ -89,7 +89,7 @@ export class AjustarStockDialogComponent implements OnInit {
   }
 
   cargarSucursales() {
-    this.sucursalService.onGetAllSucursales(true, true).subscribe(res => {
+    this.sucursalService.onGetAllSucursalesByActive(true, true).subscribe(res => {
       this.sucursales = res?.filter(sucursal => 
         sucursal.nombre != "SERVIDOR" && sucursal.nombre != "COMPRAS");
       
