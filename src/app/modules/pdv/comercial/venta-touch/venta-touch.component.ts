@@ -173,7 +173,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private cargandoService: CargandoDialogService,
     private dialogoService: DialogosService,
     private ventaService: VentaService, //ok
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private deliveryService: DeliveryService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -510,21 +511,13 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
         cantidad -= cantAux / item.presentacion.cantidad;
         item.cantidad = cantidad;
         item.precio = item?.precioVenta?.precio;
-
+        
         this.addItem(item2);
       }
     }
 
-    if (this.selectedItemList.length > 0 && index == null) {
-      index = this.selectedItemList.findIndex(
-        (i) =>
-          i.presentacion?.id == item.presentacion?.id &&
-          i.precioVenta?.precio == item.precioVenta?.precio
-      );
-    }
-    if (index != -1 && index != null) {
-      this.selectedItemList[index].cantidad += cantidad;
-    } else {
+    if (this.isDelivery) {
+      // DELIVERY: SIEMPRE AGREGA UNA NUEVA FILA
       if (item.cantidad > 0) {
         if (item.producto?.envase != null) {
           this.isDialogOpen = true;
@@ -545,32 +538,102 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 this.addItem(envaseRes);
               }
             });
+          return; // Frena el flujo aquí para el caso del envase
         }
-        if (this.isDelivery == true) {
-          item.venta = this.selectedDelivery.venta;
-          item.activo = true;
+        item.venta = this.selectedDelivery.venta;
+        item.activo = true;
+        this.ventaService
+          .onSaveVentaItem(item.toInput(), false)
+          .subscribe((ventaItemRes) => {
+            if (ventaItemRes != null) {
+              item.id = ventaItemRes.id;
+              item.sucursalId = ventaItemRes.sucursalId;
+              this.selectedItemList.push(item);
+              this.calcularTotales();
+              let venta = new Venta();
+              Object.assign(venta, this.selectedDelivery.venta);
+              venta.totalGs = this.totalGs;
+              venta.totalRs = this.totalGs / this.cambioRs;
+              venta.totalDs = this.totalGs / this.cambioDs;
+              venta.delivery = this.selectedDelivery;
+              this.ventaService.onSaveVenta2(venta.toInput(), false).subscribe();
+            }
+          });
+      }
+    } else {
+      // VENTA NORMAL: AGRUPA Y SUMA CANTIDAD SI YA EXISTE
+      item.venta = this.selectedVenta;
+      const indexAgrupar = this.selectedItemList.findIndex(
+        (i) =>
+          i.producto?.id === item.producto?.id &&
+          i.presentacion?.id === item.presentacion?.id &&
+          i.precioVenta?.id === item.precioVenta?.id
+      );
+
+      if (indexAgrupar >= 0) {
+        this.selectedItemList[indexAgrupar].cantidad += +item.cantidad;
+        this.selectedItemList[indexAgrupar].venta = this.selectedVenta;
+        // Solo llamar onSaveVentaItem si la venta ya existe (tiene id)
+        if (this.selectedVenta && this.selectedVenta.id) {
           this.ventaService
-            .onSaveVentaItem(item.toInput(), false)
+            .onSaveVentaItem(this.selectedItemList[indexAgrupar].toInput(), false)
             .subscribe((ventaItemRes) => {
               if (ventaItemRes != null) {
-                item.id = ventaItemRes.id;
-                item.sucursalId = ventaItemRes.sucursalId;
-                this.selectedItemList.push(item);
                 this.calcularTotales();
-                let venta = new Venta();
-                Object.assign(venta, this.selectedDelivery.venta);
-                venta.totalGs = this.totalGs;
-                venta.totalRs = this.totalGs / this.cambioRs;
-                venta.totalDs = this.totalGs / this.cambioDs;
-                venta.delivery = this.selectedDelivery;
-                this.ventaService.onSaveVenta2(venta.toInput(), false).subscribe();
+              } else {
+                this.selectedItemList[indexAgrupar].cantidad -= +item.cantidad;
+                this.notificacionSnackbar.notification$.next({
+                  color: NotificacionColor.danger,
+                  texto: "Error al actualizar el ítem",
+                  duracion: 3,
+                });
               }
             });
         } else {
+          // Solo actualiza totales en frontend, no hace update backend
+          this.calcularTotales();
+        }
+      } else {
+        if (item.cantidad > 0) {
+          if (item.producto?.envase != null) {
+            this.isDialogOpen = true;
+            this.dialogReference = this.dialog
+              .open(SeleccionarEnvaseDialogComponent, {
+                data: {
+                  envase: item.producto.envase,
+                  cantidad: item.cantidad * item.presentacion.cantidad,
+                },
+                disableClose: true,
+              })
+              .afterClosed()
+              .pipe(untilDestroyed(this))
+              .subscribe((envaseRes) => {
+                this.isDialogOpen = false;
+                this.dialogReference = undefined;
+                if (envaseRes != null) {
+                  this.addItem(envaseRes);
+                }
+              });
+            return;
+          }
+          // Antes de guardar nuevo item, asegúrate de que el .venta está asignado:
+          item.venta = this.selectedVenta;
           this.selectedItemList.push(item);
+          if (this.selectedVenta && this.selectedVenta.id) {
+            this.ventaService
+              .onSaveVentaItem(item.toInput(), false)
+              .subscribe((ventaItemRes) => {
+                if (ventaItemRes != null) {
+                  this.calcularTotales();
+                }
+              });
+          } else {
+            this.calcularTotales();
+          }
         }
       }
     }
+
     this.calcularTotales();
     item.cantidad = cantidad;
     if (item.cantidad > 0) this.ultimoAdicionado.push(item);

@@ -1,5 +1,10 @@
 th, td {
-    text-align: center;
+    text-align: center !important;
+}
+
+::ng-deep .mat-sort-header-container {
+    justify-content: center !important;
+    align-items: center !important;
 }
 
 .mat-column-acciones {
@@ -7,15 +12,8 @@ th, td {
 }
 
 .action-buttons {
-    display: flex;
     justify-content: center;
     gap: 8px;
-}
-
-.titulo-center {
-    text-align: center;
-    font-weight: 500;
-    margin-bottom: 1rem;
 }
 
 table {
@@ -68,5 +66,48 @@ table {
 @media (max-width: 768px) {
     ::ng-deep .mat-mdc-dialog-container .mdc-dialog__surface {
         min-width: 100%;
+    }
+}
+
+h2 {
+    margin: 0 !important;
+}
+
+// Contenedor principal con posición relativa
+.container-fluid {
+    position: relative;
+    padding: 16px;
+}
+
+// Tabla scrolleable con altura fija
+.table-scroll-container {
+    height: 578px; // Altura fija para la tabla
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+}
+
+// Asegurar que el paginator no se mueva
+.mat-mdc-paginator {
+    flex-shrink: 0;
+    border-top: 1px solid #e0e0e0;
+}
+
+// Botón Salir fijo en esquina del diálogo
+.exit-button-container {
+    position: absolute;
+    bottom: 6px;
+    right: 16px;
+    z-index: 1000;
+}
+
+// Dark theme adjustments for scroll container
+::ng-deep .mat-mdc-dialog-container {
+    .table-scroll-container {
+        border-color: rgba(255, 255, 255, 0.12);
+    }
+    
+    .mat-mdc-paginator {
+        border-top-color: rgba(255, 255, 255, 0.12);
     }
 }
