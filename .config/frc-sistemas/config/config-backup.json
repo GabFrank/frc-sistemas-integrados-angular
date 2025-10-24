@@ -6,11 +6,11 @@
   "local": "Caja 1",
   "precios": "EXPO, EXPO-DEPOSITO",
   "modo": "NOT",
-  "pdvId": 7,
+  "pdvId": 1,
   "isConfigured": true,
-  "isLocal": false,
+  "isLocal": true,
   "printers": {
-    "ticket": "ticket_soporte",
+    "ticket": "ticket",
     "factura": "factura"
   }
 }

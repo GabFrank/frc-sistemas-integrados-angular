@@ -527,3 +527,78 @@ export const inventarioProductoItemQuery = gql`
     }
   }
 `;
+
+/* 🆕 NUEVA QUERY: productosVencidos */
+export const productosVencidosQuery = gql`
+  query ProductosVencidos(
+    $startDate: String
+    $endDate: String
+    $sucursalIdList: [Int]
+    $sectorIdList: [Int]
+    $zonaIdList: [Int]
+    $usuarioIdList: [ID]
+    $productoIdList: [ID]
+    $soloRealmenteVencidos: Boolean
+    $page: Int
+    $size: Int
+  ) {
+    productosVencidos(
+      startDate: $startDate
+      endDate: $endDate
+      sucursalIdList: $sucursalIdList
+      sectorIdList: $sectorIdList
+      zonaIdList: $zonaIdList
+      usuarioIdList: $usuarioIdList
+      productoIdList: $productoIdList
+      soloRealmenteVencidos: $soloRealmenteVencidos
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getPageable {
+        getPageNumber
+        getPageSize
+      }
+      getContent {
+        id
+        inventarioProducto {
+          id
+          inventario {
+            id
+            sucursal {
+              id
+              nombre
+            }
+          }
+        }
+        zona {
+          id
+        }
+        presentacion {
+          id
+          cantidad
+          producto {
+            id
+            descripcion
+            codigoPrincipal
+          }
+        }
+        cantidad
+        cantidadFisica
+        vencimiento
+        estado
+        creadoEn
+        usuario {
+          id
+          nickname
+        }
+      }
+    }
+  }
+`;

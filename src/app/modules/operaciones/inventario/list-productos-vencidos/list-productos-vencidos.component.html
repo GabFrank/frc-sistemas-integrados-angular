@@ -1,0 +1,350 @@
+<app-generic-list
+  titulo="Productos Vencidos"
+  (filtrar)="onFiltrar()"
+  [isCustom]="true"
+  customName="Generar Pdf"
+  (customFunction)="onGenerarPdf()"
+  (resetFiltro)="onResetFiltro()"
+>
+  <div filtros>
+    <div
+      fxLayout="row"
+      fxLayoutAlign="start center"
+      fxLayoutGap="10px"
+      style="width: 100%"
+    >
+      <div fxFlex="30%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Rango de fecha</mat-label>
+          <mat-date-range-input
+            [formGroup]="fechaFormGroup"
+            [rangePicker]="picker"
+            style="width: 100%"
+          >
+            <input
+              matStartDate
+              formControlName="inicio"
+              placeholder="Inicio"
+              [max]="today"
+            />
+            <input
+              matEndDate
+              formControlName="fin"
+              placeholder="Fin"
+              [min]="fechaFormGroup.get('inicio')?.value"
+              [max]="today"
+            />
+          </mat-date-range-input>
+          <mat-datepicker-toggle
+            matSuffix
+            [for]="picker"
+          ></mat-datepicker-toggle>
+          <mat-date-range-picker #picker></mat-date-range-picker>
+
+          <mat-error *ngIf="fechaFormGroup.controls.inicio.hasError('matStartDateInvalid')">
+            Fecha inicial inválida
+          </mat-error>
+          <mat-error *ngIf="fechaFormGroup.controls.fin.hasError('matEndDateInvalid')">
+            Fecha final inválida
+          </mat-error>
+        </mat-form-field>
+      </div>
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Sucursales</mat-label>
+          <mat-select 
+            #sucursalSelect 
+            [formControl]="sucursalControl" 
+            multiple
+          >
+            <mat-select-trigger>
+              {{ (sucursalControl.value?.[0]?.nombre || '') }}
+              <span
+                *ngIf="(sucursalControl.value?.length || 0) > 1"
+                class="example-additional-selection"
+              >
+                (+{{ (sucursalControl.value?.length || 0) - 1 }}
+                {{ sucursalControl.value?.length === 2 ? 'otro' : 'otros' }})
+              </span>
+            </mat-select-trigger>
+            <div class="select-all-container">
+              <button
+                mat-icon-button
+                (click)="onSeleccionarTodasSucursales(); $event.stopPropagation()"
+                class="select-all-button"
+              >
+                <mat-icon>select_all</mat-icon>
+              </button>
+            </div>
+            
+            <mat-option
+              *ngFor="let sucursal of sucursalList; trackBy: trackBySucursalId"
+              [value]="sucursal"
+            >
+              {{ sucursal.nombre }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Sectores</mat-label>
+          <mat-select 
+            #sectorSelect 
+            [formControl]="sectorControl" 
+            multiple
+          >
+            <mat-select-trigger>
+              {{ (sectorControl.value?.[0]?.descripcion || '') }}
+              <span
+                *ngIf="(sectorControl.value?.length || 0) > 1"
+                class="example-additional-selection"
+              >
+                (+{{ (sectorControl.value?.length || 0) - 1 }}
+                {{ sectorControl.value?.length === 2 ? 'otro' : 'otros' }})
+              </span>
+            </mat-select-trigger>
+            <div class="select-all-container">
+              <button
+                mat-icon-button
+                (click)="onSeleccionarTodosSectores(); $event.stopPropagation()"
+                class="select-all-button"
+              >
+                <mat-icon>select_all</mat-icon>
+              </button>
+            </div>
+            
+            <mat-option
+              *ngFor="let sector of sectorList; trackBy: trackBySectorId"
+              [value]="sector"
+            >
+              {{ sector.descripcion }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Zonas</mat-label>
+          <mat-select 
+            #zonaSelect 
+            [formControl]="zonaControl" 
+            multiple
+          >
+            <mat-select-trigger>
+              {{ (zonaControl.value?.[0]?.descripcion || '') }}
+              <span
+                *ngIf="(zonaControl.value?.length || 0) > 1"
+                class="example-additional-selection"
+              >
+                (+{{ (zonaControl.value?.length || 0) - 1 }}
+                {{ zonaControl.value?.length === 2 ? 'otra' : 'otras' }})
+              </span>
+            </mat-select-trigger>
+            <div class="select-all-container">
+              <button
+                mat-icon-button
+                (click)="onSeleccionarTodasZonas(); $event.stopPropagation()"
+                class="select-all-button"
+              >
+                <mat-icon>select_all</mat-icon>
+              </button>
+            </div>
+            
+            <mat-option
+              *ngFor="let zona of zonaList; trackBy: trackByZonaId"
+              [value]="zona"
+            >
+              {{ zona.descripcion }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="20%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Ordenar por</mat-label>
+          <mat-select [formControl]="ordenarPorControl">
+            <mat-option
+              *ngFor="let orden of orderList; trackBy: trackByOrderValue"
+              [value]="orden"
+            >
+              {{ orden.nombre }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="10%">
+        <mat-checkbox [formControl]="soloRealmenteVencidosControl">
+          Solo realmente vencidos
+        </mat-checkbox>
+      </div>
+    </div>
+    <div
+      fxLayout="row"
+      fxLayoutAlign="start center"
+      fxLayoutGap="10px"
+      style="width: 100%"
+    >
+      <div fxFlex="50%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Buscar producto</mat-label>
+          <input
+            #buscadorInput
+            matInput
+            [formControl]="buscarProductoControl"
+            (keyup.enter)="onBuscarProducto()"
+            (focusin)="buscadorInput.select()"
+            placeholder="Buscar producto..."
+            [readonly]="!!selectedProducto"
+          />
+          <span matTextSuffix class="suffix-actions">
+            <button
+              mat-icon-button
+              (click)="onBuscarProducto(); $event.stopPropagation()"
+              class="icon-button"
+              matTooltip="Buscar producto"
+            >
+              <mat-icon>search</mat-icon>
+            </button>
+            <button
+              *ngIf="selectedProducto"
+              mat-icon-button
+              (click)="onClearProducto(); $event.stopPropagation()"
+              class="icon-button clear-button"
+              matTooltip="Limpiar producto"
+            >
+              <mat-icon>clear</mat-icon>
+            </button>
+          </span>
+        </mat-form-field>
+      </div>
+      <div fxFlex="50%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Buscar usuario</mat-label>
+          <input
+            #buscarUsuarioInput
+            matInput
+            [formControl]="buscarUsuarioControl"
+            (keyup.enter)="onBuscarUsuario()"
+            (focusin)="buscarUsuarioInput.select()"
+            placeholder="Buscar usuario..."
+            [readonly]="!!selectedUsuario"
+          />
+          <span matTextSuffix class="suffix-actions">
+            <button
+              mat-icon-button
+              (click)="onBuscarUsuario(); $event.stopPropagation()"
+              class="icon-button"
+              matTooltip="Buscar usuario"
+            >
+              <mat-icon>search</mat-icon>
+            </button>
+            <button
+              *ngIf="selectedUsuario"
+              mat-icon-button
+              (click)="onClearUsuario(); $event.stopPropagation()"
+              class="icon-button clear-button"
+              matTooltip="Limpiar usuario"
+            >
+              <mat-icon>clear</mat-icon>
+            </button>
+          </span>
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+  <div
+    table
+    class="table-container"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
+    <div class="table-wrapper">
+      <table
+        mat-table
+        [dataSource]="dataSource"
+        [trackBy]="trackByItemId"
+        multiTemplateDataRows
+        class="mat-elevation-z8 data-table"
+      >
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+            Descripción
+          </th>
+          <td mat-cell *matCellDef="let item" class="data-cell text-center">
+            {{ item?.presentacion?.producto?.descripcion | uppercase }}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="codigoBarras">
+          <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+            Código de barras
+          </th>
+          <td mat-cell *matCellDef="let item" class="data-cell text-center">
+            {{ item?.presentacion?.producto?.codigoPrincipal }}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="cantidadSistema">
+          <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+            Cantidad en sistema
+          </th>
+          <td mat-cell *matCellDef="let item" class="data-cell text-center">
+            {{ item?.cantidad | number:'1.0-2' }}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="vencimiento">
+          <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+            Vencimiento
+          </th>
+          <td 
+            mat-cell 
+            *matCellDef="let item" 
+            class="data-cell text-center vencimiento-cell"
+            [style.color]="getVencimientoColor(item)"
+          >
+            {{ item?.vencimiento | date:'dd/MM/yyyy' }}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="sucursal">
+          <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
+            Sucursal
+          </th>
+          <td mat-cell *matCellDef="let item" class="data-cell text-center">
+            {{ item?.inventarioProducto?.inventario?.sucursal?.nombre }}
+          </td>
+        </ng-container>
+        <tr 
+          mat-header-row 
+          *matHeaderRowDef="displayedColumns; sticky: true" 
+          class="header-row"
+        ></tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns;"
+          [class.selected-row]="expandedInventarioProductoItem === row"
+          (click)="onRowClick(row)"
+          class="data-row"
+        ></tr>
+        <tr class="empty-row" *ngIf="dataSource.data.length === 0">
+          <td 
+            class="empty-cell" 
+            [attr.colspan]="displayedColumns.length" 
+          >
+            <div class="empty-message">
+              {{ length === 0 ? 'No se encontraron productos vencidos' : 'Cargando...' }}
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <mat-paginator
+      [pageIndex]="pageIndex"
+      [length]="length"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="pageSizeOptions"
+      (page)="handlePageEvent($event)"
+      showFirstLastButtons
+      class="paginator full-width-paginator"
+    >
+    </mat-paginator>
+  </div>
+</app-generic-list>
