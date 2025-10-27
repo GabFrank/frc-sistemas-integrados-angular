@@ -1,6 +1,6 @@
-<div class="container-fluid" style="padding: 16px;" fxLayout="column" style="height: 100%; width: 100%;">
-    <div class="row" fxFlex="10">
-        <div class="col-12 mb-3">
+<div class="container-fluid" fxLayout="column" style="height: 100%; width: 100%;">
+    <div class="row" style="justify-content: center;">
+        <div>
             <h2 class="titulo-center">{{titulo}}</h2>
         </div>
     </div>
@@ -13,12 +13,32 @@
                         <div class="col-md-8">
                             <mat-form-field appearance="outline" style="width: 100%;">
                                 <mat-label>Código de venta</mat-label>
-                                <input matInput type="number" [formControl]="codigoVentaControl"
-                                    (keyup.enter)="onBuscarPorCodigo()">
-                                <mat-icon matSuffix>search</mat-icon>
+                                <input 
+                                    matInput 
+                                    type="number" 
+                                    [formControl]="codigoVentaControl"
+                                    (keyup.enter)="onBuscarPorCodigo()"
+                                >
+                                <button 
+                                    mat-icon-button 
+                                    matSuffix 
+                                    type="button" 
+                                    *ngIf="codigoVentaControl.value"
+                                    (click)="codigoVentaControl.setValue(null); onLimpiarFiltro()"
+                                >
+                                    <mat-icon>clear</mat-icon>
+                                </button>
+                               <button 
+                                    mat-icon-button 
+                                    matSuffix 
+                                    type="button" 
+                                    (click)="onBuscarPorCodigo()"
+                                >
+                                <mat-icon>search</mat-icon>
+                               </button>
                             </mat-form-field>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4" style="align-self: center;">
                             <button mat-raised-button color="primary" class="w-100"
                                 (click)="onBuscarPorCodigo()">Buscar</button>
                         </div>
@@ -28,7 +48,7 @@
         </div>
     </div>
 
-    <div class="row" fxFlex="70" style="height: 100%; width: 100%;">
+    <div class="row" fxFlex="70" style="height: 100%; width: 100%; align-self: center;">
         <div class="col-12">
             <div *ngIf="isLoading" class="text-center p-3">
                 <mat-spinner diameter="40" class="mx-auto"></mat-spinner>
@@ -36,102 +56,146 @@
             </div>
 
             <div class="mat-elevation-z2" *ngIf="!isLoading">
-                <table mat-table [dataSource]="dataSource" matSort class="w-100">
-                    <!-- ID Column -->
-                    <ng-container matColumnDef="id">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header> ID </th>
-                        <td mat-cell *matCellDef="let venta"> {{venta.id}} </td>
-                    </ng-container>
+                <!-- Solo la tabla es scrolleable -->
+                <div class="table-scroll-container">
+                    <table mat-table [dataSource]="dataSource" matSort class="w-100">
+                        <!-- ID Column -->
+                        <ng-container matColumnDef="id">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header> ID </th>
+                            <td mat-cell *matCellDef="let venta"> 
+                                {{venta.id}} 
+                            </td>
+                        </ng-container>
 
-                    <!-- Modo Column -->
-                    <ng-container matColumnDef="modo">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header> Modo </th>
-                        <td mat-cell *matCellDef="let venta"> {{venta.delivery == null ? 'NORMAL' : 'DELIVERY'}} </td>
-                    </ng-container>
+                        <!-- Modo Column -->
+                        <ng-container matColumnDef="modo">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header> Modo </th>
+                            <td mat-cell *matCellDef="let venta"> 
+                                {{venta.delivery == null ? 'NORMAL' : 'DELIVERY'}} 
+                            </td>
+                        </ng-container>
 
-                    <!-- Precio Delivery Column -->
-                    <ng-container matColumnDef="precioDelivery">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header> Precio delivery </th>
-                        <td mat-cell *matCellDef="let venta"> {{venta.delivery?.precio?.valor | number: '1.0-2'}} </td>
-                    </ng-container>
+                        <!-- Precio Delivery Column -->
+                        <ng-container matColumnDef="precioDelivery">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header> Precio delivery </th>
+                            <td mat-cell *matCellDef="let venta"> 
+                                {{venta.delivery?.precio?.valor | number: '1.0-2'}} 
+                            </td>
+                        </ng-container>
 
-                    <!-- Total Gs Column -->
-                    <ng-container matColumnDef="totalGs">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header> Total Gs </th>
-                        <td mat-cell *matCellDef="let venta"> {{venta.totalGs | number: '1.0-2'}} </td>
-                    </ng-container>
+                        <!-- Total Gs Column -->
+                        <ng-container matColumnDef="totalGs">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header> Total Gs </th>
+                            <td mat-cell *matCellDef="let venta"> 
+                                {{venta.totalGs | number: '1.0-2'}} 
+                            </td>
+                        </ng-container>
 
-                    <!-- Total Rs Column -->
-                    <ng-container matColumnDef="totalRs">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header> Total Rs </th>
-                        <td mat-cell *matCellDef="let venta"> {{venta.totalRs | number: '1.2-2'}} </td>
-                    </ng-container>
+                        <!-- Total Rs Column -->
+                        <ng-container matColumnDef="totalRs">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header> Total Rs </th>
+                            <td mat-cell *matCellDef="let venta"> 
+                                {{venta.totalRs | number: '1.2-2'}} 
+                            </td>
+                        </ng-container>
 
-                    <!-- Total Ds Column -->
-                    <ng-container matColumnDef="totalDs">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header> Total Ds </th>
-                        <td mat-cell *matCellDef="let venta"> {{venta.totalDs | number: '1.2-2'}} </td>
-                    </ng-container>
+                        <!-- Total Ds Column -->
+                        <ng-container matColumnDef="totalDs">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header> Total Ds </th>
+                            <td mat-cell *matCellDef="let venta"> 
+                                {{venta.totalDs | number: '1.2-2'}} 
+                            </td>
+                        </ng-container>
 
-                    <!-- Estado Column -->
-                    <ng-container matColumnDef="estado">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header> Estado </th>
-                        <td mat-cell *matCellDef="let venta">
-                            <span [ngClass]="{
-                                        'badge bg-success': venta.estado === 'CONCLUIDA',
-                                        'badge bg-danger': venta.estado === 'CANCELADA',
-                                        'badge bg-warning': venta.estado !== 'CONCLUIDA' && venta.estado !== 'CANCELADA'
-                                    }">
-                                {{venta.estado}}
-                            </span>
-                        </td>
-                    </ng-container>
+                        <!-- Estado Column -->
+                        <ng-container matColumnDef="estado">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header> Estado </th>
+                            <td mat-cell *matCellDef="let venta">
+                                <span class="badge" 
+                                    [ngClass]="{
+                                        'bg-success': venta.estado === 'CONCLUIDA',
+                                        'bg-danger': venta.estado === 'CANCELADA',
+                                        'bg-warning': venta.estado !== 'CONCLUIDA' && venta.estado !== 'CANCELADA'
+                                    }"
+                                >
+                                    {{venta.estado}}
+                                </span>
+                            </td>
+                        </ng-container>
 
-                    <!-- Cliente Column -->
-                    <ng-container matColumnDef="cliente">
-                        <th mat-header-cell *matHeaderCellDef mat-sort-header> Cliente </th>
-                        <td mat-cell *matCellDef="let venta"> {{(venta?.cliente != null ?
-                            venta?.cliente?.persona?.nombre : 'OCASIONAL') | uppercase}} </td>
-                    </ng-container>
+                        <!-- Cliente Column -->
+                        <ng-container matColumnDef="cliente">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header> Cliente </th>
+                            <td mat-cell *matCellDef="let venta"> 
+                                {{(venta?.cliente != null ?
+                                venta?.cliente?.persona?.nombre : 'OCASIONAL') | uppercase}} 
+                            </td>
+                        </ng-container>
 
-                    <!-- Acciones Column -->
-                    <ng-container matColumnDef="acciones">
-                        <th mat-header-cell *matHeaderCellDef> Acciones </th>
-                        <td mat-cell *matCellDef="let venta; let i = index" class="action-buttons">
-                            <button *ngIf="data?.cancelacion == true && venta?.estado == 'CONCLUIDA'" mat-mini-fab
-                                color="warn" matTooltip="Cancelar venta" (click)="cancelarVenta(venta, i)">
-                                <mat-icon>cancel</mat-icon>
-                            </button>
-                            <button *ngIf="data?.reimpresion == true" mat-mini-fab color="primary"
-                                matTooltip="Reimprimir venta" (click)="reimpresionVenta(venta.id)">
-                                <mat-icon>print</mat-icon>
-                            </button>
-                        </td>
-                    </ng-container>
+                        <!-- Acciones Column -->
+                        <ng-container matColumnDef="acciones">
+                            <th mat-header-cell *matHeaderCellDef> Acciones </th>
+                            <td 
+                                mat-cell 
+                                *matCellDef="let venta; 
+                                let i = index" 
+                                class="action-buttons"
+                            >
+                                <button 
+                                    mat-mini-fab
+                                    color="warn" 
+                                    matTooltip="Cancelar venta" 
+                                    (click)="cancelarVenta(venta, i)"
+                                    *ngIf="data?.cancelacion == true && venta?.estado == 'CONCLUIDA'"
+                                >
+                                    <mat-icon>cancel</mat-icon>
+                                </button>
+                                <button 
+                                    mat-mini-fab
+                                    color="primary"
+                                    *ngIf="data?.reimpresion == true" 
+                                    matTooltip="Reimprimir venta" (click)="reimpresionVenta(venta.id)"
+                                >
+                                    <mat-icon>print</mat-icon>
+                                </button>
+                            </td>
+                        </ng-container>
 
-                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-                    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+                        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
 
-                    <!-- Row shown when there is no matching data -->
-                    <tr class="mat-row" *matNoDataRow>
-                        <td class="mat-cell p-5 text-center" [attr.colspan]="displayedColumns.length">
-                            No se encontraron registros que coincidan con los criterios de búsqueda.
-                        </td>
-                    </tr>
-                </table>
+                        <!-- Row shown when there is no matching data -->
+                        <tr class="mat-row" *matNoDataRow>
+                            <td class="mat-cell p-5 text-center" [attr.colspan]="displayedColumns.length">
+                                No se encontraron registros que coincidan con los criterios de búsqueda.
+                            </td>
+                        </tr>
+                    </table>
+                </div>
 
-                <mat-paginator #paginator itemsPerPageLabel="Itens por página" [pageSizeOptions]="pageSizeOptions"
-                    [pageSize]="pageSize" [length]="selectedPageInfo?.getTotalElements" (page)="handlePageEvent($event)"
+                <mat-paginator 
+                    #paginator 
+                    itemsPerPageLabel="Itens por página" 
+                    [pageSizeOptions]="pageSizeOptions"
+                    [pageSize]="pageSize" 
+                    [pageIndex]="pageIndex"
+                    [length]="selectedPageInfo?.getTotalElements" 
+                    [disabled]="isSearchMode"
+                    (page)="handlePageEvent($event)"
                     showFirstLastButtons>
                 </mat-paginator>
             </div>
         </div>
     </div>
 
-    <!-- add here a salir button on the right side of the page -->
-    <div class="row" fxFlex="10">
-        <div style="text-align: right; width: 100%; padding-right: 50px;">
-            <button mat-raised-button color="primary" style="width: 120px;" (click)="salir()">Salir</button>
-        </div>
+    <div class="exit-button-container">
+        <button 
+            color="primary" 
+            (click)="salir()" 
+            mat-raised-button 
+            style="width: 120px;"
+        >
+            Salir
+        </button>
     </div>
 </div>

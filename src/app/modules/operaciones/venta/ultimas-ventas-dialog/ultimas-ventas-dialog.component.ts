@@ -1,7 +1,6 @@
 import { Component, Inject, OnInit, ViewChild } from "@angular/core";
 import { FormControl } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
-import { MatTableDataSource } from "@angular/material/table";
 import {
   NotificacionColor,
   NotificacionSnackbarService,
@@ -34,12 +33,13 @@ import { PageInfo } from "../../../../app.component";
 export class UltimasVentasDialogComponent implements OnInit {
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
-  dataSource = new MatTableDataSource<Venta>([]);
+  dataSource: Venta[] = [];
   selectedVenta: Venta;
   codigoVentaControl = new FormControl();
   titulo = "";
   isLoading = false;
   selectedPageInfo: PageInfo<Venta>;
+  isSearchMode = false; // Para controlar si estamos en modo búsqueda por código
 
   // Pagination properties
   pageIndex = 0;
@@ -64,7 +64,7 @@ export class UltimasVentasDialogComponent implements OnInit {
     private ventaService: VentaService,
     private cargandoService: CargandoDialogService,
     private notificacionSnackBar: NotificacionSnackbarService,
-    private dialogService: DialogosService
+    private dialogService: DialogosService,
   ) {
     if (data?.cancelacion == true) {
       this.titulo = "CANCELAR VENTA";
@@ -85,12 +85,17 @@ export class UltimasVentasDialogComponent implements OnInit {
         this.isLoading = false;
         if (res != null) {
           this.selectedPageInfo = res;
-          this.dataSource.data = res.getContent;
+          this.dataSource = [...res.getContent];
         }
       });
   }
 
   handlePageEvent(e: PageEvent) {
+    // No permitir paginación en modo búsqueda
+    if (this.isSearchMode) {
+      return;
+    }
+    
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
     this.cargarVentas();
@@ -98,12 +103,28 @@ export class UltimasVentasDialogComponent implements OnInit {
 
   onBuscarPorCodigo() {
     if (this.codigoVentaControl.value != null) {
+<<<<<<< HEAD
+=======
+      this.isSearchMode = true; // Activar modo búsqueda
+      this.cargandoService.openDialog();
+>>>>>>> fd-63
       this.ventaService
         .onGetPorId(this.codigoVentaControl.value, null, null, false).pipe(untilDestroyed(this))
         .subscribe((res) => {
           if (res != null) {
-            this.dataSource.data = [res];
+            this.dataSource = [res];
+            // Crear un PageInfo ficticio para un solo elemento
+            this.selectedPageInfo = {
+              getContent: [res],
+              getTotalElements: 1,
+              getTotalPages: 1,
+              getNumberOfElements: 1,
+              isFirst: true,
+              isLast: true
+            } as PageInfo<Venta>;
           } else {
+            this.dataSource = [];
+            this.selectedPageInfo = null;
             this.notificacionSnackBar.notification$.next({
               texto:
                 "Venta con código " +
@@ -130,7 +151,7 @@ export class UltimasVentasDialogComponent implements OnInit {
             if (res) {
               this.notificacionSnackBar.openSucess("Cancelado con éxito");
               venta.estado = VentaEstado.CANCELADA;
-              this.dataSource.data = updateDataSource(this.dataSource.data, venta, index);
+              this.dataSource = updateDataSource(this.dataSource, venta, index);
               this.reimpresionVenta(venta.id);
             }
           });
@@ -144,6 +165,13 @@ export class UltimasVentasDialogComponent implements OnInit {
         this.notificacionSnackBar.openSucess("Reimpreso con éxito");
       }
     });
+  }
+
+  onLimpiarFiltro() {
+    this.isSearchMode = false;
+    this.codigoVentaControl.setValue(null);
+    this.pageIndex = 0;
+    this.cargarVentas();
   }
 
   salir() {
