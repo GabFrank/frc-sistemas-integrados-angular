@@ -103,11 +103,8 @@ export class UltimasVentasDialogComponent implements OnInit {
 
   onBuscarPorCodigo() {
     if (this.codigoVentaControl.value != null) {
-<<<<<<< HEAD
-=======
       this.isSearchMode = true; // Activar modo búsqueda
       this.cargandoService.openDialog();
->>>>>>> fd-63
       this.ventaService
         .onGetPorId(this.codigoVentaControl.value, null, null, false).pipe(untilDestroyed(this))
         .subscribe((res) => {
