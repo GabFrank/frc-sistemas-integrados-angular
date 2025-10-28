@@ -49,6 +49,31 @@
   font-weight: 600;
 }
 
+// Estilos específicos para la nueva columna de días de vencimiento
+.dias-vencimiento-cell {
+  font-weight: 500;
+  font-size: 0.9em;
+  text-transform: capitalize;
+  
+  // Estilo para productos vencidos
+  &.vencido {
+    background: rgba(244, 67, 54, 0.1);
+    border-left: 3px solid #f44336;
+  }
+  
+  // Estilo para productos que vencen pronto
+  &.por-vencer {
+    background: rgba(255, 152, 0, 0.1);
+    border-left: 3px solid #ff9800;
+  }
+  
+  // Estilo para productos con tiempo suficiente
+  &.vigente {
+    background: rgba(76, 175, 80, 0.1);
+    border-left: 3px solid #4caf50;
+  }
+}
+
 // Filas
 .header-row {
   background-color: #424242;

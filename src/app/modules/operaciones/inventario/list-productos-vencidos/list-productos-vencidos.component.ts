@@ -12,10 +12,6 @@ import {
 } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
 import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
-import { Sector } from "../../../empresarial/sector/sector.model";
-import { SectorService } from "../../../empresarial/sector/sector.service";
-import { Zona } from "../../../empresarial/zona/zona.model";
-import { ZonaService } from "../../../empresarial/zona/zona.service";
 import { UsuarioSearchGQL } from "../../../personas/usuarios/graphql/usuarioSearch";
 import { Usuario } from "../../../personas/usuarios/usuario.model";
 import {
@@ -31,23 +27,10 @@ import { PageEvent } from "@angular/material/paginator";
 import { ProductosVencidosGQL } from "../graphql/productos-vencidos.gql";
 import { TabService } from "../../../../layouts/tab/tab.service";
 
-export interface OrderList {
-  nombre: string;
-  value: string;
-  tipo: TipoOrder[];
-}
-
-export interface TipoOrder {
-  nombre: string;
-  value: string;
-}
-
 export interface ProductosVencidosFilters {
   startDate?: string;
   endDate?: string;
   sucursalIdList?: number[];
-  sectorIdList?: number[];
-  zonaIdList?: number[];
   usuarioIdList?: number[];
   productoIdList?: number[];
   soloRealmenteVencidos?: boolean;
@@ -64,76 +47,43 @@ export interface ProductosVencidosFilters {
 })
 export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   @Input() data: Tab;
-  
+
   @ViewChild("buscarUsuarioInput", { static: true }) buscadorUsuarioInput: ElementRef;
   @ViewChild("buscadorInput", { static: true }) buscadorInput: ElementRef;
   dataSource = new MatTableDataSource<InventarioProductoItem>([]);
   expandedInventarioProductoItem: InventarioProductoItem;
   fechaFormGroup: FormGroup;
   sucursalControl = new FormControl();
-  sectorControl = new FormControl();
-  zonaControl = new FormControl();
   buscarUsuarioControl = new FormControl();
   buscarProductoControl = new FormControl();
-  ordenarPorControl = new FormControl();
   soloRealmenteVencidosControl = new FormControl(false);
   sucursalList: Sucursal[] = [];
-  sectorList: Sector[] = [];
-  zonaList: Zona[] = [];
   selectedUsuario: Usuario | null = null;
   selectedProducto: Producto | null = null;
   length = 0;
   pageSize = 15;
   pageIndex = 0;
   readonly pageSizeOptions = [15, 25, 50, 100];
+  private readonly vencimientoColorCache = new Map<string, string>();
+  private readonly diasDiferenciaCache = new Map<string, number>();
+  
   private filtersSubject = new BehaviorSubject<ProductosVencidosFilters>({
     page: 0,
     size: 15
   });
-  
+
   private isDialogOpen = false;
-  today = new Date();
-  readonly orderList: OrderList[] = [
-    {
-      nombre: "Fecha de creación",
-      value: "creadoEn",
-      tipo: [
-        { nombre: "Ascendente", value: "ASC" },
-        { nombre: "Descendente", value: "DESC" },
-      ],
-    },
-    {
-      nombre: "Vencimiento",
-      value: "vencimiento",
-      tipo: [
-        { nombre: "Ascendente", value: "ASC" },
-        { nombre: "Descendente", value: "DESC" },
-      ],
-    },
-    {
-      nombre: "Producto",
-      value: "producto",
-      tipo: [
-        { nombre: "Ascendente", value: "ASC" },
-        { nombre: "Descendente", value: "DESC" },
-      ],
-    },
-    {
-      nombre: "Sucursal",
-      value: "sucursal",
-      tipo: [
-        { nombre: "Ascendente", value: "ASC" },
-        { nombre: "Descendente", value: "DESC" },
-      ],
-    },
-  ];
+  readonly today = new Date();
 
   readonly displayedColumns: string[] = [
     "descripcion",
     "codigoBarras",
     "cantidadSistema",
     "vencimiento",
+    "diasVencimiento",
     "sucursal",
+    "sector",
+    "zona"
   ];
   private readonly COLORS = {
     SUCCESS: "#4caf50",
@@ -144,8 +94,6 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
 
   constructor(
     private sucursalService: SucursalService,
-    private sectorService: SectorService,
-    private zonaService: ZonaService,
     private tabService: TabService,
     private usuarioSearchGQL: UsuarioSearchGQL,
     private productosVencidosGQL: ProductosVencidosGQL,
@@ -164,25 +112,11 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.vencimientoColorCache.clear();
+    this.diasDiferenciaCache.clear();
   }
   trackBySucursalId(index: number, item: Sucursal): number {
     return item.id;
-  }
-
-  trackBySectorId(index: number, item: Sector): number {
-    return item.id;
-  }
-
-  trackByZonaId(index: number, item: Zona): number {
-    return item.id;
-  }
-
-  trackByOrderValue(index: number, item: OrderList): string {
-    return item.value;
-  }
-
-  trackByTipoValue(index: number, item: TipoOrder): string {
-    return item.value;
   }
 
   trackByItemId(index: number, item: InventarioProductoItem): number {
@@ -197,23 +131,17 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
       this.filtersSubject.asObservable()
     ]).pipe(
       debounceTime(300),
-      distinctUntilChanged((prev, curr) => 
+      distinctUntilChanged((prev, curr) =>
         JSON.stringify(prev[0]) === JSON.stringify(curr[0])
       ),
       switchMap(([filters]) => this.loadProductosVencidos(filters)),
       untilDestroyed(this)
     ).subscribe();
-    
-    this.ordenarPorControl.valueChanges.pipe(
-      untilDestroyed(this)
-    ).subscribe(() => {
-    });
+
   }
 
   private loadInitialData(): void {
     this.loadSucursales();
-    this.loadSectores();
-    this.loadZonas();
   }
 
   private loadSucursales(): void {
@@ -225,23 +153,6 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
       });
   }
 
-  private loadSectores(): void {
-    this.sectorService.onGetSectores(1)
-      .pipe(untilDestroyed(this))
-      .subscribe(data => {
-        this.sectorList = data;
-        this.cdRef.detectChanges();
-      });
-  }
-
-  private loadZonas(): void {
-    this.zonaService.onGetZonas()
-      .pipe(untilDestroyed(this))
-      .subscribe(data => {
-        this.zonaList = data;
-        this.cdRef.detectChanges();
-      });
-  }
 
   private loadProductosVencidos(filters: ProductosVencidosFilters) {
     return this.productosVencidosGQL.fetch(filters).pipe(
@@ -258,13 +169,13 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
       this.cdRef.detectChanges();
       return;
     }
-    
+
     const pageData = result.data.productosVencidos;
     const productosVencidos = pageData.getContent || [];
-    
+
     this.dataSource.data = productosVencidos;
     this.length = pageData.getTotalElements || 0;
-    
+
     this.cdRef.detectChanges();
   }
 
@@ -280,14 +191,14 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   onResetFiltro(): void {
     this.fechaFormGroup.reset();
     this.sucursalControl.setValue(null);
-    this.sectorControl.setValue(null);
-    this.zonaControl.setValue(null);
     this.buscarProductoControl.setValue("");
     this.buscarUsuarioControl.setValue("");
     this.soloRealmenteVencidosControl.setValue(false);
     this.selectedProducto = null;
     this.selectedUsuario = null;
-    this.ordenarPorControl.setValue(null);
+    this.vencimientoColorCache.clear();
+    this.diasDiferenciaCache.clear();
+    
     this.onFiltrar();
   }
 
@@ -299,29 +210,21 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     this.sucursalControl.setValue([...this.sucursalList]);
   }
 
-  onSeleccionarTodosSectores(): void {
-    this.sectorControl.setValue([...this.sectorList]);
-  }
-
-  onSeleccionarTodasZonas(): void {
-    this.zonaControl.setValue([...this.zonaList]);
-  }
-
   onBuscarProducto(): void {
     if (this.isDialogOpen) return;
-    
+
     this.isDialogOpen = true;
     const data: PdvSearchProductoData = {
       mostrarOpciones: false,
       mostrarStock: true,
       conservarUltimaBusqueda: true,
     };
-    
+
     const dialogRef = this.dialog.open(PdvSearchProductoDialogComponent, {
       data,
       height: "80%",
     });
-    
+
     dialogRef.afterClosed().subscribe((result: PdvSearchProductoResponseData) => {
       this.isDialogOpen = false;
       if (result?.producto) {
@@ -342,7 +245,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
 
   onBuscarUsuario(): void {
     if (this.isDialogOpen) return;
-    
+
     this.isDialogOpen = true;
     const data: SearchListtDialogData = {
       titulo: "Buscar Usuario",
@@ -355,13 +258,13 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
       search: true,
       inicialSearch: true,
     };
-    
+
     const dialogRef = this.dialog.open(SearchListDialogComponent, {
       data,
       height: "80%",
       width: "80%",
     });
-    
+
     dialogRef.afterClosed().subscribe((result: Usuario) => {
       this.isDialogOpen = false;
       if (result) {
@@ -387,36 +290,82 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   }
   getVencimientoColor(item: InventarioProductoItem): string {
     if (!item.vencimiento) return this.COLORS.DEFAULT;
-    
+
+    const cacheKey = `${item.id}_${item.vencimiento}`;
+    if (this.vencimientoColorCache.has(cacheKey)) {
+      return this.vencimientoColorCache.get(cacheKey)!;
+    }
+
     const diasDiferencia = this.calculateDiasDiferencia(item.vencimiento);
-    
-    if (diasDiferencia < 0) return this.COLORS.DANGER;
-    if (diasDiferencia <= 7) return this.COLORS.WARNING;
-    return this.COLORS.SUCCESS;
+    let color: string;
+
+    if (diasDiferencia < 0) {
+      color = this.COLORS.DANGER;
+    } else if (diasDiferencia <= 7) {
+      color = this.COLORS.WARNING;
+    } else {
+      color = this.COLORS.SUCCESS;
+    }
+
+    this.vencimientoColorCache.set(cacheKey, color);
+    return color;
   }
 
   private calculateDiasDiferencia(vencimiento: string | Date): number {
+    const cacheKey = typeof vencimiento === 'string' ? vencimiento : vencimiento.toISOString();
+    
+    if (this.diasDiferenciaCache.has(cacheKey)) {
+      return this.diasDiferenciaCache.get(cacheKey)!;
+    }
+
     const vencimientoDate = new Date(vencimiento);
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
     vencimientoDate.setHours(0, 0, 0, 0);
+
+    const dias = Math.ceil((vencimientoDate.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+    this.diasDiferenciaCache.set(cacheKey, dias);
     
-    return Math.ceil((vencimientoDate.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+    return dias;
+  }
+  getDiasVencimientoTexto(item: InventarioProductoItem): string {
+    if (!item.vencimiento) return '-';
+    
+    const dias = this.calculateDiasDiferencia(item.vencimiento);
+    
+    if (dias < 0) {
+      return `Vencido hace ${Math.abs(dias)} día${Math.abs(dias) !== 1 ? 's' : ''}`;
+    } else if (dias === 0) {
+      return 'Vence hoy';
+    } else {
+      return `${dias} día${dias !== 1 ? 's' : ''} restante${dias !== 1 ? 's' : ''}`;
+    }
+  }
+  getDiasVencimientoClase(item: InventarioProductoItem): string {
+    if (!item.vencimiento) return '';
+    
+    const dias = this.calculateDiasDiferencia(item.vencimiento);
+    
+    if (dias < 0) {
+      return 'dias-vencimiento-cell vencido';
+    } else if (dias <= 7) {
+      return 'dias-vencimiento-cell por-vencer';
+    } else {
+      return 'dias-vencimiento-cell vigente';
+    }
   }
   private updateFilters(): void {
     const filters: ProductosVencidosFilters = {
       startDate: this.getStartDate(),
       endDate: this.getEndDate(),
       sucursalIdList: this.getSucursalIdList(),
-      sectorIdList: this.getSectorIdList(),
-      zonaIdList: this.getZonaIdList(),
       usuarioIdList: this.getUsuarioIdList(),
       productoIdList: this.getProductoIdList(),
       soloRealmenteVencidos: this.soloRealmenteVencidosControl.value,
       page: this.pageIndex,
       size: this.pageSize
     };
-    
+
     this.filtersSubject.next(filters);
   }
 
@@ -445,15 +394,6 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     return sucursales?.length > 0 ? sucursales.map((s: Sucursal) => s.id) : null;
   }
 
-  private getSectorIdList(): number[] | null {
-    const sectores = this.sectorControl.value;
-    return sectores?.length > 0 ? sectores.map((s: Sector) => s.id) : null;
-  }
-
-  private getZonaIdList(): number[] | null {
-    const zonas = this.zonaControl.value;
-    return zonas?.length > 0 ? zonas.map((z: Zona) => z.id) : null;
-  }
 
   private getUsuarioIdList(): number[] | null {
     return this.selectedUsuario ? [this.selectedUsuario.id] : null;

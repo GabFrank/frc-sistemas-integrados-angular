@@ -4,6 +4,7 @@ import { Sucursal } from './../../empresarial/sucursal/sucursal.model';
 import { Usuario } from "../../personas/usuarios/usuario.model";
 import { Presentacion } from '../../productos/presentacion/presentacion.model';
 import { dateToString } from '../../../commons/core/utils/dateUtils';
+import { Sector } from '../../empresarial/sector/sector.model';
 
 export class Inventario {
   id: number;
@@ -90,25 +91,27 @@ export class InventarioProductoItem {
   idCentral: number;
   inventarioProducto: InventarioProducto;
   zona: Zona;
+  sector: Sector;
   presentacion: Presentacion; 
   cantidad: number;
   cantidadFisica: number;
   vencimiento: Date;
   usuario: Usuario;
-  estado: InventarioProductoEstado
+  estado: InventarioProductoEstado;
   creadoEn: Date;
 
   toInput(): InventarioProductoItemInput {
-    let input = new InventarioProductoItemInput;
-    input.id = this.id
-    input.inventarioProductoId = this.inventarioProducto?.id
-    input.zonaId = this.zona?.id
-    input.presentacionId = this.presentacion?.id
-    input.cantidad = this.cantidad
-    input.cantidadFisica = this.cantidadFisica
-    input.vencimiento = this.vencimiento
-    input.estado = this.estado
-    input.usuarioId = this.usuario?.id
+    let input = new InventarioProductoItemInput();
+    input.id = this.id;
+    input.inventarioProductoId = this.inventarioProducto?.id;
+    input.zonaId = this.zona?.id;
+    input.sectorId = this.sector?.id; // <-- agregar esto
+    input.presentacionId = this.presentacion?.id;
+    input.cantidad = this.cantidad;
+    input.cantidadFisica = this.cantidadFisica;
+    input.vencimiento = this.vencimiento;
+    input.estado = this.estado;
+    input.usuarioId = this.usuario?.id;
     input.creadoEn = this.creadoEn;
     return input;
   }
@@ -120,11 +123,12 @@ export class InventarioProductoItemInput {
   idCentral: number;
   inventarioProductoId: number;
   zonaId: number;
-  presentacionId: any; //presentacion
+  sectorId: number; // <-- nuevo campo
+  presentacionId: any;
   cantidad: number;
   cantidadFisica: number;
-  vencimiento: Date; //vencimiento que el sistema le va a indicar, si no existe crear vencimiento
-  estado: InventarioProductoEstado
+  vencimiento: Date;
+  estado: InventarioProductoEstado;
   usuarioId: number = null;
   creadoEn: Date;
 }
