@@ -27,6 +27,7 @@ import { CrearCambioDialogComponent } from './cambio/crear-cambio-dialog/crear-c
 import { MostrarBalanceDialogComponent } from './pdv/caja/mostrar-balance-dialog/mostrar-balance-dialog.component';
 import { ListFacturaLegalComponent } from './factura-legal/list-factura-legal/list-factura-legal.component';
 import { AddFacturaLegalDialogComponent } from './factura-legal/add-factura-legal-dialog/add-factura-legal-dialog.component';
+import { EditFacturaLegalDialogComponent } from './factura-legal/edit-factura-legal-dialog/edit-factura-legal-dialog.component';
 import { EditFacturaLegalItemComponent } from './factura-legal/edit-factura-legal-item/edit-factura-legal-item.component';
 import { AddVentaCreditoDialogComponent } from './venta-credito/add-venta-credito-dialog/add-venta-credito-dialog.component';
 import { ListVentaCreditoComponent } from './venta-credito/list-venta-credito/list-venta-credito.component';
@@ -71,6 +72,7 @@ import { ListLoteDeComponent } from './documento-electronico/lote-de/list-lote-d
     MostrarBalanceDialogComponent,
     ListFacturaLegalComponent,
     AddFacturaLegalDialogComponent,
+    EditFacturaLegalDialogComponent,
     EditFacturaLegalItemComponent,
     AddVentaCreditoDialogComponent,
     ListVentaCreditoComponent,

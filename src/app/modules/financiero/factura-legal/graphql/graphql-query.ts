@@ -39,11 +39,31 @@ export const facturaLegalesQuery = gql`
         sucursalId
         nombre
         ruc
+        cdc
         totalFinal
         creadoEn
+        activo
+        numeroFactura
         sucursal {
           id
           nombre
+          codigoEstablecimientoFactura
+        }
+        timbradoDetalle {
+          id
+          puntoExpedicion
+        }
+        cliente {
+          id
+          persona {
+            nombre
+            documento
+          }
+        }
+        documentoElectronico {
+          id
+          cdc
+          estado
         }
       }
     }
@@ -96,6 +116,7 @@ export const facturaLegalesFullInfoQuery = gql`
           id
           persona {
             nombre
+            documento
           }
         }
         venta {
@@ -106,6 +127,7 @@ export const facturaLegalesFullInfoQuery = gql`
         nombre
         ruc
         direccion
+        cdc
         ivaParcial0
         ivaParcial5
         ivaParcial10
@@ -114,6 +136,7 @@ export const facturaLegalesFullInfoQuery = gql`
         totalParcial10
         totalFinal
         descuento
+        activo
         creadoEn
         sucursal {
           id
@@ -126,6 +149,11 @@ export const facturaLegalesFullInfoQuery = gql`
             nombre
           }
         }
+        documentoElectronico {
+          id
+          cdc
+          estado
+        }
         facturaLegalItemList {
           id
           ventaItem {
@@ -136,6 +164,10 @@ export const facturaLegalesFullInfoQuery = gql`
           precioUnitario
           total
           creadoEn
+          producto {
+            id
+            descripcion
+          }
         }
       }
     }
@@ -159,6 +191,7 @@ export const facturaLegalQuery = gql`
         id
         persona {
           nombre
+          documento
         }
       }
       venta {
@@ -169,6 +202,7 @@ export const facturaLegalQuery = gql`
       nombre
       ruc
       direccion
+      cdc
       ivaParcial0
       ivaParcial5
       ivaParcial10
@@ -177,8 +211,11 @@ export const facturaLegalQuery = gql`
       totalParcial10
       totalFinal
       descuento
+      activo
       creadoEn
+      sucursalId
       sucursal {
+        id
         nombre
         codigoEstablecimientoFactura
       }
@@ -187,6 +224,11 @@ export const facturaLegalQuery = gql`
         persona {
           nombre
         }
+      }
+      documentoElectronico {
+        id
+        cdc
+        estado
       }
       facturaLegalItemList {
         id
@@ -198,6 +240,10 @@ export const facturaLegalQuery = gql`
         precioUnitario
         total
         creadoEn
+        producto {
+          id
+          descripcion
+        }
       }
     }
   }

@@ -7,6 +7,7 @@ import { Presentacion } from "../../productos/presentacion/presentacion.model"
 import { Producto } from "../../productos/producto/producto.model"
 import { PdvCaja } from "../pdv/caja/caja.model"
 import { TimbradoDetalle } from "../timbrado/timbrado.modal"
+import { DocumentoElectronico } from "../documento-electronico/documento-electronico.model"
 
 export class FacturaLegal {
     id:number
@@ -21,6 +22,7 @@ export class FacturaLegal {
     nombre:string
     ruc:string
     direccion:string
+    cdc:string
     ivaParcial0:number
     ivaParcial5:number
     ivaParcial10:number
@@ -35,6 +37,7 @@ export class FacturaLegal {
     facturaLegalItemList: FacturaLegalItem[]
     sucursal:Sucursal
     activo: boolean
+    documentoElectronico: DocumentoElectronico
 
     toInput(): FacturaLegalInput {
         let input = new FacturaLegalInput;
@@ -47,6 +50,7 @@ export class FacturaLegal {
         input.nombre = this.nombre
         input.ruc = this.ruc
         input.direccion = this.direccion
+        input.cdc = this.cdc
         input.ivaParcial0 = this.ivaParcial0
         input.ivaParcial5 = this.ivaParcial5
         input.ivaParcial10 = this.ivaParcial10
@@ -74,6 +78,7 @@ export class FacturaLegalInput {
     nombre: string
     ruc: string
     direccion: string
+    cdc: string
     ivaParcial0: number
     ivaParcial5: number
     ivaParcial10: number

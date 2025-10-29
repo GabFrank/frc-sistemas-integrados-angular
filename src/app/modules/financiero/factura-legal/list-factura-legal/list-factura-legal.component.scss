@@ -6,3 +6,70 @@
 tr.example-detail-row {
     height: 0;
 }
+
+// Badge styles for tipo factura
+.tipo-badge {
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 0.75em;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: inline-block;
+  
+  &.badge-electronica {
+    background-color: #1976d2;
+    color: #ffffff;
+  }
+  
+  &.badge-papel {
+    background-color: #616161;
+    color: #ffffff;
+  }
+}
+
+// Badge styles for estado
+.estado-badge {
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 0.75em;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: inline-block;
+  
+  // Electronic invoice estados
+  &.estado-aprobado {
+    background-color: #4caf50;
+    color: #ffffff;
+  }
+  
+  &.estado-pendiente {
+    background-color: #ff9800;
+    color: #ffffff;
+  }
+  
+  &.estado-rechazado {
+    background-color: #f44336;
+    color: #ffffff;
+  }
+  
+  &.estado-cancelado {
+    background-color: #757575;
+    color: #ffffff;
+  }
+  
+  // Paper invoice estados
+  &.estado-activo {
+    background-color: #4caf50;
+    color: #ffffff;
+  }
+  
+  &.estado-inactivo {
+    background-color: #f44336;
+    color: #ffffff;
+  }
+  
+  &.estado-default {
+    background-color: #9e9e9e;
+    color: #ffffff;
+  }
+}
