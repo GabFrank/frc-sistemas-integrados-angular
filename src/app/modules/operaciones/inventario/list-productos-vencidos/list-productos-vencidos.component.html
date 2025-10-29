@@ -31,7 +31,7 @@
               matEndDate
               formControlName="fin"
               placeholder="Fin"
-              [min]="fechaFormGroup.get('inicio')?.value"
+              [min]="inicioMinDate"
               [max]="today"
             />
           </mat-date-range-input>
@@ -200,7 +200,7 @@
             mat-cell 
             *matCellDef="let item" 
             class="data-cell text-center vencimiento-cell"
-            [style.color]="getVencimientoColor(item)"
+            [style.color]="item?.vencimientoColor"
           >
             {{ item?.vencimiento | date:'dd/MM/yyyy' }}
           </td>
@@ -214,9 +214,9 @@
             mat-cell 
             *matCellDef="let item" 
             class="data-cell text-center"
-            [ngClass]="getDiasVencimientoClase(item)"
+            [ngClass]="item?.diasVencimientoClase"
           >
-            {{ getDiasVencimientoTexto(item) }}
+            {{ item?.diasVencimientoTexto }}
           </td>
         </ng-container>
         <ng-container matColumnDef="sucursal">

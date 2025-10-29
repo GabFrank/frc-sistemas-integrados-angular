@@ -21,6 +21,12 @@ import {
 } from "../../../productos/producto/pdv-search-producto-dialog/pdv-search-producto-dialog.component";
 import { Producto } from "../../../productos/producto/producto.model";
 import { InventarioProductoItem } from "../inventario.model";
+
+export type InventarioProductoItemView = InventarioProductoItem & {
+  vencimientoColor: string;
+  diasVencimientoTexto: string;
+  diasVencimientoClase: string;
+};
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { PageEvent } from "@angular/material/paginator";
@@ -50,7 +56,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
 
   @ViewChild("buscarUsuarioInput", { static: true }) buscadorUsuarioInput: ElementRef;
   @ViewChild("buscadorInput", { static: true }) buscadorInput: ElementRef;
-  dataSource = new MatTableDataSource<InventarioProductoItem>([]);
+  dataSource = new MatTableDataSource<InventarioProductoItemView>([]);
   expandedInventarioProductoItem: InventarioProductoItem;
   fechaFormGroup: FormGroup;
   sucursalControl = new FormControl();
@@ -66,6 +72,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   readonly pageSizeOptions = [15, 25, 50, 100];
   private readonly vencimientoColorCache = new Map<string, string>();
   private readonly diasDiferenciaCache = new Map<string, number>();
+  inicioMinDate: Date | null = null;
   
   private filtersSubject = new BehaviorSubject<ProductosVencidosFilters>({
     page: 0,
@@ -107,8 +114,14 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.initializeSubscriptions();
     this.loadInitialData();
+    this.initializeSubscriptions();
+    this.fechaFormGroup.get("inicio")?.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe((val) => {
+        this.inicioMinDate = val || null;
+      });
+    this.inicioMinDate = this.fechaFormGroup.get("inicio")?.value || null;
   }
 
   ngOnDestroy(): void {
@@ -127,20 +140,25 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   }
 
   private initializeSubscriptions(): void {
-    combineLatest([
-      this.filtersSubject.asObservable()
-    ]).pipe(
+    this.filtersSubject.asObservable().pipe(
       debounceTime(300),
-      distinctUntilChanged((prev, curr) =>
-        JSON.stringify(prev[0]) === JSON.stringify(curr[0])
-      ),
-      switchMap(([filters]) => this.loadProductosVencidos(filters)),
+      distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
+      switchMap((filters) => this.loadProductosVencidos(filters)),
       untilDestroyed(this)
     ).subscribe();
 
   }
 
   private loadInitialData(): void {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 7);
+
+    this.fechaFormGroup.get("inicio")?.setValue(start);
+    this.fechaFormGroup.get("fin")?.setValue(end);
+    this.pageIndex = 0;
+    this.pageSize = 15;
+    this.updateFilters();
     this.loadSucursales();
   }
 
@@ -172,8 +190,21 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
 
     const pageData = result.data.productosVencidos;
     const productosVencidos = pageData.getContent || [];
+    // Precalcular propiedades derivadas para evitar llamadas desde el template
+    const enriched: InventarioProductoItemView[] = productosVencidos.map((item: InventarioProductoItem) => {
+      const dias = item?.vencimiento ? this.calculateDiasDiferencia(item.vencimiento) : null;
+      const vencimientoColor = this.resolveVencimientoColor(dias);
+      const diasVencimientoTexto = this.resolveDiasVencimientoTexto(dias);
+      const diasVencimientoClase = this.resolveDiasVencimientoClase(dias);
+      return {
+        ...item,
+        vencimientoColor,
+        diasVencimientoTexto,
+        diasVencimientoClase,
+      } as InventarioProductoItemView;
+    });
 
-    this.dataSource.data = productosVencidos;
+    this.dataSource.data = enriched;
     this.length = pageData.getTotalElements || 0;
 
     this.cdRef.detectChanges();
@@ -189,7 +220,11 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   }
 
   onResetFiltro(): void {
-    this.fechaFormGroup.reset();
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 7);
+    this.fechaFormGroup.get("inicio")?.setValue(start);
+    this.fechaFormGroup.get("fin")?.setValue(end);
     this.sucursalControl.setValue(null);
     this.buscarProductoControl.setValue("");
     this.buscarUsuarioControl.setValue("");
@@ -288,27 +323,11 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     this.pageSize = event.pageSize;
     this.updateFilters();
   }
-  getVencimientoColor(item: InventarioProductoItem): string {
-    if (!item.vencimiento) return this.COLORS.DEFAULT;
-
-    const cacheKey = `${item.id}_${item.vencimiento}`;
-    if (this.vencimientoColorCache.has(cacheKey)) {
-      return this.vencimientoColorCache.get(cacheKey)!;
-    }
-
-    const diasDiferencia = this.calculateDiasDiferencia(item.vencimiento);
-    let color: string;
-
-    if (diasDiferencia < 0) {
-      color = this.COLORS.DANGER;
-    } else if (diasDiferencia <= 7) {
-      color = this.COLORS.WARNING;
-    } else {
-      color = this.COLORS.SUCCESS;
-    }
-
-    this.vencimientoColorCache.set(cacheKey, color);
-    return color;
+  private resolveVencimientoColor(diasDiferencia: number | null): string {
+    if (diasDiferencia == null) return this.COLORS.DEFAULT;
+    if (diasDiferencia < 0) return this.COLORS.DANGER;
+    if (diasDiferencia <= 7) return this.COLORS.WARNING;
+    return this.COLORS.SUCCESS;
   }
 
   private calculateDiasDiferencia(vencimiento: string | Date): number {
@@ -328,31 +347,17 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     
     return dias;
   }
-  getDiasVencimientoTexto(item: InventarioProductoItem): string {
-    if (!item.vencimiento) return '-';
-    
-    const dias = this.calculateDiasDiferencia(item.vencimiento);
-    
-    if (dias < 0) {
-      return `Vencido hace ${Math.abs(dias)} día${Math.abs(dias) !== 1 ? 's' : ''}`;
-    } else if (dias === 0) {
-      return 'Vence hoy';
-    } else {
-      return `${dias} día${dias !== 1 ? 's' : ''} restante${dias !== 1 ? 's' : ''}`;
-    }
+  private resolveDiasVencimientoTexto(dias: number | null): string {
+    if (dias == null) return '-';
+    if (dias < 0) return `Vencido hace ${Math.abs(dias)} día${Math.abs(dias) !== 1 ? 's' : ''}`;
+    if (dias === 0) return 'Vence hoy';
+    return `${dias} día${dias !== 1 ? 's' : ''} restante${dias !== 1 ? 's' : ''}`;
   }
-  getDiasVencimientoClase(item: InventarioProductoItem): string {
-    if (!item.vencimiento) return '';
-    
-    const dias = this.calculateDiasDiferencia(item.vencimiento);
-    
-    if (dias < 0) {
-      return 'dias-vencimiento-cell vencido';
-    } else if (dias <= 7) {
-      return 'dias-vencimiento-cell por-vencer';
-    } else {
-      return 'dias-vencimiento-cell vigente';
-    }
+  private resolveDiasVencimientoClase(dias: number | null): string {
+    if (dias == null) return '';
+    if (dias < 0) return 'dias-vencimiento-cell vencido';
+    if (dias <= 7) return 'dias-vencimiento-cell por-vencer';
+    return 'dias-vencimiento-cell vigente';
   }
   private updateFilters(): void {
     const filters: ProductosVencidosFilters = {
