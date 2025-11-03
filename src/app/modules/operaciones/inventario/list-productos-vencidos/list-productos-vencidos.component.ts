@@ -3,7 +3,7 @@ import { FormControl, FormGroup } from "@angular/forms";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatDialog } from "@angular/material/dialog";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { BehaviorSubject, combineLatest } from "rxjs";
+import { BehaviorSubject, combineLatest, forkJoin } from "rxjs";
 import { debounceTime, distinctUntilChanged, switchMap, tap } from "rxjs/operators";
 
 import {
@@ -32,6 +32,13 @@ import { Tab } from "../../../../layouts/tab/tab.model";
 import { PageEvent } from "@angular/material/paginator";
 import { ProductosVencidosGQL } from "../graphql/productos-vencidos.gql";
 import { TabService } from "../../../../layouts/tab/tab.service";
+import { MainService } from "../../../../main.service";
+import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
+import { EditTransferenciaComponent } from "../../transferencia/edit-transferencia/edit-transferencia.component";
+import { TabData } from "../../../../layouts/tab/tab.service";
+import { Transferencia, TransferenciaEstado, TipoTransferencia, EtapaTransferencia, TransferenciaItem } from "../../transferencia/transferencia.model";
+import { TransferenciaService } from "../../transferencia/transferencia.service";
+import { SeleccionarSucursalDialogComponent } from "../../transferencia/seleccionar-sucursal-dialog/seleccionar-sucursal-dialog.component";
 
 export interface ProductosVencidosFilters {
   startDate?: string;
@@ -73,7 +80,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
   private readonly vencimientoColorCache = new Map<string, string>();
   private readonly diasDiferenciaCache = new Map<string, number>();
   inicioMinDate: Date | null = null;
-  
+
   private filtersSubject = new BehaviorSubject<ProductosVencidosFilters>({
     page: 0,
     size: 15
@@ -105,7 +112,10 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     private usuarioSearchGQL: UsuarioSearchGQL,
     private productosVencidosGQL: ProductosVencidosGQL,
     private dialog: MatDialog,
-    private cdRef: ChangeDetectorRef
+    private cdRef: ChangeDetectorRef,
+    private mainService: MainService,
+    private notificacion: NotificacionSnackbarService,
+    private transferenciaService: TransferenciaService
   ) {
     this.fechaFormGroup = new FormGroup({
       inicio: new FormControl(),
@@ -161,7 +171,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     this.updateFilters();
     this.loadSucursales();
   }
-
+  t
   private loadSucursales(): void {
     this.sucursalService.onGetAllSucursales()
       .pipe(untilDestroyed(this))
@@ -190,7 +200,6 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
 
     const pageData = result.data.productosVencidos;
     const productosVencidos = pageData.getContent || [];
-    // Precalcular propiedades derivadas para evitar llamadas desde el template
     const enriched: InventarioProductoItemView[] = productosVencidos.map((item: InventarioProductoItem) => {
       const dias = item?.vencimiento ? this.calculateDiasDiferencia(item.vencimiento) : null;
       const vencimientoColor = this.resolveVencimientoColor(dias);
@@ -233,12 +242,81 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     this.selectedUsuario = null;
     this.vencimientoColorCache.clear();
     this.diasDiferenciaCache.clear();
-    
+
     this.onFiltrar();
   }
 
   onGenerarPdf(): void {
     console.log("Generar PDF de productos vencidos");
+  }
+
+  onRetirarProductos(): void {
+    const items = this.dataSource.data || [];
+    if (items.length === 0) {
+      this.notificacion.openWarn('No hay productos en la página actual');
+      return;
+    }
+    const origenDetectado: Sucursal | null =
+      items[0]?.inventarioProducto?.inventario?.sucursal || this.mainService?.sucursalActual;
+
+    this.isDialogOpen = true;
+    this.dialog.open(SeleccionarSucursalDialogComponent, {
+      width: '80%',
+      height: '70%',
+      disableClose: false,
+      data: {
+        sucursalOrigen: origenDetectado,
+        sucursalDestino: null,
+      },
+    }).afterClosed().subscribe((res) => {
+      this.isDialogOpen = false;
+      if (!res?.sucursalDestino) return;
+
+      const transferencia = new Transferencia();
+      transferencia.sucursalOrigen = (res?.sucursalOrigen ?? origenDetectado) as Sucursal;
+      transferencia.sucursalDestino = res.sucursalDestino as Sucursal;
+      transferencia.tipo = TipoTransferencia.MANUAL;
+      transferencia.estado = TransferenciaEstado.ABIERTA;
+      transferencia.etapa = EtapaTransferencia.PRE_TRANSFERENCIA_CREACION;
+      transferencia.usuarioPreTransferencia = this.mainService?.usuarioActual;
+
+      this.transferenciaService.onSaveTransferencia(transferencia.toInput())
+        .pipe(untilDestroyed(this))
+        .subscribe((t) => {
+          if (!t?.id) return;
+
+          const ops = items.map((it) => {
+            const trItem = new TransferenciaItem();
+            trItem.transferencia = t;
+            trItem.presentacionPreTransferencia = it.presentacion;
+            trItem.cantidadPreTransferencia = it.cantidad;
+            trItem.vencimientoPreTransferencia = it.vencimiento as any;
+            trItem.poseeVencimiento = !!it.vencimiento;
+            trItem.activo = true;
+            trItem.usuario = this.mainService?.usuarioActual;
+            return this.transferenciaService.onSaveTransferenciaItem(trItem.toInput());
+          });
+
+          if (ops.length === 0) {
+            this.abrirTransferenciaTab(t.id);
+            return;
+          }
+
+          forkJoin(ops).pipe(untilDestroyed(this)).subscribe({
+            next: () => this.abrirTransferenciaTab(t.id),
+            error: () => this.abrirTransferenciaTab(t.id),
+          });
+        });
+    });
+  }
+
+  private abrirTransferenciaTab(id: number): void {
+    this.tabService.addTab(new Tab(
+      EditTransferenciaComponent,
+      `Transferencia ${id}`,
+      new TabData(id, { id }),
+      null
+    ));
   }
 
   onSeleccionarTodasSucursales(): void {
@@ -332,7 +410,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
 
   private calculateDiasDiferencia(vencimiento: string | Date): number {
     const cacheKey = typeof vencimiento === 'string' ? vencimiento : vencimiento.toISOString();
-    
+
     if (this.diasDiferenciaCache.has(cacheKey)) {
       return this.diasDiferenciaCache.get(cacheKey)!;
     }
@@ -344,7 +422,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
 
     const dias = Math.ceil((vencimientoDate.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
     this.diasDiferenciaCache.set(cacheKey, dias);
-    
+
     return dias;
   }
   private resolveDiasVencimientoTexto(dias: number | null): string {

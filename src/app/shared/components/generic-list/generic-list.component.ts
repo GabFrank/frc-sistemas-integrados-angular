@@ -10,7 +10,7 @@ export interface DisplayedLinkData {
   dialogComponent: any;
 }
 
-export interface DialogDetailData{
+export interface DialogDetailData {
   data: DisplayedLinkData;
 }
 @Component({
@@ -39,6 +39,10 @@ export class GenericListComponent implements OnInit {
   @Output()
   customFunction = new EventEmitter<any>(null);
 
+  // Segundo botón custom opcional
+  @Output()
+  customFunction2 = new EventEmitter<any>(null);
+
   @Input()
   isAdicionar: boolean;
 
@@ -47,6 +51,12 @@ export class GenericListComponent implements OnInit {
 
   @Input()
   customName: string;
+
+  @Input()
+  isCustom2: boolean;
+
+  @Input()
+  customName2: string;
 
   @Input()
   isMenu: boolean = true;
@@ -61,55 +71,62 @@ export class GenericListComponent implements OnInit {
   disableCustom: boolean;
 
   @Input()
+  disableCustom2: boolean;
+
+  @Input()
   data
 
   @Input()
   buscarTrigger;
-  
+
   @Input()
   isLastPage = false;
 
   @Input()
   isCargarMas = false;
-  
+
   headerHeight;
   tableHeight;
   containerHeight;
 
   constructor(
     public windowInfoService: WindowInfoService,
-  ) { 
+  ) {
     this.headerHeight = windowInfoService.innerTabHeight * 0.2;
     this.tableHeight = windowInfoService.innerTabHeight * 0.80;
     this.containerHeight = windowInfoService.innerTabHeight;
   }
 
   ngOnInit(): void {
-    
+
   }
 
-  onAdd(){
+  onAdd() {
     this.adicionar.emit()
   }
 
-  onCancel(){
+  onCancel() {
     this.filtrar.emit()
   }
 
-  onFiltrar(){
+  onFiltrar() {
     this.filtrar.emit()
   }
 
-  onResetFiltro(){
+  onResetFiltro() {
     this.resetFiltro.emit()
   }
 
-  onCargarMasDatos(){
+  onCargarMasDatos() {
     this.cargarMasDatos.emit()
   }
 
-  onCustomFunc(){
+  onCustomFunc() {
     this.customFunction.emit()
   }
-  
+
+  onCustomFunc2() {
+    this.customFunction2.emit()
+  }
+
 }

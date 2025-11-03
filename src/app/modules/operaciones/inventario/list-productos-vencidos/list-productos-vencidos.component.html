@@ -1,44 +1,16 @@
-<app-generic-list
-  titulo="Productos Vencidos"
-  (filtrar)="onFiltrar()"
-  [isCustom]="true"
-  customName="Generar Pdf"
-  (customFunction)="onGenerarPdf()"
-  (resetFiltro)="onResetFiltro()"
->
+<app-generic-list titulo="Productos Vencidos" (filtrar)="onFiltrar()" [isCustom]="true" customName="Generar Pdf"
+  (customFunction)="onGenerarPdf()" [isCustom2]="true" customName2="Retirar a otra sucursal"
+  (customFunction2)="onRetirarProductos()" (resetFiltro)="onResetFiltro()">
   <div filtros>
-    <div
-      fxLayout="row"
-      fxLayoutAlign="start center"
-      fxLayoutGap="10px"
-      style="width: 100%"
-    >
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
       <div fxFlex="30%">
         <mat-form-field style="width: 100%">
           <mat-label>Rango de fecha</mat-label>
-          <mat-date-range-input
-            [formGroup]="fechaFormGroup"
-            [rangePicker]="picker"
-            style="width: 100%"
-          >
-            <input
-              matStartDate
-              formControlName="inicio"
-              placeholder="Inicio"
-              [max]="today"
-            />
-            <input
-              matEndDate
-              formControlName="fin"
-              placeholder="Fin"
-              [min]="inicioMinDate"
-              [max]="today"
-            />
+          <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker" style="width: 100%">
+            <input matStartDate formControlName="inicio" placeholder="Inicio" [max]="today" />
+            <input matEndDate formControlName="fin" placeholder="Fin" [min]="inicioMinDate" [max]="today" />
           </mat-date-range-input>
-          <mat-datepicker-toggle
-            matSuffix
-            [for]="picker"
-          ></mat-datepicker-toggle>
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-date-range-picker #picker></mat-date-range-picker>
 
           <mat-error *ngIf="fechaFormGroup.controls.inicio.hasError('matStartDateInvalid')">esta
@@ -52,35 +24,22 @@
       <div fxFlex="20%">
         <mat-form-field style="width: 100%">
           <mat-label>Sucursales</mat-label>
-          <mat-select 
-            #sucursalSelect 
-            [formControl]="sucursalControl" 
-            multiple
-          >
+          <mat-select #sucursalSelect [formControl]="sucursalControl" multiple>
             <mat-select-trigger>
               {{ (sucursalControl.value?.[0]?.nombre || '') }}
-              <span
-                *ngIf="(sucursalControl.value?.length || 0) > 1"
-                class="example-additional-selection"
-              >
+              <span *ngIf="(sucursalControl.value?.length || 0) > 1" class="example-additional-selection">
                 (+{{ (sucursalControl.value?.length || 0) - 1 }}
                 {{ sucursalControl.value?.length === 2 ? 'otro' : 'otros' }})
               </span>
             </mat-select-trigger>
             <div class="select-all-container">
-              <button
-                mat-icon-button
-                (click)="onSeleccionarTodasSucursales(); $event.stopPropagation()"
-                class="select-all-button"
-              >
+              <button mat-icon-button (click)="onSeleccionarTodasSucursales(); $event.stopPropagation()"
+                class="select-all-button">
                 <mat-icon>select_all</mat-icon>
               </button>
             </div>
-            
-            <mat-option
-              *ngFor="let sucursal of sucursalList; trackBy: trackBySucursalId"
-              [value]="sucursal"
-            >
+
+            <mat-option *ngFor="let sucursal of sucursalList; trackBy: trackBySucursalId" [value]="sucursal">
               {{ sucursal.nombre }}
             </mat-option>
           </mat-select>
@@ -89,31 +48,15 @@
       <div fxFlex="50%">
         <mat-form-field style="width: 100%">
           <mat-label>Buscar producto</mat-label>
-          <input
-            #buscadorInput
-            matInput
-            [formControl]="buscarProductoControl"
-            (keyup.enter)="onBuscarProducto()"
-            (focusin)="buscadorInput.select()"
-            placeholder="Buscar producto..."
-            [readonly]="!!selectedProducto"
-          />
+          <input #buscadorInput matInput [formControl]="buscarProductoControl" (keyup.enter)="onBuscarProducto()"
+            (focusin)="buscadorInput.select()" placeholder="Buscar producto..." [readonly]="!!selectedProducto" />
           <span matTextSuffix class="suffix-actions">
-            <button
-              mat-icon-button
-              (click)="onBuscarProducto(); $event.stopPropagation()"
-              class="icon-button"
-              matTooltip="Buscar producto"
-            >
+            <button mat-icon-button (click)="onBuscarProducto(); $event.stopPropagation()" class="icon-button"
+              matTooltip="Buscar producto">
               <mat-icon>search</mat-icon>
             </button>
-            <button
-              *ngIf="selectedProducto"
-              mat-icon-button
-              (click)="onClearProducto(); $event.stopPropagation()"
-              class="icon-button clear-button"
-              matTooltip="Limpiar producto"
-            >
+            <button *ngIf="selectedProducto" mat-icon-button (click)="onClearProducto(); $event.stopPropagation()"
+              class="icon-button clear-button" matTooltip="Limpiar producto">
               <mat-icon>clear</mat-icon>
             </button>
           </span>
@@ -122,52 +65,28 @@
       <div fxFlex="50%">
         <mat-form-field style="width: 100%">
           <mat-label>Buscar usuario</mat-label>
-          <input
-            #buscarUsuarioInput
-            matInput
-            [formControl]="buscarUsuarioControl"
-            (keyup.enter)="onBuscarUsuario()"
-            (focusin)="buscarUsuarioInput.select()"
-            placeholder="Buscar usuario..."
-            [readonly]="!!selectedUsuario"
-          />
+          <input #buscarUsuarioInput matInput [formControl]="buscarUsuarioControl" (keyup.enter)="onBuscarUsuario()"
+            (focusin)="buscarUsuarioInput.select()" placeholder="Buscar usuario..." [readonly]="!!selectedUsuario" />
           <span matTextSuffix class="suffix-actions">
-            <button
-              mat-icon-button
-              (click)="onBuscarUsuario(); $event.stopPropagation()"
-              class="icon-button"
-              matTooltip="Buscar usuario"
-            >
+            <button mat-icon-button (click)="onBuscarUsuario(); $event.stopPropagation()" class="icon-button"
+              matTooltip="Buscar usuario">
               <mat-icon>search</mat-icon>
             </button>
-            <button
-              *ngIf="selectedUsuario"
-              mat-icon-button
-              (click)="onClearUsuario(); $event.stopPropagation()"
-              class="icon-button clear-button"
-              matTooltip="Limpiar usuario"
-            >
+            <button *ngIf="selectedUsuario" mat-icon-button (click)="onClearUsuario(); $event.stopPropagation()"
+              class="icon-button clear-button" matTooltip="Limpiar usuario">
               <mat-icon>clear</mat-icon>
             </button>
           </span>
         </mat-form-field>
       </div>
+
     </div>
+
   </div>
-  <div
-    table
-    class="table-container"
-    fxLayout="column"
-    fxLayoutAlign="space-between start"
-  >
+  <div table class="table-container" fxLayout="column" fxLayoutAlign="space-between start">
     <div class="table-wrapper">
-      <table
-        mat-table
-        [dataSource]="dataSource"
-        [trackBy]="trackByItemId"
-        multiTemplateDataRows
-        class="mat-elevation-z8 data-table"
-      >
+      <table mat-table [dataSource]="dataSource" [trackBy]="trackByItemId" multiTemplateDataRows
+        class="mat-elevation-z8 data-table">
         <ng-container matColumnDef="descripcion">
           <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
             Descripción
@@ -196,26 +115,17 @@
           <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
             Vencimiento
           </th>
-          <td 
-            mat-cell 
-            *matCellDef="let item" 
-            class="data-cell text-center vencimiento-cell"
-            [style.color]="item?.vencimientoColor"
-          >
+          <td mat-cell *matCellDef="let item" class="data-cell text-center vencimiento-cell"
+            [style.color]="item?.vencimientoColor">
             {{ item?.vencimiento | date:'dd/MM/yyyy' }}
           </td>
         </ng-container>
-        
+
         <ng-container matColumnDef="diasVencimiento">
           <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
             Estado de Vencimiento
           </th>
-          <td 
-            mat-cell 
-            *matCellDef="let item" 
-            class="data-cell text-center"
-            [ngClass]="item?.diasVencimientoClase"
-          >
+          <td mat-cell *matCellDef="let item" class="data-cell text-center" [ngClass]="item?.diasVencimientoClase">
             {{ item?.diasVencimientoTexto }}
           </td>
         </ng-container>
@@ -235,7 +145,7 @@
             {{ item?.sector?.descripcion || '-' }}
           </td>
         </ng-container>
-        
+
         <ng-container matColumnDef="zona">
           <th mat-header-cell *matHeaderCellDef class="header-cell text-center">
             Zona
@@ -244,24 +154,12 @@
             {{ item?.zona?.descripcion || '-' }}
           </td>
         </ng-container>
-        
-        <tr 
-          mat-header-row 
-          *matHeaderRowDef="displayedColumns; sticky: true" 
-          class="header-row"
-        ></tr>
-        <tr
-          mat-row
-          *matRowDef="let row; columns: displayedColumns;"
-          [class.selected-row]="expandedInventarioProductoItem === row"
-          (click)="onRowClick(row)"
-          class="data-row"
-        ></tr>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true" class="header-row"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+          [class.selected-row]="expandedInventarioProductoItem === row" (click)="onRowClick(row)" class="data-row"></tr>
         <tr class="empty-row" *ngIf="dataSource.data.length === 0">
-          <td 
-            class="empty-cell" 
-            [attr.colspan]="displayedColumns.length" 
-          >
+          <td class="empty-cell" [attr.colspan]="displayedColumns.length">
             <div class="empty-message">
               {{ length === 0 ? 'No se encontraron productos vencidos' : 'Cargando...' }}
             </div>
@@ -269,15 +167,8 @@
         </tr>
       </table>
     </div>
-    <mat-paginator
-      [pageIndex]="pageIndex"
-      [length]="length"
-      [pageSize]="pageSize"
-      [pageSizeOptions]="pageSizeOptions"
-      (page)="handlePageEvent($event)"
-      showFirstLastButtons
-      class="paginator full-width-paginator"
-    >
+    <mat-paginator [pageIndex]="pageIndex" [length]="length" [pageSize]="pageSize" [pageSizeOptions]="pageSizeOptions"
+      (page)="handlePageEvent($event)" showFirstLastButtons class="paginator full-width-paginator">
     </mat-paginator>
   </div>
 </app-generic-list>
