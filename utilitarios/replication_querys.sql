@@ -42,8 +42,8 @@ SELECT * FROM pg_stat_subscription;
 ALTER SUBSCRIPTION subscription_name ADD PUBLICATION another_publication_name;
 ALTER SUBSCRIPTION subscription_name DROP PUBLICATION publication_name;
 ALTER SUBSCRIPTION subscription_name CONNECTION 'host=new_host dbname=new_db user=new_user password=new_password';
-ALTER SUBSCRIPTION subscription_name ENABLE;
-ALTER SUBSCRIPTION subscription_name DISABLE;
+ALTER SUBSCRIPTION central1_sub ENABLE;
+ALTER SUBSCRIPTION central1_sub DISABLE;
 ALTER SUBSCRIPTION central_filial4_sub REFRESH PUBLICATION;
 
 -- Drop a Subscription
