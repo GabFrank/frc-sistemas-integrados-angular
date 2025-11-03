@@ -71,7 +71,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
       this.onFiltrar()
     }, 0);
 
-    this.sucursalService.onGetAllSucursalesByActive(true, true).pipe(untilDestroyed(this)).subscribe(res => {
+    this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe(res => {
       this.sucursalList = res.filter(s => s.deposito == true);
     })
   }

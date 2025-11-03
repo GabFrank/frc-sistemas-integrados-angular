@@ -378,7 +378,7 @@ export class EditPedidoComponent implements OnInit, AfterViewInit {
 
     forkJoin({
       sucursales: this.sucursalService
-        .onGetAllSucursalesByActive(true, true)
+        .onGetAllSucursales(true)
         .pipe(untilDestroyed(this)),
       monedas: this.monedaService.onGetAll().pipe(untilDestroyed(this)),
       formasPago: this.formaPagoService

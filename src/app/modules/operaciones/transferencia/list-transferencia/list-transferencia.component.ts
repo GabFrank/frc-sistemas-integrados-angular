@@ -115,7 +115,7 @@ export class ListTransferenciaComponent implements OnInit {
       fin: this.fechaFinControl,
     });
     this.onGetTransferencias();
-    this.sucursalService.onGetAllSucursalesByActive(true).subscribe((res) => {
+    this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
       this.sucursalList = res;
     });
 

@@ -93,7 +93,7 @@ export class FuncionarioWizardComponent implements OnInit {
 
     this.selectedPreRegistro = new PreRegistroFuncionario;
     Object.assign(this.selectedPreRegistro, this.data.preRegistroFuncionario as PreRegistroFuncionario)
-    this.sucursalService.onGetAllSucursalesByActive(true, true).subscribe((res) => {
+    this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
       this.cargandoService.closeDialog()
       this.sucursalList = res.filter(s => s.id != 0);
       this.cargarDatos()

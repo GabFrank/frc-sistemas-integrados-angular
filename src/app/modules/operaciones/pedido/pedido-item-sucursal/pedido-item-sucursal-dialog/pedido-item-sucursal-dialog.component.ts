@@ -55,7 +55,7 @@ export class PedidoItemSucursalDialogComponent implements OnInit, AfterViewInit 
     private mainService: MainService,
     private notificacionService: NotificacionSnackbarService
   ) {
-    sucursalService.onGetAllSucursalesByActive(true, true).subscribe((sucRes) => {
+    sucursalService.onGetAllSucursales(true).subscribe((sucRes) => {
       this.sucursales = sucRes;
       if (data.pedidoItem && data.sucursalInfluenciaList) {
         this.selectedPedidoItem = data.pedidoItem;

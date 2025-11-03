@@ -63,7 +63,7 @@ export class SeleccionarSucursalDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargandoService.openDialog()
-    this.sucursalService.onGetAllSucursalesByActive(true, true)
+    this.sucursalService.onGetAllSucursales(true)
       .pipe(untilDestroyed(this))
       .subscribe(res => {
         if (res != null) {

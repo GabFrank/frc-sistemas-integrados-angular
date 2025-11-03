@@ -886,6 +886,7 @@ export class EditTransferenciaComponent implements OnInit {
   }
 
   onAvanzarEtapa(etapa) {
+    console.log('etapa', etapa);
     this.transferenciaService
       .onAvanzarEtapa(this.selectedTransferencia, etapa)
       .pipe(untilDestroyed(this))
