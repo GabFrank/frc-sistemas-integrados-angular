@@ -254,6 +254,7 @@ export class ListInventarioComponent implements OnInit {
       .subscribe((res: Usuario) => {
         if (res != null) {
           this.selectedUsuario = res;
+          this.buscarUsuarioControl.setValue(`${res.id} - ${res.nickname}`);
         }
       });
   }
