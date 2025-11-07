@@ -28,6 +28,7 @@ export class ProductoCategoriaDialogData {
   presentaciones: Presentacion[];
   cantidad?: number;
   texto?;
+  autoSeleccionar?: boolean;
 }
 
 export class ProductoCategoriaResponseData {
@@ -99,7 +100,11 @@ export class ProductoCategoriaDialogComponent implements OnInit, AfterViewInit {
     }
   }
   ngAfterViewInit(): void {
-    if (this.data?.cantidad != null && this.presentaciones?.length == 1 && this.presentaciones[0]?.precios?.length == 1) {
+    if (
+      this.data?.autoSeleccionar === true &&
+      this.presentaciones?.length === 1 &&
+      this.presentaciones[0]?.precios?.length === 1
+    ) {
       this.onGridCardClick(this.presentaciones[0]);
     }
   }
