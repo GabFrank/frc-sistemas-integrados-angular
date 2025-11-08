@@ -210,6 +210,10 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         this.selectedPageInfo = res;
         this.dataSource.data = res.getContent;
         this.isSearching = false;
+
+        if (res.getContent && res.getContent.length === 0) {
+          this.notificacionService.openWarn('Producto no encontrado');
+        }
       });
   }
 

@@ -345,7 +345,10 @@ export class ListMovimientoStockComponent implements OnInit {
     };
     
     let tabData: TabData = new TabData();
-    tabData.data = caja;
+    tabData.data = {
+      caja: caja,
+      ventaId: venta.id
+    };
     
     this.tabService.addTab(
       new Tab(
