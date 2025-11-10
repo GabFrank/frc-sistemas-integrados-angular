@@ -24,6 +24,7 @@ import { QueryRef } from 'apollo-angular';
 import { SaveSucursalGQL } from "./graphql/saveSucursal";
 import { DeleteSucursalGQL } from "./graphql/deleteSucursal";
 import { DialogosService } from "../../../shared/components/dialogos/dialogos.service";
+import { SucursalesByNombreGQL } from "./graphql/sucursalesByNombre";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -42,6 +43,7 @@ export class SucursalService {
   constructor(
     private getAllSucursales: SucursalesGQL,
     private sucursalesSearch: SucursalesSearchGQL,
+    private sucursalesByNombre: SucursalesByNombreGQL,
     private notificacionBar: NotificacionSnackbarService,
     private getSucursalActual: SucursalActualGQL,
     private http: HttpClient,
@@ -59,11 +61,12 @@ export class SucursalService {
   }
 
   onSearchConFiltros(term: string, deposito: boolean, pageIndex: number, pageSize: number, servidor: boolean = true): Observable<PageInfo<Sucursal>> {
+    const searchTerm = (term == null || term.trim() === '') ? '%' : term;
+
     return this.genericService.onCustomQuery(
-      this.sucursalesSearch,
+      this.sucursalesByNombre,
       {
-        texto: term,
-        deposito: deposito,
+        nombre: searchTerm,
         page: pageIndex,
         size: pageSize
       },
@@ -71,20 +74,27 @@ export class SucursalService {
     ).pipe(
       map((res: any) => {
         const pageInfo = new PageInfo<Sucursal>();
-        pageInfo.getContent = res;
-        pageInfo.getTotalElements = res.length;
-        pageInfo.getNumberOfElements = res.length;
-        pageInfo.isFirst = pageIndex === 0;
-        pageInfo.isLast = true; // Assuming this is the last page
-        pageInfo.hasNext = false;
-        pageInfo.hasPrevious = pageIndex > 0;
+        pageInfo.getContent = res.getContent || [];
+        pageInfo.getTotalElements = res.getTotalElements || 0;
+        pageInfo.getNumberOfElements = res.getNumberOfElements || 0;
+        pageInfo.getTotalPages = res.getTotalPages || 0;
+        pageInfo.isFirst = res.isFirst || false;
+        pageInfo.isLast = res.isLast || false;
+        pageInfo.hasNext = res.hasNext || false;
+        pageInfo.hasPrevious = res.hasPrevious || false;
+        if (deposito !== null && deposito !== undefined) {
+          pageInfo.getContent = pageInfo.getContent.filter(s => s.deposito === deposito);
+          pageInfo.getTotalElements = pageInfo.getContent.length;
+          pageInfo.getNumberOfElements = pageInfo.getContent.length;
+        }
+
         return pageInfo;
       })
     );
   }
 
   onGetSucursal(id, servidor: boolean = true): Observable<Sucursal> {
-    return this.genericService.onCustomQuery(this.sucursalPorId, {id}, servidor);
+    return this.genericService.onCustomQuery(this.sucursalPorId, { id }, servidor);
   }
 
   onGetAllSucursalesByActive(servidor: boolean = true, onlyActive: boolean = false): Observable<Sucursal[]> {
@@ -116,7 +126,7 @@ export class SucursalService {
   //       nickname: "ADMIN",
   //       password: "ADMIN",
   //     };
-      
+
   //     // Only proceed with the HTTP request if servidor is true
   //     if (servidor) {
   //       this.http
@@ -150,7 +160,7 @@ export class SucursalService {
   //       nickname: "ADMIN",
   //       password: "ADMIN",
   //     };
-      
+
   //     // Only proceed with the HTTP request if servidor is true
   //     if (servidor) {
   //       this.http
@@ -194,34 +204,39 @@ export class SucursalService {
 
   openSearchDialog(title?: string, message?: string, servidor: boolean = true): Observable<Sucursal> {
     return new Observable((obs) => {
-      this.onGetAllSucursales(servidor).pipe(untilDestroyed(this)).subscribe((res) => {
-        const dialogData = new SearchListtDialogData();
-        dialogData.titulo = title || 'Seleccionar Sucursal';
-        dialogData.inicialData = res;
-        dialogData.tableData = [
-          { id: 'id', nombre: 'ID', width: '100px' },
-          { id: 'nombre', nombre: 'Nombre', width: '250px' }
-        ];
-        
-        const dialogRef = this.matDialog.open(SearchListDialogComponent, {
-          width: '80%',
-          data: dialogData
-        });
+      const dialogData = new SearchListtDialogData();
+      dialogData.titulo = title || 'Seleccionar Sucursal';
+      dialogData.query = this.sucursalesSearch;
+      dialogData.tableData = [
+        { id: 'id', nombre: 'Id', width: '5%' },
+        { id: 'nombre', nombre: 'Nombre', width: '50%' },
+        { id: 'descripcion', nombre: 'Ciudad', width: '22%', nested: true, nestedId: 'ciudad' }
+      ];
+      dialogData.search = true;
+      dialogData.inicialSearch = true;
+      dialogData.paginator = false;
+      dialogData.isServidor = servidor;
+      dialogData.searchFieldName = 'texto';
+      dialogData.queryData = { texto: '%' };
 
-        dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe((result: Sucursal) => {
-          if (result) {
-            obs.next(result);
-          }
-          obs.complete();
-        });
+      const dialogRef = this.matDialog.open(SearchListDialogComponent, {
+        data: dialogData,
+        height: '80vh',
+        width: '70vw',
+        restoreFocus: true
+      });
+
+      dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe((result: Sucursal) => {
+        if (result) {
+          obs.next(result);
+        }
+        obs.complete();
       });
     });
   }
 
   toggleSucursalDeposito(sucursal: Sucursal, servidor: boolean = true): Observable<Sucursal> {
-    // Toggle the deposito property
     sucursal.deposito = !sucursal.deposito;
-    // Save the updated sucursal
     return this.onSaveSucursal(sucursal, servidor);
   }
 
@@ -232,7 +247,7 @@ export class SucursalService {
           sucursal.ip = ipAddress.toUpperCase();
           sucursal.puerto = Number(puerto);
           sucursal.isConfigured = true;
-          
+
           this.onSaveSucursal(sucursal, servidor).pipe(untilDestroyed(this)).subscribe({
             next: (updatedSucursal) => {
               this.notificacionBar.notification$.next({

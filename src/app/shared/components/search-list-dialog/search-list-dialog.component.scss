@@ -1,11 +1,58 @@
 input {
-    text-transform: uppercase;
+  text-transform: uppercase;
 }
 
 .selected {
-    background-color: #43a047;
+  background-color: #43a047;
 }
 
 tr:focus {
-    outline: none;
+  outline: none;
+}
+
+table {
+  width: 100%;
+}
+
+tr.example-detail-row {
+  height: 0;
+}
+
+.mat-mdc-cell,
+.mat-mdc-header-cell {
+  word-wrap: initial;
+  display: table-cell;
+  padding: 0px 10px;
+  line-break: unset;
+  white-space: nowrap;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+.highlight {
+  background: #42A948;
+}
+
+.tableRows {
+  height: 48px !important;
+  min-height: 48px !important;
+}
+
+.tableRows:hover {
+  background-color: rgb(51, 51, 51) !important;
+  cursor: pointer;
+}
+
+.expanded:hover {
+  background-color: rgb(51, 51, 51) !important;
+}
+
+.mat-mdc-row {
+  height: 48px !important;
+  min-height: 48px !important;
+}
+
+.mat-mdc-header-row {
+  height: 48px !important;
+  min-height: 48px !important;
 }
