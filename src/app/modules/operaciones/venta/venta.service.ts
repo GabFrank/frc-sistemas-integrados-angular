@@ -204,6 +204,7 @@ export class VentaService {
     isDelivery?,
     monedaId?,
     conDescuento?,
+    conAumento?,
     servidor = true
   ): Observable<PageInfo<Venta>> {
     return this.genericService.onCustomQuery(this.ventasPorCajaId, {
@@ -218,6 +219,7 @@ export class VentaService {
       isDelivery,
       monedaId,
       conDescuento,
+      conAumento
     }, servidor);
   }
 

@@ -102,6 +102,7 @@ export class ListVentaComponent implements OnInit {
   filterChanged = true;
   conObsControl = new FormControl(false);
   conDescuentoControl = new FormControl(false);
+  conAumentoControl = new FormControl(false);
 
   length = 15;
   pageSize = 15;
@@ -166,7 +167,8 @@ export class ListVentaComponent implements OnInit {
       formaPago: this.formaPagoControl,
       estado: this.estadoControl,
       conObservacion: this.conObsControl,
-      conDescuento: this.conDescuentoControl
+      conDescuento: this.conDescuentoControl,
+      conAumento: this.conAumentoControl
     });
 
     this.form.valueChanges.subscribe((res) => {
@@ -210,8 +212,6 @@ export class ListVentaComponent implements OnInit {
     this.filterChanged = true;
   }
 
-  
-
   onGetVentas() {
     // this.cargandoService.openDialog()
     // this.isCargando = true;
@@ -227,7 +227,8 @@ export class ListVentaComponent implements OnInit {
         this.estadoControl.value,
         this.modoControl.value,
         this.monedaControl.value?.id,
-        this.conDescuentoControl.value
+        this.conDescuentoControl.value,
+        this.conAumentoControl.value
       )
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
@@ -382,6 +383,7 @@ export class ListVentaComponent implements OnInit {
     this.ventaDataSource.data = [];
     this.conObsControl.setValue(false);
     this.conDescuentoControl.setValue(false);
+    this.conAumentoControl.setValue(false);
   }
 
   onGoToRetiros() {
@@ -495,5 +497,17 @@ export class ListVentaComponent implements OnInit {
       .subscribe(() => {
         this.ventaObservacionService.onGetVentasObservaciones().subscribe();
       })
+  }
+
+  onToggleConObs(selected: boolean) {
+    this.conObsControl.setValue(selected);
+  }
+
+  onToggleConDescuento(selected: boolean) {
+    this.conDescuentoControl.setValue(selected);
+  }
+
+  onToggleConAumento(selected: boolean) {
+    this.conAumentoControl.setValue(selected);
   }
 }
