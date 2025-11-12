@@ -299,18 +299,18 @@ export class ListMovimientoStockComponent implements OnInit {
   }
 
   irAVenta(movimiento: MovimientoStock) {
-    
+
     if (movimiento.referencia) {
       if (movimiento.data && movimiento.data.venta && movimiento.data.venta.caja) {
         const venta = movimiento.data.venta;
         this.abrirTabVenta(venta);
         return;
       }
-      
+
       this.ventaService
         .onGetPorId(movimiento.referencia, movimiento.sucursalId, true)
         .subscribe((venta) => {
-          
+
           if (venta) {
             if (venta.caja) {
               this.abrirTabVenta(venta);
@@ -325,11 +325,11 @@ export class ListMovimientoStockComponent implements OnInit {
             );
           }
         },
-        (error) => {
-          this.notificacionService.openWarn(
-            "Error al obtener la información de la venta: " + (error.message || error)
-          );
-        });
+          (error) => {
+            this.notificacionService.openWarn(
+              "Error al obtener la información de la venta: " + (error.message || error)
+            );
+          });
     } else {
       this.notificacionService.openWarn(
         "No se encontró la referencia de la venta"
@@ -338,15 +338,15 @@ export class ListMovimientoStockComponent implements OnInit {
   }
 
   abrirTabVenta(venta: any) {
- 
+
     const caja = {
       ...venta.caja,
       sucursalId: venta.sucursalId
     };
-    
+
     let tabData: TabData = new TabData();
     tabData.data = caja;
-    
+
     this.tabService.addTab(
       new Tab(
         ListVentaComponent,
@@ -359,12 +359,12 @@ export class ListMovimientoStockComponent implements OnInit {
 
   irATransferencia(movimiento: MovimientoStock) {
     if (movimiento.referencia) {
-      
+
       if (movimiento.data && movimiento.data.transferencia) {
         this.abrirTabTransferencia(movimiento.data.transferencia);
         return;
       }
-      
+
       this.transferenciaService
         .onGetTransferenciaItem(movimiento.referencia)
         .subscribe((transferenciaItem) => {
@@ -376,12 +376,12 @@ export class ListMovimientoStockComponent implements OnInit {
             );
           }
         },
-        (error) => {
-          console.error('Error al obtener la transferencia:', error);
-          this.notificacionService.openWarn(
-            "Error al obtener la información de la transferencia: " + (error.message || error)
-          );
-        });
+          (error) => {
+            console.error('Error al obtener la transferencia:', error);
+            this.notificacionService.openWarn(
+              "Error al obtener la información de la transferencia: " + (error.message || error)
+            );
+          });
     } else {
       this.notificacionService.openWarn(
         "No se encontró la referencia de la transferencia"
@@ -392,7 +392,7 @@ export class ListMovimientoStockComponent implements OnInit {
   abrirTabTransferencia(transferencia: any) {
     let tabData: TabData = new TabData();
     tabData.id = transferencia.id;
-    
+
     this.tabService.addTab(
       new Tab(
         EditTransferenciaComponent,
@@ -406,7 +406,7 @@ export class ListMovimientoStockComponent implements OnInit {
   irAInventario(movimiento: MovimientoStock) {
     if (movimiento.referencia) {
       const esAjusteManual = Number(movimiento.referencia) === Number(movimiento.producto?.id);
-      
+
       // Preparar datos comunes para el filtrado
       const datosComunes = {
         producto: movimiento.producto,
@@ -415,14 +415,14 @@ export class ListMovimientoStockComponent implements OnInit {
         fecha: movimiento.creadoEn,
         esAjusteManual: esAjusteManual
       };
-      
+
       if (esAjusteManual) {
         let tabData: TabData = new TabData();
         tabData.data = {
           ...datosComunes,
           productoId: movimiento.producto?.id
         };
-        
+
         this.tabService.addTab(
           new Tab(
             ListInventarioComponent,
@@ -438,7 +438,7 @@ export class ListMovimientoStockComponent implements OnInit {
           inventarioItemId: movimiento.referencia,
           productoId: movimiento.producto?.id
         };
-        
+
         this.tabService.addTab(
           new Tab(
             ListInventarioComponent,
@@ -455,9 +455,9 @@ export class ListMovimientoStockComponent implements OnInit {
     }
   }
 
-  resetFilters() {}
+  resetFilters() { }
 
-  onSelectProducto(producto) {}
+  onSelectProducto(producto) { }
 
   onBuscarProducto() {
     // let text: string = this.buscarProductoControl.value;
@@ -545,11 +545,11 @@ export class ListMovimientoStockComponent implements OnInit {
     this.onGetResumen(isPagination);
   }
 
-  resetFiltro() {}
+  resetFiltro() { }
 
-  onGenerarPdf() {}
+  onGenerarPdf() { }
 
-  onCancelarFiltro() {}
+  onCancelarFiltro() { }
 
   onBuscarUsuario() {
     let data: SearchListtDialogData = {
@@ -647,7 +647,7 @@ export class ListMovimientoStockComponent implements OnInit {
         );
         return;
       } catch (e) {
-        console.warn('Error al procesar data del backend:', e); 
+        console.warn('Error al procesar data del backend:', e);
       }
     }
 
@@ -739,7 +739,7 @@ export class ListMovimientoStockComponent implements OnInit {
                 stockFinal: stockPrevio + movimiento.cantidad
               };
               console.log('Data de transferencia con stock anterior:', movimiento.data);
-              } else {
+            } else {
               movimiento.data = {
                 stockAnterior: stockPrevio,
                 stockFinal: stockPrevio + movimiento.cantidad
@@ -833,20 +833,20 @@ export class ListMovimientoStockComponent implements OnInit {
 
   formatearFechaParaBackend(fecha: Date | string): string {
     if (!fecha) return '';
-    
+
     let fechaDate: Date;
     if (typeof fecha === 'string') {
       fechaDate = new Date(fecha);
     } else {
       fechaDate = fecha;
     }
-    
+
     const year = fechaDate.getFullYear();
     const month = String(fechaDate.getMonth() + 1).padStart(2, '0');
     const day = String(fechaDate.getDate()).padStart(2, '0');
     const hours = String(fechaDate.getHours()).padStart(2, '0');
     const minutes = String(fechaDate.getMinutes()).padStart(2, '0');
-    
+
     return `${year}-${month}-${day} ${hours}:${minutes}`;
   }
 
@@ -860,7 +860,7 @@ export class ListMovimientoStockComponent implements OnInit {
     this.dataSource.data.forEach((movimiento, index) => {
       if (movimiento.tipoMovimiento === TipoMovimiento.AJUSTE) {
         console.log('Procesando ajuste:', movimiento.id, 'data actual:', movimiento.data);
-        
+
         if (movimiento.data && typeof movimiento.data === 'string') {
           try {
             movimiento.data = JSON.parse(movimiento.data);
@@ -881,7 +881,7 @@ export class ListMovimientoStockComponent implements OnInit {
 
   calcularDataParaAjuste(movimiento: MovimientoStock, index: number) {
     const fechaFormateada = this.formatearFechaParaBackend(movimiento.creadoEn);
-    
+
     this.service.onGetStockAntesDeFecha(
       movimiento.producto.id,
       movimiento.sucursalId,
@@ -903,7 +903,7 @@ export class ListMovimientoStockComponent implements OnInit {
     const referenciaNum = Number(movimiento.referencia);
     const productoIdNum = Number(movimiento.producto?.id);
     const esAjusteManual = referenciaNum === productoIdNum;
-    
+
     console.log('Procesando movimiento:', {
       id: movimiento.id,
       referencia: movimiento.referencia,

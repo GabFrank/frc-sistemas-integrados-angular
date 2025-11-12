@@ -1,77 +1,33 @@
-<app-generic-list
-  titulo="Inventarios"
-  (filtrar)="onFiltrar()"
-  [isCustom]="true"
-  customName="Generar Pdf"
-  (customFunction)="onGenerarPdf()"
-  (resetFiltro)="onResetFiltro()"
->
+<app-generic-list titulo="Inventarios" (filtrar)="onFiltrar()" [isCustom]="true" customName="Generar Pdf"
+  (customFunction)="onGenerarPdf()" (resetFiltro)="onResetFiltro()">
   <div filtros>
-    <div
-      fxLayout="row"
-      fxLayoutAlign="start center"
-      fxLayoutGap="10px"
-      style="width: 100%"
-    >
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
       <div fxFlex="20%">
         <mat-form-field style="width: 100%">
           <mat-label>Rango de fecha</mat-label>
-          <mat-date-range-input
-            [formGroup]="fechaFormGroup"
-            [rangePicker]="picker"
-            style="width: 100%"
-          >
-            <input
-              matStartDate
-              formControlName="inicio"
-              placeholder="Inicio"
-              [max]="today"
-            />
-            <input
-              matEndDate
-              formControlName="fin"
-              placeholder="Fin"
-              [max]="fechaInicioControl.value"
-            />
+          <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker" style="width: 100%">
+            <input matStartDate formControlName="inicio" placeholder="Inicio" [max]="today" />
+            <input matEndDate formControlName="fin" placeholder="Fin" [max]="fechaInicioControl.value" />
           </mat-date-range-input>
-          <mat-datepicker-toggle
-            matSuffix
-            [for]="picker"
-          ></mat-datepicker-toggle>
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-date-range-picker #picker></mat-date-range-picker>
 
-          <mat-error
-            *ngIf="
+          <mat-error *ngIf="
               fechaFormGroup.controls.inicio.hasError('matStartDateInvalid')
-            "
-            >Fecha inicial inválida</mat-error
-          >
-          <mat-error
-            *ngIf="fechaFormGroup.controls.fin.hasError('matEndDateInvalid')"
-            >Fecha final inválida</mat-error
-          >
+            ">Fecha inicial inválida</mat-error>
+          <mat-error *ngIf="fechaFormGroup.controls.fin.hasError('matEndDateInvalid')">Fecha final inválida</mat-error>
         </mat-form-field>
       </div>
       <div fxFlex="10%">
         <mat-form-field style="width: 100%">
           <mat-label>Inicio Hora</mat-label>
-          <input
-            matInput
-            [formControl]="horaInicioControl"
-            type="time"
-            placeholder="Hora inicio"
-          />
+          <input matInput [formControl]="horaInicioControl" type="time" placeholder="Hora inicio" />
         </mat-form-field>
       </div>
       <div fxFlex="10%">
         <mat-form-field style="width: 100%">
           <mat-label>Fin Hora</mat-label>
-          <input
-            matInput
-            [formControl]="horaFinalControl"
-            type="time"
-            placeholder="Hora fin"
-          />
+          <input matInput [formControl]="horaFinalControl" type="time" placeholder="Hora fin" />
         </mat-form-field>
       </div>
       <div fxFlex="25%">
@@ -80,31 +36,24 @@
           <mat-select #sucursalSelect [formControl]="sucursalControl" multiple>
             <mat-select-trigger>
               {{(sucursalControl.value?.[0]?.nombre || '')}}
-              <span
-                *ngIf="(sucursalControl.value?.length || 0) > 1"
-                class="example-additional-selection"
-              >
+              <span *ngIf="(sucursalControl.value?.length || 0) > 1" class="example-additional-selection">
                 (+{{ (sucursalControl.value?.length || 0) - 1 }}
                 {{ sucursalControl.value?.length === 2 ? "otro" : "otros" }})
               </span>
             </mat-select-trigger>
-            <div
-              style="
+            <div style="
                 width: 100%;
                 text-align: end;
                 padding-right: 10px;
                 padding-top: 10px;
                 font-size: 0.8em;
                 color: white;
-              "
-            >
+              ">
               <mat-icon (click)="sucursalSelect.close()">clear</mat-icon>
             </div>
             <mat-option [value]="null">Todas</mat-option>
-            <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal"
-              >{{ sucursal?.id }} -
-              {{ sucursal?.nombre | titlecase }}</mat-option
-            >
+            <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">{{ sucursal?.id }} -
+              {{ sucursal?.nombre | titlecase }}</mat-option>
           </mat-select>
         </mat-form-field>
       </div>
@@ -112,80 +61,43 @@
         <div fxFlex="80%">
           <mat-form-field style="width: 100%">
             <mat-label>Buscar usuario</mat-label>
-            <input
-              #buscarUsuarioInput
-              type="text"
-              matInput
-              [formControl]="buscarUsuarioControl"
-              (keyup.enter)="onBuscarUsuario()"
-            />
+            <input #buscarUsuarioInput type="text" matInput [formControl]="buscarUsuarioControl"
+              (keyup.enter)="onBuscarUsuario()" />
           </mat-form-field>
         </div>
         <div fxFlex="10%" style="text-align: center">
-          <mat-icon class="icon" (click)="onBuscarUsuario()"
-            >search</mat-icon
-          >
+          <mat-icon class="icon" (click)="onBuscarUsuario()">search</mat-icon>
         </div>
-        <div
-          fxFlex="10%"
-          style="text-align: center"
-          *ngIf="selectedUsuario != null"
-        >
-          <mat-icon style="font-size: 2em" (click)="onClearUsuario()"
-            >clear</mat-icon
-          >
+        <div fxFlex="10%" style="text-align: center" *ngIf="selectedUsuario != null">
+          <mat-icon style="font-size: 2em" (click)="onClearUsuario()">clear</mat-icon>
         </div>
       </div>
     </div>
-    <div
-      fxLayout="row"
-      fxLayoutAlign="start center"
-      fxLayoutGap="10px"
-      style="width: 100%"
-    >
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
       <div fxFlex="40%" fxLayout="column" fxLayoutGap="10px">
         <div fxFlex fxLayoutAlign="start center">
           <div fxFlex="80%">
             <mat-form-field style="width: 100%">
               <mat-label>Buscar producto</mat-label>
-              <input
-                #buscadorInput
-                type="text"
-                matInput
-                [formControl]="buscarProductoControl"
-                (keyup.enter)="onBuscarProducto()"
-              />
+              <input #buscadorInput type="text" matInput [formControl]="buscarProductoControl"
+                (keyup.enter)="onBuscarProducto()" />
             </mat-form-field>
           </div>
           <div fxFlex="10%" style="text-align: center">
-            <mat-icon class="icon" (click)="onBuscarProducto()"
-              >search</mat-icon
-            >
+            <mat-icon class="icon" (click)="onBuscarProducto()">search</mat-icon>
           </div>
         </div>
-        <div
-          fxFlex
-          fxLayout="row"
-          *ngFor="let producto of productoList; let index = index"
-        >
+        <div fxFlex fxLayout="row" *ngFor="let producto of productoList; let index = index">
           <div fxFlex="80%">{{ producto.id }} - {{ producto.descripcion }}</div>
           <div fxFlex="10%" style="text-align: center">
-            <mat-icon
-              style="font-size: 2em"
-              (click)="onClearProducto(producto, index)"
-              >clear</mat-icon
-            >
+            <mat-icon style="font-size: 2em" (click)="onClearProducto(producto, index)">clear</mat-icon>
           </div>
         </div>
       </div>
       <div fxFlex="25%">
         <mat-form-field style="width: 100%">
           <mat-label>Ordenar por</mat-label>
-          <mat-select
-            #ordenarSelect
-            [formControl]="ordenarPorControl"
-            (selectionChange)="onOrderSelect()"
-          >
+          <mat-select #ordenarSelect [formControl]="ordenarPorControl" (selectionChange)="onOrderSelect()">
             <mat-option [value]="null"></mat-option>
             <mat-option *ngFor="let order of orderList" [value]="order">
               {{ order.nombre }}
@@ -197,62 +109,30 @@
         <mat-form-field style="width: 100%">
           <mat-label>Tipo de orden</mat-label>
           <mat-select #ordenarTipoSelect [formControl]="tipoOrdenControl">
-            <mat-option
-              *ngFor="let tipo of ordenarPorControl.value?.tipo"
-              [value]="tipo"
-              >{{ tipo.nombre }}
+            <mat-option *ngFor="let tipo of ordenarPorControl.value?.tipo" [value]="tipo">{{ tipo.nombre }}
             </mat-option>
           </mat-select>
         </mat-form-field>
       </div>
     </div>
   </div>
-  <div
-    table
-    style="height: 100%; background-color: rgb(70, 70, 70)"
-    fxLayout="column"
-    fxLayoutAlign="space-between start"
-  >
-    <table
-      mat-table
-      [dataSource]="dataSource"
-      multiTemplateDataRows
-      class="mat-elevation-z8"
-      style="width: 100%"
-    >
+  <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
+    fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
       <ng-container matColumnDef="descripcion" style="width: 30%">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 20%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
           Descripción
         </th>
-        <td
-          mat-cell
-          *matCellDef="let inventarioProductoItem"
-          style="text-align: start; width: 20%"
-        >
-          <span
-            style="padding-right: 5px"
-            [copiarAClipboard]="
+        <td mat-cell *matCellDef="let inventarioProductoItem" style="text-align: start; width: 20%">
+          <span style="padding-right: 5px" [copiarAClipboard]="
               inventarioProductoItem.presentacion.producto.descripcion
-            "
-            (click)="$event.stopPropagation()"
-          >
-            {{ inventarioProductoItem.presentacion.producto.descripcion }}</span
-          >
+            " (click)="$event.stopPropagation()">
+            {{ inventarioProductoItem.presentacion.producto.descripcion }}</span>
           <span>
-            <mat-icon
-              style="font-size: 100%; height: 100%"
-              (click)="
+            <mat-icon style="font-size: 100%; height: 100%" (click)="
                 $event.stopPropagation();
                 irAProducto(inventarioProductoItem.presentacion.producto)
-              "
-              matTooltip="Ir a producto"
-              class="highlight-hover"
-              >launch</mat-icon
-            >
+              " matTooltip="Ir a producto" class="highlight-hover">launch</mat-icon>
           </span>
           <!-- <span>
             <mat-icon
@@ -270,92 +150,51 @@
 
       <!-- Name Column -->
       <ng-container matColumnDef="codigo">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 10%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
           Código de barras
         </th>
-        <td
-          mat-cell
-          *matCellDef="let inventarioProductoItem"
-          style="text-align: center; width: 10%"
-          [copiarAClipboard]="
+        <td mat-cell *matCellDef="let inventarioProductoItem" style="text-align: center; width: 10%" [copiarAClipboard]="
             inventarioProductoItem.presentacion?.producto?.codigoPrincipal
-          "
-          (click)="$event.stopPropagation()"
-        >
+          " (click)="$event.stopPropagation()">
           {{ inventarioProductoItem.presentacion.producto?.codigoPrincipal }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="cantidadSistema">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 10%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
           Cantidad en sistema
         </th>
-        <td
-          mat-cell
-          *matCellDef="let inventarioProductoItem"
-          style="text-align: center; width: 10%"
-        >
-        {{ inventarioProductoItem?.cantidadFisica }}
-      </td>
+        <td mat-cell *matCellDef="let inventarioProductoItem" style="text-align: center; width: 10%">
+          {{ inventarioProductoItem?.cantidadFisica }}
+        </td>
       </ng-container>
 
       <ng-container matColumnDef="cantidadFisica">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 10%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
           Cantidad encontrada
         </th>
-        <td
-          mat-cell
-          *matCellDef="let inventarioProductoItem"
-          style="text-align: center; width: 10%"
-        >
+        <td mat-cell *matCellDef="let inventarioProductoItem" style="text-align: center; width: 10%">
           {{ inventarioProductoItem?.cantidad | number : "1.0-2" }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="saldo">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 10%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
           Saldo
         </th>
-        <td
-          mat-cell
-          *matCellDef="let inventarioProductoItem"
-          style="text-align: center; width: 10%"
-        >
+        <td mat-cell *matCellDef="let inventarioProductoItem" style="text-align: center; width: 10%">
           {{
-            inventarioProductoItem?.cantidad -
-              inventarioProductoItem?.cantidadFisica | number : "1.0-2"
+          inventarioProductoItem?.cantidad -
+          inventarioProductoItem?.cantidadFisica | number : "1.0-2"
           }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="texto">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 5%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
           Estado
         </th>
-        <td
-          mat-cell
-          *matCellDef="let inventarioProductoItem"
-          style="text-align: center; width: 5%"
+        <td mat-cell *matCellDef="let inventarioProductoItem" style="text-align: center; width: 5%"
           [style.background-color]="
             inventarioProductoItem?.cantidad -
               inventarioProductoItem?.cantidadFisica <
@@ -370,101 +209,56 @@
                 0
               ? 'orange'
               : null
-          "
-        >
+          ">
           {{
-            inventarioProductoItem?.cantidad -
-              inventarioProductoItem?.cantidadFisica <
+          inventarioProductoItem?.cantidad -
+          inventarioProductoItem?.cantidadFisica < 0 ? "FALTA" : inventarioProductoItem?.cantidad -
+            inventarioProductoItem?.cantidadFisica==0 ? "OK" : inventarioProductoItem?.cantidad -
+            inventarioProductoItem?.cantidadFisica>
             0
-              ? "FALTA"
-              : inventarioProductoItem?.cantidad -
-                  inventarioProductoItem?.cantidadFisica ==
-                0
-              ? "OK"
-              : inventarioProductoItem?.cantidad -
-                  inventarioProductoItem?.cantidadFisica >
-                0
-              ? "SOBRA"
-              : null
-          }}
+            ? "SOBRA"
+            : null
+            }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="usuario">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 10%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
           Responsable
         </th>
-        <td
-          mat-cell
-          *matCellDef="let inventarioProductoItem"
-          style="text-align: center; width: 10%"
-        >
+        <td mat-cell *matCellDef="let inventarioProductoItem" style="text-align: center; width: 10%">
           {{ inventarioProductoItem?.usuario?.nickname }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="creadoEn">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 10%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
           Creado en
         </th>
-        <td
-          mat-cell
-          *matCellDef="let inventarioProductoItem"
-          style="text-align: center; width: 10%"
-        >
+        <td mat-cell *matCellDef="let inventarioProductoItem" style="text-align: center; width: 10%">
           {{ inventarioProductoItem?.creadoEn | date : "short" }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="sucursal">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 10%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 10%">
           Sucursal
         </th>
-        <td
-          mat-cell
-          *matCellDef="let inventarioProductoItem"
-          style="text-align: center; width: 10%"
-          [matTooltip]="inventarioProductoItem?.inventarioProducto?.inventario?.sucursal
-          ?.nombre"
-          style="text-overflow: ellipsis;"
-        >
+        <td mat-cell *matCellDef="let inventarioProductoItem" style="text-align: center; width: 10%" [matTooltip]="inventarioProductoItem?.inventarioProducto?.inventario?.sucursal
+          ?.nombre" style="text-overflow: ellipsis;">
           {{
-            inventarioProductoItem?.inventarioProducto?.inventario?.sucursal
-              ?.nombre | titlecase
+          inventarioProductoItem?.inventarioProducto?.inventario?.sucursal
+          ?.nombre | titlecase
           }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="acciones">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="width: 5%; text-align: center"
-        >
+        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">
           ...
         </th>
-        <td
-          mat-cell
-          *matCellDef="let inventarioProductoItem; let i = dataIndex"
-          style="text-align: center; width: 5%"
-        >
-          <button
-            mat-icon-button
-            [matMenuTriggerFor]="menu"
-            (click)="$event.stopPropagation()"
-          >
+        <td mat-cell *matCellDef="let inventarioProductoItem; let i = dataIndex" style="text-align: center; width: 5%">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
@@ -479,37 +273,18 @@
 
       <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
       <ng-container matColumnDef="expandedDetail">
-        <td
-          mat-cell
-          *matCellDef="let inventarioProductoItem"
-          [attr.colspan]="displayedColumns.length"
-          class="expanded"
-        >
-          <div
-            class="example-element-detail"
-            [@detailExpand]="
+        <td mat-cell *matCellDef="let inventarioProductoItem" [attr.colspan]="displayedColumns.length" class="expanded">
+          <div class="example-element-detail" [@detailExpand]="
               inventarioProductoItem == expandedInventarioProductoItem
                 ? 'expanded'
                 : 'collapsed'
-            "
-            style="text-align: center"
-            fxLayout="column"
-            fxLayoutAlign="start start"
-          >
-            <div
-              fxLayout="row"
-              fxLayoutAlign="center start"
-              style="width: 100%"
-            >
+            " style="text-align: center" fxLayout="column" fxLayoutAlign="start start">
+            <div fxLayout="row" fxLayoutAlign="center start" style="width: 100%">
               <div fxLayout="column" style="width: 90%">
                 <br />
-                <div
-                  *ngFor="
+                <div *ngFor="
                     let item of inventarioProductoItem?.inventarioItemList
-                  "
-                  fxLayout="row"
-                  style="width: 100%"
-                >
+                  " fxLayout="row" style="width: 100%">
                   <div fxFlex="50%">
                     {{ item?.presentacion?.producto?.descripcion | uppercase }}
                   </div>
@@ -525,13 +300,8 @@
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-      <tr
-        class="example-element-row"
-        mat-row
-        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
-        [class.example-expanded-row]="expandedInventarioProductoItem === row"
-        (click)="onRowClick(row, i)"
-      ></tr>
+      <tr class="example-element-row" mat-row *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+        [class.example-expanded-row]="expandedInventarioProductoItem === row" (click)="onRowClick(row, i)"></tr>
 
       <!-- <tr
         class="example-element-row"
@@ -545,19 +315,10 @@
         "
       ></tr> -->
 
-      <tr
-        mat-row
-        *matRowDef="let row; columns: ['expandedDetail']"
-        class="example-detail-row"
-      ></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
-    <mat-paginator
-      itemsPerPageLabel="Itens por página"
-      [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)"
-      [length]="selectedPageInfo?.getTotalElements"
-      style="width: 100%"
-      showFirstLastButtons
-    ></mat-paginator>
+    <mat-paginator itemsPerPageLabel="Itens por página" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements" style="width: 100%"
+      showFirstLastButtons></mat-paginator>
   </div>
 </app-generic-list>

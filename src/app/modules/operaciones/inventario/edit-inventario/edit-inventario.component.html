@@ -1,24 +1,15 @@
-<div
-  fxLayout="row"
-  style="width: 100%; height: 95%"
-  fxLayoutAlign="center start"
->
+<div fxLayout="row" style="width: 100%; height: 95%" fxLayoutAlign="center start">
   <mat-card appearance="outlined" fxFlex="95" fxLayout="column" style="height: 100%">
     <div fxFlex="5" style="width: 100%; text-align: center">
       Gestión de Inventario
     </div>
-    <mat-card
-      appearance="outlined"
-      fxFlex="20%"
-      fxLayout="column"
-      fxLayoutGap="10px"
-      style="background-color: rgb(32, 32, 32)"
-    >
+    <mat-card appearance="outlined" fxFlex="20%" fxLayout="column" fxLayoutGap="10px"
+      style="background-color: rgb(32, 32, 32)">
       <div fxFlex="33" fxLayout="row">
         <div fxFlex="25" fxLayout="column">
           <div class="title" fxFlex="50">Id</div>
           <div class="item" fxFlex="50">
-            {{ mainService?.isServidor ? selectedInventario?.idOrigen : selectedInventario?.id }}
+            {{ selectedInventario?.id }}
           </div>
         </div>
         <div fxFlex="25" fxLayout="column">
@@ -53,43 +44,23 @@
             {{ selectedInventario?.estado | enumToString | titlecase}}
           </div>
         </div>
-        <div fxFlex="50" fxLayout="column">
-          <div class="title" fxFlex="50">Observación</div>
-          <div fxFlex="50">
-            {{ selectedInventario?.observacion }}
-          </div>
-        </div>
       </div>
       <div fxFlex="33" fxLayout="row">
-        <div
-          fxFlex
-          class="raised-button"
-          fxFlex="15%"
-          style="width: 100%"
-          fxLayoutAlign="start center"
-          *ngIf="mainService?.sucursalActual?.id != 0"
-          (click)="onQrClick()"
-          matTooltip="Mostrar QR para vincular con la App"
-        >
+        <div fxFlex class="raised-button" fxFlex="15%" style="width: 100%" fxLayoutAlign="start center"
+          *ngIf="mainService?.sucursalActual?.id != 0" (click)="onQrClick()"
+          matTooltip="Mostrar QR para vincular con la App">
           <mat-icon style="font-size: 2em">qr_code</mat-icon>
         </div>
         <div fxFlex="25" fxLayout="column">
-         
+
         </div>
         <div fxFlex="25" fxLayout="column">
-          
+
         </div>
 
         <div fxFlex="25" fxLayout="column">
-          <button
-            fxFlexAlign="end"
-            style="width: 200px"
-            *ngIf="selectedInventario?.estado == 'ABIERTO'"
-            mat-raised-button
-            color="accent"
-            (click)="addProducto()"
-            [disabled]="sectorControl.invalid"
-          >
+          <button fxFlexAlign="end" style="width: 200px" *ngIf="selectedInventario?.estado == 'ABIERTO'"
+            mat-raised-button color="accent" (click)="addProducto()" [disabled]="sectorControl.invalid">
             + Producto
           </button>
         </div>

@@ -1,8 +1,8 @@
 {
   "serverIp": "localhost",
-  "serverPort": "8081",
+  "serverPort": "8082",
   "serverCentralIp": "localhost",
-  "serverCentralPort": "8081",
+  "serverCentralPort": "8082",
   "local": "Caja 1",
   "precios": "EXPO, EXPO-DEPOSITO",
   "modo": "NOT",
@@ -10,7 +10,7 @@
   "isConfigured": true,
   "isLocal": true,
   "printers": {
-    "ticket": "ticket",
-    "factura": "factura"
+    "ticket": "acer_ticket",
+    "factura": ""
   }
 }
