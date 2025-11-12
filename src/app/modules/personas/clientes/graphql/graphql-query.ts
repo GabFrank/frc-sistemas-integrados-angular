@@ -62,6 +62,7 @@ export const clientePorPersonaDocumento = gql`
         id
         nombre
         direccion
+        email
       }
       tipo
       nombre

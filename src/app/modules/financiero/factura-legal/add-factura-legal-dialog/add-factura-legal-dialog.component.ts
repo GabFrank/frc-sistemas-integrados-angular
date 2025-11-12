@@ -18,7 +18,6 @@ import { Subject } from "rxjs";
 import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
 import { getDigitoVerificadorString } from "../../../../commons/core/utils/rucUtils";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
-import { CargandoDialogService } from "../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import {
   SearchListDialogComponent,
@@ -26,7 +25,7 @@ import {
 } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { VentaItem } from "../../../operaciones/venta/venta-item.model";
 import { Venta } from "../../../operaciones/venta/venta.model";
-import { Cliente, TipoCliente } from "../../../personas/clientes/cliente.model";
+import { Cliente } from "../../../personas/clientes/cliente.model";
 import { ClienteService } from "../../../personas/clientes/cliente.service";
 import { Persona } from "../../../personas/persona/persona.model";
 import { PersonaService } from "../../../personas/persona/persona.service";
@@ -39,8 +38,6 @@ import {
 } from "../factura-legal.model";
 import { FacturaLegalService } from "../factura-legal.service";
 import { PersonaSearchGQL } from "../../../personas/persona/graphql/personaSearch";
-import { UsuarioService } from "../../../personas/usuarios/usuario.service";
-import { RucService } from "../../../../shared/services/ruc.service";
 import { BotonComponent } from "../../../../shared/components/boton/boton.component";
 import { TimbradoDetalle } from "../../timbrado/timbrado.modal";
 
@@ -60,6 +57,8 @@ export interface FacturaLegalData {
 export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
   @ViewChild("rucInput", { static: false }) rucInput: ElementRef;
   @ViewChild("nombreInput", { static: false }) nombreInput: ElementRef;
+  @ViewChild("direccionInput", { static: false }) direccionInput: ElementRef;
+  @ViewChild("emailInput", { static: false }) emailInput: ElementRef;
   @ViewChild("imprimirBtb", { read: BotonComponent }) imprimirBtn: BotonComponent;
 
   selectedCliente: Cliente;
@@ -74,6 +73,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     Validators.minLength(1),
   ]);
   direccionControl = new FormControl("");
+  emailControl = new FormControl({ value: "", disabled: true });
   totalFinalControl = new FormControl(0, [
     Validators.required,
     Validators.min(1),
@@ -98,15 +98,12 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     private facturaService: FacturaLegalService,
     private clienteService: ClienteService,
     private notificacionService: NotificacionSnackbarService,
-    private cargandoService: CargandoDialogService,
     private dialogoService: DialogosService,
     private matDialog: MatDialog,
     private personaService: PersonaService,
     private cajaService: CajaService,
     private personaSearch: PersonaSearchGQL,
-    private dialog: MatDialog,
-    private usuarioService: UsuarioService,
-    private rucService: RucService
+    private dialog: MatDialog
   ) {}
   ngAfterViewInit(): void {
     setTimeout(() => {
@@ -117,6 +114,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.clienteDescripcionControl.disable();
     this.direccionControl.disable();
+    this.emailControl.disable();
     this.cargarDatos();
 
     this.rucControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
@@ -144,7 +142,6 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
         facturaItem.descripcion = v.producto.descripcionFactura;
         facturaItem.precioUnitario = v.precio;
         facturaItem.total = v.cantidad * v.precio;
-        facturaItem.iva;
         facturaItem.presentacion = v.presentacion;
         facturaItem.producto = v.producto;
         facturaItemList.push(facturaItem);
@@ -157,146 +154,139 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
   buscarCliente() {
     this.clienteDescripcionControl.disable();
     this.direccionControl.disable();
-    if (this.rucControl.valid) {
-      let validText: string = this.rucControl.value;
-      let arr = validText.split("-");
-      validText = arr[0];
-      this.rucControl.setValue(validText);
-      console.log(this.rucControl.value, this.selectedCliente?.documento);
+    this.emailControl.disable();
 
-      if (
-        this.rucControl.value == this.selectedCliente?.documento &&
-        this.totalFinalControl.valid
-      ) {
-        this.onGuardar();
-      } else {
-        this.selectedCliente = null;
-        this.clienteDescripcionControl.setValue(null);
-        this.direccionControl.setValue(null);
-        this.tributaControl.setValue(true);
-        this.cargandoService.openDialog();
-        this.clienteService
-          .onGetClientePorPersonaDocumento(this.rucControl.value, false)
-          .pipe(untilDestroyed(this))
-          .subscribe((res) => {
-            this.cargandoService.closeDialog();
-            if (res != null) {
-              this.setCliente(res);
-            } else {
-              this.clienteService
-                .onSearch(this.rucControl.value, this.isServidor)
-                .pipe(untilDestroyed(this))
-                .subscribe((res2) => {
-                  if (res2?.length == 0) {
-                    this.personaService
-                      .onSearch(this.rucControl.value, this.isServidor)
-                      .pipe(untilDestroyed(this))
-                      .subscribe((personaRes) => {
-                        if (personaRes?.length == 0) {
-                          this.notificacionService.openWarn(
-                            "Cliente no encontrado"
-                          );
-                          setTimeout(() => {
-                            this.dialogoService
-                              .confirm(
-                                "Cliente no encontrado",
-                                "Desea crear un nuevo cliente?",
-                                "Verifique si el número de documento/ruc esta correcto antes de crear un nuevo cliente"
-                              )
-                              .subscribe((res3) => {
-                                if (res3) {
-                                  this.crearNuevoCliente();
-                                }
-                              });
-                          }, 500);
-                        } else if (personaRes?.length == 1) {
-                          this.crearNuevoCliente(personaRes[0]);
-                        } else {
-                          let data: SearchListtDialogData = {
-                            titulo: "Seleccionar Cliente",
-                            query: null,
-                            tableData: [
-                              { id: "id", nombre: "Id", width: "10%" },
-                              { id: "nombre", nombre: "Nombre", width: "70%" },
-                              {
-                                id: "documento",
-                                nombre: "Documento/Ruc",
-                                width: "20%",
-                              },
-                            ],
-                            inicialData: personaRes,
-                            isServidor: this.isServidor,
-                          };
-                          // data.
-                          this.matDialog
-                            .open(SearchListDialogComponent, {
-                              data,
-                              height: "80%",
-                              width: "80%",
-                            })
-                            .afterClosed()
-                            .pipe(untilDestroyed(this))
-                            .subscribe((res5) => {
-                              if (res5 != null) {
-                                this.crearNuevoCliente(res5);
-                              }
-                            });
-                        }
-                      });
-                  } else if (res2?.length == 1) {
-                    this.setCliente(res2[0]);
-                  } else {
-                    let data: SearchListtDialogData = {
-                      titulo: "Seleccionar Cliente",
-                      query: null,
-                      tableData: [
-                        { id: "id", nombre: "Id", width: "10%" },
-                        { id: "nombre", nombre: "Nombre", width: "70%" },
-                        {
-                          id: "documento",
-                          nombre: "Documento/Ruc",
-                          width: "20%",
-                        },
-                      ],
-                      inicialData: res2,
-                      isServidor: this.isServidor,
-                    };
-                    // data.
-                    this.matDialog
-                      .open(SearchListDialogComponent, {
-                        data,
-                        height: "80%",
-                        width: "80%",
-                      })
-                      .afterClosed()
-                      .pipe(untilDestroyed(this))
-                      .subscribe((res4) => {
-                        if (res4 != null) {
-                          this.setCliente(res4);
-                        } else {
-                          alert("Cliente no encontrado");
-                        }
-                      });
-                  }
-                });
-            }
-          });
-      }
-    } else {
+    if (!this.rucControl.valid) {
       this.onClienteSearch();
+      return;
     }
+
+    const documento = ((this.rucControl.value || "") + "")
+      .trim()
+      .split("-")[0];
+    this.rucControl.setValue(documento);
+
+    this.clienteService
+      .onGetClientePorPersonaDocumento(documento, false)
+      .subscribe({
+        next: (cliente) => {
+          if (cliente) {
+            this.setCliente(cliente);
+            // Si el cliente fue encontrado y los campos están deshabilitados, ir a Dirección
+            setTimeout(() => {
+              if (this.clienteDescripcionControl.disabled) {
+                this.direccionInput?.nativeElement?.focus();
+              } else {
+                // Si por alguna razón está habilitado, ir a Razón Social
+                this.nombreInput?.nativeElement?.focus();
+              }
+            }, 100);
+          } else {
+            this.prepararNuevoClienteManual();
+            // Ya hace focus en nombreInput dentro del método
+          }
+        },
+        error: (error) => {
+          const errorMessage = this.extractErrorMessage(error);
+          
+          if (errorMessage?.includes("El cliente no es contribuyente de SET")) {
+            this.prepararClienteNoContribuyente();
+            // Ya hace focus en nombreInput dentro del método
+          } else if (errorMessage?.includes("Error al conectar con el servidor central")) {
+            this.prepararClienteSinServidorCentral();
+            // Ya hace focus en nombreInput dentro del método
+          } else {
+            // Otros errores: permitir crear factura sin crear persona/cliente
+            this.prepararFacturaSinCliente();
+            // Ya hace focus en nombreInput dentro del método
+          }
+        },
+      });
+  }
+
+  private extractErrorMessage(error: any): string {
+    if (error?.message) {
+      return error.message;
+    }
+    if (error?.errors && error.errors.length > 0 && error.errors[0]?.message) {
+      return error.errors[0].message;
+    }
+    if (typeof error === 'string') {
+      return error;
+    }
+    return null;
+  }
+
+  prepararClienteNoContribuyente() {
+    this.isNuevoCliente = true;
+    this.selectedCliente = new Cliente();
+    this.selectedCliente.documento = this.rucControl.value;
+    this.selectedCliente.tributa = false;
+    this.tributaControl.setValue(false);
+    this.clienteDescripcionControl.enable();
+    this.direccionControl.enable();
+    this.emailControl.enable();
+    this.clienteDescripcionControl.setValue(null);
+    this.direccionControl.setValue(null);
+    this.emailControl.setValue(null);
+    this.nombreInput?.nativeElement.focus();
+  }
+
+  prepararClienteSinServidorCentral() {
+    this.isNuevoCliente = false; // No guardar como cliente
+    this.selectedCliente = null;
+    this.clienteDescripcionControl.enable();
+    this.direccionControl.enable();
+    this.emailControl.enable();
+    this.clienteDescripcionControl.setValue(null);
+    this.direccionControl.setValue(null);
+    this.emailControl.setValue(null);
+    this.tributaControl.setValue(true);
+    this.nombreInput?.nativeElement.focus();
+  }
+
+  prepararFacturaSinCliente() {
+    this.isNuevoCliente = false; // No guardar como cliente
+    this.selectedCliente = null;
+    this.clienteDescripcionControl.enable();
+    this.direccionControl.enable();
+    this.emailControl.enable();
+    this.clienteDescripcionControl.setValue(null);
+    this.direccionControl.setValue(null);
+    this.emailControl.setValue(null);
+    this.tributaControl.setValue(true);
+    this.nombreInput?.nativeElement.focus();
+  }
+
+  prepararNuevoClienteManual() {
+    this.isNuevoCliente = true;
+    this.selectedCliente = new Cliente();
+    this.selectedCliente.documento = this.rucControl.value;
+    this.selectedCliente.tributa = this.tributaControl.value;
+    this.clienteDescripcionControl.enable();
+    this.direccionControl.enable();
+    this.emailControl.enable();
+    this.clienteDescripcionControl.setValue(null);
+    this.direccionControl.setValue(null);
+    this.emailControl.setValue(null);
+    this.nombreInput?.nativeElement.focus();
   }
 
   setCliente(res: Cliente) {
-    if (res != null) this.selectedCliente = new Cliente();
+    if (res == null) return;
+    
+    this.selectedCliente = new Cliente();
     Object.assign(this.selectedCliente, res);
+    this.isNuevoCliente = false;
     this.notificacionService.openSucess("Cliente encontrado");
     this.clienteDescripcionControl.enable();
     this.direccionControl.enable();
+    this.emailControl.enable();
     this.clienteDescripcionControl.setValue(res.persona?.nombre);
     this.direccionControl.setValue(res?.persona?.direccion);
+    this.emailControl.setValue(res.persona?.email || null);
     this.clienteDescripcionControl.disable();
-    this.direccionControl.disable();
+    // Dirección y email permanecen habilitados para permitir edición
     this.tributaControl.setValue(res?.tributa == false ? false : true);
     // Wait for clienteService response and handle success and error
     //     if (this.selectedCliente?.verificadoSet == false) {
@@ -348,10 +338,12 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
   }
 
   crearNuevoCliente(persona?: Persona) {
-    this.isNuevoCliente = true;
-    this.clienteDescripcionControl.enable();
-    this.direccionControl.enable();
-    this.nombreInput.nativeElement.focus();
+    this.prepararNuevoClienteManual();
+    if (persona) {
+      this.clienteDescripcionControl.setValue(persona.nombre);
+      this.direccionControl.setValue(persona.direccion);
+      this.emailControl.setValue(persona.email || null);
+    }
     // this.clienteService.onConsultaRuc(this.rucControl.value).subscribe({
     //   next: (rucRes) => {
     //     if (rucRes?.nombre != null) {
@@ -455,79 +447,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
       )
       .subscribe((res) => {
         if (res) {
-          // Forzar operaciones de cliente/persona al servidor central
-          this.isServidor = true;
-
-          const saveCliente = () => {
-            this.clienteService
-              .onSaveCliente(this.selectedCliente.toInput(), true)
-              .subscribe({
-                next: (saveRes) => {
-                  this.selectedCliente = saveRes;
-                  this.onSaveFactura();
-                },
-                error: () => {
-                  // Bypass: si falla guardar el cliente, continuar con la factura
-                  this.onSaveFactura();
-                },
-              });
-          };
-
-          const asegurarPersona = () => {
-            if (this.selectedCliente?.persona?.id) return saveCliente();
-            // Intentar obtener persona por documento en el servidor central
-            this.personaService
-              .onSearch(this.rucControl.value, true)
-              .subscribe({
-                next: (lista) => {
-                  const p = lista?.find(x => (x.documento || '').toLocaleLowerCase() === (this.rucControl.value || '').toLocaleLowerCase());
-                  if (p?.id) {
-                    this.selectedCliente.persona = p;
-                    return saveCliente();
-                  } else {
-                    // Crear persona en el servidor central
-                    const pNueva = new Persona();
-                    pNueva.nombre = this.clienteDescripcionControl.value;
-                    pNueva.documento = this.rucControl.value;
-                    pNueva.direccion = this.direccionControl.value;
-                    pNueva.isCliente = true;
-                    const personaInput: any = pNueva.toInput();
-                    delete personaInput.isCliente;
-                    delete personaInput.isProveedor;
-                    delete personaInput.isFuncionario;
-                    this.personaService
-                      .onSavePersona(personaInput, true)
-                      .subscribe({
-                        next: (pGuardada) => {
-                          this.selectedCliente.persona = pGuardada;
-                          return saveCliente();
-                        },
-                        error: () => {
-                          // Bypass si no se puede crear persona
-                          this.onSaveFactura();
-                        },
-                      });
-                  }
-                },
-                error: () => {
-                  // Bypass si no se puede consultar persona
-                  this.onSaveFactura();
-                },
-              });
-          };
-
-          if (this.selectedCliente?.id == null) {
-            if (this.selectedCliente == null)
-              this.selectedCliente = new Cliente();
-            this.selectedCliente.nombre = this.clienteDescripcionControl.value;
-            this.selectedCliente.direccion = this.direccionControl.value;
-            this.selectedCliente.tributa = this.tributaControl.value;
-            this.selectedCliente.documento = this.rucControl.value;
-            this.selectedCliente.verificadoSet = false;
-            asegurarPersona();
-          } else {
-            this.onSaveFactura();
-          }
+          this.onSaveFactura();
         }
       });
   }
@@ -571,6 +491,39 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     this.direccionControl.disable();
     this.rucInput.nativeElement.select();
     this.tributaControl.setValue(true);
+    this.emailControl.setValue(null);
+    this.emailControl.disable();
+  }
+
+  onRucEnter(event: Event) {
+    const keyboardEvent = event as KeyboardEvent;
+    keyboardEvent.preventDefault();
+    this.buscarCliente();
+  }
+
+  onNombreEnter(event: Event) {
+    const keyboardEvent = event as KeyboardEvent;
+    keyboardEvent.preventDefault();
+    // Siempre ir a Dirección después de Razón Social
+    setTimeout(() => {
+      this.direccionInput?.nativeElement?.focus();
+    }, 50);
+  }
+
+  onDireccionEnter(event: Event) {
+    const keyboardEvent = event as KeyboardEvent;
+    keyboardEvent.preventDefault();
+    setTimeout(() => {
+      this.emailInput?.nativeElement?.focus();
+    }, 50);
+  }
+
+  onEmailEnter(event: Event) {
+    const keyboardEvent = event as KeyboardEvent;
+    keyboardEvent.preventDefault();
+    setTimeout(() => {
+      this.imprimirBtn?.onGetFocus();
+    }, 50);
   }
 
   onSaveCliente() {
@@ -587,68 +540,71 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     let factura = new FacturaLegal();
     factura.credito = this.creditoControl.value;
     factura.direccion = this.direccionControl.value;
+    factura.email = this.emailControl.value;
     factura.fecha = this.fechaControl.value;
     factura.nombre = this.clienteDescripcionControl.value;
     factura.ruc = this.rucControl.value;
     factura.caja = this.cajaService?.selectedCaja;
     factura.descuento = this.data?.descuento;
+    
+    // Preparar datos del cliente para enviar al backend (el backend manejará creación/actualización)
     if (this.selectedCliente?.id != null) {
+      // Cliente existente con ID
       factura.cliente = this.selectedCliente;
+    } else if (this.clienteDescripcionControl.value && this.rucControl.value) {
+      // Cliente nuevo o sin ID - crear objeto temporal con datos del formulario
+      // El backend se encargará de crear/actualizar el cliente
+      const clienteTemp = new Cliente();
+      clienteTemp.documento = this.rucControl.value;
+      clienteTemp.nombre = this.clienteDescripcionControl.value;
+      clienteTemp.direccion = this.direccionControl.value;
+      clienteTemp.tributa = this.tributaControl.value;
+      factura.cliente = clienteTemp;
     }
-    let facturaItemInputList: FacturaLegalItemInput[] = [];
-    this.dataSource.data.forEach((f) => {
-      facturaItemInputList.push(f.toInput());
-    });
+    
+    const facturaItemInputList: FacturaLegalItemInput[] = this.dataSource.data.map((f) => f.toInput());
+    const facturaInput = factura.toInput();
+
     // Intento principal: servidor central. Si falla, fallback al servidor local
     this.facturaService
-      .onSaveFactura(factura.toInput(), facturaItemInputList, false)
+      .onSaveFactura(facturaInput, facturaItemInputList, false)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (res: TimbradoDetalle) => {
           if (res != null) {
-            this.facturaService.onShowWarningIfTimbradoAboutToExpire(res);
-            this.facturaService.onShowWarningIfTimbradoRangoAboutToExpire(res);
-            this.matDialogRef.close({
-              facturado: true,
-              cliente: this.selectedCliente,
-            });
+            this.handleFacturaSuccess(res);
           } else {
-            this.notificacionService.openWarn(
-              "Servidor central no disponible. Se imprimirá desde el servidor local.",
-            );
-            this.facturaService
-              .onSaveFactura(factura.toInput(), facturaItemInputList, false)
-              .pipe(untilDestroyed(this))
-              .subscribe((resLocal: TimbradoDetalle) => {
-                if (resLocal != null) {
-                  this.facturaService.onShowWarningIfTimbradoAboutToExpire(resLocal);
-                  this.facturaService.onShowWarningIfTimbradoRangoAboutToExpire(resLocal);
-                  this.matDialogRef.close({
-                    facturado: true,
-                    cliente: this.selectedCliente,
-                  });
-                }
-              });
+            this.trySaveFacturaLocal(facturaInput, facturaItemInputList);
           }
         },
         error: () => {
-          this.notificacionService.openWarn(
-            "Servidor central no disponible. Se imprimirá desde el servidor local.",
-          );
-          this.facturaService
-            .onSaveFactura(factura.toInput(), facturaItemInputList, false)
-            .pipe(untilDestroyed(this))
-            .subscribe((resLocal: TimbradoDetalle) => {
-              if (resLocal != null) {
-                this.facturaService.onShowWarningIfTimbradoAboutToExpire(resLocal);
-                this.facturaService.onShowWarningIfTimbradoRangoAboutToExpire(resLocal);
-                this.matDialogRef.close({
-                  facturado: true,
-                  cliente: this.selectedCliente,
-                });
-              }
-            });
+          this.trySaveFacturaLocal(facturaInput, facturaItemInputList);
         },
       });
+  }
+
+  private trySaveFacturaLocal(facturaInput: any, facturaItemInputList: FacturaLegalItemInput[]) {
+    this.notificacionService.openWarn(
+      "Servidor central no disponible. Se imprimirá desde el servidor local.",
+    );
+    this.facturaService
+      .onSaveFactura(facturaInput, facturaItemInputList, false)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (resLocal: TimbradoDetalle) => {
+          if (resLocal != null) {
+            this.handleFacturaSuccess(resLocal);
+          }
+        },
+      });
+  }
+
+  private handleFacturaSuccess(res: TimbradoDetalle) {
+    this.facturaService.onShowWarningIfTimbradoAboutToExpire(res);
+    this.facturaService.onShowWarningIfTimbradoRangoAboutToExpire(res);
+    this.matDialogRef.close({
+      facturado: true,
+      cliente: this.selectedCliente,
+    });
   }
 }

@@ -1,4 +1,165 @@
 // Estilo minimalista simplificado
+.factura-dialog-container {
+  height: 100%;
+  // max-width: 1100px; remove this
+  margin: 0 auto;
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+.dialog-header {
+  text-align: center;
+  padding-bottom: 8px;
+
+  h2 {
+    margin: 0;
+    font-weight: 500;
+  }
+}
+
+.dialog-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow: hidden;
+}
+
+.section-card {
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.acciones-rapidas {
+  gap: 4px;
+
+  button {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+.suffix-verificador {
+  display: block;
+  width: 30px;
+  text-align: center;
+}
+
+.prefix-label {
+  padding-right: 12px;
+}
+
+.productos-header {
+  margin-bottom: 12px;
+
+  h4 {
+    margin: 0;
+  }
+}
+
+.productos-table-container {
+  flex: 1;
+  overflow: auto;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.totales-grid {
+  display: flex;
+  gap: 16px;
+
+  .total-card {
+    background: rgba(0, 0, 0, 0.45);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.35);
+    min-height: 120px;
+
+    &__title {
+      font-size: 14px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      opacity: 0.8;
+      margin-bottom: 12px;
+    }
+
+    &__value {
+      font-size: 28px;
+      font-weight: 600;
+    }
+  }
+
+  .total-items {
+    border-left: 4px solid #1e88e5;
+  }
+
+  .total-parcial {
+    border-left: 4px solid #26a69a;
+  }
+
+  .total-descuento {
+    border-left: 4px solid #ffb300;
+  }
+
+  .total-final {
+    border-left: 4px solid #d81b60;
+  }
+}
+
+.dialog-footer {
+  padding: 16px 0 0;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.btn-accion {
+  min-width: 200px;
+  height: 40px;
+}
+
+.btn-agregar-producto {
+  height: 42px;
+}
+
 input {
   text-transform: uppercase;
+}
+
+@media (max-width: 960px) {
+  .factura-dialog-container {
+    padding: 16px 16px 24px;
+  }
+
+  .section-card {
+    padding: 16px;
+  }
+
+  .totales-grid {
+    flex-direction: column;
+  }
+
+  .dialog-footer {
+    padding-top: 12px;
+  }
 }

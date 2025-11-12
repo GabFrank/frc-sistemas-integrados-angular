@@ -22,6 +22,7 @@ export class FacturaLegal {
     nombre:string
     ruc:string
     direccion:string
+    email:string
     cdc:string
     ivaParcial0:number
     ivaParcial5:number
@@ -50,6 +51,7 @@ export class FacturaLegal {
         input.nombre = this.nombre
         input.ruc = this.ruc
         input.direccion = this.direccion
+        input.email = this.email
         input.cdc = this.cdc
         input.ivaParcial0 = this.ivaParcial0
         input.ivaParcial5 = this.ivaParcial5
@@ -78,6 +80,7 @@ export class FacturaLegalInput {
     nombre: string
     ruc: string
     direccion: string
+    email: string
     cdc: string
     ivaParcial0: number
     ivaParcial5: number
