@@ -54,11 +54,22 @@ export class SubCategoriaObservacionService {
     return this.genericService.onSave(this.saveSubCategoriaObservacion, subCategoriaObservacionInput).pipe(
       tap((res: any) => {
         if (res != null) {
-          const newSubcat: SubCategoriaObservacion = res.data ? res.data : res;
+          const savedSubcat: SubCategoriaObservacion = res.data ? res.data : res;
+          
           if (this.subCategoriaObservaciones) {
-            this.subCategoriaObservaciones = [...this.subCategoriaObservaciones, newSubcat];
+            // Verificar si es actualización (tiene ID) o nuevo registro
+            const existingIndex = this.subCategoriaObservaciones.findIndex(item => item.id === savedSubcat.id);
+            
+            if (existingIndex !== -1) {
+              // Actualizar registro existente
+              this.subCategoriaObservaciones[existingIndex] = savedSubcat;
+              this.subCategoriaObservaciones = [...this.subCategoriaObservaciones];
+            } else {
+              // Agregar nuevo registro
+              this.subCategoriaObservaciones = [...this.subCategoriaObservaciones, savedSubcat];
+            }
           } else {
-            this.subCategoriaObservaciones = [newSubcat];
+            this.subCategoriaObservaciones = [savedSubcat];
           }
           this.subCategoriaObservacionBS.next(this.subCategoriaObservaciones);
         }

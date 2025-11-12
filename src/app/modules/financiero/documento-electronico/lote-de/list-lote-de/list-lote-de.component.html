@@ -1,0 +1,196 @@
+<app-generic-list
+  class="lote-de-list"
+  (filtrar)="onSearch()"
+  [data]="dataSource.data"
+  (resetFiltro)="onResetFiltro()"
+  [isCustom]="true"
+  customName="Ver documentos"
+>
+  <div filtros>
+    <div
+      fxLayout="row"
+      fxLayoutGap="15px"
+      fxLayoutAlign="start center"
+      style="height: 64px; min-height: 64px;"
+    >
+      <div fxFlex="10">
+        <mat-form-field appearance="outline" style="width: 100%">
+          <mat-label>ID</mat-label>
+          <input 
+            matInput 
+            type="number" 
+            [formControl]="idControl" 
+            (keyup.enter)="onSearch()"
+          >
+        </mat-form-field>
+      </div>
+      <div fxFlex="18">
+        <mat-form-field appearance="outline" style="width: 100%">
+          <mat-label>Estado</mat-label>
+          <mat-select [formControl]="estadoControl">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let estado of estados" [value]="estado">
+              {{ estado | enumToString }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div fxFlex="18">
+        <mat-form-field appearance="outline" style="width: 100%">
+          <mat-label>Rango de fecha procesado</mat-label>
+          <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker">
+            <input 
+              matStartDate 
+              placeholder="Inicio" 
+              formControlName="fechaInicioControl" 
+            />
+            <input 
+              matEndDate 
+              placeholder="Fin" 
+              formControlName="fechaFinControl" 
+            />
+          </mat-date-range-input>
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-date-range-picker #picker></mat-date-range-picker>
+          <mat-error
+            *ngIf="
+              fechaFormGroup.controls.fechaInicioControl.hasError('matStartDateInvalid')
+            "
+          >
+            Fecha inicial inválida
+          </mat-error>
+          <mat-error
+            *ngIf="
+              fechaFormGroup.controls.fechaFinControl.hasError('matEndDateInvalid')
+            "
+          >
+            Fecha final inválida
+          </mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+  <div
+    table
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+  >
+    <table
+      mat-table
+      style="width: 100%"
+      class="mat-elevation-z8"
+      [dataSource]="dataSource"
+    >
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef class="center">
+          Id
+        </th>
+        <td class="center" mat-cell *matCellDef="let loteDe">
+          {{ loteDe.id }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="protocolo">
+        <th mat-header-cell *matHeaderCellDef class="center">
+          Protocolo
+        </th>
+        <td class="center" mat-cell *matCellDef="let loteDe">
+          {{ loteDe.protocolo || '-' }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef class="center">
+          Estado
+        </th>
+        <td class="center" mat-cell *matCellDef="let loteDe">
+          <mat-chip [ngClass]="getEstadoClass(loteDe.estado)">
+            {{ loteDe.estado | enumToString }}
+          </mat-chip>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="fechaProcesado">
+        <th mat-header-cell *matHeaderCellDef class="center">
+          Fecha procesado
+        </th>
+        <td class="center" mat-cell *matCellDef="let loteDe">
+          {{ loteDe.fechaProcesado || '-' }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="fechaUltimoIntento">
+        <th mat-header-cell *matHeaderCellDef class="center">
+          Fecha último intento
+        </th>
+        <td class="center" mat-cell *matCellDef="let loteDe">
+          {{ loteDe.fechaUltimoIntento || '-' }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="intentos">
+        <th mat-header-cell *matHeaderCellDef class="center">
+          Intentos
+        </th>
+        <td class="center" mat-cell *matCellDef="let loteDe">
+          {{ loteDe.intentos || '-' }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="respuestaSifen">
+        <th mat-header-cell *matHeaderCellDef class="center">
+          Respuesta sifen
+        </th>
+        <td class="center" mat-cell *matCellDef="let loteDe">
+          {{ loteDe.respuestaSifen || '-' }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="creadoEn">
+        <th mat-header-cell *matHeaderCellDef class="center">
+          Creado en
+        </th>
+        <td class="center" mat-cell *matCellDef="let loteDe">
+          {{ loteDe.creadoEn || '-' }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="actualizadoEn">
+        <th mat-header-cell *matHeaderCellDef class="center">
+          Actualizado en 
+        </th>
+        <td class="center" mat-cell *matCellDef="let loteDe">
+          {{ loteDe.actualizadoEn || '-' }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef class="center">
+          ...
+        </th>
+        <td class="center" mat-cell *matCellDef="let loteDe">
+          <button mat-icon-button [matMenuTriggerFor]="menu">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item>Editar</button>
+            <button mat-menu-item>Ver documentos</button>
+          </mat-menu>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr
+        mat-row
+        class="example-element-row"
+        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+        [class.estado-error-envio]="row.estado === 'ERROR_ENVIO'"
+        [class.estado-error-red]="row.estado === 'ERROR_RED'"
+        [class.estado-procesado]="row.estado === 'PROCESADO'"
+        [class.estado-rechazado]="row.estado === 'RECHAZADO'"
+        [class.estado-en-proceso]="row.estado === 'EN_PROCESO'"
+        [class.estado-pendiente-envio]="row.estado === 'PENDIENTE_ENVIO'"
+        [class.estado-error-permanente]="row.estado === 'ERROR_PERMANENTE'"
+        [class.estado-procesado-con-error]="row.estado === 'PROCESADO_CON_ERRORES'"
+        ></tr>
+    </table>
+    <mat-paginator
+      style="width: 100%"
+      (page)="handlePageEvent($event)"
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      [length]="selectedPageInfo?.getTotalElements"
+      showFirstLastButtons
+    ></mat-paginator>
+  </div>
+</app-generic-list>

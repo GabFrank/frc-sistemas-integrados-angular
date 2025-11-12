@@ -1,13 +1,13 @@
 <div>
   <form [formGroup]="formGroup">
-    <div fxLayout="column" fxLayoutAlign="start">
+    <div fxLayout="column" fxLayoutAlign="start" style="margin: 10px 0 10px 0">
       <div fxFlex style="width: 100%; text-align: center">
         <h3 *ngIf="selectedRole?.id != null">Editar Role</h3>
         <h3 *ngIf="selectedRole?.id == null">Nuevo Role</h3>
       </div>
-      <div fxFlex fxLayout="row" fxLayoutGap="20px">
-        <div fxFlex="50%">
-          <mat-form-field style="width: 100%">
+      <div fxFlex fxLayout="row" fxLayoutGap="20px" style="justify-content: center;">
+        <div fxFlex="95%">
+          <mat-form-field style="width: 100%;">
             <mat-label>Nombre</mat-label>
             <input
               #nombreInput
@@ -26,6 +26,16 @@
           <button
             style="width: 70%"
             mat-raised-button
+            color="primary"
+            (click)="onCancel()"
+          >
+            Cancelar
+          </button>
+        </div>
+        <div fxFlex="50%" style="text-align: center">
+          <button
+            style="width: 70%"
+            mat-raised-button
             [color]="isEditting ? 'accent' : 'primary'"
             [disabled]="isEditting ? !formGroup.valid : false"
             (click)="
@@ -35,16 +45,6 @@
             "
           >
             {{ isEditting ? "Guardar" : "Editar" }}
-          </button>
-        </div>
-        <div fxFlex="50%" style="text-align: center">
-          <button
-            style="width: 70%"
-            mat-raised-button
-            color="primary"
-            (click)="onCancel()"
-          >
-            Cancelar
           </button>
         </div>
       </div>

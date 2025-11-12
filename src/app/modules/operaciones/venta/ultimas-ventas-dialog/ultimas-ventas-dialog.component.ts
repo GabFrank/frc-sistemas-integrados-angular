@@ -79,12 +79,10 @@ export class UltimasVentasDialogComponent implements OnInit {
 
   cargarVentas() {
     this.isLoading = true;
-    this.cargandoService.openDialog();
     this.ventaService
-      .onSearch(null, this.data.caja.id, this.pageIndex, this.pageSize, false, this.data.caja.sucursalId, null, null, null, null, false).pipe(untilDestroyed(this))
+      .onSearch(null, this.data.caja.id, this.pageIndex, this.pageSize, false, this.data.caja.sucursalId, null, null, null, null, false, false).pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.isLoading = false;
-        this.cargandoService.closeDialog();
         if (res != null) {
           this.selectedPageInfo = res;
           this.dataSource.data = res.getContent;
@@ -100,11 +98,9 @@ export class UltimasVentasDialogComponent implements OnInit {
 
   onBuscarPorCodigo() {
     if (this.codigoVentaControl.value != null) {
-      this.cargandoService.openDialog();
       this.ventaService
         .onGetPorId(this.codigoVentaControl.value, null, null, false).pipe(untilDestroyed(this))
         .subscribe((res) => {
-          this.cargandoService.closeDialog();
           if (res != null) {
             this.dataSource.data = [res];
           } else {
@@ -130,9 +126,7 @@ export class UltimasVentasDialogComponent implements OnInit {
       ).pipe(untilDestroyed(this))
       .subscribe((res) => {
         if (res) {
-          this.cargandoService.openDialog();
           this.ventaService.onCancelarVenta(venta.id, venta.sucursalId, false).pipe(untilDestroyed(this)).subscribe((res) => {
-            this.cargandoService.closeDialog();
             if (res) {
               this.notificacionSnackBar.openSucess("Cancelado con éxito");
               venta.estado = VentaEstado.CANCELADA;
@@ -145,9 +139,7 @@ export class UltimasVentasDialogComponent implements OnInit {
   }
 
   reimpresionVenta(id) {
-    this.cargandoService.openDialog();
     this.ventaService.onReimprimirVenta(id, false).pipe(untilDestroyed(this)).subscribe((res) => {
-      this.cargandoService.closeDialog();
       if (res != null) {
         this.notificacionSnackBar.openSucess("Reimpreso con éxito");
       }

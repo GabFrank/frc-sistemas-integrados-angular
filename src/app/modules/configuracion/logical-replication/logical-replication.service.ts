@@ -29,6 +29,10 @@ import { CreateRemotePublicationGQL } from './graphql/create-remote-publication-
 import { CreateRemoteSubscriptionGQL } from './graphql/create-remote-subscription-gql';
 import { EditRemotePublicationGQL } from './graphql/edit-remote-publication-gql';
 import { EditRemoteSubscriptionGQL } from './graphql/edit-remote-subscription-gql';
+import { RefreshSubscriptionGQL } from './graphql/refresh-subscription-gql';
+import { RefreshAllSubscriptionsGQL } from './graphql/refresh-all-subscriptions-gql';
+import { RefreshRemoteSubscriptionGQL } from './graphql/refresh-remote-subscription-gql';
+import { RefreshAllRemoteSubscriptionsGQL } from './graphql/refresh-all-remote-subscriptions-gql';
 
 @Injectable({
   providedIn: 'root'
@@ -68,6 +72,12 @@ export class LogicalReplicationService {
     private createRemoteSubscriptionGQL: CreateRemoteSubscriptionGQL,
     private editRemotePublicationGQL: EditRemotePublicationGQL,
     private editRemoteSubscriptionGQL: EditRemoteSubscriptionGQL,
+    
+    // Refresh mutations
+    private refreshSubscriptionGQL: RefreshSubscriptionGQL,
+    private refreshAllSubscriptionsGQL: RefreshAllSubscriptionsGQL,
+    private refreshRemoteSubscriptionGQL: RefreshRemoteSubscriptionGQL,
+    private refreshAllRemoteSubscriptionsGQL: RefreshAllRemoteSubscriptionsGQL,
     
     private snackBar: MatSnackBar,
     private genericService: GenericCrudService
@@ -467,6 +477,96 @@ export class LogicalReplicationService {
       catchError(error => {
         console.error('Error editing remote subscription', error);
         this.snackBar.open(`Error al actualizar suscripción remota`, 'Cerrar', { duration: 3000 });
+        return of({ success: false, message: error.message });
+      })
+    );
+  }
+
+  // REFRESH MUTATIONS
+
+  /**
+   * Refresh a specific subscription (local)
+   * @param subscriptionName Name of the subscription to refresh
+   */
+  refreshSubscription(subscriptionName: string): Observable<ReplicationStatus> {
+    return this.genericService.onCustomMutation(
+      this.refreshSubscriptionGQL,
+      { subscriptionName }
+    ).pipe(
+      tap(status => {
+        if (status && status.success) {
+          this.snackBar.open(`Suscripción refrescada correctamente`, 'Cerrar', { duration: 3000 });
+        }
+      }),
+      catchError(error => {
+        console.error('Error refreshing subscription', error);
+        this.snackBar.open(`Error al refrescar suscripción`, 'Cerrar', { duration: 3000 });
+        return of({ success: false, message: error.message });
+      })
+    );
+  }
+
+  /**
+   * Refresh all subscriptions (local)
+   */
+  refreshAllSubscriptions(): Observable<ReplicationStatus> {
+    return this.genericService.onCustomMutation(
+      this.refreshAllSubscriptionsGQL,
+      {}
+    ).pipe(
+      tap(status => {
+        if (status && status.success) {
+          this.snackBar.open(`Todas las suscripciones refrescadas correctamente`, 'Cerrar', { duration: 3000 });
+        }
+      }),
+      catchError(error => {
+        console.error('Error refreshing all subscriptions', error);
+        this.snackBar.open(`Error al refrescar todas las suscripciones`, 'Cerrar', { duration: 3000 });
+        return of({ success: false, message: error.message });
+      })
+    );
+  }
+
+  /**
+   * Refresh a specific subscription on a remote branch
+   * @param branchSucursalId ID of the branch
+   * @param subscriptionName Name of the subscription to refresh
+   */
+  refreshRemoteSubscription(branchSucursalId: number, subscriptionName: string): Observable<ReplicationStatus> {
+    return this.genericService.onCustomMutation(
+      this.refreshRemoteSubscriptionGQL,
+      { branchSucursalId, subscriptionName }
+    ).pipe(
+      tap(status => {
+        if (status && status.success) {
+          this.snackBar.open(`Suscripción remota refrescada correctamente`, 'Cerrar', { duration: 3000 });
+        }
+      }),
+      catchError(error => {
+        console.error('Error refreshing remote subscription', error);
+        this.snackBar.open(`Error al refrescar suscripción remota`, 'Cerrar', { duration: 3000 });
+        return of({ success: false, message: error.message });
+      })
+    );
+  }
+
+  /**
+   * Refresh all subscriptions on a remote branch
+   * @param branchSucursalId ID of the branch
+   */
+  refreshAllRemoteSubscriptions(branchSucursalId: number): Observable<ReplicationStatus> {
+    return this.genericService.onCustomMutation(
+      this.refreshAllRemoteSubscriptionsGQL,
+      { branchSucursalId }
+    ).pipe(
+      tap(status => {
+        if (status && status.success) {
+          this.snackBar.open(`Todas las suscripciones remotas refrescadas correctamente`, 'Cerrar', { duration: 3000 });
+        }
+      }),
+      catchError(error => {
+        console.error('Error refreshing all remote subscriptions', error);
+        this.snackBar.open(`Error al refrescar todas las suscripciones remotas`, 'Cerrar', { duration: 3000 });
         return of({ success: false, message: error.message });
       })
     );

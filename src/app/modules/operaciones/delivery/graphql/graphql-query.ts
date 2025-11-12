@@ -29,6 +29,7 @@ export const deliverysQuery = gql`
         descripcion
         valor
       }
+      fechaConcluido
     }
   }
 `;
@@ -62,6 +63,7 @@ export const deliverysSubsUltimos10Query = gql`
         descripcion
         valor
       }
+      fechaConcluido
     }
   }
 `;
@@ -95,6 +97,7 @@ export const deliverysUltimos10Query = gql`
         descripcion
         valor
       }
+      fechaConcluido
     }
   }
 `;
@@ -128,6 +131,7 @@ export const deliverysSearch = gql`
         descripcion
         valor
       }
+      fechaConcluido
     }
   }
 `;
@@ -161,6 +165,7 @@ export const deliverysByEstado = gql`
         descripcion
         valor
       }
+      fechaConcluido
     }
   }
 `;
@@ -247,6 +252,7 @@ export const deliverysByEstadoList = gql`
         }
         valorTotal
       }
+      fechaConcluido
     }
   }
 `;
@@ -299,6 +305,7 @@ export const deliveryPorCajaIdAndEstadoQuery = gql`
         }
         valorTotal
       }
+      fechaConcluido
     }
   }
 `;
@@ -332,6 +339,7 @@ export const deliverysByEstadoNotIn = gql`
         descripcion
         valor
       }
+      fechaConcluido
     }
   }
 `;
@@ -423,6 +431,7 @@ export const deliveryQuery = gql`
         }
         valorTotal
       }
+      fechaConcluido
     }
   }
 `;
@@ -466,6 +475,7 @@ export const saveDelivery = gql`
         }
         delivery {
           id
+          fechaConcluido
         }
         ventaItemList {
           id

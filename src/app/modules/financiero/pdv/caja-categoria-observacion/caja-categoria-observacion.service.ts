@@ -60,12 +60,19 @@ export class CajaCategoriaObservacionService {
         return this.genericService.onSave(this.saveCajaCategoriaObs, cajaCategoriaObsInput).pipe(
             tap((res: any) => {
                 if (res != null) {
-                    const newCategoria: CajaCategoriaObservacion = res.data ? res.data : res;
+                    const savedCategoria: CajaCategoriaObservacion = res.data ? res.data : res;
 
                     if (this.cajaCategoriasObs) {
-                        this.cajaCategoriasObs = [...this.cajaCategoriasObs, newCategoria];
+                        const existingIndex = this.cajaCategoriasObs.findIndex(item => item.id === savedCategoria.id);
+                        
+                        if (existingIndex !== -1) {
+                            this.cajaCategoriasObs[existingIndex] = savedCategoria;
+                            this.cajaCategoriasObs = [...this.cajaCategoriasObs];
+                        } else {
+                            this.cajaCategoriasObs = [...this.cajaCategoriasObs, savedCategoria];
+                        }
                     } else {
-                        this.cajaCategoriasObs = [newCategoria];
+                        this.cajaCategoriasObs = [savedCategoria];
                     }
                     this.cajaCategoriaObsBS.next(this.cajaCategoriasObs);
                 }

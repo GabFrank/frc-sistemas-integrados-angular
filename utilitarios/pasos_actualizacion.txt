@@ -93,7 +93,7 @@ curl -L -o frc-server.jar https://github.com/GabFrank/franco-system-backend-serv
 sudo systemctl start frc-bodega && journalctl -f -u frc-bodega
 2 - actualizar el app
 rm /home/franco/FRC/FRC.AppImage
-curl -L -o /home/franco/FRC/FRC.AppImage https://github.com/GabFrank/frc-sistemas-integrados-angular/releases/download/3.0.0/FRC.AppImage
+curl -L -o /home/franco/FRC/FRC.AppImage https://github.com/GabFrank/frc-sistemas-integrados-angular/releases/download/3.0.3/FRC.AppImage
 sudo chmod a+rwx /home/franco/FRC/FRC.AppImage
 sudo update-desktop-database
 

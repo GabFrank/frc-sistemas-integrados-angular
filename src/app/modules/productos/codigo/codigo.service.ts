@@ -41,7 +41,6 @@ export class CodigoService {
 
   onSaveCodigo(input: CodigoInput, servidor = true): Observable<any> {
     if(input.usuarioId==null) input.usuarioId = this.mainService?.usuarioActual?.id;
-    input.id == null ? (input.activo = true) : null;
     if(input.principal==false) input.principal = null;
     return this.genericService.onSave(this.saveCodigo, input, null, null, servidor);
   }

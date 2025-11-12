@@ -23,6 +23,10 @@ import { GenerarExcelFacturasGQL } from "./graphql/generarExcelFacturas";
 import { GenerarExcelFacturasZipGQL } from "./graphql/generarExcelFacturasZip";
 import { ConfiguracionService } from "../../../shared/services/configuracion.service";
 import { TimbradoDetalle } from "../timbrado/timbrado.modal";
+import { FacturaLegalByCdcGQL } from "./graphql/get-factura-legal-by-cdc.gql";
+import { UpdateFacturaLegalGQL } from "./graphql/updateFacturaLegal";
+import { NominarFacturaElectronicaGQL } from "./graphql/nominarFacturaElectronica";
+import { CancelarFacturaLegalGQL } from "./graphql/cancelarFacturaLegal";
 
 @Injectable({
   providedIn: "root",
@@ -41,7 +45,11 @@ export class FacturaLegalService {
     private getResumenFacturas: ResumenFacturasGQL,
     private generarExcelFacturasZip: GenerarExcelFacturasZipGQL,
     private generarExcelFacturas: GenerarExcelFacturasGQL,
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private facturaLegalByCdcGQL: FacturaLegalByCdcGQL,
+    private updateFacturaLegalGQL: UpdateFacturaLegalGQL,
+    private nominarFacturaElectronicaGQL: NominarFacturaElectronicaGQL,
+    private cancelarFacturaLegalGQL: CancelarFacturaLegalGQL
   ) {}
 
   onSaveFactura(
@@ -98,6 +106,8 @@ export class FacturaLegalService {
     iva5?: boolean,
     iva10?: boolean,
     full?: boolean,
+    isElectronico?: boolean,
+    activo?: boolean,
     servidor: boolean = true
   ) {
     return this.genericService.onCustomQuery(
@@ -112,6 +122,8 @@ export class FacturaLegalService {
         nombre,
         iva5,
         iva10,
+        isElectronico,
+        activo
       },
       servidor
     );
@@ -119,6 +131,10 @@ export class FacturaLegalService {
 
   onGetFacturaLegal(id, sucId, servidor: boolean = true): Observable<FacturaLegal> {
     return this.genericService.onGetById(this.facturaLegalPorId, id, null, null, servidor, sucId);
+  }
+
+  onGetFacturaLegalByCdc(cdc: string, servidor: boolean = true): Observable<FacturaLegal>{
+    return this.genericService.onCustomQuery(this.facturaLegalByCdcGQL, {cdc}, servidor)
   }
 
   onGenerarExcelFacturas(
@@ -195,6 +211,44 @@ export class FacturaLegalService {
         this.notificacionService.openWarn("El timbrado está por llegar a su rango máximo. Favor contactar con RRHH para solicitar un nuevo timbrado.", 5);
       }, 2000);
     }
+  }
+
+  onUpdateFacturaLegal(input: FacturaLegalInput, servidor: boolean = true): Observable<FacturaLegal> {
+    if (input?.nombre != null) input.nombre = input.nombre.toUpperCase();
+    if (input?.ruc != null) input.ruc = input.ruc.toUpperCase();
+    if (input?.direccion != null) input.direccion = input.direccion.toUpperCase();
+    
+    return this.genericService.onCustomMutation(
+      this.updateFacturaLegalGQL,
+      { input },
+      servidor
+    );
+  }
+
+  onNominarFacturaElectronica(
+    facturaLegalId: number,
+    sucursalId: number,
+    clienteId: number,
+    servidor: boolean = true
+  ): Observable<boolean> {
+    return this.genericService.onCustomMutation(
+      this.nominarFacturaElectronicaGQL,
+      { facturaLegalId, sucursalId, clienteId },
+      servidor
+    );
+  }
+
+  onCancelarFacturaLegal(
+    facturaLegalId: number,
+    sucursalId: number,
+    cancelarVenta: boolean,
+    servidor: boolean = true
+  ): Observable<string> {
+    return this.genericService.onCustomMutation(
+      this.cancelarFacturaLegalGQL,
+      { facturaLegalId, sucursalId, cancelarVenta },
+      servidor
+    );
   }
 }
 

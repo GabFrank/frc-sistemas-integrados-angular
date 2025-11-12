@@ -115,14 +115,12 @@ export class AdicionarPresentacionComponent implements OnInit {
   }
 
   cargarPresentacion() {
-    this.cargandoDialog.openDialog()
     this.descripcionControl.setValue(this.selectedPresentacion.descripcion);
     this.principalControl.setValue(this.selectedPresentacion.principal);
     this.activoControl.setValue(this.selectedPresentacion.activo);
     this.cantidadControl.setValue(this.selectedPresentacion.cantidad);
     this.selectedTipoPresentacion = this.selectedPresentacion.tipoPresentacion;
     this.tipoPresentacionControl.setValue(this.selectedTipoPresentacion.id);
-    this.cargandoDialog.closeDialog()
   }
 
   //tipo presentacion

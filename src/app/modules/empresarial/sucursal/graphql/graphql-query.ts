@@ -1,5 +1,7 @@
 import gql from 'graphql-tag';
 
+// TODO: Agregar activo a la query de sucursales
+
 export const sucursalesQuery = gql
   `{
     data: sucursales {
@@ -18,8 +20,10 @@ export const sucursalesQuery = gql
       puerto
       direccion
       nroDelivery
-      isConfigured 
-      activo
+      depositoPredeterminado
+      deposito
+      codigoEstablecimientoFactura
+      isConfigured
     }
   }`;
 
@@ -36,11 +40,15 @@ export const sucursalesSearch = gql
       creadoEn
       usuario{
         id
+        nickname
       }
       ip
       puerto
       direccion
       nroDelivery
+      depositoPredeterminado
+      deposito
+      codigoEstablecimientoFactura
       isConfigured
       activo
         
@@ -88,6 +96,9 @@ export const sucursalQuery = gql
       puerto
       direccion
       nroDelivery
+      depositoPredeterminado
+      deposito
+      codigoEstablecimientoFactura
       isConfigured
       activo
         
@@ -106,6 +117,9 @@ export const sucursalActualQuery = gql
       puerto
       direccion
       nroDelivery
+      depositoPredeterminado
+      deposito
+      codigoEstablecimientoFactura
       isConfigured
       activo
     }
@@ -124,6 +138,9 @@ export const saveSucursal = gql
         puerto
         direccion
         nroDelivery
+        depositoPredeterminado
+        deposito
+        codigoEstablecimientoFactura
         isConfigured
         activo
       }

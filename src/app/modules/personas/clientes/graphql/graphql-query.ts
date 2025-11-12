@@ -14,6 +14,10 @@ export const clientesQuery = gql`
         id
         telefono
       }
+      usuario {
+        id
+        nickname
+      }
     }
   }
 `;
@@ -33,6 +37,7 @@ export const clientesSearchByPersona = gql`
       creadoEn
       usuario {
         id
+        nickname
       }
       saldo
       codigo
@@ -57,6 +62,7 @@ export const clientePorPersonaDocumento = gql`
         id
         nombre
         direccion
+        email
       }
       tipo
       nombre
@@ -65,6 +71,7 @@ export const clientePorPersonaDocumento = gql`
       creadoEn
       usuario {
         id
+        nickname
       }
       saldo
       codigo
@@ -149,6 +156,10 @@ export const clienteSearchByPersonaId = gql`
       saldo
       tipo
       codigo
+      usuario {
+        id
+        nickname
+      }
     }
   }
 `;
@@ -170,6 +181,10 @@ export const clientePorPersonaIdFromServer = gql`
       saldo
       tipo
       codigo
+      usuario {
+        id
+        nickname
+      }
     }
   }
 `;
@@ -187,6 +202,10 @@ export const clientesSearchByTelefono = gql`
       contactos {
         id
         telefono
+      }
+      usuario {
+        id
+        nickname
       }
     }
   }
@@ -212,6 +231,10 @@ export const clienteQuery = gql`
       contactos {
         id
         telefono
+      }
+      usuario {
+        id
+        nickname
       }
     }
   }
@@ -240,7 +263,10 @@ export const saveCliente = gql`
         telefono
       }
       creadoEn
-      
+      usuario {
+        id
+        nickname
+      }
     }
   }
 `;

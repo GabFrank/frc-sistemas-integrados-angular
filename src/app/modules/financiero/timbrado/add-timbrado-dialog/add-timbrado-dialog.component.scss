@@ -1,0 +1,16 @@
+.lowercase {
+  input {
+    text-transform: lowercase !important;
+  }
+}
+
+.title-container {
+  margin-bottom: 8px; 
+  font-weight: 500; 
+  color: #666; 
+  font-size: 14px;
+}
+
+textarea {
+  text-transform: uppercase !important;
+}

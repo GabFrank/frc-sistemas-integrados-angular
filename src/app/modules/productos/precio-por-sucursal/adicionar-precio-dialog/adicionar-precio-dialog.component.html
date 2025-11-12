@@ -16,6 +16,9 @@
             autocomplete="off"
             oninput="this.value == ' ' ? this.value = '': null"
           />
+          <mat-error *ngIf="precioControl.hasError('required')">
+            El precio es obligatorio
+          </mat-error>
         </mat-form-field>
       </div>
       <div fxFlex>
@@ -29,11 +32,14 @@
               {{ tipoPrecio?.descripcion }}
             </mat-option>
           </mat-select>
+          <mat-error *ngIf="tipoPrecioControl.hasError('required')">
+            El tipo de precio es obligatorio
+          </mat-error>
         </mat-form-field>
       </div>
       <div fxLayout="row" style="height: 50px !important; padding-left: 20px">
         <div fxFlex="50%" fxLayout="row" fxLayoutAlign="start center">
-          <mat-label fxFlex="30">Principal</mat-label>
+          <mat-label fxFlex="40">Principal</mat-label>
           <mat-slide-toggle fxFlex formControlName="principal">
             {{ principalControl.value == true ? "Si" : "No" }}</mat-slide-toggle
           >

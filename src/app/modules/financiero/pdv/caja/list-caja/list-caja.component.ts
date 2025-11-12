@@ -40,6 +40,11 @@ import { CajaObservacionDashboardComponent } from "../../caja-observacion/caja-o
 import { CajaObservacionService } from "../../caja-observacion/caja-observacion.service";
 import { MainCajaObservacionComponent } from "../../caja-observacion/main-caja-observacion/main-caja-observacion.component";
 import { CajaObservacion } from "../../caja-observacion/caja-observacion.model";
+import {
+  NotificacionColor,
+  NotificacionSnackbarService,
+} from "../../../../../notificacion-snackbar.service";
+import { GenericCrudService } from "../../../../../generics/generic-crud.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -124,7 +129,9 @@ export class ListCajaComponent implements OnInit {
     private mainService: MainService,
     private searchSucursal: SucursalesSearchGQL,
     private searchUsuario: UsuarioSearchGQL, 
-    private cajaObservacionService: CajaObservacionService
+    private cajaObservacionService: CajaObservacionService,
+    private notificacionService: NotificacionSnackbarService,
+    private genericCrudService: GenericCrudService
   ) {}
 
   ngOnInit(): void {
@@ -170,21 +177,40 @@ export class ListCajaComponent implements OnInit {
   }
 
   onFilter() {
+    console.log('Debug - onFilter llamado');
+    console.log('Debug - selectedSucursal:', this.selectedSucursal);
+    console.log('Debug - selectedSucursal.id:', this.selectedSucursal?.id);
+    console.log('Debug - selectedCajero:', this.selectedCajero);
+    console.log('Debug - selectedMaletin:', this.selectedMaletin);
+    console.log('Debug - Parámetros enviados:', {
+      codigo: this.codigoControl.value,
+      estado: this.estadoControl.value,
+      maletinId: this.selectedMaletin?.id,
+      cajeroId: this.selectedCajero?.id,
+      fechaInicio: this.fechaInicioControl.value,
+      fechaFinal: this.fechaFinalControl.value,
+      sucursalId: this.selectedSucursal?.id,
+      verificado: this.verificadoControl.value,
+      pageIndex: this.pageIndex,
+      pageSize: this.pageSize
+    });
+
     this.cajaService
       .onGetCajasWithFilters(
         this.codigoControl.value,
         this.estadoControl.value,
-        this.maletinControl.value?.id,
-        this.cajeroControl.value?.id,
+        this.selectedMaletin?.id,
+        this.selectedCajero?.id,
         this.fechaInicioControl.value,
         this.fechaFinalControl.value,
-        this.selectedSucursal.id,
+        this.selectedSucursal?.id,
         this.verificadoControl.value,
         this.pageIndex,
         this.pageSize
       )
       .pipe(untilDestroyed(this))
       .subscribe((res: PageInfo<PdvCaja>) => {
+        console.log('Debug - Respuesta del servicio:', res);
         if (res != null) {
           this.dataSource.data = [];
           this.dataSource.data = res.getContent;
@@ -192,6 +218,7 @@ export class ListCajaComponent implements OnInit {
           let cajas: PdvCaja[] = res.getContent;
           cajas = this.onObservado(cajas);  // Marca las cajas que tienen observación
           this.dataSource.data = cajas; 
+          console.log('Debug - Cajas mostradas:', cajas.length);
         }
       });
   }
@@ -225,7 +252,9 @@ export class ListCajaComponent implements OnInit {
   onObservado(cajas: PdvCaja[]): PdvCaja[] {
     cajas.forEach((caja) => {
       caja['hasObservation'] = this.cajaObservacionList
-        ? this.cajaObservacionList.some((obs) => obs.pdvCaja && obs.pdvCaja.id === caja.id)
+        ? this.cajaObservacionList.some((obs) => 
+            obs.pdvCaja && obs.pdvCaja.id === caja.id && obs.sucursal.id === caja.sucursalId
+          )
         : false;
     });
   
@@ -239,7 +268,7 @@ export class ListCajaComponent implements OnInit {
   irObservacion(caja: PdvCaja) {
     const dialogRef = this.matDialog
       .open(CajaObservacionDashboardComponent, {
-        width: "950px",
+        width: "1950px",
         height: "550px",
         data: { caja: caja }
       })
@@ -315,6 +344,34 @@ export class ListCajaComponent implements OnInit {
   }
 
   onMaletinSearch() {
+    // Verificar que hay una sucursal seleccionada
+    if (!this.selectedSucursal || !this.selectedSucursal.id) {
+      this.notificacionService.notification$.next({
+        texto: 'Debe seleccionar una sucursal antes de buscar maletines.',
+        color: NotificacionColor.warn,
+        duracion: 4
+      });
+      return;
+    }
+
+    // Convertir ID a número si es string
+    let sucursalId: number;
+    if (typeof this.selectedSucursal.id === 'string') {
+      sucursalId = parseInt(this.selectedSucursal.id, 10);
+    } else {
+      sucursalId = this.selectedSucursal.id;
+    }
+
+    // Validar que el ID convertido sea válido
+    if (isNaN(sucursalId) || sucursalId <= 0) {
+      this.notificacionService.notification$.next({
+        texto: 'Error: ID de sucursal inválido. Por favor, seleccione nuevamente la sucursal.',
+        color: NotificacionColor.danger,
+        duracion: 4
+      });
+      return;
+    }
+
     let data: SearchListtDialogData = {
       titulo: "Buscar maletin",
       tableData: [
@@ -324,10 +381,12 @@ export class ListCajaComponent implements OnInit {
       ],
       query: this.searchMaletin,
       queryData: {
-        sucId: this.selectedSucursal.id,
+        sucId: sucursalId,
+        texto: null
       },
       inicialSearch: true,
     };
+
     this.matDialog
       .open(SearchListDialogComponent, {
         data: data,
@@ -343,7 +402,12 @@ export class ListCajaComponent implements OnInit {
       });
   }
 
-  onClearCajero() {}
+  onClearCajero() {
+    this.codigoCajeroControl.setValue(null);
+    this.cajeroControl.setValue(null);
+    this.selectedCajero = null;
+    this.onFilter();
+  }
 
   onSelectMaletin(maletin: Maletin) {
     if (maletin == null) {
@@ -355,6 +419,10 @@ export class ListCajaComponent implements OnInit {
       this.maletinControl.setValue(maletin.descripcion);
       this.selectedMaletin = maletin;
     }
+    
+    // Llamar automáticamente el filtro cuando se selecciona maletin
+    console.log('Debug - Maletin seleccionado, llamando onFilter()');
+    this.onFilter();
   }
 
   onSelectCajero(cajero: Usuario) {
@@ -367,6 +435,10 @@ export class ListCajaComponent implements OnInit {
       this.cajeroControl.setValue(cajero.persona.nombre);
       this.selectedCajero = cajero;
     }
+    
+    // Llamar automáticamente el filtro cuando se selecciona cajero
+    console.log('Debug - Cajero seleccionado, llamando onFilter()');
+    this.onFilter();
   }
 
   onSucursalSearchById(id) {
@@ -405,7 +477,7 @@ export class ListCajaComponent implements OnInit {
       .subscribe((res) => {
         if (res != null) {
           this.onSelectSucursal(res);
-          this.onFilter();
+          // No llamar onFilter() aquí porque ya se llama en onSelectSucursal()
         }
       });
   }
@@ -414,6 +486,10 @@ export class ListCajaComponent implements OnInit {
     this.sucursalCodigoControl.setValue(sucursal.id);
     this.sucursalControl.setValue(sucursal.nombre);
     this.selectedSucursal = sucursal;
+    
+    // Llamar automáticamente el filtro cuando se selecciona sucursal
+    console.log('Debug - Sucursal seleccionada, llamando onFilter()');
+    this.onFilter();
   }
 
   cargarMasDatos() {}

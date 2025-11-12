@@ -46,7 +46,17 @@ export class ClienteService {
   }
 
   onGetClientePorPersonaDocumento(texto: string, servidor: boolean = true): Observable<Cliente> {
-    return this.genericService.onGetByTexto(this.getClientePorPersonaDocumento, texto, servidor);
+    let errorConf: QueryError = {
+      graphError: {
+        show: false,
+        propagate: true
+      },
+      networkError: {
+        show: false,
+        propagate: true
+      }
+    };
+    return this.genericService.onGetByTexto(this.getClientePorPersonaDocumento, texto, servidor, null, errorConf);
   }
 
   onGetById(id: number, servidor: boolean = true): Observable<Cliente> {

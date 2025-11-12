@@ -62,6 +62,7 @@ export class AddMotivoObsDialogComponent implements OnInit{
       });
     this.createForm();
     this.loadData();
+    this.usuarioIdControl.setValue(this.mainService.usuarioActual?.id);
   }
 
   createForm() {
@@ -84,9 +85,7 @@ export class AddMotivoObsDialogComponent implements OnInit{
   }
 
   onCancelar() {
-    this.descripcionControl.reset();
-    this.subCategoriaObsControl.reset();
-    this.activoControl.setValue(true);
+    this.dialogRef.close();
   }
 
   onGuardar() {
@@ -109,6 +108,8 @@ export class AddMotivoObsDialogComponent implements OnInit{
     }
     this.motivoObservacionInput.descripcion = this.descripcionControl.value?.toUpperCase();
     this.motivoObservacionInput.activo = this.activoControl.value;
+    this.motivoObservacionInput.usuarioId = this.mainService.usuarioActual?.id;
+    
     this.motivoObservacionService.onSaveMotivoObservacion(this.motivoObservacionInput)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {

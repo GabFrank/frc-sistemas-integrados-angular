@@ -1,0 +1,353 @@
+<div 
+  class="dialog-container" 
+  fxLayout="column" 
+  fxLayoutGap="8px" 
+  style="margin: 20px;"
+>
+  <h2 mat-dialog-title>
+    {{ selectedTimbrado?.id != null ? 'Editar Timbrado' : 'Nuevo Timbrado' }}
+  </h2>
+
+  <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="25px">
+    
+    <div [hidden]="isElectronicoControl.value">      
+      <div fxLayout="row" fxLayoutGap="10px" style="margin-bottom: 25px;">
+        <div fxFlex="60%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Razón Social</mat-label>
+            <input 
+              matInput
+              required
+              (click)="onRazonSocialSearch()"
+              [formControl]="razonSocialControl" 
+            />
+            <mat-error *ngIf="razonSocialControl.hasError('required')">
+              Razón Social es obligatorio
+            </mat-error>
+            <div matSuffix class="d-flex align-items-center">
+              <button 
+                [disabled]="isEditing == false" 
+                mat-icon-button 
+                (click)="onRazonSocialSearch()"
+              >
+                <mat-icon>search</mat-icon>
+              </button>
+            </div>
+          </mat-form-field>
+        </div>
+        <div fxFlex="20%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>RUC</mat-label>
+            <input matInput [formControl]="rucControl" required />
+            <mat-error *ngIf="rucControl.hasError('required')">
+              RUC es obligatorio
+            </mat-error>
+          </mat-form-field>
+        </div>
+        <div fxFlex="20%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Número</mat-label>
+            <input matInput [formControl]="numeroControl" required />
+            <mat-error *ngIf="numeroControl.hasError('required')">
+              Número es obligatorio
+            </mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+      <div 
+        fxLayout="row" 
+        fxLayoutGap="10px" 
+        fxLayoutAlign="start center" 
+        style="margin-bottom: 25px;"
+      >
+        <div fxFlex="60%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Tipo Sociedad</mat-label>
+            <input matInput [formControl]="tipoSociedadControl" />
+          </mat-form-field>
+        </div>
+        <div fxFlex="20%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Fecha Inicio</mat-label>
+            <input 
+              matInput 
+              required 
+              [matDatepicker]="pickerInicio" 
+              [formControl]="fechaInicioControl"
+            />
+            <mat-datepicker-toggle matSuffix [for]="pickerInicio"></mat-datepicker-toggle>
+            <mat-datepicker #pickerInicio></mat-datepicker>
+            <mat-error *ngIf="fechaInicioControl.hasError('required')">
+              Fecha inicio es obligatorio
+            </mat-error>
+          </mat-form-field>
+        </div>
+        <div fxFlex="20%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Fecha Fin</mat-label>
+            <input 
+              matInput 
+              required 
+              [matDatepicker]="pickerFin" 
+              [formControl]="fechaFinControl" 
+            />
+            <mat-datepicker-toggle matSuffix [for]="pickerFin"></mat-datepicker-toggle>
+            <mat-datepicker #pickerFin></mat-datepicker>
+            <mat-error *ngIf="fechaFinControl.hasError('required')">
+              Fecha fin es obligatorio
+            </mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+      <!-- TOGGLE CONTROLS -->
+      <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+        <div fxFlex="20%">
+          <mat-slide-toggle 
+            [formControl]="isElectronicoControl" 
+            [checked]="isElectronicoControl.value"
+          >
+            Es electrónico
+          </mat-slide-toggle>
+        </div>
+        <div fxFlex="20%">
+          <mat-slide-toggle 
+            [formControl]="activoControl" 
+            [checked]="activoControl.value"
+          >
+            Timbrado Activo
+          </mat-slide-toggle>
+        </div>
+      </div>
+    </div>
+    <!-- TIMBRADO ELECTRÓNICO -->
+    <div [hidden]="!isElectronicoControl.value">
+      <div fxLayout="row" fxLayoutGap="10px" style="margin-bottom: 25px;">
+        <div fxFlex="80%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Razón Social</mat-label>
+            <input 
+              matInput
+              required
+              (click)="onRazonSocialSearch()"
+              [formControl]="razonSocialControl" 
+            />
+            <mat-error *ngIf="razonSocialControl.hasError('required')">
+              Razón Social es obligatorio
+            </mat-error>
+            <div matSuffix class="d-flex align-items-center">
+              <button 
+                [disabled]="isEditing == false" 
+                mat-icon-button 
+                (click)="onRazonSocialSearch()"
+              >
+                <mat-icon>search</mat-icon>
+              </button>
+            </div>
+          </mat-form-field>
+        </div>
+        <div fxFlex="20%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>RUC</mat-label>
+            <input matInput [formControl]="rucControl" required />
+            <mat-error *ngIf="rucControl.hasError('required')">
+              RUC es obligatorio
+            </mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+      <div fxLayout="row" fxLayoutGap="10px" style="margin-bottom: 25px;">
+        <div fxFlex="25%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Número</mat-label>
+            <input matInput [formControl]="numeroControl" required />
+            <mat-error *ngIf="numeroControl.hasError('required')">
+              Número es obligatorio
+            </mat-error>
+          </mat-form-field>
+        </div>
+        <div fxFlex="25%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Fecha Inicio</mat-label>
+            <input 
+              matInput 
+              [matDatepicker]="pickerInicioElectronico" 
+              [formControl]="fechaInicioControl"
+            />
+            <mat-datepicker-toggle matSuffix [for]="pickerInicioElectronico"></mat-datepicker-toggle>
+            <mat-datepicker #pickerInicioElectronico></mat-datepicker>
+          </mat-form-field>
+        </div>
+        <div fxFlex="25%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>CSC</mat-label>
+            <input matInput [formControl]="cscControl" />
+          </mat-form-field>
+        </div>
+        <div fxFlex="25%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Teléfono</mat-label>
+            <input matInput [formControl]="telefonoControl" />
+          </mat-form-field>
+        </div>
+      </div>
+      <div fxLayout="row" fxLayoutGap="10px" style="margin-bottom: 25px;">
+        <div fxFlex="50%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Tipo Sociedad</mat-label>
+            <input matInput [formControl]="tipoSociedadControl" />
+          </mat-form-field>
+        </div>
+        <div fxFlex="50%">
+          <mat-form-field 
+            class="lowercase" 
+            appearance="outline" style="width: 100%"
+          >
+            <mat-label>Email</mat-label>
+            <input matInput [formControl]="emailControl" type="email"/>
+          </mat-form-field>
+        </div>
+      </div>
+      <div fxLayout="row" fxLayoutGap="10px" style="margin-bottom: 25px;">
+        <div fxFlex="50%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Departamento</mat-label>
+            <input 
+              matInput 
+              [formControl]="departamentoControl" 
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="50%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Ciudad</mat-label>
+            <input 
+              matInput 
+              [formControl]="ciudadControl" 
+            />
+          </mat-form-field>
+        </div>
+      </div>
+      <div fxLayout="row" fxLayoutGap="10px" style="margin-bottom: 25px;">
+        <div fxFlex="20%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Cód. Ciudad</mat-label>
+            <input 
+              matInput 
+              [formControl]="codigoCiudadControl" 
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="80%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Dirección</mat-label>
+            <input 
+              matInput 
+              [formControl]="direccionControl" 
+            />
+          </mat-form-field>
+        </div>
+      </div>
+      <div fxLayout="row" fxLayoutGap="10px" style="margin-bottom: 25px;">
+        <div fxFlex="50%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Localidad</mat-label>
+            <input 
+              matInput 
+              [formControl]="localidadControl" 
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="50%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Barrio</mat-label>
+            <input 
+              matInput 
+              [formControl]="barrioControl" 
+            />
+          </mat-form-field>
+        </div>
+      </div>
+      <div fxLayout="row" fxLayoutGap="10px" style="margin-bottom: 25px;">
+        <div fxFlex="20%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Cód. Principal</mat-label>
+            <input 
+              matInput 
+              [formControl]="codActividadEconomicaPrincipalControl" 
+            />
+          </mat-form-field>
+        </div>
+        <div fxFlex="80%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Descripción Principal</mat-label>
+            <input 
+              matInput 
+              [formControl]="descActividadEconomicaPrincipalControl" 
+            />
+          </mat-form-field>
+        </div>
+      </div>
+      <div fxLayout="row" fxLayoutGap="10px" style="margin-bottom: 25px;">
+        <div fxFlex="20%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Cód. Secundarios</mat-label>
+            <textarea 
+              rows="2" 
+              matInput 
+              placeholder="Separar por comas"
+              [formControl]="codActividadEconomicaSecundariaControl"
+            ></textarea>       
+          </mat-form-field>
+        </div>
+        <div fxFlex="80%">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Descripciones Secundarias</mat-label>
+            <textarea 
+              rows="2" 
+              matInput 
+              placeholder="Separar por comas"
+              [formControl]="descActividadEconomicaSecundariaControl"
+            ></textarea>
+          </mat-form-field>
+        </div>
+      </div>
+      <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+        <div fxFlex="20%">
+          <mat-slide-toggle 
+            [formControl]="isElectronicoControl" 
+            [checked]="isElectronicoControl.value"
+          >
+            Es electrónico
+          </mat-slide-toggle>
+        </div>
+        <div fxFlex="20%">
+          <mat-slide-toggle 
+            [formControl]="activoControl" 
+            [checked]="activoControl.value"
+          >
+            Timbrado Activo
+          </mat-slide-toggle>
+        </div>
+      </div>
+    </div>
+  </form>
+  <div 
+    fxLayout="row" 
+    fxLayoutAlign="end center" 
+    fxLayoutGap="10px" 
+    style="margin-top: 20px;"
+  >
+    <button mat-raised-button color="primary" (click)="onCancelar()">
+      Cancelar
+    </button>
+    <button 
+      mat-raised-button 
+      color="accent" 
+      [disabled]="isEditing && (formGroup.invalid || 
+      (fechaInicioControl.value && fechaFinControl.value && fechaInicioControl.value > fechaFinControl.value))" 
+      (click)="isEditing ? onGuardar() : onHabilitarEdicion()"
+    >
+      {{ isEditing ? 'Guardar' : 'Editar' }}
+    </button>
+  </div>
+</div>

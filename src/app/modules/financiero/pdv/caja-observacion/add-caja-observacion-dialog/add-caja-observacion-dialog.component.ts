@@ -90,9 +90,9 @@ export class AddCajaObservacionComponent implements OnInit{
       cajaSubCategorias: this.cajaSubCategoriaObsService.onGetAllCajaSubCategoriaObs(),
       cajaMotivos: this.cajaMotivoObsService.onGetCajaMotivosObservaciones()
     }).subscribe(({ cajaCategorias, cajaSubCategorias, cajaMotivos }) => {
-      this.cajaCategoriaObsList = cajaCategorias;
-      this.cajaSubCategoriaObsList = cajaSubCategorias || [];
-      this.cajaMotivoObservacionList = cajaMotivos || [];
+      this.cajaCategoriaObsList = (cajaCategorias || []).filter(cat => cat.activo === true);
+      this.cajaSubCategoriaObsList = (cajaSubCategorias || []).filter(sub => sub.activo === true);
+      this.cajaMotivoObservacionList = (cajaMotivos || []).filter(mot => mot.activo === true);
       
       if (this.data?.cajaObservacion?.cajaMotivoObservacion) {
         const categoriaSeleccionada = this.data.cajaObservacion.cajaMotivoObservacion.cajaSubCategoriaObservacion?.cajaCategoriaObservacion;
@@ -137,7 +137,7 @@ export class AddCajaObservacionComponent implements OnInit{
   }
 
   onCancelar() {
-    this.descripcionControl.reset();
+    this.dialogRef.close();
   }
 
   onEditar() {
@@ -174,10 +174,7 @@ export class AddCajaObservacionComponent implements OnInit{
       this.cajaObservacionInput.sucursalId = this.data?.sucursalId;
     }
     
-     
-    if (this.data?.usuarioId) {
-      this.cajaObservacionInput.usuarioId = this.mainService.usuarioActual?.id
-    }
+    this.cajaObservacionInput.usuarioId = this.mainService.usuarioActual?.id;
     this.cajaObservacionInput.descripcion = this.descripcionControl.value?.toUpperCase();
     console.log(this.cajaObservacionInput);
     
@@ -203,10 +200,11 @@ export class AddCajaObservacionComponent implements OnInit{
       
       this.filteredCajaMotivoObsList = this.cajaMotivoObservacionList.filter(m =>
         m?.cajaSubCategoriaObservacion &&
-        m.cajaSubCategoriaObservacion.id.toString() === value.id.toString()
+        m.cajaSubCategoriaObservacion.id.toString() === value.id.toString() &&
+        m.activo === true
       );
 
-      if (this.filteredCajaSubCategoriaObsList.length > 0) {
+      if (this.filteredCajaMotivoObsList.length > 0) {
         this.cajaMotivoObservacionControl.setValue(this.filteredCajaMotivoObsList[0]);
       } else {
         this.cajaMotivoObservacionControl.setValue(null);
@@ -219,7 +217,7 @@ export class AddCajaObservacionComponent implements OnInit{
   
   handleCajaCategoriaSelectionChange(selectedCajaCategoria: any, newSelectedSubcategoria?: CajaSubCategoriaObservacion) {
     if (!selectedCajaCategoria) {
-      this.filteredCajaSubCategoriaObsList = [...this.cajaSubCategoriaObsList];
+      this.filteredCajaSubCategoriaObsList = this.cajaSubCategoriaObsList.filter(sub => sub.activo === true);
       this.cajaSubCategoriaObsControl.setValue(null);
       return;
     }
@@ -228,7 +226,8 @@ export class AddCajaObservacionComponent implements OnInit{
     
     this.filteredCajaSubCategoriaObsList = this.cajaSubCategoriaObsList.filter(subCat =>
       subCat?.cajaCategoriaObservacion &&
-      subCat.cajaCategoriaObservacion.id.toString() === selectedCajaCategoria.id.toString()
+      subCat.cajaCategoriaObservacion.id.toString() === selectedCajaCategoria.id.toString() &&
+      subCat.activo === true
     );
     
     if (newSelectedSubcategoria) {
@@ -243,6 +242,7 @@ export class AddCajaObservacionComponent implements OnInit{
     
     if (this.filteredCajaSubCategoriaObsList.length > 0) {
       this.cajaSubCategoriaObsControl.setValue(this.filteredCajaSubCategoriaObsList[0]);
+      this.handleCajaSubCategoriaSelectionChange(this.filteredCajaSubCategoriaObsList[0]);
     } else {
       this.cajaSubCategoriaObsControl.setValue(null);
     }

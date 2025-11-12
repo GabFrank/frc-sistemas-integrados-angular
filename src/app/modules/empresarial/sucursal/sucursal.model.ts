@@ -10,6 +10,7 @@ export class Sucursal {
   ciudad: Ciudad;
   deposito: boolean
   depositoPredeterminado: boolean
+  activo: boolean
   ip: string
   puerto: number
   creadoEn: Date;
@@ -30,6 +31,7 @@ export class Sucursal {
       usuarioId: this.usuario?.id,
       deposito: this.deposito,
       depositoPredeterminado: this.depositoPredeterminado,
+      activo: this.activo,
       codigoEstablecimientoFactura: this.codigoEstablecimientoFactura,
       creadoEn: dateToString(this.creadoEn),
       ip: this.ip,

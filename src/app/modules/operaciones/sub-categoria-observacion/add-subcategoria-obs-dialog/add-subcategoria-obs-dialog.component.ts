@@ -61,6 +61,7 @@ export class AddSubcategoriaObsDialogComponent implements OnInit{
       });
     this.createForm();
     this.loadData();
+    this.usuarioIdControl.setValue(this.mainService.usuarioActual?.id);
   }
 
   createForm() {
@@ -83,9 +84,7 @@ export class AddSubcategoriaObsDialogComponent implements OnInit{
   }
 
   onCancelar() {
-    this.descripcionControl.reset();
-    this.categoriaObsControl.reset();
-    this.activoControl.setValue(true);
+    this.dialogRef.close();
   }
 
   onGuardar() {
@@ -110,6 +109,8 @@ export class AddSubcategoriaObsDialogComponent implements OnInit{
     }
     this.subCategoriaObservacionInput.descripcion = this.descripcionControl.value?.toUpperCase();
     this.subCategoriaObservacionInput.activo = this.activoControl.value;
+    this.subCategoriaObservacionInput.usuarioId = this.mainService.usuarioActual?.id;
+    
     this.subCategoriaObsService.onSaveSubCategoriaObservacion(this.subCategoriaObservacionInput)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {

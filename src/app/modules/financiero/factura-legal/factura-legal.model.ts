@@ -4,8 +4,10 @@ import { Venta } from "../../operaciones/venta/venta.model"
 import { Cliente } from "../../personas/clientes/cliente.model"
 import { Usuario } from "../../personas/usuarios/usuario.model"
 import { Presentacion } from "../../productos/presentacion/presentacion.model"
+import { Producto } from "../../productos/producto/producto.model"
 import { PdvCaja } from "../pdv/caja/caja.model"
 import { TimbradoDetalle } from "../timbrado/timbrado.modal"
+import { DocumentoElectronico } from "../documento-electronico/documento-electronico.model"
 
 export class FacturaLegal {
     id:number
@@ -20,6 +22,8 @@ export class FacturaLegal {
     nombre:string
     ruc:string
     direccion:string
+    email:string
+    cdc:string
     ivaParcial0:number
     ivaParcial5:number
     ivaParcial10:number
@@ -33,6 +37,8 @@ export class FacturaLegal {
     sucursalId: number
     facturaLegalItemList: FacturaLegalItem[]
     sucursal:Sucursal
+    activo: boolean
+    documentoElectronico: DocumentoElectronico
 
     toInput(): FacturaLegalInput {
         let input = new FacturaLegalInput;
@@ -45,6 +51,8 @@ export class FacturaLegal {
         input.nombre = this.nombre
         input.ruc = this.ruc
         input.direccion = this.direccion
+        input.email = this.email
+        input.cdc = this.cdc
         input.ivaParcial0 = this.ivaParcial0
         input.ivaParcial5 = this.ivaParcial5
         input.ivaParcial10 = this.ivaParcial10
@@ -56,6 +64,7 @@ export class FacturaLegal {
         input.viaTributaria = this.viaTributaria
         input.sucursalId = this.sucursalId
         input.descuento = this.descuento
+        input.activo = this.activo
         return input;
     }
 }
@@ -71,6 +80,8 @@ export class FacturaLegalInput {
     nombre: string
     ruc: string
     direccion: string
+    email: string
+    cdc: string
     ivaParcial0: number
     ivaParcial5: number
     ivaParcial10: number
@@ -81,6 +92,7 @@ export class FacturaLegalInput {
     totalFinal: number
     descuento: number
     usuarioId: number
+    activo: boolean
 }
 
 export class FacturaLegalItem {
@@ -95,6 +107,7 @@ export class FacturaLegalItem {
     iva: number
     creadoEn: Date
     usuario: Usuario
+    producto: Producto
 
     toInput(): FacturaLegalItemInput {
         let input = new FacturaLegalItemInput;
@@ -109,6 +122,7 @@ export class FacturaLegalItem {
         input.creadoEn = this.creadoEn
         input.usuarioId = this.usuario?.id
         input.presentacionId = this.presentacion?.id;
+        input.productoId = this.producto?.id;
         return input;
     }
 }
@@ -125,6 +139,7 @@ export class FacturaLegalItemInput {
     iva: number
     creadoEn: Date
     usuarioId: number
+    productoId: number
 }
 
 export class ResumenFacturasDto {

@@ -14,7 +14,12 @@
       <div fxFlex="15%">
         <mat-form-field style="width: 100%">
           <mat-label>Id del retiro</mat-label>
-          <input type="text" matInput [formControl]="idRetiroControl" />
+          <input
+            type="text"
+            matInput
+            [formControl]="idRetiroControl"
+            (keyup.enter)="onFiltrar()"
+          />
         </mat-form-field>
       </div>
       <div fxFlex="25%">
@@ -33,7 +38,12 @@
       <div fxFlex="15%">
         <mat-form-field style="width: 100%">
           <mat-label>Id de la caja</mat-label>
-          <input type="text" matInput [formControl]="idCajaControl" />
+          <input
+            type="text"
+            matInput
+            [formControl]="idCajaControl"
+            (keyup.enter)="onFiltrar()"
+          />
         </mat-form-field>
       </div>
     </div>

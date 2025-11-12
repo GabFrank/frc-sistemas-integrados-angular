@@ -35,7 +35,13 @@ import { ListSucursalComponent } from "../../../modules/empresarial/sucursal/lis
 import { ThermalPrinterComponent } from '../../../modules/configuracion/thermal-printer/thermal-printer.component';
 import { ListReplicationComponent } from '../../../modules/configuracion/logical-replication/list-replication/list-replication.component';
 import { ListReplicationTablesComponent } from '../../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
+import { MainVentaObservacionComponent } from "../../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component";
+import { MainCajaObservacionComponent } from "../../../modules/financiero/pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component";
 import { Subscription } from 'rxjs';
+import { AnalisisDiferenciaComponent } from '../../../modules/financiero/analisis-diferencia/analisis-diferencia.component';
+import { ListTimbradoComponent } from '../../../modules/financiero/timbrado/list-timbrado/list-timbrado.component';
+import { ListLoteDeComponent } from '../../../modules/financiero/documento-electronico/lote-de/list-lote-de/list-lote-de.component';
+
 
 // Define interfaces for the navigation items structure
 interface BaseNavigationItem {
@@ -147,6 +153,26 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
             },
             { name: 'Delivery', icon: 'delivery_dining', action: 'delivery-dashboard' }
           ]
+        },
+        {
+          name: 'Observaciones',
+          icon: 'visibility',
+          isExpanded: false,
+          visibilityRoles: [ROLES.ADMIN],
+          items: [
+            { 
+              name: 'Observaciones de cajas', 
+              icon: 'receipt_long', 
+              action: 'observacion-cajas',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            { 
+              name: 'Observaciones de ventas', 
+              icon: 'shopping_cart_checkout', 
+              action: 'observacion-ventas',
+              visibilityRoles: [ROLES.ADMIN]
+            }
+          ]
         }
       ]
     },
@@ -157,6 +183,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       requiresServerMode: false,
       visibilityRoles: [ROLES.ANALISIS_DE_CAJA, ROLES.ANALISIS_CONTABLE, ROLES.CAMBIAR_COTIZACION],
       items: [
+        {
+          name: 'Análisis de diferencias',
+          icon: 'equalizer',
+          action: 'analisis-diferencias',
+          visibilityRoles: [ROLES.ADMIN]
+        },
         { 
           name: 'Cotización', 
           icon: 'monetization_on', 
@@ -188,6 +220,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
         },
         { 
+          name: 'Timbrado', 
+          icon: 'text_snippet', 
+          action: 'list-timbrado',
+          visibilityRoles: [ROLES.ADMIN]
+        },
+        { 
           name: 'Maletines', 
           icon: 'work', 
           action: 'list-maletin',
@@ -197,6 +235,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           name: 'Lucro por producto', 
           icon: 'trending_up', 
           action: 'lucro-por-producto',
+          visibilityRoles: [ROLES.ADMIN]
+        },
+        {
+          name: 'Documento electrónico',
+          icon: 'qr_code_2',
+          action: 'list-lote-de',
           visibilityRoles: [ROLES.ADMIN]
         }
       ]
@@ -506,6 +550,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       case "list-cotizacion":
         this.openTabIfAuthorized(ROLES.CAMBIAR_COTIZACION, CambioComponent, "Cotizaciónes");
         break;
+      case "list-timbrado":
+        this.openTabIfAuthorized(ROLES.ADMIN, ListTimbradoComponent, "Timbrado");
+        break;
       case "list-roles":
         this.openTabIfAuthorized(ROLES.SOPORTE, ListRolesComponent, "Lista de roles");
         break;
@@ -526,6 +573,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "list-facturas":
         this.openTabIfAuthorized(ROLES.ANALISIS_DE_CAJA, ListFacturaLegalComponent, "Lista de facturas");
+        break;
+      case "analisis-diferencias":
+        this.openTabIfAuthorized(ROLES.ADMIN, AnalisisDiferenciaComponent, "Análisis de diferencias");
+        break;
+      case "list-lote-de":
+        this.openTabIfAuthorized(ROLES.ADMIN, ListLoteDeComponent, "Lotes DE");
         break;
       case "list-sucursal":
         this.openTabIfAuthorized(ROLES.ADMIN, ListSucursalComponent, "Lista de sucursales");
@@ -573,6 +626,12 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "replication-tables":
         this.openTabIfAuthorized(ROLES.ADMIN, ListReplicationTablesComponent, "Tablas de Replicación");
+        break;
+      case "observacion-cajas":
+        this.openTabIfAuthorized(ROLES.ADMIN, MainCajaObservacionComponent, "Observación de Cajas");
+        break;
+      case "observacion-ventas":
+        this.openTabIfAuthorized(ROLES.ADMIN, MainVentaObservacionComponent, "Observación de Ventas");
         break;
     }
   }

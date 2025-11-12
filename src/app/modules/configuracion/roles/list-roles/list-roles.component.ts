@@ -87,7 +87,7 @@ export class ListRolesComponent implements OnInit, GenericList<Role> {
       data: {
         role: entity,
       },
-      width: '50%'
+      width: '30%'
     }).afterClosed().subscribe(res => {
       if (res != null) {
         this.dataSource.data = updateDataSource(this.dataSource.data, res, index)

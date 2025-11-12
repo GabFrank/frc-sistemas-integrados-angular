@@ -71,3 +71,55 @@ input {
   padding-right: 3px;
   box-shadow: 0 1px 0 0 rgba(133, 133, 133, 0.133);
 }
+
+.info-stock {
+  padding: 5px; 
+  border-bottom: 1px solid #444;
+}
+
+.ajuste-stock {
+  font-size: 0.9em; 
+  line-height: 1.2;
+}
+
+.cantidad-previa {
+  color: #f44336; 
+  margin-left: 5px;
+  font-weight: 500;
+}
+
+.stock-final {
+  color: #ff9800; 
+  font-weight: bold;
+}
+
+.info-container {
+  width: 100%;
+  text-align: center;
+  background-color: rgb(52, 52, 52);
+  padding: 8px;
+  margin-top: 10px;
+}
+
+.detalle-container {
+  width: 100%;
+  text-align: center;
+  background-color: rgb(52, 52, 52);
+  padding: 10px;
+}
+
+.movimiento-container {
+  padding-top: 20px;
+  padding-bottom: 20px;
+  width: 100%;
+  background-color: rgb(32, 32, 32);
+}
+
+.icon {
+  font-size: 2em;
+}
+
+.icon:hover {
+  color: rgb(0, 172, 46);
+  cursor: pointer;
+}

@@ -1,0 +1,136 @@
+.mat-form-field {
+  width: 100%;
+}
+
+input[type="number"] {
+  text-transform: none !important;
+}
+
+.descripcion-producto {
+  font-size: 16px;
+  text-transform: uppercase;
+}
+
+
+.positive-value {
+  color: #4caf50;
+}
+
+.negative-value {
+  color: #f44336;
+}
+
+.loading-spinner {
+  display: inline-block;
+  margin-left: 10px;
+}
+
+.dialog-container {
+  padding: 20px;
+  min-width: 400px;
+}
+
+.costo-actual {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #333;
+  
+  .costo-label {
+    font-weight: 500;
+  }
+  
+  .costo-valor {
+    font-weight: 600;
+    color: #4CAF50;
+  }
+}
+
+.form-container {
+  .mat-form-field {
+    width: 100%;
+    margin-bottom: 15px;
+  }
+  
+  .costo-input {
+    .mat-form-field-suffix {
+      color: #666;
+      font-size: 14px;
+    }
+  }
+}
+
+.diferencia-container {
+  padding: 12px;
+  margin: 15px 0;
+  
+  .diferencia-text {
+    font-size: 14px;
+    color: white;
+    margin-bottom: 5px;
+  }
+  
+  .diferencia-valor {
+    font-size: 16px;
+    font-weight: 600;
+    
+    &.positiva {
+      color: #4CAF50;
+    }
+    
+    &.negativa {
+      color: #f44336;
+    }
+    
+    &.neutra {
+      color: white;
+    }
+  }
+}
+
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  
+  .mat-spinner {
+    margin-right: 10px;
+  }
+}
+
+.form-row {
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
+  
+  .mat-form-field {
+    flex: 1;
+  }
+}
+
+.green-icon {
+  font-size: 16px;
+  height: 16px;
+  width: 16px;
+  vertical-align: middle;
+}
+
+.red-icon {
+  font-size: 16px;
+  height: 16px;
+  width: 16px;
+  vertical-align: middle;
+}
+
+.dialog-container {
+  width: 100%; 
+  min-width: 500px; 
+  padding: 20px;
+}
+
+.info-text {
+  font-size: 16px;
+  font-weight: bold;
+}

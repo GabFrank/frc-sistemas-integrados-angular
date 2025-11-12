@@ -101,6 +101,7 @@ export class ListVentaComponent implements OnInit {
   estadoControl = new FormControl(null);
   filterChanged = true;
   conObsControl = new FormControl(false);
+  conDescuentoControl = new FormControl(false);
 
   length = 15;
   pageSize = 15;
@@ -164,7 +165,8 @@ export class ListVentaComponent implements OnInit {
       id: this.idVentaControl,
       formaPago: this.formaPagoControl,
       estado: this.estadoControl,
-      conObservacion: this.conObsControl
+      conObservacion: this.conObsControl,
+      conDescuento: this.conDescuentoControl
     });
 
     this.form.valueChanges.subscribe((res) => {
@@ -224,7 +226,8 @@ export class ListVentaComponent implements OnInit {
         this.formaPagoControl.value,
         this.estadoControl.value,
         this.modoControl.value,
-        this.monedaControl.value?.id
+        this.monedaControl.value?.id,
+        this.conDescuentoControl.value
       )
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
@@ -378,6 +381,7 @@ export class ListVentaComponent implements OnInit {
     this.selectedFormaPago = null;
     this.ventaDataSource.data = [];
     this.conObsControl.setValue(false);
+    this.conDescuentoControl.setValue(false);
   }
 
   onGoToRetiros() {
@@ -464,25 +468,26 @@ export class ListVentaComponent implements OnInit {
       });
   }
 
-onObservado(ventas: Venta[]): Venta[] {
-  ventas.forEach((venta) => {
-    venta['hasObservation'] = this.ventaObservacionList 
-      ? this.ventaObservacionList.some((obs) => obs.venta.id === venta.id)
-      : false;
-  });
+  onObservado(ventas: Venta[]): Venta[] {
+    ventas.forEach((venta) => {
+      venta['hasObservation'] = this.ventaObservacionList 
+        ? this.ventaObservacionList.some((obs) => 
+            obs.venta.id === venta.id && obs.sucursal.id === venta.sucursalId
+          )
+        : false;
+    });
 
-  if (this.conObsControl.value) {
-    ventas = ventas.filter((sale) => sale['hasObservation']);
+    if (this.conObsControl.value) {
+      ventas = ventas.filter((sale) => sale['hasObservation']);
+    }
+
+    return ventas;
   }
-
-  return ventas;
-}
  
-
   onListObservaciones(venta: Venta) {
     const dialogRef = this.matDialog
       .open(VentaObservacionDashboardComponent, {
-        width: "950px",
+        width: "1950px",
         height: "550px",
         data: { venta: venta }
       })

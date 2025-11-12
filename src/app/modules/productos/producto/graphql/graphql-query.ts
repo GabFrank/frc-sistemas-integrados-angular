@@ -88,6 +88,7 @@ export const productoSearchPdv = gql`
       observacion
       codigoPrincipal
       precioPrincipal
+      activo
       costo {
         ultimoPrecioCompra
       }
@@ -178,6 +179,9 @@ export const searchProductoWithFilters = gql`
     $balanza: Boolean
     $subfamilia: Int
     $vencimiento: Boolean
+    $costoCero: Boolean
+    $stockFiltro: String
+    $sucursalId: Int
     $page: Int
     $size: Int
   ) {
@@ -189,6 +193,9 @@ export const searchProductoWithFilters = gql`
       balanza: $balanza
       subfamilia: $subfamilia
       vencimiento: $vencimiento
+      costoCero: $costoCero
+      stockFiltro: $stockFiltro
+      sucursalId: $sucursalId
       page: $page
       size: $size
     ) {
@@ -208,6 +215,7 @@ export const searchProductoWithFilters = gql`
         }
         precioPrincipal
         codigoPrincipal
+        activo
       }
     }
   }
@@ -672,3 +680,35 @@ export const imprimirCodigoBarraQuery = gql`
     data: imprimirCodigoBarra(codigoId: $codigoId)
   }
 `;
+
+export const exportarReporteConFiltrosQuery = gql`
+    query (
+      $texto: String, 
+      $codigo: Boolean, 
+      $activo: Boolean, 
+      $stock: Boolean, 
+      $balanza: Boolean, 
+      $vencimiento: Boolean, 
+      $costoCero: Boolean, 
+      $subfamiliaId: ID, 
+      $stockFiltro: String, 
+      $sucursalId: ID, 
+      $usuarioId: ID, 
+      $usuario: String
+    ) {
+      data: exportarReporteConFiltros(
+        texto: $texto, 
+        codigo: $codigo, 
+        activo: $activo, 
+        stock: $stock, 
+        balanza: $balanza, 
+        vencimiento: $vencimiento, 
+        costoCero: $costoCero, 
+        subfamiliaId: $subfamiliaId, 
+        stockFiltro: $stockFiltro, 
+        sucursalId: $sucursalId, 
+        usuarioId: $usuarioId, 
+        usuario: $usuario
+      )
+    }
+  `;

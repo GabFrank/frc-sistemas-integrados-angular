@@ -135,18 +135,13 @@
         </td>
       </ng-container>
 
-      <!-- Estado Activo Column -->
+      <!-- Activo Column -->
       <ng-container matColumnDef="activo">
         <th mat-header-cell *matHeaderCellDef style="text-align: center">
-          Estado
+          Activo
         </th>
         <td mat-cell *matCellDef="let sucursal" style="text-align: center">
-          <span 
-            [style.color]="sucursal?.activo ? '#4caf50' : '#f44336'"
-            [style.fontWeight]="'bold'"
-          >
-            {{ sucursal?.activo ? 'Activa' : 'Inactiva' }}
-          </span>
+          {{ sucursal?.activo ? 'Si' : 'No' }}
         </td>
       </ng-container>
 
@@ -156,7 +151,7 @@
           Usuario
         </th>
         <td mat-cell *matCellDef="let sucursal" style="text-align: center">
-          {{ sucursal?.usuario?.id }}
+          {{ sucursal?.usuario?.nickname }}
         </td>
       </ng-container>
 

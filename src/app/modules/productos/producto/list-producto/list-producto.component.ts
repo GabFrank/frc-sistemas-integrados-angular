@@ -59,6 +59,9 @@ import {
 } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { SubfamiliasSearchGQL } from "../../sub-familia/graphql/subfamiliasSearch";
 import { SearchSubfamiliaByDescripcionGQL } from "../../sub-familia/graphql/searchByDescripcion";
+import { AjustarStockDialogComponent, AjustarStockDialogData } from "../ajustar-stock-dialog/ajustar-stock-dialog.component";
+import { AjustarCostoDialogComponent, AjustarCostoDialogData } from "../ajustar-costo-dialog/ajustar-costo-dialog.component";
+import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -93,6 +96,9 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   balanzaControl = new FormControl(null);
   subfamiliaControl = new FormControl(null);
   vencimientoControl = new FormControl(null);
+  costoCeroControl = new FormControl(null);
+  stockFiltroControl = new FormControl("todos");
+  sucursalFiltroControl = new FormControl(null);
 
   //producto seleccionado
   selectedProducto = new Producto();
@@ -124,6 +130,15 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   sucursales: Sucursal[] = [];
   loadingStock: { [key: number]: boolean } = {};
   stockPorSucursal: { [key: string]: number } = {};
+  isSucursalSelectEnabled: boolean = false;
+
+  stockOptions = [
+    { value: 'todos', label: 'TODOS' },
+    { value: 'positivo', label: 'POSITIVO' },
+    { value: 'negativo', label: 'NEGATIVO' }
+  ];
+
+  isAdicionarEnabled: boolean = false;
 
   constructor(
     private injector: Injector,
@@ -139,12 +154,20 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
     private movimientoStockService: MovimientoStockService,
     private thermalPrinterService: ThermalPrinterService,
     private snackBar: MatSnackBar,
+    private notificacionService: NotificacionSnackbarService
   ) {
     setTimeout(() => (this.service = injector.get(ProductoService)));
   }
 
   ngOnInit(): void {
+    this.service = this.injector.get(ProductoService);
     this.cargarSucursales();
+    this.updateSucursalSelectEnabled();
+    this.updatePermisos();
+    
+    this.stockFiltroControl.valueChanges.subscribe(() => {
+      this.updateSucursalSelectEnabled();
+    });
   }
 
   ngAfterViewInit(): void {
@@ -160,12 +183,14 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
 
   onSearchProducto() {
     this.isSearching = true;
+    this.expandedProducto = null;
+    this.selectedProducto = new Producto();
 
     this.service
       .onSearchWithFilters(
-        this.filtroCodigoControl.value == false
-          ? this.filtroProductoControl.value
-          : null,
+        this.filtroCodigoControl.value == true
+          ? null
+          : this.filtroProductoControl.value,
         this.filtroCodigoControl.value == true
           ? this.filtroProductoControl.value
           : null,
@@ -174,6 +199,9 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         this.balanzaControl.value,
         this.selectedSubfamilia?.id,
         this.vencimientoControl.value,
+        this.costoCeroControl.value,
+        this.stockFiltroControl.value,
+        this.sucursalFiltroControl.value,
         this.pageIndex,
         this.pageSize,
         true
@@ -185,19 +213,39 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       });
   }
 
-  onRowClick(row) {
-    this.selectedProducto = row;
-    this.selectedProducto.sucursales = [];
-    for(let sucursal of this.sucursales){
-      this.service.onGetStockPorProductoAndSucursal(this.selectedProducto.id, sucursal.id, true).subscribe(res => {
-        let existencia = new ExistenciaCostoPorSucursal();
-        existencia.sucursal = sucursal;
-        existencia.existencia = res;
-        this.selectedProducto.sucursales.push(existencia);
-      })
-    }
-    this.expandedProducto = this.selectedProducto;
+  onRowClick(row, isCurrentlyExpanded: boolean) {
+    if (!isCurrentlyExpanded) {
+      this.selectedProducto = row;
 
+      if (this.sucursalFiltroControl.value && this.isSucursalSelectEnabled) {
+        const sucursalSeleccionada = this.sucursales.find(s => s.id === this.sucursalFiltroControl.value);
+        if (sucursalSeleccionada) {
+          const existencia = new ExistenciaCostoPorSucursal();
+          existencia.sucursal = sucursalSeleccionada;
+          existencia.existencia = null;
+          this.selectedProducto.sucursales = [existencia];
+        }
+      } else {
+      this.selectedProducto.sucursales = this.sucursales.map((s) => {
+        const existencia = new ExistenciaCostoPorSucursal();
+        existencia.sucursal = s;
+        existencia.existencia = null;
+        return existencia;
+      });
+      }
+
+      this.selectedProducto.sucursales.forEach((existenciaSucursal) => {
+        this.service
+          .onGetStockPorProductoAndSucursal(
+            this.selectedProducto.id,
+            existenciaSucursal.sucursal.id,
+            true
+          )
+          .subscribe((stock) => {
+            existenciaSucursal.existencia = stock;
+          });
+      });
+    }
   }
 
   onEditProducto(producto, i) {
@@ -248,7 +296,21 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
   onFiltrar() {
     this.onSearchProducto();
   }
-  resetFiltro() {}
+
+  resetFiltro() {
+    this.filtroProductoControl.setValue('');
+    this.filtroCodigoControl.setValue(false);
+    this.activoControl.setValue(null);
+    this.stockControl.setValue(null);
+    this.balanzaControl.setValue(null);
+    this.subfamiliaControl.setValue(null);
+    this.selectedSubfamilia = null;
+    this.vencimientoControl.setValue(null);
+    this.costoCeroControl.setValue(null);
+    this.stockFiltroControl.setValue('todos');
+    this.sucursalFiltroControl.setValue(null);
+  }
+
   onAddProducto() {
     this.onEditProducto(null, null);
   }
@@ -301,12 +363,85 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         }
       });
   }
-  onClearSubfamilia() {}
+
+  onClearSubfamilia() {
+    this.subfamiliaControl.setValue(null);
+    this.selectedSubfamilia = null;
+  }
 
   cargarSucursales() {
-    this.sucursalService.onGetAllSucursales().subscribe(res => {
-      this.sucursales = res?.filter(sucursal => sucursal.nombre != "SERVIDOR" && sucursal.nombre != "COMPRAS");
+    this.sucursalService.onGetAllSucursales(true).subscribe(res => {
+      this.sucursales = res?.filter(sucursal => 
+        sucursal.nombre != "SERVIDOR" && sucursal.nombre != "COMPRAS");
     })
   }
 
+  onStockFiltroChange() {
+    if (this.stockFiltroControl.value === 'todos') {
+      this.sucursalFiltroControl.setValue(null);
+    }
+    this.updateSucursalSelectEnabled();
+  }
+
+  updateSucursalSelectEnabled() {
+    this.isSucursalSelectEnabled = 
+    this.stockFiltroControl.value === 'positivo' || this.stockFiltroControl.value === 'negativo';
+  }
+
+  updatePermisos() {
+    this.isAdicionarEnabled = this.mainService.usuarioActual?.roles?.includes(ROLES.ADMIN) || false;
+  }
+
+  onAjustarStock(producto: Producto) {
+    const sucursalPreseleccionada = this.getSucursalPreseleccionada();
+    const permitirCambiarSucursal = this.stockFiltroControl.value === 'todos';
+
+    const dialogData: AjustarStockDialogData = {
+      producto: producto,
+      sucursalPreseleccionada: sucursalPreseleccionada,
+      permitirCambiarSucursal: permitirCambiarSucursal
+    };
+
+    const dialogRef = this.matDialog.open(AjustarStockDialogComponent, {
+      data: dialogData,
+      width: '600px',
+      maxHeight: '90vh',
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.expandedProducto = null;
+        this.onFiltrar();
+      }
+    });
+  }
+
+  getSucursalPreseleccionada(): Sucursal | undefined {
+    if ((this.stockFiltroControl.value === 'positivo' || this.stockFiltroControl.value === 'negativo') 
+        && this.sucursalFiltroControl.value) {
+      return this.sucursales.find(s => s.id === this.sucursalFiltroControl.value);
+    }
+    return undefined;
+  }
+
+  onAjustarCosto(producto: Producto) {
+    const dialogData: AjustarCostoDialogData = {
+      producto: producto
+    };
+
+    const dialogRef = this.matDialog.open(AjustarCostoDialogComponent, {
+      data: dialogData,
+      width: '600px', 
+      maxHeight: '90vh',
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.expandedProducto = null;
+        this.onFiltrar();
+      }
+    });
+  }
 }

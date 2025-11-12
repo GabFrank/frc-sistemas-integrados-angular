@@ -65,6 +65,7 @@ export const ventaQuery = gql`
       creadoEn
       usuario {
         id
+        nickname
       }
       ventaItemList {
         id
@@ -124,6 +125,7 @@ export const ventaQuery = gql`
           valor
         }
         estado
+        fechaConcluido
       }
     }
   }
@@ -247,6 +249,7 @@ export const ventasPorCajaIdQuery = gql`
     $estado: VentaEstado
     $isDelivery: Boolean
     $monedaId: Int
+    $conDescuento: Boolean
   ) {
     data: ventasPorCajaId(
       idVenta: $idVenta
@@ -259,6 +262,7 @@ export const ventasPorCajaIdQuery = gql`
       estado: $estado
       isDelivery: $isDelivery
       monedaId: $monedaId
+      conDescuento: $conDescuento
     ) {
       getTotalPages
       getTotalElements
@@ -287,6 +291,7 @@ export const ventasPorCajaIdQuery = gql`
             valor
           }
           estado
+          fechaConcluido
         }
       }
     }

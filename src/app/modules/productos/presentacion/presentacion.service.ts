@@ -59,26 +59,32 @@ export class PresentacionService {
   
   onDeletePresentacion(presentacion: Presentacion, servidor = true): Observable<any> {
     return new Observable(obs => {
-      this.dialogoService.confirm('Atención!!', 'Realmente deseas eliminar esta presentación?', 'Todos los códigos y precios también serán eliminados.', [`Descripción: ${presentacion.descripcion}`, `Cantidad: ${presentacion.cantidad}`]).pipe(untilDestroyed(this)).subscribe(res => {
-        if (res) {
-          this.genericService.onCustomMutation(this.deletePresentacion, {
-            id: presentacion.id,
-          }, servidor);
+      this.deletePresentacion.mutate({
+        id: presentacion.id,
+      }, {
+        fetchPolicy: "no-cache",
+        errorPolicy: "all",
+        context: {
+          clientName: servidor == null || servidor ? "servidor" : null,
+        },
+      }).pipe(untilDestroyed(this)).subscribe((res) => {
+        if (res.errors == null) {
+          obs.next((res.data as any).deletePresentacion);
+          obs.complete();
+        } else {
+          obs.error(res.errors);
         }
-      })
-    })
-
-
+      }, error => {
+        obs.error(error);
+      });
+    });
   }
 
   onImageSave(image: string, filename: string, servidor = true): Observable<any> {
-    // return new Observable((obs) => {
-    return new Observable<any>(obs => {
-      this.genericService.onCustomMutation(this.saveImage, {
-        image,
-        filename
-      }, servidor);
-    })
+    return this.genericService.onCustomMutation(this.saveImage, {
+      image,
+      filename
+    }, servidor);
   }
 
   onGetPresentacion(id: number, servidor = true) {

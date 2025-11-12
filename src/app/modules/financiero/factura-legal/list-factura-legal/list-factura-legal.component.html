@@ -102,7 +102,7 @@
         fxLayoutGap="10px"
         style="width: 100%"
       >
-        <div fxFlex="50%">
+        <div fxFlex="33%">
           <mat-form-field style="width: 100%">
             <mat-label>Nombre del cliente</mat-label>
             <input
@@ -110,10 +110,11 @@
               matInput
               [formControl]="nombreControl"
               [bdcWalkTriggerFor]="facturaStep3"
+              (keyup.enter)="onFilter()"
             />
           </mat-form-field>
         </div>
-        <div fxFlex="50%">
+        <div fxFlex="33%">
           <mat-form-field style="width: 100%">
             <mat-label>Ruc del cliente</mat-label>
             <input
@@ -121,7 +122,46 @@
               matInput
               [formControl]="rucControl"
               [bdcWalkTriggerFor]="facturaStep4"
+              (keyup.enter)="onFilter()"
             />
+          </mat-form-field>
+        </div>
+        <div fxFlex="34%">
+          <mat-form-field style="width: 100%">
+            <mat-label>CDC</mat-label>
+            <input
+              type="text"
+              matInput
+              [formControl]="cdcControl"
+              (keyup.enter)="onFilter()"
+            />
+          </mat-form-field>
+        </div>
+      </div>
+      <div
+        fxLayout="row"
+        fxLayoutAlign="start center"
+        fxLayoutGap="10px"
+        style="width: 100%"
+      >
+        <div fxFlex="50%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Tipo</mat-label>
+            <mat-select [formControl]="tipoControl">
+              <mat-option value="TODOS">Todos</mat-option>
+              <mat-option value="AUTOIMPRESO">Autoimpreso</mat-option>
+              <mat-option value="ELECTRONICO">Electrónico</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <div fxFlex="50%">
+          <mat-form-field style="width: 100%">
+            <mat-label>Estado</mat-label>
+            <mat-select [formControl]="estadoControl">
+              <mat-option value="TODOS">Todos</mat-option>
+              <mat-option value="ACTIVOS">Activos</mat-option>
+              <mat-option value="INACTIVOS">Inactivos</mat-option>
+            </mat-select>
           </mat-form-field>
         </div>
       </div>
@@ -261,6 +301,30 @@
         </td>
       </ng-container>
 
+      <!-- Electronico Column -->
+      <ng-container matColumnDef="electronico">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Tipo
+        </th>
+        <td mat-cell *matCellDef="let factura" style="text-align: center">
+          <span class="tipo-badge" [ngClass]="esElectronica(factura) ? 'badge-electronica' : 'badge-papel'">
+            {{ esElectronica(factura) ? 'Electrónica' : 'Papel' }}
+          </span>
+        </td>
+      </ng-container>
+
+      <!-- Estado Column -->
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center">
+          Estado
+        </th>
+        <td mat-cell *matCellDef="let factura" style="text-align: center">
+          <span class="estado-badge" [ngClass]="getEstadoClass(factura)">
+            {{ getEstadoDisplay(factura) }}
+          </span>
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="totalFinal">
         <th mat-header-cell *matHeaderCellDef style="text-align: center">
           Total
@@ -300,16 +364,23 @@
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="onEdit(factura, i)">Editar</button>
+            <button
+              mat-menu-item
+              (click)="onEdit(factura, i)"
+              [disabled]="!puedeEditarFactura(factura)">
+              <mat-icon>edit</mat-icon>
+              <span>Modificar</span>
+            </button>
             <button mat-menu-item (click)="onImprimir(factura, i)">
-              Imprimir
+              <mat-icon>print</mat-icon>
+              <span>Reimprimir</span>
             </button>
             <button
               mat-menu-item
-              color="primary"
-              (click)="onDeleteFactura(factura, i)"
-            >
-              Eliminar
+              (click)="onCancelarFactura(factura)"
+              [disabled]="!factura.puedeCancelar">
+              <mat-icon>cancel</mat-icon>
+              <span>Cancelar</span>
             </button>
           </mat-menu>
         </td>

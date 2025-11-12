@@ -79,7 +79,7 @@ export class ListGastosComponent implements OnInit {
       descripcionControl: this.descripcionControl
     })
 
-    this.sucursalService.onGetAllSucursales().subscribe(res => {
+    this.sucursalService.onGetAllSucursales(true).subscribe(res => {
       this.sucursalList = res.filter(s => s.id != 0)
       this.sucOrigenControl.setValue(this.sucursalList.find(s => s.id == this.data?.tabData?.data?.sucursal?.id))
       this.idCajaControl.setValue(this.data?.tabData?.data?.caja?.id);
@@ -105,6 +105,8 @@ export class ListGastosComponent implements OnInit {
     this.idCajaControl.setValue(null);
     this.sucOrigenControl.setValue(null);
     this.idCajaControl.setValue(null);
+    this.idGastoControl.setValue(null);
+    this.descripcionControl.setValue(null);
     this.dataSource.data = []
   }
 

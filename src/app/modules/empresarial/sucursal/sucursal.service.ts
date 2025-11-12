@@ -90,8 +90,23 @@ export class SucursalService {
     return this.genericService.onCustomQuery(this.sucursalPorId, {id}, servidor);
   }
 
+  onGetAllSucursalesByActive(servidor: boolean = true, onlyActive: boolean = false): Observable<Sucursal[]> {
+    return this.genericService.onCustomQuery(this.getAllSucursales, {}, servidor).pipe(
+      map((sucursales: Sucursal[]) => {
+        if (onlyActive) {
+          return sucursales.filter(s => s.activo === true && s.id !== 0);
+        }
+        return sucursales;
+      })
+    );
+  }
+
   onGetAllSucursales(servidor: boolean = true): Observable<Sucursal[]> {
     return this.genericService.onCustomQuery(this.getAllSucursales, {}, servidor);
+  }
+
+  onGetSucursalesActivas(servidor: boolean = true): Observable<Sucursal[]> {
+    return this.onGetAllSucursalesByActive(servidor, true);
   }
 
   onGetSucursalActual(servidor: boolean = true): Observable<Sucursal> {

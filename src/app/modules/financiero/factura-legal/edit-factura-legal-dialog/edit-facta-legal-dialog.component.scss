@@ -1,0 +1,21 @@
+
+  .warning-message {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background-color: #4e342e;
+    border: 1px solid #ffab91;
+    border-radius: 4px;
+    margin-bottom: 24px;
+    color: #ffccbc;
+
+    mat-icon {
+      color: #ff8a65;
+    }
+  }
+
+  .edit-form {
+    display: flex;
+    flex-direction: column;
+  }

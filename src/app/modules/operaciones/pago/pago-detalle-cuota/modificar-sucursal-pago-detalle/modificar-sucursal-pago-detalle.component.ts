@@ -86,7 +86,7 @@ export class ModificarSucursalPagoDetalleComponent implements OnInit {
   }
 
   cargarSucursales(): void {
-    this.sucursalService.onGetAllSucursales()
+    this.sucursalService.onGetAllSucursales(true)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (sucursales) => {

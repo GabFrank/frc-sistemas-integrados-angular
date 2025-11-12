@@ -317,7 +317,8 @@ export class GenericCrudService {
     gql: Query,
     texto: string,
     servidor: boolean = true,
-    duracion?
+    duracion?,
+    errorConf?: QueryError
   ): Observable<any> {
     this.isLoading = true;
     const { requestId, signal } = this.cargandoService.openDialog(
@@ -339,19 +340,42 @@ export class GenericCrudService {
           }
         )
         .pipe(untilDestroyed(this))
-        .subscribe((res) => {
-          this.cargandoService.closeDialog(requestId);
-          this.isLoading = false;
-          if (res.errors == null) {
-            obs.next(res.data["data"]);
-            obs.complete();
-          } else {
-            this.notificacionSnackBar.notification$.next({
-              texto: "Ups! Algo salió mal: " + res.errors[0].message,
-              color: NotificacionColor.danger,
-              duracion: 3,
-            });
-          }
+        .subscribe({
+          next: (res) => {
+            this.cargandoService.closeDialog(requestId);
+            this.isLoading = false;
+            if (res.errors == null) {
+              obs.next(res.data["data"]);
+              obs.complete();
+            } else {
+              const errorMessage = res.errors[0].message;
+              if (errorConf?.graphError?.show !== false) {
+                this.notificacionSnackBar.notification$.next({
+                  texto: "Ups! Algo salió mal: " + errorMessage,
+                  color: NotificacionColor.danger,
+                  duracion: 3,
+                });
+              }
+              if (errorConf?.graphError?.propagate === true) {
+                obs.error({ message: errorMessage, errors: res.errors });
+              }
+            }
+          },
+          error: (error) => {
+            this.cargandoService.closeDialog(requestId);
+            this.isLoading = false;
+            if (errorConf?.networkError?.show === true) {
+              this.notificacionSnackBar.notification$.next({
+                texto: "Error de red",
+                color:
+                  errorConf?.networkError?.color || NotificacionColor.danger,
+                duracion: 3,
+              });
+            }
+            if (errorConf?.networkError?.propagate === true) {
+              obs.error(error);
+            }
+          },
         });
     });
   }

@@ -44,7 +44,7 @@ import { PageEvent } from "@angular/material/paginator";
 import { Time } from "@angular/common";
 import { stringToTime } from "../../../../commons/core/utils/string-utils";
 import { StockPorTipoMovimientoDto } from "../graphql/getStockPorTipoMovimientoByFilters";
-import { TabService } from "../../../../layouts/tab/tab.service";
+import { TabService, TabData } from "../../../../layouts/tab/tab.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { ListVentaComponent } from "../../venta/list-venta/list-venta.component";
 import { VentaService } from "../../venta/venta.service";
@@ -52,6 +52,8 @@ import { TransferenciaService } from "../../transferencia/transferencia.service"
 import { InventarioService } from "../../inventario/inventario.service";
 import { Venta } from "../../venta/venta.model";
 import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
+import { EditTransferenciaComponent } from "../../transferencia/edit-transferencia/edit-transferencia.component";
+import { ListInventarioComponent } from "../../inventario/list-inventario/list-inventario.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -146,7 +148,7 @@ export class ListMovimientoStockComponent implements OnInit {
   ngOnInit(): void {
     let hoy = new Date();
     let aux = new Date();
-    aux.setDate(hoy.getDate() - 2);
+    aux.setDate(hoy.getDate() - 7);
 
     this.fechaInicioControl.setValue(aux);
     this.fechaFinalControl.setValue(hoy);
@@ -163,7 +165,7 @@ export class ListMovimientoStockComponent implements OnInit {
 
     setTimeout(() => {
       this.sucursalService
-        .onGetAllSucursales()
+        .onGetAllSucursales(true)
         .pipe(untilDestroyed(this))
         .subscribe((res) => {
           this.sucursalList = res.filter((s) => {
@@ -199,28 +201,41 @@ export class ListMovimientoStockComponent implements OnInit {
 
     // if sucursalid list is not empty, get stock for each sucursal and sum itm add logs  
     if (sucursalIdList.length > 0 && !isPagination) {
-      sucursalIdList.forEach((sucursalId) => {
-        this.service.onGetStockPorProducto(this.selectedProducto?.id, sucursalId).subscribe((res) => {
-          this.stockTotal += res;
+      if (this.selectedProducto?.id) {
+        sucursalIdList.forEach((sucursalId) => {
+          this.service
+            .onGetStockPorProducto(this.selectedProducto.id, sucursalId)
+            .subscribe((res) => {
+              this.stockTotal += res;
+            });
         });
-      });
+      } else {
+        // Notificar que se requiere seleccionar un producto para esta métrica específica
+        this.notificacionService.openWarn(
+          "Debe seleccionar un producto para realizar la búsqueda"
+        );
+      }
 
       this.service
-      .onGetStockPorTipoMovimiento(
-        dateToString(fechaInicial),
-        dateToString(fechaFin),
-        this.sucursalIdList,
-        this.selectedProducto?.id,
-        this.tipoMovimientoControl.value,
-        this.selectedUsuario?.id
-      )
-      .subscribe((res: StockPorTipoMovimientoDto[]) => {
-        console.log(res);
-        res.forEach((t) => {
-          this.stockPorRangoFecha += t.stock;
+        .onGetStockPorTipoMovimiento(
+          dateToString(fechaInicial),
+          dateToString(fechaFin),
+          this.sucursalIdList,
+          this.selectedProducto?.id,
+          this.tipoMovimientoControl.value,
+          this.selectedUsuario?.id
+        )
+        .subscribe((res: StockPorTipoMovimientoDto[]) => {
+          console.log(res);
+          if (Array.isArray(res)) {
+            res.forEach((t) => {
+              this.stockPorRangoFecha += t.stock;
+            });
+            this.stockPorTipoMovimiento = res;
+          } else {
+            this.stockPorTipoMovimiento = [];
+          }
         });
-        this.stockPorTipoMovimiento = res;
-      });
     }
   }
 
@@ -242,6 +257,7 @@ export class ListMovimientoStockComponent implements OnInit {
     fechaFin.setHours(horaFinal.getHours());
     fechaFin.setMinutes(horaFinal.getMinutes());
     fechaFin.setSeconds(horaFinal.getSeconds());
+
     this.service
       .onGetMovimientoStockPorFiltros(
         dateToString(fechaInicial),
@@ -254,23 +270,188 @@ export class ListMovimientoStockComponent implements OnInit {
         this.size
       )
       .subscribe((res) => {
+        if (!res) {
+          this.selectedPageInfo = null;
+          this.dataSource.data = [];
+          return;
+        }
         this.selectedPageInfo = res;
-        this.dataSource.data = res.getContent;
-        console.log(res.getContent);
+        this.dataSource.data = res.getContent || [];
+        this.procesarDataDeAjustes();
       });
   }
   onReferenciaClick(movimiento: MovimientoStock) {
     console.log(movimiento);
     switch (movimiento.tipoMovimiento) {
       case TipoMovimiento.VENTA:
+        this.irAVenta(movimiento);
         break;
       case TipoMovimiento.AJUSTE:
+        this.irAInventario(movimiento);
         break;
       case TipoMovimiento.TRANSFERENCIA:
+        this.irATransferencia(movimiento);
         break;
 
       default:
         break;
+    }
+  }
+
+  irAVenta(movimiento: MovimientoStock) {
+    
+    if (movimiento.referencia) {
+      if (movimiento.data && movimiento.data.venta && movimiento.data.venta.caja) {
+        const venta = movimiento.data.venta;
+        this.abrirTabVenta(venta);
+        return;
+      }
+      
+      this.ventaService
+        .onGetPorId(movimiento.referencia, movimiento.sucursalId, true)
+        .subscribe((venta) => {
+          
+          if (venta) {
+            if (venta.caja) {
+              this.abrirTabVenta(venta);
+            } else {
+              this.notificacionService.openWarn(
+                "La venta no tiene una caja asociada"
+              );
+            }
+          } else {
+            this.notificacionService.openWarn(
+              "Despliegue el item para ir a la venta"
+            );
+          }
+        },
+        (error) => {
+          this.notificacionService.openWarn(
+            "Error al obtener la información de la venta: " + (error.message || error)
+          );
+        });
+    } else {
+      this.notificacionService.openWarn(
+        "No se encontró la referencia de la venta"
+      );
+    }
+  }
+
+  abrirTabVenta(venta: any) {
+ 
+    const caja = {
+      ...venta.caja,
+      sucursalId: venta.sucursalId
+    };
+    
+    let tabData: TabData = new TabData();
+    tabData.data = caja;
+    
+    this.tabService.addTab(
+      new Tab(
+        ListVentaComponent,
+        `Ventas de caja ${caja.id}`,
+        tabData,
+        ListMovimientoStockComponent
+      )
+    );
+  }
+
+  irATransferencia(movimiento: MovimientoStock) {
+    if (movimiento.referencia) {
+      
+      if (movimiento.data && movimiento.data.transferencia) {
+        this.abrirTabTransferencia(movimiento.data.transferencia);
+        return;
+      }
+      
+      this.transferenciaService
+        .onGetTransferenciaItem(movimiento.referencia)
+        .subscribe((transferenciaItem) => {
+          if (transferenciaItem && transferenciaItem.transferencia) {
+            this.abrirTabTransferencia(transferenciaItem.transferencia);
+          } else {
+            this.notificacionService.openWarn(
+              "No se pudo obtener la información de la transferencia"
+            );
+          }
+        },
+        (error) => {
+          console.error('Error al obtener la transferencia:', error);
+          this.notificacionService.openWarn(
+            "Error al obtener la información de la transferencia: " + (error.message || error)
+          );
+        });
+    } else {
+      this.notificacionService.openWarn(
+        "No se encontró la referencia de la transferencia"
+      );
+    }
+  }
+
+  abrirTabTransferencia(transferencia: any) {
+    let tabData: TabData = new TabData();
+    tabData.id = transferencia.id;
+    
+    this.tabService.addTab(
+      new Tab(
+        EditTransferenciaComponent,
+        `Transferencia ${transferencia.id}`,
+        tabData,
+        ListMovimientoStockComponent
+      )
+    );
+  }
+
+  irAInventario(movimiento: MovimientoStock) {
+    if (movimiento.referencia) {
+      const esAjusteManual = Number(movimiento.referencia) === Number(movimiento.producto?.id);
+      
+      // Preparar datos comunes para el filtrado
+      const datosComunes = {
+        producto: movimiento.producto,
+        usuario: movimiento.usuario,
+        sucursalId: movimiento.sucursalId,
+        fecha: movimiento.creadoEn,
+        esAjusteManual: esAjusteManual
+      };
+      
+      if (esAjusteManual) {
+        let tabData: TabData = new TabData();
+        tabData.data = {
+          ...datosComunes,
+          productoId: movimiento.producto?.id
+        };
+        
+        this.tabService.addTab(
+          new Tab(
+            ListInventarioComponent,
+            `Inventario Manual`,
+            tabData,
+            ListMovimientoStockComponent
+          )
+        );
+      } else {
+        let tabData: TabData = new TabData();
+        tabData.data = {
+          ...datosComunes,
+          inventarioItemId: movimiento.referencia,
+          productoId: movimiento.producto?.id
+        };
+        
+        this.tabService.addTab(
+          new Tab(
+            ListInventarioComponent,
+            `Inventario Item ${movimiento.referencia}`,
+            tabData,
+            ListMovimientoStockComponent
+          )
+        );
+      }
+    } else {
+      this.notificacionService.openWarn(
+        "No se encontró la referencia del ajuste"
+      );
     }
   }
 
@@ -456,60 +637,153 @@ export class ListMovimientoStockComponent implements OnInit {
   }
 
   onClickRow(movimiento: MovimientoStock, index: number) {
-    if (movimiento.data == null) {
-      switch (movimiento.tipoMovimiento) {
-        case TipoMovimiento.VENTA:
-          //esta buscando por venta pero deberia de ser venta item,
-          //la referencia es venta item
-          this.ventaService
-            .onGetVentaItemPorId(movimiento.referencia, movimiento.sucursalId)
-            .subscribe((ventaItem) => {
-              if (ventaItem != null) {
-                this.ventaService
-                  .onGetPorId(ventaItem.venta.id, ventaItem.sucursalId)
-                  .subscribe((venta) => {
-                    movimiento.data = {};
-                    movimiento.data["venta"] = venta;
-                    movimiento.data["totales"] = this.getTotales(venta);
-                    console.log(movimiento.data);
-                  });
-              } else {
-              }
-            });
-          break;
-        case TipoMovimiento.TRANSFERENCIA:
-          this.transferenciaService
-            .onGetTransferenciaItem(movimiento.referencia)
-            .subscribe((res) => {
-              if (res != null) {
-                console.log(res);
-
-                movimiento.data = res;
-              }
-            });
-          break;
-
-        case TipoMovimiento.AJUSTE:          
-          this.inventarioService
-            .onGetInventarioProductoItem(movimiento.referencia)
-            .subscribe((res) => {
-              if (res != null) {
-                console.log(res);
-                movimiento.data = res;
-              }
-            });
-          break;
-
-        default:
-          break;
-      }
-      if (movimiento.data != null) {
+    if (movimiento.data && typeof movimiento.data === 'string') {
+      try {
+        movimiento.data = JSON.parse(movimiento.data);
         this.dataSource.data = updateDataSource(
           this.dataSource.data,
           movimiento,
           index
         );
+        return;
+      } catch (e) {
+        console.warn('Error al procesar data del backend:', e); 
       }
+    }
+
+    if (movimiento.data == null) {
+      if (movimiento.tipoMovimiento !== TipoMovimiento.AJUSTE) {
+        this.obtenerStockAnteriorYProcesarMovimiento(movimiento, index);
+      } else {
+        this.service.onGetStockAntesDeFecha(
+          movimiento.producto.id,
+          movimiento.sucursalId,
+          this.formatearFechaParaBackend(movimiento.creadoEn)
+        ).subscribe({
+          next: (stockPrevio) => {
+            console.log('Stock previo obtenido:', stockPrevio, 'para movimiento:', movimiento.id);
+            this.procesarMovimientoConStock(movimiento, index, stockPrevio || 0);
+          },
+          error: (error) => {
+            console.error('Error al obtener stock anterior:', error);
+            this.procesarMovimientoConStock(movimiento, index, 0);
+          }
+        });
+      }
+    }
+  }
+
+  obtenerStockAnteriorYProcesarMovimiento(movimiento: MovimientoStock, index: number) {
+    const fechaFormateada = this.formatearFechaParaBackend(movimiento.creadoEn);
+    this.service.onGetStockAntesDeFecha(
+      movimiento.producto.id,
+      movimiento.sucursalId,
+      fechaFormateada
+    ).subscribe({
+      next: (stockPrevio) => {
+        this.procesarMovimientoConStockAnterior(movimiento, index, stockPrevio || 0);
+      },
+      error: (error) => {
+        console.error('Error al obtener stock anterior para movimiento:', movimiento.tipoMovimiento, error);
+        this.procesarMovimientoConStockAnterior(movimiento, index, 0);
+      }
+    });
+  }
+
+  procesarMovimientoConStockAnterior(movimiento: MovimientoStock, index: number, stockPrevio: number) {
+    switch (movimiento.tipoMovimiento) {
+      case TipoMovimiento.VENTA:
+        this.ventaService
+          .onGetVentaItemPorId(movimiento.referencia, movimiento.sucursalId)
+          .subscribe((ventaItem) => {
+            if (ventaItem != null) {
+              this.ventaService
+                .onGetPorId(ventaItem.venta.id, ventaItem.sucursalId)
+                .subscribe((venta) => {
+                  movimiento.data = {
+                    venta: venta,
+                    totales: this.getTotales(venta),
+                    stockAnterior: stockPrevio,
+                    stockFinal: stockPrevio + movimiento.cantidad
+                  };
+                  console.log('Data de venta con stock anterior:', movimiento.data);
+                  this.dataSource.data = updateDataSource(
+                    this.dataSource.data,
+                    movimiento,
+                    index
+                  );
+                });
+            } else {
+              // Si no se encuentra el venta item, crear data básica
+              movimiento.data = {
+                stockAnterior: stockPrevio,
+                stockFinal: stockPrevio + movimiento.cantidad
+              };
+              this.dataSource.data = updateDataSource(
+                this.dataSource.data,
+                movimiento,
+                index
+              );
+            }
+          });
+        break;
+
+      case TipoMovimiento.TRANSFERENCIA:
+        this.transferenciaService
+          .onGetTransferenciaItem(movimiento.referencia)
+          .subscribe((res) => {
+            if (res != null) {
+              movimiento.data = {
+                ...res,
+                stockAnterior: stockPrevio,
+                stockFinal: stockPrevio + movimiento.cantidad
+              };
+              console.log('Data de transferencia con stock anterior:', movimiento.data);
+              } else {
+              movimiento.data = {
+                stockAnterior: stockPrevio,
+                stockFinal: stockPrevio + movimiento.cantidad
+              };
+            }
+            this.dataSource.data = updateDataSource(
+              this.dataSource.data,
+              movimiento,
+              index
+            );
+          });
+        break;
+
+      case TipoMovimiento.COMPRA:
+      case TipoMovimiento.DEVOLUCION:
+      case TipoMovimiento.DESCARTE:
+      case TipoMovimiento.CALCULO:
+      case TipoMovimiento.ENTRADA:
+      case TipoMovimiento.SALIDA:
+        movimiento.data = {
+          tipo: movimiento.tipoMovimiento,
+          referencia: movimiento.referencia,
+          stockAnterior: stockPrevio,
+          stockFinal: stockPrevio + movimiento.cantidad
+        };
+        console.log(`Data de ${movimiento.tipoMovimiento} con stock anterior:`, movimiento.data);
+        this.dataSource.data = updateDataSource(
+          this.dataSource.data,
+          movimiento,
+          index
+        );
+        break;
+
+      default:
+        movimiento.data = {
+          stockAnterior: stockPrevio,
+          stockFinal: stockPrevio + movimiento.cantidad
+        };
+        this.dataSource.data = updateDataSource(
+          this.dataSource.data,
+          movimiento,
+          index
+        );
+        break;
     }
   }
 
@@ -555,5 +829,137 @@ export class ListMovimientoStockComponent implements OnInit {
       totalFinal: this.totalFinal,
       totalRecibido: this.totalRecibido,
     };
+  }
+
+  formatearFechaParaBackend(fecha: Date | string): string {
+    if (!fecha) return '';
+    
+    let fechaDate: Date;
+    if (typeof fecha === 'string') {
+      fechaDate = new Date(fecha);
+    } else {
+      fechaDate = fecha;
+    }
+    
+    const year = fechaDate.getFullYear();
+    const month = String(fechaDate.getMonth() + 1).padStart(2, '0');
+    const day = String(fechaDate.getDate()).padStart(2, '0');
+    const hours = String(fechaDate.getHours()).padStart(2, '0');
+    const minutes = String(fechaDate.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  }
+
+  // Método helper para verificar si es ajuste manual
+  esAjusteManual(movimiento: MovimientoStock): boolean {
+    return Number(movimiento.referencia) === Number(movimiento.producto?.id);
+  }
+
+  procesarDataDeAjustes() {
+    console.log('Procesando data de ajustes para', this.dataSource.data?.length, 'movimientos');
+    this.dataSource.data.forEach((movimiento, index) => {
+      if (movimiento.tipoMovimiento === TipoMovimiento.AJUSTE) {
+        console.log('Procesando ajuste:', movimiento.id, 'data actual:', movimiento.data);
+        
+        if (movimiento.data && typeof movimiento.data === 'string') {
+          try {
+            movimiento.data = JSON.parse(movimiento.data);
+            console.log('Data parseada desde string:', movimiento.data);
+          } catch (e) {
+            console.warn('Error al procesar data del backend:', e);
+          }
+        }
+        else if (!movimiento.data) {
+          console.log('Calculando data para ajuste sin data:', movimiento.id);
+          this.calcularDataParaAjuste(movimiento, index);
+        } else {
+          console.log('Ajuste ya tiene data:', movimiento.data);
+        }
+      }
+    });
+  }
+
+  calcularDataParaAjuste(movimiento: MovimientoStock, index: number) {
+    const fechaFormateada = this.formatearFechaParaBackend(movimiento.creadoEn);
+    
+    this.service.onGetStockAntesDeFecha(
+      movimiento.producto.id,
+      movimiento.sucursalId,
+      fechaFormateada
+    ).subscribe({
+      next: (stockPrevio) => {
+        if (stockPrevio !== undefined && stockPrevio !== null) {
+          this.procesarMovimientoConStock(movimiento, index, stockPrevio);
+        }
+      },
+      error: (error) => {
+        console.error('Error al obtener stock antes de fecha:', error);
+      }
+    });
+  }
+
+  procesarMovimientoConStock(movimiento: MovimientoStock, index: number, stockPrevio: number) {
+    // Convertir ambos a números para comparar correctamente
+    const referenciaNum = Number(movimiento.referencia);
+    const productoIdNum = Number(movimiento.producto?.id);
+    const esAjusteManual = referenciaNum === productoIdNum;
+    
+    console.log('Procesando movimiento:', {
+      id: movimiento.id,
+      referencia: movimiento.referencia,
+      productoId: movimiento.producto?.id,
+      referenciaNum: referenciaNum,
+      productoIdNum: productoIdNum,
+      esAjusteManual: esAjusteManual,
+      stockPrevio: stockPrevio,
+      cantidad: movimiento.cantidad
+    });
+
+    if (esAjusteManual) {
+      movimiento.data = {
+        tipo: 'AJUSTE_MANUAL',
+        producto: movimiento.producto,
+        observacion: 'Ajuste manual de stock realizado desde la gestión de productos',
+        cantidadPrevia: stockPrevio,
+        cantidadFinal: stockPrevio + movimiento.cantidad
+      };
+      console.log('Data de ajuste manual creada:', movimiento.data);
+      this.dataSource.data = updateDataSource(
+        this.dataSource.data,
+        movimiento,
+        index
+      );
+    } else {
+      this.inventarioService.onGetInventarioProductoItem(movimiento.referencia)
+        .subscribe((res) => {
+          if (res != null) {
+            movimiento.data = {
+              ...res,
+              tipo: 'AJUSTE_INVENTARIO',
+              cantidadPrevia: stockPrevio,
+              cantidadFinal: stockPrevio + movimiento.cantidad
+            };
+            console.log('Data de ajuste por inventario creada:', movimiento.data);
+            this.dataSource.data = updateDataSource(
+              this.dataSource.data,
+              movimiento,
+              index
+            );
+          } else {
+            console.warn('No se encontró inventario item para referencia:', movimiento.referencia);
+            // Crear data básica aunque no se encuentre el inventario
+            movimiento.data = {
+              tipo: 'AJUSTE_INVENTARIO',
+              cantidadPrevia: stockPrevio,
+              cantidadFinal: stockPrevio + movimiento.cantidad
+            };
+            this.dataSource.data = updateDataSource(
+              this.dataSource.data,
+              movimiento,
+              index
+            );
+          }
+        });
+    }
   }
 }
