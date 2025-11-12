@@ -52,14 +52,8 @@ function createWindow() {
                 contextIsolation: false, // false if you want to run e2e test with Spectron
             },
         });
+        // Establecer zoom factor inicial en 1
         win.webContents.setZoomFactor(1);
-        win.webContents
-            .executeJavaScript('localStorage.getItem("zoomLevel");', true)
-            .then(result => {
-            if (result != null) {
-                win.webContents.setZoomLevel(+result);
-            }
-        });
         win.maximize();
         win.show();
         electron_1.app.on("second-instance", (event, commandLine, workingDirectory) => {
@@ -111,13 +105,20 @@ function createWindow() {
             require("electron").shell.openExternal(url);
             return { action: "deny" };
         });
+        //metodo para recuperar zoom guardado en localstorage
         win.webContents.on('did-finish-load', () => {
             win.webContents
                 .executeJavaScript('localStorage.getItem("zoomLevel");', true)
                 .then((zoomLevel) => {
-                if (zoomLevel) {
-                    win.webContents.setZoomLevel(parseFloat(zoomLevel));
+                if (zoomLevel !== null && zoomLevel !== undefined) {
+                    const parsedZoom = parseFloat(zoomLevel);
+                    win.webContents.setZoomLevel(parsedZoom);
                 }
+                else {
+                    win.webContents.setZoomLevel(1);
+                }
+            })
+                .catch((error) => {
             });
         });
         return win;
