@@ -58,12 +58,13 @@ export class SucursalService {
   ) {
   }
 
-  onSearchConFiltros(term: string, deposito: boolean, pageIndex: number, pageSize: number, servidor: boolean = true): Observable<PageInfo<Sucursal>> {
+  onSearchConFiltros(term: string, deposito: boolean, activo: boolean, pageIndex: number, pageSize: number, servidor: boolean = true): Observable<PageInfo<Sucursal>> {
     return this.genericService.onCustomQuery(
       this.sucursalesSearch,
       {
         texto: term,
         deposito: deposito,
+        activo: activo,
         page: pageIndex,
         size: pageSize
       },

@@ -59,6 +59,7 @@ export class ListSucursalComponent implements OnInit {
   // Create form controls for filters
   buscarControl = new FormControl(null);
   depositoControl = new FormControl(null);
+  activoControl = new FormControl(true); // Por defecto activo
   
   dataSource = new MatTableDataSource<Sucursal>([]);
   isLastPage = false;
@@ -114,6 +115,7 @@ export class ListSucursalComponent implements OnInit {
     this.sucursalService.onSearchConFiltros(
       this.buscarControl.value?.toUpperCase(), 
       this.depositoControl.value,
+      this.activoControl.value ?? true,
       this.pageIndex, 
       this.pageSize
     ).pipe(untilDestroyed(this)).subscribe(res => {
@@ -130,6 +132,7 @@ export class ListSucursalComponent implements OnInit {
     this.selectedPageInfo = null;
     this.buscarControl.setValue(null);
     this.depositoControl.setValue(null);
+    this.activoControl.setValue(true); // Resetear a activo por defecto
   }
 
   onEditSucursal(sucursal: Sucursal, i) {
