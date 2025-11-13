@@ -4,6 +4,10 @@
   (resetFiltro)="resetFiltro()"
   (adicionar)="onAddProducto()"
   [isAdicionar]="isAdicionarEnabled"
+  [isCustom]="true"
+  (customFunction)="onGenerarReporte()"
+  [disableCustom]="isGenerarPdfDisabled"
+  customName="Generar Pdf"
 >
   <div filtros>
     <div
