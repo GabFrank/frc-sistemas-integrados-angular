@@ -18,6 +18,12 @@ export class NumericOnlyDirective {
       event.preventDefault();
       return;
     }
+
+    // Block negative sign
+    if (event.key === '-') {
+      event.preventDefault();
+      return;
+    }
   
     // Check if it's a number
     const isNumber = new RegExp(/^\d+$/).test(event.key);

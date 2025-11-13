@@ -1,38 +1,18 @@
 <div fxLayout="column" style="width: 100%; height: 100%;">
-  <!-- Top Section: Title and Filtros (and Menu) -->
   <div fxFlex="none">
-    <!-- Title (if any) -->
     <div *ngIf="titulo" style="width: 100%; text-align: center">
       <h3 style="margin: 0">{{ titulo }}</h3>
     </div>
-
-    <!-- Filtros and optional Menu inside the mat-card -->
-    <mat-card
-      appearance="outlined"
-      fxLayout="row"
-      style="width: 100%; background-color: rgb(32, 32, 32); padding: 10px"
-    >
-      <!-- Filtros: Its height will be determined by its content -->
+    <mat-card appearance="outlined" fxLayout="row"
+      style="width: 100%; background-color: rgb(32, 32, 32); padding: 10px">
       <div [fxFlex]="!isMenu ? '100%' : '90%'">
         <ng-content select="[filtros]"></ng-content>
       </div>
-
-      <!-- Optional Menu Buttons -->
-      <div
-        *ngIf="isMenu"
-        fxFlex="10%"
-        fxLayout="column"
-        fxLayoutAlign="start center"
-        fxLayoutGap="5px"
-      >
+      <div *ngIf="isMenu" fxFlex="10%" fxLayout="column" fxLayoutAlign="start center" fxLayoutGap="5px">
         <div class="boton">
           <ng-content select="[buscar]"></ng-content>
-          <app-boton
-            (clickEvent)="onFiltrar()"
-            [disableExpression]="disableFilter"
-            [bdcWalkTriggerFor]="buscarTrigger"
-            nombre="Buscar"
-          ></app-boton>
+          <app-boton (clickEvent)="onFiltrar()" [disableExpression]="disableFilter" [bdcWalkTriggerFor]="buscarTrigger"
+            nombre="Buscar"></app-boton>
         </div>
         <div class="boton">
           <app-boton (clickEvent)="onResetFiltro()" nombre="Limpiar Filtro"></app-boton>
@@ -51,18 +31,12 @@
     </mat-card>
   </div>
 
-  <!-- Bottom Section: Table Area (Takes the remaining space) -->
   <div fxFlex style="overflow-y: auto;">
     <div fxLayout="column" style="height: 100%;">
       <ng-content select="[table]"></ng-content>
       <div style="width: 100%" fxLayout="row" fxLayoutAlign="center center">
-        <button
-          *ngIf="data?.length > 0 && isCargarMas"
-          mat-button
-          color="accent"
-          (click)="onCargarMasDatos()"
-          [disabled]="isLastPage"
-        >
+        <button *ngIf="data?.length > 0 && isCargarMas" mat-button color="accent" (click)="onCargarMasDatos()"
+          [disabled]="isLastPage">
           CARGAR MAS
         </button>
       </div>
@@ -185,4 +159,3 @@
     </div>
   </div>
 </div> -->
-

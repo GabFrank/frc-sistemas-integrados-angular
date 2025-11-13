@@ -519,5 +519,4 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
       }
     });
   }
-
 }

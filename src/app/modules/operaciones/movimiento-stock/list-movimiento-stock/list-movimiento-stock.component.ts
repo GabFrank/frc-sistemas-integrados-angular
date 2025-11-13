@@ -836,20 +836,17 @@ export class ListMovimientoStockComponent implements OnInit {
 
   formatearFechaParaBackend(fecha: Date | string): string {
     if (!fecha) return '';
-
     let fechaDate: Date;
     if (typeof fecha === 'string') {
       fechaDate = new Date(fecha);
     } else {
       fechaDate = fecha;
     }
-
     const year = fechaDate.getFullYear();
     const month = String(fechaDate.getMonth() + 1).padStart(2, '0');
     const day = String(fechaDate.getDate()).padStart(2, '0');
     const hours = String(fechaDate.getHours()).padStart(2, '0');
     const minutes = String(fechaDate.getMinutes()).padStart(2, '0');
-
     return `${year}-${month}-${day} ${hours}:${minutes}`;
   }
 
@@ -863,7 +860,6 @@ export class ListMovimientoStockComponent implements OnInit {
     this.dataSource.data.forEach((movimiento, index) => {
       if (movimiento.tipoMovimiento === TipoMovimiento.AJUSTE) {
         console.log('Procesando ajuste:', movimiento.id, 'data actual:', movimiento.data);
-
         if (movimiento.data && typeof movimiento.data === 'string') {
           try {
             movimiento.data = JSON.parse(movimiento.data);
@@ -884,7 +880,6 @@ export class ListMovimientoStockComponent implements OnInit {
 
   calcularDataParaAjuste(movimiento: MovimientoStock, index: number) {
     const fechaFormateada = this.formatearFechaParaBackend(movimiento.creadoEn);
-
     this.service.onGetStockAntesDeFecha(
       movimiento.producto.id,
       movimiento.sucursalId,
@@ -906,7 +901,6 @@ export class ListMovimientoStockComponent implements OnInit {
     const referenciaNum = Number(movimiento.referencia);
     const productoIdNum = Number(movimiento.producto?.id);
     const esAjusteManual = referenciaNum === productoIdNum;
-
     console.log('Procesando movimiento:', {
       id: movimiento.id,
       referencia: movimiento.referencia,
