@@ -1,82 +1,29 @@
-<app-generic-list
-  [data]="dataSource.data"
-  (filtrar)="onFiltrar()"
-  (resetFiltro)="resetFiltro()"
-  [isCustom]="true"
-  customName="Generar Pdf"
-  (customFunction)="onGenerarPdf()"
->
+<app-generic-list [data]="dataSource.data" (filtrar)="onFiltrar()" (resetFiltro)="resetFiltro()" [isCustom]="true"
+  customName="Generar Pdf" (customFunction)="onGenerarPdf()">
   <div filtros fxLayout="column" fxLayoutGap="20px">
-    <div
-      fxLayout="row"
-      fxLayoutAlign="start center"
-      fxLayoutGap="10px"
-      style="width: 100%"
-    >
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
       <div fxFlex="30%">
         <mat-form-field style="width: 100%">
           <mat-label>Rango de fecha</mat-label>
-          <mat-date-range-input
-            [formGroup]="fechaFormGroup"
-            [rangePicker]="picker"
-            style="width: 100%"
-          >
-            <input
-              matStartDate
-              formControlName="inicio"
-              placeholder="Inicio"
-              [max]="today"
-            />
-            <input
-              matEndDate
-              formControlName="fin"
-              placeholder="Fin"
-              [max]="fechaInicioControl.value"
-            />
+          <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker" style="width: 100%">
+            <input matStartDate formControlName="inicio" placeholder="Inicio" [max]="today" />
+            <input matEndDate formControlName="fin" placeholder="Fin" [max]="fechaInicioControl.value" />
           </mat-date-range-input>
-          <mat-datepicker-toggle
-            matSuffix
-            [for]="picker"
-          ></mat-datepicker-toggle>
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
           <mat-date-range-picker #picker></mat-date-range-picker>
 
-          <mat-error
-            *ngIf="
+          <mat-error *ngIf="
               fechaFormGroup.controls.inicio.hasError('matStartDateInvalid')
-            "
-            >Fecha inicial inválida</mat-error
-          >
-          <mat-error
-            *ngIf="fechaFormGroup.controls.fin.hasError('matEndDateInvalid')"
-            >Fecha final inválida</mat-error
-          >
-          <mat-hint
-            fxLayout="row"
-            fxLayoutAlign="space-around center"
-            style="padding-top: 5px; padding-bottom: 5px; width: 100%"
-          >
+            ">Fecha inicial inválida</mat-error>
+          <mat-error *ngIf="fechaFormGroup.controls.fin.hasError('matEndDateInvalid')">Fecha final inválida</mat-error>
+          <mat-hint fxLayout="row" fxLayoutAlign="space-around center"
+            style="padding-top: 5px; padding-bottom: 5px; width: 100%">
             <mat-chip-listbox style="width: 100%">
-              <mat-chip-option
-                style="height: 15px"
-                (click)="cambiarFecha('dia')"
-                multiple="false"
-                >7 días</mat-chip-option
-              >
-              <mat-chip-option
-                style="height: 15px"
-                (click)="cambiarFecha('mes')"
-                >1 me</mat-chip-option
-              >
-              <mat-chip-option
-                style="height: 15px"
-                (click)="cambiarFecha('2mes')"
-                >-1 me</mat-chip-option
-              >
-              <mat-chip-option
-                style="height: 15px"
-                (click)="cambiarFecha('3mes')"
-                >3 me</mat-chip-option
-              >
+              <mat-chip-option style="height: 15px" (click)="cambiarFecha('dia')" multiple="false">7
+                días</mat-chip-option>
+              <mat-chip-option style="height: 15px" (click)="cambiarFecha('mes')">1 me</mat-chip-option>
+              <mat-chip-option style="height: 15px" (click)="cambiarFecha('2mes')">-1 me</mat-chip-option>
+              <mat-chip-option style="height: 15px" (click)="cambiarFecha('3mes')">3 me</mat-chip-option>
             </mat-chip-listbox>
           </mat-hint>
         </mat-form-field>
@@ -84,59 +31,39 @@
       <div fxFlex="7%">
         <mat-form-field style="width: 100%">
           <mat-label>Inicio Hora</mat-label>
-          <input
-            matInput
-            [formControl]="horaInicioControl"
-            type="time"
-            placeholder="Hora inicio"
-          />
+          <input matInput [formControl]="horaInicioControl" type="time" placeholder="Hora inicio" />
         </mat-form-field>
       </div>
       <div fxFlex="7%">
         <mat-form-field style="width: 100%">
           <mat-label>Fin Hora</mat-label>
-          <input
-            matInput
-            [formControl]="horaFinalControl"
-            type="time"
-            placeholder="Hora fin"
-          />
+          <input matInput [formControl]="horaFinalControl" type="time" placeholder="Hora fin" />
         </mat-form-field>
       </div>
       <div fxFlex="20%">
-        <mat-form-field
-          style="width: 100%"
-          [matTooltip]="sucursalControl.value"
-        >
+        <mat-form-field style="width: 100%" [matTooltip]="sucursalControl.value">
           <mat-label>Sucursales</mat-label>
           <mat-select #sucursalSelect [formControl]="sucursalControl" multiple>
             <mat-select-trigger>
               {{(sucursalControl.value?.[0]?.nombre || '')}}
-              <span
-                *ngIf="(sucursalControl.value?.length || 0) > 1"
-                class="example-additional-selection"
-              >
+              <span *ngIf="(sucursalControl.value?.length || 0) > 1" class="example-additional-selection">
                 (+{{ (sucursalControl.value?.length || 0) - 1 }}
                 {{ sucursalControl.value?.length === 2 ? "otro" : "otros" }})
               </span>
             </mat-select-trigger>
-            <div
-              style="
+            <div style="
                 width: 100%;
                 text-align: end;
                 padding-right: 10px;
                 padding-top: 10px;
                 font-size: 0.8em;
                 color: white;
-              "
-            >
+              ">
               <mat-icon (click)="sucursalSelect.close()">clear</mat-icon>
             </div>
             <mat-option [value]="null">Todas</mat-option>
-            <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal"
-              >{{ sucursal?.id }} -
-              {{ sucursal?.nombre | titlecase }}</mat-option
-            >
+            <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">{{ sucursal?.id }} -
+              {{ sucursal?.nombre | titlecase }}</mat-option>
           </mat-select>
         </mat-form-field>
       </div>
@@ -145,19 +72,12 @@
           <div fxFlex="80%">
             <mat-form-field style="width: 100%">
               <mat-label>Buscar producto</mat-label>
-              <input
-                #buscadorInput
-                type="text"
-                matInput
-                [formControl]="buscarProductoControl"
-                (keyup.enter)="onBuscarProducto()"
-              />
+              <input #buscadorInput type="text" matInput [formControl]="buscarProductoControl"
+                (keyup.enter)="onBuscarProducto()" />
             </mat-form-field>
           </div>
           <div fxFlex="10%" style="text-align: center">
-            <mat-icon class="icon" (click)="onBuscarProducto()"
-              >search</mat-icon
-            >
+            <mat-icon class="icon" (click)="onBuscarProducto()">search</mat-icon>
           </div>
           <!-- <div fxFlex="10%" style="text-align: center">
             <mat-icon style="font-size: 2em" (click)="onAddProducto()"
@@ -165,69 +85,41 @@
             >
           </div> -->
         </div>
-        <div
-          fxFlex
-          fxLayout="row"
-          *ngFor="let producto of productoList; let index = index"
-        >
+        <div fxFlex fxLayout="row" *ngFor="let producto of productoList; let index = index">
           <div fxFlex="80%">{{ producto.id }} - {{ producto.descripcion }}</div>
           <div fxFlex="10%" style="text-align: center">
-            <mat-icon
-              style="font-size: 2em"
-              (click)="onClearProducto(producto, index)"
-              >clear</mat-icon
-            >
+            <mat-icon style="font-size: 2em" (click)="onClearProducto(producto, index)">clear</mat-icon>
           </div>
         </div>
       </div>
     </div>
-    <div
-      fxLayout="row"
-      fxLayoutAlign="start center"
-      fxLayoutGap="10px"
-      style="width: 100%; padding-top: 30px"
-    >
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%; padding-top: 30px">
       <div fxFlex="20%">
-        <mat-form-field
-          style="width: 100%"
-          [matTooltip]="tipoMovimientoControl.value"
-        >
+        <mat-form-field style="width: 100%" [matTooltip]="tipoMovimientoControl.value">
           <mat-label>Tipo de movimiento</mat-label>
-          <mat-select
-            #sucursalSelect
-            [formControl]="tipoMovimientoControl"
-            multiple
-          >
+          <mat-select #sucursalSelect [formControl]="tipoMovimientoControl" multiple>
             <mat-select-trigger>
               {{ tipoMovimientoControl.value }}
-              <span
-                *ngIf="(tipoMovimientoControl.value?.length || 0) > 1"
-                class="example-additional-selection"
-              >
+              <span *ngIf="(tipoMovimientoControl.value?.length || 0) > 1" class="example-additional-selection">
                 (+{{ (tipoMovimientoControl.value?.length || 0) - 1 }}
                 {{
-                  tipoMovimientoControl.value?.length === 2 ? "otro" : "otros"
+                tipoMovimientoControl.value?.length === 2 ? "otro" : "otros"
                 }})
               </span>
             </mat-select-trigger>
-            <div
-              style="
+            <div style="
                 width: 100%;
                 text-align: end;
                 padding-right: 10px;
                 padding-top: 10px;
                 font-size: 0.8em;
                 color: white;
-              "
-            >
+              ">
               <mat-icon (click)="sucursalSelect.close()">clear</mat-icon>
             </div>
             <mat-option value="Todas">Todas</mat-option>
-            <mat-option
-              *ngFor="let tipoMovimiento of tipoMovimientoList"
-              [value]="tipoMovimiento"
-              >{{ tipoMovimiento }}</mat-option
-            >
+            <mat-option *ngFor="let tipoMovimiento of tipoMovimientoList" [value]="tipoMovimiento">{{ tipoMovimiento
+              }}</mat-option>
           </mat-select>
         </mat-form-field>
       </div>
@@ -235,45 +127,21 @@
         <div fxFlex="80%">
           <mat-form-field style="width: 100%">
             <mat-label>Buscar usuario</mat-label>
-            <input
-              #usuarioInput
-              type="text"
-              matInput
-              [formControl]="buscarUsuarioControl"
-              (keyup.enter)="onBuscarUsuario()"
-            />
+            <input #usuarioInput type="text" matInput [formControl]="buscarUsuarioControl"
+              (keyup.enter)="onBuscarUsuario()" />
           </mat-form-field>
         </div>
         <div fxFlex="10%" style="text-align: center">
-          <mat-icon class="icon" (click)="onBuscarUsuario()"
-            >search</mat-icon
-          >
+          <mat-icon class="icon" (click)="onBuscarUsuario()">search</mat-icon>
         </div>
-        <div
-          fxFlex="10%"
-          style="text-align: center"
-          *ngIf="selectedUsuario != null"
-        >
-          <mat-icon style="font-size: 2em" (click)="onClearUsuario()"
-            >clear</mat-icon
-          >
+        <div fxFlex="10%" style="text-align: center" *ngIf="selectedUsuario != null">
+          <mat-icon style="font-size: 2em" (click)="onClearUsuario()">clear</mat-icon>
         </div>
       </div>
     </div>
   </div>
-  <div
-    table
-    fxLayout="row"
-    fxLayoutGap="10px"
-    fxLayoutAlign="space-between start"
-    style="height: 100%"
-  >
-    <div
-      fxFlex="20"
-      fxLayout="column"
-      fxLayoutGap="10px"
-      style="background-color: rgb(32, 32, 32);"
-    >
+  <div table fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="space-between start" style="height: 100%">
+    <div fxFlex="20" fxLayout="column" fxLayoutGap="10px" style="background-color: rgb(32, 32, 32);">
       <br />
       <div class="titulo-center">Resumen</div>
       <div fxLayout="row" fxLayoutAlign="space-between center">
@@ -292,12 +160,8 @@
         Total por tipo de movimiento y rango de fecha
       </div>
       <div *ngFor="let item of stockPorTipoMovimiento">
-        <div
-          class="separator-horizontal-bottom"
-          fxLayout="row"
-          fxLayoutAlign="space-between center"
-          style="border-bottom: 1px"
-        >
+        <div class="separator-horizontal-bottom" fxLayout="row" fxLayoutAlign="space-between center"
+          style="border-bottom: 1px">
           <div style="padding: 5px">
             {{ item?.tipoMovimiento | enumToString }}:
           </div>
@@ -312,23 +176,12 @@
       </div>
     </div>
 
-    <div
-      fxFlex="80"
-      style="
+    <div fxFlex="80" style="
         height: 100%; 
         background-color: rgb(70, 70, 70); 
         max-height: 70vh; 
-        overflow-y: auto;"
-      fxLayout="column"
-      fxLayoutAlign="space-between start"
-    >
-      <table
-        mat-table
-        [dataSource]="dataSource"
-        multiTemplateDataRows
-        class="mat-elevation-z8"
-        style="width: 100%"
-      >
+        overflow-y: auto;" fxLayout="column" fxLayoutAlign="space-between start">
+      <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
         <ng-container matColumnDef="id" style="width: 5%">
           <th mat-header-cell *matHeaderCellDef style="text-align: center">
             Id
@@ -357,12 +210,11 @@
             <div *ngIf="movimiento?.tipoMovimiento === 'AJUSTE'" class="ajuste-stock">
               <span style="color: #ffffff;">
                 {{ (movimiento?.cantidad >= 0 ? '+' : '') }}
-            {{ movimiento?.cantidad | number : "1.0-2" }}
+                {{ movimiento?.cantidad | number : "1.0-2" }}
               </span>
-              <span *ngIf="movimiento?.data?.cantidadPrevia !== undefined" 
-                class="cantidad-previa"
+              <span *ngIf="movimiento?.data?.cantidadPrevia !== undefined" class="cantidad-previa"
                 [style.color]="movimiento?.cantidad === 0 ? '#4caf50' : ''">
-                 ({{ movimiento?.data?.cantidadPrevia | number : "1.0-2" }})
+                ({{ movimiento?.data?.cantidadPrevia | number : "1.0-2" }})
               </span>
             </div>
           </td>
@@ -381,10 +233,9 @@
           <th mat-header-cell *matHeaderCellDef style="text-align: center">
             Estado
           </th>
-          <td mat-cell *matCellDef="let movimiento" style="text-align: center" 
+          <td mat-cell *matCellDef="let movimiento" style="text-align: center"
             [style.color]="movimiento?.estado ? 'inherit' : '#f44336'"
-            [style.font-weight]="movimiento?.estado ? 'normal' : 500"
-          >
+            [style.font-weight]="movimiento?.estado ? 'normal' : 500">
             {{ movimiento?.estado ? "Activo" : "Inactivo" }}
           </td>
         </ng-container>
@@ -399,23 +250,11 @@
         </ng-container>
 
         <ng-container matColumnDef="acciones">
-          <th
-            mat-header-cell
-            *matHeaderCellDef
-            style="width: 5%; text-align: center"
-          >
+          <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">
             ...
           </th>
-          <td
-            mat-cell
-            *matCellDef="let movimiento"
-            style="text-align: center; width: 5%"
-          >
-            <button
-              mat-icon-button
-              [matMenuTriggerFor]="menu"
-              (click)="$event.stopPropagation()"
-            >
+          <td mat-cell *matCellDef="let movimiento" style="text-align: center; width: 5%">
+            <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
               <mat-icon>more_vert</mat-icon>
             </button>
             <mat-menu #menu="matMenu">
@@ -430,55 +269,31 @@
 
         <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
         <ng-container matColumnDef="expandedDetail">
-          <td
-            mat-cell
-            *matCellDef="let movimiento"
-            [attr.colspan]="displayedColumns.length"
-            class="expanded"
-          >
-            <div
-              class="example-element-detail"
-              [@detailExpand]="
+          <td mat-cell *matCellDef="let movimiento" [attr.colspan]="displayedColumns.length" class="expanded">
+            <div class="example-element-detail" [@detailExpand]="
                 movimiento == expandedMovimiento ? 'expanded' : 'collapsed'
-              "
-              style="text-align: center"
-              fxLayout="column"
-              fxLayoutAlign="start start"
-            >
+              " style="text-align: center" fxLayout="column" fxLayoutAlign="start start">
               <ng-container *ngIf="movimiento.tipoMovimiento == 'VENTA'">
-                <div
-                  style="
+                <div style="
                     padding-top: 20px;
                     padding-bottom: 20px;
                     width: 100%;
                     background-color: rgb(32, 32, 32);
-                  "
-                >
+                  ">
                   <div *ngIf="loading" style="text-align: center; width: 100%">
                     <mat-spinner></mat-spinner>
                   </div>
-                  <div
-                    fxLayout="column"
-                    *ngIf="!loading"
-                    style="width: 100%; text-align: center; padding: 10px"
-                  >
+                  <div fxLayout="column" *ngIf="!loading" style="width: 100%; text-align: center; padding: 10px">
                     <br />
-                    
-                    <div
-                      fxFlex="5%"
-                      style="
+
+                    <div fxFlex="5%" style="
                         width: 100%;
                         text-align: center;
                         background-color: rgb(52, 52, 52);
-                      "
-                    >
+                      ">
                       Productos
                     </div>
-                    <div
-                      fxFlex="5"
-                      fxLayout="row"
-                      style="width: 100%; background-color: rgb(52, 52, 52)"
-                    >
+                    <div fxFlex="5" fxLayout="row" style="width: 100%; background-color: rgb(52, 52, 52)">
                       <div fxFlex="5%">#</div>
                       <div fxFlex="35%">Descripción</div>
                       <div fxFlex="10%">Presentación</div>
@@ -489,15 +304,10 @@
                     <div fxFlex="5%">
                       <mat-divider style="height: 100%"></mat-divider>
                     </div>
-                    <div
-                      *ngFor="
+                    <div *ngFor="
                         let ventaItem of movimiento?.data?.venta?.ventaItemList;
                         let i = index
-                      "
-                      fxLayout="column"
-                      fxFlex
-                      style="width: 100%; padding-bottom: 5px; padding-top: 5px"
-                    >
+                      " fxLayout="column" fxFlex style="width: 100%; padding-bottom: 5px; padding-top: 5px">
                       <div fxFlex fxLayout="row">
                         <div fxFlex="5%"></div>
                         <div fxFlex="35%">
@@ -505,7 +315,7 @@
                         </div>
                         <div fxFlex="10%">
                           {{
-                            ventaItem?.precioVenta?.tipoPrecio?.descripcion
+                          ventaItem?.precioVenta?.tipoPrecio?.descripcion
                           }}({{ ventaItem?.presentacion?.cantidad }})
                         </div>
                         <div fxFlex="10%">
@@ -516,8 +326,8 @@
                         </div>
                         <div fxFlex="20%">
                           {{
-                            ventaItem?.cantidad * ventaItem?.precio
-                              | number : "1.0-0"
+                          ventaItem?.cantidad * ventaItem?.precio
+                          | number : "1.0-0"
                           }}
                         </div>
                       </div>
@@ -525,12 +335,8 @@
                         <mat-divider></mat-divider>
                       </div>
                     </div>
-                    <div
-                      *ngIf="movimiento?.data?.venta?.delivery != null"
-                      fxLayout="column"
-                      fxFlex
-                      style="width: 100%; padding-bottom: 5px; padding-top: 5px"
-                    >
+                    <div *ngIf="movimiento?.data?.venta?.delivery != null" fxLayout="column" fxFlex
+                      style="width: 100%; padding-bottom: 5px; padding-top: 5px">
                       <div fxFlex fxLayout="row">
                         <div fxFlex="5%"></div>
                         <div fxFlex="35%">Delivery</div>
@@ -539,8 +345,8 @@
                         <div fxFlex="20%"></div>
                         <div fxFlex="20%">
                           {{
-                            movimiento?.data?.venta?.delivery?.precio?.valor
-                              | number : "1.0-0"
+                          movimiento?.data?.venta?.delivery?.precio?.valor
+                          | number : "1.0-0"
                           }}
                         </div>
                       </div>
@@ -553,29 +359,22 @@
                       <div fxFlex="10%">Total:</div>
                       <div fxFlex="20%">
                         {{
-                          movimiento?.data?.venta?.totalGs +
-                            movimiento?.data?.venta?.delivery?.precio?.valor
-                            | number : "1.0-0"
+                        movimiento?.data?.venta?.totalGs +
+                        movimiento?.data?.venta?.delivery?.precio?.valor
+                        | number : "1.0-0"
                         }}
                       </div>
                     </div>
                     <br />
                     <br />
-                    <div
-                      fxFlex="5%"
-                      style="
+                    <div fxFlex="5%" style="
                         width: 100%;
                         text-align: center;
                         background-color: rgb(52, 52, 52);
-                      "
-                    >
+                      ">
                       Movimientos
                     </div>
-                    <div
-                      fxFlex="5"
-                      fxLayout="row"
-                      style="width: 100%; background-color: rgb(52, 52, 52)"
-                    >
+                    <div fxFlex="5" fxLayout="row" style="width: 100%; background-color: rgb(52, 52, 52)">
                       <div fxFlex="5%"></div>
                       <div fxFlex="25%">Operación</div>
                       <div fxFlex="20%">Forma de Pago</div>
@@ -586,28 +385,23 @@
                     <div fxFlex="5%">
                       <mat-divider style="height: 100%"></mat-divider>
                     </div>
-                    <div
-                      *ngFor="
+                    <div *ngFor="
                         let cobroDetalle of movimiento?.data?.venta?.cobro
                           ?.cobroDetalleList
-                      "
-                      fxLayout="column"
-                      fxFlex
-                      style="width: 100%; padding-bottom: 5px; padding-top: 5px"
-                    >
+                      " fxLayout="column" fxFlex style="width: 100%; padding-bottom: 5px; padding-top: 5px">
                       <div *ngIf="!cobroDetalle?.aumento" fxFlex fxLayout="row">
                         <div fxFlex="5%"></div>
                         <div fxFlex="25%">
                           {{
-                            cobroDetalle?.pago
-                              ? "PAGO"
-                              : cobroDetalle?.descuento
-                              ? "DESCUENTO"
-                              : cobroDetalle?.aumento
-                              ? "AUMENTO"
-                              : cobroDetalle?.vuelto
-                              ? "VUELTO"
-                              : "PROBLEMA"
+                          cobroDetalle?.pago
+                          ? "PAGO"
+                          : cobroDetalle?.descuento
+                          ? "DESCUENTO"
+                          : cobroDetalle?.aumento
+                          ? "AUMENTO"
+                          : cobroDetalle?.vuelto
+                          ? "VUELTO"
+                          : "PROBLEMA"
                           }}
                         </div>
                         <div fxFlex="20%">
@@ -621,8 +415,8 @@
                         </div>
                         <div fxFlex="20%">
                           {{
-                            cobroDetalle?.valor * cobroDetalle?.cambio
-                              | number : "1.0-2"
+                          cobroDetalle?.valor * cobroDetalle?.cambio
+                          | number : "1.0-2"
                           }}
                         </div>
                       </div>
@@ -635,16 +429,16 @@
                       <div fxFlex="15%">Total recibido Gs:</div>
                       <div fxFlex="15%">
                         {{
-                          movimiento?.data?.totales?.totalRecibidoGs
-                            | number : "1.0-0"
+                        movimiento?.data?.totales?.totalRecibidoGs
+                        | number : "1.0-0"
                         }}
                       </div>
                       <div fxFlex="40%"></div>
                       <div fxFlex="15%">Total recibido:</div>
                       <div fxFlex="15%">
                         {{
-                          movimiento?.data?.totales?.totalRecibido
-                            | number : "1.0-0"
+                        movimiento?.data?.totales?.totalRecibido
+                        | number : "1.0-0"
                         }}
                       </div>
                     </div>
@@ -652,16 +446,16 @@
                       <div fxFlex="15%">Total recibido Rs:</div>
                       <div fxFlex="15%">
                         {{
-                          movimiento?.data?.totales?.totalRecibidoRs
-                            | number : "1.2-2"
+                        movimiento?.data?.totales?.totalRecibidoRs
+                        | number : "1.2-2"
                         }}
                       </div>
                       <div fxFlex="40%"></div>
                       <div fxFlex="15%">Total descuento:</div>
                       <div fxFlex="15%">
                         {{
-                          movimiento?.data?.totales?.totalDescuento
-                            | number : "1.0-0"
+                        movimiento?.data?.totales?.totalDescuento
+                        | number : "1.0-0"
                         }}
                       </div>
                     </div>
@@ -669,16 +463,16 @@
                       <div fxFlex="15%">Total recibido Ds:</div>
                       <div fxFlex="15%">
                         {{
-                          movimiento?.data?.totales?.totalRecibidoDs
-                            | number : "1.2-2"
+                        movimiento?.data?.totales?.totalRecibidoDs
+                        | number : "1.2-2"
                         }}
                       </div>
                       <div fxFlex="40%"></div>
                       <div fxFlex="15%">Total aumento:</div>
                       <div fxFlex="15%">
                         {{
-                          movimiento?.data?.totales?.totalAumento
-                            | number : "1.0-0"
+                        movimiento?.data?.totales?.totalAumento
+                        | number : "1.0-0"
                         }}
                       </div>
                     </div>
@@ -690,17 +484,14 @@
                       <div fxFlex="15%">Total final:</div>
                       <div fxFlex="15%">
                         {{
-                          movimiento?.data?.totales?.totalFinal
-                            | number : "1.0-0"
+                        movimiento?.data?.totales?.totalFinal
+                        | number : "1.0-0"
                         }}
                       </div>
                     </div>
-                    
+
                     <!-- Información de Stock al final -->
-                    <div *ngIf="movimiento?.data?.stockAnterior !== undefined"
-                      fxFlex="5%"
-                      class="info-container"
-                    >
+                    <div *ngIf="movimiento?.data?.stockAnterior !== undefined" fxFlex="5%" class="info-container">
                       <div fxLayout="row" fxLayoutAlign="space-around center" fxLayoutGap="20px">
                         <div fxLayout="column" fxLayoutAlign="center center">
                           <div class="titulo" style="font-size: 0.9em;">Stock Anterior</div>
@@ -710,13 +501,14 @@
                         </div>
                         <div fxLayout="column" fxLayoutAlign="center center">
                           <div class="titulo" style="font-size: 0.9em;">Movimiento</div>
-                          <div [style.color]="movimiento?.cantidad >= 0 ? '#4caf50' : '#f44336'" style="font-weight: bold;">
+                          <div [style.color]="movimiento?.cantidad >= 0 ? '#4caf50' : '#f44336'"
+                            style="font-weight: bold;">
                             {{ (movimiento?.cantidad >= 0 ? '+' : '') }}{{ movimiento?.cantidad | number : "1.0-2" }}
                           </div>
                         </div>
                         <div fxLayout="column" fxLayoutAlign="center center">
                           <div class="titulo" style="font-size: 0.9em;">Stock Final</div>
-                          <div class="titulo"style="font-weight: bold;">
+                          <div class="titulo" style="font-weight: bold;">
                             {{ movimiento?.data?.stockFinal | number : "1.0-2" }}
                           </div>
                         </div>
@@ -725,45 +517,24 @@
                   </div>
                 </div>
               </ng-container>
-              <ng-container
-                *ngIf="movimiento.tipoMovimiento == 'TRANSFERENCIA'"
-              >
-                <div
-                  class="movimiento-container"
-                  fxLayout="column"
-                  fxLayoutGap="15px"
-                >
-                  <div
-                    fxFlex="5%"
-                    class="detalle-container"
-                  >
+              <ng-container *ngIf="movimiento.tipoMovimiento == 'TRANSFERENCIA'">
+                <div class="movimiento-container" fxLayout="column" fxLayoutGap="15px">
+                  <div fxFlex="5%" class="detalle-container">
                     Detalle de la Transferencia de Stock
                   </div>
 
                   <div fxLayout="row" fxLayoutGap="20px" style="padding: 0 20px;">
                     <!-- Información del Producto y Sucursales -->
                     <div fxFlex="40">
-                      <div 
-                        fxLayout="row" 
-                        fxLayoutAlign="space-between center" 
-                        class="info-stock"
-                      >
+                      <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo">Sucursal Origen:</div>
                         <div>{{ movimiento.data?.transferencia?.sucursalOrigen?.nombre | uppercase }}</div>
                       </div>
-                      <div 
-                        fxLayout="row" 
-                        fxLayoutAlign="space-between center" 
-                        class="info-stock"
-                      >
+                      <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo">Sucursal Destino:</div>
                         <div>{{ movimiento.data?.transferencia?.sucursalDestino?.nombre | uppercase }}</div>
                       </div>
-                      <div 
-                        fxLayout="row" 
-                        fxLayoutAlign="space-between center" 
-                        class="info-stock"
-                      >
+                      <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo">Id Transferencia:</div>
                         <div>{{ movimiento.data?.transferencia?.id }}</div>
                       </div>
@@ -771,32 +542,20 @@
 
                     <!-- Información de Cantidades -->
                     <div fxFlex="40">
-                      <div 
-                        fxLayout="row" 
-                        fxLayoutAlign="space-between center" 
-                        class="info-stock"
-                      >
+                      <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo">Stock Anterior:</div>
                         <div style="color: #2196f3;">
                           {{ movimiento?.data?.stockAnterior | number : '1.0-2' }}
                         </div>
                       </div>
-                      <div 
-                        fxLayout="row" 
-                        fxLayoutAlign="space-between center" 
-                        class="info-stock"
-                      >
+                      <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo">Transferido:</div>
                         <div [style.color]="movimiento?.cantidad >= 0 ? '#4caf50' : '#f44336'">
                           {{ (movimiento?.cantidad >= 0 ? '+' : '') }}
                           {{ movimiento?.cantidad | number : '1.0-2' }}
                         </div>
                       </div>
-                      <div 
-                        fxLayout="row" 
-                        fxLayoutAlign="space-between center" 
-                        class="info-stock"
-                      >
+                      <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo" style="font-weight: bold;">Stock Final:</div>
                         <div class="stock-final">
                           {{ movimiento?.data?.stockFinal | number : '1.0-2' }}
@@ -807,42 +566,23 @@
                 </div>
               </ng-container>
               <ng-container *ngIf="movimiento.tipoMovimiento == 'AJUSTE'">
-                <div
-                  class="movimiento-container"
-                  fxLayout="column"
-                  fxLayoutGap="15px"
-                >
-                  <div
-                    fxFlex="5%"
-                    class="detalle-container"
-                >
+                <div class="movimiento-container" fxLayout="column" fxLayoutGap="15px">
+                  <div fxFlex="5%" class="detalle-container">
                     Detalle del Ajuste de Stock
                   </div>
-                  
+
                   <div fxLayout="row" fxLayoutGap="20px" style="padding: 0 20px;">
                     <!-- Información del Producto y Sucursal -->
                     <div fxFlex="40">
-                      <div 
-                        fxLayout="row" 
-                        fxLayoutAlign="space-between center" 
-                        class="info-stock"
-                      >
+                      <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo">Producto:</div>
                         <div>{{ movimiento?.producto?.descripcion | titlecase }}</div>
                       </div>
-                      <div 
-                        fxLayout="row" 
-                        fxLayoutAlign="space-between center" 
-                        class="info-stock"
-                      >
+                      <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo">Sucursal:</div>
                         <div>{{ movimiento?.sucursal?.nombre | uppercase }}</div>
                       </div>
-                      <div 
-                        fxLayout="row" 
-                        fxLayoutAlign="space-between center" 
-                        class="info-stock"
-                      >
+                      <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo">Tipo de Ajuste:</div>
                         <div>{{ esAjusteManual(movimiento) ? 'Manual' : 'Inventario' }}</div>
                       </div>
@@ -850,32 +590,20 @@
 
                     <!-- Información de Cantidades -->
                     <div fxFlex="40">
-                      <div 
-                        fxLayout="row" 
-                        fxLayoutAlign="space-between center" 
-                        class="info-stock"
-                      >
+                      <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo">Stock Anterior:</div>
                         <div style="color: #2196f3;">
                           {{ movimiento?.data?.cantidadPrevia | number : "1.0-2" }}
                         </div>
                       </div>
-                      <div 
-                        fxLayout="row" 
-                        fxLayoutAlign="space-between center" 
-                        class="info-stock"
-                      >
+                      <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo">Ajuste:</div>
                         <div [style.color]="movimiento?.cantidad >= 0 ? '#4caf50' : '#f44336'">
                           {{ (movimiento?.cantidad >= 0 ? '+' : '') }}
                           {{ movimiento?.cantidad | number : "1.0-2" }}
                         </div>
                       </div>
-                      <div 
-                        fxLayout="row" 
-                        fxLayoutAlign="space-between center" 
-                        class="info-stock"
-                      >
+                      <div fxLayout="row" fxLayoutAlign="space-between center" class="info-stock">
                         <div class="titulo" style="font-weight: bold;">Stock Final:</div>
                         <div class="stock-final">
                           {{ movimiento?.data?.cantidadFinal | number : "1.0-2" }}
@@ -885,7 +613,7 @@
                   </div>
                 </div>
               </ng-container>
-              
+
               <!-- Sección genérica para otros tipos de movimientos -->
               <ng-container *ngIf="movimiento.tipoMovimiento == 'COMPRA' || 
                                    movimiento.tipoMovimiento == 'DEVOLUCION' || 
@@ -893,69 +621,39 @@
                                    movimiento.tipoMovimiento == 'CALCULO' || 
                                    movimiento.tipoMovimiento == 'ENTRADA' || 
                                    movimiento.tipoMovimiento == 'SALIDA'">
-                <div
-                  class="movimiento-container"
-                  fxLayout="column"
-                  fxLayoutGap="15px"
-                >
-                  <div
-                    fxFlex="5%"
-                    class="detalle-container"
-                  >
+                <div class="movimiento-container" fxLayout="column" fxLayoutGap="15px">
+                  <div fxFlex="5%" class="detalle-container">
                     Detalle del Movimiento - {{ movimiento?.tipoMovimiento | titlecase }}
                   </div>
-                  
+
                   <div fxLayout="row" fxLayoutGap="20px" style="padding: 0 20px;">
                     <!-- Información del Producto y Sucursal -->
                     <div fxFlex="50">
-                      <div 
-                        fxLayout="row" 
-                        fxLayoutAlign="space-between center" 
-                        style="padding: 8px 0;"
-                      >
+                      <div fxLayout="row" fxLayoutAlign="space-between center" style="padding: 8px 0;">
                         <div class="titulo">Producto:</div>
                         <div>{{ movimiento?.producto?.descripcion | titlecase }}</div>
                       </div>
-                      <div 
-                        fxLayout="row" 
-                        fxLayoutAlign="space-between center" 
-                        style="padding: 8px 0;"
-                      >
+                      <div fxLayout="row" fxLayoutAlign="space-between center" style="padding: 8px 0;">
                         <div class="titulo">Sucursal:</div>
                         <div>{{ movimiento?.sucursal?.nombre | uppercase }}</div>
                       </div>
                     </div>
-                    
+
                     <div fxFlex="50">
-                      <div 
-                        fxLayout="row" 
-                        fxLayoutAlign="space-between center" 
-                        style="padding: 8px 0;"
-                      >
+                      <div fxLayout="row" fxLayoutAlign="space-between center" style="padding: 8px 0;">
                         <div class="titulo">Tipo:</div>
                         <div>{{ movimiento?.tipoMovimiento | titlecase }}</div>
                       </div>
-                      <div 
-                        fxLayout="row" 
-                        fxLayoutAlign="space-between center" 
-                        style="padding: 8px 0;"
-                        *ngIf="movimiento?.data?.referencia"
-                      >
+                      <div fxLayout="row" fxLayoutAlign="space-between center" style="padding: 8px 0;"
+                        *ngIf="movimiento?.data?.referencia">
                         <div class="titulo">Referencia:</div>
                         <div>{{ movimiento?.data?.referencia }}</div>
                       </div>
                     </div>
                   </div>
-                  
-                  <div *ngIf="movimiento?.data?.stockAnterior !== undefined"
-                    fxFlex="5%"
-                    class="info-container"
-                  >
-                    <div 
-                      fxLayout="row" 
-                      fxLayoutAlign="space-around center" 
-                      fxLayoutGap="20px"
-                    >
+
+                  <div *ngIf="movimiento?.data?.stockAnterior !== undefined" fxFlex="5%" class="info-container">
+                    <div fxLayout="row" fxLayoutAlign="space-around center" fxLayoutGap="20px">
                       <div fxLayout="column" fxLayoutAlign="center center">
                         <div class="titulo" style="font-size: 0.9em;">Stock Anterior</div>
                         <div style="color: #2196f3; font-weight: bold;">
@@ -964,11 +662,8 @@
                       </div>
                       <div fxLayout="column" fxLayoutAlign="center center">
                         <div class="titulo" style="font-size: 0.9em;">Movimiento</div>
-                        <div 
-                          [style.color]="movimiento?.cantidad >= 0 ? 
-                          '#4caf50' : '#f44336'" 
-                          style="font-weight: bold;"
-                        >
+                        <div [style.color]="movimiento?.cantidad >= 0 ? 
+                          '#4caf50' : '#f44336'" style="font-weight: bold;">
                           {{ (movimiento?.cantidad >= 0 ? '+' : '') }}
                           {{ movimiento?.cantidad | number : "1.0-2" }}
                         </div>
@@ -987,35 +682,18 @@
           </td>
         </ng-container>
 
-        <tr
-          mat-header-row
-          *matHeaderRowDef="displayedColumns; sticky: true"
-        ></tr>
-        <tr
-          mat-row
-          *matRowDef="let element; columns: displayedColumns; let i = dataIndex"
-          class="example-element-row"
-          [class.example-expanded-row]="expandedMovimiento === element"
-          (click)="
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let element; columns: displayedColumns; let i = dataIndex" class="example-element-row"
+          [class.example-expanded-row]="expandedMovimiento === element" (click)="
             expandedMovimiento =
               expandedMovimiento === element ? null : element;
             onClickRow(element, i)
-          "
-        ></tr>
-        <tr
-          mat-row
-          *matRowDef="let row; columns: ['expandedDetail']"
-          class="example-detail-row"
-        ></tr>
+          "></tr>
+        <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
       </table>
-      <mat-paginator
-        itemsPerPageLabel="Itens por pagina"
-        [pageSizeOptions]="[15, 25, 50, 100]"
-        (page)="handlePageEvent($event)"
-        [length]="selectedPageInfo?.getTotalElements"
-        style="width: 100%"
-        showFirstLastButtons
-      ></mat-paginator>
+      <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
+        (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements" style="width: 100%"
+        showFirstLastButtons></mat-paginator>
     </div>
   </div>
 </app-generic-list>

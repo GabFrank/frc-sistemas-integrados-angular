@@ -22,6 +22,7 @@ export const sucursalesQuery = gql
       deposito
       codigoEstablecimientoFactura
       isConfigured
+      activo
     }
   }`;
 
@@ -73,6 +74,7 @@ export const sucursalQuery = gql
       deposito
       codigoEstablecimientoFactura
       isConfigured
+      activo
     }
   }`
 
@@ -92,6 +94,7 @@ export const sucursalActualQuery = gql
       deposito
       codigoEstablecimientoFactura
       isConfigured
+      activo
     }
   }`
 
@@ -112,6 +115,7 @@ export const saveSucursal = gql
         deposito
         codigoEstablecimientoFactura
         isConfigured
+        activo
       }
     }`
 
@@ -119,3 +123,39 @@ export const deleteSucursalQuery = gql
   ` mutation deleteSucursal($id: ID!){
       deleteSucursal(id: $id)
     }`
+
+export const sucursalesByNombreQuery = gql`
+  query ($nombre: String, $page: Int, $size: Int) {
+    data: findByNombre(nombre: $nombre, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        nombre
+        localizacion
+        ciudad {
+          id
+          descripcion
+        }
+        creadoEn
+        usuario {
+          id
+          nickname
+        }
+        ip
+        puerto
+        direccion
+        nroDelivery
+        depositoPredeterminado
+        deposito
+        codigoEstablecimientoFactura
+        isConfigured
+        activo
+      }
+    }
+  }`

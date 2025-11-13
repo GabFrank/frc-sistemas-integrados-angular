@@ -54,7 +54,7 @@ export class InventarioService {
     private reporteService: ReporteService,
     private tabService: TabService,
     private getInventarioProductoItem: GetInventarioProductoItemGQL
-  ) {}
+  ) { }
 
   onGetInventarioPorFecha(inicio, fin) {
     return this.genericCrudService.onGetByFecha(
@@ -64,10 +64,11 @@ export class InventarioService {
     );
   }
 
-  onGetInventarioAbiertoPorSucursal() {
+  onGetInventarioAbiertoPorSucursal(sucursalId?: number): Observable<Inventario[]> {
+    const id = sucursalId || this.mainService.sucursalActual.id;
     return this.genericCrudService.onGetById(
       this.inventarioAbiertoPorSucursal,
-      this.mainService.sucursalActual.id
+      id
     );
   }
 

@@ -12,10 +12,8 @@ import { ROLES } from '../../../personas/roles/roles.enum';
 import { updateDataSource, updateDataSourceWithId } from '../../../../commons/core/utils/numbersUtils';
 import { PageInfo } from '../../../../app.component';
 
-// Import sucursal model and service
 import { Sucursal } from '../sucursal.model';
 import { SucursalService } from '../sucursal.service';
-// Import edit dialog component
 import { EditSucursalDialogComponent } from '../edit-sucursal-dialog/edit-sucursal-dialog.component';
 
 @UntilDestroy({ checkProperties: true })
@@ -42,7 +40,6 @@ export class ListSucursalComponent implements OnInit {
 
   readonly ROLES = ROLES;
 
-  // Define displayed columns based on sucursal properties
   displayedColumns = [
     "id",
     "nombre",
@@ -55,8 +52,6 @@ export class ListSucursalComponent implements OnInit {
     "usuario",
     "acciones"
   ]
-
-  // Create form controls for filters
   buscarControl = new FormControl(null);
   depositoControl = new FormControl(null);
   activoControl = new FormControl(true); // Por defecto activo
@@ -66,7 +61,7 @@ export class ListSucursalComponent implements OnInit {
   isSearching = false;
   expandedSucursal: Sucursal;
   timer;
-  
+
   length = 25;
   pageSize = 25;
   pageIndex = 0;
@@ -81,29 +76,22 @@ export class ListSucursalComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    // Initialize pagination
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1])
       this.pageSize = this.paginator.pageSizeOptions[1]
       this.onFiltrar()
     }, 0);
 
-    // Set up search control with debounce
     this.buscarControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
       this.pageIndex = 0;
       if (this.timer != null) {
         clearTimeout(this.timer);
       }
-      if (res != null && res?.length > 0) {
-        this.timer = setTimeout(() => {
-          this.onFiltrar()
-        }, 500);
-      } else {
-        this.dataSource.data = []
-      }
+      this.timer = setTimeout(() => {
+        this.onFiltrar()
+      }, 500);
     })
-    
-    // Deposito filter control
+
     this.depositoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
       this.pageIndex = 0;
       this.onFiltrar();
@@ -111,17 +99,18 @@ export class ListSucursalComponent implements OnInit {
   }
 
   onFiltrar() {
-    // Call service search method with filters
+    const searchValue = this.buscarControl.value ? this.buscarControl.value.toUpperCase() : null;
+
     this.sucursalService.onSearchConFiltros(
-      this.buscarControl.value?.toUpperCase(), 
+      searchValue,
       this.depositoControl.value,
       this.activoControl.value ?? true,
       this.pageIndex, 
       this.pageSize
     ).pipe(untilDestroyed(this)).subscribe(res => {
-      if(res != null){
+      if (res != null) {
         this.selectedPageInfo = res;
-        this.dataSource.data = this.selectedPageInfo?.getContent;
+        this.dataSource.data = this.selectedPageInfo?.getContent || [];
       }
     })
   }
@@ -136,7 +125,6 @@ export class ListSucursalComponent implements OnInit {
   }
 
   onEditSucursal(sucursal: Sucursal, i) {
-    // Open edit dialog and reload data when closed
     this.dialog.open(EditSucursalDialogComponent, {
       data: {
         sucursal: sucursal
@@ -151,13 +139,11 @@ export class ListSucursalComponent implements OnInit {
   }
 
   onNewSucursal() {
-    // Open new sucursal dialog and handle result
     this.dialog.open(EditSucursalDialogComponent, {
       width: '500px',
       disableClose: true
     }).afterClosed().subscribe((res: Sucursal) => {
       if (res != null) {
-        // Update view with new sucursal
         this.onFiltrar();
       }
     })

@@ -4,8 +4,6 @@ export const inventariosQuery = gql`
   {
     data: inventarios {
       id
-      idOrigen
-      idCentral
       sucursal {
         id
         nombre
@@ -24,10 +22,6 @@ export const inventariosQuery = gql`
       inventarioProductoList {
         id
         concluido
-        producto {
-          id
-          descripcion
-        }
         zona {
           id
           sector {
@@ -56,8 +50,6 @@ export const inventarioQuery = gql`
   query ($id: ID!) {
     data: inventario(id: $id) {
       id
-      idOrigen
-      idCentral
       sucursal {
         id
         nombre
@@ -76,10 +68,6 @@ export const inventarioQuery = gql`
       inventarioProductoList {
         id
         concluido
-        producto {
-          id
-          descripcion
-        }
         zona {
           id
           sector {
@@ -126,10 +114,6 @@ export const inventarioPorUsuarioQuery = gql`
       inventarioProductoList {
         id
         concluido
-        producto {
-          id
-          descripcion
-        }
         zona {
           id
           sector {
@@ -158,8 +142,6 @@ export const saveInventario = gql`
   mutation saveInventario($entity: InventarioInput!) {
     data: saveInventario(inventario: $entity) {
       id
-      idOrigen
-      idCentral
       sucursal {
         id
         nombre
@@ -178,10 +160,6 @@ export const saveInventario = gql`
       inventarioProductoList {
         id
         concluido
-        producto {
-          id
-          descripcion
-        }
         zona {
           id
           sector {
@@ -216,8 +194,6 @@ export const inventarioPorFechaQuery = gql`
   query ($inicio: String, $fin: String) {
     data: inventarioPorFecha(inicio: $inicio, fin: $fin) {
       id
-      idOrigen
-      idCentral
       sucursal {
         id
         nombre
@@ -269,10 +245,6 @@ export const saveInventarioProducto = gql`
     data: saveInventarioProducto(inventarioProducto: $entity) {
       id
       concluido
-      producto {
-        id
-        descripcion
-      }
       zona {
         id
         sector {
@@ -348,8 +320,6 @@ export const inverntarioAbiertoPorSucursalQuery = gql`
   query ($id: ID!) {
     data: inventarioAbiertoPorSucursal(sucId: $id) {
       id
-      idOrigen
-      idCentral
       sucursal {
         id
         nombre
@@ -368,10 +338,6 @@ export const inverntarioAbiertoPorSucursalQuery = gql`
       inventarioProductoList {
         id
         concluido
-        producto {
-          id
-          descripcion
-        }
         zona {
           id
           sector {

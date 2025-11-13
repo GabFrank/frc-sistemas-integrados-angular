@@ -62,14 +62,8 @@ export async function createWindow(): Promise<BrowserWindow> {
     },
   });
 
-  win.webContents.setZoomFactor(1)
-  win.webContents
-    .executeJavaScript('localStorage.getItem("zoomLevel");', true)
-    .then(result => {
-      if (result != null) {
-        win.webContents.setZoomLevel(+result)
-      }
-    });
+  // Establecer zoom factor inicial en 1
+  win.webContents.setZoomFactor(1);
 
   win.maximize();
   win.show();
@@ -130,14 +124,19 @@ export async function createWindow(): Promise<BrowserWindow> {
     require("electron").shell.openExternal(url);
     return { action: "deny" };
   });
-
+//metodo para recuperar zoom guardado en localstorage
   win.webContents.on('did-finish-load', () => {
     win.webContents
       .executeJavaScript('localStorage.getItem("zoomLevel");', true)
       .then((zoomLevel) => {
-        if (zoomLevel) {
-          win.webContents.setZoomLevel(parseFloat(zoomLevel));
+        if (zoomLevel !== null && zoomLevel !== undefined) {
+          const parsedZoom = parseFloat(zoomLevel);
+          win.webContents.setZoomLevel(parsedZoom);
+        } else {
+          win.webContents.setZoomLevel(1);
         }
+      })
+      .catch((error) => {
       });
   });
 
@@ -1461,7 +1460,7 @@ ITEMS
     subtotal += lineTotal;
 
     content += `${product.name || 'Unknown Item'}
-${quantity} x ${price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} = ${lineTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+${quantity} x ${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} = ${lineTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
 ${item.notes && !item.notes.includes('__POS_PRINTER_DATA__:') ? `Note: ${item.notes}` : ''}
 ------------------------------
 `;
@@ -1470,9 +1469,9 @@ ${item.notes && !item.notes.includes('__POS_PRINTER_DATA__:') ? `Note: ${item.no
   // Add total
   const totalAmount = typeof order.totalAmount === 'number' ? order.totalAmount : parseFloat(order.totalAmount) || subtotal;
   content += `
-SUBTOTAL: ${subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-TAX: ${(subtotal * 0.08).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-TOTAL: ${totalAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+SUBTOTAL: ${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+TAX: ${(subtotal * 0.08).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+TOTAL: ${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
 ==============================
         THANK YOU!
    PLEASE COME AGAIN SOON
