@@ -135,13 +135,27 @@ export class ListVentaComponent implements OnInit {
     });
 
     if (this.data?.tabData?.data != null) {
-      this.selectedCaja = this.data.tabData.data;
+      // Verificar si data es un objeto con caja y ventaId, o solo la caja (compatibilidad hacia atrás)
+      const tabData = this.data.tabData.data;
+      let ventaId: number = null;
+      
+      if (tabData.caja) {
+        this.selectedCaja = tabData.caja;
+        ventaId = tabData.ventaId;
+      } else {
+        // Compatibilidad: si solo viene la caja directamente
+        this.selectedCaja = tabData;
+      }
 
       this.cajaService
         .onGetByIdSimp(this.selectedCaja.id, this.selectedCaja.sucursalId, true)
         .subscribe((res) => {
           if (res != null) {
             this.selectedCaja = res;
+            // Establecer el filtro de ventaId si existe, antes de filtrar
+            if (ventaId) {
+              this.idVentaControl.setValue(ventaId);
+            }
             this.onFiltrar();
             this.onGetBalance();
           }

@@ -212,6 +212,10 @@ export class ListProductoComponent implements OnInit, AfterViewInit {
         this.dataSource.data = res.getContent;
         this.isSearching = false;
         this.isGenerarPdfDisabled = !res.getContent || res.getContent.length === 0;
+
+        if (res.getContent && res.getContent.length === 0) {
+          this.notificacionService.openWarn('Producto no encontrado');
+        }
       });
   }
 
