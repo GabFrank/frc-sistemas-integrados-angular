@@ -43,23 +43,58 @@
         </mat-form-field>
       </div>
 
+      <div class="date-selection" *ngIf="includeCreationDate">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Fecha de Elaboración</mat-label>
+          <input matInput type="date" formControlName="creationDate">
+        </mat-form-field>
+      </div>
+
       <div class="checkbox-options">
+        <mat-checkbox 
+          [checked]="includeCreationDate" 
+          (change)="toggleIncludeCreationDate()"
+        >
+          Incluir fecha de elaboración
+        </mat-checkbox>
+
         <mat-checkbox formControlName="isLandscape">
           Orientación Horizontal (Landscape)
         </mat-checkbox>
-        <br>
-        <mat-checkbox formControlName="useImagePrinting" (change)="toggleUseImage()">
+
+        <mat-checkbox formControlName="useImagePrinting">
           Imprimir como Imagen (Recomendado)
         </mat-checkbox>
       </div>
 
       <!-- Label Preview -->
       <div class="label-preview">
-        <h3>Vista Previa</h3>
-        <div class="label-shape" [ngClass]="{'landscape': printForm.get('isLandscape').value}">
+        <div style="display: flex;">
+          <h3>Vista Previa</h3>
+          <mat-icon
+            style="
+              cursor: pointer;
+              margin-left: 5px;
+            "
+            (click)="togglePreview()"
+          >
+            {{ previewVisible ? 'visibility' : 'visibility_off' }}
+          </mat-icon>
+        </div>
+
+        <div 
+          class="label-shape" 
+          *ngIf="previewVisible" 
+          [ngClass]="{'landscape': printForm.get('isLandscape').value}"
+        >
           <div #labelPreview class="label-content">
-            <div class="product-name">{{data.producto?.descripcion | slice:0:24}}{{data.producto?.descripcion?.length > 24 ? '...' : ''}}</div>
-            <div class="product-price">{{data.producto?.precioPrincipal | currency:'PYG':'symbol-narrow':'1.0-0':'es-PY'}}</div>
+            <div class="product-name">
+              {{data.producto?.descripcion | slice:0:24}} 
+              {{data.producto?.descripcion?.length > 24 ? '...' : ''}}
+            </div>
+            <div class="product-price">
+              {{data.producto?.precioPrincipal | currency:'PYG':'symbol-narrow':'1.0-0':'es-PY'}}
+            </div>
           </div>
         </div>
       </div>
@@ -85,12 +120,12 @@
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Datos del Código de Barras</mat-label>
           <input matInput formControlName="barcodeData" placeholder="Ej: 7890123456789">
-          <mat-hint>Ingrese los dígitos para el código de barras (EAN-13)</mat-hint>
+          <mat-hint>Ingrese los datos para el código de barras (Code 128)</mat-hint>
         </mat-form-field>
       </div>
 
       <div class="quantity-selection">
-        <mat-form-field appearance="outline" class="full-width">
+        <mat-form-field appearance="outline" class="full-width" style="margin-top: 15px">
           <mat-label>Cantidad</mat-label>
           <input matInput type="number" min="1" formControlName="quantity">
           <mat-error *ngIf="printForm.get('quantity').hasError('required')">
@@ -100,6 +135,48 @@
             La cantidad debe ser al menos 1
           </mat-error>
         </mat-form-field>
+      </div>
+
+      <div class="date-selection" *ngIf="includeCreationDate">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Fecha de Elaboración</mat-label>
+          <input matInput type="date" formControlName="creationDate">
+        </mat-form-field>
+      </div>
+
+      <div class="checkbox-options">
+        <mat-checkbox 
+          [checked]="includeCreationDate" 
+          (change)="toggleIncludeCreationDate()"
+        >
+          Incluir fecha de elaboración
+        </mat-checkbox>
+      </div>
+
+      <!-- Vista previa de la etiqueta 40x40 -->
+      <div class="label-preview">
+       <div style="display: flex;">
+        <h3>Vista Previa</h3>
+        <mat-icon
+          style="
+            cursor: pointer;
+            margin-left: 5px;
+          "
+          (click)="togglePreview()"
+        >
+          {{ previewVisible ? 'visibility' : 'visibility_off' }}
+        </mat-icon>
+       </div>
+        <div class="label-shape box" *ngIf="previewVisible">
+          <div style="text-align:center;">
+            <img 
+              *ngIf="previewBarcodeDataUrl" 
+              [src]="previewBarcodeDataUrl" 
+              alt="barcode" 
+              style="height:60px;"
+            />
+          </div>
+        </div>
       </div>
     </div>
 
@@ -145,14 +222,53 @@
           </mat-error>
         </mat-form-field>
       </div>
+
+      <!-- Vista previa de la etiqueta QR -->
+      <div class="label-preview">
+        <div style="display: flex;">
+          <h3>Vista Previa</h3>
+          <mat-icon
+            style="
+              cursor: pointer;
+              margin-left: 5px;
+            "
+            (click)="togglePreview()"
+          >
+            {{ previewVisible ? 'visibility' : 'visibility_off' }}
+          </mat-icon>
+        </div>
+        <div class="label-shape box" *ngIf="previewVisible">
+          <div style="text-align:center;">
+            <img 
+              class="img-size" 
+              *ngIf="previewQrDataUrl" 
+              [src]="previewQrDataUrl" 
+              alt="QR Code"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   </form>
 </mat-dialog-content>
 
-<mat-dialog-actions align="end">
-  <button mat-button (click)="onCancel()" [disabled]="loading">Cancelar</button>
-  <button mat-raised-button color="primary" (click)="printLabel()" [disabled]="loading || printForm.invalid">
-    <mat-spinner *ngIf="loading" diameter="20" class="button-spinner"></mat-spinner>
-    <span *ngIf="!loading">Imprimir</span>
+<mat-dialog-actions align="end" style="padding-right: 24px">
+  <button 
+    mat-button 
+    (click)="onCancel()" 
+    [disabled]="loading"
+  >
+    Cancelar
   </button>
-</mat-dialog-actions> 
+  <button 
+    mat-raised-button 
+    color="primary" 
+    (click)="printLabel()" 
+    [disabled]="loading || printForm.invalid"
+  >
+    <mat-spinner *ngIf="loading" diameter="20" class="button-spinner"></mat-spinner>
+    <span *ngIf="!loading">
+      Imprimir
+    </span>
+  </button>
+</mat-dialog-actions>

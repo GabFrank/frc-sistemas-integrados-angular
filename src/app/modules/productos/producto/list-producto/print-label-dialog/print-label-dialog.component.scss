@@ -44,6 +44,7 @@
 mat-dialog-content {
   min-width: 350px;
   max-width: 500px;
+  padding-top: 20px !important;
 }
 
 mat-form-field {
@@ -71,7 +72,7 @@ mat-form-field {
   padding: 10px;
   margin: 0 auto;
   background-color: white;
-  
+
   // Landscape orientation
   &.landscape {
     width: 150px;
@@ -88,7 +89,7 @@ mat-form-field {
   align-items: center;
   text-align: center;
   color: black;
-  
+
   .product-name {
     font-size: 14px;
     font-weight: bold;
@@ -96,7 +97,7 @@ mat-form-field {
     word-wrap: break-word;
     max-width: 100%;
   }
-  
+
   .product-price {
     font-size: 22px;
     font-weight: bold;
@@ -116,7 +117,7 @@ mat-form-field {
 
 .checkbox-options {
   margin-top: 10px;
-  
+
   mat-checkbox {
     display: block;
     margin-bottom: 10px;
@@ -139,4 +140,23 @@ h2 {
 
 .full-width {
   width: 100%;
-} 
+}
+
+.box {
+  width: 160px;
+  height: 160px;
+  margin: 8px auto;
+  background: #ffffff;
+  position: relative;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+h2 {
+  padding-bottom: 0;
+}
+
+.img-size {
+  max-width:150px;
+  max-height:150px;
+}
