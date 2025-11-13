@@ -1,7 +1,5 @@
 import gql from 'graphql-tag';
 
-// TODO: Agregar activo a la query de sucursales
-
 export const sucursalesQuery = gql
   `{
     data: sucursales {
@@ -28,8 +26,8 @@ export const sucursalesQuery = gql
   }`;
 
 export const sucursalesSearch = gql
-  `query($texto: String){
-    data : sucursalesSearch(texto: $texto){
+  `query($texto: String, $activo: Boolean){
+    data : sucursalesSearch(texto: $texto, activo: $activo){
       id
       nombre
       localizacion
@@ -50,6 +48,7 @@ export const sucursalesSearch = gql
       deposito
       codigoEstablecimientoFactura
       isConfigured
+      activo
     }
   }`
 

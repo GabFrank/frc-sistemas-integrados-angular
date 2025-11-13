@@ -69,6 +69,7 @@ export class ListTransferenciaComponent implements OnInit {
   fechaFinControl = new FormControl();
   fechaFormGroup: FormGroup;
   sucursalList: Sucursal[];
+  sucursalIdlist: Number[];
   estadoList = Object.values(TransferenciaEstado);
   etapaList = Object.values(EtapaTransferencia);
   today = new Date();
@@ -114,9 +115,18 @@ export class ListTransferenciaComponent implements OnInit {
       inicio: this.fechaInicioControl,
       fin: this.fechaFinControl,
     });
+
+    this.sucursalList = [];
+    this.sucursalIdlist = [];
+
     this.onGetTransferencias();
     this.sucursalService.onGetAllSucursales(true).subscribe((res) => {
-      this.sucursalList = res;
+      this.sucursalList = res.filter((s) => {
+        if (s.id != 0) {
+          this.sucursalIdlist.push(s.id);
+          return s;
+        }
+      })
     });
 
     interval(300000).pipe(untilDestroyed(this)).subscribe(()=> {

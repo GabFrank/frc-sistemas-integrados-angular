@@ -55,6 +55,7 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
   displayedColumns: string[] = ['id', 'nombre', 'sucursal', 'cargo', 'supervisadoPor', 'telefono', 'nickname', 'acciones'];
 
   sucursalList: Sucursal[];
+  sucursalIdList = [];
 
   constructor(
     public service: FuncionarioService,
@@ -72,7 +73,13 @@ export class ListFuncioarioComponent implements OnInit, AfterViewInit {
     }, 0);
 
     this.sucursalService.onGetAllSucursales(true).pipe(untilDestroyed(this)).subscribe(res => {
-      this.sucursalList = res.filter(s => s.deposito == true);
+      //this.sucursalList = res.filter(s => s.deposito == true);
+      this.sucursalList = res.filter((s) => {
+        if (s.id != 0) {
+          this.sucursalIdList.push(s.id);
+          return s;
+        }
+      });
     })
   }
 
