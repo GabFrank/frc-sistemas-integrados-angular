@@ -8,9 +8,9 @@
   "modo": "NOT",
   "pdvId": 1,
   "isConfigured": true,
-  "isLocal": true,
+  "isLocal": false,
   "printers": {
-    "ticket": "acer_ticket",
+    "ticket": "ticket",
     "factura": ""
   }
 }

@@ -12,6 +12,7 @@ import { Observable, Subscription } from "rxjs";
 import { ElectronService } from "../../../commons/core/electron/electron.service";
 import { TabService } from "../../../layouts/tab/tab.service";
 import { MainService } from "../../../main.service";
+import { LoginDialogService } from "../../services/login-dialog.service";
 import { CargandoDialogService } from "../cargando-dialog/cargando-dialog.service";
 import { LoginService } from "./../../../modules/login/login.service";
 import { SearchBarDialogComponent } from "./../../widgets/search-bar-dialog/search-bar-dialog.component";
@@ -22,18 +23,12 @@ import { environment } from "../../../../environments/environment";
 import { TipoEntidad } from "../../../generics/tipo-entidad.enum";
 import { ActualizacionService } from "../../../modules/configuracion/actualizacion/actualizacion.service";
 import { ConfiguracionService } from "../../services/configuracion.service";
-import { ConfiguracionDialogComponent } from "../configuracion-dialog/configuracion-dialog.component";
 import { ROLES } from "../../../modules/personas/roles/roles.enum";
 import { QrCodeComponent, QrData } from "../../qr-code/qr-code.component";
 import { DialogosService } from "../dialogos/dialogos.service";
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
-import { resolve } from "path";
-import { rejects } from "assert";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
 import { connectionStatusSub, cloudConnectionStatusSub } from "../../services/graphql-connection.service";
-
-// import { ApolloConfigService } from '../../../apollo-config.service';
-
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-header",
@@ -43,10 +38,9 @@ import { connectionStatusSub, cloudConnectionStatusSub } from "../../services/gr
 export class HeaderComponent implements OnInit, OnDestroy {
   isDev = isDevMode();
   isLocalhost = false;
-  isLocal = true; // Flag to indicate if local server is enabled
+  isLocal = true;
   localStatus = false;
   cloudStatus = false;
-  // Flag to indicate that one server is down
   serverWarning = false;
   statusObs: Observable<any>;
   serverIpAddress = "";
@@ -71,16 +65,14 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private actualizacionService: ActualizacionService,
     private configService: ConfiguracionService,
     private dialogoService: DialogosService,
-    private usuarioService: UsuarioService
-  ) {}
+    private usuarioService: UsuarioService,
+    private loginDialogService: LoginDialogService
+  ) { }
 
   ngOnInit(): void {
-    // Get config and set isLocal flag
     const config = this.configService.getConfig();
     this.isLocalhost = config.serverIp === "localhost";
     this.isLocal = config.isLocal;
-
-    // Subscribe to config changes to update isLocal flag
     this.configChangedSub = this.configService.configChanged
       .pipe(untilDestroyed(this))
       .subscribe(newConfig => {
@@ -88,41 +80,27 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.isLocalhost = newConfig.serverIp === "localhost";
         this.updateServerWarning();
       });
-
-    // Local server status subscription
     this.localStatusSub = connectionStatusSub
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.localStatus = res;
         this.updateServerWarning();
       });
-    
-    // Cloud server status subscription
     this.cloudStatusSub = cloudConnectionStatusSub
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.cloudStatus = res;
         this.updateServerWarning();
       });
-
-    // Use empty array as fallback if environment doesn't have sucursales
     this.sucursalList = environment["sucursales"] || [];
 
     this.appVersion = this.electronService.getAppVersion();
   }
-
-  /**
-   * Updates the server warning flag based on server status
-   * We have a warning when one server is connected but the other is not
-   */
   private updateServerWarning(): void {
-    // If both statuses are initialized (not null)
     if (this.cloudStatus != null) {
       if (this.isLocal && this.localStatus != null) {
-        // Only consider local status for warning if isLocal is true
         this.serverWarning = (this.localStatus && !this.cloudStatus) || (!this.localStatus && this.cloudStatus);
       } else {
-        // If isLocal is false, only care about cloud status
         this.serverWarning = !this.cloudStatus;
       }
     } else {
@@ -137,22 +115,19 @@ export class HeaderComponent implements OnInit, OnDestroy {
   async onLogout() {
     let inicioSesion = new InicioSesion();
     Object.assign(inicioSesion, this.mainService.usuarioActual.inicioSesion);
-    inicioSesion.horaFin = new Date();  
-    if(inicioSesion != null && inicioSesion?.sucursal != null){
+    inicioSesion.horaFin = new Date();
+    if (inicioSesion != null && inicioSesion?.sucursal != null) {
       await new Promise((resolve, rejects) => {
         this.usuarioService
           .onSaveInicioSesion(inicioSesion.toInput())
           .subscribe((res) => {
             resolve(res);
           });
-      }); 
-    }  
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuarioId");
-    this.mainService.usuarioActual = null;
-    this.mainService.logged = false;
+      });
+    }
+    this.mainService.logout();
     this.tabService.removeAllTabs();
-    this.electronService.relaunch();
+    this.loginDialogService.openLoginDialog();
   }
 
   onLogin() {
@@ -160,8 +135,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    //Called once, before the instance is destroyed.
-    //Add 'implements OnDestroy' to the class.
     this.localStatusSub.unsubscribe();
     if (this.cloudStatusSub) {
       this.cloudStatusSub.unsubscribe();
@@ -179,8 +152,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   removeServer() {
-    // this.apolloService.removeClient()
-    // this.apolloService.connectClient()
   }
 
   createQrCode() {
@@ -199,19 +170,14 @@ export class HeaderComponent implements OnInit, OnDestroy {
         },
       })
       .afterClosed()
-      .subscribe((res) => {});
+      .subscribe((res) => { });
   }
-
-  /**
-   * Opens the configuration dialog to modify system settings
-   */
   openConfigDialog() {
     this.configService
       .showConfigDialog()
       .pipe(untilDestroyed(this))
       .subscribe((result) => {
         if (result) {
-          // Configuration was updated, check if we need to restart
           this.dialogoService
             .confirm("Configuración actualizada", "¿Desea reiniciar ahora para aplicar los cambios?")
             .subscribe((shouldRestart) => {
