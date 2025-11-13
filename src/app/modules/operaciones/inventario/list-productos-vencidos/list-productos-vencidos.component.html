@@ -3,7 +3,7 @@
   (customFunction2)="onRetirarProductos()" (resetFiltro)="onResetFiltro()">
   <div filtros>
     <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
-      <div fxFlex="30%">
+      <div fxFlex="15%">
         <mat-form-field style="width: 100%">
           <mat-label>Rango de fecha</mat-label>
           <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker" style="width: 100%">
@@ -62,8 +62,8 @@
           </span>
         </mat-form-field>
       </div>
-      <div fxFlex="50%">
-        <mat-form-field style="width: 100%">
+      <div fxFlex="45%">
+        <mat-form-field style="width: 95%">
           <mat-label>Buscar usuario</mat-label>
           <input #buscarUsuarioInput matInput [formControl]="buscarUsuarioControl" (keyup.enter)="onBuscarUsuario()"
             (focusin)="buscarUsuarioInput.select()" placeholder="Buscar usuario..." [readonly]="!!selectedUsuario" />

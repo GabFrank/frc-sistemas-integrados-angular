@@ -108,6 +108,7 @@ export class PrintLabelDialogComponent implements OnInit {
     const words = text.split(/\s+/);
     const lines: string[] = [];
     let currentLine = '';
+    const maxLines = maxChars === 17 ? 3 : 2; // 3 líneas para Xprinter (17 chars), 2 para otros
 
     for (const word of words) {
       const prospective = currentLine ? `${currentLine} ${word}` : word;
@@ -120,7 +121,13 @@ export class PrintLabelDialogComponent implements OnInit {
             lines.push(currentLine);
             currentLine = '';
           }
-          lines.push(word);
+          // Cortar palabra si es muy larga
+          let i = 0;
+          while (i < word.length && lines.length < maxLines) {
+            const chunk = word.substring(i, i + maxChars);
+            lines.push(chunk);
+            i += maxChars;
+          }
         } else {
           if (currentLine) {
             lines.push(currentLine);
@@ -129,17 +136,35 @@ export class PrintLabelDialogComponent implements OnInit {
         }
       }
 
-      if (lines.length === 2) {
-        currentLine = '';
-        break;
+      if (lines.length >= maxLines) {
+        // Si ya tenemos el máximo de líneas, intentar agregar a la última si cabe
+        if (currentLine && lines.length === maxLines) {
+          const lastLine = lines[maxLines - 1];
+          const testLastLine = lastLine + ' ' + currentLine;
+          if (testLastLine.length <= maxChars) {
+            lines[maxLines - 1] = testLastLine;
+            currentLine = '';
+          }
+        }
+        if (lines.length >= maxLines) {
+          currentLine = '';
+          break;
+        }
       }
     }
 
-    if (currentLine && lines.length < 2) {
+    if (currentLine && lines.length < maxLines) {
       lines.push(currentLine);
+    } else if (currentLine && lines.length === maxLines) {
+      // Intentar agregar a la última línea si cabe
+      const lastLine = lines[maxLines - 1];
+      const testLastLine = lastLine + ' ' + currentLine;
+      if (testLastLine.length <= maxChars) {
+        lines[maxLines - 1] = testLastLine;
+      }
     }
 
-    return lines.slice(0, 2);
+    return lines.slice(0, maxLines);
   }
 
   getSelectedPrinterLower(): string {
@@ -149,7 +174,7 @@ export class PrintLabelDialogComponent implements OnInit {
   getMaxNameCharsForLabel(labelType: string): number {
     const printerName = this.getSelectedPrinterLower();
     if (printerName.includes('xprinter')) {
-      return 17;
+      return 17; // Reducido a 17 para evitar cortes al final
     }
     return labelType === 'barcode' ? 18 : 22;
   }

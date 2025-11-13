@@ -442,43 +442,78 @@ function registerPrinterIpcHandlers() {
                         const len = (text || '').length;
                         return Math.max(0, Math.floor((labelWidth - (w * len)) / 2));
                     };
-                    // Improved wrap function that respects word boundaries and allows more lines
+                    // Improved wrap function: 17 caracteres por línea, corta palabras si no caben
                     const wrap = (text, fontNum, maxDots) => {
-                        const w = charWidth[fontNum] || 10;
-                        // Allow more characters per line (at least 20 chars for font 3)
-                        const maxChars = Math.max(20, Math.floor(maxDots / w));
+                        const maxChars = 17; // Límite fijo de 17 caracteres por línea (reducido para evitar cortes)
                         const words = (text || '').trim().split(/\s+/);
                         const out = [];
                         let line = '';
                         for (const word of words) {
-                            const testLine = line ? line + ' ' + word : word;
-                            if (testLine.length <= maxChars) {
-                                line = testLine;
-                            }
-                            else {
-                                if (line)
+                            // Si la palabra sola es más larga que el límite, cortarla
+                            if (word.length > maxChars) {
+                                // Guardar la línea actual si tiene contenido
+                                if (line) {
                                     out.push(line);
-                                // If a single word is too long, split it (shouldn't happen normally)
-                                if (word.length > maxChars) {
-                                    let i = 0;
-                                    while (i < word.length) {
-                                        out.push(word.substring(i, i + maxChars));
-                                        i += maxChars;
-                                    }
                                     line = '';
                                 }
+                                // Cortar la palabra en trozos de maxChars
+                                let i = 0;
+                                while (i < word.length && out.length < 3) {
+                                    const chunk = word.substring(i, i + maxChars);
+                                    out.push(chunk);
+                                    i += maxChars;
+                                }
+                            }
+                            else {
+                                // Intentar agregar la palabra a la línea actual
+                                const testLine = line ? line + ' ' + word : word;
+                                if (testLine.length <= maxChars) {
+                                    line = testLine;
+                                }
                                 else {
-                                    line = word;
+                                    // La palabra no cabe, guardar línea actual y empezar nueva
+                                    if (line) {
+                                        out.push(line);
+                                        line = '';
+                                    }
+                                    // Si ya tenemos 3 líneas, intentar agregar a la última
+                                    if (out.length >= 3) {
+                                        const lastLine = out[out.length - 1];
+                                        const testLastLine = lastLine + ' ' + word;
+                                        if (testLastLine.length <= maxChars) {
+                                            out[out.length - 1] = testLastLine;
+                                        }
+                                        // Si no cabe en la última, simplemente no la agregamos (ya tenemos 3 líneas)
+                                    }
+                                    else {
+                                        line = word;
+                                    }
                                 }
                             }
                         }
-                        if (line)
+                        if (line && out.length < 3) {
                             out.push(line);
-                        // Allow up to 4 lines for product names
-                        return out.slice(0, 4);
+                        }
+                        else if (line && out.length === 3) {
+                            // Intentar agregar a la última línea si cabe
+                            const lastLine = out[out.length - 1];
+                            const testLastLine = lastLine + ' ' + line;
+                            if (testLastLine.length <= maxChars) {
+                                out[out.length - 1] = testLastLine;
+                            }
+                        }
+                        // Asegurar que tenemos máximo 3 líneas
+                        return out.slice(0, 3);
                     };
                     const texts = printData.filter(i => i.type === 'text').map(i => (i.value || '').toString());
-                    const nameTexts = texts.filter(t => t && !t.includes('Gs.') && !/\b(fabricado|fab:)\b/i.test(t));
+                    const nameTexts = texts.filter(t => {
+                        const lower = (t || '').toLowerCase();
+                        return t &&
+                            !lower.includes('gs.') &&
+                            !/^fab[:]?\s*/i.test(t) &&
+                            !/fabricado/i.test(lower) &&
+                            !/^\d+\/\d+\/\d+/.test(t.trim());
+                    });
                     const nameLinesPrepared = nameTexts.length > 0 ? nameTexts : [];
                     const nameText = nameLinesPrepared.join(' ').trim();
                     // Obtener precio de forma robusta
@@ -488,58 +523,44 @@ function registerPrinterIpcHandlers() {
                         if (candidate)
                             priceText = candidate;
                     }
-                    // Buscar fecha de forma más robusta: "Fab:" o "Fabricado"
-                    let dateText = texts.find(t => /fab[:]?\s*/i.test(t) || /fabricado/i.test(t)) || '';
+                    // Buscar fecha de forma más robusta: "Fab:" o "Fabricado" (solo la primera ocurrencia)
+                    let dateText = texts.find(t => {
+                        const trimmed = (t || '').trim();
+                        return /^fab[:]?\s*/i.test(trimmed) || /^fabricado/i.test(trimmed.toLowerCase());
+                    }) || '';
                     console.log('[EPL] All texts:', texts);
                     console.log('[EPL] Found dateText:', dateText);
                     const barcodeItem = printData.find(i => i.type === 'barCode' || i.type === 'barcode');
                     const qrItem = printData.find(i => i.type === 'qrCode' || i.type === 'qrcode');
                     let epl = 'SIZE 40 mm,40 mm\nGAP 3 mm,0\nCLS\n';
                     let y = 10; // Start closer to top
-                    // Nombre del producto: fuente 3, máx 2 líneas, tope 35mm (280 dots)
+                    // Nombre del producto: fuente 3, máx 3 líneas, tope 35mm (280 dots)
                     const maxDotsForName = 280; // 35mm @ 203dpi
                     let nameLines = [];
-                    if (nameLinesPrepared.length > 0) {
-                        for (const line of nameLinesPrepared) {
-                            const wrapped = wrap(line, 3, Math.min(labelWidth - 12, maxDotsForName));
-                            nameLines.push(...wrapped);
-                        }
-                    }
-                    if (nameLines.length === 0 && nameText) {
+                    // Siempre hacer wrap del texto completo para asegurar que se generen hasta 3 líneas
+                    if (nameText) {
                         nameLines = wrap(nameText, 3, Math.min(labelWidth - 12, maxDotsForName));
                     }
-                    if (nameLines.length === 1 && nameLines[0].length > Math.floor(maxDotsForName / (charWidth[3] || 10))) {
-                        const firstLineWords = nameLines[0].split(/\s+/);
-                        if (firstLineWords.length > 1) {
-                            const lastWord = firstLineWords.pop();
-                            nameLines[0] = firstLineWords.join(' ');
-                            if (lastWord) {
-                                nameLines.splice(1, 0, lastWord);
-                            }
-                        }
-                    }
-                    nameLines = nameLines.filter(l => !!l).slice(0, 2);
+                    nameLines = nameLines.filter(l => !!l).slice(0, 3);
                     for (const line of nameLines) {
                         const x = Math.max(0, centerX(line, 3) - 16);
                         epl += `TEXT ${x},${y},"3",0,1,1,"${line.replace(/"/g, '\\"')}"\n`;
                         y += (lineHeight[3] || 18) + 6;
                     }
-                    // Add extra space after name
-                    y += 10;
-                    // Bajar precio 5mm (agregar 40 dots de espacio) y luego subir 1mm (restar 8 dots)
-                    y += 40;
-                    y -= 8; // subir precio 1mm
+                    // Add extra space after name (reducido para subir precio 2mm)
+                    y += 6;
+                    // Bajar precio menos para subirlo 2mm (reducir de 40 a 24 dots)
+                    y += 24;
                     if (priceText) {
                         // Centrar y mover 4mm a la izquierda (~32 dots)
                         let x = centerX(priceText, 4) - 32;
                         if (x < 0)
                             x = 0;
                         epl += `TEXT ${x},${y},"4",0,1,1,"${priceText.replace(/"/g, '\\"')}"\n`;
-                        y += (lineHeight[4] || 26) + 12; // más espacio antes de la fecha
+                        y += (lineHeight[4] || 26) + 8; // menos espacio antes de la fecha
                     }
-                    // Bajar fecha 5mm (agregar 40 dots de espacio) y luego subir 2mm (restar 16 dots)
-                    y += 40;
-                    y -= 16; // subir 2mm
+                    // Bajar fecha menos para subirla 2mm (reducir de 40 a 24 dots)
+                    y += 24;
                     if (dateText) {
                         // Use font 3 (12pt) - más grande que fuente 2
                         const dateLen = dateText.length;
@@ -597,14 +618,15 @@ function registerPrinterIpcHandlers() {
                                 const barcodeHeight = 60; // Height of barcode
                                 // Aproximated width for 40mm label at 203dpi
                                 const barcodeWidth = 200;
-                                const bx = Math.max(0, Math.floor((labelWidth - barcodeWidth) / 2) - 16);
-                                const by = Math.max(180, y + 32);
+                                const bx = Math.max(0, Math.floor((labelWidth - barcodeWidth) / 2));
+                                const by = Math.max(180, y + 16);
                                 const escapedBarcode = barcodeVal.replace(/"/g, '\\"');
                                 epl += `BARCODE ${bx},${by},"${commandType}",${barcodeHeight},0,0,2,2,"${escapedBarcode}"\n`;
                                 if (digitsOnlyForText) {
                                     const barcodeTextFont = 2;
                                     const textWidthDots = (charWidth[barcodeTextFont] || 9) * digitsOnlyForText.length;
-                                    const textX = Math.max(0, Math.floor((labelWidth - textWidthDots) / 2));
+                                    // Centrar el texto respecto al código de barras, no respecto a la etiqueta completa
+                                    const textX = Math.max(0, bx + Math.floor((barcodeWidth - textWidthDots) / 2));
                                     const textY = by + barcodeHeight + 8;
                                     epl += `TEXT ${textX},${textY},"2",0,1,1,"${digitsOnlyForText}"\n`;
                                 }

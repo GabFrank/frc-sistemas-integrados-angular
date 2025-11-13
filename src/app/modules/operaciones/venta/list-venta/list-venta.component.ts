@@ -309,12 +309,22 @@ export class ListVentaComponent implements OnInit {
           this.totalRecibidoRs += res.valor;
           this.totalRecibido += res.valor * res.cambio;
           this.totalFinal += res.valor * res.cambio;
+        } else if (res.aumento) {
+          this.totalAumento += res.valor * res.cambio;
+          this.totalFinal += res.valor * res.cambio;
+        } else if (res.descuento) {
+          this.totalDescuento += res.valor * res.cambio;
         }
       } else if (res.moneda.denominacion == "DOLAR") {
         if (res.pago || res.vuelto) {
           this.totalRecibidoDs += res.valor;
           this.totalRecibido += res.valor * res.cambio;
           this.totalFinal += res.valor * res.cambio;
+        } else if (res.aumento) {
+          this.totalAumento += res.valor * res.cambio;
+          this.totalFinal += res.valor * res.cambio;
+        } else if (res.descuento) {
+          this.totalDescuento += res.valor * res.cambio;
         }
       }
     });
