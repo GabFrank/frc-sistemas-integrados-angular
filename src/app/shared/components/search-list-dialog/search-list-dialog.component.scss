@@ -3,93 +3,9 @@ input {
 }
 
 .selected {
-  background-color: #43a047 !important;
-  color: white !important;
-}
-
-.mat-mdc-row.selected {
-  background-color: #43a047 !important;
-}
-
-.mat-mdc-row.selected .mat-mdc-cell {
-  background-color: #43a047 !important;
-  color: white !important;
+  background-color: #43a047;
 }
 
 tr:focus {
   outline: none;
-}
-
-table {
-  width: 100%;
-}
-
-.mat-mdc-cell,
-.mat-mdc-header-cell {
-  word-wrap: initial;
-  display: table-cell;
-  padding: 0px 10px;
-  line-break: unset;
-  white-space: nowrap;
-  overflow: hidden;
-  vertical-align: middle;
-}
-
-.tableRows {
-  height: 48px !important;
-  min-height: 48px !important;
-}
-
-.tableRows:hover {
-  background-color: rgb(51, 51, 51) !important;
-  cursor: pointer;
-}
-
-.mat-mdc-row {
-  height: 48px !important;
-  min-height: 48px !important;
-}
-
-.mat-mdc-header-row {
-  height: 48px !important;
-  min-height: 48px !important;
-}
-
-.search-dialog-container {
-  background-color: rgb(70, 70, 70);
-  color: white;
-}
-
-::ng-deep .search-dialog-container {
-  .mat-mdc-form-field {
-    .mat-mdc-text-field-wrapper {
-      background-color: rgb(70, 70, 70);
-    }
-    .mat-mdc-form-field-label {
-      color: rgba(255, 255, 255, 0.7);
-    }
-    .mat-mdc-input-element {
-      color: white;
-    }
-  }
-
-  .mat-mdc-table {
-    background-color: rgb(70, 70, 70);
-    color: white;
-  }
-
-  .mat-mdc-header-cell {
-    color: white;
-    background-color: rgb(70, 70, 70);
-  }
-
-  .mat-mdc-cell {
-    color: white;
-    background-color: rgb(70, 70, 70);
-  }
-
-  .mat-mdc-paginator {
-    background-color: rgb(70, 70, 70);
-    color: white;
-  }
 }

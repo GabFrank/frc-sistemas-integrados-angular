@@ -1,11 +1,8 @@
-<div #container fxLayout="column" style="width: 100%; height: 100%; padding: 10px" fxLayoutGap="10px" class="search-dialog-container">
-  <!-- Título centrado -->
-  <div style="width: 100%; text-align: center; margin-bottom: 20px;">
-    <h3 style="margin: 0;">{{ data.titulo }}</h3>
+<div #container fxLayout="column" style="width: 100%; height: 100%; padding: 10px" fxLayoutGap="10px">
+  <div style="width: 100%; text-align: center; font-size: large">
+    {{ data.titulo }}
   </div>
-  
-  <!-- Barra de búsqueda -->
-  <div fxLayout="row" style="width: 100%; margin-bottom: 20px;" fxLayoutGap="10px">
+  <div fxLayout="row" style="width: 100%" fxLayoutGap="10px">
     <div fxFlex="80%" style="width: 100%">
       <mat-form-field style="width: 100%">
         <mat-label>Buscar</mat-label>
@@ -21,73 +18,47 @@
       </button>
     </div>
   </div>
-  
-  <!-- Tabla -->
-  <div fxFlex fxLayout="column" fxLayoutAlign="space-between start" style="min-height: 300px;">
-    <div fxFlex style="width: 100%; overflow: auto; min-height: 300px;">
-      <table mat-table #table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%;">
-        <ng-container matColumnDef="id">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">Id</th>
-          <td mat-cell *matCellDef="let element" style="text-align: center">{{ element?.id }}</td>
+  <div fxFlex fxLayout="column" fxLayoutAlign="space-between center">
+    <div fxFlex style="width: 100%; overflow: auto">
+      <table mat-table #table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%">
+        <ng-container *ngFor="let item of data?.tableData">
+          <ng-container [matColumnDef]="
+              item?.nestedColumnId != null ? item?.nestedColumnId : item?.id
+            ">
+            <ng-container *ngIf="item?.nested == true">
+              <th [style.width]="item?.width" mat-header-cell *matHeaderCellDef>
+                {{ item["nombre"] }}
+              </th>
+              <td [style.width]="item?.width" mat-cell *matCellDef="let element">
+                {{ element[item?.nestedId][item.id] }}
+              </td>
+            </ng-container>
+            <ng-container *ngIf="item?.nested != true">
+              <th [style.width]="item?.width" mat-header-cell *matHeaderCellDef>
+                {{ item["nombre"] }}
+              </th>
+              <td [style.width]="item?.width" mat-cell *matCellDef="let element">
+                {{ element[item.id] }}
+              </td>
+            </ng-container>
+          </ng-container>
         </ng-container>
 
-        <ng-container matColumnDef="nombre">
-          <th mat-header-cell *matHeaderCellDef style="text-align: start">Nombre</th>
-          <td mat-cell *matCellDef="let element" style="text-align: start">
-            <span *ngIf="getNestedValue(element, 'nombre')">{{ getNestedValue(element, 'nombre') | uppercase }}</span>
-            <span *ngIf="!getNestedValue(element, 'nombre') && element?.nombre">{{ element?.nombre | uppercase }}</span>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="descripcion">
-          <th mat-header-cell *matHeaderCellDef style="text-align: center">Ciudad</th>
-          <td mat-cell *matCellDef="let element" style="text-align: center">
-            <span *ngIf="element?.ciudad?.descripcion">{{ element?.ciudad?.descripcion | uppercase }}</span>
-            <span *ngIf="!element?.ciudad?.descripcion && element?.descripcion">{{ element?.descripcion | uppercase }}</span>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="codigo">
-          <th mat-header-cell *matHeaderCellDef>Código</th>
-          <td mat-cell *matCellDef="let element">{{ element?.codigo }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="documento">
-          <th mat-header-cell *matHeaderCellDef style="text-align: end">Documento</th>
-          <td mat-cell *matCellDef="let element" style="text-align: end">
-            <span *ngIf="getNestedValue(element, 'documento')">{{ getNestedValue(element, 'documento') | uppercase }}</span>
-            <span *ngIf="!getNestedValue(element, 'documento') && element?.documento">{{ element?.documento | uppercase }}</span>
-          </td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="displayedColumns" style="height: 48px;"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns; let i = dataIndex" (click)="onRowSelect(row)"
-          (keyup.enter)="onRowSelect(row)" [class.selected]="selectedItem == row" class="tableRows" #tableRows
-          tabindex="0" style="height: 48px; cursor: pointer;"></tr>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns" (click)="onRowSelect(row)"
+          (keyup.enter)="onRowSelect(row)" [class.selected]="selectedItem == row" #tableRows tabindex="0"></tr>
       </table>
     </div>
-    
-    <!-- Paginación -->
-    <mat-paginator 
-      *ngIf="data?.paginator || selectedPageInfo" 
-      itemsPerPageLabel="Items per page:" 
-      [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)" 
-      [length]="selectedPageInfo?.getTotalElements || 0" 
-      [pageSize]="pageSize"
-      [pageIndex]="pageIndex" 
-      style="width: 100%" 
-      showFirstLastButtons>
-    </mat-paginator>
-    
-    <!-- Botones de acción -->
-    <div style="width: 100%; text-align: center; margin-top: 20px;">
-      <button mat-raised-button (click)="onCancelar()" color="warn" style="width: 200px; margin-right: 20px;">
+    <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements" style="width: 100%"
+      showFirstLastButtons></mat-paginator>
+    <br />
+    <div style="width: 100%; text-align: center">
+      <button mat-raised-button (click)="onCancelar()" color="primary" style="width: 200px">
         Cancelar
       </button>
-      <button mat-raised-button (click)="onAceptar()" [disabled]="selectedItem == null"
-        [style.background-color]="selectedItem != null ? '#43a047' : '#424242'"
-        style="width: 200px; color: white;">
+      <button mat-raised-button (click)="onAceptar()" color="accent" [disabled]="selectedItem == null"
+        style="width: 200px; margin-left: 20px">
         Aceptar
       </button>
     </div>

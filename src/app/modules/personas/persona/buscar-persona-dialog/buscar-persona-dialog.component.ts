@@ -1,110 +1,95 @@
+import { trigger, state, style, transition, animate } from "@angular/animations";
 import { Component, Inject, OnInit } from "@angular/core";
 import { FormControl } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
 import { Persona } from "../persona.model";
 import { PersonaService } from "../persona.service";
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { PageInfo } from "../../../../app.component";
-import { PageEvent } from "@angular/material/paginator";
 
 export class BuscarPersonaData {
   persona?: Persona;
-  isAdicionar?: boolean;
 }
+
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-buscar-persona-dialog",
   templateUrl: "./buscar-persona-dialog.component.html",
-  styleUrls: ["./buscar-persona-dialog.component.scss"]
+  styleUrls: ["./buscar-persona-dialog.component.scss"],
+  animations: [
+    trigger("detailExpand", [
+      state("collapsed", style({ height: "0px", minHeight: "0" })),
+      state("expanded", style({ height: "*" })),
+      transition(
+        "expanded <=> collapsed",
+        animate("225ms cubic-bezier(0.4, 0.0, 0.2, 1)")
+      ),
+    ]),
+  ],
 })
 export class BuscarPersonaDialogComponent implements OnInit {
   buscarControl = new FormControl();
   dataSource = new MatTableDataSource<Persona>();
-  selectedRowIndex: number = -1;
-  selectedPersona: Persona | null = null;
+  selectedRowIndex;
+  expandedPersona: Persona;
   isSearching = false;
-  onSearchTimer: any;
-  selectedPageInfo: PageInfo<Persona>;
-  pageSize = 15;
-  pageIndex = 0;
+  onSearchTimer;
 
   displayedColumns = [
     "id",
     "nombre",
-    "documento"
+    "apodo",
+    "vinculo",
+    "documento",
+    "telefono",
+    "creadoEn",
+    "creadoPor",
   ];
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: BuscarPersonaData,
     private matDialogRef: MatDialogRef<BuscarPersonaDialogComponent>,
     private personaService: PersonaService
-  ) {
-    if (this.data?.isAdicionar == null) {
-      this.data.isAdicionar = true;
-    }
-  }
+  ) {}
 
   ngOnInit(): void {
-    // No buscar automáticamente al iniciar
+    this.buscarControl.valueChanges.pipe(untilDestroyed(this)).subscribe((value) => {
+      if (value != null) this.onSearchPersona(value);
+    });
   }
 
-  onSearchPersona(text: string) {
+  keydownEvent(e) {}
+
+  onSearchPersona(text: string, offset?: number) {
     this.isSearching = true;
     if (this.onSearchTimer != null) {
       clearTimeout(this.onSearchTimer);
     }
-    if (text == "" || text == null || text == " " || text.trim() == "") {
-      this.dataSource.data = [];
+    if (text == "" || text == null || text == " ") {
+      this.dataSource != undefined ? (this.dataSource.data = []) : null;
       this.isSearching = false;
-      this.selectedPageInfo = null;
-      return;
-    }
-    
-    this.onSearchTimer = setTimeout(() => {
-      this.personaService.onSearch(text).pipe(untilDestroyed(this)).subscribe((res) => {
-        if (res && Array.isArray(res)) {
+    } else {
+      this.onSearchTimer = setTimeout(() => {
+        this.personaService.onSearch(text).pipe(untilDestroyed(this)).subscribe((res) => {
           this.dataSource.data = res;
-          // Crear un PageInfo básico para la paginación
-          this.selectedPageInfo = new PageInfo<Persona>();
-          this.selectedPageInfo.getContent = res;
-          this.selectedPageInfo.getTotalElements = res.length;
-          this.selectedPageInfo.getNumberOfElements = res.length;
-        } else {
-          this.dataSource.data = [];
-          this.selectedPageInfo = null;
-        }
-        this.isSearching = false;
-      });
-    }, 500);
-  }
-
-  onSelectRow(row: Persona, index: number) {
-    this.selectedRowIndex = index;
-    this.selectedPersona = row;
-  }
-
-  onAceptar() {
-    if (this.selectedPersona) {
-      this.matDialogRef.close(this.selectedPersona);
+          this.isSearching = false;
+        });
+      }, 1000);
     }
   }
 
-  onCancelar() {
-    this.matDialogRef.close();
-  }
-
-  onAdicionar() {
-    this.matDialogRef.close({ adicionar: true });
-  }
-
-  handlePageEvent(e: PageEvent) {
-    this.pageIndex = e.pageIndex;
-    this.pageSize = e.pageSize;
-    // Si hay texto de búsqueda, buscar de nuevo con la nueva página
-    if (this.buscarControl.value) {
-      this.onSearchPersona(this.buscarControl.value);
+  highlight(index: number) {
+    if (index >= 0 && index <= this.dataSource.data.length - 1) {
+      this.selectedRowIndex = index;
+      this.expandedPersona = this.dataSource.data[index];
+      this.getPersonaDetail(this.expandedPersona, index);
     }
   }
+
+  onSelectRow(row: Persona){
+    this.matDialogRef.close(row);
+  }
+
+  getPersonaDetail(persona?: Persona, index?) {}
 }
