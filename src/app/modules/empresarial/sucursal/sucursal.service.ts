@@ -205,7 +205,7 @@ export class SucursalService {
   openSearchDialog(title?: string, message?: string, servidor: boolean = true): Observable<Sucursal> {
     return new Observable((obs) => {
       const dialogData = new SearchListtDialogData();
-      dialogData.titulo = title || 'Seleccionar Sucursal';
+      dialogData.titulo = title || 'Seleccionar sucursal';
       dialogData.query = this.sucursalesSearch;
       dialogData.tableData = [
         { id: 'id', nombre: 'Id', width: '5%' },
@@ -218,12 +218,14 @@ export class SucursalService {
       dialogData.isServidor = servidor;
       dialogData.searchFieldName = 'texto';
       dialogData.queryData = { texto: '%' };
+      dialogData.isAdicionar = false;
 
       const dialogRef = this.matDialog.open(SearchListDialogComponent, {
         data: dialogData,
         height: '80vh',
         width: '70vw',
-        restoreFocus: true
+        restoreFocus: true,
+        panelClass: 'search-dialog-dark'
       });
 
       dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe((result: Sucursal) => {

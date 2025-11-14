@@ -470,6 +470,7 @@ export class ListCajaComponent implements OnInit {
       query: this.searchSucursal,
       inicialSearch: true,
       texto: texto,
+      isAdicionar: false,
     };
     this.matDialog
       .open(SearchListDialogComponent, {
@@ -477,6 +478,7 @@ export class ListCajaComponent implements OnInit {
         height: "80vh",
         width: "70vw",
         restoreFocus: true,
+        panelClass: 'search-dialog-dark'
       })
       .afterClosed()
       .pipe(untilDestroyed(this))
