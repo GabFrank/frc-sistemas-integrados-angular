@@ -96,6 +96,11 @@ export class ListSucursalComponent implements OnInit {
       this.pageIndex = 0;
       this.onFiltrar();
     })
+
+    this.activoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(res => {
+      this.pageIndex = 0;
+      this.onFiltrar();
+    })
   }
 
   onFiltrar() {
