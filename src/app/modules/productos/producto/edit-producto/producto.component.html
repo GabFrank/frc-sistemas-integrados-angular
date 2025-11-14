@@ -1019,14 +1019,13 @@
               <button
                 style="width: 100px; margin-right: 10px"
                 mat-raised-button
-                matStepperNext
                 type="button"
                 [disabled]="
                   datosGeneralesControl.controls.descripcion.value == null ||
                   datosGeneralesControl.controls.descripcion.value == ''
                 "
                 [class.selectedRow]="datosGeneralesControl.valid"
-                (click)="onProductoSave()"
+                (click)="onDatosGeneralesNext()"
               >
                 Siguiente
               </button>

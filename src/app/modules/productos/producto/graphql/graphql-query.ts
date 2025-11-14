@@ -681,6 +681,12 @@ export const imprimirCodigoBarraQuery = gql`
   }
 `;
 
+export const productoDescripcionExistsQuery = gql`
+  query ($descripcion: String) {
+    data: productoDescripcionExists(descripcion: $descripcion)
+  }
+`;
+
 export const exportarReporteConFiltrosQuery = gql`
     query (
       $texto: String, 

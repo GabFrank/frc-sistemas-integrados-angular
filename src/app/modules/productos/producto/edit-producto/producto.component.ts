@@ -88,6 +88,7 @@ export class ProductoDialogData {
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { PageInfo } from "../../../../app.component";
 import { dateToString } from "../../../../commons/core/utils/dateUtils";
+import { ProductoDuplicadoDialogComponent } from "../producto-duplicado-dialog.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -552,6 +553,7 @@ export class ProductoComponent implements OnInit, OnDestroy {
         .subscribe((res) => {
           if (res != null) {
             this.selectedProducto = res;
+            this.stepper.next();
           } else {
             this.stepper.previous();
             setTimeout(() => {
@@ -560,6 +562,51 @@ export class ProductoComponent implements OnInit, OnDestroy {
           }
         });
     }
+  }
+
+  onDatosGeneralesNext() {
+    const controlDescripcion = this.datosGeneralesControl.controls.descripcion;
+    const descripcion: string = controlDescripcion.value;
+
+    if (!descripcion || !this.datosGeneralesControl.valid) {
+      return;
+    }
+
+    const descripcionUpper = descripcion.toUpperCase();
+
+    if (
+      this.selectedProducto &&
+      this.selectedProducto.descripcion === descripcionUpper
+    ) {
+      this.onProductoSave();
+      return;
+    }
+
+    this.productoService
+      .onProductoDescripcionExists(descripcionUpper)
+      .pipe(untilDestroyed(this))
+      .subscribe(
+        (exists: boolean) => {
+          if (exists === true) {
+            this.matDialog.open(ProductoDuplicadoDialogComponent, {
+              data: { descripcion: descripcionUpper },
+            }).afterClosed().pipe(untilDestroyed(this)).subscribe(() => {
+              setTimeout(() => {
+                this.nombreInput.nativeElement.focus();
+              }, 150);
+            });
+          } else {
+            this.onProductoSave();
+          }
+        },
+        () => {
+          this.notifiActionBar.notification$.next({
+            texto: "No se pudo validar el nombre del producto",
+            color: NotificacionColor.warn,
+            duracion: 4,
+          });
+        }
+      );
   }
   // funciones datos generales
 
