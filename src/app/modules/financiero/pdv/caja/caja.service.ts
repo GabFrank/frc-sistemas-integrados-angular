@@ -80,18 +80,21 @@ export class CajaService {
     size: number,
     servidor: boolean = true
   ) {
-    return this.genericService.onCustomQuery(this.cajasWithFilters, {
-      cajaId,
-      estado,
-      maletinId,
-      cajeroId,
-      fechaInicio: dateToString(fechaInicio),
-      fechaFin: dateToString(fechaFin),
-      sucId,
-      verificado,
-      page,
-      size
-    }, servidor);
+    // Preparar los parámetros, convirtiendo null/undefined a null explícitamente
+    const queryParams: any = {
+      cajaId: cajaId || null,
+      estado: estado || null,
+      maletinId: maletinId || null,
+      cajeroId: cajeroId || null,
+      fechaInicio: fechaInicio ? dateToString(fechaInicio) : null,
+      fechaFin: fechaFin ? dateToString(fechaFin) : null,
+      sucId: sucId || null,
+      verificado: verificado !== null && verificado !== undefined ? verificado : null,
+      page: page || 0,
+      size: size || 15
+    };
+    
+    return this.genericService.onCustomQuery(this.cajasWithFilters, queryParams, servidor);
   }
 
   onGetCajasAnalisisDiferencias(

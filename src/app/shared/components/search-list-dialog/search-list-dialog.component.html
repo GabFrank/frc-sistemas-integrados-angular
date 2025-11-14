@@ -33,14 +33,17 @@
 
         <ng-container matColumnDef="nombre">
           <th mat-header-cell *matHeaderCellDef style="text-align: start">Nombre</th>
-          <td mat-cell *matCellDef="let element" style="text-align: start">{{ element?.nombre }}</td>
+          <td mat-cell *matCellDef="let element" style="text-align: start">
+            <span *ngIf="getNestedValue(element, 'nombre')">{{ getNestedValue(element, 'nombre') | uppercase }}</span>
+            <span *ngIf="!getNestedValue(element, 'nombre') && element?.nombre">{{ element?.nombre | uppercase }}</span>
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="descripcion">
           <th mat-header-cell *matHeaderCellDef style="text-align: center">Ciudad</th>
           <td mat-cell *matCellDef="let element" style="text-align: center">
-            <span *ngIf="element?.ciudad">{{ element?.ciudad?.nombre || element?.ciudad }}</span>
-            <span *ngIf="!element?.ciudad">{{ element?.descripcion }}</span>
+            <span *ngIf="element?.ciudad?.descripcion">{{ element?.ciudad?.descripcion | uppercase }}</span>
+            <span *ngIf="!element?.ciudad?.descripcion && element?.descripcion">{{ element?.descripcion | uppercase }}</span>
           </td>
         </ng-container>
 
@@ -50,8 +53,11 @@
         </ng-container>
 
         <ng-container matColumnDef="documento">
-          <th mat-header-cell *matHeaderCellDef>Documento</th>
-          <td mat-cell *matCellDef="let element">{{ element?.documento }}</td>
+          <th mat-header-cell *matHeaderCellDef style="text-align: end">Documento</th>
+          <td mat-cell *matCellDef="let element" style="text-align: end">
+            <span *ngIf="getNestedValue(element, 'documento')">{{ getNestedValue(element, 'documento') | uppercase }}</span>
+            <span *ngIf="!getNestedValue(element, 'documento') && element?.documento">{{ element?.documento | uppercase }}</span>
+          </td>
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="displayedColumns" style="height: 48px;"></tr>
@@ -80,7 +86,8 @@
         Cancelar
       </button>
       <button mat-raised-button (click)="onAceptar()" [disabled]="selectedItem == null"
-        style="width: 200px; background-color: #424242; color: white;">
+        [style.background-color]="selectedItem != null ? '#43a047' : '#424242'"
+        style="width: 200px; color: white;">
         Aceptar
       </button>
     </div>

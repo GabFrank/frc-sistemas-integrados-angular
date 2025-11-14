@@ -177,40 +177,38 @@ export class ListCajaComponent implements OnInit {
   }
 
   onFilter() {
-    console.log('Debug - onFilter llamado');
-    console.log('Debug - selectedSucursal:', this.selectedSucursal);
-    console.log('Debug - selectedSucursal.id:', this.selectedSucursal?.id);
-    console.log('Debug - selectedCajero:', this.selectedCajero);
-    console.log('Debug - selectedMaletin:', this.selectedMaletin);
-    console.log('Debug - Parámetros enviados:', {
-      codigo: this.codigoControl.value,
-      estado: this.estadoControl.value,
-      maletinId: this.selectedMaletin?.id,
-      cajeroId: this.selectedCajero?.id,
-      fechaInicio: this.fechaInicioControl.value,
-      fechaFinal: this.fechaFinalControl.value,
-      sucursalId: this.selectedSucursal?.id,
-      verificado: this.verificadoControl.value,
-      pageIndex: this.pageIndex,
-      pageSize: this.pageSize
-    });
+
+    // Asegurar que sucursalId sea un número
+    let sucursalId: number = null;
+    if (this.selectedSucursal?.id != null) {
+      sucursalId = typeof this.selectedSucursal.id === 'string' 
+        ? parseInt(this.selectedSucursal.id, 10) 
+        : this.selectedSucursal.id;
+    }
+    
+    // Asegurar que otros IDs sean números o null/undefined
+    const maletinId = this.selectedMaletin?.id != null 
+      ? (typeof this.selectedMaletin.id === 'string' ? parseInt(this.selectedMaletin.id, 10) : this.selectedMaletin.id)
+      : null;
+    const cajeroId = this.selectedCajero?.id != null
+      ? (typeof this.selectedCajero.id === 'string' ? parseInt(this.selectedCajero.id, 10) : this.selectedCajero.id)
+      : null;
 
     this.cajaService
       .onGetCajasWithFilters(
         this.codigoControl.value,
         this.estadoControl.value,
-        this.selectedMaletin?.id,
-        this.selectedCajero?.id,
+        maletinId,
+        cajeroId,
         this.fechaInicioControl.value,
         this.fechaFinalControl.value,
-        this.selectedSucursal?.id,
+        sucursalId,
         this.verificadoControl.value,
         this.pageIndex,
         this.pageSize
       )
       .pipe(untilDestroyed(this))
       .subscribe((res: PageInfo<PdvCaja>) => {
-        console.log('Debug - Respuesta del servicio:', res);
         if (res != null) {
           this.dataSource.data = [];
           this.dataSource.data = res.getContent;
@@ -218,7 +216,6 @@ export class ListCajaComponent implements OnInit {
           let cajas: PdvCaja[] = res.getContent;
           cajas = this.onObservado(cajas);  // Marca las cajas que tienen observación
           this.dataSource.data = cajas; 
-          console.log('Debug - Cajas mostradas:', cajas.length);
         }
       });
   }
@@ -425,7 +422,6 @@ export class ListCajaComponent implements OnInit {
     }
     
     // Llamar automáticamente el filtro cuando se selecciona maletin
-    console.log('Debug - Maletin seleccionado, llamando onFilter()');
     this.onFilter();
   }
 
@@ -441,7 +437,6 @@ export class ListCajaComponent implements OnInit {
     }
     
     // Llamar automáticamente el filtro cuando se selecciona cajero
-    console.log('Debug - Cajero seleccionado, llamando onFilter()');
     this.onFilter();
   }
 
@@ -491,12 +486,15 @@ export class ListCajaComponent implements OnInit {
   }
 
   onSelectSucursal(sucursal: Sucursal) {
-    this.sucursalCodigoControl.setValue(sucursal.id);
+    // Asegurar que el ID sea un número
+    const sucursalId = typeof sucursal.id === 'string' ? parseInt(sucursal.id, 10) : sucursal.id;
+    this.sucursalCodigoControl.setValue(sucursalId);
     this.sucursalControl.setValue(sucursal.nombre);
     this.selectedSucursal = sucursal;
+    // Asegurar que el ID en el objeto sea número
+    this.selectedSucursal.id = sucursalId;
     
     // Llamar automáticamente el filtro cuando se selecciona sucursal
-    console.log('Debug - Sucursal seleccionada, llamando onFilter()');
     this.onFilter();
   }
 

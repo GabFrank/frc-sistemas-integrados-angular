@@ -63,7 +63,6 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     private genericCrudService: GenericCrudService,
     private cdr: ChangeDetectorRef
   ) {
-    console.log('Inicializando search-list-dialog con data:', data);
     if (data?.inicialData != null) {
       this.dataSource.data = data.inicialData;
     }
@@ -72,9 +71,17 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     }
     const searchField = data?.searchFieldName || 'texto';
     if (data?.queryData?.[searchField] != null) {
-      this.buscarControl.setValue(data.queryData[searchField])
+      const queryValue = data.queryData[searchField];
+      // No mostrar '%' en el input
+      if (queryValue && queryValue !== '%') {
+        this.buscarControl.setValue(queryValue);
+      }
     } else if (data?.queryData?.texto != null) {
-      this.buscarControl.setValue(data?.queryData?.texto)
+      const queryValue = data.queryData.texto;
+      // No mostrar '%' en el input
+      if (queryValue && queryValue !== '%') {
+        this.buscarControl.setValue(queryValue);
+      }
     }
   }
 
@@ -89,7 +96,6 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
       }
     })
 
-    console.log('Columnas a mostrar en ngOnInit:', this.displayedColumns);
     if (this.displayedColumns.length === 0) {
       this.displayedColumns = ['id', 'nombre'];
     }
@@ -100,11 +106,13 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
       }
       const searchField = this.data?.searchFieldName || 'texto';
       if (!this.buscarControl.value && this.data?.queryData?.[searchField]) {
-        this.buscarControl.setValue(this.data.queryData[searchField]);
+        const queryValue = this.data.queryData[searchField];
+        // No mostrar '%' en el input, pero usarlo internamente para la búsqueda
+        if (queryValue && queryValue !== '%') {
+          this.buscarControl.setValue(queryValue);
+        }
       }
-      if (!this.buscarControl.value) {
-        this.buscarControl.setValue('%');
-      }
+      // No establecer '%' en el input, pero usarlo internamente para la búsqueda inicial
       setTimeout(() => {
         this.onSearch();
       }, 100);
@@ -149,11 +157,18 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     if (!this.queryData) {
       this.queryData = {};
     }
+    // Si el input está vacío o es null, usar '%' internamente para búsqueda inicial
+    // pero no mostrarlo en el input
     if (text != null && text.trim() !== '' && text.trim() !== '%') {
       text = text.toUpperCase();
       this.queryData[searchField] = text;
     } else {
+      // Usar '%' internamente para búsqueda inicial, pero mantener el input vacío
       this.queryData[searchField] = '%';
+      // Asegurar que el input no muestre '%'
+      if (this.buscarControl.value === '%') {
+        this.buscarControl.setValue('');
+      }
     }
 
     if (this.data?.paginator == true) {
@@ -164,22 +179,14 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     this.genericCrudService
       .onCustomQuery(this.data.query, this.queryData, this.data.isServidor).pipe(untilDestroyed(this))
       .subscribe((res) => {
-        console.log('Respuesta recibida en search-list-dialog:', res);
         if (res != null) {
           if (this.data?.paginator == true) {
             this.selectedPageInfo = res;
             const content = res?.getContent || [];
-            console.log('Contenido a mostrar en tabla:', content);
-            console.log('Total elementos:', res?.getTotalElements);
-            console.log('Tipo de content:', typeof content, Array.isArray(content));
-            console.log('displayedColumns:', this.displayedColumns);
-            console.log('Primer elemento del content:', content.length > 0 ? content[0] : 'Sin datos');
             this.dataSource.data = content;
             if (typeof (this.dataSource as any)._updateChangeSubscription === 'function') {
               (this.dataSource as any)._updateChangeSubscription();
             }
-            console.log('DataSource.data después de asignar:', this.dataSource.data);
-            console.log('DataSource.data.length:', this.dataSource.data.length);
             setTimeout(() => {
               this.cdr.detectChanges();
               if (this.table) {
@@ -187,7 +194,17 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
               }
             }, 0);
           } else {
-            this.dataSource.data = res || [];
+            // Si la respuesta tiene estructura de página pero no usamos paginador, extraer el contenido
+            if (res && typeof res === 'object' && 'getContent' in res) {
+              this.dataSource.data = res.getContent || [];
+              // También establecer selectedPageInfo para la paginación visual
+              this.selectedPageInfo = res;
+            } else if (Array.isArray(res)) {
+              this.dataSource.data = res;
+            } else {
+              this.dataSource.data = [];
+            }
+            
             if (typeof (this.dataSource as any)._updateChangeSubscription === 'function') {
               (this.dataSource as any)._updateChangeSubscription();
             }
@@ -202,7 +219,6 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
             }, 0);
           }
         } else {
-          console.log('Respuesta es null');
           this.dataSource.data = [];
         }
       });
@@ -231,6 +247,25 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
     this.onSearch();
   }
 
-
+  getNestedValue(element: any, columnId: string): any {
+    if (!element || !this.data?.tableData) {
+      return null;
+    }
+    
+    // Buscar la configuración de la columna
+    const columnConfig = this.data.tableData.find(col => col.id === columnId);
+    
+    if (columnConfig?.nested && columnConfig?.nestedId) {
+      // Si es un campo anidado, acceder al objeto anidado
+      const nestedObject = element[columnConfig.nestedId];
+      if (nestedObject) {
+        // Si hay un nestedColumnId específico, usarlo, sino usar el columnId
+        const fieldName = columnConfig.nestedColumnId || columnId;
+        return nestedObject[fieldName];
+      }
+    }
+    
+    return null;
+  }
 
 }

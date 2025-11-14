@@ -3,7 +3,17 @@ input {
 }
 
 .selected {
-  background-color: #43a047;
+  background-color: #43a047 !important;
+  color: white !important;
+}
+
+.mat-mdc-row.selected {
+  background-color: #43a047 !important;
+}
+
+.mat-mdc-row.selected .mat-mdc-cell {
+  background-color: #43a047 !important;
+  color: white !important;
 }
 
 tr:focus {
