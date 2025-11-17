@@ -12,6 +12,7 @@ import { MatSnackBar } from "@angular/material/snack-bar";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { GenericCrudService } from "./generics/generic-crud.service";
 import { MainService } from "./main.service";
+import { ElectronService } from "./commons/core/electron/electron.service";
 import { ConfiguracionService } from "./shared/services/configuracion.service";
 import { LoginComponent } from "./modules/login/login.component";
 import {
@@ -78,6 +79,7 @@ export class AppComponent implements OnInit, OnDestroy {
     private snackBar: MatSnackBar,
     private matDialog: MatDialog,
     public mainService: MainService,
+    private electronService: ElectronService,
     public genericService: GenericCrudService,
     private configService: ConfiguracionService,
     public cargandoService: CargandoDialogService,
@@ -129,6 +131,7 @@ export class AppComponent implements OnInit, OnDestroy {
   async ngOnInit(): Promise<void> {
     console.log("on init de la app");
     console.log("Cargando configuración: verificando localStorage, archivo de backup y configuración por defecto");
+    console.log('[FCM] AppComponent.ngOnInit - isElectron =', this.electronService?.isElectron);
 
     this.overlay.getContainerElement().classList.add("darkMode");
     
@@ -233,6 +236,16 @@ export class AppComponent implements OnInit, OnDestroy {
   private initializeApp(): void {
     // Load main service data
     this.mainService.load();
+
+    // Inicializar notificaciones push FCM en entorno Electron
+    if (this.electronService && this.electronService.isElectron) {
+      console.log('[FCM] initializeApp - calling electronService.initPushNotifications()');
+      this.electronService.initPushNotifications((token) => {
+        console.log('[FCM] Token callback from initPushNotifications, token =', token);
+      });
+    } else {
+      console.log('[FCM] initializeApp - not in Electron, skipping initPushNotifications');
+    }
     
     // Open login dialog
     this.matDialog

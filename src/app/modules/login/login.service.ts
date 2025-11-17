@@ -106,6 +106,7 @@ export class LoginService {
                           deviceId = uuid;
                         }
                         inicioSesion.idDispositivo = deviceId;
+                        inicioSesion.token = localStorage.getItem("pushToken");
 
                         if (
                           res?.inicioSesion != null &&
@@ -113,6 +114,8 @@ export class LoginService {
                           res?.inicioSesion?.sucursal != null
                         ) {
                           console.log("Dispositivo conocido encontrado");
+                          // Enviar notificación incluso si es un dispositivo conocido
+                          this.enviarNotificacionLogin(serverIp, serverPort, res);
                         } else {
                           if (this.mainService)
                             console.log("Nuevo disposito encontrado");
@@ -121,6 +124,8 @@ export class LoginService {
                             .subscribe((res) => {
                               console.log(res);
                               this.mainService.usuarioActual.inicioSesion = res;
+                              // Enviar notificación después de guardar inicio de sesión
+                              this.enviarNotificacionLogin(serverIp, serverPort, res);
                             });
                         }
 
@@ -129,7 +134,6 @@ export class LoginService {
                           error: null,
                         };
                         obs.next(response);
-                      } else {
                       }
                     });
                 }
@@ -145,5 +149,77 @@ export class LoginService {
           }
         );
     });
+  }
+
+  /**
+   * Envía una notificación push al iniciar sesión
+   */
+  private enviarNotificacionLogin(serverIp: string, serverPort: string, usuario: any): void {
+    const pushToken = localStorage.getItem("pushToken");
+    if (pushToken) {
+      const notificationBody = {
+        title: "Inicio de sesión exitoso",
+        message: `Bienvenido ${usuario?.nickname || usuario?.nombre || 'Usuario'}`,
+        token: pushToken,
+        data: "/",
+      };
+      
+      // Enviar notificación al backend
+      this.http
+        .post(
+          `http://${serverIp}:${serverPort}/notification/token`,
+          notificationBody,
+          this.httpOptions
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe(
+          () => {
+            console.log("✅ Notificación de login enviada al servidor");
+          },
+          (err) => {
+            console.error("❌ Error enviando notificación de login al servidor", err);
+          }
+        );
+
+      // Mostrar notificación local si estamos en Electron o navegador con soporte
+      if (this.electronService.isElectron || typeof Notification !== 'undefined') {
+        try {
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            const notification = new Notification(notificationBody.title, {
+              body: notificationBody.message,
+              icon: '/assets/logo.ico', // Ajusta la ruta según tu proyecto
+              badge: '/assets/logo.ico',
+            });
+            
+            notification.onclick = () => {
+              window.focus();
+              notification.close();
+            };
+            
+            // Cerrar la notificación después de 5 segundos
+            setTimeout(() => {
+              notification.close();
+            }, 5000);
+            
+            console.log("✅ Notificación local mostrada");
+          } else if (typeof Notification !== 'undefined' && Notification.permission !== 'denied') {
+            // Solicitar permiso si no está concedido
+            Notification.requestPermission().then((permission) => {
+              if (permission === 'granted') {
+                const notification = new Notification(notificationBody.title, {
+                  body: notificationBody.message,
+                  icon: '/assets/logo.ico',
+                });
+                setTimeout(() => notification.close(), 5000);
+              }
+            });
+          }
+        } catch (error) {
+          console.error("❌ Error mostrando notificación local", error);
+        }
+      }
+    } else {
+      console.warn("⚠️ No hay pushToken disponible para enviar notificación");
+    }
   }
 }
