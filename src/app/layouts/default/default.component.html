@@ -11,6 +11,25 @@
           Notificaciones
         </div>
         <div style="flex: 1; padding: 16px; overflow-y: auto;">
+          <ng-container *ngIf="notifications?.length; else noNotifications">
+            <div *ngFor="let n of notifications" style="margin-bottom: 12px; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.2);">
+              <div style="font-size: 14px; font-weight: 500; margin-bottom: 4px;">
+                {{ n.notificacion?.titulo }}
+              </div>
+              <div style="font-size: 13px; opacity: 0.85; margin-bottom: 4px;">
+                {{ n.notificacion?.mensaje }}
+              </div>
+              <div style="font-size: 11px; opacity: 0.7; display: flex; justify-content: space-between;">
+                <span>{{ n.notificacion?.tipo }}</span>
+                <span>{{ n.notificacion?.creadoEn | date:'short' }}</span>
+              </div>
+            </div>
+          </ng-container>
+          <ng-template #noNotifications>
+            <div style="font-size: 13px; opacity: 0.7; text-align: center; margin-top: 16px;">
+              No hay notificaciones para este dispositivo.
+            </div>
+          </ng-template>
         </div>
       </div>
     </mat-drawer>

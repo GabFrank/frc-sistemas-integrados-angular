@@ -5,6 +5,7 @@ import { MatDialog } from "@angular/material/dialog";
 import { CloseTabPopupComponent } from "./close-tab-popup.component";
 import { WindowInfoService } from "../../shared/services/window-info.service";
 import { MainService } from "../../main.service";
+import { NotificacionesPorTokenGQL, NotificacionData } from "../../modules/configuracion/inicio-sesion/graphql/notificacionesPorToken.gql";
 
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 
@@ -20,6 +21,7 @@ export class DefaultComponent implements OnInit {
   notificationsOpen = false;
 
   tabs = new Array<Tab>();
+  notifications: NotificacionData[] = [];
 
   selectedTab: number;
 
@@ -33,7 +35,8 @@ export class DefaultComponent implements OnInit {
     private tabService: TabService,
     public dialog: MatDialog,
     public windowInfo: WindowInfoService,
-    private mainService: MainService
+    private mainService: MainService,
+    private notificacionesPorTokenGQL: NotificacionesPorTokenGQL
   ) {
   }
 
@@ -70,6 +73,21 @@ export class DefaultComponent implements OnInit {
 
   openNotifications(): void {
     this.notificationsOpen = !this.notificationsOpen;
+
+    if (this.notificationsOpen) {
+      const tokenFcm = localStorage.getItem("pushToken");
+      if (!tokenFcm) {
+        this.notifications = [];
+        return;
+      }
+
+      this.notificacionesPorTokenGQL
+        .fetch({ tokenFcm })
+        .pipe(untilDestroyed(this))
+        .subscribe((res) => {
+          this.notifications = res?.data?.data || [];
+        });
+    }
   }
 
   openDialog(index): void {

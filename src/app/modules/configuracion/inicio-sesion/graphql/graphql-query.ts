@@ -10,3 +10,22 @@ export const requestPushNotificationQuery = gql`
     )
   }
 `;
+
+export const notificacionesPorTokenQuery = gql`
+  query ($tokenFcm: String!) {
+    data: notificacionesPorToken(tokenFcm: $tokenFcm) {
+      id
+      leida
+      fechaLeida
+      fechaEnvio
+      estadoEnvio
+      notificacion {
+        id
+        titulo
+        mensaje
+        tipo
+        creadoEn
+      }
+    }
+  }
+`;
