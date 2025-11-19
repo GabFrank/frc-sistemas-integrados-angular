@@ -129,20 +129,15 @@ export class AppComponent implements OnInit, OnDestroy {
    * 3 - Inicializamos la aplicación y abrimos el diálogo de login
    */
   async ngOnInit(): Promise<void> {
-    console.log("on init de la app");
-    console.log("Cargando configuración: verificando localStorage, archivo de backup y configuración por defecto");
-    console.log('[FCM] AppComponent.ngOnInit - isElectron =', this.electronService?.isElectron);
-
     this.overlay.getContainerElement().classList.add("darkMode");
-    
+
     // Subscribe to configuration changes to trigger connection updates
     this.configService.configChanged
       .pipe(untilDestroyed(this))
       .subscribe(config => {
-        console.log('Configuration changed - attempting to reconnect');
         this.graphqlService.reconnectWebSockets();
       });
-    
+
     // Check if system is configured
     this.configService.isConfigured()
       .pipe(untilDestroyed(this))
@@ -159,7 +154,7 @@ export class AppComponent implements OnInit, OnDestroy {
                   color: NotificacionColor.success,
                   duracion: 3
                 });
-                
+
                 // Delay restart slightly to show notification
                 setTimeout(() => {
                   window.location.reload();
@@ -187,7 +182,7 @@ export class AppComponent implements OnInit, OnDestroy {
                     color: NotificacionColor.success,
                     duracion: 3
                   });
-                  
+
                   // Delay restart slightly to show notification
                   setTimeout(() => {
                     window.location.reload();
@@ -239,14 +234,11 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // Inicializar notificaciones push FCM en entorno Electron
     if (this.electronService && this.electronService.isElectron) {
-      console.log('[FCM] initializeApp - calling electronService.initPushNotifications()');
       this.electronService.initPushNotifications((token) => {
-        console.log('[FCM] Token callback from initPushNotifications, token =', token);
       });
     } else {
-      console.log('[FCM] initializeApp - not in Electron, skipping initPushNotifications');
     }
-    
+
     // Open login dialog
     this.matDialog
       .open(LoginComponent, {
@@ -257,14 +249,13 @@ export class AppComponent implements OnInit, OnDestroy {
       .afterClosed()
       .subscribe((res) => {
         if (!res) {
-          console.log("Login failed or was cancelled, showing configuration dialog");
           // If login fails or is cancelled, check if server configuration needs to be updated
           this.notificationService.notification$.next({
             texto: "POR FAVOR CONFIGURE LOS PARÁMETROS DEL SERVIDOR PARA CONTINUAR",
             color: NotificacionColor.info,
             duracion: 5
           });
-          
+
           this.configService
             .showConfigDialog()
             .pipe(untilDestroyed(this))
@@ -280,7 +271,7 @@ export class AppComponent implements OnInit, OnDestroy {
                     cancelText: 'DESPUÉS'
                   }
                 });
-                
+
                 confirmDialogRef.afterClosed().subscribe(restart => {
                   if (restart) {
                     // Restart the application
@@ -289,18 +280,18 @@ export class AppComponent implements OnInit, OnDestroy {
                       color: NotificacionColor.info,
                       duracion: 3
                     });
-                    
+
                     setTimeout(() => {
                       window.location.reload();
                     }, 1000);
                   } else {
                     // Just attempt to reconnect without restart
                     this.graphqlService.reconnectWebSockets();
-                    
+
                     // After updating config, reopen login dialog
                     setTimeout(() => {
                       this.matDialog.open(LoginComponent, {
-                        width: "80%", 
+                        width: "80%",
                         maxWidth: "800px",
                         disableClose: true,
                       });
