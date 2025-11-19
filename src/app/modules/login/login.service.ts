@@ -137,8 +137,8 @@ export class LoginService {
     const pushToken = localStorage.getItem("pushToken");
     if (pushToken) {
       const notificationBody = {
-        title: "Inicio de sesión exitoso",
-        message: `Bienvenido ${usuario?.nombre || usuario?.nickname || 'Usuario'}`,
+        title: "SE HA INICIADO SECION EN SU CUENTA",
+        message: `BIENVENIDO ${usuario?.nombre || usuario?.nickname || 'USUARIO'}`,
         token: pushToken,
         usuarioIds: usuario?.id ? [usuario.id] : undefined,
         data: "/",
