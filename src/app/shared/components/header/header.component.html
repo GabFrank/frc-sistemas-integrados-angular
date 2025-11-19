@@ -5,11 +5,6 @@
         [disabled]="!cloudStatus && (!isLocal || !localStatus)" class="header-menu-toggle">
         <mat-icon>menu</mat-icon>
       </button>
-      <!-- <span style="padding-left: 20px" fxFlex="80"
-        >BODEGA FRANCO {{ mainService?.sucursalActual?.nombre | uppercase }}
-        {{ isDev && isLocalhost ? "DEV" : null }}
-        <div style="font-size: medium; padding-top: -10px;">v{{ appVersion }}</div>
-      </span> -->
       <div style="position: relative; text-align: center">
         <span style="padding-left: 20px; display: inline-block">
           <ng-container *ngIf="isLocal; else cloudTitle">
@@ -80,7 +75,8 @@
         </mat-menu>
       </div>
       <div fxFlex="10">
-        <button mat-icon-button class="header-menu-toggle" (click)="onOpenNotifications()" [disabled]="!cloudStatus && (!isLocal || !localStatus)">
+        <button mat-icon-button class="header-menu-toggle" (click)="onOpenNotifications()"
+          [disabled]="!cloudStatus && (!isLocal || !localStatus)">
           <mat-icon>mail</mat-icon>
         </button>
       </div>
