@@ -125,6 +125,15 @@
           </button>
         </mat-menu>
       </div>
+      <div fxFlex="10">
+        <button
+          mat-icon-button
+          (click)="onOpenNotifications()"
+          [disabled]="!cloudStatus && (!isLocal || !localStatus)"
+        >
+          <mat-icon>mail</mat-icon>
+        </button>
+      </div>
     </div>
     <div
       [fxFlex]="isLocal ? '15' : '10'"

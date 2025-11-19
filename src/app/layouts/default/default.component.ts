@@ -17,6 +17,7 @@ import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 })
 export class DefaultComponent implements OnInit {
   sideBarOpen = false;
+  notificationsOpen = false;
 
   tabs = new Array<Tab>();
 
@@ -65,6 +66,10 @@ export class DefaultComponent implements OnInit {
   }
   setSideNav(isExpanded: boolean): void {
     this.sideBarOpen = isExpanded;
+  }
+
+  openNotifications(): void {
+    this.notificationsOpen = !this.notificationsOpen;
   }
 
   openDialog(index): void {

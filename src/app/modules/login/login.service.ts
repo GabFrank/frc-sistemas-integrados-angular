@@ -4,7 +4,6 @@ import {
   HttpHeaders,
 } from "@angular/common/http";
 import { Injectable } from "@angular/core";
-import { environment } from "../../../environments/environment";
 import { MainService } from "../../main.service";
 import { Usuario } from "../personas/usuarios/usuario.model";
 import { UsuarioService } from "../personas/usuarios/usuario.service";
@@ -137,14 +136,12 @@ export class LoginService {
     const pushToken = localStorage.getItem("pushToken");
     if (pushToken) {
       const notificationBody = {
-        title: "SE HA INICIADO SECION EN SU CUENTA",
+        title: "SE HA INICIADO SESION EN SU CUENTA",
         message: `BIENVENIDO ${usuario?.nombre || usuario?.nickname || 'USUARIO'}`,
         token: pushToken,
         usuarioIds: usuario?.id ? [usuario.id] : undefined,
         data: "/",
       };
-
-      // Enviar notificación al backend
       this.http
         .post(
           `http://${serverIp}:${serverPort}/notification/token`,
@@ -154,7 +151,6 @@ export class LoginService {
         .pipe(untilDestroyed(this))
         .subscribe(
           () => {
-            // Notificación enviada correctamente; no es necesario log en consola
           },
           (err) => {
           }

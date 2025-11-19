@@ -102,65 +102,31 @@ export class AppComponent implements OnInit, OnDestroy {
           this.snackBarRef = null;
         }, res.duracion * 1000);
       });
-
-    // cargandoService.dialogSub
-    //   .pipe(untilDestroyed(this))
-    //   .subscribe(res => {
-    //     if(res){
-    //       this.dialogCount++;
-    //       if(this.dialogCount == 1){
-    //         this.dialogRef = this.matDialog.open(CargandoDialogComponent, {
-    //           disableClose: true,
-    //         });
-    //       }
-    //     } else {
-    //       this.dialogCount--;
-    //       if(this.dialogCount == 0 && this.dialogRef!=null){
-    //         this.dialogRef.close()
-    //         this.dialogRef = null;
-    //       }
-    //     }
-    //   })
   }
-
-  /**
-   * 1 - se adiciona la clase darkMode al container principal, para poder aplicar el estilo dark
-   * 2 - Verificamos la configuración y mostramos el diálogo si es necesario
-   * 3 - Inicializamos la aplicación y abrimos el diálogo de login
-   */
   async ngOnInit(): Promise<void> {
     this.overlay.getContainerElement().classList.add("darkMode");
-
-    // Subscribe to configuration changes to trigger connection updates
     this.configService.configChanged
       .pipe(untilDestroyed(this))
       .subscribe(config => {
         this.graphqlService.reconnectWebSockets();
       });
-
-    // Check if system is configured
     this.configService.isConfigured()
       .pipe(untilDestroyed(this))
       .subscribe((isSystemConfigured) => {
         if (!isSystemConfigured) {
-          // If not configured, show configuration dialog
           this.configService.showConfigDialog()
             .pipe(untilDestroyed(this))
             .subscribe((configured) => {
               if (configured) {
-                // Configuration saved, restart to ensure proper initialization
                 this.notificationService.notification$.next({
                   texto: "CONFIGURACIÓN GUARDADA. INICIANDO APLICACIÓN...",
                   color: NotificacionColor.success,
                   duracion: 3
                 });
-
-                // Delay restart slightly to show notification
                 setTimeout(() => {
                   window.location.reload();
                 }, 1500);
               } else {
-                // User cancelled configuration, show message
                 this.notificationService.notification$.next({
                   texto: "CONFIGURACIÓN NECESARIA PARA INICIAR EL SISTEMA",
                   color: NotificacionColor.warn,
@@ -169,37 +135,29 @@ export class AppComponent implements OnInit, OnDestroy {
               }
             });
         } else {
-          // Check if user has explicitly configured the system
           if (!this.configService.hasUserConfiguration()) {
-            // If using default config (not explicitly configured by user), show config dialog first
             this.configService.showConfigDialog()
               .pipe(untilDestroyed(this))
               .subscribe((configured) => {
                 if (configured) {
-                  // User has configured the system, restart to ensure proper initialization
                   this.notificationService.notification$.next({
                     texto: "CONFIGURACIÓN GUARDADA. INICIANDO APLICACIÓN...",
                     color: NotificacionColor.success,
                     duracion: 3
                   });
-
-                  // Delay restart slightly to show notification
                   setTimeout(() => {
                     window.location.reload();
                   }, 1500);
                 } else {
-                  // User cancelled configuration, proceed with default settings
                   this.notificationService.notification$.next({
                     texto: "USANDO CONFIGURACIÓN POR DEFECTO",
                     color: NotificacionColor.info,
                     duracion: 5
                   });
-                  // Initialize with default config
                   this.initializeApp();
                 }
               });
           } else {
-            // System is configured and user has explicitly configured it, proceed with normal initialization
             this.initializeApp();
           }
         }
@@ -224,22 +182,13 @@ export class AppComponent implements OnInit, OnDestroy {
       }
     });
   }
-
-  /**
-   * Initialize the application after configuration is loaded
-   */
   private initializeApp(): void {
-    // Load main service data
     this.mainService.load();
-
-    // Inicializar notificaciones push FCM en entorno Electron
     if (this.electronService && this.electronService.isElectron) {
       this.electronService.initPushNotifications((token) => {
       });
     } else {
     }
-
-    // Open login dialog
     this.matDialog
       .open(LoginComponent, {
         width: "80%",
@@ -249,7 +198,6 @@ export class AppComponent implements OnInit, OnDestroy {
       .afterClosed()
       .subscribe((res) => {
         if (!res) {
-          // If login fails or is cancelled, check if server configuration needs to be updated
           this.notificationService.notification$.next({
             texto: "POR FAVOR CONFIGURE LOS PARÁMETROS DEL SERVIDOR PARA CONTINUAR",
             color: NotificacionColor.info,
@@ -261,7 +209,6 @@ export class AppComponent implements OnInit, OnDestroy {
             .pipe(untilDestroyed(this))
             .subscribe(configured => {
               if (configured) {
-                // If configuration was updated, prompt for restart
                 const confirmDialogRef = this.matDialog.open(ConfirmDialogComponent, {
                   width: '400px',
                   data: {
@@ -274,7 +221,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
                 confirmDialogRef.afterClosed().subscribe(restart => {
                   if (restart) {
-                    // Restart the application
                     this.notificationService.notification$.next({
                       texto: "REINICIANDO APLICACIÓN...",
                       color: NotificacionColor.info,
@@ -285,10 +231,7 @@ export class AppComponent implements OnInit, OnDestroy {
                       window.location.reload();
                     }, 1000);
                   } else {
-                    // Just attempt to reconnect without restart
                     this.graphqlService.reconnectWebSockets();
-
-                    // After updating config, reopen login dialog
                     setTimeout(() => {
                       this.matDialog.open(LoginComponent, {
                         width: "80%",
@@ -338,8 +281,6 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    //Called once, before the instance is destroyed.
-    //Add 'implements OnDestroy' to the class.
   }
 
   onCerrarCargando() {
