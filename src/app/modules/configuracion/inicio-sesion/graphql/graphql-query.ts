@@ -29,3 +29,43 @@ export const notificacionesPorTokenQuery = gql`
     }
   }
 `;
+
+export const getNotificacionesUsuarioQuery = gql`
+  query ($usuarioId: Int!, $leidas: Boolean, $page: Int, $size: Int) {
+    data: getNotificacionesUsuario(usuarioId: $usuarioId, leidas: $leidas, page: $page, size: $size) {
+      content {
+        id
+        leida
+        fechaLeida
+        fechaEnvio
+        estadoEnvio
+        interactuada
+        fechaInteraccion
+        accionRealizada
+        notificacion {
+          id
+          titulo
+          mensaje
+          tipo
+          creadoEn
+        }
+      }
+      pageNumber
+      pageSize
+      totalElements
+      totalPages
+    }
+  }
+`;
+
+export const marcarNotificacionLeidaMutation = gql`
+  mutation ($notificacionUsuarioId: Int!) {
+    data: marcarNotificacionLeida(notificacionUsuarioId: $notificacionUsuarioId)
+  }
+`;
+
+export const registrarInteraccionNotificacionMutation = gql`
+  mutation ($notificacionUsuarioId: Int!, $accion: String!) {
+    data: registrarInteraccionNotificacion(notificacionUsuarioId: $notificacionUsuarioId, accion: $accion)
+  }
+`;
