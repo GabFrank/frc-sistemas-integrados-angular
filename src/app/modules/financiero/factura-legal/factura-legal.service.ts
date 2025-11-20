@@ -28,6 +28,8 @@ import { UpdateFacturaLegalGQL } from "./graphql/updateFacturaLegal";
 import { NominarFacturaElectronicaGQL } from "./graphql/nominarFacturaElectronica";
 import { CancelarFacturaLegalGQL } from "./graphql/cancelarFacturaLegal";
 import { SaveFacturaLegalToFilialGQL, SaveFacturaLegalToFilialResponse } from "./graphql/saveFacturaLegalToFilial";
+import { DescargarXmlFacturaElectronicaGQL } from "./graphql/descargarXmlFacturaElectronica";
+import { DescargarPdfFacturaElectronicaGQL } from "./graphql/descargarPdfFacturaElectronica";
 
 @Injectable({
   providedIn: "root",
@@ -51,7 +53,9 @@ export class FacturaLegalService {
     private updateFacturaLegalGQL: UpdateFacturaLegalGQL,
     private nominarFacturaElectronicaGQL: NominarFacturaElectronicaGQL,
     private cancelarFacturaLegalGQL: CancelarFacturaLegalGQL,
-    private saveFacturaLegalToFilialGQL: SaveFacturaLegalToFilialGQL
+    private saveFacturaLegalToFilialGQL: SaveFacturaLegalToFilialGQL,
+    private descargarXmlFacturaElectronicaGQL: DescargarXmlFacturaElectronicaGQL,
+    private descargarPdfFacturaElectronicaGQL: DescargarPdfFacturaElectronicaGQL
   ) {}
 
   onSaveFactura(
@@ -320,6 +324,22 @@ export class FacturaLegalService {
       // Iniciar el primer intento
       checkFactura();
     });
+  }
+
+  onDescargarXmlFacturaElectronica(id: number, sucId: number, servidor: boolean = true): Observable<string> {
+    return this.genericService.onCustomQuery(
+      this.descargarXmlFacturaElectronicaGQL,
+      { id, sucId },
+      servidor
+    );
+  }
+
+  onDescargarPdfFacturaElectronica(id: number, sucId: number, servidor: boolean = true): Observable<string> {
+    return this.genericService.onCustomQuery(
+      this.descargarPdfFacturaElectronicaGQL,
+      { id, sucId },
+      servidor
+    );
   }
 }
 

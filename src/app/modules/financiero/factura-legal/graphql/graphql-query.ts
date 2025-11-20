@@ -384,6 +384,18 @@ export const generarExcelFacturasZipQuery = gql`
   }
 `;
 
+export const descargarXmlFacturaElectronicaQuery = gql`
+  query descargarXmlFacturaElectronica($id: ID!, $sucId: ID!) {
+    data: descargarXmlFacturaElectronica(id: $id, sucId: $sucId)
+  }
+`;
+
+export const descargarPdfFacturaElectronicaQuery = gql`
+  query descargarPdfFacturaElectronica($id: ID!, $sucId: ID!) {
+    data: descargarPdfFacturaElectronica(id: $id, sucId: $sucId)
+  }
+`;
+
 export const saveFacturaLegalToFilialQuery = gql`
   mutation saveFacturaLegalToFilial(
     $entity: FacturaLegalInput!
