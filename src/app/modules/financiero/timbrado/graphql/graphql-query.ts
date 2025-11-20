@@ -11,6 +11,7 @@ export const timbradoQuery = gql`
       fechaFin
       isElectronico
       csc
+      cscId
       email
       tipoSociedad
       domicilioFiscalDepartamento
@@ -44,6 +45,7 @@ export const timbradosQuery = gql`
       fechaFin
       isElectronico
       csc
+      cscId
       email
       tipoSociedad
       domicilioFiscalDepartamento
@@ -111,6 +113,7 @@ export const timbradosSearchQuery = gql`
       fechaFin
       isElectronico
       csc
+      cscId
       email
       tipoSociedad
       domicilioFiscalDepartamento
@@ -189,6 +192,7 @@ export const findByNumeroQuery = gql`
       fechaFin
       isElectronico
       csc
+      cscId
       email
       tipoSociedad
       domicilioFiscalDepartamento
@@ -272,6 +276,45 @@ export const timbradoDetallesByTimbradoIdQuery = gql`
         usuario {
           id
         }
+      }
+    }
+  }
+`;
+
+export const timbradoDetallesBySucursalIdQuery = gql`
+  query ($sucursalId: ID!) {
+    data: timbradoDetallesBySucursalId(sucursalId: $sucursalId) {
+      id
+      timbrado {
+        id
+        numero
+        isElectronico
+        activo
+      }
+      puntoDeVenta {
+        id
+        nombre
+      }
+      puntoExpedicion
+      cantidad
+      rangoDesde
+      rangoHasta
+      numeroActual
+      sucursal {
+        id
+        nombre
+      }
+      activo
+      creadoEn
+      departamento
+      ciudad
+      codigoCiudad
+      localidad
+      barrio
+      direccion
+      telefono
+      usuario {
+        id
       }
     }
   }

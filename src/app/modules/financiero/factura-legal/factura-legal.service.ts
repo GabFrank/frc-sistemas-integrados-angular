@@ -27,6 +27,7 @@ import { FacturaLegalByCdcGQL } from "./graphql/get-factura-legal-by-cdc.gql";
 import { UpdateFacturaLegalGQL } from "./graphql/updateFacturaLegal";
 import { NominarFacturaElectronicaGQL } from "./graphql/nominarFacturaElectronica";
 import { CancelarFacturaLegalGQL } from "./graphql/cancelarFacturaLegal";
+import { SaveFacturaLegalToFilialGQL, SaveFacturaLegalToFilialResponse } from "./graphql/saveFacturaLegalToFilial";
 
 @Injectable({
   providedIn: "root",
@@ -49,7 +50,8 @@ export class FacturaLegalService {
     private facturaLegalByCdcGQL: FacturaLegalByCdcGQL,
     private updateFacturaLegalGQL: UpdateFacturaLegalGQL,
     private nominarFacturaElectronicaGQL: NominarFacturaElectronicaGQL,
-    private cancelarFacturaLegalGQL: CancelarFacturaLegalGQL
+    private cancelarFacturaLegalGQL: CancelarFacturaLegalGQL,
+    private saveFacturaLegalToFilialGQL: SaveFacturaLegalToFilialGQL
   ) {}
 
   onSaveFactura(
@@ -191,7 +193,8 @@ export class FacturaLegalService {
     const fechaActual = new Date();
     const diferencia = fechaFin.getTime() - fechaActual.getTime();
     const dias = Math.ceil(diferencia / (1000 * 60 * 60 * 24));
-    if (dias < 15) {
+    // si la fecha es menor a 15 dias y el timbrado no es electronico, show warning
+    if (dias < 15 && !timbradoDetalle.timbrado.isElectronico) {
       //add set timeout of 2 seconds
       setTimeout(() => {
         this.notificacionService.openWarn("El timbrado está por llegar a su fecha de fin. Favor contactar con RRHH para solicitar un nuevo timbrado.", 5);
@@ -206,7 +209,8 @@ export class FacturaLegalService {
     const rangoHasta = timbradoDetalle.rangoHasta;
     const numeroActual = timbradoDetalle.numeroActual;
     const diferencia = rangoHasta - numeroActual;
-    if ((rangoHasta * 0.1) > diferencia) {
+    // si la diferencia es menor a 10% del rango hasta y el timbrado no es electronico, show warning
+    if ((rangoHasta * 0.1) > diferencia && !timbradoDetalle.timbrado.isElectronico) {
       setTimeout(() => {
         this.notificacionService.openWarn("El timbrado está por llegar a su rango máximo. Favor contactar con RRHH para solicitar un nuevo timbrado.", 5);
       }, 2000);
@@ -249,6 +253,73 @@ export class FacturaLegalService {
       { facturaLegalId, sucursalId, cancelarVenta },
       servidor
     );
+  }
+
+  onSaveFacturaToFilial(
+    facturaInput: FacturaLegalInput,
+    facturaItemInputList: FacturaLegalItemInput[],
+    sucursalId: number,
+    timbradoDetalleId: number,
+    monedaId: number,
+    tipoCambio: number
+  ): Observable<SaveFacturaLegalToFilialResponse> {
+    return this.genericService.onCustomMutation(
+      this.saveFacturaLegalToFilialGQL,
+      {
+        entity: facturaInput,
+        detalleList: facturaItemInputList,
+        sucursalId,
+        timbradoDetalleId,
+        monedaId,
+        tipoCambio
+      },
+      true
+    );
+  }
+
+  pollFacturaLegal(
+    facturaId: number,
+    sucursalId: number,
+    maxRetries: number = 3,
+    intervalMs: number = 5000
+  ): Observable<FacturaLegal> {
+    return new Observable<FacturaLegal>((observer) => {
+      let retries = 0;
+      
+      const checkFactura = () => {
+        if (retries >= maxRetries) {
+          observer.next(null);
+          observer.complete();
+          return;
+        }
+        
+        retries++;
+        
+        this.onGetFacturaLegal(facturaId, sucursalId, true).subscribe({
+          next: (factura: FacturaLegal) => {
+            if (factura) {
+              observer.next(factura);
+              observer.complete();
+            } else {
+              // No encontrada, intentar de nuevo después del intervalo
+              setTimeout(checkFactura, intervalMs);
+            }
+          },
+          error: () => {
+            // Error, intentar de nuevo después del intervalo
+            if (retries < maxRetries) {
+              setTimeout(checkFactura, intervalMs);
+            } else {
+              observer.next(null);
+              observer.complete();
+            }
+          }
+        });
+      };
+      
+      // Iniciar el primer intento
+      checkFactura();
+    });
   }
 }
 

@@ -1,19 +1,58 @@
-<div>
-  <form [formGroup]="formGroup">
-    <div fxLayout="column" fxLayoutAlign="start">
-      <div fxFlex style="width: 100%; text-align: center">
+<div class="item-dialog-container">
+  <header class="dialog-header">
         <h3 *ngIf="selectedFacturaLegalItem?.id != null">Editar Item</h3>
         <h3 *ngIf="selectedFacturaLegalItem?.id == null">Nuevo Item</h3>
-      </div>
-      <div fxFlex fxLayout="row" fxLayoutGap="20px">
-        <div fxFlex="20%">
-          <mat-form-field>
-            <mat-label>Cantidad</mat-label>
-            <input type="number" matInput [formControl]="cantidadControl" />
-          </mat-form-field>
+  </header>
+
+  <section class="dialog-body">
+    <form [formGroup]="formGroup">
+      <div class="form-section">
+        <!-- Row 1: Cantidad y Precio -->
+        <div fxLayout="row" fxLayout.lt-sm="column" fxLayoutGap="16px">
+          <div fxFlex="30" fxFlex.lt-sm="100">
+            <mat-form-field class="full-width">
+              <mat-label>Cantidad</mat-label>
+              <input 
+                type="text" 
+                matInput 
+                [formControl]="cantidadControl" 
+                currencyMask
+                [options]="currencyMask.currencyOptionsCantidad"
+                style="text-align: right"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="35" fxFlex.lt-sm="100">
+            <mat-form-field class="full-width">
+              <mat-label>Precio Unitario (Gs)</mat-label>
+              <input 
+                type="text" 
+                matInput 
+                [formControl]="precioUnitario" 
+                currencyMask
+                [options]="currencyMask.currencyOptionsGuarani"
+                style="text-align: right"
+              />
+            </mat-form-field>
+          </div>
+          <div fxFlex="35" fxFlex.lt-sm="100" *ngIf="mostrarMonedaExtranjera">
+            <mat-form-field class="full-width">
+              <mat-label>Precio Unitario ({{ monedaExtranjera.denominacion }})</mat-label>
+              <input 
+                type="text" 
+                matInput 
+                [formControl]="precioUnitarioExtranjero" 
+                currencyMask
+                [options]="currencyMask.currencyOptionsNoGuarani"
+                style="text-align: right"
+              />
+            </mat-form-field>
+          </div>
         </div>
-        <div fxFlex="60%">
-          <mat-form-field style="width: 100%">
+        
+        <!-- Row 2: Descripción -->
+        <div>
+          <mat-form-field class="full-width">
             <mat-label>Descripción</mat-label>
             <input
               #nombreInput
@@ -25,21 +64,52 @@
             />
           </mat-form-field>
         </div>
-        <div fxFlex="20%">
-          <mat-form-field>
-            <mat-label>Precio Unit.</mat-label>
-            <input type="number" matInput [formControl]="precioUnitario" />
-          </mat-form-field>
+        
+        <!-- Row 3: IVA y Unidad de Medida -->
+        <div fxLayout="row" fxLayout.lt-sm="column" fxLayoutGap="16px">
+          <div fxFlex="50" fxFlex.lt-sm="100">
+            <mat-form-field class="full-width">
+              <mat-label>IVA (%)</mat-label>
+              <mat-select [formControl]="ivaControl">
+                <mat-option *ngFor="let iva of ivaOptions" [value]="iva">
+                  {{ iva }}%
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div fxFlex="50" fxFlex.lt-sm="100">
+            <mat-form-field class="full-width">
+              <mat-label>Unidad de Medida</mat-label>
+              <mat-select [formControl]="unidadMedidaControl">
+                <mat-option *ngFor="let unidad of unidadMedidaOptions" [value]="unidad">
+                  {{ unidad }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
+        
+        <!-- Totales del item -->
+        <div class="totales-item" fxLayout="column" fxLayoutGap="8px">
+          <div fxLayout="row" fxLayout.lt-sm="column" fxLayoutAlign="space-between center" fxLayoutGap="8px">
+            <span class="total-label">Total (Gs):</span>
+            <span class="total-value">{{ totalEnGuarani | number : "1.0-0" }}</span>
+          </div>
+          <div fxLayout="row" fxLayout.lt-sm="column" fxLayoutAlign="space-between center" fxLayoutGap="8px" *ngIf="mostrarMonedaExtranjera">
+            <span class="total-label">Total ({{ monedaExtranjera.denominacion }}):</span>
+            <span class="total-value">{{ totalEnMonedaExtranjera | number : "1.2-2" }}</span>
+          </div>
         </div>
       </div>
-      <br />
-      <div fxFlex fxLayout="row">
-        <div fxFlex="50%" style="text-align: center">
+    </form>
+  </section>
+
+  <footer class="dialog-footer">
           <button
-            style="width: 70%"
             mat-raised-button
             [color]="isEditting ? 'accent' : 'primary'"
             [disabled]="isEditting ? !formGroup.valid : false"
+      class="btn-accion"
             (click)="
               isEditting ? onSave() : (isEditting = true);
               formGroup.enable();
@@ -48,18 +118,13 @@
           >
             {{ isEditting ? "Guardar" : "Editar" }}
           </button>
-        </div>
-        <div fxFlex="50%" style="text-align: center">
           <button
-            style="width: 70%"
             mat-raised-button
-            color="primary"
+      color="warn"
+      class="btn-accion"
             (click)="onCancel()"
           >
             Cancelar
           </button>
-        </div>
-      </div>
-    </div>
-  </form>
+  </footer>
 </div>

@@ -295,9 +295,12 @@ export class ListFacturaLegalComponent implements OnInit {
     this.matDialog
       .open(AddFacturaLegalDialogComponent, {
         data: {
-          sucursal: this.selectedSucursal,
+          ventaItemList: [],
+          descuento: 0,
+          isServidor: true,
         },
-        width: "50%",
+        width: "100%",
+        height: "80vh",
       })
       .afterClosed()
       .subscribe((res) => {

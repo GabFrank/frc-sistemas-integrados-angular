@@ -12,6 +12,7 @@ import {
   MatDialog,
   MatDialogRef,
 } from "@angular/material/dialog";
+import { MatSelect } from "@angular/material/select";
 import { MatTableDataSource } from "@angular/material/table";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { Subject } from "rxjs";
@@ -40,12 +41,19 @@ import { FacturaLegalService } from "../factura-legal.service";
 import { PersonaSearchGQL } from "../../../personas/persona/graphql/personaSearch";
 import { BotonComponent } from "../../../../shared/components/boton/boton.component";
 import { TimbradoDetalle } from "../../timbrado/timbrado.modal";
+import { Sucursal } from "../../../empresarial/sucursal/sucursal.model";
+import { SucursalService } from "../../../empresarial/sucursal/sucursal.service";
+import { TimbradoService } from "../../timbrado/timbrado.service";
+import { Moneda } from "../../moneda/moneda.model";
+import { MonedaService } from "../../moneda/moneda.service";
+import { CambioService } from "../../cambio/cambio.service";
+import { Cambio } from "../../cambio/cambio.model";
 
 export interface FacturaLegalData {
   venta?: Venta;
   ventaItemList: VentaItem[];
   descuento: number;
-  isServidor: boolean;
+  isServidor?: boolean;
 }
 
 @UntilDestroy()
@@ -60,6 +68,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
   @ViewChild("direccionInput", { static: false }) direccionInput: ElementRef;
   @ViewChild("emailInput", { static: false }) emailInput: ElementRef;
   @ViewChild("imprimirBtb", { read: BotonComponent }) imprimirBtn: BotonComponent;
+  @ViewChild("sucursalSelect", { static: false }) sucursalSelect: MatSelect;
 
   selectedCliente: Cliente;
   selectedVenta: Venta;
@@ -80,6 +89,12 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
   ]);
   tributaControl = new FormControl(true);
 
+  // Campos para modo filial
+  sucursalControl = new FormControl(null);
+  timbradoDetalleControl = new FormControl({value: null, disabled: true}, Validators.required);
+  monedaControl = new FormControl(null);
+  tipoCambioControl = new FormControl({value: null, disabled: true});
+
   dataSource = new MatTableDataSource<FacturaLegalItem>([]);
   selectedFacturaItem: FacturaLegalItem;
   cantidadHojas = 1;
@@ -91,6 +106,17 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
   isNuevoCliente = false;
 
   isServidor = false;
+  
+  // Listas para modo filial
+  sucursalList: Sucursal[] = [];
+  timbradoDetalleList: TimbradoDetalle[] = [];
+  monedaList: Moneda[] = [];
+  selectedSucursal: Sucursal;
+  selectedTimbradoDetalle: TimbradoDetalle;
+  selectedMoneda: Moneda;
+  
+  // Totales calculados por moneda
+  totalFinalEnMoneda: number = 0;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: FacturaLegalData,
@@ -103,19 +129,46 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     private personaService: PersonaService,
     private cajaService: CajaService,
     private personaSearch: PersonaSearchGQL,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private sucursalService: SucursalService,
+    private timbradoService: TimbradoService,
+    private monedaService: MonedaService,
+    private cambioService: CambioService
   ) {}
   ngAfterViewInit(): void {
     setTimeout(() => {
-      this.rucInput.nativeElement.focus();
-    }, 500);
+      if (this.isServidor && this.sucursalSelect) {
+        // Si es modo filial, abrir el panel del select de sucursal
+        try {
+          this.sucursalSelect.open();
+        } catch (e) {
+          console.log('No se pudo abrir el select automáticamente');
+        }
+      } else if (this.rucInput) {
+        // Modo normal, enfocar en RUC
+        this.rucInput.nativeElement.focus();
+      }
+    }, 600);
+  }
+
+  onSucursalSelectOpened() {
+    // Este método se llama cuando el select se abre, útil para debugging
   }
 
   ngOnInit(): void {
     this.clienteDescripcionControl.disable();
     this.direccionControl.disable();
     this.emailControl.disable();
+    
+    // Detectar modo filial
+    this.isServidor = this.data?.isServidor === true;
+    
     this.cargarDatos();
+    
+    // Si es modo filial, cargar datos adicionales
+    if (this.isServidor) {
+      this.cargarDatosFilial();
+    }
 
     this.rucControl.valueChanges.pipe(untilDestroyed(this)).subscribe((res) => {
       if (this.rucControl.value?.length > 4) {
@@ -126,11 +179,18 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
         this.digitoVerificador = "";
       }
     });
+    
+    // Suscribirse a cambios en totales para recalcular en moneda extranjera
+    this.totalFinalControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
+      this.calcularTotalEnMoneda();
+    });
+    
+    this.tipoCambioControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => {
+      this.calcularTotalEnMoneda();
+    });
   }
 
   cargarDatos() {
-    this.isServidor = true;
-
     if (this.data.venta != null) {
       this.totalFinalControl.setValue(this.data?.venta?.totalGs);
     }
@@ -148,6 +208,125 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
       });
       this.cantidadHojas = Math.floor(facturaItemList.length / 7) + 1;
       this.dataSource.data = facturaItemList;
+    }
+  }
+  
+  cargarDatosFilial() {
+    // Cargar sucursales activas
+    // this.sucursalService.onGetAllSucursalesByActive(true, true)
+    //   .pipe(untilDestroyed(this))
+    //   .subscribe({
+    //     next: (sucursales) => {
+    //       this.sucursalList = sucursales || [];
+    //       console.log('Sucursales cargadas:', this.sucursalList);
+    //     },
+    //     error: (error) => {
+    //       console.error('Error al cargar sucursales:', error);
+    //       this.notificacionService.openWarn('Error al cargar sucursales');
+    //     }
+    //   });
+     this.sucursalService.onGetAllSucursalesByActive(true, true)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (sucursales) => {
+          this.sucursalList = sucursales || [];
+          console.log('Sucursales cargadas:', this.sucursalList);
+        },
+        error: (error) => {
+          console.error('Error al cargar sucursales:', error);
+          this.notificacionService.openWarn('Error al cargar sucursales');
+        }
+      });
+    
+    // Cargar monedas
+    this.monedaService.onGetAll(true)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (monedas) => {
+          this.monedaList = monedas || [];
+          console.log('Monedas cargadas:', this.monedaList);
+        },
+        error: (error) => {
+          console.error('Error al cargar monedas:', error);
+          this.notificacionService.openWarn('Error al cargar monedas');
+        }
+      });
+    
+    // Suscribirse a cambios de sucursal para cargar timbrados
+    this.sucursalControl.valueChanges.pipe(untilDestroyed(this)).subscribe((sucursal: Sucursal) => {
+      if (sucursal) {
+        this.selectedSucursal = sucursal;
+        this.timbradoDetalleControl.enable();
+        this.cargarTimbradosPorSucursal(sucursal.id);
+      } else {
+        this.timbradoDetalleList = [];
+        this.timbradoDetalleControl.setValue(null);
+        this.timbradoDetalleControl.disable();
+      }
+    });
+    
+    // Suscribirse a cambios de timbrado detalle
+    this.timbradoDetalleControl.valueChanges.pipe(untilDestroyed(this)).subscribe((timbradoDetalle: TimbradoDetalle) => {
+      this.selectedTimbradoDetalle = timbradoDetalle;
+    });
+    
+    // Suscribirse a cambios de moneda para cargar último cambio
+    this.monedaControl.valueChanges.pipe(untilDestroyed(this)).subscribe((moneda: Moneda) => {
+      if (moneda && moneda.denominacion !== 'GUARANI') {
+        this.selectedMoneda = moneda;
+        this.tipoCambioControl.enable();
+        this.cargarUltimoCambio(moneda.id);
+      } else {
+        this.selectedMoneda = null;
+        this.tipoCambioControl.setValue(null);
+        this.tipoCambioControl.disable();
+      }
+    });
+  }
+  
+  cargarTimbradosPorSucursal(sucursalId: number) {
+    this.timbradoService.onGetTimbradoDetallesBySucursalId(sucursalId, true)
+      .pipe(untilDestroyed(this))
+      .subscribe({
+        next: (timbradoDetalles) => {
+          this.timbradoDetalleList = timbradoDetalles || [];
+          console.log('Timbrados cargados para sucursal', sucursalId, ':', this.timbradoDetalleList);
+          // Si hay solo uno, preseleccionarlo
+          if (this.timbradoDetalleList.length === 1) {
+            this.timbradoDetalleControl.setValue(this.timbradoDetalleList[0]);
+            this.selectedTimbradoDetalle = this.timbradoDetalleList[0];
+          }
+        },
+        error: (error) => {
+          console.error('Error al cargar timbrados:', error);
+          this.notificacionService.openWarn('Error al cargar timbrados para la sucursal seleccionada');
+          this.timbradoDetalleList = [];
+        }
+      });
+  }
+  
+  cargarUltimoCambio(monedaId: number) {
+    // Intentar primero con el cambio del modelo Moneda si está disponible
+    if (this.selectedMoneda?.cambio) {
+      this.tipoCambioControl.setValue(this.selectedMoneda.cambio);
+    } else {
+      // Si no está disponible, obtener el último cambio desde el servicio
+      this.cambioService.getUltimoCambioPorMonedaId(monedaId)
+        .pipe(untilDestroyed(this))
+        .subscribe((cambio) => {
+          if (cambio && cambio.valorEnGs) {
+            this.tipoCambioControl.setValue(cambio.valorEnGs);
+          }
+        });
+    }
+  }
+  
+  calcularTotalEnMoneda() {
+    if (this.selectedMoneda && this.tipoCambioControl.value && this.totalFinalControl.value) {
+      const totalConDescuento = this.totalFinalControl.value - (this.data?.descuento || 0);
+      this.totalFinalEnMoneda = totalConDescuento / this.tipoCambioControl.value;
+    } else {
+      this.totalFinalEnMoneda = 0;
     }
   }
 
@@ -414,6 +593,8 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
       .open(EditFacturaLegalItemComponent, {
         data: {
           facturaItem: item,
+          moneda: this.selectedMoneda,
+          tipoCambio: this.tipoCambioControl.value,
         },
         width: "100%",
       })
@@ -432,6 +613,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
       total += f.cantidad * f.precioUnitario;
     });
     this.totalFinalControl.setValue(total);
+    this.calcularTotalEnMoneda();
   }
 
   onCancelar() {
@@ -439,17 +621,31 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
   }
 
   onGuardar() {
-    this.dialogoService
-      .confirm(
-        "Atención",
-        "Verificar si hay hoja en la impresora",
-        "Desea imprimir?"
-      )
-      .subscribe((res) => {
-        if (res) {
-          this.onSaveFactura();
-        }
-      });
+    // Si es modo filial, preguntar si desea imprimir (pero el guardado siempre ocurre)
+    if (this.isServidor) {
+      this.dialogoService
+        .confirm(
+          "Atención",
+          "Verificar si hay hoja en la impresora",
+          "Desea imprimir después de guardar?"
+        )
+        .subscribe((deseaImprimir) => {
+          this.onSaveFactura(deseaImprimir);
+        });
+    } else {
+      // Modo normal (desde venta)
+      this.dialogoService
+        .confirm(
+          "Atención",
+          "Verificar si hay hoja en la impresora",
+          "Desea imprimir?"
+        )
+        .subscribe((res) => {
+          if (res) {
+            this.onSaveFactura(false);
+          }
+        });
+    }
   }
 
   onClienteSearch() {
@@ -536,7 +732,7 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     }
   }
 
-  onSaveFactura() {
+  onSaveFactura(deseaImprimir: boolean = false) {
     let factura = new FacturaLegal();
     factura.credito = this.creditoControl.value;
     factura.direccion = this.direccionControl.value;
@@ -545,7 +741,24 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     factura.nombre = this.clienteDescripcionControl.value;
     factura.ruc = this.rucControl.value;
     factura.caja = this.cajaService?.selectedCaja;
-    factura.descuento = this.data?.descuento;
+    factura.descuento = this.data?.descuento || 0;
+    
+    // Calcular totales antes de guardar
+    this.calcularTotal();
+    
+    // Asignar totalFinal (con descuento aplicado)
+    const totalConDescuento = this.totalFinalControl.value - (this.data?.descuento || 0);
+    factura.totalFinal = totalConDescuento;
+    
+    // Si es modo filial, agregar campos adicionales
+    if (this.isServidor) {
+      factura.sucursalId = this.selectedSucursal?.id;
+      factura.monedaExtranjera = this.selectedMoneda && this.selectedMoneda.denominacion !== 'GUARANI' 
+        ? this.selectedMoneda.denominacion 
+        : null;
+      factura.tipoCambio = this.tipoCambioControl.value;
+      factura.timbradoDetalle = this.selectedTimbradoDetalle;
+    }
     
     // Preparar datos del cliente para enviar al backend (el backend manejará creación/actualización)
     if (this.selectedCliente?.id != null) {
@@ -565,22 +778,106 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     const facturaItemInputList: FacturaLegalItemInput[] = this.dataSource.data.map((f) => f.toInput());
     const facturaInput = factura.toInput();
 
-    // Intento principal: servidor central. Si falla, fallback al servidor local
+    // Si es modo filial, usar el nuevo método
+    if (this.isServidor) {
+      this.onSaveFacturaToFilial(facturaInput, facturaItemInputList, deseaImprimir);
+    } else {
+      // Modo normal (desde venta)
+      // Intento principal: servidor central. Si falla, fallback al servidor local
+      this.facturaService
+        .onSaveFactura(facturaInput, facturaItemInputList, false)
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (res: TimbradoDetalle) => {
+            if (res != null) {
+              this.handleFacturaSuccess(res);
+            } else {
+              this.trySaveFacturaLocal(facturaInput, facturaItemInputList);
+            }
+          },
+          error: () => {
+            this.trySaveFacturaLocal(facturaInput, facturaItemInputList);
+          },
+        });
+    }
+  }
+  
+  onSaveFacturaToFilial(facturaInput: any, facturaItemInputList: FacturaLegalItemInput[], deseaImprimir: boolean) {
     this.facturaService
-      .onSaveFactura(facturaInput, facturaItemInputList, false)
+      .onSaveFacturaToFilial(
+        facturaInput,
+        facturaItemInputList,
+        this.selectedSucursal.id,
+        this.selectedTimbradoDetalle.id,
+        this.selectedMoneda?.id,
+        this.tipoCambioControl.value
+      )
       .pipe(untilDestroyed(this))
       .subscribe({
-        next: (res: TimbradoDetalle) => {
-          if (res != null) {
-            this.handleFacturaSuccess(res);
+        next: (res: any) => {
+          if (res && res.facturaId) {
+            this.notificacionService.openGuardadoConExito();
+            
+            // Si el usuario quiere imprimir, esperar replicación y luego imprimir
+            if (deseaImprimir) {
+              this.esperarReplicacionEImprimir(res.facturaId, this.selectedSucursal.id);
+            } else {
+              this.matDialogRef.close({
+                facturado: true,
+                cliente: this.selectedCliente,
+              });
+            }
           } else {
-            this.trySaveFacturaLocal(facturaInput, facturaItemInputList);
+            this.notificacionService.openAlgoSalioMal("Error al guardar la factura en el servidor filial");
           }
         },
-        error: () => {
-          this.trySaveFacturaLocal(facturaInput, facturaItemInputList);
+        error: (error) => {
+          console.error("Error al guardar factura en filial:", error);
+          this.notificacionService.openAlgoSalioMal("Error al guardar la factura en el servidor filial: " + (error.message || "Error desconocido"));
         },
       });
+  }
+  
+  esperarReplicacionEImprimir(facturaId: number, sucursalId: number) {
+    // Esperar 1 segundo antes de empezar a buscar
+    setTimeout(() => {
+      this.facturaService
+        .pollFacturaLegal(facturaId, sucursalId, 3, 5000)
+        .pipe(untilDestroyed(this))
+        .subscribe({
+          next: (factura: FacturaLegal) => {
+            if (factura) {
+              // Factura encontrada, imprimir
+              this.facturaService.onReimprimirFactura(facturaId, sucursalId);
+              this.matDialogRef.close({
+                facturado: true,
+                cliente: this.selectedCliente,
+              });
+            } else {
+              // No se encontró después de los reintentos
+              this.notificacionService.openWarn(
+                "La factura se guardó correctamente, pero no se pudo imprimir. " +
+                "La factura debería aparecer en la lista en breve."
+              );
+              this.matDialogRef.close({
+                facturado: true,
+                cliente: this.selectedCliente,
+              });
+            }
+          },
+          error: (error) => {
+            console.error("Error al buscar factura para imprimir:", error);
+            this.notificacionService.openWarn(
+              "La factura se guardó correctamente, pero hubo un error al intentar imprimir. " +
+              "Puede reimprimirla desde la lista de facturas."
+            );
+            this.matDialogRef.close({
+              facturado: true,
+              cliente: this.selectedCliente,
+            });
+          },
+        });
+    }, 1000);
   }
 
   private trySaveFacturaLocal(facturaInput: any, facturaItemInputList: FacturaLegalItemInput[]) {

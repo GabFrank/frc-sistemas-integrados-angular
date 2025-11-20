@@ -108,6 +108,7 @@ export const facturaLegalesFullInfoQuery = gql`
           id
           timbrado {
             numero
+            isElectronico
           }
           puntoExpedicion
         }
@@ -161,7 +162,9 @@ export const facturaLegalesFullInfoQuery = gql`
           }
           cantidad
           descripcion
+          unidadMedida
           precioUnitario
+          iva
           total
           creadoEn
           producto {
@@ -183,6 +186,7 @@ export const facturaLegalQuery = gql`
         id
         timbrado {
           numero
+          isElectronico
         }
         puntoExpedicion
       }
@@ -293,7 +297,9 @@ export const saveFacturaLegalItem = gql`
       }
       cantidad
       descripcion
+      unidadMedida
       precioUnitario
+      iva
       total
       creadoEn
       usuario
@@ -375,6 +381,34 @@ export const generarExcelFacturasZipQuery = gql`
       fechaFin: $fechaFin
       sucId: $sucId
     )
+  }
+`;
+
+export const saveFacturaLegalToFilialQuery = gql`
+  mutation saveFacturaLegalToFilial(
+    $entity: FacturaLegalInput!
+    $detalleList: [FacturaLegalItemInput]
+    $sucursalId: ID!
+    $timbradoDetalleId: ID!
+    $monedaId: ID
+    $tipoCambio: Float
+  ) {
+    data: saveFacturaLegalToFilial(
+      entity: $entity
+      detalleList: $detalleList
+      sucursalId: $sucursalId
+      timbradoDetalleId: $timbradoDetalleId
+      monedaId: $monedaId
+      tipoCambio: $tipoCambio
+    ) {
+      facturaId
+      numeroFactura
+      cdc
+      urlQr
+      estadoDocumentoElectronico
+      mensajeRespuestaSifen
+      documentoElectronicoGenerado
+    }
   }
 `;
 

@@ -39,6 +39,8 @@ export class FacturaLegal {
     sucursal:Sucursal
     activo: boolean
     documentoElectronico: DocumentoElectronico
+    monedaExtranjera: string
+    tipoCambio: number
 
     toInput(): FacturaLegalInput {
         let input = new FacturaLegalInput;
@@ -65,6 +67,9 @@ export class FacturaLegal {
         input.sucursalId = this.sucursalId
         input.descuento = this.descuento
         input.activo = this.activo
+    input.timbradoDetalleId = this.timbradoDetalle?.id
+    input.monedaExtranjera = this.monedaExtranjera
+    input.tipoCambio = this.tipoCambio
         return input;
     }
 }
@@ -93,6 +98,9 @@ export class FacturaLegalInput {
     descuento: number
     usuarioId: number
     activo: boolean
+    timbradoDetalleId: number
+    monedaExtranjera: string
+    tipoCambio: number
 }
 
 export class FacturaLegalItem {
@@ -102,6 +110,7 @@ export class FacturaLegalItem {
     ventaItem: VentaItem
     cantidad: number
     descripcion: string
+    unidadMedida: string
     precioUnitario: number
     total: number
     iva: number
@@ -116,6 +125,7 @@ export class FacturaLegalItem {
         input.ventaItemId = this.ventaItem?.id
         input.cantidad = this.cantidad
         input.descripcion = this.descripcion
+        input.unidadMedida = this.unidadMedida
         input.precioUnitario = this.precioUnitario
         input.total = this.total
         input.iva = this.iva
@@ -134,6 +144,7 @@ export class FacturaLegalItemInput {
     ventaItemId: number
     cantidad: number
     descripcion: string
+    unidadMedida: string
     precioUnitario: number
     total: number
     iva: number

@@ -4,6 +4,59 @@
   </header>
 
   <section class="dialog-body" fxLayout="column" fxFlex>
+    <!-- Campos para modo filial -->
+    <div class="section-card" fxLayout="column" fxLayoutGap="16px" *ngIf="isServidor">
+      <div class="section-title">Configuración de Factura</div>
+      
+      <div fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="16px">
+        <div fxFlex fxFlex.lt-md="100">
+          <mat-form-field class="full-width">
+            <mat-label>Sucursal</mat-label>
+            <mat-select #sucursalSelect [formControl]="sucursalControl" (opened)="onSucursalSelectOpened()">
+              <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
+                {{ sucursal.nombre }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        
+        <div fxFlex fxFlex.lt-md="100">
+          <mat-form-field class="full-width">
+            <mat-label>Timbrado Detalle</mat-label>
+            <mat-select [formControl]="timbradoDetalleControl">
+              <mat-option *ngFor="let timbradoDetalle of timbradoDetalleList" [value]="timbradoDetalle">
+                {{ timbradoDetalle.timbrado?.numero }} - {{ timbradoDetalle.puntoExpedicion }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+      
+      <div fxLayout="row" fxLayout.lt-md="column" fxLayoutGap="16px">
+        <div fxFlex fxFlex.lt-md="100">
+          <mat-form-field class="full-width">
+            <mat-label>Moneda</mat-label>
+            <mat-select [formControl]="monedaControl">
+              <mat-option *ngFor="let moneda of monedaList" [value]="moneda">
+                {{ moneda.denominacion }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        
+        <div fxFlex fxFlex.lt-md="100">
+          <mat-form-field class="full-width">
+            <mat-label>Tipo de Cambio</mat-label>
+            <input
+              type="number"
+              matInput
+              [formControl]="tipoCambioControl"
+            />
+          </mat-form-field>
+        </div>
+      </div>
+    </div>
+    
     <div class="section-card" fxLayout="column" fxLayoutGap="16px">
       <div class="section-title">Datos del cliente</div>
 
@@ -251,11 +304,17 @@
         <div class="total-card__value">
           {{ totalFinalControl.value | number : "1.0-0" }}
         </div>
+        <div class="total-card__subtitle" *ngIf="isServidor && selectedMoneda && selectedMoneda.denominacion !== 'GUARANI' && tipoCambioControl.value">
+          {{ totalFinalControl.value / tipoCambioControl.value | number : "1.2-2" }} {{ selectedMoneda.denominacion }}
+        </div>
       </div>
       <div class="total-card total-descuento" fxFlex>
         <div class="total-card__title">Descuento</div>
         <div class="total-card__value">
           {{ data?.descuento || 0 | number : "1.0-0" }}
+        </div>
+        <div class="total-card__subtitle" *ngIf="isServidor && selectedMoneda && selectedMoneda.denominacion !== 'GUARANI' && tipoCambioControl.value">
+          {{ (data?.descuento || 0) / tipoCambioControl.value | number : "1.2-2" }} {{ selectedMoneda.denominacion }}
         </div>
       </div>
       <div class="total-card total-final" fxFlex>
@@ -264,6 +323,9 @@
           {{
             totalFinalControl.value - (data?.descuento || 0) | number : "1.0-0"
           }}
+        </div>
+        <div class="total-card__subtitle" *ngIf="isServidor && selectedMoneda && selectedMoneda.denominacion !== 'GUARANI' && tipoCambioControl.value">
+          {{ totalFinalEnMoneda | number : "1.2-2" }} {{ selectedMoneda.denominacion }}
         </div>
       </div>
     </div>
@@ -286,7 +348,8 @@
           rucControl.invalid ||
           clienteDescripcionControl.invalid ||
           totalFinalControl.invalid ||
-          !selectedCliente
+          (!isServidor && !selectedCliente) ||
+          (isServidor && (!sucursalControl.value || !timbradoDetalleControl.value))
         "
         (clickEvent)="onGuardar()"
         class="btn-accion"

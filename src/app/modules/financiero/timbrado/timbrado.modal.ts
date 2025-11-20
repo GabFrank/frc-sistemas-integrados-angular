@@ -13,6 +13,7 @@ export class Timbrado {
     fechaFin: Date
     isElectronico: boolean
     csc: string
+    cscId: string
     email: string
     tipoSociedad: string
     domicilioFiscalDepartamento: string
@@ -43,6 +44,7 @@ export class Timbrado {
         input.fechaFin = fechaFinString
         input.isElectronico = this.isElectronico
         input.csc = this.csc
+        input.cscId = this.cscId
         input.email = this.email
         input.tipoSociedad = this.tipoSociedad
         input.domicilioFiscalDepartamento = this.domicilioFiscalDepartamento
@@ -95,6 +97,7 @@ export class TimbradoInput {
     fechaFin: string
     isElectronico: boolean
     csc: string
+    cscId: string
     email: string
     tipoSociedad: string
     domicilioFiscalDepartamento: string
