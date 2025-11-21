@@ -179,6 +179,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     this.formGroup = new FormGroup({
       buscarControl: new FormControl(null),
       cantidad: new FormControl(null),
+      soloStock: new FormControl(false)
     });
 
     this.formGroup
@@ -187,6 +188,16 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       .subscribe((value) => {
         if (value != null) this.onSearchProducto(value);
       });
+
+    this.formGroup
+      .get("soloStock")
+      .valueChanges.pipe(untilDestroyed(this))
+      .subscribe((checked) => {
+        const textoActual = this.formGroup.get("buscarControl").value;
+        if (textoActual) {
+          this.onSearchProducto(textoActual);
+        }
+      })
 
     this.formGroup.get("buscarControl").setValue(this.data?.texto);
     this.formGroup.get("cantidad").setValue(this.data?.cantidad);
@@ -197,11 +208,19 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     let peso;
     let codigo;
     this.isSearching = true;
+    const soloStock = this.formGroup.get("soloStock").value;
+    
     if (this.data.conservarUltimaBusqueda == true)
       this.productoService.lastSearchText = text;
     if (this.onSearchTimer != null) {
       clearTimeout(this.onSearchTimer);
     }
+
+    let sucursalIdParaFiltro = this.sucursalActual?.id;
+    if (this.isTransferencia && this.data?.transferencia?.sucursalOrigen) {
+      sucursalIdParaFiltro = this.data.transferencia.sucursalOrigen.id;
+    }
+
     if (text == "" || text == null || text == " ") {
       this.dataSource != undefined ? (this.dataSource.data = []) : null;
       this.isSearching = false;
@@ -215,7 +234,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
       // }
       this.onSearchTimer = setTimeout(() => {
         this.productoService
-          .onSearch(text, offset, true, this.data.servidor)
+          .onSearch(text, offset, sucursalIdParaFiltro, soloStock, true, this.data.servidor)
           .pipe(untilDestroyed(this))
           .subscribe((res) => {
             if (offset == null) {

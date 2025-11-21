@@ -55,8 +55,9 @@
         </div>
       </div>
       <div fxLayout="row">
-        <div fxFlex="100">
-          <mat-form-field style="width: 95%">
+
+        <div fxFlex="100" *ngIf="!isTransferencia">
+          <mat-form-field style="width: 100%">
             <mat-label>Ingresar texto</mat-label>
             <input
               #buscarInput
@@ -68,6 +69,27 @@
               (keydown)="keydownEvent($event.key)"
             />
           </mat-form-field>
+        </div>
+
+        <div fxFlex="85" *ngIf="isTransferencia">
+          <mat-form-field style="width: 100%">
+            <mat-label>Ingresar texto</mat-label>
+            <input
+              #buscarInput
+              matInput
+              placeholder="Buscar Producto"
+              autocomplete="off"
+              formControlName="buscarControl"
+              oninput="(this.value == ' ') ? this.value = null : null ;this.value = this.value.toUpperCase()"
+              (keydown)="keydownEvent($event.key)"
+            />
+          </mat-form-field>
+        </div>
+
+        <div flex="20" style="text-align: center;">
+          <mat-checkbox formControlName="soloStock" *ngIf="isTransferencia">
+            Stock positivo
+          </mat-checkbox>
         </div>
       </div>
       <div class="table-container" fxLayout="row">
