@@ -87,7 +87,7 @@ export class DefaultComponent implements OnInit {
           const tokenFcm = localStorage.getItem("pushToken");
           if (!usuarioId) return of(null);
           return this.getNotificacionesUsuarioGQL
-            .fetch({ usuarioId: +usuarioId, tokenFcm, page, size }, { fetchPolicy: 'network-only' })
+            .fetch({ tokenFcm, page, size }, { fetchPolicy: 'network-only' })
             .pipe(catchError(() => of(null)));
         })
       )

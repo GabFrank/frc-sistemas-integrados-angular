@@ -31,8 +31,8 @@ export const notificacionesPorTokenQuery = gql`
 `;
 
 export const getNotificacionesUsuarioQuery = gql`
-  query ($usuarioId: Int!, $leidas: Boolean, $page: Int, $size: Int) {
-    data: getNotificacionesUsuario(usuarioId: $usuarioId, leidas: $leidas, page: $page, size: $size) {
+  query ($tokenFcm: String, $leidas: Boolean, $page: Int, $size: Int) {
+    data: getNotificacionesUsuario(tokenFcm: $tokenFcm, leidas: $leidas, page: $page, size: $size) {
       content {
         id
         leida
