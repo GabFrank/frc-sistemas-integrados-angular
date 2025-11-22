@@ -46,6 +46,8 @@ import { AddTimbradoDialogComponent } from "./timbrado/add-timbrado-dialog/add-t
 import { AddTimbradoDetalleDialogComponent } from "./timbrado/add-timbrado-detalle-dialog/add-timbrado-detalle-dialog.component";
 import { BootstrapModule } from "../../commons/core/bootstrap.module";
 import { ListLoteDeComponent } from './documento-electronico/lote-de/list-lote-de/list-lote-de.component';
+import { GestionDeDialogComponent } from './factura-legal/gestion-de-dialog/gestion-de-dialog.component';
+import { InutilizacionNumerosTabComponent } from './factura-legal/inutilizacion-numeros-tab/inutilizacion-numeros-tab.component';
 
 @NgModule({
   declarations: [
@@ -87,7 +89,9 @@ import { ListLoteDeComponent } from './documento-electronico/lote-de/list-lote-d
     ListTimbradoComponent,
     AddTimbradoDialogComponent,
     AddTimbradoDetalleDialogComponent,
-    ListLoteDeComponent
+    ListLoteDeComponent,
+    GestionDeDialogComponent,
+    InutilizacionNumerosTabComponent
 
   ],
   providers: [

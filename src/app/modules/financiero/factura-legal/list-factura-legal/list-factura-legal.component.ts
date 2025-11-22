@@ -34,6 +34,7 @@ import { ReporteService } from "../../../reportes/reporte.service";
 import { TabService } from "../../../../layouts/tab/tab.service";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
+import { GestionDeDialogComponent } from "../gestion-de-dialog/gestion-de-dialog.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -313,6 +314,19 @@ export class ListFacturaLegalComponent implements OnInit {
         if (res != null) {
           this.dataSource.data = updateDataSource(this.dataSource.data, res);
         }
+      });
+  }
+
+  onGestionDE() {
+    this.matDialog
+      .open(GestionDeDialogComponent, {
+        width: "80vw",
+        height: "85vh",
+        panelClass: "gestion-de-dialog-panel"
+      })
+      .afterClosed()
+      .subscribe((res) => {
+        // El diálogo se cierra sin necesidad de recargar datos
       });
   }
 
