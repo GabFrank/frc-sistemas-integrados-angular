@@ -1,4 +1,5 @@
 import { Component, Inject, OnInit, ViewEncapsulation } from "@angular/core";
+import { Router } from "@angular/router";
 import { Subject, of } from "rxjs";
 import { switchMap, catchError, tap } from "rxjs/operators";
 import { PageEvent } from "@angular/material/paginator";
@@ -58,7 +59,8 @@ export class DefaultComponent implements OnInit {
     private notificacionesPorTokenGQL: NotificacionesPorTokenGQL,
     private getNotificacionesUsuarioGQL: GetNotificacionesUsuarioGQL,
     private marcarNotificacionLeidaGQL: MarcarNotificacionLeidaGQL,
-    private registrarInteraccionNotificacionGQL: RegistrarInteraccionNotificacionGQL
+    private registrarInteraccionNotificacionGQL: RegistrarInteraccionNotificacionGQL,
+    private router: Router
   ) {
   }
 
@@ -161,7 +163,32 @@ export class DefaultComponent implements OnInit {
   }
 
   onNotificationClick(n: NotificacionData): void {
+    this.navigateByNotificationType(n);
     this.openDetail(n);
+  }
+  private navigateByNotificationType(n: NotificacionData): void {
+    const tipo = n.notificacion?.tipo;
+
+    if (!tipo) {
+      return;
+    }
+
+    switch (tipo) {
+      case 'AJUSTE_STOCK':
+        this.router.navigate(['/operaciones/movimientos-stock']);
+        break;
+      case 'PRODUCTO_CREADO':
+        this.router.navigate(['/productos']);
+        break;
+      case 'TRANSFERENCIA_INICIADA':
+        this.router.navigate(['/operaciones/transferencias']);
+        break;
+      case 'PRECIO_ACTUALIZADO':
+        this.router.navigate(['/productos']);
+        break;
+      default:
+        break;
+    }
   }
 
   openDetail(n: NotificacionData): void {
