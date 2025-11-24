@@ -1,30 +1,30 @@
 
 
 tr:focus{
-    outline: none;
+  outline: none;
 }
 
 table {
-  width: 100%;
+width: 100%;
 }
 
 tr.example-detail-row {
-  height: 0;
+height: 0;
 }
 
 
 .example-producto-row td {
-  border-bottom-width: 0;
+border-bottom-width: 0;
 }
 
 .example-producto-detail {
-  overflow: hidden;
-  display: flex;
-  background-color: none !important;
+overflow: hidden;
+display: flex;
+background-color: none !important;
 }
 
 .example-producto-detail:hover {
-  background-color: none;
+background-color: none;
 }
 
 .mat-mdc-cell,

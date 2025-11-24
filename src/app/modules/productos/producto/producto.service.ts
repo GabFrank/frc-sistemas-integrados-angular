@@ -40,6 +40,7 @@ import { ReportesComponent } from "../../reportes/reportes/reportes.component";
 import { ImprimirCodigoBarraGQL } from "./graphql/imprimirCodigoBarra";
 import { Codigo } from "../codigo/codigo.model";
 import { ProductoStockGQL } from "./graphql/productoStock";
+import { ProductoDescripcionExistsGQL } from "./graphql/productoDescripcionExists";
 import { PageInfo } from "../../../app.component";
 import { SearchProductoWithFiltersGQL } from "./graphql/searchWithFilters";
 import { ExportarProductoConFiltrosGQL } from "./graphql/exportarReporteConFiltros";
@@ -77,7 +78,8 @@ export class ProductoService {
     private tabService: TabService,
     private imprimirCodigo: ImprimirCodigoBarraGQL,
     private productoPorSucursalStock: ProductoStockGQL,
-    private searchWithFilters: SearchProductoWithFiltersGQL
+    private searchWithFilters: SearchProductoWithFiltersGQL,
+    private productoDescripcionExistsGql: ProductoDescripcionExistsGQL
   ) {
     this.productosList = [];
     // getAllProductos.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
@@ -125,12 +127,16 @@ export class ProductoService {
     return this.genericService.onCustomQuery(this.productoPorSucursalStock, {proId, sucId}, servidor);
   }
 
+  onProductoDescripcionExists(descripcion: string, servidor = true) {
+    return this.genericService.onCustomQuery(this.productoDescripcionExistsGql, { descripcion }, servidor);
+  }
+
   onGetProductoPorCodigo(texto, servidor: boolean = true): Observable<Producto> {
     return this.genericService.onCustomQuery(this.productoPorCodigo, { texto }, servidor);
   }
 
-  onSearch(texto, offset?, activo?, servidor = true): Observable<Producto[]> {
-    return this.genericService.onCustomQuery(this.productoSearch, {texto, offset, isEnvase: false, activo}, servidor);
+  onSearch(texto, offset?, sucursalId?, conStock?, activo?, servidor = true): Observable<Producto[]> {
+    return this.genericService.onCustomQuery(this.productoSearch, {texto, offset, sucursalId, conStock, isEnvase: false, activo}, servidor);
   }
 
   onEnvaseSearch(texto, offset?, isEnvase?: boolean, servidor = true): Observable<Producto[]> {

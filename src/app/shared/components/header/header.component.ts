@@ -52,6 +52,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   sucursalList: any[];
   readonly ROLES = ROLES;
   @Output() toogleSideBarEvent: EventEmitter<any> = new EventEmitter();
+  @Output() openNotificationsEvent: EventEmitter<void> = new EventEmitter<void>();
   appVersion = null;
 
   constructor(
@@ -110,6 +111,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
   toogleSideBar() {
     this.toogleSideBarEvent.emit();
+  }
+
+  onOpenNotifications() {
+    this.openNotificationsEvent.emit();
   }
 
   async onLogout() {

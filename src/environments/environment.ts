@@ -8,13 +8,13 @@ export const APP_CONFIG = {
 export const environment = {
   version: '1.0.5',
   production: false,
-  usuario : 1,
+  usuario: 1,
   sucursalId: 1,
-  firebaseConfig : {
+  firebaseConfig: {
     apiKey: "AIzaSyDAPq38fcPq-8qtSbQ_YyTc0Vc0pqlqWV4",
-    authDomain: "franco-system.firebaseapp.com",
-    projectId: "franco-system",
-    storageBucket: "franco-system.appspot.com",
+    authDomain: "franco-system-frc.firebaseapp.com",
+    projectId: "franco-system-frc",
+    storageBucket: "franco-system-frc.appspot.com",
     messagingSenderId: "389460380308",
     appId: "1:389460380308:web:53701896405855d9f64281"
   },

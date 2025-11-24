@@ -87,6 +87,11 @@ export class SucursalService {
           pageInfo.getTotalElements = pageInfo.getContent.length;
           pageInfo.getNumberOfElements = pageInfo.getContent.length;
         }
+        if (activo !== null && activo !== undefined) {
+          pageInfo.getContent = pageInfo.getContent.filter(s => s.activo === activo);
+          pageInfo.getTotalElements = pageInfo.getContent.length;
+          pageInfo.getNumberOfElements = pageInfo.getContent.length;
+        }
 
         return pageInfo;
       })
@@ -216,7 +221,7 @@ export class SucursalService {
       dialogData.inicialSearch = true;
       dialogData.paginator = false;
       dialogData.isServidor = servidor;
-      dialogData.searchFieldName = 'texto';
+     dialogData.searchFieldName = 'texto';
       dialogData.queryData = { texto: '%' };
 
       const dialogRef = this.matDialog.open(SearchListDialogComponent, {

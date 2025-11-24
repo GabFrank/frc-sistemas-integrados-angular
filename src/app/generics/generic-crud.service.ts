@@ -107,8 +107,6 @@ export class GenericCrudService {
     errorConf?,
     silentLoad?: boolean
   ): Observable<any> {
-    console.log("Entrando en custom query");
-
     this.isLoading = true;
     let { requestId = null, signal = null } =
       silentLoad != true
@@ -505,7 +503,7 @@ export class GenericCrudService {
               },
             }
           )
-          .pipe(untilDestroyed(this)) 
+          .pipe(untilDestroyed(this))
           .subscribe((res) => {
             this.cargandoService.closeDialog(requestId);
             if (res.errors == null) {

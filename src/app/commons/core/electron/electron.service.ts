@@ -1,17 +1,18 @@
 import { Injectable } from '@angular/core';
-
-// If you import a module but never use any of the imported values other than as TypeScript types,
-// the resulting javascript file will look as if you never imported the module at all.
-import * as remote from '@electron/remote';
-import * as childProcess from 'child_process';
-import * as fs from 'fs';
 import { environment } from '../../../../environments/environment';
 import { Observable, from } from 'rxjs';
 import { ConfiguracionService } from '../../../shared/services/configuracion.service';
+import {
+  START_NOTIFICATION_SERVICE,
+  NOTIFICATION_SERVICE_STARTED,
+  NOTIFICATION_SERVICE_ERROR,
+  NOTIFICATION_RECEIVED as ON_NOTIFICATION_RECEIVED,
+  TOKEN_UPDATED,
+} from '@superhuman/electron-push-receiver/src/constants';
+
 const electron = window.require('electron');
 const ipcRenderer = electron.ipcRenderer;
 
-// Define thermal printer interfaces
 export interface PrinterInfo {
   name: string;
   displayName: string;
@@ -38,18 +39,79 @@ export class ElectronService {
     private configService: ConfiguracionService
   ) {
     if (this.isElectron) {
-
     }
   }
 
-  // getConfigFile(): Promise<ConfigFile>{
-  //   return new Promise((resolve) => {
-  //     this.ipcRenderer.send('get-config-file')
-  //     this.ipcRenderer.on('send-config-file', (event, args) => {
-  //       return resolve(args)
-  //     })
-  //   })
-  // }
+  initPushNotifications(onToken?: (token: string) => void): void {
+    if (!this.isElectron) {
+      console.warn('[FCM] Not running in Electron, aborting push initialization');
+      return;
+    }
+
+    const firebaseConfig = environment.firebaseConfig;
+
+    if (!firebaseConfig) {
+      console.error('[FCM] No firebaseConfig configured in environment');
+      console.error('[FCM] Please add firebaseConfig to your environment file');
+      return;
+    }
+
+    if (!firebaseConfig.apiKey || !firebaseConfig.appId || !firebaseConfig.projectId) {
+      console.error('[FCM] Firebase config is incomplete');
+      console.error('[FCM] Required: apiKey, appId, projectId');
+      return;
+    }
+    ipcRenderer.on(NOTIFICATION_SERVICE_STARTED, (_: any, token: string) => {
+      if (token) {
+        localStorage.setItem('pushToken', token);
+        if (onToken) {
+          onToken(token);
+        }
+      } else {
+        console.warn('[FCM] ⚠️ NOTIFICATION_SERVICE_STARTED without token');
+      }
+    });
+    ipcRenderer.on(TOKEN_UPDATED, (_: any, token: string) => {
+      if (token) {
+        localStorage.setItem('pushToken', token);
+        if (onToken) {
+          onToken(token);
+        }
+      } else {
+        console.warn('[FCM] ⚠️ TOKEN_UPDATED without token');
+      }
+    });
+
+    ipcRenderer.on(NOTIFICATION_SERVICE_ERROR, (_: any, error: any) => {
+    });
+    ipcRenderer.on(ON_NOTIFICATION_RECEIVED, (_: any, notification: any) => {
+      try {
+        const title = notification?.notification?.title || 'FRC Sistemas Integrados';
+        const body = notification?.notification?.body || '';
+        const data = notification?.data;
+        if (typeof Notification !== 'undefined') {
+          const n = new Notification(title, { body, data });
+
+          n.onclick = () => {
+            if (data?.path && typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('push-path', { detail: data.path }));
+            }
+          };
+        }
+      } catch (e) {
+        console.error('[FCM] ❌ Error handling foreground notification', e);
+      }
+    });
+    const pushConfig = {
+      firebase: {
+        apiKey: firebaseConfig.apiKey,
+        appID: firebaseConfig.appId,
+        projectID: firebaseConfig.projectId
+      },
+      vapidKey: ''
+    };
+    ipcRenderer.send(START_NOTIFICATION_SERVICE, pushConfig);
+  }
 
   relaunch() {
     ipcRenderer.send('reiniciar')
@@ -62,7 +124,7 @@ export class ElectronService {
       copies: 1,
       printerName: this.configService?.getConfig()?.printers?.ticket,
       timeOutPerLine: 400,
-      pageSize: '58mm', // page size,
+      pageSize: '58mm',
       silent: true,
       dpi: {
         horizontal: 300,
@@ -76,14 +138,6 @@ export class ElectronService {
   getAppVersion() {
     return ipcRenderer.sendSync('get-app-version');
   }
-
-  /**
-   * Thermal Printer Functions
-   */
-
-  /**
-   * Get all available printers using the webContents.getPrinters() method
-   */
   getPrinters(): Observable<PrinterInfo[]> {
     return from(ipcRenderer.invoke('get-system-printers')) as Observable<PrinterInfo[]>;
   }
