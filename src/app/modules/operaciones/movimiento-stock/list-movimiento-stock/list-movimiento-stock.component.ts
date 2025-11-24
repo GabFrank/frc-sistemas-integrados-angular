@@ -54,6 +54,13 @@ import { Venta } from "../../venta/venta.model";
 import { updateDataSource } from "../../../../commons/core/utils/numbersUtils";
 import { EditTransferenciaComponent } from "../../transferencia/edit-transferencia/edit-transferencia.component";
 import { ListInventarioComponent } from "../../inventario/list-inventario/list-inventario.component";
+import { forkJoin } from "rxjs";
+
+export interface StockResumenView {
+  tipoMovimiento: string;
+  stock: number;
+  expanded?: { sucursal: string; stock: number} [];
+}
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -113,10 +120,11 @@ export class ListMovimientoStockComponent implements OnInit {
   page = 0;
   size = 20;
   selectedPageInfo: PageInfo<MovimientoStock>;
-
+  
+  stockActualDesglose: { sucursal: string; stock: number }[] = [];
   stockTotal = 0;
   stockPorRangoFecha = 0;
-  stockPorTipoMovimiento: StockPorTipoMovimientoDto[];
+  stockPorTipoMovimiento: StockResumenView[];
   totalRecibidoGs = 0;
   totalRecibido = 0;
   totalRecibidoRs = 0;
@@ -179,10 +187,18 @@ export class ListMovimientoStockComponent implements OnInit {
   }
 
   onGetResumen(isPagination: boolean = false) {
+
+    let selectedSucursales = this.sucursalControl.value;
+
+    if (!selectedSucursales || selectedSucursales.length === 0  || selectedSucursales.includes(null)) {
+      selectedSucursales = this.sucursalList.filter(s => s.id !== 0);
+    }
+
     const sucursalIdList = this.toEntityId(
-      this.sucursalControl.value,
+      selectedSucursales,
       this.sucursalList
     );
+
     if (this.tipoMovimientoControl.value?.find((i) => i == "Todas") != null) {
       this.tipoMovimientoControl.setValue(null);
     }
@@ -201,14 +217,31 @@ export class ListMovimientoStockComponent implements OnInit {
 
     // if sucursalid list is not empty, get stock for each sucursal and sum itm add logs  
     if (sucursalIdList.length > 0 && !isPagination) {
+
+
+      this.stockTotal = 0;
+      this.stockPorRangoFecha = 0;
+      this.stockPorTipoMovimiento = [];
+      this.stockActualDesglose = [];
+
       if (this.selectedProducto?.id) {
-        sucursalIdList.forEach((sucursalId) => {
-          this.service
-            .onGetStockPorProducto(this.selectedProducto.id, sucursalId)
-            .subscribe((res) => {
-              this.stockTotal += res;
+        
+        const stockObservables = sucursalIdList.map(id => 
+          this.service.onGetStockPorProducto(this.selectedProducto.id, id)
+        );
+
+        forkJoin(stockObservables).subscribe((res: number[]) => {
+          res.forEach((stock, index) => {
+            this.stockTotal += stock;
+            
+            const sucursal = this.sucursalList.find(s => s.id === sucursalIdList[index]);
+            this.stockActualDesglose.push({
+              sucursal: sucursal ? sucursal.nombre : 'Desconocido',
+              stock: stock
             });
+          });
         });
+
       } else {
         // Notificar que se requiere seleccionar un producto para esta métrica específica
         this.notificacionService.openWarn(
@@ -216,26 +249,52 @@ export class ListMovimientoStockComponent implements OnInit {
         );
       }
 
-      this.service
+      const observables = sucursalIdList.map(id => {
+        return this.service
         .onGetStockPorTipoMovimiento(
           dateToString(fechaInicial),
           dateToString(fechaFin),
-          this.sucursalIdList,
+          [id],
           this.selectedProducto?.id,
           this.tipoMovimientoControl.value,
           this.selectedUsuario?.id
-        )
-        .subscribe((res: StockPorTipoMovimientoDto[]) => {
-          console.log(res);
-          if (Array.isArray(res)) {
-            res.forEach((t) => {
-              this.stockPorRangoFecha += t.stock;
+        );
+      });
+
+      forkJoin(observables).subscribe((responses : any[]) => {
+
+        const agrupado: Map<string, StockResumenView> = new Map();
+
+        responses.forEach((resPorSucursal, index) => {
+          const sucursalActual = this.sucursalList.find(s => s.id === sucursalIdList[index])
+          const nombreSucursal = sucursalActual ? sucursalActual.nombre : 'Desconocido';
+
+          if (Array.isArray(resPorSucursal)) {
+            resPorSucursal.forEach((item) => {
+              const key = item.tipoMovimiento;
+
+              this.stockPorRangoFecha += item.stock;
+            
+              if (!agrupado.has(key)) {
+                agrupado.set(key, {
+                  tipoMovimiento: key,
+                  stock: 0,
+                  expanded: []
+                });
+              }
+
+              const entry = agrupado.get(key);
+              entry.stock += item.stock;
+              entry.expanded.push({
+                sucursal: nombreSucursal,
+                stock: item.stock
+              });
             });
-            this.stockPorTipoMovimiento = res;
-          } else {
-            this.stockPorTipoMovimiento = [];
           }
         });
+
+        this.stockPorTipoMovimiento = Array.from(agrupado.values());
+      });
     }
   }
 

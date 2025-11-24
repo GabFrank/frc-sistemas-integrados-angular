@@ -140,34 +140,88 @@
       </div>
     </div>
   </div>
-  <div table fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="space-between start" style="height: 100%">
-    <div fxFlex="20" fxLayout="column" fxLayoutGap="10px" style="background-color: rgb(32, 32, 32);">
+  <div table fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="space-between start" style="height: 100%"
+      style="height: 80vh; width: 100%; overflow: hidden;"
+  >
+    <div fxFlex="20" fxLayout="column" fxLayoutGap="10px" 
+    class="resumen-container"
+    style="background-color: rgb(32, 32, 32); height: 100%; overflow-y: auto; padding-right: 5px;">
       <br />
       <div class="titulo-center">Resumen</div>
-      <div fxLayout="row" fxLayoutAlign="space-between center">
+      <div fxLayout="row" fxLayoutAlign="space-between center" style="min-height: 20px;">
         <div class="titulo" style="padding: 5px">Producto:</div>
         <div style="padding: 5px">
           {{ selectedProducto?.descripcion | titlecase }}
         </div>
       </div>
 
-      <div fxLayout="row" fxLayoutAlign="space-between center">
-        <div class="titulo" style="padding: 5px">Stock actual:</div>
-        <div style="padding: 5px">{{ stockTotal | number : "1.0-2" }}</div>
-      </div>
+      <mat-accordion multi="true" class="resumen-accordion">
+        <mat-expansion-panel [disabled]="!stockActualDesglose || stockActualDesglose.length <= 1"
+                             [hideToggle]="!stockActualDesglose || stockActualDesglose.length <= 1"
+                             style="background-color: transparent; box-shadow: none !important;">
+          
+          <mat-expansion-panel-header 
+              [class.sin-desplegable]="!stockActualDesglose || stockActualDesglose.length <= 1"
+              style="padding: 0 5px; height: auto; min-height: 30px;">
+            
+            <div class="separator-horizontal-bottom" 
+                 [style.padding-right]="(!stockActualDesglose || stockActualDesglose.length <= 1) ? '0px' : ''"
+                 fxLayout="row" fxLayoutAlign="space-between center"
+                 style="border-bottom: 1px solid; width: 100%; color: white;">
+              <div>
+                Stock actual:
+              </div>
+              <div>
+                {{ stockTotal | number : "1.0-2" }}
+              </div>
+            </div>
+          </mat-expansion-panel-header>
+
+          <div fxLayout="column">
+            <div *ngFor="let detalle of stockActualDesglose" fxLayout="row" fxLayoutAlign="space-between center" 
+                 style="font-size: 0.9em; color: white;">
+              <div>{{ detalle.sucursal | titlecase }}:</div>
+              <div>{{ detalle.stock | number : "1.0-2" }}</div>
+            </div>
+          </div>
+
+        </mat-expansion-panel>
+      </mat-accordion>
 
       <div class="titulo" style="padding: 5px">
         Total por tipo de movimiento y rango de fecha
       </div>
-      <div *ngFor="let item of stockPorTipoMovimiento">
-        <div class="separator-horizontal-bottom" fxLayout="row" fxLayoutAlign="space-between center"
-          style="border-bottom: 1px">
-          <div style="padding: 5px">
-            {{ item?.tipoMovimiento | enumToString }}:
+      <mat-accordion multi="true" class="resumen-accordion">
+        <mat-expansion-panel *ngFor="let item of stockPorTipoMovimiento" 
+                             [disabled]="!item.expanded || item.expanded.length <= 1"
+                             [hideToggle]="!item.expanded || item.expanded.length <= 1"
+                             style="background-color: transparent; box-shadow: none !important;">
+          
+          <mat-expansion-panel-header [class.sin-desplegable]="!item.expanded || item.expanded.length <= 1"
+          style="padding: 0 5px; height: auto; min-height: 30px;">
+          <div class="separator-horizontal-bottom" 
+            [style.padding-right]="(!item.expanded || item.expanded.length <= 1) ? '0px' : ''"
+            fxLayout="row" fxLayoutAlign="space-between center"
+            style="border-bottom: 1px solid; width: 100%; color: white;">
+              <div>
+                {{ item?.tipoMovimiento | enumToString }}:
+              </div>
+              <div>
+                {{ item?.stock | number : "1.0-2" }}
+              </div>
+            </div>
+          </mat-expansion-panel-header>
+
+          <div fxLayout="column">
+            <div *ngFor="let detalle of item.expanded" fxLayout="row" fxLayoutAlign="space-between center" 
+                 style="font-size: 0.9em; color: white;">
+              <div>{{ detalle.sucursal | titlecase }}:</div>
+              <div>{{ detalle.stock | number : "1.0-2" }}</div>
+            </div>
           </div>
-          <div style="padding: 5px">{{ item?.stock | number : "1.0-2" }}</div>
-        </div>
-      </div>
+
+        </mat-expansion-panel>
+      </mat-accordion>
       <div fxLayout="row" fxLayoutAlign="space-between center">
         <div class="titulo" style="padding: 5px">TOTAL:</div>
         <div style="padding: 5px">
@@ -179,7 +233,7 @@
     <div fxFlex="80" style="
         height: 100%; 
         background-color: rgb(70, 70, 70); 
-        max-height: 70vh; 
+        height: 100%; 
         overflow-y: auto;" fxLayout="column" fxLayoutAlign="space-between start">
       <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
         <ng-container matColumnDef="id" style="width: 5%">
