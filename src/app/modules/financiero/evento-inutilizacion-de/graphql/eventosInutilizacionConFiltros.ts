@@ -15,3 +15,4 @@ export class EventosInutilizacionConFiltrosGQL extends Query<Response> {
   document = eventosInutilizacionConFiltrosQuery;
 }
 
+
