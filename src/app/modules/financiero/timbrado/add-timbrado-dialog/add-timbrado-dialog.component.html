@@ -343,8 +343,8 @@
     <button 
       mat-raised-button 
       color="accent" 
-      [disabled]="isEditing && formGroup.invalid || 
-      fechaInicioControl.value > fechaFinControl.value" 
+      [disabled]="isEditing && (formGroup.invalid || 
+      (fechaInicioControl.value && fechaFinControl.value && fechaInicioControl.value > fechaFinControl.value))" 
       (click)="isEditing ? onGuardar() : onHabilitarEdicion()"
     >
       {{ isEditing ? 'Guardar' : 'Editar' }}

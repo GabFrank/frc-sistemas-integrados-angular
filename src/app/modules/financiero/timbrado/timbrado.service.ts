@@ -13,6 +13,7 @@ import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { FindByNumeroTimbradoGQL } from './graphql/findByNumeroTimbradoQuery';
 import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
 import { TimbradoDetallesByTimbradoIdGQL } from './graphql/timbradoDetallesByTimbradoId';
+import { TimbradoDetallesBySucursalIdGQL } from './graphql/timbradoDetallesBySucursalId';
 import { Timbrado, TimbradoInput, TimbradoDetalle, TimbradoDetallInput } from './timbrado.modal';
 
 @UntilDestroy({ checkProperties: true })
@@ -33,6 +34,7 @@ constructor(
   private notificacionBar: NotificacionSnackbarService,
   private existeTimbradoActivoGQL: ExisteTimbradoActivoGQL,
   private timbradoDetallesByTimbradoIdGQL: TimbradoDetallesByTimbradoIdGQL,
+    private timbradoDetallesBySucursalIdGQL: TimbradoDetallesBySucursalIdGQL,
 ) { }
 
   onGetTimbrado(id, servidor: boolean = true): Observable<Timbrado> {
@@ -64,6 +66,10 @@ constructor(
   }
   onGetTimbradoDetallesByTimbradoId(timbradoId: number, pageIndex: number, pageSize: number, servidor: boolean = true): Observable<PageInfo<TimbradoDetalle>> {
     return this.genericService.onCustomQuery(this.timbradoDetallesByTimbradoIdGQL, {timbradoId, page: pageIndex, size: pageSize}, servidor);
+  }
+
+  onGetTimbradoDetallesBySucursalId(sucursalId: number, servidor: boolean = true): Observable<TimbradoDetalle[]> {
+    return this.genericService.onCustomQuery(this.timbradoDetallesBySucursalIdGQL, {sucursalId}, servidor);
   }
 
 }

@@ -30,6 +30,11 @@ import { BdcWalkService, TaskList } from "bdc-walkthrough";
 import { removeSecondDigito } from "../../../../commons/core/utils/rucUtils";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { PageInfo } from "../../../../app.component";
+import { ReporteService } from "../../../reportes/reporte.service";
+import { TabService } from "../../../../layouts/tab/tab.service";
+import { Tab } from "../../../../layouts/tab/tab.model";
+import { ReportesComponent } from "../../../reportes/reportes/reportes.component";
+import { GestionDeDialogComponent } from "../gestion-de-dialog/gestion-de-dialog.component";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -122,7 +127,9 @@ export class ListFacturaLegalComponent implements OnInit {
     private cargandoService: CargandoDialogService,
     private notificacionService: NotificacionSnackbarService,
     private matDialog: MatDialog,
-    public bdcWalkService: BdcWalkService
+    public bdcWalkService: BdcWalkService,
+    private reporteService: ReporteService,
+    private tabService: TabService
   ) {}
 
   iniciarTutorial() {
@@ -295,15 +302,31 @@ export class ListFacturaLegalComponent implements OnInit {
     this.matDialog
       .open(AddFacturaLegalDialogComponent, {
         data: {
-          sucursal: this.selectedSucursal,
+          ventaItemList: [],
+          descuento: 0,
+          isServidor: true,
         },
-        width: "50%",
+        width: "100%",
+        height: "80vh",
       })
       .afterClosed()
       .subscribe((res) => {
         if (res != null) {
           this.dataSource.data = updateDataSource(this.dataSource.data, res);
         }
+      });
+  }
+
+  onGestionDE() {
+    this.matDialog
+      .open(GestionDeDialogComponent, {
+        width: "80vw",
+        height: "85vh",
+        panelClass: "gestion-de-dialog-panel"
+      })
+      .afterClosed()
+      .subscribe((res) => {
+        // El diálogo se cierra sin necesidad de recargar datos
       });
   }
 
@@ -570,6 +593,125 @@ export class ListFacturaLegalComponent implements OnInit {
           this.cargandoService.closeDialog();
           console.error('Error al cancelar factura:', error);
           this.notificacionService.openAlgoSalioMal('Error al cancelar la factura');
+        }
+      });
+  }
+
+  onDescargarXml(factura: FacturaLegal) {
+    if (!this.esElectronica(factura)) {
+      this.notificacionService.openAlgoSalioMal('Esta factura no es electrónica');
+      return;
+    }
+
+    this.cargandoService.openDialog();
+    this.facturaService.onDescargarXmlFacturaElectronica(factura.id, factura.sucursalId, true)
+      .subscribe({
+        next: (base64String: string) => {
+          this.cargandoService.closeDialog();
+          if (!base64String) {
+            this.notificacionService.openAlgoSalioMal('No se pudo descargar el XML');
+            return;
+          }
+
+          // Convertir Base64 a Blob
+          const byteCharacters = atob(base64String);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'application/xml' });
+
+          // Crear descarga
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          document.body.appendChild(a);
+          a.setAttribute('style', 'display: none');
+          a.href = url;
+          a.download = `factura-${factura.numeroFactura}-${factura.cdc}.xml`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+          a.remove();
+        },
+        error: (error) => {
+          this.cargandoService.closeDialog();
+          console.error('Error al descargar XML:', error);
+          this.notificacionService.openAlgoSalioMal('Error al descargar el XML');
+        }
+      });
+  }
+
+  onDescargarPdf(factura: FacturaLegal) {
+    if (!this.esElectronica(factura)) {
+      this.notificacionService.openAlgoSalioMal('Esta factura no es electrónica');
+      return;
+    }
+
+    this.cargandoService.openDialog();
+    this.facturaService.onDescargarPdfFacturaElectronica(factura.id, factura.sucursalId, true)
+      .subscribe({
+        next: (base64String: string) => {
+          this.cargandoService.closeDialog();
+          if (!base64String) {
+            this.notificacionService.openAlgoSalioMal('No se pudo descargar el PDF');
+            return;
+          }
+
+          // Convertir Base64 a Blob
+          const byteCharacters = atob(base64String);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'application/pdf' });
+
+          // Crear descarga
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          document.body.appendChild(a);
+          a.setAttribute('style', 'display: none');
+          a.href = url;
+          a.download = `factura-${factura.numeroFactura}-${factura.cdc}.pdf`;
+          a.click();
+          window.URL.revokeObjectURL(url);
+          a.remove();
+        },
+        error: (error) => {
+          this.cargandoService.closeDialog();
+          console.error('Error al descargar PDF:', error);
+          this.notificacionService.openAlgoSalioMal('Error al descargar el PDF');
+        }
+      });
+  }
+
+  onAbrirPdf(factura: FacturaLegal) {
+    if (!this.esElectronica(factura)) {
+      this.notificacionService.openAlgoSalioMal('Esta factura no es electrónica');
+      return;
+    }
+
+    this.cargandoService.openDialog();
+    this.facturaService.onDescargarPdfFacturaElectronica(factura.id, factura.sucursalId, true)
+      .subscribe({
+        next: (base64String: string) => {
+          this.cargandoService.closeDialog();
+          if (!base64String) {
+            this.notificacionService.openAlgoSalioMal('No se pudo cargar el PDF');
+            return;
+          }
+
+          // Agregar el PDF al servicio de reportes
+          const nombreReporte = `Factura Electrónica ${factura.numeroFactura} - ${factura.cdc}`;
+          this.reporteService.onAdd(nombreReporte, base64String);
+
+          // Abrir el componente de reportes en un nuevo tab
+          this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListFacturaLegalComponent));
+        },
+        error: (error) => {
+          this.cargandoService.closeDialog();
+          console.error('Error al abrir PDF:', error);
+          this.notificacionService.openAlgoSalioMal('Error al cargar el PDF');
         }
       });
   }

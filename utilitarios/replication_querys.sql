@@ -123,7 +123,10 @@ CREATE PUBLICATION filial5_pub FOR TABLE
     operaciones.venta, 
     operaciones.venta_item, 
     operaciones.vuelto, 
-    operaciones.vuelto_item;
+    operaciones.vuelto_item,
+    financiero.documento_electronico,
+    financiero.lote_de,
+    financiero.timbrado_detalle;
 
 -- script para crear la publicacion bidireccional en el servidor
     CREATE PUBLICATION central_filial24_pub FOR TABLE 

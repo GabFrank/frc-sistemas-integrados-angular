@@ -3,6 +3,9 @@
   (adicionar)="onAdd()"
   (filtrar)="onFilter()"
   [isAdicionar]="true"
+  [isCustom]="true"
+  customName="Gestión DE"
+  (customFunction)="onGestionDE()"
   [disableFilter]="sucursalControl.invalid"
   (resetFiltro)="resetFiltro()"
   [buscarTrigger]="facturaStep5"
@@ -381,6 +384,27 @@
               [disabled]="!factura.puedeCancelar">
               <mat-icon>cancel</mat-icon>
               <span>Cancelar</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="onDescargarXml(factura)"
+              [disabled]="!esElectronica(factura)">
+              <mat-icon>download</mat-icon>
+              <span>Descargar XML</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="onDescargarPdf(factura)"
+              [disabled]="!esElectronica(factura)">
+              <mat-icon>picture_as_pdf</mat-icon>
+              <span>Descargar PDF</span>
+            </button>
+            <button
+              mat-menu-item
+              (click)="onAbrirPdf(factura)"
+              [disabled]="!esElectronica(factura)">
+              <mat-icon>open_in_browser</mat-icon>
+              <span>Abrir PDF</span>
             </button>
           </mat-menu>
         </td>

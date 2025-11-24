@@ -1,0 +1,132 @@
+.inutilizacion-tab-container {
+  height: 100%;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.section-card {
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+}
+
+.crear-evento-section {
+  flex-shrink: 0;
+}
+
+.eventos-list-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 16px;
+  color: white;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.filtros-container {
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.btn-accion {
+  min-width: 120px;
+  height: 40px;
+}
+
+.btn-filtro {
+  min-width: 100px;
+  height: 36px;
+}
+
+.table-container {
+  flex: 1;
+  overflow: auto;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  
+  table {
+    background-color: rgb(50, 50, 50);
+    
+    th {
+      background-color: rgb(40, 40, 40);
+      color: white;
+      font-weight: 500;
+    }
+    
+    td {
+      color: rgba(255, 255, 255, 0.87);
+    }
+    
+    tr:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+}
+
+.text-truncate {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.estado-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.estado-pendiente {
+  background-color: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  border: 1px solid #ffc107;
+}
+
+.estado-aprobado {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  border: 1px solid #4caf50;
+}
+
+.estado-rechazado {
+  background-color: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+  border: 1px solid #f44336;
+}
+
+.estado-error {
+  background-color: rgba(255, 87, 34, 0.2);
+  color: #ff5722;
+  border: 1px solid #ff5722;
+}
+
+@media (max-width: 960px) {
+  .inutilizacion-tab-container {
+    padding: 12px;
+  }
+  
+  .section-card {
+    padding: 16px;
+  }
+  
+  .filtros-container {
+    padding: 12px;
+  }
+}
+

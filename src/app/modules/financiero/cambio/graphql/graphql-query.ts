@@ -106,3 +106,24 @@ export const cambioPorFechaQuery = gql`
     }
   }
 `;
+
+export const ultimoCambioPorMonedaIdQuery = gql`
+  query ($id: Int!) {
+    data: ultimoCambioPorMonedaId(id: $id) {
+      id
+      valorEnGs
+      valorEnGsCambio
+      activo
+      moneda {
+        id
+        denominacion
+      }
+      creadoEn
+      usuario {
+        persona {
+          nombre
+        }
+      }
+    }
+  }
+`;

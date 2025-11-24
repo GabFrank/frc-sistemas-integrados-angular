@@ -103,14 +103,7 @@ export class SucursalService {
   }
 
   onGetAllSucursalesByActive(servidor: boolean = true, onlyActive: boolean = false): Observable<Sucursal[]> {
-    return this.genericService.onCustomQuery(this.getAllSucursales, {}, servidor).pipe(
-      map((sucursales: Sucursal[]) => {
-        if (onlyActive) {
-          return sucursales.filter(s => s.activo === true && s.id !== 0);
-        }
-        return sucursales;
-      })
-    );
+    return this.genericService.onCustomQuery(this.getAllSucursales, {}, servidor);
   }
 
   onGetAllSucursales(servidor: boolean = true): Observable<Sucursal[]> {
