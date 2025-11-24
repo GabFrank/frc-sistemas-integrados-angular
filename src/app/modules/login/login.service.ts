@@ -4,7 +4,6 @@ import {
   HttpHeaders,
 } from "@angular/common/http";
 import { Injectable } from "@angular/core";
-import { environment } from "../../../environments/environment";
 import { MainService } from "../../main.service";
 import { Usuario } from "../personas/usuarios/usuario.model";
 import { UsuarioService } from "../personas/usuarios/usuario.service";
@@ -43,25 +42,17 @@ export class LoginService {
     private deviceDetector: DeviceDetectorService,
     private electronService: ElectronService,
     private configService: ConfiguracionService
-  ) {}
+  ) { }
 
   login(nickname: string, password: string, keepLogged: boolean = false): Observable<LoginResponse> {
     return new Observable((obs) => {
-      // Get the server configuration from ConfiguracionService
       const config = this.configService.getConfig();
-      
-      // Determine which server to use based on isLocal flag
       const serverIp = config.isLocal ? config.serverIp : config.serverCentralIp;
       const serverPort = config.isLocal ? config.serverPort : config.serverCentralPort;
-      
-      console.log("isLocal", config.isLocal);
-      console.log("serverIp", serverIp);
-      console.log("serverPort", serverPort);
-      
+
       let httpBody = {
         nickname: nickname,
         password: password
-        // keepLogged is managed only on frontend, not sent to backend
       };
       let httpResponse = this.http
         .post(
@@ -72,17 +63,14 @@ export class LoginService {
         .pipe(untilDestroyed(this))
         .subscribe(
           (res) => {
-            console.log("res", res);
             if (res["token"] != null) {
-              // Store token and user ID in localStorage always
               localStorage.setItem("token", res["token"]);
-              // Store the keepLogged preference locally
               localStorage.setItem("keepLogged", keepLogged.toString());
-              
+
               if (res["usuarioId"] != null) {
                 localStorage.setItem("usuarioId", res["usuarioId"]);
               }
-              
+
               this.mainService.sucursalActual = res["sucursal"];
               setTimeout(() => {
                 if (res["usuarioId"] != null) {
@@ -98,7 +86,7 @@ export class LoginService {
                           this.mainService?.sucursalActual;
                         inicioSesion.horaInicio = new Date();
                         inicioSesion.creadoEn = new Date();
-                        
+
                         let deviceId = localStorage.getItem("deviceId");
                         if (deviceId == null) {
                           let uuid = generateUUID();
@@ -106,21 +94,20 @@ export class LoginService {
                           deviceId = uuid;
                         }
                         inicioSesion.idDispositivo = deviceId;
+                        inicioSesion.token = localStorage.getItem("pushToken");
 
                         if (
                           res?.inicioSesion != null &&
                           res?.inicioSesion?.idDispositivo == deviceId &&
                           res?.inicioSesion?.sucursal != null
                         ) {
-                          console.log("Dispositivo conocido encontrado");
+                          this.enviarNotificacionLogin(serverIp, serverPort, this.mainService.usuarioActual);
                         } else {
-                          if (this.mainService)
-                            console.log("Nuevo disposito encontrado");
                           this.usuarioService
                             .onSaveInicioSesion(inicioSesion.toInput())
                             .subscribe((res) => {
-                              console.log(res);
                               this.mainService.usuarioActual.inicioSesion = res;
+                              this.enviarNotificacionLogin(serverIp, serverPort, this.mainService.usuarioActual);
                             });
                         }
 
@@ -129,7 +116,6 @@ export class LoginService {
                           error: null,
                         };
                         obs.next(response);
-                      } else {
                       }
                     });
                 }
@@ -145,5 +131,61 @@ export class LoginService {
           }
         );
     });
+  }
+  private enviarNotificacionLogin(serverIp: string, serverPort: string, usuario: any): void {
+    const pushToken = localStorage.getItem("pushToken");
+    if (pushToken) {
+      const notificationBody = {
+        title: "SE HA INICIADO SESION EN SU CUENTA",
+        message: `BIENVENIDO ${usuario?.nombre || usuario?.nickname || 'USUARIO'}`,
+        token: pushToken,
+        usuarioIds: usuario?.id ? [usuario.id] : undefined,
+        data: "/",
+      };
+      this.http
+        .post(
+          `http://${serverIp}:${serverPort}/notification/token`,
+          notificationBody,
+          this.httpOptions
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe(
+          () => {
+          },
+          (err) => {
+          }
+        );
+      if (this.electronService.isElectron || typeof Notification !== 'undefined') {
+        try {
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            const notification = new Notification(notificationBody.title, {
+              body: notificationBody.message,
+              icon: '/assets/logo.ico',
+              badge: '/assets/logo.ico',
+            });
+
+            notification.onclick = () => {
+              window.focus();
+              notification.close();
+            };
+            setTimeout(() => {
+              notification.close();
+            }, 5000);
+          } else if (typeof Notification !== 'undefined' && Notification.permission !== 'denied') {
+            Notification.requestPermission().then((permission) => {
+              if (permission === 'granted') {
+                const notification = new Notification(notificationBody.title, {
+                  body: notificationBody.message,
+                  icon: '/assets/logo.ico',
+                });
+                setTimeout(() => notification.close(), 5000);
+              }
+            });
+          }
+        } catch (error) {
+        }
+      }
+    } else {
+    }
   }
 }

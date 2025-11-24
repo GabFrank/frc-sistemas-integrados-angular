@@ -11,62 +11,102 @@
   overflow: auto !important;
 }
 
-// mat-drawer-content {
-//   padding: 20px;
-//   padding-top: 0px;
-//   overflow: hidden !important;
-// }
-
-// #closeIcon {
-//   font-size: 2em;
-// }
-
-// :host ::ng-deep .mat-mdc-tab-header {
-//   background-color: white;
-//   position: fixed !important;
-//   z-index:100000;
-//   width: 90%;
-// }
-
-// /* TODO(mdc-migration): The following rule targets internal classes of tabs that may no longer apply for the MDC version.*/
-// .mat-tab-label{
-//   padding-left: 0 !important;
-//   padding-right: 0 !important;
-//   height: 2em !important;
-// }
-
-// /* TODO(mdc-migration): The following rule targets internal classes of tabs that may no longer apply for the MDC version.*/
-// .mat-tab-label-content {
-//   width: 100% !important;
-//   height: 2em !important;
-
-// }
-
-// /* TODO(mdc-migration): The following rule targets internal classes of tabs that may no longer apply for the MDC version.*/
-// .mat-tab-label-container {
-//   width: 100% !important;
-//   height: 2em !important;
-// }
-
-// /* TODO(mdc-migration): The following rule targets internal classes of tabs that may no longer apply for the MDC version.*/
-// .mat-tab-labels {
-//   // margin-bottom: 1vh;
-//   width: 100%;
-//   height: 2em !important;
-
-// }
-
-// /* TODO(mdc-migration): The following rule targets internal classes of tabs that may no longer apply for the MDC version.*/
-// div .mat-tab-body-wrapper {
-//   height: 100%;
-// }
-
 .mat-mdc-tab.mdc-tab {
   height: 2em !important;
   max-width: 200px;
 }
 
-// Add styles for the new side-drawer with the mini-variant sidebar
+:host ::ng-deep mat-drawer mat-paginator {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  color: white;
+}
+
+.notifications-drawer {
+  z-index: 1000;
+}
+
+.notifications-drawer .notifications-content {
+  width: 420px;
+  max-width: 92vw;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #424242;
+  color: white;
+}
+
+.notifications-drawer .notifications-scroll {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.notifications-title {
+  padding: 20px 16px;
+  font-size: 20px;
+  font-weight: 500;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  letter-spacing: 0.5px;
+}
+
+.notification-item {
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  &.unread {
+    background: rgba(255, 255, 255, 0.1);
+    border-left: 3px solid #69f0ae;
+  }
+}
+
+.notification-header {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.notification-message {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.notification-footer {
+  font-size: 12px;
+  opacity: 0.7;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.no-notifications {
+  font-size: 15px;
+  opacity: 0.7;
+  text-align: center;
+  margin-top: 32px;
+}
+
+.notifications-drawer .notifications-paginator {
+  padding: 0 8px 8px 8px;
+}
+
+@media (max-width: 600px) {
+  .notifications-drawer .notifications-content {
+    width: 92vw;
+    transform: translateX(0);
+  }
+}
+
 .side-drawer {
   width: auto !important;
   min-width: auto !important;
@@ -75,14 +115,13 @@
 }
 
 mat-drawer-container {
-  height: calc(100% - 64px); // Adjust for header height
+  height: calc(100% - 64px);
 
   @media(max-width: 599px) {
-    height: calc(100% - 56px); // Adjust for smaller header on mobile
+    height: calc(100% - 56px);
   }
 }
 
-// Existing styles
 .main-tab-group {
   height: calc(100% - 3px) !important;
 }
@@ -99,12 +138,21 @@ mat-drawer-container {
   overflow: hidden !important;
 }
 
-// Fix for material tab text color
 .mat-mdc-tab .mdc-tab__text-label {
   color: white !important;
 }
 
-// Fix tab label height
 ::ng-deep .mdc-tab {
   height: 48px !important;
+}
+
+.tab-label-text {
+  font-size: 1em;
+  text-align: center;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  max-width: 100%;
 }

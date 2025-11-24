@@ -10,3 +10,62 @@ export const requestPushNotificationQuery = gql`
     )
   }
 `;
+
+export const notificacionesPorTokenQuery = gql`
+  query ($tokenFcm: String!) {
+    data: notificacionesPorToken(tokenFcm: $tokenFcm) {
+      id
+      leida
+      fechaLeida
+      fechaEnvio
+      estadoEnvio
+      notificacion {
+        id
+        titulo
+        mensaje
+        tipo
+        creadoEn
+      }
+    }
+  }
+`;
+
+export const getNotificacionesUsuarioQuery = gql`
+  query ($tokenFcm: String, $leidas: Boolean, $page: Int, $size: Int) {
+    data: getNotificacionesUsuario(tokenFcm: $tokenFcm, leidas: $leidas, page: $page, size: $size) {
+      content {
+        id
+        leida
+        fechaLeida
+        fechaEnvio
+        estadoEnvio
+        interactuada
+        fechaInteraccion
+        accionRealizada
+        notificacion {
+          id
+          titulo
+          mensaje
+          tipo
+          creadoEn
+        }
+      }
+      pageNumber
+      pageSize
+      totalElements
+      totalPages
+    }
+  }
+`;
+
+export const marcarNotificacionLeidaMutation = gql`
+  mutation ($notificacionUsuarioId: Int!) {
+    data: marcarNotificacionLeida(notificacionUsuarioId: $notificacionUsuarioId)
+  }
+`;
+
+export const registrarInteraccionNotificacionMutation = gql`
+  mutation ($notificacionUsuarioId: Int!, $accion: String!) {
+    data: registrarInteraccionNotificacion(notificacionUsuarioId: $notificacionUsuarioId, accion: $accion)
+  }
+`;

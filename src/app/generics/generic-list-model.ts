@@ -1,4 +1,3 @@
-import { MatDialog } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
 
 export declare class GenericList<T> {
