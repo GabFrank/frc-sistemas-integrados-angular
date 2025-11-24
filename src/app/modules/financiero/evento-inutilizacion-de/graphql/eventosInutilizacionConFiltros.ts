@@ -16,3 +16,4 @@ export class EventosInutilizacionConFiltrosGQL extends Query<Response> {
 }
 
 
+
