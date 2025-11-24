@@ -1,10 +1,5 @@
-<app-generic-list
-  titulo="Gestión de Transferencia"
-  style="height: 90%"
-  [data]="dataSource.data"
-  [isLastPage]="isLastPage"
-  [isMenu]="false"
->
+<app-generic-list titulo="Gestión de Transferencia" style="height: 90%" [data]="dataSource.data"
+  [isLastPage]="isLastPage" [isMenu]="false">
   <div filtros style="width: 100%; height: 100%">
     <div fxLayout="column" fxLayoutGap="10px" style="height: 100%; width: 100%">
       <div fxFlex fxLayout="row">
@@ -62,45 +57,18 @@
         </div>
       </div>
 
-      <div
-        fxFlex
-        fxLayout="row"
-        fxLayoutGap="10px"
-        fxLayoutAlign="start center"
-      >
-        <div
-          fxFlex="70%"
-          fxLayout="row"
-          fxLayoutGap="25px"
-          style="width: 100%"
-          fxLayoutAlign="start center"
-        >
-          <div
-            *ngIf="selectedTransferencia?.id != null"
-            class="raised-button"
-            (click)="onQrClick()"
-          >
+      <div fxFlex fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+        <div fxFlex="70%" fxLayout="row" fxLayoutGap="25px" style="width: 100%" fxLayoutAlign="start center">
+          <div *ngIf="selectedTransferencia?.id != null" class="raised-button" (click)="onQrClick()">
             Generar QR
           </div>
-          <div
-            *ngIf="selectedTransferencia?.id != null"
-            class="raised-button"
-            (click)="onImprimir()"
-          >
+          <div *ngIf="selectedTransferencia?.id != null" class="raised-button" (click)="onImprimir()">
             Imprimir
           </div>
-          <div
-            *ngIf="selectedTransferencia?.id != null"
-            class="raised-button"
-            (click)="onRefresh()"
-          >
+          <div *ngIf="selectedTransferencia?.id != null" class="raised-button" (click)="onRefresh()">
             Actualizar
           </div>
-          <div
-            *ngIf="selectedTransferencia?.id != null"
-            class="raised-button"
-            (click)="onOpenTimeLine()"
-          >
+          <div *ngIf="selectedTransferencia?.id != null" class="raised-button" (click)="onOpenTimeLine()">
             Resumen de la transf.
           </div>
           <div class="raised-button" (click)="nuevaTransferencia()">
@@ -129,132 +97,70 @@
           </mat-form-field> -->
         </div>
         <div fxFlex="15%">
-          <button
-            *ngIf="
+          <button *ngIf="
               isPreTransferenciaCreacion ||
               isPreTransferenciaOrigen ||
               isPreparacionMercaderia
-            "
-            style="width: 100%"
-            mat-raised-button
-            (click)="selectSucursales()"
-          >
+            " style="width: 100%" mat-raised-button (click)="selectSucursales()">
             {{
-              selectedTransferencia?.id == null
-                ? "Selec. Sucursales"
-                : "Cambiar Sucursales"
+            selectedTransferencia?.id == null
+            ? "Selec. Sucursales"
+            : "Cambiar Sucursales"
             }}
           </button>
         </div>
         <div fxFlex="15%" *ngIf="false">
-          <button
-            *ngIf="isPreTransferenciaCreacion"
-            style="width: 100%"
-            mat-raised-button
-            color="primary"
-            (click)="onAddItem()"
-          >
+          <button *ngIf="isPreTransferenciaCreacion" style="width: 100%" mat-raised-button color="primary"
+            (click)="onAddItem()">
             + Producto (F9)
           </button>
         </div>
         <div fxFlex="15%" *ngIf="isPreTransferenciaCreacion">
-          <button
-            style="width: 100%"
-            mat-raised-button
-            color="accent"
-            (click)="onAvanzarEtapa('PRE_TRANSFERENCIA_ORIGEN')"
-            [disabled]="dataSource.data.length == 0"
-          >
+          <button style="width: 100%" mat-raised-button color="accent"
+            (click)="onAvanzarEtapa('PRE_TRANSFERENCIA_ORIGEN')" [disabled]="dataSource.data.length == 0">
             Finalizar
           </button>
         </div>
-        <div fxFlex="15%" *ngIf="isPreTransferenciaOrigen">
-          <button
-            style="width: 100%"
-            mat-raised-button
-            color="accent"
-            (click)="onAvanzarEtapa('PREPARACION_MERCADERIA')"
-            [disabled]="dataSource.data.length == 0"
-          >
+        <div fxFlex="15%" *ngIf="isPreTransferenciaOrigen && isOrigen">
+          <button style="width: 100%" mat-raised-button color="accent"
+            (click)="onAvanzarEtapa('PREPARACION_MERCADERIA')" [disabled]="dataSource.data.length == 0">
             Preparar para envio
           </button>
         </div>
         <div fxFlex="15%" *ngIf="isPreparacionMercaderia && puedeEditar">
-          <button
-            style="width: 100%"
-            mat-raised-button
-            color="accent"
-            (click)="onAvanzarEtapa('PREPARACION_MERCADERIA_CONCLUIDA')"
-            [disabled]="!isAllConfirmedPreparacion"
-          >
+          <button style="width: 100%" mat-raised-button color="accent"
+            (click)="onAvanzarEtapa('PREPARACION_MERCADERIA_CONCLUIDA')" [disabled]="!isAllConfirmedPreparacion">
             Finalizar
           </button>
         </div>
         <div fxFlex="15%" *ngIf="isPreparacionMercaderiaConcluida">
-          <button
-            style="width: 100%"
-            mat-raised-button
-            color="accent"
-            (click)="onAvanzarEtapa('TRANSPORTE_VERIFICACION')"
-          >
+          <button style="width: 100%" mat-raised-button color="accent"
+            (click)="onAvanzarEtapa('TRANSPORTE_VERIFICACION')">
             Verificar para transporte
           </button>
         </div>
         <div fxFlex="15%" *ngIf="isTransporteVerificacion && puedeEditar">
-          <button
-            style="width: 100%"
-            mat-raised-button
-            color="accent"
-            (click)="onAvanzarEtapa('TRANSPORTE_EN_CAMINO')"
-            [disabled]="!isAllConfirmedTransporte"
-          >
+          <button style="width: 100%" mat-raised-button color="accent" (click)="onAvanzarEtapa('TRANSPORTE_EN_CAMINO')"
+            [disabled]="!isAllConfirmedTransporte">
             Iniciar transporte
           </button>
         </div>
-        <div
-          fxFlex="15%"
-          *ngIf="(isTransporteEnCamino || isTransporteEnDestino) && isDestino"
-        >
-          <button
-            style="width: 100%"
-            mat-raised-button
-            color="accent"
-            (click)="onAvanzarEtapa('RECEPCION_EN_VERIFICACION')"
-          >
+        <div fxFlex="15%" *ngIf="(isTransporteEnCamino || isTransporteEnDestino) && isDestino">
+          <button style="width: 100%" mat-raised-button color="accent"
+            (click)="onAvanzarEtapa('RECEPCION_EN_VERIFICACION')">
             Iniciar Recepción
           </button>
         </div>
-        <div
-          fxFlex="15%"
-          *ngIf="isRecepcionEnVerificacion && isDestino && puedeEditar"
-        >
-          <button
-            style="width: 100%"
-            mat-raised-button
-            color="accent"
-            (click)="onAvanzarEtapa('RECEPCION_CONCLUIDA')"
-            [disabled]="!isAllConfirmedRecepcion"
-          >
+        <div fxFlex="15%" *ngIf="isRecepcionEnVerificacion && isDestino && puedeEditar">
+          <button style="width: 100%" mat-raised-button color="accent" (click)="onAvanzarEtapa('RECEPCION_CONCLUIDA')"
+            [disabled]="!isAllConfirmedRecepcion">
             Finalizar
           </button>
         </div>
       </div>
-      <mat-card
-        appearance="outlined"
-        fxFlex
-        fxLayout="column"
-        style="width: 100%; height: 100%"
-        fxLayoutGap="10px"
-        style="background-color: rgb(66, 66, 66); padding: 10px"
-        *ngIf="isPreTransferenciaCreacion"
-      >
-        <div
-          fxFlex
-          fxLayout="row"
-          style="width: 100%"
-          fxLayoutGap="10px"
-          fxLayoutAlign="start center"
-        >
+      <mat-card appearance="outlined" fxFlex fxLayout="column" style="width: 100%; height: 100%" fxLayoutGap="10px"
+        style="background-color: rgb(66, 66, 66); padding: 10px" *ngIf="isPreTransferenciaCreacion">
+        <div fxFlex fxLayout="row" style="width: 100%" fxLayoutGap="10px" fxLayoutAlign="start center">
           <!-- <div fxFlex="5%" style="text-align: center">
             <img
               [src]="
@@ -277,101 +183,48 @@
             </div>
           </div>
           <div fxFlex="20%">
-            <mat-form-field
-              style="width: 100%"
-              appearance="outline"
-              class="shrinking-mat-form-field"
-              floatLabel="always"
-            >
+            <mat-form-field style="width: 100%" appearance="outline" class="shrinking-mat-form-field"
+              floatLabel="always">
               <mat-label>Código de barra</mat-label>
-              <input
-                #codigoInput
-                matInput
-                type="text"
-                [formControl]="codigoControl"
-                (keyup.enter)="onSearchPorCodigo()"
-                (keyup.tab)="onSearchPorCodigo()"
-                (focusin)="onCodigoFocus()"
-              />
+              <input #codigoInput matInput type="text" [formControl]="codigoControl" (keyup.enter)="onSearchPorCodigo()"
+                (keyup.tab)="onSearchPorCodigo()" (focusin)="onCodigoFocus()" />
             </mat-form-field>
           </div>
           <div fxFlex="10%">
-            <mat-form-field
-              style="width: 100%; text-align: center"
-              appearance="outline"
-              class="shrinking-mat-form-field"
-              floatLabel="always"
-            >
+            <mat-form-field style="width: 100%; text-align: center" appearance="outline"
+              class="shrinking-mat-form-field" floatLabel="always">
               <mat-label>Present.</mat-label>
-              <mat-select
-                #matSelect
-                [formControl]="presentacionControl"
-                name="presentacion"
-                (keyup.enter)="onPresentacionSelect(); $event.stopPropagation()"
-              >
-                <mat-option
-                  *ngFor="let presentacion of selectedProducto?.presentaciones"
-                  [value]="presentacion"
-                >
+              <mat-select #matSelect [formControl]="presentacionControl" name="presentacion"
+                (keyup.enter)="onPresentacionSelect(); $event.stopPropagation()">
+                <mat-option *ngFor="let presentacion of selectedProducto?.presentaciones" [value]="presentacion">
                   {{ presentacion?.cantidad | number : "1.0-3" }}
                 </mat-option>
               </mat-select>
             </mat-form-field>
           </div>
           <div fxFlex="10%">
-            <mat-form-field
-              style="width: 100%; text-align: center"
-              appearance="outline"
-              class="shrinking-mat-form-field"
-              floatLabel="always"
-            >
+            <mat-form-field style="width: 100%; text-align: center" appearance="outline"
+              class="shrinking-mat-form-field" floatLabel="always">
               <mat-label>Cant. por present.</mat-label>
-              <input
-                #cantPresentacionInput
-                matInput
-                type="text"
-                [formControl]="cantidadPresentacionControl"
-                (keyup.enter)="onCantidadPresentacionEnter()"
-                (keyup.tab)="onCantidadPresentacionEnter()"
-                (focusout)="onCantidadPresentacionFocusOut()"
-              />
+              <input #cantPresentacionInput matInput type="text" [formControl]="cantidadPresentacionControl"
+                (keyup.enter)="onCantidadPresentacionEnter()" (keyup.tab)="onCantidadPresentacionEnter()"
+                (focusout)="onCantidadPresentacionFocusOut()" />
             </mat-form-field>
           </div>
           <div fxFlex="10%">
-            <mat-form-field
-              style="width: 100%; text-align: center"
-              appearance="outline"
-              class="shrinking-mat-form-field"
-              floatLabel="always"
-            >
+            <mat-form-field style="width: 100%; text-align: center" appearance="outline"
+              class="shrinking-mat-form-field" floatLabel="always">
               <mat-label>Cant. por unid.</mat-label>
-              <input
-                #cantUnidadInput
-                matInput
-                type="text"
-                [formControl]="cantidadUnidadControl"
-                (keyup.enter)="onCantidadUnidadEnter()"
-                (keyup.tab)="onCantidadUnidadEnter()"
-              />
+              <input #cantUnidadInput matInput type="text" [formControl]="cantidadUnidadControl"
+                (keyup.enter)="onCantidadUnidadEnter()" (keyup.tab)="onCantidadUnidadEnter()" />
             </mat-form-field>
           </div>
           <div fxFlex="10">
-            <mat-form-field
-              style="width: 100%"
-              appearance="outline"
-              class="shrinking-mat-form-field"
-              floatLabel="always"
-            >
+            <mat-form-field style="width: 100%" appearance="outline" class="shrinking-mat-form-field"
+              floatLabel="always">
               <mat-label>Vencimiento</mat-label>
-              <input
-                matInput
-                #vencimientoInput
-                [formControl]="vencimientoControl"
-                (input)="onDateInput($event)"
-                placeholder="dd/mm/yy"
-                maxlength="8"
-                (keyup.enter)="onVencimientoEnter(vencimientoControl.value)"
-              />
+              <input matInput #vencimientoInput [formControl]="vencimientoControl" (input)="onDateInput($event)"
+                placeholder="dd/mm/yy" maxlength="8" (keyup.enter)="onVencimientoEnter(vencimientoControl.value)" />
 
               <!-- <mat-label>Vencimiento</mat-label>
               <input
@@ -393,61 +246,29 @@
             </mat-form-field>
           </div>
           <div fxFlex style="width: 100%; text-align: center">
-            <mat-icon
-              class="highlight-hover"
-              (click)="onSave()"
-              style="font-size: 2em"
-              >save</mat-icon
-            >
+            <mat-icon class="highlight-hover" (click)="onSave()" style="font-size: 2em">save</mat-icon>
           </div>
 
           <div fxFlex style="width: 100%; text-align: center">
-            <mat-icon
-              class="highlight-hover-danger"
-              (click)="onClear()"
-              style="font-size: 2em"
-              >clear</mat-icon
-            >
+            <mat-icon class="highlight-hover-danger" (click)="onClear()" style="font-size: 2em">clear</mat-icon>
           </div>
         </div>
-        <div
-          *ngIf="
+        <div *ngIf="
             selectedTransferencia.sucursalOrigen?.nombre?.includes('COMPRAS')
-          "
-          fxFlex
-          fxLayout="row"
-          style="width: 100%"
-          fxLayoutGap="10px"
-        >
+          " fxFlex fxLayout="row" style="width: 100%" fxLayoutGap="10px">
           <div fxFlex="15"></div>
           <div fxFlex="15"></div>
           <div fxFlex="15">
-            <mat-form-field
-              style="width: 100%"
-              appearance="outline"
-              class="shrinking-mat-form-field"
-              floatLabel="always"
-            >
+            <mat-form-field style="width: 100%" appearance="outline" class="shrinking-mat-form-field"
+              floatLabel="always">
               <mat-label>Moneda</mat-label>
-              <input
-                #monedaInput
-                type="text"
-                matInput
-                [formControl]="monedaControl"
-                oninput="this.value == ' ' ? this.value = '': null"
-                [matAutocomplete]="autoMoneda"
-              />
+              <input #monedaInput type="text" matInput [formControl]="monedaControl"
+                oninput="this.value == ' ' ? this.value = '': null" [matAutocomplete]="autoMoneda" />
               <span matSuffix style="cursor: pointer">(F9)</span>
 
-              <mat-autocomplete
-                #autoMoneda="matAutocomplete"
-                (optionSelected)="onMonedaSelect($event.option.value)"
-                (closed)="onMonedaAutocompleteClose()"
-              >
-                <mat-option
-                  *ngFor="let moneda of filteredMonedaList"
-                  [value]="moneda"
-                >
+              <mat-autocomplete #autoMoneda="matAutocomplete" (optionSelected)="onMonedaSelect($event.option.value)"
+                (closed)="onMonedaAutocompleteClose()">
+                <mat-option *ngFor="let moneda of filteredMonedaList" [value]="moneda">
                   {{ moneda.id }} -
                   {{ moneda?.denominacion | uppercase }}
                 </mat-option>
@@ -455,43 +276,21 @@
             </mat-form-field>
           </div>
           <div fxFlex="10%">
-            <mat-form-field
-              style="width: 100%"
-              appearance="outline"
-              class="shrinking-mat-form-field"
-              floatLabel="always"
-            >
+            <mat-form-field style="width: 100%" appearance="outline" class="shrinking-mat-form-field"
+              floatLabel="always">
               <mat-label>Costo por unid.</mat-label>
-              <input
-                #precioUnidadInput
-                matInput
-                type="text"
-                [formControl]="precioUnidadControl"
-                (keyup.enter)="onPrecioUnidadEnter()"
-                (keyup.tab)="onPrecioUnidadEnter()"
-                currencyMask
-                [options]="currencyMask.currencyOptionsGuarani"
-              />
+              <input #precioUnidadInput matInput type="text" [formControl]="precioUnidadControl"
+                (keyup.enter)="onPrecioUnidadEnter()" (keyup.tab)="onPrecioUnidadEnter()" currencyMask
+                [options]="currencyMask.currencyOptionsGuarani" />
             </mat-form-field>
           </div>
           <div fxFlex="10%">
-            <mat-form-field
-              style="width: 100%"
-              appearance="outline"
-              class="shrinking-mat-form-field"
-              floatLabel="always"
-            >
+            <mat-form-field style="width: 100%" appearance="outline" class="shrinking-mat-form-field"
+              floatLabel="always">
               <mat-label>Costo por present.</mat-label>
-              <input
-                #precioPresentacionInput
-                matInput
-                type="text"
-                [formControl]="precioPresentacionControl"
-                (keyup.enter)="onPrecioPresentacionEnter()"
-                (keyup.tab)="onPrecioPresentacionEnter()"
-                currencyMask
-                [options]="currencyMask.currencyOptionsGuarani"
-              />
+              <input #precioPresentacionInput matInput type="text" [formControl]="precioPresentacionControl"
+                (keyup.enter)="onPrecioPresentacionEnter()" (keyup.tab)="onPrecioPresentacionEnter()" currencyMask
+                [options]="currencyMask.currencyOptionsGuarani" />
             </mat-form-field>
           </div>
         </div>
@@ -499,19 +298,10 @@
     </div>
   </div>
 
-  <div
-    table
-    style="height: 100%; background-color: rgb(70, 70, 70)"
-    fxLayout="column"
-    fxLayoutAlign="space-between start"
-  >
-    <table
-      *ngIf="isPreTransferenciaCreacion"
-      mat-table
-      [dataSource]="dataSource"
-      multiTemplateDataRows
-      class="mat-elevation-z8"
-    >
+  <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
+    fxLayoutAlign="space-between start">
+    <table *ngIf="isPreTransferenciaCreacion" mat-table [dataSource]="dataSource" multiTemplateDataRows
+      class="mat-elevation-z8">
       <ng-container matColumnDef="producto">
         <th mat-header-cell *matHeaderCellDef style="width: 30%">
           <div fxLayout="row" fxLayoutAlign="start space-between">
@@ -519,20 +309,10 @@
               <span *ngIf="!filtroProductosOpen"> Producto </span>
               <span *ngIf="filtroProductosOpen" style="width: 100%">
                 <div>
-                  <mat-form-field
-                    style="width: 100%"
-                    appearance="outline"
-                    class="shrinking-mat-form-field"
-                  >
-                    <input
-                      #filtroProductoInput
-                      matInput
-                      type="text"
-                      [formControl]="filtroProductoControl"
-                      (keyup.enter)="onFilterProducto()"
-                      (keyup.tab)="onSearchPorCodigo()"
-                      (focusin)="filtroProductoInput.select()"
-                    />
+                  <mat-form-field style="width: 100%" appearance="outline" class="shrinking-mat-form-field">
+                    <input #filtroProductoInput matInput type="text" [formControl]="filtroProductoControl"
+                      (keyup.enter)="onFilterProducto()" (keyup.tab)="onSearchPorCodigo()"
+                      (focusin)="filtroProductoInput.select()" />
                   </mat-form-field>
                 </div>
               </span>
@@ -554,12 +334,12 @@
         <td mat-cell *matCellDef="let item" style="width: 30%">
           <span copiarAClipboard>{{
             item?.presentacionPreTransferencia?.producto?.id
-          }}</span>
+            }}</span>
           -
           <span copiarAClipboard>{{
             item?.presentacionPreTransferencia?.producto?.descripcion
-              | uppercase
-          }}</span>
+            | uppercase
+            }}</span>
         </td>
       </ng-container>
 
@@ -592,17 +372,12 @@
         <th mat-header-cell *matHeaderCellDef style="text-align: center">
           Precio venta
         </th>
-        <td
-          mat-cell
-          *matCellDef="let item"
-          style="text-align: center"
-          [copiarAClipboard]="
+        <td mat-cell *matCellDef="let item" style="text-align: center" [copiarAClipboard]="
             item?.presentacionPreTransferencia?.precioPrincipal?.precio
-          "
-        >
+          ">
           {{
-            item?.presentacionPreTransferencia?.precioPrincipal?.precio
-              | number : "1.0-3"
+          item?.presentacionPreTransferencia?.precioPrincipal?.precio
+          | number : "1.0-3"
           }}
         </td>
       </ng-container>
@@ -611,16 +386,8 @@
         <th mat-header-cell *matHeaderCellDef style="text-align: center">
           Vencimiento
         </th>
-        <td
-          mat-cell
-          *matCellDef="let item"
-          style="text-align: center; height: 100%"
-        >
-          <div
-            fxLayout="row"
-            style="width: 100%; height: 100%"
-            fxLayoutGap="10px"
-          >
+        <td mat-cell *matCellDef="let item" style="text-align: center; height: 100%">
+          <div fxLayout="row" style="width: 100%; height: 100%" fxLayoutGap="10px">
             <div fxFlex>
               {{ item?.vencimientoPreTransferencia | date : "shortDate" }}
             </div>
@@ -638,37 +405,17 @@
       </ng-container>
 
       <ng-container matColumnDef="menu">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="width: 5%; text-align: center"
-        ></th>
-        <td
-          mat-cell
-          *matCellDef="let item; let itemIndex = dataIndex"
-          style="width: 5%; text-align: center"
-        >
-          <button
-            mat-icon-button
-            [matMenuTriggerFor]="menu"
-            (click)="$event.stopPropagation()"
-          >
+        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center"></th>
+        <td mat-cell *matCellDef="let item; let itemIndex = dataIndex" style="width: 5%; text-align: center">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button
-              mat-menu-item
-              (click)="onEditItem(item)"
-              [disabled]="isPreparacionMercaderia && puedeEditar"
-            >
+            <button mat-menu-item (click)="onEditItem(item)" [disabled]="isPreparacionMercaderia && puedeEditar">
               Editar
             </button>
-            <button
-              mat-menu-item
-              (click)="onDeleteItem(item, itemIndex)"
-              style="color: red"
-              [disabled]="isPreparacionMercaderia"
-            >
+            <button mat-menu-item (click)="onDeleteItem(item, itemIndex)" style="color: red"
+              [disabled]="isPreparacionMercaderia">
               Eliminar
             </button>
           </mat-menu>
@@ -677,42 +424,22 @@
 
       <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
       <ng-container matColumnDef="expandedDetail">
-        <td
-          mat-cell
-          *matCellDef="let element"
-          [attr.colspan]="columnsToDisplay.length"
-        >
-          <div
-            class="example-element-detail"
-            [@detailExpand]="
+        <td mat-cell *matCellDef="let element" [attr.colspan]="columnsToDisplay.length">
+          <div class="example-element-detail" [@detailExpand]="
               element == expandedElement ? 'expanded' : 'collapsed'
-            "
-          ></div>
+            "></div>
         </td>
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
-      <tr
-        mat-row
-        *matRowDef="let element; columns: columnsToDisplay"
-        class="example-element-row"
+      <tr mat-row *matRowDef="let element; columns: columnsToDisplay" class="example-element-row"
         [class.example-expanded-row]="expandedElement === element"
-        (click)="expandedElement = expandedElement === element ? null : element"
-      ></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: ['expandedDetail']"
-        class="example-detail-row"
-      ></tr>
+        (click)="expandedElement = expandedElement === element ? null : element"></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
 
-    <table
-      *ngIf="isPreTransferenciaOrigen || isPreparacionMercaderia"
-      mat-table
-      [dataSource]="dataSource"
-      multiTemplateDataRows
-      class="mat-elevation-z8"
-    >
+    <table *ngIf="isPreTransferenciaOrigen || isPreparacionMercaderia" mat-table [dataSource]="dataSource"
+      multiTemplateDataRows class="mat-elevation-z8">
       <ng-container matColumnDef="producto">
         <th mat-header-cell *matHeaderCellDef style="width: 30%">
           <div fxLayout="row" fxLayoutAlign="start space-between">
@@ -720,20 +447,10 @@
               <span *ngIf="!filtroProductosOpen"> Producto </span>
               <span *ngIf="filtroProductosOpen" style="width: 100%">
                 <div>
-                  <mat-form-field
-                    style="width: 100%"
-                    appearance="outline"
-                    class="shrinking-mat-form-field"
-                  >
-                    <input
-                      #filtroProductoInput
-                      matInput
-                      type="text"
-                      [formControl]="filtroProductoControl"
-                      (keyup.enter)="onFilterProducto()"
-                      (keyup.tab)="onSearchPorCodigo()"
-                      (focusin)="filtroProductoInput.select()"
-                    />
+                  <mat-form-field style="width: 100%" appearance="outline" class="shrinking-mat-form-field">
+                    <input #filtroProductoInput matInput type="text" [formControl]="filtroProductoControl"
+                      (keyup.enter)="onFilterProducto()" (keyup.tab)="onSearchPorCodigo()"
+                      (focusin)="filtroProductoInput.select()" />
                   </mat-form-field>
                 </div>
               </span>
@@ -755,8 +472,8 @@
         <td mat-cell *matCellDef="let item" style="width: 30%">
           {{ item?.presentacionPreTransferencia?.producto?.id }} -
           {{
-            item?.presentacionPreTransferencia?.producto?.descripcion
-              | uppercase
+          item?.presentacionPreTransferencia?.producto?.descripcion
+          | uppercase
           }}
         </td>
       </ng-container>
@@ -784,9 +501,9 @@
         <td mat-cell *matCellDef="let item" style="text-align: center">
           {{ item?.cantidadPreTransferencia | number : "1.0-3" }}
           {{
-            item?.motivoModificacionPreparacion == "CANTIDAD_INCORRECTA"
-              ? " / " + item?.cantidadPreparacion
-              : null
+          item?.motivoModificacionPreparacion == "CANTIDAD_INCORRECTA"
+          ? " / " + item?.cantidadPreparacion
+          : null
           }}
         </td>
       </ng-container>
@@ -797,8 +514,8 @@
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
           {{
-            item?.presentacionPreTransferencia?.precioPrincipal?.precio
-              | number : "1.0-2"
+          item?.presentacionPreTransferencia?.precioPrincipal?.precio
+          | number : "1.0-2"
           }}
         </td>
       </ng-container>
@@ -807,33 +524,19 @@
         <th mat-header-cell *matHeaderCellDef style="text-align: center">
           Vencimiento
         </th>
-        <td
-          mat-cell
-          *matCellDef="let item"
-          style="text-align: center; height: 100%"
-        >
-          <div
-            fxLayout="row"
-            style="width: 100%; height: 100%"
-            fxLayoutGap="10px"
-          >
+        <td mat-cell *matCellDef="let item" style="text-align: center; height: 100%">
+          <div fxLayout="row" style="width: 100%; height: 100%" fxLayoutGap="10px">
             <div fxFlex>
               {{ item?.vencimientoPreTransferencia | date : "shortDate" }}
             </div>
-            <div
-              fxFlex="10"
-              *ngIf="
+            <div fxFlex="10" *ngIf="
                 item?.motivoModificacionPreparacion == 'VENCIMIENTO_INCORRECTO'
-              "
-            >
+              ">
               -
             </div>
-            <div
-              fxFlex
-              *ngIf="
+            <div fxFlex *ngIf="
                 item?.motivoModificacionPreparacion == 'VENCIMIENTO_INCORRECTO'
-              "
-            >
+              ">
               {{ item?.vencimientoPreparacion | date : "shortDate" }}
             </div>
           </div>
@@ -846,53 +549,31 @@
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
           {{
-            item?.cantidadPreparacion != null ||
-            item?.vencimientoPreparacion != null ||
-            item?.motivoRechazoPreparacion != null
-              ? "Verificado"
-              : "Falta verificar"
+          item?.cantidadPreparacion != null ||
+          item?.vencimientoPreparacion != null ||
+          item?.motivoRechazoPreparacion != null
+          ? "Verificado"
+          : "Falta verificar"
           }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="menu">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="width: 5%; text-align: center"
-        ></th>
-        <td
-          mat-cell
-          *matCellDef="let item; let i = tabIndex"
-          style="width: 5%; text-align: center"
-        >
-          <button
-            mat-icon-button
-            [matMenuTriggerFor]="menu"
-            (click)="$event.stopPropagation()"
-            [disabled]="!isPreparacionMercaderia || !puedeEditar"
-          >
+        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center"></th>
+        <td mat-cell *matCellDef="let item; let i = tabIndex" style="width: 5%; text-align: center">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()"
+            [disabled]="!isPreparacionMercaderia || !puedeEditar">
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button
-              mat-menu-item
-              color="accent"
-              (click)="onConfirm(item)"
-              *ngIf="isPreparacionMercaderia"
-            >
+            <button mat-menu-item color="accent" (click)="onConfirm(item)" *ngIf="isPreparacionMercaderia">
               Confirmar
             </button>
-            <button
-              mat-menu-item
-              *ngIf="
+            <button mat-menu-item *ngIf="
                 item.cantidadPreparacion != null ||
                 item.vencimientoPreparacion != null ||
                 item.motivoRechazoPreparacion != null
-              "
-              color="primary"
-              (click)="onDesconfirm(item)"
-            >
+              " color="primary" (click)="onDesconfirm(item)">
               Desconfirmar
             </button>
             <button mat-menu-item (click)="onModificarCantidad(item)">
@@ -910,55 +591,32 @@
 
       <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
       <ng-container matColumnDef="expandedDetail">
-        <td
-          mat-cell
-          *matCellDef="let element"
-          [attr.colspan]="columnsToDisplay.length"
-        >
-          <div
-            class="example-element-detail"
-            [@detailExpand]="
+        <td mat-cell *matCellDef="let element" [attr.colspan]="columnsToDisplay.length">
+          <div class="example-element-detail" [@detailExpand]="
               element == expandedElement ? 'expanded' : 'collapsed'
-            "
-          >
+            ">
             <div>{{ element?.cantidadPreparacion | number : "1.0-3" }}</div>
           </div>
         </td>
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
-      <tr
-        mat-row
-        *matRowDef="let element; columns: columnsToDisplay"
-        class="example-element-row"
+      <tr mat-row *matRowDef="let element; columns: columnsToDisplay" class="example-element-row"
         [class.example-expanded-row]="expandedElement === element"
-        (click)="expandedElement = expandedElement === element ? null : element"
-        [class.sin-cambios]="
+        (click)="expandedElement = expandedElement === element ? null : element" [class.sin-cambios]="
           element.cantidadPreparacion != null &&
           element.motivoModificacionPreparacion == null &&
           element.motivoRechazoPreparacion == null
-        "
-        [class.con-cambios]="element.motivoModificacionPreparacion != null"
-        [class.rechazado]="element.motivoRechazoPreparacion != null"
-      ></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: ['expandedDetail']"
-        class="example-detail-row"
-      ></tr>
+        " [class.con-cambios]="element.motivoModificacionPreparacion != null"
+        [class.rechazado]="element.motivoRechazoPreparacion != null"></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
 
-    <table
-      *ngIf="
+    <table *ngIf="
         isPreparacionMercaderiaConcluida ||
         isTransporteVerificacion ||
         isTransporteEnCamino
-      "
-      mat-table
-      [dataSource]="dataSource"
-      multiTemplateDataRows
-      class="mat-elevation-z8"
-    >
+      " mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8">
       <ng-container matColumnDef="producto">
         <th mat-header-cell *matHeaderCellDef style="width: 30%">
           <div fxLayout="row" fxLayoutAlign="start space-between">
@@ -966,20 +624,10 @@
               <span *ngIf="!filtroProductosOpen"> Producto </span>
               <span *ngIf="filtroProductosOpen" style="width: 100%">
                 <div>
-                  <mat-form-field
-                    style="width: 100%"
-                    appearance="outline"
-                    class="shrinking-mat-form-field"
-                  >
-                    <input
-                      #filtroProductoInput
-                      matInput
-                      type="text"
-                      [formControl]="filtroProductoControl"
-                      (keyup.enter)="onFilterProducto()"
-                      (keyup.tab)="onSearchPorCodigo()"
-                      (focusin)="filtroProductoInput.select()"
-                    />
+                  <mat-form-field style="width: 100%" appearance="outline" class="shrinking-mat-form-field">
+                    <input #filtroProductoInput matInput type="text" [formControl]="filtroProductoControl"
+                      (keyup.enter)="onFilterProducto()" (keyup.tab)="onSearchPorCodigo()"
+                      (focusin)="filtroProductoInput.select()" />
                   </mat-form-field>
                 </div>
               </span>
@@ -1001,8 +649,8 @@
         <td mat-cell *matCellDef="let item" style="width: 30%">
           {{ item?.presentacionPreTransferencia?.producto?.id }} -
           {{
-            item?.presentacionPreTransferencia?.producto?.descripcion
-              | uppercase
+          item?.presentacionPreTransferencia?.producto?.descripcion
+          | uppercase
           }}
         </td>
       </ng-container>
@@ -1038,8 +686,8 @@
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
           {{
-            item?.presentacionPreparacion?.precioPrincipal?.precio
-              | number : "1.0-2"
+          item?.presentacionPreparacion?.precioPrincipal?.precio
+          | number : "1.0-2"
           }}
         </td>
       </ng-container>
@@ -1048,16 +696,8 @@
         <th mat-header-cell *matHeaderCellDef style="text-align: center">
           Vencimiento
         </th>
-        <td
-          mat-cell
-          *matCellDef="let item"
-          style="text-align: center; height: 100%"
-        >
-          <div
-            fxLayout="row"
-            style="width: 100%; height: 100%"
-            fxLayoutGap="10px"
-          >
+        <td mat-cell *matCellDef="let item" style="text-align: center; height: 100%">
+          <div fxLayout="row" style="width: 100%; height: 100%" fxLayoutGap="10px">
             <div fxFlex>
               {{ item?.vencimientoPreparacion | date : "shortDate" }}
             </div>
@@ -1071,64 +711,38 @@
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
           {{
-            item?.cantidadTransporte != null ||
-            item?.vencimientoTransporte != null ||
-            (item?.motivoRechazoTransporte != null && !isTransporteEnCamino)
-              ? "Verificado"
-              : "Falta verificar"
+          item?.cantidadTransporte != null ||
+          item?.vencimientoTransporte != null ||
+          (item?.motivoRechazoTransporte != null && !isTransporteEnCamino)
+          ? "Verificado"
+          : "Falta verificar"
           }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="menu">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="width: 5%; text-align: center"
-        ></th>
-        <td
-          mat-cell
-          *matCellDef="let item; let i = tabIndex"
-          style="width: 5%; text-align: center"
-        >
-          <button
-            mat-icon-button
-            [matMenuTriggerFor]="menu"
-            (click)="$event.stopPropagation()"
-            [disabled]="!isTransporteVerificacion || !puedeEditar"
-          >
+        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center"></th>
+        <td mat-cell *matCellDef="let item; let i = tabIndex" style="width: 5%; text-align: center">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()"
+            [disabled]="!isTransporteVerificacion || !puedeEditar">
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button
-              mat-menu-item
-              *ngIf="
+            <button mat-menu-item *ngIf="
                 item.cantidadTransporte == null &&
                 item.vencimientoTransporte == null &&
                 item.motivoRechazoTransporte == null
-              "
-              color="accent"
-              (click)="onConfirm(item)"
-            >
+              " color="accent" (click)="onConfirm(item)">
               Confirmar
             </button>
-            <button
-              mat-menu-item
-              *ngIf="
+            <button mat-menu-item *ngIf="
                 item.cantidadTransporte != null ||
                 item.vencimientoTransporte != null ||
                 item.motivoRechazoTransporte != null
-              "
-              color="primary"
-              (click)="onDesconfirm(item)"
-            >
+              " color="primary" (click)="onDesconfirm(item)">
               Desconfirmar
             </button>
-            <button
-              mat-menu-item
-              (click)="onSolicitarModificarItem(item)"
-              [disabled]="true"
-            >
+            <button mat-menu-item (click)="onSolicitarModificarItem(item)" [disabled]="true">
               Solicitar modificación
             </button>
             <button mat-menu-item (click)="onRechazar(item)">
@@ -1140,53 +754,30 @@
 
       <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
       <ng-container matColumnDef="expandedDetail">
-        <td
-          mat-cell
-          *matCellDef="let element"
-          [attr.colspan]="columnsToDisplay.length"
-        >
-          <div
-            class="example-element-detail"
-            [@detailExpand]="
+        <td mat-cell *matCellDef="let element" [attr.colspan]="columnsToDisplay.length">
+          <div class="example-element-detail" [@detailExpand]="
               element == expandedElement ? 'expanded' : 'collapsed'
-            "
-          ></div>
+            "></div>
         </td>
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
-      <tr
-        mat-row
-        *matRowDef="let element; columns: columnsToDisplay"
-        class="example-element-row"
+      <tr mat-row *matRowDef="let element; columns: columnsToDisplay" class="example-element-row"
         [class.example-expanded-row]="expandedElement === element"
-        (click)="expandedElement = expandedElement === element ? null : element"
-        [class.sin-cambios]="
+        (click)="expandedElement = expandedElement === element ? null : element" [class.sin-cambios]="
           element.cantidadTransporte != null &&
           element.motivoModificacionTransporte == null &&
           element.motivoRechazoTransporte == null &&
           !isTransporteEnCamino
-        "
-        [class.con-cambios]="
+        " [class.con-cambios]="
           element.motivoModificacionTransporte != null && !isTransporteEnCamino
-        "
-        [class.rechazado]="
+        " [class.rechazado]="
           element.motivoRechazoTransporte != null && !isTransporteEnCamino
-        "
-      ></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: ['expandedDetail']"
-        class="example-detail-row"
-      ></tr>
+        "></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
-    <table
-      *ngIf="isRecepcionEnVerificacion || isRecepcionConcluida"
-      mat-table
-      [dataSource]="dataSource"
-      multiTemplateDataRows
-      class="mat-elevation-z8"
-    >
+    <table *ngIf="isRecepcionEnVerificacion || isRecepcionConcluida" mat-table [dataSource]="dataSource"
+      multiTemplateDataRows class="mat-elevation-z8">
       <ng-container matColumnDef="producto">
         <th mat-header-cell *matHeaderCellDef style="width: 30%">
           <div fxLayout="row" fxLayoutAlign="start space-between">
@@ -1194,20 +785,10 @@
               <span *ngIf="!filtroProductosOpen"> Producto </span>
               <span *ngIf="filtroProductosOpen" style="width: 100%">
                 <div>
-                  <mat-form-field
-                    style="width: 100%"
-                    appearance="outline"
-                    class="shrinking-mat-form-field"
-                  >
-                    <input
-                      #filtroProductoInput
-                      matInput
-                      type="text"
-                      [formControl]="filtroProductoControl"
-                      (keyup.enter)="onFilterProducto()"
-                      (keyup.tab)="onSearchPorCodigo()"
-                      (focusin)="filtroProductoInput.select()"
-                    />
+                  <mat-form-field style="width: 100%" appearance="outline" class="shrinking-mat-form-field">
+                    <input #filtroProductoInput matInput type="text" [formControl]="filtroProductoControl"
+                      (keyup.enter)="onFilterProducto()" (keyup.tab)="onSearchPorCodigo()"
+                      (focusin)="filtroProductoInput.select()" />
                   </mat-form-field>
                 </div>
               </span>
@@ -1229,8 +810,8 @@
         <td mat-cell *matCellDef="let item" style="width: 30%">
           {{ item?.presentacionPreTransferencia?.producto?.id }} -
           {{
-            item?.presentacionPreTransferencia?.producto?.descripcion
-              | uppercase
+          item?.presentacionPreTransferencia?.producto?.descripcion
+          | uppercase
           }}
         </td>
       </ng-container>
@@ -1266,8 +847,8 @@
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
           {{
-            item?.presentacionTransporte?.precioPrincipal?.precio
-              | number : "1.0-2"
+          item?.presentacionTransporte?.precioPrincipal?.precio
+          | number : "1.0-2"
           }}
         </td>
       </ng-container>
@@ -1276,16 +857,8 @@
         <th mat-header-cell *matHeaderCellDef style="text-align: center">
           Vencimiento
         </th>
-        <td
-          mat-cell
-          *matCellDef="let item"
-          style="text-align: center; height: 100%"
-        >
-          <div
-            fxLayout="row"
-            style="width: 100%; height: 100%"
-            fxLayoutGap="10px"
-          >
+        <td mat-cell *matCellDef="let item" style="text-align: center; height: 100%">
+          <div fxLayout="row" style="width: 100%; height: 100%" fxLayoutGap="10px">
             <div fxFlex>
               {{ item?.vencimientoTransporte | date : "shortDate" }}
             </div>
@@ -1299,64 +872,38 @@
         </th>
         <td mat-cell *matCellDef="let item" style="text-align: center">
           {{
-            item?.cantidadRecepcion != null ||
-            item?.vencimientoRecepcion != null ||
-            item?.motivoRechazoRecepcion != null
-              ? "Verificado"
-              : "Falta verificar"
+          item?.cantidadRecepcion != null ||
+          item?.vencimientoRecepcion != null ||
+          item?.motivoRechazoRecepcion != null
+          ? "Verificado"
+          : "Falta verificar"
           }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="menu">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="width: 5%; text-align: center"
-        ></th>
-        <td
-          mat-cell
-          *matCellDef="let item; let i = tabIndex"
-          style="width: 5%; text-align: center"
-        >
-          <button
-            mat-icon-button
-            [matMenuTriggerFor]="menu"
-            (click)="$event.stopPropagation()"
-            [disabled]="!isRecepcionEnVerificacion && !isDestino"
-          >
+        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center"></th>
+        <td mat-cell *matCellDef="let item; let i = tabIndex" style="width: 5%; text-align: center">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()"
+            [disabled]="!isRecepcionEnVerificacion && !isDestino">
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button
-              mat-menu-item
-              *ngIf="
+            <button mat-menu-item *ngIf="
                 item.cantidadRecepcion == null &&
                 item.vencimientoRecepcion == null &&
                 item.motivoRechazoRecepcion == null
-              "
-              color="accent"
-              (click)="onConfirm(item)"
-            >
+              " color="accent" (click)="onConfirm(item)">
               Confirmar
             </button>
-            <button
-              mat-menu-item
-              *ngIf="
+            <button mat-menu-item *ngIf="
                 item.cantidadRecepcion != null ||
                 item.vencimientoRecepcion != null ||
                 item.motivoRechazoRecepcion != null
-              "
-              color="primary"
-              (click)="onDesconfirm(item)"
-            >
+              " color="primary" (click)="onDesconfirm(item)">
               Desconfirmar
             </button>
-            <button
-              mat-menu-item
-              (click)="onSolicitarModificarItem(item)"
-              [disabled]="true"
-            >
+            <button mat-menu-item (click)="onSolicitarModificarItem(item)" [disabled]="true">
               Solicitar modificación
             </button>
             <button mat-menu-item (click)="onRechazar(item)">
@@ -1368,48 +915,26 @@
 
       <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
       <ng-container matColumnDef="expandedDetail">
-        <td
-          mat-cell
-          *matCellDef="let element"
-          [attr.colspan]="columnsToDisplay.length"
-        >
-          <div
-            class="example-element-detail"
-            [@detailExpand]="
+        <td mat-cell *matCellDef="let element" [attr.colspan]="columnsToDisplay.length">
+          <div class="example-element-detail" [@detailExpand]="
               element == expandedElement ? 'expanded' : 'collapsed'
-            "
-          ></div>
+            "></div>
         </td>
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
-      <tr
-        mat-row
-        *matRowDef="let element; columns: columnsToDisplay"
-        class="example-element-row"
+      <tr mat-row *matRowDef="let element; columns: columnsToDisplay" class="example-element-row"
         [class.example-expanded-row]="expandedElement === element"
-        (click)="expandedElement = expandedElement === element ? null : element"
-        [class.sin-cambios]="
+        (click)="expandedElement = expandedElement === element ? null : element" [class.sin-cambios]="
           element.cantidadRecepcion != null &&
           element.motivoModificacionRecepcion == null &&
           element.motivoRechazoRecepcion == null
-        "
-        [class.con-cambios]="element.motivoModificacionRecepcion != null"
-        [class.rechazado]="element.motivoRechazoRecepcion != null"
-      ></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: ['expandedDetail']"
-        class="example-detail-row"
-      ></tr>
+        " [class.con-cambios]="element.motivoModificacionRecepcion != null"
+        [class.rechazado]="element.motivoRechazoRecepcion != null"></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
-    <mat-paginator
-      itemsPerPageLabel="Itens por pagina"
-      [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)"
-      [length]="selectedPageInfo?.getTotalElements"
-      style="width: 100%"
-      showFirstLastButtons
-    ></mat-paginator>
+    <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements" style="width: 100%"
+      showFirstLastButtons></mat-paginator>
   </div>
 </app-generic-list>
