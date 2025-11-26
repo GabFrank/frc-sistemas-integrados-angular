@@ -9,6 +9,7 @@ import {
   NOTIFICATION_RECEIVED as ON_NOTIFICATION_RECEIVED,
   TOKEN_UPDATED,
 } from '@superhuman/electron-push-receiver/src/constants';
+// } from '@superhuman/electron-push-receiver/src/constants/index';
 
 const electron = window.require('electron');
 const ipcRenderer = electron.ipcRenderer;
