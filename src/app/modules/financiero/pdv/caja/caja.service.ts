@@ -27,6 +27,7 @@ import { CajaSimplePorIdGQL } from "./graphql/cajaSimplePorId";
 import { VerificarCajaGQL } from "./graphql/verificarCaja";
 import { CajaAbiertoPorSucursalGQL } from "./graphql/cajaAbiertoPorSucursal";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
+import { TransferirCajaGQL } from "./graphql/transferirCaja";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -52,7 +53,8 @@ export class CajaService {
     private balancePorCajaIdAndSucursalId: BalancePorCajaIdAndSucursalIdGQL,
     private verificarCaja: VerificarCajaGQL,
     private cajaAbiertoPorSucursal: CajaAbiertoPorSucursalGQL,
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private transferirCaja: TransferirCajaGQL
   ) { }
 
   // onGetAll(): Observable<any> {
@@ -237,5 +239,9 @@ export class CajaService {
       null,
       true
     );
+  }
+
+  onTransferirCaja(cajaId: number, usuarioId: number, servidor: boolean = true): Observable<any> {
+    return this.genericService.onCustomMutation(this.transferirCaja, { cajaId, usuarioId }, servidor);
   }
 }
