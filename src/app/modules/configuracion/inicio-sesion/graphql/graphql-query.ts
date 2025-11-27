@@ -19,6 +19,7 @@ export const notificacionesPorTokenQuery = gql`
       fechaLeida
       fechaEnvio
       estadoEnvio
+      estadoTablero
       notificacion {
         id
         titulo
@@ -31,8 +32,8 @@ export const notificacionesPorTokenQuery = gql`
 `;
 
 export const getNotificacionesUsuarioQuery = gql`
-  query ($tokenFcm: String, $leidas: Boolean, $page: Int, $size: Int) {
-    data: getNotificacionesUsuario(tokenFcm: $tokenFcm, leidas: $leidas, page: $page, size: $size) {
+  query ($tokenFcm: String, $leidas: Boolean, $page: Int, $size: Int, $estadoTablero: String) {
+    data: getNotificacionesUsuario(tokenFcm: $tokenFcm, leidas: $leidas, page: $page, size: $size, estadoTablero: $estadoTablero) {
       content {
         id
         leida
@@ -42,6 +43,7 @@ export const getNotificacionesUsuarioQuery = gql`
         interactuada
         fechaInteraccion
         accionRealizada
+        estadoTablero
         notificacion {
           id
           titulo
@@ -67,5 +69,11 @@ export const marcarNotificacionLeidaMutation = gql`
 export const registrarInteraccionNotificacionMutation = gql`
   mutation ($notificacionUsuarioId: Int!, $accion: String!) {
     data: registrarInteraccionNotificacion(notificacionUsuarioId: $notificacionUsuarioId, accion: $accion)
+  }
+`;
+
+export const actualizarEstadoTableroNotificacionMutation = gql`
+  mutation ($notificacionUsuarioId: Int!, $estado: String!) {
+    data: actualizarEstadoTableroNotificacion(notificacionUsuarioId: $notificacionUsuarioId, estado: $estado)
   }
 `;

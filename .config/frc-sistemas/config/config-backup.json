@@ -6,11 +6,11 @@
   "local": "Caja 1",
   "precios": "EXPO, EXPO-DEPOSITO",
   "modo": "NOT",
-  "pdvId": 25,
+  "pdvId": 1,
   "isConfigured": true,
   "isLocal": false,
   "printers": {
-    "ticket": "ticket",
-    "factura": "factura"
+    "ticket": "acer_ticket",
+    "factura": ""
   }
 }

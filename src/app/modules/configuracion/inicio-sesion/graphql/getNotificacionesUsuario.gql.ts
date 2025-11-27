@@ -11,6 +11,7 @@ export interface NotificacionData {
   interactuada?: boolean;
   fechaInteraccion?: string;
   accionRealizada?: string;
+  estadoTablero?: string;
   notificacion: {
     id: number;
     titulo: string;

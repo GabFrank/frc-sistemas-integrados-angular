@@ -8,6 +8,7 @@ export interface NotificacionData {
   fechaLeida?: string;
   fechaEnvio?: string;
   estadoEnvio?: string;
+  estadoTablero?: string;
   notificacion: {
     id: number;
     titulo: string;
