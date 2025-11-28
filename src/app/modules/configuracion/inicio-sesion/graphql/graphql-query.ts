@@ -77,3 +77,9 @@ export const actualizarEstadoTableroNotificacionMutation = gql`
     data: actualizarEstadoTableroNotificacion(notificacionUsuarioId: $notificacionUsuarioId, estado: $estado)
   }
 `;
+
+export const getConteoNotificacionesNoLeidasQuery = gql`
+  query ($tokenFcm: String!) {
+    data: getConteoNotificacionesNoLeidas(tokenFcm: $tokenFcm)
+  }
+`;

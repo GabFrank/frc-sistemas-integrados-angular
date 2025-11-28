@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { Apollo } from 'apollo-angular';
-import { getNotificacionesUsuarioQuery, actualizarEstadoTableroNotificacionMutation } from '../modules/configuracion/inicio-sesion/graphql/graphql-query';
-import { Observable, BehaviorSubject, combineLatest } from 'rxjs';
-import { map, tap, switchMap } from 'rxjs/operators';
+import { getNotificacionesUsuarioQuery, actualizarEstadoTableroNotificacionMutation, getConteoNotificacionesNoLeidasQuery } from '../modules/configuracion/inicio-sesion/graphql/graphql-query';
+import { Observable, BehaviorSubject, combineLatest, of } from 'rxjs';
+import { map, tap, switchMap, catchError } from 'rxjs/operators';
 import { EstadoNotificacionTablero } from '../shared/enums/estado-notificacion-tablero.enum';
+import { ElectronService } from '../commons/core/electron/electron.service';
 
 export interface NotificacionData {
   id: number;
@@ -44,7 +45,10 @@ export class NotificacionesTableroService {
   private readonly _notificaciones$ = new BehaviorSubject<NotificacionesPorEstado>({});
   private readonly _tokenFcm$ = new BehaviorSubject<string>('');
 
-  constructor(private apollo: Apollo) {
+  constructor(
+    private apollo: Apollo,
+    private electronService: ElectronService
+  ) {
     Object.values(EstadoNotificacionTablero).forEach(estado => {
       this._paginationState$.next({
         ...this._paginationState$.value,
@@ -55,6 +59,12 @@ export class NotificacionesTableroService {
           loading: false
         }
       });
+    });
+
+    this.electronService.notificationReceived.subscribe(() => {
+      console.log('[NotificacionesTablero] Nueva notificación recibida, actualizando contador...');
+      this.actualizarConteo();
+      this.refrescarTodas();
     });
   }
 
@@ -67,8 +77,7 @@ export class NotificacionesTableroService {
   setTokenFcm(token: string): void {
     const tokenAnterior = this._tokenFcm$.value;
     this._tokenFcm$.next(token);
-    // Cargar conteo inicial solo si el token cambió y es válido
-    if (token && token !== tokenAnterior) {
+    if (token) {
       this.obtenerConteoNoLeidas().subscribe();
     }
   }
@@ -76,34 +85,32 @@ export class NotificacionesTableroService {
   obtenerConteoNoLeidas(): Observable<number> {
     if (!this._tokenFcm$.value) {
       this._unreadCount$.next(0);
-      return this._unreadCount$.asObservable();
+      return of(0);
     }
 
+    console.log('[NotificacionesTablero] Consultando conteo de notificaciones no leídas...');
     return this.apollo.query({
-      query: getNotificacionesUsuarioQuery,
+      query: getConteoNotificacionesNoLeidasQuery,
       variables: {
-        tokenFcm: this._tokenFcm$.value,
-        leidas: false,
-        page: 0,
-        size: 1
+        tokenFcm: this._tokenFcm$.value
       },
       fetchPolicy: 'network-only'
     }).pipe(
       map((result: any) => {
-        const count = result.data?.data?.totalElements || 0;
+        const count = result.data?.data || 0;
+        console.log('[NotificacionesTablero] Conteo recibido del servidor:', count);
         this._unreadCount$.next(count);
         return count;
+      }),
+      catchError((error) => {
+        console.error('Error al obtener conteo de notificaciones no leídas:', error);
+        return of(0);
       })
     );
   }
 
   private actualizarConteoDesdeNotificaciones(): void {
-    let count = 0;
-    const notificaciones = this._notificaciones$.value;
-    Object.values(notificaciones).forEach(notificacionesEstado => {
-      count += notificacionesEstado.filter(n => !n.leida).length;
-    });
-    this._unreadCount$.next(count);
+    this.actualizarConteo();
   }
 
   cargarNotificaciones(estado: string, pageIndex: number, pageSize: number): void {
@@ -258,8 +265,10 @@ export class NotificacionesTableroService {
 
   actualizarConteoNoLeidas(): void {
     this.obtenerConteoNoLeidas().subscribe(count => {
-      // El conteo se actualiza automáticamente a través del observable unreadCount$
-      // cuando se actualizan las notificaciones
     });
+  }
+
+  public actualizarConteo(): void {
+    this.obtenerConteoNoLeidas().subscribe();
   }
 }

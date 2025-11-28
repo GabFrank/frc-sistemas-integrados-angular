@@ -25,6 +25,7 @@ import { SearchBarDialogComponent } from "./shared/widgets/search-bar-dialog/sea
 import { DialogoNuevasFuncionesComponent } from "./shared/components/dialogo-nuevas-funciones/dialogo-nuevas-funciones.component";
 import { GraphqlConnectionService, connectionStatusSub } from "./shared/services/graphql-connection.service";
 import { ConfirmDialogComponent } from "./shared/components/confirm-dialog/confirm-dialog.component";
+import { NotificacionesTableroService } from "./services/notificaciones-tablero.service";
 
 export class Pageable {
   getPageNumber: number;
@@ -83,7 +84,8 @@ export class AppComponent implements OnInit, OnDestroy {
     public genericService: GenericCrudService,
     private configService: ConfiguracionService,
     public cargandoService: CargandoDialogService,
-    private graphqlService: GraphqlConnectionService
+    private graphqlService: GraphqlConnectionService,
+    private notificacionesTableroService: NotificacionesTableroService
   ) {
     this.innerHeight = windowInfo.innerHeight + "px";
     notificationService.notification$
@@ -186,6 +188,9 @@ export class AppComponent implements OnInit, OnDestroy {
     this.mainService.load();
     if (this.electronService && this.electronService.isElectron) {
       this.electronService.initPushNotifications((token) => {
+        if (token) {
+          this.notificacionesTableroService.setTokenFcm(token);
+        }
       });
     } else {
     }

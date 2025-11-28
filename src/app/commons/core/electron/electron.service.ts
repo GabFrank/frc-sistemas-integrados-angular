@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
-import { Observable, from } from 'rxjs';
+import { Observable, from, Subject } from 'rxjs';
 import { ConfiguracionService } from '../../../shared/services/configuracion.service';
 import {
   START_NOTIFICATION_SERVICE,
@@ -9,7 +9,6 @@ import {
   NOTIFICATION_RECEIVED as ON_NOTIFICATION_RECEIVED,
   TOKEN_UPDATED,
 } from '@superhuman/electron-push-receiver/src/constants';
-// } from '@superhuman/electron-push-receiver/src/constants/index';
 
 const electron = window.require('electron');
 const ipcRenderer = electron.ipcRenderer;
@@ -31,6 +30,8 @@ export interface PrintResult {
   providedIn: 'root'
 })
 export class ElectronService {
+
+  public notificationReceived = new Subject<any>();
 
   get isElectron(): boolean {
     return !!(window && window.process && window.process.type);
@@ -87,6 +88,7 @@ export class ElectronService {
     });
     ipcRenderer.on(ON_NOTIFICATION_RECEIVED, (_: any, notification: any) => {
       try {
+        this.notificationReceived.next(notification);
         const title = notification?.notification?.title || 'FRC Sistemas Integrados';
         const body = notification?.notification?.body || '';
         const data = notification?.data;
