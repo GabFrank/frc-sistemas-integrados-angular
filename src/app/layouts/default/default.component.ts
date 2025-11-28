@@ -31,7 +31,7 @@ export class DefaultComponent implements OnInit, OnDestroy {
   notificationsOpen = false;
 
   tabs = new Array<Tab>();
-  
+
   readonly ESTADOS_TABLERO = [
     EstadoNotificacionTablero.POR_VERIFICAR,
     EstadoNotificacionTablero.EN_PROCESO,
@@ -162,19 +162,22 @@ export class DefaultComponent implements OnInit, OnDestroy {
   }
 
   openDetail(n: NotificacionData): void {
-    if (!n.leida) {
-      this.markAsRead(n);
-    }
-    
     this.registrarInteraccionNotificacionGQL
       .mutate({ notificacionUsuarioId: n.id, accion: "OPEN" })
       .pipe(untilDestroyed(this))
       .subscribe();
-    this.dialog.open(NotificationDetailDialogComponent, {
+
+    const dialogRef = this.dialog.open(NotificationDetailDialogComponent, {
       width: '55vw',
       maxWidth: '95vw',
       data: n,
       autoFocus: false
+    });
+
+    dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(() => {
+      if (!n.leida) {
+        this.markAsRead(n);
+      }
     });
   }
 
