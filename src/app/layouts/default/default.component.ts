@@ -32,13 +32,7 @@ export class DefaultComponent implements OnInit, OnDestroy {
 
   tabs = new Array<Tab>();
 
-  readonly ESTADOS_TABLERO = [
-    EstadoNotificacionTablero.POR_VERIFICAR,
-    EstadoNotificacionTablero.EN_PROCESO,
-    EstadoNotificacionTablero.VERIFICADO
-  ];
-  readonly ESTADOS_LABELS = ESTADOS_TABLERO_LABELS;
-  readonly pageSizeOptions = [5, 10, 20, 50];
+
 
   selectedTab: number;
   onTabClose: false;
@@ -52,33 +46,9 @@ export class DefaultComponent implements OnInit, OnDestroy {
     private mainService: MainService,
     private notificacionesPorTokenGQL: NotificacionesPorTokenGQL,
     private marcarNotificacionLeidaGQL: MarcarNotificacionLeidaGQL,
-    private registrarInteraccionNotificacionGQL: RegistrarInteraccionNotificacionGQL,
     private notificacionesTableroService: NotificacionesTableroService,
     private router: Router
   ) {
-  }
-
-  getNotificacionesPorEstado(estado: string): Observable<NotificacionData[]> {
-    return this.notificacionesTableroService.getNotificacionesPorEstado(estado);
-  }
-
-  getPaginationState(estado: string): Observable<PaginationState> {
-    return this.notificacionesTableroService.getPaginationState(estado);
-  }
-
-  changeEstadoTablero(n: NotificacionData, nuevoEstado: string, event?: Event): void {
-    if (event) {
-      event.stopPropagation();
-    }
-
-    if (!n || n.estadoTablero === nuevoEstado) {
-      return;
-    }
-
-    this.notificacionesTableroService
-      .actualizarEstadoTablero(n.id, nuevoEstado)
-      .pipe(untilDestroyed(this))
-      .subscribe();
   }
 
   ngOnInit(): void {
@@ -112,6 +82,8 @@ export class DefaultComponent implements OnInit, OnDestroy {
     this.sideBarOpen = isExpanded;
   }
 
+
+
   openNotifications(): void {
     this.notificationsOpen = !this.notificationsOpen;
 
@@ -122,80 +94,6 @@ export class DefaultComponent implements OnInit, OnDestroy {
         this.notificacionesTableroService.refrescarTodas();
       }
     }
-  }
-
-  onPageChange(event: PageEvent, estado: string): void {
-    this.notificacionesTableroService.cargarNotificaciones(
-      estado,
-      event.pageIndex,
-      event.pageSize
-    );
-  }
-  onNotificationClick(n: NotificacionData): void {
-    this.navigateByNotificationType(n);
-    this.openDetail(n);
-  }
-
-  private navigateByNotificationType(n: NotificacionData): void {
-    const tipo = n.notificacion?.tipo;
-
-    if (!tipo) {
-      return;
-    }
-
-    switch (tipo) {
-      case 'AJUSTE_STOCK':
-        this.router.navigate(['/operaciones/movimientos-stock']);
-        break;
-      case 'PRODUCTO_CREADO':
-        this.router.navigate(['/productos']);
-        break;
-      case 'TRANSFERENCIA_INICIADA':
-        this.router.navigate(['/operaciones/transferencias']);
-        break;
-      case 'PRECIO_ACTUALIZADO':
-        this.router.navigate(['/productos']);
-        break;
-      default:
-        break;
-    }
-  }
-
-  openDetail(n: NotificacionData): void {
-    this.registrarInteraccionNotificacionGQL
-      .mutate({ notificacionUsuarioId: n.id, accion: "OPEN" })
-      .pipe(untilDestroyed(this))
-      .subscribe();
-
-    const dialogRef = this.dialog.open(NotificationDetailDialogComponent, {
-      width: '55vw',
-      maxWidth: '95vw',
-      data: n,
-      autoFocus: false
-    });
-
-    dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(() => {
-      if (!n.leida) {
-        this.markAsRead(n);
-      }
-    });
-  }
-
-  markAsRead(n: NotificacionData, event?: Event): void {
-    if (event) {
-      event.stopPropagation();
-    }
-
-    if (n.leida) return;
-
-    this.marcarNotificacionLeidaGQL
-      .mutate({ notificacionUsuarioId: n.id })
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res?.data?.data) {
-          this.notificacionesTableroService.actualizarEstadoLeido(n.id);
-        }
-      });
   }
 
   openDialog(index): void {

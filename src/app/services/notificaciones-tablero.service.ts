@@ -40,14 +40,14 @@ export interface NotificacionesPorEstado {
 })
 export class NotificacionesTableroService {
   private readonly pageSize = 10;
-  private readonly paginationState$ = new BehaviorSubject<{ [key: string]: PaginationState }>({});
-  private readonly notificaciones$ = new BehaviorSubject<NotificacionesPorEstado>({});
-  private readonly tokenFcm$ = new BehaviorSubject<string>('');
+  private readonly _paginationState$ = new BehaviorSubject<{ [key: string]: PaginationState }>({});
+  private readonly _notificaciones$ = new BehaviorSubject<NotificacionesPorEstado>({});
+  private readonly _tokenFcm$ = new BehaviorSubject<string>('');
 
   constructor(private apollo: Apollo) {
     Object.values(EstadoNotificacionTablero).forEach(estado => {
-      this.paginationState$.next({
-        ...this.paginationState$.value,
+      this._paginationState$.next({
+        ...this._paginationState$.value,
         [estado]: {
           pageIndex: 0,
           pageSize: this.pageSize,
@@ -58,20 +58,15 @@ export class NotificacionesTableroService {
     });
   }
 
-  get notificaciones(): Observable<NotificacionesPorEstado> {
-    return this.notificaciones$.asObservable();
-  }
-
-  get paginationState(): Observable<{ [key: string]: PaginationState }> {
-    return this.paginationState$.asObservable();
-  }
+  readonly notificaciones$ = this._notificaciones$.asObservable();
+  readonly paginationState$ = this._paginationState$.asObservable();
 
   setTokenFcm(token: string): void {
-    this.tokenFcm$.next(token);
+    this._tokenFcm$.next(token);
   }
 
   cargarNotificaciones(estado: string, pageIndex: number, pageSize: number): void {
-    const currentState = this.paginationState$.value;
+    const currentState = this._paginationState$.value;
     if (!currentState[estado]) {
       currentState[estado] = {
         pageIndex: 0,
@@ -81,7 +76,7 @@ export class NotificacionesTableroService {
       };
     }
 
-    this.paginationState$.next({
+    this._paginationState$.next({
       ...currentState,
       [estado]: {
         ...currentState[estado],
@@ -92,7 +87,7 @@ export class NotificacionesTableroService {
     this.apollo.query({
       query: getNotificacionesUsuarioQuery,
       variables: {
-        tokenFcm: this.tokenFcm$.value,
+        tokenFcm: this._tokenFcm$.value,
         page: pageIndex,
         size: pageSize,
         estadoTablero: estado
@@ -101,14 +96,14 @@ export class NotificacionesTableroService {
     }).pipe(
       map((result: any) => result.data.data),
       tap((data: any) => {
-        const notificacionesActuales = this.notificaciones$.value;
-        this.notificaciones$.next({
+        const notificacionesActuales = this._notificaciones$.value;
+        this._notificaciones$.next({
           ...notificacionesActuales,
           [estado]: data.content
         });
 
-        this.paginationState$.next({
-          ...this.paginationState$.value,
+        this._paginationState$.next({
+          ...this._paginationState$.value,
           [estado]: {
             pageIndex: data.pageNumber,
             pageSize: data.pageSize,
@@ -120,10 +115,10 @@ export class NotificacionesTableroService {
     ).subscribe({
       error: (error) => {
         console.error('Error al cargar notificaciones:', error);
-        this.paginationState$.next({
-          ...this.paginationState$.value,
+        this._paginationState$.next({
+          ...this._paginationState$.value,
           [estado]: {
-            ...this.paginationState$.value[estado],
+            ...this._paginationState$.value[estado],
             loading: false
           }
         });
@@ -132,7 +127,7 @@ export class NotificacionesTableroService {
   }
 
   actualizarEstadoLeido(notificacionId: number): void {
-    const notificacionesActuales = this.notificaciones$.value;
+    const notificacionesActuales = this._notificaciones$.value;
     let actualizado = false;
     const nuevasNotificaciones = { ...notificacionesActuales };
 
@@ -153,7 +148,7 @@ export class NotificacionesTableroService {
     });
 
     if (actualizado) {
-      this.notificaciones$.next(nuevasNotificaciones);
+      this._notificaciones$.next(nuevasNotificaciones);
     }
   }
 
@@ -167,7 +162,7 @@ export class NotificacionesTableroService {
     }).pipe(
       tap(() => {
         Object.values(EstadoNotificacionTablero).forEach(estado => {
-          const estadoPagination = this.paginationState$.value[estado];
+          const estadoPagination = this._paginationState$.value[estado];
           if (estadoPagination) {
             this.cargarNotificaciones(estado, estadoPagination.pageIndex, estadoPagination.pageSize);
           }
@@ -176,26 +171,11 @@ export class NotificacionesTableroService {
     );
   }
 
-  getNotificacionesPorEstado(estado: string): Observable<NotificacionData[]> {
-    return this.notificaciones.pipe(
-      map(notificaciones => notificaciones[estado] || [])
-    );
-  }
 
-  getPaginationState(estado: string): Observable<PaginationState> {
-    return this.paginationState.pipe(
-      map(states => states[estado] || {
-        pageIndex: 0,
-        pageSize: this.pageSize,
-        length: 0,
-        loading: false
-      })
-    );
-  }
 
   refrescarTodas(): void {
     Object.values(EstadoNotificacionTablero).forEach(estado => {
-      const estadoPagination = this.paginationState$.value[estado];
+      const estadoPagination = this._paginationState$.value[estado];
       if (estadoPagination) {
         this.cargarNotificaciones(estado, 0, estadoPagination.pageSize);
       }

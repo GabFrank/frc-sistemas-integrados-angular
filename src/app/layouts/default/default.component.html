@@ -11,75 +11,7 @@
           Notificaciones
         </div>
         <div class="notifications-scroll">
-          <div class="notifications-board">
-            <ng-container *ngFor="let estado of ESTADOS_TABLERO">
-              <ng-container *ngIf="getNotificacionesPorEstado(estado) | async as notificacionesEstado">
-                <ng-container *ngIf="getPaginationState(estado) | async as paginationState">
-                  <div class="notifications-column">
-                    <div class="notifications-column-header">
-                      <span>{{ ESTADOS_LABELS[estado] }}</span>
-                      <span class="notifications-column-count">{{ paginationState.length || 0 }}</span>
-                    </div>
-                    <div class="notifications-column-body">
-                      <ng-container *ngIf="!paginationState.loading; else loadingTemplate">
-                        <div *ngFor="let n of notificacionesEstado" class="notification-item" [class.unread]="!n.leida"
-                          (click)="onNotificationClick(n)">
-                          <div class="notification-header-row"
-                            style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div class="notification-header">
-                              {{ n.notificacion?.titulo }}
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                              <button mat-icon-button *ngIf="!n.leida" (click)="markAsRead(n, $event)" matTooltip="Marcar como leída">
-                                <mat-icon style="font-size: 18px;">check_circle_outline</mat-icon>
-                              </button>
-                            </div>
-                          </div>
-                          <div class="notification-message">
-                            {{ n.notificacion?.mensaje }}
-                          </div>
-                          <div class="notification-footer" style="justify-content: space-between;">
-                            <span>{{ n.notificacion?.tipo }}</span>
-                            <span>{{ n.notificacion?.creadoEn | date:'short' }}</span>
-                          </div>
-                          <div class="notification-footer" style="justify-content: flex-end; gap: 4px;">
-                            <button mat-stroked-button color="primary" *ngIf="estado !== 'POR_VERIFICAR'"
-                              (click)="changeEstadoTablero(n, 'POR_VERIFICAR', $event)" style="min-width: 0; padding: 0 8px;">
-                              Por verificar
-                            </button>
-                            <button mat-stroked-button color="accent" *ngIf="estado !== 'EN_PROCESO'"
-                              (click)="changeEstadoTablero(n, 'EN_PROCESO', $event)" style="min-width: 0; padding: 0 8px;">
-                              En proceso
-                            </button>
-                            <button mat-stroked-button color="primary" *ngIf="estado !== 'VERIFICADO'"
-                              (click)="changeEstadoTablero(n, 'VERIFICADO', $event)" style="min-width: 0; padding: 0 8px;">
-                              Verificado
-                            </button>
-                          </div>
-                        </div>
-                      </ng-container>
-                      <ng-template #loadingTemplate>
-                        <div class="loading-indicator">
-                          <mat-spinner diameter="30"></mat-spinner>
-                        </div>
-                      </ng-template>
-                    </div>
-                    <div class="notifications-column-paginator" *ngIf="paginationState.length > 0">
-                      <mat-paginator
-                        [length]="paginationState.length"
-                        [pageSize]="paginationState.pageSize"
-                        [pageSizeOptions]="pageSizeOptions"
-                        [pageIndex]="paginationState.pageIndex"
-                        (page)="onPageChange($event, estado)"
-                        showFirstLastButtons
-                        [disabled]="paginationState.loading">
-                      </mat-paginator>
-                    </div>
-                  </div>
-                </ng-container>
-              </ng-container>
-            </ng-container>
-          </div>
+          <app-notification-board></app-notification-board>
         </div>
         <ng-template #noNotifications>
           <div class="no-notifications">
