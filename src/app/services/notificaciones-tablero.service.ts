@@ -134,23 +134,26 @@ export class NotificacionesTableroService {
   actualizarEstadoLeido(notificacionId: number): void {
     const notificacionesActuales = this.notificaciones$.value;
     let actualizado = false;
-    
-    Object.keys(notificacionesActuales).forEach(estado => {
-      const notificacionesEstado = notificacionesActuales[estado];
+    const nuevasNotificaciones = { ...notificacionesActuales };
+
+    Object.keys(nuevasNotificaciones).forEach(estado => {
+      const notificacionesEstado = nuevasNotificaciones[estado];
       const index = notificacionesEstado.findIndex(n => n.id === notificacionId);
-      
+
       if (index !== -1) {
-        notificacionesEstado[index] = {
-          ...notificacionesEstado[index],
+        const nuevoEstadoArray = [...notificacionesEstado];
+        nuevoEstadoArray[index] = {
+          ...nuevoEstadoArray[index],
           leida: true,
           fechaLeida: new Date().toISOString()
         };
+        nuevasNotificaciones[estado] = nuevoEstadoArray;
         actualizado = true;
       }
     });
-    
+
     if (actualizado) {
-      this.notificaciones$.next({ ...notificacionesActuales });
+      this.notificaciones$.next(nuevasNotificaciones);
     }
   }
 
