@@ -160,16 +160,22 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           isExpanded: false,
           visibilityRoles: [ROLES.ADMIN],
           items: [
-            { 
-              name: 'Observaciones de cajas', 
-              icon: 'receipt_long', 
+            {
+              name: 'Observaciones de cajas',
+              icon: 'receipt_long',
               action: 'observacion-cajas',
               visibilityRoles: [ROLES.ADMIN]
             },
-            { 
-              name: 'Observaciones de ventas', 
-              icon: 'shopping_cart_checkout', 
+            {
+              name: 'Observaciones de ventas',
+              icon: 'shopping_cart_checkout',
               action: 'observacion-ventas',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Modificaciones',
+              icon: 'edit',
+              action: 'modificaciones',
               visibilityRoles: [ROLES.ADMIN]
             }
           ]
@@ -189,9 +195,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           action: 'analisis-diferencias',
           visibilityRoles: [ROLES.ADMIN]
         },
-        { 
-          name: 'Cotización', 
-          icon: 'monetization_on', 
+        {
+          name: 'Cotización',
+          icon: 'monetization_on',
           action: 'list-cotizacion',
           visibilityRoles: [ROLES.CAMBIAR_COTIZACION]
         },
@@ -219,15 +225,15 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           action: 'list-facturas',
           visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
         },
-        { 
-          name: 'Timbrado', 
-          icon: 'text_snippet', 
+        {
+          name: 'Timbrado',
+          icon: 'text_snippet',
           action: 'list-timbrado',
           visibilityRoles: [ROLES.ADMIN]
         },
-        { 
-          name: 'Maletines', 
-          icon: 'work', 
+        {
+          name: 'Maletines',
+          icon: 'work',
           action: 'list-maletin',
           visibilityRoles: [ROLES.ADMIN]
         },
@@ -585,6 +591,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "observacion-ventas":
         this.openTabIfAuthorized(ROLES.ADMIN, MainVentaObservacionComponent, "Observación de Ventas");
+        break;
+      case "modificaciones":
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
+          this.notificacionService.openWarn('Funcionalidad en desarrollo: Modificaciones');
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+        }
         break;
     }
   }

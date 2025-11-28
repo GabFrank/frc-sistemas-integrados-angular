@@ -391,6 +391,16 @@ export class SideComponent implements OnInit {
           this.notificacionService.openWarn('No tenés acceso a esta opción. ')
         }
         break;
+      case "modificaciones":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
+        ) {
+          this.notificacionService.openWarn('Funcionalidad en desarrollo: Modificaciones')
+        }
+        else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
+        }
+        break;
       case "lucro-por-producto":
         this.tabService.addTab(
           new Tab(LucroPorProductoComponent, "Lucro por producto", null, null)
