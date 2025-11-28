@@ -1,15 +1,20 @@
-<div class="notifications-board">
+<div class="notifications-board" cdkDropListGroup>
     <ng-container *ngIf="{ notificaciones: notificaciones$ | async, pagination: paginationState$ | async } as data">
         <ng-container *ngFor="let estado of ESTADOS_TABLERO">
             <div class="notifications-column">
                 <div class="notifications-column-header">
                     <span>{{ ESTADOS_LABELS[estado] }}</span>
-                    <span class="notifications-column-count">{{ data.pagination[estado]?.length || 0 }}</span>
+                    <span class="notifications-column-count" [ngClass]="estado">{{ data.notificaciones[estado]?.length || 0
+                        }}</span>
                 </div>
-                <div class="notifications-column-body">
+                <div class="notifications-column-body" cdkDropList [cdkDropListData]="data.notificaciones[estado]"
+                    (cdkDropListDropped)="drop($event, estado)">
                     <ng-container *ngIf="!data.pagination[estado]?.loading; else loadingTemplate">
                         <div *ngFor="let n of data.notificaciones[estado]" class="notification-item"
-                            [class.unread]="!n.leida" (click)="onNotificationClick(n)">
+                            [class.unread]="!n.leida" (click)="onNotificationClick(n)" cdkDrag>
+
+                            <div class="notification-drag-placeholder" *cdkDragPlaceholder></div>
+
                             <div class="notification-header-row"
                                 style="display: flex; justify-content: space-between; align-items: flex-start;">
                                 <div class="notification-header">
@@ -28,23 +33,6 @@
                             <div class="notification-footer" style="justify-content: space-between;">
                                 <span>{{ n.notificacion?.tipo }}</span>
                                 <span>{{ n.notificacion?.creadoEn | date:'short' }}</span>
-                            </div>
-                            <div class="notification-footer" style="justify-content: flex-end; gap: 4px;">
-                                <button mat-stroked-button color="primary" *ngIf="estado !== 'POR_VERIFICAR'"
-                                    (click)="changeEstadoTablero(n, 'POR_VERIFICAR', $event)"
-                                    style="min-width: 0; padding: 0 8px;">
-                                    Por verificar
-                                </button>
-                                <button mat-stroked-button color="accent" *ngIf="estado !== 'EN_PROCESO'"
-                                    (click)="changeEstadoTablero(n, 'EN_PROCESO', $event)"
-                                    style="min-width: 0; padding: 0 8px;">
-                                    En proceso
-                                </button>
-                                <button mat-stroked-button color="primary" *ngIf="estado !== 'VERIFICADO'"
-                                    (click)="changeEstadoTablero(n, 'VERIFICADO', $event)"
-                                    style="min-width: 0; padding: 0 8px;">
-                                    Verificado
-                                </button>
                             </div>
                         </div>
                     </ng-container>

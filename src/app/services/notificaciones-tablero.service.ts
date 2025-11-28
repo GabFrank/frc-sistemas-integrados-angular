@@ -160,15 +160,45 @@ export class NotificacionesTableroService {
         estado: nuevoEstado
       }
     }).pipe(
-      tap(() => {
-        Object.values(EstadoNotificacionTablero).forEach(estado => {
-          const estadoPagination = this._paginationState$.value[estado];
-          if (estadoPagination) {
-            this.cargarNotificaciones(estado, estadoPagination.pageIndex, estadoPagination.pageSize);
-          }
-        });
+      tap((result: any) => {
+        if (result?.data?.data) {
+          this.moverNotificacionEntreEstados(notificacionId, nuevoEstado);
+        }
       })
     );
+  }
+
+  private moverNotificacionEntreEstados(notificacionId: number, nuevoEstado: string): void {
+    const notificacionesActuales = this._notificaciones$.value;
+    const nuevasNotificaciones = { ...notificacionesActuales };
+    let notificacionMovida: NotificacionData | null = null;
+    let estadoOrigen: string | null = null;
+    Object.keys(nuevasNotificaciones).forEach(estado => {
+      const notificacionesEstado = nuevasNotificaciones[estado];
+      const index = notificacionesEstado.findIndex(n => n.id === notificacionId);
+
+      if (index !== -1) {
+        notificacionMovida = { ...notificacionesEstado[index] };
+        notificacionMovida.estadoTablero = nuevoEstado;
+        estadoOrigen = estado;
+        nuevasNotificaciones[estado] = [
+          ...notificacionesEstado.slice(0, index),
+          ...notificacionesEstado.slice(index + 1)
+        ];
+      }
+    });
+
+    if (notificacionMovida && estadoOrigen !== nuevoEstado) {
+      if (!nuevasNotificaciones[nuevoEstado]) {
+        nuevasNotificaciones[nuevoEstado] = [];
+      }
+      nuevasNotificaciones[nuevoEstado] = [
+        notificacionMovida,
+        ...nuevasNotificaciones[nuevoEstado]
+      ];
+    }
+
+    this._notificaciones$.next(nuevasNotificaciones);
   }
 
 

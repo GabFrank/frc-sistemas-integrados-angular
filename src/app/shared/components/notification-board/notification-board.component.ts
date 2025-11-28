@@ -7,6 +7,7 @@ import { MarcarNotificacionLeidaGQL, RegistrarInteraccionNotificacionGQL } from 
 import { NotificationDetailDialogComponent } from '../../../modules/configuracion/inicio-sesion/components/notification-detail-dialog/notification-detail-dialog.component';
 import { EstadoNotificacionTablero, ESTADOS_TABLERO_LABELS } from '../../../shared/enums/estado-notificacion-tablero.enum';
 import { PageEvent } from '@angular/material/paginator';
+import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 
 @UntilDestroy()
 @Component({
@@ -127,5 +128,28 @@ export class NotificationBoardComponent implements OnInit {
             .actualizarEstadoTablero(n.id, nuevoEstado)
             .pipe(untilDestroyed(this))
             .subscribe();
+    }
+
+    drop(event: CdkDragDrop<NotificacionData[]>, nuevoEstado: string): void {
+        if (event.previousContainer === event.container) {
+            moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
+            return;
+        }
+
+        const notificacion = event.previousContainer.data[event.previousIndex];
+        const estadoAnterior = notificacion.estadoTablero;
+
+        if (estadoAnterior === nuevoEstado) {
+            return;
+        }
+
+        this.notificacionesTableroService
+            .actualizarEstadoTablero(notificacion.id, nuevoEstado)
+            .pipe(untilDestroyed(this))
+            .subscribe({
+                error: (error) => {
+                    console.error('Error al actualizar estado del tablero:', error);
+                }
+            });
     }
 }
