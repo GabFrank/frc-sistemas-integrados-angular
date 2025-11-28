@@ -58,11 +58,52 @@ export class NotificacionesTableroService {
     });
   }
 
+  private readonly _unreadCount$ = new BehaviorSubject<number>(0);
+
   readonly notificaciones$ = this._notificaciones$.asObservable();
   readonly paginationState$ = this._paginationState$.asObservable();
+  readonly unreadCount$ = this._unreadCount$.asObservable();
 
   setTokenFcm(token: string): void {
+    const tokenAnterior = this._tokenFcm$.value;
     this._tokenFcm$.next(token);
+    // Cargar conteo inicial solo si el token cambió y es válido
+    if (token && token !== tokenAnterior) {
+      this.obtenerConteoNoLeidas().subscribe();
+    }
+  }
+
+  obtenerConteoNoLeidas(): Observable<number> {
+    if (!this._tokenFcm$.value) {
+      this._unreadCount$.next(0);
+      return this._unreadCount$.asObservable();
+    }
+
+    return this.apollo.query({
+      query: getNotificacionesUsuarioQuery,
+      variables: {
+        tokenFcm: this._tokenFcm$.value,
+        leidas: false,
+        page: 0,
+        size: 1
+      },
+      fetchPolicy: 'network-only'
+    }).pipe(
+      map((result: any) => {
+        const count = result.data?.data?.totalElements || 0;
+        this._unreadCount$.next(count);
+        return count;
+      })
+    );
+  }
+
+  private actualizarConteoDesdeNotificaciones(): void {
+    let count = 0;
+    const notificaciones = this._notificaciones$.value;
+    Object.values(notificaciones).forEach(notificacionesEstado => {
+      count += notificacionesEstado.filter(n => !n.leida).length;
+    });
+    this._unreadCount$.next(count);
   }
 
   cargarNotificaciones(estado: string, pageIndex: number, pageSize: number): void {
@@ -111,6 +152,7 @@ export class NotificacionesTableroService {
             loading: false
           }
         });
+        this.actualizarConteoDesdeNotificaciones();
       })
     ).subscribe({
       error: (error) => {
@@ -149,6 +191,7 @@ export class NotificacionesTableroService {
 
     if (actualizado) {
       this._notificaciones$.next(nuevasNotificaciones);
+      this.actualizarConteoDesdeNotificaciones();
     }
   }
 
@@ -199,6 +242,7 @@ export class NotificacionesTableroService {
     }
 
     this._notificaciones$.next(nuevasNotificaciones);
+    this.actualizarConteoDesdeNotificaciones();
   }
 
 
@@ -209,6 +253,13 @@ export class NotificacionesTableroService {
       if (estadoPagination) {
         this.cargarNotificaciones(estado, 0, estadoPagination.pageSize);
       }
+    });
+  }
+
+  actualizarConteoNoLeidas(): void {
+    this.obtenerConteoNoLeidas().subscribe(count => {
+      // El conteo se actualiza automáticamente a través del observable unreadCount$
+      // cuando se actualizan las notificaciones
     });
   }
 }
