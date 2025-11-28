@@ -1,21 +1,16 @@
-import { Component, Inject, OnInit, ViewEncapsulation, OnDestroy } from "@angular/core";
+import { Component, OnInit, ViewEncapsulation, OnDestroy } from "@angular/core";
 import { Router } from "@angular/router";
-import { Subject, of, Observable } from "rxjs";
-import { PageEvent } from "@angular/material/paginator";
 import { TabService } from "../tab/tab.service";
 import { Tab } from "../tab/tab.model";
 import { MatDialog } from "@angular/material/dialog";
 import { CloseTabPopupComponent } from "./close-tab-popup.component";
 import { WindowInfoService } from "../../shared/services/window-info.service";
 import { MainService } from "../../main.service";
-import { NotificacionesPorTokenGQL, NotificacionData } from "../../modules/configuracion/inicio-sesion/graphql/notificacionesPorToken.gql";
+import { NotificacionesPorTokenGQL} from "../../modules/configuracion/inicio-sesion/graphql/notificacionesPorToken.gql";
 import {
-  MarcarNotificacionLeidaGQL,
-  RegistrarInteraccionNotificacionGQL,
+  MarcarNotificacionLeidaGQL
 } from "../../modules/configuracion/inicio-sesion/graphql/notificacionMutations.gql";
-import { NotificationDetailDialogComponent } from "../../modules/configuracion/inicio-sesion/components/notification-detail-dialog/notification-detail-dialog.component";
-import { NotificacionesTableroService, PaginationState } from "../../services/notificaciones-tablero.service";
-import { EstadoNotificacionTablero, ESTADOS_TABLERO_LABELS } from "../../shared/enums/estado-notificacion-tablero.enum";
+import { NotificacionesTableroService} from "../../services/notificaciones-tablero.service";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 
 @UntilDestroy()

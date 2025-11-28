@@ -2,7 +2,7 @@ import { Component, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { NotificacionesTableroService, NotificacionData, PaginationState } from '../../../services/notificaciones-tablero.service';
+import { NotificacionesTableroService, NotificacionData } from '../../../services/notificaciones-tablero.service';
 import { MarcarNotificacionLeidaGQL, RegistrarInteraccionNotificacionGQL } from '../../../modules/configuracion/inicio-sesion/graphql/notificacionMutations.gql';
 import { NotificationDetailDialogComponent } from '../../../modules/configuracion/inicio-sesion/components/notification-detail-dialog/notification-detail-dialog.component';
 import { EstadoNotificacionTablero, ESTADOS_TABLERO_LABELS } from '../../../shared/enums/estado-notificacion-tablero.enum';
@@ -71,6 +71,9 @@ export class NotificationBoardComponent implements OnInit {
                 this.router.navigate(['/operaciones/transferencias']);
                 break;
             case 'PRECIO_ACTUALIZADO':
+                this.router.navigate(['/productos']);
+                break;
+            case 'AJUSTE_COSTO':
                 this.router.navigate(['/productos']);
                 break;
             default:
