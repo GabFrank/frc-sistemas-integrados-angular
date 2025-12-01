@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Apollo } from 'apollo-angular';
-import { getNotificacionesUsuarioQuery, actualizarEstadoTableroNotificacionMutation, getConteoNotificacionesNoLeidasQuery } from '../modules/configuracion/inicio-sesion/graphql/graphql-query';
+import { getNotificacionesUsuarioQuery, actualizarEstadoTableroNotificacionMutation, getConteoNotificacionesNoLeidasQuery, actualizarTokenFcmMutation } from '../modules/configuracion/inicio-sesion/graphql/graphql-query';
 import { Observable, BehaviorSubject, combineLatest, of } from 'rxjs';
 import { map, tap, switchMap, catchError } from 'rxjs/operators';
 import { EstadoNotificacionTablero } from '../shared/enums/estado-notificacion-tablero.enum';
@@ -78,9 +78,32 @@ export class NotificacionesTableroService {
     const tokenAnterior = this._tokenFcm$.value;
     this._tokenFcm$.next(token);
     if (token) {
-      this.obtenerConteoNoLeidas().subscribe();
+      console.log('[NotificacionesTablero] 📤 Enviando token FCM al backend:', token);
+
+      this.apollo.mutate({
+        mutation: actualizarTokenFcmMutation,
+        variables: {
+          tokenFcm: token
+        }
+      }).subscribe({
+        next: (result: any) => {
+          if (result?.data?.data === true) {
+            console.log('[NotificacionesTablero] ✅ Token FCM registrado correctamente en el backend');
+            // Ahora sí consultar el conteo
+            this.obtenerConteoNoLeidas().subscribe();
+          } else {
+            console.error('[NotificacionesTablero] ❌ Error al registrar token FCM en el backend');
+          }
+        },
+        error: (error) => {
+          console.error('[NotificacionesTablero] ❌ Error en mutación actualizarTokenFcm:', error);
+          // Intentar consultar el conteo de todos modos
+          this.obtenerConteoNoLeidas().subscribe();
+        }
+      });
     }
   }
+
 
   obtenerConteoNoLeidas(): Observable<number> {
     if (!this._tokenFcm$.value) {

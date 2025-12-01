@@ -50,6 +50,27 @@ export class ElectronService {
       return;
     }
 
+    // LIMPIEZA FORZADA COMPLETA para resolver SENDER_ID_MISMATCH
+    const currentToken = localStorage.getItem('pushToken');
+    const deviceId = localStorage.getItem('deviceId');
+    const notifications = localStorage.getItem('notifications');
+
+    console.log('[FCM] 🧹 LIMPIEZA FORZADA COMPLETA');
+    console.log('[FCM] 🗑️ Token anterior eliminado:', currentToken);
+    console.log('[FCM] 🗑️ DeviceId eliminado:', deviceId);
+    console.log('[FCM] 🗑️ Notificaciones eliminadas:', notifications);
+
+    localStorage.removeItem('pushToken');
+    localStorage.removeItem('deviceId');
+    localStorage.removeItem('notifications');
+
+    // También limpiamos cualquier otra clave relacionada
+    localStorage.removeItem('fcmToken');
+    localStorage.removeItem('firebaseToken');
+    localStorage.removeItem('pushNotificationToken');
+
+    console.log('[FCM] ✅ Limpieza completada - forzando regeneración');
+
     const firebaseConfig = environment.firebaseConfig;
 
     if (!firebaseConfig) {
@@ -74,7 +95,9 @@ export class ElectronService {
       }
     });
     ipcRenderer.on(TOKEN_UPDATED, (_: any, token: string) => {
+      console.log('[ElectronService] 🔄 TOKEN_UPDATED recibido:', token);
       if (token) {
+        console.log('[ElectronService] ✅ Guardando token en localStorage');
         localStorage.setItem('pushToken', token);
         if (onToken) {
           onToken(token);
@@ -88,32 +111,37 @@ export class ElectronService {
     });
     ipcRenderer.on(ON_NOTIFICATION_RECEIVED, (_: any, notification: any) => {
       try {
-        this.notificationReceived.next(notification);
-        const title = notification?.notification?.title || 'FRC Sistemas Integrados';
-        const body = notification?.notification?.body || '';
-        const data = notification?.data;
-        if (typeof Notification !== 'undefined') {
-          const n = new Notification(title, { body, data });
+        console.log('[Renderer] 📬 Notificación recibida en renderer process:', JSON.stringify(notification, null, 2));
 
-          n.onclick = () => {
-            if (data?.path && typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('push-path', { detail: data.path }));
-            }
-          };
-        }
+        // Reenviar al main process para que muestre la notificación nativa
+        // Usamos un nombre de evento diferente para evitar conflictos
+        ipcRenderer.send('SHOW_NATIVE_NOTIFICATION', notification);
+        console.log('[Renderer] 📤 Notificación reenviada al main process para mostrar notificación nativa');
+
+        // Emitir al servicio de notificaciones para actualizar el tablero
+        this.notificationReceived.next(notification);
+
+        console.log('[Renderer] ✅ Notificación procesada en renderer');
       } catch (e) {
-        console.error('[FCM] ❌ Error handling foreground notification', e);
+        console.error('[Renderer] ❌ Error handling notification', e);
+        console.error('[Renderer] ❌ Notification object:', notification);
       }
     });
     const pushConfig = {
+      senderId: firebaseConfig.messagingSenderId, // IMPORTANTE: Agregar senderId
       firebase: {
         apiKey: firebaseConfig.apiKey,
         appID: firebaseConfig.appId,
-        projectID: firebaseConfig.projectId
+        projectID: firebaseConfig.projectId,
+        authDomain: firebaseConfig.authDomain,
+        storageBucket: firebaseConfig.storageBucket,
+        messagingSenderId: firebaseConfig.messagingSenderId
       },
-      vapidKey: ''
+      vapidKey: (firebaseConfig as any).vapidKey // Usar vapidKey de la configuración
     };
-    ipcRenderer.send(START_NOTIFICATION_SERVICE, pushConfig);
+
+    console.log('[ElectronService] Iniciando servicio de notificaciones con config:', pushConfig);
+    ipcRenderer.send(START_NOTIFICATION_SERVICE, pushConfig); // Enviar objeto completo
   }
 
   relaunch() {

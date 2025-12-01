@@ -83,3 +83,9 @@ export const getConteoNotificacionesNoLeidasQuery = gql`
     data: getConteoNotificacionesNoLeidas(tokenFcm: $tokenFcm)
   }
 `;
+
+export const actualizarTokenFcmMutation = gql`
+  mutation ($tokenFcm: String!) {
+    data: actualizarTokenFcm(tokenFcm: $tokenFcm)
+  }
+`;
