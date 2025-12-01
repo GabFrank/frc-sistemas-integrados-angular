@@ -46,30 +46,16 @@ export class ElectronService {
 
   initPushNotifications(onToken?: (token: string) => void): void {
     if (!this.isElectron) {
-      console.warn('[FCM] Not running in Electron, aborting push initialization');
       return;
     }
 
     // LIMPIEZA FORZADA COMPLETA para resolver SENDER_ID_MISMATCH
-    const currentToken = localStorage.getItem('pushToken');
-    const deviceId = localStorage.getItem('deviceId');
-    const notifications = localStorage.getItem('notifications');
-
-    console.log('[FCM] 🧹 LIMPIEZA FORZADA COMPLETA');
-    console.log('[FCM] 🗑️ Token anterior eliminado:', currentToken);
-    console.log('[FCM] 🗑️ DeviceId eliminado:', deviceId);
-    console.log('[FCM] 🗑️ Notificaciones eliminadas:', notifications);
-
     localStorage.removeItem('pushToken');
     localStorage.removeItem('deviceId');
     localStorage.removeItem('notifications');
-
-    // También limpiamos cualquier otra clave relacionada
     localStorage.removeItem('fcmToken');
     localStorage.removeItem('firebaseToken');
     localStorage.removeItem('pushNotificationToken');
-
-    console.log('[FCM] ✅ Limpieza completada - forzando regeneración');
 
     const firebaseConfig = environment.firebaseConfig;
 
@@ -90,20 +76,14 @@ export class ElectronService {
         if (onToken) {
           onToken(token);
         }
-      } else {
-        console.warn('[FCM] ⚠️ NOTIFICATION_SERVICE_STARTED without token');
       }
     });
     ipcRenderer.on(TOKEN_UPDATED, (_: any, token: string) => {
-      console.log('[ElectronService] 🔄 TOKEN_UPDATED recibido:', token);
       if (token) {
-        console.log('[ElectronService] ✅ Guardando token en localStorage');
         localStorage.setItem('pushToken', token);
         if (onToken) {
           onToken(token);
         }
-      } else {
-        console.warn('[FCM] ⚠️ TOKEN_UPDATED without token');
       }
     });
 
@@ -111,20 +91,13 @@ export class ElectronService {
     });
     ipcRenderer.on(ON_NOTIFICATION_RECEIVED, (_: any, notification: any) => {
       try {
-        console.log('[Renderer] 📬 Notificación recibida en renderer process:', JSON.stringify(notification, null, 2));
-
         // Reenviar al main process para que muestre la notificación nativa
-        // Usamos un nombre de evento diferente para evitar conflictos
         ipcRenderer.send('SHOW_NATIVE_NOTIFICATION', notification);
-        console.log('[Renderer] 📤 Notificación reenviada al main process para mostrar notificación nativa');
 
         // Emitir al servicio de notificaciones para actualizar el tablero
         this.notificationReceived.next(notification);
-
-        console.log('[Renderer] ✅ Notificación procesada en renderer');
       } catch (e) {
-        console.error('[Renderer] ❌ Error handling notification', e);
-        console.error('[Renderer] ❌ Notification object:', notification);
+        console.error('[Renderer] Error handling notification', e);
       }
     });
     const pushConfig = {
@@ -140,8 +113,7 @@ export class ElectronService {
       vapidKey: (firebaseConfig as any).vapidKey // Usar vapidKey de la configuración
     };
 
-    console.log('[ElectronService] Iniciando servicio de notificaciones con config:', pushConfig);
-    ipcRenderer.send(START_NOTIFICATION_SERVICE, pushConfig); // Enviar objeto completo
+    ipcRenderer.send(START_NOTIFICATION_SERVICE, pushConfig);
   }
 
   relaunch() {

@@ -138,7 +138,6 @@ export class LoginService {
       const notificationBody = {
         title: "SE HA INICIADO SESION EN SU CUENTA",
         message: `BIENVENIDO ${usuario?.nombre || usuario?.nickname || 'USUARIO'}`,
-        token: pushToken,
         usuarioIds: usuario?.id ? [usuario.id] : undefined,
         data: "/",
       };

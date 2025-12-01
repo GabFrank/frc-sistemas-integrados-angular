@@ -62,8 +62,6 @@ export async function createWindow(): Promise<BrowserWindow> {
     const path = require('path');
     const fs = require('fs');
     const userDataPath = app.getPath('userData');
-
-    console.log('[Main] 🧹 INICIANDO LIMPIEZA FORZADA COMPLETA');
     console.log('[Main] 📁 UserData path:', userDataPath);
     const configFiles = [
       'electron-push-receiver.json',
@@ -92,8 +90,6 @@ export async function createWindow(): Promise<BrowserWindow> {
         fs.rmSync(dir, { recursive: true, force: true });
       }
     });
-
-    console.log('[Main] ✅ Limpieza forzada completada');
   } catch (e) {
     console.error('[Main] ⚠️ Error en limpieza forzada:', e);
   }
@@ -102,7 +98,6 @@ export async function createWindow(): Promise<BrowserWindow> {
   const { Notification } = require('electron');
 
   ipcMain.on('SHOW_NATIVE_NOTIFICATION', (event: any, notification: any) => {
-    console.log('[Main Process] 📬 Notificación recibida desde renderer:', JSON.stringify(notification, null, 2));
 
     try {
       const title = notification?.notification?.title ||
@@ -117,7 +112,6 @@ export async function createWindow(): Promise<BrowserWindow> {
 
       const data = notification?.data || {};
 
-      console.log('[Main Process] 📝 Mostrando notificación nativa:', { title, body, data });
       const nativeNotification = new Notification({
         title: title,
         body: body,
@@ -127,7 +121,6 @@ export async function createWindow(): Promise<BrowserWindow> {
       });
 
       nativeNotification.on('click', () => {
-        console.log('[Main Process] 🖱️ Click en notificación');
         if (win) {
           if (win.isMinimized()) win.restore();
           win.focus();
@@ -138,7 +131,6 @@ export async function createWindow(): Promise<BrowserWindow> {
       });
 
       nativeNotification.show();
-      console.log('[Main Process] ✅ Notificación nativa mostrada correctamente');
 
     } catch (error) {
       console.error('[Main Process] ❌ Error mostrando notificación:', error);

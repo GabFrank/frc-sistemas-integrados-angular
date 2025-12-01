@@ -172,16 +172,16 @@ function createWindow() {
             win.webContents
                 .executeJavaScript('localStorage.getItem("zoomLevel");', true)
                 .then((zoomLevel) => {
-                    if (zoomLevel !== null && zoomLevel !== undefined) {
-                        const parsedZoom = parseFloat(zoomLevel);
-                        win.webContents.setZoomLevel(parsedZoom);
-                    }
-                    else {
-                        win.webContents.setZoomLevel(1);
-                    }
-                })
+                if (zoomLevel !== null && zoomLevel !== undefined) {
+                    const parsedZoom = parseFloat(zoomLevel);
+                    win.webContents.setZoomLevel(parsedZoom);
+                }
+                else {
+                    win.webContents.setZoomLevel(1);
+                }
+            })
                 .catch((error) => {
-                });
+            });
         });
         return win;
     });
@@ -766,8 +766,8 @@ try {
                             win.webContents
                                 .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true)
                                 .then(result => {
-                                    console.log(result);
-                                });
+                                console.log(result);
+                            });
                         },
                     },
                     {
@@ -777,8 +777,8 @@ try {
                             win.webContents
                                 .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true)
                                 .then(result => {
-                                    console.log(result);
-                                });
+                                console.log(result);
+                            });
                         },
                     },
                     {
@@ -1351,13 +1351,13 @@ function printWithElectronPosPrinter(printer, content) {
             return new Promise((resolve, reject) => {
                 electron_pos_printer_1.PosPrinter.print(data, options)
                     .then(() => {
-                        console.log('Print completed successfully');
-                        resolve(true);
-                    })
+                    console.log('Print completed successfully');
+                    resolve(true);
+                })
                     .catch((error) => {
-                        console.error('Error printing with electron-pos-printer:', error);
-                        reject(error);
-                    });
+                    console.error('Error printing with electron-pos-printer:', error);
+                    reject(error);
+                });
             });
         }
         catch (error) {
@@ -1366,3 +1366,4 @@ function printWithElectronPosPrinter(printer, content) {
         }
     });
 }
+//# sourceMappingURL=main.js.map

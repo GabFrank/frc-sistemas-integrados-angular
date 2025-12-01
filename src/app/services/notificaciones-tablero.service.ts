@@ -62,7 +62,6 @@ export class NotificacionesTableroService {
     });
 
     this.electronService.notificationReceived.subscribe(() => {
-      console.log('[NotificacionesTablero] Nueva notificación recibida, actualizando contador...');
       this.actualizarConteo();
       this.refrescarTodas();
     });
@@ -78,8 +77,6 @@ export class NotificacionesTableroService {
     const tokenAnterior = this._tokenFcm$.value;
     this._tokenFcm$.next(token);
     if (token) {
-      console.log('[NotificacionesTablero] 📤 Enviando token FCM al backend:', token);
-
       this.apollo.mutate({
         mutation: actualizarTokenFcmMutation,
         variables: {
@@ -88,15 +85,12 @@ export class NotificacionesTableroService {
       }).subscribe({
         next: (result: any) => {
           if (result?.data?.data === true) {
-            console.log('[NotificacionesTablero] ✅ Token FCM registrado correctamente en el backend');
             // Ahora sí consultar el conteo
             this.obtenerConteoNoLeidas().subscribe();
-          } else {
-            console.error('[NotificacionesTablero] ❌ Error al registrar token FCM en el backend');
           }
         },
         error: (error) => {
-          console.error('[NotificacionesTablero] ❌ Error en mutación actualizarTokenFcm:', error);
+          console.error('[NotificacionesTablero] Error en mutación actualizarTokenFcm:', error);
           // Intentar consultar el conteo de todos modos
           this.obtenerConteoNoLeidas().subscribe();
         }
@@ -111,7 +105,6 @@ export class NotificacionesTableroService {
       return of(0);
     }
 
-    console.log('[NotificacionesTablero] Consultando conteo de notificaciones no leídas...');
     return this.apollo.query({
       query: getConteoNotificacionesNoLeidasQuery,
       variables: {
@@ -121,7 +114,6 @@ export class NotificacionesTableroService {
     }).pipe(
       map((result: any) => {
         const count = result.data?.data || 0;
-        console.log('[NotificacionesTablero] Conteo recibido del servidor:', count);
         this._unreadCount$.next(count);
         return count;
       }),
