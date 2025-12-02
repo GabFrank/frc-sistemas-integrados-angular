@@ -54,7 +54,6 @@ function createWindow() {
             const path = require('path');
             const fs = require('fs');
             const userDataPath = electron_1.app.getPath('userData');
-            console.log('[Main] 🧹 INICIANDO LIMPIEZA FORZADA COMPLETA');
             console.log('[Main] 📁 UserData path:', userDataPath);
             const configFiles = [
                 'electron-push-receiver.json',
@@ -81,7 +80,6 @@ function createWindow() {
                     fs.rmSync(dir, { recursive: true, force: true });
                 }
             });
-            console.log('[Main] ✅ Limpieza forzada completada');
         }
         catch (e) {
             console.error('[Main] ⚠️ Error en limpieza forzada:', e);
@@ -90,7 +88,6 @@ function createWindow() {
         const { Notification } = require('electron');
         ipcMain.on('SHOW_NATIVE_NOTIFICATION', (event, notification) => {
             var _a, _b, _c, _d, _e, _f;
-            console.log('[Main Process] 📬 Notificación recibida desde renderer:', JSON.stringify(notification, null, 2));
             try {
                 const title = ((_a = notification === null || notification === void 0 ? void 0 : notification.notification) === null || _a === void 0 ? void 0 : _a.title) ||
                     ((_b = notification === null || notification === void 0 ? void 0 : notification.data) === null || _b === void 0 ? void 0 : _b.title) ||
@@ -101,7 +98,6 @@ function createWindow() {
                     ((_f = notification === null || notification === void 0 ? void 0 : notification.data) === null || _f === void 0 ? void 0 : _f.body) ||
                     '';
                 const data = (notification === null || notification === void 0 ? void 0 : notification.data) || {};
-                console.log('[Main Process] 📝 Mostrando notificación nativa:', { title, body, data });
                 const nativeNotification = new Notification({
                     title: title,
                     body: body,
@@ -110,7 +106,6 @@ function createWindow() {
                     urgency: 'normal'
                 });
                 nativeNotification.on('click', () => {
-                    console.log('[Main Process] 🖱️ Click en notificación');
                     if (win) {
                         if (win.isMinimized())
                             win.restore();
@@ -121,10 +116,9 @@ function createWindow() {
                     }
                 });
                 nativeNotification.show();
-                console.log('[Main Process] ✅ Notificación nativa mostrada correctamente');
             }
             catch (error) {
-                console.error('[Main Process] ❌ Error mostrando notificación:', error);
+                console.error('[Main Process] Error mostrando notificación:', error);
             }
         });
         win.webContents.setZoomFactor(1);
@@ -172,16 +166,16 @@ function createWindow() {
             win.webContents
                 .executeJavaScript('localStorage.getItem("zoomLevel");', true)
                 .then((zoomLevel) => {
-                if (zoomLevel !== null && zoomLevel !== undefined) {
-                    const parsedZoom = parseFloat(zoomLevel);
-                    win.webContents.setZoomLevel(parsedZoom);
-                }
-                else {
-                    win.webContents.setZoomLevel(1);
-                }
-            })
+                    if (zoomLevel !== null && zoomLevel !== undefined) {
+                        const parsedZoom = parseFloat(zoomLevel);
+                        win.webContents.setZoomLevel(parsedZoom);
+                    }
+                    else {
+                        win.webContents.setZoomLevel(1);
+                    }
+                })
                 .catch((error) => {
-            });
+                });
         });
         return win;
     });
@@ -766,8 +760,8 @@ try {
                             win.webContents
                                 .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true)
                                 .then(result => {
-                                console.log(result);
-                            });
+                                    console.log(result);
+                                });
                         },
                     },
                     {
@@ -777,8 +771,8 @@ try {
                             win.webContents
                                 .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true)
                                 .then(result => {
-                                console.log(result);
-                            });
+                                    console.log(result);
+                                });
                         },
                     },
                     {
@@ -1351,13 +1345,13 @@ function printWithElectronPosPrinter(printer, content) {
             return new Promise((resolve, reject) => {
                 electron_pos_printer_1.PosPrinter.print(data, options)
                     .then(() => {
-                    console.log('Print completed successfully');
-                    resolve(true);
-                })
+                        console.log('Print completed successfully');
+                        resolve(true);
+                    })
                     .catch((error) => {
-                    console.error('Error printing with electron-pos-printer:', error);
-                    reject(error);
-                });
+                        console.error('Error printing with electron-pos-printer:', error);
+                        reject(error);
+                    });
             });
         }
         catch (error) {
