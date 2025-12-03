@@ -1357,3 +1357,4 @@ function printWithElectronPosPrinter(printer, content) {
         }
     });
 }
+//# sourceMappingURL=main.js.map
