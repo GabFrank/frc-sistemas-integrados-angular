@@ -20,6 +20,7 @@ import { DeviceDetectorService } from "ngx-device-detector";
 import { generateUUID } from "../../commons/core/utils/string-utils";
 import { ElectronService } from "../../commons/core/electron/electron.service";
 import { InicioSesion } from "../configuracion/models/inicio-sesion.model";
+import { NotificarInicioSesionGQL } from "../configuracion/inicio-sesion/graphql/notificarInicioSesion.gql";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -41,7 +42,8 @@ export class LoginService {
     public mainService: MainService,
     private deviceDetector: DeviceDetectorService,
     private electronService: ElectronService,
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private notificarInicioSesionGQL: NotificarInicioSesionGQL
   ) { }
 
   login(nickname: string, password: string, keepLogged: boolean = false): Observable<LoginResponse> {
@@ -101,6 +103,7 @@ export class LoginService {
                           res?.inicioSesion?.idDispositivo == deviceId &&
                           res?.inicioSesion?.sucursal != null
                         ) {
+                          this.notificarInicioSesionGQL.mutate({ usuarioId: res.id }).pipe(untilDestroyed(this)).subscribe();
                           this.enviarNotificacionLogin(serverIp, serverPort, this.mainService.usuarioActual);
                         } else {
                           this.usuarioService
@@ -133,58 +136,5 @@ export class LoginService {
     });
   }
   private enviarNotificacionLogin(serverIp: string, serverPort: string, usuario: any): void {
-    const pushToken = localStorage.getItem("pushToken");
-    if (pushToken) {
-      const notificationBody = {
-        title: "SE HA INICIADO SESION EN SU CUENTA",
-        message: `BIENVENIDO ${usuario?.nombre || usuario?.nickname || 'USUARIO'}`,
-        usuarioIds: usuario?.id ? [usuario.id] : undefined,
-        data: "/",
-      };
-      this.http
-        .post(
-          `http://${serverIp}:${serverPort}/notification/token`,
-          notificationBody,
-          this.httpOptions
-        )
-        .pipe(untilDestroyed(this))
-        .subscribe(
-          () => {
-          },
-          (err) => {
-          }
-        );
-      if (this.electronService.isElectron || typeof Notification !== 'undefined') {
-        try {
-          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-            const notification = new Notification(notificationBody.title, {
-              body: notificationBody.message,
-              icon: '/assets/logo.ico',
-              badge: '/assets/logo.ico',
-            });
-
-            notification.onclick = () => {
-              window.focus();
-              notification.close();
-            };
-            setTimeout(() => {
-              notification.close();
-            }, 5000);
-          } else if (typeof Notification !== 'undefined' && Notification.permission !== 'denied') {
-            Notification.requestPermission().then((permission) => {
-              if (permission === 'granted') {
-                const notification = new Notification(notificationBody.title, {
-                  body: notificationBody.message,
-                  icon: '/assets/logo.ico',
-                });
-                setTimeout(() => notification.close(), 5000);
-              }
-            });
-          }
-        } catch (error) {
-        }
-      }
-    } else {
-    }
   }
 }

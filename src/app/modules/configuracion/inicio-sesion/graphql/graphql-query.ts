@@ -131,3 +131,9 @@ export const actualizarTokenFcmMutation = gql`
     data: actualizarTokenFcm(tokenFcm: $tokenFcm)
   }
 `;
+
+export const notificarInicioSesionMutation = gql`
+  mutation ($usuarioId: Int!) {
+    data: notificarInicioSesion(usuarioId: $usuarioId)
+  }
+`;

@@ -54,7 +54,6 @@ function createWindow() {
             const path = require('path');
             const fs = require('fs');
             const userDataPath = electron_1.app.getPath('userData');
-            console.log('[Main] 📁 UserData path:', userDataPath);
             const configFiles = [
                 'electron-push-receiver.json',
                 'config.json',
@@ -65,7 +64,6 @@ function createWindow() {
             configFiles.forEach(filename => {
                 const configPath = path.join(userDataPath, filename);
                 if (fs.existsSync(configPath)) {
-                    console.log('[Main] 🗑️ Borrando configuración:', filename);
                     fs.unlinkSync(configPath);
                 }
             });
@@ -76,13 +74,12 @@ function createWindow() {
             ];
             dirsToClean.forEach(dir => {
                 if (fs.existsSync(dir)) {
-                    console.log('[Main] 🗑️ Borrando directorio:', dir);
                     fs.rmSync(dir, { recursive: true, force: true });
                 }
             });
         }
         catch (e) {
-            console.error('[Main] ⚠️ Error en limpieza forzada:', e);
+            // Silent cleanup error
         }
         setupPushReceiver(win.webContents);
         const { Notification } = require('electron');
@@ -118,7 +115,7 @@ function createWindow() {
                 nativeNotification.show();
             }
             catch (error) {
-                console.error('[Main Process] ❌ Error mostrando notificación:', error);
+                // Silent notification error
             }
         });
         win.webContents.setZoomFactor(1);
@@ -1360,4 +1357,3 @@ function printWithElectronPosPrinter(printer, content) {
         }
     });
 }
-//# sourceMappingURL=main.js.map
