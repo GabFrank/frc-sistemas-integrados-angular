@@ -31,9 +31,46 @@ export const notificacionesPorTokenQuery = gql`
   }
 `;
 
+
 export const getNotificacionesUsuarioQuery = gql`
+  query ($leidas: Boolean, $page: Int, $size: Int, $estadoTablero: String) {
+    data: getNotificacionesUsuario(leidas: $leidas, page: $page, size: $size, estadoTablero: $estadoTablero) {
+      content {
+        id
+        leida
+        fechaLeida
+        fechaEntrega
+        usuario {
+          id
+          nickname
+        }
+        notificacion {
+          id
+          titulo
+          mensaje
+          tipo
+          estadoTablero
+          verificadoPorUsuario {
+            id
+            nickname
+          }
+          fechaVerificacion
+          creadoEn
+        }
+        creadoEn
+      }
+      pageNumber
+      pageSize
+      totalElements
+      totalPages
+    }
+  }
+`;
+
+
+export const getNotificacionesUsuarioLegacyQuery = gql`
   query ($tokenFcm: String, $leidas: Boolean, $page: Int, $size: Int, $estadoTablero: String) {
-    data: getNotificacionesUsuario(tokenFcm: $tokenFcm, leidas: $leidas, page: $page, size: $size, estadoTablero: $estadoTablero) {
+    data: getNotificacionesUsuarioLegacy(tokenFcm: $tokenFcm, leidas: $leidas, page: $page, size: $size, estadoTablero: $estadoTablero) {
       content {
         id
         leida
@@ -61,11 +98,16 @@ export const getNotificacionesUsuarioQuery = gql`
 `;
 
 export const marcarNotificacionLeidaMutation = gql`
-  mutation ($notificacionUsuarioId: Int!) {
-    data: marcarNotificacionLeida(notificacionUsuarioId: $notificacionUsuarioId)
+  mutation ($notificacionId: Int!) {
+    data: marcarNotificacionLeida(notificacionId: $notificacionId)
   }
 `;
 
+export const cambiarEstadoTableroNotificacionMutation = gql`
+  mutation ($notificacionId: Int!, $estado: String!) {
+    data: cambiarEstadoTableroNotificacion(notificacionId: $notificacionId, estado: $estado)
+  }
+`;
 export const registrarInteraccionNotificacionMutation = gql`
   mutation ($notificacionUsuarioId: Int!, $accion: String!) {
     data: registrarInteraccionNotificacion(notificacionUsuarioId: $notificacionUsuarioId, accion: $accion)
@@ -79,8 +121,8 @@ export const actualizarEstadoTableroNotificacionMutation = gql`
 `;
 
 export const getConteoNotificacionesNoLeidasQuery = gql`
-  query ($tokenFcm: String!) {
-    data: getConteoNotificacionesNoLeidas(tokenFcm: $tokenFcm)
+  query {
+    data: getConteoNotificacionesNoLeidas
   }
 `;
 

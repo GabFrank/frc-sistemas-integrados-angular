@@ -49,7 +49,6 @@ export class ElectronService {
       return;
     }
 
-    // LIMPIEZA FORZADA COMPLETA para resolver SENDER_ID_MISMATCH
     localStorage.removeItem('pushToken');
     localStorage.removeItem('deviceId');
     localStorage.removeItem('notifications');
@@ -60,14 +59,10 @@ export class ElectronService {
     const firebaseConfig = environment.firebaseConfig;
 
     if (!firebaseConfig) {
-      console.error('[FCM] No firebaseConfig configured in environment');
-      console.error('[FCM] Please add firebaseConfig to your environment file');
       return;
     }
 
     if (!firebaseConfig.apiKey || !firebaseConfig.appId || !firebaseConfig.projectId) {
-      console.error('[FCM] Firebase config is incomplete');
-      console.error('[FCM] Required: apiKey, appId, projectId');
       return;
     }
     ipcRenderer.on(NOTIFICATION_SERVICE_STARTED, (_: any, token: string) => {
@@ -91,17 +86,14 @@ export class ElectronService {
     });
     ipcRenderer.on(ON_NOTIFICATION_RECEIVED, (_: any, notification: any) => {
       try {
-        // Reenviar al main process para que muestre la notificación nativa
         ipcRenderer.send('SHOW_NATIVE_NOTIFICATION', notification);
 
-        // Emitir al servicio de notificaciones para actualizar el tablero
         this.notificationReceived.next(notification);
       } catch (e) {
-        console.error('[Renderer] Error handling notification', e);
       }
     });
     const pushConfig = {
-      senderId: firebaseConfig.messagingSenderId, // IMPORTANTE: Agregar senderId
+      senderId: firebaseConfig.messagingSenderId,
       firebase: {
         apiKey: firebaseConfig.apiKey,
         appID: firebaseConfig.appId,
@@ -110,7 +102,7 @@ export class ElectronService {
         storageBucket: firebaseConfig.storageBucket,
         messagingSenderId: firebaseConfig.messagingSenderId
       },
-      vapidKey: (firebaseConfig as any).vapidKey // Usar vapidKey de la configuración
+      vapidKey: (firebaseConfig as any).vapidKey
     };
 
     ipcRenderer.send(START_NOTIFICATION_SERVICE, pushConfig);

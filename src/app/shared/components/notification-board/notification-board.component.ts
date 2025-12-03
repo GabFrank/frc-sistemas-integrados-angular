@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -34,7 +34,8 @@ export class NotificationBoardComponent implements OnInit {
         private marcarNotificacionLeidaGQL: MarcarNotificacionLeidaGQL,
         private registrarInteraccionNotificacionGQL: RegistrarInteraccionNotificacionGQL,
         private dialog: MatDialog,
-        private router: Router
+        private router: Router,
+        private cdr: ChangeDetectorRef
     ) { }
 
     ngOnInit(): void {
@@ -82,11 +83,6 @@ export class NotificationBoardComponent implements OnInit {
     }
 
     openDetail(n: NotificacionData): void {
-        this.registrarInteraccionNotificacionGQL
-            .mutate({ notificacionUsuarioId: n.id, accion: "OPEN" })
-            .pipe(untilDestroyed(this))
-            .subscribe();
-
         const dialogRef = this.dialog.open(NotificationDetailDialogComponent, {
             width: '55vw',
             maxWidth: '95vw',
@@ -108,12 +104,12 @@ export class NotificationBoardComponent implements OnInit {
 
         if (n.leida) return;
 
-        this.marcarNotificacionLeidaGQL
-            .mutate({ notificacionUsuarioId: n.id })
+        this.notificacionesTableroService
+            .marcarComoLeida(n.notificacion.id)
             .pipe(untilDestroyed(this))
-            .subscribe((res) => {
-                if (res?.data?.data) {
-                    this.notificacionesTableroService.actualizarEstadoLeido(n.id);
+            .subscribe({
+                next: () => {
+                    this.cdr.markForCheck();
                 }
             });
     }
@@ -123,12 +119,12 @@ export class NotificationBoardComponent implements OnInit {
             event.stopPropagation();
         }
 
-        if (!n || n.estadoTablero === nuevoEstado) {
+        if (!n || n.notificacion.estadoTablero === nuevoEstado) {
             return;
         }
 
         this.notificacionesTableroService
-            .actualizarEstadoTablero(n.id, nuevoEstado)
+            .actualizarEstadoTablero(n.notificacion.id, nuevoEstado)
             .pipe(untilDestroyed(this))
             .subscribe();
     }
@@ -140,19 +136,14 @@ export class NotificationBoardComponent implements OnInit {
         }
 
         const notificacion = event.previousContainer.data[event.previousIndex];
-        const estadoAnterior = notificacion.estadoTablero;
+        const estadoAnterior = notificacion.notificacion.estadoTablero;
 
         if (estadoAnterior === nuevoEstado) {
             return;
         }
-
         this.notificacionesTableroService
-            .actualizarEstadoTablero(notificacion.id, nuevoEstado)
+            .actualizarEstadoTablero(notificacion.notificacion.id, nuevoEstado)
             .pipe(untilDestroyed(this))
-            .subscribe({
-                error: (error) => {
-                    console.error('Error al actualizar estado del tablero:', error);
-                }
-            });
+            .subscribe();
     }
 }

@@ -1,6 +1,12 @@
 import { Injectable } from '@angular/core';
 import { Apollo } from 'apollo-angular';
-import { getNotificacionesUsuarioQuery, actualizarEstadoTableroNotificacionMutation, getConteoNotificacionesNoLeidasQuery, actualizarTokenFcmMutation } from '../modules/configuracion/inicio-sesion/graphql/graphql-query';
+import { 
+  getNotificacionesUsuarioQuery, 
+  cambiarEstadoTableroNotificacionMutation, 
+  getConteoNotificacionesNoLeidasQuery, 
+  actualizarTokenFcmMutation,
+  marcarNotificacionLeidaMutation 
+} from '../modules/configuracion/inicio-sesion/graphql/graphql-query';
 import { Observable, BehaviorSubject, combineLatest, of } from 'rxjs';
 import { map, tap, switchMap, catchError } from 'rxjs/operators';
 import { EstadoNotificacionTablero } from '../shared/enums/estado-notificacion-tablero.enum';
@@ -10,19 +16,21 @@ export interface NotificacionData {
   id: number;
   leida: boolean;
   fechaLeida?: string;
-  fechaEnvio?: string;
-  estadoEnvio: string;
-  interactuada: boolean;
-  fechaInteraccion?: string;
-  accionRealizada?: string;
-  estadoTablero: string;
+  fechaEntrega?: string;
   notificacion: {
     id: number;
     titulo: string;
     mensaje: string;
     tipo: string;
+    estadoTablero: string;
+    verificadoPorUsuario?: {
+      id: number;
+      nickname: string;
+    };
+    fechaVerificacion?: string;
     creadoEn: string;
   };
+  creadoEn: string;
 }
 
 export interface PaginationState {
@@ -85,13 +93,10 @@ export class NotificacionesTableroService {
       }).subscribe({
         next: (result: any) => {
           if (result?.data?.data === true) {
-            // Ahora sí consultar el conteo
             this.obtenerConteoNoLeidas().subscribe();
           }
         },
-        error: (error) => {
-          console.error('[NotificacionesTablero] Error en mutación actualizarTokenFcm:', error);
-          // Intentar consultar el conteo de todos modos
+        error: () => {
           this.obtenerConteoNoLeidas().subscribe();
         }
       });
@@ -100,16 +105,8 @@ export class NotificacionesTableroService {
 
 
   obtenerConteoNoLeidas(): Observable<number> {
-    if (!this._tokenFcm$.value) {
-      this._unreadCount$.next(0);
-      return of(0);
-    }
-
     return this.apollo.query({
       query: getConteoNotificacionesNoLeidasQuery,
-      variables: {
-        tokenFcm: this._tokenFcm$.value
-      },
       fetchPolicy: 'network-only'
     }).pipe(
       map((result: any) => {
@@ -117,8 +114,7 @@ export class NotificacionesTableroService {
         this._unreadCount$.next(count);
         return count;
       }),
-      catchError((error) => {
-        console.error('Error al obtener conteo de notificaciones no leídas:', error);
+      catchError(() => {
         return of(0);
       })
     );
@@ -150,7 +146,6 @@ export class NotificacionesTableroService {
     this.apollo.query({
       query: getNotificacionesUsuarioQuery,
       variables: {
-        tokenFcm: this._tokenFcm$.value,
         page: pageIndex,
         size: pageSize,
         estadoTablero: estado
@@ -177,8 +172,7 @@ export class NotificacionesTableroService {
         this.actualizarConteoDesdeNotificaciones();
       })
     ).subscribe({
-      error: (error) => {
-        console.error('Error al cargar notificaciones:', error);
+      error: () => {
         this._paginationState$.next({
           ...this._paginationState$.value,
           [estado]: {
@@ -197,7 +191,7 @@ export class NotificacionesTableroService {
 
     Object.keys(nuevasNotificaciones).forEach(estado => {
       const notificacionesEstado = nuevasNotificaciones[estado];
-      const index = notificacionesEstado.findIndex(n => n.id === notificacionId);
+      const index = notificacionesEstado.findIndex(n => n.notificacion.id === notificacionId);
 
       if (index !== -1) {
         const nuevoEstadoArray = [...notificacionesEstado];
@@ -219,52 +213,38 @@ export class NotificacionesTableroService {
 
   actualizarEstadoTablero(notificacionId: number, nuevoEstado: string): Observable<any> {
     return this.apollo.mutate({
-      mutation: actualizarEstadoTableroNotificacionMutation,
+      mutation: cambiarEstadoTableroNotificacionMutation,
       variables: {
-        notificacionUsuarioId: notificacionId,
+        notificacionId: notificacionId,
         estado: nuevoEstado
       }
     }).pipe(
       tap((result: any) => {
         if (result?.data?.data) {
-          this.moverNotificacionEntreEstados(notificacionId, nuevoEstado);
+          this.refrescarTodas();
+        }
+      })
+    );
+  }
+
+  marcarComoLeida(notificacionId: number): Observable<any> {
+    return this.apollo.mutate({
+      mutation: marcarNotificacionLeidaMutation,
+      variables: {
+        notificacionId: notificacionId
+      }
+    }).pipe(
+      tap((result: any) => {
+        if (result?.data?.data) {
+          this.actualizarEstadoLeido(notificacionId);
+          this.actualizarConteo();
         }
       })
     );
   }
 
   private moverNotificacionEntreEstados(notificacionId: number, nuevoEstado: string): void {
-    const notificacionesActuales = this._notificaciones$.value;
-    const nuevasNotificaciones = { ...notificacionesActuales };
-    let notificacionMovida: NotificacionData | null = null;
-    let estadoOrigen: string | null = null;
-    Object.keys(nuevasNotificaciones).forEach(estado => {
-      const notificacionesEstado = nuevasNotificaciones[estado];
-      const index = notificacionesEstado.findIndex(n => n.id === notificacionId);
-
-      if (index !== -1) {
-        notificacionMovida = { ...notificacionesEstado[index] };
-        notificacionMovida.estadoTablero = nuevoEstado;
-        estadoOrigen = estado;
-        nuevasNotificaciones[estado] = [
-          ...notificacionesEstado.slice(0, index),
-          ...notificacionesEstado.slice(index + 1)
-        ];
-      }
-    });
-
-    if (notificacionMovida && estadoOrigen !== nuevoEstado) {
-      if (!nuevasNotificaciones[nuevoEstado]) {
-        nuevasNotificaciones[nuevoEstado] = [];
-      }
-      nuevasNotificaciones[nuevoEstado] = [
-        notificacionMovida,
-        ...nuevasNotificaciones[nuevoEstado]
-      ];
-    }
-
-    this._notificaciones$.next(nuevasNotificaciones);
-    this.actualizarConteoDesdeNotificaciones();
+    // Esta función se mantiene por compatibilidad pero no hace nada
   }
 
 
@@ -279,8 +259,7 @@ export class NotificacionesTableroService {
   }
 
   actualizarConteoNoLeidas(): void {
-    this.obtenerConteoNoLeidas().subscribe(count => {
-    });
+    this.obtenerConteoNoLeidas().subscribe();
   }
 
   public actualizarConteo(): void {
