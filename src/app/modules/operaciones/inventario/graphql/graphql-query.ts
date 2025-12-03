@@ -82,9 +82,16 @@ export const inventarioQuery = gql`
             id
             cantidad
             imagenPrincipal
+            producto {
+              id
+              descripcion
+              codigoPrincipal
+            }
           }
           cantidad
+          cantidadFisica
           vencimiento
+          estado
           creadoEn
         }
       }
@@ -245,6 +252,9 @@ export const saveInventarioProducto = gql`
     data: saveInventarioProducto(inventarioProducto: $entity) {
       id
       concluido
+      inventario {
+        id
+      }
       zona {
         id
         sector {
@@ -265,9 +275,16 @@ export const saveInventarioProducto = gql`
           id
           cantidad
           imagenPrincipal
+          producto {
+            id
+            descripcion
+            codigoPrincipal
+          }
         }
         cantidad
+        cantidadFisica
         vencimiento
+        estado
         creadoEn
       }
     }
@@ -565,5 +582,128 @@ export const productosVencidosQuery = gql`
         }
       }
     }
+  }
+`;
+
+export const inventarioProductoQuery = gql`
+  query ($id: ID!) {
+    data: inventarioProducto(id: $id) {
+      id
+      inventario {
+        id
+        sucursal {
+          id
+          nombre
+        }
+        tipo
+        estado
+      }
+      zona {
+        id
+        sector {
+          id
+          descripcion
+        }
+        descripcion
+      }
+      concluido
+      usuario {
+        id
+        persona {
+          nombre
+        }
+      }
+      inventarioProductoItemList {
+        id
+        presentacion {
+          id
+          cantidad
+          imagenPrincipal
+          producto {
+            id
+            descripcion
+            codigoPrincipal
+          }
+        }
+        cantidad
+        cantidadFisica
+        vencimiento
+        estado
+        creadoEn
+      }
+    }
+  }
+`;
+
+export const inventarioProductosItemPorInventarioProductoQuery = gql`
+  query ($id: ID!, $page: Int, $size: Int) {
+    data: inventarioProductosItemPorInventarioProducto(id: $id, page: $page, size: $size) {
+      id
+      inventarioProducto {
+        id
+      }
+      zona {
+        id
+        sector {
+          id
+          descripcion
+        }
+        descripcion
+      }
+      presentacion {
+        id
+        cantidad
+        imagenPrincipal
+        producto {
+          id
+          descripcion
+          codigoPrincipal
+        }
+      }
+      cantidad
+      cantidadFisica
+      vencimiento
+      estado
+      creadoEn
+      usuario {
+        id
+        nickname
+      }
+    }
+  }
+`;
+
+export const finalizarInventarioQuery = gql`
+  mutation ($id: ID!) {
+    data: finalizarInventario(id: $id) {
+      id
+      sucursal {
+        id
+        nombre
+      }
+      fechaInicio
+      fechaFin
+      abierto
+      tipo
+      estado
+      usuario {
+        persona {
+          nombre
+        }
+      }
+      observacion
+    }
+  }
+`;
+
+export const cancelarInventarioQuery = gql`
+  mutation ($id: ID!) {
+    cancelarInventario(id: $id)
+  }
+`;
+
+export const reabrirInventarioQuery = gql`
+  mutation ($id: ID!) {
+    reabrirInventario(id: $id)
   }
 `;
