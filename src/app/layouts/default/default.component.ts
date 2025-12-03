@@ -59,6 +59,7 @@ export class DefaultComponent implements OnInit, OnDestroy {
             });
         } else {
           this.sideBarOpen = false;
+          this.notificationsOpen = false;
         }
       });
   }
