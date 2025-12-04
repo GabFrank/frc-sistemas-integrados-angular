@@ -1,53 +1,23 @@
-<div
-  fxLayout="row"
-  style="width: 100%; height: 80%"
-  fxLayoutAlign="center center"
->
+<div fxLayout="row" style="width: 100%; height: 80%" fxLayoutAlign="center center">
   <div fxFlex="60" fxLayout="column">
-    <div
-      fxFlex
-      fxLayout="row wrap"
-      fxLayoutAlign="start start"
-      fxLayoutGap="10px"
-    >
+    <div fxFlex fxLayout="row wrap" fxLayoutAlign="start start" fxLayoutGap="10px">
       <div fxFlex="30%" style="height: 250px">
-        <app-boton
-          nombre="Histórico de Inventarios"
-          icon="manage_search"
-          [iconSize]="3"
-          (clickEvent)="onListInventarios()"
-        ></app-boton>
+        <app-boton nombre="Histórico de Inventarios" icon="manage_search" [iconSize]="3"
+          (clickEvent)="onListInventarios()"></app-boton>
       </div>
       <div fxFlex="30%" style="height: 250px">
-        <app-boton
-          nombre="Nuevo Inventario"
-          icon="move_up"
-          [iconSize]="3"
-          (clickEvent)="onNuevoInventario()"
-        ></app-boton>
+        <app-boton nombre="Nuevo Inventario" icon="move_up" [iconSize]="3"
+          (clickEvent)="onNuevoInventario()"></app-boton>
       </div>
       <div fxFlex="30%" style="height: 250px">
-        <app-boton
-          nombre="Configurar Inventario"
-          icon="tune"
-          [iconSize]="3"
-        ></app-boton>
+        <app-boton nombre="Configurar Inventario" icon="tune" [iconSize]="3"></app-boton>
       </div>
       <div fxFlex="30%" style="height: 250px">
-        <app-boton
-          nombre="Zonas y sectores"
-          icon="pin_drop"
-          [iconSize]="3"
-          (clickEvent)="onListSectores()"
-        ></app-boton>
+        <app-boton nombre="Zonas y sectores" icon="pin_drop" [iconSize]="3" (clickEvent)="onListSectores()"></app-boton>
       </div>
       <div fxFlex="30%" style="height: 250px">
-        <app-boton
-          nombre="Productos Vencidos"
-          icon="warning"
-          [iconSize]="3"
-          (clickEvent)="onListProductosVencidos()"
-        ></app-boton>
+        <app-boton nombre="Productos Vencidos" icon="warning" [iconSize]="3"
+          (clickEvent)="onListProductosVencidos()"></app-boton>
       </div>
     </div>
   </div>

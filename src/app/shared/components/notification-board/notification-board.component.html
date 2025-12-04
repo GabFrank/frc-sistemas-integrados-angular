@@ -4,7 +4,8 @@
             <div class="notifications-column">
                 <div class="notifications-column-header">
                     <span>{{ ESTADOS_LABELS[estado] }}</span>
-                    <span class="notifications-column-count" [ngClass]="estado">{{ data.notificaciones[estado]?.length || 0
+                    <span class="notifications-column-count" [ngClass]="estado">{{ data.notificaciones[estado]?.length
+                        || 0
                         }}</span>
                 </div>
                 <div class="notifications-column-body" cdkDropList [cdkDropListData]="data.notificaciones[estado]"
