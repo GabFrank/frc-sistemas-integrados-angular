@@ -6,6 +6,7 @@ import {
   OnDestroy,
   OnInit,
   ViewChild,
+  ChangeDetectorRef,
 } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
 import { MatSnackBar } from "@angular/material/snack-bar";
@@ -72,6 +73,7 @@ export class AppComponent implements OnInit, OnDestroy {
   keyPressed: any;
   dialogRef;
   dialogCount = 0;
+  cursorStyle = 'auto';
 
   constructor(
     private overlay: OverlayContainer,
@@ -85,7 +87,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private configService: ConfiguracionService,
     public cargandoService: CargandoDialogService,
     private graphqlService: GraphqlConnectionService,
-    private notificacionesTableroService: NotificacionesTableroService
+    private notificacionesTableroService: NotificacionesTableroService,
+    private cdr: ChangeDetectorRef
   ) {
     this.innerHeight = windowInfo.innerHeight + "px";
     notificationService.notification$
@@ -107,6 +110,8 @@ export class AppComponent implements OnInit, OnDestroy {
   }
   async ngOnInit(): Promise<void> {
     this.overlay.getContainerElement().classList.add("darkMode");
+    this.startLoadingObserver();
+    
     this.configService.configChanged
       .pipe(untilDestroyed(this))
       .subscribe(config => {
@@ -286,6 +291,20 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+  }
+
+  /**
+   * Observa cambios en genericService.isLoading y actualiza la propiedad local
+   * Usa setInterval para evitar ExpressionChangedAfterItHasBeenCheckedError
+   */
+  private startLoadingObserver(): void {
+    setInterval(() => {
+      const newCursorStyle = this.genericService.isLoading ? 'progress' : 'auto';
+      if (this.cursorStyle !== newCursorStyle) {
+        this.cursorStyle = newCursorStyle;
+        this.cdr.detectChanges();
+      }
+    }, 100);
   }
 
   onCerrarCargando() {
