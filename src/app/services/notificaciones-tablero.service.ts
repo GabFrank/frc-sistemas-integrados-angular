@@ -22,6 +22,7 @@ export interface NotificacionData {
     titulo: string;
     mensaje: string;
     tipo: string;
+    data?: string;
     estadoTablero: string;
     verificadoPorUsuario?: {
       id: number;

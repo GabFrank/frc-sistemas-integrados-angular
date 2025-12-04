@@ -49,6 +49,7 @@ export const getNotificacionesUsuarioQuery = gql`
           titulo
           mensaje
           tipo
+          data
           estadoTablero
           verificadoPorUsuario {
             id

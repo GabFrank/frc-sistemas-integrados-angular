@@ -35,6 +35,13 @@
                                 <span>{{ n.notificacion?.tipo }}</span>
                                 <span>{{ n.notificacion?.creadoEn | date:'short' }}</span>
                             </div>
+                            <div class="notification-actions" *ngIf="hasAction(n)">
+                                <button mat-raised-button color="primary" class="action-button"
+                                    (click)="navigateToAction(n, $event)">
+                                    <mat-icon>open_in_new</mat-icon>
+                                    <span>Revisar Acción</span>
+                                </button>
+                            </div>
                         </div>
                     </ng-container>
                     <ng-template #loadingTemplate>
