@@ -15,6 +15,7 @@ import { EditInventarioComponent } from '../../../modules/operaciones/inventario
 import { ListInventarioComponent } from '../../../modules/operaciones/inventario/list-inventario/list-inventario.component';
 import { ListMovimientoStockComponent } from '../../../modules/operaciones/movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
 import { ListProductoComponent } from '../../../modules/productos/producto/list-producto/list-producto.component';
+import { ProductoComponent } from '../../../modules/productos/producto/edit-producto/producto.component';
 
 @UntilDestroy()
 @Component({
@@ -94,9 +95,20 @@ export class NotificationBoardComponent implements OnInit {
             case 'PRODUCTO_CREADO':
             case 'PRECIO_ACTUALIZADO':
             case 'AJUSTE_COSTO':
-                this.tabService.addTab(
-                    new Tab(ListProductoComponent, 'Productos', null, null)
-                );
+                if (entityId) {
+                    this.tabService.addTab(
+                        new Tab(
+                            ProductoComponent, 
+                            `Producto #${entityId}`, 
+                            new TabData(entityId, { id: entityId }), 
+                            null
+                        )
+                    );
+                } else {
+                    this.tabService.addTab(
+                        new Tab(ListProductoComponent, 'Lista de productos', null, null)
+                    );
+                }
                 break;
             case 'TRANSFERENCIA_INICIADA':
             case 'CAMBIO_SUCURSAL_PRE_TRANSFERENCIA':
