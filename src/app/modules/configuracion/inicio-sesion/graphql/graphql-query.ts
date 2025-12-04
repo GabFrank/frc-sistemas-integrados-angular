@@ -140,8 +140,8 @@ export const notificarInicioSesionMutation = gql`
 `;
 
 export const enviarNotificacionPersonalizadaMutation = gql`
-  mutation ($mensaje: String!, $tipoEnvio: String!, $usuariosIds: [Int]) {
-    data: enviarNotificacionPersonalizada(mensaje: $mensaje, tipoEnvio: $tipoEnvio, usuariosIds: $usuariosIds)
+  mutation ($titulo: String!, $mensaje: String!, $tipoEnvio: String!, $usuariosIds: [Int]) {
+    data: enviarNotificacionPersonalizada(titulo: $titulo, mensaje: $mensaje, tipoEnvio: $tipoEnvio, usuariosIds: $usuariosIds)
   }
 `;
 

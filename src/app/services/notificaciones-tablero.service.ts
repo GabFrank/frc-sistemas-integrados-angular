@@ -287,12 +287,14 @@ export class NotificacionesTableroService {
 
   /**
    * Envía una notificación personalizada a usuarios específicos o a todos
+   * @param titulo Título de la notificación
    * @param mensaje Contenido del mensaje de la notificación
    * @param tipoEnvio Tipo de envío: 'todos' o 'especificos'
    * @param usuariosIds Array de IDs de usuarios (requerido si tipoEnvio es 'especificos')
    * @returns Observable con el resultado del envío
    */
   enviarNotificacionPersonalizada(
+    titulo: string,
     mensaje: string, 
     tipoEnvio: string, 
     usuariosIds?: number[]
@@ -300,6 +302,7 @@ export class NotificacionesTableroService {
     return this.apollo.mutate({
       mutation: enviarNotificacionPersonalizadaMutation,
       variables: {
+        titulo: titulo,
         mensaje: mensaje,
         tipoEnvio: tipoEnvio.toUpperCase(),
         usuariosIds: usuariosIds || null

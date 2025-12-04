@@ -1,7 +1,7 @@
 <div class="notificacion-dialog">
   <mat-dialog-content class="dialog-content">
     <div class="section-card">
-      <mat-radio-group [(ngModel)]="tipoEnvio" class="radio-group">
+      <mat-radio-group [(ngModel)]="tipoEnvio" (ngModelChange)="validarFormulario()" class="radio-group">
         <mat-radio-button value="todos" class="radio-option">
           <div class="radio-content">
             <div class="radio-label">
@@ -31,15 +31,51 @@
       </div>
       <mat-form-field appearance="outline" class="full-width" *ngIf="!cargandoUsuarios">
         <mat-label>Buscar y seleccionar usuarios</mat-label>
-        <mat-select multiple [(ngModel)]="usuariosSeleccionados" placeholder="Seleccione usuarios">
-          <mat-option *ngFor="let usuario of usuariosDisponibles" [value]="usuario.id">
+        <mat-select multiple [(ngModel)]="usuariosSeleccionados" (ngModelChange)="validarFormulario()" placeholder="Seleccione usuarios">
+          <mat-select-trigger>
+            <span *ngIf="usuariosSeleccionados.length === 0">Seleccione usuarios</span>
+            <span *ngIf="usuariosSeleccionados.length > 0">
+              {{ usuariosSeleccionados.length }} usuario(s) seleccionado(s)
+            </span>
+          </mat-select-trigger>
+          <div class="search-box">
+            <mat-icon class="search-icon">search</mat-icon>
+            <input 
+              class="search-input"
+              [(ngModel)]="busquedaUsuario"
+              (ngModelChange)="filtrarUsuarios()"
+              (click)="$event.stopPropagation()"
+              placeholder="Buscar por nombre o usuario..."
+              autocomplete="off">
+          </div>
+          <mat-option *ngFor="let usuario of usuariosFiltrados" [value]="usuario.id">
             {{ usuario.nickname }} - {{ usuario.persona?.nombre || 'Sin nombre' }}
           </mat-option>
+          <mat-option *ngIf="usuariosFiltrados.length === 0" disabled>
+            No se encontraron usuarios
+          </mat-option>
         </mat-select>
-        <mat-icon matPrefix>search</mat-icon>
+        <mat-icon matPrefix>person_search</mat-icon>
         <mat-hint *ngIf="usuariosSeleccionados.length > 0">
           {{ usuariosSeleccionados.length }} usuario(s) seleccionado(s)
         </mat-hint>
+      </mat-form-field>
+    </div>
+    <div class="section-card">
+      <div class="section-header">
+        <mat-icon class="section-icon">title</mat-icon>
+        <h3 class="section-title">Título de la Notificación</h3>
+      </div>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Título</mat-label>
+        <input 
+          matInput 
+          [(ngModel)]="titulo"
+          (ngModelChange)="validarFormulario()"
+          placeholder="Ejemplo: Actualización del Sistema"
+          maxlength="100">
+        <mat-hint align="end">{{titulo.length}} / 100</mat-hint>
+        <mat-icon matPrefix>label</mat-icon>
       </mat-form-field>
     </div>
     <div class="section-card">
@@ -52,6 +88,7 @@
         <textarea 
           matInput 
           [(ngModel)]="mensaje"
+          (ngModelChange)="validarFormulario()"
           placeholder="Ejemplo: Nueva actualización del sistema disponible..."
           rows="6"
           maxlength="500"
@@ -68,7 +105,7 @@
       <mat-icon>close</mat-icon>
       Cancelar
     </button>
-    <button mat-raised-button color="primary" class="send-button" [disabled]="!formularioValido" (click)="onEnviar()">
+    <button mat-raised-button color="primary" class="send-button" [disabled]="botonEnviarDeshabilitado" (click)="onEnviar()">
       <mat-spinner diameter="20" *ngIf="enviando" class="button-spinner"></mat-spinner>
       <mat-icon *ngIf="!enviando">send</mat-icon>
       {{ enviando ? 'Enviando...' : 'Enviar' }}

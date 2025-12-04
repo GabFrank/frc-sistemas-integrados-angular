@@ -37,11 +37,15 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 })
 export class NotificacionPersonalizadaComponent implements OnInit {
   tipoEnvio: 'todos' | 'especificos' = 'todos';
+  titulo: string = '';
   mensaje: string = '';
   usuariosSeleccionados: number[] = [];
   usuariosDisponibles: any[] = [];
+  usuariosFiltrados: any[] = [];
+  busquedaUsuario: string = '';
   enviando: boolean = false;
   cargandoUsuarios: boolean = false;
+  botonEnviarDeshabilitado: boolean = true;
 
   constructor(
     public dialogRef: MatDialogRef<NotificacionPersonalizadaComponent>,
@@ -52,10 +56,6 @@ export class NotificacionPersonalizadaComponent implements OnInit {
   ngOnInit(): void {
     this.cargarUsuarios();
   }
-
-  /**
-   * Carga la lista de usuarios activos disponibles
-   */
   cargarUsuarios(): void {
     this.cargandoUsuarios = true;
     this.notificacionesService
@@ -64,6 +64,7 @@ export class NotificacionPersonalizadaComponent implements OnInit {
       .subscribe({
         next: (usuarios) => {
           this.usuariosDisponibles = usuarios;
+          this.usuariosFiltrados = usuarios;
           this.cargandoUsuarios = false;
         },
         error: () => {
@@ -73,12 +74,38 @@ export class NotificacionPersonalizadaComponent implements OnInit {
       });
   }
 
+  filtrarUsuarios(): void {
+    if (!this.busquedaUsuario || this.busquedaUsuario.trim().length === 0) {
+      this.usuariosFiltrados = this.usuariosDisponibles;
+      return;
+    }
+
+    const termino = this.busquedaUsuario.toLowerCase().trim();
+    this.usuariosFiltrados = this.usuariosDisponibles.filter(usuario => {
+      const nickname = usuario.nickname ? usuario.nickname.toLowerCase() : '';
+      const nombre = usuario.persona?.nombre ? usuario.persona.nombre.toLowerCase() : '';
+      return nickname.includes(termino) || nombre.includes(termino);
+    });
+  }
+
   onCancelar(): void {
     this.dialogRef.close();
   }
+  validarFormulario(): void {
+    const tituloValido = this.titulo && this.titulo.trim().length > 0;
+    const mensajeValido = this.mensaje && this.mensaje.trim().length > 0;
+    const destinatariosValidos = this.tipoEnvio === 'todos' || 
+      (this.tipoEnvio === 'especificos' && this.usuariosSeleccionados.length > 0);
+    
+    this.botonEnviarDeshabilitado = !(tituloValido && mensajeValido && destinatariosValidos) || this.enviando;
+  }
 
   onEnviar(): void {
-    // Validaciones
+    if (!this.titulo || this.titulo.trim().length === 0) {
+      this.snackbarService.openWarn('El título no puede estar vacío');
+      return;
+    }
+
     if (!this.mensaje || this.mensaje.trim().length === 0) {
       this.snackbarService.openWarn('El mensaje no puede estar vacío');
       return;
@@ -90,15 +117,17 @@ export class NotificacionPersonalizadaComponent implements OnInit {
     }
 
     this.enviando = true;
+    this.validarFormulario();
 
     const usuariosIds = this.tipoEnvio === 'especificos' ? this.usuariosSeleccionados : null;
 
     this.notificacionesService
-      .enviarNotificacionPersonalizada(this.mensaje, this.tipoEnvio, usuariosIds)
+      .enviarNotificacionPersonalizada(this.titulo, this.mensaje, this.tipoEnvio, usuariosIds)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (result) => {
           this.enviando = false;
+          this.validarFormulario();
           if (result) {
             const cantidadUsuarios = this.tipoEnvio === 'todos' 
               ? 'todos los usuarios' 
@@ -111,19 +140,10 @@ export class NotificacionPersonalizadaComponent implements OnInit {
         },
         error: (error) => {
           this.enviando = false;
+          this.validarFormulario();
           console.error('Error al enviar notificación:', error);
           this.snackbarService.openAlgoSalioMal('Error al enviar la notificación');
         }
       });
-  }
-
-  /**
-   * Retorna si el formulario es válido para enviar
-   */
-  get formularioValido(): boolean {
-    const mensajeValido = this.mensaje && this.mensaje.trim().length > 0;
-    const destinatariosValidos = this.tipoEnvio === 'todos' || 
-      (this.tipoEnvio === 'especificos' && this.usuariosSeleccionados.length > 0);
-    return mensajeValido && destinatariosValidos && !this.enviando;
   }
 }
