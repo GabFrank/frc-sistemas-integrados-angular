@@ -138,3 +138,22 @@ export const notificarInicioSesionMutation = gql`
     data: notificarInicioSesion(usuarioId: $usuarioId)
   }
 `;
+
+export const enviarNotificacionPersonalizadaMutation = gql`
+  mutation ($mensaje: String!, $tipoEnvio: String!, $usuariosIds: [Int]) {
+    data: enviarNotificacionPersonalizada(mensaje: $mensaje, tipoEnvio: $tipoEnvio, usuariosIds: $usuariosIds)
+  }
+`;
+
+export const getUsuariosActivosQuery = gql`
+  query {
+    data: getUsuariosActivos {
+      id
+      nickname
+      persona {
+        id
+        nombre
+      }
+    }
+  }
+`;

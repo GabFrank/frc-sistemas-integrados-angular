@@ -12,6 +12,7 @@ import {
 } from "../../modules/configuracion/inicio-sesion/graphql/notificacionMutations.gql";
 import { NotificacionesTableroService} from "../../services/notificaciones-tablero.service";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { NotificacionPersonalizadaComponent } from "./notificacion-personalizada/notificacion-personalizada.component";
 
 @UntilDestroy()
 @Component({
@@ -45,6 +46,25 @@ export class DefaultComponent implements OnInit, OnDestroy {
     private router: Router
   ) {
   }
+  crearNotificacion(): void {
+    const dialogRef = this.dialog.open(NotificacionPersonalizadaComponent, {
+      width: '800px',
+      maxWidth: '95vw',
+      autoFocus: false,
+      restoreFocus: true,
+      panelClass: 'notificacion-dialog-panel'
+    });
+
+    dialogRef
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((result) => {
+        if (result) {
+          console.log('Notificación a enviar:', result);
+        }
+      });
+  }
+
 
   ngOnInit(): void {
     this.mainService.authenticationSub

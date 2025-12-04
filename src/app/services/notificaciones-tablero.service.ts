@@ -5,7 +5,9 @@ import {
   cambiarEstadoTableroNotificacionMutation, 
   getConteoNotificacionesNoLeidasQuery, 
   actualizarTokenFcmMutation,
-  marcarNotificacionLeidaMutation 
+  marcarNotificacionLeidaMutation,
+  enviarNotificacionPersonalizadaMutation,
+  getUsuariosActivosQuery
 } from '../modules/configuracion/inicio-sesion/graphql/graphql-query';
 import { Observable, BehaviorSubject, combineLatest, of } from 'rxjs';
 import { map, tap, switchMap, catchError } from 'rxjs/operators';
@@ -265,5 +267,51 @@ export class NotificacionesTableroService {
 
   public actualizarConteo(): void {
     this.obtenerConteoNoLeidas().subscribe();
+  }
+
+  /**
+   * Obtiene la lista de usuarios activos disponibles para enviar notificaciones
+   * @returns Observable con array de usuarios activos
+   */
+  obtenerUsuariosActivos(): Observable<any[]> {
+    return this.apollo.query({
+      query: getUsuariosActivosQuery,
+      fetchPolicy: 'network-only'
+    }).pipe(
+      map((result: any) => result.data?.data || []),
+      catchError(() => {
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Envía una notificación personalizada a usuarios específicos o a todos
+   * @param mensaje Contenido del mensaje de la notificación
+   * @param tipoEnvio Tipo de envío: 'todos' o 'especificos'
+   * @param usuariosIds Array de IDs de usuarios (requerido si tipoEnvio es 'especificos')
+   * @returns Observable con el resultado del envío
+   */
+  enviarNotificacionPersonalizada(
+    mensaje: string, 
+    tipoEnvio: string, 
+    usuariosIds?: number[]
+  ): Observable<any> {
+    return this.apollo.mutate({
+      mutation: enviarNotificacionPersonalizadaMutation,
+      variables: {
+        mensaje: mensaje,
+        tipoEnvio: tipoEnvio.toUpperCase(),
+        usuariosIds: usuariosIds || null
+      }
+    }).pipe(
+      tap((result: any) => {
+        if (result?.data?.data) {
+          this.refrescarTodas();
+          this.actualizarConteo();
+        }
+      }),
+      map((result: any) => result.data?.data)
+    );
   }
 }

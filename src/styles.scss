@@ -220,7 +220,6 @@ input::selection {
 ::ng-deep .cdk-overlay-pane:has(mat-mdc-simple-snack-bar) {
   position: fixed !important;
   bottom: 30% !important;
-  /* Adjust this value as needed */
 }
 
 .info {
@@ -274,8 +273,6 @@ input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-
-/* Firefox */
 input[type=number] {
   -moz-appearance: textfield;
 }
@@ -351,7 +348,6 @@ input {
 
 .mat-snack-bar-container {
   bottom: 30%;
-  /* Adjust this value as needed */
 }
 
 @media print {
@@ -378,3 +374,15 @@ input {
   background-color: #f44336 !important;
 }
 
+.notificacion-dialog-panel {
+  .mat-mdc-dialog-container {
+    padding: 0;
+    background: #1a1a1a;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    
+    .mat-mdc-dialog-surface {
+      background: transparent;
+    }
+  }
+}

@@ -9,7 +9,11 @@
       <div class="notifications-content">
         <div class="notifications-title">
           Notificaciones
-        </div>
+        <button mat-raised-button color="primary" class="btn-crear-notificacion" (click)="crearNotificacion()">
+          <mat-icon>add</mat-icon>
+          <span>Crear Notificacion</span>
+        </button>
+      </div>
         <div class="notifications-scroll">
           <app-notification-board></app-notification-board>
         </div>
