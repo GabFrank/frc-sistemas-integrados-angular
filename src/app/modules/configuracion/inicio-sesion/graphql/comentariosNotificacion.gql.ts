@@ -1,8 +1,8 @@
 import { Injectable } from "@angular/core";
 import { Query, Mutation } from "apollo-angular";
 import { 
-  getComentariosNotificacionQuery, 
-  getConteoComentariosNotificacionQuery,
+  comentariosNotificacionQuery, 
+  conteoComentariosNotificacionQuery,
   crearComentarioNotificacionMutation 
 } from "./graphql-query";
 
@@ -48,14 +48,14 @@ export interface CrearComentarioNotificacionResponse {
   providedIn: "root",
 })
 export class GetComentariosNotificacionGQL extends Query<GetComentariosNotificacionResponse> {
-  override document = getComentariosNotificacionQuery;
+  override document = comentariosNotificacionQuery;
 }
 
 @Injectable({
   providedIn: "root",
 })
 export class GetConteoComentariosNotificacionGQL extends Query<GetConteoComentariosNotificacionResponse> {
-  override document = getConteoComentariosNotificacionQuery;
+  override document = conteoComentariosNotificacionQuery;
 }
 
 @Injectable({

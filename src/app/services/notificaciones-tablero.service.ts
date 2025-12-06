@@ -1,13 +1,13 @@
 import { Injectable } from '@angular/core';
 import { Apollo } from 'apollo-angular';
 import { 
-  getNotificacionesUsuarioQuery, 
+  notificacionesUsuarioQuery, 
   cambiarEstadoTableroNotificacionMutation, 
-  getConteoNotificacionesNoLeidasQuery, 
+  conteoNotificacionesNoLeidasQuery, 
   actualizarTokenFcmMutation,
   marcarNotificacionLeidaMutation,
   enviarNotificacionPersonalizadaMutation,
-  getUsuariosActivosQuery
+  usuariosActivosQuery
 } from '../modules/configuracion/inicio-sesion/graphql/graphql-query';
 import { Observable, BehaviorSubject, combineLatest, of } from 'rxjs';
 import { map, tap, switchMap, catchError } from 'rxjs/operators';
@@ -110,7 +110,7 @@ export class NotificacionesTableroService {
 
   obtenerConteoNoLeidas(): Observable<number> {
     return this.apollo.query({
-      query: getConteoNotificacionesNoLeidasQuery,
+      query: conteoNotificacionesNoLeidasQuery,
       fetchPolicy: 'network-only'
     }).pipe(
       map((result: any) => {
@@ -148,7 +148,7 @@ export class NotificacionesTableroService {
     });
 
     this.apollo.query({
-      query: getNotificacionesUsuarioQuery,
+      query: notificacionesUsuarioQuery,
       variables: {
         page: pageIndex,
         size: pageSize,
@@ -276,7 +276,7 @@ export class NotificacionesTableroService {
    */
   obtenerUsuariosActivos(): Observable<any[]> {
     return this.apollo.query({
-      query: getUsuariosActivosQuery,
+      query: usuariosActivosQuery,
       fetchPolicy: 'network-only'
     }).pipe(
       map((result: any) => result.data?.data || []),

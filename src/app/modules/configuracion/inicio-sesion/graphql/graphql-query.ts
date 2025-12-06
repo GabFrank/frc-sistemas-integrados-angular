@@ -32,9 +32,9 @@ export const notificacionesPorTokenQuery = gql`
 `;
 
 
-export const getNotificacionesUsuarioQuery = gql`
+export const notificacionesUsuarioQuery = gql`
   query ($leidas: Boolean, $page: Int, $size: Int, $estadoTablero: String) {
-    data: getNotificacionesUsuario(leidas: $leidas, page: $page, size: $size, estadoTablero: $estadoTablero) {
+    data: notificacionesUsuario(leidas: $leidas, page: $page, size: $size, estadoTablero: $estadoTablero) {
       content {
         id
         leida
@@ -70,9 +70,9 @@ export const getNotificacionesUsuarioQuery = gql`
 `;
 
 
-export const getNotificacionesUsuarioLegacyQuery = gql`
+export const notificacionesUsuarioLegacyQuery = gql`
   query ($tokenFcm: String, $leidas: Boolean, $page: Int, $size: Int, $estadoTablero: String) {
-    data: getNotificacionesUsuarioLegacy(tokenFcm: $tokenFcm, leidas: $leidas, page: $page, size: $size, estadoTablero: $estadoTablero) {
+    data: notificacionesUsuarioLegacy(tokenFcm: $tokenFcm, leidas: $leidas, page: $page, size: $size, estadoTablero: $estadoTablero) {
       content {
         id
         leida
@@ -122,9 +122,9 @@ export const actualizarEstadoTableroNotificacionMutation = gql`
   }
 `;
 
-export const getConteoNotificacionesNoLeidasQuery = gql`
+export const conteoNotificacionesNoLeidasQuery = gql`
   query {
-    data: getConteoNotificacionesNoLeidas
+    data: conteoNotificacionesNoLeidas
   }
 `;
 
@@ -146,9 +146,9 @@ export const enviarNotificacionPersonalizadaMutation = gql`
   }
 `;
 
-export const getUsuariosActivosQuery = gql`
+export const usuariosActivosQuery = gql`
   query {
-    data: getUsuariosActivos {
+    data: usuariosActivos {
       id
       nickname
       persona {
@@ -159,9 +159,9 @@ export const getUsuariosActivosQuery = gql`
   }
 `;
 
-export const getComentariosNotificacionQuery = gql`
+export const comentariosNotificacionQuery = gql`
   query ($notificacionId: Int!) {
-    data: getComentariosNotificacion(notificacionId: $notificacionId) {
+    data: comentariosNotificacion(notificacionId: $notificacionId) {
       id
       comentario
       creadoEn
@@ -185,9 +185,9 @@ export const getComentariosNotificacionQuery = gql`
   }
 `;
 
-export const getConteoComentariosNotificacionQuery = gql`
+export const conteoComentariosNotificacionQuery = gql`
   query ($notificacionId: Int!) {
-    data: getConteoComentariosNotificacion(notificacionId: $notificacionId)
+    data: conteoComentariosNotificacion(notificacionId: $notificacionId)
   }
 `;
 
@@ -212,9 +212,9 @@ export const crearComentarioNotificacionMutation = gql`
   }
 `;
 
-export const getUsuariosDestinatariosNotificacionQuery = gql`
+export const usuariosDestinatariosNotificacionQuery = gql`
   query ($notificacionId: Int!) {
-    data: getUsuariosDestinatariosNotificacion(notificacionId: $notificacionId) {
+    data: usuariosDestinatariosNotificacion(notificacionId: $notificacionId) {
       id
       nickname
       persona {
@@ -225,9 +225,9 @@ export const getUsuariosDestinatariosNotificacionQuery = gql`
   }
 `;
 
-export const getUsuariosConAccesoNotificacionQuery = gql`
+export const usuariosConAccesoNotificacionQuery = gql`
   query ($notificacionId: Int!) {
-    data: getUsuariosConAccesoNotificacion(notificacionId: $notificacionId) {
+    data: usuariosConAccesoNotificacion(notificacionId: $notificacionId) {
       id
       nickname
       persona {

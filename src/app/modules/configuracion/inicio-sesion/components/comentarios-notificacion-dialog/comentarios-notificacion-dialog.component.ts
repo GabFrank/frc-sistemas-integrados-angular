@@ -11,10 +11,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { ComentariosNotificacionService } from '../../../../../services/comentarios-notificacion.service';
 import { NotificacionComentario } from '../../graphql/comentariosNotificacion.gql';
-import { GetUsuariosActivosGQL } from '../../graphql/getUsuariosActivos.gql';
-import { GetUsuariosDestinatariosNotificacionGQL } from '../../graphql/getUsuariosDestinatariosNotificacion.gql';
-import { GetUsuariosConAccesoNotificacionGQL } from '../../graphql/getUsuariosConAccesoNotificacion.gql';
 import { MainService } from '../../../../../main.service';
+import { UsuariosActivosGQL } from '../../graphql/usuariosActivos.gql';
+import { UsuariosDestinatariosNotificacionGQL } from '../../graphql/usuariosDestinatariosNotificacion.gql';
+import { UsuariosConAccesoNotificacionGQL } from '../../graphql/usuariosConAccesoNotificacion.gql';
 import { Observable, BehaviorSubject, combineLatest, interval } from 'rxjs';
 import { map, debounceTime, distinctUntilChanged, switchMap, startWith, tap } from 'rxjs/operators';
 
@@ -70,9 +70,9 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     public dialogRef: MatDialogRef<ComentariosNotificacionDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: ComentariosDialogData,
     private comentariosService: ComentariosNotificacionService,
-    private usuariosActivosGQL: GetUsuariosActivosGQL,
-    private usuariosDestinatariosGQL: GetUsuariosDestinatariosNotificacionGQL,
-    private usuariosConAccesoGQL: GetUsuariosConAccesoNotificacionGQL,
+    private usuariosActivosGQL: UsuariosActivosGQL,
+    private usuariosDestinatariosGQL: UsuariosDestinatariosNotificacionGQL,
+    private usuariosConAccesoGQL: UsuariosConAccesoNotificacionGQL,
     private mainService: MainService,
     private cdr: ChangeDetectorRef
   ) {
@@ -106,7 +106,6 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     const element = document.getElementById(`comentario-${comentarioId}`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Resaltar el comentario
       element.classList.add('highlighted-comment');
       setTimeout(() => {
         element.classList.remove('highlighted-comment');
@@ -147,7 +146,6 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
         )
         .subscribe({
           next: (comentarios) => {
-            // Comparar si hay cambios en los comentarios (por ID o cantidad)
             const hayCambios = comentarios.length !== this.ultimoConteoComentarios ||
               comentarios.some((c, index) => {
                 const comentarioAnterior = this.comentarios[index];
@@ -183,7 +181,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     const comentariosList = document.querySelector('.comentarios-list') as HTMLElement;
     if (!comentariosList) return false;
 
-    const threshold = 100; // Margen de 100px desde el final
+    const threshold = 100;
     return comentariosList.scrollHeight - comentariosList.scrollTop - comentariosList.clientHeight < threshold;
   }
 
@@ -438,5 +436,54 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
       const nombre = usuario.persona?.nombre?.toLowerCase() || '';
       return nickname.includes(filtroLower) || nombre.includes(filtroLower);
     });
+  }
+
+  Initials(usuario: { nickname: string; persona?: { nombre?: string } }): string {
+    const nombre = usuario.persona?.nombre || usuario.nickname || 'U';
+    const partes = nombre.trim().split(' ').filter(p => p.length > 0);
+    if (partes.length >= 2) {
+      return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+    }
+    return nombre.substring(0, Math.min(2, nombre.length)).toUpperCase();
+  }
+
+  UserColor(usuarioId: number): string {
+    const colors = [
+      '#f44336',
+      '#43a047',
+      '#e53935',
+      '#66bb6a',
+      '#d32f2f',
+      '#388e3c',
+      '#ef5350',
+      '#81c784',
+      '#c62828',
+      '#2e7d32',
+      '#ff5252',
+      '#4caf50',
+      '#b71c1c',
+      '#1b5e20',
+      '#ff1744',
+      '#00e676',
+    ];
+    return colors[usuarioId % colors.length];
+  }
+
+  UserLightColor(usuarioId: number): string {
+    const baseColor = this.UserColor(usuarioId);
+    const hex = baseColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    return `rgba(${r}, ${g}, ${b}, 0.15)`;
+  }
+
+  UserBorderColor(usuarioId: number): string {
+    const baseColor = this.UserColor(usuarioId);
+    const hex = baseColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    return `rgba(${r}, ${g}, ${b}, 0.4)`;
   }
 }

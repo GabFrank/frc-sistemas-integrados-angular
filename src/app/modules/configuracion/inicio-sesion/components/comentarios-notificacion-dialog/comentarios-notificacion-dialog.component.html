@@ -1,121 +1,162 @@
-<div class="whatsapp-layout">
-  <div class="usuarios-panel">
-    <div class="usuarios-header">
-      <h3>Participantes</h3>
-      <button mat-icon-button (click)="cerrar()" matTooltip="Cerrar">
+<div class="modern-chat-layout">
+  <div class="participants-sidebar">
+    <div class="sidebar-header">
+      <div class="header-content">
+        <mat-icon class="header-icon">people</mat-icon>
+        <h3>Participantes</h3>
+      </div>
+      <button mat-icon-button (click)="cerrar()" matTooltip="Cerrar" class="close-btn">
         <mat-icon>close</mat-icon>
       </button>
     </div>
 
-    <div class="usuarios-busqueda">
-      <mat-form-field appearance="outline" class="busqueda-input">
+    <div class="sidebar-search">
+      <mat-form-field appearance="outline" class="search-field">
         <mat-label>Buscar usuario...</mat-label>
         <input matInput [(ngModel)]="filtroUsuarios" placeholder="Buscar por nombre o nickname">
         <mat-icon matPrefix>search</mat-icon>
       </mat-form-field>
     </div>
 
-    <div class="usuarios-lista">
-      <div *ngIf="cargandoUsuarios" class="usuarios-cargando">
-        <mat-spinner diameter="30"></mat-spinner>
+    <div class="participants-list">
+      <div *ngIf="cargandoUsuarios" class="loading-state">
+        <mat-spinner diameter="32"></mat-spinner>
         <span>Cargando usuarios...</span>
       </div>
 
-      <div *ngIf="!cargandoUsuarios && obtenerUsuariosDestinatariosFiltrados().length === 0" class="usuarios-vacio">
+      <div *ngIf="!cargandoUsuarios && obtenerUsuariosDestinatariosFiltrados().length === 0" class="empty-state">
         <mat-icon>people_outline</mat-icon>
         <span>No se encontraron usuarios</span>
       </div>
 
-      <div *ngFor="let usuario of obtenerUsuariosDestinatariosFiltrados()" class="usuario-item">
-        <mat-icon class="usuario-avatar">account_circle</mat-icon>
-        <div class="usuario-detalle">
-          <span class="usuario-nombre">{{ usuario.persona?.nombre || usuario.nickname }}</span>
-          <span class="usuario-nickname">@{{ usuario.nickname }}</span>
+      <div *ngFor="let usuario of obtenerUsuariosDestinatariosFiltrados()" class="participant-item">
+        <div class="participant-avatar" 
+             [attr.data-initial]="Initials(usuario)"
+             [style.background]="'linear-gradient(135deg, ' + UserColor(usuario.id) + ', ' + UserColor(usuario.id + 1) + ')'">
+          {{ Initials(usuario) }}
+        </div>
+        <div class="participant-info">
+          <span class="participant-name">{{ usuario.persona?.nombre || usuario.nickname }}</span>
+          <span class="participant-username">@{{ usuario.nickname }}</span>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="comentarios-panel">
-    <div class="comentarios-header">
-      <mat-icon>comment</mat-icon>
-      <span>{{ data.notificacion.titulo }}</span>
+  <div class="chat-main-panel">
+    <div class="chat-header">
+      <div class="header-left">
+        <mat-icon class="header-icon">forum</mat-icon>
+        <div class="header-title">
+          <h2>{{ data.notificacion.titulo }}</h2>
+        </div>
+      </div>
     </div>
 
-    <div class="comentarios-content-wrapper">
-      <div *ngIf="cargando" class="loading-container">
-        <mat-spinner diameter="40"></mat-spinner>
+    <div class="messages-container">
+      <div *ngIf="cargando" class="loading-messages">
+        <mat-spinner diameter="48"></mat-spinner>
         <p>Cargando comentarios...</p>
       </div>
 
-      <div *ngIf="!cargando" class="comentarios-list">
-        <div *ngIf="comentarios.length === 0" class="sin-comentarios">
-          <mat-icon>comment_outline</mat-icon>
-          <p>No hay comentarios aún. Sé el primero en comentar.</p>
+      <div *ngIf="!cargando" class="messages-list">
+        <div *ngIf="comentarios.length === 0" class="empty-messages">
+          <div class="empty-icon-wrapper">
+            <mat-icon>chat_bubble_outline</mat-icon>
+          </div>
+          <h3>No hay comentarios aún</h3>
+          <p>Sé el primero en comentar</p>
         </div>
 
-        <div *ngFor="let comentario of comentarios" class="comentario-item"
-          [class.comentario-respuesta]="comentario.comentarioPadre" [id]="'comentario-' + comentario.id">
-          <div class="comentario-header">
-            <div class="comentario-usuario">
-              <mat-icon class="avatar-icon">account_circle</mat-icon>
-              <div class="usuario-info">
-                <span class="usuario-nombre">{{ comentario.usuario.persona?.nombre || comentario.usuario.nickname
-                  }}</span>
-                <span class="usuario-nickname">@{{ comentario.usuario.nickname }}</span>
+        <div *ngFor="let comentario of comentarios; let i = index" 
+             class="message-wrapper"
+             [class.is-reply]="comentario.comentarioPadre"
+             [class.same-author]="i > 0 && comentarios[i-1].usuario.id === comentario.usuario.id"
+             [id]="'comentario-' + comentario.id">
+          
+          <div class="message-bubble">
+            <div *ngIf="!comentario.comentarioPadre && (i === 0 || comentarios[i-1].usuario.id !== comentario.usuario.id)" 
+                 class="message-avatar" 
+                 [attr.data-initial]="Initials(comentario.usuario)"
+                 [style.background]="'linear-gradient(135deg, ' + UserColor(comentario.usuario.id) + ', ' + UserColor(comentario.usuario.id + 1) + ')'">
+              {{ Initials(comentario.usuario) }}
+            </div>
+            
+            <div class="message-content"
+                 [style.background]="UserLightColor(comentario.usuario.id)"
+                 [style.border-left-color]="UserColor(comentario.usuario.id)">
+              <div *ngIf="!comentario.comentarioPadre && (i === 0 || comentarios[i-1].usuario.id !== comentario.usuario.id)" 
+                   class="message-header">
+                <span class="message-author" [style.color]="UserColor(comentario.usuario.id)">{{ comentario.usuario.persona?.nombre || comentario.usuario.nickname }}</span>
+                <span class="message-username">@{{ comentario.usuario.nickname }}</span>
+                <span class="message-time">{{ comentario.creadoEn | date:'short' }}</span>
+              </div>
+
+              <div *ngIf="comentario.comentarioPadre" class="reply-context"
+                    [style.border-left-color]="UserColor(comentario.comentarioPadre.usuario.id)"
+                   [style.background]="UserLightColor(comentario.comentarioPadre.usuario.id)">
+                <mat-icon class="reply-icon" [style.color]="UserColor(comentario.comentarioPadre.usuario.id)">reply</mat-icon>
+                <span class="reply-text">Respondiendo a <strong [style.color]="UserColor(comentario.comentarioPadre.usuario.id)">@{{ comentario.comentarioPadre.usuario.nickname }}</strong></span>
+              </div>
+
+              <div class="message-text" [innerHTML]="formatearComentario(comentario.comentario)"></div>
+
+              <div class="message-actions">
+                <button mat-icon-button (click)="responderComentario(comentario)" class="action-btn" matTooltip="Responder">
+                  <mat-icon>reply</mat-icon>
+                </button>
               </div>
             </div>
-            <span class="comentario-fecha">{{ comentario.creadoEn | date:'short' }}</span>
-          </div>
-
-          <div *ngIf="comentario.comentarioPadre" class="comentario-padre-contexto">
-            <mat-icon>reply</mat-icon>
-            <span>Respondiendo a @{{ comentario.comentarioPadre.usuario.nickname }}</span>
-          </div>
-
-          <div class="comentario-texto" [innerHTML]="formatearComentario(comentario.comentario)"></div>
-
-          <div class="comentario-acciones">
-            <button mat-button color="primary" (click)="responderComentario(comentario)">
-              <mat-icon>reply</mat-icon>
-              Responder
-            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="nuevo-comentario-section">
-      <div *ngIf="comentarioPadreId" class="respondiendo-a">
-        <mat-icon>reply</mat-icon>
-        <span>Respondiendo a un comentario</span>
-        <button mat-icon-button (click)="cancelarRespuesta()" matTooltip="Cancelar respuesta">
+    <div class="message-input-area">
+      <div *ngIf="comentarioPadreId" class="reply-indicator">
+        <div class="reply-indicator-content">
+          <mat-icon class="reply-icon-small">reply</mat-icon>
+          <span>Respondiendo a un comentario</span>
+        </div>
+        <button mat-icon-button (click)="cancelarRespuesta()" class="cancel-reply-btn" matTooltip="Cancelar respuesta">
           <mat-icon>close</mat-icon>
         </button>
       </div>
 
-      <mat-form-field appearance="outline" class="comentario-input">
-        <mat-label>Escribe un comentario...</mat-label>
-        <textarea matInput [(ngModel)]="nuevoComentario" (input)="onTextareaInput($event)" rows="3"
-          [disabled]="enviando" placeholder="Escribe @ para mencionar a alguien"></textarea>
-      </mat-form-field>
-
-      <div *ngIf="mostrarAutocompletado && usuariosFiltrados.length > 0" class="autocompletado-container">
-        <div *ngFor="let usuario of usuariosFiltrados" class="usuario-opcion" (click)="seleccionarUsuario(usuario)">
-          <mat-icon>account_circle</mat-icon>
-          <div class="usuario-info">
-            <span class="usuario-nombre">{{ usuario.persona?.nombre || usuario.nickname }}</span>
-            <span class="usuario-nickname">@{{ usuario.nickname }}</span>
+      <div *ngIf="mostrarAutocompletado && usuariosFiltrados.length > 0" class="mention-autocomplete">
+        <div *ngFor="let usuario of usuariosFiltrados" 
+             class="mention-option" 
+             (click)="seleccionarUsuario(usuario)">
+          <div class="mention-avatar" 
+              [attr.data-initial]="Initials(usuario)"
+               [style.background]="'linear-gradient(135deg, ' + UserColor(usuario.id) + ', ' + UserColor(usuario.id + 1) + ')'">
+            {{ Initials(usuario) }}
+          </div>
+          <div class="mention-info">
+            <span class="mention-name" [style.color]="UserColor(usuario.id)">{{ usuario.persona?.nombre || usuario.nickname }}</span>
+            <span class="mention-username">@{{ usuario.nickname }}</span>
           </div>
         </div>
       </div>
 
-      <div class="comentario-acciones-envio">
-        <button mat-raised-button color="primary" (click)="enviarComentario()"
-          [disabled]="!nuevoComentario.trim() || enviando">
+      <div class="input-container">
+        <mat-form-field appearance="outline" class="message-input-field">
+          <mat-label>Escribe un mensaje...</mat-label>
+          <textarea matInput 
+                    [(ngModel)]="nuevoComentario" 
+                    (input)="onTextareaInput($event)" 
+                    rows="1"
+                    [disabled]="enviando" 
+                    placeholder="Escribe @ para mencionar a alguien"
+                    class="message-textarea"></textarea>
+        </mat-form-field>
+        <button mat-fab 
+                color="primary" 
+                (click)="enviarComentario()"
+                [disabled]="!nuevoComentario.trim() || enviando"
+                class="send-button">
           <mat-icon *ngIf="!enviando">send</mat-icon>
-          <mat-spinner *ngIf="enviando" diameter="20" style="display: inline-block;"></mat-spinner>
-          <span>{{ enviando ? 'Enviando...' : 'Enviar' }}</span>
+          <mat-spinner *ngIf="enviando" diameter="24" class="send-spinner"></mat-spinner>
         </button>
       </div>
     </div>
