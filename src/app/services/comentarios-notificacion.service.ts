@@ -64,8 +64,9 @@ export class ComentariosNotificacionService {
       }),
       tap(nuevoComentario => {
         const mapActual = new Map(this._comentariosPorNotificacion$.value);
-        const comentarios = mapActual.get(notificacionId) || [];
-        comentarios.push(nuevoComentario);
+        // Crear una copia del array para evitar el error "object is not extensible"
+        const comentariosExistentes = mapActual.get(notificacionId) || [];
+        const comentarios = [...comentariosExistentes, nuevoComentario];
         mapActual.set(notificacionId, comentarios);
         this._comentariosPorNotificacion$.next(mapActual);
 

@@ -16,7 +16,7 @@ import { GetUsuariosDestinatariosNotificacionGQL } from '../../graphql/getUsuari
 import { GetUsuariosConAccesoNotificacionGQL } from '../../graphql/getUsuariosConAccesoNotificacion.gql';
 import { MainService } from '../../../../../main.service';
 import { Observable, BehaviorSubject, combineLatest, interval } from 'rxjs';
-import { map, debounceTime, distinctUntilChanged, switchMap, startWith } from 'rxjs/operators';
+import { map, debounceTime, distinctUntilChanged, switchMap, startWith, tap } from 'rxjs/operators';
 
 export interface ComentariosDialogData {
   notificacionId: number;
@@ -24,6 +24,7 @@ export interface ComentariosDialogData {
     id: number;
     titulo: string;
   };
+  comentarioId?: number;
 }
 
 @UntilDestroy()
@@ -89,30 +90,52 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.cargarComentarios();
+    this.cargarComentarios().subscribe(() => {
+      if (this.data.comentarioId) {
+        setTimeout(() => {
+          this.scrollAComentario(this.data.comentarioId!);
+        }, 500);
+      }
+    });
     this.cargarUsuariosActivos();
     this.cargarUsuariosDestinatarios();
     this.iniciarPollingComentarios();
   }
 
-  cargarComentarios(): void {
-    this.cargando = true;
-    this.cdr.markForCheck();
+  private scrollAComentario(comentarioId: number): void {
+    const element = document.getElementById(`comentario-${comentarioId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Resaltar el comentario
+      element.classList.add('highlighted-comment');
+      setTimeout(() => {
+        element.classList.remove('highlighted-comment');
+      }, 3000);
+    }
+  }
 
-    this.comentariosService.obtenerComentarios(this.data.notificacionId)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (comentarios) => {
-          this.comentarios = comentarios;
-          this.ultimoConteoComentarios = comentarios.length;
-          this.cargando = false;
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          this.cargando = false;
-          this.cdr.markForCheck();
-        }
-      });
+  cargarComentarios(mostrarCargando: boolean = true): Observable<NotificacionComentario[]> {
+    if (mostrarCargando) {
+      this.cargando = true;
+      this.cdr.markForCheck();
+    }
+
+    return this.comentariosService.obtenerComentarios(this.data.notificacionId)
+      .pipe(
+        untilDestroyed(this),
+        tap({
+          next: (comentarios) => {
+            this.comentarios = comentarios;
+            this.ultimoConteoComentarios = comentarios.length;
+            this.cargando = false;
+            this.cdr.markForCheck();
+          },
+          error: () => {
+            this.cargando = false;
+            this.cdr.markForCheck();
+          }
+        })
+      );
   }
 
   iniciarPollingComentarios(): void {
@@ -124,29 +147,51 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
         )
         .subscribe({
           next: (comentarios) => {
-            if (comentarios.length !== this.ultimoConteoComentarios) {
+            // Comparar si hay cambios en los comentarios (por ID o cantidad)
+            const hayCambios = comentarios.length !== this.ultimoConteoComentarios ||
+              comentarios.some((c, index) => {
+                const comentarioAnterior = this.comentarios[index];
+                return !comentarioAnterior ||
+                  comentarioAnterior.id !== c.id ||
+                  comentarioAnterior.actualizadoEn !== c.actualizadoEn;
+              });
+
+            if (hayCambios) {
               const conteoAnterior = this.ultimoConteoComentarios;
               const habiaComentarios = this.comentarios.length > 0;
+              const estabaAlFinal = this.estaAlFinalDelScroll();
+
               this.comentarios = comentarios;
               this.ultimoConteoComentarios = comentarios.length;
 
-              if (habiaComentarios && comentarios.length > conteoAnterior) {
+              if (habiaComentarios && comentarios.length > conteoAnterior && estabaAlFinal) {
                 setTimeout(() => {
-                  const comentariosList = document.querySelector('.comentarios-list');
-                  if (comentariosList) {
-                    comentariosList.scrollTop = comentariosList.scrollHeight;
-                  }
+                  this.scrollAlFinal();
                 }, 100);
               }
 
               this.cdr.markForCheck();
             }
           },
-          error: (err) => {
-            console.warn('Error en polling de comentarios:', err);
+          error: () => {
           }
         });
     }, 1000);
+  }
+
+  private estaAlFinalDelScroll(): boolean {
+    const comentariosList = document.querySelector('.comentarios-list') as HTMLElement;
+    if (!comentariosList) return false;
+
+    const threshold = 100; // Margen de 100px desde el final
+    return comentariosList.scrollHeight - comentariosList.scrollTop - comentariosList.clientHeight < threshold;
+  }
+
+  private scrollAlFinal(): void {
+    const comentariosList = document.querySelector('.comentarios-list') as HTMLElement;
+    if (comentariosList) {
+      comentariosList.scrollTop = comentariosList.scrollHeight;
+    }
   }
 
   cargarUsuariosActivos(): void {
@@ -284,22 +329,30 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
       this.data.notificacionId,
       comentarioTexto,
       comentarioPadreIdTemp || undefined
-    ).pipe(untilDestroyed(this))
+    ).pipe(
+      untilDestroyed(this),
+      switchMap(() => {
+        return this.cargarComentarios(false);
+      })
+    )
       .subscribe({
-        next: (comentarioReal) => {
-          const indiceTemporal = this.comentarios.findIndex(c => c.id === -1);
-          if (indiceTemporal !== -1) {
-            this.comentarios[indiceTemporal] = comentarioReal;
-          } else {
-            this.comentarios = [...this.comentarios, comentarioReal];
-          }
+        next: (comentarios) => {
+          this.comentarios = comentarios;
+          this.ultimoConteoComentarios = comentarios.length;
           this.enviando = false;
+
+          this.comentariosService.obtenerConteoComentarios(this.data.notificacionId).subscribe();
+
+          setTimeout(() => {
+            this.scrollAlFinal();
+          }, 100);
+
           this.cdr.markForCheck();
         },
         error: () => {
           this.comentarios = this.comentarios.filter(c => c.id !== -1);
           this.enviando = false;
-          this.cargarComentarios();
+          this.cargarComentarios().subscribe();
           this.cdr.markForCheck();
         }
       });
@@ -359,7 +412,6 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
       .subscribe({
         next: (result: any) => {
           if (result.errors) {
-            console.error('Errores GraphQL al cargar usuarios:', result.errors);
             this.usuariosDestinatarios = [];
           } else {
             this.usuariosDestinatarios = result.data?.data || [];
@@ -367,8 +419,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
           this.cargandoUsuarios = false;
           this.cdr.markForCheck();
         },
-        error: (err) => {
-          console.error('Error al cargar usuarios con acceso:', err);
+        error: () => {
           this.usuariosDestinatarios = [];
           this.cargandoUsuarios = false;
           this.cdr.markForCheck();

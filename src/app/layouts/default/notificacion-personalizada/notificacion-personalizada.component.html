@@ -31,7 +31,8 @@
       </div>
       <mat-form-field appearance="outline" class="full-width" *ngIf="!cargandoUsuarios">
         <mat-label>Buscar y seleccionar usuarios</mat-label>
-        <mat-select multiple [(ngModel)]="usuariosSeleccionados" (ngModelChange)="validarFormulario()" placeholder="Seleccione usuarios">
+        <mat-select multiple [(ngModel)]="usuariosSeleccionados" (ngModelChange)="validarFormulario()"
+          placeholder="Seleccione usuarios">
           <mat-select-trigger>
             <span *ngIf="usuariosSeleccionados.length === 0">Seleccione usuarios</span>
             <span *ngIf="usuariosSeleccionados.length > 0">
@@ -40,13 +41,8 @@
           </mat-select-trigger>
           <div class="search-box">
             <mat-icon class="search-icon">search</mat-icon>
-            <input 
-              class="search-input"
-              [(ngModel)]="busquedaUsuario"
-              (ngModelChange)="filtrarUsuarios()"
-              (click)="$event.stopPropagation()"
-              placeholder="Buscar por nombre o usuario..."
-              autocomplete="off">
+            <input class="search-input" [(ngModel)]="busquedaUsuario" (ngModelChange)="filtrarUsuarios()"
+              (click)="$event.stopPropagation()" placeholder="Buscar por nombre o usuario..." autocomplete="off">
           </div>
           <mat-option *ngFor="let usuario of usuariosFiltrados" [value]="usuario.id">
             {{ usuario.nickname }} - {{ usuario.persona?.nombre || 'Sin nombre' }}
@@ -68,12 +64,8 @@
       </div>
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Título</mat-label>
-        <input 
-          matInput 
-          [(ngModel)]="titulo"
-          (ngModelChange)="validarFormulario()"
-          placeholder="Ejemplo: Actualización del Sistema"
-          maxlength="100">
+        <input matInput [(ngModel)]="titulo" (ngModelChange)="validarFormulario()"
+          placeholder="Ejemplo: Actualización del Sistema" maxlength="100">
         <mat-hint align="end">{{titulo.length}} / 100</mat-hint>
         <mat-icon matPrefix>label</mat-icon>
       </mat-form-field>
@@ -85,13 +77,8 @@
       </div>
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Escribe tu mensaje aquí</mat-label>
-        <textarea 
-          matInput 
-          [(ngModel)]="mensaje"
-          (ngModelChange)="validarFormulario()"
-          placeholder="Ejemplo: Nueva actualización del sistema disponible..."
-          rows="6"
-          maxlength="500"
+        <textarea matInput [(ngModel)]="mensaje" (ngModelChange)="validarFormulario()"
+          placeholder="Ejemplo: Nueva actualización del sistema disponible..." rows="6" maxlength="500"
           class="mensaje-textarea">
         </textarea>
         <mat-hint align="end">{{mensaje.length}} / 500</mat-hint>
@@ -105,7 +92,8 @@
       <mat-icon>close</mat-icon>
       Cancelar
     </button>
-    <button mat-raised-button color="primary" class="send-button" [disabled]="botonEnviarDeshabilitado" (click)="onEnviar()">
+    <button mat-raised-button color="primary" class="send-button" [disabled]="botonEnviarDeshabilitado"
+      (click)="onEnviar()">
       <mat-spinner diameter="20" *ngIf="enviando" class="button-spinner"></mat-spinner>
       <mat-icon *ngIf="!enviando">send</mat-icon>
       {{ enviando ? 'Enviando...' : 'Enviar' }}

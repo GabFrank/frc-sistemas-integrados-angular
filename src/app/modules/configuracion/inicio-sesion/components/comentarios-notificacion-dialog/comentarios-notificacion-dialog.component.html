@@ -1,5 +1,4 @@
 <div class="whatsapp-layout">
-  <!-- Panel izquierdo: Lista de usuarios -->
   <div class="usuarios-panel">
     <div class="usuarios-header">
       <h3>Participantes</h3>
@@ -7,7 +6,7 @@
         <mat-icon>close</mat-icon>
       </button>
     </div>
-    
+
     <div class="usuarios-busqueda">
       <mat-form-field appearance="outline" class="busqueda-input">
         <mat-label>Buscar usuario...</mat-label>
@@ -37,7 +36,6 @@
     </div>
   </div>
 
-  <!-- Panel derecho: Comentarios -->
   <div class="comentarios-panel">
     <div class="comentarios-header">
       <mat-icon>comment</mat-icon>
@@ -56,13 +54,14 @@
           <p>No hay comentarios aún. Sé el primero en comentar.</p>
         </div>
 
-        <div *ngFor="let comentario of comentarios" class="comentario-item" 
-             [class.comentario-respuesta]="comentario.comentarioPadre">
+        <div *ngFor="let comentario of comentarios" class="comentario-item"
+          [class.comentario-respuesta]="comentario.comentarioPadre" [id]="'comentario-' + comentario.id">
           <div class="comentario-header">
             <div class="comentario-usuario">
               <mat-icon class="avatar-icon">account_circle</mat-icon>
               <div class="usuario-info">
-                <span class="usuario-nombre">{{ comentario.usuario.persona?.nombre || comentario.usuario.nickname }}</span>
+                <span class="usuario-nombre">{{ comentario.usuario.persona?.nombre || comentario.usuario.nickname
+                  }}</span>
                 <span class="usuario-nickname">@{{ comentario.usuario.nickname }}</span>
               </div>
             </div>
@@ -97,19 +96,12 @@
 
       <mat-form-field appearance="outline" class="comentario-input">
         <mat-label>Escribe un comentario...</mat-label>
-        <textarea 
-          matInput 
-          [(ngModel)]="nuevoComentario"
-          (input)="onTextareaInput($event)"
-          rows="3"
-          [disabled]="enviando"
-          placeholder="Escribe @ para mencionar a alguien"></textarea>
+        <textarea matInput [(ngModel)]="nuevoComentario" (input)="onTextareaInput($event)" rows="3"
+          [disabled]="enviando" placeholder="Escribe @ para mencionar a alguien"></textarea>
       </mat-form-field>
 
       <div *ngIf="mostrarAutocompletado && usuariosFiltrados.length > 0" class="autocompletado-container">
-        <div *ngFor="let usuario of usuariosFiltrados" 
-             class="usuario-opcion"
-             (click)="seleccionarUsuario(usuario)">
+        <div *ngFor="let usuario of usuariosFiltrados" class="usuario-opcion" (click)="seleccionarUsuario(usuario)">
           <mat-icon>account_circle</mat-icon>
           <div class="usuario-info">
             <span class="usuario-nombre">{{ usuario.persona?.nombre || usuario.nickname }}</span>
@@ -119,10 +111,8 @@
       </div>
 
       <div class="comentario-acciones-envio">
-        <button mat-raised-button 
-                color="primary" 
-                (click)="enviarComentario()"
-                [disabled]="!nuevoComentario.trim() || enviando">
+        <button mat-raised-button color="primary" (click)="enviarComentario()"
+          [disabled]="!nuevoComentario.trim() || enviando">
           <mat-icon *ngIf="!enviando">send</mat-icon>
           <mat-spinner *ngIf="enviando" diameter="20" style="display: inline-block;"></mat-spinner>
           <span>{{ enviando ? 'Enviando...' : 'Enviar' }}</span>
@@ -131,4 +121,3 @@
     </div>
   </div>
 </div>
-
