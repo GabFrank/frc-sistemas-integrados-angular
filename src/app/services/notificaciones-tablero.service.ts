@@ -32,6 +32,7 @@ export interface NotificacionData {
     };
     fechaVerificacion?: string;
     creadoEn: string;
+    conteoComentarios?: number;
   };
   creadoEn: string;
 }

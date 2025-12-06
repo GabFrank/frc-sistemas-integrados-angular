@@ -1,0 +1,134 @@
+<div class="whatsapp-layout">
+  <!-- Panel izquierdo: Lista de usuarios -->
+  <div class="usuarios-panel">
+    <div class="usuarios-header">
+      <h3>Participantes</h3>
+      <button mat-icon-button (click)="cerrar()" matTooltip="Cerrar">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    
+    <div class="usuarios-busqueda">
+      <mat-form-field appearance="outline" class="busqueda-input">
+        <mat-label>Buscar usuario...</mat-label>
+        <input matInput [(ngModel)]="filtroUsuarios" placeholder="Buscar por nombre o nickname">
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <div class="usuarios-lista">
+      <div *ngIf="cargandoUsuarios" class="usuarios-cargando">
+        <mat-spinner diameter="30"></mat-spinner>
+        <span>Cargando usuarios...</span>
+      </div>
+
+      <div *ngIf="!cargandoUsuarios && obtenerUsuariosDestinatariosFiltrados().length === 0" class="usuarios-vacio">
+        <mat-icon>people_outline</mat-icon>
+        <span>No se encontraron usuarios</span>
+      </div>
+
+      <div *ngFor="let usuario of obtenerUsuariosDestinatariosFiltrados()" class="usuario-item">
+        <mat-icon class="usuario-avatar">account_circle</mat-icon>
+        <div class="usuario-detalle">
+          <span class="usuario-nombre">{{ usuario.persona?.nombre || usuario.nickname }}</span>
+          <span class="usuario-nickname">@{{ usuario.nickname }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel derecho: Comentarios -->
+  <div class="comentarios-panel">
+    <div class="comentarios-header">
+      <mat-icon>comment</mat-icon>
+      <span>{{ data.notificacion.titulo }}</span>
+    </div>
+
+    <div class="comentarios-content-wrapper">
+      <div *ngIf="cargando" class="loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Cargando comentarios...</p>
+      </div>
+
+      <div *ngIf="!cargando" class="comentarios-list">
+        <div *ngIf="comentarios.length === 0" class="sin-comentarios">
+          <mat-icon>comment_outline</mat-icon>
+          <p>No hay comentarios aún. Sé el primero en comentar.</p>
+        </div>
+
+        <div *ngFor="let comentario of comentarios" class="comentario-item" 
+             [class.comentario-respuesta]="comentario.comentarioPadre">
+          <div class="comentario-header">
+            <div class="comentario-usuario">
+              <mat-icon class="avatar-icon">account_circle</mat-icon>
+              <div class="usuario-info">
+                <span class="usuario-nombre">{{ comentario.usuario.persona?.nombre || comentario.usuario.nickname }}</span>
+                <span class="usuario-nickname">@{{ comentario.usuario.nickname }}</span>
+              </div>
+            </div>
+            <span class="comentario-fecha">{{ comentario.creadoEn | date:'short' }}</span>
+          </div>
+
+          <div *ngIf="comentario.comentarioPadre" class="comentario-padre-contexto">
+            <mat-icon>reply</mat-icon>
+            <span>Respondiendo a @{{ comentario.comentarioPadre.usuario.nickname }}</span>
+          </div>
+
+          <div class="comentario-texto" [innerHTML]="formatearComentario(comentario.comentario)"></div>
+
+          <div class="comentario-acciones">
+            <button mat-button color="primary" (click)="responderComentario(comentario)">
+              <mat-icon>reply</mat-icon>
+              Responder
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nuevo-comentario-section">
+      <div *ngIf="comentarioPadreId" class="respondiendo-a">
+        <mat-icon>reply</mat-icon>
+        <span>Respondiendo a un comentario</span>
+        <button mat-icon-button (click)="cancelarRespuesta()" matTooltip="Cancelar respuesta">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <mat-form-field appearance="outline" class="comentario-input">
+        <mat-label>Escribe un comentario...</mat-label>
+        <textarea 
+          matInput 
+          [(ngModel)]="nuevoComentario"
+          (input)="onTextareaInput($event)"
+          rows="3"
+          [disabled]="enviando"
+          placeholder="Escribe @ para mencionar a alguien"></textarea>
+      </mat-form-field>
+
+      <div *ngIf="mostrarAutocompletado && usuariosFiltrados.length > 0" class="autocompletado-container">
+        <div *ngFor="let usuario of usuariosFiltrados" 
+             class="usuario-opcion"
+             (click)="seleccionarUsuario(usuario)">
+          <mat-icon>account_circle</mat-icon>
+          <div class="usuario-info">
+            <span class="usuario-nombre">{{ usuario.persona?.nombre || usuario.nickname }}</span>
+            <span class="usuario-nickname">@{{ usuario.nickname }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="comentario-acciones-envio">
+        <button mat-raised-button 
+                color="primary" 
+                (click)="enviarComentario()"
+                [disabled]="!nuevoComentario.trim() || enviando">
+          <mat-icon *ngIf="!enviando">send</mat-icon>
+          <mat-spinner *ngIf="enviando" diameter="20" style="display: inline-block;"></mat-spinner>
+          <span>{{ enviando ? 'Enviando...' : 'Enviar' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+

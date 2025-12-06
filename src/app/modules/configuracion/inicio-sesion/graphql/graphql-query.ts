@@ -57,6 +57,7 @@ export const getNotificacionesUsuarioQuery = gql`
           }
           fechaVerificacion
           creadoEn
+          conteoComentarios
         }
         creadoEn
       }
@@ -148,6 +149,85 @@ export const enviarNotificacionPersonalizadaMutation = gql`
 export const getUsuariosActivosQuery = gql`
   query {
     data: getUsuariosActivos {
+      id
+      nickname
+      persona {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
+export const getComentariosNotificacionQuery = gql`
+  query ($notificacionId: Int!) {
+    data: getComentariosNotificacion(notificacionId: $notificacionId) {
+      id
+      comentario
+      creadoEn
+      actualizadoEn
+      usuario {
+        id
+        nickname
+        persona {
+          id
+          nombre
+        }
+      }
+      comentarioPadre {
+        id
+        usuario {
+          id
+          nickname
+        }
+      }
+    }
+  }
+`;
+
+export const getConteoComentariosNotificacionQuery = gql`
+  query ($notificacionId: Int!) {
+    data: getConteoComentariosNotificacion(notificacionId: $notificacionId)
+  }
+`;
+
+export const crearComentarioNotificacionMutation = gql`
+  mutation ($notificacionId: Int!, $comentario: String!, $comentarioPadreId: Int) {
+    data: crearComentarioNotificacion(notificacionId: $notificacionId, comentario: $comentario, comentarioPadreId: $comentarioPadreId) {
+      id
+      comentario
+      creadoEn
+      usuario {
+        id
+        nickname
+        persona {
+          id
+          nombre
+        }
+      }
+      comentarioPadre {
+        id
+      }
+    }
+  }
+`;
+
+export const getUsuariosDestinatariosNotificacionQuery = gql`
+  query ($notificacionId: Int!) {
+    data: getUsuariosDestinatariosNotificacion(notificacionId: $notificacionId) {
+      id
+      nickname
+      persona {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
+export const getUsuariosConAccesoNotificacionQuery = gql`
+  query ($notificacionId: Int!) {
+    data: getUsuariosConAccesoNotificacion(notificacionId: $notificacionId) {
       id
       nickname
       persona {

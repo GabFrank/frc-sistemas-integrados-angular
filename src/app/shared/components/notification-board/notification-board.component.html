@@ -1,5 +1,5 @@
 <div class="notifications-board" cdkDropListGroup>
-    <ng-container *ngIf="{ notificaciones: notificaciones$ | async, pagination: paginationState$ | async } as data">
+    <ng-container *ngIf="{ notificaciones: notificacionesConConteos$ | async, pagination: paginationState$ | async } as data">
         <ng-container *ngFor="let estado of ESTADOS_TABLERO">
             <div class="notifications-column">
                 <div class="notifications-column-header">
@@ -35,9 +35,19 @@
                                 <span>{{ n.notificacion?.tipo }}</span>
                                 <span>{{ n.notificacion?.creadoEn | date:'short' }}</span>
                             </div>
-                            <div class="notification-actions" *ngIf="hasAction(n)">
+                            <div class="notification-actions-row">
+                                <button mat-icon-button 
+                                    class="comment-button"
+                                    (click)="abrirDialogoComentarios(n, $event)"
+                                    matTooltip="Comentarios">
+                                    <mat-icon>comment</mat-icon>
+                                    <span class="comment-badge" *ngIf="n.conteoComentarios > 0">
+                                        {{ n.conteoComentarios }}
+                                    </span>
+                                </button>
                                 <button mat-raised-button color="primary" class="action-button"
-                                    (click)="navigateToAction(n, $event)">
+                                    *ngIf="tieneAccion(n)"
+                                    (click)="navegarAAccion(n, $event)">
                                     <mat-icon>open_in_new</mat-icon>
                                     <span>Revisar</span>
                                 </button>
