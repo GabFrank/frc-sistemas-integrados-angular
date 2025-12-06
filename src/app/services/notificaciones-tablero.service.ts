@@ -52,7 +52,7 @@ export interface NotificacionesPorEstado {
   providedIn: 'root'
 })
 export class NotificacionesTableroService {
-  private readonly pageSize = 10;
+  private readonly pageSize = 15;
   private readonly _paginationState$ = new BehaviorSubject<{ [key: string]: PaginationState }>({});
   private readonly _notificaciones$ = new BehaviorSubject<NotificacionesPorEstado>({});
   private readonly _tokenFcm$ = new BehaviorSubject<string>('');

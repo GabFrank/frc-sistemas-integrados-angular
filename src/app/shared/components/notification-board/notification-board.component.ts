@@ -36,7 +36,7 @@ export class NotificationBoardComponent implements OnInit {
         EstadoNotificacionTablero.VERIFICADO
     ];
     readonly ESTADOS_LABELS = ESTADOS_TABLERO_LABELS;
-    readonly pageSizeOptions = [25, 50, 75, 100];
+    readonly pageSizeOptions = [15, 25, 50, 100];
 
     notificaciones$ = this.notificacionesTableroService.notificaciones$;
     paginationState$ = this.notificacionesTableroService.paginationState$;
@@ -46,22 +46,22 @@ export class NotificationBoardComponent implements OnInit {
     ]).pipe(
         map(([notificaciones, conteos]) => {
             const resultado: { [key: string]: Array<NotificacionData & { conteoComentarios: number }> } = {};
-            
+
             Object.keys(notificaciones).forEach(estado => {
                 resultado[estado] = notificaciones[estado].map(notif => {
                     const notificacionId = notif.notificacion?.id || 0;
                     const conteoDesdeCache = conteos.get(notificacionId);
-                    const conteoComentarios = conteoDesdeCache !== undefined 
-                        ? conteoDesdeCache 
+                    const conteoComentarios = conteoDesdeCache !== undefined
+                        ? conteoDesdeCache
                         : (notif.notificacion?.conteoComentarios || 0);
-                    
+
                     return {
                         ...notif,
                         conteoComentarios
                     };
                 });
             });
-            
+
             return resultado;
         })
     );
@@ -78,6 +78,9 @@ export class NotificationBoardComponent implements OnInit {
     }
 
     ngOnInit(): void {
+        this.ESTADOS_TABLERO.forEach(estado => {
+            this.notificacionesTableroService.cargarNotificaciones(estado, 0, 15);
+        });
     }
 
     onPageChange(event: PageEvent, estado: string): void {
@@ -104,7 +107,7 @@ export class NotificationBoardComponent implements OnInit {
         }
 
         let entityId: number | null = null;
-        
+
         if (n.notificacion?.data) {
             try {
                 const parsedData = JSON.parse(n.notificacion.data);
@@ -129,9 +132,9 @@ export class NotificationBoardComponent implements OnInit {
                 if (entityId) {
                     this.tabService.addTab(
                         new Tab(
-                            ProductoComponent, 
-                            `Producto #${entityId}`, 
-                            new TabData(entityId, { id: entityId }), 
+                            ProductoComponent,
+                            `Producto #${entityId}`,
+                            new TabData(entityId, { id: entityId }),
                             null
                         )
                     );
@@ -146,9 +149,9 @@ export class NotificationBoardComponent implements OnInit {
                 if (entityId) {
                     this.tabService.addTab(
                         new Tab(
-                            EditTransferenciaComponent, 
-                            `Transferencia #${entityId}`, 
-                            new TabData(entityId, { id: entityId }), 
+                            EditTransferenciaComponent,
+                            `Transferencia #${entityId}`,
+                            new TabData(entityId, { id: entityId }),
                             null
                         )
                     );
@@ -162,9 +165,9 @@ export class NotificationBoardComponent implements OnInit {
                 if (entityId) {
                     this.tabService.addTab(
                         new Tab(
-                            EditInventarioComponent, 
-                            `Inventario #${entityId}`, 
-                            new TabData(entityId, { id: entityId }), 
+                            EditInventarioComponent,
+                            `Inventario #${entityId}`,
+                            new TabData(entityId, { id: entityId }),
                             null
                         )
                     );
@@ -261,7 +264,11 @@ export class NotificationBoardComponent implements OnInit {
         this.notificacionesTableroService
             .actualizarEstadoTablero(n.notificacion.id, nuevoEstado)
             .pipe(untilDestroyed(this))
-            .subscribe();
+            .subscribe({
+                next: () => {
+                    this.cdr.markForCheck();
+                }
+            });
     }
 
     drop(event: CdkDragDrop<NotificacionData[]>, nuevoEstado: string): void {
@@ -279,6 +286,10 @@ export class NotificationBoardComponent implements OnInit {
         this.notificacionesTableroService
             .actualizarEstadoTablero(notificacion.notificacion.id, nuevoEstado)
             .pipe(untilDestroyed(this))
-            .subscribe();
+            .subscribe({
+                next: () => {
+                    this.cdr.markForCheck();
+                }
+            });
     }
 }
