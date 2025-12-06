@@ -15,8 +15,8 @@ import { GetUsuariosActivosGQL } from '../../graphql/getUsuariosActivos.gql';
 import { GetUsuariosDestinatariosNotificacionGQL } from '../../graphql/getUsuariosDestinatariosNotificacion.gql';
 import { GetUsuariosConAccesoNotificacionGQL } from '../../graphql/getUsuariosConAccesoNotificacion.gql';
 import { MainService } from '../../../../../main.service';
-import { Observable, BehaviorSubject, combineLatest } from 'rxjs';
-import { map, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { Observable, BehaviorSubject, combineLatest, interval } from 'rxjs';
+import { map, debounceTime, distinctUntilChanged, switchMap, startWith } from 'rxjs/operators';
 
 export interface ComentariosDialogData {
   notificacionId: number;
@@ -51,8 +51,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
   comentarioPadreId: number | null = null;
   cargando = false;
   enviando = false;
-  
-  // Para autocompletado de @menciones
+
   usuarios: Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> = [];
   usuariosFiltrados: Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> = [];
   usuariosFiltrados$: Observable<Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }>>;
@@ -60,10 +59,11 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
   mostrarAutocompletado = false;
   posicionCursor = 0;
 
-  // Lista de usuarios destinatarios (para el panel izquierdo tipo WhatsApp)
   usuariosDestinatarios: Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> = [];
   cargandoUsuarios = false;
   filtroUsuarios = '';
+
+  private ultimoConteoComentarios = 0;
 
   constructor(
     public dialogRef: MatDialogRef<ComentariosNotificacionDialogComponent>,
@@ -75,7 +75,6 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     private mainService: MainService,
     private cdr: ChangeDetectorRef
   ) {
-    // Configurar autocompletado de usuarios
     this.usuariosFiltrados$ = this.textoBusqueda$.pipe(
       debounceTime(200),
       distinctUntilChanged(),
@@ -86,7 +85,6 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
       })
     );
 
-    // Suscribirse para actualizar la lista filtrada
     this.usuariosFiltrados$.pipe(untilDestroyed(this)).subscribe();
   }
 
@@ -94,6 +92,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     this.cargarComentarios();
     this.cargarUsuariosActivos();
     this.cargarUsuariosDestinatarios();
+    this.iniciarPollingComentarios();
   }
 
   cargarComentarios(): void {
@@ -105,6 +104,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
       .subscribe({
         next: (comentarios) => {
           this.comentarios = comentarios;
+          this.ultimoConteoComentarios = comentarios.length;
           this.cargando = false;
           this.cdr.markForCheck();
         },
@@ -113,6 +113,40 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
           this.cdr.markForCheck();
         }
       });
+  }
+
+  iniciarPollingComentarios(): void {
+    setTimeout(() => {
+      interval(3000)
+        .pipe(
+          switchMap(() => this.comentariosService.obtenerComentarios(this.data.notificacionId)),
+          untilDestroyed(this)
+        )
+        .subscribe({
+          next: (comentarios) => {
+            if (comentarios.length !== this.ultimoConteoComentarios) {
+              const conteoAnterior = this.ultimoConteoComentarios;
+              const habiaComentarios = this.comentarios.length > 0;
+              this.comentarios = comentarios;
+              this.ultimoConteoComentarios = comentarios.length;
+
+              if (habiaComentarios && comentarios.length > conteoAnterior) {
+                setTimeout(() => {
+                  const comentariosList = document.querySelector('.comentarios-list');
+                  if (comentariosList) {
+                    comentariosList.scrollTop = comentariosList.scrollHeight;
+                  }
+                }, 100);
+              }
+
+              this.cdr.markForCheck();
+            }
+          },
+          error: (err) => {
+            console.warn('Error en polling de comentarios:', err);
+          }
+        });
+    }, 1000);
   }
 
   cargarUsuariosActivos(): void {
@@ -144,14 +178,11 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     const texto = textarea.value;
     this.posicionCursor = textarea.selectionStart;
 
-    // Detectar si el usuario está escribiendo @
     const textoAntesCursor = texto.substring(0, this.posicionCursor);
     const ultimoArroba = textoAntesCursor.lastIndexOf('@');
-    
+
     if (ultimoArroba !== -1) {
       const textoDespuesArroba = textoAntesCursor.substring(ultimoArroba + 1);
-      // Si no hay espacio después del @, mostrar autocompletado
-      // Permitir espacios en el autocompletado para nicknames con espacios
       if (!textoDespuesArroba.includes('\n') && !textoDespuesArroba.endsWith(' ')) {
         this.mostrarAutocompletado = true;
         this.textoBusqueda$.next(textoDespuesArroba);
@@ -159,7 +190,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
         return;
       }
     }
-    
+
     this.mostrarAutocompletado = false;
     this.cdr.markForCheck();
   }
@@ -171,22 +202,21 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     const texto = textarea.value;
     const textoAntesCursor = texto.substring(0, this.posicionCursor);
     const ultimoArroba = textoAntesCursor.lastIndexOf('@');
-    
+
     if (ultimoArroba !== -1) {
       const textoAntesArroba = texto.substring(0, ultimoArroba);
       const textoDespuesCursor = texto.substring(this.posicionCursor);
       const nickname = usuario.nickname || '';
-      
+
       this.nuevoComentario = textoAntesArroba + '@' + nickname + ' ' + textoDespuesCursor;
       this.mostrarAutocompletado = false;
-      
-      // Restaurar el foco y posición del cursor
+
       setTimeout(() => {
         textarea.focus();
         const nuevaPosicion = ultimoArroba + 1 + nickname.length + 1;
         textarea.setSelectionRange(nuevaPosicion, nuevaPosicion);
       }, 0);
-      
+
       this.cdr.markForCheck();
     }
   }
@@ -201,24 +231,21 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
       return;
     }
 
-    // Guardar el comentario padre si existe
     const comentarioPadreIdTemp = this.comentarioPadreId;
 
-    // Limpiar el input inmediatamente
     this.nuevoComentario = '';
     this.comentarioPadreId = null;
     this.mostrarAutocompletado = false;
     this.cdr.markForCheck();
 
-    // Crear comentario temporal optimista
     const usuarioActual = this.mainService.usuarioActual;
     if (usuarioActual) {
-      const comentarioPadreTemp = comentarioPadreIdTemp 
+      const comentarioPadreTemp = comentarioPadreIdTemp
         ? this.comentarios.find(c => c.id === comentarioPadreIdTemp)
         : undefined;
 
       const comentarioTemporal: NotificacionComentario = {
-        id: -1, // ID temporal
+        id: -1,
         comentario: comentarioTexto,
         creadoEn: new Date().toISOString(),
         actualizadoEn: new Date().toISOString(),
@@ -239,11 +266,9 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
         } : undefined
       };
 
-      // Agregar el comentario temporal a la lista inmediatamente
       this.comentarios = [...this.comentarios, comentarioTemporal];
       this.cdr.markForCheck();
 
-      // Hacer scroll al final de la lista de comentarios
       setTimeout(() => {
         const comentariosList = document.querySelector('.comentarios-list');
         if (comentariosList) {
@@ -255,40 +280,35 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     this.enviando = true;
     this.cdr.markForCheck();
 
-    // Enviar al servidor
     this.comentariosService.crearComentario(
       this.data.notificacionId,
       comentarioTexto,
       comentarioPadreIdTemp || undefined
     ).pipe(untilDestroyed(this))
-    .subscribe({
-      next: (comentarioReal) => {
-        // Reemplazar el comentario temporal con el real
-        const indiceTemporal = this.comentarios.findIndex(c => c.id === -1);
-        if (indiceTemporal !== -1) {
-          this.comentarios[indiceTemporal] = comentarioReal;
-        } else {
-          // Si no se encontró el temporal, agregar el real al final
-          this.comentarios = [...this.comentarios, comentarioReal];
+      .subscribe({
+        next: (comentarioReal) => {
+          const indiceTemporal = this.comentarios.findIndex(c => c.id === -1);
+          if (indiceTemporal !== -1) {
+            this.comentarios[indiceTemporal] = comentarioReal;
+          } else {
+            this.comentarios = [...this.comentarios, comentarioReal];
+          }
+          this.enviando = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.comentarios = this.comentarios.filter(c => c.id !== -1);
+          this.enviando = false;
+          this.cargarComentarios();
+          this.cdr.markForCheck();
         }
-        this.enviando = false;
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        // En caso de error, remover el comentario temporal y recargar
-        this.comentarios = this.comentarios.filter(c => c.id !== -1);
-        this.enviando = false;
-        this.cargarComentarios();
-        this.cdr.markForCheck();
-      }
-    });
+      });
   }
 
   responderComentario(comentario: NotificacionComentario): void {
     this.comentarioPadreId = comentario.id;
     this.nuevoComentario = `@${comentario.usuario.nickname} `;
-    
-    // Enfocar el textarea
+
     setTimeout(() => {
       const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
       if (textarea) {
@@ -296,7 +316,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
         textarea.setSelectionRange(textarea.value.length, textarea.value.length);
       }
     }, 0);
-    
+
     this.cdr.markForCheck();
   }
 
@@ -311,7 +331,6 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
       return '';
     }
 
-    // Escapar HTML para seguridad
     const textoEscapado = texto
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -319,13 +338,11 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
 
-    // Reemplazar menciones @usuario con span destacado
     const textoFormateado = textoEscapado.replace(
       /@([a-zA-Z0-9_]+)/g,
       '<span class="mention">@$1</span>'
     );
 
-    // Reemplazar saltos de línea con <br>
     return textoFormateado.replace(/\n/g, '<br>');
   }
 
@@ -333,9 +350,6 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     this.dialogRef.close();
   }
 
-  /**
-   * Carga los usuarios con acceso a la notificación (destinatarios directos + usuarios con roles asociados)
-   */
   cargarUsuariosDestinatarios(): void {
     this.cargandoUsuarios = true;
     this.cdr.markForCheck();
@@ -362,9 +376,6 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
       });
   }
 
-  /**
-   * Filtra los usuarios destinatarios según el texto de búsqueda
-   */
   obtenerUsuariosDestinatariosFiltrados(): Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> {
     if (!this.filtroUsuarios || this.filtroUsuarios.trim() === '') {
       return this.usuariosDestinatarios;
@@ -378,4 +389,3 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     });
   }
 }
-
