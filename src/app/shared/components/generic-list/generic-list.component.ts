@@ -39,7 +39,6 @@ export class GenericListComponent implements OnInit {
   @Output()
   customFunction = new EventEmitter<any>(null);
 
-  // Segundo botón custom opcional
   @Output()
   customFunction2 = new EventEmitter<any>(null);
 
@@ -69,6 +68,9 @@ export class GenericListComponent implements OnInit {
 
   @Input()
   disableCustom: boolean;
+
+  @Input()
+  disableCustom2: boolean;
 
   @Input()
   data

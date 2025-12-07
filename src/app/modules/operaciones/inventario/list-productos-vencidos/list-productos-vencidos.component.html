@@ -1,6 +1,6 @@
 <app-generic-list titulo="Productos Vencidos" (filtrar)="onFiltrar()" [isCustom]="true" customName="Generar Pdf"
-  (customFunction)="onGenerarPdf()" [isCustom2]="true" customName2="Retirar a otra sucursal"
-  (customFunction2)="onRetirarProductos()" (resetFiltro)="onResetFiltro()">
+  (customFunction)="onGenerarPdf()" [isCustom2]="true" customName2="Retiro"
+  (customFunction2)="onRetirarProductos()" [disableCustom2]="disableRetiroButton" (resetFiltro)="onResetFiltro()">
   <div filtros>
     <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
       <div fxFlex="15%">

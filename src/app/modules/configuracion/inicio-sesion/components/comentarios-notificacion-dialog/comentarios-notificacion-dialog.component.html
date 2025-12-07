@@ -30,9 +30,8 @@
       </div>
 
       <div *ngFor="let usuario of obtenerUsuariosDestinatariosFiltrados()" class="participant-item">
-        <div class="participant-avatar" 
-             [attr.data-initial]="Initials(usuario)"
-             [style.background]="'linear-gradient(135deg, ' + UserColor(usuario.id) + ', ' + UserColor(usuario.id + 1) + ')'">
+        <div class="participant-avatar" [attr.data-initial]="Initials(usuario)"
+          [style.background]="'linear-gradient(135deg, ' + UserColor(usuario.id) + ', ' + UserColor(usuario.id + 1) + ')'">
           {{ Initials(usuario) }}
         </div>
         <div class="participant-info">
@@ -68,41 +67,45 @@
           <p>Sé el primero en comentar</p>
         </div>
 
-        <div *ngFor="let comentario of comentarios; let i = index" 
-             class="message-wrapper"
-             [class.is-reply]="comentario.comentarioPadre"
-             [class.same-author]="i > 0 && comentarios[i-1].usuario.id === comentario.usuario.id"
-             [id]="'comentario-' + comentario.id">
-          
+        <div *ngFor="let comentario of comentarios; let i = index" class="message-wrapper"
+          [class.is-reply]="comentario.comentarioPadre"
+          [class.same-author]="i > 0 && comentarios[i-1].usuario.id === comentario.usuario.id"
+          [id]="'comentario-' + comentario.id">
+
           <div class="message-bubble">
-            <div *ngIf="!comentario.comentarioPadre && (i === 0 || comentarios[i-1].usuario.id !== comentario.usuario.id)" 
-                 class="message-avatar" 
-                 [attr.data-initial]="Initials(comentario.usuario)"
-                 [style.background]="'linear-gradient(135deg, ' + UserColor(comentario.usuario.id) + ', ' + UserColor(comentario.usuario.id + 1) + ')'">
+            <div
+              *ngIf="!comentario.comentarioPadre && (i === 0 || comentarios[i-1].usuario.id !== comentario.usuario.id)"
+              class="message-avatar" [attr.data-initial]="Initials(comentario.usuario)"
+              [style.background]="'linear-gradient(135deg, ' + UserColor(comentario.usuario.id) + ', ' + UserColor(comentario.usuario.id + 1) + ')'">
               {{ Initials(comentario.usuario) }}
             </div>
-            
-            <div class="message-content"
-                 [style.background]="UserLightColor(comentario.usuario.id)"
-                 [style.border-left-color]="UserColor(comentario.usuario.id)">
-              <div *ngIf="!comentario.comentarioPadre && (i === 0 || comentarios[i-1].usuario.id !== comentario.usuario.id)" 
-                   class="message-header">
-                <span class="message-author" [style.color]="UserColor(comentario.usuario.id)">{{ comentario.usuario.persona?.nombre || comentario.usuario.nickname }}</span>
+
+            <div class="message-content" [style.background]="UserLightColor(comentario.usuario.id)"
+              [style.border-left-color]="UserColor(comentario.usuario.id)">
+              <div
+                *ngIf="!comentario.comentarioPadre && (i === 0 || comentarios[i-1].usuario.id !== comentario.usuario.id)"
+                class="message-header">
+                <span class="message-author" [style.color]="UserColor(comentario.usuario.id)">{{
+                  comentario.usuario.persona?.nombre || comentario.usuario.nickname }}</span>
                 <span class="message-username">@{{ comentario.usuario.nickname }}</span>
                 <span class="message-time">{{ comentario.creadoEn | date:'short' }}</span>
               </div>
 
               <div *ngIf="comentario.comentarioPadre" class="reply-context"
-                    [style.border-left-color]="UserColor(comentario.comentarioPadre.usuario.id)"
-                   [style.background]="UserLightColor(comentario.comentarioPadre.usuario.id)">
-                <mat-icon class="reply-icon" [style.color]="UserColor(comentario.comentarioPadre.usuario.id)">reply</mat-icon>
-                <span class="reply-text">Respondiendo a <strong [style.color]="UserColor(comentario.comentarioPadre.usuario.id)">@{{ comentario.comentarioPadre.usuario.nickname }}</strong></span>
+                [style.border-left-color]="UserColor(comentario.comentarioPadre.usuario.id)"
+                [style.background]="UserLightColor(comentario.comentarioPadre.usuario.id)">
+                <mat-icon class="reply-icon"
+                  [style.color]="UserColor(comentario.comentarioPadre.usuario.id)">reply</mat-icon>
+                <span class="reply-text">Respondiendo a <strong
+                    [style.color]="UserColor(comentario.comentarioPadre.usuario.id)">@{{
+                    comentario.comentarioPadre.usuario.nickname }}</strong></span>
               </div>
 
               <div class="message-text" [innerHTML]="formatearComentario(comentario.comentario)"></div>
 
               <div class="message-actions">
-                <button mat-icon-button (click)="responderComentario(comentario)" class="action-btn" matTooltip="Responder">
+                <button mat-icon-button (click)="responderComentario(comentario)" class="action-btn"
+                  matTooltip="Responder">
                   <mat-icon>reply</mat-icon>
                 </button>
               </div>
@@ -124,16 +127,14 @@
       </div>
 
       <div *ngIf="mostrarAutocompletado && usuariosFiltrados.length > 0" class="mention-autocomplete">
-        <div *ngFor="let usuario of usuariosFiltrados" 
-             class="mention-option" 
-             (click)="seleccionarUsuario(usuario)">
-          <div class="mention-avatar" 
-              [attr.data-initial]="Initials(usuario)"
-               [style.background]="'linear-gradient(135deg, ' + UserColor(usuario.id) + ', ' + UserColor(usuario.id + 1) + ')'">
+        <div *ngFor="let usuario of usuariosFiltrados" class="mention-option" (click)="seleccionarUsuario(usuario)">
+          <div class="mention-avatar" [attr.data-initial]="Initials(usuario)"
+            [style.background]="'linear-gradient(135deg, ' + UserColor(usuario.id) + ', ' + UserColor(usuario.id + 1) + ')'">
             {{ Initials(usuario) }}
           </div>
           <div class="mention-info">
-            <span class="mention-name" [style.color]="UserColor(usuario.id)">{{ usuario.persona?.nombre || usuario.nickname }}</span>
+            <span class="mention-name" [style.color]="UserColor(usuario.id)">{{ usuario.persona?.nombre ||
+              usuario.nickname }}</span>
             <span class="mention-username">@{{ usuario.nickname }}</span>
           </div>
         </div>
@@ -142,19 +143,11 @@
       <div class="input-container">
         <mat-form-field appearance="outline" class="message-input-field">
           <mat-label>Escribe un mensaje...</mat-label>
-          <textarea matInput 
-                    [(ngModel)]="nuevoComentario" 
-                    (input)="onTextareaInput($event)" 
-                    rows="1"
-                    [disabled]="enviando" 
-                    placeholder="Escribe @ para mencionar a alguien"
-                    class="message-textarea"></textarea>
+          <textarea matInput [(ngModel)]="nuevoComentario" (input)="onTextareaInput($event)" rows="1"
+            [disabled]="enviando" placeholder="Escribe @ para mencionar a alguien" class="message-textarea"></textarea>
         </mat-form-field>
-        <button mat-fab 
-                color="primary" 
-                (click)="enviarComentario()"
-                [disabled]="!nuevoComentario.trim() || enviando"
-                class="send-button">
+        <button mat-fab color="primary" (click)="enviarComentario()" [disabled]="!nuevoComentario.trim() || enviando"
+          class="send-button">
           <mat-icon *ngIf="!enviando">send</mat-icon>
           <mat-spinner *ngIf="enviando" diameter="24" class="send-spinner"></mat-spinner>
         </button>
