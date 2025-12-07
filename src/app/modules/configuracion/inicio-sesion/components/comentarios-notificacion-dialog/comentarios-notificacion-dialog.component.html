@@ -141,15 +141,27 @@
       </div>
 
       <div class="input-container">
-        <mat-form-field appearance="outline" class="message-input-field">
-          <mat-label>Escribe un mensaje...</mat-label>
-          <textarea matInput [(ngModel)]="nuevoComentario" (input)="onTextareaInput($event)" rows="1"
-            [disabled]="enviando" placeholder="Escribe @ para mencionar a alguien" class="message-textarea"></textarea>
-        </mat-form-field>
-        <button mat-fab color="primary" (click)="enviarComentario()" [disabled]="!nuevoComentario.trim() || enviando"
-          class="send-button">
+        <button mat-icon-button class="add-button" type="button">
+          <mat-icon>add</mat-icon>
+        </button>
+        <div class="textarea-wrapper">
+          <textarea 
+            [(ngModel)]="nuevoComentario" 
+            (input)="onTextareaInput($event); adjustTextareaHeight($event)"
+            (keydown)="onKeyDown($event)"
+            [disabled]="enviando" 
+            placeholder="Escribe un mensaje..." 
+            class="gemini-textarea"
+            #mensajeTextarea></textarea>
+        </div>
+        <button 
+          mat-icon-button 
+          class="send-button-gemini" 
+          type="button"
+          [disabled]="!nuevoComentario.trim() || enviando"
+          (click)="enviarComentario()">
           <mat-icon *ngIf="!enviando">send</mat-icon>
-          <mat-spinner *ngIf="enviando" diameter="24" class="send-spinner"></mat-spinner>
+          <mat-spinner *ngIf="enviando" diameter="20" class="send-spinner"></mat-spinner>
         </button>
       </div>
     </div>

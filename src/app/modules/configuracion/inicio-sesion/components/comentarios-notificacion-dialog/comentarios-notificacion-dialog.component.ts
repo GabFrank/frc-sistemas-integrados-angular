@@ -238,6 +238,22 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
+  adjustTextareaHeight(event: Event): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+  }
+
+  onKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      // Allow Enter to create new line, textarea will auto-expand
+      // If user wants to send with Enter+Shift or just Enter, they can modify this behavior
+      setTimeout(() => {
+        this.adjustTextareaHeight(event);
+      }, 0);
+    }
+  }
+
   seleccionarUsuario(usuario: { id: number; nickname: string; persona?: { id: number; nombre: string } }): void {
     const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
     if (!textarea) return;
@@ -279,6 +295,15 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     this.nuevoComentario = '';
     this.comentarioPadreId = null;
     this.mostrarAutocompletado = false;
+    
+    // Reset textarea height
+    setTimeout(() => {
+      const textarea = document.querySelector('.gemini-textarea') as HTMLTextAreaElement;
+      if (textarea) {
+        textarea.style.height = '20px';
+      }
+    }, 0);
+    
     this.cdr.markForCheck();
 
     const usuarioActual = this.mainService.usuarioActual;
