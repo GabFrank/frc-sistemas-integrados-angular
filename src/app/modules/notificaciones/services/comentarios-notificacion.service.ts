@@ -6,7 +6,7 @@ import {
   GetConteoComentariosNotificacionGQL,
   CrearComentarioNotificacionGQL,
   NotificacionComentario 
-} from '../modules/configuracion/inicio-sesion/graphql/comentariosNotificacion.gql';
+} from '../graphql/comentariosNotificacion.gql';
 
 @Injectable({
   providedIn: 'root'

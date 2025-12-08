@@ -10,8 +10,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { NotificacionesTableroService } from '../../../services/notificaciones-tablero.service';
-import { NotificacionSnackbarService } from '../../../notificacion-snackbar.service';
+import { NotificacionesTableroService } from '../../services/notificaciones-tablero.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 @UntilDestroy()

@@ -52,7 +52,7 @@
                                         {{ n.conteoComentarios }}
                                     </span>
                                 </button>
-                                <button mat-raised-button color="primary" class="action-button" *ngIf="tieneAccion(n)"
+                                <button mat-raised-button color="primary" class="action-button" *ngIf="n.tieneAccion"
                                     (click)="navegarAAccion(n, $event)">
                                     <mat-icon>open_in_new</mat-icon>
                                     <span>Revisar</span>

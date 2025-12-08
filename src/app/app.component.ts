@@ -26,7 +26,7 @@ import { SearchBarDialogComponent } from "./shared/widgets/search-bar-dialog/sea
 import { DialogoNuevasFuncionesComponent } from "./shared/components/dialogo-nuevas-funciones/dialogo-nuevas-funciones.component";
 import { GraphqlConnectionService, connectionStatusSub } from "./shared/services/graphql-connection.service";
 import { ConfirmDialogComponent } from "./shared/components/confirm-dialog/confirm-dialog.component";
-import { NotificacionesTableroService } from "./services/notificaciones-tablero.service";
+import { NotificacionesTableroService } from "./modules/notificaciones/services/notificaciones-tablero.service";
 
 export class Pageable {
   getPageNumber: number;

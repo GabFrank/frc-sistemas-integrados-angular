@@ -60,7 +60,7 @@ import { A11yModule } from '@angular/cdk/a11y';
 import { ConfiguracionFullDialogComponent } from './components/configuracion-full-dialog/configuracion-full-dialog.component';
 import { ConfiguracionDialogComponent } from './components/configuracion-dialog/configuracion-dialog.component';
 import { SideMiniVariantComponent } from './components/side-mini-variant/side-mini-variant.component';
-import { NotificationBoardComponent } from './components/notification-board/notification-board.component';
+import { NotificationBoardComponent } from '../modules/notificaciones/components/notification-board/notification-board.component';
 
 export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
 
@@ -106,8 +106,7 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     DataDisplayComponent,
     ConfiguracionFullDialogComponent,
     ConfiguracionDialogComponent,
-    SideMiniVariantComponent,
-    NotificationBoardComponent
+    SideMiniVariantComponent
   ],
   imports: [
     CommonModule,
@@ -122,7 +121,8 @@ export const options: Partial<IConfig> | (() => Partial<IConfig>) = null;
     NgxQRCodeModule,
     Ng2FittextModule,
     BootstrapModule,
-    NgxSpinnerModule
+    NgxSpinnerModule,
+    NotificationBoardComponent
   ],
   exports: [
     HeaderComponent,

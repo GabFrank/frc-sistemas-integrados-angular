@@ -8,11 +8,11 @@ import {
   marcarNotificacionLeidaMutation,
   enviarNotificacionPersonalizadaMutation,
   usuariosActivosQuery
-} from '../modules/configuracion/inicio-sesion/graphql/graphql-query';
-import { Observable, BehaviorSubject, combineLatest, of } from 'rxjs';
-import { map, tap, switchMap, catchError } from 'rxjs/operators';
-import { EstadoNotificacionTablero } from '../shared/enums/estado-notificacion-tablero.enum';
-import { ElectronService } from '../commons/core/electron/electron.service';
+} from '../graphql/graphql-query';
+import { Observable, BehaviorSubject, combineLatest, of, Subject } from 'rxjs';
+import { map, tap, switchMap, catchError, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { EstadoNotificacionTablero } from '../enums/estado-notificacion-tablero.enum';
+import { ElectronService } from '../../../commons/core/electron/electron.service';
 
 export interface NotificacionData {
   id: number;
@@ -56,6 +56,8 @@ export class NotificacionesTableroService {
   private readonly _paginationState$ = new BehaviorSubject<{ [key: string]: PaginationState }>({});
   private readonly _notificaciones$ = new BehaviorSubject<NotificacionesPorEstado>({});
   private readonly _tokenFcm$ = new BehaviorSubject<string>('');
+  private readonly _refreshTrigger$ = new Subject<void>();
+  private isRefreshing = false;
 
   constructor(
     private apollo: Apollo,
@@ -73,9 +75,28 @@ export class NotificacionesTableroService {
       });
     });
 
+    // Debounce para evitar múltiples refrescos simultáneos
+    this._refreshTrigger$.pipe(
+      debounceTime(500),
+      distinctUntilChanged()
+    ).subscribe(() => {
+      if (!this.isRefreshing) {
+        this.isRefreshing = true;
+        this.refrescarTodas();
+        // Actualizar conteo después de un delay para que las queries terminen
+        setTimeout(() => {
+          this.obtenerConteoNoLeidas().subscribe(() => {
+            this.isRefreshing = false;
+          });
+        }, 800);
+      }
+    });
+
     this.electronService.notificationReceived.subscribe(() => {
+      // Actualizar conteo inmediatamente para feedback rápido
       this.actualizarConteo();
-      this.refrescarTodas();
+      // El refresh se hará con debounce para evitar múltiples queries
+      this._refreshTrigger$.next();
     });
   }
 
@@ -125,7 +146,15 @@ export class NotificacionesTableroService {
   }
 
   private actualizarConteoDesdeNotificaciones(): void {
-    this.actualizarConteo();
+    // Calcular conteo desde las notificaciones ya cargadas en lugar de hacer otra query
+    const notificaciones = this._notificaciones$.value;
+    let conteoNoLeidas = 0;
+    
+    Object.values(notificaciones).forEach(notificacionesEstado => {
+      conteoNoLeidas += notificacionesEstado.filter(n => !n.leida).length;
+    });
+    
+    this._unreadCount$.next(conteoNoLeidas);
   }
 
   cargarNotificaciones(estado: string, pageIndex: number, pageSize: number): void {
@@ -225,7 +254,7 @@ export class NotificacionesTableroService {
     }).pipe(
       tap((result: any) => {
         if (result?.data?.data) {
-          this.refrescarTodas();
+          this._refreshTrigger$.next();
         }
       })
     );
@@ -254,6 +283,7 @@ export class NotificacionesTableroService {
 
 
   refrescarTodas(): void {
+    // Cargar todas las columnas en paralelo pero sin hacer query adicional de conteo
     Object.values(EstadoNotificacionTablero).forEach(estado => {
       const estadoPagination = this._paginationState$.value[estado];
       if (estadoPagination) {
@@ -311,7 +341,7 @@ export class NotificacionesTableroService {
     }).pipe(
       tap((result: any) => {
         if (result?.data?.data) {
-          this.refrescarTodas();
+          this._refreshTrigger$.next();
           this.actualizarConteo();
         }
       }),
@@ -319,3 +349,4 @@ export class NotificacionesTableroService {
     );
   }
 }
+

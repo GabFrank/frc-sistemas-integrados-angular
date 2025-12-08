@@ -388,6 +388,7 @@ $green-dark: #2e7d32;
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -566,7 +567,7 @@ $green-dark: #2e7d32;
   background: transparent;
   flex-shrink: 0;
   position: relative;
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -623,6 +624,7 @@ $green-dark: #2e7d32;
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -653,6 +655,7 @@ $green-dark: #2e7d32;
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -734,7 +737,7 @@ $green-dark: #2e7d32;
   max-width: 600px;
   margin: 0 auto;
   width: 100%;
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -744,26 +747,27 @@ $green-dark: #2e7d32;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.3s ease;
   }
-  
+
   &:hover {
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3);
     background: rgba(255, 255, 255, 0.1);
-    
+
     &::before {
       opacity: 1;
     }
   }
-  
+
   &:focus-within {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.4);
     border-color: rgba(255, 255, 255, 0.2);
     background: rgba(255, 255, 255, 0.12);
-    
+
     &::before {
       opacity: 1;
       background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
@@ -817,18 +821,12 @@ $green-dark: #2e7d32;
 
     &:focus {
       outline: none;
-      
-      + * {
-        // Focus effect on container
-      }
     }
 
     &:disabled {
       opacity: 0.6;
       cursor: not-allowed;
     }
-
-    // Scrollbar styling
     &::-webkit-scrollbar {
       width: 6px;
     }
@@ -878,6 +876,7 @@ $green-dark: #2e7d32;
     }
 
     .send-spinner {
+
       :deep(.mdc-circular-progress__determinate-circle),
       :deep(.mdc-circular-progress__indeterminate-circle-graphic) {
         stroke: $text-primary;
@@ -919,9 +918,11 @@ $green-dark: #2e7d32;
     border-radius: 8px;
     box-shadow: 0 0 20px rgba(244, 67, 54, 0.5);
   }
+
   50% {
     box-shadow: 0 0 30px rgba(67, 160, 71, 0.5);
   }
+
   100% {
     background: transparent;
     box-shadow: none;

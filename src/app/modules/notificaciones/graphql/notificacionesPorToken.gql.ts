@@ -28,3 +28,4 @@ export interface NotificacionesPorTokenResponse {
 export class NotificacionesPorTokenGQL extends Query<NotificacionesPorTokenResponse> {
   override document = notificacionesPorTokenQuery;
 }
+

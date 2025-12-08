@@ -9,3 +9,4 @@ export const ESTADOS_TABLERO_LABELS = {
   [EstadoNotificacionTablero.EN_PROCESO]: 'En Proceso',
   [EstadoNotificacionTablero.VERIFICADO]: 'Verificado'
 };
+

@@ -39,3 +39,4 @@ export interface NotificacionesUsuarioResponse {
 export class NotificacionesUsuarioGQL extends Query<NotificacionesUsuarioResponse> {
   override document = notificacionesUsuarioQuery;
 }
+

@@ -1,29 +1,46 @@
 import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { NotificacionesTableroService, NotificacionData } from '../../../services/notificaciones-tablero.service';
-import { ComentariosNotificacionService } from '../../../services/comentarios-notificacion.service';
-import { MarcarNotificacionLeidaGQL, RegistrarInteraccionNotificacionGQL } from '../../../modules/configuracion/inicio-sesion/graphql/notificacionMutations.gql';
-import { NotificationDetailDialogComponent } from '../../../modules/configuracion/inicio-sesion/components/notification-detail-dialog/notification-detail-dialog.component';
-import { ComentariosNotificacionDialogComponent } from '../../../modules/configuracion/inicio-sesion/components/comentarios-notificacion-dialog/comentarios-notificacion-dialog.component';
-import { EstadoNotificacionTablero, ESTADOS_TABLERO_LABELS } from '../../../shared/enums/estado-notificacion-tablero.enum';
-import { PageEvent } from '@angular/material/paginator';
-import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { TabService, TabData } from '../../../layouts/tab/tab.service';
-import { Tab } from '../../../layouts/tab/tab.model';
-import { EditTransferenciaComponent } from '../../../modules/operaciones/transferencia/edit-transferencia/edit-transferencia.component';
-import { ListTransferenciaComponent } from '../../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
-import { EditInventarioComponent } from '../../../modules/operaciones/inventario/edit-inventario/edit-inventario.component';
-import { ListInventarioComponent } from '../../../modules/operaciones/inventario/list-inventario/list-inventario.component';
-import { ListMovimientoStockComponent } from '../../../modules/operaciones/movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
-import { ListProductoComponent } from '../../../modules/productos/producto/list-producto/list-producto.component';
-import { ProductoComponent } from '../../../modules/productos/producto/edit-producto/producto.component';
+import { NotificacionesTableroService, NotificacionData } from '../../services/notificaciones-tablero.service';
+import { ComentariosNotificacionService } from '../../services/comentarios-notificacion.service';
+import { MarcarNotificacionLeidaGQL, RegistrarInteraccionNotificacionGQL } from '../../graphql/notificacionMutations.gql';
+import { NotificationDetailDialogComponent } from '../notification-detail-dialog/notification-detail-dialog.component';
+import { ComentariosNotificacionDialogComponent } from '../comentarios-notificacion-dialog/comentarios-notificacion-dialog.component';
+import { EstadoNotificacionTablero, ESTADOS_TABLERO_LABELS } from '../../enums/estado-notificacion-tablero.enum';
+import { TabService, TabData } from '../../../../layouts/tab/tab.service';
+import { Tab } from '../../../../layouts/tab/tab.model';
+import { EditTransferenciaComponent } from '../../../operaciones/transferencia/edit-transferencia/edit-transferencia.component';
+import { ListTransferenciaComponent } from '../../../operaciones/transferencia/list-transferencia/list-transferencia.component';
+import { EditInventarioComponent } from '../../../operaciones/inventario/edit-inventario/edit-inventario.component';
+import { ListInventarioComponent } from '../../../operaciones/inventario/list-inventario/list-inventario.component';
+import { ListMovimientoStockComponent } from '../../../operaciones/movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
+import { ListProductoComponent } from '../../../productos/producto/list-producto/list-producto.component';
+import { ProductoComponent } from '../../../productos/producto/edit-producto/producto.component';
 import { combineLatest, of } from 'rxjs';
 import { map, take, delay, switchMap } from 'rxjs/operators';
 
 @UntilDestroy()
 @Component({
     selector: 'app-notification-board',
+    standalone: true,
+    imports: [
+        CommonModule,
+        MatCardModule,
+        MatButtonModule,
+        MatIconModule,
+        MatTooltipModule,
+        MatPaginatorModule,
+        MatProgressSpinnerModule,
+        DragDropModule
+    ],
     templateUrl: './notification-board.component.html',
     styleUrls: ['./notification-board.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush
@@ -40,12 +57,14 @@ export class NotificationBoardComponent implements OnInit {
 
     notificaciones$ = this.notificacionesTableroService.notificaciones$;
     paginationState$ = this.notificacionesTableroService.paginationState$;
+    private tieneAccionCache = new Map<string, boolean>();
+
     notificacionesConConteos$ = combineLatest([
         this.notificacionesTableroService.notificaciones$,
         this.comentariosService.conteosPorNotificacion$
     ]).pipe(
         map(([notificaciones, conteos]) => {
-            const resultado: { [key: string]: Array<NotificacionData & { conteoComentarios: number }> } = {};
+            const resultado: { [key: string]: Array<NotificacionData & { conteoComentarios: number; tieneAccion: boolean }> } = {};
 
             Object.keys(notificaciones).forEach(estado => {
                 resultado[estado] = notificaciones[estado].map(notif => {
@@ -55,9 +74,18 @@ export class NotificationBoardComponent implements OnInit {
                         ? conteoDesdeCache
                         : (notif.notificacion?.conteoComentarios || 0);
 
+
+                    const cacheKey = `${notif.notificacion?.tipo}-${notif.notificacion?.titulo}-${notif.notificacion?.mensaje}`;
+                    let tieneAccion = this.tieneAccionCache.get(cacheKey);
+                    if (tieneAccion === undefined) {
+                        tieneAccion = this.calcularTieneAccion(notif);
+                        this.tieneAccionCache.set(cacheKey, tieneAccion);
+                    }
+
                     return {
                         ...notif,
-                        conteoComentarios
+                        conteoComentarios,
+                        tieneAccion
                     };
                 });
             });
@@ -65,6 +93,16 @@ export class NotificationBoardComponent implements OnInit {
             return resultado;
         })
     );
+
+    private readonly tiposConAccion = [
+        'AJUSTE_STOCK',
+        'PRODUCTO_CREADO',
+        'TRANSFERENCIA_INICIADA',
+        'CAMBIO_SUCURSAL_PRE_TRANSFERENCIA',
+        'PRECIO_ACTUALIZADO',
+        'AJUSTE_COSTO',
+        'INVENTARIO_INICIADO'
+    ];
 
     constructor(
         private notificacionesTableroService: NotificacionesTableroService,
@@ -93,6 +131,20 @@ export class NotificationBoardComponent implements OnInit {
 
     onNotificationClick(n: NotificacionData): void {
         this.openDetail(n);
+    }
+
+    calcularTieneAccion(n: NotificacionData): boolean {
+        const tipo = n.notificacion?.tipo;
+        const titulo = n.notificacion?.titulo || '';
+        const mensaje = n.notificacion?.mensaje || '';
+
+        const esMencionado = titulo === 'Mencionado en comentario' || mensaje.includes('te mencionó');
+
+        if (tipo === 'PERSONALIZADA' && esMencionado) {
+            return true;
+        }
+
+        return tipo ? this.tiposConAccion.includes(tipo) : false;
     }
 
     navegarAAccion(n: NotificacionData, event?: Event): void {
@@ -282,29 +334,6 @@ export class NotificationBoardComponent implements OnInit {
         }
     }
 
-    tieneAccion(n: NotificacionData): boolean {
-        const tipo = n.notificacion?.tipo;
-        const titulo = n.notificacion?.titulo || '';
-        const mensaje = n.notificacion?.mensaje || '';
-
-        const esMencionado = titulo === 'Mencionado en comentario' || mensaje.includes('te mencionó');
-
-        const tiposConAccion = [
-            'AJUSTE_STOCK',
-            'PRODUCTO_CREADO',
-            'TRANSFERENCIA_INICIADA',
-            'CAMBIO_SUCURSAL_PRE_TRANSFERENCIA',
-            'PRECIO_ACTUALIZADO',
-            'AJUSTE_COSTO',
-            'INVENTARIO_INICIADO'
-        ];
-
-        if (tipo === 'PERSONALIZADA' && esMencionado) {
-            return true;
-        }
-
-        return tipo ? tiposConAccion.includes(tipo) : false;
-    }
     abrirDialogoComentarios(n: NotificacionData, event?: Event): void {
         if (event) {
             event.stopPropagation();
@@ -461,3 +490,4 @@ export class NotificationBoardComponent implements OnInit {
             });
     }
 }
+

@@ -29,7 +29,7 @@ import { DialogosService } from "../dialogos/dialogos.service";
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
 import { connectionStatusSub, cloudConnectionStatusSub } from "../../services/graphql-connection.service";
-import { NotificacionesTableroService } from "../../../services/notificaciones-tablero.service";
+import { NotificacionesTableroService } from "../../../modules/notificaciones/services/notificaciones-tablero.service";
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-header",

@@ -12,6 +12,7 @@ import { PrintModule } from './print/print.module';
 import { FinancieroModule } from './financiero/financiero.module';
 import { ReportesModule } from './reportes/reportes/reportes.module';
 import { ConfiguracionModule } from './configuracion/configuracion.module';
+import { NotificacionesModule } from './notificaciones/notificaciones.module';
 
 
 @NgModule({
@@ -30,6 +31,7 @@ import { ConfiguracionModule } from './configuracion/configuracion.module';
     FinancieroModule,
     ReportesModule,
     ConfiguracionModule,
+    NotificacionesModule,
     MDBBootstrapModule.forRoot()
   ],
   providers: [

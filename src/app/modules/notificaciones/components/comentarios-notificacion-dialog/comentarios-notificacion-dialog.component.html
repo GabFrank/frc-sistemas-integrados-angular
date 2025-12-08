@@ -13,7 +13,8 @@
     <div class="sidebar-search">
       <mat-form-field appearance="outline" class="search-field">
         <mat-label>Buscar usuario...</mat-label>
-        <input matInput [(ngModel)]="filtroUsuarios" placeholder="Buscar por nombre o nickname">
+        <input matInput [ngModel]="filtroUsuarios" (ngModelChange)="onFiltroUsuariosChange($event)"
+          placeholder="Buscar por nombre o nickname">
         <mat-icon matPrefix>search</mat-icon>
       </mat-form-field>
     </div>
@@ -24,15 +25,15 @@
         <span>Cargando usuarios...</span>
       </div>
 
-      <div *ngIf="!cargandoUsuarios && obtenerUsuariosDestinatariosFiltrados().length === 0" class="empty-state">
+      <div *ngIf="!cargandoUsuarios && usuariosDestinatariosFiltrados.length === 0" class="empty-state">
         <mat-icon>people_outline</mat-icon>
         <span>No se encontraron usuarios</span>
       </div>
 
-      <div *ngFor="let usuario of obtenerUsuariosDestinatariosFiltrados()" class="participant-item">
-        <div class="participant-avatar" [attr.data-initial]="Initials(usuario)"
-          [style.background]="'linear-gradient(135deg, ' + UserColor(usuario.id) + ', ' + UserColor(usuario.id + 1) + ')'">
-          {{ Initials(usuario) }}
+      <div *ngFor="let usuario of usuariosDestinatariosFiltrados" class="participant-item">
+        <div class="participant-avatar" [attr.data-initial]="getUserInitials(usuario)"
+          [style.background]="'linear-gradient(135deg, ' + getUserColor(usuario.id) + ', ' + getUserColor(usuario.id + 1) + ')'">
+          {{ getUserInitials(usuario) }}
         </div>
         <div class="participant-info">
           <span class="participant-name">{{ usuario.persona?.nombre || usuario.nickname }}</span>
@@ -58,7 +59,7 @@
         <p>Cargando comentarios...</p>
       </div>
 
-      <div *ngIf="!cargando" class="messages-list">
+      <div *ngIf="!cargando" class="messages-list comentarios-list">
         <div *ngIf="comentarios.length === 0" class="empty-messages">
           <div class="empty-icon-wrapper">
             <mat-icon>chat_bubble_outline</mat-icon>
@@ -68,40 +69,36 @@
         </div>
 
         <div *ngFor="let comentario of comentarios; let i = index" class="message-wrapper"
-          [class.is-reply]="comentario.comentarioPadre"
-          [class.same-author]="i > 0 && comentarios[i-1].usuario.id === comentario.usuario.id"
+          [class.is-reply]="comentario.comentarioPadre" [class.same-author]="isSameAuthor(i)"
           [id]="'comentario-' + comentario.id">
 
           <div class="message-bubble">
-            <div
-              *ngIf="!comentario.comentarioPadre && (i === 0 || comentarios[i-1].usuario.id !== comentario.usuario.id)"
-              class="message-avatar" [attr.data-initial]="Initials(comentario.usuario)"
-              [style.background]="'linear-gradient(135deg, ' + UserColor(comentario.usuario.id) + ', ' + UserColor(comentario.usuario.id + 1) + ')'">
-              {{ Initials(comentario.usuario) }}
+            <div *ngIf="!comentario.comentarioPadre && (i === 0 || !isSameAuthor(i))" class="message-avatar"
+              [attr.data-initial]="getUserInitials(comentario.usuario)"
+              [style.background]="'linear-gradient(135deg, ' + getUserColor(comentario.usuario.id) + ', ' + getUserColor(comentario.usuario.id + 1) + ')'">
+              {{ getUserInitials(comentario.usuario) }}
             </div>
 
-            <div class="message-content" [style.background]="UserLightColor(comentario.usuario.id)"
-              [style.border-left-color]="UserColor(comentario.usuario.id)">
-              <div
-                *ngIf="!comentario.comentarioPadre && (i === 0 || comentarios[i-1].usuario.id !== comentario.usuario.id)"
-                class="message-header">
-                <span class="message-author" [style.color]="UserColor(comentario.usuario.id)">{{
+            <div class="message-content" [style.background]="getUserLightColor(comentario.usuario.id)"
+              [style.border-left-color]="getUserColor(comentario.usuario.id)">
+              <div *ngIf="!comentario.comentarioPadre && (i === 0 || !isSameAuthor(i))" class="message-header">
+                <span class="message-author" [style.color]="getUserColor(comentario.usuario.id)">{{
                   comentario.usuario.persona?.nombre || comentario.usuario.nickname }}</span>
                 <span class="message-username">@{{ comentario.usuario.nickname }}</span>
                 <span class="message-time">{{ comentario.creadoEn | date:'short' }}</span>
               </div>
 
               <div *ngIf="comentario.comentarioPadre" class="reply-context"
-                [style.border-left-color]="UserColor(comentario.comentarioPadre.usuario.id)"
-                [style.background]="UserLightColor(comentario.comentarioPadre.usuario.id)">
+                [style.border-left-color]="getUserColor(comentario.comentarioPadre.usuario.id)"
+                [style.background]="getUserLightColor(comentario.comentarioPadre.usuario.id)">
                 <mat-icon class="reply-icon"
-                  [style.color]="UserColor(comentario.comentarioPadre.usuario.id)">reply</mat-icon>
+                  [style.color]="getUserColor(comentario.comentarioPadre.usuario.id)">reply</mat-icon>
                 <span class="reply-text">Respondiendo a <strong
-                    [style.color]="UserColor(comentario.comentarioPadre.usuario.id)">@{{
+                    [style.color]="getUserColor(comentario.comentarioPadre.usuario.id)">@{{
                     comentario.comentarioPadre.usuario.nickname }}</strong></span>
               </div>
 
-              <div class="message-text" [innerHTML]="formatearComentario(comentario.comentario)"></div>
+              <div class="message-text" [innerHTML]="getComentarioFormateado(comentario.comentario)"></div>
 
               <div class="message-actions">
                 <button mat-icon-button (click)="responderComentario(comentario)" class="action-btn"
@@ -128,12 +125,12 @@
 
       <div *ngIf="mostrarAutocompletado && usuariosFiltrados.length > 0" class="mention-autocomplete">
         <div *ngFor="let usuario of usuariosFiltrados" class="mention-option" (click)="seleccionarUsuario(usuario)">
-          <div class="mention-avatar" [attr.data-initial]="Initials(usuario)"
-            [style.background]="'linear-gradient(135deg, ' + UserColor(usuario.id) + ', ' + UserColor(usuario.id + 1) + ')'">
-            {{ Initials(usuario) }}
+          <div class="mention-avatar" [attr.data-initial]="getUserInitials(usuario)"
+            [style.background]="'linear-gradient(135deg, ' + getUserColor(usuario.id) + ', ' + getUserColor(usuario.id + 1) + ')'">
+            {{ getUserInitials(usuario) }}
           </div>
           <div class="mention-info">
-            <span class="mention-name" [style.color]="UserColor(usuario.id)">{{ usuario.persona?.nombre ||
+            <span class="mention-name" [style.color]="getUserColor(usuario.id)">{{ usuario.persona?.nombre ||
               usuario.nickname }}</span>
             <span class="mention-username">@{{ usuario.nickname }}</span>
           </div>
@@ -145,21 +142,12 @@
           <mat-icon>add</mat-icon>
         </button>
         <div class="textarea-wrapper">
-          <textarea 
-            [(ngModel)]="nuevoComentario" 
-            (input)="onTextareaInput($event); adjustTextareaHeight($event)"
-            (keydown)="onKeyDown($event)"
-            [disabled]="enviando" 
-            placeholder="Escribe un mensaje..." 
-            class="gemini-textarea"
-            #mensajeTextarea></textarea>
+          <textarea [(ngModel)]="nuevoComentario" (input)="onTextareaInput($event); adjustTextareaHeight($event)"
+            (keydown)="onKeyDown($event)" [disabled]="enviando" placeholder="Escribe un mensaje..."
+            class="gemini-textarea" #mensajeTextarea></textarea>
         </div>
-        <button 
-          mat-icon-button 
-          class="send-button-gemini" 
-          type="button"
-          [disabled]="!nuevoComentario.trim() || enviando"
-          (click)="enviarComentario()">
+        <button mat-icon-button class="send-button-gemini" type="button"
+          [disabled]="!nuevoComentario.trim() || enviando" (click)="enviarComentario()">
           <mat-icon *ngIf="!enviando">send</mat-icon>
           <mat-spinner *ngIf="enviando" diameter="20" class="send-spinner"></mat-spinner>
         </button>

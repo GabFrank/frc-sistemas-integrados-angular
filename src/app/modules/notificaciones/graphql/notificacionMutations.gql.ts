@@ -34,3 +34,4 @@ export interface ActualizarEstadoTableroNotificacionResponse {
 export class ActualizarEstadoTableroNotificacionGQL extends Mutation<ActualizarEstadoTableroNotificacionResponse> {
   override document = actualizarEstadoTableroNotificacionMutation;
 }
+

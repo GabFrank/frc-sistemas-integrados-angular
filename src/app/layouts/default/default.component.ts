@@ -6,13 +6,13 @@ import { MatDialog } from "@angular/material/dialog";
 import { CloseTabPopupComponent } from "./close-tab-popup.component";
 import { WindowInfoService } from "../../shared/services/window-info.service";
 import { MainService } from "../../main.service";
-import { NotificacionesPorTokenGQL} from "../../modules/configuracion/inicio-sesion/graphql/notificacionesPorToken.gql";
+import { NotificacionesPorTokenGQL} from "../../modules/notificaciones/graphql/notificacionesPorToken.gql";
 import {
   MarcarNotificacionLeidaGQL
-} from "../../modules/configuracion/inicio-sesion/graphql/notificacionMutations.gql";
-import { NotificacionesTableroService} from "../../services/notificaciones-tablero.service";
+} from "../../modules/notificaciones/graphql/notificacionMutations.gql";
+import { NotificacionesTableroService} from "../../modules/notificaciones/services/notificaciones-tablero.service";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { NotificacionPersonalizadaComponent } from "./notificacion-personalizada/notificacion-personalizada.component";
+import { NotificacionPersonalizadaComponent } from "../../modules/notificaciones/components/notificacion-personalizada/notificacion-personalizada.component";
 
 @UntilDestroy()
 @Component({

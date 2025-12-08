@@ -9,9 +9,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { ComentariosNotificacionService } from '../../../../../services/comentarios-notificacion.service';
+import { ComentariosNotificacionService } from '../../services/comentarios-notificacion.service';
 import { NotificacionComentario } from '../../graphql/comentariosNotificacion.gql';
-import { MainService } from '../../../../../main.service';
+import { MainService } from '../../../../main.service';
 import { UsuariosActivosGQL } from '../../graphql/usuariosActivos.gql';
 import { UsuariosDestinatariosNotificacionGQL } from '../../graphql/usuariosDestinatariosNotificacion.gql';
 import { UsuariosConAccesoNotificacionGQL } from '../../graphql/usuariosConAccesoNotificacion.gql';
@@ -61,8 +61,13 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
   posicionCursor = 0;
 
   usuariosDestinatarios: Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> = [];
+  filtroUsuarios: string = '';
   cargandoUsuarios = false;
-  filtroUsuarios = '';
+  usuariosDestinatariosFiltrados: Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> = [];
+
+  private userColorsCache = new Map<number, string>();
+  private userLightColorsCache = new Map<number, string>();
+  private userInitialsCache = new Map<string, string>();
 
   private ultimoConteoComentarios = 0;
 
@@ -100,6 +105,69 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     this.cargarUsuariosActivos();
     this.cargarUsuariosDestinatarios();
     this.iniciarPollingComentarios();
+  }
+  getUserColor(usuarioId: number): string {
+    if (!this.userColorsCache.has(usuarioId)) {
+      const colors = [
+        '#f44336', '#43a047', '#e53935', '#66bb6a', '#d32f2f', '#388e3c',
+        '#ef5350', '#81c784', '#c62828', '#2e7d32', '#ff5252', '#4caf50',
+        '#b71c1c', '#1b5e20', '#ff1744', '#00e676',
+      ];
+      this.userColorsCache.set(usuarioId, colors[usuarioId % colors.length]);
+    }
+    return this.userColorsCache.get(usuarioId)!;
+  }
+
+  getUserLightColor(usuarioId: number): string {
+    if (!this.userLightColorsCache.has(usuarioId)) {
+      const baseColor = this.getUserColor(usuarioId);
+      const hex = baseColor.replace('#', '');
+      const r = parseInt(hex.substr(0, 2), 16);
+      const g = parseInt(hex.substr(2, 2), 16);
+      const b = parseInt(hex.substr(4, 2), 16);
+      this.userLightColorsCache.set(usuarioId, `rgba(${r}, ${g}, ${b}, 0.15)`);
+    }
+    return this.userLightColorsCache.get(usuarioId)!;
+  }
+
+  getUserInitials(usuario: { nickname: string; persona?: { nombre?: string } }): string {
+    const key = `${usuario.nickname}-${usuario.persona?.nombre || ''}`;
+    if (!this.userInitialsCache.has(key)) {
+      const nombre = usuario.persona?.nombre || usuario.nickname || 'U';
+      const partes = nombre.trim().split(' ').filter(p => p.length > 0);
+      let initials: string;
+      if (partes.length >= 2) {
+        initials = (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+      } else {
+        initials = nombre.substring(0, Math.min(2, nombre.length)).toUpperCase();
+      }
+      this.userInitialsCache.set(key, initials);
+    }
+    return this.userInitialsCache.get(key)!;
+  }
+
+  getComentarioFormateado(comentario: string): string {
+    if (!comentario) {
+      return '';
+    }
+
+    const textoEscapado = comentario
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
+    const textoFormateado = textoEscapado.replace(
+      /@([a-zA-Z0-9_]+)/g,
+      '<span class="mention">@$1</span>'
+    );
+
+    return textoFormateado.replace(/\n/g, '<br>');
+  }
+
+  isSameAuthor(currentIndex: number): boolean {
+    return currentIndex > 0 && this.comentarios[currentIndex - 1].usuario.id === this.comentarios[currentIndex].usuario.id;
   }
 
   private scrollAComentario(comentarioId: number): void {
@@ -246,12 +314,29 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
 
   onKeyDown(event: KeyboardEvent): void {
     if (event.key === 'Enter' && !event.shiftKey) {
-      // Allow Enter to create new line, textarea will auto-expand
-      // If user wants to send with Enter+Shift or just Enter, they can modify this behavior
       setTimeout(() => {
         this.adjustTextareaHeight(event);
       }, 0);
     }
+  }
+
+  onFiltroUsuariosChange(value: string): void {
+    this.filtroUsuarios = value;
+    this.actualizarUsuariosDestinatariosFiltrados();
+    this.cdr.markForCheck();
+  }
+
+  actualizarUsuariosDestinatariosFiltrados(): void {
+    const filtro = this.filtroUsuarios.toLowerCase().trim();
+    if (!filtro) {
+      this.usuariosDestinatariosFiltrados = this.usuariosDestinatarios;
+      return;
+    }
+    this.usuariosDestinatariosFiltrados = this.usuariosDestinatarios.filter(usuario => {
+      const nickname = usuario.nickname?.toLowerCase() || '';
+      const nombre = usuario.persona?.nombre?.toLowerCase() || '';
+      return nickname.includes(filtro) || nombre.includes(filtro);
+    });
   }
 
   seleccionarUsuario(usuario: { id: number; nickname: string; persona?: { id: number; nombre: string } }): void {
@@ -280,10 +365,6 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     }
   }
 
-  obtenerNombreUsuario(usuario: { nickname: string; persona?: { nombre: string } }): string {
-    return usuario.persona?.nombre || usuario.nickname || 'Usuario';
-  }
-
   enviarComentario(): void {
     const comentarioTexto = this.nuevoComentario.trim();
     if (!comentarioTexto || this.enviando) {
@@ -295,15 +376,14 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     this.nuevoComentario = '';
     this.comentarioPadreId = null;
     this.mostrarAutocompletado = false;
-    
-    // Reset textarea height
+
     setTimeout(() => {
       const textarea = document.querySelector('.gemini-textarea') as HTMLTextAreaElement;
       if (textarea) {
         textarea.style.height = '20px';
       }
     }, 0);
-    
+
     this.cdr.markForCheck();
 
     const usuarioActual = this.mainService.usuarioActual;
@@ -401,27 +481,6 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-
-  formatearComentario(texto: string): string {
-    if (!texto) {
-      return '';
-    }
-
-    const textoEscapado = texto
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-
-    const textoFormateado = textoEscapado.replace(
-      /@([a-zA-Z0-9_]+)/g,
-      '<span class="mention">@$1</span>'
-    );
-
-    return textoFormateado.replace(/\n/g, '<br>');
-  }
-
   cerrar(): void {
     this.dialogRef.close();
   }
@@ -439,76 +498,17 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
           } else {
             this.usuariosDestinatarios = result.data?.data || [];
           }
+          this.actualizarUsuariosDestinatariosFiltrados();
           this.cargandoUsuarios = false;
           this.cdr.markForCheck();
         },
         error: () => {
           this.usuariosDestinatarios = [];
+          this.usuariosDestinatariosFiltrados = [];
           this.cargandoUsuarios = false;
           this.cdr.markForCheck();
         }
       });
   }
-
-  obtenerUsuariosDestinatariosFiltrados(): Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> {
-    if (!this.filtroUsuarios || this.filtroUsuarios.trim() === '') {
-      return this.usuariosDestinatarios;
-    }
-
-    const filtroLower = this.filtroUsuarios.toLowerCase();
-    return this.usuariosDestinatarios.filter(usuario => {
-      const nickname = usuario.nickname?.toLowerCase() || '';
-      const nombre = usuario.persona?.nombre?.toLowerCase() || '';
-      return nickname.includes(filtroLower) || nombre.includes(filtroLower);
-    });
-  }
-
-  Initials(usuario: { nickname: string; persona?: { nombre?: string } }): string {
-    const nombre = usuario.persona?.nombre || usuario.nickname || 'U';
-    const partes = nombre.trim().split(' ').filter(p => p.length > 0);
-    if (partes.length >= 2) {
-      return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
-    }
-    return nombre.substring(0, Math.min(2, nombre.length)).toUpperCase();
-  }
-
-  UserColor(usuarioId: number): string {
-    const colors = [
-      '#f44336',
-      '#43a047',
-      '#e53935',
-      '#66bb6a',
-      '#d32f2f',
-      '#388e3c',
-      '#ef5350',
-      '#81c784',
-      '#c62828',
-      '#2e7d32',
-      '#ff5252',
-      '#4caf50',
-      '#b71c1c',
-      '#1b5e20',
-      '#ff1744',
-      '#00e676',
-    ];
-    return colors[usuarioId % colors.length];
-  }
-
-  UserLightColor(usuarioId: number): string {
-    const baseColor = this.UserColor(usuarioId);
-    const hex = baseColor.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    return `rgba(${r}, ${g}, ${b}, 0.15)`;
-  }
-
-  UserBorderColor(usuarioId: number): string {
-    const baseColor = this.UserColor(usuarioId);
-    const hex = baseColor.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    return `rgba(${r}, ${g}, ${b}, 0.4)`;
-  }
 }
+
