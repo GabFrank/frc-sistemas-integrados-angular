@@ -73,22 +73,28 @@ export class ModificacionesService {
         modificacionRegistroId: modificacionRegistroId
       },
       true
+    ).pipe(
+      map((response: any) => {
+        return response.data || response || [];
+      })
     );
   }
   private mapToPageInfo(response: any): PageInfo<ModificacionRegistro> {
+    const data = response.data || response;
+
     const pageInfo = new PageInfo<ModificacionRegistro>();
-    pageInfo.getContent = response.content || [];
-    pageInfo.getTotalElements = response.totalElements || 0;
-    pageInfo.getTotalPages = response.totalPages || 0;
-    pageInfo.getNumberOfElements = response.content?.length || 0;
-    pageInfo.isFirst = response.pageNumber === 0;
-    pageInfo.isLast = response.pageNumber >= (response.totalPages - 1);
-    pageInfo.hasNext = response.pageNumber < (response.totalPages - 1);
-    pageInfo.hasPrevious = response.pageNumber > 0;
+    pageInfo.getContent = data.content || [];
+    pageInfo.getTotalElements = data.totalElements || 0;
+    pageInfo.getTotalPages = data.totalPages || 0;
+    pageInfo.getNumberOfElements = data.content?.length || 0;
+    pageInfo.isFirst = data.pageNumber === 0;
+    pageInfo.isLast = data.pageNumber >= (data.totalPages - 1);
+    pageInfo.hasNext = data.pageNumber < (data.totalPages - 1);
+    pageInfo.hasPrevious = data.pageNumber > 0;
 
     const pageable = new Pageable();
-    pageable.getPageNumber = response.pageNumber || 0;
-    pageable.getPageSize = response.pageSize || 15;
+    pageable.getPageNumber = data.pageNumber || 0;
+    pageable.getPageSize = data.pageSize || 15;
     pageInfo.getPageable = pageable;
 
     return pageInfo;

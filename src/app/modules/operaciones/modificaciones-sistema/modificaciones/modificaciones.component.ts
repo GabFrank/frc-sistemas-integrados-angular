@@ -51,6 +51,7 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
   horaInicioControl = new FormControl('00:00');
   horaFinalControl = new FormControl('23:59');
   schemaControl = new FormControl('productos', [Validators.required]);
+  tipoEntidadControl = new FormControl(null);
   fechaFormGroup: FormGroup;
 
   selectedModificacion: ModificacionRegistro;
@@ -81,6 +82,16 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
     { value: 'empresarial', label: 'EMPRESARIAL' },
     { value: 'general', label: 'GENERAL' },
     { value: 'configuraciones', label: 'CONFIGURACIONES' },
+  ];
+
+  tipoEntidadOptions = [
+    { value: null, label: 'TODOS' },
+    { value: 'PRODUCTO', label: 'PRODUCTO' },
+    { value: 'PRESENTACION', label: 'PRESENTACIÓN' },
+    { value: 'CODIGO', label: 'CÓDIGO' },
+    { value: 'PRECIO_POR_SUCURSAL', label: 'PRECIO POR SUCURSAL' },
+    { value: 'COSTO_POR_PRODUCTO', label: 'COSTO POR PRODUCTO' },
+    { value: 'AJUSTE_STOCK', label: 'AJUSTE DE STOCK' },
   ];
 
   today = new Date();
@@ -134,30 +145,68 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
       this.horaFinalControl.value || '23:59'
     );
 
-    this.service
-      .onModificacionesPorSchema(
-        this.schemaControl.value,
-        fechaInicio,
-        fechaFin,
-        this.pageIndex,
-        this.pageSize
-      )
-      .pipe(untilDestroyed(this))
-      .subscribe(
-        (res) => {
-          this.selectedPageInfo = res;
-          this.dataSource.data = res.getContent || [];
-          this.isSearching = false;
+    if (this.tipoEntidadControl.value) {
+      this.service
+        .onModificacionesPorTipoEntidad(
+          this.tipoEntidadControl.value,
+          this.pageIndex,
+          this.pageSize
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe(
+          (res) => {
+            let filteredContent = res.getContent || [];
+            if (this.schemaControl.value) {
+              filteredContent = filteredContent.filter(
+                (m: ModificacionRegistro) => m.schemaNombre === this.schemaControl.value
+              );
+            }
+            filteredContent = filteredContent.filter((m: ModificacionRegistro) => {
+              const fechaMod = new Date(m.modificadoEn);
+              return fechaMod >= fechaInicio && fechaMod <= fechaFin;
+            });
 
-          if (!res.getContent || res.getContent.length === 0) {
-            this.notificacionService.openWarn('No se encontraron modificaciones');
+            this.selectedPageInfo = res;
+            this.selectedPageInfo.getContent = filteredContent;
+            this.selectedPageInfo.getTotalElements = filteredContent.length;
+            this.dataSource.data = filteredContent;
+            this.isSearching = false;
+
+            if (filteredContent.length === 0) {
+              this.notificacionService.openWarn('No se encontraron modificaciones');
+            }
+          },
+          (error) => {
+            this.isSearching = false;
+            this.notificacionService.openWarn('Error al buscar modificaciones');
           }
-        },
-        (error) => {
-          this.isSearching = false;
-          this.notificacionService.openWarn('Error al buscar modificaciones');
-        }
-      );
+        );
+    } else {
+      this.service
+        .onModificacionesPorSchema(
+          this.schemaControl.value,
+          fechaInicio,
+          fechaFin,
+          this.pageIndex,
+          this.pageSize
+        )
+        .pipe(untilDestroyed(this))
+        .subscribe(
+          (res) => {
+            this.selectedPageInfo = res;
+            this.dataSource.data = res.getContent || [];
+            this.isSearching = false;
+
+            if (!res.getContent || res.getContent.length === 0) {
+              this.notificacionService.openWarn('No se encontraron modificaciones');
+            }
+          },
+          (error) => {
+            this.isSearching = false;
+            this.notificacionService.openWarn('Error al buscar modificaciones');
+          }
+        );
+    }
   }
 
 
@@ -169,6 +218,7 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
     this.horaInicioControl.setValue('00:00');
     this.horaFinalControl.setValue('23:59');
     this.schemaControl.setValue('productos');
+    this.tipoEntidadControl.setValue(null);
     this.pageIndex = 0;
     this.dataSource.data = [];
     this.expandedModificacion = null;

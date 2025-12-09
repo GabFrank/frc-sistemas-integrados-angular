@@ -65,6 +65,17 @@
           <input matInput [formControl]="horaFinalControl" type="time" placeholder="Hora fin" />
         </mat-form-field>
       </div>
+
+      <div fxFlex="25%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Tipo de Entidad (Opcional)</mat-label>
+          <mat-select [formControl]="tipoEntidadControl">
+            <mat-option *ngFor="let tipo of tipoEntidadOptions" [value]="tipo.value">
+              {{ tipo.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
     </div>
   </div>
 
