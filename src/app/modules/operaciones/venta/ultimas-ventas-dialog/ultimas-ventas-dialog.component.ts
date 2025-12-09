@@ -80,7 +80,7 @@ export class UltimasVentasDialogComponent implements OnInit {
   cargarVentas() {
     this.isLoading = true;
     this.ventaService
-      .onSearch(null, this.data.caja.id, this.pageIndex, this.pageSize, false, this.data.caja.sucursalId, null, null, null, null, false, false).pipe(untilDestroyed(this))
+      .onSearch(null, this.data.caja.id, this.pageIndex, this.pageSize, false, this.data.caja.sucursalId, null, null, null, null, false, false, false).pipe(untilDestroyed(this))
       .subscribe((res) => {
         this.isLoading = false;
         if (res != null) {
