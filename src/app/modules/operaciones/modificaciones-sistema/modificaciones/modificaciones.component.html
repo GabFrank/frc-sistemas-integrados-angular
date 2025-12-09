@@ -1,0 +1,257 @@
+<app-generic-list [data]="dataSource.data" (filtrar)="onFiltrar()" (resetFiltro)="resetFiltro()" [titulo]="titulo"
+  [disableFilter]="schemaControl.invalid || fechaFormGroup.invalid">
+  <div filtros>
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
+      <div fxFlex="25%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Módulo</mat-label>
+          <mat-select [formControl]="schemaControl" required>
+            <mat-option *ngFor="let schema of schemaOptions" [value]="schema.value">
+              {{ schema.label }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="schemaControl.hasError('required')">
+            El módulo es requerido
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div fxFlex="30%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Rango de fecha</mat-label>
+          <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker" style="width: 100%">
+            <input matStartDate formControlName="inicio" placeholder="Inicio" [max]="today" />
+            <input matEndDate formControlName="fin" placeholder="Fin" [min]="fechaInicioControl.value" [max]="today" />
+          </mat-date-range-input>
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-date-range-picker #picker></mat-date-range-picker>
+
+          <mat-error *ngIf="fechaFormGroup.controls.inicio.hasError('matStartDateInvalid')">
+            Fecha inicial inválida
+          </mat-error>
+          <mat-error *ngIf="fechaFormGroup.controls.fin.hasError('matEndDateInvalid')">
+            Fecha final inválida
+          </mat-error>
+          <mat-hint fxLayout="row" fxLayoutAlign="space-around center"
+            style="padding-top: 5px; padding-bottom: 5px; width: 100%">
+            <mat-chip-listbox style="width: 100%">
+              <mat-chip-option style="height: 15px" (click)="cambiarFecha('dia')" multiple="false">
+                7 días
+              </mat-chip-option>
+              <mat-chip-option style="height: 15px" (click)="cambiarFecha('mes')">
+                1 mes
+              </mat-chip-option>
+              <mat-chip-option style="height: 15px" (click)="cambiarFecha('2mes')">
+                -1 mes
+              </mat-chip-option>
+              <mat-chip-option style="height: 15px" (click)="cambiarFecha('3mes')">
+                3 meses
+              </mat-chip-option>
+            </mat-chip-listbox>
+          </mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div fxFlex="10%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Inicio Hora</mat-label>
+          <input matInput [formControl]="horaInicioControl" type="time" placeholder="Hora inicio" />
+        </mat-form-field>
+      </div>
+
+      <div fxFlex="10%">
+        <mat-form-field style="width: 100%">
+          <mat-label>Fin Hora</mat-label>
+          <input matInput [formControl]="horaFinalControl" type="time" placeholder="Hora fin" />
+        </mat-form-field>
+      </div>
+    </div>
+  </div>
+
+  <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
+    fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
+      <ng-container matColumnDef="id" style="width: 5%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
+          Id
+        </th>
+        <td mat-cell *matCellDef="let modificacion" style="text-align: center; width: 5%">
+          {{ modificacion?.id }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="tipoEntidad" style="width: 15%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+          Tipo Entidad
+        </th>
+        <td mat-cell *matCellDef="let modificacion" style="text-align: center; width: 15%">
+          {{ modificacion?.tipoEntidad | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="entidadId" style="width: 8%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 8%">
+          ID Entidad
+        </th>
+        <td mat-cell *matCellDef="let modificacion" style="text-align: center; width: 8%">
+          {{ modificacion?.entidadId }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="tipoOperacion" style="width: 12%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 12%">
+          Operación
+        </th>
+        <td mat-cell *matCellDef="let modificacion" style="text-align: center; width: 12%">
+          <span [style.color]="getTipoOperacionColor(modificacion?.tipoOperacion)" [style.font-weight]="'bold'">
+            {{ getTipoOperacionLabel(modificacion?.tipoOperacion) }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="usuario" style="width: 20%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
+          Usuario
+        </th>
+        <td mat-cell *matCellDef="let modificacion" style="text-align: center; width: 20%">
+          {{
+          modificacion?.usuario?.persona?.nombre ||
+          modificacion?.usuario?.nickname ||
+          'N/A'
+          }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="sucursal" style="width: 15%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
+          Sucursal
+        </th>
+        <td mat-cell *matCellDef="let modificacion" style="text-align: center; width: 15%">
+          {{ modificacion?.sucursal?.nombre || 'N/A' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="modificadoEn" style="width: 20%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
+          Fecha/Hora
+        </th>
+        <td mat-cell *matCellDef="let modificacion" style="text-align: center; width: 20%">
+          {{ modificacion?.modificadoEn | date: 'dd/MM/yyyy HH:mm' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones" style="width: 5%">
+        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">
+          ...
+        </th>
+        <td mat-cell *matCellDef="let modificacion" style="text-align: center; width: 5%">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="
+                onRowClick(
+                  modificacion,
+                  expandedModificacion?.id === modificacion?.id
+                );
+                expandedModificacion =
+                  expandedModificacion?.id === modificacion?.id
+                    ? null
+                    : modificacion
+              ">
+              <mat-icon>visibility</mat-icon>
+              Ver Detalles
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <mat-divider></mat-divider>
+
+      <ng-container matColumnDef="expandedDetail">
+        <td mat-cell *matCellDef="let modificacion" [attr.colspan]="displayedColumns.length" class="expanded"
+          style="background-color: rgb(50, 50, 50)">
+          <div class="example-modificacion-detail" [@detailExpand]="
+              modificacion?.id == expandedModificacion?.id
+                ? 'expanded'
+                : 'collapsed'
+            " style="text-align: center" fxLayout="column" fxLayoutAlign="start start">
+            <div fxFlex="100" style="width: 100%; margin: 10px; max-height: 400px; overflow-y: auto">
+              <mat-card fxLayout="column" fxLayoutAlign="start start"
+                style="padding: 10px; background-color: rgb(32, 32, 32); width: 100%">
+                <h3 class="titulo-center" style="width: 100%; margin-bottom: 15px">
+                  Detalles de la Modificación
+                </h3>
+
+                <div *ngIf="loadingDetalles" fxLayout="row" fxLayoutAlign="center center"
+                  style="width: 100%; padding: 20px">
+                  <mat-spinner diameter="40"></mat-spinner>
+                </div>
+
+                <div *ngIf="!loadingDetalles && detallesModificacion?.length > 0" style="width: 100%">
+                  <table style="width: 100%; table-layout: fixed">
+                    <thead>
+                      <tr>
+                        <th class="titulo titulo-cell" style="text-align: center">
+                          Campo
+                        </th>
+                        <th class="titulo titulo-cell" style="text-align: center">
+                          Valor Anterior
+                        </th>
+                        <th class="titulo titulo-cell" style="text-align: center">
+                          Valor Nuevo
+                        </th>
+                        <th class="titulo titulo-cell" style="text-align: center">
+                          Tipo
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let detalle of detallesModificacion" [style.background-color]="
+                          detalle.esCampoSensible ? 'rgba(255, 152, 0, 0.1)' : ''
+                        ">
+                        <td class="highlight-cell" style="text-align: center; font-weight: bold">
+                          {{ detalle.campoNombre | uppercase }}
+                          <mat-icon *ngIf="detalle.esCampoSensible"
+                            style="font-size: 16px; vertical-align: middle; color: #ff9800" title="Campo sensible">
+                            lock
+                          </mat-icon>
+                        </td>
+                        <td class="highlight-cell" style="text-align: center; color: #f44336">
+                          {{ detalle.valorAnterior || 'N/A' }}
+                        </td>
+                        <td class="highlight-cell" style="text-align: center; color: #4caf50">
+                          {{ detalle.valorNuevo || 'N/A' }}
+                        </td>
+                        <td class="highlight-cell" style="text-align: center">
+                          {{ detalle.campoTipo || 'N/A' }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div *ngIf="!loadingDetalles && detallesModificacion?.length === 0"
+                  style="width: 100%; text-align: center; padding: 20px">
+                  <p>No hay detalles disponibles para esta modificación</p>
+                </div>
+              </mat-card>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns" sticky></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+        [class.example-expanded-row]="expandedModificacion === row" [class.selectedRow]="expandedModificacion === row"
+        (click)="
+          onRowClick(row, expandedModificacion === row);
+          expandedModificacion = expandedModificacion === row ? null : row
+        "></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
+    </table>
+    <mat-paginator itemsPerPageLabel="Items por página" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements" style="width: 100%"
+      showFirstLastButtons></mat-paginator>
+  </div>
+</app-generic-list>

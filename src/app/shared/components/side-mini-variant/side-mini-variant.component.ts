@@ -43,6 +43,7 @@ import { Subscription } from 'rxjs';
 import { AnalisisDiferenciaComponent } from '../../../modules/financiero/analisis-diferencia/analisis-diferencia.component';
 import { ListTimbradoComponent } from '../../../modules/financiero/timbrado/list-timbrado/list-timbrado.component';
 import { ListLoteDeComponent } from '../../../modules/financiero/documento-electronico/lote-de/list-lote-de/list-lote-de.component';
+import { ModificacionesComponent } from '../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
 
 
 interface BaseNavigationItem {
@@ -594,9 +595,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "modificaciones":
         if (this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
-          this.notificacionService.openWarn('Funcionalidad en desarrollo: Modificaciones');
+          this.openTabIfAuthorized(ROLES.ADMIN, ModificacionesComponent, "Modificaciones");
         } else {
-          this.notificacionService.openWarn('No tenés acceso a esta opción.');
+          this.notificacionService.openWarn('No tenés acceso a esta opcion.');
         }
         break;
     }

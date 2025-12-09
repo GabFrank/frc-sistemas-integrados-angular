@@ -13,6 +13,7 @@ import { PrecioDeliveryComponent } from './delivery/precio-delivery/precio-deliv
 import { EntradaSalidaComponent } from './entrada-salida/entrada-salida.component';
 import { EntradaDialogComponent } from './entrada/entrada-dialog/entrada-dialog.component';
 import { InventarioModule } from './inventario/inventario.module';
+import { ModificacionesModuleModule } from './modificaciones-sistema/modificaciones.module';
 import { ListMovimientoStockComponent } from './movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
 import { EditNecesidadComponent } from './necesidad/edit-necesidad/edit-necesidad.component';
 import { ListNecesidadComponent } from './necesidad/list-necesidad/list-necesidad.component';
@@ -111,6 +112,7 @@ import { ModificarSucursalPagoDetalleComponent } from './pago/pago-detalle-cuota
     SharedModule,
     InventarioModule,
     EmpresarialModule,
+    ModificacionesModuleModule,
     
   ],
   exports: [
