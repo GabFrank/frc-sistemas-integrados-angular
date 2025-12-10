@@ -6,13 +6,14 @@ import { MatDialog } from "@angular/material/dialog";
 import { CloseTabPopupComponent } from "./close-tab-popup.component";
 import { WindowInfoService } from "../../shared/services/window-info.service";
 import { MainService } from "../../main.service";
-import { NotificacionesPorTokenGQL} from "../../modules/notificaciones/graphql/notificacionesPorToken.gql";
+import { NotificacionesPorTokenGQL } from "../../modules/notificaciones/graphql/notificacionesPorToken.gql";
 import {
   MarcarNotificacionLeidaGQL
 } from "../../modules/notificaciones/graphql/notificacionMutations.gql";
-import { NotificacionesTableroService} from "../../modules/notificaciones/services/notificaciones-tablero.service";
+import { NotificacionesTableroService } from "../../modules/notificaciones/services/notificaciones-tablero.service";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 import { NotificacionPersonalizadaComponent } from "../../modules/notificaciones/components/notificacion-personalizada/notificacion-personalizada.component";
+import { FormControl, FormGroup } from "@angular/forms";
 
 @UntilDestroy()
 @Component({
@@ -28,7 +29,10 @@ export class DefaultComponent implements OnInit, OnDestroy {
 
   tabs = new Array<Tab>();
 
-
+  fechaFormGroup: FormGroup;
+  fechaInicioControl: FormControl<Date | null>;
+  fechaFinControl: FormControl<Date | null>;
+  today = new Date();
 
   selectedTab: number;
   onTabClose: false;
@@ -45,6 +49,20 @@ export class DefaultComponent implements OnInit, OnDestroy {
     private notificacionesTableroService: NotificacionesTableroService,
     private router: Router
   ) {
+    const ayer = new Date();
+    ayer.setDate(ayer.getDate() - 1);
+    ayer.setHours(0, 0, 0, 0);
+
+    const hoy = new Date();
+    hoy.setHours(23, 59, 59, 999);
+
+    this.fechaInicioControl = new FormControl<Date | null>(ayer);
+    this.fechaFinControl = new FormControl<Date | null>(hoy);
+
+    this.fechaFormGroup = new FormGroup({
+      inicio: this.fechaInicioControl,
+      fin: this.fechaFinControl
+    });
   }
   crearNotificacion(): void {
     const dialogRef = this.dialog.open(NotificacionPersonalizadaComponent, {
@@ -107,9 +125,50 @@ export class DefaultComponent implements OnInit, OnDestroy {
       const tokenFcm = localStorage.getItem("pushToken");
       if (tokenFcm) {
         this.notificacionesTableroService.setTokenFcm(tokenFcm);
-        this.notificacionesTableroService.refrescarTodas();
+        this.aplicarFiltroFechas();
       }
     }
+  }
+
+  aplicarFiltroFechas(): void {
+    const fechaInicio = this.fechaInicioControl.value;
+    const fechaFin = this.fechaFinControl.value;
+
+    let fechaInicioStr: string | null = null;
+    let fechaFinStr: string | null = null;
+
+    if (fechaInicio) {
+      const inicio = new Date(fechaInicio);
+      inicio.setHours(0, 0, 0, 0);
+      fechaInicioStr = inicio.toISOString();
+    }
+
+    if (fechaFin) {
+      const fin = new Date(fechaFin);
+      const ahora = new Date();
+      if (fin.toDateString() === ahora.toDateString()) {
+        fin.setHours(23, 59, 59, 999);
+      } else {
+        fin.setHours(23, 59, 59, 999);
+      }
+      fechaFinStr = fin.toISOString();
+    }
+
+    this.notificacionesTableroService.actualizarFiltroFechas(fechaInicioStr, fechaFinStr);
+  }
+
+  limpiarFiltroFechas(): void {
+    const ayer = new Date();
+    ayer.setDate(ayer.getDate() - 1);
+    ayer.setHours(0, 0, 0, 0);
+
+    const hoy = new Date();
+    hoy.setHours(23, 59, 59, 999);
+
+    this.fechaInicioControl.setValue(ayer);
+    this.fechaFinControl.setValue(hoy);
+
+    this.aplicarFiltroFechas();
   }
 
   openDialog(index): void {

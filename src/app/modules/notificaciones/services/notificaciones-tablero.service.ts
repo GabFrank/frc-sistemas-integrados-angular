@@ -1,16 +1,16 @@
 import { Injectable } from '@angular/core';
 import { Apollo } from 'apollo-angular';
-import { 
-  notificacionesUsuarioQuery, 
-  cambiarEstadoTableroNotificacionMutation, 
-  conteoNotificacionesNoLeidasQuery, 
+import {
+  notificacionesUsuarioQuery,
+  cambiarEstadoTableroNotificacionMutation,
+  conteoNotificacionesNoLeidasQuery,
   actualizarTokenFcmMutation,
   marcarNotificacionLeidaMutation,
   enviarNotificacionPersonalizadaMutation,
   usuariosActivosQuery
 } from '../graphql/graphql-query';
-import { Observable, BehaviorSubject, combineLatest, of, Subject } from 'rxjs';
-import { map, tap, switchMap, catchError, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { Observable, BehaviorSubject, of, Subject } from 'rxjs';
+import { map, tap, catchError, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { EstadoNotificacionTablero } from '../enums/estado-notificacion-tablero.enum';
 import { ElectronService } from '../../../commons/core/electron/electron.service';
 
@@ -44,6 +44,11 @@ export interface PaginationState {
   loading: boolean;
 }
 
+export interface FiltroFechas {
+  fechaInicio: string | null;
+  fechaFin: string | null;
+}
+
 export interface NotificacionesPorEstado {
   [key: string]: NotificacionData[];
 }
@@ -57,6 +62,7 @@ export class NotificacionesTableroService {
   private readonly _notificaciones$ = new BehaviorSubject<NotificacionesPorEstado>({});
   private readonly _tokenFcm$ = new BehaviorSubject<string>('');
   private readonly _refreshTrigger$ = new Subject<void>();
+  private readonly _filtroFechas$ = new BehaviorSubject<FiltroFechas>({ fechaInicio: null, fechaFin: null });
   private isRefreshing = false;
 
   constructor(
@@ -75,7 +81,6 @@ export class NotificacionesTableroService {
       });
     });
 
-    // Debounce para evitar múltiples refrescos simultáneos
     this._refreshTrigger$.pipe(
       debounceTime(500),
       distinctUntilChanged()
@@ -83,7 +88,6 @@ export class NotificacionesTableroService {
       if (!this.isRefreshing) {
         this.isRefreshing = true;
         this.refrescarTodas();
-        // Actualizar conteo después de un delay para que las queries terminen
         setTimeout(() => {
           this.obtenerConteoNoLeidas().subscribe(() => {
             this.isRefreshing = false;
@@ -93,9 +97,7 @@ export class NotificacionesTableroService {
     });
 
     this.electronService.notificationReceived.subscribe(() => {
-      // Actualizar conteo inmediatamente para feedback rápido
       this.actualizarConteo();
-      // El refresh se hará con debounce para evitar múltiples queries
       this._refreshTrigger$.next();
     });
   }
@@ -105,6 +107,7 @@ export class NotificacionesTableroService {
   readonly notificaciones$ = this._notificaciones$.asObservable();
   readonly paginationState$ = this._paginationState$.asObservable();
   readonly unreadCount$ = this._unreadCount$.asObservable();
+  readonly filtroFechas$ = this._filtroFechas$.asObservable();
 
   setTokenFcm(token: string): void {
     const tokenAnterior = this._tokenFcm$.value;
@@ -146,14 +149,13 @@ export class NotificacionesTableroService {
   }
 
   private actualizarConteoDesdeNotificaciones(): void {
-    // Calcular conteo desde las notificaciones ya cargadas en lugar de hacer otra query
     const notificaciones = this._notificaciones$.value;
     let conteoNoLeidas = 0;
-    
+
     Object.values(notificaciones).forEach(notificacionesEstado => {
       conteoNoLeidas += notificacionesEstado.filter(n => !n.leida).length;
     });
-    
+
     this._unreadCount$.next(conteoNoLeidas);
   }
 
@@ -176,12 +178,16 @@ export class NotificacionesTableroService {
       }
     });
 
+    const filtroFechas = this._filtroFechas$.value;
+
     this.apollo.query({
       query: notificacionesUsuarioQuery,
       variables: {
         page: pageIndex,
         size: pageSize,
-        estadoTablero: estado
+        estadoTablero: estado,
+        fechaInicio: filtroFechas.fechaInicio,
+        fechaFin: filtroFechas.fechaFin
       },
       fetchPolicy: 'network-only'
     }).pipe(
@@ -277,13 +283,11 @@ export class NotificacionesTableroService {
   }
 
   private moverNotificacionEntreEstados(notificacionId: number, nuevoEstado: string): void {
-    // Esta función se mantiene por compatibilidad pero no hace nada
   }
 
 
 
   refrescarTodas(): void {
-    // Cargar todas las columnas en paralelo pero sin hacer query adicional de conteo
     Object.values(EstadoNotificacionTablero).forEach(estado => {
       const estadoPagination = this._paginationState$.value[estado];
       if (estadoPagination) {
@@ -326,8 +330,8 @@ export class NotificacionesTableroService {
    */
   enviarNotificacionPersonalizada(
     titulo: string,
-    mensaje: string, 
-    tipoEnvio: string, 
+    mensaje: string,
+    tipoEnvio: string,
     usuariosIds?: number[]
   ): Observable<any> {
     return this.apollo.mutate({
@@ -347,6 +351,24 @@ export class NotificacionesTableroService {
       }),
       map((result: any) => result.data?.data)
     );
+  }
+
+  /**
+   * Actualiza el filtro de fechas y recarga todas las notificaciones
+   * @param fechaInicio Fecha de inicio en formato ISO
+   * @param fechaFin Fecha de fin en formato ISO
+   */
+  actualizarFiltroFechas(fechaInicio: string | null, fechaFin: string | null): void {
+    this._filtroFechas$.next({ fechaInicio, fechaFin });
+    this.refrescarTodas();
+  }
+
+  /**
+   * Obtiene el filtro de fechas actual
+   * @returns Filtro de fechas actual
+   */
+  obtenerFiltroFechas(): FiltroFechas {
+    return this._filtroFechas$.value;
   }
 }
 

@@ -11,6 +11,11 @@ import { TabService } from '../tab/tab.service';
 import { TabContentComponent } from './tab-content/tab-content.component';
 import { ContentContainerDirective } from './content-container.directive';
 import { CloseTabPopupComponent } from './close-tab-popup.component';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatNativeDateModule } from '@angular/material/core';
 
 
 
@@ -29,6 +34,11 @@ import { CloseTabPopupComponent } from './close-tab-popup.component';
     MaterialModule,
     FlexLayoutModule,
     BootstrapModule,
+    ReactiveFormsModule,
+    MatDatepickerModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatNativeDateModule
     ],
     providers: [TabService]
 })

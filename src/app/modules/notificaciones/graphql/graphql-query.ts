@@ -33,8 +33,8 @@ export const notificacionesPorTokenQuery = gql`
 
 
 export const notificacionesUsuarioQuery = gql`
-  query ($leidas: Boolean, $page: Int, $size: Int, $estadoTablero: String) {
-    data: notificacionesUsuario(leidas: $leidas, page: $page, size: $size, estadoTablero: $estadoTablero) {
+  query ($leidas: Boolean, $page: Int, $size: Int, $estadoTablero: String, $fechaInicio: String, $fechaFin: String) {
+    data: notificacionesUsuario(leidas: $leidas, page: $page, size: $size, estadoTablero: $estadoTablero, fechaInicio: $fechaInicio, fechaFin: $fechaFin) {
       content {
         id
         leida
