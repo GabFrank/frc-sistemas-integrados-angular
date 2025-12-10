@@ -372,6 +372,38 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         this.resetMenuVisibility();
       }
     });
+
+    // Escuchar notificaciones push desde Electron
+    if (this.electronService && this.electronService.isElectron) {
+      this.electronService.notificationReceived.subscribe((notification: any) => {
+        const path = notification?.data?.path;
+        if (path) {
+          setTimeout(() => {
+            this.onItemClick(path);
+          }, 500);
+        }
+      });
+    }
+
+    // Escuchar evento de navegación desde notificaciones web (Firebase)
+    window.addEventListener('push-path', (event: any) => {
+      const path = event.detail;
+      if (path) {
+        setTimeout(() => {
+          this.onItemClick(path);
+        }, 500);
+      }
+    });
+
+    // Escuchar evento de acción desde el tablero de notificaciones
+    window.addEventListener('notification-action', (event: any) => {
+      const action = event.detail;
+      if (action) {
+        setTimeout(() => {
+          this.onItemClick(action);
+        }, 500);
+      }
+    });
   }
 
   ngOnDestroy(): void {

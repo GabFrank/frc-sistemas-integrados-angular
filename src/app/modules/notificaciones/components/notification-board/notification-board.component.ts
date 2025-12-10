@@ -378,6 +378,18 @@ export class NotificationBoardComponent implements OnInit {
                     );
                 }
                 break;
+            case 'COTIZACION_ACTUALIZADA':
+                if (n.notificacion?.data && n.notificacion.data.trim() !== '' && n.notificacion.data !== '/') {
+                    const action = n.notificacion.data;
+                    window.dispatchEvent(new CustomEvent('notification-action', { detail: action }));
+                }
+                break;
+            case 'PERSONALIZADA':
+                if (n.notificacion?.data && n.notificacion.data.trim() !== '' && n.notificacion.data !== '/') {
+                    const action = n.notificacion.data;
+                    window.dispatchEvent(new CustomEvent('notification-action', { detail: action }));
+                }
+                break;
             default:
                 break;
         }
