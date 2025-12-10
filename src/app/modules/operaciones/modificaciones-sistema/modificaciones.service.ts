@@ -5,6 +5,7 @@ import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { ModificacionRegistro, ModificacionDetalle } from './modificaciones.models';
 import { ModificacionesPorSchemaGQL } from './graphql/modificacionesPorSchema';
 import { ModificacionesPorTipoEntidadGQL } from './graphql/modificacionesPorTipoEntidad';
+import { ModificacionesPorTipoEntidadAndSchemaGQL } from './graphql/modificacionesPorTipoEntidadAndSchema';
 import { ModificacionRegistroGQL } from './graphql/modificacionRegistro';
 import { DetallesModificacionGQL } from './graphql/detallesModificacion';
 import { PageInfo, Pageable } from '../../../app.component';
@@ -19,6 +20,7 @@ export class ModificacionesService {
     private genericService: GenericCrudService,
     private modificacionesPorSchema: ModificacionesPorSchemaGQL,
     private modificacionesPorTipoEntidad: ModificacionesPorTipoEntidadGQL,
+    private modificacionesPorTipoEntidadAndSchema: ModificacionesPorTipoEntidadAndSchemaGQL,
     private modificacionRegistro: ModificacionRegistroGQL,
     private detallesModificacion: DetallesModificacionGQL
   ) { }
@@ -54,6 +56,30 @@ export class ModificacionesService {
       this.modificacionesPorTipoEntidad,
       {
         tipoEntidad: tipoEntidad,
+        page: page,
+        size: size
+      },
+      true
+    ).pipe(
+      map((response: any) => this.mapToPageInfo(response))
+    );
+  }
+
+  onModificacionesPorTipoEntidadAndSchema(
+    tipoEntidad: string,
+    schemaNombre: string,
+    inicio: Date,
+    fin: Date,
+    page: number = 0,
+    size: number = 15
+  ): Observable<PageInfo<ModificacionRegistro>> {
+    return this.genericService.onCustomQuery(
+      this.modificacionesPorTipoEntidadAndSchema,
+      {
+        tipoEntidad: tipoEntidad,
+        schemaNombre: schemaNombre,
+        inicio: dateToString(inicio),
+        fin: dateToString(fin),
         page: page,
         size: size
       },

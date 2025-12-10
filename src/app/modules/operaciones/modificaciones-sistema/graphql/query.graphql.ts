@@ -96,6 +96,58 @@ export const modificacionesPorTipoEntidadQuery = gql`
   }
 `;
 
+export const modificacionesPorTipoEntidadAndSchemaQuery = gql`
+  query (
+    $tipoEntidad: String!
+    $schemaNombre: String!
+    $inicio: Date!
+    $fin: Date!
+    $page: Int
+    $size: Int
+  ) {
+    data: modificacionesPorTipoEntidadAndSchema(
+      tipoEntidad: $tipoEntidad
+      schemaNombre: $schemaNombre
+      inicio: $inicio
+      fin: $fin
+      page: $page
+      size: $size
+    ) {
+      content {
+        id
+        tipoEntidad
+        entidadId
+        entidadSucursalId
+        schemaNombre
+        tablaNombre
+        tipoOperacion
+        modificadoEn
+        creadoEn
+        ipAddress
+        userAgent
+        observacion
+        activo
+        usuario {
+          id
+          nickname
+          persona {
+            id
+            nombre
+          }
+        }
+        sucursal {
+          id
+          nombre
+        }
+      }
+      pageNumber
+      pageSize
+      totalElements
+      totalPages
+    }
+  }
+`;
+
 export const modificacionRegistroQuery = gql`
   query ($id: ID!) {
     data: modificacionRegistro(id: $id) {

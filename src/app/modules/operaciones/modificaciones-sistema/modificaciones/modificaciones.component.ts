@@ -24,6 +24,7 @@ import {
 } from '../../../../commons/core/utils/dateUtils';
 import { combineDateTime } from '../../../../commons/core/utils/dateUtils';
 import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
+import { forkJoin } from 'rxjs';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -145,34 +146,65 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
       this.horaFinalControl.value || '23:59'
     );
 
+    const schemasABuscar: string[] = [this.schemaControl.value];
+    if (this.schemaControl.value === 'productos') {
+      schemasABuscar.push('operaciones');
+    }
+
     if (this.tipoEntidadControl.value) {
-      this.service
-        .onModificacionesPorTipoEntidad(
-          this.tipoEntidadControl.value,
-          this.pageIndex,
-          this.pageSize
-        )
+      let schemaParaBuscar: string;
+      
+      if (this.tipoEntidadControl.value === 'AJUSTE_STOCK') {
+        schemaParaBuscar = 'operaciones';
+      } else {
+        schemaParaBuscar = this.schemaControl.value;
+      }
+      
+      const busquedas = [this.service.onModificacionesPorTipoEntidadAndSchema(
+        this.tipoEntidadControl.value,
+        schemaParaBuscar,
+        fechaInicio,
+        fechaFin,
+        this.pageIndex,
+        this.pageSize
+      )];
+
+      if (busquedas.length === 0) {
+        this.isSearching = false;
+        this.dataSource.data = [];
+        return;
+      }
+
+      forkJoin(busquedas)
         .pipe(untilDestroyed(this))
         .subscribe(
-          (res) => {
-            let filteredContent = res.getContent || [];
-            if (this.schemaControl.value) {
-              filteredContent = filteredContent.filter(
-                (m: ModificacionRegistro) => m.schemaNombre === this.schemaControl.value
-              );
-            }
-            filteredContent = filteredContent.filter((m: ModificacionRegistro) => {
-              const fechaMod = new Date(m.modificadoEn);
-              return fechaMod >= fechaInicio && fechaMod <= fechaFin;
+          (resultados: PageInfo<ModificacionRegistro>[]) => {
+            let contenidoCombinado: ModificacionRegistro[] = [];
+            let totalElementos = 0;
+
+            resultados.forEach(res => {
+              if (res.getContent) {
+                contenidoCombinado = contenidoCombinado.concat(res.getContent);
+                totalElementos += res.getTotalElements || 0;
+              }
             });
 
-            this.selectedPageInfo = res;
-            this.selectedPageInfo.getContent = filteredContent;
-            this.selectedPageInfo.getTotalElements = filteredContent.length;
-            this.dataSource.data = filteredContent;
+            contenidoCombinado.sort((a, b) => {
+              const fechaA = new Date(a.modificadoEn).getTime();
+              const fechaB = new Date(b.modificadoEn).getTime();
+              return fechaB - fechaA;
+            });
+            const inicio = this.pageIndex * this.pageSize;
+            const fin = inicio + this.pageSize;
+            const contenidoPaginado = contenidoCombinado.slice(inicio, fin);
+
+            this.selectedPageInfo = resultados[0] || new PageInfo<ModificacionRegistro>();
+            this.selectedPageInfo.getContent = contenidoPaginado;
+            this.selectedPageInfo.getTotalElements = contenidoCombinado.length;
+            this.dataSource.data = contenidoPaginado;
             this.isSearching = false;
 
-            if (filteredContent.length === 0) {
+            if (contenidoPaginado.length === 0) {
               this.notificacionService.openWarn('No se encontraron modificaciones');
             }
           },
@@ -182,22 +214,47 @@ export class ModificacionesComponent implements OnInit, AfterViewInit {
           }
         );
     } else {
-      this.service
-        .onModificacionesPorSchema(
-          this.schemaControl.value,
+      const busquedas = schemasABuscar.map(schema =>
+        this.service.onModificacionesPorSchema(
+          schema,
           fechaInicio,
           fechaFin,
           this.pageIndex,
           this.pageSize
         )
+      );
+
+      forkJoin(busquedas)
         .pipe(untilDestroyed(this))
         .subscribe(
-          (res) => {
-            this.selectedPageInfo = res;
-            this.dataSource.data = res.getContent || [];
+          (resultados: PageInfo<ModificacionRegistro>[]) => {
+            let contenidoCombinado: ModificacionRegistro[] = [];
+            let totalElementos = 0;
+
+            resultados.forEach(res => {
+              if (res.getContent) {
+                contenidoCombinado = contenidoCombinado.concat(res.getContent);
+                totalElementos += res.getTotalElements || 0;
+              }
+            });
+
+            contenidoCombinado.sort((a, b) => {
+              const fechaA = new Date(a.modificadoEn).getTime();
+              const fechaB = new Date(b.modificadoEn).getTime();
+              return fechaB - fechaA;
+            });
+
+            const inicio = this.pageIndex * this.pageSize;
+            const fin = inicio + this.pageSize;
+            const contenidoPaginado = contenidoCombinado.slice(inicio, fin);
+
+            this.selectedPageInfo = resultados[0] || new PageInfo<ModificacionRegistro>();
+            this.selectedPageInfo.getContent = contenidoPaginado;
+            this.selectedPageInfo.getTotalElements = contenidoCombinado.length;
+            this.dataSource.data = contenidoPaginado;
             this.isSearching = false;
 
-            if (!res.getContent || res.getContent.length === 0) {
+            if (contenidoPaginado.length === 0) {
               this.notificacionService.openWarn('No se encontraron modificaciones');
             }
           },
