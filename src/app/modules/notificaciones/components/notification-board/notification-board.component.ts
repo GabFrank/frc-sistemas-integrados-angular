@@ -24,6 +24,7 @@ import { ListInventarioComponent } from '../../../operaciones/inventario/list-in
 import { ListMovimientoStockComponent } from '../../../operaciones/movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
 import { ListProductoComponent } from '../../../productos/producto/list-producto/list-producto.component';
 import { ProductoComponent } from '../../../productos/producto/edit-producto/producto.component';
+import { ModificacionesComponent } from '../../../operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
 import { combineLatest, of } from 'rxjs';
 import { map, take, delay, switchMap } from 'rxjs/operators';
 
@@ -139,12 +140,45 @@ export class NotificationBoardComponent implements OnInit {
         const mensaje = n.notificacion?.mensaje || '';
 
         const esMencionado = titulo === 'Mencionado en comentario' || mensaje.includes('te mencionó');
+        const esInicioSesion = tipo === 'INICIO_SESION' || titulo.includes('Inicio de sesión') || mensaje.includes('inició sesión');
+
+        // No mostrar botón para mencionados e inicio de sesión
+        if (esMencionado || esInicioSesion) {
+            return false;
+        }
 
         if (tipo === 'PERSONALIZADA' && esMencionado) {
-            return true;
+            return false;
         }
 
         return tipo ? this.tiposConAccion.includes(tipo) : false;
+    }
+
+    mostrarBotonModificacion(n: NotificacionData & { tieneAccion?: boolean }): boolean {
+        const tipo = n.notificacion?.tipo;
+        const titulo = n.notificacion?.titulo || '';
+        const mensaje = n.notificacion?.mensaje || '';
+
+        const esMencionado = titulo === 'Mencionado en comentario' || mensaje.includes('te mencionó');
+        const esInicioSesion = tipo === 'INICIO_SESION' || titulo.includes('Inicio de sesión') || mensaje.includes('inició sesión');
+
+        // No mostrar botón para mencionados e inicio de sesión
+        if (esMencionado || esInicioSesion) {
+            return false;
+        }
+
+        // Usar tieneAccion si está disponible, sino calcularlo
+        return n.tieneAccion !== undefined ? n.tieneAccion : this.calcularTieneAccion(n);
+    }
+
+    navegarAModificaciones(n: NotificacionData, event?: Event): void {
+        if (event) {
+            event.stopPropagation();
+        }
+
+        this.tabService.addTab(
+            new Tab(ModificacionesComponent, 'Modificaciones del Sistema', null, null)
+        );
     }
 
     navegarAAccion(n: NotificacionData, event?: Event): void {
