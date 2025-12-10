@@ -7,7 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { NotificacionesTableroService, NotificacionData } from '../../services/notificaciones-tablero.service';
 import { ComentariosNotificacionService } from '../../services/comentarios-notificacion.service';
@@ -120,6 +120,25 @@ export class NotificationBoardComponent implements OnInit {
         this.ESTADOS_TABLERO.forEach(estado => {
             this.notificacionesTableroService.cargarNotificaciones(estado, 0, 15);
         });
+
+        this.notificaciones$.pipe(
+            untilDestroyed(this),
+            map(notificaciones => {
+                const todosLosIds: number[] = [];
+                Object.keys(notificaciones).forEach(estado => {
+                    notificaciones[estado].forEach(notif => {
+                        if (notif.notificacion?.id) {
+                            todosLosIds.push(notif.notificacion.id);
+                        }
+                    });
+                });
+                return todosLosIds;
+            })
+        ).subscribe(ids => {
+            ids.forEach(id => {
+                this.comentariosService.obtenerConteoComentarios(id).subscribe();
+            });
+        });
     }
 
     onPageChange(event: PageEvent, estado: string): void {
@@ -141,8 +160,6 @@ export class NotificationBoardComponent implements OnInit {
 
         const esMencionado = titulo === 'Mencionado en comentario' || mensaje.includes('te mencionó');
         const esInicioSesion = tipo === 'INICIO_SESION' || titulo.includes('Inicio de sesión') || mensaje.includes('inició sesión');
-
-        // No mostrar botón para mencionados e inicio de sesión
         if (esMencionado || esInicioSesion) {
             return false;
         }
@@ -162,12 +179,10 @@ export class NotificationBoardComponent implements OnInit {
         const esMencionado = titulo === 'Mencionado en comentario' || mensaje.includes('te mencionó');
         const esInicioSesion = tipo === 'INICIO_SESION' || titulo.includes('Inicio de sesión') || mensaje.includes('inició sesión');
 
-        // No mostrar botón para mencionados e inicio de sesión
         if (esMencionado || esInicioSesion) {
             return false;
         }
 
-        // Usar tieneAccion si está disponible, sino calcularlo
         return n.tieneAccion !== undefined ? n.tieneAccion : this.calcularTieneAccion(n);
     }
 
@@ -447,7 +462,9 @@ export class NotificationBoardComponent implements OnInit {
         });
 
         dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(() => {
-            this.comentariosService.obtenerConteoComentarios(data.notificacionId).subscribe();
+            this.comentariosService.obtenerConteoComentarios(data.notificacionId, true).subscribe(() => {
+                this.cdr.markForCheck();
+            });
         });
     }
 
@@ -514,11 +531,30 @@ export class NotificationBoardComponent implements OnInit {
         if (estadoAnterior === nuevoEstado) {
             return;
         }
+
+        transferArrayItem(
+            event.previousContainer.data,
+            event.container.data,
+            event.previousIndex,
+            event.currentIndex
+        );
+
         this.notificacionesTableroService
             .actualizarEstadoTablero(notificacion.notificacion.id, nuevoEstado)
             .pipe(untilDestroyed(this))
             .subscribe({
                 next: () => {
+                    this.notificacionesTableroService.cargarNotificaciones(estadoAnterior, 0, 15);
+                    this.notificacionesTableroService.cargarNotificaciones(nuevoEstado, 0, 15);
+                    this.cdr.markForCheck();
+                },
+                error: () => {
+                    transferArrayItem(
+                        event.container.data,
+                        event.previousContainer.data,
+                        event.currentIndex,
+                        event.previousIndex
+                    );
                     this.cdr.markForCheck();
                 }
             });

@@ -443,8 +443,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
           this.comentarios = comentarios;
           this.ultimoConteoComentarios = comentarios.length;
           this.enviando = false;
-
-          this.comentariosService.obtenerConteoComentarios(this.data.notificacionId).subscribe();
+          this.comentariosService.obtenerConteoComentarios(this.data.notificacionId, true).subscribe();
 
           setTimeout(() => {
             this.scrollAlFinal();

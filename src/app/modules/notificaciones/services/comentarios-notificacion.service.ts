@@ -35,8 +35,9 @@ export class ComentariosNotificacionService {
     );
   }
 
-  obtenerConteoComentarios(notificacionId: number): Observable<number> {
-    return this.getConteoGQL.fetch({ notificacionId }, { fetchPolicy: 'cache-first' }).pipe(
+  obtenerConteoComentarios(notificacionId: number, forceRefresh: boolean = false): Observable<number> {
+    const fetchPolicy = forceRefresh ? 'network-only' : 'cache-first';
+    return this.getConteoGQL.fetch({ notificacionId }, { fetchPolicy }).pipe(
       map(result => result.data?.data || 0),
       tap(conteo => {
         const mapActual = new Map(this._conteosPorNotificacion$.value);
