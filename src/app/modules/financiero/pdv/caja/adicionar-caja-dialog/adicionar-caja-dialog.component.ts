@@ -48,6 +48,11 @@ import { DeliveryService } from "../../../../pdv/comercial/venta-touch/delivery-
 import { DeliveryEstado } from "../../../../operaciones/delivery/enums";
 import { Delivery } from "../../../../operaciones/delivery/delivery.model";
 import { Tab } from "../../../../../layouts/tab/tab.model";
+import { TabService, TabData } from "../../../../../layouts/tab/tab.service";
+import { ListGastosComponent } from "../../../gastos/list-gastos/list-gastos.component";
+import { ListRetiroComponent } from "../../../retiro/list-retiro/list-retiro.component";
+import { ROLES } from "../../../../personas/roles/roles.enum";
+import { ListVentaComponent } from "../../../../operaciones/venta/list-venta/list-venta.component";
 
 @UntilDestroy()
 @Component({
@@ -59,6 +64,8 @@ export class AdicionarCajaDialogComponent implements OnInit {
 
   @Input()
   data: Tab;
+
+  ROLES = ROLES;
   
   @ViewChild("stepper", { static: false }) stepper: MatStepper;
   @ViewChild("codigoMaletinInput", { static: false })
@@ -126,7 +133,9 @@ export class AdicionarCajaDialogComponent implements OnInit {
     private notificacionBar: NotificacionSnackbarService,
     private cargandoDialog: CargandoDialogService,
     private matDialog: MatDialog,
-    private deliveryService: DeliveryService
+    private deliveryService: DeliveryService,
+    private tabService: TabService,
+    private mainService: MainService
   ) {
 
   }
@@ -461,5 +470,47 @@ export class AdicionarCajaDialogComponent implements OnInit {
           }
         });
     }, 1000);
+  }
+
+  onIrAGastos() {
+    if (this.selectedCaja != null) {
+      this.tabService.addTab(
+        new Tab(
+          ListGastosComponent,
+          "Gastos de la caja " + this.selectedCaja.id,
+          new TabData(null, { caja: this.selectedCaja, sucursal: this.selectedCaja.sucursal }),
+          AdicionarCajaDialogComponent
+        )
+      );
+      this.matDialogRef.close();
+    }
+  }
+
+  onIrARetiros() {
+    if (this.selectedCaja != null) {
+      this.tabService.addTab(
+        new Tab(
+          ListRetiroComponent,
+          "Retiros de la caja " + this.selectedCaja.id,
+          new TabData(null, { caja: this.selectedCaja, sucursal: this.selectedCaja.sucursal }),
+          AdicionarCajaDialogComponent
+        )
+      );
+      this.matDialogRef.close();
+    }
+  }
+
+  onIrAVentas() {
+    if (this.selectedCaja != null) {
+      this.tabService.addTab(
+        new Tab(
+          ListVentaComponent,
+          "Ventas de la caja " + this.selectedCaja.id,
+          new TabData(null, { caja: this.selectedCaja, sucursal: this.selectedCaja.sucursal }),
+          AdicionarCajaDialogComponent
+        )
+      );
+      this.matDialogRef.close();
+    }
   }
 }
