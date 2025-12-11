@@ -8,7 +8,7 @@
   "modo": "NOT",
   "pdvId": 25,
   "isConfigured": true,
-  "isLocal": false,
+  "isLocal": true,
   "printers": {
     "ticket": "ticket",
     "factura": "factura"
