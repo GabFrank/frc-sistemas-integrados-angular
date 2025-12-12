@@ -282,8 +282,8 @@ export class NotificacionesTableroService {
     );
   }
 
-  private moverNotificacionEntreEstados(notificacionId: number, nuevoEstado: string): void {
-  }
+  // private moverNotificacionEntreEstados(notificacionId: number, nuevoEstado: string): void {
+  // }
 
 
 

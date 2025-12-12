@@ -17,13 +17,19 @@ export class FirebaseMessagingService {
     private async checkSupport() {
         if (typeof window !== 'undefined' && !this.isElectron()) {
             try {
-                const { initializeApp } = await import('firebase/app');
+                const { getApp, getApps, initializeApp } = await import('firebase/app');
                 const { getMessaging, isSupported } = await import('firebase/messaging');
 
                 this.isSupported = await isSupported();
 
                 if (this.isSupported && environment.firebaseConfig) {
-                    const app = initializeApp(environment.firebaseConfig);
+                    let app;
+                    const existingApps = getApps();
+                    if (existingApps.length > 0) {
+                        app = getApp();
+                    } else {
+                        app = initializeApp(environment.firebaseConfig);
+                    }
                     this.messaging = getMessaging(app);
                 }
             } catch (error) {
