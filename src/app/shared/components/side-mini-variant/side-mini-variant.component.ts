@@ -379,7 +379,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         const path = notification?.data?.path;
         if (path) {
           setTimeout(() => {
-            this.onItemClick(path);
+            this.onItemClick(path, undefined, true);
           }, 500);
         }
       });
@@ -390,7 +390,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       const path = event.detail;
       if (path) {
         setTimeout(() => {
-          this.onItemClick(path);
+          this.onItemClick(path, undefined, true);
         }, 500);
       }
     });
@@ -400,7 +400,7 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       const action = event.detail;
       if (action) {
         setTimeout(() => {
-          this.onItemClick(action);
+          this.onItemClick(action, undefined, true);
         }, 500);
       }
     });
@@ -489,14 +489,14 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       section.isExpanded = true;
     }
   }
-  onItemClick(action: string | undefined, event?: Event): void {
+  onItemClick(action: string | undefined, event?: Event, fromNotification: boolean = false): void {
     if (event) {
       event.stopPropagation();
     }
     if (!action) {
       return;
     }
-    if (!this.isExpanded) {
+    if (!this.isExpanded && !fromNotification) {
       this.toggleSidenav(true);
       return;
     }
