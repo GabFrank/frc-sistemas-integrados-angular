@@ -156,3 +156,10 @@ mat-drawer-container {
   display: block;
   max-width: 100%;
 }
+
+.close-icon {
+
+  &:hover {
+    color: #f44336 !important;
+  }
+}
