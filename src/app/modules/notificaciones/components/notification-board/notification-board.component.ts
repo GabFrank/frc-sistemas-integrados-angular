@@ -159,12 +159,13 @@ export class NotificationBoardComponent implements OnInit {
         const mensaje = n.notificacion?.mensaje || '';
 
         const esMencionado = titulo === 'Mencionado en comentario' || mensaje.includes('te mencionó');
-        const esInicioSesion = tipo === 'INICIO_SESION' || titulo.includes('Inicio de sesión') || mensaje.includes('inició sesión');
-        if (esMencionado || esInicioSesion) {
-            return false;
+        
+        if (esMencionado) {
+            return true;
         }
 
-        if (tipo === 'PERSONALIZADA' && esMencionado) {
+        const esInicioSesion = tipo === 'INICIO_SESION' || titulo.includes('Inicio de sesión') || mensaje.includes('inició sesión');
+        if (esInicioSesion) {
             return false;
         }
 
