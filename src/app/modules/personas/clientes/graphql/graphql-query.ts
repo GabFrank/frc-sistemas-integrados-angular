@@ -88,6 +88,57 @@ export const clientePorPersonaDocumento = gql`
   }
 `;
 
+export const clientePorPersonaDocumentoDetallado = gql`
+  query ($texto: String) {
+    data: clientePorPersonaDocumentoDetallado(texto: $texto) {
+      exito
+      warnings
+      errores
+      cliente {
+        id
+        persona {
+          id
+          nombre
+          direccion
+          email
+        }
+        tipo
+        nombre
+        documento
+        credito
+        creadoEn
+        usuario {
+          id
+          nickname
+        }
+        saldo
+        codigo
+        sucursal {
+          id
+        }
+        tributa
+        verificadoSet
+        contactos {
+          id
+          telefono
+        }
+      }
+      datosBasicos {
+        ruc
+        razonSocial
+        direccion
+        estado
+        estadoContribuyente
+        tributa
+        tipoContribuyente
+        telefono
+        nombreFantasia
+        dv
+      }
+    }
+  }
+`;
+
 export const clienteConFiltros = gql`
   query ($texto: String, $tipo: TipoCliente, $page: Int, $size: Int) {
     data: onSearchWithFilters(
