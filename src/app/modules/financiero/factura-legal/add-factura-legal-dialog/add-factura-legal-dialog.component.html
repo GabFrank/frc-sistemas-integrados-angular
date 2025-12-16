@@ -346,10 +346,7 @@
         color="accent"
         [disableExpression]="
           rucControl.invalid ||
-          clienteDescripcionControl.invalid ||
-          totalFinalControl.invalid ||
-          (!isServidor && !selectedCliente) ||
-          (isServidor && (!sucursalControl.value || !timbradoDetalleControl.value))
+          clienteDescripcionControl.invalid
         "
         (clickEvent)="onGuardar()"
         class="btn-accion"

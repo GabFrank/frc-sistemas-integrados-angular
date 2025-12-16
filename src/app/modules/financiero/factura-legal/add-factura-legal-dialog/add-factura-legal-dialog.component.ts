@@ -26,7 +26,7 @@ import {
 } from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
 import { VentaItem } from "../../../operaciones/venta/venta-item.model";
 import { Venta } from "../../../operaciones/venta/venta.model";
-import { Cliente } from "../../../personas/clientes/cliente.model";
+import { Cliente, ClienteResponse, ClienteDatosBasicos } from "../../../personas/clientes/cliente.model";
 import { ClienteService } from "../../../personas/clientes/cliente.service";
 import { Persona } from "../../../personas/persona/persona.model";
 import { PersonaService } from "../../../personas/persona/persona.service";
@@ -345,39 +345,62 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
       .split("-")[0];
     this.rucControl.setValue(documento);
 
+    // Usar el nuevo método que retorna ClienteResponse
     this.clienteService
-      .onGetClientePorPersonaDocumento(documento, false)
+      .onGetClientePorPersonaDocumentoDetallado(documento, false)
       .subscribe({
-        next: (cliente) => {
-          if (cliente) {
-            this.setCliente(cliente);
-            // Si el cliente fue encontrado y los campos están deshabilitados, ir a Dirección
+        next: (response: ClienteResponse) => {
+          // Verificar si hay errores críticos
+          if (response.errores && response.errores.length > 0) {
+            // Mostrar errores al usuario
+            const errorMessage = response.errores.join(', ');
+            this.notificacionService.openWarn(errorMessage);
+            
+            // Manejar errores específicos
+            if (errorMessage.includes("no es contribuyente")) {
+              this.prepararClienteNoContribuyente();
+            } else {
+              this.prepararFacturaSinCliente();
+            }
+            return;
+          }
+
+          // Mostrar warnings si existen (informativos)
+          if (response.warnings && response.warnings.length > 0) {
+            response.warnings.forEach(warning => {
+              this.notificacionService.openWarn(warning);
+            });
+          }
+
+          // Si tenemos el cliente completo, usarlo
+          if (response.cliente && response.cliente.id) {
+            this.setCliente(response.cliente);
             setTimeout(() => {
               if (this.clienteDescripcionControl.disabled) {
                 this.direccionInput?.nativeElement?.focus();
               } else {
-                // Si por alguna razón está habilitado, ir a Razón Social
                 this.nombreInput?.nativeElement?.focus();
               }
             }, 100);
+          } else if (response.datosBasicos) {
+            // Si no hay cliente pero hay datos básicos, usar esos datos
+            this.prepararClienteDesdeDatosBasicos(response.datosBasicos);
           } else {
+            // No hay cliente ni datos básicos
             this.prepararNuevoClienteManual();
-            // Ya hace focus en nombreInput dentro del método
           }
         },
         error: (error) => {
           const errorMessage = this.extractErrorMessage(error);
           
-          if (errorMessage?.includes("El cliente no es contribuyente de SET")) {
+          if (errorMessage?.includes("El cliente no es contribuyente de SET") || 
+              errorMessage?.includes("no es contribuyente")) {
             this.prepararClienteNoContribuyente();
-            // Ya hace focus en nombreInput dentro del método
           } else if (errorMessage?.includes("Error al conectar con el servidor central")) {
             this.prepararClienteSinServidorCentral();
-            // Ya hace focus en nombreInput dentro del método
           } else {
             // Otros errores: permitir crear factura sin crear persona/cliente
             this.prepararFacturaSinCliente();
-            // Ya hace focus en nombreInput dentro del método
           }
         },
       });
@@ -448,6 +471,33 @@ export class AddFacturaLegalDialogComponent implements OnInit, AfterViewInit {
     this.clienteDescripcionControl.setValue(null);
     this.direccionControl.setValue(null);
     this.emailControl.setValue(null);
+    this.nombreInput?.nativeElement.focus();
+  }
+
+  prepararClienteDesdeDatosBasicos(datosBasicos: ClienteDatosBasicos) {
+    // Cliente no se pudo guardar pero tenemos datos de SIFEN
+    // Permitir generar factura con estos datos sin guardar como cliente
+    this.isNuevoCliente = false; // No guardar como cliente
+    this.selectedCliente = null;
+    
+    // Llenar formulario con datos básicos de SIFEN
+    this.clienteDescripcionControl.enable();
+    this.direccionControl.enable();
+    this.emailControl.enable();
+    
+    this.clienteDescripcionControl.setValue(datosBasicos.razonSocial || datosBasicos.nombreFantasia || null);
+    this.direccionControl.setValue(datosBasicos.direccion || null);
+    this.emailControl.setValue(null); // SIFEN no retorna email en datos básicos
+    
+    // Configurar tributa según datos de SIFEN
+    this.tributaControl.setValue(datosBasicos.tributa !== false); // Default true si no está definido
+    
+    // Mostrar advertencia informativa
+    this.notificacionService.openWarn(
+      'El cliente no se pudo guardar en el servidor central, ' +
+      'pero puedes generar la factura con la información de SIFEN.'
+    );
+    
     this.nombreInput?.nativeElement.focus();
   }
 

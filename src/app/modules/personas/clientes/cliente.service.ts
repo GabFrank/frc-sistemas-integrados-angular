@@ -5,6 +5,7 @@ import { GenericCrudService, QueryError } from './../../../generics/generic-crud
 import { Cliente, ClienteInput, TipoCliente } from './cliente.model';
 import { ClienteByIdGQL } from './graphql/clienteById';
 import { ClientePersonaDocumentoGQL } from './graphql/clientePorPersonaDocumento';
+import { ClientePorPersonaDocumentoDetalladoGQL } from './graphql/clientePorPersonaDocumentoDetallado';
 import { ClientePersonaIdFromServerGQL } from './graphql/clientePorPersonaIdFromServer';
 import { ClientesSearchByPersonaGQL } from './graphql/clienteSearchByPersona';
 import { ClientesSearchByPersonaIdGQL } from './graphql/clienteSearchByPersonaId';
@@ -14,6 +15,7 @@ import { PageInfo } from '../../../app.component';
 import { ConsultaRucGQL } from './graphql/consultaRuc';
 import { RucResponse } from '../../../shared/services/ruc.service';
 import { NotificacionColor } from '../../../notificacion-snackbar.service';
+import { ClienteResponse } from './cliente.model';
 
 @Injectable({
   providedIn: 'root'
@@ -27,6 +29,7 @@ export class ClienteService {
     private getClienteById: ClienteByIdGQL,
     public searchByPersonaNombre: ClientesSearchByPersonaGQL,
     private getClientePorPersonaDocumento: ClientePersonaDocumentoGQL,
+    private getClientePorPersonaDocumentoDetallado: ClientePorPersonaDocumentoDetalladoGQL,
     private getClientePorPersonaId: ClientesSearchByPersonaIdGQL,
     private getClientePorPersonaIdFromServer: ClientePersonaIdFromServerGQL,
     private searchWithFilters: ClientesSearchConFiltrosGQL,
@@ -57,6 +60,20 @@ export class ClienteService {
       }
     };
     return this.genericService.onGetByTexto(this.getClientePorPersonaDocumento, texto, servidor, null, errorConf);
+  }
+
+  onGetClientePorPersonaDocumentoDetallado(texto: string, servidor: boolean = true): Observable<ClienteResponse> {
+    let errorConf: QueryError = {
+      graphError: {
+        show: false,
+        propagate: true
+      },
+      networkError: {
+        show: false,
+        propagate: true
+      }
+    };
+    return this.genericService.onCustomQuery(this.getClientePorPersonaDocumentoDetallado, { texto }, servidor, errorConf);
   }
 
   onGetById(id: number, servidor: boolean = true): Observable<Cliente> {

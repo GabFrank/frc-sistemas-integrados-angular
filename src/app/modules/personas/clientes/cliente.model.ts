@@ -63,3 +63,24 @@ export enum TipoCliente {
   FUNCIONARIO = 'FUNCIONARIO',
   VIP = 'VIP'
 }
+
+export interface ClienteDatosBasicos {
+  ruc?: string | null;
+  razonSocial?: string | null;
+  direccion?: string | null;
+  estado?: string | null;
+  estadoContribuyente?: string | null;
+  tributa?: boolean | null;
+  tipoContribuyente?: number | null;
+  telefono?: string | null;
+  nombreFantasia?: string | null;
+  dv?: string | null;
+}
+
+export interface ClienteResponse {
+  cliente?: Cliente | null;
+  datosBasicos?: ClienteDatosBasicos | null;
+  warnings: string[];
+  errores: string[];
+  exito?: boolean | null;
+}
