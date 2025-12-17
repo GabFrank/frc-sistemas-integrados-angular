@@ -1,23 +1,19 @@
-import { Component, Inject, OnInit, ViewEncapsulation } from "@angular/core";
+import { Component, OnInit, ViewEncapsulation, OnDestroy } from "@angular/core";
 import { Router } from "@angular/router";
-import { Subject, of } from "rxjs";
-import { switchMap, catchError, tap } from "rxjs/operators";
-import { PageEvent } from "@angular/material/paginator";
 import { TabService } from "../tab/tab.service";
 import { Tab } from "../tab/tab.model";
 import { MatDialog } from "@angular/material/dialog";
 import { CloseTabPopupComponent } from "./close-tab-popup.component";
 import { WindowInfoService } from "../../shared/services/window-info.service";
 import { MainService } from "../../main.service";
-import { NotificacionesPorTokenGQL, NotificacionData } from "../../modules/configuracion/inicio-sesion/graphql/notificacionesPorToken.gql";
-import { GetNotificacionesUsuarioGQL } from "../../modules/configuracion/inicio-sesion/graphql/getNotificacionesUsuario.gql";
+import { NotificacionesPorTokenGQL } from "../../modules/notificaciones/graphql/notificacionesPorToken.gql";
 import {
-  MarcarNotificacionLeidaGQL,
-  RegistrarInteraccionNotificacionGQL,
-} from "../../modules/configuracion/inicio-sesion/graphql/notificacionMutations.gql";
-import { NotificationDetailDialogComponent } from "../../modules/configuracion/inicio-sesion/components/notification-detail-dialog/notification-detail-dialog.component";
-
+  MarcarNotificacionLeidaGQL
+} from "../../modules/notificaciones/graphql/notificacionMutations.gql";
+import { NotificacionesTableroService } from "../../modules/notificaciones/services/notificaciones-tablero.service";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { NotificacionPersonalizadaComponent } from "../../modules/notificaciones/components/notificacion-personalizada/notificacion-personalizada.component";
+import { FormControl, FormGroup } from "@angular/forms";
 
 @UntilDestroy()
 @Component({
@@ -26,30 +22,22 @@ import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
   styleUrls: ["./default.component.scss"],
   encapsulation: ViewEncapsulation.None,
 })
-export class DefaultComponent implements OnInit {
+export class DefaultComponent implements OnInit, OnDestroy {
+
   sideBarOpen = false;
   notificationsOpen = false;
 
   tabs = new Array<Tab>();
-  notifications: NotificacionData[] = [];
-  page = 0;
-  size = 10;
-  totalPages = 0;
-  loadingMore = false;
-  totalElements = 0;
-  pageSizes = [10, 15, 25, 50];
 
-
+  fechaFormGroup: FormGroup;
+  fechaInicioControl: FormControl<Date | null>;
+  fechaFinControl: FormControl<Date | null>;
+  today = new Date();
 
   selectedTab: number;
-
   onTabClose: false;
-
   closeTab?: false;
-
   res = true;
-
-  private fetchNotifications$ = new Subject<{ page: number, size: number }>();
 
   constructor(
     private tabService: TabService,
@@ -57,12 +45,44 @@ export class DefaultComponent implements OnInit {
     public windowInfo: WindowInfoService,
     private mainService: MainService,
     private notificacionesPorTokenGQL: NotificacionesPorTokenGQL,
-    private getNotificacionesUsuarioGQL: GetNotificacionesUsuarioGQL,
     private marcarNotificacionLeidaGQL: MarcarNotificacionLeidaGQL,
-    private registrarInteraccionNotificacionGQL: RegistrarInteraccionNotificacionGQL,
+    private notificacionesTableroService: NotificacionesTableroService,
     private router: Router
   ) {
+    const ayer = new Date();
+    ayer.setDate(ayer.getDate() - 1);
+    ayer.setHours(0, 0, 0, 0);
+
+    const hoy = new Date();
+    hoy.setHours(23, 59, 59, 999);
+
+    this.fechaInicioControl = new FormControl<Date | null>(ayer);
+    this.fechaFinControl = new FormControl<Date | null>(hoy);
+
+    this.fechaFormGroup = new FormGroup({
+      inicio: this.fechaInicioControl,
+      fin: this.fechaFinControl
+    });
   }
+  crearNotificacion(): void {
+    const dialogRef = this.dialog.open(NotificacionPersonalizadaComponent, {
+      width: '800px',
+      maxWidth: '95vw',
+      autoFocus: false,
+      restoreFocus: true,
+      panelClass: 'notificacion-dialog-panel'
+    });
+
+    dialogRef
+      .afterClosed()
+      .pipe(untilDestroyed(this))
+      .subscribe((result) => {
+        if (result) {
+          console.log('Notificación a enviar:', result);
+        }
+      });
+  }
+
 
   ngOnInit(): void {
     this.mainService.authenticationSub
@@ -77,33 +97,10 @@ export class DefaultComponent implements OnInit {
             });
         } else {
           this.sideBarOpen = false;
-        }
-      });
-
-    this.fetchNotifications$
-      .pipe(
-        untilDestroyed(this),
-        tap(() => this.loadingMore = true),
-        switchMap(({ page, size }) => {
-          const usuarioId = localStorage.getItem("usuarioId");
-          const tokenFcm = localStorage.getItem("pushToken");
-          if (!usuarioId) return of(null);
-          return this.getNotificacionesUsuarioGQL
-            .fetch({ tokenFcm, page, size }, { fetchPolicy: 'network-only' })
-            .pipe(catchError(() => of(null)));
-        })
-      )
-      .subscribe((res) => {
-        this.loadingMore = false;
-        const pageData = res?.data?.data;
-        if (pageData) {
-          this.notifications = (pageData?.content || []).map(item => ({ ...item }));
-          this.totalPages = pageData?.totalPages || 0;
-          this.totalElements = pageData?.totalElements || 0;
+          this.notificationsOpen = false;
         }
       });
   }
-
   tabChanged(event): void {
     this.tabService.tabChanged(event.index);
   }
@@ -111,6 +108,7 @@ export class DefaultComponent implements OnInit {
   removeTab(index: number): void {
     this.openDialog(index);
   }
+
   toggleSideNav(): void {
     this.sideBarOpen = !this.sideBarOpen;
   }
@@ -118,112 +116,59 @@ export class DefaultComponent implements OnInit {
     this.sideBarOpen = isExpanded;
   }
 
+
+
   openNotifications(): void {
     this.notificationsOpen = !this.notificationsOpen;
 
     if (this.notificationsOpen) {
-      this.page = 0;
-      this.fetchNotifications$.next({ page: this.page, size: this.size });
+      const tokenFcm = localStorage.getItem("pushToken");
+      if (tokenFcm) {
+        this.notificacionesTableroService.setTokenFcm(tokenFcm);
+        this.aplicarFiltroFechas();
+      }
     }
   }
 
-  loadMore(): void {
-    this.nextPage();
-  }
+  aplicarFiltroFechas(): void {
+    const fechaInicio = this.fechaInicioControl.value;
+    const fechaFin = this.fechaFinControl.value;
 
-  private loadPage(pageIndex: number): void {
-    this.page = pageIndex;
-    this.fetchNotifications$.next({ page: this.page, size: this.size });
-  }
+    let fechaInicioStr: string | null = null;
+    let fechaFinStr: string | null = null;
 
-  changePageSize(newSize: any): void {
-    this.size = +newSize;
-    this.loadPage(0);
-  }
-
-  onMatPageChange(event: PageEvent): void {
-    this.page = event.pageIndex;
-    this.size = event.pageSize;
-    this.loadPage(this.page);
-  }
-
-  prevPage(): void {
-    if (this.page <= 0) return;
-    this.loadPage(this.page - 1);
-  }
-
-  nextPage(): void {
-    if (this.page + 1 >= this.totalPages) return;
-    this.loadPage(this.page + 1);
-  }
-
-  goToPage(index: number): void {
-    if (index < 0 || index >= this.totalPages) return;
-    this.loadPage(index);
-  }
-
-  onNotificationClick(n: NotificacionData): void {
-    this.navigateByNotificationType(n);
-    this.openDetail(n);
-  }
-  private navigateByNotificationType(n: NotificacionData): void {
-    const tipo = n.notificacion?.tipo;
-
-    if (!tipo) {
-      return;
+    if (fechaInicio) {
+      const inicio = new Date(fechaInicio);
+      inicio.setHours(0, 0, 0, 0);
+      fechaInicioStr = inicio.toISOString();
     }
 
-    switch (tipo) {
-      case 'AJUSTE_STOCK':
-        this.router.navigate(['/operaciones/movimientos-stock']);
-        break;
-      case 'PRODUCTO_CREADO':
-        this.router.navigate(['/productos']);
-        break;
-      case 'TRANSFERENCIA_INICIADA':
-        this.router.navigate(['/operaciones/transferencias']);
-        break;
-      case 'PRECIO_ACTUALIZADO':
-        this.router.navigate(['/productos']);
-        break;
-      default:
-        break;
+    if (fechaFin) {
+      const fin = new Date(fechaFin);
+      const ahora = new Date();
+      if (fin.toDateString() === ahora.toDateString()) {
+        fin.setHours(23, 59, 59, 999);
+      } else {
+        fin.setHours(23, 59, 59, 999);
+      }
+      fechaFinStr = fin.toISOString();
     }
+
+    this.notificacionesTableroService.actualizarFiltroFechas(fechaInicioStr, fechaFinStr);
   }
 
-  openDetail(n: NotificacionData): void {
-    if (!n.leida) {
-      this.markAsRead(n);
-    }
-    this.registrarInteraccionNotificacionGQL
-      .mutate({ notificacionUsuarioId: n.id, accion: "OPEN" })
-      .pipe(untilDestroyed(this))
-      .subscribe();
+  limpiarFiltroFechas(): void {
+    const ayer = new Date();
+    ayer.setDate(ayer.getDate() - 1);
+    ayer.setHours(0, 0, 0, 0);
 
-    this.dialog.open(NotificationDetailDialogComponent, {
-      width: '500px',
-      maxWidth: '95vw',
-      data: n,
-      autoFocus: false
-    });
-  }
+    const hoy = new Date();
+    hoy.setHours(23, 59, 59, 999);
 
-  markAsRead(n: NotificacionData, event?: Event): void {
-    if (event) {
-      event.stopPropagation();
-    }
+    this.fechaInicioControl.setValue(ayer);
+    this.fechaFinControl.setValue(hoy);
 
-    if (n.leida) return;
-
-    this.marcarNotificacionLeidaGQL
-      .mutate({ notificacionUsuarioId: n.id })
-      .pipe(untilDestroyed(this))
-      .subscribe((res) => {
-        if (res?.data?.data) {
-          n.leida = true;
-          n.fechaLeida = new Date().toISOString();
-        }
-      });
+    this.aplicarFiltroFechas();
   }
 
   openDialog(index): void {
@@ -242,5 +187,8 @@ export class DefaultComponent implements OnInit {
           this.tabService.removeTab(index);
         }
       });
+  }
+
+  ngOnDestroy(): void {
   }
 }

@@ -74,10 +74,15 @@
           </button>
         </mat-menu>
       </div>
-      <div fxFlex="10">
+      <div fxFlex="10" style="position: relative;">
         <button mat-icon-button class="header-menu-toggle" (click)="onOpenNotifications()"
           [disabled]="!cloudStatus && (!isLocal || !localStatus)">
           <mat-icon>mail</mat-icon>
+          <ng-container *ngIf="(unreadCount$ | async) as count">
+            <span *ngIf="count > 0" class="notification-badge">
+              {{ count > 99 ? '99+' : count }}
+            </span>
+          </ng-container>
         </button>
       </div>
     </div>

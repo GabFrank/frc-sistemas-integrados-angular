@@ -6,6 +6,7 @@ import {
   OnDestroy,
   OnInit,
   ViewChild,
+  ChangeDetectorRef,
 } from "@angular/core";
 import { MatDialog } from "@angular/material/dialog";
 import { MatSnackBar } from "@angular/material/snack-bar";
@@ -25,6 +26,7 @@ import { SearchBarDialogComponent } from "./shared/widgets/search-bar-dialog/sea
 import { DialogoNuevasFuncionesComponent } from "./shared/components/dialogo-nuevas-funciones/dialogo-nuevas-funciones.component";
 import { GraphqlConnectionService, connectionStatusSub } from "./shared/services/graphql-connection.service";
 import { ConfirmDialogComponent } from "./shared/components/confirm-dialog/confirm-dialog.component";
+import { NotificacionesTableroService } from "./modules/notificaciones/services/notificaciones-tablero.service";
 
 export class Pageable {
   getPageNumber: number;
@@ -71,6 +73,7 @@ export class AppComponent implements OnInit, OnDestroy {
   keyPressed: any;
   dialogRef;
   dialogCount = 0;
+  cursorStyle = 'auto';
 
   constructor(
     private overlay: OverlayContainer,
@@ -83,7 +86,9 @@ export class AppComponent implements OnInit, OnDestroy {
     public genericService: GenericCrudService,
     private configService: ConfiguracionService,
     public cargandoService: CargandoDialogService,
-    private graphqlService: GraphqlConnectionService
+    private graphqlService: GraphqlConnectionService,
+    private notificacionesTableroService: NotificacionesTableroService,
+    private cdr: ChangeDetectorRef
   ) {
     this.innerHeight = windowInfo.innerHeight + "px";
     notificationService.notification$
@@ -105,6 +110,8 @@ export class AppComponent implements OnInit, OnDestroy {
   }
   async ngOnInit(): Promise<void> {
     this.overlay.getContainerElement().classList.add("darkMode");
+    this.startLoadingObserver();
+    
     this.configService.configChanged
       .pipe(untilDestroyed(this))
       .subscribe(config => {
@@ -186,6 +193,9 @@ export class AppComponent implements OnInit, OnDestroy {
     this.mainService.load();
     if (this.electronService && this.electronService.isElectron) {
       this.electronService.initPushNotifications((token) => {
+        if (token) {
+          this.notificacionesTableroService.setTokenFcm(token);
+        }
       });
     } else {
     }
@@ -281,6 +291,20 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+  }
+
+  /**
+   * Observa cambios en genericService.isLoading y actualiza la propiedad local
+   * Usa setInterval para evitar ExpressionChangedAfterItHasBeenCheckedError
+   */
+  private startLoadingObserver(): void {
+    setInterval(() => {
+      const newCursorStyle = this.genericService.isLoading ? 'progress' : 'auto';
+      if (this.cursorStyle !== newCursorStyle) {
+        this.cursorStyle = newCursorStyle;
+        this.cdr.detectChanges();
+      }
+    }, 100);
   }
 
   onCerrarCargando() {

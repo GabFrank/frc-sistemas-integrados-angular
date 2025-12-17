@@ -9,16 +9,21 @@ import { NotificacionSnackbarService } from "../../../notificacion-snackbar.serv
 import { DialogosService } from "../../../shared/components/dialogos/dialogos.service";
 import { ReporteService } from "../../reportes/reporte.service";
 import { ReportesComponent } from "../../reportes/reportes/reportes.component";
+import { CancelarInventarioGQL } from "./graphql/cancelarInventario";
 import { DeleteInventarioGQL } from "./graphql/deleteInventario";
 import { DeleteInventarioProductoGQL } from "./graphql/deleteInventarioProducto";
 import { DeleteInventarioProductoItemGQL } from "./graphql/deleteInventarioProductoItem";
+import { FinalizarInventarioGQL } from "./graphql/finalizarInventario";
 import { GetInventarioGQL } from "./graphql/getInventario";
 import { GetInventarioAbiertoPorSucursalGQL } from "./graphql/getInventarioAbiertoPorSucursal";
 import { GetInventarioPorFechaGQL } from "./graphql/getInventarioPorFecha";
 import { GetInventarioPorUsuarioGQL } from "./graphql/getInventarioPorUsuario";
+import { GetInventarioProductoGQL } from "./graphql/getInventarioProducto";
 import { GetInventarioProductoItemGQL } from "./graphql/getInventarioProductoItem";
 import { InventarioProductoItemWithFiltersGQL } from "./graphql/getInventarioProductoItemWithFilters";
+import { GetInventarioProductosItemPorInventarioProductoGQL } from "./graphql/getInventarioProductosItemPorInventarioProducto";
 import { reporteInventarioGQL } from "./graphql/getReporteInventario";
+import { ReabrirInventarioGQL } from "./graphql/reabrirInventario";
 import { SaveInventarioGQL } from "./graphql/saveInventario";
 import { SaveInventarioProductoGQL } from "./graphql/saveInventarioProducto";
 import { SaveInventarioProductoItemGQL } from "./graphql/saveInventarioProductoItem";
@@ -53,7 +58,12 @@ export class InventarioService {
     private reporteInventario: reporteInventarioGQL,
     private reporteService: ReporteService,
     private tabService: TabService,
-    private getInventarioProductoItem: GetInventarioProductoItemGQL
+    private getInventarioProductoItem: GetInventarioProductoItemGQL,
+    private getInventarioProducto: GetInventarioProductoGQL,
+    private getInventarioProductosItemPorInventarioProducto: GetInventarioProductosItemPorInventarioProductoGQL,
+    private finalizarInventario: FinalizarInventarioGQL,
+    private cancelarInventario: CancelarInventarioGQL,
+    private reabrirInventario: ReabrirInventarioGQL
   ) { }
 
   onGetInventarioPorFecha(inicio, fin) {
@@ -209,6 +219,72 @@ export class InventarioService {
     return this.genericCrudService.onGetById(
       this.getInventarioProductoItem,
       id
+    );
+  }
+
+  /**
+   * Obtiene un InventarioProducto por ID
+   * @param id ID del inventario producto
+   * @returns Observable con el inventario producto
+   */
+  onGetInventarioProducto(id: number): Observable<InventarioProducto> {
+    return this.genericCrudService.onGetById(
+      this.getInventarioProducto,
+      id
+    );
+  }
+
+  /**
+   * Obtiene los items de inventario por inventario producto
+   * @param id ID del inventario producto
+   * @param page Página
+   * @param size Tamaño de página
+   * @returns Observable con los items
+   */
+  onGetInventarioProductosItemPorInventarioProducto(
+    id: number,
+    page: number = 0,
+    size: number = 100
+  ): Observable<InventarioProductoItem[]> {
+    return this.genericCrudService.onCustomQuery(
+      this.getInventarioProductosItemPorInventarioProducto,
+      { id, page, size }
+    );
+  }
+
+  /**
+   * Finaliza un inventario (cambia estado a CONCLUIDO)
+   * @param id ID del inventario
+   * @returns Observable con el inventario actualizado
+   */
+  onFinalizarInventario(id: number): Observable<Inventario> {
+    return this.genericCrudService.onCustomMutation(
+      this.finalizarInventario,
+      { id }
+    );
+  }
+
+  /**
+   * Cancela un inventario
+   * @param id ID del inventario
+   * @returns Observable con resultado booleano
+   */
+  onCancelarInventario(id: number): Observable<boolean> {
+    return this.genericCrudService.onCustomMutation(
+      this.cancelarInventario,
+      { id }
+    );
+  }
+
+  /**
+   * Reabre un inventario cancelado
+   * @param id ID del inventario
+   * @returns Observable con resultado booleano
+   */
+  onReabrirInventario(id: number): Observable<boolean> {
+    return this.genericCrudService.onCustomMutation(
+      this.reabrirInventario,
+      { id }
     );
   }
 }

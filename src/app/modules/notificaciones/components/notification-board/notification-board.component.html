@@ -1,0 +1,84 @@
+<div class="notifications-board" cdkDropListGroup>
+    <ng-container
+        *ngIf="{ notificaciones: notificacionesConConteos$ | async, pagination: paginationState$ | async } as data">
+        <ng-container *ngFor="let estado of ESTADOS_TABLERO">
+            <mat-card class="notifications-column">
+                <mat-card-header class="notifications-column-header">
+                    <mat-card-title class="column-title">
+                        <span>{{ ESTADOS_LABELS[estado] }}</span>
+                        <span class="notifications-column-count mat-chip" [ngClass]="estado">
+                            {{ data.pagination[estado]?.length || 0 }}
+                        </span>
+                    </mat-card-title>
+                </mat-card-header>
+                <mat-card-content class="notifications-column-body" cdkDropList
+                    [cdkDropListData]="data.notificaciones[estado]" (cdkDropListDropped)="drop($event, estado)">
+                    <ng-container *ngIf="!data.pagination[estado]?.loading; else loadingTemplate">
+                        <mat-card *ngFor="let n of data.notificaciones[estado]" class="notification-item"
+                            [class.unread]="!n.leida" (click)="onNotificationClick(n)" cdkDrag>
+
+                            <div class="notification-drag-placeholder" *cdkDragPlaceholder></div>
+
+                            <mat-card-header class="notification-header-row">
+                                <mat-card-title class="notification-header">
+                                    {{ n.notificacion?.titulo }}
+                                </mat-card-title>
+                                <div class="notification-header-actions">
+                                    <button mat-icon-button *ngIf="!n.leida" (click)="markAsRead(n, $event)"
+                                        matTooltip="Marcar como leída" class="mark-read-button">
+                                        <mat-icon>check_circle_outline</mat-icon>
+                                    </button>
+                                </div>
+                            </mat-card-header>
+
+                            <mat-card-content class="notification-content">
+                                <p class="notification-message">
+                                    {{ n.notificacion?.mensaje }}
+                                </p>
+                            </mat-card-content>
+
+                            <div class="notification-footer">
+                                <div class="footer-info">
+                                    <span class="tipo-chip mat-chip">{{ n.notificacion?.tipo }}</span>
+                                    <span class="date-info">{{ n.notificacion?.creadoEn | date:'short' }}</span>
+                                </div>
+                            </div>
+
+                            <mat-card-actions class="notification-actions-row">
+                                <button mat-icon-button class="comment-button"
+                                    (click)="abrirDialogoComentarios(n, $event)" matTooltip="Comentarios">
+                                    <mat-icon>comment</mat-icon>
+                                    <span class="comment-badge" *ngIf="n.conteoComentarios > 0">
+                                        {{ n.conteoComentarios }}
+                                    </span>
+                                </button>
+                                <button mat-raised-button color="accent" class="action-button"
+                                    *ngIf="mostrarBotonModificacion(n)" (click)="navegarAModificaciones(n, $event)">
+                                    <mat-icon>open_in_new</mat-icon>
+                                    <span>Modificación</span>
+                                </button>
+                                <button mat-raised-button color="primary" class="action-button" *ngIf="n.tieneAccion"
+                                    (click)="navegarAAccion(n, $event)">
+                                    <mat-icon>open_in_new</mat-icon>
+                                    <span>Revisar</span>
+                                </button>
+                            </mat-card-actions>
+                        </mat-card>
+                    </ng-container>
+                    <ng-template #loadingTemplate>
+                        <div class="loading-indicator">
+                            <mat-spinner diameter="30"></mat-spinner>
+                        </div>
+                    </ng-template>
+                </mat-card-content>
+                <div class="notifications-column-paginator" *ngIf="data.pagination[estado]?.length > 0">
+                    <mat-paginator [length]="data.pagination[estado]?.length"
+                        [pageSize]="data.pagination[estado]?.pageSize" [pageSizeOptions]="pageSizeOptions"
+                        [pageIndex]="data.pagination[estado]?.pageIndex" (page)="onPageChange($event, estado)"
+                        showFirstLastButtons [disabled]="data.pagination[estado]?.loading">
+                    </mat-paginator>
+                </div>
+            </mat-card>
+        </ng-container>
+    </ng-container>
+</div>

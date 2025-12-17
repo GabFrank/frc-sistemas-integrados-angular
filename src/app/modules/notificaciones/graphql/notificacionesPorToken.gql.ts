@@ -8,6 +8,7 @@ export interface NotificacionData {
   fechaLeida?: string;
   fechaEnvio?: string;
   estadoEnvio?: string;
+  estadoTablero?: string;
   notificacion: {
     id: number;
     titulo: string;
@@ -27,3 +28,4 @@ export interface NotificacionesPorTokenResponse {
 export class NotificacionesPorTokenGQL extends Query<NotificacionesPorTokenResponse> {
   override document = notificacionesPorTokenQuery;
 }
+

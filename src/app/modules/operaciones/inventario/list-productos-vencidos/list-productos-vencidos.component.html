@@ -1,6 +1,6 @@
 <app-generic-list titulo="Productos Vencidos" (filtrar)="onFiltrar()" [isCustom]="true" customName="Generar Pdf"
-  (customFunction)="onGenerarPdf()" [isCustom2]="true" customName2="Retirar a otra sucursal"
-  (customFunction2)="onRetirarProductos()" (resetFiltro)="onResetFiltro()">
+  (customFunction)="onGenerarPdf()" [isCustom2]="true" customName2="Retiro"
+  (customFunction2)="onRetirarProductos()" [disableCustom2]="disableRetiroButton" (resetFiltro)="onResetFiltro()">
   <div filtros>
     <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
       <div fxFlex="15%">
@@ -26,19 +26,19 @@
           <mat-label>Sucursales</mat-label>
           <mat-select #sucursalSelect [formControl]="sucursalControl" multiple>
             <mat-select-trigger>
-              {{ (sucursalControl.value?.[0]?.nombre || '') }}
-              <span *ngIf="(sucursalControl.value?.length || 0) > 1" class="example-additional-selection">
-                (+{{ (sucursalControl.value?.length || 0) - 1 }}
-                {{ sucursalControl.value?.length === 2 ? 'otro' : 'otros' }})
+              <span *ngIf="(sucursalControl.value?.length || 0) === sucursalList.length && sucursalList.length > 0">Todos</span>
+              <span *ngIf="(sucursalControl.value?.length || 0) !== sucursalList.length || sucursalList.length === 0">
+                {{ (sucursalControl.value?.[0]?.nombre || '') }}
+                <span *ngIf="(sucursalControl.value?.length || 0) > 1" class="example-additional-selection">
+                  (+{{ (sucursalControl.value?.length || 0) - 1 }}
+                  {{ sucursalControl.value?.length === 2 ? 'otro' : 'otros' }})
+                </span>
               </span>
             </mat-select-trigger>
-            <div class="select-all-container">
-              <button mat-icon-button (click)="onSeleccionarTodasSucursales(); $event.stopPropagation()"
-                class="select-all-button">
-                <mat-icon>select_all</mat-icon>
-              </button>
-            </div>
-
+            <mat-option (click)="onSeleccionarTodasSucursales(); $event.stopPropagation()" class="select-all-option">
+              <strong>Todos</strong>
+            </mat-option>
+            <mat-divider></mat-divider>
             <mat-option *ngFor="let sucursal of sucursalList; trackBy: trackBySucursalId" [value]="sucursal">
               {{ sucursal.nombre }}
             </mat-option>

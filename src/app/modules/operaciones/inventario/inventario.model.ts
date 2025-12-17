@@ -63,26 +63,23 @@ export class InventarioProducto {
 
   toInput(): InventarioProductoInput {
     let input = new InventarioProductoInput;
-    input.id = this.id;
-    input.inventarioId = this.inventario?.id;
-    input.productoId = this.producto?.id;
-    input.zonaId = this.zona?.id;
-    input.usuarioId = this.usuario?.id;
-    input.creadoEn = this.creadoEn;
+    input.id = this?.id;
+    input.inventarioId = this?.inventario?.id;
+    input.zonaId = this?.zona?.id;
+    input.concluido = this?.concluido;
+    input.usuarioId = this?.usuario?.id;
     return input;
   }
 }
 
 export class InventarioProductoInput {
-  id: number;
-  idOrigen: number;
-  idCentral: number;
-  inventarioId: number;
-  productoId: number;
-  concluido: boolean;
-  zonaId: number;
-  usuarioId: number = null;
-  creadoEn: Date;
+  id?: number;
+  idOrigen?: number;
+  idCentral?: number;
+  inventarioId?: number;
+  zonaId?: number;
+  concluido?: boolean;
+  usuarioId?: number;
 }
 
 export class InventarioProductoItem {
@@ -95,6 +92,10 @@ export class InventarioProductoItem {
   presentacion: Presentacion; 
   cantidad: number;
   cantidadFisica: number;
+  cantidadAnterior: number;
+  fechaVerificado: Date;
+  verificado: boolean;
+  revisado: boolean;
   vencimiento: Date;
   usuario: Usuario;
   estado: InventarioProductoEstado;
@@ -102,35 +103,41 @@ export class InventarioProductoItem {
 
   toInput(): InventarioProductoItemInput {
     let input = new InventarioProductoItemInput();
-    input.id = this.id;
-    input.inventarioProductoId = this.inventarioProducto?.id;
-    input.zonaId = this.zona?.id;
-    input.sectorId = this.sector?.id; // <-- agregar esto
-    input.presentacionId = this.presentacion?.id;
-    input.cantidad = this.cantidad;
-    input.cantidadFisica = this.cantidadFisica;
-    input.vencimiento = this.vencimiento;
-    input.estado = this.estado;
-    input.usuarioId = this.usuario?.id;
-    input.creadoEn = this.creadoEn;
+    input.id = this?.id;
+    input.inventarioProductoId = this?.inventarioProducto?.id;
+    input.zonaId = this?.zona?.id;
+    input.sectorId = this?.sector?.id;
+    input.presentacionId = this?.presentacion?.id;
+    input.cantidad = this?.cantidad;
+    input.cantidadFisica = this?.cantidadFisica;
+    input.cantidadAnterior = this?.cantidadAnterior;
+    input.fechaVerificado = dateToString(this?.fechaVerificado);
+    input.verificado = this?.verificado;
+    input.revisado = this?.revisado;
+    input.vencimiento = dateToString(this?.vencimiento);
+    input.estado = this?.estado;
+    input.usuarioId = this?.usuario?.id;
     return input;
   }
 }
 
 export class InventarioProductoItemInput {
-  id: number;
-  idOrigen: number;
-  idCentral: number;
-  inventarioProductoId: number;
-  zonaId: number;
-  sectorId: number; // <-- nuevo campo
-  presentacionId: any;
-  cantidad: number;
-  cantidadFisica: number;
-  vencimiento: Date;
-  estado: InventarioProductoEstado;
-  usuarioId: number = null;
-  creadoEn: Date;
+  id?: number;
+  idOrigen?: number;
+  idCentral?: number;
+  inventarioProductoId?: number;
+  zonaId?: number;
+  sectorId?: number;
+  presentacionId?: any;
+  cantidad?: number;
+  cantidadFisica?: number;
+  cantidadAnterior?: number;
+  fechaVerificado?: string;
+  verificado?: boolean;
+  revisado?: boolean;
+  vencimiento?: string;
+  estado?: InventarioProductoEstado;
+  usuarioId?: number;
 }
 
 export enum InventarioEstado {

@@ -40,6 +40,7 @@ import { ListSolicitudPagoComponent } from "../../../modules/operaciones/solicit
 import { ThermalPrinterComponent } from '../../../modules/configuracion/thermal-printer/thermal-printer.component';
 import { ListReplicationComponent } from '../../../modules/configuracion/logical-replication/list-replication/list-replication.component';
 import { ListReplicationTablesComponent } from '../../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
+import { ModificacionesComponent } from "../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component";
 
 @Component({
   selector: "app-side",
@@ -385,6 +386,18 @@ export class SideComponent implements OnInit {
         ) {
           this.tabService.addTab(
             new Tab(MainCajaObservacionComponent, "Observación de Cajas", null, null)
+          );
+        }
+        else {
+          this.notificacionService.openWarn('No tenés acceso a esta opción. ')
+        }
+        break;
+      case "modificaciones":
+        if (
+          this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)
+        ) {
+          this.tabService.addTab(
+            new Tab(ModificacionesComponent, "Modificaciones", null, null)
           );
         }
         else {

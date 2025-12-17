@@ -8,8 +8,6 @@ import { PosPrinter } from 'electron-pos-printer';
 
 const log = require('electron-log');
 const isDev = require('electron-is-dev');
-
-// CAMBIO: Usar @superhuman/electron-push-receiver
 const { setup: setupPushReceiver } = require('@superhuman/electron-push-receiver');
 
 interface PrinterConfig {
@@ -60,9 +58,81 @@ export async function createWindow(): Promise<BrowserWindow> {
       contextIsolation: false,
     },
   });
+  try {
+    const path = require('path');
+    const fs = require('fs');
+    const userDataPath = app.getPath('userData');
+    const configFiles = [
+      'electron-push-receiver.json',
+      'config.json',
+      'firebase-config.json',
+      'push-config.json',
+      'fcm-config.json'
+    ];
 
-  // Setup push notifications con la nueva librería
+    configFiles.forEach(filename => {
+      const configPath = path.join(userDataPath, filename);
+      if (fs.existsSync(configPath)) {
+        fs.unlinkSync(configPath);
+      }
+    });
+    const dirsToClean = [
+      path.join(userDataPath, 'push-receiver'),
+      path.join(userDataPath, 'firebase'),
+      path.join(userDataPath, 'fcm')
+    ];
+
+    dirsToClean.forEach(dir => {
+      if (fs.existsSync(dir)) {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  } catch (e) {
+    // Silent cleanup error
+  }
+
   setupPushReceiver(win.webContents);
+  const { Notification } = require('electron');
+
+  ipcMain.on('SHOW_NATIVE_NOTIFICATION', (event: any, notification: any) => {
+
+    try {
+      const title = notification?.notification?.title ||
+        notification?.data?.title ||
+        'FRC Sistemas Integrados';
+
+      const body = notification?.notification?.body ||
+        notification?.notification?.message ||
+        notification?.data?.message ||
+        notification?.data?.body ||
+        '';
+
+      const data = notification?.data || {};
+
+      const nativeNotification = new Notification({
+        title: title,
+        body: body,
+        icon: path.join(__dirname, 'dist/assets/logo.png'),
+        silent: false,
+        urgency: 'normal'
+      });
+
+      nativeNotification.on('click', () => {
+        if (win) {
+          if (win.isMinimized()) win.restore();
+          win.focus();
+        }
+        if (data.path) {
+          win.webContents.send('notification-clicked', data.path);
+        }
+      });
+
+      nativeNotification.show();
+
+    } catch (error) {
+      // Silent notification error
+    }
+  });
 
   win.webContents.setZoomFactor(1);
 
@@ -112,7 +182,7 @@ export async function createWindow(): Promise<BrowserWindow> {
     require("electron").shell.openExternal(url);
     return { action: "deny" };
   });
-  
+
   win.webContents.on('did-finish-load', () => {
     win.webContents
       .executeJavaScript('localStorage.getItem("zoomLevel");', true)
@@ -131,7 +201,7 @@ export async function createWindow(): Promise<BrowserWindow> {
   return win;
 }
 
-ipcMain.on('get-config-file', (event, arg) => {
+ipcMain.on('get-config-file', (event: any, arg: any) => {
   console.log(arg)
 })
 
@@ -139,16 +209,16 @@ ipcMain.on('reiniciar', (event: any, arg: any) => {
   relaunchElectron()
 })
 
-ipcMain.on('get-app-version', (event) => {
+ipcMain.on('get-app-version', (event: any) => {
   event.returnValue = app.getVersion();
 });
 
 // Add Thermal Printer IPC handlers
-ipcMain.handle('get-printers', (event) => {
+ipcMain.handle('get-printers', (event: any) => {
   return printers;
 });
 
-ipcMain.handle('save-printer', (event, printer: PrinterConfig) => {
+ipcMain.handle('save-printer', (event: any, printer: PrinterConfig) => {
   const existingIndex = printers.findIndex(p => p.id === printer.id);
   if (existingIndex >= 0) {
     printers[existingIndex] = printer;
@@ -159,7 +229,7 @@ ipcMain.handle('save-printer', (event, printer: PrinterConfig) => {
   return printer;
 });
 
-ipcMain.handle('delete-printer', (event, printerId: number) => {
+ipcMain.handle('delete-printer', (event: any, printerId: number) => {
   const existingIndex = printers.findIndex(p => p.id === printerId);
   if (existingIndex >= 0) {
     printers.splice(existingIndex, 1);
@@ -168,7 +238,7 @@ ipcMain.handle('delete-printer', (event, printerId: number) => {
   return false;
 });
 
-ipcMain.handle('test-printer', async (event, printerId: number) => {
+ipcMain.handle('test-printer', async (event: any, printerId: number) => {
   try {
     const printer = printers.find(p => p.id === printerId);
     if (!printer) {
@@ -220,7 +290,7 @@ function registerPrinterIpcHandlers() {
       return [];
     }
   });
-  
+
   ipcMain.handle('print-with-pos-printer', async (event, args) => {
     try {
       console.log('print-with-pos-printer called with args:', JSON.stringify(args, (key, value) => {
@@ -340,19 +410,19 @@ function registerPrinterIpcHandlers() {
           }
         }
       }
-      
+
       try {
         const isLinux = process.platform === 'linux';
         const isNetwork = typeof options.printerName === 'string' && options.printerName.includes('://');
         const isXprinter = typeof options.printerName === 'string' && (options.printerName.toLowerCase().includes('xprinter') || options.printerName.toLowerCase().includes('xp-'));
-        
+
         if (isLinux && !isNetwork && !isXprinter) {
           const buildEscPos = (): Buffer => {
             const chunks: Buffer[] = [];
             const push = (b: number[] | Buffer) => chunks.push(Buffer.isBuffer(b as any) ? (b as Buffer) : Buffer.from(b as number[]));
             const textEnc = (s: string) => Buffer.from((s || '').replace(/\n/g, '\r\n'), 'ascii');
             push([0x1B, 0x40]);
-            
+
             for (const item of (printData as any[])) {
               if (item.type === 'text') {
                 const center = item.style && item.style.textAlign === 'center';
@@ -399,13 +469,13 @@ function registerPrinterIpcHandlers() {
             push([0x1D, 0x56, 0x00]);
             return Buffer.concat(chunks);
           };
-          
+
           const rawBuf = buildEscPos();
           const tmp = path.join(app.getPath('temp'), `escpos-${Date.now()}.bin`);
           fs.writeFileSync(tmp, rawBuf);
           const cmd = `lp -d "${options.printerName}" -o raw ${tmp}`;
           console.log('Executing ESC/POS raw:', cmd);
-          
+
           return await new Promise((resolve) => {
             exec(cmd, (error, stdout, stderr) => {
               try { fs.unlinkSync(tmp); } catch { }
@@ -422,23 +492,23 @@ function registerPrinterIpcHandlers() {
       } catch (e) {
         console.warn('ESC/POS raw path skipped:', e);
       }
-      
+
       try {
         const isLinux = process.platform === 'linux';
         const isXprinter = typeof options.printerName === 'string' && (options.printerName.toLowerCase().includes('xprinter') || options.printerName.toLowerCase().includes('xp-'));
-        
+
         if (isLinux && isXprinter) {
           const labelWidth = 320;
           const labelHeight = 320;
           const charWidth: any = { 1: 7, 2: 9, 3: 11, 4: 14 };
           const lineHeight: any = { 1: 12, 2: 14, 3: 18, 4: 26 };
-          
+
           const centerX = (text: string, fontNum: number) => {
             const w = charWidth[fontNum] || 10;
             const len = (text || '').length;
             return Math.max(0, Math.floor((labelWidth - (w * len)) / 2));
           };
-          
+
           const wrap = (text: string, fontNum: number, maxDots: number) => {
             const maxChars = 17;
             const words = (text || '').trim().split(/\s+/);
@@ -478,7 +548,7 @@ function registerPrinterIpcHandlers() {
                 }
               }
             }
-            
+
             if (line && out.length < 3) {
               out.push(line);
             } else if (line && out.length === 3) {
@@ -500,21 +570,21 @@ function registerPrinterIpcHandlers() {
               !/fabricado/i.test(lower) &&
               !/^\d+\/\d+\/\d+/.test(t.trim());
           });
-          
+
           const nameLinesPrepared = nameTexts.length > 0 ? nameTexts : [];
           const nameText = nameLinesPrepared.join(' ').trim();
-          
+
           let priceText = texts.find(t => /(^|\s)Gs\.?/i.test(t)) || '';
           if (!priceText) {
             const candidate = texts.find(t => /\d/.test(t));
             if (candidate) priceText = candidate;
           }
-          
+
           let dateText = texts.find(t => {
             const trimmed = (t || '').trim();
             return /^fab[:]?\s*/i.test(trimmed) || /^fabricado/i.test(trimmed.toLowerCase());
           }) || '';
-          
+
           const barcodeItem = (printData as any[]).find(i => i.type === 'barCode' || i.type === 'barcode');
           const qrItem = (printData as any[]).find(i => i.type === 'qrCode' || i.type === 'qrcode');
 
@@ -522,30 +592,30 @@ function registerPrinterIpcHandlers() {
           let y = 10;
           const maxDotsForName = 280;
           let nameLines: string[] = [];
-          
+
           if (nameText) {
             nameLines = wrap(nameText, 3, Math.min(labelWidth - 12, maxDotsForName));
           }
           nameLines = nameLines.filter(l => !!l).slice(0, 3);
-          
+
           for (const line of nameLines) {
             const x = Math.max(0, centerX(line, 3) - 16);
             epl += `TEXT ${x},${y},"3",0,1,1,"${line.replace(/"/g, '\\"')}"\n`;
             y += (lineHeight[3] || 18) + 6;
           }
-          
+
           y += 6;
           y += 24;
-          
+
           if (priceText) {
             let x = centerX(priceText, 4) - 32;
             if (x < 0) x = 0;
             epl += `TEXT ${x},${y},"4",0,1,1,"${priceText.replace(/"/g, '\\"')}"\n`;
             y += (lineHeight[4] || 26) + 8;
           }
-          
+
           y += 24;
-          
+
           if (dateText) {
             const dateLen = dateText.length;
             const dateWidth = (charWidth[3] || 11) * dateLen;
@@ -559,12 +629,12 @@ function registerPrinterIpcHandlers() {
             epl += `TEXT ${x},${y},"3",0,1,1,"${dateText.replace(/"/g, '\\"')}"\n`;
             y += (lineHeight[3] || 18) + 12;
           }
-          
+
           if (barcodeItem) {
             const rawBarcodeValue = (barcodeItem.value || '').toString();
             const barcodeType = ((barcodeItem.barcodeType || 'EAN13').toString() || 'EAN13').toUpperCase();
             const hasValue = rawBarcodeValue.trim().length > 0;
-            
+
             if (hasValue) {
               let commandType = 'EAN13';
               let barcodeVal = rawBarcodeValue;
@@ -595,7 +665,7 @@ function registerPrinterIpcHandlers() {
                 const by = Math.max(180, y + 16);
                 const escapedBarcode = barcodeVal.replace(/"/g, '\\"');
                 epl += `BARCODE ${bx},${by},"${commandType}",${barcodeHeight},0,0,2,2,"${escapedBarcode}"\n`;
-                
+
                 if (digitsOnlyForText) {
                   const barcodeTextFont = 2;
                   const textWidthDots = (charWidth[barcodeTextFont] || 9) * digitsOnlyForText.length;
@@ -606,7 +676,7 @@ function registerPrinterIpcHandlers() {
               }
             }
           }
-          
+
           if (qrItem && (qrItem.value || '').toString()) {
             const qv = (qrItem.value || '').toString();
             const qSize = 90;
@@ -614,14 +684,14 @@ function registerPrinterIpcHandlers() {
             const qy = Math.min(labelHeight - (qSize + 20), Math.max(y + 6, 150));
             epl += `QRCODE ${qx},${qy},M,3,A,0,"${qv.replace(/"/g, '\\"')}"\n`;
           }
-          
+
           epl += 'PRINT 1\n';
-          
+
           const tempFile = path.join(app.getPath('temp'), `epl-${Date.now()}.txt`);
           fs.writeFileSync(tempFile, epl, 'utf8');
           const cmd = `lp -d "${options.printerName}" -o raw ${tempFile}`;
           console.log('Executing EPL command:', cmd);
-          
+
           return await new Promise((resolve) => {
             exec(cmd, (error, stdout, stderr) => {
               try { fs.unlinkSync(tempFile); } catch { }

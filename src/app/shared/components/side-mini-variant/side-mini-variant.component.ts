@@ -43,6 +43,7 @@ import { Subscription } from 'rxjs';
 import { AnalisisDiferenciaComponent } from '../../../modules/financiero/analisis-diferencia/analisis-diferencia.component';
 import { ListTimbradoComponent } from '../../../modules/financiero/timbrado/list-timbrado/list-timbrado.component';
 import { ListLoteDeComponent } from '../../../modules/financiero/documento-electronico/lote-de/list-lote-de/list-lote-de.component';
+import { ModificacionesComponent } from '../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
 
 
 interface BaseNavigationItem {
@@ -160,16 +161,22 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           isExpanded: false,
           visibilityRoles: [ROLES.ADMIN],
           items: [
-            { 
-              name: 'Observaciones de cajas', 
-              icon: 'receipt_long', 
+            {
+              name: 'Observaciones de cajas',
+              icon: 'receipt_long',
               action: 'observacion-cajas',
               visibilityRoles: [ROLES.ADMIN]
             },
-            { 
-              name: 'Observaciones de ventas', 
-              icon: 'shopping_cart_checkout', 
+            {
+              name: 'Observaciones de ventas',
+              icon: 'shopping_cart_checkout',
               action: 'observacion-ventas',
+              visibilityRoles: [ROLES.ADMIN]
+            },
+            {
+              name: 'Modificaciones',
+              icon: 'edit',
+              action: 'modificaciones',
               visibilityRoles: [ROLES.ADMIN]
             }
           ]
@@ -189,9 +196,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           action: 'analisis-diferencias',
           visibilityRoles: [ROLES.ADMIN]
         },
-        { 
-          name: 'Cotización', 
-          icon: 'monetization_on', 
+        {
+          name: 'Cotización',
+          icon: 'monetization_on',
           action: 'list-cotizacion',
           visibilityRoles: [ROLES.CAMBIAR_COTIZACION]
         },
@@ -219,15 +226,15 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           action: 'list-facturas',
           visibilityRoles: [ROLES.ANALISIS_DE_CAJA]
         },
-        { 
-          name: 'Timbrado', 
-          icon: 'text_snippet', 
+        {
+          name: 'Timbrado',
+          icon: 'text_snippet',
           action: 'list-timbrado',
           visibilityRoles: [ROLES.ADMIN]
         },
-        { 
-          name: 'Maletines', 
-          icon: 'work', 
+        {
+          name: 'Maletines',
+          icon: 'work',
           action: 'list-maletin',
           visibilityRoles: [ROLES.ADMIN]
         },
@@ -365,6 +372,38 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         this.resetMenuVisibility();
       }
     });
+
+    // Escuchar notificaciones push desde Electron
+    if (this.electronService && this.electronService.isElectron) {
+      this.electronService.notificationReceived.subscribe((notification: any) => {
+        const path = notification?.data?.path;
+        if (path) {
+          setTimeout(() => {
+            this.onItemClick(path, undefined, true);
+          }, 500);
+        }
+      });
+    }
+
+    // Escuchar evento de navegación desde notificaciones web (Firebase)
+    window.addEventListener('push-path', (event: any) => {
+      const path = event.detail;
+      if (path) {
+        setTimeout(() => {
+          this.onItemClick(path, undefined, true);
+        }, 500);
+      }
+    });
+
+    // Escuchar evento de acción desde el tablero de notificaciones
+    window.addEventListener('notification-action', (event: any) => {
+      const action = event.detail;
+      if (action) {
+        setTimeout(() => {
+          this.onItemClick(action, undefined, true);
+        }, 500);
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -450,14 +489,14 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       section.isExpanded = true;
     }
   }
-  onItemClick(action: string | undefined, event?: Event): void {
+  onItemClick(action: string | undefined, event?: Event, fromNotification: boolean = false): void {
     if (event) {
       event.stopPropagation();
     }
     if (!action) {
       return;
     }
-    if (!this.isExpanded) {
+    if (!this.isExpanded && !fromNotification) {
       this.toggleSidenav(true);
       return;
     }
@@ -585,6 +624,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         break;
       case "observacion-ventas":
         this.openTabIfAuthorized(ROLES.ADMIN, MainVentaObservacionComponent, "Observación de Ventas");
+        break;
+      case "modificaciones":
+        if (this.mainService.usuarioActual?.roles.includes(ROLES.ADMIN)) {
+          this.openTabIfAuthorized(ROLES.ADMIN, ModificacionesComponent, "Modificaciones");
+        } else {
+          this.notificacionService.openWarn('No tenés acceso a esta opcion.');
+        }
         break;
     }
   }

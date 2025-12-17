@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
-import { Observable, from } from 'rxjs';
+import { Observable, from, Subject } from 'rxjs';
 import { ConfiguracionService } from '../../../shared/services/configuracion.service';
 import {
   START_NOTIFICATION_SERVICE,
@@ -9,7 +9,6 @@ import {
   NOTIFICATION_RECEIVED as ON_NOTIFICATION_RECEIVED,
   TOKEN_UPDATED,
 } from '@superhuman/electron-push-receiver/src/constants';
-// } from '@superhuman/electron-push-receiver/src/constants/index';
 
 const electron = window.require('electron');
 const ipcRenderer = electron.ipcRenderer;
@@ -32,6 +31,8 @@ export interface PrintResult {
 })
 export class ElectronService {
 
+  public notificationReceived = new Subject<any>();
+
   get isElectron(): boolean {
     return !!(window && window.process && window.process.type);
   }
@@ -45,21 +46,23 @@ export class ElectronService {
 
   initPushNotifications(onToken?: (token: string) => void): void {
     if (!this.isElectron) {
-      console.warn('[FCM] Not running in Electron, aborting push initialization');
       return;
     }
+
+    localStorage.removeItem('pushToken');
+    localStorage.removeItem('deviceId');
+    localStorage.removeItem('notifications');
+    localStorage.removeItem('fcmToken');
+    localStorage.removeItem('firebaseToken');
+    localStorage.removeItem('pushNotificationToken');
 
     const firebaseConfig = environment.firebaseConfig;
 
     if (!firebaseConfig) {
-      console.error('[FCM] No firebaseConfig configured in environment');
-      console.error('[FCM] Please add firebaseConfig to your environment file');
       return;
     }
 
     if (!firebaseConfig.apiKey || !firebaseConfig.appId || !firebaseConfig.projectId) {
-      console.error('[FCM] Firebase config is incomplete');
-      console.error('[FCM] Required: apiKey, appId, projectId');
       return;
     }
     ipcRenderer.on(NOTIFICATION_SERVICE_STARTED, (_: any, token: string) => {
@@ -68,8 +71,6 @@ export class ElectronService {
         if (onToken) {
           onToken(token);
         }
-      } else {
-        console.warn('[FCM] ⚠️ NOTIFICATION_SERVICE_STARTED without token');
       }
     });
     ipcRenderer.on(TOKEN_UPDATED, (_: any, token: string) => {
@@ -78,8 +79,6 @@ export class ElectronService {
         if (onToken) {
           onToken(token);
         }
-      } else {
-        console.warn('[FCM] ⚠️ TOKEN_UPDATED without token');
       }
     });
 
@@ -87,30 +86,25 @@ export class ElectronService {
     });
     ipcRenderer.on(ON_NOTIFICATION_RECEIVED, (_: any, notification: any) => {
       try {
-        const title = notification?.notification?.title || 'FRC Sistemas Integrados';
-        const body = notification?.notification?.body || '';
-        const data = notification?.data;
-        if (typeof Notification !== 'undefined') {
-          const n = new Notification(title, { body, data });
+        ipcRenderer.send('SHOW_NATIVE_NOTIFICATION', notification);
 
-          n.onclick = () => {
-            if (data?.path && typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('push-path', { detail: data.path }));
-            }
-          };
-        }
+        this.notificationReceived.next(notification);
       } catch (e) {
-        console.error('[FCM] ❌ Error handling foreground notification', e);
       }
     });
     const pushConfig = {
+      senderId: firebaseConfig.messagingSenderId,
       firebase: {
         apiKey: firebaseConfig.apiKey,
         appID: firebaseConfig.appId,
-        projectID: firebaseConfig.projectId
+        projectID: firebaseConfig.projectId,
+        authDomain: firebaseConfig.authDomain,
+        storageBucket: firebaseConfig.storageBucket,
+        messagingSenderId: firebaseConfig.messagingSenderId
       },
-      vapidKey: ''
+      vapidKey: (firebaseConfig as any).vapidKey
     };
+
     ipcRenderer.send(START_NOTIFICATION_SERVICE, pushConfig);
   }
 

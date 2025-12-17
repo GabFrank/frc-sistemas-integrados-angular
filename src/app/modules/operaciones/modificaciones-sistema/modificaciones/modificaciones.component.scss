@@ -1,0 +1,51 @@
+table {
+  width: 100%;
+}
+
+tr.example-detail-row {
+  height: 0;
+}
+
+tr.example-expanded-row {
+  background-color: rgb(50, 50, 50);
+}
+
+.selectedRow {
+  background-color: #38853c;
+}
+
+.example-modificacion-detail {
+  overflow: hidden;
+  display: flex;
+}
+
+.example-element-row td {
+  border-bottom-width: 0;
+}
+
+.mat-mdc-cell,
+.mat-mdc-header-cell {
+  word-wrap: initial;
+  display: table-cell;
+  padding: 0px 10px;
+  line-break: unset;
+  white-space: nowrap;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+.highlight-cell {
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.titulo-cell {
+  text-align: center;
+  padding: 8px;
+  font-weight: bold;
+}
+
+.titulo-center {
+  text-align: center;
+  font-weight: 500;
+}

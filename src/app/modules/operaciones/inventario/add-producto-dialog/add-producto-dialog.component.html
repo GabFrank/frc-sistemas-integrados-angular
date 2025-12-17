@@ -1,1 +1,90 @@
-<p>add-producto-dialog works!</p>
+<div class="dialog-container">
+  <h2 mat-dialog-title class="dialog-title">
+    <mat-icon>add_shopping_cart</mat-icon>
+    Agregar Producto a la Zona
+  </h2>
+
+  <mat-dialog-content class="dialog-content">
+    <form [formGroup]="formGroup" fxLayout="column" fxLayoutGap="20px">
+      <mat-card class="info-card">
+        <div fxLayout="row" fxLayoutGap="20px">
+          <div fxFlex="50">
+            <div class="info-label">Zona</div>
+            <div class="info-value">{{ data?.inventarioProducto?.zona?.descripcion }}</div>
+          </div>
+          <div fxFlex="50">
+            <div class="info-label">Sector</div>
+            <div class="info-value">{{ data?.inventarioProducto?.zona?.sector?.descripcion }}</div>
+          </div>
+        </div>
+      </mat-card>
+      <div fxLayout="column" fxLayoutGap="10px">
+        <mat-form-field appearance="outline" class="producto-search-field" (click)="onBuscarProducto()">
+          <mat-label>Producto*</mat-label>
+          <input matInput [value]="productoDisplayText" readonly formControlName="presentacion"
+            placeholder="Click para buscar producto" style="cursor: pointer;" />
+          <mat-icon matSuffix color="primary">search</mat-icon>
+          <mat-error *ngIf="formGroup.get('presentacion').hasError('required')">
+            Debe seleccionar un producto
+          </mat-error>
+        </mat-form-field>
+
+        <mat-card *ngIf="presentacionSeleccionada" class="producto-seleccionado-card">
+          <div fxLayout="row" fxLayoutAlign="space-between center">
+            <div fxFlex>
+              <div class="producto-nombre">{{ presentacionSeleccionada.producto?.descripcion }}</div>
+              <div class="producto-detalle">
+                <span class="producto-codigo">Código: {{ presentacionSeleccionada.producto?.codigoPrincipal }}</span>
+                <span class="separador">•</span>
+                <span class="producto-presentacion">{{ presentacionSeleccionada.descripcion }}</span>
+              </div>
+            </div>
+            <button mat-icon-button (click)="limpiarProducto()" matTooltip="Cambiar producto">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        </mat-card>
+      </div>
+      <mat-form-field appearance="outline">
+        <mat-label>Cantidad*</mat-label>
+        <input matInput type="number" formControlName="cantidad" />
+        <mat-error *ngIf="formGroup.get('cantidad').hasError('required')">
+          La cantidad es requerida
+        </mat-error>
+        <mat-error *ngIf="formGroup.get('cantidad').hasError('min')">
+          La cantidad debe ser mayor o igual a 0
+        </mat-error>
+      </mat-form-field>
+      <div fxLayout="row" fxLayoutGap="15px">
+        <mat-form-field appearance="outline" fxFlex>
+          <mat-label>Fecha de Vencimiento</mat-label>
+          <input matInput [matDatepicker]="picker" formControlName="vencimiento" />
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" fxFlex>
+          <mat-label>Estado*</mat-label>
+          <mat-select formControlName="estado">
+            <mat-option *ngFor="let estado of estadosDisponibles" [value]="estado">
+              {{ estado }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="formGroup.get('estado').hasError('required')">
+            El estado es requerido
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button (click)="onCancelar()">
+      <mat-icon>close</mat-icon> Cancelar
+    </button>
+    <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="formGroup.invalid">
+      <mat-icon>save</mat-icon> Guardar
+    </button>
+  </mat-dialog-actions>
+</div>

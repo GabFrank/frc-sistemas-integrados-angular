@@ -3,7 +3,7 @@ import { FormControl, FormGroup } from "@angular/forms";
 import { MatTableDataSource } from "@angular/material/table";
 import { MatDialog } from "@angular/material/dialog";
 import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
-import { BehaviorSubject, combineLatest, forkJoin } from "rxjs";
+import { BehaviorSubject, forkJoin } from "rxjs";
 import { debounceTime, distinctUntilChanged, switchMap, tap } from "rxjs/operators";
 
 import {
@@ -88,6 +88,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
 
   private isDialogOpen = false;
   readonly today = new Date();
+  disableRetiroButton = true;
 
   readonly displayedColumns: string[] = [
     "descripcion",
@@ -132,6 +133,15 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
         this.inicioMinDate = val || null;
       });
     this.inicioMinDate = this.fechaFormGroup.get("inicio")?.value || null;
+
+    this.sucursalControl.valueChanges
+      .pipe(untilDestroyed(this))
+      .subscribe((sucursales: Sucursal[] | null) => {
+        this.disableRetiroButton = !sucursales || sucursales.length !== 1;
+        this.cdRef.detectChanges();
+      });
+    const sucursalesIniciales: Sucursal[] | null = this.sucursalControl.value;
+    this.disableRetiroButton = !sucursalesIniciales || sucursalesIniciales.length !== 1;
   }
 
   ngOnDestroy(): void {
@@ -256,8 +266,13 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
       this.notificacion.openWarn('No hay productos en la página actual');
       return;
     }
-    const origenDetectado: Sucursal | null =
-      items[0]?.inventarioProducto?.inventario?.sucursal || this.mainService?.sucursalActual;
+
+    const sucursalesSeleccionadas: Sucursal[] = this.sucursalControl.value || [];
+    if (sucursalesSeleccionadas.length !== 1) {
+      this.notificacion.openWarn('Debe seleccionar una sucursal para realizar el retiro');
+      return;
+    }
+    const sucursalOrigenSeleccionada: Sucursal = sucursalesSeleccionadas[0];
 
     this.isDialogOpen = true;
     this.dialog.open(SeleccionarSucursalDialogComponent, {
@@ -265,7 +280,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
       height: '70%',
       disableClose: false,
       data: {
-        sucursalOrigen: origenDetectado,
+        sucursalOrigen: sucursalOrigenSeleccionada,
         sucursalDestino: null,
       },
     }).afterClosed().subscribe((res) => {
@@ -273,7 +288,7 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
       if (!res?.sucursalDestino) return;
 
       const transferencia = new Transferencia();
-      transferencia.sucursalOrigen = (res?.sucursalOrigen ?? origenDetectado) as Sucursal;
+      transferencia.sucursalOrigen = res.sucursalOrigen as Sucursal;
       transferencia.sucursalDestino = res.sucursalDestino as Sucursal;
       transferencia.tipo = TipoTransferencia.MANUAL;
       transferencia.estado = TransferenciaEstado.ABIERTA;
@@ -303,11 +318,37 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
           }
 
           forkJoin(ops).pipe(untilDestroyed(this)).subscribe({
-            next: () => this.abrirTransferenciaTab(t.id),
-            error: () => this.abrirTransferenciaTab(t.id),
+            next: () => {
+              this.actualizarFiltrosDespuesRetiro(res.sucursalOrigen as Sucursal, res.sucursalDestino as Sucursal);
+
+              this.vencimientoColorCache.clear();
+              this.diasDiferenciaCache.clear();
+
+              this.updateFilters();
+
+              this.notificacion.openSucess(`Transferencia ${t.id} creada exitosamente. Los productos han sido agregados.`);
+
+              this.abrirTransferenciaTab(t.id);
+            },
+            error: (error) => {
+              console.error('Error al agregar productos a la transferencia:', error);
+              this.notificacion.openAlgoSalioMal('Error al agregar algunos productos a la transferencia');
+              this.abrirTransferenciaTab(t.id);
+            },
           });
         });
     });
+  }
+
+  private actualizarFiltrosDespuesRetiro(sucursalOrigen: Sucursal, sucursalDestino: Sucursal): void {
+    const sucursalesActuales: Sucursal[] = this.sucursalControl.value || [];
+
+    const destinoYaIncluida = sucursalesActuales.some(s => s.id === sucursalDestino.id);
+
+    if (!destinoYaIncluida) {
+      const nuevasSucursales = [...sucursalesActuales, sucursalDestino];
+      this.sucursalControl.setValue(nuevasSucursales);
+    }
   }
 
   private abrirTransferenciaTab(id: number): void {
@@ -441,9 +482,9 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     const filters: ProductosVencidosFilters = {
       startDate: this.getStartDate(),
       endDate: this.getEndDate(),
-      sucursalIdList: this.getSucursalIdList(),
-      usuarioIdList: this.getUsuarioIdList(),
-      productoIdList: this.getProductoIdList(),
+      sucursalIdList: this.sucursalIdList(),
+      usuarioIdList: this.usuarioIdList(),
+      productoIdList: this.productoIdList(),
       soloRealmenteVencidos: this.soloRealmenteVencidosControl.value,
       page: this.pageIndex,
       size: this.pageSize
@@ -472,17 +513,17 @@ export class ListProductosVencidosComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  private getSucursalIdList(): number[] | null {
+  private sucursalIdList(): number[] | null {
     const sucursales = this.sucursalControl.value;
     return sucursales?.length > 0 ? sucursales.map((s: Sucursal) => s.id) : null;
   }
 
 
-  private getUsuarioIdList(): number[] | null {
+  private usuarioIdList(): number[] | null {
     return this.selectedUsuario ? [this.selectedUsuario.id] : null;
   }
 
-  private getProductoIdList(): number[] | null {
+  private productoIdList(): number[] | null {
     return this.selectedProducto ? [this.selectedProducto.id] : null;
   }
 }

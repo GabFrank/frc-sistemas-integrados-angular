@@ -15,6 +15,7 @@ import {
   ElementRef,
   Inject,
   HostListener,
+  ChangeDetectorRef,
 } from "@angular/core";
 import { FormGroup, FormControl } from "@angular/forms";
 import {
@@ -129,7 +130,8 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     private productoService: ProductoService,
     private _el: ElementRef,
     private stockService: MovimientoStockService,
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private cdr: ChangeDetectorRef
   ) {
     if (data?.mostrarStock == true) {
       this.displayedColumns = [
@@ -151,6 +153,7 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     console.log('Iniciando dialogo de busqueda de producto');
+    this.dataSource = new MatTableDataSource<Producto>([]);
     this.createForm();
 
     this.productoDetailList = [];
@@ -172,7 +175,6 @@ export class PdvSearchProductoDialogComponent implements OnInit, AfterViewInit {
     setTimeout(() => {
       this.buscarInput.nativeElement.focus();
     }, 300);
-    this.dataSource = new MatTableDataSource<Producto>([]);
   }
 
   createForm() {

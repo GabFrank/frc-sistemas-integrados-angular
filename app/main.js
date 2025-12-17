@@ -19,7 +19,6 @@ const child_process_1 = require("child_process");
 const electron_pos_printer_1 = require("electron-pos-printer");
 const log = require('electron-log');
 const isDev = require('electron-is-dev');
-// CAMBIO: Usar @superhuman/electron-push-receiver
 const { setup: setupPushReceiver } = require('@superhuman/electron-push-receiver');
 let printers = [];
 electron_updater_1.autoUpdater.logger = log;
@@ -51,8 +50,74 @@ function createWindow() {
                 contextIsolation: false,
             },
         });
-        // Setup push notifications con la nueva librería
+        try {
+            const path = require('path');
+            const fs = require('fs');
+            const userDataPath = electron_1.app.getPath('userData');
+            const configFiles = [
+                'electron-push-receiver.json',
+                'config.json',
+                'firebase-config.json',
+                'push-config.json',
+                'fcm-config.json'
+            ];
+            configFiles.forEach(filename => {
+                const configPath = path.join(userDataPath, filename);
+                if (fs.existsSync(configPath)) {
+                    fs.unlinkSync(configPath);
+                }
+            });
+            const dirsToClean = [
+                path.join(userDataPath, 'push-receiver'),
+                path.join(userDataPath, 'firebase'),
+                path.join(userDataPath, 'fcm')
+            ];
+            dirsToClean.forEach(dir => {
+                if (fs.existsSync(dir)) {
+                    fs.rmSync(dir, { recursive: true, force: true });
+                }
+            });
+        }
+        catch (e) {
+            // Silent cleanup error
+        }
         setupPushReceiver(win.webContents);
+        const { Notification } = require('electron');
+        ipcMain.on('SHOW_NATIVE_NOTIFICATION', (event, notification) => {
+            var _a, _b, _c, _d, _e, _f;
+            try {
+                const title = ((_a = notification === null || notification === void 0 ? void 0 : notification.notification) === null || _a === void 0 ? void 0 : _a.title) ||
+                    ((_b = notification === null || notification === void 0 ? void 0 : notification.data) === null || _b === void 0 ? void 0 : _b.title) ||
+                    'FRC Sistemas Integrados';
+                const body = ((_c = notification === null || notification === void 0 ? void 0 : notification.notification) === null || _c === void 0 ? void 0 : _c.body) ||
+                    ((_d = notification === null || notification === void 0 ? void 0 : notification.notification) === null || _d === void 0 ? void 0 : _d.message) ||
+                    ((_e = notification === null || notification === void 0 ? void 0 : notification.data) === null || _e === void 0 ? void 0 : _e.message) ||
+                    ((_f = notification === null || notification === void 0 ? void 0 : notification.data) === null || _f === void 0 ? void 0 : _f.body) ||
+                    '';
+                const data = (notification === null || notification === void 0 ? void 0 : notification.data) || {};
+                const nativeNotification = new Notification({
+                    title: title,
+                    body: body,
+                    icon: path.join(__dirname, 'dist/assets/logo.png'),
+                    silent: false,
+                    urgency: 'normal'
+                });
+                nativeNotification.on('click', () => {
+                    if (win) {
+                        if (win.isMinimized())
+                            win.restore();
+                        win.focus();
+                    }
+                    if (data.path) {
+                        win.webContents.send('notification-clicked', data.path);
+                    }
+                });
+                nativeNotification.show();
+            }
+            catch (error) {
+                // Silent notification error
+            }
+        });
         win.webContents.setZoomFactor(1);
         win.maximize();
         win.show();

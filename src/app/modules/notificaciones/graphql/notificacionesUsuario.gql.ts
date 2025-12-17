@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { Query } from "apollo-angular";
-import { getNotificacionesUsuarioQuery } from "./graphql-query";
+import { notificacionesUsuarioQuery } from "./graphql-query";
 
 export interface NotificacionData {
   id: number;
@@ -11,6 +11,7 @@ export interface NotificacionData {
   interactuada?: boolean;
   fechaInteraccion?: string;
   accionRealizada?: string;
+  estadoTablero?: string;
   notificacion: {
     id: number;
     titulo: string;
@@ -28,13 +29,14 @@ export interface NotificacionUsuarioPage {
   totalPages: number;
 }
 
-export interface GetNotificacionesUsuarioResponse {
+export interface NotificacionesUsuarioResponse {
   data: NotificacionUsuarioPage;
 }
 
 @Injectable({
   providedIn: "root",
 })
-export class GetNotificacionesUsuarioGQL extends Query<GetNotificacionesUsuarioResponse> {
-  override document = getNotificacionesUsuarioQuery;
+export class NotificacionesUsuarioGQL extends Query<NotificacionesUsuarioResponse> {
+  override document = notificacionesUsuarioQuery;
 }
+

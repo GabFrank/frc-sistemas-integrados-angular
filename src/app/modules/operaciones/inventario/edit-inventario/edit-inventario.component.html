@@ -1,71 +1,202 @@
 <div fxLayout="row" style="width: 100%; height: 95%" fxLayoutAlign="center start">
-  <mat-card appearance="outlined" fxFlex="95" fxLayout="column" style="height: 100%">
-    <div fxFlex="5" style="width: 100%; text-align: center">
+  <mat-card appearance="outlined" fxFlex="95" fxLayout="column" style="height: 100%; overflow: auto;">
+
+    <div class="titulo-center" style="font-size: 1.5em; margin-bottom: 20px;">
       Gestión de Inventario
     </div>
-    <mat-card appearance="outlined" fxFlex="20%" fxLayout="column" fxLayoutGap="10px"
-      style="background-color: rgb(32, 32, 32)">
-      <div fxFlex="33" fxLayout="row">
-        <div fxFlex="25" fxLayout="column">
-          <div class="title" fxFlex="50">Id</div>
-          <div class="item" fxFlex="50">
-            {{ selectedInventario?.id }}
+
+    <mat-card appearance="outlined" class="inventario-info-card" fxLayout="column" fxLayoutGap="15px">
+      <div fxLayout="row" fxLayoutGap="20px" fxLayoutAlign="start center">
+        <div fxFlex="15" fxLayout="column">
+          <div class="info-label">ID</div>
+          <div class="info-value">{{ selectedInventario?.id }}</div>
+        </div>
+        <div fxFlex="30" fxLayout="column">
+          <div class="info-label">Responsable</div>
+          <div class="info-value">{{ selectedInventario?.usuario?.persona?.nombre | uppercase }}</div>
+        </div>
+        <div fxFlex="15" fxLayout="column">
+          <div class="info-label">Tipo</div>
+          <div class="info-value">{{ selectedInventario?.tipo }}</div>
+        </div>
+        <div fxFlex="15" fxLayout="column">
+          <div class="info-label">Estado</div>
+          <div class="info-value" [ngClass]="inventarioStatusClass">
+            {{ selectedInventario?.estado | enumToString | titlecase }}
           </div>
         </div>
-        <div fxFlex="25" fxLayout="column">
-          <div class="title" fxFlex="50">Responsable</div>
-          <div fxFlex="50">
-            {{ selectedInventario?.usuario?.persona?.nombre | uppercase }}
-          </div>
-        </div>
-        <div fxFlex="25" fxLayout="column">
-          <div class="title" fxFlex="50">Fecha inicio</div>
-          <div fxFlex="50">
-            {{ selectedInventario?.fechaInicio | date: "short" }}
-          </div>
-        </div>
-        <div fxFlex="25" fxLayout="column">
-          <div class="title" fxFlex="50">Fecha fin</div>
-          <div fxFlex="50">
-            {{ selectedInventario?.fechaFin | date: "short" }}
-          </div>
+        <div fxFlex="25" fxLayout="column" fxLayoutAlign="center end">
+          <button mat-raised-button color="warn" (click)="onFinalizarInventario()" [disabled]="!isEstadoAbierto"
+            class="btn-finalizar-inventario">
+            <mat-icon>check</mat-icon> Finalizar Inventario
+          </button>
         </div>
       </div>
-      <div fxFlex="33" fxLayout="row">
-        <div fxFlex="25" fxLayout="column">
-          <div class="title" fxFlex="50">Tipo</div>
-          <div class="item" fxFlex="50">
-            {{ selectedInventario?.tipo }}
-          </div>
-        </div>
-        <div fxFlex="25" fxLayout="column">
-          <div class="title" fxFlex="50">Estado</div>
-          <div fxFlex="50">
-            {{ selectedInventario?.estado | enumToString | titlecase}}
-          </div>
-        </div>
-      </div>
-      <div fxFlex="33" fxLayout="row">
-        <div fxFlex class="raised-button" fxFlex="15%" style="width: 100%" fxLayoutAlign="start center"
-          *ngIf="mainService?.sucursalActual?.id != 0" (click)="onQrClick()"
-          matTooltip="Mostrar QR para vincular con la App">
-          <mat-icon style="font-size: 2em">qr_code</mat-icon>
-        </div>
-        <div fxFlex="25" fxLayout="column">
 
+      <div fxLayout="row" fxLayoutGap="20px" fxLayoutAlign="start center">
+        <div fxFlex="25" fxLayout="column">
+          <div class="info-label">Fecha Inicio</div>
+          <div class="info-value">{{ selectedInventario?.fechaInicio | date: "dd/MM/yyyy HH:mm" }}</div>
         </div>
         <div fxFlex="25" fxLayout="column">
-
+          <div class="info-label">Fecha Fin</div>
+          <div class="info-value">{{ selectedInventario?.fechaFin ? (selectedInventario?.fechaFin | date: "dd/MM/yyyy
+            HH:mm") : '-' }}</div>
         </div>
-
-        <div fxFlex="25" fxLayout="column">
-          <button fxFlexAlign="end" style="width: 200px" *ngIf="selectedInventario?.estado == 'ABIERTO'"
-            mat-raised-button color="accent" (click)="addProducto()" [disabled]="sectorControl.invalid">
-            + Producto
+        <div fxFlex="50" fxLayout="row" fxLayoutAlign="end center">
+          <button mat-icon-button *ngIf="mainService?.sucursalActual?.id != 0" (click)="onQrClick()"
+            matTooltip="Mostrar QR para vincular con la App">
+            <mat-icon>qr_code</mat-icon>
           </button>
         </div>
       </div>
     </mat-card>
-    <div fxFlex="75"></div>
+
+    <div fxLayout="column" fxLayoutGap="15px" style="margin-top: 20px;">
+      <div fxLayout="row" fxLayoutGap="15px">
+        <button mat-raised-button color="primary" (click)="onNuevaZona()" [disabled]="!isEstadoAbierto"
+          class="btn-accion">
+          <mat-icon>add_location</mat-icon> Nueva Zona
+        </button>
+        <button mat-raised-button color="accent" (click)="onAgregarProducto()"
+          [disabled]="!isEstadoAbierto || !currentInventarioProducto || isZonaConcluida" class="btn-accion">
+          <mat-icon>star</mat-icon> Agregar Producto
+        </button>
+        <button mat-raised-button (click)="onFinalizarZona()" *ngIf="!isZonaConcluida"
+          [disabled]="!isEstadoAbierto || !currentInventarioProducto || !hasProductosInZona"
+          class="btn-accion btn-finalizar-zona-accion">
+          <mat-icon>check</mat-icon> Finalizar Zona
+        </button>
+        <button mat-raised-button (click)="onReabrirZona()" *ngIf="isZonaConcluida"
+          [disabled]="!isEstadoAbierto || !currentInventarioProducto" class="btn-accion btn-reabrir-zona">
+          <mat-icon>lock_open</mat-icon> Reabrir Zona
+        </button>
+      </div>
+    </div>
+
+    <div fxLayout="row" fxLayoutGap="20px" style="margin-top: 25px; height: 100%;">
+
+      <div fxFlex="35" fxLayout="column">
+        <div class="seccion-titulo">Zonas Trabajadas</div>
+        <mat-card appearance="outlined" class="tabla-card">
+          <table mat-table [dataSource]="zonasTrabajadasDataSource" class="tabla-inventario">
+
+            <ng-container matColumnDef="zona">
+              <th mat-header-cell *matHeaderCellDef>Zona</th>
+              <td mat-cell *matCellDef="let element">
+                <div class="zona-cell">
+                  <mat-icon class="zona-icon">location_on</mat-icon>
+                  <div>
+                    <div class="zona-nombre">{{ element.inventarioProducto?.zona?.descripcion }}</div>
+                    <div class="zona-sector">{{ element.inventarioProducto?.zona?.sector?.descripcion }}</div>
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="items">
+              <th mat-header-cell *matHeaderCellDef>Items</th>
+              <td mat-cell *matCellDef="let element">
+                <span class="badge-items">{{ element.itemCount }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="estado">
+              <th mat-header-cell *matHeaderCellDef>Estado</th>
+              <td mat-cell *matCellDef="let element">
+                <span class="badge-estado"
+                  [ngClass]="element.inventarioProducto?.concluido ? 'estado-concluida' : 'estado-abierta'">
+                  {{ element.inventarioProducto?.concluido ? 'Concluida' : 'Abierta' }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="acciones">
+              <th mat-header-cell *matHeaderCellDef>Acciones</th>
+              <td mat-cell *matCellDef="let element">
+                <button mat-icon-button (click)="onVerProductosZona(element)" matTooltip="Ver productos">
+                  <mat-icon>visibility</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="zonasTrabajadasColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: zonasTrabajadasColumns;"
+              [class.selected-row]="row.inventarioProducto === currentInventarioProducto"></tr>
+          </table>
+
+          <div *ngIf="zonasTrabajadasDataSource.data.length === 0" class="empty-state">
+            <mat-icon>folder_open</mat-icon>
+            <p>No hay zonas trabajadas</p>
+          </div>
+        </mat-card>
+      </div>
+
+      <div fxFlex="65" fxLayout="column">
+        <div class="seccion-titulo">
+          Productos de la Zona
+          <span *ngIf="currentInventarioProducto" class="badge-zona-actual">
+            {{ selectedZonaDisplayName }}
+          </span>
+        </div>
+        <mat-card appearance="outlined" class="tabla-card">
+          <table mat-table [dataSource]="productosZonaDataSource" class="tabla-inventario">
+
+            <ng-container matColumnDef="producto">
+              <th mat-header-cell *matHeaderCellDef>Producto</th>
+              <td mat-cell *matCellDef="let element">
+                <div class="producto-cell">
+                  <div class="producto-nombre">{{ element.presentacion?.producto?.descripcion }}</div>
+                  <div class="producto-codigo">{{ element.presentacion?.producto?.codigoPrincipal }}</div>
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="cantidad">
+              <th mat-header-cell *matHeaderCellDef>Cantidad</th>
+              <td mat-cell *matCellDef="let element">
+                <span class="cantidad-value">{{ element.cantidad || 0 }}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="vencimiento">
+              <th mat-header-cell *matHeaderCellDef>Vencimiento</th>
+              <td mat-cell *matCellDef="let element">
+                {{ element.vencimiento ? (element.vencimiento | date: "dd/MM/yyyy") : '-' }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="estado">
+              <th mat-header-cell *matHeaderCellDef>Estado</th>
+              <td mat-cell *matCellDef="let element">
+                <span class="badge-producto-estado" [ngClass]="'estado-' + element.estado?.toLowerCase()">
+                  {{ element.estado | enumToString }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="acciones">
+              <th mat-header-cell *matHeaderCellDef>Acciones</th>
+              <td mat-cell *matCellDef="let element">
+                <button mat-icon-button color="warn" (click)="onEliminarProducto(element)"
+                  [disabled]="!isEstadoAbierto || isZonaConcluida"
+                  [matTooltip]="isZonaConcluida ? 'No puede eliminar productos de una zona concluida' : 'Eliminar producto'">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="productosColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: productosColumns;"></tr>
+          </table>
+
+          <div *ngIf="!hasProductosInZona" class="empty-state">
+            <mat-icon>inventory_2</mat-icon>
+            <p>No hay productos agregados a esta zona</p>
+          </div>
+        </mat-card>
+      </div>
+    </div>
+
   </mat-card>
 </div>

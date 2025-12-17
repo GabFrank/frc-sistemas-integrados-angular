@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { NotificacionData } from '../../graphql/getNotificacionesUsuario.gql';
+import { NotificacionData } from '../../services/notificaciones-tablero.service';
 
 @Component({
   selector: 'app-notification-detail-dialog',
@@ -51,3 +51,4 @@ export class NotificationDetailDialogComponent {
     this.dialogRef.close();
   }
 }
+

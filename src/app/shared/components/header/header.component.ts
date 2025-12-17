@@ -29,6 +29,7 @@ import { DialogosService } from "../dialogos/dialogos.service";
 import { UsuarioService } from "../../../modules/personas/usuarios/usuario.service";
 import { InicioSesion } from "../../../modules/configuracion/models/inicio-sesion.model";
 import { connectionStatusSub, cloudConnectionStatusSub } from "../../services/graphql-connection.service";
+import { NotificacionesTableroService } from "../../../modules/notificaciones/services/notificaciones-tablero.service";
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-header",
@@ -54,6 +55,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
   @Output() toogleSideBarEvent: EventEmitter<any> = new EventEmitter();
   @Output() openNotificationsEvent: EventEmitter<void> = new EventEmitter<void>();
   appVersion = null;
+  unreadCount$ = this.notificacionesTableroService.unreadCount$;
 
   constructor(
     public mainService: MainService,
@@ -67,7 +69,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
     private configService: ConfiguracionService,
     private dialogoService: DialogosService,
     private usuarioService: UsuarioService,
-    private loginDialogService: LoginDialogService
+    private loginDialogService: LoginDialogService,
+    private notificacionesTableroService: NotificacionesTableroService
   ) { }
 
   ngOnInit(): void {
@@ -96,6 +99,22 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.sucursalList = environment["sucursales"] || [];
 
     this.appVersion = this.electronService.getAppVersion();
+
+    const tokenFcm = localStorage.getItem("pushToken");
+    if (tokenFcm && this.mainService.usuarioActual) {
+      this.notificacionesTableroService.setTokenFcm(tokenFcm);
+    }
+
+    this.mainService.authenticationSub
+      .pipe(untilDestroyed(this))
+      .subscribe((authenticated) => {
+        if (authenticated) {
+          const tokenFcm = localStorage.getItem("pushToken");
+          if (tokenFcm) {
+            this.notificacionesTableroService.setTokenFcm(tokenFcm);
+          }
+        }
+      });
   }
   private updateServerWarning(): void {
     if (this.cloudStatus != null) {
