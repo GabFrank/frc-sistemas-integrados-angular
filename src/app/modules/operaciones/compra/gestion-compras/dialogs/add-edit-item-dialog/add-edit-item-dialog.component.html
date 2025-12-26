@@ -1,0 +1,285 @@
+<div class="add-edit-item-dialog">
+  <!-- Header -->
+  <div class="dialog-header">
+    <h3 class="center" style="margin: 0px">{{ titleComputed }}</h3>
+  </div>
+
+  <!-- Content -->
+  <div class="dialog-content">
+    <form [formGroup]="itemForm" class="item-form">
+      <div class="form-container">
+        <!-- Fila 1: Seleccionar Producto -->
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Buscar Producto</mat-label>
+            <input
+              matInput
+              #productoInput
+              formControlName="productoSearch"
+              placeholder="Escriba el nombre o código del producto..."
+              (keydown)="onProductoSearchKeydown($event)"
+            />
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="onSearchProducto()"
+              matTooltip="Buscar producto"
+            >
+              <mat-icon>search</mat-icon>
+            </button>
+            <mat-error
+              *ngIf="
+                itemForm.get('producto')?.hasError('required') &&
+                itemForm.get('producto')?.touched
+              "
+            >
+              Debe seleccionar un producto
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- Producto seleccionado display -->
+        <div class="selected-product-display" *ngIf="productoSelectedComputed">
+          <mat-card class="product-card">
+            <mat-card-content
+              style="
+                display: flex;
+                flex-direction: row;
+                padding-top: 0px;
+                padding-bottom: 0px;
+              "
+            >
+              <div class="product-info" style="flex: 90%">
+                <strong
+                  >{{ itemForm.get("producto")?.value?.id }} -
+                  {{ itemForm.get("producto")?.value?.descripcion }}</strong
+                >
+                <span class="product-code"
+                  >({{
+                    itemForm.get("producto")?.value?.codigoPrincipal
+                  }})</span
+                >
+              </div>
+              <div class="clear-icon-button" style="flex: 10%">
+                <button
+                  mat-icon-button
+                  (click)="onClearProducto()"
+                  color="primary"
+                >
+                  <mat-icon>clear</mat-icon>
+                </button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <!-- Fila 2: Presentación y Cantidad -->
+        <div class="form-row" *ngIf="productoSelectedComputed">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Presentación</mat-label>
+            <mat-select
+              #presentacionSelect
+              formControlName="presentacion"
+              (keydown)="onPresentacionKeydown($event)"
+            >
+              <mat-option
+                *ngFor="let presentacion of presentacionesDisponibles"
+                [value]="presentacion"
+              >
+              <!-- show only cantidad -->
+                {{ presentacion.cantidad }}
+              </mat-option>
+            </mat-select>
+            <mat-error
+              *ngIf="itemForm.get('presentacion')?.hasError('required')"
+            >
+              Debe seleccionar una presentación
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Cantidad por Presentación</mat-label>
+            <input
+              matInput
+              #cantidadInput
+              type="number"
+              step="0.01"
+              min="0.01"
+              formControlName="cantidadPorPresentacion"
+              (keydown)="onCantidadKeydown($event)"
+            />
+            <mat-hint *ngIf="cantidadEnUnidadesBaseComputed > 0">
+              = {{ cantidadEnUnidadesBaseComputed | number : "1.0-2" }} unidades
+              base
+            </mat-hint>
+            <mat-error
+              *ngIf="
+                itemForm.get('cantidadPorPresentacion')?.hasError('required')
+              "
+            >
+              La cantidad es requerida
+            </mat-error>
+            <mat-error
+              *ngIf="itemForm.get('cantidadPorPresentacion')?.hasError('min')"
+            >
+              La cantidad debe ser mayor a 0
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- Fila 3: Cantidad -->
+        <!-- <div class="form-row" *ngIf="productoSelectedComputed">
+          
+        </div> -->
+
+        <!-- Fila 4: Precios y Bonificación -->
+        <div class="form-row" *ngIf="productoSelectedComputed">
+          <mat-form-field appearance="outline">
+            <mat-label>Precio por Presentación</mat-label>
+            <input
+              matInput
+              #precioPorPresentacionInput
+              type="text"
+              currencyMask
+              [options]="selectedCurrencyOptions"
+              formControlName="precioUnitarioPorPresentacion"
+              [readonly]="isBonificacionComputed"
+              (keydown)="onPrecioPorPresentacionKeydown($event)"
+              matTooltip="Se actualiza automáticamente al cambiar precio unitario"
+            />
+            <span matPrefix>{{ selectedCurrencyPrefix }}</span>
+            <mat-error
+              *ngIf="
+                itemForm.get('precioUnitarioPorPresentacion')?.hasError('min')
+              "
+            >
+              El precio no puede ser negativo
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Precio Unitario</mat-label>
+            <input
+              matInput
+              #precioUnitarioInput
+              type="text"
+              currencyMask
+              [options]="selectedCurrencyOptions"
+              formControlName="precioUnitarioSolicitado"
+              [readonly]="isBonificacionComputed"
+              (keydown)="onPrecioUnitarioKeydown($event)"
+              matTooltip="Precio por unidad individual del producto"
+            />
+            <span matPrefix>{{ selectedCurrencyPrefix }}</span>
+            <mat-error
+              *ngIf="itemForm.get('precioUnitarioSolicitado')?.hasError('min')"
+            >
+              El precio no puede ser negativo
+            </mat-error>
+          </mat-form-field>
+
+          <div class="checkbox-container">
+            <mat-checkbox
+              #bonificacionCheckbox
+              formControlName="esBonificacion"
+              class="bonificacion-checkbox"
+              (keydown)="onBonificacionKeydown($event)"
+              matTooltip="Los ítems marcados como bonificación tendrán precio 0"
+            >
+              Es Bonificación
+            </mat-checkbox>
+          </div>
+        </div>
+
+        <!-- Fila 5: Vencimiento (solo si el producto maneja vencimiento) -->
+        <div
+          class="form-row"
+          *ngIf="productoSelectedComputed && productoManejaVencimientoComputed"
+        >
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Vencimiento Esperado</mat-label>
+            <input
+              matInput
+              #vencimientoInput
+              [matDatepicker]="vencimientoPicker"
+              formControlName="vencimientoEsperado"
+              (keydown)="onVencimientoKeydown($event)"
+              matTooltip="Fecha esperada de vencimiento del producto"
+            />
+            <mat-datepicker-toggle
+              matSuffix
+              [for]="vencimientoPicker"
+            ></mat-datepicker-toggle>
+            <mat-datepicker #vencimientoPicker></mat-datepicker>
+          </mat-form-field>
+        </div>
+
+        <!-- Fila 6: Observación -->
+        <div class="form-row" *ngIf="productoSelectedComputed">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Observaciones</mat-label>
+            <textarea
+              matInput
+              #observacionInput
+              formControlName="observacion"
+              rows="3"
+              placeholder="Observaciones adicionales sobre el ítem..."
+              (keydown)="onObservacionKeydown($event)"
+              matTooltip="Información adicional sobre el producto o solicitud"
+            ></textarea>
+          </mat-form-field>
+        </div>
+
+        <!-- Subtotal Display -->
+        <div
+          class="subtotal-display"
+          *ngIf="productoSelectedComputed && !isBonificacionComputed"
+        >
+          <mat-card class="subtotal-card">
+            <mat-card-content>
+              <div class="subtotal-content">
+                <span class="subtotal-label">Subtotal:</span>
+                <span class="subtotal-value">{{
+                  subtotalComputed | currency : "Gs." : "symbol" : "1.0-2"
+                }}</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Actions -->
+  <div class="dialog-actions">
+    <button
+      mat-button
+      #cancelarBtn
+      (click)="onCancel()"
+      class="cancel-btn"
+      (keydown)="onCancelarKeydown($event)"
+    >
+      Cancelar
+    </button>
+    <button
+      mat-raised-button
+      #guardarBtn
+      color="accent"
+      [disabled]="!canSaveComputed"
+      (click)="onSave()"
+      (keydown)="onGuardarKeydown($event)"
+      class="save-btn"
+    >
+      <mat-icon *ngIf="!savingComputed">save</mat-icon>
+      <mat-icon *ngIf="savingComputed" class="spinning"
+        >hourglass_empty</mat-icon
+      >
+      {{
+        savingComputed
+          ? "Guardando..."
+          : (data.isEdit ? "Actualizar" : "Guardar") + " Ítem"
+      }}
+    </button>
+  </div>
+</div>

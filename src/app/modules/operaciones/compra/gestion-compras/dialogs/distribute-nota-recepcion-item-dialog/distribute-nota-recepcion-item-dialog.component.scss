@@ -1,0 +1,980 @@
+// Main dialog container
+.distribute-nota-recepcion-item-dialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 90vh;
+  width: 100%;
+  min-width: 700px;
+  background-color: #2d2d2d;
+  overflow: hidden; // Prevent outer scroll
+}
+
+// Header styling with gradient
+.dialog-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 16px;
+  flex-shrink: 0;
+
+  h3 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  .dialog-subtitle {
+    margin: 8px 0 0 0;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 400;
+    line-height: 1.4;
+  }
+}
+
+// Content styling
+.dialog-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background-color: #2d2d2d;
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  min-height: 0; // Allow flex children to shrink if needed
+}
+
+.toggle-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0;
+
+  .toggle-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    mat-icon {
+      color: #f57c00;
+    }
+
+    .toggle-text {
+      .toggle-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #ffffff;
+      }
+
+      .toggle-description {
+        font-size: 12px;
+        color: #bbbbbb;
+        margin-top: 2px;
+      }
+    }
+  }
+
+  mat-slide-toggle {
+    ::ng-deep .mat-slide-toggle-label {
+      color: #ffffff;
+      font-weight: 500;
+    }
+
+    ::ng-deep .mat-slide-toggle-thumb {
+      background-color: #ffffff;
+    }
+
+    ::ng-deep .mat-slide-toggle-bar {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    ::ng-deep .mat-slide-toggle-ripple {
+      background-color: rgba(245, 124, 0, 0.3);
+    }
+  }
+}
+
+// Item Summary Card
+.item-summary-card {
+  background-color: #3a3a3a;
+  border-radius: 8px;
+  border: 1px solid #555555;
+  overflow: hidden;
+  flex-shrink: 0; // Prevent shrinking
+  min-height: fit-content; // Ensure minimum height for content
+
+  .summary-header {
+    background-color: #1a1a1a;
+    padding: 16px 20px;
+    border-bottom: 1px solid #555555;
+
+    h3 {
+      margin: 0;
+      color: #f57c00;
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+
+  .summary-content {
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap; // Allow wrapping on smaller screens
+
+    .product-info {
+      flex: 1;
+      min-width: 250px; // Minimum width to prevent too much shrinking
+
+      .product-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: #ffffff;
+        margin-bottom: 8px;
+        line-height: 1.4;
+      }
+
+      .product-code {
+        font-size: 14px;
+        color: #bbbbbb;
+      }
+    }
+
+    .quantity-info {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 200px;
+      flex-shrink: 0; // Prevent shrinking
+
+      .quantity-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px; // Add gap between label and value
+
+        label {
+          font-size: 14px;
+          color: #bbbbbb;
+          font-weight: 500;
+        }
+
+        .quantity-value {
+          font-size: 16px;
+          font-weight: 600;
+          color: #4caf50;
+        }
+
+        .price-value {
+          font-size: 14px;
+          font-weight: 500;
+          color: #ffffff;
+
+          &.bonificacion {
+            color: #ff9800;
+            font-weight: 600;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Consolidated Summary Card (replaces both item-summary-card and distribution-status-card)
+.consolidated-summary-card {
+  background-color: #3a3a3a;
+  border-radius: 8px;
+  border: 1px solid #555555;
+  overflow: hidden;
+  flex-shrink: 0; // Prevent shrinking
+  min-height: fit-content; // Ensure minimum height for content
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .summary-row {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
+    padding: 20px;
+
+    // Product Section (40% width)
+    .product-section {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0; // Allow text truncation if needed
+
+      .product-name {
+        font-size: 18px;
+        font-weight: 600;
+        color: #ffffff;
+        margin-bottom: 6px;
+        line-height: 1.3;
+        word-wrap: break-word;
+      }
+
+      .product-code {
+        font-size: 13px;
+        color: #bbbbbb;
+        font-weight: 500;
+      }
+
+      .product-presentation {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+        font-size: 12px;
+        color: #f57c00;
+        font-weight: 500;
+
+        mat-icon {
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
+          color: #f57c00;
+        }
+      }
+    }
+
+    // Order Info Section
+    .order-info-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      justify-content: center;
+      min-width: 150px;
+
+      .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .info-label {
+          font-size: 12px;
+          color: #bbbbbb;
+          font-weight: 500;
+          text-transform: uppercase;
+        }
+
+        .info-value {
+          font-size: 16px;
+          font-weight: 600;
+          color: #2196f3;
+
+          &.primary {
+            color: #4caf50;
+            font-size: 18px;
+          }
+
+          &.bonificacion {
+            color: #ff9800;
+            font-style: italic;
+          }
+
+          .secondary-info {
+            font-size: 12px;
+            color: #bbbbbb;
+            font-weight: 400;
+            margin-top: 2px;
+          }
+        }
+      }
+    }
+
+    // Distribution Status Section
+    .distribution-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      justify-content: center;
+      min-width: 150px;
+
+      .status-item {
+        .status-with-icon {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+
+          mat-icon {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+
+            &.discrepancia-ok {
+              color: #4caf50;
+            }
+
+            &.discrepancia-mayor {
+              color: #ff9800;
+            }
+
+            &.discrepancia-menor {
+              color: #f44336;
+            }
+
+            &.discrepancia-icon {
+              color: #2196f3;
+            }
+          }
+
+          .status-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+
+            .status-label {
+              font-size: 12px;
+              color: #bbbbbb;
+              font-weight: 500;
+              text-transform: uppercase;
+            }
+
+            .status-value {
+              font-size: 16px;
+              font-weight: 600;
+
+              &.discrepancia-ok {
+                color: #4caf50;
+              }
+
+              &.discrepancia-mayor {
+                color: #ff9800;
+              }
+
+              &.discrepancia-menor {
+                color: #f44336;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Warning message styling
+  .discrepancia-warning {
+    background-color: #2d2d2d;
+    border-top: 1px solid #555555;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: #ff9800;
+
+    mat-icon {
+      color: #ff9800;
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    span {
+      line-height: 1.4;
+    }
+  }
+}
+
+// Distribution Status Card
+.distribution-status-card {
+  background-color: #3a3a3a;
+  border-radius: 8px;
+  border: 1px solid #555555;
+  padding: 20px;
+
+  .status-row {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 16px;
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      mat-icon {
+        font-size: 24px;
+
+        &.discrepancia-ok {
+          color: #4caf50;
+        }
+
+        &.discrepancia-mayor {
+          color: #ff9800;
+        }
+
+        &.discrepancia-menor {
+          color: #f44336;
+        }
+
+        &.discrepancia-icon {
+          color: #bbbbbb;
+        }
+      }
+
+      .status-text {
+        .status-label {
+          font-size: 12px;
+          color: #bbbbbb;
+          text-transform: uppercase;
+          font-weight: 600;
+        }
+
+        .status-value {
+          font-size: 18px;
+          font-weight: 700;
+
+          &.discrepancia-ok {
+            color: #4caf50;
+          }
+
+          &.discrepancia-mayor {
+            color: #ff9800;
+          }
+
+          &.discrepancia-menor {
+            color: #f44336;
+          }
+        }
+      }
+    }
+  }
+
+  .discrepancia-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background-color: rgba(255, 152, 0, 0.1);
+    border-left: 4px solid #ff9800;
+    border-radius: 4px;
+
+    mat-icon {
+      color: #ff9800;
+      margin-top: 2px;
+    }
+
+    span {
+      color: #ffffff;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+  }
+}
+
+// Quick Actions
+.quick-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+
+    mat-icon {
+      font-size: 18px;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .clear-btn {
+    color: #f44336;
+
+    &:hover {
+      background-color: rgba(244, 67, 54, 0.1);
+    }
+  }
+
+  .delete-btn {
+    color: #ff5722;
+    border: 1px solid #ff5722;
+
+    &:hover {
+      background-color: rgba(255, 87, 34, 0.1);
+    }
+
+    &.active {
+      background-color: #ff5722;
+      color: white;
+
+      &:hover {
+        background-color: #e64a19;
+      }
+    }
+  }
+}
+
+// Distribution Form
+.distribution-form {
+  flex: 1;
+  min-height: 0; // Allow flex shrinking
+  display: flex;
+  flex-direction: column;
+
+  .distribuciones-container {
+    flex: 1;
+    min-height: 0; // Allow flex shrinking
+    display: flex;
+    flex-direction: column;
+
+    .distribuciones-title {
+      margin: 0 0 8px 0;
+      color: #f57c00;
+      font-size: 16px;
+      font-weight: 600;
+      flex-shrink: 0; // Prevent title from shrinking
+    }
+
+    .distribuciones-subtitle {
+      margin: 0 0 16px 0;
+      font-size: 14px;
+      color: #bbbbbb;
+      font-style: italic;
+      flex-shrink: 0; // Prevent subtitle from shrinking
+    }
+
+    .distribuciones-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 1;
+      overflow-y: auto; // Allow scrolling if needed
+      min-height: 0; // Allow flex shrinking
+      padding: 5px;
+
+      .distribucion-item {
+        display: flex;
+        align-items: flex-start;
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 0px;
+        gap: 16px;
+
+        // Checkbox container para modo borrado
+        .checkbox-container {
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          padding: 8px;
+
+          ::ng-deep .mat-checkbox {
+            .mat-checkbox-frame {
+              border-color: #ff5722;
+            }
+
+            .mat-checkbox-checkmark-path {
+              stroke: #ffffff;
+            }
+
+            &.mat-checkbox-checked .mat-checkbox-background {
+              background-color: #ff5722;
+            }
+          }
+        }
+
+        .sucursal-info {
+          flex: 35%;
+
+          .sucursal-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 4px;
+          }
+
+          .sucursal-direccion {
+            font-size: 12px;
+            color: #bbbbbb;
+          }
+        }
+
+        .cantidad-container {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          min-width: 200px;
+
+          .cantidad-field {
+            width: 100%;
+            input {
+              text-align: center;
+            }
+          }
+
+          .percentage-display {
+            font-size: 14px;
+            color: #bbbbbb;
+            font-weight: 500;
+            min-width: 50px;
+            text-align: right;
+          }
+        }
+
+        // Información de distribución en modo borrado
+        .distribucion-info {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+
+          .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+
+            .info-label {
+              font-size: 12px;
+              color: #bbbbbb;
+              font-weight: 500;
+              text-transform: uppercase;
+            }
+
+            .info-value {
+              font-size: 14px;
+              color: #ffffff;
+              font-weight: 500;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Form field styling for dark theme
+::ng-deep .mat-form-field {
+  .mat-form-field-outline-thick,
+  &.mat-focused .mat-form-field-label,
+  &.mat-focused .mat-form-field-outline-thick {
+    color: #667eea !important;
+  }
+
+  .mat-input-element {
+    color: #ffffff;
+    text-align: center;
+  }
+
+  .mat-form-field-label {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .mat-form-field-underline {
+    background-color: rgba(255, 255, 255, 0.42);
+  }
+}
+
+// Help Section
+.help-section {
+  .help-panel {
+    background-color: #3a3a3a;
+
+    ::ng-deep .mat-expansion-panel-header {
+      background-color: #3a3a3a;
+      color: #bbbbbb;
+
+      .mat-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+    }
+
+    ::ng-deep .mat-expansion-panel-body {
+      background-color: #2d2d2d;
+      color: #ffffff;
+    }
+
+    .help-content {
+      padding: 16px 0;
+
+      ul {
+        margin: 0;
+        padding-left: 20px;
+
+        li {
+          margin-bottom: 8px;
+          color: #ffffff;
+          line-height: 1.5;
+
+          strong {
+            color: #f57c00;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Actions styling
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  background-color: #1a1a1a;
+  border-top: 1px solid #555555;
+  flex-shrink: 0;
+
+  .cancel-btn {
+    color: #bbbbbb;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  .save-btn {
+    background-color: #f57c00;
+    color: white;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &:disabled {
+      background-color: #666666;
+      color: #bbbbbb;
+    }
+
+    mat-icon {
+      font-size: 18px;
+    }
+
+    // Estilo para modo borrado
+    &.mat-warn {
+      background-color: #f44336;
+
+      &:hover {
+        background-color: #d32f2f;
+      }
+
+      &:disabled {
+        background-color: #666666;
+        color: #bbbbbb;
+      }
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .distribute-nota-recepcion-item-dialog {
+    min-width: 100%;
+    max-height: 100vh;
+  }
+
+  .dialog-content {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .consolidated-summary-card .summary-row {
+    flex-direction: column;
+    gap: 12px;
+
+    .product-section {
+      order: 1;
+    }
+
+    .order-info-section {
+      order: 2;
+      flex-direction: row;
+      justify-content: space-between;
+    }
+
+    .distribution-section {
+      order: 3;
+      flex-direction: row;
+      justify-content: space-between;
+    }
+  }
+
+  .quick-actions {
+    justify-content: center;
+  }
+
+  .distribuciones-list .distribucion-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+
+    .cantidad-container {
+      justify-content: center;
+    }
+  }
+}
+
+// Nuevos estilos para sucursal de entrega
+
+.sucursal-entrega-info {
+  flex: 40%;
+  margin-bottom: 16px;
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #f57c00;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  .sucursal-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 4px;
+  }
+
+  .sucursal-direccion {
+    font-size: 12px;
+    color: #bbbbbb;
+  }
+}
+
+.sucursal-name.ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+  display: block;
+}
+
+// Actualizar el layout del distribucion-item para la nueva estructura
+.distribuciones-list .distribucion-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 20px;
+
+  .cantidad-container {
+    flex: 30%;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .cantidad-field {
+      width: 150px;
+    }
+  }
+}
+
+// Dark theme support for mat-select
+::ng-deep .mat-select-panel {
+  background-color: #3a3a3a !important;
+
+  .mat-option {
+    color: #ffffff !important;
+
+    &:hover {
+      background-color: #555555 !important;
+    }
+
+    &.mat-selected {
+      background-color: #667eea !important;
+    }
+  }
+}
+
+// Responsive adjustments for smaller screens
+@media (max-width: 900px) {
+  .distribute-nota-recepcion-item-dialog {
+    min-width: auto;
+    width: 95%;
+    height: 90%;
+  }
+
+  .consolidated-summary-card .summary-row {
+    flex-direction: column;
+    gap: 16px;
+
+    .product-section,
+    .order-info-section,
+    .distribution-section {
+      flex: 1;
+      min-width: auto;
+    }
+
+    .product-section {
+      order: 1;
+    }
+
+    .order-info-section {
+      order: 2;
+      flex-direction: row;
+      gap: 20px;
+    }
+
+    .distribution-section {
+      order: 3;
+      flex-direction: row;
+      gap: 20px;
+    }
+  }
+
+  .quick-actions {
+    flex-direction: column;
+    gap: 12px;
+
+    .action-btn {
+      width: 100%;
+    }
+  }
+
+  .distribuciones-list .distribucion-item {
+    .sucursal-entrega-info,
+    .cantidad-container {
+      flex: 100%;
+      margin-bottom: 12px;
+    }
+  }
+}
+
+.left-panel {
+  flex: 20%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.right-panel {
+  flex: 80%;
+  display: flex;
+  flex-direction: column;
+} 

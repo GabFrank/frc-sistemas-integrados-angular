@@ -283,17 +283,13 @@ export class ListCajaComponent implements OnInit {
       tableData: [
         { id: "id", nombre: "Id", width: "5%" },
         {
-          id: "nombre",
+          id: "persona.nombre",
           nombre: "Nombre",
-          nested: true,
-          nestedId: "persona",
           width: "50%",
         },
         {
-          id: "documento",
+          id: "persona.documento",
           nombre: "Documento",
-          nested: true,
-          nestedId: "persona",
           width: "40%",
         },
       ],
@@ -455,11 +451,9 @@ export class ListCajaComponent implements OnInit {
         { id: "id", nombre: "Id", width: "5%" },
         { id: "nombre", nombre: "Nombre", width: "50%" },
         {
-          id: "descripcion",
+          id: "ciudad.descripcion",
           nombre: "Ciudad",
           width: "22%",
-          nested: true,
-          nestedId: "ciudad",
         },
       ],
       query: this.searchSucursal,

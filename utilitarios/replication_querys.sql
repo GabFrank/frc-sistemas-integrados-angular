@@ -51,15 +51,15 @@ DROP SUBSCRIPTION subscription_name;
 
 -- reset subscriber
 -- disable subscription
-ALTER SUBSCRIPTION filial5_sub disable;
+ALTER SUBSCRIPTION filial25_sub disable;
 -- set replication slot none on subscriber
-ALTER SUBSCRIPTION filial5_sub SET (slot_name = 'filial5_sub');
+ALTER SUBSCRIPTION filial25_sub SET (slot_name = 'filial25_sub');
 -- delete replication slot on publisher
-SELECT pg_drop_replication_slot('filial5_sub');
+SELECT pg_drop_replication_slot('filial25_sub');
 -- recreate replication slot on publisher
-SELECT * FROM pg_create_logical_replication_slot('filial5_sub', 'pgoutput');
+SELECT * FROM pg_create_logical_replication_slot('filial25_sub', 'pgoutput');
 -- enable subscription on subscriber
-ALTER SUBSCRIPTION filial5_sub enable;
+ALTER SUBSCRIPTION filial25_sub enable;
 
 
 
@@ -81,11 +81,11 @@ CONNECTION 'dbname=general host=localhost user=franco password=franco port=5552'
 PUBLICATION filial24_pub WITH (copy_data = false, origin = 'none');
 
 -- script para crear subscription para la filial
-CREATE SUBSCRIPTION central_filial24_sub
+CREATE SUBSCRIPTION central_filial25_sub
 CONNECTION 'dbname=bodega host=172.25.1.200 user=franco password=franco port=5551'
-PUBLICATION central_filial24_pub WITH (copy_data = false, origin = 'none');
+PUBLICATION central_filial25_pub WITH (copy_data = false, origin = 'none');
 
-CREATE SUBSCRIPTION filial24_central_sub
+CREATE SUBSCRIPTION filial25_central_sub
 CONNECTION 'dbname=bodega host=172.25.1.200 user=franco password=franco port=5551'
 PUBLICATION central_pub WITH (copy_data = false, origin = 'none');
 
@@ -96,7 +96,7 @@ ALTER PUBLICATION central_filial4_pub ADD TABLE operaciones.stock_por_producto_s
 
 
 -- creat publicacion simples para filiales
-CREATE PUBLICATION filial5_pub FOR TABLE 
+CREATE PUBLICATION filial25_pub FOR TABLE 
     administrativo.marcacion, 
     configuraciones.inicio_sesion, 
     financiero.cambio_caja, 

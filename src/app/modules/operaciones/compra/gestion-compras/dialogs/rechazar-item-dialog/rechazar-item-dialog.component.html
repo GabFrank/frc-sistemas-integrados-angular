@@ -1,0 +1,185 @@
+<div class="dialog-container">
+  <!-- Header del diálogo -->
+  <div class="dialog-header" style="text-align: center;">
+    <h2>Rechazar Ítem: {{ productoDisplay }}</h2>
+  </div>
+
+  <!-- Contenido del diálogo -->
+  <div class="dialog-content">
+    <form class="form-container" [formGroup]="form" (ngSubmit)="onGuardar()">
+      
+      <!-- Información de contexto -->
+      <div class="context-info">
+        <div class="info-row">
+          <span class="info-label">Producto:</span>
+          <span class="info-value">{{ productoDisplay }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Cantidad Pendiente:</span>
+          <span class="info-value text-warning">{{ cantidadPendiente / (presentacionSeleccionada?.cantidad || 1) | number:'1.0-2' }} unidades</span>
+        </div>
+        
+        <!-- Información sobre distribuciones si hay un ítem específico a rechazar -->
+        <div class="info-row" *ngIf="itemToReject">
+          <span class="info-label">Cantidad del Ítem:</span>
+          <span class="info-value text-danger">{{ itemToReject.cantidadEnNota | number:'1.0-2' }} unidades</span>
+        </div>
+        
+        <!-- Advertencia sobre distribuciones -->
+        <div class="info-row warning-box" *ngIf="tieneDistribuciones">
+          <mat-icon class="warning-icon">warning</mat-icon>
+          <div class="warning-content">
+            <strong>⚠️ Atención:</strong> Este ítem tiene {{ distribucionesDelItem.length }} distribución(es) activa(s).
+            <br>Todas las distribuciones serán automáticamente rechazadas al rechazar el ítem.
+          </div>
+        </div>
+      </div>
+
+      <!-- Paso 1: Selección de Nota de Recepción -->
+      <div class="step-section">
+        <h3>Paso 1: Seleccionar Nota de Recepción</h3>
+        <div class="form-field">
+          <mat-form-field appearance="outline" style="width: 100%; padding-bottom: 10px;">
+            <mat-label>Nota de Recepción</mat-label>
+            <mat-select 
+              formControlName="notaRecepcionId" 
+              (keydown)="onNotaRecepcionKeydown($event)"
+              [disabled]="notaPreseleccionada">
+              <mat-option *ngFor="let nota of notasDisponiblesDisplay" [value]="nota.value">
+                {{ nota.viewValue }}
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="form.get('notaRecepcionId')?.hasError('required')">
+              La nota de recepción es obligatoria
+            </mat-error>
+          </mat-form-field>
+        </div>
+        
+        <!-- Información adicional para nota de rechazo -->
+        <div class="info-box" *ngIf="form.get('notaRecepcionId')?.value === -1">
+          <mat-icon>info</mat-icon>
+          <div class="info-content">
+            <strong>Nota de Rechazo Especial:</strong>
+            <p>Esta opción crea una nota de recepción especial para registrar el rechazo de productos que no fueron entregados por el proveedor. La nota se identificará como "RECHAZO_NO_ENTREGADO" para fines de trazabilidad.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Paso 2: Presentación y Cantidad a Rechazar -->
+      <div class="step-section">
+        <h3>Paso 2: Presentación y Cantidad a Rechazar</h3>
+        <div class="form-row">
+          <mat-form-field appearance="outline" style="width: 50%; padding-bottom: 10px;">
+            <mat-label>Presentación</mat-label>
+            <mat-select formControlName="presentacionId" (keydown)="onPresentacionKeydown($event)">
+              <mat-option *ngFor="let presentacion of presentacionesDisponibles" [value]="presentacion.id">
+                {{ presentacion.cantidad }} unidades
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="form.get('presentacionId')?.hasError('required')">
+              La presentación es obligatoria
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" style="width: 50%; padding-bottom: 10px;">
+            <mat-label>Cantidad Rechazada</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="cantidadRechazada"
+              placeholder="Ingrese la cantidad a rechazar"
+              min="0.01"
+              [max]="notaPreseleccionada ? cantidadMaxima : cantidadPendiente"
+              step="0.01"
+              (keydown)="onCantidadKeydown($event)"
+              [readonly]="hasItemToReject"
+            />
+            <mat-hint *ngIf="cantidadEnUnidadesBaseComputed > 0">
+              = {{ cantidadEnUnidadesBaseComputed | number:'1.0-2' }} unidades base
+            </mat-hint>
+            <mat-error *ngIf="form.get('cantidadRechazada')?.hasError('required')">
+              La cantidad es obligatoria
+            </mat-error>
+            <mat-error *ngIf="form.get('cantidadRechazada')?.hasError('min')">
+              La cantidad debe ser mayor a 0
+            </mat-error>
+            <mat-error *ngIf="form.get('cantidadRechazada')?.hasError('max')">
+              La cantidad no puede exceder {{ notaPreseleccionada ? cantidadMaxima : cantidadPendiente | number:'1.0-2' }}
+            </mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Paso 3: Motivo del Rechazo -->
+      <div class="step-section">
+        <h3>Paso 3: Motivo del Rechazo</h3>
+        <div class="form-field">
+          <mat-form-field appearance="outline" style="width: 100%; padding-bottom: 10px;">
+            <mat-label>Motivo del Rechazo</mat-label>
+            <mat-select 
+              formControlName="motivoRechazo" 
+              (keydown)="onMotivoKeydown($event)"
+              (selectionChange)="onMotivoSelectionChange()"
+            >
+              <mat-option *ngFor="let motivo of motivosRechazoDisplay" [value]="motivo.value">
+                {{ motivo.viewValue }}
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="form.get('motivoRechazo')?.hasError('required')">
+              El motivo del rechazo es obligatorio
+            </mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Paso 4: Observaciones -->
+      <div class="step-section">
+        <h3>Paso 4: Observaciones</h3>
+        <div class="form-field">
+          <mat-form-field appearance="outline" style="width: 100%; padding-bottom: 10px;">
+            <mat-label>Observaciones del Rechazo</mat-label>
+            <textarea
+              matInput
+              formControlName="observaciones"
+              placeholder="Describa detalladamente el motivo del rechazo..."
+              rows="4"
+              (keydown)="onObservacionesKeydown($event)"
+            ></textarea>
+            <mat-error *ngIf="form.get('observaciones')?.hasError('required')">
+              Las observaciones son obligatorias
+            </mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Mensaje de ayuda -->
+      <div class="help-message">
+        <mat-icon>info</mat-icon>
+        <span>El ítem será marcado como RECHAZADO y no pasará a la etapa de recepción física</span>
+      </div>
+
+      <!-- Botones de acción -->
+      <div class="dialog-actions">
+        <button
+          type="button"
+          mat-button
+          (click)="onCancelar()"
+          [disabled]="isLoading"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          mat-raised-button
+          color="warn"
+          [disabled]="!canSave || isLoading"
+          #btnGuardar
+        >
+          <mat-icon *ngIf="!isLoading">block</mat-icon>
+          <mat-spinner *ngIf="isLoading" diameter="20"></mat-spinner>
+          {{ isLoading ? 'Procesando...' : 'Rechazar Ítem' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div> 

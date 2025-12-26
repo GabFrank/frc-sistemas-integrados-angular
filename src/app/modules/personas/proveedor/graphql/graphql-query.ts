@@ -4,6 +4,7 @@ export const proveedoresQuery = gql`
   {
     data: proveedores {
       id
+      chequeDias
       persona {
         id
         nombre
@@ -32,6 +33,7 @@ export const proveedoresSearchByPersona = gql`
         id
         nombre
         documento
+        apodo
       }
       vendedores {
         id
@@ -39,6 +41,7 @@ export const proveedoresSearchByPersona = gql`
           id
           nombre
           documento
+          apodo
         }
       }
       credito
@@ -89,6 +92,7 @@ export const proveedoresSearchByProveedor = gql`
   query ($texto: String) {
     data: proveedorSearchByProveedor(texto: $texto) {
       id
+      chequeDias
       persona {
         id
         nombre
@@ -113,6 +117,7 @@ export const proveedoresPorProveedor = gql`
   query ($id: Int) {
     data: proveedorPorVendedor(id: $id) {
       id
+      chequeDias
       persona {
         id
         nombre
@@ -137,6 +142,7 @@ export const proveedorQuery = gql`
   query ($id: ID!) {
     data: proveedor(id: $id) {
       id
+      chequeDias
       persona {
         id
         nombre
@@ -169,6 +175,7 @@ export const saveProveedor = gql`
         id
         nombre
       }
+      tipoCredito
     }
   }
 `;
@@ -178,3 +185,41 @@ export const deleteProveedorQuery = gql`
     deleteProveedor(id: $id)
   }
 `;
+
+// create a query for proveedorSearchByPersonaPage(texto: String, page: Int, size: Int): ProveedorPage
+// type ProveedorPage {
+//   getTotalPages: Int
+//   getTotalElements: Int
+//   getNumberOfElements: Int
+//   isFirst: Boolean
+//   isLast: Boolean
+//   hasNext: Boolean
+//   hasPrevious: Boolean
+//   getContent: [Proveedor]
+//   getPageable: Pageable
+// }
+
+export const proveedorSearchByPersonaPage = gql`
+  query ($texto: String, $page: Int, $size: Int) {
+    data: proveedorSearchByPersonaPage(texto: $texto, page: $page, size: $size) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getContent {
+        id
+        persona {
+          id
+          nombre
+          documento
+          apodo
+        }
+      }
+    }
+  }
+`;
+
+

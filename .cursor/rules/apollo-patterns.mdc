@@ -1,0 +1,151 @@
+# Patrones de Apollo GraphQL en el Proyecto
+
+## Estructura Correcta de Archivos
+
+### 1. Archivo graphql-query.ts
+- **Ubicación**: `/current-path/graphql/graphql-query.ts`
+- **Contenido**: Todas las definiciones GQL (queries y mutations)
+- **Regla CRÍTICA**: Todas las respuestas deben usar wrapper `data:`
+- **Ejemplo**:
+```typescript
+export const CANCELAR_RECHAZO_MUTATION = gql`
+  mutation cancelarRechazo($notaRecepcionItemId: ID!, $sucursalId: ID!) {
+    data: cancelarRechazo(notaRecepcionItemId: $notaRecepcionItemId, sucursalId: $sucursalId)
+  }
+`;
+```
+
+### 2. Servicios Apollo Individuales
+- **Ubicación**: `/current-path/graphql/nombreServicio.ts`
+- **Regla**: Un archivo por servicio, NO múltiples servicios en un archivo
+- **Patrón**: Extender `Mutation` o `Query` de apollo-angular
+- **Ejemplo**:
+```typescript
+import { Injectable } from '@angular/core';
+import { Mutation } from 'apollo-angular';
+import { CANCELAR_RECHAZO_MUTATION } from './graphql-query';
+
+export interface CancelarRechazoVariables {
+  notaRecepcionItemId: number;
+  sucursalId: number;
+}
+
+export interface CancelarRechazoResponse {
+  data: boolean;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class CancelarRechazoGQL extends Mutation<CancelarRechazoResponse, CancelarRechazoVariables> {
+  document = CANCELAR_RECHAZO_MUTATION;
+}
+```
+
+### 3. Servicio Principal (.service.ts)
+- **Ubicación**: `/current-path/nombre.service.ts`
+- **Responsabilidad**: Usar `generic-crud.service.ts` para todas las operaciones
+- **Patrón**: NUNCA usar servicios Apollo directamente
+- **Ejemplo**:
+```typescript
+onCancelarRechazo(notaRecepcionItemId: number, sucursalId: number): Observable<any> {
+  return this.genericCrudService.onCustomMutation(this.cancelarRechazoGQL, { 
+    notaRecepcionItemId, 
+    sucursalId 
+  });
+}
+```
+
+## Reglas CRÍTICAS
+
+### ❌ NUNCA HACER
+1. **Usar servicios Apollo directamente en componentes**
+   ```typescript
+   // ❌ INCORRECTO
+   constructor(private cancelarRechazoGQL: CancelarRechazoGQL) {}
+   
+   // En método del componente
+   this.cancelarRechazoGQL.mutate({...})
+   ```
+
+2. **Múltiples servicios en un archivo**
+   ```typescript
+   // ❌ INCORRECTO
+   export class CancelarVerificacionGQL extends Mutation {...}
+   export class CancelarRechazoGQL extends Mutation {...}
+   ```
+
+3. **Respuestas sin wrapper data:**
+   ```graphql
+   # ❌ INCORRECTO
+   mutation cancelarRechazo($notaRecepcionItemId: ID!, $sucursalId: ID!) {
+     cancelarRechazo(notaRecepcionItemId: $notaRecepcionItemId, sucursalId: $sucursalId)
+   }
+   ```
+
+### ✅ SIEMPRE HACER
+1. **Usar servicios a través de .service.ts**
+   ```typescript
+   // ✅ CORRECTO
+   constructor(private pedidoService: PedidoService) {}
+   
+   // En método del componente
+   this.pedidoService.onCancelarRechazo(itemId, sucursalId)
+   ```
+
+2. **Un servicio por archivo**
+   ```typescript
+   // ✅ CORRECTO - cancelarRechazo.ts
+   export class CancelarRechazoGQL extends Mutation {...}
+   
+   // ✅ CORRECTO - cancelarVerificacion.ts  
+   export class CancelarVerificacionGQL extends Mutation {...}
+   ```
+
+3. **Respuestas con wrapper data:**
+   ```graphql
+   # ✅ CORRECTO
+   mutation cancelarRechazo($notaRecepcionItemId: ID!, $sucursalId: ID!) {
+     data: cancelarRechazo(notaRecepcionItemId: $notaRecepcionItemId, sucursalId: $sucursalId)
+   }
+   ```
+
+## Flujo Correcto de Implementación
+
+1. **Definir en graphql-query.ts** con wrapper `data:`
+2. **Crear servicio Apollo individual** extendiendo `Mutation`/`Query`
+3. **Registrar en .service.ts** usando `generic-crud.service.ts`
+4. **Usar en componentes** a través del .service.ts
+
+## Manejo de Respuestas
+
+### En .service.ts
+```typescript
+// El generic-crud.service.ts ya extrae el valor del wrapper data:
+onCancelarRechazo(notaRecepcionItemId: number, sucursalId: number): Observable<any> {
+  return this.genericCrudService.onCustomMutation(this.cancelarRechazoGQL, { 
+    notaRecepcionItemId, 
+    sucursalId 
+  });
+}
+```
+
+### En componentes
+```typescript
+// La respuesta ya viene sin el wrapper data: gracias a generic-crud.service.ts
+Promise.all(cancelaciones).then(results => {
+  const exitosas = results.filter(result => result === true).length;
+  // result ya es el valor directo, no result.data
+});
+```
+
+## Stack Arquitectónico
+```
+Componente → .service.ts → generic-crud.service.ts → Apollo Service → GraphQL
+```
+
+**NUNCA**: `Componente → Apollo Service → GraphQL`
+description:
+globs:
+alwaysApply: false
+---

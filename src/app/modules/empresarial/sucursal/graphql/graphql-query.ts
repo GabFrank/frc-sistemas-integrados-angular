@@ -50,6 +50,32 @@ export const sucursalesSearch = gql
       codigoEstablecimientoFactura
       isConfigured
       activo
+        
+    }
+  }`
+
+export const sucursalesSearchConFiltros = gql
+  `query($texto: String, $deposito: Boolean, $activo: Boolean, $page: Int, $size: Int){
+    data : findByNombreConFiltros(nombre: $texto, deposito: $deposito, activo: $activo, page: $page, size: $size){
+      id
+      nombre
+      localizacion
+      ciudad{
+        id
+        descripcion
+      }
+      creadoEn
+      usuario{
+        id
+      }
+      deposito
+      ip
+      puerto
+      direccion
+      nroDelivery
+      isConfigured
+      activo
+      activo
     }
   }`
 

@@ -3,7 +3,7 @@ import { FormControl } from '@angular/forms';
 import { FormaPago } from '../../../financiero/forma-pago/forma-pago.model';
 import { Moneda } from '../../../financiero/moneda/moneda.model';
 import { Proveedor } from '../../../personas/proveedor/proveedor.model';
-import { Pedido } from '../../pedido/edit-pedido/pedido.model';
+// import { Pedido } from '../../pedido/edit-pedido/pedido.model';
 
 @Component({
   selector: 'app-edit-compra',
@@ -22,7 +22,7 @@ export class EditCompraComponent implements OnInit {
   descuentoControl = new FormControl()
   formaPagoIdControl = new FormControl()
 
-  selectedPedido: Pedido;
+  // selectedPedido: Pedido;
   selectedProveedor: Proveedor;
   selectedMoneda: Moneda;
   selectedFormaPago: FormaPago; 

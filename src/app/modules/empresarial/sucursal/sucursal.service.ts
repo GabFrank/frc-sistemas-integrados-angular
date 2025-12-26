@@ -19,6 +19,7 @@ import { MatDialog } from "@angular/material/dialog";
 import { Apollo } from 'apollo-angular';
 import { map } from 'rxjs';
 import { SucursalesSearchGQL } from "./graphql/sucursalesSearch";
+import { SucursalesSearchConFiltrosGQL } from "./graphql/sucursalesSearchConFiltros";
 import { PageInfo } from "../../../app.component";
 import { QueryRef } from 'apollo-angular';
 import { SaveSucursalGQL } from "./graphql/saveSucursal";
@@ -43,6 +44,7 @@ export class SucursalService {
   constructor(
     private getAllSucursales: SucursalesGQL,
     private sucursalesSearch: SucursalesSearchGQL,
+    private sucursalesSearchConFiltros: SucursalesSearchConFiltrosGQL,
     private sucursalesByNombre: SucursalesByNombreGQL,
     private notificacionBar: NotificacionSnackbarService,
     private getSucursalActual: SucursalActualGQL,
@@ -208,7 +210,7 @@ export class SucursalService {
       dialogData.tableData = [
         { id: 'id', nombre: 'Id', width: '5%' },
         { id: 'nombre', nombre: 'Nombre', width: '50%' },
-        { id: 'descripcion', nombre: 'Ciudad', width: '22%', nested: true, nestedId: 'ciudad' }
+        { id: 'ciudad.nombre', nombre: 'Ciudad', width: '22%', nestedColumnId: 'descripcion' }
       ];
       dialogData.search = true;
       dialogData.inicialSearch = true;

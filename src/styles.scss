@@ -8,7 +8,7 @@
 
 $angular-primary: mat.define-palette(mat.$red-palette, 500, 100, 700);
 $angular-accent: mat.define-palette(mat.$green-palette, 600, 100, 600);
-$angular-warn: mat.define-palette(mat.$red-palette, 500, 100, 700);
+$angular-warn: mat.define-palette(mat.$orange-palette, 600, 100, 700);
 
 $angular-default-theme: mat.define-light-theme((color: (primary: $angular-primary,
         accent: $angular-accent,
@@ -163,7 +163,7 @@ input::selection {
 }
 
 .titulo-color {
-  color: #f57c00;
+  color: #f57c00 !important;
 }
 
 .titulo-center {
@@ -373,6 +373,65 @@ input {
 .fondo-danger {
   background-color: #f44336 !important;
 }
+
+/* Global warn color configuration */
+.mat-warn, .mat-mdc-button.mat-warn, .mat-mdc-raised-button.mat-warn,
+.mat-mdc-outlined-button.mat-warn, .mat-mdc-fab.mat-warn, .mat-mdc-mini-fab.mat-warn,
+.mat-mdc-icon-button.mat-warn {
+  --mdc-filled-button-container-color: #f57c00 !important;
+  --mdc-protected-button-container-color: #f57c00 !important;
+  --mdc-outlined-button-outline-color: #f57c00 !important;
+  --mdc-outlined-button-label-text-color: #f57c00 !important;
+  --mdc-text-button-label-text-color: #f57c00 !important;
+  --mdc-fab-container-color: #f57c00 !important;
+  --mdc-icon-button-icon-color: #f57c00 !important;
+  color: #f57c00 !important;
+}
+
+.mat-mdc-button.mat-warn:not([disabled]),
+.mat-mdc-raised-button.mat-warn:not([disabled]),
+.mat-mdc-outlined-button.mat-warn:not([disabled]),
+.mat-mdc-fab.mat-warn:not([disabled]),
+.mat-mdc-mini-fab.mat-warn:not([disabled]),
+.mat-mdc-icon-button.mat-warn:not([disabled]) {
+  color: #f57c00 !important;
+}
+
+.mat-mdc-raised-button.mat-warn:not([disabled]),
+.mat-mdc-fab.mat-warn:not([disabled]),
+.mat-mdc-mini-fab.mat-warn:not([disabled]) {
+  background-color: #f57c00 !important;
+  color: white !important;
+}
+
+.background-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.item-total {
+  color: #4caf50 !important;
+}
+
+/* put this in your global styles.scss (or in your component scss with ::ng-deep) */
+.mat-mdc-table, .mat-table {
+  /* target the header row when it's made sticky */
+  .mat-mdc-header-row.mat-table-sticky,
+  .mat-header-row.mat-table-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 10;                      /* sit above table body */
+    background-color: #3c3c3c;        /* solid dark grey */
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+
+  /* ensure each header cell matches the row's background & has your border */
+  .mat-mdc-header-row.mat-table-sticky .mat-mdc-header-cell,
+  .mat-header-row.mat-table-sticky th {
+    background-color: #3c3c3c !important;
+    border-bottom: 1px solid #f57c00 !important;
+  }
+}
+
 
 // Estilos para diálogo fullscreen de comentarios
 ::ng-deep .comentarios-fullscreen-dialog {

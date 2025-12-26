@@ -206,6 +206,7 @@ export class GraphqlConnectionService {
         auth,
         httpLink.create({
           uri: url,
+          useGETForQueries: false // Force all requests to use POST
         }),
       ]);
     }
@@ -216,6 +217,7 @@ export class GraphqlConnectionService {
       auth,
       httpLink.create({
         uri: url2,
+        useGETForQueries: false // Force all requests to use POST
       }),
     ]);
     
