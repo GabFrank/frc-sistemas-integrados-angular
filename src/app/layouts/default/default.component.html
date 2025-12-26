@@ -42,20 +42,20 @@
           <div class="no-notifications">
             No hay nuevas notificaciones
           </div>
-        </ng-template>
+        </ng-template> 
       </div>
     </mat-drawer>
     <mat-drawer-content style="overflow: hidden;">
       <mat-tab-group class="main-tab-group mt-2" [selectedIndex]="selectedTab" (selectedTabChange)="tabChanged($event)"
         style="width: 100%" mat-stretch-tabs="false">
         <mat-tab class="mat-tab-class" *ngFor="let tab of tabs; let tabIndex = index" style="width: 100%; height: 100%">
-          <ng-template mat-tab-label style="height: 2em !important;">
-            <div fxLayout="row" fxLayoutAlign="start center" style="width: 100%">
-              <div fxFlex="70" matTooltip="{{ tab.title }}" class="tab-label-text">
+          <ng-template mat-tab-label>
+            <div fxLayout="row" fxLayoutAlign="space-between center" style="width: 100%; min-width: 100%;">
+              <div fxFlex matTooltip="{{ tab.title }}" class="tab-label-text">
                 {{ tab.title }}
               </div>
-              <div fxFlex="30">
-                <mat-icon style="font-size: 1em" (click)="removeTab(tabIndex)">close</mat-icon>
+              <div fxFlex="24px" fxLayout="row" fxLayoutAlign="center center" style="margin-left: 4px;">
+                <mat-icon style="font-size: 1.1em; cursor: pointer;" (click)="removeTab(tabIndex)">close</mat-icon>
               </div>
             </div>
           </ng-template>

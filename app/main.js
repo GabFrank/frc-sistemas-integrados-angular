@@ -118,7 +118,7 @@ function createWindow() {
                 // Silent notification error
             }
         });
-        win.webContents.setZoomFactor(1);
+        // win.webContents.setZoomFactor(1); // Removido para permitir que el zoom se maneje dinámicamente en did-finish-load
         win.maximize();
         win.show();
         electron_1.app.on("second-instance", (event, commandLine, workingDirectory) => {
@@ -163,15 +163,27 @@ function createWindow() {
             win.webContents
                 .executeJavaScript('localStorage.getItem("zoomLevel");', true)
                 .then((zoomLevel) => {
-                if (zoomLevel !== null && zoomLevel !== undefined) {
+                if (zoomLevel !== null && zoomLevel !== undefined && zoomLevel !== '') {
                     const parsedZoom = parseFloat(zoomLevel);
                     win.webContents.setZoomLevel(parsedZoom);
                 }
                 else {
-                    win.webContents.setZoomLevel(1);
+                    // Si no hay preferencia guardada, iniciamos con zoom -2 como base
+                    // Esto soluciona el problema de que se vea muy grande tanto en alta como baja resolución
+                    try {
+                        const defaultZoom = -2;
+                        win.webContents.setZoomLevel(defaultZoom);
+                        // Guardamos el zoom inicial para evitar que se pierda o cause errores
+                        win.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${defaultZoom});`, true);
+                    }
+                    catch (e) {
+                        win.webContents.setZoomLevel(-2);
+                    }
                 }
             })
                 .catch((error) => {
+                // En caso de error crítico al leer localStorage, forzamos zoom -2 para asegurar que inicie
+                win.webContents.setZoomLevel(-2);
             });
         });
         return win;
@@ -753,23 +765,28 @@ try {
                     {
                         label: "Zoom in",
                         click() {
-                            win.webContents.setZoomLevel(win.webContents.zoomLevel + 1);
+                            const currentZoom = win.webContents.getZoomLevel();
+                            win.webContents.setZoomLevel(currentZoom + 0.5);
                             win.webContents
-                                .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true)
-                                .then(result => {
-                                console.log(result);
-                            });
+                                .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true);
                         },
                     },
                     {
                         label: "Zoom out",
                         click() {
-                            win.webContents.setZoomLevel(win.webContents.zoomLevel - 1);
+                            const currentZoom = win.webContents.getZoomLevel();
+                            win.webContents.setZoomLevel(currentZoom - 0.5);
                             win.webContents
-                                .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true)
-                                .then(result => {
-                                console.log(result);
-                            });
+                                .executeJavaScript(`localStorage.setItem("zoomLevel", ${win.webContents.getZoomLevel()});`, true);
+                        },
+                    },
+                    {
+                        label: "Restablecer Zoom",
+                        click() {
+                            const defaultZoom = -2;
+                            win.webContents.setZoomLevel(defaultZoom);
+                            win.webContents
+                                .executeJavaScript(`localStorage.setItem("zoomLevel", ${defaultZoom});`, true);
                         },
                     },
                     {

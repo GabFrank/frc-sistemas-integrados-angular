@@ -83,6 +83,11 @@ export class ElectronService {
     });
 
     ipcRenderer.on(NOTIFICATION_SERVICE_ERROR, (_: any, error: any) => {
+      // Log del error pero no bloqueamos la aplicación
+      // PHONE_REGISTRATION_ERROR es un error conocido de la librería cuando falla el registro con FCM
+      // Puede deberse a problemas de red, configuración de Firebase, o bugs de la librería
+      console.warn('Push notification service error:', error);
+      // La aplicación continúa funcionando normalmente aunque las notificaciones push fallen
     });
     ipcRenderer.on(ON_NOTIFICATION_RECEIVED, (_: any, notification: any) => {
       try {
