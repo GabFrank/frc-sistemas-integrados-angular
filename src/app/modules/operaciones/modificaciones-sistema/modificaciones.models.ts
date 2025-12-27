@@ -18,6 +18,8 @@ export class ModificacionRegistro {
   observacion?: string;
   activo: boolean;
   detalles?: ModificacionDetalle[];
+  tipoOperacionLabel?: string;
+  tipoOperacionColor?: string;
 }
 
 export class ModificacionDetalle {
