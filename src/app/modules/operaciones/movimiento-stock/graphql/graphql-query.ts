@@ -12,6 +12,7 @@ export const movimientosQuery = gql`
       tipoMovimiento
       referencia
       creadoEn
+      creadoEnIso
       usuario {
         id
       }
@@ -36,6 +37,7 @@ export const movimientoQuery = gql`
       tipoMovimiento
       referencia
       creadoEn
+      creadoEnIso
       usuario {
         id
       }
@@ -60,6 +62,7 @@ export const movimientoPorFechaQuery = gql`
       tipoMovimiento
       referencia
       creadoEn
+      creadoEnIso
       usuario {
         id
         persona {
@@ -148,6 +151,7 @@ export const findMovimientoStockByFiltersQuery = gql`
         tipoMovimiento
         referencia
         creadoEn
+        creadoEnIso
         usuario {
           id
           nickname
@@ -240,12 +244,21 @@ export const saveMovimientoStockMutationQuery = gql`
 
 export const stockPrevioAjusteQuery = gql`
   query getStockPrevioAjuste($productoId: ID!, $movimientoId: ID!, $sucursalId: ID!) {
-    data: stockByProductoIdExeptMovimientoId(productoId: $productoId, movimientoId: $movimientoId, sucursalId: $sucursalId)
+    data: stockByProductoIdExeptMovimientoId(
+      productoId: $productoId, 
+      movimientoId: $movimientoId, 
+      sucursalId: $sucursalId
+    )
   }
 `;
 
 export const stockAntesDeFechaQuery = gql`
-  query getStockAntesDeFecha($productoId: ID!, $sucursalId: ID!, $fecha: String!) {
-    data: stockByProductoIdAntesDeFecha(productoId: $productoId, sucursalId: $sucursalId, fecha: $fecha)
+  query getStockAntesDeFecha($productoId: ID!, $sucursalId: ID!, $fecha: String!, $movimientoId: ID) {
+    data: stockByProductoIdAntesDeFecha(
+      productoId: $productoId, 
+      sucursalId: $sucursalId, 
+      fecha: $fecha, 
+      movimientoId: $movimientoId
+    )
   }
 `;

@@ -145,11 +145,12 @@ export class MovimientoStockService {
     }, servidor);
   }
 
-  onGetStockAntesDeFecha(productoId: number, sucursalId: number, fecha: string, servidor = true): Observable<number> {
+  onGetStockAntesDeFecha(productoId: number, sucursalId: number, fecha: string, movimientoId: number, servidor = true): Observable<number> {
     return this.genericService.onCustomQuery(this.getStockAntesDeFechaGQL, {
       productoId,
       sucursalId,
-      fecha
+      fecha,
+      movimientoId
     }, servidor);
   }
 }

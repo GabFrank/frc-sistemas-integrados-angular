@@ -720,14 +720,13 @@ export class ListMovimientoStockComponent implements OnInit {
         this.service.onGetStockAntesDeFecha(
           movimiento.producto.id,
           movimiento.sucursalId,
-          this.formatearFechaParaBackend(movimiento.creadoEn)
+          movimiento.creadoEnIso,
+          movimiento.id
         ).subscribe({
           next: (stockPrevio) => {
-            console.log('Stock previo obtenido:', stockPrevio, 'para movimiento:', movimiento.id);
             this.procesarMovimientoConStock(movimiento, index, stockPrevio || 0);
           },
           error: (error) => {
-            console.error('Error al obtener stock anterior:', error);
             this.procesarMovimientoConStock(movimiento, index, 0);
           }
         });
@@ -736,11 +735,12 @@ export class ListMovimientoStockComponent implements OnInit {
   }
 
   obtenerStockAnteriorYProcesarMovimiento(movimiento: MovimientoStock, index: number) {
-    const fechaFormateada = this.formatearFechaParaBackend(movimiento.creadoEn);
+    const fechaFormateada = movimiento.creadoEnIso;
     this.service.onGetStockAntesDeFecha(
       movimiento.producto.id,
       movimiento.sucursalId,
-      fechaFormateada
+      fechaFormateada,
+      movimiento.id
     ).subscribe({
       next: (stockPrevio) => {
         this.procesarMovimientoConStockAnterior(movimiento, index, stockPrevio || 0);
@@ -768,7 +768,6 @@ export class ListMovimientoStockComponent implements OnInit {
                     stockAnterior: stockPrevio,
                     stockFinal: stockPrevio + movimiento.cantidad
                   };
-                  console.log('Data de venta con stock anterior:', movimiento.data);
                   this.dataSource.data = updateDataSource(
                     this.dataSource.data,
                     movimiento,
@@ -800,7 +799,6 @@ export class ListMovimientoStockComponent implements OnInit {
                 stockAnterior: stockPrevio,
                 stockFinal: stockPrevio + movimiento.cantidad
               };
-              console.log('Data de transferencia con stock anterior:', movimiento.data);
             } else {
               movimiento.data = {
                 stockAnterior: stockPrevio,
@@ -827,7 +825,6 @@ export class ListMovimientoStockComponent implements OnInit {
           stockAnterior: stockPrevio,
           stockFinal: stockPrevio + movimiento.cantidad
         };
-        console.log(`Data de ${movimiento.tipoMovimiento} con stock anterior:`, movimiento.data);
         this.dataSource.data = updateDataSource(
           this.dataSource.data,
           movimiento,
@@ -893,56 +890,35 @@ export class ListMovimientoStockComponent implements OnInit {
     };
   }
 
-  formatearFechaParaBackend(fecha: Date | string): string {
-    if (!fecha) return '';
-    let fechaDate: Date;
-    if (typeof fecha === 'string') {
-      fechaDate = new Date(fecha);
-    } else {
-      fechaDate = fecha;
-    }
-    const year = fechaDate.getFullYear();
-    const month = String(fechaDate.getMonth() + 1).padStart(2, '0');
-    const day = String(fechaDate.getDate()).padStart(2, '0');
-    const hours = String(fechaDate.getHours()).padStart(2, '0');
-    const minutes = String(fechaDate.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}`;
-  }
-
   // Método helper para verificar si es ajuste manual
   esAjusteManual(movimiento: MovimientoStock): boolean {
     return Number(movimiento.referencia) === Number(movimiento.producto?.id);
   }
 
   procesarDataDeAjustes() {
-    console.log('Procesando data de ajustes para', this.dataSource.data?.length, 'movimientos');
     this.dataSource.data.forEach((movimiento, index) => {
       if (movimiento.tipoMovimiento === TipoMovimiento.AJUSTE) {
-        console.log('Procesando ajuste:', movimiento.id, 'data actual:', movimiento.data);
         if (movimiento.data && typeof movimiento.data === 'string') {
           try {
             movimiento.data = JSON.parse(movimiento.data);
-            console.log('Data parseada desde string:', movimiento.data);
           } catch (e) {
             console.warn('Error al procesar data del backend:', e);
           }
         }
         else if (!movimiento.data) {
-          console.log('Calculando data para ajuste sin data:', movimiento.id);
           this.calcularDataParaAjuste(movimiento, index);
-        } else {
-          console.log('Ajuste ya tiene data:', movimiento.data);
-        }
+        } 
       }
     });
   }
 
   calcularDataParaAjuste(movimiento: MovimientoStock, index: number) {
-    const fechaFormateada = this.formatearFechaParaBackend(movimiento.creadoEn);
+    const fechaFormateada = movimiento.creadoEnIso;
     this.service.onGetStockAntesDeFecha(
       movimiento.producto.id,
       movimiento.sucursalId,
-      fechaFormateada
+      fechaFormateada,
+      movimiento.id
     ).subscribe({
       next: (stockPrevio) => {
         if (stockPrevio !== undefined && stockPrevio !== null) {
@@ -956,20 +932,9 @@ export class ListMovimientoStockComponent implements OnInit {
   }
 
   procesarMovimientoConStock(movimiento: MovimientoStock, index: number, stockPrevio: number) {
-    // Convertir ambos a números para comparar correctamente
     const referenciaNum = Number(movimiento.referencia);
     const productoIdNum = Number(movimiento.producto?.id);
     const esAjusteManual = referenciaNum === productoIdNum;
-    console.log('Procesando movimiento:', {
-      id: movimiento.id,
-      referencia: movimiento.referencia,
-      productoId: movimiento.producto?.id,
-      referenciaNum: referenciaNum,
-      productoIdNum: productoIdNum,
-      esAjusteManual: esAjusteManual,
-      stockPrevio: stockPrevio,
-      cantidad: movimiento.cantidad
-    });
 
     if (esAjusteManual) {
       movimiento.data = {
@@ -979,7 +944,6 @@ export class ListMovimientoStockComponent implements OnInit {
         cantidadPrevia: stockPrevio,
         cantidadFinal: stockPrevio + movimiento.cantidad
       };
-      console.log('Data de ajuste manual creada:', movimiento.data);
       this.dataSource.data = updateDataSource(
         this.dataSource.data,
         movimiento,
@@ -995,15 +959,12 @@ export class ListMovimientoStockComponent implements OnInit {
               cantidadPrevia: stockPrevio,
               cantidadFinal: stockPrevio + movimiento.cantidad
             };
-            console.log('Data de ajuste por inventario creada:', movimiento.data);
             this.dataSource.data = updateDataSource(
               this.dataSource.data,
               movimiento,
               index
             );
           } else {
-            console.warn('No se encontró inventario item para referencia:', movimiento.referencia);
-            // Crear data básica aunque no se encuentre el inventario
             movimiento.data = {
               tipo: 'AJUSTE_INVENTARIO',
               cantidadPrevia: stockPrevio,

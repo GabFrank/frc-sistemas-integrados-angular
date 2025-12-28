@@ -15,6 +15,7 @@ export class MovimientoStock {
     sucursal: Sucursal;
     estado: boolean;
     creadoEn: Date;
+    creadoEnIso?: string;
     usuario: Usuario;
     data?: any; // Calculado dinámicamente en el frontend
 }
