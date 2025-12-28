@@ -241,7 +241,7 @@ export class CajaService {
     );
   }
 
-  onTransferirCaja(cajaId: number, usuarioId: number, servidor: boolean = true): Observable<any> {
+  onTransferirCaja(cajaId: number, usuarioId: number, servidor: boolean = false): Observable<any> {
     return this.genericService.onCustomMutation(this.transferirCaja, { cajaId, usuarioId }, servidor);
   }
 }
