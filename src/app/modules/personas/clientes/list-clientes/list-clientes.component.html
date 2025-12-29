@@ -1,27 +1,11 @@
-<app-generic-list
-  [data]="dataSource.data"
-  (filtrar)="onFiltrar()"
-  (resetFiltro)="resetFiltro()"
-  (adicionar)="onNewCliente()"
-  [isAdicionar]="true"
->
+<app-generic-list [data]="dataSource.data" (filtrar)="onFiltrar()" (resetFiltro)="resetFiltro()"
+  (adicionar)="onNewCliente()" [isAdicionar]="true">
   <div filtros>
-    <div
-      fxLayout="row wrap"
-      fxLayoutAlign="start center"
-      fxLayoutGap="10px"
-      style="width: 100%"
-    >
+    <div fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
       <div fxFlex="40%">
         <mat-form-field style="width: 90%">
           <mat-label>Nombre, código o documento</mat-label>
-          <input
-            #buscar
-            type="text"
-            matInput
-            [formControl]="buscarControl"
-            (keyup.enter)="onFiltrar()"
-          />
+          <input #buscar type="text" matInput [formControl]="buscarControl" (keyup.enter)="onFiltrar()" />
         </mat-form-field>
       </div>
       <div fxFlex="20%">
@@ -56,77 +40,40 @@
         </mat-checkbox>
       </div> -->
     </div>
-    <div
-      fxLayout="row"
-      fxLayoutAlign="start end"
-      fxLayoutGap="10px"
-      style="width: 100%; margin-top: 10px"
-    >
+    <div fxLayout="row" fxLayoutAlign="start end" fxLayoutGap="10px" style="width: 100%; margin-top: 10px">
       <div fxFlex="20%">
-        <app-boton
-          (clickEvent)="onCobrarTodoEImprimir()"
-          nombre="Cobrar todo e imprimir recibo"
-          [disableExpression]="selection?.selected?.length == 0"
-        ></app-boton>
+        <app-boton (clickEvent)="onCobrarTodo()" nombre="Cobrar todo"
+          [disableExpression]="selection?.selected?.length == 0"></app-boton>
+      </div>
+      <div fxFlex="20%">
+        <app-boton (clickEvent)="onImprimirRecibo()" nombre="Imprimir recibo"
+          [disableExpression]="selection?.selected?.length == 0" color="accent"></app-boton>
       </div>
     </div>
   </div>
-  <div
-    table
-    style="height: 100%; background-color: rgb(70, 70, 70)"
-    fxLayout="column"
-    fxLayoutAlign="space-between start"
-  >
-    <table
-      mat-table
-      [dataSource]="dataSource"
-      multiTemplateDataRows
-      class="mat-elevation-z8"
-      style="width: 100%"
-    >
+  <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
+    fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
       <ng-container matColumnDef="select" style="width: 5%">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 5%"
-        >
-          <mat-checkbox
-            #ref
-            (change)="$event ? masterToggle(ref) : null"
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
+          <mat-checkbox #ref (change)="$event ? masterToggle(ref) : null"
             [checked]="selection.hasValue() && isAllSelected()"
-            [indeterminate]="selection.hasValue() && !isAllSelected()"
-          >
+            [indeterminate]="selection.hasValue() && !isAllSelected()">
           </mat-checkbox>
         </th>
-        <td
-          mat-cell
-          *matCellDef="let cliente"
-          style="text-align: center; width: 5%"
-        >
-          <mat-checkbox
-            (click)="$event.stopPropagation()"
-            (change)="
+        <td mat-cell *matCellDef="let cliente" style="text-align: center; width: 5%">
+          <mat-checkbox (click)="$event.stopPropagation()" (change)="
               $event ? selection.toggle(cliente) : null; isSomeSelected()
-            "
-            [checked]="selection.isSelected(cliente)"
-          >
+            " [checked]="selection.isSelected(cliente)">
           </mat-checkbox>
         </td>
       </ng-container>
 
       <ng-container matColumnDef="id" style="width: 5%">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 5%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
           Id
         </th>
-        <td
-          mat-cell
-          *matCellDef="let cliente"
-          style="text-align: center; width: 5%"
-        >
+        <td mat-cell *matCellDef="let cliente" style="text-align: center; width: 5%">
           {{ cliente?.id }}
         </td>
       </ng-container>
@@ -202,38 +149,20 @@
       </ng-container>
 
       <ng-container matColumnDef="acciones">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="width: 5%; text-align: center"
-        >
+        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">
           ...
         </th>
-        <td
-          mat-cell
-          *matCellDef="let cliente; let i = index"
-          style="text-align: center; width: 5%"
-        >
-          <button
-            mat-icon-button
-            [matMenuTriggerFor]="menu"
-            (click)="$event.stopPropagation()"
-          >
+        <td mat-cell *matCellDef="let cliente; let i = index" style="text-align: center; width: 5%">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button
-              mat-menu-item
-              (click)="onEditCliente(cliente, i)"
-              *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)"
-            >
+            <button mat-menu-item (click)="onEditCliente(cliente, i)"
+              *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)">
               Editar
             </button>
-            <button
-              mat-menu-item
-              (click)="onVerMovimiento(cliente, i)"
-              *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)"
-            >
+            <button mat-menu-item (click)="onVerMovimiento(cliente, i)"
+              *ngIf="mainService.usuarioActual?.roles.includes(ROLES.ADMIN)">
               Ver movimientos
             </button>
           </mat-menu>
@@ -243,42 +172,19 @@
       <mat-divider></mat-divider>
 
       <ng-container matColumnDef="expandedDetail">
-        <td
-          mat-cell
-          *matCellDef="let cliente"
-          [attr.colspan]="displayedColumns.length"
-          class="expanded"
-        >
-          <div
-            class="example-cliente-detail"
-            [@detailExpand]="
+        <td mat-cell *matCellDef="let cliente" [attr.colspan]="displayedColumns.length" class="expanded">
+          <div class="example-cliente-detail" [@detailExpand]="
               cliente == expandedCliente ? 'expanded' : 'collapsed'
-            "
-            style="text-align: center"
-            fxLayout="column"
-            fxLayoutAlign="start start"
-          ></div>
+            " style="text-align: center" fxLayout="column" fxLayoutAlign="start start"></div>
         </td>
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
-      ></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: ['expandedDetail']"
-        class="example-detail-row"
-      ></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns; let i = dataIndex"></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
-    <mat-paginator
-      itemsPerPageLabel="Itens por pagina"
-      [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)"
-      [length]="selectedPageInfo?.getTotalElements"
-      style="width: 100%"
-      showFirstLastButtons
-    ></mat-paginator>
+    <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements" style="width: 100%"
+      showFirstLastButtons></mat-paginator>
   </div>
 </app-generic-list>

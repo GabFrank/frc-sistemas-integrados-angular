@@ -11,6 +11,7 @@ import { ReportesComponent } from '../../reportes/reportes/reportes.component';
 import { CancelarVentaCreditoGQL } from './graphql/cancelarVentaCredito';
 import { CobrarVentaCreditoGQL } from './graphql/cobrarVentaCredito';
 import { FinalizarVentaCreditoGQL } from './graphql/finalizarVentaCredito';
+import { FinalizarVentaCreditosGQL } from './graphql/finalizarVentaCreditos';
 import { ReporteCobroVentaCreditoGQL } from './graphql/imprimirReporteCobro';
 import { ReporteCobroVentaCreditoMultiplesGQL } from './graphql/imprimirReporteCobroMultiples';
 import { ImprimirVentaCreditoGQL } from './graphql/imprimirVentaCredito';
@@ -35,6 +36,7 @@ export class VentaCreditoService {
     private imprimirVentaCredito: ImprimirVentaCreditoGQL,
     private cobrarVentaCredito: CobrarVentaCreditoGQL,
     private finalizarVentaCredito: FinalizarVentaCreditoGQL,
+    private finalizarVentaCreditos: FinalizarVentaCreditosGQL,
     private cancelarVentaCredito: CancelarVentaCreditoGQL,
     private imprimirReporteCobroVentaCredito: ReporteCobroVentaCreditoGQL,
     private imprimirReporteCobroVentaCreditoMultiples: ReporteCobroVentaCreditoMultiplesGQL,
@@ -67,6 +69,10 @@ export class VentaCreditoService {
     return this.genericService.onCustomMutation(this.finalizarVentaCredito, { id, sucId }, true);
   }
 
+  onFinalizarVentaCreditos(ventaCreditoInputList: VentaCreditoInput[]): Observable<boolean> {
+    return this.genericService.onCustomMutation(this.finalizarVentaCreditos, { ventaCreditoInputList }, true);
+  }
+
   onCancelarVentaCredito(id, sucId): Observable<boolean> {
     return this.genericService.onCustomMutation(this.cancelarVentaCredito, { id, sucId }, true);
   }
@@ -78,7 +84,7 @@ export class VentaCreditoService {
       usuarioId
     }, true).subscribe(res => {
       if (res != null) {
-        this.reporteService.onAdd('VC del cliente '+ clienteId, res)
+        this.reporteService.onAdd('VC del cliente ' + clienteId, res)
         this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListVentaComponent))
       }
     })

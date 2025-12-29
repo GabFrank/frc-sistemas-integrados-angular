@@ -117,12 +117,20 @@ export class ListClientesComponent implements OnInit {
     })
   }
 
-  onFiltrar() {
+  onFiltrar(keepSelection = false) {
+    const selectedIds = this.selection.selected.map(s => s.id);
     this.clienteService.onSearchConFiltros(this.buscarControl.value, this.tipoClienteControl.value, this.pageIndex, this.pageSize).pipe(untilDestroyed(this)).subscribe(res => {
       if (res != null) {
         this.selectedPageInfo = res;
         this.dataSource.data = this.selectedPageInfo?.getContent;
         this.selection.clear();
+        if (keepSelection) {
+          this.dataSource.data.forEach(item => {
+            if (selectedIds.includes(item.id)) {
+              this.selection.select(item);
+            }
+          });
+        }
       }
     })
   }
@@ -194,7 +202,7 @@ export class ListClientesComponent implements OnInit {
     return this.selection.selected.length > 0;
   }
 
-  async onCobrarTodoEImprimir() {
+  async onCobrarTodo() {
     if (this.selection.selected.length === 0) {
       this.notificacionService.openAlgoSalioMal('Por favor seleccione al menos un cliente');
       return;
@@ -203,17 +211,36 @@ export class ListClientesComponent implements OnInit {
     this.dialogoService
       .confirm(
         'Atención!!',
-        `¿Realmente desea cobrar todo e imprimir recibo para ${this.selection.selected.length} cliente(s) seleccionado(s)?`,
-        'Se generará un reporte por cada cliente seleccionado'
+        `¿Realmente desea cobrar todas las ventas de ${this.selection.selected.length} cliente(s) seleccionado(s)?`,
+        'Este proceso marcará las ventas como finalizadas'
       )
       .subscribe((res) => {
         if (res == true) {
-          this.procesarCobroEImpresion();
+          this.procesarAccionMasiva(true);
         }
       });
   }
 
-  private async procesarCobroEImpresion() {
+  async onImprimirRecibo() {
+    if (this.selection.selected.length === 0) {
+      this.notificacionService.openAlgoSalioMal('Por favor seleccione al menos un cliente');
+      return;
+    }
+
+    this.dialogoService
+      .confirm(
+        'Atención!!',
+        `¿Desea imprimir el recibo de ${this.selection.selected.length} cliente(s) seleccionado(s)?`,
+        ''
+      )
+      .subscribe((res) => {
+        if (res == true) {
+          this.procesarAccionMasiva(false);
+        }
+      });
+  }
+
+  private async procesarAccionMasiva(esCobro: boolean) {
     const clientesSeleccionados = this.selection.selected;
 
     if (clientesSeleccionados.length === 0) {
@@ -227,7 +254,7 @@ export class ListClientesComponent implements OnInit {
         cliente.id,
         null,
         null,
-        EstadoVentaCredito.ABIERTO,
+        esCobro ? EstadoVentaCredito.ABIERTO : null,
         false
       );
 
@@ -246,6 +273,7 @@ export class ListClientesComponent implements OnInit {
     forkJoin(observables).pipe(untilDestroyed(this)).subscribe({
       next: (results: VentaCredito[][]) => {
         const clienteVentaCreditoList: any[] = [];
+        const todasLasVentas: VentaCreditoInput[] = [];
         let totalClientesConVentas = 0;
 
         results.forEach((ventaCreditos, index) => {
@@ -253,40 +281,59 @@ export class ListClientesComponent implements OnInit {
 
           if (ventaCreditos && ventaCreditos.length > 0) {
             const ventaCreditoInputList: VentaCreditoInput[] = [];
-            ventaCreditos.forEach((vc) => {
-              let aux: VentaCredito = new VentaCredito();
-              Object.assign(aux, vc);
-              ventaCreditoInputList.push(aux.toInput());
-            });
+            const ventasFiltradas = esCobro ? ventaCreditos : ventaCreditos.filter(v =>
+              v.estado === EstadoVentaCredito.ABIERTO ||
+              (v.fechaCobro && new Date(v.fechaCobro).toDateString() === new Date().toDateString())
+            );
 
-            clienteVentaCreditoList.push({
-              clienteId: cliente.id,
-              ventaCreditoInputList: ventaCreditoInputList
-            });
-            totalClientesConVentas++;
+            if (ventasFiltradas.length > 0) {
+              ventasFiltradas.forEach((vc) => {
+                let aux: VentaCredito = new VentaCredito();
+                Object.assign(aux, vc);
+                const input = aux.toInput();
+                ventaCreditoInputList.push(input);
+                todasLasVentas.push(input);
+              });
+
+              clienteVentaCreditoList.push({
+                clienteId: cliente.id,
+                ventaCreditoInputList: ventaCreditoInputList
+              });
+              totalClientesConVentas++;
+            }
           }
         });
 
         if (totalClientesConVentas > 0) {
-          this.ventaCreditoService.onImprimirReporteCobroMultiplesClientes(
-            clienteVentaCreditoList,
-            this.mainService.usuarioActual.id
-          );
+          if (esCobro) {
+            this.ventaCreditoService.onFinalizarVentaCreditos(todasLasVentas).subscribe(res => {
+              if (res) {
+                this.notificacionService.openSucess(
+                  `Se cobraron las ventas de ${totalClientesConVentas} cliente(s) correctamente`
+                );
+                this.onFiltrar(true);
+              }
+            });
+          } else {
+            this.ventaCreditoService.onImprimirReporteCobroMultiplesClientes(
+              clienteVentaCreditoList,
+              this.mainService.usuarioActual.id
+            );
 
-          this.notificacionService.openSucess(
-            `Se generó el reporte combinado con ${totalClientesConVentas} cliente(s) correctamente`
-          );
+            this.notificacionService.openSucess(
+              `Se generó el reporte combinado con ${totalClientesConVentas} cliente(s) correctamente`
+            );
+          }
         } else {
           this.notificacionService.openAlgoSalioMal(
-            'No se encontraron ventas a crédito abiertas para los clientes seleccionados'
+            'No se encontraron ventas a crédito para procesar'
           );
         }
-        this.selection.clear();
       },
       error: (error) => {
-        console.error('Error al procesar cobro e impresión:', error);
+        console.error('Error al procesar acción masiva:', error);
         this.notificacionService.openAlgoSalioMal(
-          'Ocurrió un error al generar el reporte. Por favor intente nuevamente.'
+          'Ocurrió un error al procesar la solicitud. Por favor intente nuevamente.'
         );
       }
     });

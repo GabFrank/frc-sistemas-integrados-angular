@@ -170,6 +170,12 @@ export const finalizarVentaCreditoQuery = gql`
   }
 `;
 
+export const finalizarVentaCreditosQuery = gql`
+  mutation finalizarVentaCreditos($ventaCreditoInputList: [VentaCreditoInput]!) {
+    data: finalizarVentaCreditos(ventaCreditoInputList: $ventaCreditoInputList)
+  }
+`;
+
 export const imprimirReciboQuery = gql`
   query imprimirRecibo(
     $clienteId: ID!
