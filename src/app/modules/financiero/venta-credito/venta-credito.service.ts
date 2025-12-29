@@ -12,6 +12,7 @@ import { CancelarVentaCreditoGQL } from './graphql/cancelarVentaCredito';
 import { CobrarVentaCreditoGQL } from './graphql/cobrarVentaCredito';
 import { FinalizarVentaCreditoGQL } from './graphql/finalizarVentaCredito';
 import { ReporteCobroVentaCreditoGQL } from './graphql/imprimirReporteCobro';
+import { ReporteCobroVentaCreditoMultiplesGQL } from './graphql/imprimirReporteCobroMultiples';
 import { ImprimirVentaCreditoGQL } from './graphql/imprimirVentaCredito';
 import { SaveVentaCreditoByIdGQL } from './graphql/saveVentaCredito';
 import { VentaCreditoPorClienteGQL } from './graphql/ventaCreditoPorCliente';
@@ -36,6 +37,7 @@ export class VentaCreditoService {
     private finalizarVentaCredito: FinalizarVentaCreditoGQL,
     private cancelarVentaCredito: CancelarVentaCreditoGQL,
     private imprimirReporteCobroVentaCredito: ReporteCobroVentaCreditoGQL,
+    private imprimirReporteCobroVentaCreditoMultiples: ReporteCobroVentaCreditoMultiplesGQL,
     private reporteService: ReporteService,
     private tabService: TabService,
     private configService: ConfiguracionService
@@ -77,6 +79,18 @@ export class VentaCreditoService {
     }, true).subscribe(res => {
       if (res != null) {
         this.reporteService.onAdd('VC del cliente '+ clienteId, res)
+        this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListVentaComponent))
+      }
+    })
+  }
+
+  onImprimirReporteCobroMultiplesClientes(clienteVentaCreditoList: any[], usuarioId: number) {
+    this.genericService.onCustomQuery(this.imprimirReporteCobroVentaCreditoMultiples, {
+      clienteVentaCreditoList,
+      usuarioId
+    }, true).subscribe(res => {
+      if (res != null) {
+        this.reporteService.onAdd('VC Múltiples Clientes', res)
         this.tabService.addTab(new Tab(ReportesComponent, 'Reportes', null, ListVentaComponent))
       }
     })

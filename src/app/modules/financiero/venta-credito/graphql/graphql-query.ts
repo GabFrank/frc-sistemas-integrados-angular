@@ -184,6 +184,18 @@ export const imprimirReciboQuery = gql`
   }
 `;
 
+export const imprimirReciboMultiplesClientesQuery = gql`
+  query imprimirReciboMultiplesClientes(
+    $clienteVentaCreditoList: [ClienteVentaCreditoInput]!
+    $usuarioId: ID!
+  ) {
+    data: imprimirReciboMultiplesClientes(
+      clienteVentaCreditoList: $clienteVentaCreditoList
+      usuarioId: $usuarioId
+    )
+  }
+`;
+
 export const findWithFiltersQuery = gql`
   query (
     $id: ID!

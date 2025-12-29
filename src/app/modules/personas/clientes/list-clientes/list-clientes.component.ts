@@ -16,6 +16,12 @@ import { ListVentaCreditoComponent } from '../../../financiero/venta-credito/lis
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { PageInfo } from '../../../../app.component';
+import { SelectionModel } from '@angular/cdk/collections';
+import { VentaCreditoService } from '../../../financiero/venta-credito/venta-credito.service';
+import { EstadoVentaCredito, VentaCredito, VentaCreditoInput } from '../../../financiero/venta-credito/venta-credito.model';
+import { forkJoin } from 'rxjs';
+import { DialogosService } from '../../../../shared/components/dialogos/dialogos.service';
+import { NotificacionSnackbarService } from '../../../../notificacion-snackbar.service';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -42,6 +48,7 @@ export class ListClientesComponent implements OnInit {
   readonly ROLES = ROLES;
 
   displayedColumns = [
+    "select",
     "id",
     "tipo",
     "nombre",
@@ -73,13 +80,17 @@ export class ListClientesComponent implements OnInit {
   orderById = null;
   orderByNombre = null;
   selectedPageInfo: PageInfo<Cliente>;
+  selection = new SelectionModel<Cliente>(true, []);
 
 
   constructor(
     private clienteService: ClienteService,
     public mainService: MainService,
     private tabService: TabService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private ventaCreditoService: VentaCreditoService,
+    private dialogoService: DialogosService,
+    private notificacionService: NotificacionSnackbarService
   ) {
 
   }
@@ -108,9 +119,10 @@ export class ListClientesComponent implements OnInit {
 
   onFiltrar() {
     this.clienteService.onSearchConFiltros(this.buscarControl.value, this.tipoClienteControl.value, this.pageIndex, this.pageSize).pipe(untilDestroyed(this)).subscribe(res => {
-      if(res!=null){
+      if (res != null) {
         this.selectedPageInfo = res;
         this.dataSource.data = this.selectedPageInfo?.getContent;
+        this.selection.clear();
       }
     })
   }
@@ -151,7 +163,7 @@ export class ListClientesComponent implements OnInit {
 
   onVerMovimiento(cliente, i) {
     console.log(cliente);
-    
+
     this.tabService.addTab(new Tab(ListVentaCreditoComponent, "V. credito de " + cliente.persona.nombre, new TabData(cliente.id, cliente), ListClientesComponent))
   }
 
@@ -159,6 +171,125 @@ export class ListClientesComponent implements OnInit {
     this.pageIndex = e.pageIndex;
     this.pageSize = e.pageSize;
     this.onFiltrar();
+  }
+
+  isAllSelected() {
+    const numSelected = this.selection.selected.length;
+    const numRows = this.dataSource.data.length;
+    return numSelected == numRows;
+  }
+
+  masterToggle(ref) {
+    if (this.isSomeSelected()) {
+      this.selection.clear();
+      ref.checked = false;
+    } else {
+      this.isAllSelected()
+        ? this.selection.clear()
+        : this.dataSource.data.forEach((row) => this.selection.select(row));
+    }
+  }
+
+  isSomeSelected() {
+    return this.selection.selected.length > 0;
+  }
+
+  async onCobrarTodoEImprimir() {
+    if (this.selection.selected.length === 0) {
+      this.notificacionService.openAlgoSalioMal('Por favor seleccione al menos un cliente');
+      return;
+    }
+
+    this.dialogoService
+      .confirm(
+        'Atención!!',
+        `¿Realmente desea cobrar todo e imprimir recibo para ${this.selection.selected.length} cliente(s) seleccionado(s)?`,
+        'Se generará un reporte por cada cliente seleccionado'
+      )
+      .subscribe((res) => {
+        if (res == true) {
+          this.procesarCobroEImpresion();
+        }
+      });
+  }
+
+  private async procesarCobroEImpresion() {
+    const clientesSeleccionados = this.selection.selected;
+
+    if (clientesSeleccionados.length === 0) {
+      return;
+    }
+
+    const observables = [];
+
+    for (const cliente of clientesSeleccionados) {
+      const ventaCreditoObservable = this.ventaCreditoService.onGetPorCliente(
+        cliente.id,
+        null,
+        null,
+        EstadoVentaCredito.ABIERTO,
+        false
+      );
+
+      observables.push(
+        ventaCreditoObservable.pipe(
+          untilDestroyed(this)
+        )
+      );
+    }
+
+    if (observables.length === 0) {
+      this.notificacionService.openAlgoSalioMal('No hay clientes para procesar');
+      return;
+    }
+
+    forkJoin(observables).pipe(untilDestroyed(this)).subscribe({
+      next: (results: VentaCredito[][]) => {
+        const clienteVentaCreditoList: any[] = [];
+        let totalClientesConVentas = 0;
+
+        results.forEach((ventaCreditos, index) => {
+          const cliente = clientesSeleccionados[index];
+
+          if (ventaCreditos && ventaCreditos.length > 0) {
+            const ventaCreditoInputList: VentaCreditoInput[] = [];
+            ventaCreditos.forEach((vc) => {
+              let aux: VentaCredito = new VentaCredito();
+              Object.assign(aux, vc);
+              ventaCreditoInputList.push(aux.toInput());
+            });
+
+            clienteVentaCreditoList.push({
+              clienteId: cliente.id,
+              ventaCreditoInputList: ventaCreditoInputList
+            });
+            totalClientesConVentas++;
+          }
+        });
+
+        if (totalClientesConVentas > 0) {
+          this.ventaCreditoService.onImprimirReporteCobroMultiplesClientes(
+            clienteVentaCreditoList,
+            this.mainService.usuarioActual.id
+          );
+
+          this.notificacionService.openSucess(
+            `Se generó el reporte combinado con ${totalClientesConVentas} cliente(s) correctamente`
+          );
+        } else {
+          this.notificacionService.openAlgoSalioMal(
+            'No se encontraron ventas a crédito abiertas para los clientes seleccionados'
+          );
+        }
+        this.selection.clear();
+      },
+      error: (error) => {
+        console.error('Error al procesar cobro e impresión:', error);
+        this.notificacionService.openAlgoSalioMal(
+          'Ocurrió un error al generar el reporte. Por favor intente nuevamente.'
+        );
+      }
+    });
   }
 
 }
