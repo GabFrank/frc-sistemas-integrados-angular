@@ -1,0 +1,96 @@
+<app-generic-list [data]="dataSource.data" [isMenu]="true" [isAdicionar]="true" (filtrar)="onFiltrar()"
+    (resetFiltro)="resetFiltro()" (adicionar)="onAdicionar()">
+    <!-- Contenedor de filtros -->
+    <div filtros>
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="20px" class="filtros-container">
+            <mat-form-field fxFlex="70" appearance="fill" class="filtro-field">
+                <mat-label>Nombre, chapa o marca</mat-label>
+                <input matInput [formControl]="filtroControl" placeholder="Ej: ABC 123 o Scania"
+                    (keyup.enter)="onFiltrar()">
+                <mat-icon matPrefix>search</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field fxFlex="30" appearance="fill" class="filtro-field">
+                <mat-label>Tipo de Vehículo</mat-label>
+                <mat-select [formControl]="tipoControl" (selectionChange)="onFiltrar()">
+                    <mat-option [value]="null">TODOS</mat-option>
+                    <mat-option *ngFor="let tipo of tiposVehiculo$ | async" [value]="tipo.id">
+                        {{ tipo.descripcion | uppercase }}
+                    </mat-option>
+                </mat-select>
+                <mat-icon matPrefix>directions_car</mat-icon>
+            </mat-form-field>
+        </div>
+    </div>
+
+    <!-- Tabla de vehículos -->
+    <div table class="table-container">
+        <table mat-table [dataSource]="dataSource" style="width: 100%" class="mat-elevation-z0">
+
+            <ng-container matColumnDef="id">
+                <th mat-header-cell *matHeaderCellDef> ID </th>
+                <td mat-cell *matCellDef="let vehiculo"> {{ vehiculo.id }} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="chapa">
+                <th mat-header-cell *matHeaderCellDef> Chapa </th>
+                <td mat-cell *matCellDef="let vehiculo">
+                    <span class="chapa-badge">{{ vehiculo.chapa | uppercase }}</span>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="marca">
+                <th mat-header-cell *matHeaderCellDef> Marca </th>
+                <td mat-cell *matCellDef="let vehiculo"> {{ vehiculo.modelo?.marca?.descripcion | uppercase }} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="modelo">
+                <th mat-header-cell *matHeaderCellDef> Modelo </th>
+                <td mat-cell *matCellDef="let vehiculo"> {{ vehiculo.modelo?.descripcion | uppercase }} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="tipo">
+                <th mat-header-cell *matHeaderCellDef> Tipo </th>
+                <td mat-cell *matCellDef="let vehiculo">
+                    <span class="tipo-tag">{{ vehiculo.tipoVehiculo?.descripcion | uppercase }}</span>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="anho">
+                <th mat-header-cell *matHeaderCellDef> Año </th>
+                <td mat-cell *matCellDef="let vehiculo"> {{ vehiculo.anho }} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="color">
+                <th mat-header-cell *matHeaderCellDef> Color </th>
+                <td mat-cell *matCellDef="let vehiculo"> {{ vehiculo.color | uppercase }} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="acciones">
+                <th mat-header-cell *matHeaderCellDef style="width: 80px; text-align: center"> ... </th>
+                <td mat-cell *matCellDef="let vehiculo" style="text-align: center">
+                    <button mat-icon-button [matMenuTriggerFor]="menu">
+                        <mat-icon>more_vert</mat-icon>
+                    </button>
+                    <mat-menu #menu="matMenu" class="dark-menu">
+                        <button mat-menu-item (click)="onEditar(vehiculo)">
+                            <mat-icon color="primary">edit</mat-icon>
+                            <span>Editar</span>
+                        </button>
+                        <mat-divider></mat-divider>
+                        <button mat-menu-item (click)="onEliminar(vehiculo)">
+                            <mat-icon color="warn">delete</mat-icon>
+                            <span>Eliminar</span>
+                        </button>
+                    </mat-menu>
+                </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="element-row"></tr>
+        </table>
+
+        <mat-paginator [pageSizeOptions]="[15, 25, 50, 100]" (page)="handlePageEvent($event)" [length]="totalElements"
+            [pageSize]="pageSize" showFirstLastButtons></mat-paginator>
+    </div>
+</app-generic-list>

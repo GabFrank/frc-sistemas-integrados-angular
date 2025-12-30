@@ -44,6 +44,8 @@ import { AnalisisDiferenciaComponent } from '../../../modules/financiero/analisi
 import { ListTimbradoComponent } from '../../../modules/financiero/timbrado/list-timbrado/list-timbrado.component';
 import { ListLoteDeComponent } from '../../../modules/financiero/documento-electronico/lote-de/list-lote-de/list-lote-de.component';
 import { ModificacionesComponent } from '../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
+import { ListVehiculosComponent } from '../../../modules/vehiculos/vehiculo/list-vehiculos/list-vehiculos.component';
+import { VehiculoComponent } from '../../../modules/vehiculos/vehiculo/vehiculo-form/vehiculo.component';
 
 
 interface BaseNavigationItem {
@@ -274,6 +276,19 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       items: [],
       requiresServerMode: false,
       visibilityRoles: [ROLES.ADMIN]
+    },
+    {
+      name: 'Vehículos',
+      icon: 'directions_car',
+      isExpanded: false,
+      requiresServerMode: false,
+      items: [
+        {
+          name: 'Vehículo',
+          icon: 'commute',
+          action: 'list-vehiculo'
+        }
+      ]
     },
     {
       name: 'R.R.H.H.',
@@ -631,6 +646,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opcion.');
         }
+        break;
+      case "list-vehiculo":
+        this.tabService.addTab(new Tab(ListVehiculosComponent, "Vehículos", null, null));
         break;
     }
   }

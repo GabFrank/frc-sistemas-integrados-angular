@@ -1,0 +1,143 @@
+<div class="form-container" style="padding: 20px; overflow-y: auto; height: 100%;">
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px" class="header-form">
+        <div class="icon-circle">
+            <mat-icon color="primary">{{ vehiculo?.id ? 'edit' : 'directions_car' }}</mat-icon>
+        </div>
+        <div>
+            <h1 class="form-title">{{ vehiculo?.id ? 'Editar Vehículo' : 'Nuevo Vehículo' }}</h1>
+            <p class="form-subtitle">{{ vehiculo?.id ? 'ID: ' + vehiculo.id + ' | ' + (vehiculo.chapa | uppercase) :
+                'Complete los campos para registrar un nuevo vehículo' }}</p>
+        </div>
+    </div>
+
+    <mat-divider style="margin: 20px 0; opacity: 0.1;"></mat-divider>
+
+    <form [formGroup]="form" fxLayout="column" fxLayoutGap="25px" class="premium-form">
+
+        <!-- Sección: Identificación y Clasificación -->
+        <mat-card class="form-section-card">
+            <div class="section-header">
+                <mat-icon>info</mat-icon>
+                <span>Identificación y Clasificación</span>
+            </div>
+            <div fxLayout="row wrap" fxLayoutGap="20px" fxLayoutAlign="start center" style="padding: 10px;">
+                <mat-form-field fxFlex="calc(33.3% - 20px)" fxFlex.lt-md="100" appearance="outline">
+                    <mat-label>Chapa / Matrícula</mat-label>
+                    <input matInput formControlName="chapa" placeholder="ABC 123">
+                    <mat-icon matSuffix @primary>badge</mat-icon>
+                </mat-form-field>
+
+                <div fxFlex="calc(33.3% - 20px)" fxFlex.lt-md="100">
+                    <frc-searchable-select titulo="Modelo del Vehículo" [list]="modelos$ | async" [isFilter]="false"
+                        [currentData]="vehiculo?.modelo" (inputChanged)="onFiltrarModelos($event)"
+                        (selectionChanged)="onSelectModelo($event)" [compareFields]="['descripcion']">
+                        <ng-template let-modelo>
+                            {{ modelo.descripcion | uppercase }} ({{ modelo.marca?.descripcion | uppercase }})
+                        </ng-template>
+                    </frc-searchable-select>
+                </div>
+
+                <div fxFlex="calc(33.3% - 20px)" fxFlex.lt-md="100">
+                    <frc-searchable-select titulo="Tipo de Vehículo" [list]="tiposVehiculo$ | async" [isFilter]="false"
+                        [currentData]="vehiculo?.tipoVehiculo" (inputChanged)="onFiltrarTipos($event)"
+                        (selectionChanged)="onSelectTipo($event)" [compareFields]="['descripcion']">
+                        <ng-template let-tipo>
+                            {{ tipo.descripcion | uppercase }}
+                        </ng-template>
+                    </frc-searchable-select>
+                </div>
+            </div>
+        </mat-card>
+
+        <!-- Sección: Detalles Técnicos -->
+        <mat-card class="form-section-card">
+            <div class="section-header">
+                <mat-icon>settings</mat-icon>
+                <span>Detalles Técnicos y Apariencia</span>
+            </div>
+            <div fxLayout="row wrap" fxLayoutGap="20px" fxLayoutAlign="start center" style="padding: 10px;">
+                <mat-form-field fxFlex="calc(25% - 20px)" fxFlex.lt-sm="100" appearance="outline">
+                    <mat-label>Color</mat-label>
+                    <input matInput formControlName="color" placeholder="Blanco">
+                    <mat-icon matSuffix>palette</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field fxFlex="calc(25% - 20px)" fxFlex.lt-sm="100" appearance="outline">
+                    <mat-label>Año de Fabricación</mat-label>
+                    <input matInput type="number" formControlName="anho" placeholder="2020">
+                    <mat-icon matSuffix>calendar_today</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field fxFlex="calc(25% - 20px)" fxFlex.lt-sm="100" appearance="outline">
+                    <mat-label>Km Inicial</mat-label>
+                    <input matInput type="number" formControlName="primerKilometraje" placeholder="0.00">
+                    <mat-icon matSuffix>speed</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field fxFlex="calc(25% - 20px)" fxFlex.lt-sm="100" appearance="outline">
+                    <mat-label>Fecha Adquisición</mat-label>
+                    <input matInput [matDatepicker]="picker" formControlName="fechaAdquisicion"
+                        placeholder="Seleccione fecha">
+                    <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                    <mat-datepicker #picker></mat-datepicker>
+                </mat-form-field>
+            </div>
+
+            <div fxLayout="row wrap" fxLayoutGap="20px" fxLayoutAlign="start center" style="padding: 10px;">
+                <mat-form-field fxFlex="calc(50% - 20px)" fxFlex.lt-sm="100" appearance="outline">
+                    <mat-label>Capacidad de Carga (Kg)</mat-label>
+                    <input matInput type="number" formControlName="capacidadKg" placeholder="0.00">
+                    <mat-icon matSuffix>fitness_center</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field fxFlex="calc(50% - 20px)" fxFlex.lt-sm="100" appearance="outline">
+                    <mat-label>Capacidad de Pasajeros</mat-label>
+                    <input matInput type="number" formControlName="capacidadPasajeros" placeholder="1">
+                    <mat-icon matSuffix>group</mat-icon>
+                </mat-form-field>
+            </div>
+        </mat-card>
+
+        <!-- Sección: Estado y Equipamiento -->
+        <mat-card class="form-section-card">
+            <div class="section-header">
+                <mat-icon>verified</mat-icon>
+                <span>Estado y Equipamiento Especial</span>
+            </div>
+            <div fxLayout="row" fxLayoutAlign="space-around center" style="padding: 20px;">
+                <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px">
+                    <mat-slide-toggle formControlName="nuevo" color="primary">Vehículo Nuevo</mat-slide-toggle>
+                    <span class="toggle-desc">¿Es un vehículo de primera mano?</span>
+                </div>
+
+                <mat-divider vertical style="height: 40px;"></mat-divider>
+
+                <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px">
+                    <mat-slide-toggle formControlName="documentacion" color="primary">Documentación al
+                        día</mat-slide-toggle>
+                    <span class="toggle-desc">¿Cuenta con todos los papeles legales?</span>
+                </div>
+
+                <mat-divider vertical style="height: 40px;"></mat-divider>
+
+                <div fxLayout="column" fxLayoutAlign="center center" fxLayoutGap="8px">
+                    <mat-slide-toggle formControlName="refrigerado" color="primary">Sistema
+                        Refrigerado</mat-slide-toggle>
+                    <span class="toggle-desc">¿Posee cámara de frío funcional?</span>
+                </div>
+            </div>
+        </mat-card>
+
+        <!-- Acciones -->
+        <div fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="15px"
+            style="margin-top: 20px; padding-bottom: 40px;">
+            <button mat-stroked-button color="basic" (click)="onCancelar()" class="btn-large">
+                <mat-icon>close</mat-icon> CANCELAR
+            </button>
+            <button mat-raised-button color="primary" (click)="onGuardar()" [disabled]="form.invalid"
+                class="btn-large btn-save">
+                <mat-icon>check</mat-icon> {{ vehiculo?.id ? 'GUARDAR CAMBIOS' : 'REGISTRAR VEHÍCULO' }}
+            </button>
+        </div>
+    </form>
+</div>
