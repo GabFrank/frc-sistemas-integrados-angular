@@ -1,153 +1,49 @@
+@import 'src/styles.scss';
+
 .pre-registro-container {
-    padding: 40px;
-    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    background-color: #0f0f0f;
+    color: #e0e0e0;
     min-height: 100%;
-    color: white;
+}
 
-    .header-section {
-        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-        padding-bottom: 20px;
-        margin-bottom: 20px;
+.header-section {
+    margin-bottom: 25px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
 
-        .title {
-            font-size: 2.5rem;
-            font-weight: 800;
-            background: linear-gradient(90deg, #ff4b2b, #ff416c);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin: 0;
-        }
+.titulo {
+    color: white !important;
+    margin: 0;
+}
 
-        .subtitle {
-            font-size: 1.1rem;
-            color: #b0b0b0;
-            margin: 5px 0 0 0;
-        }
-    }
+.sub-descripcion {
+    font-size: 11px;
+    color: #ababab;
+}
 
-    .step-card {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 20px;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        color: white;
+.required-field {
+    color: #f44336 !important;
+}
 
-        &:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-            border-color: rgba(255, 75, 43, 0.5);
-        }
-
-        &.saved {
-            border-color: #4caf50;
-            background: rgba(76, 175, 80, 0.1);
-
-            .step-icon {
-                background: #4caf50;
-                color: white;
-            }
-        }
-
-        .step-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #ff4b2b, #ff416c);
-            border-radius: 12px;
-            width: 48px;
-            height: 48px;
-
-            mat-icon {
-                font-size: 28px;
-                width: 28px;
-                height: 28px;
-            }
-        }
-
-        mat-card-header {
-            margin-bottom: 20px;
-
-            ::ng-deep .mat-card-header-text {
-                margin: 0 0 0 16px;
-            }
-
-            mat-card-title {
-                font-size: 1.4rem;
-                font-weight: 700;
-            }
-
-            mat-card-subtitle {
-                color: #888;
-            }
-        }
-
-        mat-card-content {
-            padding-top: 10px;
-        }
-
-        mat-card-actions {
-            padding: 16px;
-        }
-    }
-
-    .pulse-btn {
-        padding: 12px 30px;
-        font-size: 1.2rem;
-        font-weight: 700;
-        border-radius: 50px;
-        background: linear-gradient(90deg, #00c9ff, #92fe9d);
-        color: #1a1a1a;
-        box-shadow: 0 10px 20px rgba(0, 201, 255, 0.3);
-
-        &:hover {
-            box-shadow: 0 15px 30px rgba(0, 201, 255, 0.5);
-        }
-
-        mat-icon {
-            margin-left: 10px;
-        }
-    }
-
-    .actions-footer {
-        margin-top: 50px;
-        padding: 30px;
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 30px;
-    }
+.saved-section {
+    opacity: 0.6;
+    background: rgba(67, 160, 71, 0.05);
+    border-radius: 8px;
+    padding: 10px;
+    transition: all 0.3s ease;
 }
 
 ::ng-deep {
-    .step-card {
-        .mat-form-field-appearance-outline .mat-form-field-outline {
-            color: rgba(255, 255, 255, 0.3);
-        }
-
-        .mat-form-field-label {
-            color: #aaa !important;
-        }
-
-        input {
-            color: white !important;
-        }
-    }
-}
-
-@keyframes pulse {
-    0% {
-        transform: scale(1);
+    .mat-mdc-form-field-infix {
+        color: white !important;
     }
 
-    50% {
-        transform: scale(1.05);
+    .mat-mdc-form-field-label {
+        color: #ababab !important;
     }
 
-    100% {
-        transform: scale(1);
+    input {
+        color: white !important;
+        text-transform: uppercase;
     }
-}
-
-.pulse-btn {
-    animation: pulse 2s infinite;
 }

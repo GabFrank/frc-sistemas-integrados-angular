@@ -30,6 +30,35 @@ $angular-dark-theme: mat.define-dark-theme((color: (primary: $angular-primary,
 .darkMode {
   @include mat.all-component-colors($angular-dark-theme);
   @include mat.all-legacy-component-themes($angular-dark-theme);
+
+  // Fix for select overlays in dark mode
+  .mat-mdc-select-panel {
+    background-color: #1a1a1a !important;
+  }
+
+  .mat-mdc-option {
+    color: white !important;
+    background-color: #1a1a1a !important;
+
+    .mdc-list-item__primary-text {
+      color: white !important;
+    }
+
+    &:hover:not(.mat-mdc-option-disabled),
+    &.mat-mdc-option-active {
+      background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+  }
+
+  // Search input fix in select
+  .ngx-mat-select-search-inner {
+    background-color: #1a1a1a !important;
+    color: white !important;
+
+    input {
+      color: white !important;
+    }
+  }
 }
 
 html {
@@ -273,6 +302,7 @@ input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
 input[type=number] {
   -moz-appearance: textfield;
 }
@@ -421,7 +451,7 @@ input {
     background: #1a1a1a;
     overflow: hidden;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    
+
     .mat-mdc-dialog-surface {
       background: transparent;
     }

@@ -58,12 +58,16 @@ export class VehiculoComponent implements OnInit {
 
     onGuardar(): void {
         if (this.form.valid) {
-            const values = this.form.value;
+            const values = this.form.getRawValue();
             const input: VehiculoInput = {
                 ...values,
-                chapa: values.chapa?.toUpperCase(),
-                color: values.color?.toUpperCase(),
-                fechaAdquisicion: values.fechaAdquisicion ? dateToString(new Date(values.fechaAdquisicion)) : null
+                id: values.id ? Number(values.id) : undefined,
+                chapa: values.chapa?.trim()?.toUpperCase(),
+                color: values.color?.trim()?.toUpperCase(),
+                fechaAdquisicion: values.fechaAdquisicion ? dateToString(new Date(values.fechaAdquisicion), 'yyyy-MM-dd') : null,
+                primerKilometraje: values.primerKilometraje || null,
+                capacidadKg: values.capacidadKg || null,
+                capacidadPasajeros: values.capacidadPasajeros || null
             };
             this.vehiculoService.onGuardar(input).pipe(untilDestroyed(this)).subscribe(res => {
                 if (res) {
@@ -86,11 +90,11 @@ export class VehiculoComponent implements OnInit {
     }
 
     onSelectModelo(modelo: Modelo): void {
-        this.form.get('modeloId')?.setValue(modelo?.id);
+        this.form.get('modeloId')?.setValue(modelo?.id ? Number(modelo.id) : null);
     }
 
     onSelectTipo(tipo: TipoVehiculo): void {
-        this.form.get('tipoVehiculoId')?.setValue(tipo?.id);
+        this.form.get('tipoVehiculoId')?.setValue(tipo?.id ? Number(tipo.id) : null);
     }
 
     onCancelar(): void {

@@ -102,7 +102,7 @@ export class PreRegistroVehiculoComponent implements OnInit {
     }
 
     onSelectMarca(marca: Marca): void {
-        this.modeloForm.get('marcaId')?.setValue(marca?.id);
+        this.modeloForm.get('marcaId')?.setValue(marca?.id ? Number(marca.id) : null);
     }
 
     onContinuar(): void {

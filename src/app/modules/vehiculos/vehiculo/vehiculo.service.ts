@@ -12,13 +12,13 @@ import { TipoVehiculoSearchGQL } from './graphql/tipoVehiculoSearch';
 import { MarcaSearchGQL } from './graphql/marcaSearch';
 import { SaveMarcaGQL } from './graphql/saveMarca';
 import { SaveModeloGQL } from './graphql/saveModelo';
-import { SaveTipoVehiculoGQL } from './graphql/saveTipoVehiculo';
 import { Modelo } from './models/modelo.model';
 import { TipoVehiculo } from './models/tipo-vehiculo.model';
 import { Marca } from './models/marca.model';
 import { MarcaInput } from './models/marca-input.model';
 import { ModeloInput } from './models/modelo-input.model';
 import { TipoVehiculoInput } from './models/tipo-vehiculo-input.model';
+import { SaveTipoVehiculoGQL } from './graphql/saveTipoVehiculo';
 
 @Injectable({
   providedIn: 'root'
