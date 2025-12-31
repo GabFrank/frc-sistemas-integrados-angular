@@ -1,17 +1,25 @@
-<div class="form-container" style="padding: 20px; overflow-y: auto; height: 100%;">
+<div mat-dialog-title>
     <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
         <div class="icon-circle">
             <mat-icon color="primary">{{ vehiculo?.id ? 'edit' : 'directions_car' }}</mat-icon>
         </div>
         <div>
-            <h2 class="titulo">{{ vehiculo?.id ? 'Editar Vehículo' : 'Nuevo Vehículo' }}</h2>
-            <p class="sub-descripcion">{{ vehiculo?.id ? 'ID: ' + vehiculo.id + ' | ' + (vehiculo.chapa | uppercase) :
-                'Complete los campos para registrar un nuevo vehículo' }}</p>
+            <h2 class="titulo" style="margin: 0;">{{ vehiculo?.id ? 'Editar Vehículo' : 'Nuevo Vehículo' }}</h2>
+            <p class="sub-descripcion" style="margin: 0; opacity: 0.7; font-size: 0.9em;">
+                {{ vehiculo?.id ? 'ID: ' + vehiculo.id + ' | ' + (vehiculo.chapa | uppercase) :
+                'Complete los campos para registrar un nuevo vehículo' }}
+            </p>
         </div>
+        <span fxFlex></span>
+        <button mat-icon-button (click)="onCancelar()">
+            <mat-icon>close</mat-icon>
+        </button>
     </div>
+</div>
 
-    <mat-divider style="margin: 20px 0; opacity: 0.1;"></mat-divider>
+<mat-divider style="opacity: 0.1;"></mat-divider>
 
+<mat-dialog-content style="padding-top: 20px;">
     <form [formGroup]="form" fxLayout="column" fxLayoutGap="15px">
 
         <div fxLayout="row" fxLayoutGap="20px">
@@ -28,23 +36,27 @@
 
         <div fxLayout="row" fxLayoutGap="20px">
             <div fxFlex="50">
-                <frc-searchable-select titulo="Modelo" [list]="modelos$ | async" [isFilter]="false"
-                    [currentData]="vehiculo?.modelo" (inputChanged)="onFiltrarModelos($event)"
-                    (selectionChanged)="onSelectModelo($event)" [compareFields]="['descripcion']">
-                    <ng-template let-modelo>
-                        {{ modelo.descripcion | uppercase }} ({{ modelo.marca?.descripcion | uppercase }})
-                    </ng-template>
-                </frc-searchable-select>
+                <mat-form-field style="width: 100%;">
+                    <mat-label class="required-field">Modelo</mat-label>
+                    <input matInput [value]="modeloDescripcion" readonly (click)="onBuscarModelo()"
+                        style="cursor: pointer; font-weight: 500;">
+                    <button mat-icon-button matSuffix (click)="onBuscarModelo()">
+                        <mat-icon color="primary">search</mat-icon>
+                    </button>
+                    <mat-hint *ngIf="!modeloSelected" style="color: #ff5252;">Debe seleccionar un modelo</mat-hint>
+                </mat-form-field>
             </div>
 
             <div fxFlex="50">
-                <frc-searchable-select titulo="Tipo de Vehículo" [list]="tiposVehiculo$ | async" [isFilter]="false"
-                    [currentData]="vehiculo?.tipoVehiculo" (inputChanged)="onFiltrarTipos($event)"
-                    (selectionChanged)="onSelectTipo($event)" [compareFields]="['descripcion']">
-                    <ng-template let-tipo>
-                        {{ tipo.descripcion | uppercase }}
-                    </ng-template>
-                </frc-searchable-select>
+                <mat-form-field style="width: 100%;">
+                    <mat-label class="required-field">Tipo de Vehículo</mat-label>
+                    <input matInput [value]="tipoVehiculoDescripcion" readonly (click)="onBuscarTipoVehiculo()"
+                        style="cursor: pointer; font-weight: 500;">
+                    <button mat-icon-button matSuffix (click)="onBuscarTipoVehiculo()">
+                        <mat-icon color="primary">search</mat-icon>
+                    </button>
+                    <mat-hint *ngIf="!tipoVehiculoSelected" style="color: #ff5252;">Debe seleccionar un tipo</mat-hint>
+                </mat-form-field>
             </div>
         </div>
 
@@ -90,15 +102,18 @@
             <mat-slide-toggle formControlName="documentacion" color="accent">Papeles al día</mat-slide-toggle>
             <mat-slide-toggle formControlName="refrigerado" color="accent">Refrigerado</mat-slide-toggle>
         </div>
-
-        <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="20px" style="margin-top: 20px;">
-            <button mat-raised-button color="primary" (click)="onCancelar()" style="width: 150px;">
-                CANCELAR
-            </button>
-            <button mat-raised-button color="accent" (click)="onGuardar()" [disabled]="form.invalid"
-                style="width: 150px;">
-                {{ vehiculo?.id ? 'GUARDAR' : 'REGISTRAR' }}
-            </button>
-        </div>
     </form>
-</div>
+</mat-dialog-content>
+
+<mat-divider style="opacity: 0.1;"></mat-divider>
+
+<mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="15px" style="padding: 15px 24px;">
+    <button mat-button (click)="onCancelar()" style="width: 120px;">
+        CANCELAR
+    </button>
+    <button mat-raised-button color="accent" (click)="onGuardar()" [disabled]="form.invalid"
+        style="width: 150px; background: linear-gradient(45deg, #ff5252, #ff1744); color: white;">
+        <mat-icon>save</mat-icon>
+        {{ vehiculo?.id ? 'GUARDAR' : 'REGISTRAR' }}
+    </button>
+</mat-dialog-actions>

@@ -76,13 +76,12 @@ export class FrcSearchableSelectComponent implements OnInit, OnChanges {
       // this.filterList();
     }
 
-    if(changes['currentData'] && !changes['currentData'].firstChange){
+    if (changes['currentData'] && !changes['currentData'].firstChange) {
       this.control.setValue(this.currentData);
-      this.selectionChanged.emit(this.currentData);
     }
 
-    if(changes['disabled'] && !changes['disabled'].firstChange){
-      if(this.disabled){
+    if (changes['disabled'] && !changes['disabled'].firstChange) {
+      if (this.disabled) {
         this.control.disable();
       } else {
         this.control.enable();
@@ -137,5 +136,12 @@ export class FrcSearchableSelectComponent implements OnInit, OnChanges {
 
   setFocus() {
     this.matSelect.focus()
+  }
+
+  compareBy(a: any, b: any): boolean {
+    if (a && b && a.id && b.id) {
+      return a.id === b.id;
+    }
+    return a === b;
   }
 }

@@ -32,7 +32,7 @@ export class DefaultComponent implements OnInit, OnDestroy {
   fechaFormGroup: FormGroup;
   fechaInicioControl: FormControl<Date | null>;
   fechaFinControl: FormControl<Date | null>;
-  today = new Date();
+  today: Date;
 
   selectedTab: number;
   onTabClose: false;
@@ -49,6 +49,9 @@ export class DefaultComponent implements OnInit, OnDestroy {
     private notificacionesTableroService: NotificacionesTableroService,
     private router: Router
   ) {
+    this.today = new Date();
+    this.today.setHours(23, 59, 59, 999);
+
     const ayer = new Date();
     ayer.setDate(ayer.getDate() - 1);
     ayer.setHours(0, 0, 0, 0);

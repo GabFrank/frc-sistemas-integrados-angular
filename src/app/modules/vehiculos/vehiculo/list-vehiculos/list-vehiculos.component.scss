@@ -1,107 +1,11 @@
-@import 'src/styles.scss';
-
-.filtros-container {
-    padding: 15px 0;
-}
-
-.filtro-field {
-    ::ng-deep {
-        .mdc-text-field--filled {
-            background-color: rgba(255, 255, 255, 0.05) !important;
-            border-radius: 8px 8px 0 0;
-        }
-
-        .mdc-line-ripple::before {
-            border-bottom-color: rgba(255, 255, 255, 0.2) !important;
-        }
-    }
-}
-
-.table-container {
-    background-color: #1a1a1a;
-    border-radius: 8px;
-    overflow: hidden;
-    margin-top: 10px;
-}
-
 table {
-    background: transparent !important;
+    width: 100%;
 }
 
-th.mat-mdc-header-cell {
-    background-color: #121212 !important;
-    color: #ababab !important;
-    font-weight: 600;
+tr.example-detail-row {
+    height: 0;
+}
+
+input {
     text-transform: uppercase;
-    font-size: 12px;
-    letter-spacing: 1px;
-    border-bottom: 2px solid #2a2a2a !important;
-}
-
-td.mat-mdc-cell {
-    border-bottom: 1px solid #2a2a2a !important;
-    font-size: 14px;
-    color: #e0e0e0;
-}
-
-.element-row {
-    transition: background-color 0.2s ease;
-    cursor: default;
-
-    &:hover {
-        background-color: #3b883f !important; // Green highlight from image/theme
-
-        td {
-            color: white !important;
-        }
-
-        .chapa-badge {
-            background-color: white !important;
-            color: #3b883f !important;
-        }
-
-        .tipo-tag {
-            border-color: white !important;
-            color: white !important;
-        }
-    }
-}
-
-.chapa-badge {
-    background-color: #2a2a2a;
-    color: #ffffff;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-family: 'Roboto Mono', monospace;
-    font-weight: bold;
-    font-size: 13px;
-    border: 1px solid #444;
-}
-
-.tipo-tag {
-    padding: 2px 8px;
-    border: 1px solid #54c5f8;
-    color: #54c5f8;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-}
-
-.mat-mdc-paginator {
-    background: #121212 !important;
-    color: #ababab !important;
-    border-top: 1px solid #2a2a2a;
-}
-
-::ng-deep .dark-menu {
-    background-color: #1a1a1a !important;
-    border: 1px solid #333;
-
-    .mat-mdc-menu-item {
-        color: #e0e0e0 !important;
-
-        &:hover {
-            background-color: rgba(255, 255, 255, 0.1) !important;
-        }
-    }
 }

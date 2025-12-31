@@ -9,6 +9,11 @@ import { Modelo } from '../models/modelo.model';
 import { TipoVehiculo } from '../models/tipo-vehiculo.model';
 import { BehaviorSubject } from 'rxjs';
 import { dateToString } from '../../../../commons/core/utils/dateUtils';
+import { MAT_DIALOG_DATA, MatDialogRef, MatDialog } from '@angular/material/dialog';
+import { Inject, Optional } from '@angular/core';
+import { BuscarModeloDialogComponent } from '../buscar-modelo-dialog/buscar-modelo-dialog.component';
+import { BuscarTipoVehiculoDialogComponent } from '../buscar-tipo-vehiculo-dialog/buscar-tipo-vehiculo-dialog.component';
+import { MainService } from '../../../../main.service';
 
 @UntilDestroy()
 @Component({
@@ -21,16 +26,39 @@ export class VehiculoComponent implements OnInit {
     private fb = inject(FormBuilder);
     private vehiculoService = inject(VehiculoService);
     private tabService = inject(TabService);
+    private matDialog = inject(MatDialog);
+    public mainService = inject(MainService);
+
+    constructor(
+        @Optional() public dialogRef: MatDialogRef<VehiculoComponent>,
+        @Optional() @Inject(MAT_DIALOG_DATA) public data: any
+    ) { }
 
     form: FormGroup;
     vehiculo: Vehiculo;
 
     modelos$ = new BehaviorSubject<Modelo[]>([]);
     tiposVehiculo$ = new BehaviorSubject<TipoVehiculo[]>([]);
+    modeloSelected: Modelo;
+    tipoVehiculoSelected: TipoVehiculo;
+
+    get modeloDescripcion(): string {
+        if (this.modeloSelected) {
+            return `${this.modeloSelected.descripcion} (${this.modeloSelected.marca?.descripcion})`.toUpperCase();
+        }
+        return 'SELECCIONE UN MODELO';
+    }
+
+    get tipoVehiculoDescripcion(): string {
+        if (this.tipoVehiculoSelected) {
+            return `${this.tipoVehiculoSelected.descripcion}`.toUpperCase();
+        }
+        return 'SELECCIONE UN TIPO';
+    }
 
     ngOnInit(): void {
         const tabData = this.tabService.currentTab()?.tabData?.data;
-        this.vehiculo = tabData;
+        this.vehiculo = this.data || tabData;
 
         this.form = this.fb.group({
             id: [this.vehiculo?.id],
@@ -49,9 +77,11 @@ export class VehiculoComponent implements OnInit {
         });
 
         if (this.vehiculo?.modelo) {
+            this.modeloSelected = this.vehiculo.modelo;
             this.modelos$.next([this.vehiculo.modelo]);
         }
         if (this.vehiculo?.tipoVehiculo) {
+            this.tipoVehiculoSelected = this.vehiculo.tipoVehiculo;
             this.tiposVehiculo$.next([this.vehiculo.tipoVehiculo]);
         }
     }
@@ -59,6 +89,8 @@ export class VehiculoComponent implements OnInit {
     onGuardar(): void {
         if (this.form.valid) {
             const values = this.form.getRawValue();
+            const modeloId = Number(values.modeloId);
+            const tipoVehiculoId = Number(values.tipoVehiculoId);
             const input: VehiculoInput = {
                 ...values,
                 id: values.id ? Number(values.id) : undefined,
@@ -67,25 +99,52 @@ export class VehiculoComponent implements OnInit {
                 fechaAdquisicion: values.fechaAdquisicion ? dateToString(new Date(values.fechaAdquisicion), 'yyyy-MM-dd') : null,
                 primerKilometraje: values.primerKilometraje || null,
                 capacidadKg: values.capacidadKg || null,
-                capacidadPasajeros: values.capacidadPasajeros || null
+                capacidadPasajeros: values.capacidadPasajeros || null,
+                modeloId: Number.isFinite(modeloId) ? modeloId : null,
+                tipoVehiculoId: Number.isFinite(tipoVehiculoId) ? tipoVehiculoId : null,
+                usuarioId: this.mainService.usuarioActual?.id || this.vehiculo?.usuario?.id
             };
             this.vehiculoService.onGuardar(input).pipe(untilDestroyed(this)).subscribe(res => {
                 if (res) {
-                    this.tabService.removeTab(this.tabService.currentIndex);
+                    if (this.dialogRef) {
+                        this.dialogRef.close(true);
+                    } else {
+                        this.tabService.removeTab(this.tabService.currentIndex);
+                    }
                 }
             });
         }
     }
 
-    onFiltrarModelos(texto: string): void {
-        this.vehiculoService.onFiltrarModelos(texto).pipe(untilDestroyed(this)).subscribe(res => {
-            this.modelos$.next(res);
+    onBuscarModelo(): void {
+        const dialogRef = this.matDialog.open(BuscarModeloDialogComponent, {
+            width: '800px',
+            disableClose: true,
+            autoFocus: false
+        });
+
+        dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+            const id = Number(res?.id);
+            if (res && Number.isFinite(id)) {
+                this.modeloSelected = res;
+                this.form.get('modeloId')?.setValue(id);
+            }
         });
     }
 
-    onFiltrarTipos(texto: string): void {
-        this.vehiculoService.onFiltrarTipos(texto).pipe(untilDestroyed(this)).subscribe(res => {
-            this.tiposVehiculo$.next(res);
+    onBuscarTipoVehiculo(): void {
+        const dialogRef = this.matDialog.open(BuscarTipoVehiculoDialogComponent, {
+            width: '800px',
+            disableClose: true,
+            autoFocus: false
+        });
+
+        dialogRef.afterClosed().pipe(untilDestroyed(this)).subscribe(res => {
+            const id = Number(res?.id);
+            if (res && Number.isFinite(id)) {
+                this.tipoVehiculoSelected = res;
+                this.form.get('tipoVehiculoId')?.setValue(id);
+            }
         });
     }
 
@@ -93,11 +152,11 @@ export class VehiculoComponent implements OnInit {
         this.form.get('modeloId')?.setValue(modelo?.id ? Number(modelo.id) : null);
     }
 
-    onSelectTipo(tipo: TipoVehiculo): void {
-        this.form.get('tipoVehiculoId')?.setValue(tipo?.id ? Number(tipo.id) : null);
-    }
-
     onCancelar(): void {
-        this.tabService.removeTab(this.tabService.currentIndex);
+        if (this.dialogRef) {
+            this.dialogRef.close();
+        } else {
+            this.tabService.removeTab(this.tabService.currentIndex);
+        }
     }
 }

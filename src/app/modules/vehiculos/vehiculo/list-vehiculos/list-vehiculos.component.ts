@@ -7,19 +7,32 @@ import { VehiculoService } from '../vehiculo.service';
 import { FormControl } from '@angular/forms';
 import { PageEvent } from '@angular/material/paginator';
 import { TabService, TabData } from '../../../../layouts/tab/tab.service';
+import { MatDialog } from '@angular/material/dialog';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { VehiculoComponent } from '../vehiculo-form/vehiculo.component';
 import { PreRegistroVehiculoComponent } from '../pre-registro/pre-registro-vehiculo.component';
+import { animate, state, style, transition, trigger } from '@angular/animations';
 
 @Component({
     selector: 'app-list-vehiculos',
     templateUrl: './list-vehiculos.component.html',
     styleUrls: ['./list-vehiculos.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    animations: [
+        trigger("detailExpand", [
+            state("collapsed", style({ height: "0px", minHeight: "0" })),
+            state("expanded", style({ height: "*" })),
+            transition(
+                "expanded <=> collapsed",
+                animate("225ms cubic-bezier(0.4, 0.0, 0.2, 1)")
+            ),
+        ]),
+    ],
 })
 export class ListVehiculosComponent implements OnInit {
     private vehiculoService = inject(VehiculoService);
     private tabService = inject(TabService);
+    private dialog = inject(MatDialog);
 
     dataSource = new MatTableDataSource<Vehiculo>();
     displayedColumns = ['id', 'chapa', 'marca', 'modelo', 'tipo', 'anho', 'color', 'acciones'];
@@ -31,6 +44,7 @@ export class ListVehiculosComponent implements OnInit {
     pageIndex = 0;
     pageSize = 15;
     totalElements = 0;
+    expandedVehiculo: Vehiculo;
 
     ngOnInit(): void {
         this.onFiltrar();
@@ -60,11 +74,32 @@ export class ListVehiculosComponent implements OnInit {
     }
 
     onAdicionar(): void {
-        this.tabService.addTab(new Tab(PreRegistroVehiculoComponent, 'Configuración Vehículo', new TabData(), ListVehiculosComponent));
+        const dialogRef = this.dialog.open(VehiculoComponent, {
+            width: '800px',
+            disableClose: true,
+            autoFocus: false
+        });
+
+        dialogRef.afterClosed().subscribe(res => {
+            if (res) {
+                this.onFiltrar();
+            }
+        });
     }
 
     onEditar(vehiculo: Vehiculo): void {
-        this.tabService.addTab(new Tab(VehiculoComponent, 'Editar Vehículo', new TabData(vehiculo.id, vehiculo), ListVehiculosComponent));
+        const dialogRef = this.dialog.open(VehiculoComponent, {
+            width: '800px',
+            data: vehiculo,
+            disableClose: true,
+            autoFocus: false
+        });
+
+        dialogRef.afterClosed().subscribe(res => {
+            if (res) {
+                this.onFiltrar();
+            }
+        });
     }
 
     onEliminar(vehiculo: Vehiculo): void {

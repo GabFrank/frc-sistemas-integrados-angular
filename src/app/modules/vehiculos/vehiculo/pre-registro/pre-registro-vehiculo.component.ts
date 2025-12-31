@@ -7,6 +7,7 @@ import { Marca } from '../models/marca.model';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { VehiculoComponent } from '../vehiculo-form/vehiculo.component';
 import { Tab } from '../../../../layouts/tab/tab.model';
+import { MainService } from '../../../../main.service';
 
 @UntilDestroy()
 @Component({
@@ -19,6 +20,7 @@ export class PreRegistroVehiculoComponent implements OnInit {
     private fb = inject(FormBuilder);
     private vehiculoService = inject(VehiculoService);
     private tabService = inject(TabService);
+    public mainService = inject(MainService);
 
     tipoForm: FormGroup;
     marcaForm: FormGroup;
@@ -63,7 +65,8 @@ export class PreRegistroVehiculoComponent implements OnInit {
     onGuardarTipo(): void {
         if (this.tipoForm.valid) {
             this.vehiculoService.onGuardarTipo({
-                descripcion: this.tipoForm.value.descripcion.toUpperCase()
+                descripcion: this.tipoForm.value.descripcion.toUpperCase(),
+                usuarioId: this.mainService.usuarioActual?.id
             }).pipe(untilDestroyed(this)).subscribe(res => {
                 if (res) {
                     this.tipoSaved = true;
@@ -76,7 +79,8 @@ export class PreRegistroVehiculoComponent implements OnInit {
     onGuardarMarca(): void {
         if (this.marcaForm.valid) {
             this.vehiculoService.onGuardarMarca({
-                descripcion: this.marcaForm.value.descripcion.toUpperCase()
+                descripcion: this.marcaForm.value.descripcion.toUpperCase(),
+                usuarioId: this.mainService.usuarioActual?.id
             }).pipe(untilDestroyed(this)).subscribe(res => {
                 if (res) {
                     this.marcaSaved = true;
@@ -91,7 +95,8 @@ export class PreRegistroVehiculoComponent implements OnInit {
         if (this.modeloForm.valid) {
             this.vehiculoService.onGuardarModelo({
                 marcaId: this.modeloForm.value.marcaId,
-                descripcion: this.modeloForm.value.descripcion.toUpperCase()
+                descripcion: this.modeloForm.value.descripcion.toUpperCase(),
+                usuarioId: this.mainService.usuarioActual?.id
             }).pipe(untilDestroyed(this)).subscribe(res => {
                 if (res) {
                     this.modeloSaved = true;

@@ -1,0 +1,83 @@
+<div mat-dialog-title>
+    <div fxLayout="row" fxLayoutAlign="space-between center">
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
+            <mat-icon color="primary">search</mat-icon>
+            <span class="titulo">BUSCAR TIPO DE VEHÍCULO</span>
+        </div>
+        <button mat-icon-button (click)="onCancelar()">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+</div>
+
+<mat-divider style="opacity: 0.1;"></mat-divider>
+
+<mat-dialog-content style="min-height: 400px; padding-top: 20px;">
+    <div fxLayout="column" fxLayoutGap="15px">
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
+            <mat-form-field fxFlex appearance="outline" class="search-field">
+                <mat-label>Tipo de Vehículo</mat-label>
+                <input matInput [formControl]="buscarControl" placeholder="Ej: CAMIÓN" autocomplete="off">
+                <mat-icon matSuffix>search</mat-icon>
+            </mat-form-field>
+
+            <button mat-raised-button [color]="showAddForm ? 'warn' : 'accent'" (click)="toggleAddForm()">
+                <mat-icon>{{ showAddForm ? 'keyboard_arrow_left' : 'add' }}</mat-icon>
+                {{ showAddForm ? 'VOLVER' : 'ADICIONAR' }}
+            </button>
+        </div>
+
+        <div *ngIf="!showAddForm" class="table-container mat-elevation-z2">
+            <table mat-table [dataSource]="dataSource" style="width: 100%">
+                <ng-container matColumnDef="id">
+                    <th mat-header-cell *matHeaderCellDef style="width: 60px;"> ID </th>
+                    <td mat-cell *matCellDef="let tipo"> {{ tipo.id }} </td>
+                </ng-container>
+
+                <ng-container matColumnDef="tipo">
+                    <th mat-header-cell *matHeaderCellDef> Tipo </th>
+                    <td mat-cell *matCellDef="let tipo"> {{ tipo.descripcion | uppercase }} </td>
+                </ng-container>
+
+                <ng-container matColumnDef="acciones">
+                    <th mat-header-cell *matHeaderCellDef style="width: 120px; text-align: center;"> ... </th>
+                    <td mat-cell *matCellDef="let tipo" style="text-align: center;">
+                        <button mat-flat-button color="primary" (click)="onSelectTipo(tipo)">
+                            SELECCIONAR
+                        </button>
+                    </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="element-row"
+                    (dblclick)="onSelectTipo(row)"></tr>
+            </table>
+
+            <div *ngIf="dataSource.data.length === 0 && !isSearching"
+                style="padding: 40px; text-align: center; opacity: 0.5;">
+                <mat-icon style="font-size: 48px; width: 48px; height: 48px;">sentiment_dissatisfied</mat-icon>
+                <p>No se encontraron tipos</p>
+            </div>
+        </div>
+
+        <div *ngIf="showAddForm" fxLayout="column" fxLayoutGap="20px" class="add-form-container">
+            <div class="form-section">
+                <h3 class="section-title">1. REGISTRAR NUEVO TIPO DE VEHÍCULO</h3>
+                <form [formGroup]="tipoForm" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
+                    <mat-form-field fxFlex>
+                        <mat-label>Nombre del Tipo</mat-label>
+                        <input matInput formControlName="descripcion" placeholder="Ej: CAMIÓN"
+                            (keyup.enter)="onGuardarTipo()">
+                    </mat-form-field>
+                    <button mat-raised-button color="accent" [disabled]="tipoForm.invalid" (click)="onGuardarTipo()">
+                        <mat-icon>save</mat-icon> GUARDAR Y SELECCIONAR
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" style="padding: 15px 24px;">
+    <button mat-button (click)="onCancelar()">CANCELAR</button>
+</mat-dialog-actions>
