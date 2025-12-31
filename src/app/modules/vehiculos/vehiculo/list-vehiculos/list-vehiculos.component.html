@@ -160,34 +160,11 @@
 
       <mat-divider></mat-divider>
 
-      <ng-container matColumnDef="expandedDetail">
-        <td
-          mat-cell
-          *matCellDef="let vehiculo"
-          [attr.colspan]="displayedColumns.length"
-          class="expanded"
-        >
-          <div
-            class="example-vehiculo-detail"
-            [@detailExpand]="
-              vehiculo == expandedVehiculo ? 'expanded' : 'collapsed'
-            "
-            style="text-align: center"
-            fxLayout="column"
-            fxLayoutAlign="start start"
-          ></div>
-        </td>
-      </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
       <tr
         mat-row
         *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
-      ></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: ['expandedDetail']"
-        class="example-detail-row"
       ></tr>
     </table>
     <mat-paginator

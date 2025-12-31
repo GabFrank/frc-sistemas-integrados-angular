@@ -9,6 +9,9 @@ import { SharedModule } from '../../shared/shared.module';
 import { PreRegistroVehiculoComponent } from './vehiculo/pre-registro/pre-registro-vehiculo.component';
 import { BuscarModeloDialogComponent } from './vehiculo/buscar-modelo-dialog/buscar-modelo-dialog.component';
 import { BuscarTipoVehiculoDialogComponent } from './vehiculo/buscar-tipo-vehiculo-dialog/buscar-tipo-vehiculo-dialog.component';
+import { VehiculoSucursalDialogComponent } from './vehiculo/vehiculo-sucursal-dialog/vehiculo-sucursal-dialog.component';
+import { VehiculosDashboardComponent } from './vehiculos-dashboard/vehiculos-dashboard.component';
+import { ListVehiculoSucursalComponent } from './vehiculo-sucursal/list-vehiculo-sucursal/list-vehiculo-sucursal.component';
 
 @NgModule({
   declarations: [
@@ -16,7 +19,10 @@ import { BuscarTipoVehiculoDialogComponent } from './vehiculo/buscar-tipo-vehicu
     ListVehiculosComponent,
     PreRegistroVehiculoComponent,
     BuscarModeloDialogComponent,
-    BuscarTipoVehiculoDialogComponent
+    BuscarTipoVehiculoDialogComponent,
+    VehiculoSucursalDialogComponent,
+    VehiculosDashboardComponent,
+    ListVehiculoSucursalComponent
   ],
   imports: [
     CommonModule,

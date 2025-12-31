@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { MatTableDataSource } from '@angular/material/table';
 import { Vehiculo } from '../models/vehiculo.model';
@@ -11,23 +11,11 @@ import { MatDialog } from '@angular/material/dialog';
 import { Tab } from '../../../../layouts/tab/tab.model';
 import { VehiculoComponent } from '../vehiculo-form/vehiculo.component';
 import { PreRegistroVehiculoComponent } from '../pre-registro/pre-registro-vehiculo.component';
-import { animate, state, style, transition, trigger } from '@angular/animations';
-
 @Component({
     selector: 'app-list-vehiculos',
     templateUrl: './list-vehiculos.component.html',
     styleUrls: ['./list-vehiculos.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    animations: [
-        trigger("detailExpand", [
-            state("collapsed", style({ height: "0px", minHeight: "0" })),
-            state("expanded", style({ height: "*" })),
-            transition(
-                "expanded <=> collapsed",
-                animate("225ms cubic-bezier(0.4, 0.0, 0.2, 1)")
-            ),
-        ]),
-    ],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ListVehiculosComponent implements OnInit {
     private vehiculoService = inject(VehiculoService);
@@ -44,7 +32,6 @@ export class ListVehiculosComponent implements OnInit {
     pageIndex = 0;
     pageSize = 15;
     totalElements = 0;
-    expandedVehiculo: Vehiculo;
 
     ngOnInit(): void {
         this.onFiltrar();
@@ -119,3 +106,4 @@ export class ListVehiculosComponent implements OnInit {
         this.onFiltrar();
     }
 }
+

@@ -80,3 +80,137 @@ export const deleteVehiculoMutation = gql`
     data: deleteVehiculo(id: $id)
   }
 `;
+
+export const vehiculosSucursalByVehiculoQuery = gql`
+  query vehiculosSucursalByVehiculo($vehiculoId: ID!) {
+    data: vehiculosSucursalByVehiculo(vehiculoId: $vehiculoId) {
+      id
+      creadoEn
+      vehiculo {
+        id
+        chapa
+      }
+      sucursal {
+        id
+        nombre
+      }
+      responsable {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      usuario {
+        id
+        nickname
+      }
+    }
+  }
+`;
+
+export const saveVehiculoSucursalMutation = gql`
+  mutation saveVehiculoSucursal($entity: VehiculoSucursalInput!) {
+    data: saveVehiculoSucursal(vehiculoSucursal: $entity) {
+      id
+      creadoEn
+      vehiculo {
+        id
+        chapa
+      }
+      sucursal {
+        id
+        nombre
+      }
+      responsable {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      usuario {
+        id
+        nickname
+      }
+    }
+  }
+`;
+
+export const deleteVehiculoSucursalMutation = gql`
+  mutation deleteVehiculoSucursal($id: ID!) {
+    data: deleteVehiculoSucursal(id: $id)
+  }
+`;
+
+export const vehiculosSucursalQuery = gql`
+  query vehiculosSucursal($page: Int, $size: Int) {
+    data: vehiculosSucursal(page: $page, size: $size) {
+      id
+      creadoEn
+      vehiculo {
+        id
+        chapa
+        modelo {
+          id
+          descripcion
+          marca {
+            id
+            descripcion
+          }
+        }
+      }
+      sucursal {
+        id
+        nombre
+      }
+      responsable {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      usuario {
+        id
+        nickname
+      }
+    }
+  }
+`;
+
+export const vehiculosSucursalBySucursalQuery = gql`
+  query vehiculosSucursalBySucursal($sucursalId: ID!) {
+    data: vehiculosSucursalBySucursal(sucursalId: $sucursalId) {
+      id
+      creadoEn
+      vehiculo {
+        id
+        chapa
+        modelo {
+          id
+          descripcion
+          marca {
+            id
+            descripcion
+          }
+        }
+      }
+      sucursal {
+        id
+        nombre
+      }
+      responsable {
+        id
+        persona {
+          id
+          nombre
+        }
+      }
+      usuario {
+        id
+        nickname
+      }
+    }
+  }
+`;

@@ -19,14 +19,19 @@ import { MarcaInput } from './models/marca-input.model';
 import { ModeloInput } from './models/modelo-input.model';
 import { TipoVehiculoInput } from './models/tipo-vehiculo-input.model';
 import { SaveTipoVehiculoGQL } from './graphql/saveTipoVehiculo';
+import { VehiculosSucursalByVehiculoGQL } from './graphql/vehiculosSucursalByVehiculo';
+import { VehiculosSucursalBySucursalGQL } from './graphql/vehiculosSucursalBySucursal';
+import { VehiculosSucursalGQL } from './graphql/vehiculosSucursal';
+import { SaveVehiculoSucursalGQL } from './graphql/saveVehiculoSucursal';
+import { DeleteVehiculoSucursalGQL } from './graphql/deleteVehiculoSucursal';
+import { VehiculoSucursal } from './models/vehiculo-sucursal.model';
+import { VehiculoSucursalInput } from './models/vehiculo-sucursal-input.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class VehiculoService {
   private genericService = inject(GenericCrudService);
-
-  // GQLs
   private vehiculoByIdGQL = inject(VehiculoByIdGQL);
   private saveVehiculoGQL = inject(SaveVehiculoGQL);
   private deleteVehiculoGQL = inject(DeleteVehiculoGQL);
@@ -37,6 +42,11 @@ export class VehiculoService {
   private saveMarcaGQL = inject(SaveMarcaGQL);
   private saveModeloGQL = inject(SaveModeloGQL);
   private saveTipoVehiculoGQL = inject(SaveTipoVehiculoGQL);
+  private vehiculosSucursalByVehiculoGQL = inject(VehiculosSucursalByVehiculoGQL);
+  private vehiculosSucursalBySucursalGQL = inject(VehiculosSucursalBySucursalGQL);
+  private vehiculosSucursalGQL = inject(VehiculosSucursalGQL);
+  private saveVehiculoSucursalGQL = inject(SaveVehiculoSucursalGQL);
+  private deleteVehiculoSucursalGQL = inject(DeleteVehiculoSucursalGQL);
 
   onBuscarPorId(id: number): Observable<Vehiculo> {
     return this.genericService.onGetById(this.vehiculoByIdGQL, id);
@@ -84,6 +94,34 @@ export class VehiculoService {
 
   onGuardarTipo(input: TipoVehiculoInput): Observable<TipoVehiculo> {
     return this.genericService.onSave(this.saveTipoVehiculoGQL, input);
+  }
+
+  onBuscarVehiculosSucursalPorVehiculo(vehiculoId: number): Observable<VehiculoSucursal[]> {
+    return this.genericService.onCustomQuery(this.vehiculosSucursalByVehiculoGQL, { vehiculoId });
+  }
+
+  onGuardarVehiculoSucursal(input: VehiculoSucursalInput): Observable<VehiculoSucursal> {
+    return this.genericService.onSave(this.saveVehiculoSucursalGQL, input);
+  }
+
+  onEliminarVehiculoSucursal(id: number): Observable<boolean> {
+    return this.genericService.onDelete(
+      this.deleteVehiculoSucursalGQL,
+      id,
+      '¿Eliminar asignación de vehículo a sucursal?',
+      null,
+      true,
+      true,
+      '¿Está seguro que desea eliminar esta asignación?'
+    );
+  }
+
+  onBuscarTodosVehiculosSucursal(page: number = 0, size: number = 1000): Observable<VehiculoSucursal[]> {
+    return this.genericService.onCustomQuery(this.vehiculosSucursalGQL, { page, size });
+  }
+
+  onBuscarVehiculosSucursalPorSucursal(sucursalId: number): Observable<VehiculoSucursal[]> {
+    return this.genericService.onCustomQuery(this.vehiculosSucursalBySucursalGQL, { sucursalId });
   }
 }
 

@@ -1,0 +1,68 @@
+<h2 mat-dialog-title>
+    {{ data.vehiculoSucursal ? 'Editar' : 'Nueva' }} Asignación de Vehículo a Sucursal
+</h2>
+
+<mat-dialog-content>
+    <div fxLayout="column" fxLayoutGap="15px" style="padding: 20px; min-width: 400px;">
+        <div *ngIf="!mostrarVehiculo && data?.vehiculo">
+            <strong>Vehículo:</strong> {{ data.vehiculo.chapa }} - {{ data.vehiculo.modelo?.marca?.descripcion }} {{ data.vehiculo.modelo?.descripcion }}
+        </div>
+
+        <mat-form-field appearance="outline" style="width: 100%;" *ngIf="mostrarVehiculo">
+            <mat-label>Vehículo *</mat-label>
+            <mat-select [formControl]="form.get('vehiculoControl')!">
+                <mat-option [value]="null">Seleccionar Vehículo</mat-option>
+                <mat-option *ngFor="let vehiculo of vehiculos" [value]="vehiculo.id">
+                    {{ vehiculo.chapa }} - {{ vehiculo.modelo?.marca?.descripcion }} {{ vehiculo.modelo?.descripcion }}
+                </mat-option>
+            </mat-select>
+            <mat-error *ngIf="form.get('vehiculoControl')?.hasError('required')">
+                El vehículo es requerido
+            </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="width: 100%;">
+            <mat-label>Sucursal *</mat-label>
+            <mat-select [formControl]="form.get('sucursalControl')!">
+                <mat-option [value]="null">Seleccionar Sucursal</mat-option>
+                <mat-option *ngFor="let sucursal of sucursales" [value]="sucursal.id">
+                    {{ sucursal.nombre }}
+                </mat-option>
+            </mat-select>
+            <mat-error *ngIf="form.get('sucursalControl')?.hasError('required')">
+                La sucursal es requerida
+            </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="width: 100%;">
+            <mat-label>Responsable</mat-label>
+            <input
+                matInput
+                [formControl]="responsableControlDisplay"
+                readonly
+                (click)="onBuscarResponsable()"
+                placeholder="Click para buscar"
+            />
+            <mat-icon matSuffix (click)="onBuscarResponsable()" style="cursor: pointer;">search</mat-icon>
+            <button
+                mat-icon-button
+                matSuffix
+                *ngIf="selectedResponsable"
+                (click)="selectedResponsable = null; responsableControlDisplay.setValue(''); form.patchValue({responsableControl: null}); $event.stopPropagation()"
+                style="margin-right: -8px;"
+            >
+                <mat-icon>clear</mat-icon>
+            </button>
+        </mat-form-field>
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="15px" style="padding: 15px 24px;">
+    <button mat-raised-button (click)="onCancelar()" [disabled]="isLoading" class="btn-cancelar">
+        CANCELAR
+    </button>
+    <button mat-raised-button (click)="onGuardar()" [disabled]="form.invalid || isLoading" class="btn-guardar">
+        {{ isLoading ? 'GUARDANDO...' : 'GUARDAR' }}
+    </button>
+</mat-dialog-actions>
+
