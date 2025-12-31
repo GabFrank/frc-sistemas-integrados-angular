@@ -645,8 +645,8 @@ export class EditDeliveryDialogComponent implements OnInit, OnDestroy {
 
       if (delivery?.venta?.cobro == null) {
         cobro = new Cobro()
-        cobro.cobroDetalleList = this.cobroItemList;
       }
+      cobro.cobroDetalleList = this.cobroItemList;
 
       this.deliveryService.onSaveDeliveryAndVenta(delivery.toInput(), venta?.toInput(), venta?.toItemInputList(), cobro?.toInput(), cobro?.toItemInputList(), false).subscribe(res => {
         if (res != null) {
