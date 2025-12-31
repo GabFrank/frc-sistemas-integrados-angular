@@ -1,7 +1,7 @@
 <div mat-dialog-title>
     <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
         <div class="icon-circle">
-            <mat-icon color="primary">{{ vehiculo?.id ? 'edit' : 'directions_car' }}</mat-icon>
+            <mat-icon [class.icon-edit]="vehiculo?.id" [class.icon-new]="!vehiculo?.id">{{ vehiculo?.id ? 'edit' : 'directions_car' }}</mat-icon>
         </div>
         <div>
             <h2 class="titulo" style="margin: 0;">{{ vehiculo?.id ? 'Editar Vehículo' : 'Nuevo Vehículo' }}</h2>
@@ -40,8 +40,8 @@
                     <mat-label class="required-field">Modelo</mat-label>
                     <input matInput [value]="modeloDescripcion" readonly (click)="onBuscarModelo()"
                         style="cursor: pointer; font-weight: 500;">
-                    <button mat-icon-button matSuffix (click)="onBuscarModelo()">
-                        <mat-icon color="primary">search</mat-icon>
+                    <button mat-icon-button matSuffix (click)="onBuscarModelo()" class="search-icon-btn">
+                        <mat-icon>search</mat-icon>
                     </button>
                     <mat-hint *ngIf="!modeloSelected" style="color: #ff5252;">Debe seleccionar un modelo</mat-hint>
                 </mat-form-field>
@@ -52,8 +52,8 @@
                     <mat-label class="required-field">Tipo de Vehículo</mat-label>
                     <input matInput [value]="tipoVehiculoDescripcion" readonly (click)="onBuscarTipoVehiculo()"
                         style="cursor: pointer; font-weight: 500;">
-                    <button mat-icon-button matSuffix (click)="onBuscarTipoVehiculo()">
-                        <mat-icon color="primary">search</mat-icon>
+                    <button mat-icon-button matSuffix (click)="onBuscarTipoVehiculo()" class="search-icon-btn">
+                        <mat-icon>search</mat-icon>
                     </button>
                     <mat-hint *ngIf="!tipoVehiculoSelected" style="color: #ff5252;">Debe seleccionar un tipo</mat-hint>
                 </mat-form-field>
@@ -79,7 +79,7 @@
                 <mat-label>Fecha Adquisición</mat-label>
                 <input #fecha matInput [matDatepicker]="picker" formControlName="fechaAdquisicion"
                     placeholder="Seleccione fecha">
-                <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                <mat-datepicker-toggle matSuffix [for]="picker" class="white-icon"></mat-datepicker-toggle>
                 <mat-datepicker #picker></mat-datepicker>
             </mat-form-field>
 
@@ -108,12 +108,10 @@
 <mat-divider style="opacity: 0.1;"></mat-divider>
 
 <mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="15px" style="padding: 15px 24px;">
-    <button mat-button (click)="onCancelar()" style="width: 120px;">
+    <button mat-raised-button (click)="onCancelar()" class="btn-cancelar">
         CANCELAR
     </button>
-    <button mat-raised-button color="accent" (click)="onGuardar()" [disabled]="form.invalid"
-        style="width: 150px; background: linear-gradient(45deg, #ff5252, #ff1744); color: white;">
-        <mat-icon>save</mat-icon>
+    <button mat-raised-button (click)="onGuardar()" [disabled]="form.invalid" class="btn-guardar">
         {{ vehiculo?.id ? 'GUARDAR' : 'REGISTRAR' }}
     </button>
 </mat-dialog-actions>

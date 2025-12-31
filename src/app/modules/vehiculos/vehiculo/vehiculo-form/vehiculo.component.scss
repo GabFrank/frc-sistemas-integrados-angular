@@ -27,6 +27,14 @@
         font-size: 32px;
         width: 32px;
         height: 32px;
+        
+        &.icon-edit {
+            color: #4caf50 !important; // Verde para editar
+        }
+        
+        &.icon-new {
+            color: white !important; // Blanco para nuevo
+        }
     }
 }
 
@@ -34,25 +42,65 @@
     color: #f44336 !important; // System red
 }
 
-::ng-deep {
-    .mat-mdc-form-field {
-        width: 100%;
+:host {
+    ::ng-deep {
+        .mat-mdc-form-field {
+            width: 100%;
+        }
+
+        .mat-mdc-form-field-infix {
+            color: white !important;
+        }
+
+        .mat-mdc-form-field-label {
+            color: #ababab !important;
+        }
+
+        .mat-mdc-form-field.mat-focused .mat-mdc-form-field-label {
+            color: #43a047 !important; // Green focus
+        }
+
+        input {
+            color: white !important;
+            text-transform: uppercase;
+        }
+
+        .white-icon {
+            .mat-datepicker-toggle-default-icon {
+                color: white !important;
+            }
+            
+            .mat-icon-button {
+                .mat-icon {
+                    color: white !important;
+                }
+            }
+        }
+        
+        .mat-datepicker-toggle {
+            .mat-icon-button {
+                .mat-icon {
+                    color: white !important;
+                }
+            }
+        }
+        
+        .search-icon-btn {
+            .mat-icon {
+                color: white !important;
+            }
+        }
     }
 
-    .mat-mdc-form-field-infix {
+    .btn-cancelar {
+        background-color: #f44336 !important;
         color: white !important;
+        width: 120px;
     }
 
-    .mat-mdc-form-field-label {
-        color: #ababab !important;
-    }
-
-    .mat-mdc-form-field.mat-focused .mat-mdc-form-field-label {
-        color: #43a047 !important; // Green focus
-    }
-
-    input {
+    .btn-guardar {
+        background-color: #4caf50 !important;
         color: white !important;
-        text-transform: uppercase;
+        width: 150px;
     }
 }

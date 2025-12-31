@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { VehiculoService } from '../vehiculo.service';
 import { TabService, TabData } from '../../../../layouts/tab/tab.service';
@@ -27,6 +27,7 @@ export class VehiculoComponent implements OnInit {
     private vehiculoService = inject(VehiculoService);
     private tabService = inject(TabService);
     private matDialog = inject(MatDialog);
+    private cdr = inject(ChangeDetectorRef);
     public mainService = inject(MainService);
 
     constructor(
@@ -60,20 +61,68 @@ export class VehiculoComponent implements OnInit {
         const tabData = this.tabService.currentTab()?.tabData?.data;
         this.vehiculo = this.data || tabData;
 
+        // Inicializar formulario primero para evitar errores en el template
+        this.inicializarFormulario();
+
+        // Si hay un ID, cargar todos los datos completos del vehículo
+        if (this.vehiculo?.id) {
+            this.vehiculoService.onBuscarPorId(this.vehiculo.id).pipe(untilDestroyed(this)).subscribe(vehiculoCompleto => {
+                if (vehiculoCompleto) {
+                    this.vehiculo = vehiculoCompleto;
+                    this.cargarDatosEnFormulario();
+                }
+            });
+        } else {
+            this.cargarDatosEnFormulario();
+        }
+    }
+
+    private inicializarFormulario(): void {
         this.form = this.fb.group({
-            id: [this.vehiculo?.id],
-            chapa: [this.vehiculo?.chapa, [Validators.required]],
-            color: [this.vehiculo?.color, [Validators.required]],
-            anho: [this.vehiculo?.anho || new Date().getFullYear(), [Validators.required, Validators.min(1900)]],
-            nuevo: [this.vehiculo?.nuevo || false],
-            documentacion: [this.vehiculo?.documentacion || false],
-            refrigerado: [this.vehiculo?.refrigerado || false],
-            capacidadKg: [this.vehiculo?.capacidadKg],
-            capacidadPasajeros: [this.vehiculo?.capacidadPasajeros],
-            primerKilometraje: [this.vehiculo?.primerKilometraje],
-            fechaAdquisicion: [this.vehiculo?.fechaAdquisicion],
-            modeloId: [this.vehiculo?.modelo?.id, [Validators.required]],
-            tipoVehiculoId: [this.vehiculo?.tipoVehiculo?.id, [Validators.required]]
+            id: [null],
+            chapa: [null, [Validators.required]],
+            color: [null, [Validators.required]],
+            anho: [new Date().getFullYear(), [Validators.required, Validators.min(1900)]],
+            nuevo: [false],
+            documentacion: [false],
+            refrigerado: [false],
+            capacidadKg: [null],
+            capacidadPasajeros: [null],
+            primerKilometraje: [null],
+            fechaAdquisicion: [null],
+            modeloId: [null, [Validators.required]],
+            tipoVehiculoId: [null, [Validators.required]]
+        });
+    }
+
+    private cargarDatosEnFormulario(): void {
+        if (!this.form) {
+            this.inicializarFormulario();
+        }
+
+        const fechaAdquisicion = this.vehiculo?.fechaAdquisicion
+            ? (this.vehiculo.fechaAdquisicion instanceof Date
+                ? this.vehiculo.fechaAdquisicion
+                : new Date(this.vehiculo.fechaAdquisicion))
+            : null;
+
+        // Validar que la fecha sea válida
+        const fechaValida = fechaAdquisicion && !isNaN(fechaAdquisicion.getTime()) ? fechaAdquisicion : null;
+
+        this.form.patchValue({
+            id: this.vehiculo?.id,
+            chapa: this.vehiculo?.chapa,
+            color: this.vehiculo?.color,
+            anho: this.vehiculo?.anho || new Date().getFullYear(),
+            nuevo: this.vehiculo?.nuevo || false,
+            documentacion: this.vehiculo?.documentacion || false,
+            refrigerado: this.vehiculo?.refrigerado || false,
+            capacidadKg: this.vehiculo?.capacidadKg,
+            capacidadPasajeros: this.vehiculo?.capacidadPasajeros,
+            primerKilometraje: this.vehiculo?.primerKilometraje,
+            fechaAdquisicion: fechaValida,
+            modeloId: this.vehiculo?.modelo?.id,
+            tipoVehiculoId: this.vehiculo?.tipoVehiculo?.id
         });
 
         if (this.vehiculo?.modelo) {
@@ -84,6 +133,7 @@ export class VehiculoComponent implements OnInit {
             this.tipoVehiculoSelected = this.vehiculo.tipoVehiculo;
             this.tiposVehiculo$.next([this.vehiculo.tipoVehiculo]);
         }
+        this.cdr.markForCheck();
     }
 
     onGuardar(): void {
@@ -128,6 +178,7 @@ export class VehiculoComponent implements OnInit {
             if (res && Number.isFinite(id)) {
                 this.modeloSelected = res;
                 this.form.get('modeloId')?.setValue(id);
+                setTimeout(() => this.cdr.markForCheck(), 0);
             }
         });
     }
@@ -144,6 +195,7 @@ export class VehiculoComponent implements OnInit {
             if (res && Number.isFinite(id)) {
                 this.tipoVehiculoSelected = res;
                 this.form.get('tipoVehiculoId')?.setValue(id);
+                setTimeout(() => this.cdr.markForCheck(), 0);
             }
         });
     }
