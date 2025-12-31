@@ -821,6 +821,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             cobro.cobroDetalleList = [];
             // cobroDetalle.
             if (response.cobroDetalleList != null) {
+              let maxVal = -1;
+              let bestFormaPago = null;
               response.cobroDetalleList.forEach((cobroDetalle) => {
                 if (cobroDetalle.descuento) {
                   cobro.totalGs -= cobroDetalle.valor;
@@ -828,7 +830,24 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 if (cobroDetalle.aumento)
                   cobroDetalle.valor = cobroDetalle.valor * -1;
                 cobro.cobroDetalleList.push(cobroDetalle);
+
+                // Determining dominant payment method
+                if (cobroDetalle.pago) {
+                  let valGs = cobroDetalle.valor * (cobroDetalle.cambio || 1);
+                  if (valGs > maxVal) {
+                    maxVal = valGs;
+                    bestFormaPago = cobroDetalle.formaPago;
+                  }
+                }
               });
+
+              if (bestFormaPago) {
+                venta.formaPago = bestFormaPago;
+              } else {
+                venta.formaPago = this.formaPagoService.formaPagoList.find(
+                  (f) => f.descripcion == "EFECTIVO"
+                );
+              }
             }
             let ventaCredito: VentaCredito = res["ventaCredito"];
             let ventaCreditoCuotaInputList: VentaCreditoCuotaInput[] =

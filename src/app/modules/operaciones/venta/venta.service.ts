@@ -115,6 +115,9 @@ export class VentaService {
     });
     cobro.cobroDetalleList.forEach((e) => {
       let aux = new CobroDetalle();
+      if (e.usuario == null) {
+        e.usuario = this.mainService.usuarioActual;
+      }
       cobroDetalleInputList.push(Object.assign(aux, e).toInput());
     });
 
