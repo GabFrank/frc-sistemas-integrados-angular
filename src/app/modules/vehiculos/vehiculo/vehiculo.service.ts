@@ -19,6 +19,7 @@ import { MarcaInput } from './models/marca-input.model';
 import { ModeloInput } from './models/modelo-input.model';
 import { TipoVehiculoInput } from './models/tipo-vehiculo-input.model';
 import { SaveTipoVehiculoGQL } from './graphql/saveTipoVehiculo';
+import { DeleteModeloGQL } from './graphql/deleteModelo';
 import { VehiculosSucursalByVehiculoGQL } from './graphql/vehiculosSucursalByVehiculo';
 import { VehiculosSucursalBySucursalGQL } from './graphql/vehiculosSucursalBySucursal';
 import { VehiculosSucursalGQL } from './graphql/vehiculosSucursal';
@@ -41,6 +42,7 @@ export class VehiculoService {
   private marcaSearchGQL = inject(MarcaSearchGQL);
   private saveMarcaGQL = inject(SaveMarcaGQL);
   private saveModeloGQL = inject(SaveModeloGQL);
+  private deleteModeloGQL = inject(DeleteModeloGQL);
   private saveTipoVehiculoGQL = inject(SaveTipoVehiculoGQL);
   private vehiculosSucursalByVehiculoGQL = inject(VehiculosSucursalByVehiculoGQL);
   private vehiculosSucursalBySucursalGQL = inject(VehiculosSucursalBySucursalGQL);
@@ -90,6 +92,18 @@ export class VehiculoService {
 
   onGuardarModelo(input: ModeloInput): Observable<Modelo> {
     return this.genericService.onSave(this.saveModeloGQL, input);
+  }
+
+  onEliminarModelo(id: number): Observable<boolean> {
+    return this.genericService.onDelete(
+      this.deleteModeloGQL,
+      id,
+      '¿Eliminar modelo?',
+      null,
+      true,
+      true,
+      '¿Está seguro que desea eliminar este modelo?'
+    );
   }
 
   onGuardarTipo(input: TipoVehiculoInput): Observable<TipoVehiculo> {

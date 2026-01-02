@@ -6,11 +6,9 @@ import { TipoVehiculo } from '../models/tipo-vehiculo.model';
 import { VehiculoService } from '../vehiculo.service';
 import { FormControl } from '@angular/forms';
 import { PageEvent } from '@angular/material/paginator';
-import { TabService, TabData } from '../../../../layouts/tab/tab.service';
+import { TabService} from '../../../../layouts/tab/tab.service';
 import { MatDialog } from '@angular/material/dialog';
-import { Tab } from '../../../../layouts/tab/tab.model';
 import { VehiculoComponent } from '../vehiculo-form/vehiculo.component';
-import { PreRegistroVehiculoComponent } from '../pre-registro/pre-registro-vehiculo.component';
 @Component({
     selector: 'app-list-vehiculos',
     templateUrl: './list-vehiculos.component.html',
@@ -21,6 +19,7 @@ export class ListVehiculosComponent implements OnInit {
     private vehiculoService = inject(VehiculoService);
     private tabService = inject(TabService);
     private dialog = inject(MatDialog);
+    private cdr = inject(ChangeDetectorRef);
 
     dataSource = new MatTableDataSource<Vehiculo>();
     displayedColumns = ['id', 'chapa', 'marca', 'modelo', 'tipo', 'anho', 'color', 'acciones'];
@@ -32,10 +31,15 @@ export class ListVehiculosComponent implements OnInit {
     pageIndex = 0;
     pageSize = 15;
     totalElements = 0;
+    allData: Vehiculo[] = [];
 
     ngOnInit(): void {
         this.onFiltrar();
         this.cargarTipos();
+        this.tipoControl.valueChanges.subscribe(() => {
+            this.pageIndex = 0;
+            this.aplicarFiltros();
+        });
     }
 
     cargarTipos(): void {
@@ -46,10 +50,12 @@ export class ListVehiculosComponent implements OnInit {
 
     onFiltrar(): void {
         const texto = this.filtroControl.value || '';
-        this.vehiculoService.onFiltrar(texto, this.pageIndex, this.pageSize).subscribe(res => {
+        this.pageIndex = 0;
+        
+        this.vehiculoService.onFiltrar(texto, 0, 1000).subscribe(res => {
             if (res) {
-                this.dataSource.data = res;
-                this.totalElements = res.length;
+                this.allData = res;
+                this.aplicarFiltros();
             }
         });
     }
@@ -57,7 +63,24 @@ export class ListVehiculosComponent implements OnInit {
     handlePageEvent(event: PageEvent): void {
         this.pageIndex = event.pageIndex;
         this.pageSize = event.pageSize;
-        this.onFiltrar();
+        this.aplicarFiltros();
+    }
+
+    aplicarFiltros(): void {
+        const tipoId = this.tipoControl.value;
+        
+        let filteredData = this.allData;
+        if (tipoId) {
+            filteredData = this.allData.filter(v => v.tipoVehiculo?.id === tipoId);
+        }
+        
+        const startIndex = this.pageIndex * this.pageSize;
+        const endIndex = startIndex + this.pageSize;
+        const paginatedData = filteredData.slice(startIndex, endIndex);
+        
+        this.dataSource.data = paginatedData;
+        this.totalElements = filteredData.length;
+        this.cdr.markForCheck();
     }
 
     onAdicionar(): void {

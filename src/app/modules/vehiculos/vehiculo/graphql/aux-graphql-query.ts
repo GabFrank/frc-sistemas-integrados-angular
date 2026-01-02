@@ -61,3 +61,9 @@ export const saveTipoVehiculoMutation = gql`
     }
   }
 `;
+
+export const deleteModeloMutation = gql`
+  mutation deleteModelo($id: ID!) {
+    data: deleteModelo(id: $id)
+  }
+`;

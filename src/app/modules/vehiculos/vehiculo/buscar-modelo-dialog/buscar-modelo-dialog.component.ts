@@ -30,7 +30,7 @@ export class BuscarModeloDialogComponent implements OnInit {
     marcas$ = new BehaviorSubject<Marca[]>([]);
     currentMarca: Marca | null = null;
 
-    displayedColumns = ['id', 'marca', 'modelo', 'acciones'];
+    displayedColumns = ['id', 'marca', 'modelo', 'acciones', 'editarEliminar'];
 
     constructor(
         @Inject(MAT_DIALOG_DATA) public data: any,
@@ -81,6 +81,13 @@ export class BuscarModeloDialogComponent implements OnInit {
 
     toggleAddForm(): void {
         this.showAddForm = !this.showAddForm;
+        if (!this.showAddForm) {
+            this.modeloForm.reset();
+            if (this.modeloForm.get('id')) {
+                this.modeloForm.removeControl('id');
+            }
+            this.currentMarca = null;
+        }
     }
 
     onGuardarMarca(): void {
@@ -101,13 +108,22 @@ export class BuscarModeloDialogComponent implements OnInit {
 
     onGuardarModelo(): void {
         if (this.modeloForm.valid) {
+            const modeloId = this.modeloForm.get('id')?.value;
             this.vehiculoService.onGuardarModelo({
+                id: modeloId ? Number(modeloId) : undefined,
                 marcaId: Number(this.modeloForm.value.marcaId),
                 descripcion: this.modeloForm.value.descripcion.toUpperCase(),
                 usuarioId: this.mainService.usuarioActual?.id
             }).pipe(untilDestroyed(this)).subscribe(res => {
                 if (res) {
-                    this.onSelectModelo(res);
+                    if (modeloId) {
+                        this.modeloForm.removeControl('id');
+                        this.modeloForm.reset();
+                        this.showAddForm = false;
+                        this.onFiltrarModelos(this.buscarControl.value || '');
+                    } else {
+                        this.onSelectModelo(res);
+                    }
                 }
             });
         }
@@ -120,5 +136,30 @@ export class BuscarModeloDialogComponent implements OnInit {
 
     onCancelar(): void {
         this.dialogRef.close();
+    }
+
+    onEditarModelo(modelo: Modelo): void {
+        this.currentMarca = modelo.marca || null;
+        this.modeloForm.patchValue({
+            marcaId: modelo.marca?.id || null,
+            descripcion: modelo.descripcion
+        });
+        if (modelo.id && !this.modeloForm.get('id')) {
+            this.modeloForm.addControl('id', this.fb.control(modelo.id));
+        } else if (modelo.id) {
+            this.modeloForm.get('id')?.setValue(modelo.id);
+        }
+        this.cargarMarcas();
+        this.showAddForm = true;
+    }
+
+    onEliminarModelo(modelo: Modelo): void {
+        if (modelo.id) {
+            this.vehiculoService.onEliminarModelo(Number(modelo.id)).pipe(untilDestroyed(this)).subscribe(res => {
+                if (res) {
+                    this.onFiltrarModelos(this.buscarControl.value || '');
+                }
+            });
+        }
     }
 }
