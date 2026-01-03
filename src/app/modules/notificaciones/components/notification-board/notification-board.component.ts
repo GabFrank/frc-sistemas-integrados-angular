@@ -27,6 +27,7 @@ import { ProductoComponent } from '../../../productos/producto/edit-producto/pro
 import { ModificacionesComponent } from '../../../operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
 import { combineLatest, of } from 'rxjs';
 import { map, take, delay, switchMap } from 'rxjs/operators';
+import { MainService } from '../../../../main.service';
 
 interface NotificacionExtendida extends NotificacionData {
     conteoComentarios: number;
@@ -59,6 +60,7 @@ export class NotificationBoardComponent implements OnInit {
     private readonly registrarInteraccionNotificacionGQL = inject(RegistrarInteraccionNotificacionGQL);
     private readonly dialog = inject(MatDialog);
     private readonly tabService = inject(TabService);
+    private readonly mainService = inject(MainService);
     private readonly cdr = inject(ChangeDetectorRef);
 
     readonly ESTADOS_TABLERO = [
@@ -121,6 +123,8 @@ export class NotificationBoardComponent implements OnInit {
     );
 
     ngOnInit(): void {
+        if (!this.mainService.logged) return;
+
         this.ESTADOS_TABLERO.forEach(estado => {
             this.notificacionesTableroService.cargarNotificaciones(estado, 0, 15);
         });

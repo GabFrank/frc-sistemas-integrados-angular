@@ -25,7 +25,7 @@ export class ComentariosNotificacionService {
   readonly conteosPorNotificacion$ = this._conteosPorNotificacion$.asObservable();
 
   obtenerComentarios(notificacionId: number): Observable<NotificacionComentario[]> {
-    return this.genericService.onCustomQuery(this.getComentariosGQL, { notificacionId }).pipe(
+    return this.genericService.onCustomQuery(this.getComentariosGQL, { notificacionId }, true, null, true).pipe(
       tap(comentarios => {
         const mapActual = new Map(this._comentariosPorNotificacion$.value);
         mapActual.set(notificacionId, comentarios);
@@ -35,7 +35,7 @@ export class ComentariosNotificacionService {
   }
 
   obtenerConteoComentarios(notificacionId: number): Observable<number> {
-    return this.genericService.onCustomQuery(this.getConteoGQL, { notificacionId }).pipe(
+    return this.genericService.onCustomQuery(this.getConteoGQL, { notificacionId }, true, null, true).pipe(
       tap(conteo => {
         const mapActual = new Map(this._conteosPorNotificacion$.value);
         mapActual.set(notificacionId, conteo);

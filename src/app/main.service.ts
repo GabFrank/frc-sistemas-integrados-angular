@@ -85,7 +85,7 @@ export class MainService implements OnDestroy {
     return new Observable((obs) => {
       let isToken = localStorage.getItem("token");
       let keepLogged = localStorage.getItem("keepLogged");
-      
+
       // Only consider authenticated if token exists and either keepLogged is true or it's a new session
       if (isToken != null && (keepLogged === "true" || this.logged)) {
         this.getUsuario()
@@ -141,20 +141,29 @@ export class MainService implements OnDestroy {
     // Update server configuration from ConfiguracionService
     const config = this.configService.getConfig();
     this.serverIpAddres = config.serverIp;
-    
+
     // Create a Promise that resolves when sucursal is loaded or rejects after timeout
     return new Promise<boolean>((resolve, reject) => {
+      const isLocal = this.isLocal();
+      const hasToken = !!localStorage.getItem("token");
+
+      if (!isLocal && !hasToken) {
+        console.warn('No token found and not in local mode, skipping sucursal loading');
+        resolve(false);
+        return;
+      }
+
       const timeout = setTimeout(() => {
         console.warn('Sucursal loading timed out');
         resolve(false);
       }, 5000);
-      
-      this.sucursalService.onGetSucursalActual(!this.isLocal())
+
+      this.sucursalService.onGetSucursalActual(!isLocal)
         .pipe(untilDestroyed(this))
         .subscribe({
           next: (res) => {
             clearTimeout(timeout);
-            if (res != null) {          
+            if (res != null) {
               this.sucursalActual = res;
               if (this.sucursalActual?.id == 0) {
                 this.isServidor = true;
@@ -205,7 +214,7 @@ export class MainService implements OnDestroy {
     localStorage.removeItem("token");
     localStorage.removeItem("usuarioId");
     localStorage.removeItem("keepLogged");
-    
+
     // Reset user data
     this.usuarioActual = null;
     this.logged = false;

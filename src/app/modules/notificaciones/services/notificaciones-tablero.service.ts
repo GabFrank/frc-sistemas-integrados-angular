@@ -4,6 +4,7 @@ import { map, tap, catchError, debounceTime, distinctUntilChanged } from 'rxjs/o
 import { EstadoNotificacionTablero } from '../enums/estado-notificacion-tablero.enum';
 import { ElectronService } from '../../../commons/core/electron/electron.service';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
+import { MainService } from '../../../main.service';
 import { NotificacionesUsuarioGQL } from '../graphql/notificacionesUsuario.gql';
 import {
   MarcarNotificacionLeidaGQL,
@@ -64,6 +65,7 @@ export interface NotificacionesPorEstado {
 })
 export class NotificacionesTableroService {
   private readonly genericService = inject(GenericCrudService);
+  private readonly mainService = inject(MainService);
   private readonly electronService = inject(ElectronService);
   private readonly notificacionesUsuarioGQL = inject(NotificacionesUsuarioGQL);
   private readonly marcarNotificacionLeidaGQL = inject(MarcarNotificacionLeidaGQL);
@@ -124,7 +126,7 @@ export class NotificacionesTableroService {
 
   setTokenFcm(token: string): void {
     this._tokenFcm$.next(token);
-    if (token) {
+    if (token && localStorage.getItem("token")) {
       this.genericService.onCustomMutation(this.actualizarTokenFcmGQL, { tokenFcm: token }).subscribe({
         next: (res: any) => {
           if (res === true) {
