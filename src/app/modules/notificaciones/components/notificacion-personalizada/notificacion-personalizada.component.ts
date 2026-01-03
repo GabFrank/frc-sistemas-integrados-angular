@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -33,9 +33,15 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
     ReactiveFormsModule
   ],
   templateUrl: './notificacion-personalizada.component.html',
-  styleUrls: ['./notificacion-personalizada.component.scss']
+  styleUrls: ['./notificacion-personalizada.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class NotificacionPersonalizadaComponent implements OnInit {
+  private readonly dialogRef = inject(MatDialogRef<NotificacionPersonalizadaComponent>);
+  private readonly notificacionesService = inject(NotificacionesTableroService);
+  private readonly snackbarService = inject(NotificacionSnackbarService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
   tipoEnvio: 'todos' | 'especificos' = 'todos';
   titulo: string = '';
   mensaje: string = '';
@@ -47,17 +53,13 @@ export class NotificacionPersonalizadaComponent implements OnInit {
   cargandoUsuarios: boolean = false;
   botonEnviarDeshabilitado: boolean = true;
 
-  constructor(
-    public dialogRef: MatDialogRef<NotificacionPersonalizadaComponent>,
-    private notificacionesService: NotificacionesTableroService,
-    private snackbarService: NotificacionSnackbarService
-  ) {}
-
   ngOnInit(): void {
     this.cargarUsuarios();
   }
+
   cargarUsuarios(): void {
     this.cargandoUsuarios = true;
+    this.cdr.markForCheck();
     this.notificacionesService
       .obtenerUsuariosActivos()
       .pipe(untilDestroyed(this))
@@ -66,10 +68,12 @@ export class NotificacionPersonalizadaComponent implements OnInit {
           this.usuariosDisponibles = usuarios;
           this.usuariosFiltrados = usuarios;
           this.cargandoUsuarios = false;
+          this.cdr.markForCheck();
         },
         error: () => {
           this.snackbarService.openAlgoSalioMal('No se pudieron cargar los usuarios');
           this.cargandoUsuarios = false;
+          this.cdr.markForCheck();
         }
       });
   }
@@ -77,27 +81,29 @@ export class NotificacionPersonalizadaComponent implements OnInit {
   filtrarUsuarios(): void {
     if (!this.busquedaUsuario || this.busquedaUsuario.trim().length === 0) {
       this.usuariosFiltrados = this.usuariosDisponibles;
-      return;
+    } else {
+      const termino = this.busquedaUsuario.toLowerCase().trim();
+      this.usuariosFiltrados = this.usuariosDisponibles.filter(usuario => {
+        const nickname = usuario.nickname ? usuario.nickname.toLowerCase() : '';
+        const nombre = usuario.persona?.nombre ? usuario.persona.nombre.toLowerCase() : '';
+        return nickname.includes(termino) || nombre.includes(termino);
+      });
     }
-
-    const termino = this.busquedaUsuario.toLowerCase().trim();
-    this.usuariosFiltrados = this.usuariosDisponibles.filter(usuario => {
-      const nickname = usuario.nickname ? usuario.nickname.toLowerCase() : '';
-      const nombre = usuario.persona?.nombre ? usuario.persona.nombre.toLowerCase() : '';
-      return nickname.includes(termino) || nombre.includes(termino);
-    });
+    this.cdr.markForCheck();
   }
 
   onCancelar(): void {
     this.dialogRef.close();
   }
+
   validarFormulario(): void {
     const tituloValido = this.titulo && this.titulo.trim().length > 0;
     const mensajeValido = this.mensaje && this.mensaje.trim().length > 0;
-    const destinatariosValidos = this.tipoEnvio === 'todos' || 
+    const destinatariosValidos = this.tipoEnvio === 'todos' ||
       (this.tipoEnvio === 'especificos' && this.usuariosSeleccionados.length > 0);
-    
+
     this.botonEnviarDeshabilitado = !(tituloValido && mensajeValido && destinatariosValidos) || this.enviando;
+    this.cdr.markForCheck();
   }
 
   onEnviar(): void {
@@ -129,20 +135,22 @@ export class NotificacionPersonalizadaComponent implements OnInit {
           this.enviando = false;
           this.validarFormulario();
           if (result) {
-            const cantidadUsuarios = this.tipoEnvio === 'todos' 
-              ? 'todos los usuarios' 
+            const cantidadUsuarios = this.tipoEnvio === 'todos'
+              ? 'todos los usuarios'
               : `${this.usuariosSeleccionados.length} usuario(s)`;
             this.snackbarService.openSucess(`Notificación enviada a ${cantidadUsuarios}`);
             this.dialogRef.close({ success: true });
           } else {
             this.snackbarService.openAlgoSalioMal('No se pudo enviar la notificación');
           }
+          this.cdr.markForCheck();
         },
         error: (error) => {
           this.enviando = false;
           this.validarFormulario();
           console.error('Error al enviar notificación:', error);
           this.snackbarService.openAlgoSalioMal('Error al enviar la notificación');
+          this.cdr.markForCheck();
         }
       });
   }

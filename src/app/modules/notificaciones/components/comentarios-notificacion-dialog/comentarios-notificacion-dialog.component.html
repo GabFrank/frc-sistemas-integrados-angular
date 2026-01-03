@@ -31,9 +31,9 @@
       </div>
 
       <div *ngFor="let usuario of usuariosDestinatariosFiltrados" class="participant-item">
-        <div class="participant-avatar" [attr.data-initial]="getUserInitials(usuario)"
-          [style.background]="'linear-gradient(135deg, ' + getUserColor(usuario.id) + ', ' + getUserColor(usuario.id + 1) + ')'">
-          {{ getUserInitials(usuario) }}
+        <div class="participant-avatar" [attr.data-initial]="usuario.initials"
+          [style.background]="'linear-gradient(135deg, ' + usuario.color + ', ' + usuario.color2 + ')'">
+          {{ usuario.initials }}
         </div>
         <div class="participant-info">
           <span class="participant-name">{{ usuario.persona?.nombre || usuario.nickname }}</span>
@@ -69,36 +69,33 @@
         </div>
 
         <div *ngFor="let comentario of comentarios; let i = index" class="message-wrapper"
-          [class.is-reply]="comentario.comentarioPadre" [class.same-author]="isSameAuthor(i)"
+          [class.is-reply]="comentario.comentarioPadre" [class.same-author]="comentario.isSameAuthor"
           [id]="'comentario-' + comentario.id">
 
           <div class="message-bubble">
-            <div *ngIf="!comentario.comentarioPadre && (i === 0 || !isSameAuthor(i))" class="message-avatar"
-              [attr.data-initial]="getUserInitials(comentario.usuario)"
-              [style.background]="'linear-gradient(135deg, ' + getUserColor(comentario.usuario.id) + ', ' + getUserColor(comentario.usuario.id + 1) + ')'">
-              {{ getUserInitials(comentario.usuario) }}
+            <div *ngIf="!comentario.comentarioPadre && !comentario.isSameAuthor" class="message-avatar"
+              [attr.data-initial]="comentario.initials"
+              [style.background]="'linear-gradient(135deg, ' + comentario.color + ', ' + comentario.color2 + ')'">
+              {{ comentario.initials }}
             </div>
 
-            <div class="message-content" [style.background]="getUserLightColor(comentario.usuario.id)"
-              [style.border-left-color]="getUserColor(comentario.usuario.id)">
-              <div *ngIf="!comentario.comentarioPadre && (i === 0 || !isSameAuthor(i))" class="message-header">
-                <span class="message-author" [style.color]="getUserColor(comentario.usuario.id)">{{
+            <div class="message-content" [style.background]="comentario.lightColor"
+              [style.border-left-color]="comentario.color">
+              <div *ngIf="!comentario.comentarioPadre && !comentario.isSameAuthor" class="message-header">
+                <span class="message-author" [style.color]="comentario.color">{{
                   comentario.usuario.persona?.nombre || comentario.usuario.nickname }}</span>
                 <span class="message-username">@{{ comentario.usuario.nickname }}</span>
                 <span class="message-time">{{ comentario.creadoEn | date:'short' }}</span>
               </div>
 
               <div *ngIf="comentario.comentarioPadre" class="reply-context"
-                [style.border-left-color]="getUserColor(comentario.comentarioPadre.usuario.id)"
-                [style.background]="getUserLightColor(comentario.comentarioPadre.usuario.id)">
-                <mat-icon class="reply-icon"
-                  [style.color]="getUserColor(comentario.comentarioPadre.usuario.id)">reply</mat-icon>
-                <span class="reply-text">Respondiendo a <strong
-                    [style.color]="getUserColor(comentario.comentarioPadre.usuario.id)">@{{
+                [style.border-left-color]="comentario.replyColor" [style.background]="comentario.replyLightColor">
+                <mat-icon class="reply-icon" [style.color]="comentario.replyColor">reply</mat-icon>
+                <span class="reply-text">Respondiendo a <strong [style.color]="comentario.replyColor">@{{
                     comentario.comentarioPadre.usuario.nickname }}</strong></span>
               </div>
 
-              <div class="message-text" [innerHTML]="getComentarioFormateado(comentario.comentario)"></div>
+              <div class="message-text" [innerHTML]="comentario.formattedText"></div>
 
               <div class="message-actions">
                 <button mat-icon-button (click)="responderComentario(comentario)" class="action-btn"
@@ -125,12 +122,12 @@
 
       <div *ngIf="mostrarAutocompletado && usuariosFiltrados.length > 0" class="mention-autocomplete">
         <div *ngFor="let usuario of usuariosFiltrados" class="mention-option" (click)="seleccionarUsuario(usuario)">
-          <div class="mention-avatar" [attr.data-initial]="getUserInitials(usuario)"
-            [style.background]="'linear-gradient(135deg, ' + getUserColor(usuario.id) + ', ' + getUserColor(usuario.id + 1) + ')'">
-            {{ getUserInitials(usuario) }}
+          <div class="mention-avatar" [attr.data-initial]="usuario.initials"
+            [style.background]="'linear-gradient(135deg, ' + usuario.color + ', ' + usuario.color2 + ')'">
+            {{ usuario.initials }}
           </div>
           <div class="mention-info">
-            <span class="mention-name" [style.color]="getUserColor(usuario.id)">{{ usuario.persona?.nombre ||
+            <span class="mention-name" [style.color]="usuario.color">{{ usuario.persona?.nombre ||
               usuario.nickname }}</span>
             <span class="mention-username">@{{ usuario.nickname }}</span>
           </div>

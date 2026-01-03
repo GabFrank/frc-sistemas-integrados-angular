@@ -6,7 +6,7 @@
                 <mat-card-header class="notifications-column-header">
                     <mat-card-title class="column-title">
                         <span>{{ ESTADOS_LABELS[estado] }}</span>
-                        <span class="notifications-column-count mat-chip" [ngClass]="estado">
+                        <span class="notifications-column-count mat-chip" [class]="estado">
                             {{ data.pagination[estado]?.length || 0 }}
                         </span>
                     </mat-card-title>
@@ -53,7 +53,7 @@
                                     </span>
                                 </button>
                                 <button mat-raised-button color="accent" class="action-button"
-                                    *ngIf="mostrarBotonModificacion(n)" (click)="navegarAModificaciones(n, $event)">
+                                    *ngIf="n.mostrarBotonModificacion" (click)="navegarAModificaciones(n, $event)">
                                     <mat-icon>open_in_new</mat-icon>
                                     <span>Modificación</span>
                                 </button>

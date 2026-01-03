@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, Inject, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -15,8 +15,8 @@ import { MainService } from '../../../../main.service';
 import { UsuariosActivosGQL } from '../../graphql/usuariosActivos.gql';
 import { UsuariosDestinatariosNotificacionGQL } from '../../graphql/usuariosDestinatariosNotificacion.gql';
 import { UsuariosConAccesoNotificacionGQL } from '../../graphql/usuariosConAccesoNotificacion.gql';
-import { Observable, BehaviorSubject, combineLatest, interval } from 'rxjs';
-import { map, debounceTime, distinctUntilChanged, switchMap, startWith, tap } from 'rxjs/operators';
+import { Observable, BehaviorSubject, combineLatest, interval, of } from 'rxjs';
+import { map, debounceTime, distinctUntilChanged, switchMap, startWith, tap, catchError } from 'rxjs/operators';
 
 export interface ComentariosDialogData {
   notificacionId: number;
@@ -25,6 +25,26 @@ export interface ComentariosDialogData {
     titulo: string;
   };
   comentarioId?: number;
+}
+
+interface UsuarioExtendido {
+  id: number;
+  nickname: string;
+  persona?: { id: number; nombre: string };
+  initials: string;
+  color: string;
+  color2: string;
+}
+
+interface ComentarioExtendido extends NotificacionComentario {
+  initials: string;
+  color: string;
+  color2: string;
+  lightColor: string;
+  formattedText: string;
+  isSameAuthor: boolean;
+  replyColor?: string;
+  replyLightColor?: string;
 }
 
 @UntilDestroy()
@@ -47,23 +67,34 @@ export interface ComentariosDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ComentariosNotificacionDialogComponent implements OnInit {
-  comentarios: NotificacionComentario[] = [];
+  private readonly dialogRef = inject(MatDialogRef<ComentariosNotificacionDialogComponent>);
+  public readonly data = inject<ComentariosDialogData>(MAT_DIALOG_DATA);
+  private readonly comentariosService = inject(ComentariosNotificacionService);
+  private readonly usuariosActivosGQL = inject(UsuariosActivosGQL);
+  private readonly usuariosDestinatariosGQL = inject(UsuariosDestinatariosNotificacionGQL);
+  private readonly usuariosConAccesoGQL = inject(UsuariosConAccesoNotificacionGQL);
+  private readonly mainService = inject(MainService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  @ViewChild('mensajeTextarea') mensajeTextarea?: ElementRef<HTMLTextAreaElement>;
+
+  comentarios: ComentarioExtendido[] = [];
   nuevoComentario = '';
   comentarioPadreId: number | null = null;
   cargando = false;
   enviando = false;
 
   usuarios: Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> = [];
-  usuariosFiltrados: Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> = [];
-  usuariosFiltrados$: Observable<Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }>>;
+  usuariosFiltrados: UsuarioExtendido[] = [];
+  usuariosFiltrados$: Observable<UsuarioExtendido[]>;
   textoBusqueda$ = new BehaviorSubject<string>('');
   mostrarAutocompletado = false;
   posicionCursor = 0;
 
-  usuariosDestinatarios: Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> = [];
+  usuariosDestinatarios: UsuarioExtendido[] = [];
+  usuariosDestinatariosFiltrados: UsuarioExtendido[] = [];
   filtroUsuarios: string = '';
   cargandoUsuarios = false;
-  usuariosDestinatariosFiltrados: Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> = [];
 
   private userColorsCache = new Map<number, string>();
   private userLightColorsCache = new Map<number, string>();
@@ -71,16 +102,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
 
   private ultimoConteoComentarios = 0;
 
-  constructor(
-    public dialogRef: MatDialogRef<ComentariosNotificacionDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: ComentariosDialogData,
-    private comentariosService: ComentariosNotificacionService,
-    private usuariosActivosGQL: UsuariosActivosGQL,
-    private usuariosDestinatariosGQL: UsuariosDestinatariosNotificacionGQL,
-    private usuariosConAccesoGQL: UsuariosConAccesoNotificacionGQL,
-    private mainService: MainService,
-    private cdr: ChangeDetectorRef
-  ) {
+  constructor() {
     this.usuariosFiltrados$ = this.textoBusqueda$.pipe(
       debounceTime(200),
       distinctUntilChanged(),
@@ -106,7 +128,8 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     this.cargarUsuariosDestinatarios();
     this.iniciarPollingComentarios();
   }
-  getUserColor(usuarioId: number): string {
+
+  private getUserColor(usuarioId: number): string {
     if (!this.userColorsCache.has(usuarioId)) {
       const colors = [
         '#f44336', '#43a047', '#e53935', '#66bb6a', '#d32f2f', '#388e3c',
@@ -118,7 +141,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     return this.userColorsCache.get(usuarioId)!;
   }
 
-  getUserLightColor(usuarioId: number): string {
+  private getUserLightColor(usuarioId: number): string {
     if (!this.userLightColorsCache.has(usuarioId)) {
       const baseColor = this.getUserColor(usuarioId);
       const hex = baseColor.replace('#', '');
@@ -130,7 +153,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     return this.userLightColorsCache.get(usuarioId)!;
   }
 
-  getUserInitials(usuario: { nickname: string; persona?: { nombre?: string } }): string {
+  private getUserInitials(usuario: { nickname: string; persona?: { nombre?: string } }): string {
     const key = `${usuario.nickname}-${usuario.persona?.nombre || ''}`;
     if (!this.userInitialsCache.has(key)) {
       const nombre = usuario.persona?.nombre || usuario.nickname || 'U';
@@ -146,7 +169,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     return this.userInitialsCache.get(key)!;
   }
 
-  getComentarioFormateado(comentario: string): string {
+  private formatearComentario(comentario: string): string {
     if (!comentario) {
       return '';
     }
@@ -166,19 +189,42 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     return textoFormateado.replace(/\n/g, '<br>');
   }
 
-  isSameAuthor(currentIndex: number): boolean {
-    return currentIndex > 0 && this.comentarios[currentIndex - 1].usuario.id === this.comentarios[currentIndex].usuario.id;
+  private mapComentario(c: NotificacionComentario, index: number, array: NotificacionComentario[]): ComentarioExtendido {
+    const isSameAuthor = index > 0 && array[index - 1].usuario.id === c.usuario.id;
+    const color = this.getUserColor(c.usuario.id);
+    const color2 = this.getUserColor(c.usuario.id + 1);
+    const lightColor = this.getUserLightColor(c.usuario.id);
+    const initials = this.getUserInitials(c.usuario);
+    const formattedText = this.formatearComentario(c.comentario);
+
+    let replyColor: string | undefined;
+    let replyLightColor: string | undefined;
+
+    if (c.comentarioPadre) {
+      replyColor = this.getUserColor(c.comentarioPadre.usuario.id);
+      replyLightColor = this.getUserLightColor(c.comentarioPadre.usuario.id);
+    }
+
+    return {
+      ...c,
+      initials,
+      color,
+      color2,
+      lightColor,
+      formattedText,
+      isSameAuthor,
+      replyColor,
+      replyLightColor
+    };
   }
 
-  private scrollAComentario(comentarioId: number): void {
-    const element = document.getElementById(`comentario-${comentarioId}`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      element.classList.add('highlighted-comment');
-      setTimeout(() => {
-        element.classList.remove('highlighted-comment');
-      }, 3000);
-    }
+  private mapUsuario(u: { id: number; nickname: string; persona?: { id: number; nombre: string } }): UsuarioExtendido {
+    return {
+      ...u,
+      initials: this.getUserInitials(u),
+      color: this.getUserColor(u.id),
+      color2: this.getUserColor(u.id + 1)
+    };
   }
 
   cargarComentarios(mostrarCargando: boolean = true): Observable<NotificacionComentario[]> {
@@ -192,7 +238,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
         untilDestroyed(this),
         tap({
           next: (comentarios) => {
-            this.comentarios = comentarios;
+            this.comentarios = comentarios.map((c, i) => this.mapComentario(c, i, comentarios));
             this.ultimoConteoComentarios = comentarios.length;
             this.cargando = false;
             this.cdr.markForCheck();
@@ -227,7 +273,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
               const habiaComentarios = this.comentarios.length > 0;
               const estabaAlFinal = this.estaAlFinalDelScroll();
 
-              this.comentarios = comentarios;
+              this.comentarios = comentarios.map((c, i) => this.mapComentario(c, i, comentarios));
               this.ultimoConteoComentarios = comentarios.length;
 
               if (habiaComentarios && comentarios.length > conteoAnterior && estabaAlFinal) {
@@ -260,6 +306,17 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     }
   }
 
+  private scrollAComentario(comentarioId: number): void {
+    const element = document.getElementById(`comentario-${comentarioId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.classList.add('highlighted-comment');
+      setTimeout(() => {
+        element.classList.remove('highlighted-comment');
+      }, 3000);
+    }
+  }
+
   cargarUsuariosActivos(): void {
     this.usuariosActivosGQL.fetch({}, { fetchPolicy: 'cache-first' })
       .pipe(untilDestroyed(this))
@@ -271,7 +328,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
       });
   }
 
-  filtrarUsuarios(busqueda: string): Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> {
+  filtrarUsuarios(busqueda: string): UsuarioExtendido[] {
     if (!busqueda || busqueda.length < 1) {
       return [];
     }
@@ -281,7 +338,8 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
       const nickname = usuario.nickname?.toLowerCase() || '';
       const nombre = usuario.persona?.nombre?.toLowerCase() || '';
       return nickname.includes(busquedaLower) || nombre.includes(busquedaLower);
-    }).slice(0, 10);
+    }).slice(0, 10)
+      .map(u => this.mapUsuario(u));
   }
 
   onTextareaInput(event: Event): void {
@@ -339,9 +397,9 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     });
   }
 
-  seleccionarUsuario(usuario: { id: number; nickname: string; persona?: { id: number; nombre: string } }): void {
-    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
-    if (!textarea) return;
+  seleccionarUsuario(usuario: UsuarioExtendido): void {
+    if (!this.mensajeTextarea) return;
+    const textarea = this.mensajeTextarea.nativeElement;
 
     const texto = textarea.value;
     const textoAntesCursor = texto.substring(0, this.posicionCursor);
@@ -377,12 +435,9 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     this.comentarioPadreId = null;
     this.mostrarAutocompletado = false;
 
-    setTimeout(() => {
-      const textarea = document.querySelector('.gemini-textarea') as HTMLTextAreaElement;
-      if (textarea) {
-        textarea.style.height = '20px';
-      }
-    }, 0);
+    if (this.mensajeTextarea) {
+      this.mensajeTextarea.nativeElement.style.height = '20px';
+    }
 
     this.cdr.markForCheck();
 
@@ -392,7 +447,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
         ? this.comentarios.find(c => c.id === comentarioPadreIdTemp)
         : undefined;
 
-      const comentarioTemporal: NotificacionComentario = {
+      const comentarioTemporalRaw: NotificacionComentario = {
         id: -1,
         comentario: comentarioTexto,
         creadoEn: new Date().toISOString(),
@@ -414,14 +469,12 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
         } : undefined
       };
 
+      const comentarioTemporal = this.mapComentario(comentarioTemporalRaw, this.comentarios.length, [...this.comentarios, comentarioTemporalRaw]);
       this.comentarios = [...this.comentarios, comentarioTemporal];
       this.cdr.markForCheck();
 
       setTimeout(() => {
-        const comentariosList = document.querySelector('.comentarios-list');
-        if (comentariosList) {
-          comentariosList.scrollTop = comentariosList.scrollHeight;
-        }
+        this.scrollAlFinal();
       }, 0);
     }
 
@@ -436,37 +489,40 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
       untilDestroyed(this),
       switchMap(() => {
         return this.cargarComentarios(false);
+      }),
+      catchError(() => {
+        this.comentarios = this.comentarios.filter(c => c.id !== -1);
+        this.enviando = false;
+        this.cargarComentarios().subscribe();
+        this.cdr.markForCheck();
+        return of([]);
       })
     )
       .subscribe({
         next: (comentarios) => {
-          this.comentarios = comentarios;
-          this.ultimoConteoComentarios = comentarios.length;
-          this.enviando = false;
-          this.comentariosService.obtenerConteoComentarios(this.data.notificacionId, true).subscribe();
+          if (comentarios.length > 0) {
+            this.comentarios = comentarios.map((c, i) => this.mapComentario(c, i, comentarios));
+            this.ultimoConteoComentarios = comentarios.length;
+            this.enviando = false;
+            this.comentariosService.obtenerConteoComentarios(this.data.notificacionId).subscribe();
 
-          setTimeout(() => {
-            this.scrollAlFinal();
-          }, 100);
+            setTimeout(() => {
+              this.scrollAlFinal();
+            }, 100);
 
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          this.comentarios = this.comentarios.filter(c => c.id !== -1);
-          this.enviando = false;
-          this.cargarComentarios().subscribe();
-          this.cdr.markForCheck();
+            this.cdr.markForCheck();
+          }
         }
       });
   }
 
-  responderComentario(comentario: NotificacionComentario): void {
+  responderComentario(comentario: ComentarioExtendido): void {
     this.comentarioPadreId = comentario.id;
     this.nuevoComentario = `@${comentario.usuario.nickname} `;
 
     setTimeout(() => {
-      const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
-      if (textarea) {
+      if (this.mensajeTextarea) {
+        const textarea = this.mensajeTextarea.nativeElement;
         textarea.focus();
         textarea.setSelectionRange(textarea.value.length, textarea.value.length);
       }
@@ -492,11 +548,8 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (result: any) => {
-          if (result.errors) {
-            this.usuariosDestinatarios = [];
-          } else {
-            this.usuariosDestinatarios = result.data?.data || [];
-          }
+          const rawUsuarios = result.errors ? [] : result.data?.data || [];
+          this.usuariosDestinatarios = rawUsuarios.map(u => this.mapUsuario(u));
           this.actualizarUsuariosDestinatariosFiltrados();
           this.cargandoUsuarios = false;
           this.cdr.markForCheck();
