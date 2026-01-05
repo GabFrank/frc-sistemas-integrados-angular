@@ -108,6 +108,7 @@ import { FormControl } from "@angular/forms";
 import { TipoPrecioService } from "../../../productos/tipo-precio/tipo-precio.service";
 import { MonedaService } from "../../../financiero/moneda/moneda.service";
 import { ConfiguracionService } from "../../../../shared/services/configuracion.service";
+import { NotificationHttpService } from "../../../../shared/services/notification-http.service";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -173,7 +174,8 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     private cargandoService: CargandoDialogService,
     private dialogoService: DialogosService,
     private ventaService: VentaService, //ok
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private notificationHttpService: NotificationHttpService
   ) {
     this.winHeigth = windowInfo.innerHeight + "px";
     this.winWidth = windowInfo.innerWidth + "px";
@@ -192,14 +194,14 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
     }, 0);
 
     console.log('iniciando venta touch');
-    
+
 
     this.cajaService
       .onGetByUsuarioIdAndAbierto(this.mainService.usuarioActual.id, null, false)
       .pipe(untilDestroyed(this))
       .subscribe((res) => {
         console.log('caja encontrada', res);
-        
+
         if (res != null) {
           this.cajaService.selectedCaja = res;
 
@@ -876,7 +878,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
                 !response?.facturado,
                 ventaCredito?.toInput(),
                 ventaCreditoCuotaInputList
-              ).subscribe((ventaRes) => {});
+              ).subscribe((ventaRes) => { });
             }
             this.dialogReference = undefined;
           } else if (this.isDelivery) {
@@ -987,6 +989,25 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
               texto: "Venta guardada con éxito",
               duracion: 2,
             });
+
+            // Enviar notificación push si es venta a crédito
+            if (ventaCreditoInput != null && ventaCreditoInput.clienteId != null) {
+              const sucursalId = ventaCreditoInput.sucursalId || this.mainService.sucursalActual?.id;
+              const personaId = venta.cliente?.persona?.id;
+
+              if (personaId && sucursalId) {
+                this.notificationHttpService.sendVentaCreditoNotification(
+                  res.id,
+                  sucursalId,
+                  personaId,
+                  ventaCreditoInput.valorTotal
+                ).subscribe({
+                  next: () => console.log('Notificación enviada exitosamente'),
+                  error: (err) => console.error('Error al enviar notificación:', err)
+                });
+              }
+            }
+
             this.resetForm();
             obs.next(res);
           } else {
@@ -1088,7 +1109,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
       });
   }
 
-  ngOnDestroy(): void {}
+  ngOnDestroy(): void { }
 
   openUtilitarios() {
     if (this.modoConsulta) return;
