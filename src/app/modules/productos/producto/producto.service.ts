@@ -44,6 +44,7 @@ import { ProductoDescripcionExistsGQL } from "./graphql/productoDescripcionExist
 import { PageInfo } from "../../../app.component";
 import { SearchProductoWithFiltersGQL } from "./graphql/searchWithFilters";
 import { ExportarProductoConFiltrosGQL } from "./graphql/exportarReporteConFiltros";
+import { LucroPorProductoListGQL } from "./graphql/lucroPorProductoList";
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -79,7 +80,8 @@ export class ProductoService {
     private imprimirCodigo: ImprimirCodigoBarraGQL,
     private productoPorSucursalStock: ProductoStockGQL,
     private searchWithFilters: SearchProductoWithFiltersGQL,
-    private productoDescripcionExistsGql: ProductoDescripcionExistsGQL
+    private productoDescripcionExistsGql: ProductoDescripcionExistsGQL,
+    private lucroPorProductoList: LucroPorProductoListGQL
   ) {
     this.productosList = [];
     // getAllProductos.fetch({},{fetchPolicy: 'no-cache', errorPolicy: 'all'}).subscribe(res => {
@@ -228,5 +230,26 @@ export class ProductoService {
 
   onImprimirCodigo(codigo: Codigo, servidor = true) {
     return this.genericService.onCustomQuery(this.imprimirCodigo, {codigoId: codigo?.id}, servidor);
+  }
+
+  onGetLucroPorProducto(
+    fechaInicio: string,
+    fechaFin: string,
+    sucursalIdList: number[],
+    usuarioIdList: number[],
+    productoIdList: number[],
+    page?: number,
+    size?: number,
+    servidor = true
+  ): Observable<any> {
+    return this.genericService.onCustomQuery(this.lucroPorProductoList, {
+      fechaInicio,
+      fechaFin,
+      sucursalIdList,
+      usuarioIdList,
+      productoIdList,
+      page,
+      size
+    }, servidor);
   }
 }

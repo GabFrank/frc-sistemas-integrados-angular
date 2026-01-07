@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, ViewChild } from "@angular/core";
+import { Component, ElementRef, OnInit, ViewChild, Injectable } from "@angular/core";
 import { MatTableDataSource } from "@angular/material/table";
 import { LucroPorProducto } from "./lucro-por-producto.model";
 import { FormControl, FormGroup, Validators } from "@angular/forms";
@@ -36,7 +36,7 @@ import { Usuario } from "../../../../personas/usuarios/usuario.model";
 })
 export class LucroPorProductoComponent implements OnInit {
   @ViewChild("buscadorInput", { static: true }) buscadorInput: ElementRef;
-  @ViewChild("buscadorCajeroInput", { static: true })
+  @ViewChild("cajeroInput", { static: true })
   buscadorCajeroInput: ElementRef;
 
   dataSource = new MatTableDataSource<LucroPorProducto>([]);
@@ -59,6 +59,31 @@ export class LucroPorProductoComponent implements OnInit {
   buscarCajeroControl = new FormControl();
   selectedUsuario: Usuario;
   cajeroIdList: number[];
+
+  displayedColumns: string[] = [
+    "id",
+    "descripcion",
+    "cantidad",
+    "costoUnitario",
+    "ventaMedia",
+    "costoTotal",
+    "totalVenta",
+    "totalDescuento",
+    "totalAumento",
+    "lucro",
+    "margen",
+  ];
+
+  totalVenta = 0;
+  totalCosto = 0;
+  totalLucro = 0;
+  totalDescuento = 0;
+  totalAumento = 0;
+  margenPromedio = 0;
+
+  page = 0;
+  size = 20;
+  totalElements = 0;
 
   constructor(
     private sucursalService: SucursalService,
@@ -103,13 +128,81 @@ export class LucroPorProductoComponent implements OnInit {
     });
   }
 
-  cargarMasDatos() {}
-  onFiltrar() {
+  onFiltrar(isPagination: boolean = false) {
+    if (!isPagination) {
+      this.page = 0;
+    }
     if (this.fechaFormGroup.valid && this.sucursalControl.valid) {
+      if (this.horaInicioControl.value == null)
+        this.horaInicioControl.setValue("07:00");
+      if (this.horaFinalControl.value == null)
+        this.horaFinalControl.setValue("06:59");
+      this.fechaInicioControl.setValue(
+        combineDateTime(
+          this.fechaInicioControl.value,
+          this.horaInicioControl.value
+        )
+      );
+      this.fechaFinalControl.setValue(
+        combineDateTime(
+          this.fechaFinalControl.value,
+          this.horaFinalControl.value
+        )
+      );
       let fechaInicio = dateToString(this.fechaInicioControl.value);
       let fechaFin = dateToString(this.fechaFinalControl.value);
+      let productoIdList: number[];
+      this.productoList.forEach((p) => {
+        if (productoIdList == null) productoIdList = [];
+        productoIdList.push(p.id);
+      });
+      if (this.selectedUsuario != null) {
+        this.cajeroIdList = [];
+        this.cajeroIdList.push(this.selectedUsuario?.id);
+      } else {
+        this.cajeroIdList = [];
+      }
+
+      this.productoService
+        .onGetLucroPorProducto(
+          fechaInicio,
+          fechaFin,
+          this.toSucursalesId(this.sucursalControl.value),
+          this.cajeroIdList,
+          productoIdList,
+          this.page,
+          this.size
+        )
+        .subscribe((res) => {
+          console.log('Data received:', res);
+          if (res) {
+            this.dataSource.data = res.content || [];
+            this.totalElements = res.totalElements || 0;
+            if (res.summary) {
+              this.populateSummary(res.summary);
+            }
+          }
+        });
     }
   }
+
+  handlePageEvent(e: any) {
+    this.page = e.pageIndex;
+    this.size = e.pageSize;
+    this.onFiltrar(true);
+  }
+
+  populateSummary(summary: any) {
+    this.totalVenta = summary.totalVenta || 0;
+    this.totalCosto = summary.costoTotal || 0;
+    this.totalLucro = summary.lucro || 0;
+    this.totalDescuento = summary.totalDescuento || 0;
+    this.totalAumento = summary.totalAumento || 0;
+    this.margenPromedio = summary.margen || 0;
+  }
+
+  cargarMasDatos() {}
+
   resetFiltro() {
     this.fechaInicioControl.setValue(null);
     this.fechaFinalControl.setValue(null);
@@ -141,6 +234,8 @@ export class LucroPorProductoComponent implements OnInit {
     if (this.selectedUsuario != null) {
       this.cajeroIdList = [];
       this.cajeroIdList.push(this.selectedUsuario?.id);
+    } else {
+      this.cajeroIdList = [];
     }
     this.productoService.onImprimirReporteLucroPorProducto(
       fechaInicio,

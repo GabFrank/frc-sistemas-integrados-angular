@@ -720,3 +720,52 @@ export const exportarReporteConFiltrosQuery = gql`
       )
     }
   `;
+
+  export const lucroPorProductoListQuery = gql`
+    query lucroPorProductoList(
+      $fechaInicio: String
+      $fechaFin: String
+      $sucursalIdList: [ID]
+      $usuarioIdList: [ID]
+      $productoIdList: [ID]
+      $page: Int
+      $size: Int
+    ) {
+       data: lucroPorProductoList(
+        fechaInicio: $fechaInicio
+        fechaFin: $fechaFin
+        sucursalIdList: $sucursalIdList
+        usuarioIdList: $usuarioIdList
+        productoIdList: $productoIdList
+        page: $page
+        size: $size
+      ) {
+        content {
+          productoId
+          descripcion
+          cantidad
+          costoTotal
+          costoUnitario
+          totalVenta
+          lucro
+          percent
+          ventaMedia
+          margen
+          totalDescuento
+          totalAumento
+        }
+        totalElements
+        summary {
+          cantidad
+          costoTotal
+          totalVenta
+          lucro
+          margen
+          totalDescuento
+          totalAumento
+          ventaMedia
+          costoUnitario
+        }
+      }
+    }
+  `;
