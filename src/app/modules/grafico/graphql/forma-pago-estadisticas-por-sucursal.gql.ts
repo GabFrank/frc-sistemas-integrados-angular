@@ -6,10 +6,6 @@ import { formaPagoEstadisticasPorSucursalQuery } from './forma-pago-estadisticas
 export interface Response {
     data: FormaPagoEstadistica[];
 }
-
-/**
- * Servicio para obtener estadísticas de formas de pago por sucursal
- */
 @Injectable({
     providedIn: 'root',
 })

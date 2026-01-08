@@ -1,8 +1,260 @@
-.component-container {
-    padding: 20px;
-    color: #faf7f7;
+$primary: #689F38;
+$primary-light: #8BC34A;
+$accent: #009688;
+$background: #424242;
+$background-dark: #303030;
+$text: #E0E0E0;
+$text-secondary: #9E9E9E;
+$border: #555;
 
-    h1 {
-        color: #8BC34A;
+.producto-vendido-container {
+    padding: 16px;
+    background: $background-dark;
+    color: $text;
+    position: relative;
+    max-height: 100%;
+}
+
+.header-section {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.title-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.title-icon {
+    color: $primary;
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.subtitle {
+    color: $text-secondary;
+    font-size: 0.9rem;
+}
+
+.filters-section {
+    background: $background;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid $border;
+    margin-bottom: 20px;
+}
+
+.filters-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.filter-field {
+    flex: 1;
+    min-width: 150px;
+    max-width: 250px;
+}
+
+.loading-overlay {
+    position: absolute;
+    top: 150px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+}
+
+.main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+
+    &.loading {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+}
+
+.chart-card {
+    background: $background;
+    border: 1px solid $border;
+    border-radius: 12px;
+    padding: 16px;
+    min-height: 480px;
+}
+
+.pie-chart {
+    width: 100%;
+    height: 450px;
+}
+
+.summary-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.summary-card {
+    background: $background;
+    border: 1px solid $border;
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    min-height: 100px;
+    transition: all 0.2s ease;
+
+    &:hover {
+        border-color: $primary;
+        transform: translateY(-4px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    mat-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
+    }
+
+    &.total-monto mat-icon {
+        color: $primary;
+    }
+
+    &.total-cantidad mat-icon {
+        color: $accent;
+    }
+}
+
+.card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.card-label {
+    font-size: 0.85rem;
+    color: $text-secondary;
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+.card-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+}
+
+.details-list {
+    background: $background;
+    border: 1px solid $border;
+    border-radius: 12px;
+    padding: 16px;
+    flex: 1;
+}
+
+.list-title {
+    font-size: 1rem;
+    border-bottom: 1px solid $border;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+}
+
+.list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 480px;
+    overflow-y: auto;
+}
+
+.detail-item {
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 6px 12px;
+    padding: 12px;
+    background: $background-dark;
+    border-radius: 10px;
+}
+
+.item-rank {
+    grid-row: span 2;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    color: #fff;
+    align-self: center;
+}
+
+.item-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.item-name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.item-qty {
+    font-size: 0.75rem;
+    color: $text-secondary;
+}
+
+.item-values {
+    text-align: right;
+}
+
+.item-amount {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: $primary-light;
+    display: block;
+}
+
+.item-percentage {
+    font-size: 0.8rem;
+    color: $accent;
+    font-weight: 600;
+    padding: 2px 6px;
+    background: rgba($accent, 0.1);
+    border-radius: 8px;
+}
+
+.progress-bar-container {
+    grid-column: 2 / 4;
+    height: 5px;
+    background: rgba($text-secondary, 0.2);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    transition: width 0.5s ease;
+}
+
+@media (max-width: 1200px) {
+    .main-grid {
+        grid-template-columns: 1fr;
     }
 }
