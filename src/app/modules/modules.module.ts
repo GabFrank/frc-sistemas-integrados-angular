@@ -13,10 +13,11 @@ import { FinancieroModule } from './financiero/financiero.module';
 import { ReportesModule } from './reportes/reportes/reportes.module';
 import { ConfiguracionModule } from './configuracion/configuracion.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
+import { GraficosModule } from './grafico/graficos.module';
 
 
 @NgModule({
-  declarations: [    
+  declarations: [
   ],
   imports: [
     CommonModule,
@@ -32,6 +33,7 @@ import { NotificacionesModule } from './notificaciones/notificaciones.module';
     ReportesModule,
     ConfiguracionModule,
     NotificacionesModule,
+    GraficosModule,
     MDBBootstrapModule.forRoot()
   ],
   providers: [

@@ -44,6 +44,7 @@ import { AnalisisDiferenciaComponent } from '../../../modules/financiero/analisi
 import { ListTimbradoComponent } from '../../../modules/financiero/timbrado/list-timbrado/list-timbrado.component';
 import { ListLoteDeComponent } from '../../../modules/financiero/documento-electronico/lote-de/list-lote-de/list-lote-de.component';
 import { ModificacionesComponent } from '../../../modules/operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
+import { GraficosComponent } from '../../../modules/grafico/graficos/graficos.component';
 
 
 interface BaseNavigationItem {
@@ -349,6 +350,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.ADMIN]
         }
       ]
+    },
+    {
+      name: 'Gráficos',
+      icon: 'bar_chart',
+      action: 'graficos',
+      requiresServerMode: false,
+      visibilityRoles: [ROLES.ADMIN]
     }
   ];
 
@@ -631,6 +639,9 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
         } else {
           this.notificacionService.openWarn('No tenés acceso a esta opcion.');
         }
+        break;
+      case "graficos":
+        this.openTabIfAuthorized(ROLES.ADMIN, GraficosComponent, "Gráficos");
         break;
     }
   }
