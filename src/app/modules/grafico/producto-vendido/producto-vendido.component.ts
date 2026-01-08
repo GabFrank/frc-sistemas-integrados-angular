@@ -1,13 +1,15 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject, NgZone, AfterViewInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { EChartsOption } from 'echarts';
-import { BehaviorSubject, Observable, map, tap, combineLatest, startWith } from 'rxjs';
+import { BehaviorSubject, Observable, map, tap, combineLatest, startWith, delay, Subject, debounceTime } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { ProductoVendidoEstadistica } from '../models/producto-vendido-estadistica.model';
 import { ProductosMasVendidosGQL } from '../graphql/productos-mas-vendidos.gql';
 import { SucursalService } from '../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
+import { FamiliaService } from '../../productos/familia/familia.service';
+import { Familia } from '../../productos/familia/familia.model';
 
 interface DatosGraficoProcesados {
   opciones: EChartsOption;
@@ -31,16 +33,22 @@ interface OpcionMes {
     class: 'producto-vendido-host'
   }
 })
-export class ProductoVendidoComponent implements OnInit {
+export class ProductoVendidoComponent implements OnInit, AfterViewInit {
 
   private genericCrudService = inject(GenericCrudService);
   private estadisticasGQL = inject(ProductosMasVendidosGQL);
   private sucursalService = inject(SucursalService);
+  private familiaService = inject(FamiliaService);
+  private ngZone = inject(NgZone);
+
   private datosSubject = new BehaviorSubject<DatosGraficoProcesados | null>(null);
   datos$: Observable<DatosGraficoProcesados | null> = this.datosSubject.asObservable();
 
   private sucursalesSubject = new BehaviorSubject<Sucursal[]>([]);
   sucursales$: Observable<Sucursal[]> = this.sucursalesSubject.asObservable();
+
+  private familiasSubject = new BehaviorSubject<Familia[]>([]);
+  familias$: Observable<Familia[]> = this.familiasSubject.asObservable();
 
   private cargandoSubject = new BehaviorSubject<boolean>(false);
   cargando$: Observable<boolean> = this.cargandoSubject.asObservable();
@@ -48,6 +56,7 @@ export class ProductoVendidoComponent implements OnInit {
   sucursalControl = new FormControl<number | null>(null);
   anhoControl = new FormControl<number>(new Date().getFullYear());
   mesControl = new FormControl<number | null>(new Date().getMonth() + 1);
+  familiaControl = new FormControl<number | null>(null);
   meses: OpcionMes[] = [
     { valor: 1, nombre: 'Enero' },
     { valor: 2, nombre: 'Febrero' },
@@ -81,7 +90,15 @@ export class ProductoVendidoComponent implements OnInit {
   ngOnInit(): void {
     this.inicializarAnhos();
     this.cargarSucursales();
-    this.configurarFiltros();
+    this.cargarFamilias();
+  }
+
+  ngAfterViewInit(): void {
+    // Retrasar la configuración de filtros para asegurar que el DOM esté listo
+    // y no bloquear el inicio de la navegación
+    setTimeout(() => {
+      this.configurarFiltros();
+    }, 100);
   }
 
   private inicializarAnhos(): void {
@@ -105,12 +122,22 @@ export class ProductoVendidoComponent implements OnInit {
       });
   }
 
+  private cargarFamilias(): void {
+    this.familiaService.familiaBS.pipe(untilDestroyed(this)).subscribe(res => {
+      if (res) {
+        this.familiasSubject.next(res);
+      }
+    });
+  }
+
   private configurarFiltros(): void {
     combineLatest([
       this.sucursalControl.valueChanges.pipe(startWith(this.sucursalControl.value)),
       this.anhoControl.valueChanges.pipe(startWith(this.anhoControl.value)),
-      this.mesControl.valueChanges.pipe(startWith(this.mesControl.value))
+      this.mesControl.valueChanges.pipe(startWith(this.mesControl.value)),
+      this.familiaControl.valueChanges.pipe(startWith(this.familiaControl.value))
     ]).pipe(
+      debounceTime(200), // Evitar múltiples llamadas rápidas
       untilDestroyed(this)
     ).subscribe(() => {
       this.cargarDatos();
@@ -121,6 +148,7 @@ export class ProductoVendidoComponent implements OnInit {
     this.cargandoSubject.next(true);
     const { inicio, fin } = this.construirRangoFechas();
     const sucursalId = this.sucursalControl.value;
+    const familiaId = this.familiaControl.value;
 
     this.genericCrudService.onCustomQuery(
       this.estadisticasGQL,
@@ -128,7 +156,8 @@ export class ProductoVendidoComponent implements OnInit {
         inicio,
         fin,
         limit: 10,
-        sucursalId: sucursalId ? String(sucursalId) : null
+        sucursalId: sucursalId ? String(sucursalId) : null,
+        familiaId: familiaId ? String(familiaId) : null
       },
       true,
       undefined,
@@ -241,6 +270,7 @@ export class ProductoVendidoComponent implements OnInit {
     this.sucursalControl.setValue(null, { emitEvent: false });
     this.anhoControl.setValue(new Date().getFullYear(), { emitEvent: false });
     this.mesControl.setValue(new Date().getMonth() + 1, { emitEvent: false });
+    this.familiaControl.setValue(null, { emitEvent: false });
     this.cargarDatos();
   }
 

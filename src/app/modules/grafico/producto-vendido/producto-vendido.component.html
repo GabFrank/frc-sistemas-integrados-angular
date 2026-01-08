@@ -41,6 +41,17 @@
                 <mat-icon matPrefix>date_range</mat-icon>
             </mat-form-field>
 
+            <mat-form-field appearance="outline" class="filter-field familia-filter">
+                <mat-label>Familia</mat-label>
+                <mat-select [formControl]="familiaControl" placeholder="Todas las familias">
+                    <mat-option [value]="null">Todas las familias</mat-option>
+                    <mat-option *ngFor="let fam of familias$ | async" [value]="fam.id">
+                        {{ fam.nombre }}
+                    </mat-option>
+                </mat-select>
+                <mat-icon matPrefix>category</mat-icon>
+            </mat-form-field>
+
             <button mat-icon-button (click)="limpiarFiltros()" matTooltip="Limpiar filtros">
                 <mat-icon>filter_alt_off</mat-icon>
             </button>

@@ -1,7 +1,7 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject, NgZone, AfterViewInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { EChartsOption } from 'echarts';
-import { BehaviorSubject, Observable, forkJoin, map, tap, combineLatest, startWith } from 'rxjs';
+import { BehaviorSubject, Observable, forkJoin, map, tap, combineLatest, startWith, debounceTime } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { FormaPagoEstadistica } from '../models/forma-pago-estadistica.model';
@@ -30,11 +30,13 @@ interface OpcionMes {
     class: 'forma-pago-host'
   }
 })
-export class FormaPagoComponent implements OnInit {
+export class FormaPagoComponent implements OnInit, AfterViewInit {
 
   private genericCrudService = inject(GenericCrudService);
   private estadisticasGQL = inject(FormaPagoEstadisticasConFiltrosGQL);
   private sucursalService = inject(SucursalService);
+  private ngZone = inject(NgZone);
+
   private datosSubject = new BehaviorSubject<DatosGraficoProcesados | null>(null);
   datos$: Observable<DatosGraficoProcesados | null> = this.datosSubject.asObservable();
 
@@ -95,7 +97,13 @@ export class FormaPagoComponent implements OnInit {
   ngOnInit(): void {
     this.inicializarAnhos();
     this.cargarSucursales();
-    this.configurarFiltros();
+  }
+
+  ngAfterViewInit(): void {
+    // Retrasar la carga para dar prioridad al renderizado del DOM inicial
+    setTimeout(() => {
+      this.configurarFiltros();
+    }, 150);
   }
 
   private inicializarAnhos(): void {
@@ -129,6 +137,7 @@ export class FormaPagoComponent implements OnInit {
       this.anhoControl.valueChanges.pipe(startWith(this.anhoControl.value)),
       this.mesControl.valueChanges.pipe(startWith(this.mesControl.value))
     ]).pipe(
+      debounceTime(250),
       untilDestroyed(this)
     ).subscribe(() => {
       this.cargarDatos();
