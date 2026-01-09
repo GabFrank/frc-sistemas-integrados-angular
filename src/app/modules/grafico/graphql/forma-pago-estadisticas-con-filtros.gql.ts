@@ -6,10 +6,6 @@ import { formaPagoEstadisticasConFiltrosQuery } from './forma-pago-estadisticas-
 export interface Response {
     data: FormaPagoEstadistica[];
 }
-
-/**
- * Servicio para obtener estadísticas de formas de pago con filtros de fecha y sucursal
- */
 @Injectable({
     providedIn: 'root',
 })

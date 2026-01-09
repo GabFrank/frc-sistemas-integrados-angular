@@ -80,7 +80,7 @@
       <div echarts [options]="ingresosGastosOptions" class="chart"></div>
     </div>
 
-    <div class="chart-card">
+    <div class="chart-card clickable" (click)="onChartClick('hora')">
       <div echarts [options]="ventasHoraOptions" class="chart"></div>
     </div>
 

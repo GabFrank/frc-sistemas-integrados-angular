@@ -6,6 +6,10 @@ import { ProductoVendidoComponent } from '../producto-vendido/producto-vendido.c
 
 import { FormaPagoComponent } from '../forma-pago/forma-pago.component';
 import { VentaFuncionarioComponent } from '../venta-funcionario/venta-funcionario.component';
+import { VentasDiasComponent } from '../ventas-dias/ventas-dias.component';
+import { GraficoService } from '../grafico.service';
+import { Subscription } from 'rxjs';
+import { DatePipe } from '@angular/common';
 // DESHABILITADO: Componente de ventas mensuales no se utiliza
 // import { VentaMesComponent } from '../venta-mes/venta-mes.component';
 
@@ -19,6 +23,7 @@ export class GraficosComponent implements OnInit, AfterViewInit {
 
     private ngZone = inject(NgZone);
     private tabService = inject(TabService);
+    private graficoService = inject(GraficoService);
 
     // Colores del sistema (consistentes con Material theme)
     colores = {
@@ -97,6 +102,9 @@ export class GraficosComponent implements OnInit, AfterViewInit {
                 break;
             case 'funcionario':
                 this.tabService.addTab(new Tab(VentaFuncionarioComponent, 'Ventas por Funcionario', null, null));
+                break;
+            case 'hora':
+                this.tabService.addTab(new Tab(VentasDiasComponent, 'Ventas por Hora', null, null));
                 break;
             // DESHABILITADO: Componente de ventas mensuales no se utiliza
             // case 'venta-mes':
@@ -292,51 +300,119 @@ export class GraficosComponent implements OnInit, AfterViewInit {
 
     private initChartsGroup3(): void {
         // 6. Ventas por Hora
-        this.ventasHoraOptions = {
-            title: {
-                text: 'Ventas por Hora del Día',
-                left: 'center',
-                textStyle: { color: this.colores.text, fontSize: 16, fontWeight: 'bold' }
-            },
-            xAxis: {
-                type: 'category',
-                boundaryGap: false,
-                data: ['7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21']
-            },
-            yAxis: { type: 'value' },
-            series: [{
-                name: 'Ventas',
-                type: 'line',
-                smooth: true,
-                data: [5000000, 12000000, 28000000, 35000000, 52000000, 68000000, 45000000, 38000000, 42000000, 55000000, 72000000, 85000000, 78000000, 62000000, 35000000],
-                areaStyle: { color: 'rgba(0, 150, 136, 0.3)' },
-                lineStyle: { color: this.colores.accent, width: 3 }
-            }]
-        };
+        // 6. Ventas por Hora
+        const today = new Date();
+        const datePipe = new DatePipe('en-US');
+        const hoyStr = datePipe.transform(today, 'yyyy-MM-dd') || '';
+
+        this.graficoService.obtenerVentasPorHora(hoyStr).subscribe(res => {
+            const horas = Array.from({ length: 15 }, (_, i) => (i + 7).toString()); // 7 to 21
+            const data = new Array(15).fill(0);
+
+            if (res) {
+                res.forEach((item: any) => {
+                    const idx = item.hora - 7;
+                    if (idx >= 0 && idx < 15) {
+                        data[idx] = item.total;
+                    }
+                });
+            }
+
+            this.ventasHoraOptions = {
+                title: {
+                    text: 'Ventas por Hora del Día (Hoy)',
+                    left: 'center',
+                    textStyle: { color: this.colores.text, fontSize: 16, fontWeight: 'bold' }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: (params: any) => {
+                        const val = params[0].value;
+                        return `Hora: ${params[0].name}:00<br/>Venta: ₲ ${val.toLocaleString('es-PY')}`;
+                    }
+                },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: horas, // ['7', '8', ... '21']
+                    axisLabel: { color: this.colores.textSecondary },
+                },
+                yAxis: {
+                    type: 'value',
+                    axisLabel: {
+                        color: this.colores.textSecondary,
+                        formatter: (value: number) => {
+                            if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                            if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
+                            return value.toString();
+                        }
+                    },
+                    splitLine: { lineStyle: { color: '#444' } }
+                },
+                series: [{
+                    name: 'Ventas',
+                    type: 'line',
+                    smooth: true,
+                    data: data,
+                    areaStyle: { color: 'rgba(0, 150, 136, 0.3)' },
+                    lineStyle: { color: this.colores.accent, width: 3 },
+                    itemStyle: { color: this.colores.accent }
+                }]
+            };
+        });
 
         // 7. Ventas por Funcionario
-        this.ventasFuncionarioOptions = {
-            title: {
-                text: 'Ventas por Funcionario (Top 10)',
-                left: 'center',
-                textStyle: { color: this.colores.text, fontSize: 16, fontWeight: 'bold' }
-            },
-            legend: {
-                data: ['Canindeyu 1', 'Curuguaty 2', 'Renacer'],
-                bottom: 5,
-                textStyle: { color: this.colores.textSecondary }
-            },
-            xAxis: { type: 'value' },
-            yAxis: {
-                type: 'category',
-                data: ['María López', 'Juan Pérez', 'Ana García', 'Carlos Ruiz', 'Sofia Mendez', 'Diego Torres', 'Laura Sánchez', 'Pedro Gómez', 'Lucía Fernández', 'Roberto Silva']
-            },
-            series: [
-                { name: 'Canindeyu 1', type: 'bar', stack: 'total', data: [45000000, 38000000, 0, 28000000, 0, 22000000, 0, 18000000, 0, 12000000] },
-                { name: 'Curuguaty 2', type: 'bar', stack: 'total', data: [0, 0, 42000000, 0, 35000000, 0, 25000000, 0, 15000000, 0] },
-                { name: 'Renacer', type: 'bar', stack: 'total', data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 8000000] }
-            ]
-        };
+
+        const fechaInicio = datePipe.transform(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd') || '';
+        const fechaFin = datePipe.transform(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd') || '';
+
+        this.graficoService.obtenerVentasPorFuncionario(fechaInicio, fechaFin).subscribe(res => {
+            const nombres: string[] = [];
+            const data: any[] = [];
+
+            if (res) {
+                res.slice(0, 10).forEach((item: any) => {
+                    const nombre = item.persona?.nombre || item.funcionario || item.nickname || 'Unknown';
+                    nombres.push(nombre);
+                    // Check if sucursal-specific breakdown is needed or just total
+                    // The backend returns a list of VentaPorFuncionario.
+                    // For this overview chart, we can just show total sales per employee.
+                    // The stack logic in mock was per-branch, but data is per-employee.
+                    // So we simplification: Single bar per employee.
+                    data.push(item.total);
+                });
+            }
+
+            this.ventasFuncionarioOptions = {
+                title: {
+                    text: 'Ventas por Funcionario (Top 10 - Este Mes)',
+                    left: 'center',
+                    textStyle: { color: this.colores.text, fontSize: 16, fontWeight: 'bold' }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: (params: any) => {
+                        return `${params[0].name}<br/>Venta: ₲ ${Number(params[0].value).toLocaleString('es-PY')}`;
+                    }
+                },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'value' },
+                yAxis: {
+                    type: 'category',
+                    data: nombres
+                },
+                series: [
+                    {
+                        name: 'Total',
+                        type: 'bar',
+                        data: data,
+                        itemStyle: { color: this.colores.primary }
+                    }
+                ]
+            };
+        });
 
         // 8. Productos más Vendidos
         this.productosMasVendidosOptions = {

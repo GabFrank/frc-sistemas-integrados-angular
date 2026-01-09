@@ -10,6 +10,7 @@ import { GraficosRoutingModule } from './graficos-routing.module';
 import { VentaFuncionarioComponent } from './venta-funcionario/venta-funcionario.component';
 import { FormaPagoComponent } from './forma-pago/forma-pago.component';
 import { ProductoVendidoComponent } from './producto-vendido/producto-vendido.component';
+import { VentasDiasComponent } from './ventas-dias/ventas-dias.component';
 // DESHABILITADO: Componente de ventas mensuales no se utiliza
 // import { VentaMesComponent } from './venta-mes/venta-mes.component';
 
@@ -41,6 +42,7 @@ export function loadEcharts() {
         VentaFuncionarioComponent,
         FormaPagoComponent,
         ProductoVendidoComponent,
+        VentasDiasComponent,
         // VentaMesComponent // DESHABILITADO
     ],
     imports: [
