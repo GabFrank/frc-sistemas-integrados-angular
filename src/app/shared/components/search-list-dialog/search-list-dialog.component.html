@@ -30,7 +30,7 @@
                 {{ item["nombre"] }}
               </th>
               <td [style.width]="item?.width" mat-cell *matCellDef="let element">
-                {{ element[item?.nestedId][item.id] }}
+                {{ element[item?.nestedId] ? element[item?.nestedId][item.id] : '' }}
               </td>
             </ng-container>
             <ng-container *ngIf="item?.nested != true">

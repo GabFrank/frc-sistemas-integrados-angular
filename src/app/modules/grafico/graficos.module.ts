@@ -5,30 +5,35 @@ import { GraficosComponent } from './graficos/graficos.component';
 import { MaterialModule } from '../../commons/core/material.module';
 import { SharedModule } from '../../shared/shared.module';
 import { NgxEchartsModule } from 'ngx-echarts';
-import * as echarts from 'echarts/core';
-import { PieChart, BarChart, LineChart } from 'echarts/charts';
-import {
-    TitleComponent,
-    TooltipComponent,
-    GridComponent,
-    LegendComponent
-} from 'echarts/components';
-import { CanvasRenderer } from 'echarts/renderers';
-echarts.use([
-    TitleComponent,
-    TooltipComponent,
-    GridComponent,
-    LegendComponent,
-    PieChart,
-    BarChart,
-    LineChart,
-    CanvasRenderer
-]);
+import { GraficosRoutingModule } from './graficos-routing.module';
 
 import { VentaFuncionarioComponent } from './venta-funcionario/venta-funcionario.component';
 import { FormaPagoComponent } from './forma-pago/forma-pago.component';
 import { ProductoVendidoComponent } from './producto-vendido/producto-vendido.component';
-import { VentaMesComponent } from './venta-mes/venta-mes.component';
+// DESHABILITADO: Componente de ventas mensuales no se utiliza
+// import { VentaMesComponent } from './venta-mes/venta-mes.component';
+
+export function loadEcharts() {
+    return import('echarts/core').then(echarts => {
+        return Promise.all([
+            import('echarts/charts'),
+            import('echarts/components'),
+            import('echarts/renderers')
+        ]).then(([charts, components, renderers]) => {
+            echarts.use([
+                components.TitleComponent,
+                components.TooltipComponent,
+                components.GridComponent,
+                components.LegendComponent,
+                charts.PieChart,
+                charts.BarChart,
+                charts.LineChart,
+                renderers.CanvasRenderer
+            ]);
+            return echarts;
+        });
+    });
+}
 
 @NgModule({
     declarations: [
@@ -36,19 +41,17 @@ import { VentaMesComponent } from './venta-mes/venta-mes.component';
         VentaFuncionarioComponent,
         FormaPagoComponent,
         ProductoVendidoComponent,
-        VentaMesComponent
+        // VentaMesComponent // DESHABILITADO
     ],
     imports: [
         CommonModule,
         ReactiveFormsModule,
         MaterialModule,
         SharedModule,
+        GraficosRoutingModule,
         NgxEchartsModule.forRoot({
-            echarts
+            echarts: loadEcharts
         })
-    ],
-    exports: [
-        GraficosComponent
     ]
 })
 export class GraficosModule { }

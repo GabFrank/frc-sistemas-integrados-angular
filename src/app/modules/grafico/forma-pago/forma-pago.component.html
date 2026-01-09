@@ -50,12 +50,12 @@
     <div class="loading-overlay" *ngIf="cargando$ | async">
         <mat-spinner diameter="40"></mat-spinner>
     </div>
+
     <ng-container *ngIf="datos$ | async as datos">
         <div class="main-grid" [class.loading]="cargando$ | async">
             <div class="chart-section">
                 <div class="chart-card">
-                    <div echarts [options]="datos.opciones" class="pie-chart">
-                    </div>
+                    <div echarts [options]="datos.opciones" class="pie-chart"></div>
                 </div>
             </div>
 
@@ -65,14 +65,14 @@
                         <mat-icon>account_balance_wallet</mat-icon>
                         <div class="card-content">
                             <span class="card-label">Total Recaudado</span>
-                            <span class="card-value">{{ formatearMoneda(datos.totalMonto) }}</span>
+                            <span class="card-value">{{ datos.totalMonto }}</span>
                         </div>
                     </div>
                     <div class="summary-card total-transacciones">
                         <mat-icon>receipt_long</mat-icon>
                         <div class="card-content">
                             <span class="card-label">Transacciones</span>
-                            <span class="card-value">{{ formatearNumero(datos.totalTransacciones) }}</span>
+                            <span class="card-value">{{ datos.totalTransacciones }}</span>
                         </div>
                     </div>
                 </div>
@@ -80,27 +80,25 @@
                 <div class="details-list">
                     <h3 class="list-title">Desglose por Forma de Pago</h3>
                     <div class="list-container">
-                        <div *ngFor="let item of datos.detalles; let i = index" class="detail-item"
-                            [class.no-data]="item.cantidadTransacciones === 0">
-                            <div class="item-indicator" [style.background-color]="obtenerColor(i)"></div>
+                        <div *ngFor="let item of datos.detalles" class="detail-item"
+                            [class.no-data]="item.porcentaje === 0">
+                            <div class="item-indicator" [style.background-color]="item.color"></div>
                             <div class="item-icon">
-                                <mat-icon>{{ obtenerIcono(item.descripcion) }}</mat-icon>
+                                <mat-icon>{{ item.icono }}</mat-icon>
                             </div>
                             <div class="item-info">
                                 <span class="item-name">{{ item.descripcion }}</span>
-                                <span class="item-transactions">
-                                    {{ formatearNumero(item.cantidadTransacciones) }} transacciones
-                                </span>
+                                <span class="item-transactions">{{ item.cantidadFormateada }}</span>
                             </div>
                             <div class="item-values">
-                                <span class="item-amount">{{ formatearMoneda(item.totalMonto) }}</span>
+                                <span class="item-amount">{{ item.montoFormateada }}</span>
                                 <span class="item-percentage" [class.zero]="item.porcentaje === 0">
                                     {{ item.porcentaje | number:'1.2-2' }}%
                                 </span>
                             </div>
                             <div class="progress-bar-container">
                                 <div class="progress-bar" [style.width.%]="item.porcentaje"
-                                    [style.background-color]="obtenerColor(i)">
+                                    [style.background-color]="item.color">
                                 </div>
                             </div>
                         </div>
@@ -109,7 +107,7 @@
             </div>
         </div>
 
-        <div class="no-data-message" *ngIf="datos.totalTransacciones === 0">
+        <div class="no-data-message" *ngIf="!datos.hayDatos">
             <mat-icon>info</mat-icon>
             <span>No hay datos para el período seleccionado</span>
         </div>

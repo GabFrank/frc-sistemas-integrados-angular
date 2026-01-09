@@ -1,23 +1,27 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject, NgZone, AfterViewInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { EChartsOption } from 'echarts';
-import { BehaviorSubject, Observable, forkJoin, map, tap, combineLatest, startWith, debounceTime } from 'rxjs';
+import { BehaviorSubject, Observable, map, tap, combineLatest, startWith, debounceTime, switchMap, finalize, distinctUntilChanged } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { FormaPagoEstadistica } from '../models/forma-pago-estadistica.model';
-import { FormaPagoEstadisticasConFiltrosGQL } from '../graphql/forma-pago-estadisticas-con-filtros.gql';
-import { SucursalService } from '../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
+import { GraficoService } from '../grafico.service';
+
+interface DetalleProcesado {
+  descripcion: string;
+  montoFormateado: string;
+  cantidadFormateada: string;
+  porcentaje: number;
+  color: string;
+  icono: string;
+}
 
 interface DatosGraficoProcesados {
   opciones: EChartsOption;
-  detalles: FormaPagoEstadistica[];
-  totalMonto: number;
-  totalTransacciones: number;
-}
-interface OpcionMes {
-  valor: number;
-  nombre: string;
+  detalles: DetalleProcesado[];
+  totalMonto: string;
+  totalTransacciones: string;
+  hayDatos: boolean;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -30,12 +34,9 @@ interface OpcionMes {
     class: 'forma-pago-host'
   }
 })
-export class FormaPagoComponent implements OnInit, AfterViewInit {
+export class FormaPagoComponent implements OnInit {
 
-  private genericCrudService = inject(GenericCrudService);
-  private estadisticasGQL = inject(FormaPagoEstadisticasConFiltrosGQL);
-  private sucursalService = inject(SucursalService);
-  private ngZone = inject(NgZone);
+  private graficoService = inject(GraficoService);
 
   private datosSubject = new BehaviorSubject<DatosGraficoProcesados | null>(null);
   datos$: Observable<DatosGraficoProcesados | null> = this.datosSubject.asObservable();
@@ -49,316 +50,139 @@ export class FormaPagoComponent implements OnInit, AfterViewInit {
   sucursalControl = new FormControl<number | null>(null);
   anhoControl = new FormControl<number>(new Date().getFullYear());
   mesControl = new FormControl<number | null>(new Date().getMonth() + 1);
-  meses: OpcionMes[] = [
-    { valor: 1, nombre: 'Enero' },
-    { valor: 2, nombre: 'Febrero' },
-    { valor: 3, nombre: 'Marzo' },
-    { valor: 4, nombre: 'Abril' },
-    { valor: 5, nombre: 'Mayo' },
-    { valor: 6, nombre: 'Junio' },
-    { valor: 7, nombre: 'Julio' },
-    { valor: 8, nombre: 'Agosto' },
-    { valor: 9, nombre: 'Septiembre' },
-    { valor: 10, nombre: 'Octubre' },
-    { valor: 11, nombre: 'Noviembre' },
-    { valor: 12, nombre: 'Diciembre' }
+
+  meses = [
+    { valor: 1, nombre: 'Enero' }, { valor: 2, nombre: 'Febrero' }, { valor: 3, nombre: 'Marzo' },
+    { valor: 4, nombre: 'Abril' }, { valor: 5, nombre: 'Mayo' }, { valor: 6, nombre: 'Junio' },
+    { valor: 7, nombre: 'Julio' }, { valor: 8, nombre: 'Agosto' }, { valor: 9, nombre: 'Septiembre' },
+    { valor: 10, nombre: 'Octubre' }, { valor: 11, nombre: 'Noviembre' }, { valor: 12, nombre: 'Diciembre' }
   ];
 
   anhos: number[] = [];
 
   private colores = {
-    primary: '#689F38',
-    primaryLight: '#8BC34A',
-    primaryDark: '#558B2F',
-    accent: '#009688',
-    accentLight: '#4DB6AC',
-    warn: '#F44336',
-    warnLight: '#EF5350',
-    background: '#424242',
-    backgroundDark: '#303030',
     text: '#E0E0E0',
     textSecondary: '#9E9E9E',
-    success: '#4CAF50',
-    warning: '#FF9800',
-    info: '#2196F3'
+    background: '#424242',
+    backgroundDark: '#303030'
   };
 
-  private paletaColores = [
-    '#689F38',
-    '#009688',
-    '#FF9800',
-    '#2196F3',
-    '#4DB6AC',
-    '#E91E63',
-    '#9C27B0',
-    '#00BCD4'
-  ];
+  private paletaColores = ['#689F38', '#009688', '#FF9800', '#2196F3', '#4DB6AC', '#E91E63', '#9C27B0', '#00BCD4'];
 
   ngOnInit(): void {
     this.inicializarAnhos();
-    this.cargarSucursales();
-  }
 
-  ngAfterViewInit(): void {
-    // Retrasar la carga para dar prioridad al renderizado del DOM inicial
+    // Diferir la carga de datos para no bloquear el renderizado inicial
     setTimeout(() => {
-      this.configurarFiltros();
-    }, 150);
+      this.cargarSucursales();
+      this.configurarDataStream();
+    }, 100);
   }
 
   private inicializarAnhos(): void {
     const anhoActual = new Date().getFullYear();
-    this.anhos = [];
-    for (let i = 0; i < 5; i++) {
-      this.anhos.push(anhoActual - i);
-    }
+    this.anhos = Array.from({ length: 5 }, (_, i) => anhoActual - i);
   }
 
   private cargarSucursales(): void {
-    this.sucursalService.onGetAllSucursales(true)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (sucursales) => {
-          const sucursalesFiltradas = (sucursales || []).filter(s =>
-            s.activo && s.id > 0 && s.id !== 999
-          );
-          this.sucursalesSubject.next(sucursalesFiltradas);
-        },
-        error: (err) => {
-          console.error('Error al cargar sucursales:', err);
-          this.sucursalesSubject.next([]);
-        }
-      });
+    this.graficoService.obtenerSucursales()
+      .pipe(
+        untilDestroyed(this),
+        map(sucs => (sucs || []).filter(s => s.activo && s.id > 0 && s.id !== 999))
+      )
+      .subscribe(sucs => this.sucursalesSubject.next(sucs));
   }
 
-  private configurarFiltros(): void {
+  private configurarDataStream(): void {
     combineLatest([
-      this.sucursalControl.valueChanges.pipe(startWith(this.sucursalControl.value)),
-      this.anhoControl.valueChanges.pipe(startWith(this.anhoControl.value)),
-      this.mesControl.valueChanges.pipe(startWith(this.mesControl.value))
+      this.sucursalControl.valueChanges.pipe(startWith(this.sucursalControl.value), distinctUntilChanged()),
+      this.anhoControl.valueChanges.pipe(startWith(this.anhoControl.value), distinctUntilChanged()),
+      this.mesControl.valueChanges.pipe(startWith(this.mesControl.value), distinctUntilChanged())
     ]).pipe(
-      debounceTime(250),
+      debounceTime(300),
+      tap(() => this.cargandoSubject.next(true)),
+      switchMap(([sucId, anho, mes]) => {
+        const { inicio, fin } = this.generarRangoFecha(anho || new Date().getFullYear(), mes);
+        return this.graficoService.obtenerEstadisticasFormaPago(inicio, fin, sucId || undefined).pipe(
+          map(estadisticas => this.procesarDatos(estadisticas)),
+          finalize(() => this.cargandoSubject.next(false))
+        );
+      }),
       untilDestroyed(this)
-    ).subscribe(() => {
-      this.cargarDatos();
-    });
+    ).subscribe(datos => this.datosSubject.next(datos));
   }
 
-  cargarDatos(): void {
-    this.cargandoSubject.next(true);
-    const { inicio, fin } = this.construirRangoFechas();
-    const sucursalId = this.sucursalControl.value;
-
-    this.genericCrudService.onCustomQuery(
-      this.estadisticasGQL,
-      {
-        inicio,
-        fin,
-        sucursalId: sucursalId ? String(sucursalId) : null
-      },
-      true,
-      undefined,
-      true
-    ).pipe(
-      untilDestroyed(this),
-      map((estadisticas: FormaPagoEstadistica[]) => this.procesarDatos(estadisticas)),
-      tap((datos) => {
-        this.datosSubject.next(datos);
-        this.cargandoSubject.next(false);
-      })
-    ).subscribe({
-      error: () => this.cargandoSubject.next(false)
-    });
-  }
-
-  private construirRangoFechas(): { inicio: string | null; fin: string | null } {
-    const anho = this.anhoControl.value;
-    const mes = this.mesControl.value;
-
-    if (!anho && !mes) {
-      return { inicio: null, fin: null };
-    }
-
-    const anhoActual = anho || new Date().getFullYear();
-
+  private generarRangoFecha(anho: number, mes: number | null): { inicio: string; fin: string } {
     if (mes) {
-      const inicioMes = new Date(anhoActual, mes - 1, 1);
-      const finMes = new Date(anhoActual, mes, 1);
-
-      return {
-        inicio: this.formatearFecha(inicioMes),
-        fin: this.formatearFecha(finMes)
-      };
+      const inicio = `${anho}-${String(mes).padStart(2, '0')}-01 00:00:00`;
+      const fechaFin = new Date(anho, mes, 1);
+      const fin = `${fechaFin.getFullYear()}-${String(fechaFin.getMonth() + 1).padStart(2, '0')}-01 00:00:00`;
+      return { inicio, fin };
     } else {
-      const inicioAnho = new Date(anhoActual, 0, 1);
-      const finAnho = new Date(anhoActual + 1, 0, 1);
-
-      return {
-        inicio: this.formatearFecha(inicioAnho),
-        fin: this.formatearFecha(finAnho)
-      };
+      return { inicio: `${anho}-01-01 00:00:00`, fin: `${anho + 1}-01-01 00:00:00` };
     }
-  }
-  private formatearFecha(fecha: Date): string {
-    const anho = fecha.getFullYear();
-    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-    const dia = String(fecha.getDate()).padStart(2, '0');
-    return `${anho}-${mes}-${dia} 00:00:00`;
   }
 
   private procesarDatos(estadisticas: FormaPagoEstadistica[]): DatosGraficoProcesados {
-    const totalMonto = estadisticas.reduce((sum, e) => sum + (e.totalMonto || 0), 0);
-    const totalTransacciones = estadisticas.reduce((sum, e) => sum + (e.cantidadTransacciones || 0), 0);
+    const validas = (estadisticas || []).filter(e => e.cantidadTransacciones > 0);
+    const totalMontoNum = validas.reduce((sum, e) => sum + (e.totalMonto || 0), 0);
+    const totalTransNum = validas.reduce((sum, e) => sum + (e.cantidadTransacciones || 0), 0);
 
-    const estadisticasConDatos = estadisticas.filter(e => e.cantidadTransacciones > 0);
-
-    const datosGrafico = estadisticasConDatos.map((estadistica, index) => ({
-      value: estadistica.totalMonto,
-      name: estadistica.descripcion,
-      itemStyle: {
-        color: this.paletaColores[index % this.paletaColores.length]
-      },
-      estadistica: estadistica
+    const detallesProcesados: DetalleProcesado[] = (estadisticas || []).map((e, i) => ({
+      descripcion: e.descripcion,
+      montoFormateado: `₲ ${e.totalMonto.toLocaleString('es-PY')}`,
+      cantidadFormateada: `${e.cantidadTransacciones.toLocaleString('es-PY')} transacciones`,
+      porcentaje: e.porcentaje || 0,
+      color: this.paletaColores[i % this.paletaColores.length],
+      icono: this.obtenerIcono(e.descripcion)
     }));
-
-    const tituloFiltro = this.construirTituloFiltro();
 
     const opciones: EChartsOption = {
       title: {
         text: 'Distribución de Formas de Pago',
-        subtext: `${tituloFiltro}\nTotal: ₲ ${this.formatearNumero(totalMonto)}`,
-        left: 'center',
-        top: 10,
-        textStyle: {
-          color: this.colores.text,
-          fontSize: 18,
-          fontWeight: 'bold'
-        },
-        subtextStyle: {
-          color: this.colores.textSecondary,
-          fontSize: 12,
-          lineHeight: 18
-        }
+        subtext: `Total: ₲ ${totalMontoNum.toLocaleString('es-PY')}`,
+        left: 'center', top: 10,
+        textStyle: { color: this.colores.text, fontSize: 18, fontWeight: 'bold' },
+        subtextStyle: { color: this.colores.textSecondary, fontSize: 13 }
       },
       tooltip: {
         trigger: 'item',
-        formatter: (params: unknown) => {
-          const p = params as { name: string; value: number; percent: number; data: { estadistica: FormaPagoEstadistica } };
-          const est = p.data.estadistica;
-          return `<strong>${p.name}</strong><br/>
-                            Monto: ₲ ${this.formatearNumero(p.value)}<br/>
-                            Transacciones: ${this.formatearNumero(est.cantidadTransacciones)}<br/>
-                            Porcentaje: ${p.percent?.toFixed(2) || est.porcentaje?.toFixed(2)}%`;
-        },
-        backgroundColor: '#424242',
-        borderColor: '#555',
-        textStyle: {
-          color: this.colores.text
-        }
+        backgroundColor: '#424242', borderColor: '#555',
+        textStyle: { color: this.colores.text },
+        formatter: (params: any) => `<strong>${params.name}</strong><br/>Monto: ₲ ${params.value.toLocaleString('es-PY')}<br/>Porcentaje: ${params.percent.toFixed(2)}%`
       },
-      legend: {
-        orient: 'vertical',
-        right: '5%',
-        top: 'center',
-        textStyle: {
-          color: this.colores.textSecondary,
-          fontSize: 12
-        }
-      },
+      legend: { orient: 'vertical', right: '5%', top: 'center', textStyle: { color: this.colores.textSecondary } },
       series: [{
-        name: 'Forma de Pago',
-        type: 'pie',
-        radius: ['40%', '70%'],
-        center: ['40%', '55%'],
-        avoidLabelOverlap: true,
-        itemStyle: {
-          borderRadius: 8,
-          borderColor: this.colores.backgroundDark,
-          borderWidth: 2
-        },
-        label: {
-          show: true,
-          position: 'outside',
-          formatter: '{b}: {d}%',
-          color: this.colores.textSecondary,
-          fontSize: 11
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: 14,
-            fontWeight: 'bold',
-            color: this.colores.text
-          },
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)'
-          }
-        },
-        labelLine: {
-          show: true,
-          lineStyle: {
-            color: this.colores.textSecondary
-          }
-        },
-        data: datosGrafico
+        name: 'Forma de Pago', type: 'pie', radius: ['40%', '70%'], center: ['40%', '55%'],
+        itemStyle: { borderRadius: 8, borderColor: this.colores.backgroundDark, borderWidth: 2 },
+        label: { show: true, formatter: '{b}: {d}%', color: this.colores.textSecondary },
+        data: validas.map((e, i) => ({
+          value: e.totalMonto, name: e.descripcion,
+          itemStyle: { color: this.paletaColores[i % this.paletaColores.length] }
+        }))
       }]
     };
 
     return {
       opciones,
-      detalles: estadisticas,
-      totalMonto,
-      totalTransacciones
+      detalles: detallesProcesados,
+      totalMonto: `₲ ${totalMontoNum.toLocaleString('es-PY')}`,
+      totalTransacciones: totalTransNum.toLocaleString('es-PY'),
+      hayDatos: totalTransNum > 0
     };
   }
 
-  private construirTituloFiltro(): string {
-    const partes: string[] = [];
-
-    const mes = this.mesControl.value;
-    const anho = this.anhoControl.value;
-
-    if (mes) {
-      const mesNombre = this.meses.find(m => m.valor === mes)?.nombre || '';
-      partes.push(mesNombre);
-    }
-
-    if (anho) {
-      partes.push(String(anho));
-    }
-
-    return partes.length > 0 ? partes.join(' ') : 'Todos los períodos';
+  private obtenerIcono(desc: string): string {
+    const iconos: Record<string, string> = {
+      'EFECTIVO': 'payments', 'TARJETA': 'credit_card', 'CONVENIO': 'handshake',
+      'TRANSFERENCIA': 'account_balance', 'CHEQUE': 'receipt_long'
+    };
+    return iconos[desc?.toUpperCase()] || 'payment';
   }
 
   limpiarFiltros(): void {
-    this.sucursalControl.setValue(null, { emitEvent: false });
-    this.anhoControl.setValue(new Date().getFullYear(), { emitEvent: false });
-    this.mesControl.setValue(null, { emitEvent: false });
-    this.cargarDatos();
-  }
-
-  formatearNumero(valor: number): string {
-    return valor?.toLocaleString('es-PY') || '0';
-  }
-
-  formatearMoneda(valor: number): string {
-    return '₲ ' + this.formatearNumero(valor);
-  }
-
-  obtenerColor(indice: number): string {
-    return this.paletaColores[indice % this.paletaColores.length];
-  }
-
-  obtenerIcono(descripcion: string): string {
-    const iconos: Record<string, string> = {
-      'EFECTIVO': 'payments',
-      'TARJETA': 'credit_card',
-      'CONVENIO': 'handshake',
-      'TRANSFERENCIA': 'account_balance',
-      'CHEQUE': 'receipt_long'
-    };
-    return iconos[descripcion?.toUpperCase()] || 'payment';
+    this.sucursalControl.setValue(null);
+    this.anhoControl.setValue(new Date().getFullYear());
+    this.mesControl.setValue(new Date().getMonth() + 1);
   }
 }

@@ -1,118 +1,89 @@
 <div class="producto-vendido-container">
-    <div class="header-section">
-        <div class="title-wrapper">
-            <mat-icon class="title-icon">shopping_bag</mat-icon>
-            <h2 class="title">Productos más Vendidos</h2>
-        </div>
-        <p class="subtitle">Ranking de los 10 productos con mayor recaudación</p>
-    </div>
-
     <div class="filters-section">
-        <div class="filters-row">
-            <mat-form-field appearance="outline" class="filter-field sucursal-filter">
-                <mat-label>Sucursal</mat-label>
-                <mat-select [formControl]="sucursalControl" placeholder="Todas las sucursales">
-                    <mat-option [value]="null">Todas las sucursales</mat-option>
-                    <mat-option *ngFor="let sucursal of sucursales$ | async" [value]="sucursal.id">
-                        {{ sucursal.nombre }}
-                    </mat-option>
-                </mat-select>
-                <mat-icon matPrefix>store</mat-icon>
-            </mat-form-field>
+        <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Sucursal</mat-label>
+            <mat-select [formControl]="sucursalControl">
+                <mat-option [value]="null">Todas las sucursales</mat-option>
+                <mat-option *ngFor="let sucursal of sucursales$ | async" [value]="sucursal.id">
+                    {{ sucursal.nombre }}
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
 
-            <mat-form-field appearance="outline" class="filter-field">
-                <mat-label>Año</mat-label>
-                <mat-select [formControl]="anhoControl">
-                    <mat-option *ngFor="let anho of anhos" [value]="anho">
-                        {{ anho }}
-                    </mat-option>
-                </mat-select>
-                <mat-icon matPrefix>calendar_today</mat-icon>
-            </mat-form-field>
+        <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Familia</mat-label>
+            <mat-select [formControl]="familiaControl">
+                <mat-option [value]="null">Todas las familias</mat-option>
+                <mat-option *ngFor="let familia of familias$ | async" [value]="familia.id">
+                    {{ familia.descripcion }}
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
 
-            <mat-form-field appearance="outline" class="filter-field">
-                <mat-label>Mes</mat-label>
-                <mat-select [formControl]="mesControl" placeholder="Todos los meses">
-                    <mat-option [value]="null">Todos los meses</mat-option>
-                    <mat-option *ngFor="let mes of meses" [value]="mes.valor">
-                        {{ mes.nombre }}
-                    </mat-option>
-                </mat-select>
-                <mat-icon matPrefix>date_range</mat-icon>
-            </mat-form-field>
+        <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Año</mat-label>
+            <mat-select [formControl]="anhoControl">
+                <mat-option *ngFor="let anho of anhos" [value]="anho">
+                    {{ anho }}
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
 
-            <mat-form-field appearance="outline" class="filter-field familia-filter">
-                <mat-label>Familia</mat-label>
-                <mat-select [formControl]="familiaControl" placeholder="Todas las familias">
-                    <mat-option [value]="null">Todas las familias</mat-option>
-                    <mat-option *ngFor="let fam of familias$ | async" [value]="fam.id">
-                        {{ fam.nombre }}
-                    </mat-option>
-                </mat-select>
-                <mat-icon matPrefix>category</mat-icon>
-            </mat-form-field>
+        <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Mes</mat-label>
+            <mat-select [formControl]="mesControl">
+                <mat-option [value]="null">Todos los meses</mat-option>
+                <mat-option *ngFor="let mes of meses" [value]="mes.valor">
+                    {{ mes.nombre }}
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
 
-            <button mat-icon-button (click)="limpiarFiltros()" matTooltip="Limpiar filtros">
-                <mat-icon>filter_alt_off</mat-icon>
-            </button>
-        </div>
+        <button mat-icon-button class="clear-filters-btn" (click)="limpiarFiltros()" matTooltip="Limpiar filtros">
+            <mat-icon>filter_alt_off</mat-icon>
+        </button>
     </div>
 
     <div class="loading-overlay" *ngIf="cargando$ | async">
         <mat-spinner diameter="40"></mat-spinner>
     </div>
+
     <ng-container *ngIf="datos$ | async as datos">
-        <div class="main-grid" [class.loading]="cargando$ | async">
-            <div class="chart-section">
-                <div class="chart-card">
-                    <div echarts [options]="datos.opciones" class="pie-chart"></div>
-                </div>
+        <div class="main-content" [class.loading]="cargando$ | async">
+            <div class="chart-card">
+                <div echarts [options]="datos.opciones" class="pie-chart"></div>
             </div>
 
-            <div class="details-section">
-                <div class="summary-cards">
-                    <div class="summary-card total-monto">
-                        <mat-icon>monetization_on</mat-icon>
-                        <div class="card-content">
-                            <span class="card-label">Monto Total</span>
-                            <span class="card-value">{{ formatearMoneda(datos.totalMonto) }}</span>
-                        </div>
-                    </div>
-                    <div class="summary-card total-cantidad">
-                        <mat-icon>inventory_2</mat-icon>
-                        <div class="card-content">
-                            <span class="card-label">Unidades Vendidas</span>
-                            <span class="card-value">{{ formatearNumero(datos.totalCantidad) }}</span>
-                        </div>
-                    </div>
+            <div class="details-card">
+                <div class="summary-header">
+                    <span class="summary-label">Monto Total Seleccionado</span>
+                    <span class="summary-value">{{ datos.totalMonto }}</span>
                 </div>
 
+                <h3 class="details-title">Detalle de Ventas</h3>
                 <div class="details-list">
-                    <h3 class="list-title">Ranking Top 10</h3>
-                    <div class="list-container">
-                        <div *ngFor="let item of datos.detalles; let i = index" class="detail-item">
-                            <div class="item-rank" [style.background-color]="obtenerColor(i)">{{ i + 1 }}</div>
-                            <div class="item-info">
-                                <span class="item-name">{{ item.descripcion }}</span>
-                                <span class="item-qty">{{ formatearNumero(item.cantidad) }} unidades</span>
-                            </div>
-                            <div class="item-values">
-                                <span class="item-amount">{{ formatearMoneda(item.totalMonto) }}</span>
-                                <span class="item-percentage">{{ item.porcentaje | number:'1.1-1' }}%</span>
-                            </div>
-                            <div class="progress-bar-container">
-                                <div class="progress-bar" [style.width.%]="item.porcentaje"
-                                    [style.background-color]="obtenerColor(i)"></div>
-                            </div>
+                    <div *ngFor="let item of datos.detalles" class="detail-item">
+                        <div class="item-indicator" [style.background-color]="item.color"></div>
+                        <div class="item-info">
+                            <span class="item-name">{{ item.descripcion }}</span>
+                            <span class="item-qty">{{ item.cantidadFormateada }}</span>
                         </div>
+                        <div class="item-amount">{{ item.montoFormateado }}</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="no-data-message" *ngIf="datos.totalCantidad === 0">
-            <mat-icon>info</mat-icon>
-            <span>No se encontraron ventas para este período</span>
+        <div class="no-data-message" *ngIf="!datos.hayDatos">
+            <mat-icon>sentiment_dissatisfied</mat-icon>
+            <span>No hay datos para esta combinación de filtros</span>
+        </div>
+    </ng-container>
+
+    <ng-container *ngIf="(datos$ | async) === null && !(cargando$ | async)">
+        <div class="loading-state">
+            <mat-spinner diameter="50"></mat-spinner>
+            <span>Cargando productos...</span>
         </div>
     </ng-container>
 </div>

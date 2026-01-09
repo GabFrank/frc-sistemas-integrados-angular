@@ -3,8 +3,11 @@ import { EChartsOption } from 'echarts';
 import { TabService } from '../../../layouts/tab/tab.service';
 import { Tab } from '../../../layouts/tab/tab.model';
 import { ProductoVendidoComponent } from '../producto-vendido/producto-vendido.component';
+
 import { FormaPagoComponent } from '../forma-pago/forma-pago.component';
-import { VentaMesComponent } from '../venta-mes/venta-mes.component';
+import { VentaFuncionarioComponent } from '../venta-funcionario/venta-funcionario.component';
+// DESHABILITADO: Componente de ventas mensuales no se utiliza
+// import { VentaMesComponent } from '../venta-mes/venta-mes.component';
 
 @Component({
     selector: 'app-graficos',
@@ -88,12 +91,17 @@ export class GraficosComponent implements OnInit, AfterViewInit {
             case 'productos':
                 this.tabService.addTab(new Tab(ProductoVendidoComponent, 'Productos Vendidos', null, null));
                 break;
+
             case 'pago':
                 this.tabService.addTab(new Tab(FormaPagoComponent, 'Formas de Pago', null, null));
                 break;
-            case 'venta-mes':
-                this.tabService.addTab(new Tab(VentaMesComponent, 'Ventas Mensuales', null, null));
+            case 'funcionario':
+                this.tabService.addTab(new Tab(VentaFuncionarioComponent, 'Ventas por Funcionario', null, null));
                 break;
+            // DESHABILITADO: Componente de ventas mensuales no se utiliza
+            // case 'venta-mes':
+            //     this.tabService.addTab(new Tab(VentaMesComponent, 'Ventas Mensuales', null, null));
+            //     break;
         }
     }
 
@@ -142,6 +150,8 @@ export class GraficosComponent implements OnInit, AfterViewInit {
             }]
         };
 
+        // DESHABILITADO: Gráfico de ventas mensuales no se utiliza
+        /*
         // 2. Evolución de Ventas Mensual
         this.evolucionVentasOptions = {
             title: {
@@ -191,6 +201,7 @@ export class GraficosComponent implements OnInit, AfterViewInit {
                 }
             ]
         };
+        */
     }
 
     private initChartsGroup2(): void {

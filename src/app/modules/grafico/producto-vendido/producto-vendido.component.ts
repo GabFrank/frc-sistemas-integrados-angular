@@ -1,26 +1,25 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject, NgZone, AfterViewInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { EChartsOption } from 'echarts';
-import { BehaviorSubject, Observable, map, tap, combineLatest, startWith, delay, Subject, debounceTime } from 'rxjs';
+import { BehaviorSubject, Observable, map, tap, combineLatest, startWith, debounceTime, switchMap, finalize, distinctUntilChanged } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { GenericCrudService } from '../../../generics/generic-crud.service';
 import { ProductoVendidoEstadistica } from '../models/producto-vendido-estadistica.model';
-import { ProductosMasVendidosGQL } from '../graphql/productos-mas-vendidos.gql';
-import { SucursalService } from '../../empresarial/sucursal/sucursal.service';
 import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
-import { FamiliaService } from '../../productos/familia/familia.service';
 import { Familia } from '../../productos/familia/familia.model';
+import { GraficoService } from '../grafico.service';
+
+interface DetalleProcesado {
+  descripcion: string;
+  montoFormateado: string;
+  cantidadFormateada: string;
+  color: string;
+}
 
 interface DatosGraficoProcesados {
   opciones: EChartsOption;
-  detalles: ProductoVendidoEstadistica[];
-  totalMonto: number;
-  totalCantidad: number;
-}
-
-interface OpcionMes {
-  valor: number;
-  nombre: string;
+  detalles: DetalleProcesado[];
+  totalMonto: string;
+  hayDatos: boolean;
 }
 
 @UntilDestroy({ checkProperties: true })
@@ -33,13 +32,9 @@ interface OpcionMes {
     class: 'producto-vendido-host'
   }
 })
-export class ProductoVendidoComponent implements OnInit, AfterViewInit {
+export class ProductoVendidoComponent implements OnInit {
 
-  private genericCrudService = inject(GenericCrudService);
-  private estadisticasGQL = inject(ProductosMasVendidosGQL);
-  private sucursalService = inject(SucursalService);
-  private familiaService = inject(FamiliaService);
-  private ngZone = inject(NgZone);
+  private graficoService = inject(GraficoService);
 
   private datosSubject = new BehaviorSubject<DatosGraficoProcesados | null>(null);
   datos$: Observable<DatosGraficoProcesados | null> = this.datosSubject.asObservable();
@@ -57,232 +52,126 @@ export class ProductoVendidoComponent implements OnInit, AfterViewInit {
   anhoControl = new FormControl<number>(new Date().getFullYear());
   mesControl = new FormControl<number | null>(new Date().getMonth() + 1);
   familiaControl = new FormControl<number | null>(null);
-  meses: OpcionMes[] = [
-    { valor: 1, nombre: 'Enero' },
-    { valor: 2, nombre: 'Febrero' },
-    { valor: 3, nombre: 'Marzo' },
-    { valor: 4, nombre: 'Abril' },
-    { valor: 5, nombre: 'Mayo' },
-    { valor: 6, nombre: 'Junio' },
-    { valor: 7, nombre: 'Julio' },
-    { valor: 8, nombre: 'Agosto' },
-    { valor: 9, nombre: 'Septiembre' },
-    { valor: 10, nombre: 'Octubre' },
-    { valor: 11, nombre: 'Noviembre' },
-    { valor: 12, nombre: 'Diciembre' }
+
+  meses = [
+    { valor: 1, nombre: 'Enero' }, { valor: 2, nombre: 'Febrero' }, { valor: 3, nombre: 'Marzo' },
+    { valor: 4, nombre: 'Abril' }, { valor: 5, nombre: 'Mayo' }, { valor: 6, nombre: 'Junio' },
+    { valor: 7, nombre: 'Julio' }, { valor: 8, nombre: 'Agosto' }, { valor: 9, nombre: 'Septiembre' },
+    { valor: 10, nombre: 'Octubre' }, { valor: 11, nombre: 'Noviembre' }, { valor: 12, nombre: 'Diciembre' }
   ];
 
   anhos: number[] = [];
 
   private colores = {
-    primary: '#689F38',
-    accent: '#009688',
     text: '#E0E0E0',
     textSecondary: '#9E9E9E',
     background: '#424242',
     backgroundDark: '#303030'
   };
 
-  private paletaColores = [
-    '#689F38', '#009688', '#FF9800', '#2196F3', '#4DB6AC', '#E91E63', '#9C27B0', '#00BCD4', '#F44336', '#FFC107'
-  ];
+  private paletaColores = ['#689F38', '#009688', '#FF9800', '#2196F3', '#4DB6AC', '#E91E63', '#9C27B0', '#00BCD4'];
 
   ngOnInit(): void {
     this.inicializarAnhos();
-    this.cargarSucursales();
-    this.cargarFamilias();
-  }
 
-  ngAfterViewInit(): void {
-    // Retrasar la configuración de filtros para asegurar que el DOM esté listo
-    // y no bloquear el inicio de la navegación
+    // Diferir la carga de datos para no bloquear el renderizado inicial
     setTimeout(() => {
-      this.configurarFiltros();
+      this.cargarMetadata();
+      this.configurarDataStream();
     }, 100);
   }
 
   private inicializarAnhos(): void {
     const anhoActual = new Date().getFullYear();
-    this.anhos = [];
-    for (let i = 0; i < 5; i++) {
-      this.anhos.push(anhoActual - i);
-    }
+    this.anhos = Array.from({ length: 5 }, (_, i) => anhoActual - i);
   }
 
-  private cargarSucursales(): void {
-    this.sucursalService.onGetAllSucursales(true)
-      .pipe(untilDestroyed(this))
-      .subscribe({
-        next: (sucursales) => {
-          const sucursalesFiltradas = (sucursales || []).filter(s =>
-            s.activo && s.id > 0 && s.id !== 999
-          );
-          this.sucursalesSubject.next(sucursalesFiltradas);
-        }
-      });
-  }
-
-  private cargarFamilias(): void {
-    this.familiaService.familiaBS.pipe(untilDestroyed(this)).subscribe(res => {
-      if (res) {
-        this.familiasSubject.next(res);
-      }
-    });
-  }
-
-  private configurarFiltros(): void {
-    combineLatest([
-      this.sucursalControl.valueChanges.pipe(startWith(this.sucursalControl.value)),
-      this.anhoControl.valueChanges.pipe(startWith(this.anhoControl.value)),
-      this.mesControl.valueChanges.pipe(startWith(this.mesControl.value)),
-      this.familiaControl.valueChanges.pipe(startWith(this.familiaControl.value))
-    ]).pipe(
-      debounceTime(200), // Evitar múltiples llamadas rápidas
-      untilDestroyed(this)
-    ).subscribe(() => {
-      this.cargarDatos();
-    });
-  }
-
-  cargarDatos(): void {
-    this.cargandoSubject.next(true);
-    const { inicio, fin } = this.construirRangoFechas();
-    const sucursalId = this.sucursalControl.value;
-    const familiaId = this.familiaControl.value;
-
-    this.genericCrudService.onCustomQuery(
-      this.estadisticasGQL,
-      {
-        inicio,
-        fin,
-        limit: 10,
-        sucursalId: sucursalId ? String(sucursalId) : null,
-        familiaId: familiaId ? String(familiaId) : null
-      },
-      true,
-      undefined,
-      true
-    ).pipe(
+  private cargarMetadata(): void {
+    this.graficoService.obtenerSucursales().pipe(
       untilDestroyed(this),
-      map((estadisticas: ProductoVendidoEstadistica[]) => this.procesarDatos(estadisticas)),
-      tap((datos) => {
-        this.datosSubject.next(datos);
-        this.cargandoSubject.next(false);
-      })
-    ).subscribe({
-      error: () => this.cargandoSubject.next(false)
-    });
+      map(sucs => (sucs || []).filter(s => s.activo && s.id > 0 && s.id !== 999))
+    ).subscribe(sucs => this.sucursalesSubject.next(sucs));
+
+    this.graficoService.obtenerFamilias().pipe(
+      untilDestroyed(this)
+    ).subscribe(fams => this.familiasSubject.next(fams));
   }
 
-  private construirRangoFechas(): { inicio: string; fin: string } {
-    const anho = this.anhoControl.value || new Date().getFullYear();
-    const mes = this.mesControl.value;
+  private configurarDataStream(): void {
+    combineLatest([
+      this.sucursalControl.valueChanges.pipe(startWith(this.sucursalControl.value), distinctUntilChanged()),
+      this.anhoControl.valueChanges.pipe(startWith(this.anhoControl.value), distinctUntilChanged()),
+      this.mesControl.valueChanges.pipe(startWith(this.mesControl.value), distinctUntilChanged()),
+      this.familiaControl.valueChanges.pipe(startWith(this.familiaControl.value), distinctUntilChanged())
+    ]).pipe(
+      debounceTime(300),
+      tap(() => this.cargandoSubject.next(true)),
+      switchMap(([sucId, anho, mes, famId]) => {
+        const { inicio, fin } = this.generarRangoFecha(anho || new Date().getFullYear(), mes);
+        return this.graficoService.obtenerProductosMasVendidos(inicio, fin, sucId || undefined, famId || undefined).pipe(
+          map(res => this.procesarDatos(res)),
+          finalize(() => this.cargandoSubject.next(false))
+        );
+      }),
+      untilDestroyed(this)
+    ).subscribe(datos => this.datosSubject.next(datos));
+  }
 
+  private generarRangoFecha(anho: number, mes: number | null): { inicio: string; fin: string } {
     if (mes) {
-      const inicioMes = new Date(anho, mes - 1, 1);
-      const finMes = new Date(anho, mes, 1);
-      return {
-        inicio: this.formatearFecha(inicioMes),
-        fin: this.formatearFecha(finMes)
-      };
+      const inicio = `${anho}-${String(mes).padStart(2, '0')}-01 00:00:00`;
+      const fechaFin = new Date(anho, mes, 1);
+      const fin = `${fechaFin.getFullYear()}-${String(fechaFin.getMonth() + 1).padStart(2, '0')}-01 00:00:00`;
+      return { inicio, fin };
     } else {
-      const inicioAnho = new Date(anho, 0, 1);
-      const finAnho = new Date(anho + 1, 0, 1);
-      return {
-        inicio: this.formatearFecha(inicioAnho),
-        fin: this.formatearFecha(finAnho)
-      };
+      return { inicio: `${anho}-01-01 00:00:00`, fin: `${anho + 1}-01-01 00:00:00` };
     }
-  }
-
-  private formatearFecha(fecha: Date): string {
-    const anho = fecha.getFullYear();
-    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-    const dia = String(fecha.getDate()).padStart(2, '0');
-    return `${anho}-${mes}-${dia} 00:00:00`;
   }
 
   private procesarDatos(estadisticas: ProductoVendidoEstadistica[]): DatosGraficoProcesados {
-    const totalMonto = estadisticas.reduce((sum, e) => sum + (e.totalMonto || 0), 0);
-    const totalCantidad = estadisticas.reduce((sum, e) => sum + (e.cantidad || 0), 0);
+    const validas = (estadisticas || []).filter(e => e.cantidad > 0);
+    const totalMontoNum = validas.reduce((sum, e) => sum + (e.totalMonto || 0), 0);
 
-    const dataGrafico = estadisticas.map((est, index) => ({
-      value: est.totalMonto,
-      name: est.descripcion,
-      itemStyle: { color: this.paletaColores[index % this.paletaColores.length] },
-      estadistica: est
+    const detallesProcesados: DetalleProcesado[] = (estadisticas || []).map((e, i) => ({
+      descripcion: e.descripcion,
+      montoFormateado: `₲ ${e.totalMonto.toLocaleString('es-PY')}`,
+      cantidadFormateada: `${e.cantidad.toLocaleString('es-PY')} unidades`,
+      color: this.paletaColores[i % this.paletaColores.length]
     }));
-
-    const tituloFiltro = this.construirTituloFiltro();
 
     const opciones: EChartsOption = {
       title: {
         text: 'Top 10 Productos más Vendidos',
-        subtext: `${tituloFiltro}\nTotal: ₲ ${this.formatearNumero(totalMonto)}`,
-        left: 'center',
-        top: 10,
+        subtext: `Total: ₲ ${totalMontoNum.toLocaleString('es-PY')}`,
+        left: 'center', top: 10,
         textStyle: { color: this.colores.text, fontSize: 18, fontWeight: 'bold' },
-        subtextStyle: { color: this.colores.textSecondary, fontSize: 12, lineHeight: 18 }
+        subtextStyle: { color: this.colores.textSecondary, fontSize: 12 }
       },
       tooltip: {
         trigger: 'item',
-        formatter: (params: any) => {
-          const est = params.data.estadistica;
-          return `<strong>${params.name}</strong><br/>
-                            Monto: ₲ ${this.formatearNumero(params.value)}<br/>
-                            Cantidad: ${this.formatearNumero(est.cantidad)}<br/>
-                            Porcentaje: ${params.percent?.toFixed(2)}%`;
-        },
-        backgroundColor: '#424242',
-        borderColor: '#555',
-        textStyle: { color: this.colores.text }
+        backgroundColor: '#424242', borderColor: '#555',
+        textStyle: { color: this.colores.text },
+        formatter: (params: any) => `<strong>${params.name}</strong><br/>Monto: ₲ ${params.value.toLocaleString('es-PY')}<br/>Porcentaje: ${params.percent.toFixed(2)}%`
       },
-      legend: {
-        orient: 'vertical',
-        right: '2%',
-        top: 'middle',
-        textStyle: { color: this.colores.textSecondary, fontSize: 11 }
-      },
+      legend: { orient: 'vertical', right: '2%', top: 'middle', textStyle: { color: this.colores.textSecondary, fontSize: 11 } },
       series: [{
-        name: 'Producto',
-        type: 'pie',
-        radius: ['35%', '65%'],
-        center: ['35%', '55%'],
-        avoidLabelOverlap: true,
+        name: 'Producto', type: 'pie', radius: ['35%', '65%'], center: ['35%', '55%'],
         itemStyle: { borderRadius: 6, borderColor: this.colores.backgroundDark, borderWidth: 2 },
         label: { show: false },
-        emphasis: { label: { show: true, fontSize: 12, fontWeight: 'bold', color: this.colores.text } },
-        data: dataGrafico
+        data: validas.map((e, i) => ({
+          value: e.totalMonto, name: e.descripcion,
+          itemStyle: { color: this.paletaColores[i % this.paletaColores.length] }
+        }))
       }]
     };
 
-    return { opciones, detalles: estadisticas, totalMonto, totalCantidad };
-  }
-
-  private construirTituloFiltro(): string {
-    const mes = this.mesControl.value;
-    const anho = this.anhoControl.value;
-    const nombreMes = mes ? this.meses.find(m => m.valor === mes)?.nombre : '';
-    return `${nombreMes} ${anho}`.trim() || 'Todos los períodos';
+    return { opciones, detalles: detallesProcesados, totalMonto: `₲ ${totalMontoNum.toLocaleString('es-PY')}`, hayDatos: validas.length > 0 };
   }
 
   limpiarFiltros(): void {
-    this.sucursalControl.setValue(null, { emitEvent: false });
-    this.anhoControl.setValue(new Date().getFullYear(), { emitEvent: false });
-    this.mesControl.setValue(new Date().getMonth() + 1, { emitEvent: false });
-    this.familiaControl.setValue(null, { emitEvent: false });
-    this.cargarDatos();
-  }
-
-  formatearNumero(valor: number): string {
-    return valor?.toLocaleString('es-PY') || '0';
-  }
-
-  formatearMoneda(valor: number): string {
-    return '₲ ' + this.formatearNumero(valor);
-  }
-
-  obtenerColor(indice: number): string {
-    return this.paletaColores[indice % this.paletaColores.length];
+    this.sucursalControl.setValue(null);
+    this.anhoControl.setValue(new Date().getFullYear());
+    this.mesControl.setValue(new Date().getMonth() + 1);
+    this.familiaControl.setValue(null);
   }
 }

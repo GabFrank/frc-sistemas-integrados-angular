@@ -1,38 +1,7 @@
 import { EventEmitter, Injectable, OnInit } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { ListClientesComponent } from '../../modules/personas/clientes/list-clientes/list-clientes.component';
 import { CargandoDialogService } from './../../shared/components/cargando-dialog/cargando-dialog.service';
 import { Tab } from './tab.model';
-import { ListMovimientoStockComponent } from '../../modules/operaciones/movimiento-stock/list-movimiento-stock/list-movimiento-stock.component';
-import { ListInventarioComponent } from '../../modules/operaciones/inventario/list-inventario/list-inventario.component';
-import { EditCompraComponent } from '../../modules/operaciones/compra/edit-compra/edit-compra.component';
-import { EditPedidoComponent } from '../../modules/operaciones/pedido/edit-pedido/edit-pedido.component';
-import { ListTransferenciaComponent } from '../../modules/operaciones/transferencia/list-transferencia/list-transferencia.component';
-import { ListProductoComponent } from '../../modules/productos/producto/list-producto/list-producto.component';
-import { ListFacturaLegalComponent } from '../../modules/financiero/factura-legal/list-factura-legal/list-factura-legal.component';
-import { ListPedidoComponent } from '../../modules/operaciones/pedido/list-pedido/list-pedido.component';
-import { EditTransferenciaComponent } from '../../modules/operaciones/transferencia/edit-transferencia/edit-transferencia.component';
-import { VentaTouchComponent } from '../../modules/pdv/comercial/venta-touch/venta-touch.component';
-import { ListGastosComponent } from '../../modules/financiero/gastos/list-gastos/list-gastos.component';
-import { ListMaletinComponent } from '../../modules/financiero/maletin/list-maletin/list-maletin.component';
-import { ListCajaComponent } from '../../modules/financiero/pdv/caja/list-caja/list-caja.component';
-import { ListDeliveryComponent } from '../../modules/pdv/comercial/venta-touch/list-delivery/list-delivery.component';
-import { PresentacionComponent } from '../../modules/productos/presentacion/presentacion.component';
-import { ProductoComponent } from '../../modules/productos/producto/edit-producto/producto.component';
-import { TransferenciaComponent } from '../../modules/operaciones/transferencia/transferencia.component';
-import { ListSolicitudPagoComponent } from '../../modules/operaciones/solicitud-pago/list-solicitud-pago/list-solicitud-pago.component';
-import { EditPagoComponent } from '../../modules/operaciones/pago/edit-pago/edit-pago.component';
-import { ThermalPrinterComponent } from '../../modules/configuracion/thermal-printer/thermal-printer.component';
-import { ListSucursalComponent } from '../../modules/empresarial/sucursal/list-sucursal/list-sucursal.component';
-import { ListReplicationComponent } from '../../modules/configuracion/logical-replication/list-replication/list-replication.component';
-import { ListReplicationTablesComponent } from '../../modules/configuracion/logical-replication/list-replication-tables/list-replication-tables.component';
-import { FinancieroDashboardComponent } from '../../modules/financiero/financiero-dashboard/financiero-dashboard.component';
-import { ListVentaComponent } from '../../modules/operaciones/venta/list-venta/list-venta.component';
-import { AddVentaObservacionComponent } from '../../modules/operaciones/venta-observacion/add-venta-observacion/add-venta-observacion.component';
-import { MainVentaObservacionComponent } from '../../modules/operaciones/venta-observacion/main-venta-observacion/main-venta-observacion.component';
-import { MainCajaObservacionComponent } from '../../modules/financiero/pdv/caja-observacion/main-caja-observacion/main-caja-observacion.component';
-import { AnalisisDiferenciaComponent } from '../../modules/financiero/analisis-diferencia/analisis-diferencia.component';
-import { ListTimbradoComponent } from '../../modules/financiero/timbrado/list-timbrado/list-timbrado.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -75,7 +44,7 @@ export class TabService implements OnInit {
     // this.addTab(new Tab(ListInventarioComponent, 'Lista de inventario', null, null))
     this.tabSub.next(this.tabs);
   }
-  
+
   ngOnInit(): void {
     // this.addTab(new Tab(CompraDashboardComponent, 'Compras', null, null))
   }
@@ -181,7 +150,7 @@ export class TabService implements OnInit {
     this.removeTab(this.currentIndex)
   }
 
-  changeCurrentTabName(name:string){
+  changeCurrentTabName(name: string) {
     this.tabs[this.currentIndex].title = name;
   }
 }

@@ -80,13 +80,9 @@ export class SearchListDialogComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.displayedColumns = [];
-    const availableColumns = ['id', 'nombre', 'nickname', 'descripcion', 'codigo', 'documento'];
-
     this.data?.tableData.forEach(e => {
       const columnId = e.nestedColumnId != null ? e.nestedColumnId : e.id;
-      if (availableColumns.includes(columnId)) {
-        this.displayedColumns.push(columnId);
-      }
+      this.displayedColumns.push(columnId);
     })
 
     console.log('Columnas a mostrar en ngOnInit:', this.displayedColumns);
