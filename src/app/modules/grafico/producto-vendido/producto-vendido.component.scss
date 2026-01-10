@@ -79,7 +79,7 @@ $border: #555;
     z-index: 10;
 }
 
-.main-grid {
+.main-content {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
@@ -87,6 +87,14 @@ $border: #555;
     &.loading {
         opacity: 0.5;
         pointer-events: none;
+    }
+}
+
+
+
+@media (max-width: 1200px) {
+    .main-content {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -245,10 +253,4 @@ $border: #555;
     font-size: 0.95rem;
     color: $primary-light;
     white-space: nowrap;
-}
-
-@media (max-width: 1200px) {
-    .main-grid {
-        grid-template-columns: 1fr;
-    }
 }
