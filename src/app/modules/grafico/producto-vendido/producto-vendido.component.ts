@@ -52,6 +52,9 @@ export class ProductoVendidoComponent implements OnInit {
   anhoControl = new FormControl<number>(new Date().getFullYear());
   mesControl = new FormControl<number | null>(new Date().getMonth() + 1);
   familiaControl = new FormControl<number | null>(null);
+  limitControl = new FormControl<number>(10);
+
+  limits = [10, 30, 50, 100];
 
   meses = [
     { valor: 1, nombre: 'Enero' }, { valor: 2, nombre: 'Febrero' }, { valor: 3, nombre: 'Marzo' },
@@ -102,13 +105,14 @@ export class ProductoVendidoComponent implements OnInit {
       this.sucursalControl.valueChanges.pipe(startWith(this.sucursalControl.value), distinctUntilChanged()),
       this.anhoControl.valueChanges.pipe(startWith(this.anhoControl.value), distinctUntilChanged()),
       this.mesControl.valueChanges.pipe(startWith(this.mesControl.value), distinctUntilChanged()),
-      this.familiaControl.valueChanges.pipe(startWith(this.familiaControl.value), distinctUntilChanged())
+      this.familiaControl.valueChanges.pipe(startWith(this.familiaControl.value), distinctUntilChanged()),
+      this.limitControl.valueChanges.pipe(startWith(this.limitControl.value), distinctUntilChanged())
     ]).pipe(
       debounceTime(300),
       tap(() => this.cargandoSubject.next(true)),
-      switchMap(([sucId, anho, mes, famId]) => {
+      switchMap(([sucId, anho, mes, famId, limit]) => {
         const { inicio, fin } = this.generarRangoFecha(anho || new Date().getFullYear(), mes);
-        return this.graficoService.obtenerProductosMasVendidos(inicio, fin, sucId || undefined, famId || undefined).pipe(
+        return this.graficoService.obtenerProductosMasVendidos(inicio, fin, sucId || undefined, famId || undefined, limit || 10).pipe(
           map(res => this.procesarDatos(res)),
           finalize(() => this.cargandoSubject.next(false))
         );
@@ -173,5 +177,6 @@ export class ProductoVendidoComponent implements OnInit {
     this.anhoControl.setValue(new Date().getFullYear());
     this.mesControl.setValue(new Date().getMonth() + 1);
     this.familiaControl.setValue(null);
+    this.limitControl.setValue(10);
   }
 }

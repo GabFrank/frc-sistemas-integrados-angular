@@ -39,6 +39,15 @@
             </mat-select>
         </mat-form-field>
 
+        <mat-form-field appearance="outline" class="filter-field w-24">
+            <mat-label>Cant.</mat-label>
+            <mat-select [formControl]="limitControl">
+                <mat-option *ngFor="let limit of limits" [value]="limit">
+                    {{ limit }}
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
+
         <button mat-icon-button class="clear-filters-btn" (click)="limpiarFiltros()" matTooltip="Limpiar filtros">
             <mat-icon>filter_alt_off</mat-icon>
         </button>
@@ -62,7 +71,8 @@
 
                 <h3 class="details-title">Detalle de Ventas</h3>
                 <div class="details-list">
-                    <div *ngFor="let item of datos.detalles" class="detail-item">
+                    <div *ngFor="let item of datos.detalles; let i = index" class="detail-item">
+                        <span class="rank-badge">#{{ i + 1 }}</span>
                         <div class="item-indicator" [style.background-color]="item.color"></div>
                         <div class="item-info">
                             <span class="item-name">{{ item.descripcion }}</span>
