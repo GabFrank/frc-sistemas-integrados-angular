@@ -9,6 +9,7 @@ import { VentaFuncionarioComponent } from '../venta-funcionario/venta-funcionari
 import { VentasDiasComponent } from '../ventas-dias/ventas-dias.component';
 import { GastoCategoriaComponent } from '../gasto-categoria/gasto-categoria.component';
 import { IngresoGastoComponent } from '../ingreso-gasto/ingreso-gasto.component';
+import { VentaSucursalComponent } from '../venta-sucursal/venta-sucursal.component';
 import { GraficoService } from '../grafico.service';
 import { DatePipe } from '@angular/common';
 
@@ -94,6 +95,9 @@ export class GraficosComponent implements OnInit, AfterViewInit {
                 break;
             case 'ingreso-gasto':
                 this.tabService.addTab(new Tab(IngresoGastoComponent, 'Ingresos vs Gastos', null, null));
+                break;
+            case 'venta-sucursal':
+                this.tabService.addTab(new Tab(VentaSucursalComponent, 'Ventas por Sucursal', null, null));
                 break;
         }
     }

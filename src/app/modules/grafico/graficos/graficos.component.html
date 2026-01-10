@@ -2,7 +2,7 @@
 
 
   <div class="charts-grid">
-    <div class="chart-card">
+    <div class="chart-card clickable" (click)="onChartClick('venta-sucursal')">
       <div echarts [options]="ventasPorSucursalOptions" class="chart"></div>
     </div>
 

@@ -15,6 +15,7 @@ import { VentasPorHoraGQL } from './graphql/ventas-por-hora.gql';
 import { GastosPorCategoriaGQL } from './graphql/gastos-por-categoria.gql';
 import { VentasPorMesGQL } from './graphql/ventas-por-mes.gql';
 import { GastosPorMesGQL } from './graphql/gastos-por-mes.gql';
+import { VentasPorSucursalGQL } from './graphql/ventas-por-sucursal.gql';
 
 @Injectable({
   providedIn: 'root'
@@ -32,6 +33,7 @@ export class GraficoService {
   private gastosPorCategoriaGQL = inject(GastosPorCategoriaGQL);
   private ventasPorMesGQL = inject(VentasPorMesGQL);
   private gastosPorMesGQL = inject(GastosPorMesGQL);
+  private ventasPorSucursalGQL = inject(VentasPorSucursalGQL);
 
   obtenerSucursales(): Observable<Sucursal[]> {
     return this.sucursalService.onGetAllSucursales(true);
@@ -120,6 +122,16 @@ export class GraficoService {
     return this.genericService.onCustomQuery(
       this.gastosPorMesGQL,
       { anio, sucId: sucId ? String(sucId) : null },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerVentasPorSucursal(inicio: string, fin: string): Observable<any[]> {
+    return this.genericService.onCustomQuery(
+      this.ventasPorSucursalGQL,
+      { inicio, fin },
       true,
       null,
       true
