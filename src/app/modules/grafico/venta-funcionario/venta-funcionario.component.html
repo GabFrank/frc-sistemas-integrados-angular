@@ -23,6 +23,13 @@
             </mat-select>
         </mat-form-field>
 
+        <mat-form-field appearance="outline" class="filter-field medium">
+            <mat-label>Día Específico</mat-label>
+            <input matInput [matDatepicker]="picker" [formControl]="fechaControl" placeholder="dd/mm/aaaa">
+            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+
 
         <button mat-icon-button (click)="limpiarFiltros()" matTooltip="Limpiar filtros generales">
             <mat-icon>filter_alt_off</mat-icon>

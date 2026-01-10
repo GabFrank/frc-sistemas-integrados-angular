@@ -44,6 +44,7 @@ export class VentaFuncionarioComponent implements OnInit {
   sucursalControl = new FormControl<number | null>(null);
   anhoControl = new FormControl<number>(new Date().getFullYear());
   mesControl = new FormControl<number | null>(new Date().getMonth() + 1);
+  fechaControl = new FormControl<Date | null>(null);
 
   meses = [
     { valor: 1, nombre: 'Enero' }, { valor: 2, nombre: 'Febrero' }, { valor: 3, nombre: 'Marzo' },
@@ -74,6 +75,8 @@ export class VentaFuncionarioComponent implements OnInit {
       this.cargarMetadata();
       this.configurarDataStream();
     }, 100);
+    this.mesControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.fechaControl.setValue(null, { emitEvent: false }));
+    this.anhoControl.valueChanges.pipe(untilDestroyed(this)).subscribe(() => this.fechaControl.setValue(null, { emitEvent: false }));
   }
 
   private inicializarAnhos(): void {
@@ -92,12 +95,13 @@ export class VentaFuncionarioComponent implements OnInit {
     combineLatest([
       this.sucursalControl.valueChanges.pipe(startWith(this.sucursalControl.value), distinctUntilChanged()),
       this.anhoControl.valueChanges.pipe(startWith(this.anhoControl.value), distinctUntilChanged()),
-      this.mesControl.valueChanges.pipe(startWith(this.mesControl.value), distinctUntilChanged())
+      this.mesControl.valueChanges.pipe(startWith(this.mesControl.value), distinctUntilChanged()),
+      this.fechaControl.valueChanges.pipe(startWith(this.fechaControl.value), distinctUntilChanged())
     ]).pipe(
       debounceTime(300),
       tap(() => this.cargandoSubject.next(true)),
-      switchMap(([sucId, anho, mes]) => {
-        const { inicio, fin } = this.generarRangoFecha(anho || new Date().getFullYear(), mes);
+      switchMap(([sucId, anho, mes, fechaDia]) => {
+        const { inicio, fin } = this.generarRangoFecha(anho || new Date().getFullYear(), mes, fechaDia);
         return this.graficoService.obtenerVentasPorFuncionario(inicio, fin, sucId || undefined).pipe(
           finalize(() => this.cargandoSubject.next(false))
         );
@@ -145,7 +149,22 @@ export class VentaFuncionarioComponent implements OnInit {
   }
 
 
-  private generarRangoFecha(anho: number, mes: number | null): { inicio: string; fin: string } {
+  limpiarFiltros(): void {
+    this.sucursalControl.setValue(null);
+    this.anhoControl.setValue(new Date().getFullYear());
+    this.mesControl.setValue(new Date().getMonth() + 1);
+    this.fechaControl.setValue(null);
+  }
+
+  private generarRangoFecha(anho: number, mes: number | null, fechaDia: Date | null = null): { inicio: string; fin: string } {
+    if (fechaDia) {
+      const inicio = this.formatDate(fechaDia) + ' 00:00';
+      const nextDay = new Date(fechaDia);
+      nextDay.setDate(fechaDia.getDate() + 1);
+      const fin = this.formatDate(nextDay) + ' 00:00';
+      return { inicio, fin };
+    }
+
     if (mes) {
       const inicio = `${anho}-${String(mes).padStart(2, '0')}-01 00:00`;
       const fechaFin = new Date(anho, mes, 1);
@@ -154,6 +173,10 @@ export class VentaFuncionarioComponent implements OnInit {
     } else {
       return { inicio: `${anho}-01-01 00:00`, fin: `${anho + 1}-01-01 00:00` };
     }
+  }
+
+  private formatDate(date: Date): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   }
 
   private procesarDatos(data: any[]): DatosGraficoProcesados {
@@ -174,7 +197,7 @@ export class VentaFuncionarioComponent implements OnInit {
         }];
       }
     } else {
-      validas = validas.slice(0, 15); // Top 15
+      validas = validas.slice(0, 15);
     }
 
     const totalGeneral = validas.reduce((sum, item) => sum + (item.total || 0), 0);
@@ -182,7 +205,6 @@ export class VentaFuncionarioComponent implements OnInit {
       ? `Ventas de: ${this.funcionarioSeleccionado.persona?.nombre || this.funcionarioSeleccionado.nickname}`
       : 'Ventas por Funcionario (Top 15)';
 
-    // ECharts Bar Chart (Horizontal)
     const opciones: EChartsOption = {
       title: {
         text: titulo,
@@ -216,7 +238,7 @@ export class VentaFuncionarioComponent implements OnInit {
         type: 'category',
         data: validas.map(v => v.funcionario),
         axisLabel: { color: this.colores.textSecondary },
-        inverse: true // So top ranking is at top
+        inverse: true
       },
       series: [
         {
@@ -240,9 +262,5 @@ export class VentaFuncionarioComponent implements OnInit {
     return { opciones, hayDatos: validas.length > 0 };
   }
 
-  limpiarFiltros(): void {
-    this.sucursalControl.setValue(null);
-    this.anhoControl.setValue(new Date().getFullYear());
-    this.mesControl.setValue(new Date().getMonth() + 1);
-  }
+
 }

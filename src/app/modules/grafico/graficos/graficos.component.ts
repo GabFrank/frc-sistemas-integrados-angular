@@ -7,11 +7,10 @@ import { ProductoVendidoComponent } from '../producto-vendido/producto-vendido.c
 import { FormaPagoComponent } from '../forma-pago/forma-pago.component';
 import { VentaFuncionarioComponent } from '../venta-funcionario/venta-funcionario.component';
 import { VentasDiasComponent } from '../ventas-dias/ventas-dias.component';
+import { GastoCategoriaComponent } from '../gasto-categoria/gasto-categoria.component';
+import { IngresoGastoComponent } from '../ingreso-gasto/ingreso-gasto.component';
 import { GraficoService } from '../grafico.service';
-import { Subscription } from 'rxjs';
 import { DatePipe } from '@angular/common';
-// DESHABILITADO: Componente de ventas mensuales no se utiliza
-// import { VentaMesComponent } from '../venta-mes/venta-mes.component';
 
 @Component({
     selector: 'app-graficos',
@@ -25,16 +24,15 @@ export class GraficosComponent implements OnInit, AfterViewInit {
     private tabService = inject(TabService);
     private graficoService = inject(GraficoService);
 
-    // Colores del sistema (consistentes con Material theme)
     colores = {
-        primary: '#689F38',      // light-green-700
-        primaryLight: '#8BC34A', // light-green-500
-        primaryDark: '#558B2F',  // light-green-800
-        accent: '#009688',       // teal-500
-        accentLight: '#4DB6AC',  // teal-300
-        warn: '#F44336',         // red-500
-        warnLight: '#EF5350',    // red-400
-        background: '#424242',   // gris oscuro del sidebar
+        primary: '#689F38',
+        primaryLight: '#8BC34A',
+        primaryDark: '#558B2F',
+        accent: '#009688',
+        accentLight: '#4DB6AC',
+        warn: '#F44336',
+        warnLight: '#EF5350',
+        background: '#424242',
         backgroundDark: '#303030',
         text: '#E0E0E0',
         textSecondary: '#9E9E9E',
@@ -43,11 +41,9 @@ export class GraficosComponent implements OnInit, AfterViewInit {
         info: '#2196F3'
     };
 
-    // Datos mock para las sucursales
     sucursales = ['Canindeyu 1', 'Curuguaty 2', 'Paloma 2', 'Renacer', 'KM2', 'Fiesta'];
     meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
-    // Opciones de los gráficos
     ventasPorSucursalOptions: EChartsOption = {};
     evolucionVentasOptions: EChartsOption = {};
     formasPagoOptions: EChartsOption = {};
@@ -57,25 +53,12 @@ export class GraficosComponent implements OnInit, AfterViewInit {
     ventasFuncionarioOptions: EChartsOption = {};
     productosMasVendidosOptions: EChartsOption = {};
 
-    // KPIs
-    kpis = {
-        ventasHoy: 45680000,
-        ventasAyer: 42350000,
-        gastosHoy: 8500000,
-        creditosActivos: 156,
-        creditosVencidos: 23,
-        cajasTotales: 18,
-        cajasAbiertas: 12
-    };
-
     constructor() { }
 
     ngOnInit(): void {
-        // Inicializar datos no visuales
     }
 
     ngAfterViewInit(): void {
-        // Retrasar la inicialización y escalonarla para mejorar el rendimiento de inicio
         this.ngZone.runOutsideAngular(() => {
             setTimeout(() => {
                 this.initChartsGroup1();
@@ -100,21 +83,22 @@ export class GraficosComponent implements OnInit, AfterViewInit {
             case 'pago':
                 this.tabService.addTab(new Tab(FormaPagoComponent, 'Formas de Pago', null, null));
                 break;
+            case 'gasto-categoria':
+                this.tabService.addTab(new Tab(GastoCategoriaComponent, 'Gastos por Categoría', null, null));
+                break;
             case 'funcionario':
                 this.tabService.addTab(new Tab(VentaFuncionarioComponent, 'Ventas por Funcionario', null, null));
                 break;
             case 'hora':
                 this.tabService.addTab(new Tab(VentasDiasComponent, 'Ventas por Hora', null, null));
                 break;
-            // DESHABILITADO: Componente de ventas mensuales no se utiliza
-            // case 'venta-mes':
-            //     this.tabService.addTab(new Tab(VentaMesComponent, 'Ventas Mensuales', null, null));
-            //     break;
+            case 'ingreso-gasto':
+                this.tabService.addTab(new Tab(IngresoGastoComponent, 'Ingresos vs Gastos', null, null));
+                break;
         }
     }
 
     private initChartsGroup1(): void {
-        // 1. Ventas por Sucursal
         this.ventasPorSucursalOptions = {
             title: {
                 text: 'Ventas por Sucursal',
@@ -157,63 +141,9 @@ export class GraficosComponent implements OnInit, AfterViewInit {
                 }
             }]
         };
-
-        // DESHABILITADO: Gráfico de ventas mensuales no se utiliza
-        /*
-        // 2. Evolución de Ventas Mensual
-        this.evolucionVentasOptions = {
-            title: {
-                text: 'Evolución de Ventas Mensual',
-                left: 'center',
-                textStyle: { color: this.colores.text, fontSize: 16, fontWeight: 'bold' }
-            },
-            tooltip: { trigger: 'axis' },
-            legend: {
-                data: ['2025', '2026'],
-                bottom: 5,
-                textStyle: { color: this.colores.textSecondary }
-            },
-            grid: { left: '3%', right: '4%', bottom: '15%', top: '15%', containLabel: true },
-            xAxis: {
-                type: 'category',
-                data: this.meses,
-                axisLabel: { color: this.colores.textSecondary },
-                axisLine: { lineStyle: { color: '#555' } }
-            },
-            yAxis: {
-                type: 'value',
-                axisLabel: {
-                    color: this.colores.textSecondary,
-                    formatter: (value: number) => (value / 1000000).toFixed(0) + 'M'
-                }
-            },
-            series: [
-                {
-                    name: '2025',
-                    type: 'line',
-                    smooth: true,
-                    data: [320000000, 290000000, 380000000, 420000000, 350000000, 410000000,
-                        480000000, 520000000, 440000000, 490000000, 560000000, 620000000],
-                    lineStyle: { color: this.colores.primary, width: 3 },
-                    symbol: 'circle',
-                    itemStyle: { color: this.colores.primary }
-                },
-                {
-                    name: '2026',
-                    type: 'line',
-                    smooth: true,
-                    data: [380000000, null, null, null, null, null, null, null, null, null, null, null],
-                    lineStyle: { color: this.colores.accent, width: 3 },
-                    symbol: 'circle',
-                    itemStyle: { color: this.colores.accent }
-                }
-            ]
-        };
-        */
     }
 
     private initChartsGroup2(): void {
-        // 3. Formas de Pago
         this.formasPagoOptions = {
             title: {
                 text: 'Formas de Pago',
@@ -242,29 +172,59 @@ export class GraficosComponent implements OnInit, AfterViewInit {
             }]
         };
 
-        // 4. Gastos por Categoría
-        this.gastosCategoriaOptions = {
-            title: {
-                text: 'Gastos por Categoría',
-                left: 'center',
-                textStyle: { color: this.colores.text, fontSize: 16, fontWeight: 'bold' }
-            },
-            grid: { left: '25%', right: '10%', bottom: '10%', top: '15%' },
-            xAxis: { type: 'value' },
-            yAxis: {
-                type: 'category',
-                data: ['Alimentación', 'Transporte', 'Servicios', 'Mantenimiento', 'Salarios', 'Otros'],
-                axisLabel: { color: this.colores.textSecondary }
-            },
-            series: [{
-                name: 'Gastos',
-                type: 'bar',
-                data: [12000000, 18500000, 8200000, 15600000, 85000000, 6800000],
-                itemStyle: { color: this.colores.warn, borderRadius: [0, 4, 4, 0] }
-            }]
-        };
+        const today = new Date();
+        const datePipe = new DatePipe('en-US');
+        const inicioStr = datePipe.transform(new Date(today.getFullYear(), today.getMonth(), 1), 'yyyy-MM-dd') || '';
+        const finStr = datePipe.transform(new Date(today.getFullYear(), today.getMonth() + 1, 0), 'yyyy-MM-dd') || '';
 
-        // 5. Ingresos vs Gastos
+        this.graficoService.obtenerGastosPorCategoria(inicioStr, finStr).subscribe(res => {
+            const data = res || [];
+            const sortedData = [...data].sort((a, b) => a.total - b.total);
+            const categories = sortedData.map(d => d.categoria || 'Sin Categoría');
+            const values = sortedData.map(d => d.total);
+
+            this.gastosCategoriaOptions = {
+                title: {
+                    text: 'Gastos por Categoría (Mes Actual)',
+                    left: 'center',
+                    textStyle: { color: this.colores.text, fontSize: 16, fontWeight: 'bold' }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: (params: any) => {
+                        const p = params[0];
+                        return `${p.name}<br/>Monto: ₲ ${p.value.toLocaleString('es-PY')}`;
+                    }
+                },
+                grid: { left: '25%', right: '10%', bottom: '10%', top: '15%' },
+                xAxis: {
+                    type: 'value',
+                    axisLabel: {
+                        color: this.colores.textSecondary,
+                        formatter: (value: number) => {
+                            if (value >= 1000000) return (value / 1000000).toFixed(0) + 'M';
+                            if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
+                            return value.toString();
+                        }
+                    },
+                    splitLine: { lineStyle: { color: '#444' } }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: categories,
+                    axisLabel: { color: this.colores.textSecondary },
+                    splitLine: { show: false }
+                },
+                series: [{
+                    name: 'Gastos',
+                    type: 'bar',
+                    data: values,
+                    itemStyle: { color: this.colores.warn, borderRadius: [0, 4, 4, 0] }
+                }]
+            };
+        });
+
         this.ingresosGastosOptions = {
             title: {
                 text: 'Ingresos vs Gastos Mensual',
@@ -299,8 +259,6 @@ export class GraficosComponent implements OnInit, AfterViewInit {
     }
 
     private initChartsGroup3(): void {
-        // 6. Ventas por Hora
-        // 6. Ventas por Hora
         const today = new Date();
         const datePipe = new DatePipe('en-US');
         const hoyStr = datePipe.transform(today, 'yyyy-MM-dd') || '';
@@ -335,7 +293,7 @@ export class GraficosComponent implements OnInit, AfterViewInit {
                 xAxis: {
                     type: 'category',
                     boundaryGap: false,
-                    data: horas, // ['7', '8', ... '21']
+                    data: horas,
                     axisLabel: { color: this.colores.textSecondary },
                 },
                 yAxis: {
@@ -362,8 +320,6 @@ export class GraficosComponent implements OnInit, AfterViewInit {
             };
         });
 
-        // 7. Ventas por Funcionario
-
         const fechaInicio = datePipe.transform(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd') || '';
         const fechaFin = datePipe.transform(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd') || '';
 
@@ -375,11 +331,6 @@ export class GraficosComponent implements OnInit, AfterViewInit {
                 res.slice(0, 10).forEach((item: any) => {
                     const nombre = item.persona?.nombre || item.funcionario || item.nickname || 'Unknown';
                     nombres.push(nombre);
-                    // Check if sucursal-specific breakdown is needed or just total
-                    // The backend returns a list of VentaPorFuncionario.
-                    // For this overview chart, we can just show total sales per employee.
-                    // The stack logic in mock was per-branch, but data is per-employee.
-                    // So we simplification: Single bar per employee.
                     data.push(item.total);
                 });
             }
@@ -414,7 +365,7 @@ export class GraficosComponent implements OnInit, AfterViewInit {
             };
         });
 
-        // 8. Productos más Vendidos
+
         this.productosMasVendidosOptions = {
             title: {
                 text: 'Top 10 Productos Más Vendidos',
@@ -436,11 +387,4 @@ export class GraficosComponent implements OnInit, AfterViewInit {
         };
     }
 
-    formatCurrency(value: number): string {
-        return '₲ ' + value.toLocaleString('es-PY');
-    }
-
-    getVariacion(actual: number, anterior: number): number {
-        return ((actual - anterior) / anterior) * 100;
-    }
 }

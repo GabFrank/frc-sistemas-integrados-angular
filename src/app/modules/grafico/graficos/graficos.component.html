@@ -1,61 +1,5 @@
 <div class="graficos-dashboard">
-  <div class="kpis-row">
-    <div class="kpi-card">
-      <div class="kpi-icon ventas">
-        <mat-icon>trending_up</mat-icon>
-      </div>
-      <div class="kpi-content">
-        <span class="kpi-label">Ventas Hoy</span>
-        <span class="kpi-value">{{ formatCurrency(kpis.ventasHoy) }}</span>
-        <span class="kpi-change positive">
-          <mat-icon>arrow_upward</mat-icon>
-          {{ getVariacion(kpis.ventasHoy, kpis.ventasAyer) | number:'1.1-1' }}%
-        </span>
-      </div>
-    </div>
 
-    <div class="kpi-card">
-      <div class="kpi-icon gastos">
-        <mat-icon>money_off</mat-icon>
-      </div>
-      <div class="kpi-content">
-        <span class="kpi-label">Gastos Hoy</span>
-        <span class="kpi-value">{{ formatCurrency(kpis.gastosHoy) }}</span>
-        <span class="kpi-change neutral">
-          <mat-icon>remove</mat-icon>
-          Normal
-        </span>
-      </div>
-    </div>
-
-    <div class="kpi-card">
-      <div class="kpi-icon creditos">
-        <mat-icon>account_balance</mat-icon>
-      </div>
-      <div class="kpi-content">
-        <span class="kpi-label">Créditos Activos</span>
-        <span class="kpi-value">{{ kpis.creditosActivos }}</span>
-        <span class="kpi-change warning">
-          <mat-icon>warning</mat-icon>
-          {{ kpis.creditosVencidos }} vencidos
-        </span>
-      </div>
-    </div>
-
-    <div class="kpi-card">
-      <div class="kpi-icon cajas">
-        <mat-icon>point_of_sale</mat-icon>
-      </div>
-      <div class="kpi-content">
-        <span class="kpi-label">Cajas Abiertas</span>
-        <span class="kpi-value">{{ kpis.cajasAbiertas }} / {{ kpis.cajasTotales }}</span>
-        <span class="kpi-change positive">
-          <mat-icon>check_circle</mat-icon>
-          Operativas
-        </span>
-      </div>
-    </div>
-  </div>
 
   <div class="charts-grid">
     <div class="chart-card">
@@ -72,11 +16,11 @@
       <div echarts [options]="formasPagoOptions" class="chart"></div>
     </div>
 
-    <div class="chart-card">
+    <div class="chart-card clickable" (click)="onChartClick('gasto-categoria')">
       <div echarts [options]="gastosCategoriaOptions" class="chart"></div>
     </div>
 
-    <div class="chart-card">
+    <div class="chart-card clickable" (click)="onChartClick('ingreso-gasto')">
       <div echarts [options]="ingresosGastosOptions" class="chart"></div>
     </div>
 

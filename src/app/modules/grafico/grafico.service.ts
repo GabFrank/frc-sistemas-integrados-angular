@@ -12,6 +12,9 @@ import { VentaPorPeriodo } from './models/venta-por-periodo.model';
 import { Sucursal } from '../empresarial/sucursal/sucursal.model';
 import { Familia } from '../productos/familia/familia.model';
 import { VentasPorHoraGQL } from './graphql/ventas-por-hora.gql';
+import { GastosPorCategoriaGQL } from './graphql/gastos-por-categoria.gql';
+import { VentasPorMesGQL } from './graphql/ventas-por-mes.gql';
+import { GastosPorMesGQL } from './graphql/gastos-por-mes.gql';
 
 @Injectable({
   providedIn: 'root'
@@ -26,6 +29,9 @@ export class GraficoService {
   private productosMasVendidosGQL = inject(ProductosMasVendidosGQL);
   private ventasPorFuncionarioGQL = inject(VentasPorFuncionarioGQL);
   private ventasPorHoraGQL = inject(VentasPorHoraGQL);
+  private gastosPorCategoriaGQL = inject(GastosPorCategoriaGQL);
+  private ventasPorMesGQL = inject(VentasPorMesGQL);
+  private gastosPorMesGQL = inject(GastosPorMesGQL);
 
   obtenerSucursales(): Observable<Sucursal[]> {
     return this.sucursalService.onGetAllSucursales(true);
@@ -84,6 +90,36 @@ export class GraficoService {
     return this.genericService.onCustomQuery(
       this.ventasPorHoraGQL,
       { fecha, sucId: sucId ? String(sucId) : null },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerGastosPorCategoria(inicio: string, fin: string, sucId?: number): Observable<any[]> {
+    return this.genericService.onCustomQuery(
+      this.gastosPorCategoriaGQL,
+      { inicio, fin, sucId: sucId ? String(sucId) : null },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerVentasPorMes(anio: number, sucId?: number): Observable<any[]> {
+    return this.genericService.onCustomQuery(
+      this.ventasPorMesGQL,
+      { anio, sucId: sucId ? String(sucId) : null },
+      true,
+      null,
+      true
+    );
+  }
+
+  obtenerGastosPorMes(anio: number, sucId?: number): Observable<any[]> {
+    return this.genericService.onCustomQuery(
+      this.gastosPorMesGQL,
+      { anio, sucId: sucId ? String(sucId) : null },
       true,
       null,
       true
