@@ -27,6 +27,7 @@ import { PersonaSearchGQL } from "../../../../personas/persona/graphql/personaSe
 import { Persona } from "../../../../personas/persona/persona.model";
 import { UsuarioService } from "../../../../personas/usuarios/usuario.service";
 import { Usuario } from "../../../../personas/usuarios/usuario.model";
+import { UsuarioSearchGQL } from "../../../../personas/usuarios/graphql/usuarioSearch";
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -91,7 +92,7 @@ export class LucroPorProductoComponent implements OnInit {
     private dialog: MatDialog,
     private notificacionService: NotificacionSnackbarService,
     private personaService: PersonaService,
-    private personaSearch: PersonaSearchGQL,
+    private usuarioSearch: UsuarioSearchGQL,
     private usuarioService: UsuarioService
   ) {}
 
@@ -337,12 +338,11 @@ export class LucroPorProductoComponent implements OnInit {
 
   onBuscarCajero() {
     let data: SearchListtDialogData = {
-      titulo: "Buscar Persona",
-      query: this.personaSearch,
+      titulo: "Buscar Cajero",
+      query: this.usuarioSearch,
       tableData: [
         { id: "id", nombre: "Id", width: "10%" },
-        { id: "nombre", nombre: "Nombre", width: "70%" },
-        { id: "documento", nombre: "Documento/Ruc", width: "20%" },
+        { id: "nickname", nombre: "Nombre", width: "90%" },
       ],
       texto: this.buscarCajeroControl.value,
       search: true,
@@ -352,20 +352,20 @@ export class LucroPorProductoComponent implements OnInit {
     this.dialog
       .open(SearchListDialogComponent, {
         data,
+        width: "50%",
         height: "80%",
-        width: "80%",
       })
       .afterClosed()
       .pipe(untilDestroyed(this))
-      .subscribe((res: Persona) => {
+      .subscribe((res: Usuario) => {
         if (res != null) {
           this.usuarioService
-            .onGetUsuarioPorPersonaId(res.id)
+            .onGetUsuario(res.id)
             .pipe(untilDestroyed(this))
             .subscribe((resUsuario) => {
               if (resUsuario != null) {
                 this.selectedUsuario = resUsuario;
-                this.buscarCajeroControl.setValue(res.id + " - " + res.nombre);
+                this.buscarCajeroControl.setValue(res.id + " - " + res.nickname);
               } else {
                 this.notificacionService.openWarn(
                   "No posee usuario registrado"
