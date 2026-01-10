@@ -15,7 +15,7 @@
             <mat-select [formControl]="familiaControl">
                 <mat-option [value]="null">Todas las familias</mat-option>
                 <mat-option *ngFor="let familia of familias$ | async" [value]="familia.id">
-                    {{ familia.descripcion }}
+                    {{ familia.nombre | titlecase }}
                 </mat-option>
             </mat-select>
         </mat-form-field>

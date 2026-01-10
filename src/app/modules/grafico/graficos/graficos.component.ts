@@ -189,7 +189,7 @@ export class GraficosComponent implements OnInit, AfterViewInit {
 
             this.gastosCategoriaOptions = {
                 title: {
-                    text: 'Gastos por Categoría (Mes Actual)',
+                    text: 'Gastos por Categoría',
                     left: 'center',
                     textStyle: { color: this.colores.text, fontSize: 16, fontWeight: 'bold' }
                 },
@@ -341,7 +341,7 @@ export class GraficosComponent implements OnInit, AfterViewInit {
 
             this.ventasFuncionarioOptions = {
                 title: {
-                    text: 'Ventas por Funcionario (Top 10 - Este Mes)',
+                    text: 'Ventas por Funcionario',
                     left: 'center',
                     textStyle: { color: this.colores.text, fontSize: 16, fontWeight: 'bold' }
                 },
@@ -372,7 +372,7 @@ export class GraficosComponent implements OnInit, AfterViewInit {
 
         this.productosMasVendidosOptions = {
             title: {
-                text: 'Top 10 Productos Más Vendidos',
+                text: 'Top Productos Más Vendidos',
                 left: 'center',
                 textStyle: { color: this.colores.text, fontSize: 14, fontWeight: 'bold' }
             },
