@@ -325,6 +325,13 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
       ]
     },
     {
+      name: 'Gráficos',
+      icon: 'bar_chart',
+      action: 'graficos',
+      requiresServerMode: false,
+      visibilityRoles: [ROLES.ADMIN]
+    },
+    {
       name: 'Configuración',
       icon: 'settings',
       isExpanded: false,
@@ -350,13 +357,6 @@ export class SideMiniVariantComponent implements OnInit, OnDestroy {
           visibilityRoles: [ROLES.ADMIN]
         }
       ]
-    },
-    {
-      name: 'Gráficos',
-      icon: 'bar_chart',
-      action: 'graficos',
-      requiresServerMode: false,
-      visibilityRoles: [ROLES.ADMIN]
     }
   ];
 
