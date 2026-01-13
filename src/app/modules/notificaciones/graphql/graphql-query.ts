@@ -140,6 +140,12 @@ export const notificarInicioSesionMutation = gql`
   }
 `;
 
+export const marcarTodasNotificacionesLeidasMutation = gql`
+  mutation {
+    data: marcarTodasNotificacionesLeidas
+  }
+`;
+
 export const enviarNotificacionPersonalizadaMutation = gql`
   mutation ($titulo: String!, $mensaje: String!, $tipoEnvio: String!, $usuariosIds: [Int]) {
     data: enviarNotificacionPersonalizada(titulo: $titulo, mensaje: $mensaje, tipoEnvio: $tipoEnvio, usuariosIds: $usuariosIds)

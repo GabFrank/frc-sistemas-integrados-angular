@@ -83,6 +83,13 @@ export class DefaultComponent implements OnInit, OnDestroy {
       });
   }
 
+  marcarTodasComoLeidas(): void {
+    this.notificacionesTableroService.marcarTodasComoLeidas()
+      .pipe(untilDestroyed(this))
+      .subscribe();
+  }
+
+
 
   ngOnInit(): void {
     this.mainService.authenticationSub

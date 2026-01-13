@@ -2,6 +2,7 @@ import { Injectable } from "@angular/core";
 import { Mutation } from "apollo-angular";
 import {
   marcarNotificacionLeidaMutation,
+  marcarTodasNotificacionesLeidasMutation,
   registrarInteraccionNotificacionMutation,
   actualizarEstadoTableroNotificacionMutation,
   cambiarEstadoTableroNotificacionMutation,
@@ -17,6 +18,17 @@ export interface MarcarNotificacionLeidaResponse {
 })
 export class MarcarNotificacionLeidaGQL extends Mutation<MarcarNotificacionLeidaResponse> {
   override document = marcarNotificacionLeidaMutation;
+}
+
+export interface MarcarTodasNotificacionesLeidasResponse {
+  data: boolean;
+}
+
+@Injectable({
+  providedIn: "root",
+})
+export class MarcarTodasNotificacionesLeidasGQL extends Mutation<MarcarTodasNotificacionesLeidasResponse> {
+  override document = marcarTodasNotificacionesLeidasMutation;
 }
 
 export interface RegistrarInteraccionNotificacionResponse {

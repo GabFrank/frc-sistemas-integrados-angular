@@ -8,6 +8,7 @@ import { MainService } from '../../../main.service';
 import { NotificacionesUsuarioGQL } from '../graphql/notificacionesUsuario.gql';
 import {
   MarcarNotificacionLeidaGQL,
+  MarcarTodasNotificacionesLeidasGQL,
   CambiarEstadoTableroNotificacionGQL,
   ActualizarTokenFcmGQL
 } from '../graphql/notificacionMutations.gql';
@@ -69,6 +70,7 @@ export class NotificacionesTableroService {
   private readonly electronService = inject(ElectronService);
   private readonly notificacionesUsuarioGQL = inject(NotificacionesUsuarioGQL);
   private readonly marcarNotificacionLeidaGQL = inject(MarcarNotificacionLeidaGQL);
+  private readonly marcarTodasNotificacionesLeidasGQL = inject(MarcarTodasNotificacionesLeidasGQL);
   private readonly cambiarEstadoTableroNotificacionGQL = inject(CambiarEstadoTableroNotificacionGQL);
   private readonly actualizarTokenFcmGQL = inject(ActualizarTokenFcmGQL);
   private readonly conteoNotificacionesNoLeidasGQL = inject(ConteoNotificacionesNoLeidasGQL);
@@ -270,6 +272,17 @@ export class NotificacionesTableroService {
       tap((res: any) => {
         if (res) {
           this.actualizarEstadoLeido(notificacionId);
+          this.actualizarConteo();
+        }
+      })
+    );
+  }
+
+  marcarTodasComoLeidas(): Observable<any> {
+    return this.genericService.onCustomMutation(this.marcarTodasNotificacionesLeidasGQL, {}).pipe(
+      tap((res: any) => {
+        if (res) {
+          this.refrescarTodas();
           this.actualizarConteo();
         }
       })
