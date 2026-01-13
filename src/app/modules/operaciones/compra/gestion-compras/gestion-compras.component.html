@@ -109,15 +109,17 @@
                   <mat-form-field appearance="outline" style="width: 100%">
                     <mat-label>Proveedor</mat-label>
                     <input
+                      #proveedorInput
                       matInput
                       formControlName="proveedor"
                       placeholder="Buscar proveedor..."
-                      (keydown.enter)="onBuscarProveedor()"
+                      (keydown)="onProveedorKeydown($event)"
                     />
                     <button
                       mat-icon-button
                       matSuffix
                       type="button"
+                      tabindex="-1"
                       (click)="onBuscarProveedor()"
                     >
                       <mat-icon>search</mat-icon>
@@ -172,6 +174,7 @@
                           <button
                             mat-icon-button
                             color="warn"
+                            tabindex="-1"
                             (click)="onRemoverProveedor()"
                             matTooltip="Remover proveedor"
                           >
@@ -187,16 +190,19 @@
                 <mat-form-field appearance="outline">
                   <mat-label>Vendedor</mat-label>
                   <input
+                    #vendedorInput
                     matInput
                     formControlName="vendedor"
                     [value]="vendedorDisplayTextComputed"
                     placeholder="Buscar vendedor..."
                     readonly
+                    (keydown)="onVendedorKeydown($event)"
                   />
                   <button
                     mat-icon-button
                     matSuffix
                     type="button"
+                    tabindex="-1"
                     (click)="onBuscarVendedor()"
                   >
                     <mat-icon>search</mat-icon>
@@ -216,9 +222,11 @@
                 <mat-form-field appearance="outline">
                   <mat-label>Sucursales de Entrega</mat-label>
                   <mat-select
+                    #sucursalEntregaSelect
                     formControlName="sucursalesEntrega"
                     multiple
                     panelClass="custom-select-panel"
+                    (closed)="onSucursalEntregaClosed()"
                   >
                     <mat-select-trigger>
                       {{
@@ -258,7 +266,12 @@
                 <!-- Sucursales de Influencia -->
                 <mat-form-field appearance="outline">
                   <mat-label>Sucursales de Influencia</mat-label>
-                  <mat-select formControlName="sucursalesInfluencia" multiple>
+                  <mat-select
+                    #sucursalInfluenciaSelect
+                    formControlName="sucursalesInfluencia"
+                    multiple
+                    (closed)="onSucursalInfluenciaClosed()"
+                  >
                     <mat-select-trigger>
                       {{
                         datosGeneralesForm.get("sucursalesInfluencia")?.value
@@ -299,7 +312,11 @@
                 <!-- Moneda -->
                 <mat-form-field appearance="outline">
                   <mat-label>Moneda</mat-label>
-                  <mat-select formControlName="moneda" #monedaSelect>
+                  <mat-select
+                    formControlName="moneda"
+                    #monedaSelect
+                    (closed)="onMonedaClosed()"
+                  >
                     <mat-option *ngFor="let moneda of monedas" [value]="moneda">
                       {{ moneda.denominacion | titlecase }} -
                       {{ moneda.simbolo }}
@@ -318,8 +335,10 @@
                 <mat-form-field appearance="outline">
                   <mat-label>Forma de Pago</mat-label>
                   <mat-select
+                    #formaPagoSelect
                     formControlName="formaPago"
                     (selectionChange)="onFormaPagoChange()"
+                    (closed)="onFormaPagoClosed()"
                   >
                     <mat-option
                       *ngFor="let formaPago of formasPago"
@@ -341,10 +360,12 @@
                 <mat-form-field appearance="outline">
                   <mat-label>Plazo (dias)</mat-label>
                   <input
+                    #plazoCreditoInput
                     matInput
                     type="number"
                     formControlName="plazoCredito"
                     placeholder="Ej: 30"
+                    (keydown)="onPlazoCreditoKeydown($event)"
                   />
                   <mat-error
                     *ngIf="
@@ -362,6 +383,7 @@
 
           <div class="tab-actions">
             <button
+              #continuarButton
               mat-raised-button
               color="accent"
               [disabled]="step1ButtonDisabledComputed"
@@ -413,7 +435,7 @@
               </div>
 
               <div class="items-actions">
-                <button mat-raised-button color="primary" (click)="onAddItem()">
+                <button #addItemButton mat-raised-button color="primary" (click)="onAddItem()">
                   <mat-icon>add</mat-icon>
                   Añadir Item
                 </button>
@@ -600,8 +622,9 @@
               </div>
               <mat-paginator
                 [pageSizeOptions]="[5, 10, 25]"
+                [length]="itemsCountComputed"
                 showFirstLastButtons
-                aria-label="Select page of users"
+                aria-label="Select page of items"
               >
               </mat-paginator>
             </div>

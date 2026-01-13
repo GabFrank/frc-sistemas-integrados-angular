@@ -208,6 +208,7 @@ export const SAVE_RECEPCION_MERCADERIA_ITEM_MUTATION = gql`
   mutation saveRecepcionMercaderiaItem($entity: RecepcionMercaderiaItemInput!) {
     data: saveRecepcionMercaderiaItem(entity: $entity) {
       id
+      recepcionMercaderiaId
       recepcionMercaderia {
         id
       }

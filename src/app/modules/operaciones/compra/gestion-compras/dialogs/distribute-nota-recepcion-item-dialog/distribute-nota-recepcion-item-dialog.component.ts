@@ -136,6 +136,10 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
     });
   }
 
+  /**
+   * Calcula las propiedades de presentación y convierte cantidades
+   * IMPORTANTE: cantidadEnNota está almacenada en unidades base
+   */
   private calculatePresentationProperties(): void {
     const item = this.data.item;
     
@@ -148,12 +152,34 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
       this.cantidadPorPresentacionComputed = 1;
     }
     
-    // Calcular cantidad por presentación
+    // cantidadEnNota está en unidades base
     this.cantidadEnNotaComputed = item.cantidadEnNota || 0;
-    this.cantidadEnNotaPorPresentacionComputed = this.cantidadEnNotaComputed / this.cantidadPorPresentacionComputed;
     
-    // Unidad para mostrar
+    // Convertir a presentación: unidades base / cantidad por presentación
+    this.cantidadEnNotaPorPresentacionComputed = this.cantidadPorPresentacionComputed > 0
+      ? this.cantidadEnNotaComputed / this.cantidadPorPresentacionComputed
+      : this.cantidadEnNotaComputed;
+    
+    // Unidad para mostrar según el modo
     this.unidadMostrarComputed = this.distribuyePorPresentacion ? this.presentacionEnNotaComputed : 'unidades';
+  }
+
+  /**
+   * Convierte cantidad de presentación a unidades base
+   */
+  private convertirPresentacionAUnidadBase(cantidadPresentacion: number): number {
+    return this.distribuyePorPresentacion
+      ? cantidadPresentacion * this.cantidadPorPresentacionComputed
+      : cantidadPresentacion;
+  }
+
+  /**
+   * Convierte cantidad de unidades base a presentación
+   */
+  private convertirUnidadBaseAPresentacion(cantidadUnidadBase: number): number {
+    return this.cantidadPorPresentacionComputed > 0
+      ? cantidadUnidadBase / this.cantidadPorPresentacionComputed
+      : cantidadUnidadBase;
   }
 
   private loadDistribuciones(): void {
@@ -202,10 +228,8 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
       distribucionesConSucursalInfluencia.forEach((distribucion, index) => {
         console.log(`Procesando distribución ${index}:`, distribucion);
         
-        // Convertir cantidad a presentación si es necesario
-        const cantidadAsignada = this.distribuyePorPresentacion 
-          ? (distribucion.cantidad || 0) / this.cantidadPorPresentacionComputed
-          : (distribucion.cantidad || 0);
+        // Convertir cantidad de unidades base a presentación si es necesario
+        const cantidadAsignada = this.convertirUnidadBaseAPresentacion(distribucion.cantidad || 0);
 
         const distribucionGroup = this.formBuilder.group({
           sucursalInfluencia: [distribucion.sucursalInfluencia.id, [Validators.required]],
@@ -234,10 +258,8 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
         const sucursalInfluenciaIndex = index % this.data.sucursalesInfluencia.length;
         const sucursalInfluencia = this.data.sucursalesInfluencia[sucursalInfluenciaIndex];
         
-        // Convertir cantidad a presentación si es necesario
-        const cantidadAsignada = this.distribuyePorPresentacion 
-          ? (distribucion.cantidad || 0) / this.cantidadPorPresentacionComputed
-          : (distribucion.cantidad || 0);
+        // Convertir cantidad de unidades base a presentación si es necesario
+        const cantidadAsignada = this.convertirUnidadBaseAPresentacion(distribucion.cantidad || 0);
 
         const distribucionGroup = this.formBuilder.group({
           sucursalInfluencia: [sucursalInfluencia.id, [Validators.required]],
@@ -311,10 +333,8 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
 
     // Crear controles para cada sucursal de entrega
     distribucionesPorEntrega.forEach((grupo, sucursalEntregaId) => {
-      // Convertir a presentación si es necesario
-      const cantidadAsignada = this.distribuyePorPresentacion 
-        ? grupo.cantidadTotal / this.cantidadPorPresentacionComputed
-        : grupo.cantidadTotal;
+      // Convertir cantidad total de unidades base a presentación si es necesario
+      const cantidadAsignada = this.convertirUnidadBaseAPresentacion(grupo.cantidadTotal);
 
       console.log('grupo.sucursalesInfluencia', grupo.sucursalesInfluencia);
 
@@ -364,10 +384,14 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
     });
   }
 
+  /**
+   * Actualiza todas las propiedades computadas para el template
+   * Todos los cálculos internos se hacen en unidades base para consistencia
+   */
   private updateComputedProperties(): void {
     const formValue = this.distribucionForm.value;
     
-    // Calcular total asignado
+    // Calcular total asignado en el modo actual (presentación o unidades)
     this.totalAsignadoComputed = 0;
     if (formValue.distribuciones) {
       formValue.distribuciones.forEach((d: any) => {
@@ -376,32 +400,32 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
       });
     }
     
-    // Convertir a unidades base si es necesario
-    const totalAsignadoUnidadBase = this.distribuyePorPresentacion 
-      ? this.totalAsignadoComputed * this.cantidadPorPresentacionComputed
-      : this.totalAsignadoComputed;
+    // Convertir total asignado a unidades base para cálculos internos
+    const totalAsignadoUnidadBase = this.convertirPresentacionAUnidadBase(this.totalAsignadoComputed);
     
-    // Calcular discrepancia
+    // Calcular discrepancia en unidades base (siempre trabajamos en unidades base internamente)
     this.discrepanciaComputed = totalAsignadoUnidadBase - this.cantidadEnNotaComputed;
     this.absDiscrepanciaComputed = Math.abs(this.discrepanciaComputed);
-    this.hasDiscrepanciaComputed = this.discrepanciaComputed !== 0;
+    this.hasDiscrepanciaComputed = Math.abs(this.discrepanciaComputed) > 0.001; // Tolerancia para decimales
     
     // Determinar tipo de discrepancia
-    if (this.discrepanciaComputed > 0) {
+    if (this.discrepanciaComputed > 0.001) {
       this.discrepanciaTipoComputed = 'mayor';
-    } else if (this.discrepanciaComputed < 0) {
+    } else if (this.discrepanciaComputed < -0.001) {
       this.discrepanciaTipoComputed = 'menor';
     } else {
       this.discrepanciaTipoComputed = 'igual';
     }
     
-    // Valores para mostrar según el modo
+    // Valores para mostrar según el modo de distribución
     if (this.distribuyePorPresentacion) {
+      // Modo presentación: convertir todo a presentación para mostrar
       this.totalAsignadoMostrarComputed = this.totalAsignadoComputed;
       this.cantidadEnNotaMostrarComputed = this.cantidadEnNotaPorPresentacionComputed;
-      this.discrepanciaMostrarComputed = this.discrepanciaComputed / this.cantidadPorPresentacionComputed;
-      this.absDiscrepanciaMostrarComputed = this.absDiscrepanciaComputed / this.cantidadPorPresentacionComputed;
+      this.discrepanciaMostrarComputed = this.convertirUnidadBaseAPresentacion(this.discrepanciaComputed);
+      this.absDiscrepanciaMostrarComputed = this.convertirUnidadBaseAPresentacion(this.absDiscrepanciaComputed);
     } else {
+      // Modo unidades: mostrar todo en unidades base
       this.totalAsignadoMostrarComputed = totalAsignadoUnidadBase;
       this.cantidadEnNotaMostrarComputed = this.cantidadEnNotaComputed;
       this.discrepanciaMostrarComputed = this.discrepanciaComputed;
@@ -629,10 +653,8 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
           const sucursalInfluencia = this.data.sucursalesInfluencia.find(si => si.id === d.sucursalInfluencia);
           const sucursalEntrega = this.data.sucursalesEntrega.find(se => se.id === d.sucursalEntrega);
           
-          // Convertir la cantidad a unidades base si se está distribuyendo por presentación
-          const cantidadEnUnidadBase = this.distribuyePorPresentacion
-            ? cantidadAsignada * this.cantidadPorPresentacionComputed
-            : cantidadAsignada;
+          // Convertir la cantidad a unidades base (siempre guardamos en unidades base)
+          const cantidadEnUnidadBase = this.convertirPresentacionAUnidadBase(cantidadAsignada);
           
           let distribucion = new NotaRecepcionItemDistribucion();
           distribucion.id = distribucionId || undefined;
@@ -646,10 +668,8 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
           const sucursalEntrega = this.data.sucursalesEntrega.find(se => se.id === d.sucursalEntrega);
           const distribucionesIds = d.distribucionesIds || [];
           
-          // Convertir la cantidad total a unidades base
-          const cantidadTotalEnUnidadBase = this.distribuyePorPresentacion
-            ? cantidadAsignada * this.cantidadPorPresentacionComputed
-            : cantidadAsignada;
+          // Convertir la cantidad total a unidades base (siempre guardamos en unidades base)
+          const cantidadTotalEnUnidadBase = this.convertirPresentacionAUnidadBase(cantidadAsignada);
           
           // Distribuir proporcionalmente entre las sucursales de influencia
           const sucursalesInfluencia = this.data.sucursalesInfluencia;
@@ -773,9 +793,8 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
           const sucursalInfluencia = this.data.sucursalesInfluencia.find(si => si.id === control.get('sucursalInfluencia')?.value);
           const sucursalEntrega = this.data.sucursalesEntrega.find(se => se.id === control.get('sucursalEntrega')?.value);
           
-          const cantidadEnUnidadBase = this.distribuyePorPresentacion
-            ? cantidadAsignada * this.cantidadPorPresentacionComputed
-            : cantidadAsignada;
+          // Convertir la cantidad a unidades base (siempre guardamos en unidades base)
+          const cantidadEnUnidadBase = this.convertirPresentacionAUnidadBase(cantidadAsignada);
           
           let distribucion = new NotaRecepcionItemDistribucion();
           distribucion.notaRecepcionItem = this.data.item;
@@ -829,4 +848,5 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
   trackByIndex(index: number): number {
     return index;
   }
-} 
+}
+

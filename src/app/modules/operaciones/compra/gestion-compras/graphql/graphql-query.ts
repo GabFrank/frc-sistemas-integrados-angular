@@ -227,6 +227,20 @@ export const savePedidoFullMutation = gql`
           nombre
         }
       }
+      procesoEtapas {
+        id
+        tipoEtapa
+        estadoEtapa
+        fechaInicio
+        fechaFin
+        usuarioInicio {
+          id
+          persona {
+            nombre
+          }
+        }
+        creadoEn
+      }
     }
   }
 `;
@@ -1276,6 +1290,91 @@ export const getSucursalesDisponiblesRecepcionFisicaQuery = gql`
   }
 `;
 
+export const pedidosWithFiltersQuery = gql`
+  query (
+    $sucursalId: Int
+    $productoId: Int
+    $proveedorId: Int
+    $estado: String
+    $creadoDesde: String
+    $creadoHasta: String
+    $page: Int
+    $size: Int
+  ) {
+    data: pedidosWithFilters(
+      sucursalId: $sucursalId
+      productoId: $productoId
+      proveedorId: $proveedorId
+      estado: $estado
+      creadoDesde: $creadoDesde
+      creadoHasta: $creadoHasta
+      page: $page
+      size: $size
+    ) {
+      getTotalPages
+      getTotalElements
+      getNumberOfElements
+      isFirst
+      isLast
+      hasNext
+      hasPrevious
+      getPageable {
+        getPageNumber
+        getPageSize
+      }
+      getContent {
+        id
+        proveedor {
+          id
+          persona {
+            nombre
+            documento
+          }
+        }
+        vendedor {
+          id
+          persona {
+            nombre
+            documento
+          }
+        }
+        formaPago {
+          id
+          descripcion
+        }
+        tipoBoleta
+        moneda {
+          id
+          denominacion
+          simbolo
+        }
+        plazoCredito
+        creadoEn
+        usuario {
+          id
+          persona {
+            nombre
+          }
+        }
+        procesoEtapas {
+          id
+          tipoEtapa
+          estadoEtapa
+          fechaInicio
+          fechaFin
+          usuarioInicio {
+            id
+            persona {
+              nombre
+            }
+          }
+          creadoEn
+        }
+      }
+    }
+  }
+`;
+
 export const getNotaRecepcionItemListPorNotaRecepcionIdYSucursalesQuery = gql`
   query GetNotaRecepcionItemListPorNotaRecepcionIdYSucursales($notaRecepcionId: ID!, $sucursalesIds: [ID!]!, $page: Int!, $size: Int!, $filtroVerificacion: FiltroVerificacion = PENDIENTES, $filtroTexto: String) {
     data: notaRecepcionItemListPorNotaRecepcionIdYSucursales(notaRecepcionId: $notaRecepcionId, sucursalesIds: $sucursalesIds, page: $page, size: $size, filtroVerificacion: $filtroVerificacion, filtroTexto: $filtroTexto) {
@@ -1331,7 +1430,7 @@ export const getNotaRecepcionItemListPorNotaRecepcionIdYSucursalesQuery = gql`
         cantidadPendiente
         cantidadRecibida
         cantidadRechazada
-        estadoRecepcion
+        estadoRecepcion(sucursalesIds: $sucursalesIds)
         usuario {
           id
           persona {

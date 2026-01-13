@@ -791,6 +791,31 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
 
                 // Actualizar UI
                 this.actualizarUIItemVerificado(item);
+                
+                // Recargar pedido primero para obtener las etapas actualizadas
+                // Luego recargar etapa actual para actualizar el estado del botón "Finalizar Recepción Física"
+                // Esto es necesario porque el backend cambia la etapa a EN_PROCESO cuando se crea el primer item
+                if (this.pedidoId) {
+                  this.pedidoService.onGetPedidoById(this.pedidoId)
+                    .pipe(untilDestroyed(this))
+                    .subscribe({
+                      next: (pedido) => {
+                        this.pedido = pedido;
+                        // Después de recargar el pedido, cargar la etapa actual
+                        // Esto asegura que tenemos las etapas actualizadas
+                        this.loadEtapaActual();
+                      },
+                      error: (error) => {
+                        console.error('Error al recargar pedido:', error);
+                        // Intentar cargar etapa actual aunque falle la recarga del pedido
+                        this.loadEtapaActual();
+                      }
+                    });
+                } else {
+                  // Si no hay pedidoId, solo cargar etapa actual
+                  this.loadEtapaActual();
+                }
+                
                 this.notificacionService.openSucess('Ítem verificado exitosamente');
               },
               error: (error) => {
@@ -1595,26 +1620,36 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
         // 1. Mostrar notificación de éxito
         this.notificacionService.openSucess('Recepción física finalizada exitosamente');
         
-        // 2. Limpiar estados del componente
-        this.loading = false;
-        this.sucursalesSeleccionadas = [];
-        this.notaSeleccionada = null;
-        this.items = [];
-        this.itemsDataSource.data = [];
+        // 2. Recargar datos para reflejar cambios
+        this.loadNotasRecepcion();
+        this.loadEtapaActual();
         
-        // 3. Marcar recepción como finalizada
-        this.recepcionFinalizadaComputed = true;
+        // 3. Limpiar estados del componente
+        this.loading = false;
+        // No limpiar sucursalesSeleccionadas ni notaSeleccionada para mantener contexto
+        // Solo limpiar items si no hay nota seleccionada
+        if (!this.notaSeleccionada) {
+          this.items = [];
+          this.itemsDataSource.data = [];
+        }
         
         // 4. Actualizar propiedades computadas
         this.updateComputedProperties();
         
-        // 5. Emitir evento para notificar al componente padre
+        // 5. Verificar si todas las recepciones están finalizadas para marcar como finalizada
+        // Esto se hace verificando si la etapa cambió a COMPLETADA
+        // Por ahora, solo marcamos si la etapa está completada
+        if (this.etapaEstadoComputed === ProcesoEtapaEstado.COMPLETADA) {
+          this.recepcionFinalizadaComputed = true;
+        }
+        
+        // 6. Emitir evento para notificar al componente padre
         this.recepcionFinalizada.emit();
         
-        // 4. Mostrar mensaje informativo sobre la siguiente etapa
-        this.notificacionService.openSucess('Recepción física completada. Navegando a la etapa de Solicitud de Pago.');
-        
-        console.log('Recepción física finalizada - Navegando a Solicitud de Pago');
+        // 7. Mostrar mensaje informativo si la etapa está completada
+        if (this.etapaEstadoComputed === ProcesoEtapaEstado.COMPLETADA) {
+          this.notificacionService.openSucess('Recepción física completada. Puede proceder a la etapa de Solicitud de Pago.');
+        }
       }
       
     } catch (error) {
@@ -1628,18 +1663,31 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
   /**
    * Muestra diálogo con items pendientes
    */
+  /**
+   * Muestra un diálogo con los items pendientes de forma estructurada
+   */
   private mostrarDialogoItemsPendientes(itemsPendientes: any[]): void {
-    let mensaje = 'No se puede finalizar la recepción física. Los siguientes ítems están pendientes:\n\n';
+    const mensajePrincipal = `No se puede finalizar la recepción física. Hay ${itemsPendientes.length} ítem(s) pendiente(s) de verificar:`;
     
-    itemsPendientes.forEach(item => {
-      mensaje += `• ${item.descripcionProducto} (Nota: ${item.numeroNota})\n`;
-      mensaje += `  Esperado: ${item.cantidadEsperada}, Recibido: ${item.cantidadRecibida}, Rechazado: ${item.cantidadRechazada}\n\n`;
+    // Formatear cada item pendiente con información detallada
+    const listaItems: string[] = itemsPendientes.map((item, index) => {
+      const diferencia = (item.cantidadEsperada || 0) - ((item.cantidadRecibida || 0) + (item.cantidadRechazada || 0));
+      return `${index + 1}. ${item.descripcionProducto} (Nota: ${item.numeroNota})\n   ` +
+             `Esperado: ${item.cantidadEsperada || 0} | ` +
+             `Recibido: ${item.cantidadRecibida || 0} | ` +
+             `Rechazado: ${item.cantidadRechazada || 0} | ` +
+             `Pendiente: ${diferencia}`;
     });
     
     this.dialogosService.confirm(
-      'Items Pendientes',
-      mensaje
-    );
+      'Ítems Pendientes de Verificación',
+      mensajePrincipal,
+      undefined, // message2
+      listaItems,
+      false, // action: false para mostrar solo botón "Cerrar"
+      'Cerrar',
+      undefined
+    ).subscribe();
   }
 
   /**
