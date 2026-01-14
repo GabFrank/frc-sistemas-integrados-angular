@@ -66,6 +66,7 @@ import { FinalizarRecepcionFisicaPorPedidoGQL } from './gestion-compras/recepcio
 // Models
 import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
 import { RecepcionMercaderiaItem } from './gestion-compras/recepcion-mercaderia-item.model';
+import { GetPedidosWithFiltersGQL } from './gestion-compras/graphql/getPedidosWithFilters';
 
 @Injectable({
   providedIn: 'root'
@@ -117,7 +118,8 @@ export class PedidoService {
     private cancelarVerificacionGQL: CancelarVerificacionGQL,
     private cancelarRechazoGQL: CancelarRechazoGQL,
     private validarFinalizacionRecepcionPorPedidoGQL: ValidarFinalizacionRecepcionPorPedidoGQL,
-    private finalizarRecepcionFisicaPorPedidoGQL: FinalizarRecepcionFisicaPorPedidoGQL
+    private finalizarRecepcionFisicaPorPedidoGQL: FinalizarRecepcionFisicaPorPedidoGQL,
+    private getPedidosWithFiltersGQL: GetPedidosWithFiltersGQL
   ) {}
 
   /**
@@ -608,6 +610,71 @@ export class PedidoService {
     return this.genericCrudService.onCustomMutation(this.finalizarRecepcionFisicaPorPedidoGQL, {
       pedidoId,
       sucursalesIds
+    });
+  }
+
+  /**
+   * Obtiene pedidos con filtros avanzados
+   * @param sucursalId - ID de sucursal (opcional)
+   * @param productoId - ID de producto (opcional)
+   * @param proveedorId - ID de proveedor (opcional)
+   * @param estado - Estado de etapa (opcional)
+   * @param creadoDesde - Fecha desde (opcional)
+   * @param creadoHasta - Fecha hasta (opcional)
+   * @param page - Número de página
+   * @param size - Tamaño de página
+   * @returns Observable<PageInfo<Pedido>>
+   */
+  onGetPedidosWithFilters(
+    sucursalId?: number,
+    productoId?: number,
+    proveedorId?: number,
+    estado?: string,
+    creadoDesde?: string,
+    creadoHasta?: string,
+    page?: number,
+    size?: number
+  ): Observable<PageInfo<Pedido>> {
+    return this.genericCrudService.onCustomQuery(this.getPedidosWithFiltersGQL, {
+      sucursalId,
+      productoId,
+      proveedorId,
+      estado,
+      creadoDesde,
+      creadoHasta,
+      page,
+      size
+    });
+  }
+
+  /**
+   * Cancela un pedido (usa deletePedido)
+   * @param id - ID del pedido a cancelar
+   * @returns Observable<boolean>
+   */
+  onCancelarPedido(id: number): Observable<boolean> {
+    return this.genericCrudService.onDelete(
+      this.savePedidoFullGQL,
+      id,
+      '¿Cancelar pedido?',
+      null,
+      true,
+      true,
+      '¿Está seguro que desea cancelar este pedido?'
+    );
+  }
+
+  /**
+   * Imprime un pedido
+   * @param id - ID del pedido a imprimir
+   * @returns Observable<string> - Base64 del PDF
+   */
+  onImprimirPedido(id: number): Observable<string> {
+    // TODO: Implementar cuando se cree el método de impresión en el backend
+    // Por ahora retornar un observable vacío
+    return new Observable<string>(observer => {
+      observer.error('Método de impresión no implementado aún');
+      observer.complete();
     });
   }
 } 

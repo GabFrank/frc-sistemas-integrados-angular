@@ -76,9 +76,13 @@ import { MatButton } from "@angular/material/button";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
 import { ProcesoEtapaService } from "./proceso-etapa.service";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
-import { MatPaginator } from "@angular/material/paginator";
+import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { Tab } from "../../../../layouts/tab/tab.model";
 import { TabData } from "../../../../layouts/tab/tab.service";
+import { ProductoProveedorService } from "../../../productos/producto-proveedor/producto-proveedor.service";
+import { ProductoProveedor } from "../../../productos/producto-proveedor/producto-proveedor.model";
+import { ProductoUltimasComprasByIdGQL } from "../../../productos/producto/graphql/productoUltimasComprasPorId";
+import { DesvincularProductoProveedorGQL } from "../../../productos/producto-proveedor/graphql/desvincularProductoProveedor";
 
 interface PedidoHeader {
   id?: number;
@@ -124,6 +128,24 @@ interface MockNotaRecepcion extends NotaRecepcion {
   montoComputed: number;
   // Propiedad para el valor total calculado en el backend
   valorTotal?: number;
+}
+
+interface ProductoProveedorItem extends ProductoProveedor {
+  // Computed properties
+  descripcionComputed: string;
+  precioDisplayComputed: string;
+  isSelectedComputed: boolean;
+}
+
+interface UltimaCompraItem {
+  pedido: Pedido;
+  cantidad: number;
+  precio: number;
+  creadoEn: Date;
+  // Computed properties
+  fechaDisplayComputed: string;
+  proveedorDisplayComputed: string;
+  precioDisplayComputed: string;
 }
 
 type TabState = "disabled" | "readonly" | "editable";
@@ -230,6 +252,14 @@ export class GestionComprasComponent
   pendingDistributionCountComputed = 0;
   // Removed hasItemsComputed and canFinalizePlanningComputed - using direct logic in template
 
+  // Paginación para ítems del pedido
+  itemsPageSize = 10;
+  itemsPageIndex = 0;
+  itemsTotalElements = 0;
+  itemsLoading = false;
+  itemsSearchText = '';
+  showItemsSearch = false;
+
   // Step 3: Layout de dos paneles según manual
   // Panel Izquierdo (60%): Ítems del Pedido Pendientes de Conciliar
   itemsPendientesDataSource = new MatTableDataSource<MockPedidoItem>([]);
@@ -268,6 +298,19 @@ export class GestionComprasComponent
   canAssignItemsToNotaComputed = false;
   canFinalizarConciliacionComputed = false;
 
+  // Productos del proveedor y últimas compras
+  productosProveedorDataSource = new MatTableDataSource<ProductoProveedorItem>([]);
+  ultimasComprasDataSource = new MatTableDataSource<UltimaCompraItem>([]);
+  selectedProductoProveedor: ProductoProveedorItem | null = null;
+  productosProveedorLoading = false;
+  ultimasComprasLoading = false;
+  productosProveedorPageSize = 10;
+  productosProveedorPageIndex = 0;
+  productosProveedorTotalElements = 0;
+  productosProveedorSearchText = '';
+  lastClickTime = 0;
+  lastClickedProduct: ProductoProveedorItem | null = null;
+
   // Sistema de lazy loading para tabs
   loadedTabs: Set<number> = new Set();
 
@@ -299,7 +342,10 @@ export class GestionComprasComponent
     private pedidoService: PedidoService,
     private notificacionService: NotificacionSnackbarService,
     private procesoEtapaService: ProcesoEtapaService,
-    private dialogosService: DialogosService
+    private dialogosService: DialogosService,
+    private productoProveedorService: ProductoProveedorService,
+    private productoUltimasComprasGQL: ProductoUltimasComprasByIdGQL,
+    private desvincularProductoProveedorGQL: DesvincularProductoProveedorGQL
   ) {
     this.initializeForms();
   }
@@ -398,6 +444,16 @@ export class GestionComprasComponent
           this.datosGeneralesForm
             .get("vendedor")
             ?.setValue(value.vendedor, { emitEvent: false });
+          
+          // Si estamos en el tab de items, cargar productos del proveedor
+          if (this.selectedTabIndex === 1) {
+            this.loadProductosProveedor();
+          }
+        } else {
+          // Si se remueve el proveedor, limpiar la lista de productos
+          this.productosProveedorDataSource.data = [];
+          this.ultimasComprasDataSource.data = [];
+          this.selectedProductoProveedor = null;
         }
       });
   }
@@ -949,7 +1005,8 @@ export class GestionComprasComponent
     // Update items computed properties
 
     // Update basic counts from items data
-    this.itemsCountComputed = items.length;
+    // Use itemsTotalElements if available (from pagination), otherwise use items.length
+    this.itemsCountComputed = this.itemsTotalElements > 0 ? this.itemsTotalElements : items.length;
 
     // Use backend data for distribution counts if available, otherwise calculate locally
     if (this.pedidoResumen) {
@@ -1205,6 +1262,11 @@ export class GestionComprasComponent
           this.loadPedidoResumen();
           console.log("  - Datos del tab 1 cargados");
           
+          // Cargar productos del proveedor si hay proveedor seleccionado
+          if (this.currentPedido?.proveedor?.id) {
+            this.loadProductosProveedor();
+          }
+          
           // Si el estado es EN PLANIFICACION, hacer focus en el botón "Añadir Item"
           if (this.isEstadoEnPlanificacion()) {
             setTimeout(() => {
@@ -1216,6 +1278,12 @@ export class GestionComprasComponent
           console.log("  - Nueva compra: Inicializando tab de ítems vacío");
           this.itemsDataSource.data = [];
           this.updateItemsComputedProperties();
+          
+          // Cargar productos del proveedor si hay proveedor seleccionado en el formulario
+          const proveedorId = this.datosGeneralesForm.get("proveedor")?.value?.id;
+          if (proveedorId) {
+            this.loadProductosProveedor();
+          }
           
           // En nueva compra, siempre hacer focus en el botón "Añadir Item"
           setTimeout(() => {
@@ -1567,12 +1635,21 @@ export class GestionComprasComponent
         
         // Si estamos en el tab de ítems, recargar inmediatamente
         if (this.selectedTabIndex === 1) {
-          this.reloadTabData(1);
+          // Resetear a primera página y recargar
+          this.itemsPageIndex = 0;
+          this.loadItemsData();
         } else {
           // Si no estamos en el tab 1, actualizar itemsDataSource localmente si es posible
-          // y actualizar propiedades computadas para habilitar botón "Finalizar Planificación"
-          // Nota: Esto es una actualización optimista, los datos se recargarán cuando se acceda al tab
-          this.updateItemsComputedProperties();
+          // Si estamos en el tab de ítems, recargar inmediatamente con paginación
+          if (this.selectedTabIndex === 1) {
+            // Resetear a primera página y recargar
+            this.itemsPageIndex = 0;
+            this.loadItemsData();
+          } else {
+            // y actualizar propiedades computadas para habilitar botón "Finalizar Planificación"
+            // Nota: Esto es una actualización optimista, los datos se recargarán cuando se acceda al tab
+            this.updateItemsComputedProperties();
+          }
         }
         
         // Marcar tab de recepción de notas como no cargado (puede afectar ítems pendientes)
@@ -1591,12 +1668,17 @@ export class GestionComprasComponent
               next: (pedidoCompleto) => {
                 this.currentPedido = pedidoCompleto;
                 this.updateComputedProperties();
-                this.updateItemsComputedProperties();
+                // Solo actualizar propiedades computadas si no estamos en el tab 1 (ya se recargó)
+                if (this.selectedTabIndex !== 1) {
+                  this.updateItemsComputedProperties();
+                }
               },
               error: (error) => {
                 console.error("Error recargando pedido después de agregar item:", error);
                 this.updateComputedProperties();
-                this.updateItemsComputedProperties();
+                if (this.selectedTabIndex !== 1) {
+                  this.updateItemsComputedProperties();
+                }
               }
             });
         } else {
@@ -1630,7 +1712,9 @@ export class GestionComprasComponent
         
         // Si estamos en el tab de ítems, recargar inmediatamente
         if (this.selectedTabIndex === 1) {
-          this.reloadTabData(1);
+          // Resetear a primera página y recargar
+          this.itemsPageIndex = 0;
+          this.loadItemsData();
         } else {
           // Si no estamos en el tab 1, actualizar propiedades computadas para habilitar botón
           this.updateItemsComputedProperties();
@@ -1693,7 +1777,9 @@ export class GestionComprasComponent
             
             // Si estamos en el tab de ítems, recargar inmediatamente
             if (this.selectedTabIndex === 1) {
-              this.reloadTabData(1);
+              // Resetear a primera página y recargar
+          this.itemsPageIndex = 0;
+          this.loadItemsData();
             } else {
               // Si no estamos en el tab 1, actualizar propiedades computadas
               this.updateItemsComputedProperties();
@@ -1738,7 +1824,9 @@ export class GestionComprasComponent
             
             // Si estamos en el tab de ítems, recargar inmediatamente
             if (this.selectedTabIndex === 1) {
-              this.reloadTabData(1);
+              // Resetear a primera página y recargar
+          this.itemsPageIndex = 0;
+          this.loadItemsData();
             } else {
               // Si no estamos en el tab 1, actualizar propiedades computadas
               this.updateItemsComputedProperties();
@@ -1775,7 +1863,9 @@ export class GestionComprasComponent
               
               // Si estamos en el tab de ítems, recargar inmediatamente
               if (this.selectedTabIndex === 1) {
-                this.reloadTabData(1);
+                // Resetear a primera página y recargar
+                this.itemsPageIndex = 0;
+                this.loadItemsData();
               } else {
                 // Si no estamos en el tab 1, actualizar propiedades computadas para deshabilitar botón si no hay items
                 this.updateItemsComputedProperties();
@@ -1803,36 +1893,54 @@ export class GestionComprasComponent
   }
 
   /**
-   * Carga los datos de los ítems del pedido desde el backend
+   * Carga los datos de los ítems del pedido desde el backend con paginación
    */
   private loadItemsData(): void {
     if (!this.currentPedido?.id) {
       return;
     }
 
+    this.itemsLoading = true;
+
     console.log("📦 loadItemsData() ejecutado");
     console.log("  - currentPedido.id:", this.currentPedido.id);
+    console.log("  - pageIndex:", this.itemsPageIndex);
+    console.log("  - pageSize:", this.itemsPageSize);
+    console.log("  - searchText:", this.itemsSearchText);
 
-    this.pedidoService.onGetPedidoItemsByPedidoId(this.currentPedido.id).subscribe({
-      next: (items) => {
-        console.log("📦 Ítems cargados del backend:", items);
-        console.log("  - Cantidad de ítems:", items.length);
-        
-        // Procesar los ítems y añadir propiedades computadas
-        const processedItems = items.map(item => this.processItemForDisplay(item));
-        
-        // Actualizar la tabla
-        this.itemsDataSource.data = processedItems;
-        
-        console.log("📦 Llamando a updateItemsComputedProperties()");
-        // Actualizar propiedades computadas
-        this.updateItemsComputedProperties();
-      },
-      error: (error) => {
-        console.error("Error cargando ítems:", error);
-        this.notificacionService.openAlgoSalioMal("Error al cargar los ítems del pedido");
-      }
-    });
+    this.pedidoService
+      .onGetPedidoItemPorPedidoPage(
+        this.currentPedido.id,
+        this.itemsPageIndex,
+        this.itemsPageSize,
+        this.itemsSearchText || undefined
+      )
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          console.log("📦 Ítems cargados del backend:", response);
+          console.log("  - Cantidad de ítems:", response.getContent?.length || 0);
+          
+          // Procesar los ítems y añadir propiedades computadas
+          const processedItems = (response.getContent || []).map((item: PedidoItem) => 
+            this.processItemForDisplay(item)
+          );
+          
+          // Actualizar la tabla
+          this.itemsDataSource.data = processedItems;
+          this.itemsTotalElements = response.getTotalElements || 0;
+          this.itemsLoading = false;
+          
+          console.log("📦 Llamando a updateItemsComputedProperties()");
+          // Actualizar propiedades computadas
+          this.updateItemsComputedProperties();
+        },
+        error: (error) => {
+          console.error("Error cargando ítems:", error);
+          this.notificacionService.openAlgoSalioMal("Error al cargar los ítems del pedido");
+          this.itemsLoading = false;
+        }
+      });
   }
 
   /**
@@ -2074,6 +2182,29 @@ export class GestionComprasComponent
 
   isNotaRecepcionSelected(nota: MockNotaRecepcion): boolean {
     return this.selectedNotaRecepcion === nota;
+  }
+
+  // Métodos para paginación y búsqueda de ítems del pedido
+  onItemsPageChange(event: PageEvent): void {
+    this.itemsPageIndex = event.pageIndex;
+    this.itemsPageSize = event.pageSize;
+    this.loadItemsData();
+  }
+
+  onItemsSearchChange(searchText: string): void {
+    this.itemsSearchText = searchText;
+    this.itemsPageIndex = 0; // Reset to first page
+    this.loadItemsData();
+  }
+
+  onToggleItemsSearch(): void {
+    this.showItemsSearch = !this.showItemsSearch;
+    if (!this.showItemsSearch) {
+      // Si se oculta el buscador, limpiar el texto de búsqueda y recargar
+      this.itemsSearchText = '';
+      this.itemsPageIndex = 0;
+      this.loadItemsData();
+    }
   }
 
   // Métodos para paginación y búsqueda de ítems pendientes
@@ -2466,6 +2597,30 @@ export class GestionComprasComponent
     return new Intl.DateTimeFormat("es-PY").format(date);
   }
 
+  /**
+   * Formatea un número con separador de miles y decimales solo si existen
+   * Formato: '1.0-2' (máximo 2 decimales, solo muestra si existen)
+   */
+  formatNumber(value: number | string | null | undefined): string {
+    if (value === null || value === undefined) {
+      return '0';
+    }
+    
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    
+    if (isNaN(numValue)) {
+      return '0';
+    }
+    
+    // Usar Intl.NumberFormat para formatear con separador de miles
+    // minimumFractionDigits: 0 (no mostrar decimales si no existen)
+    // maximumFractionDigits: 2 (máximo 2 decimales)
+    return new Intl.NumberFormat('es-PY', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(numValue);
+  }
+
   getEstadoChipColor(): string {
     const estado = this.headerDataComputed.estado;
 
@@ -2616,5 +2771,325 @@ export class GestionComprasComponent
       this.headerDataComputed.montoTotal = this.calculateMontoTotalEditMode();
       this.estadoChipColorComputed = this.getEstadoChipColor();
     }
+  }
+
+  // ===== MÉTODOS PARA PRODUCTOS DEL PROVEEDOR Y ÚLTIMAS COMPRAS =====
+
+  /**
+   * Carga los productos del proveedor
+   */
+  private loadProductosProveedor(): void {
+    const proveedorId = this.currentPedido?.proveedor?.id || 
+                       this.datosGeneralesForm.get("proveedor")?.value?.id;
+    
+    if (!proveedorId) {
+      console.log("No hay proveedor seleccionado, no se cargan productos");
+      this.productosProveedorDataSource.data = [];
+      return;
+    }
+
+    this.productosProveedorLoading = true;
+
+    this.productoProveedorService
+      .getByProveedorId(
+        proveedorId,
+        this.productosProveedorSearchText || '',
+        this.productosProveedorPageIndex,
+        this.productosProveedorPageSize
+      )
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          console.log("Productos del proveedor cargados:", response);
+          
+          const productos = (response.getContent || []).map((pp: ProductoProveedor) => {
+            const precioPrincipal = pp.producto?.precioPrincipal;
+            
+            const item: ProductoProveedorItem = {
+              ...pp,
+              descripcionComputed: pp.producto?.descripcion || '',
+              precioDisplayComputed: this.formatNumber(precioPrincipal),
+              isSelectedComputed: false
+            };
+            return item;
+          });
+
+          this.productosProveedorDataSource.data = productos;
+          this.productosProveedorTotalElements = response.getTotalElements || 0;
+          this.productosProveedorLoading = false;
+        },
+        error: (error) => {
+          console.error("Error cargando productos del proveedor:", error);
+          this.notificacionService.openAlgoSalioMal(
+            "Error al cargar los productos del proveedor"
+          );
+          this.productosProveedorLoading = false;
+        },
+      });
+  }
+
+  /**
+   * Carga las últimas compras de un producto
+   */
+  private loadUltimasCompras(productoId: number): void {
+    if (!productoId) {
+      this.ultimasComprasDataSource.data = [];
+      return;
+    }
+
+    this.ultimasComprasLoading = true;
+
+    this.productoUltimasComprasGQL
+      .fetch({ id: productoId }, { fetchPolicy: 'network-only' })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          console.log("Últimas compras cargadas:", response);
+          
+          // La respuesta tiene la estructura: response.data.data.productoUltimasCompras
+          const producto = response.data?.data;
+          const ultimasCompras = (producto?.productoUltimasCompras || []) as any[];
+
+          const compras = ultimasCompras.map((compra: any) => {
+            const item: UltimaCompraItem = {
+              pedido: compra.pedido,
+              cantidad: compra.cantidad || 0,
+              precio: compra.precio || 0,
+              creadoEn: compra.creadoEn ? new Date(compra.creadoEn) : new Date(),
+              fechaDisplayComputed: compra.creadoEn 
+                ? this.formatDate(new Date(compra.creadoEn))
+                : 'Sin fecha',
+              proveedorDisplayComputed: compra.pedido?.proveedor?.persona?.nombre || 'N/A',
+              precioDisplayComputed: this.formatNumber(compra.precio)
+            };
+            return item;
+          });
+
+          this.ultimasComprasDataSource.data = compras;
+          this.ultimasComprasLoading = false;
+        },
+        error: (error) => {
+          console.error("Error cargando últimas compras:", error);
+          this.notificacionService.openAlgoSalioMal(
+            "Error al cargar las últimas compras del producto"
+          );
+          this.ultimasComprasLoading = false;
+        },
+      });
+  }
+
+  /**
+   * Maneja el click en un producto del proveedor
+   */
+  onProductoProveedorClick(producto: ProductoProveedorItem): void {
+    const currentTime = Date.now();
+    const timeSinceLastClick = currentTime - this.lastClickTime;
+    const isDoubleClick = timeSinceLastClick < 300 && this.lastClickedProduct === producto;
+
+    if (isDoubleClick) {
+      // Doble click: abrir diálogo
+      this.onProductoProveedorDoubleClick(producto);
+      this.lastClickTime = 0;
+      this.lastClickedProduct = null;
+    } else {
+      // Click simple: seleccionar y cargar últimas compras
+      // Deseleccionar el producto anterior
+      if (this.selectedProductoProveedor) {
+        this.selectedProductoProveedor.isSelectedComputed = false;
+      }
+      
+      // Seleccionar el nuevo producto
+      producto.isSelectedComputed = true;
+      this.selectedProductoProveedor = producto;
+      
+      // Cargar últimas compras
+      if (producto.producto?.id) {
+        this.loadUltimasCompras(producto.producto.id);
+      }
+      
+      this.lastClickTime = currentTime;
+      this.lastClickedProduct = producto;
+    }
+  }
+
+  /**
+   * Maneja el doble click en un producto del proveedor
+   */
+  onProductoProveedorDoubleClick(producto: ProductoProveedorItem): void {
+    if (!producto.producto) {
+      this.notificacionService.openAlgoSalioMal("El producto no tiene información válida");
+      return;
+    }
+
+    // Verificar si el producto ya está en la lista de items
+    const productoExists = this.checkProductoExistsInItems(producto.producto.id);
+    
+    if (productoExists) {
+      // Mostrar diálogo de confirmación
+      this.dialogosService.confirm(
+        "Producto ya existe",
+        `El producto "${producto.producto.descripcion}" ya se encuentra en la lista de items. ¿Desea modificarlo o agregarlo separadamente?`,
+        undefined, // message2
+        undefined, // listMessages
+        true, // action
+        "Modificar",
+        "Agregar Separadamente",
+        "Cancelar"
+      ).subscribe((result) => {
+        if (result === true) {
+          // Modificar: encontrar el item existente y abrir diálogo de edición
+          const existingItem = this.itemsDataSource.data.find(
+            item => item.producto?.id === producto.producto.id
+          );
+          if (existingItem) {
+            const index = this.itemsDataSource.data.indexOf(existingItem);
+            this.onEditItem(existingItem, index);
+          }
+        } else if (result === 'agregar') {
+          // Agregar separadamente: abrir diálogo de agregar
+          this.onOpenAddItemDialogWithProduct(producto.producto);
+        }
+        // Si result es null o undefined, no hacer nada (cancelar)
+      });
+    } else {
+      // Abrir diálogo de agregar item
+      this.onOpenAddItemDialogWithProduct(producto.producto);
+    }
+  }
+
+  /**
+   * Verifica si un producto ya existe en la lista de items
+   */
+  private checkProductoExistsInItems(productoId: number): boolean {
+    return this.itemsDataSource.data.some(
+      item => item.producto?.id === productoId
+    );
+  }
+
+  /**
+   * Abre el diálogo de agregar item con un producto precargado
+   */
+  private onOpenAddItemDialogWithProduct(producto: Producto): void {
+    if (!this.currentPedido) {
+      this.notificacionService.openAlgoSalioMal("No hay pedido seleccionado");
+      return;
+    }
+
+    // Necesitamos cargar el producto completo con presentaciones y costo
+    // Si el producto ya tiene estas propiedades, usarlo directamente
+    // Si no, necesitamos cargarlo desde el backend
+    
+    const dialogData: AddEditItemDialogData = {
+      pedido: this.currentPedido,
+      isEdit: false,
+      title: "Añadir Nuevo Ítem al Pedido",
+    };
+
+    const dialogRef = this.dialog.open(AddEditItemDialogComponent, {
+      width: "50%",
+      height: "70%",
+      data: dialogData,
+      disableClose: true,
+    });
+
+    // Después de abrir el diálogo, precargar el producto
+    dialogRef.afterOpened().subscribe(() => {
+      const dialogComponent = dialogRef.componentInstance;
+      // El producto del ProductoProveedor ya debería tener presentaciones y costo
+      // según la query GraphQL actualizada
+      if (dialogComponent && producto) {
+        // Verificar si el producto tiene presentaciones
+        if (producto.presentaciones && producto.presentaciones.length > 0) {
+          // El producto ya tiene presentaciones, podemos usarlo directamente
+          dialogComponent.onProductoSelected(producto, producto.presentaciones[0]);
+        } else {
+          // Si no tiene presentaciones, intentar usar el producto tal como está
+          // El diálogo manejará la carga de presentaciones si es necesario
+          dialogComponent.onProductoSelected(producto);
+        }
+      }
+    });
+
+    dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
+      if (result && result.action === "save") {
+        console.log("Nuevo ítem añadido desde productos del proveedor:", result.item);
+        
+        // Marcar tab de ítems como no cargado para recargar en próxima visita
+        this.markTabAsUnloaded(1);
+        
+        // Si estamos en el tab de ítems, recargar inmediatamente
+        if (this.selectedTabIndex === 1) {
+          // Resetear a primera página y recargar
+          this.itemsPageIndex = 0;
+          this.loadItemsData();
+        } else {
+          this.updateItemsComputedProperties();
+        }
+        
+        // Recargar resumen del pedido para actualizar header
+        if (this.isEditMode) {
+          this.loadPedidoResumen();
+        }
+      }
+    });
+  }
+
+  /**
+   * Maneja el cambio de página en la lista de productos del proveedor
+   */
+  onProductosProveedorPageChange(event: any): void {
+    this.productosProveedorPageIndex = event.pageIndex;
+    this.productosProveedorPageSize = event.pageSize;
+    this.loadProductosProveedor();
+  }
+
+  /**
+   * Maneja el cambio de búsqueda en la lista de productos del proveedor
+   */
+  onProductosProveedorSearchChange(searchText: string): void {
+    this.productosProveedorSearchText = searchText;
+    this.productosProveedorPageIndex = 0; // Reset to first page
+    this.loadProductosProveedor();
+  }
+
+  /**
+   * Desvincula un producto del proveedor con el motivo especificado
+   */
+  onDesvincularProducto(producto: ProductoProveedorItem, motivo: string): void {
+    if (!producto.id) {
+      this.notificacionService.openAlgoSalioMal(
+        "No se pudo identificar el producto a desvincular"
+      );
+      return;
+    }
+
+    this.desvincularProductoProveedorGQL
+      .mutate({
+        id: producto.id,
+        motivo: motivo
+      })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          if (response.data?.data) {
+            this.notificacionService.openSucess(
+              "Producto desvinculado correctamente"
+            );
+            // Recargar la lista de productos
+            this.loadProductosProveedor();
+            // Si el producto desvinculado estaba seleccionado, limpiar la selección
+            if (this.selectedProductoProveedor?.id === producto.id) {
+              this.selectedProductoProveedor = null;
+              this.ultimasComprasDataSource.data = [];
+            }
+          }
+        },
+        error: (error) => {
+          console.error("Error desvinculando producto:", error);
+          this.notificacionService.openAlgoSalioMal(
+            "Error al desvincular el producto"
+          );
+        }
+      });
   }
 }

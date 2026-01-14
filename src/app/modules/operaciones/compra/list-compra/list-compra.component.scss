@@ -1,0 +1,21 @@
+table {
+  width: 100%;
+}
+
+tr.example-detail-row {
+  height: 0;
+}
+
+.example-element-detail {
+  overflow: hidden;
+  display: flex;
+}
+
+.example-element-row:hover {
+  background-color: rgb(34, 34, 34);
+}
+
+.example-expanded-row {
+  background-color: rgb(34, 34, 34);
+}
+

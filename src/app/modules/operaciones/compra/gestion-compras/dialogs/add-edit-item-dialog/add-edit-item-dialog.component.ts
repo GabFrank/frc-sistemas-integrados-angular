@@ -12,6 +12,7 @@ import {
   MatDialog,
 } from "@angular/material/dialog";
 import { MatCheckbox } from "@angular/material/checkbox";
+import { MatSelect } from "@angular/material/select";
 import { Producto } from "../../../../../productos/producto/producto.model";
 import { Presentacion } from "../../../../../productos/presentacion/presentacion.model";
 import {
@@ -53,7 +54,7 @@ export class AddEditItemDialogComponent implements OnInit {
   @ViewChild("productoInput") productoInput!: ElementRef;
   @ViewChild("cantidadInput") cantidadInput!: ElementRef;
   @ViewChild("bonificacionCheckbox") bonificacionCheckbox!: MatCheckbox;
-  @ViewChild("presentacionSelect") presentacionSelect!: ElementRef;
+  @ViewChild("presentacionSelect") presentacionSelect!: MatSelect;
   @ViewChild("precioUnitarioInput") precioUnitarioInput!: ElementRef;
   @ViewChild("precioPorPresentacionInput")
   precioPorPresentacionInput!: ElementRef;
@@ -107,6 +108,7 @@ export class AddEditItemDialogComponent implements OnInit {
     }
     this.loadDataIfEdit();
     this.setupFormSubscriptions();
+    this.setInitialFocus();
   }
 
   private initializeForm(): void {
@@ -157,6 +159,34 @@ export class AddEditItemDialogComponent implements OnInit {
 
       this.updateComputedProperties();
     }
+  }
+
+  private setInitialFocus(): void {
+    // Si hay producto y presentación ya seleccionados, el foco debe ir al input de cantidad
+    setTimeout(() => {
+      const producto = this.itemForm.get("producto")?.value;
+      const presentacion = this.itemForm.get("presentacion")?.value;
+      
+      if (producto && presentacion) {
+        // Si ya hay producto y presentación seleccionados, ir directamente a cantidad
+        this.cantidadInput?.nativeElement.focus();
+        this.cantidadInput?.nativeElement.select();
+      } else if (producto && !presentacion) {
+        // Si hay producto pero no presentación, ir al select de presentación
+        if (this.presentacionesDisponibles.length > 1) {
+          this.presentacionSelect?.focus();
+          setTimeout(() => {
+            this.presentacionSelect?.open();
+          }, 100);
+        } else if (this.presentacionesDisponibles.length === 1) {
+          // Si hay solo una presentación, ir a cantidad
+          this.cantidadInput?.nativeElement.focus();
+          this.cantidadInput?.nativeElement.select();
+        }
+      } else {
+        // Si no hay producto, el foco ya está en el input de búsqueda
+      }
+    }, 300);
   }
 
   private setupFormSubscriptions(): void {
@@ -327,7 +357,10 @@ export class AddEditItemDialogComponent implements OnInit {
           if (!result.producto) {
             this.productoInput?.nativeElement.select();
           } else if (!result.presentacion) {
-            this.presentacionSelect?.nativeElement.focus();
+            this.presentacionSelect?.focus();
+            setTimeout(() => {
+              this.presentacionSelect?.open();
+            }, 100);
           } else {
             this.cantidadInput?.nativeElement.select();
           }
@@ -339,27 +372,41 @@ export class AddEditItemDialogComponent implements OnInit {
     this.selectedProducto = producto;
     this.presentacionesDisponibles = producto.presentaciones || [];
 
+    const presentacionSeleccionada = presentacion ||
+      (this.presentacionesDisponibles.length > 0
+        ? this.presentacionesDisponibles[0]
+        : null);
+
     this.itemForm.patchValue(
       {
         productoSearch: producto.descripcion,
         producto: producto,
-        presentacion:
-          presentacion ||
-          (this.presentacionesDisponibles.length > 0
-            ? this.presentacionesDisponibles[0]
-            : null),
+        presentacion: presentacionSeleccionada,
         precioUnitarioSolicitado: producto?.costo?.ultimoPrecioCompra || 0,
       }
     );
 
     this.updateComputedProperties();
 
-    // // Move focus to cantidad input
-    // console.log("moviendo focus a cantidad input");
-    // setTimeout(() => {
-    //   this.cantidadInput?.nativeElement.focus();
-    //   console.log("focus movido a cantidad input");
-    // }, 100);
+    // Manejar el foco inicial según si la presentación ya fue proporcionada
+    setTimeout(() => {
+      // Si la presentación ya fue proporcionada (previamente seleccionada), ir directamente a cantidad
+      if (presentacion) {
+        this.cantidadInput?.nativeElement.focus();
+        this.cantidadInput?.nativeElement.select();
+      } else if (this.presentacionesDisponibles.length === 1) {
+        // Si hay solo una presentación, saltar al input de cantidad
+        this.cantidadInput?.nativeElement.focus();
+        this.cantidadInput?.nativeElement.select();
+      } else if (this.presentacionesDisponibles.length > 1) {
+        // Si hay más de una presentación y no fue proporcionada, mover el foco al select y abrirlo
+        this.presentacionSelect?.focus();
+        // Abrir el panel del select programáticamente
+        setTimeout(() => {
+          this.presentacionSelect?.open();
+        }, 100);
+      }
+    }, 200);
   }
 
   // Keyboard navigation methods
@@ -398,14 +445,19 @@ export class AddEditItemDialogComponent implements OnInit {
   }
 
   onPresentacionKeydown(event: KeyboardEvent): void {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      if (!this.isBonificacionComputed) {
-        this.precioPorPresentacionInput?.nativeElement.focus();
-      } else {
-        this.vencimientoInput?.nativeElement.focus();
+    // No hacer nada aquí, la navegación se maneja en onPresentacionClosed
+  }
+
+  onPresentacionClosed(): void {
+    // Cuando el select se cierra después de seleccionar, mover el foco a cantidad
+    setTimeout(() => {
+      // Validar que la presentación esté seleccionada antes de navegar
+      const presentacion = this.itemForm.get("presentacion")?.value;
+      if (presentacion && this.itemForm.get("presentacion")?.valid) {
+        this.cantidadInput?.nativeElement.focus();
+        this.cantidadInput?.nativeElement.select();
       }
-    }
+    }, 100);
   }
 
   onPrecioPorPresentacionKeydown(event: KeyboardEvent): void {

@@ -75,7 +75,7 @@ export class ProveedorService {
       titulo: "Buscar proveedor",
       search: true,
       texto: texto,
-      inicialSearch: texto != null,
+      inicialSearch: texto != null && texto.trim() !== "",
       isAdicionar: true,
       paginator: true,
       queryData: {

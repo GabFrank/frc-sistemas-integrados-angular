@@ -43,6 +43,28 @@ export const productoProveedorPorProveedorId = gql`
           descripcion
           descripcionFactura
           codigoPrincipal
+          precioPrincipal
+          vencimiento
+          presentaciones {
+            id
+            descripcion
+            principal
+            cantidad
+            activo
+            codigos {
+              id
+              codigo
+              principal
+              activo
+            }
+            tipoPresentacion {
+              id
+              descripcion
+            }
+          }
+          costo {
+            ultimoPrecioCompra
+          }
         }
         proveedor {
           id
@@ -58,7 +80,19 @@ export const productoProveedorPorProveedorId = gql`
         usuario {
           id
         }
+        activo
+        motivoDesvinculacion
       }
+    }
+  }
+`;
+
+export const desvincularProductoProveedor = gql`
+  mutation desvincularProductoProveedor($id: ID!, $motivo: String!) {
+    data: desvincularProductoProveedor(id: $id, motivo: $motivo) {
+      id
+      activo
+      motivoDesvinculacion
     }
   }
 `;

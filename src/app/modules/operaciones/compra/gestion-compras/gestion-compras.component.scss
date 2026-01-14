@@ -203,28 +203,28 @@
   // Estilos para el campo de búsqueda
   .search-container {
     margin-bottom: 16px;
-    
+
     .search-field {
       width: 100%;
       max-width: 400px;
-      
+
       ::ng-deep .mat-mdc-form-field {
         color: #f0f0f0;
       }
-      
+
       ::ng-deep .mat-mdc-form-field-outline-thick,
       ::ng-deep .mat-mdc-form-field.mat-focused .mat-mdc-form-field-label {
         color: #667eea !important;
       }
-      
+
       ::ng-deep .mat-mdc-input-element {
         color: #ffffff;
       }
-      
+
       ::ng-deep .mat-mdc-form-field-label {
         color: rgba(255, 255, 255, 0.7);
       }
-      
+
       ::ng-deep .mat-mdc-form-field-outline {
         background-color: rgba(255, 255, 255, 0.42);
       }
@@ -239,14 +239,14 @@
     gap: 16px;
     padding: 32px;
     color: #bbbbbb;
-    
+
     mat-spinner {
       ::ng-deep .mat-mdc-progress-spinner-circle {
         stroke: #667eea;
       }
     }
-    
-        span {
+
+    span {
       font-size: 14px;
       font-weight: 500;
     }
@@ -743,24 +743,24 @@
       .search-field {
         width: 50%;
         padding-left: 10px;
-        
+
         ::ng-deep .mat-mdc-form-field {
           color: #f0f0f0;
         }
-        
+
         ::ng-deep .mat-mdc-form-field-outline-thick,
         ::ng-deep .mat-mdc-form-field.mat-focused .mat-mdc-form-field-label {
           color: #667eea !important;
         }
-        
+
         ::ng-deep .mat-mdc-input-element {
           color: #ffffff;
         }
-        
+
         ::ng-deep .mat-mdc-form-field-label {
           color: rgba(255, 255, 255, 0.7);
         }
-        
+
         ::ng-deep .mat-mdc-form-field-outline {
           background-color: rgba(255, 255, 255, 0.42);
         }
@@ -937,7 +937,6 @@
   }
 }
 
-
 .table-container {
   flex: 1;
   height: 100%;
@@ -970,11 +969,11 @@
 ::ng-deep .estado-activo {
   background-color: #4caf50 !important;
   color: white !important;
-  
+
   &.mat-mdc-chip-selected {
     background-color: #45a049 !important;
   }
-  
+
   &:hover {
     background-color: #45a049 !important;
   }
@@ -983,11 +982,11 @@
 ::ng-deep .estado-pendiente {
   background-color: #ff9800 !important;
   color: white !important;
-  
+
   &.mat-mdc-chip-selected {
     background-color: #f57c00 !important;
   }
-  
+
   &:hover {
     background-color: #f57c00 !important;
   }
@@ -1000,14 +999,14 @@
   font-size: 12px;
   font-weight: 500;
   padding: 0 12px;
-  
+
   mat-icon {
     font-size: 16px;
     width: 16px;
     height: 16px;
     margin-right: 4px;
   }
-  
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -1018,4 +1017,273 @@
 .actions-cell {
   min-width: 100px;
   text-align: center;
+}
+
+// Layout de dos columnas para tab de Items (30% productos, 70% items)
+.items-tab-layout {
+  display: flex;
+  gap: 16px;
+  height: 100%;
+  flex: 1;
+  overflow: hidden;
+
+  // Panel izquierdo: Datos de productos (30%)
+  .productos-data-panel {
+    flex: 0 0 30%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0; // Permite que el flex se comprima si es necesario
+
+    .productos-data-card {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background-color: #2d2d2d;
+      border-radius: 8px;
+      overflow: hidden;
+
+      mat-card-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+
+        .productos-proveedor-section {
+          flex: 0 0 60%;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          min-height: 0;
+          height: 100%;
+
+          .section-title {
+            margin: 0;
+            color: #ffa726;
+            font-size: 1rem;
+            font-weight: 500;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            flex-shrink: 0;
+          }
+
+          .search-field {
+            flex-shrink: 0;
+          }
+
+          .table-container-small {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+
+            .table-content-wrapper {
+              flex: 1;
+              min-height: 0;
+              overflow-y: auto;
+            }
+
+            .table-footer {
+              flex-shrink: 0;
+              margin-top: auto;
+            }
+          }
+        }
+
+        .ultimas-compras-section {
+          flex: 0 0 40%;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          min-height: 0;
+
+          .section-title {
+            margin: 0;
+            color: #ffa726;
+            font-size: 1rem;
+            font-weight: 500;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+          }
+
+          .table-container-small {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+
+            .table-content-wrapper {
+              flex: 1;
+              min-height: 0;
+              overflow-y: auto;
+            }
+          }
+        }
+
+        // Estilos compartidos para ambas tablas
+        .productos-proveedor-table,
+        .ultimas-compras-table {
+          width: 100%;
+          background-color: transparent;
+
+          ::ng-deep .mat-mdc-table .mdc-data-table__row {
+            height: 40px;
+          }
+
+          ::ng-deep .mat-mdc-header-cell {
+            color: #ffa726 !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            text-transform: uppercase;
+            background-color: transparent !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+            padding: 0 8px !important; // Reducimos padding lateral
+          }
+
+          ::ng-deep .mat-mdc-cell {
+            color: #f0f0f0 !important;
+            border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+            padding: 0 8px !important; // Reducimos padding lateral
+            font-size: 13px !important;
+          }
+
+          ::ng-deep .mat-mdc-row {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+
+            &:hover {
+              background-color: rgba(255, 167, 38, 0.1) !important;
+            }
+          }
+        }
+
+        .productos-proveedor-table {
+          ::ng-deep .mat-mdc-row {
+            &.selected-row {
+              background-color: rgba(255, 167, 38, 0.2) !important;
+
+              &:hover {
+                background-color: rgba(255, 167, 38, 0.3) !important;
+              }
+            }
+          }
+        }
+
+        // Estilos compartidos para loading y no items
+        .loading-indicator {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          padding: 24px;
+          color: #bbbbbb;
+
+          mat-spinner {
+            ::ng-deep .mat-mdc-progress-spinner-circle {
+              stroke: #667eea;
+            }
+          }
+
+          span {
+            font-size: 13px;
+            font-weight: 500;
+          }
+        }
+
+        .no-items-container-small {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 32px 16px;
+          color: #bbbbbb;
+          text-align: center;
+
+          mat-icon {
+            font-size: 48px;
+            width: 48px;
+            height: 48px;
+            color: rgba(255, 255, 255, 0.3);
+            margin-bottom: 12px;
+          }
+
+          span {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+          }
+        }
+
+        // Estilos para paginador
+        .table-footer {
+          mat-paginator {
+            ::ng-deep .mat-mdc-paginator {
+              background-color: transparent;
+              color: #f0f0f0;
+            }
+
+            ::ng-deep .mat-mdc-paginator-page-size-label,
+            ::ng-deep .mat-mdc-paginator-range-label {
+              color: rgba(255, 255, 255, 0.7);
+            }
+
+            ::ng-deep .mat-mdc-icon-button {
+              color: rgba(255, 255, 255, 0.7);
+
+              &:hover {
+                color: #ffa726;
+              }
+
+              &[disabled] {
+                color: rgba(255, 255, 255, 0.3);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Panel derecho: Items del pedido (70%)
+  .items-panel {
+    flex: 0 0 70%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0; // Permite que el flex se comprima si es necesario
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 1400px) {
+  .items-tab-layout {
+    .productos-data-panel {
+      flex: 0 0 35%;
+    }
+
+    .items-panel {
+      flex: 0 0 65%;
+    }
+  }
+}
+
+@media (max-width: 1200px) {
+  .items-tab-layout {
+    flex-direction: column;
+    height: auto;
+
+    .productos-data-panel,
+    .items-panel {
+      flex: none;
+      min-height: 400px;
+    }
+
+    .productos-data-panel {
+      max-height: 50vh;
+    }
+  }
 }

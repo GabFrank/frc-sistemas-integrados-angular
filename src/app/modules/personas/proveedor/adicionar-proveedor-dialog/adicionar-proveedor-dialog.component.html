@@ -14,22 +14,28 @@
         <span>Buscar Persona Existente</span>
       </div>
       <div class="search-content">
-        <mat-form-field appearance="outline" class="search-field">
-          <mat-label>Buscar por nombre o documento</mat-label>
-          <input
-            matInput
-            [formControl]="buscarPersonaControl"
-            placeholder="Ingrese nombre o documento..."
-            (keydown.enter)="onSearchPersona()"
-          />
-          <mat-icon matSuffix>search</mat-icon>
-        </mat-form-field>
-        <!-- replace button with mat-icon -->
+        <div class="search-field-wrapper">
+          <frc-searchable-select
+            titulo="Buscar por nombre o documento"
+            [list]="personaList"
+            [compareFields]="['nombre', 'documento']"
+            [currentData]="selectedPersona"
+            (selectionChanged)="onPersonaSelectionChange($event)"
+            (inputChanged)="onPersonaInputChange($event)"
+            [isFilter]="false"
+            [initialValue]="false"
+          >
+            <ng-template let-item>
+              {{ item.id }} - {{ item.nombre }} - {{ item.documento }}
+            </ng-template>
+          </frc-searchable-select>
+        </div>
         <button
           mat-icon-button
           color="primary"
           [disabled]="!hasPersonaSelectedComputed"
           (click)="onClearPersonaSelection()"
+          class="clear-button"
         >
           <mat-icon>clear</mat-icon>
         </button>

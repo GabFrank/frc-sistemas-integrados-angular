@@ -82,6 +82,7 @@
               #presentacionSelect
               formControlName="presentacion"
               (keydown)="onPresentacionKeydown($event)"
+              (closed)="onPresentacionClosed()"
             >
               <mat-option
                 *ngFor="let presentacion of presentacionesDisponibles"

@@ -92,17 +92,20 @@
   .search-content {
     display: flex;
     gap: 12px;
-    align-items: flex-start;
-    flex-wrap: wrap;
+    align-items: center;
+    flex-wrap: nowrap;
 
-    .search-field {
+    .search-field-wrapper {
       flex: 1;
-      min-width: 250px;
+      min-width: 0; // Allow flexbox to shrink
     }
 
-    button {
+    .clear-button {
+      flex-shrink: 0;
       height: 56px; // Match mat-form-field height
+      width: 56px;
       white-space: nowrap;
+      margin-top: 0;
     }
   }
 

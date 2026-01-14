@@ -16,8 +16,8 @@ import { PedidoService } from '../../../pedido.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
 import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
 import { EditNotaRecepcionItemDialogComponent } from '../edit-nota-recepcion-item-dialog/edit-nota-recepcion-item-dialog.component';
-import { DistributeNotaRecepcionItemDialogComponent } from '../distribute-nota-recepcion-item-dialog/distribute-nota-recepcion-item-dialog.component';
 import { RechazarItemDialogComponent } from '../rechazar-item-dialog/rechazar-item-dialog.component';
+import { DistributeNotaRecepcionItemDialogComponent } from '../distribute-nota-recepcion-item-dialog/distribute-nota-recepcion-item-dialog.component';
 
 export interface AddEditNotaRecepcionDialogData {
   nota?: NotaRecepcion;

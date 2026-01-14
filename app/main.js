@@ -151,9 +151,20 @@ function createWindow() {
         win.on('closed', () => {
             electron_1.app.quit();
         });
-        win.webContents.on("did-fail-load", () => {
-            console.log("did-fail-load");
-            relaunchElectron();
+        win.webContents.on("did-fail-load", (event, errorCode, errorDescription, validatedURL) => {
+            console.log("did-fail-load", { errorCode, errorDescription, validatedURL });
+            // Solo relanzamos si es un error crítico de carga de la página principal (index.html o localhost:4200)
+            // No relanzamos por errores de recursos secundarios o servicios externos (como FCM/push notifications)
+            const isMainPage = validatedURL && (validatedURL.includes('index.html') ||
+                validatedURL.includes('localhost:4200') ||
+                validatedURL.includes('file://'));
+            if (isMainPage && errorCode !== -3) { // -3 = ABORTED (puede ser cancelado intencionalmente)
+                console.log("Error crítico en página principal, relanzando aplicación");
+                relaunchElectron();
+            }
+            else {
+                console.log("Error en recurso secundario o no crítico, continuando sin relanzar");
+            }
         });
         win.webContents.setWindowOpenHandler(({ url }) => {
             require("electron").shell.openExternal(url);
@@ -168,22 +179,22 @@ function createWindow() {
                     win.webContents.setZoomLevel(parsedZoom);
                 }
                 else {
-                    // Si no hay preferencia guardada, iniciamos con zoom -2 como base
+                    // Si no hay preferencia guardada, iniciamos con zoom -1.5 como base
                     // Esto soluciona el problema de que se vea muy grande tanto en alta como baja resolución
                     try {
-                        const defaultZoom = -2;
+                        const defaultZoom = -1.5;
                         win.webContents.setZoomLevel(defaultZoom);
                         // Guardamos el zoom inicial para evitar que se pierda o cause errores
                         win.webContents.executeJavaScript(`localStorage.setItem("zoomLevel", ${defaultZoom});`, true);
                     }
                     catch (e) {
-                        win.webContents.setZoomLevel(-2);
+                        win.webContents.setZoomLevel(-1.5);
                     }
                 }
             })
                 .catch((error) => {
-                // En caso de error crítico al leer localStorage, forzamos zoom -2 para asegurar que inicie
-                win.webContents.setZoomLevel(-2);
+                // En caso de error crítico al leer localStorage, forzamos zoom -1.5 para asegurar que inicie
+                win.webContents.setZoomLevel(-1.5);
             });
         });
         return win;
@@ -783,7 +794,7 @@ try {
                     {
                         label: "Restablecer Zoom",
                         click() {
-                            const defaultZoom = -2;
+                            const defaultZoom = -1.5;
                             win.webContents.setZoomLevel(defaultZoom);
                             win.webContents
                                 .executeJavaScript(`localStorage.setItem("zoomLevel", ${defaultZoom});`, true);

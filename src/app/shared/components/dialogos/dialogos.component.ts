@@ -17,6 +17,7 @@ export class DialogoData {
   public action?: boolean;
   public btn1Name?: string = 'Si';
   public btn2Name?: string = 'No';
+  public btn3Name?: string;
 }
 
 @Component({
@@ -31,6 +32,8 @@ export class DialogosComponent implements OnInit, AfterViewInit {
   okButton2: MatButton;
   @ViewChild('cancelButton', { static: false, read: MatButton })
   cancelButton: MatButton;
+  @ViewChild('cancelButton2', { static: false, read: MatButton })
+  cancelButton2: MatButton;
 
   constructor(
     public dialogRef: MatDialogRef<DialogosComponent>,
@@ -54,15 +57,34 @@ export class DialogosComponent implements OnInit, AfterViewInit {
 
   okKeydownEvent(e: KeyboardEvent) {
     if (e.key == 'ArrowRight' || e.key == 'ArrowLeft') {
-      this.cancelButton._elementRef.nativeElement.focus();
+      if (this.data.btn3Name) {
+        // Si hay tercer botón, navegar al segundo botón
+        this.cancelButton._elementRef.nativeElement.focus();
+      } else {
+        // Si no hay tercer botón, navegar al botón de cancelar
+        this.cancelButton?._elementRef?.nativeElement?.focus();
+      }
     }
   }
 
   cancelKeydownEvent(e: KeyboardEvent) {
     if (e.key == 'ArrowRight' || e.key == 'ArrowLeft') {
-      this.data.action
-        ? this.okButton._elementRef.nativeElement.focus()
-        : this.okButton2._elementRef.nativeElement.focus();
+      if (this.data.btn3Name && this.cancelButton) {
+        // Si hay tercer botón y estamos en el segundo, navegar al tercero
+        this.cancelButton2?._elementRef?.nativeElement?.focus();
+      } else {
+        // Navegar de vuelta al primer botón
+        this.data.action
+          ? this.okButton._elementRef.nativeElement.focus()
+          : this.okButton2._elementRef.nativeElement.focus();
+      }
+    }
+  }
+
+  cancel2KeydownEvent(e: KeyboardEvent) {
+    if (e.key == 'ArrowRight' || e.key == 'ArrowLeft') {
+      // Desde el tercer botón, navegar al segundo
+      this.cancelButton._elementRef.nativeElement.focus();
     }
   }
 }

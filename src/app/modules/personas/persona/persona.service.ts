@@ -41,6 +41,10 @@ export class PersonaService {
     return this.genericService.onGetByTexto(this.searchPersona, texto, null, servidor)
   }
 
+  onSearchSilent(texto, servidor: boolean = true): Observable<Persona[]> {
+    return this.genericService.onCustomQuery(this.searchPersona, { texto }, servidor, null, true)
+  }
+
   onGetPorDocumento(texto, servidor: boolean = true): Observable<Persona> {
     return this.genericService.onCustomQuery(this.personaPorDocumento, {texto}, servidor)
   }

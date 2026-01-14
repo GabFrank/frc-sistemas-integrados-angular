@@ -1,0 +1,297 @@
+<app-generic-list
+  [titulo]="titulo"
+  (adicionar)="onAdd()"
+  (filtrar)="onFilter()"
+  (resetFiltro)="onResetFiltro()"
+  [isAdicionar]="mainService?.usuarioActual?.roles.includes('ADMIN') || true"
+>
+  <div filtros fxLayout="column" style="width: 100%; height: 100%">
+    <div fxLayout="row wrap" fxLayoutGap="10px">
+      <mat-form-field fxFlex="10">
+        <input
+          placeholder="Id"
+          matInput
+          [formControl]="idControl"
+          (keyup.enter)="onFilter()"
+          type="number"
+        />
+      </mat-form-field>
+
+      <mat-form-field fxFlex="25">
+        <mat-select
+          placeholder="Sucursal"
+          [formControl]="sucursalControl"
+        >
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
+            {{ sucursal.id }} - {{ sucursal.nombre }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field fxFlex="25">
+        <mat-label>Producto</mat-label>
+        <input
+          matInput
+          [formControl]="productoControl"
+          placeholder="Buscar producto..."
+          [readonly]="selectedProducto != null"
+          (click)="!selectedProducto && onSearchProducto()"
+          (keydown)="onProductoKeyDown($event)"
+        />
+        <mat-icon 
+          *ngIf="!selectedProducto"
+          matSuffix 
+          (click)="onSearchProducto()" 
+          style="cursor: pointer"
+        >
+          search
+        </mat-icon>
+        <button
+          *ngIf="selectedProducto"
+          type="button"
+          matSuffix
+          mat-icon-button
+          aria-label="Clear"
+          (click)="onClearProducto(); $event.stopPropagation()"
+        >
+          <mat-icon style="cursor: pointer">clear</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <mat-form-field fxFlex="25">
+        <mat-label>Proveedor</mat-label>
+        <input
+          matInput
+          [formControl]="proveedorControl"
+          placeholder="Buscar proveedor..."
+          [readonly]="selectedProveedor != null"
+          (click)="!selectedProveedor && onSearchProveedor()"
+          (keydown)="onProveedorKeyDown($event)"
+        />
+        <mat-icon 
+          *ngIf="!selectedProveedor"
+          matSuffix 
+          (click)="onSearchProveedor()" 
+          style="cursor: pointer"
+        >
+          search
+        </mat-icon>
+        <button
+          *ngIf="selectedProveedor"
+          type="button"
+          matSuffix
+          mat-icon-button
+          aria-label="Clear"
+          (click)="onClearProveedor(); $event.stopPropagation()"
+        >
+          <mat-icon style="cursor: pointer">clear</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <mat-form-field fxFlex="25">
+        <mat-label>Estado</mat-label>
+        <mat-select [formControl]="estadoControl">
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let estado of estadoList" [value]="estado">
+            {{ estado }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field fxFlex="25">
+        <mat-label>Rango de fecha</mat-label>
+        <mat-date-range-input
+          [formGroup]="fechaFormGroup"
+          [rangePicker]="picker"
+          style="font-size: 1em; width: 100%"
+        >
+          <input
+            matStartDate
+            formControlName="inicio"
+            placeholder="Inicio"
+            [max]="today"
+          />
+          <input
+            matEndDate
+            formControlName="fin"
+            placeholder="Fin"
+            [max]="today"
+          />
+        </mat-date-range-input>
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-date-range-picker #picker></mat-date-range-picker>
+
+        <mat-error
+          *ngIf="fechaFormGroup.controls.inicio.hasError('matStartDateInvalid')"
+          >Fecha inicial inválida</mat-error
+        >
+        <mat-error
+          *ngIf="fechaFormGroup.controls.fin.hasError('matEndDateInvalid')"
+          >Fecha final inválida</mat-error
+        >
+      </mat-form-field>
+    </div>
+  </div>
+  <div
+    table
+    style="height: 100%; background-color: rgb(70, 70, 70)"
+    fxLayout="column"
+    fxLayoutAlign="space-between start"
+  >
+    <table
+      mat-table
+      [dataSource]="dataSource"
+      multiTemplateDataRows
+      class="mat-elevation-z8"
+      style="width: 100%"
+    >
+      <ng-container matColumnDef="id">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 5%"
+        >
+          Id
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          style="text-align: center; width: 5%"
+        >
+          {{ pedido.id }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="proveedor">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 25%"
+        >
+          Proveedor
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          style="text-align: center; width: 25%"
+        >
+          {{ pedido?.proveedor?.persona?.nombre | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="vendedor">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 25%"
+        >
+          Vendedor
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          style="text-align: center; width: 25%"
+        >
+          {{ pedido?.vendedor?.persona?.nombre | uppercase }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="fecha">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 15%"
+        >
+          Fecha
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          style="text-align: center; width: 15%"
+        >
+          {{ pedido?.creadoEn | date : "short" }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="etapa">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="text-align: center; width: 20%"
+        >
+          Etapa Actual
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let pedido"
+          style="text-align: center; width: 20%"
+        >
+          {{ pedido.etapaActualComputed }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          style="width: 10%; text-align: center"
+        >
+          ...
+        </th>
+        <td
+          mat-cell
+          *matCellDef="let pedido; let i = dataIndex"
+          style="text-align: center; width: 10%"
+        >
+          <button
+            mat-icon-button
+            [matMenuTriggerFor]="menu"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="onView(pedido, i)">
+              Ver
+            </button>
+            <button mat-menu-item (click)="onEdit(pedido, i)">
+              Editar
+            </button>
+            <button mat-menu-item (click)="onImprimir(pedido)">
+              Imprimir
+            </button>
+            <button
+              mat-menu-item
+              (click)="onCancelar(pedido, i)"
+              style="color: red"
+            >
+              Cancelar
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr
+        class="example-element-row"
+        mat-row
+        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+        [class.example-expanded-row]="expandedPedido === row"
+        (click)="
+          onRowClick(row, i);
+          expandedPedido = expandedPedido === row ? null : row
+        "
+      ></tr>
+    </table>
+    <mat-paginator
+      itemsPerPageLabel="Items por pagina"
+      [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)"
+      [length]="selectedPageInfo?.getTotalElements"
+      style="width: 100%"
+      showFirstLastButtons
+    ></mat-paginator>
+  </div>
+</app-generic-list>
+

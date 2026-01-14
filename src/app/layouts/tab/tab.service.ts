@@ -33,6 +33,7 @@ import { AnalisisDiferenciaComponent } from '../../modules/financiero/analisis-d
 import { ListTimbradoComponent } from '../../modules/financiero/timbrado/list-timbrado/list-timbrado.component';
 import { GestionComprasComponent } from '../../modules/operaciones/compra/gestion-compras/gestion-compras.component';
 import { ListCompraComponent } from '../../modules/operaciones/compra/list-compra/list-compra.component';
+import { CompraDashboardComponent } from '../../modules/operaciones/compra/compra-dashboard/compra-dashboard.component';
 
 export enum TABS {
   'LIST-PERSONA' = 'list-persona',
@@ -80,7 +81,9 @@ export class TabService implements OnInit {
     // open edit pedido 2 for a new pedido
     // list pedidos
     // this.addTab(new Tab(ListCompraComponent, 'Lista de compras', null, null))
-    this.addTab(new Tab(GestionComprasComponent, 'Pedido 24', new TabData(24, {id: 24}), null))
+    // this.addTab(new Tab(GestionComprasComponent, 'Pedido 24', new TabData(24, {id: 24}), null))
+    // Open Compra Dashboard
+    this.addTab(new Tab(CompraDashboardComponent, 'Compras', null, null))
     this.tabSub.next(this.tabs);
   }
   

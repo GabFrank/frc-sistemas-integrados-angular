@@ -25,12 +25,6 @@ import { Persona } from "../../persona/persona.model";
 import { PersonaService } from "../../persona/persona.service";
 import { Proveedor, ProveedorInput } from "../proveedor.model";
 import { ProveedorService } from "../proveedor.service";
-import {
-  SearchListDialogComponent,
-  SearchListtDialogData,
-  TableData,
-} from "../../../../shared/components/search-list-dialog/search-list-dialog.component";
-import { PersonaSearchGQL } from "../../persona/graphql/personaSearch";
 import { DialogosService } from "../../../../shared/components/dialogos/dialogos.service";
 import { PersonaInput } from "../../persona/persona/persona-input.model";
 import { NotificacionSnackbarService } from "../../../../notificacion-snackbar.service";
@@ -75,8 +69,8 @@ export class AdicionarProveedorDialogComponent implements OnInit, OnDestroy {
     chequeDias: new FormControl(8, [Validators.min(1), Validators.max(365)])
   });
 
-  // Search control for persona lookup
-  buscarPersonaControl = new FormControl('');
+  // Persona list for searchable select
+  personaList: Persona[] = [];
 
   // Selected data
   selectedPersona: Persona | null = null;
@@ -137,7 +131,6 @@ export class AdicionarProveedorDialogComponent implements OnInit, OnDestroy {
     private proveedorService: ProveedorService,
     private ciudadService: CiudadService,
     private matDialog: MatDialog,
-    private personaSearch: PersonaSearchGQL,
     private dialogosService: DialogosService,
     private notificacionService: NotificacionSnackbarService,
     private mainService: MainService,
@@ -164,18 +157,14 @@ export class AdicionarProveedorDialogComponent implements OnInit, OnDestroy {
   }
 
   private setupFormSubscriptions(): void {
-    // Search personas debounced
-    this.buscarPersonaControl.valueChanges
-      .pipe(debounceTime(300), distinctUntilChanged(), untilDestroyed(this))
-      .subscribe(() => {
-        // Auto-search is handled when user types in the search field
-      });
+    // Don't load initial persona list - wait for user to start typing
+    // This avoids timeout issues with large datasets
 
     // Document verification on change
     this.proveedorFormGroup.get('documento')?.valueChanges
       .pipe(debounceTime(500), distinctUntilChanged(), untilDestroyed(this))
-      .subscribe((documento) => {
-        if (documento && documento.trim().length >= 6) {
+      .subscribe((documento: string) => {
+        if (documento && typeof documento === 'string' && documento.trim().length >= 6) {
           this.onDocumentVerification(documento.trim());
         } else {
           this.clearDocumentVerification();
@@ -212,67 +201,37 @@ export class AdicionarProveedorDialogComponent implements OnInit, OnDestroy {
     this.updateComputedProperties();
   }
 
-  onSearchPersona(): void {
-    if (this.isSearching) return;
-
-    const searchText = this.buscarPersonaControl.value?.trim();
-    if (!searchText) {
-      this.openPersonaSearchDialog();
+  onPersonaInputChange(searchText: string): void {
+    if (!searchText || searchText.trim().length < 2) {
+      // If search text is too short, clear the list
+      this.personaList = [];
       return;
     }
 
-    // First try exact search by document or name
     this.isSearching = true;
     this.cdr.markForCheck();
 
-    this.personaService.onGetPorDocumento(searchText.trim())
+    // Search personas by text using silent search to avoid loading dialog and timeout
+    this.personaService.onSearchSilent(searchText.trim(), true)
       .pipe(untilDestroyed(this))
       .subscribe({
-        next: (persona) => {
+        next: (personas) => {
+          this.personaList = personas || [];
           this.isSearching = false;
-          if (persona?.id) {
-            this.onSelectPersona(persona);
-          } else {
-            // If not found by document, try by name or open search dialog
-            this.openPersonaSearchDialog(searchText);
-          }
           this.cdr.markForCheck();
         },
         error: () => {
+          this.personaList = [];
           this.isSearching = false;
-          this.openPersonaSearchDialog(searchText);
           this.cdr.markForCheck();
         }
       });
   }
 
-  private openPersonaSearchDialog(searchText?: string): void {
-    const tableData: TableData[] = [
-      { id: "id", nombre: "Id" },
-      { id: "nombre", nombre: "Nombre" },
-      { id: "documento", nombre: "Documento" },
-      { id: "telefono", nombre: "Teléfono" }
-    ];
-
-    const data: SearchListtDialogData = {
-      query: this.personaSearch,
-      tableData: tableData,
-      titulo: "Buscar Persona",
-      search: true,
-    };
-
-    this.matDialog
-      .open(SearchListDialogComponent, {
-        data: data,
-        width: "70%",
-        height: "80%",
-      })
-      .afterClosed()
-      .subscribe((persona: Persona) => {
-        if (persona?.id) {
-          this.onSelectPersona(persona);
-        }
-      });
+  onPersonaSelectionChange(persona: Persona): void {
+    if (persona?.id) {
+      this.onSelectPersona(persona);
+    }
   }
 
   onSelectPersona(persona: Persona): void {
@@ -285,9 +244,6 @@ export class AdicionarProveedorDialogComponent implements OnInit, OnDestroy {
       documento: persona.documento,
       telefono: persona.telefono || ''
     });
-
-    // Clear search field and show selected persona
-    this.buscarPersonaControl.setValue(`${persona.nombre} - ${persona.documento}`);
     
     // Check if this persona is already a proveedor
     if (persona.isProveedor) {
@@ -331,7 +287,7 @@ export class AdicionarProveedorDialogComponent implements OnInit, OnDestroy {
   onClearPersonaSelection(): void {
     this.selectedPersona = null;
     this.selectedProveedor = null;
-    this.buscarPersonaControl.setValue('');
+    this.personaList = [];
     this.proveedorFormGroup.patchValue({
       nombre: '',
       apodo: '',
