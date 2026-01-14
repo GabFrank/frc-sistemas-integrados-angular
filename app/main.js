@@ -54,32 +54,35 @@ function createWindow() {
             const path = require('path');
             const fs = require('fs');
             const userDataPath = electron_1.app.getPath('userData');
+            /*
             const configFiles = [
-                'electron-push-receiver.json',
-                'config.json',
-                'firebase-config.json',
-                'push-config.json',
-                'fcm-config.json'
+              'electron-push-receiver.json',
+              'config.json',
+              'firebase-config.json',
+              'push-config.json',
+              'fcm-config.json'
             ];
+        
             configFiles.forEach(filename => {
-                const configPath = path.join(userDataPath, filename);
-                if (fs.existsSync(configPath)) {
-                    fs.unlinkSync(configPath);
-                }
+              const configPath = path.join(userDataPath, filename);
+              if (fs.existsSync(configPath)) {
+                fs.unlinkSync(configPath);
+              }
             });
             const dirsToClean = [
-                path.join(userDataPath, 'push-receiver'),
-                path.join(userDataPath, 'firebase'),
-                path.join(userDataPath, 'fcm')
+              path.join(userDataPath, 'push-receiver'),
+              path.join(userDataPath, 'firebase'),
+              path.join(userDataPath, 'fcm')
             ];
+        
             dirsToClean.forEach(dir => {
-                if (fs.existsSync(dir)) {
-                    fs.rmSync(dir, { recursive: true, force: true });
-                }
+              if (fs.existsSync(dir)) {
+                fs.rmSync(dir, { recursive: true, force: true });
+              }
             });
+            */
         }
         catch (e) {
-            // Silent cleanup error
         }
         setupPushReceiver(win.webContents);
         const { Notification } = require('electron');
