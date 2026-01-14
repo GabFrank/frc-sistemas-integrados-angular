@@ -142,10 +142,18 @@ interface UltimaCompraItem {
   cantidad: number;
   precio: number;
   creadoEn: Date;
+  presentacionEnNota?: {
+    id?: number;
+    cantidad?: number;
+    tipoPresentacion?: {
+      descripcion?: string;
+    };
+  };
   // Computed properties
   fechaDisplayComputed: string;
   proveedorDisplayComputed: string;
   precioDisplayComputed: string;
+  cantidadDisplayComputed: string;
 }
 
 type TabState = "disabled" | "readonly" | "editable";
@@ -2861,16 +2869,32 @@ export class GestionComprasComponent
           const ultimasCompras = (producto?.productoUltimasCompras || []) as any[];
 
           const compras = ultimasCompras.map((compra: any) => {
+            const cantidad = compra.cantidad || 0;
+            const presentacion = compra.presentacionEnNota;
+            let cantidadDisplay = cantidad.toString();
+            
+            // Formatear cantidad con presentación: "6 (Caja x 4)" solo si cantidadPresentacion > 1
+            if (presentacion && presentacion.cantidad && presentacion.tipoPresentacion?.descripcion) {
+              const tipoPresentacion = presentacion.tipoPresentacion.descripcion;
+              const cantidadPresentacion = presentacion.cantidad;
+              // Solo mostrar presentación si es mayor a 1
+              if (cantidadPresentacion > 1) {
+                cantidadDisplay = `${cantidad} (${tipoPresentacion} x ${cantidadPresentacion})`;
+              }
+            }
+            
             const item: UltimaCompraItem = {
               pedido: compra.pedido,
-              cantidad: compra.cantidad || 0,
+              cantidad: cantidad,
               precio: compra.precio || 0,
               creadoEn: compra.creadoEn ? new Date(compra.creadoEn) : new Date(),
+              presentacionEnNota: compra.presentacionEnNota,
               fechaDisplayComputed: compra.creadoEn 
                 ? this.formatDate(new Date(compra.creadoEn))
                 : 'Sin fecha',
               proveedorDisplayComputed: compra.pedido?.proveedor?.persona?.nombre || 'N/A',
-              precioDisplayComputed: this.formatNumber(compra.precio)
+              precioDisplayComputed: this.formatNumber(compra.precio),
+              cantidadDisplayComputed: cantidadDisplay
             };
             return item;
           });

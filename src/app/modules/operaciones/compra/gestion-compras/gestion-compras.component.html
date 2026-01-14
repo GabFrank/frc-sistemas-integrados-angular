@@ -608,6 +608,14 @@
                               </td>
                             </ng-container>
 
+                            <!-- Cantidad Column -->
+                            <ng-container matColumnDef="cantidad">
+                              <th mat-header-cell *matHeaderCellDef class="text-center">Cantidad</th>
+                              <td mat-cell *matCellDef="let compra" class="text-center">
+                                {{ compra.cantidadDisplayComputed }}
+                              </td>
+                            </ng-container>
+
                             <!-- Costo Column -->
                             <ng-container matColumnDef="costo">
                               <th mat-header-cell *matHeaderCellDef class="text-center">Costo</th>
@@ -638,11 +646,11 @@
 
                             <tr
                               mat-header-row
-                              *matHeaderRowDef="['fecha', 'proveedor', 'costo', 'acciones']"
+                              *matHeaderRowDef="['fecha', 'proveedor', 'cantidad', 'costo', 'acciones']"
                             ></tr>
                             <tr
                               mat-row
-                              *matRowDef="let row; columns: ['fecha', 'proveedor', 'costo', 'acciones']"
+                              *matRowDef="let row; columns: ['fecha', 'proveedor', 'cantidad', 'costo', 'acciones']"
                             ></tr>
                           </table>
 

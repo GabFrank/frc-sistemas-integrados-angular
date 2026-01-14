@@ -457,6 +457,13 @@ export const productoUltimasComprasQuery = gql`
         cantidad
         precio
         creadoEn
+        presentacionEnNota {
+          id
+          cantidad
+          tipoPresentacion {
+            descripcion
+          }
+        }
         pedido {
           id
           proveedor {
