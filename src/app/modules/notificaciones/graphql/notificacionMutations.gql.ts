@@ -3,8 +3,7 @@ import { Mutation } from "apollo-angular";
 import {
   marcarNotificacionLeidaMutation,
   marcarTodasNotificacionesLeidasMutation,
-  registrarInteraccionNotificacionMutation,
-  actualizarEstadoTableroNotificacionMutation,
+
   cambiarEstadoTableroNotificacionMutation,
   actualizarTokenFcmMutation
 } from "./graphql-query";
@@ -29,28 +28,6 @@ export interface MarcarTodasNotificacionesLeidasResponse {
 })
 export class MarcarTodasNotificacionesLeidasGQL extends Mutation<MarcarTodasNotificacionesLeidasResponse> {
   override document = marcarTodasNotificacionesLeidasMutation;
-}
-
-export interface RegistrarInteraccionNotificacionResponse {
-  data: boolean;
-}
-
-@Injectable({
-  providedIn: "root",
-})
-export class RegistrarInteraccionNotificacionGQL extends Mutation<RegistrarInteraccionNotificacionResponse> {
-  override document = registrarInteraccionNotificacionMutation;
-}
-
-export interface ActualizarEstadoTableroNotificacionResponse {
-  data: boolean;
-}
-
-@Injectable({
-  providedIn: "root",
-})
-export class ActualizarEstadoTableroNotificacionGQL extends Mutation<ActualizarEstadoTableroNotificacionResponse> {
-  override document = actualizarEstadoTableroNotificacionMutation;
 }
 
 @Injectable({

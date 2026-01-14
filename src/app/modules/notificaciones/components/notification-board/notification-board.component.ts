@@ -11,7 +11,7 @@ import { DragDropModule, CdkDragDrop, moveItemInArray, transferArrayItem } from 
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { NotificacionesTableroService, NotificacionData } from '../../services/notificaciones-tablero.service';
 import { ComentariosNotificacionService } from '../../services/comentarios-notificacion.service';
-import { MarcarNotificacionLeidaGQL, RegistrarInteraccionNotificacionGQL } from '../../graphql/notificacionMutations.gql';
+import { MarcarNotificacionLeidaGQL } from '../../graphql/notificacionMutations.gql';
 import { NotificationDetailDialogComponent } from '../notification-detail-dialog/notification-detail-dialog.component';
 import { ComentariosNotificacionDialogComponent } from '../comentarios-notificacion-dialog/comentarios-notificacion-dialog.component';
 import { EstadoNotificacionTablero, ESTADOS_TABLERO_LABELS } from '../../enums/estado-notificacion-tablero.enum';
@@ -57,7 +57,7 @@ export class NotificationBoardComponent implements OnInit {
     private readonly notificacionesTableroService = inject(NotificacionesTableroService);
     private readonly comentariosService = inject(ComentariosNotificacionService);
     private readonly marcarNotificacionLeidaGQL = inject(MarcarNotificacionLeidaGQL);
-    private readonly registrarInteraccionNotificacionGQL = inject(RegistrarInteraccionNotificacionGQL);
+
     private readonly dialog = inject(MatDialog);
     private readonly tabService = inject(TabService);
     private readonly mainService = inject(MainService);

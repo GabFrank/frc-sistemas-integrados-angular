@@ -11,25 +11,7 @@ export const requestPushNotificationQuery = gql`
   }
 `;
 
-export const notificacionesPorTokenQuery = gql`
-  query ($tokenFcm: String!) {
-    data: notificacionesPorToken(tokenFcm: $tokenFcm) {
-      id
-      leida
-      fechaLeida
-      fechaEnvio
-      estadoEnvio
-      estadoTablero
-      notificacion {
-        id
-        titulo
-        mensaje
-        tipo
-        creadoEn
-      }
-    }
-  }
-`;
+
 
 
 export const notificacionesUsuarioQuery = gql`
@@ -70,34 +52,7 @@ export const notificacionesUsuarioQuery = gql`
 `;
 
 
-export const notificacionesUsuarioLegacyQuery = gql`
-  query ($tokenFcm: String, $leidas: Boolean, $page: Int, $size: Int, $estadoTablero: String) {
-    data: notificacionesUsuarioLegacy(tokenFcm: $tokenFcm, leidas: $leidas, page: $page, size: $size, estadoTablero: $estadoTablero) {
-      content {
-        id
-        leida
-        fechaLeida
-        fechaEnvio
-        estadoEnvio
-        interactuada
-        fechaInteraccion
-        accionRealizada
-        estadoTablero
-        notificacion {
-          id
-          titulo
-          mensaje
-          tipo
-          creadoEn
-        }
-      }
-      pageNumber
-      pageSize
-      totalElements
-      totalPages
-    }
-  }
-`;
+
 
 export const marcarNotificacionLeidaMutation = gql`
   mutation ($notificacionId: Int!) {
@@ -110,17 +65,7 @@ export const cambiarEstadoTableroNotificacionMutation = gql`
     data: cambiarEstadoTableroNotificacion(notificacionId: $notificacionId, estado: $estado)
   }
 `;
-export const registrarInteraccionNotificacionMutation = gql`
-  mutation ($notificacionUsuarioId: Int!, $accion: String!) {
-    data: registrarInteraccionNotificacion(notificacionUsuarioId: $notificacionUsuarioId, accion: $accion)
-  }
-`;
 
-export const actualizarEstadoTableroNotificacionMutation = gql`
-  mutation ($notificacionUsuarioId: Int!, $estado: String!) {
-    data: actualizarEstadoTableroNotificacion(notificacionUsuarioId: $notificacionUsuarioId, estado: $estado)
-  }
-`;
 
 export const conteoNotificacionesNoLeidasQuery = gql`
   query {
