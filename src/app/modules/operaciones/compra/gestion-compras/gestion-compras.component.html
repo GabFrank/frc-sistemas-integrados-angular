@@ -1014,12 +1014,9 @@
                       <th mat-header-cell *matHeaderCellDef style="width: 10%">
                         <mat-checkbox
                           (change)="onToggleAllItemsPendientes($event.checked)"
-                          [checked]="
-                            selectedItemsPendientes.length ===
-                              itemsPendientesDataSource.data.length &&
-                            itemsPendientesDataSource.data.length > 0
-                          "
+                          [checked]="selectAllItemsPendientes"
                           [indeterminate]="
+                            !selectAllItemsPendientes &&
                             selectedItemsPendientes.length > 0 &&
                             selectedItemsPendientes.length <
                               itemsPendientesDataSource.data.length

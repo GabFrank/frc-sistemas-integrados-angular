@@ -26,6 +26,7 @@ export interface AddEditNotaRecepcionDialogData {
   // Nuevos campos para asignación automática de ítems
   selectedItemsToAssign?: any[]; // MockPedidoItem[] from parent component
   autoAssignItems?: boolean; // Flag para indicar si debe asignar ítems automáticamente
+  assignAllItems?: boolean; // Flag para indicar que se deben asignar TODOS los items pendientes (independiente de la paginación)
 }
 
 export interface AddEditNotaRecepcionDialogResult {
@@ -42,6 +43,7 @@ export interface AddEditNotaRecepcionDialogResult {
 })
 export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewInit {
   @ViewChild('guardarButton', { static: false }) guardarButton!: MatButton;
+  @ViewChild('cancelButton', { static: false }) cancelButton!: MatButton;
   @ViewChild(MatPaginator, { static: false }) paginator!: MatPaginator;
   
   // ViewChild para los campos del formulario
@@ -113,6 +115,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   // Propiedades para asignación automática de ítems
   private selectedItemsToAssign: any[] = [];
   private autoAssignItems: boolean = false;
+  private assignAllItems: boolean = false;
   private assigningItems: boolean = false;
   
   // Subject para manejo de memoria
@@ -144,6 +147,7 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     // Inicializar propiedades para asignación automática
     this.selectedItemsToAssign = data.selectedItemsToAssign || [];
     this.autoAssignItems = data.autoAssignItems || false;
+    this.assignAllItems = data.assignAllItems || false;
     
     // Ajustar título si se van a asignar ítems automáticamente
     if (this.autoAssignItems && this.selectedItemsToAssign.length > 0) {
@@ -196,6 +200,16 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     // Configurar paginador si está disponible
     if (this.paginator) {
       this.itemsDataSource.paginator = this.paginator;
+    }
+    
+    // Si es una nueva nota, enfocar el input "Numero" directamente
+    // Usar tabindex en el HTML para cambiar el orden, y aquí asegurar el foco
+    if (!this.data.isEdit) {
+      setTimeout(() => {
+        if (this.numeroInput && this.numeroInput.nativeElement) {
+          this.numeroInput.nativeElement.focus();
+        }
+      }, 300);
     }
   }
 
@@ -937,6 +951,10 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         
         // Convertir a input para el backend
         const notaInput = nota.toInput();
+        // Agregar flag assignAllItems si está activo
+        if (this.assignAllItems) {
+          notaInput.assignAllItems = true;
+        }
         
         // Llamar servicio real para crear
         this.pedidoService.onSaveNotaRecepcion(notaInput)
@@ -1080,9 +1098,8 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   private focusCancelButton(): void {
     // Dar foco al botón Cancelar después de crear
     setTimeout(() => {
-      const cancelButton = document.querySelector('.cancel-button') as HTMLButtonElement;
-      if (cancelButton) {
-        cancelButton.focus();
+      if (this.cancelButton) {
+        this.cancelButton._elementRef.nativeElement.focus();
       }
     }, 100);
   }

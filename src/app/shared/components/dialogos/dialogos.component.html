@@ -48,7 +48,7 @@
       mat-flat-button
       color="basic"
       (keydown)="cancelKeydownEvent($event)"
-      (click)="dialogRef.close('agregar')"
+      (click)="dialogRef.close(false)"
     >
       {{ this.data.btn2Name }}
     </button>

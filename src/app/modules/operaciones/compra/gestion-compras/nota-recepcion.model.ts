@@ -72,6 +72,7 @@ export class NotaRecepcionInput {
   esNotaRechazo: boolean;
   creadoEn?: string;
   usuarioId?: number;
+  assignAllItems?: boolean;
 }
 
 export enum NotaRecepcionItemEstado {

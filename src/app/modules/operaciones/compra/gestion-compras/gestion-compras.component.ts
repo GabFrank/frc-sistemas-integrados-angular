@@ -279,6 +279,7 @@ export class GestionComprasComponent
     "acciones",
   ];
   selectedItemsPendientes: MockPedidoItem[] = [];
+  selectAllItemsPendientes: boolean = false; // Bandera para indicar "seleccionar todos los items"
 
   // Paginación para ítems pendientes
   itemsPendientesPageSize = 10;
@@ -968,8 +969,9 @@ export class GestionComprasComponent
     this.notasRecepcionCountComputed = notasRecepcion.length;
 
     // Update computed flags for buttons
-    this.canCreateNotaForItemsComputed = this.selectedItemsPendientes.length > 0;
-    this.canAssignItemsToNotaComputed = this.selectedItemsPendientes.length > 0;
+    // Se puede crear/asignar si hay items seleccionados o si está activado "select all"
+    this.canCreateNotaForItemsComputed = this.selectedItemsPendientes.length > 0 || this.selectAllItemsPendientes;
+    this.canAssignItemsToNotaComputed = this.selectedItemsPendientes.length > 0 || this.selectAllItemsPendientes;
     
     // Calcular si se puede finalizar la conciliación
     // Condiciones:
@@ -2163,6 +2165,9 @@ export class GestionComprasComponent
 
   // Panel Izquierdo: Gestión de selección de ítems pendientes
   onToggleItemPendiente(item: MockPedidoItem, isSelected: boolean): void {
+    // Si se selecciona/deselecciona un item individual, desactivar "seleccionar todos"
+    this.selectAllItemsPendientes = false;
+    
     if (isSelected) {
       if (!this.selectedItemsPendientes.includes(item)) {
         this.selectedItemsPendientes.push(item);
@@ -2178,8 +2183,13 @@ export class GestionComprasComponent
 
   onToggleAllItemsPendientes(isSelected: boolean): void {
     if (isSelected) {
+      // Seleccionar todos los items de la página actual
       this.selectedItemsPendientes = [...this.itemsPendientesDataSource.data];
+      // Activar bandera para indicar que se marcó "select all"
+      this.selectAllItemsPendientes = true;
     } else {
+      // Desactivar bandera y limpiar selección
+      this.selectAllItemsPendientes = false;
       this.selectedItemsPendientes = [];
     }
     this.updateStep3ComputedProperties();
@@ -2250,13 +2260,41 @@ export class GestionComprasComponent
 
   // Botones de acción según manual
   onCrearNuevaNotaParaItems(): void {
-    if (this.selectedItemsPendientes.length === 0) return;
+    if (this.selectedItemsPendientes.length === 0 && !this.selectAllItemsPendientes) return;
 
+    // Si está activado "select all", mostrar diálogo de confirmación
+    if (this.selectAllItemsPendientes) {
+      this.dialogosService.confirm(
+        'Asignar Ítems a la Nota',
+        '¿Desea asignar todos los ítems del pedido o solo los ítems seleccionados de la página actual?',
+        undefined,
+        undefined,
+        true,
+        'Todos',
+        'Seleccionados',
+        'Cancelar'
+      ).subscribe(option => {
+        if (option === null) {
+          // Cancelar - no hacer nada
+          return;
+        } else {
+          // Continuar con la creación de la nota
+          this.openCrearNotaDialog(option === true);
+        }
+      });
+    } else {
+      // Si no está activado "select all", crear nota directamente con items seleccionados
+      this.openCrearNotaDialog(false);
+    }
+  }
+
+  private openCrearNotaDialog(assignAllItems: boolean): void {
     const dialogData: AddEditNotaRecepcionDialogData = {
       pedido: this.currentPedido as Pedido,
       isEdit: false,
-      selectedItemsToAssign: this.selectedItemsPendientes, // Pasar ítems seleccionados
-      autoAssignItems: true // Habilitar asignación automática
+      selectedItemsToAssign: assignAllItems ? [] : this.selectedItemsPendientes, // Si "todos", pasar array vacío
+      autoAssignItems: true, // Habilitar asignación automática
+      assignAllItems: assignAllItems // Indicar si deben asignarse todos los items
     };
 
     const dialogRef = this.dialog.open(AddEditNotaRecepcionDialogComponent, {
@@ -2271,8 +2309,9 @@ export class GestionComprasComponent
       if (result && result.changesMade) {
         console.log("Nueva nota creada con ítems asignados:", result);
 
-        // Limpiar selección de ítems
+        // Limpiar selección de ítems y bandera
         this.selectedItemsPendientes = [];
+        this.selectAllItemsPendientes = false;
 
         // Recargar datos reales del backend
         this.markTabAsUnloaded(2);

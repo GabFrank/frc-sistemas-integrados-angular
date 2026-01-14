@@ -23,6 +23,7 @@
               <mat-select 
                 formControlName="tipoBoleta"
                 #tipoBoletaSelect
+                [attr.tabindex]="!data.isEdit ? '2' : null"
                 (opened)="onTipoBoletaOpened()"
                 (closed)="onTipoBoletaClosed()"
                 (selectionChange)="onTipoBoletaSelectionChange()"
@@ -50,6 +51,7 @@
                 formControlName="numero"
                 placeholder="Ej: 001002003"
                 #numeroInput
+                [attr.tabindex]="!data.isEdit ? '1' : null"
                 (keydown)="onNumeroKeydown($event)"
               />
               <mat-error *ngIf="numeroRequiredError">
@@ -350,7 +352,7 @@
   </mat-dialog-content>
 
   <mat-dialog-actions class="dialog-actions">
-    <button mat-button type="button" (click)="onCancel()" class="cancel-button">
+    <button mat-button type="button" (click)="onCancel()" class="cancel-button" #cancelButton>
       Cancelar
     </button>
 
