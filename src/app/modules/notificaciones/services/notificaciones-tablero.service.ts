@@ -143,6 +143,9 @@ export class NotificacionesTableroService {
   }
 
   obtenerConteoNoLeidas(): Observable<number> {
+    if (this.mainService.authenticationSub.value !== true) {
+      return of(0);
+    }
     return this.genericService.onCustomQuery(this.conteoNotificacionesNoLeidasGQL, {}, true, null, true).pipe(
       map((count: any) => {
         const result = count || 0;
@@ -184,6 +187,17 @@ export class NotificacionesTableroService {
         loading: true
       }
     });
+
+    if (this.mainService.authenticationSub.value !== true) {
+      this._paginationState$.next({
+        ...currentState,
+        [estado]: {
+          ...currentState[estado],
+          loading: false
+        }
+      });
+      return;
+    }
 
     const filtroFechas = this._filtroFechas$.value;
 

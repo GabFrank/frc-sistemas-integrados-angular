@@ -64,14 +64,22 @@ export class RetiroService {
 
   onSave(retiro: Retiro, servidor = true): Observable<any> {
     this.cargandoDialog.openDialog(true, 'Guardando...')
-    retiro.retiroGs = retiro.retiroDetalleList.find(r => r.moneda.denominacion == 'GUARANI')?.cantidad;
-    retiro.retiroRs = retiro.retiroDetalleList.find(r => r.moneda.denominacion == 'REAL')?.cantidad;
-    retiro.retiroDs = retiro.retiroDetalleList.find(r => r.moneda.denominacion == 'DOLAR')?.cantidad;
-    retiro.usuario = this.mainService.usuarioActual;
+    let retiroAux = retiro;
+    if (!(retiro instanceof Retiro)) {
+      retiroAux = new Retiro();
+      Object.assign(retiroAux, retiro);
+    }
+    if (retiroAux.retiroDetalleList && retiroAux.retiroDetalleList.length > 0) {
+      retiroAux.retiroGs = retiroAux.retiroDetalleList.find(r => r.moneda.denominacion == 'GUARANI')?.cantidad;
+      retiroAux.retiroRs = retiroAux.retiroDetalleList.find(r => r.moneda.denominacion == 'REAL')?.cantidad;
+      retiroAux.retiroDs = retiroAux.retiroDetalleList.find(r => r.moneda.denominacion == 'DOLAR')?.cantidad;
+    }
+
+    retiroAux.usuario = this.mainService.usuarioActual;
     //refactur using custom mutation,
     return this.crudService.onCustomMutation(this.saveRetiro, {
-      entity: retiro.toInput(),
-      retiroDetalleInputList: retiro.toDetalleInput(),
+      entity: retiroAux.toInput(),
+      retiroDetalleInputList: retiroAux.toDetalleInput(),
       printerName: this.configService?.getConfig()?.printers?.ticket,
       local: this.configService?.getConfig()?.local
     }, servidor);

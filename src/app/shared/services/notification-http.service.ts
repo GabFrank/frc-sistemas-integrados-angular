@@ -24,4 +24,24 @@ export class NotificationHttpService {
         const url = `${this.baseUrl}/notification/venta-credito/${ventaCreditoId}/${sucursalId}/${personaId}/${valorTotal}`;
         return this.http.post(url, {});
     }
+
+    sendGastoNotification(
+        gastoId: number,
+        sucursalId: number,
+        personaId: number,
+        valorTotal: number
+    ): Observable<any> {
+        const url = `${this.baseUrl}/notification/gasto/${gastoId}/${sucursalId}/${personaId}/${valorTotal}`;
+        return this.http.post(url, {});
+    }
+
+    sendRetiroNotification(
+        retiroId: number,
+        sucursalId: number,
+        personaId: number,
+        valorTotal: number
+    ): Observable<any> {
+        const url = `${this.baseUrl}/notification/retiro/${retiroId}/${sucursalId}/${personaId}/${valorTotal}`;
+        return this.http.post(url, {});
+    }
 }

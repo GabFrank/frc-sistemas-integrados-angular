@@ -25,6 +25,8 @@ import { ListMovimientoStockComponent } from '../../../operaciones/movimiento-st
 import { ListProductoComponent } from '../../../productos/producto/list-producto/list-producto.component';
 import { ProductoComponent } from '../../../productos/producto/edit-producto/producto.component';
 import { ModificacionesComponent } from '../../../operaciones/modificaciones-sistema/modificaciones/modificaciones.component';
+import { ListGastosComponent } from '../../../financiero/gastos/list-gastos/list-gastos.component';
+import { ListRetiroComponent } from '../../../financiero/retiro/list-retiro/list-retiro.component';
 import { combineLatest, of } from 'rxjs';
 import { map, take, delay, switchMap } from 'rxjs/operators';
 import { MainService } from '../../../../main.service';
@@ -79,7 +81,9 @@ export class NotificationBoardComponent implements OnInit {
         'CAMBIO_SUCURSAL_PRE_TRANSFERENCIA',
         'PRECIO_ACTUALIZADO',
         'AJUSTE_COSTO',
-        'INVENTARIO_INICIADO'
+        'INVENTARIO_INICIADO',
+        'GASTO',
+        'RETIRO'
     ];
 
     notificaciones$ = this.notificacionesTableroService.notificaciones$;
@@ -343,6 +347,12 @@ export class NotificationBoardComponent implements OnInit {
                     const action = n.notificacion.data;
                     window.dispatchEvent(new CustomEvent('notification-action', { detail: action }));
                 }
+                break;
+            case 'GASTO':
+                this.tabService.addTab(new Tab(ListGastosComponent, 'Lista de Gastos', null, null));
+                break;
+            case 'RETIRO':
+                this.tabService.addTab(new Tab(ListRetiroComponent, 'Lista de Retiros', null, null));
                 break;
         }
     }
