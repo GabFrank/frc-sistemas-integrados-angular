@@ -32,6 +32,7 @@ import { PedidoService } from "../../../pedido.service";
 import { NotificacionSnackbarService } from "../../../../../../notificacion-snackbar.service";
 import { dateToString } from "../../../../../../commons/core/utils/dateUtils";
 import { MatButton } from "@angular/material/button";
+import { DialogosService } from "../../../../../../shared/components/dialogos/dialogos.service";
 
 export interface AddEditItemDialogData {
   title: string;
@@ -90,6 +91,12 @@ export class AddEditItemDialogComponent implements OnInit {
   selectedCurrencyOptions = null; //select it based on the selected moneda from pedido on dialog data
   selectedCurrencyPrefix = "";
 
+  // Almacenar el precio original para comparar cambios
+  precioOriginal: number = 0;
+  
+  // Bandera para evitar validaciones durante la carga inicial de datos
+  private isLoadingInitialData = false;
+
   constructor(
     private formBuilder: FormBuilder,
     private dialogRef: MatDialogRef<AddEditItemDialogComponent>,
@@ -97,6 +104,7 @@ export class AddEditItemDialogComponent implements OnInit {
     private monedaService: MonedaService,
     private pedidoService: PedidoService,
     private notificacionService: NotificacionSnackbarService,
+    private dialogosService: DialogosService,
     @Inject(MAT_DIALOG_DATA) public data: AddEditItemDialogData
   ) {
     this.initializeForm();
@@ -128,26 +136,37 @@ export class AddEditItemDialogComponent implements OnInit {
 
   private loadDataIfEdit(): void {
     if (this.data.isEdit && this.data.item) {
+      this.isLoadingInitialData = true; // Marcar que estamos cargando datos iniciales
+      
       const item = this.data.item;
       this.selectedProducto = item.producto;
       this.presentacionesDisponibles = item.producto?.presentaciones || [];
 
+      // Buscar la presentación correcta en el array por ID para asegurar que sea la misma referencia
+      // Esto es necesario para que Angular Material Select la reconozca correctamente
+      let presentacionSeleccionada = null;
+      if (item.presentacionCreacion && this.presentacionesDisponibles.length > 0) {
+        presentacionSeleccionada = this.presentacionesDisponibles.find(
+          (p) => p.id === item.presentacionCreacion?.id
+        ) || item.presentacionCreacion; // Fallback al original si no se encuentra
+      }
+
       // Convertir cantidad de unidades base a cantidad por presentación
       const cantidadPorPresentacion =
-        item.presentacionCreacion && item.presentacionCreacion.cantidad > 0
-          ? item.cantidadSolicitada / item.presentacionCreacion.cantidad
+        presentacionSeleccionada && presentacionSeleccionada.cantidad > 0
+          ? item.cantidadSolicitada / presentacionSeleccionada.cantidad
           : item.cantidadSolicitada;
 
       // Calcular precio por presentación basándose en precio unitario y cantidad de presentación
       const precioUnitarioPorPresentacion =
-        item.presentacionCreacion && item.presentacionCreacion.cantidad > 0
-          ? item.precioUnitarioSolicitado * item.presentacionCreacion.cantidad
+        presentacionSeleccionada && presentacionSeleccionada.cantidad > 0
+          ? item.precioUnitarioSolicitado * presentacionSeleccionada.cantidad
           : item.precioUnitarioSolicitado;
 
       this.itemForm.patchValue({
         productoSearch: item.producto?.descripcion || "",
         producto: item.producto,
-        presentacion: item.presentacionCreacion,
+        presentacion: presentacionSeleccionada,
         cantidadPorPresentacion: cantidadPorPresentacion,
         cantidadSolicitada: item.cantidadSolicitada,
         precioUnitarioSolicitado: item.precioUnitarioSolicitado,
@@ -157,7 +176,15 @@ export class AddEditItemDialogComponent implements OnInit {
         observacion: item.observacion,
       });
 
+      // Guardar el precio original para comparar cambios
+      this.precioOriginal = item.precioUnitarioSolicitado || 0;
+
       this.updateComputedProperties();
+      
+      // Resetear la bandera después de un pequeño delay para permitir que los valueChanges se procesen
+      setTimeout(() => {
+        this.isLoadingInitialData = false;
+      }, 100);
     }
   }
 
@@ -216,6 +243,7 @@ export class AddEditItemDialogComponent implements OnInit {
       .get("precioUnitarioSolicitado")
       ?.valueChanges.subscribe((value) => {
         this.updatePrecioPorPresentacionFromUnitario(value);
+        // La validación se hace en el evento blur, no aquí
       });
 
     // Listen to precio por presentacion changes
@@ -237,6 +265,8 @@ export class AddEditItemDialogComponent implements OnInit {
     this.itemForm.get("producto")?.valueChanges.subscribe(() => {
       this.updateComputedProperties();
     });
+
+    // La validación de vencimiento se hace en el evento blur, no aquí
   }
 
   private updateCantidadBase(cantidadPorPresentacion: number): void {
@@ -369,6 +399,8 @@ export class AddEditItemDialogComponent implements OnInit {
   }
 
   onProductoSelected(producto: Producto, presentacion?: Presentacion): void {
+    this.isLoadingInitialData = true; // Marcar que estamos cargando datos iniciales
+    
     this.selectedProducto = producto;
     this.presentacionesDisponibles = producto.presentaciones || [];
 
@@ -377,16 +409,26 @@ export class AddEditItemDialogComponent implements OnInit {
         ? this.presentacionesDisponibles[0]
         : null);
 
+    const precioInicial = producto?.costo?.ultimoPrecioCompra || 0;
+    
     this.itemForm.patchValue(
       {
         productoSearch: producto.descripcion,
         producto: producto,
         presentacion: presentacionSeleccionada,
-        precioUnitarioSolicitado: producto?.costo?.ultimoPrecioCompra || 0,
+        precioUnitarioSolicitado: precioInicial,
       }
     );
 
+    // Guardar el precio original para comparar cambios
+    this.precioOriginal = precioInicial;
+
     this.updateComputedProperties();
+    
+    // Resetear la bandera después de un pequeño delay
+    setTimeout(() => {
+      this.isLoadingInitialData = false;
+    }, 100);
 
     // Manejar el foco inicial según si la presentación ya fue proporcionada
     setTimeout(() => {
@@ -538,19 +580,24 @@ export class AddEditItemDialogComponent implements OnInit {
 
     const formValue = this.itemForm.getRawValue();
 
-    // Create PedidoItemInput
-    // we dont need to create a new PedidoItemInput, we can use the PedidoItem.toInput()
-    let pedidoToSave = new PedidoItem();
-    pedidoToSave = this.data.item || new PedidoItem();
-    pedidoToSave.pedido = this.data.pedido;
-    pedidoToSave.producto = formValue.producto;
-    pedidoToSave.presentacionCreacion = formValue.presentacion;
-    pedidoToSave.cantidadSolicitada = formValue.cantidadSolicitada;
-    pedidoToSave.precioUnitarioSolicitado = formValue.precioUnitarioSolicitado;
-    pedidoToSave.vencimientoEsperado = formValue.vencimientoEsperado;
-    pedidoToSave.observacion = formValue.observacion;
-    pedidoToSave.esBonificacion = formValue.esBonificacion;
-    pedidoToSave.estado = PedidoItemEstado.ACTIVO;
+    // Create PedidoItem instance using Object.assign to preserve the toInput() method
+    // If editing, merge the existing item data with form values
+    // If creating new, start with a new PedidoItem instance
+    const pedidoToSave = Object.assign(
+      new PedidoItem(),
+      this.data.item || {},
+      {
+        pedido: this.data.pedido,
+        producto: formValue.producto,
+        presentacionCreacion: formValue.presentacion,
+        cantidadSolicitada: formValue.cantidadSolicitada,
+        precioUnitarioSolicitado: formValue.precioUnitarioSolicitado,
+        vencimientoEsperado: formValue.vencimientoEsperado,
+        observacion: formValue.observacion,
+        esBonificacion: formValue.esBonificacion,
+        estado: PedidoItemEstado.ACTIVO,
+      }
+    );
 
     // Call the service
     this.pedidoService.onSavePedidoItem(pedidoToSave.toInput()).subscribe({
@@ -596,6 +643,141 @@ export class AddEditItemDialogComponent implements OnInit {
       action: "cancel",
     };
     this.dialogRef.close(result);
+  }
+
+  /**
+   * Valida el vencimiento y muestra diálogo de advertencia si es necesario
+   * Se ejecuta cuando el input pierde el foco
+   */
+  onVencimientoBlur(): void {
+    const vencimiento = this.itemForm.get("vencimientoEsperado")?.value;
+    
+    if (!vencimiento) {
+      return; // Vencimiento vacío: nada (por ahora)
+    }
+
+    const fechaVencimiento = typeof vencimiento === 'string' 
+      ? new Date(vencimiento) 
+      : vencimiento instanceof Date 
+        ? vencimiento 
+        : new Date(vencimiento);
+    
+    if (isNaN(fechaVencimiento.getTime())) {
+      return; // Fecha inválida
+    }
+
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const fechaVencimientoNormalizada = new Date(fechaVencimiento);
+    fechaVencimientoNormalizada.setHours(0, 0, 0, 0);
+
+    // Calcular diferencia en meses
+    const diffTime = fechaVencimientoNormalizada.getTime() - hoy.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffMonths = diffDays / 30.44; // Promedio de días por mes
+
+    let mensaje = "";
+    let titulo = "Atención - Vencimiento";
+
+    // Vencimiento muy corto (< 3 meses)
+    if (diffMonths < 3 && diffMonths > 0) {
+      const mesesRestantes = Math.round(diffMonths * 10) / 10;
+      mensaje = `El vencimiento es muy corto (${mesesRestantes} meses). ¿Está seguro de que es correcto?`;
+    }
+    // Vencimiento muy largo (> 2 años)
+    else if (diffMonths > 24) {
+      const añosRestantes = Math.round((diffMonths / 12) * 10) / 10;
+      mensaje = `El vencimiento es muy largo (${añosRestantes} años). ¿Está seguro de que es correcto?`;
+    }
+    // Vencimiento pasado
+    else if (diffDays < 0) {
+      mensaje = `La fecha de vencimiento está en el pasado. ¿Está seguro de que es correcta?`;
+    }
+
+    // Mostrar diálogo solo si hay un mensaje de advertencia
+    if (mensaje) {
+      this.dialogosService.confirm(
+        titulo,
+        mensaje,
+        null,
+        [],
+        true,
+        "Sí, es correcto",
+        "Corregir"
+      ).subscribe((confirmed) => {
+        // Si el usuario elige "Corregir", hacer focus de nuevo en el input
+        if (!confirmed) {
+          setTimeout(() => {
+            this.vencimientoInput?.nativeElement.focus();
+          }, 100);
+        }
+      });
+    }
+  }
+
+  /**
+   * Valida el precio unitario y muestra diálogo de advertencia si es necesario
+   * Se ejecuta cuando el input pierde el foco
+   */
+  onPrecioUnitarioBlur(): void {
+    const precio = this.itemForm.get("precioUnitarioSolicitado")?.value;
+    
+    if (precio === null || precio === undefined) {
+      return;
+    }
+
+    // No validar durante la carga inicial de datos
+    if (this.isLoadingInitialData) {
+      return;
+    }
+
+    // Si es bonificación, no validar precio
+    if (this.itemForm.get("esBonificacion")?.value) {
+      return;
+    }
+
+    let mensaje = "";
+    let titulo = "Atención - Precio Unitario";
+
+    // Costo 0: Lanzar aviso
+    if (precio === 0) {
+      mensaje = "El precio unitario es 0. ¿Está seguro de que es correcto?";
+    }
+    // Solo validar cambio de precio si estamos editando y hay un precio original
+    else if (this.data.isEdit && this.precioOriginal > 0) {
+      const cambioPorcentual = ((precio - this.precioOriginal) / this.precioOriginal) * 100;
+      const cambioAbsoluto = Math.abs(cambioPorcentual);
+
+      // Cambio mayor a 50% (arriba o abajo)
+      if (cambioAbsoluto > 50) {
+        const direccion = cambioPorcentual > 0 ? "aumentó" : "disminuyó";
+        const porcentajeFormateado = Math.abs(Math.round(cambioPorcentual * 10) / 10);
+        const precioOriginalFormateado = this.precioOriginal.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        const precioNuevoFormateado = precio.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        mensaje = `El precio ${direccion} ${porcentajeFormateado}% respecto al valor original (${precioOriginalFormateado} → ${precioNuevoFormateado}). ¿Está seguro de que es correcto?`;
+      }
+    }
+
+    // Mostrar diálogo solo si hay un mensaje de advertencia
+    if (mensaje) {
+      this.dialogosService.confirm(
+        titulo,
+        mensaje,
+        null,
+        [],
+        true,
+        "Sí, es correcto",
+        "Corregir"
+      ).subscribe((confirmed) => {
+        // Si el usuario elige "Corregir", hacer focus de nuevo en el input
+        if (!confirmed) {
+          setTimeout(() => {
+            this.precioUnitarioInput?.nativeElement.focus();
+            this.precioUnitarioInput?.nativeElement.select();
+          }, 100);
+        }
+      });
+    }
   }
 
   private markFormGroupTouched(): void {

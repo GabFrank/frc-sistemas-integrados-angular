@@ -26,6 +26,7 @@ export interface PedidoResumen {
   };
   cantidadItems: number;
   valorTotal: number;
+  valorTotalPedido: number;
   cantidadItemsConDistribucionCompleta: number;
   cantidadItemsPendientesDistribucion: number;
 }

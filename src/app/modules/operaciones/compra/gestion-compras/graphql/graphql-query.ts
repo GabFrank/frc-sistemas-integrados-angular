@@ -767,6 +767,7 @@ export const getPedidoResumenQuery = gql`
       }
       cantidadItems
       valorTotal
+      valorTotalPedido
       cantidadItemsConDistribucionCompleta
       cantidadItemsPendientesDistribucion
     }

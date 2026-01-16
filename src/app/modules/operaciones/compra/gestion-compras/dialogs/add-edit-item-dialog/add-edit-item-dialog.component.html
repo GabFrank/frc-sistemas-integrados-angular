@@ -170,6 +170,7 @@
               formControlName="precioUnitarioSolicitado"
               [readonly]="isBonificacionComputed"
               (keydown)="onPrecioUnitarioKeydown($event)"
+              (blur)="onPrecioUnitarioBlur()"
               matTooltip="Precio por unidad individual del producto"
             />
             <span matPrefix>{{ selectedCurrencyPrefix }}</span>
@@ -206,13 +207,17 @@
               [matDatepicker]="vencimientoPicker"
               formControlName="vencimientoEsperado"
               (keydown)="onVencimientoKeydown($event)"
+              (blur)="onVencimientoBlur()"
               matTooltip="Fecha esperada de vencimiento del producto"
             />
             <mat-datepicker-toggle
               matSuffix
               [for]="vencimientoPicker"
             ></mat-datepicker-toggle>
-            <mat-datepicker #vencimientoPicker></mat-datepicker>
+            <mat-datepicker 
+              #vencimientoPicker
+              (closed)="onVencimientoBlur()"
+            ></mat-datepicker>
           </mat-form-field>
         </div>
 

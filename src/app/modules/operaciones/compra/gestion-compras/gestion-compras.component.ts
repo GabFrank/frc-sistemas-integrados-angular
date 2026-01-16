@@ -219,6 +219,9 @@ export class GestionComprasComponent
   // Pedido resumen from backend (for edit mode)
   pedidoResumen: PedidoResumen | null = null;
 
+  // Valor total del pedido - se carga desde backend y se actualiza localmente
+  montoTotalPedidoLocal: number = 0;
+
   // Header data - computed properties (no getters!)
   headerDataComputed: PedidoHeader = {
     proveedor: "",
@@ -593,6 +596,19 @@ export class GestionComprasComponent
     this.pedidoService.onGetPedidoResumen(this.pedidoId).subscribe({
       next: (resumen) => {
         this.pedidoResumen = resumen;
+        
+        // Inicializar o sincronizar el valor total del pedido desde el backend
+        // Solo actualizar si el valor local es 0 (inicialización) o si hay una discrepancia significativa
+        // (más de 0.01 de diferencia, lo que indica que el backend tiene la verdad después de sincronización)
+        if (resumen.valorTotalPedido !== undefined && resumen.valorTotalPedido !== null) {
+          if (this.montoTotalPedidoLocal === 0 || 
+              Math.abs(this.montoTotalPedidoLocal - resumen.valorTotalPedido) > 0.01) {
+            // Solo actualizar si es la primera carga o si hay una discrepancia significativa
+            // Esto permite que las actualizaciones locales tengan prioridad durante operaciones rápidas
+            this.montoTotalPedidoLocal = resumen.valorTotalPedido;
+          }
+        }
+        
         this.updateComputedProperties();
         
         // Si estamos en el tab 3, actualizar también las propiedades del step 3
@@ -630,6 +646,7 @@ export class GestionComprasComponent
         etapaActual: null, // Se establece en updateTabStates
         cantidadItems: 0, // Se calculará cuando se cargue el tab de ítems
         valorTotal: 0, // Se calculará cuando se cargue el tab de ítems
+        valorTotalPedido: 0, // Se calculará cuando se cargue el tab de ítems
         cantidadItemsConDistribucionCompleta: 0, // Se calculará cuando se cargue el tab de ítems
         cantidadItemsPendientesDistribucion: 0 // Se calculará cuando se cargue el tab de ítems
       };
@@ -932,29 +949,74 @@ export class GestionComprasComponent
   }
 
   private calculateMontoTotal(): number {
-    // Calculate total from items
+    // Calculate total from items (solo para modo nueva compra)
     const items = this.itemsDataSource.data;
     return items.reduce((total, item) => {
       return total + (item.cantidadSolicitada * item.precioUnitarioSolicitado);
     }, 0);
   }
 
-  private calculateMontoTotalEditMode(): number {
-    // En modo edición, calcular el monto total de las facturas actuales (notas de recepción)
-    // según el manual: "Monto total de las facturas actuales"
-    
-    // Si tenemos el resumen del backend, usar el valorTotal que representa las facturas actuales
-    if (this.pedidoResumen && this.pedidoResumen.valorTotal !== undefined) {
-      return this.pedidoResumen.valorTotal;
+  /**
+   * Actualiza localmente el monto total del pedido cuando se agrega un nuevo item
+   * @param item El item agregado con cantidad y precio
+   */
+  private updateMontoTotalLocalOnAdd(item: PedidoItem): void {
+    if (!item || !item.cantidadSolicitada || !item.precioUnitarioSolicitado) {
+      return;
+    }
+    const itemValue = item.cantidadSolicitada * item.precioUnitarioSolicitado;
+    this.montoTotalPedidoLocal += itemValue;
+    this.updateComputedProperties();
+  }
+
+  /**
+   * Actualiza localmente el monto total del pedido cuando se edita un item
+   * @param oldItem El item antes de la edición
+   * @param newItem El item después de la edición
+   */
+  private updateMontoTotalLocalOnEdit(oldItem: PedidoItem, newItem: PedidoItem): void {
+    if (!oldItem || !newItem) {
+      return;
     }
     
-    // Fallback: calcular desde los ítems del pedido (monto original)
-    const items = this.itemsDataSource.data;
-    const totalFromItems = items.reduce((sum, item) => {
-      return sum + (item.cantidadSolicitada * item.precioUnitarioSolicitado);
-    }, 0);
+    const oldValue = (oldItem.cantidadSolicitada || 0) * (oldItem.precioUnitarioSolicitado || 0);
+    const newValue = (newItem.cantidadSolicitada || 0) * (newItem.precioUnitarioSolicitado || 0);
+    const delta = newValue - oldValue;
     
-    return totalFromItems;
+    this.montoTotalPedidoLocal += delta;
+    this.updateComputedProperties();
+  }
+
+  /**
+   * Actualiza localmente el monto total del pedido cuando se elimina un item
+   * @param item El item eliminado con cantidad y precio
+   */
+  private updateMontoTotalLocalOnDelete(item: PedidoItem): void {
+    if (!item || !item.cantidadSolicitada || !item.precioUnitarioSolicitado) {
+      return;
+    }
+    const itemValue = item.cantidadSolicitada * item.precioUnitarioSolicitado;
+    this.montoTotalPedidoLocal -= itemValue;
+    this.updateComputedProperties();
+  }
+
+  private calculateMontoTotalEditMode(): number {
+    // En modo edición, usar el valor total del pedido (suma de items × precios)
+    // Este valor se carga desde el backend y se actualiza localmente cuando hay cambios
+    
+    // Si tenemos el valor local actualizado, usarlo (tiene prioridad)
+    if (this.montoTotalPedidoLocal > 0 || this.montoTotalPedidoLocal === 0) {
+      return this.montoTotalPedidoLocal;
+    }
+    
+    // Si tenemos el resumen del backend con valorTotalPedido, usarlo
+    if (this.pedidoResumen && this.pedidoResumen.valorTotalPedido !== undefined) {
+      return this.pedidoResumen.valorTotalPedido;
+    }
+    
+    // Fallback: retornar 0 si no hay datos disponibles
+    // (No calcular desde itemsDataSource.data porque es paginado y no representa todos los items)
+    return 0;
   }
 
   private updateStep3ComputedProperties(): void {
@@ -1609,6 +1671,11 @@ export class GestionComprasComponent
 
     dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
       if (result && result.action === "save") {
+        // Actualizar localmente el monto total del pedido
+        if (this.isEditMode && result.item) {
+          this.updateMontoTotalLocalOnAdd(result.item);
+        }
+        
         // Actualizar localmente el producto del proveedor para marcarlo como ya en pedido
         if (result.item?.producto?.id) {
           this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
@@ -1639,9 +1706,12 @@ export class GestionComprasComponent
         // Marcar tab de recepción de notas como no cargado (puede afectar ítems pendientes)
         this.markTabAsUnloaded(2);
         
-        // Recargar resumen del pedido para actualizar header
+        // Recargar resumen del pedido para actualizar header (pero el monto ya está actualizado localmente)
         if (this.isEditMode) {
-          this.loadPedidoResumen();
+          // Usar setTimeout para recargar después de un delay, permitiendo que el backend se sincronice
+          setTimeout(() => {
+            this.loadPedidoResumen();
+          }, 500);
         }
         
         // Recargar pedido completo para obtener procesoEtapas actualizado
@@ -1689,6 +1759,13 @@ export class GestionComprasComponent
 
     dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
       if (result && result.action === "save") {
+        // Guardar el item original antes de la edición para calcular el delta
+        const oldItem = item;
+        
+        // Actualizar localmente el monto total del pedido
+        if (this.isEditMode && result.item && oldItem) {
+          this.updateMontoTotalLocalOnEdit(oldItem, result.item);
+        }
         
         // Marcar tab de ítems como no cargado para recargar en próxima visita
         this.markTabAsUnloaded(1);
@@ -1706,9 +1783,12 @@ export class GestionComprasComponent
         // Marcar tab de recepción de notas como no cargado (puede afectar ítems pendientes)
         this.markTabAsUnloaded(2);
         
-        // Recargar resumen del pedido para actualizar header
+        // Recargar resumen del pedido para actualizar header (pero el monto ya está actualizado localmente)
         if (this.isEditMode) {
-          this.loadPedidoResumen();
+          // Usar setTimeout para recargar después de un delay, permitiendo que el backend se sincronice
+          setTimeout(() => {
+            this.loadPedidoResumen();
+          }, 500);
         }
         
         // Actualizar propiedades computadas
@@ -1837,6 +1917,11 @@ export class GestionComprasComponent
         this.pedidoService.onDeletePedidoItem(item.id).subscribe({
           next: (result) => {
             if (result) {
+              // Actualizar localmente el monto total del pedido
+              if (this.isEditMode) {
+                this.updateMontoTotalLocalOnDelete(item);
+              }
+              
               this.notificacionService.openSucess("Ítem eliminado exitosamente");
               
               // Actualizar localmente el producto del proveedor para desmarcarlo como ya en pedido
@@ -1866,9 +1951,12 @@ export class GestionComprasComponent
               // Marcar tab de recepción de notas como no cargado (puede afectar ítems pendientes)
               this.markTabAsUnloaded(2);
               
-              // Recargar resumen del pedido para actualizar header
+              // Recargar resumen del pedido para actualizar header (pero el monto ya está actualizado localmente)
               if (this.isEditMode) {
-                this.loadPedidoResumen();
+                // Usar setTimeout para recargar después de un delay, permitiendo que el backend se sincronice
+                setTimeout(() => {
+                  this.loadPedidoResumen();
+                }, 500);
               }
               
               // Actualizar propiedades computadas
