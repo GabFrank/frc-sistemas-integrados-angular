@@ -109,6 +109,7 @@ export class LoginService {
                           this.usuarioService
                             .onSaveInicioSesion(inicioSesion.toInput())
                             .subscribe((res) => {
+                              this.notificarInicioSesionGQL.mutate({ usuarioId: res.usuario.id }).pipe(untilDestroyed(this)).subscribe();
                               this.mainService.usuarioActual.inicioSesion = res;
                               this.enviarNotificacionLogin(serverIp, serverPort, this.mainService.usuarioActual);
                             });
