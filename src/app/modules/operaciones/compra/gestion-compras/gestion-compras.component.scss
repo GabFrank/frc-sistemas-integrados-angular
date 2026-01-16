@@ -1222,6 +1222,24 @@
                 background-color: rgba(255, 167, 38, 0.3) !important;
               }
             }
+
+            &.producto-ya-en-pedido {
+              background-color: rgba(76, 175, 80, 0.15) !important;
+              border-left: 3px solid #4CAF50;
+
+              &:hover {
+                background-color: rgba(76, 175, 80, 0.25) !important;
+              }
+
+              &.selected-row {
+                background-color: rgba(76, 175, 80, 0.25) !important;
+                border-left: 3px solid #4CAF50;
+
+                &:hover {
+                  background-color: rgba(76, 175, 80, 0.35) !important;
+                }
+              }
+            }
           }
         }
 

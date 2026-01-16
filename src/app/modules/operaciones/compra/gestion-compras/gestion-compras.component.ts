@@ -135,6 +135,7 @@ interface ProductoProveedorItem extends ProductoProveedor {
   descripcionComputed: string;
   precioDisplayComputed: string;
   isSelectedComputed: boolean;
+  yaEnPedidoComputed: boolean;
 }
 
 interface UltimaCompraItem {
@@ -193,6 +194,7 @@ export class GestionComprasComponent
   @Input() data: Tab; // Tab object from TabService
 
   private destroy$ = new Subject<void>();
+  private handleKeyboardNavigation = (event: KeyboardEvent) => this.onProductosProveedorKeydown(event);
 
   // Estado de carga
   loadingPedido = false;
@@ -311,6 +313,9 @@ export class GestionComprasComponent
   productosProveedorDataSource = new MatTableDataSource<ProductoProveedorItem>([]);
   ultimasComprasDataSource = new MatTableDataSource<UltimaCompraItem>([]);
   selectedProductoProveedor: ProductoProveedorItem | null = null;
+  selectedProductoProveedorIndex: number = -1; // Índice del producto seleccionado para navegación con teclado
+  private isNavigatingWithKeyboard = false; // Flag para indicar que estamos navegando con teclado entre páginas
+  private keyboardNavigationDirection: 'next' | 'previous' | null = null; // Dirección de navegación con teclado
   productosProveedorLoading = false;
   ultimasComprasLoading = false;
   productosProveedorPageSize = 10;
@@ -387,6 +392,9 @@ export class GestionComprasComponent
         this.updateComputedProperties();
       });
     }
+
+    // Configurar navegación con teclado para productos del proveedor
+    this.setupKeyboardNavigation();
   }
 
   ngAfterViewInit() {
@@ -408,6 +416,8 @@ export class GestionComprasComponent
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    // Remover listener de teclado
+    document.removeEventListener('keydown', this.handleKeyboardNavigation);
   }
 
   private initializeForms(): void {
@@ -624,7 +634,6 @@ export class GestionComprasComponent
         cantidadItemsPendientesDistribucion: 0 // Se calculará cuando se cargue el tab de ítems
       };
       this.updateComputedProperties();
-      console.log("Resumen básico del pedido creado");
     }
   }
 
@@ -705,7 +714,6 @@ export class GestionComprasComponent
         this.savePedidoCabecera();
       }
     } else {
-      console.error("Formulario inválido");
       // Mark all fields as touched to show validation errors
       Object.keys(this.datosGeneralesForm.controls).forEach((key) => {
         this.datosGeneralesForm.get(key)?.markAsTouched();
@@ -745,7 +753,6 @@ export class GestionComprasComponent
       )
       .subscribe({
         next: (result) => {
-          console.log("Pedido actualizado exitosamente:", result);
           this.currentPedido = result;
 
           // Marcar el formulario como pristine después de guardar exitosamente
@@ -825,7 +832,6 @@ export class GestionComprasComponent
       )
       .subscribe({
         next: (result) => {
-          console.log("Pedido guardado exitosamente:", result);
           this.currentPedido = result;
           this.isEditMode = true; // Cambiamos a modo edición
           this.pedidoId = result.id;
@@ -937,13 +943,8 @@ export class GestionComprasComponent
     // En modo edición, calcular el monto total de las facturas actuales (notas de recepción)
     // según el manual: "Monto total de las facturas actuales"
     
-    console.log('Calculando monto total en modo edición:');
-    console.log('- pedidoResumen:', this.pedidoResumen);
-    console.log('- pedidoResumen.valorTotal:', this.pedidoResumen?.valorTotal);
-    
     // Si tenemos el resumen del backend, usar el valorTotal que representa las facturas actuales
     if (this.pedidoResumen && this.pedidoResumen.valorTotal !== undefined) {
-      console.log('- Usando valorTotal del resumen:', this.pedidoResumen.valorTotal);
       return this.pedidoResumen.valorTotal;
     }
     
@@ -952,9 +953,6 @@ export class GestionComprasComponent
     const totalFromItems = items.reduce((sum, item) => {
       return sum + (item.cantidadSolicitada * item.precioUnitarioSolicitado);
     }, 0);
-    
-    console.log('- Usando cálculo desde ítems:', totalFromItems);
-    console.log('- Cantidad de ítems:', items.length);
     
     return totalFromItems;
   }
@@ -1066,7 +1064,6 @@ export class GestionComprasComponent
         const fecha = nota.fecha instanceof Date ? nota.fecha : new Date(nota.fecha);
         nota.fechaFormattedComputed = this.formatDate(fecha);
       } catch (error) {
-        console.warn('Error formateando fecha de nota:', error);
         nota.fechaFormattedComputed = 'Fecha inválida';
       }
     } else {
@@ -1143,15 +1140,8 @@ export class GestionComprasComponent
   private updateTabStates(etapaActual: ProcesoEtapaTipo | null): void {
     let activeTabIndex = 0;
 
-    console.log("updateTabStates - Parámetros:", {
-      etapaActual,
-      isEditMode: this.isEditMode,
-      pedidoId: this.pedidoId
-    });
-
     // Si es una nueva compra, NO modificar el estado ya configurado
     if (!this.isEditMode || !this.pedidoId) {
-      console.log("updateTabStates: Nueva compra detectada - manteniendo estado ya configurado");
       return;
     }
 
@@ -1164,7 +1154,6 @@ export class GestionComprasComponent
 
     // Si no hay etapa actual, mantener solo el primer tab habilitado
     if (!etapaActual) {
-      console.log("Pedido existente sin etapa definida - solo habilitando tab de Datos Generales");
       this.datosGeneralesTabState = "editable";
       this.selectedTabIndex = 0;
       return;
@@ -1183,7 +1172,6 @@ export class GestionComprasComponent
         this.itemsTabState = "readonly";
         this.notasTabState = "editable";
         activeTabIndex = 2;
-        console.log("Navegando a la pestaña de Notas");
         break;
 
       case ProcesoEtapaTipo.RECEPCION_MERCADERIA:
@@ -1216,15 +1204,9 @@ export class GestionComprasComponent
   // Event handler para cambio de tab
   onTabChange(newIndex: number): void {
     const previousIndex = this.previousTabIndex;
-    
-    console.log("🔄 onTabChange() ejecutado");
-    console.log("  - Tab anterior:", previousIndex);
-    console.log("  - Tab nuevo:", newIndex);
-    console.log("  - isEditMode:", this.isEditMode);
 
     // Si es una nueva compra, permitir acceso a tabs 0 y 1
     if (!this.isEditMode && newIndex > 1) {
-      console.log("Nueva compra: Solo se puede acceder a los tabs de Datos Generales e Items");
       this.notificacionService.openWarn("En una nueva compra solo se puede acceder a los tabs de Datos Generales e Items");
       // Revertir al tab anterior
       setTimeout(() => {
@@ -1267,17 +1249,13 @@ export class GestionComprasComponent
       case 0: // Tab 1: Datos Generales
         // Los datos generales ya se cargan en loadInitialData()
         // Solo marcar como cargado para el sistema de lazy loading
-        console.log("Tab 0 (Datos Generales) marcado como cargado");
         break;
       case 1: // Tab 2: Ítems del Pedido
-        console.log("📋 Cargando Tab 1: Items del Pedido");
-        console.log("  - currentPedido?.id:", this.currentPedido?.id);
         if (this.currentPedido?.id) {
           // Pedido existente: cargar ítems del backend
           this.loadItemsData();
           // Cargar el resumen completo cuando se accede al tab de ítems
           this.loadPedidoResumen();
-          console.log("  - Datos del tab 1 cargados");
           
           // Cargar productos del proveedor si hay proveedor seleccionado
           if (this.currentPedido?.proveedor?.id) {
@@ -1292,7 +1270,6 @@ export class GestionComprasComponent
           }
         } else {
           // Nueva compra: inicializar tab de ítems vacío
-          console.log("  - Nueva compra: Inicializando tab de ítems vacío");
           this.itemsDataSource.data = [];
           this.updateItemsComputedProperties();
           
@@ -1309,25 +1286,18 @@ export class GestionComprasComponent
         }
         break;
       case 2: // Tab 3: Recepción de Notas
-        console.log("📋 Cargando Tab 3: Recepción de Notas");
-        console.log("  - currentPedido?.id:", this.currentPedido?.id);
         if (this.currentPedido?.id) {
           // Cargar resumen del pedido para tener la etapa actual actualizada
           this.loadPedidoResumen();
           this.loadItemsPendientesData();
           this.loadNotasRecepcionData();
-          console.log("  - Datos del tab 3 cargados");
-        } else {
-          console.log("  - ❌ No hay currentPedido.id, no se cargan datos");
         }
         break;
       case 3: // Tab 4: Recepción de Mercadería
         // TODO: Cargar datos de recepción de mercadería cuando se implemente
-        console.log("Tab 3 (Recepción de Mercadería) marcado como cargado");
         break;
       case 4: // Tab 5: Solicitud de Pago
         // TODO: Cargar datos de solicitud de pago cuando se implemente
-        console.log("Tab 4 (Solicitud de Pago) marcado como cargado");
         break;
       // Agregar otros casos según sea necesario
     }
@@ -1339,19 +1309,16 @@ export class GestionComprasComponent
   private loadTabDataIfNeeded(tabIndex: number): void {
     // Si es una nueva compra, permitir acceso al tab 1 (Items) pero no a otros
     if (!this.isEditMode && tabIndex > 1) {
-      console.log(`Nueva compra: Tab ${tabIndex} no disponible, solo se puede acceder a tabs 0 y 1`);
       return;
     }
 
     // Si el tab ya fue cargado, no hacer nada
     if (this.loadedTabs.has(tabIndex)) {
-      console.log(`Tab ${tabIndex} ya fue cargado previamente, saltando carga`);
       return;
     }
 
     // Marcar el tab como cargado antes de cargar los datos
     this.loadedTabs.add(tabIndex);
-    console.log(`Cargando datos del tab ${tabIndex} por primera vez`);
 
     // Cargar los datos específicos del tab
     this.loadTabData(tabIndex);
@@ -1361,7 +1328,6 @@ export class GestionComprasComponent
    * Fuerza la recarga de un tab específico (útil después de operaciones CRUD)
    */
   private reloadTabData(tabIndex: number): void {
-    console.log(`Forzando recarga del tab ${tabIndex}`);
     this.loadTabData(tabIndex);
   }
 
@@ -1370,7 +1336,6 @@ export class GestionComprasComponent
    */
   private markTabAsUnloaded(tabIndex: number): void {
     this.loadedTabs.delete(tabIndex);
-    console.log(`Tab ${tabIndex} marcado como no cargado`);
   }
 
   // Step 1: Datos Generales methods
@@ -1607,7 +1572,6 @@ export class GestionComprasComponent
 
   onGuardarDatosGenerales(): void {
     if (this.datosGeneralesForm.valid) {
-      console.log("Guardando datos generales:", this.datosGeneralesForm.value);
       // TODO: Implement backend integration
 
       // Simular la actualización de estado en el pedido actual
@@ -1645,7 +1609,10 @@ export class GestionComprasComponent
 
     dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
       if (result && result.action === "save") {
-        console.log("Nuevo ítem añadido:", result.item);
+        // Actualizar localmente el producto del proveedor para marcarlo como ya en pedido
+        if (result.item?.producto?.id) {
+          this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
+        }
         
         // Marcar tab de ítems como no cargado para recargar en próxima visita
         this.markTabAsUnloaded(1);
@@ -1722,7 +1689,6 @@ export class GestionComprasComponent
 
     dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
       if (result && result.action === "save") {
-        console.log("Ítem actualizado:", result.item);
         
         // Marcar tab de ítems como no cargado para recargar en próxima visita
         this.markTabAsUnloaded(1);
@@ -1769,7 +1735,6 @@ export class GestionComprasComponent
     // Cargar distribuciones existentes del backend
     this.pedidoService.onGetPedidoItemDistribucionesByPedidoItemId(item.id).subscribe({
       next: (distribuciones) => {
-        console.log('Distribuciones cargadas:', distribuciones);
         
         const dialogData: DistributeItemDialogData = {
           item: item,
@@ -1872,8 +1837,18 @@ export class GestionComprasComponent
         this.pedidoService.onDeletePedidoItem(item.id).subscribe({
           next: (result) => {
             if (result) {
-              console.log("Ítem eliminado exitosamente");
               this.notificacionService.openSucess("Ítem eliminado exitosamente");
+              
+              // Actualizar localmente el producto del proveedor para desmarcarlo como ya en pedido
+              // Solo si no hay más items con ese producto en el pedido
+              if (item?.producto?.id) {
+                const tieneOtrosItems = this.itemsDataSource.data.some(
+                  i => i.id !== item.id && i.producto?.id === item.producto.id
+                );
+                if (!tieneOtrosItems) {
+                  this.actualizarProductoProveedorLocalmente(item.producto.id, false);
+                }
+              }
               
               // Marcar tab de ítems como no cargado para recargar en próxima visita
               this.markTabAsUnloaded(1);
@@ -1919,11 +1894,6 @@ export class GestionComprasComponent
 
     this.itemsLoading = true;
 
-    console.log("📦 loadItemsData() ejecutado");
-    console.log("  - currentPedido.id:", this.currentPedido.id);
-    console.log("  - pageIndex:", this.itemsPageIndex);
-    console.log("  - pageSize:", this.itemsPageSize);
-    console.log("  - searchText:", this.itemsSearchText);
 
     this.pedidoService
       .onGetPedidoItemPorPedidoPage(
@@ -1935,9 +1905,6 @@ export class GestionComprasComponent
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          console.log("📦 Ítems cargados del backend:", response);
-          console.log("  - Cantidad de ítems:", response.getContent?.length || 0);
-          
           // Procesar los ítems y añadir propiedades computadas
           const processedItems = (response.getContent || []).map((item: PedidoItem) => 
             this.processItemForDisplay(item)
@@ -1947,8 +1914,6 @@ export class GestionComprasComponent
           this.itemsDataSource.data = processedItems;
           this.itemsTotalElements = response.getTotalElements || 0;
           this.itemsLoading = false;
-          
-          console.log("📦 Llamando a updateItemsComputedProperties()");
           // Actualizar propiedades computadas
           this.updateItemsComputedProperties();
         },
@@ -1979,7 +1944,6 @@ export class GestionComprasComponent
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          console.log("Ítems pendientes cargados:", response);
           
           // Filtrar solo ítems con cantidad pendiente > 0
           const items = (response.getContent || []).filter((item: PedidoItem) => {
@@ -2028,8 +1992,6 @@ export class GestionComprasComponent
   private loadNotasRecepcionData(): void {
     if (!this.currentPedido?.id) return;
 
-    console.log("📄 loadNotasRecepcionData() ejecutado");
-    console.log("  - currentPedido.id:", this.currentPedido.id);
     
     this.notasRecepcionLoading = true;
 
@@ -2043,24 +2005,15 @@ export class GestionComprasComponent
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          console.log("📄 Notas de recepción cargadas del backend:", response);
-          console.log("  - response.getContent:", response.getContent);
-          console.log("  - Cantidad de notas:", response.getContent?.length || 0);
-          
           // Procesar notas para mostrar (incluye notas normales y de rechazo)
           const processedNotas = (response.getContent || []).map((nota: NotaRecepcion) => {
             const mockNota = this.processNotaForDisplay(nota) as MockNotaRecepcion;
             return mockNota;
           });
-
-          console.log("📄 Notas procesadas para UI:", processedNotas);
-          console.log("  - Cantidad de notas procesadas:", processedNotas.length);
           
           this.notasRecepcionDataSource.data = processedNotas;
           this.notasRecepcionTotalElements = response.getTotalElements || 0;
           this.notasRecepcionLoading = false;
-          
-          console.log("📄 Llamando a updateStep3ComputedProperties()");
           this.updateStep3ComputedProperties();
         },
         error: (error) => {
@@ -2113,9 +2066,6 @@ export class GestionComprasComponent
   }
 
   onFinalizarPlanificacion(): void {
-    console.log("🚀 onFinalizarPlanificacion() ejecutado");
-    console.log("  - currentPedido?.id:", this.currentPedido?.id);
-    console.log("  - canFinalizarPlanificacionComputed:", this.canFinalizarPlanificacionComputed);
     
     if (!this.currentPedido?.id) {
       this.notificacionService.openAlgoSalioMal("No hay pedido seleccionado");
@@ -2137,7 +2087,6 @@ export class GestionComprasComponent
         // Llamar al backend para finalizar la creación
         this.pedidoService.onFinalizarCreacionPedido(this.currentPedido.id).subscribe({
           next: (pedidoActualizado) => {
-            console.log("Planificación finalizada exitosamente:", pedidoActualizado);
             this.currentPedido = pedidoActualizado;
             
             // Recargar resumen del pedido para actualizar header
@@ -2307,7 +2256,6 @@ export class GestionComprasComponent
 
     dialogRef.afterClosed().subscribe((result: AddEditNotaRecepcionDialogResult) => {
       if (result && result.changesMade) {
-        console.log("Nueva nota creada con ítems asignados:", result);
 
         // Limpiar selección de ítems y bandera
         this.selectedItemsPendientes = [];
@@ -2326,7 +2274,6 @@ export class GestionComprasComponent
           this.notificacionService.openSucess("Nota de recepción creada exitosamente");
         }
       } else if (result) {
-        console.log("Diálogo cerrado sin cambios:", result);
       }
     });
   }
@@ -2347,7 +2294,6 @@ export class GestionComprasComponent
 
     dialogRef.afterClosed().subscribe((result: AddEditNotaRecepcionDialogResult) => {
       if (result && result.changesMade) {
-        console.log("Nueva nota creada:", result);
 
         // Recargar datos reales del backend
         this.markTabAsUnloaded(2);
@@ -2362,7 +2308,6 @@ export class GestionComprasComponent
           this.notificacionService.openSucess("Nota de recepción creada exitosamente");
         }
       } else if (result) {
-        console.log("Diálogo cerrado sin cambios:", result);
       }
     });
   }
@@ -2373,7 +2318,6 @@ export class GestionComprasComponent
     // Asignar ítems a la nota especificada
     this.asignarItemsANota(nota);
 
-    console.log("Ítems asignados a la nota:", nota.numero);
     this.updateComputedProperties();
   }
 
@@ -2442,7 +2386,6 @@ export class GestionComprasComponent
 
     dialogRef.afterClosed().subscribe((result: AddEditNotaRecepcionDialogResult) => {
       if (result && result.changesMade) {
-        console.log("Cambios detectados en nota de recepción:", result);
 
         // Recargar datos reales del backend
         this.markTabAsUnloaded(2);
@@ -2456,14 +2399,12 @@ export class GestionComprasComponent
           this.notificacionService.openSucess(result.message);
         }
       } else if (result) {
-        console.log("Diálogo cerrado sin cambios:", result);
       }
     });
   }
 
   onGestionarItemsDeLaNota(nota: NotaRecepcion): void {
     // TODO: Implementar diálogo para gestionar ítems de la nota
-    console.log("Gestionar ítems de la nota:", nota.numero);
   }
 
   onDividirItem(item: MockPedidoItem): void {
@@ -2565,9 +2506,6 @@ export class GestionComprasComponent
   }
 
   onFinalizarConciliacion(): void {
-    console.log("🚀 onFinalizarConciliacion() ejecutado");
-    console.log("  - currentPedido?.id:", this.currentPedido?.id);
-    console.log("  - canFinalizarConciliacionComputed:", this.canFinalizarConciliacionComputed);
     
     if (!this.currentPedido?.id) {
       this.notificacionService.openAlgoSalioMal("No hay pedido seleccionado");
@@ -2607,7 +2545,6 @@ export class GestionComprasComponent
         // Llamar al backend para finalizar la recepción de notas
         this.pedidoService.onFinalizarRecepcionNotas(this.currentPedido.id).subscribe({
           next: (pedidoActualizado) => {
-            console.log("Conciliación documental finalizada exitosamente:", pedidoActualizado);
             this.currentPedido = pedidoActualizado;
             
             // Recargar resumen del pedido para actualizar header
@@ -2758,7 +2695,6 @@ export class GestionComprasComponent
    * Maneja el evento cuando se finaliza la recepción física
    */
   onRecepcionFinalizada(): void {
-    console.log('Recepción física finalizada - Actualizando estados...');
     
     // 1. Recargar datos del pedido para obtener el estado actualizado
     this.loadPedidoResumen();
@@ -2813,7 +2749,6 @@ export class GestionComprasComponent
       }
     }, 500); // Delay para asegurar que los datos se hayan recargado
     
-    console.log('Navegación completada - Tab actual:', this.selectedTabIndex);
   }
 
   /**
@@ -2837,10 +2772,12 @@ export class GestionComprasComponent
                        this.datosGeneralesForm.get("proveedor")?.value?.id;
     
     if (!proveedorId) {
-      console.log("No hay proveedor seleccionado, no se cargan productos");
       this.productosProveedorDataSource.data = [];
       return;
     }
+
+    // Obtener pedidoId si estamos en modo edición
+    const pedidoId = this.isEditMode && this.currentPedido?.id ? this.currentPedido.id : undefined;
 
     this.productosProveedorLoading = true;
 
@@ -2849,12 +2786,12 @@ export class GestionComprasComponent
         proveedorId,
         this.productosProveedorSearchText || '',
         this.productosProveedorPageIndex,
-        this.productosProveedorPageSize
+        this.productosProveedorPageSize,
+        pedidoId
       )
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          console.log("Productos del proveedor cargados:", response);
           
           const productos = (response.getContent || []).map((pp: ProductoProveedor) => {
             const precioPrincipal = pp.producto?.precioPrincipal;
@@ -2863,7 +2800,8 @@ export class GestionComprasComponent
               ...pp,
               descripcionComputed: pp.producto?.descripcion || '',
               precioDisplayComputed: this.formatNumber(precioPrincipal),
-              isSelectedComputed: false
+              isSelectedComputed: false,
+              yaEnPedidoComputed: pp.yaEnPedido || false
             };
             return item;
           });
@@ -2871,6 +2809,73 @@ export class GestionComprasComponent
           this.productosProveedorDataSource.data = productos;
           this.productosProveedorTotalElements = response.getTotalElements || 0;
           this.productosProveedorLoading = false;
+          
+          // Si estamos navegando con teclado entre páginas, seleccionar el producto apropiado
+          if (this.isNavigatingWithKeyboard && this.keyboardNavigationDirection) {
+            this.isNavigatingWithKeyboard = false;
+            const direction = this.keyboardNavigationDirection;
+            this.keyboardNavigationDirection = null;
+            
+            // Seleccionar el producto apropiado según la dirección
+            setTimeout(() => {
+              const productos = this.productosProveedorDataSource.data;
+              if (productos.length > 0) {
+                if (direction === 'next') {
+                  // Navegamos hacia adelante, seleccionar el primer producto
+                  this.selectedProductoProveedorIndex = 0;
+                  this.selectProductoProveedorByIndex(0);
+                } else if (direction === 'previous') {
+                  // Navegamos hacia atrás, seleccionar el último producto
+                  const lastIndex = productos.length - 1;
+                  this.selectedProductoProveedorIndex = lastIndex;
+                  this.selectProductoProveedorByIndex(lastIndex);
+                }
+              }
+            }, 0);
+            return; // Salir temprano para evitar la lógica de verificación de producto seleccionado
+          }
+          
+          // Verificar si el producto seleccionado sigue en la lista, si no, resetear selección
+          if (this.selectedProductoProveedor) {
+            const productoExiste = productos.some(
+              p => p.producto?.id === this.selectedProductoProveedor?.producto?.id
+            );
+            if (!productoExiste) {
+              if (this.selectedProductoProveedor) {
+                this.selectedProductoProveedor.isSelectedComputed = false;
+              }
+              this.selectedProductoProveedor = null;
+              this.selectedProductoProveedorIndex = -1;
+            } else {
+              // Actualizar el índice del producto seleccionado
+              const index = productos.findIndex(
+                p => p.producto?.id === this.selectedProductoProveedor?.producto?.id
+              );
+              this.selectedProductoProveedorIndex = index;
+              // Asegurar que el producto en la nueva lista tenga isSelectedComputed = true
+              if (index >= 0 && index < productos.length) {
+                productos[index].isSelectedComputed = true;
+                this.selectedProductoProveedor = productos[index];
+              }
+            }
+          }
+          
+          // Verificar si el producto seleccionado sigue en la lista, si no, resetear selección
+          if (this.selectedProductoProveedor) {
+            const productoExiste = productos.some(
+              p => p.producto?.id === this.selectedProductoProveedor?.producto?.id
+            );
+            if (!productoExiste) {
+              this.selectedProductoProveedor = null;
+              this.selectedProductoProveedorIndex = -1;
+            } else {
+              // Actualizar el índice del producto seleccionado
+              const index = productos.findIndex(
+                p => p.producto?.id === this.selectedProductoProveedor?.producto?.id
+              );
+              this.selectedProductoProveedorIndex = index;
+            }
+          }
         },
         error: (error) => {
           console.error("Error cargando productos del proveedor:", error);
@@ -2901,7 +2906,6 @@ export class GestionComprasComponent
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          console.log("Últimas compras cargadas:", response);
           
           // La respuesta tiene la estructura: response.data.data.productoUltimasCompras
           const producto = response.data?.data;
@@ -2977,6 +2981,12 @@ export class GestionComprasComponent
       // Seleccionar el nuevo producto
       producto.isSelectedComputed = true;
       this.selectedProductoProveedor = producto;
+      
+      // Actualizar índice seleccionado para navegación con teclado
+      const index = this.productosProveedorDataSource.data.findIndex(
+        pp => pp.producto?.id === producto.producto?.id
+      );
+      this.selectedProductoProveedorIndex = index;
       
       // Cargar últimas compras
       if (producto.producto?.id) {
@@ -3088,7 +3098,10 @@ export class GestionComprasComponent
 
     dialogRef.afterClosed().subscribe((result: AddEditItemDialogResult) => {
       if (result && result.action === "save") {
-        console.log("Nuevo ítem añadido desde productos del proveedor:", result.item);
+        // Actualizar localmente el producto del proveedor para marcarlo como ya en pedido
+        if (result.item?.producto?.id) {
+          this.actualizarProductoProveedorLocalmente(result.item.producto.id, true);
+        }
         
         // Marcar tab de ítems como no cargado para recargar en próxima visita
         this.markTabAsUnloaded(1);
@@ -3116,6 +3129,12 @@ export class GestionComprasComponent
   onProductosProveedorPageChange(event: any): void {
     this.productosProveedorPageIndex = event.pageIndex;
     this.productosProveedorPageSize = event.pageSize;
+    // Resetear selección al cambiar de página
+    if (this.selectedProductoProveedor) {
+      this.selectedProductoProveedor.isSelectedComputed = false;
+    }
+    this.selectedProductoProveedor = null;
+    this.selectedProductoProveedorIndex = -1;
     this.loadProductosProveedor();
   }
 
@@ -3125,7 +3144,36 @@ export class GestionComprasComponent
   onProductosProveedorSearchChange(searchText: string): void {
     this.productosProveedorSearchText = searchText;
     this.productosProveedorPageIndex = 0; // Reset to first page
+    // Resetear selección al buscar
+    if (this.selectedProductoProveedor) {
+      this.selectedProductoProveedor.isSelectedComputed = false;
+    }
+    this.selectedProductoProveedor = null;
+    this.selectedProductoProveedorIndex = -1;
     this.loadProductosProveedor();
+  }
+
+  /**
+   * Actualiza localmente el estado yaEnPedido de un producto del proveedor
+   * @param productoId ID del producto
+   * @param yaEnPedido Nuevo valor para yaEnPedido
+   */
+  private actualizarProductoProveedorLocalmente(productoId: number, yaEnPedido: boolean): void {
+    const producto = this.productosProveedorDataSource.data.find(
+      pp => pp.producto?.id === productoId
+    );
+    
+    if (producto) {
+      // Forzar detección de cambios creando un nuevo array con objetos nuevos
+      const productosActualizados = this.productosProveedorDataSource.data.map(pp => {
+        if (pp.producto?.id === productoId) {
+          return { ...pp, yaEnPedido, yaEnPedidoComputed: yaEnPedido };
+        }
+        return pp;
+      });
+      
+      this.productosProveedorDataSource.data = productosActualizados;
+    }
   }
 
   /**
@@ -3189,5 +3237,192 @@ export class GestionComprasComponent
           );
         }
       });
+  }
+
+  /**
+   * Configura el listener de navegación con teclado para productos del proveedor
+   */
+  private setupKeyboardNavigation(): void {
+    document.addEventListener('keydown', this.handleKeyboardNavigation);
+  }
+
+  /**
+   * Maneja la navegación con teclado en la lista de productos del proveedor
+   */
+  private onProductosProveedorKeydown(event: KeyboardEvent): void {
+    // Solo procesar si estamos en el tab de items y la tabla está visible
+    if (this.selectedTabIndex !== 1) {
+      return;
+    }
+
+    // Solo procesar Arrow Up/Down si no estamos en un input o textarea
+    const target = event.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+      return;
+    }
+
+    // Navegar con Arrow Up/Down
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.navigateProductoProveedor(1); // 1 = hacia abajo
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.navigateProductoProveedor(-1); // -1 = hacia arriba
+    }
+  }
+
+  /**
+   * Navega entre productos del proveedor en la dirección especificada
+   * @param direction 1 para abajo, -1 para arriba
+   */
+  private navigateProductoProveedor(direction: number): void {
+    const productos = this.productosProveedorDataSource.data;
+    
+    if (productos.length === 0) {
+      return;
+    }
+
+    // Si no hay producto seleccionado, seleccionar el primero
+    if (this.selectedProductoProveedorIndex === -1 || !this.selectedProductoProveedor) {
+      this.selectedProductoProveedorIndex = 0;
+      this.selectProductoProveedorByIndex(0);
+      return;
+    }
+
+    // Calcular nuevo índice
+    const newIndex = this.selectedProductoProveedorIndex + direction;
+
+    // Validar límites dentro de la página actual
+    if (newIndex < 0) {
+      // Si estamos en el primero y vamos hacia arriba, intentar cargar página anterior
+      if (this.productosProveedorPageIndex > 0) {
+        this.loadPreviousPageAndSelectLast();
+      }
+      return;
+    } else if (newIndex >= productos.length) {
+      // Si estamos en el último y vamos hacia abajo, intentar cargar siguiente página
+      this.loadNextPageAndSelectFirst();
+      return;
+    }
+
+    // Seleccionar el nuevo producto en la página actual
+    this.selectedProductoProveedorIndex = newIndex;
+    this.selectProductoProveedorByIndex(newIndex);
+  }
+
+  /**
+   * Carga la siguiente página y selecciona el primer producto
+   */
+  private loadNextPageAndSelectFirst(): void {
+    // Calcular si hay más páginas
+    const totalPages = Math.ceil(this.productosProveedorTotalElements / this.productosProveedorPageSize);
+    const currentPage = this.productosProveedorPageIndex;
+    
+    if (currentPage + 1 < totalPages) {
+      // Hay más páginas, cargar la siguiente
+      this.productosProveedorPageIndex = currentPage + 1;
+      this.isNavigatingWithKeyboard = true; // Marcar que estamos navegando con teclado
+      this.keyboardNavigationDirection = 'next'; // Indicar dirección
+      
+      // Deseleccionar el producto actual antes de cambiar de página
+      if (this.selectedProductoProveedor) {
+        this.selectedProductoProveedor.isSelectedComputed = false;
+      }
+      
+      // Cargar la siguiente página
+      this.loadProductosProveedor();
+    }
+  }
+
+  /**
+   * Carga la página anterior y selecciona el último producto
+   */
+  private loadPreviousPageAndSelectLast(): void {
+    if (this.productosProveedorPageIndex > 0) {
+      // Hay páginas anteriores, cargar la anterior
+      this.productosProveedorPageIndex = this.productosProveedorPageIndex - 1;
+      this.isNavigatingWithKeyboard = true; // Marcar que estamos navegando con teclado
+      this.keyboardNavigationDirection = 'previous'; // Indicar dirección
+      
+      // Deseleccionar el producto actual antes de cambiar de página
+      if (this.selectedProductoProveedor) {
+        this.selectedProductoProveedor.isSelectedComputed = false;
+      }
+      
+      // Cargar la página anterior
+      this.loadProductosProveedor();
+    }
+  }
+
+  /**
+   * Selecciona un producto del proveedor por su índice y hace scroll a él
+   */
+  private selectProductoProveedorByIndex(index: number): void {
+    const productos = this.productosProveedorDataSource.data;
+    
+    if (index < 0 || index >= productos.length) {
+      return;
+    }
+
+    const producto = productos[index];
+
+    // Deseleccionar el producto anterior
+    if (this.selectedProductoProveedor) {
+      this.selectedProductoProveedor.isSelectedComputed = false;
+    }
+
+    // Seleccionar el nuevo producto
+    producto.isSelectedComputed = true;
+    this.selectedProductoProveedor = producto;
+
+    // Cargar últimas compras del producto seleccionado
+    if (producto.producto?.id) {
+      this.loadUltimasCompras(producto.producto.id);
+    }
+
+    // Hacer scroll al elemento seleccionado
+    setTimeout(() => {
+      this.scrollToSelectedProducto(index);
+    }, 0);
+  }
+
+  /**
+   * Hace scroll al producto seleccionado en la tabla
+   */
+  private scrollToSelectedProducto(index: number): void {
+    // Buscar el contenedor de la tabla
+    const tableContainer = document.querySelector('.productos-proveedor-section .table-content-wrapper');
+    
+    if (!tableContainer) {
+      return;
+    }
+
+    // Buscar todas las filas de la tabla
+    const rows = tableContainer.querySelectorAll('tr[mat-row]');
+    
+    if (index < 0 || index >= rows.length) {
+      return;
+    }
+
+    const targetRow = rows[index] as HTMLElement;
+    
+    if (!targetRow) {
+      return;
+    }
+
+    // Calcular la posición del elemento dentro del contenedor
+    const scrollTop = tableContainer.scrollTop;
+    const rowOffsetTop = targetRow.offsetTop;
+    const rowHeight = targetRow.offsetHeight;
+    const containerHeight = tableContainer.clientHeight;
+    
+    // Si el elemento está fuera de la vista, hacer scroll
+    if (rowOffsetTop < scrollTop) {
+      // El elemento está arriba, hacer scroll para mostrarlo
+      tableContainer.scrollTop = rowOffsetTop - 10; // 10px de margen superior
+    } else if (rowOffsetTop + rowHeight > scrollTop + containerHeight) {
+      // El elemento está abajo, hacer scroll para mostrarlo
+      tableContainer.scrollTop = rowOffsetTop + rowHeight - containerHeight + 10; // 10px de margen inferior
+    }
   }
 }

@@ -27,8 +27,8 @@ export const productoProveedorPorProductoId = gql`
 `;
 
 export const productoProveedorPorProveedorId = gql`
-  query ($id: ID!, $texto: String, $page: Int, $size: Int) {
-    data: productoProveedorPorProveedorId(id: $id, texto: $texto, page: $page, size: $size) {
+  query ($id: ID!, $texto: String, $page: Int, $size: Int, $pedidoId: ID) {
+    data: productoProveedorPorProveedorId(id: $id, texto: $texto, page: $page, size: $size, pedidoId: $pedidoId) {
       getTotalPages
       getTotalElements
       getNumberOfElements
@@ -82,6 +82,7 @@ export const productoProveedorPorProveedorId = gql`
         }
         activo
         motivoDesvinculacion
+        yaEnPedido
       }
     }
   }

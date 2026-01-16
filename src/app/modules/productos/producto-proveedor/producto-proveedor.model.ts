@@ -10,4 +10,7 @@ export class ProductoProveedor {
     pedido: Pedido;
     creadoEn: Date;
     usuario: Usuario;
+    activo?: boolean;
+    motivoDesvinculacion?: string;
+    yaEnPedido?: boolean;
 }

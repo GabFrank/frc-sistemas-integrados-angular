@@ -543,6 +543,7 @@
                               *matRowDef="let row; columns: ['id', 'descripcion', 'precioPrincipal', 'acciones']"
                               (click)="onProductoProveedorClick(row)"
                               [class.selected-row]="row.isSelectedComputed"
+                              [class.producto-ya-en-pedido]="row.yaEnPedidoComputed"
                               style="cursor: pointer;"
                             ></tr>
                           </table>
