@@ -3207,6 +3207,11 @@ export class GestionComprasComponent
         if (this.isEditMode) {
           this.loadPedidoResumen();
         }
+        
+        // Seleccionar automáticamente el siguiente producto de la lista (si existe)
+        setTimeout(() => {
+          this.selectNextProductoProveedor();
+        }, 300); // Delay para asegurar que los datos se hayan actualizado
       }
     });
   }
@@ -3343,9 +3348,15 @@ export class GestionComprasComponent
       return;
     }
 
-    // Solo procesar Arrow Up/Down si no estamos en un input o textarea
+    // Solo procesar Arrow Up/Down/Enter si no estamos en un input o textarea
     const target = event.target as HTMLElement;
     if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+      return;
+    }
+
+    // Verificar si el evento viene de dentro de un diálogo (evitar procesar si está dentro de un overlay de diálogo)
+    const dialogOverlay = target.closest('.cdk-overlay-container');
+    if (dialogOverlay) {
       return;
     }
 
@@ -3356,6 +3367,13 @@ export class GestionComprasComponent
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
       this.navigateProductoProveedor(-1); // -1 = hacia arriba
+    } else if (event.key === 'Enter') {
+      // Enter: abrir diálogo de adición de item si hay un producto seleccionado
+      // (el doble click ya valida si el producto existe en la lista)
+      event.preventDefault();
+      if (this.selectedProductoProveedor) {
+        this.onProductoProveedorDoubleClick(this.selectedProductoProveedor);
+      }
     }
   }
 
@@ -3462,6 +3480,7 @@ export class GestionComprasComponent
     // Seleccionar el nuevo producto
     producto.isSelectedComputed = true;
     this.selectedProductoProveedor = producto;
+    this.selectedProductoProveedorIndex = index;
 
     // Cargar últimas compras del producto seleccionado
     if (producto.producto?.id) {
@@ -3472,6 +3491,35 @@ export class GestionComprasComponent
     setTimeout(() => {
       this.scrollToSelectedProducto(index);
     }, 0);
+  }
+
+  /**
+   * Selecciona automáticamente el siguiente producto de la lista (si existe)
+   * Se usa después de cerrar el diálogo de agregar item exitosamente
+   */
+  private selectNextProductoProveedor(): void {
+    const productos = this.productosProveedorDataSource.data;
+    
+    if (productos.length === 0) {
+      return;
+    }
+
+    // Si no hay producto seleccionado, seleccionar el primero
+    if (!this.selectedProductoProveedor || this.selectedProductoProveedorIndex === -1) {
+      this.selectProductoProveedorByIndex(0);
+      return;
+    }
+
+    // Calcular el índice del siguiente producto
+    const nextIndex = this.selectedProductoProveedorIndex + 1;
+
+    // Si hay un siguiente producto en la página actual, seleccionarlo
+    if (nextIndex < productos.length) {
+      this.selectProductoProveedorByIndex(nextIndex);
+    } else {
+      // Si estamos en el último producto de la página, intentar cargar la siguiente página
+      this.loadNextPageAndSelectFirst();
+    }
   }
 
   /**

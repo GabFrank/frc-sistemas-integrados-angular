@@ -558,6 +558,7 @@ export class AddEditItemDialogComponent implements OnInit {
   onGuardarKeydown(event: KeyboardEvent): void {
     if (event.key === "Enter") {
       event.preventDefault();
+      event.stopPropagation(); // Evitar que el Enter se propague al componente padre
       if (this.canSaveComputed) {
         this.onSave();
       }
