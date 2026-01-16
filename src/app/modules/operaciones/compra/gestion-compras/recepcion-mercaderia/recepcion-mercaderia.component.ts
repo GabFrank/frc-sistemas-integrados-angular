@@ -895,13 +895,47 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
       this.timeoutsVerificacion.delete(itemId);
       this.detenerParpadeo(itemId);
       
-      // Solo recargar si el filtro actual es 'PENDIENTES'
-      if (this.filtroVerificacion() === 'PENDIENTES' && this.notaSeleccionada) {
-        this.loadItemsNotaRecepcion(this.notaSeleccionada.id);
+      // Remover el item localmente si el filtro actual es 'PENDIENTES'
+      // En lugar de recargar toda la lista desde el backend
+      if (this.filtroVerificacion() === 'PENDIENTES') {
+        this.removerItemLocalmente(itemId);
       }
     }, 5000);
 
     this.timeoutsVerificacion.set(itemId, timeout);
+  }
+
+  /**
+   * Remueve un item de la lista localmente sin recargar desde el backend
+   * Actualiza el dataSource, el total de elementos y las propiedades computadas
+   */
+  private removerItemLocalmente(itemId: number): void {
+    // Buscar el índice del item en la lista local
+    const itemIndex = this.items.findIndex(item => item.id === itemId);
+    
+    if (itemIndex === -1) {
+      // El item no está en la lista actual (puede estar en otra página)
+      // No hacer nada, ya que no afecta la visualización actual
+      console.log(`Item ${itemId} no encontrado en la lista actual, puede estar en otra página`);
+      return;
+    }
+
+    // Remover el item de la lista local
+    this.items.splice(itemIndex, 1);
+    
+    // Actualizar el total de elementos (decrementar en 1)
+    this.itemsTotalElements = Math.max(0, this.itemsTotalElements - 1);
+    
+    // Aplicar filtro actual a los items restantes
+    const itemsFiltrados = this.items.filter(item => this.debeMostrarItem(item));
+    
+    // Actualizar el dataSource con los items filtrados
+    this.itemsDataSource.data = itemsFiltrados;
+    
+    // Actualizar propiedades computadas solo para los items restantes
+    this.updateItemsComputedProperties();
+    
+    console.log(`Item ${itemId} removido localmente de la lista. Total restante: ${this.items.length}`);
   }
 
   /**
