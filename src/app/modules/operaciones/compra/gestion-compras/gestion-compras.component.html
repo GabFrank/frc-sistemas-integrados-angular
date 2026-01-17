@@ -435,7 +435,7 @@
               </div>
 
               <div class="items-actions">
-                <button #addItemButton mat-raised-button color="primary" (click)="onAddItem()">
+                <button #addItemButton mat-raised-button color="primary" (click)="onAddItem()" [disabled]="itemsTabState !== 'editable'">
                   <mat-icon>add</mat-icon>
                   Añadir Item
                 </button>
@@ -941,9 +941,20 @@
               color="accent"
               [disabled]="!canFinalizarPlanificacionComputed"
               (click)="onFinalizarPlanificacion()"
+              *ngIf="canFinalizarPlanificacionComputed"
             >
               Finalizar Planificación
               <mat-icon>flag</mat-icon>
+            </button>
+            <button
+              mat-raised-button
+              color="warn"
+              [disabled]="!canReabrirPlanificacionComputed"
+              (click)="onReabrirPlanificacion()"
+              *ngIf="canReabrirPlanificacionComputed"
+            >
+              <mat-icon>refresh</mat-icon>
+              Reabrir Planificación
             </button>
           </div>
         </ng-template>

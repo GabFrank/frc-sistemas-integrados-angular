@@ -255,6 +255,22 @@ export const finalizarCreacionPedidoMutation = gql`
   }
 `;
 
+export const revertirEtapaCreacionMutation = gql`
+  mutation revertirEtapaCreacion($pedidoId: ID!) {
+    data: revertirEtapaCreacion(pedidoId: $pedidoId) {
+      id
+      creadoEn
+      procesoEtapas {
+        id
+        tipoEtapa
+        estadoEtapa
+        fechaInicio
+        fechaFin
+      }
+    }
+  }
+`;
+
 export const deletePedidoMutation = gql`
   mutation deletePedido($id: ID!) {
     data: deletePedido(id: $id)

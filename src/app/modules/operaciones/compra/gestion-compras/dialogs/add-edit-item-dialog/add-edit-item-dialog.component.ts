@@ -28,6 +28,7 @@ import {
 import { CurrencyMask } from "../../../../../../commons/core/utils/numbersUtils";
 import { Pedido } from "../../pedido.model";
 import { MonedaService } from "../../../../../financiero/moneda/moneda.service";
+import { Moneda } from "../../../../../financiero/moneda/moneda.model";
 import { PedidoService } from "../../../pedido.service";
 import { NotificacionSnackbarService } from "../../../../../../notificacion-snackbar.service";
 import { dateToString } from "../../../../../../commons/core/utils/dateUtils";
@@ -90,6 +91,7 @@ export class AddEditItemDialogComponent implements OnInit {
   currencyMask = new CurrencyMask();
   selectedCurrencyOptions = null; //select it based on the selected moneda from pedido on dialog data
   selectedCurrencyPrefix = "";
+  monedas: Moneda[] = []; // Cache de monedas para buscar la completa si es necesario
 
   // Almacenar el precio original para comparar cambios
   precioOriginal: number = 0;
@@ -111,12 +113,56 @@ export class AddEditItemDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Cargar monedas para tener la información completa disponible
+    this.loadMonedas();
+    
     if (!this.data.isEdit) {
       this.updateComputedProperties();
     }
     this.loadDataIfEdit();
     this.setupFormSubscriptions();
     this.setInitialFocus();
+  }
+
+  private loadMonedas(): void {
+    this.monedaService.onGetAll().subscribe({
+      next: (monedas) => {
+        this.monedas = monedas || [];
+        // Si la moneda del pedido no está completa, actualizar computed properties
+        if (!this.isMonedaCompleta(this.data.pedido.moneda)) {
+          this.updateComputedProperties();
+        }
+      },
+      error: (err) => {
+        console.error('Error cargando monedas:', err);
+        // Continuar con valores por defecto
+        this.updateComputedProperties();
+      }
+    });
+  }
+
+  private isMonedaCompleta(moneda: any): boolean {
+    return moneda && moneda.denominacion && typeof moneda.denominacion === 'string';
+  }
+
+  private getMonedaCompleta(moneda: any): Moneda | null {
+    if (!moneda) return null;
+    
+    // Si ya está completa, retornarla
+    if (this.isMonedaCompleta(moneda)) {
+      return moneda;
+    }
+    
+    // Si tiene ID, buscar en el cache de monedas
+    if (moneda.id && this.monedas.length > 0) {
+      const monedaCompleta = this.monedas.find(m => m.id === moneda.id);
+      if (monedaCompleta) {
+        return monedaCompleta;
+      }
+    }
+    
+    // Si no se encuentra, retornar null (se usará valor por defecto)
+    return null;
   }
 
   private initializeForm(): void {
@@ -291,10 +337,19 @@ export class AddEditItemDialogComponent implements OnInit {
     this.productoSelectedComputed = !!this.itemForm.get("producto")?.value;
     this.isBonificacionComputed =
       this.itemForm.get("esBonificacion")?.value || false;
-    this.selectedCurrencyOptions = this.monedaService.currencyOptionsByMoneda(
-      this.data.pedido.moneda
-    );
-    this.selectedCurrencyPrefix = this.data.pedido.moneda.simbolo || "";
+    
+    // Obtener moneda completa con validación defensiva
+    const monedaCompleta = this.getMonedaCompleta(this.data.pedido.moneda);
+    
+    if (monedaCompleta) {
+      this.selectedCurrencyOptions = this.monedaService.currencyOptionsByMoneda(monedaCompleta);
+      this.selectedCurrencyPrefix = monedaCompleta.simbolo || "";
+    } else {
+      // Valores por defecto si no se puede cargar la moneda
+      // Asumir GUARANI como default (comportamiento más común)
+      this.selectedCurrencyOptions = this.monedaService.currencyOptionsGuarani;
+      this.selectedCurrencyPrefix = this.data.pedido.moneda?.simbolo || "Gs.";
+    }
 
     // Check if product handles expiration
     const producto = this.itemForm.get("producto")?.value;

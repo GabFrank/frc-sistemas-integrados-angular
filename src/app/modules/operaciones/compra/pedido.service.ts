@@ -31,6 +31,7 @@ import { GetNotaRecepcionItemDistribucionGQL } from './gestion-compras/graphql/g
 import { GetNotaRecepcionItemDistribucionesByNotaRecepcionItemIdGQL } from './gestion-compras/graphql/getNotaRecepcionItemDistribucionesByNotaRecepcionItemId';
 import { SaveNotaRecepcionItemDistribucionGQL } from './gestion-compras/graphql/saveNotaRecepcionItemDistribucion';
 import { FinalizarCreacionPedidoGQL } from './gestion-compras/graphql/finalizarCreacionPedido';
+import { RevertirEtapaCreacionGQL } from './gestion-compras/graphql/revertirEtapaCreacion';
 import { SaveNotaRecepcionItemDistribucionesGQL } from './gestion-compras/graphql/saveNotaRecepcionItemDistribuciones';
 import { ReplaceNotaRecepcionItemDistribucionesGQL } from './gestion-compras/graphql/replaceNotaRecepcionItemDistribuciones';
 import { NotaRecepcionItemDistribucion, NotaRecepcionItemDistribucionInput } from './gestion-compras/models/nota-recepcion-item-distribucion.model';
@@ -98,6 +99,7 @@ export class PedidoService {
     private saveNotaRecepcionItemDistribucionesGQL: SaveNotaRecepcionItemDistribucionesGQL,
     private replaceNotaRecepcionItemDistribucionesGQL: ReplaceNotaRecepcionItemDistribucionesGQL,
     private finalizarCreacionPedidoGQL: FinalizarCreacionPedidoGQL,
+    private revertirEtapaCreacionGQL: RevertirEtapaCreacionGQL,
     private finalizarRecepcionNotasGQL: FinalizarRecepcionNotasGQL,
     // NotaRecepcion services
     private getNotaRecepcionPorPedidoIdGQL: GetNotaRecepcionPorPedidoIdGQL,
@@ -375,6 +377,20 @@ export class PedidoService {
     };
     
     return this.genericCrudService.onCustomMutation(this.finalizarCreacionPedidoGQL, data);
+  }
+
+  /**
+   * Revierte la etapa CREACION de COMPLETADA a EN_PROCESO
+   * Solo se permite si RECEPCION_NOTA está en estado PENDIENTE (no ha empezado)
+   * @param pedidoId - ID del pedido
+   * @returns Observable<Pedido>
+   */
+  onRevertirEtapaCreacion(pedidoId: number): Observable<Pedido> {
+    const data = {
+      pedidoId: pedidoId
+    };
+    
+    return this.genericCrudService.onCustomMutation(this.revertirEtapaCreacionGQL, data);
   }
 
   /**

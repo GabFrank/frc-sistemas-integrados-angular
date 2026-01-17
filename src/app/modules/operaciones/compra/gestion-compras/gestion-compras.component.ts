@@ -239,6 +239,7 @@ export class GestionComprasComponent
   step1ButtonDisabledComputed = true;
   step1ButtonTextComputed = "Guardar y Continuar";
   canFinalizarPlanificacionComputed = false; // Para el botón Finalizar Planificación
+  canReabrirPlanificacionComputed = false; // Para el botón Reabrir Planificación
 
   // Forms
   datosGeneralesForm: FormGroup;
@@ -722,6 +723,33 @@ export class GestionComprasComponent
     return canFinalizar;
   }
 
+  /**
+   * Verifica si se puede reabrir la planificación
+   * Condiciones:
+   * 1. La etapa CREACION está COMPLETADA
+   * 2. La etapa RECEPCION_NOTA está PENDIENTE (no ha empezado)
+   */
+  private canReabrirPlanificacion(): boolean {
+    if (!this.currentPedido?.procesoEtapas) {
+      return false;
+    }
+    
+    const etapaCreacion = this.currentPedido.procesoEtapas.find(
+      e => e.tipoEtapa === ProcesoEtapaTipo.CREACION
+    );
+    const etapaRecepcionNota = this.currentPedido.procesoEtapas.find(
+      e => e.tipoEtapa === ProcesoEtapaTipo.RECEPCION_NOTA
+    );
+    
+    // CREACION debe estar COMPLETADA
+    const creacionCompletada = etapaCreacion?.estadoEtapa === ProcesoEtapaEstado.COMPLETADA;
+    
+    // RECEPCION_NOTA debe estar PENDIENTE (no ha empezado)
+    const recepcionNotaPendiente = etapaRecepcionNota?.estadoEtapa === ProcesoEtapaEstado.PENDIENTE;
+    
+    return creacionCompletada && recepcionNotaPendiente;
+  }
+
   // Step 1: Modificar el comportamiento del botón
   onContinuarStep1(): void {
     if (this.datosGeneralesForm.valid) {
@@ -1105,6 +1133,7 @@ export class GestionComprasComponent
 
     // Calcular si se puede finalizar la planificación
     this.canFinalizarPlanificacionComputed = this.canFinalizarPlanificacion();
+    this.canReabrirPlanificacionComputed = this.canReabrirPlanificacion();
 
     // Update computed properties for each item
     items.forEach((item) => {
@@ -1199,7 +1228,7 @@ export class GestionComprasComponent
     }
   }
 
-  private updateTabStates(etapaActual: ProcesoEtapaTipo | null): void {
+  private updateTabStates(etapaActual: ProcesoEtapaTipo | null, preserveTabIndex: boolean = false): void {
     let activeTabIndex = 0;
 
     // Si es una nueva compra, NO modificar el estado ya configurado
@@ -1217,7 +1246,9 @@ export class GestionComprasComponent
     // Si no hay etapa actual, mantener solo el primer tab habilitado
     if (!etapaActual) {
       this.datosGeneralesTabState = "editable";
-      this.selectedTabIndex = 0;
+      if (!preserveTabIndex) {
+        this.selectedTabIndex = 0;
+      }
       return;
     }
 
@@ -1254,13 +1285,56 @@ export class GestionComprasComponent
         break;
     }
 
-    setTimeout(() => {
-      this.selectedTabIndex = activeTabIndex;
-      this.isTabLoaded = true;
-      
-      // Cargar los datos del tab inicial automáticamente
-      this.loadTabDataIfNeeded(activeTabIndex);
-    }, 100);
+    // Solo cambiar selectedTabIndex si no se debe preservar
+    if (!preserveTabIndex) {
+      setTimeout(() => {
+        this.selectedTabIndex = activeTabIndex;
+        this.isTabLoaded = true;
+        
+        // Cargar los datos del tab inicial automáticamente
+        this.loadTabDataIfNeeded(activeTabIndex);
+      }, 100);
+    }
+  }
+
+  /**
+   * Sincroniza los estados de los tabs con la etapa actual del pedido
+   * sin cambiar el tab seleccionado actualmente
+   */
+  private syncTabStatesWithCurrentEtapa(): void {
+    if (!this.currentPedido?.procesoEtapas || !this.isEditMode) return;
+    
+    // Obtener etapas desde procesoEtapas
+    const etapaCreacion = this.currentPedido.procesoEtapas.find(
+      e => e.tipoEtapa === ProcesoEtapaTipo.CREACION
+    );
+    const etapaRecepcionNota = this.currentPedido.procesoEtapas.find(
+      e => e.tipoEtapa === ProcesoEtapaTipo.RECEPCION_NOTA
+    );
+    const etapaRecepcionMercaderia = this.currentPedido.procesoEtapas.find(
+      e => e.tipoEtapa === ProcesoEtapaTipo.RECEPCION_MERCADERIA
+    );
+    const etapaSolicitudPago = this.currentPedido.procesoEtapas.find(
+      e => e.tipoEtapa === ProcesoEtapaTipo.SOLICITUD_PAGO
+    );
+    
+    // Determinar etapa actual basándose en estados
+    let etapaActual: ProcesoEtapaTipo | null = null;
+    if (etapaCreacion?.estadoEtapa === ProcesoEtapaEstado.EN_PROCESO) {
+      etapaActual = ProcesoEtapaTipo.CREACION;
+    } else if (etapaRecepcionNota?.estadoEtapa === ProcesoEtapaEstado.EN_PROCESO || 
+               etapaRecepcionNota?.estadoEtapa === ProcesoEtapaEstado.PENDIENTE) {
+      etapaActual = ProcesoEtapaTipo.RECEPCION_NOTA;
+    } else if (etapaRecepcionMercaderia?.estadoEtapa === ProcesoEtapaEstado.EN_PROCESO || 
+               etapaRecepcionMercaderia?.estadoEtapa === ProcesoEtapaEstado.PENDIENTE) {
+      etapaActual = ProcesoEtapaTipo.RECEPCION_MERCADERIA;
+    } else if (etapaSolicitudPago?.estadoEtapa === ProcesoEtapaEstado.EN_PROCESO || 
+               etapaSolicitudPago?.estadoEtapa === ProcesoEtapaEstado.PENDIENTE) {
+      etapaActual = ProcesoEtapaTipo.SOLICITUD_PAGO;
+    }
+    
+    // Actualizar estados SIN cambiar selectedTabIndex
+    this.updateTabStates(etapaActual, true); // true = preserveTabIndex
   }
 
   // Event handler para cambio de tab
@@ -1286,6 +1360,11 @@ export class GestionComprasComponent
             this.datosGeneralesForm.markAsPristine();
             this.selectedTabIndex = newIndex;
             this.loadTabDataIfNeeded(newIndex);
+            
+            // Después de navegación exitosa, sincronizar estados SIN cambiar el tab actual
+            setTimeout(() => {
+              this.syncTabStatesWithCurrentEtapa();
+            }, 0);
           } else {
             // User canceled, revert tab selection
             // Use setTimeout to allow the UI to update correctly
@@ -1300,6 +1379,15 @@ export class GestionComprasComponent
       this.previousTabIndex = this.selectedTabIndex;
       this.selectedTabIndex = newIndex;
       this.loadTabDataIfNeeded(newIndex);
+      
+      // Después de navegación exitosa, sincronizar estados SIN cambiar el tab actual
+      // Usar un pequeño delay para asegurar que los datos estén actualizados
+      setTimeout(() => {
+        // Solo sincronizar si procesoEtapas está disponible
+        if (this.currentPedido?.procesoEtapas && this.currentPedido.procesoEtapas.length > 0) {
+          this.syncTabStatesWithCurrentEtapa();
+        }
+      }, 50);
     }
   }
 
@@ -2177,21 +2265,177 @@ export class GestionComprasComponent
           next: (pedidoActualizado) => {
             this.currentPedido = pedidoActualizado;
             
-            // Recargar resumen del pedido para actualizar header
-            this.loadPedidoResumen();
-            
-            // Actualizar propiedades computadas
-            this.updateComputedProperties();
-            
-            // Mostrar mensaje de éxito
-            this.notificacionService.openSucess("Planificación finalizada exitosamente. El pedido ha avanzado a la etapa de Recepción de Notas.");
-            
-            // Navegar a la pestaña de Recepción de Notas
-            this.selectedTabIndex = 2;
+            // Recargar pedido completo para actualizar procesoEtapas
+            // Usar forkJoin para cargar pedido y etapa actual
+            forkJoin({
+              pedido: this.pedidoService.onGetPedidoById(this.currentPedido.id),
+              etapaActual: this.procesoEtapaService.onGetEtapaActual(this.currentPedido.id),
+            })
+              .pipe(takeUntil(this.destroy$))
+              .subscribe({
+                next: (result) => {
+                  this.currentPedido = result.pedido;
+                  this.loadPedidoIntoForm(result.pedido);
+                  
+                  // Actualizar estados de tabs basándose en la nueva etapa actual
+                  // IMPORTANTE: No preservar el tab index para permitir navegación automática a Recepción Documental
+                  this.updateTabStates(result.etapaActual, false); // false = permitir cambio de tab a Recepción Documental
+                  
+                  // Recargar resumen del pedido para actualizar header y luego actualizar botones
+                  this.pedidoService.onGetPedidoResumen(this.currentPedido.id).subscribe({
+                    next: (resumen) => {
+                      this.pedidoResumen = resumen;
+                      
+                      // Actualizar monto total local si es necesario
+                      if (resumen.valorTotalPedido !== undefined && resumen.valorTotalPedido !== null) {
+                        if (this.montoTotalPedidoLocal === 0 || 
+                            Math.abs(this.montoTotalPedidoLocal - resumen.valorTotalPedido) > 0.01) {
+                          this.montoTotalPedidoLocal = resumen.valorTotalPedido;
+                        }
+                      }
+                      
+                      // Actualizar propiedades computadas con el resumen actualizado
+                      this.updateComputedProperties();
+                      
+                      // IMPORTANTE: Actualizar propiedades de items DESPUÉS de que currentPedido.procesoEtapas esté actualizado
+                      // Esto actualiza canFinalizarPlanificacionComputed y canReabrirPlanificacionComputed
+                      // Usar setTimeout para asegurar que Angular detecte los cambios y que procesoEtapas esté disponible
+                      setTimeout(() => {
+                        // Verificar que procesoEtapas esté disponible antes de actualizar
+                        if (this.currentPedido?.procesoEtapas) {
+                          this.updateItemsComputedProperties();
+                        } else {
+                          console.warn('procesoEtapas no disponible al actualizar botones después de finalizar');
+                        }
+                      }, 100);
+                      
+                      // Mostrar mensaje de éxito
+                      this.notificacionService.openSucess("Planificación finalizada exitosamente. El pedido ha avanzado a la etapa de Recepción de Notas.");
+                    },
+                    error: (error) => {
+                      console.error("Error cargando resumen del pedido:", error);
+                      // Aún así actualizar propiedades de items sin el resumen
+                      setTimeout(() => {
+                        // Verificar que procesoEtapas esté disponible antes de actualizar
+                        if (this.currentPedido?.procesoEtapas) {
+                          this.updateItemsComputedProperties();
+                        } else {
+                          console.warn('procesoEtapas no disponible al actualizar botones después de finalizar (error)');
+                        }
+                      }, 100);
+                      // Mostrar mensaje de éxito
+                      this.notificacionService.openSucess("Planificación finalizada exitosamente. El pedido ha avanzado a la etapa de Recepción de Notas.");
+                    }
+                  });
+                },
+                error: (error) => {
+                  console.error("Error recargando pedido después de finalizar:", error);
+                  this.notificacionService.openAlgoSalioMal("Error al recargar el pedido después de finalizar la planificación");
+                }
+              });
           },
           error: (error) => {
             console.error("Error finalizando planificación:", error);
             this.notificacionService.openAlgoSalioMal("Error al finalizar la planificación del pedido");
+          }
+        });
+      }
+    });
+  }
+
+  /**
+   * Reabre la planificación del pedido
+   * Revierte la etapa CREACION de COMPLETADA a EN_PROCESO
+   * Solo se permite si RECEPCION_NOTA está en estado PENDIENTE
+   */
+  onReabrirPlanificacion(): void {
+    if (!this.currentPedido?.id) {
+      this.notificacionService.openAlgoSalioMal("No hay pedido seleccionado");
+      return;
+    }
+
+    // Validar condiciones antes de mostrar confirmación
+    if (!this.canReabrirPlanificacionComputed) {
+      this.notificacionService.openWarn("No se puede reabrir la planificación. La etapa de Recepción Documental ya ha comenzado.");
+      return;
+    }
+
+    // Guardar el tab actual para preservarlo después de recargar
+    const currentTabIndex = this.selectedTabIndex;
+
+    // Mostrar confirmación
+    this.dialogosService.confirm(
+      "Reabrir Planificación",
+      "¿Está seguro de que desea reabrir la planificación del pedido? Esto revertirá la etapa de creación a estado 'En Proceso' y permitirá modificar los items nuevamente."
+    ).subscribe(confirmed => {
+      if (confirmed) {
+        // Llamar al backend para revertir la etapa CREACION
+        this.pedidoService.onRevertirEtapaCreacion(this.currentPedido.id).subscribe({
+          next: (pedidoActualizado) => {
+            this.currentPedido = pedidoActualizado;
+            
+            // Recargar pedido completo para actualizar procesoEtapas
+            // Usar forkJoin para cargar pedido y etapa actual
+            forkJoin({
+              pedido: this.pedidoService.onGetPedidoById(this.currentPedido.id),
+              etapaActual: this.procesoEtapaService.onGetEtapaActual(this.currentPedido.id),
+            })
+              .pipe(takeUntil(this.destroy$))
+              .subscribe({
+                next: (result) => {
+                  this.currentPedido = result.pedido;
+                  this.loadPedidoIntoForm(result.pedido);
+                  
+                  // Actualizar estados de tabs PRESERVANDO el tab actual
+                  this.updateTabStates(result.etapaActual, true);
+                  
+                  // Restaurar el tab que estaba activo (tab de Items = 1)
+                  setTimeout(() => {
+                    this.selectedTabIndex = currentTabIndex;
+                  }, 0);
+                  
+                  // Actualizar propiedades computadas
+                  this.updateComputedProperties();
+                  
+                  // Recargar resumen del pedido para actualizar header y luego actualizar botones
+                  this.pedidoService.onGetPedidoResumen(this.currentPedido.id).subscribe({
+                    next: (resumen) => {
+                      this.pedidoResumen = resumen;
+                      
+                      // Actualizar monto total local si es necesario
+                      if (resumen.valorTotalPedido !== undefined && resumen.valorTotalPedido !== null) {
+                        if (this.montoTotalPedidoLocal === 0 || 
+                            Math.abs(this.montoTotalPedidoLocal - resumen.valorTotalPedido) > 0.01) {
+                          this.montoTotalPedidoLocal = resumen.valorTotalPedido;
+                        }
+                      }
+                      
+                      // Actualizar propiedades computadas con el resumen actualizado
+                      this.updateComputedProperties();
+                      
+                      // Actualizar propiedades de items (incluye canFinalizarPlanificacionComputed y canReabrirPlanificacionComputed)
+                      this.updateItemsComputedProperties();
+                    },
+                    error: (error) => {
+                      console.error("Error cargando resumen del pedido:", error);
+                      // Aún así actualizar propiedades de items sin el resumen
+                      this.updateItemsComputedProperties();
+                    }
+                  });
+                  
+                  // Mostrar mensaje de éxito
+                  this.notificacionService.openSucess("Planificación reabierta exitosamente. Ahora puede modificar los items del pedido.");
+                },
+                error: (error) => {
+                  console.error("Error recargando pedido después de reabrir:", error);
+                  this.notificacionService.openAlgoSalioMal("Error al recargar el pedido después de reabrir la planificación");
+                }
+              });
+          },
+          error: (error) => {
+            console.error("Error reabriendo planificación:", error);
+            const errorMessage = error?.message || "Error al reabrir la planificación del pedido";
+            this.notificacionService.openAlgoSalioMal(errorMessage);
           }
         });
       }
@@ -3090,6 +3334,12 @@ export class GestionComprasComponent
    * Maneja el doble click en un producto del proveedor
    */
   onProductoProveedorDoubleClick(producto: ProductoProveedorItem): void {
+    // Validar que el tab de items esté en modo editable
+    if (this.itemsTabState !== 'editable') {
+      this.notificacionService.openWarn("No se pueden agregar items en este estado del pedido");
+      return;
+    }
+    
     if (!producto.producto) {
       this.notificacionService.openAlgoSalioMal("El producto no tiene información válida");
       return;
@@ -3372,7 +3622,12 @@ export class GestionComprasComponent
       // (el doble click ya valida si el producto existe en la lista)
       event.preventDefault();
       if (this.selectedProductoProveedor) {
-        this.onProductoProveedorDoubleClick(this.selectedProductoProveedor);
+        // Validar que el tab de items esté en modo editable antes de abrir diálogo
+        if (this.itemsTabState === 'editable') {
+          this.onProductoProveedorDoubleClick(this.selectedProductoProveedor);
+        } else {
+          this.notificacionService.openWarn("No se pueden agregar items en este estado del pedido");
+        }
       }
     }
   }
