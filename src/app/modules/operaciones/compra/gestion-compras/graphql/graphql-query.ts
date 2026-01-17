@@ -485,6 +485,40 @@ export const replacePedidoItemDistribucionesMutation = gql`
   }
 `;
 
+export const mergePedidoItemDistribucionesMutation = gql`
+  mutation mergePedidoItemDistribuciones(
+    $pedidoItemId: ID!
+    $inputs: [PedidoItemDistribucionInput]!
+  ) {
+    data: mergePedidoItemDistribuciones(
+      pedidoItemId: $pedidoItemId
+      inputs: $inputs
+    ) {
+      id
+      pedidoItem {
+        id
+        cantidadSolicitada
+        distribucionConcluida
+        producto {
+          id
+          descripcion
+        }
+      }
+      sucursalInfluencia {
+        id
+        nombre
+        direccion
+      }
+      sucursalEntrega {
+        id
+        nombre
+        direccion
+      }
+      cantidadAsignada
+    }
+  }
+`;
+
 export const deletePedidoItemDistribucionesByPedidoItemIdMutation = gql`
   mutation deletePedidoItemDistribucionesByPedidoItemId($pedidoItemId: ID!) {
     data: deletePedidoItemDistribucionesByPedidoItemId(

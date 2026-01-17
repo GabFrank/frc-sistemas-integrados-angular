@@ -1,7 +1,8 @@
 <div class="distribute-item-dialog">
   <!-- Header -->
   <div class="dialog-header center">
-    <h3 style="margin: 0px">Distribución de Ítems por Sucursal</h3>
+    <h3 style="margin: 0px">{{ dialogTitleComputed }}</h3>
+    <p class="dialog-subtitle">{{ dialogSubtitleComputed }}</p>
   </div>
 
   <!-- Content -->
@@ -123,6 +124,23 @@
               }}
             </mat-slide-toggle>
           </div>
+
+          <div class="toggle-section">
+            <div class="toggle-info">
+              <div class="toggle-text">
+                <div class="toggle-label">Modo de Visualización</div>
+              </div>
+            </div>
+            <mat-slide-toggle
+              [checked]="modoVisualizacion === 'simplificado'"
+              (change)="onToggleVisualizacionMode()"
+              color="accent"
+            >
+              {{
+                modoVisualizacion === 'trazabilidad' ? "Trazabilidad Completa" : "Distribución Simplificada"
+              }}
+            </mat-slide-toggle>
+          </div>
         </div>
 
         <!-- Warning message for discrepancy -->
@@ -210,7 +228,7 @@
           <div formArrayName="distribuciones" class="distribuciones-list">
             <div
               *ngFor="
-                let distribucionGroup of distribucionesArray.controls;
+                let distribucion of distribucionesComputed;
                 let i = index
               "
               [formGroupName]="i"
@@ -227,49 +245,41 @@
               </div>
 
               <!-- Sucursal de Influencia (readonly) -->
-              <div class="sucursal-influencia-info">
+              <div class="sucursal-influencia-info" *ngIf="modoVisualizacion === 'trazabilidad'" style="flex: 1;">
                 <div class="section-label">
-                  <mat-icon>business</mat-icon>
+                  <mat-icon>location_city</mat-icon>
                   Sucursal que necesita el producto:
                 </div>
                 <div class="sucursal-name">
-                  {{ distribucionGroup.get("sucursalInfluenciaNombre")?.value }}
+                  {{ distribucion.sucursalInfluenciaNombre }}
                 </div>
-                <div
-                  class="sucursal-direccion"
-                  *ngIf="distribucionGroup.get('direccionInfluencia')?.value"
-                >
-                  {{ distribucionGroup.get("direccionInfluencia")?.value }}
+              </div>
+
+              <!-- Sucursales de Influencia (readonly) - Modo Simplificado -->
+              <div class="sucursal-influencia-info" *ngIf="modoVisualizacion === 'simplificado'" style="flex: 1;">
+                <div class="section-label">
+                  <mat-icon>location_city</mat-icon>
+                  Sucursales que necesitan el producto:
+                </div>
+                <div class="sucursal-name ellipsis" [matTooltip]="distribucion.sucursalInfluenciaNombre">
+                  {{ distribucion.sucursalInfluenciaNombre }}
                 </div>
               </div>
 
               <!-- Sucursal de Entrega (selectable) -->
-              <div class="sucursal-entrega-container" *ngIf="!modoBorrado">
-                <mat-form-field
-                  appearance="outline"
-                  class="sucursal-entrega-field"
-                >
-                  <mat-label>Sucursal de Entrega</mat-label>
+              <div class="sucursal-entrega-container" *ngIf="!modoBorrado" style="flex: 1;">
+                <mat-form-field appearance="outline" class="sucursal-field" style="width: 100%;">
+                  <mat-label>Sucursal de Entrega*</mat-label>
                   <mat-select formControlName="sucursalEntrega">
                     <mat-option
-                      *ngFor="let sucursalEntrega of data.sucursalesEntrega"
-                      [value]="sucursalEntrega.id"
+                      *ngFor="let sucursal of data.sucursalesEntrega"
+                      [value]="sucursal.id"
                     >
-                      {{ sucursalEntrega.nombre }}
-                      <span
-                        class="sucursal-direccion"
-                        *ngIf="sucursalEntrega.direccion"
-                      >
-                        - {{ sucursalEntrega.direccion }}
-                      </span>
+                      {{ sucursal.nombre }}
                     </mat-option>
                   </mat-select>
                   <mat-error
-                    *ngIf="
-                      distribucionGroup
-                        .get('sucursalEntrega')
-                        ?.hasError('required')
-                    "
+                    *ngIf="distribucionesArray.at(i).get('sucursalEntrega')?.hasError('required')"
                   >
                     Debe seleccionar una sucursal de entrega
                   </mat-error>
@@ -277,7 +287,7 @@
               </div>
 
               <!-- Cantidad -->
-              <div class="cantidad-container" *ngIf="!modoBorrado">
+              <div class="cantidad-container" *ngIf="!modoBorrado" style="flex: 1;">
                 <mat-form-field appearance="outline" class="cantidad-field">
                   <mat-label>
                     {{
@@ -297,7 +307,7 @@
                   />
                   <mat-error
                     *ngIf="
-                      distribucionGroup.get('cantidadAsignada')?.hasError('min')
+                      distribucionesArray.at(i).get('cantidadAsignada')?.hasError('min')
                     "
                   >
                     La cantidad debe ser mayor o igual a 0
@@ -311,7 +321,7 @@
                 >
                   {{
                     (
-                      ((distribucionGroup.get("cantidadAsignada")?.value || 0) /
+                      ((distribucion.cantidadAsignada || 0) /
                         totalAsignadoMostrarComputed) *
                       100
                     ).toFixed(1)
@@ -322,16 +332,22 @@
               <!-- Información de distribución existente en modo borrado -->
               <div class="distribucion-info" *ngIf="modoBorrado">
                 <div class="info-row">
+                  <span class="info-label">Sucursal que Necesita:</span>
+                  <span class="info-value">
+                    {{ distribucion.sucursalInfluenciaNombre }}
+                  </span>
+                </div>
+                <div class="info-row">
                   <span class="info-label">Sucursal de Entrega:</span>
                   <span class="info-value">
-                    {{ distribucionGroup.get("sucursalEntregaNombre")?.value }}
+                    {{ distribucion.sucursalEntregaNombre }}
                   </span>
                 </div>
                 <div class="info-row">
                   <span class="info-label">Cantidad Asignada:</span>
                   <span class="info-value">
                     {{
-                      distribucionGroup.get("cantidadAsignada")?.value
+                      distribucion.cantidadAsignada
                         | number : "1.0-2"
                     }}
                     {{

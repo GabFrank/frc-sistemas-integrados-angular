@@ -36,12 +36,17 @@ export class DistributeItemDialogComponent implements OnInit {
   // Modo de distribución
   distribuyePorPresentacion = true; // Por defecto distribución por presentación
   
+  // Modo de visualización
+  modoVisualizacion: 'trazabilidad' | 'simplificado' = 'trazabilidad'; // 'trazabilidad' = por sucursalInfluencia, 'simplificado' = por sucursalEntrega
+  
   // Modo de borrado
   modoBorrado = false;
   distribucionesSeleccionadas: number[] = [];
   
   // Computed properties for template
   titleComputed = '';
+  dialogTitleComputed = '';
+  dialogSubtitleComputed = '';
   canSaveComputed = false;
   canDeleteComputed = false;
   totalAsignadoComputed = 0;
@@ -74,6 +79,19 @@ export class DistributeItemDialogComponent implements OnInit {
   // Status classes and icons (avoid function calls)
   discrepanciaClassComputed = '';
   discrepanciaIconComputed = '';
+
+  // Computed properties for distribution items
+  distribucionesComputed: Array<{
+    sucursalInfluenciaId: number;
+    sucursalInfluenciaNombre: string;
+    sucursalEntregaId: number;
+    sucursalEntregaNombre: string;
+    cantidadAsignada: number;
+    direccionEntrega: string;
+    distribucionId: number | null;
+    modoVisualizacion: string;
+    distribucionesIds: number[];
+  }> = [];
 
   // Loading state
   savingComputed = false;
@@ -117,41 +135,147 @@ export class DistributeItemDialogComponent implements OnInit {
       distribucionesArray.removeAt(0);
     }
 
-    // Create a form control for each sucursal de influencia
+    if (this.modoVisualizacion === 'trazabilidad') {
+      // MODO TRAZABILIDAD: Mostrar por sucursal de influencia
+      this.loadDistribucionesPorTrazabilidad(distribucionesArray);
+    } else {
+      // MODO SIMPLIFICADO: Agrupar por sucursal de entrega
+      this.loadDistribucionesSimplificadas(distribucionesArray);
+    }
+    
+    // Calcular propiedades computadas para el template
+    this.calculateDistribucionesComputed();
+  }
+
+  private loadDistribucionesPorTrazabilidad(distribucionesArray: FormArray): void {
+    // TRAZABILIDAD COMPLETA: Mostrar todas las combinaciones posibles
+    // Sucursal de Influencia × Sucursal de Entrega
+    // Esto permite crear múltiples distribuciones para la misma sucursal de influencia
+    // pero con diferentes sucursales de entrega
+    
+    // Primero, crear un mapa de distribuciones existentes por combinación
+    const distribucionesExistentes = new Map<string, PedidoItemDistribucion>();
+    this.data.distribuciones.forEach(dist => {
+      const key = `${dist.sucursalInfluencia.id}_${dist.sucursalEntrega.id}`;
+      distribucionesExistentes.set(key, dist);
+    });
+
+    // Crear una fila para cada combinación posible
     this.data.sucursalesInfluencia.forEach(sucursalInfluencia => {
-      // Find existing distribution for this sucursal de influencia
-      const existingDistribucion = this.data.distribuciones.find(d => d.sucursalInfluencia.nombre === sucursalInfluencia.nombre);
-      
-      // Cantidad asignada en unidades base
-      const cantidadAsignadaUnidadBase = existingDistribucion ? existingDistribucion.cantidadAsignada : 0;
-      
-      // Convertir a presentación si es necesario
-      const cantidadAsignada = this.distribuyePorPresentacion 
-        ? cantidadAsignadaUnidadBase / this.cantidadPorPresentacionComputed
-        : cantidadAsignadaUnidadBase;
-      
-      // Default delivery branch (same as influence branch or first delivery branch)
-      const defaultSucursalEntrega = existingDistribucion ? 
-        this.data.sucursalesEntrega.find(se => se.nombre === existingDistribucion.sucursalEntrega.nombre) :
-        this.data.sucursalesEntrega[0];
+      this.data.sucursalesEntrega.forEach(sucursalEntrega => {
+        // Buscar distribución existente para esta combinación
+        const key = `${sucursalInfluencia.id}_${sucursalEntrega.id}`;
+        const existingDistribucion = distribucionesExistentes.get(key);
+        
+        // Cantidad asignada en unidades base
+        const cantidadAsignadaUnidadBase = existingDistribucion ? existingDistribucion.cantidadAsignada : 0;
+        
+        // Convertir a presentación si es necesario
+        const cantidadAsignada = this.distribuyePorPresentacion 
+          ? cantidadAsignadaUnidadBase / this.cantidadPorPresentacionComputed
+          : cantidadAsignadaUnidadBase;
+
+        const distribucionGroup = this.formBuilder.group({
+          sucursalInfluencia: [sucursalInfluencia.id, [Validators.required]],
+          sucursalInfluenciaNombre: [sucursalInfluencia.nombre],
+          sucursalEntrega: [sucursalEntrega.id, [Validators.required]],
+          sucursalEntregaNombre: [sucursalEntrega.nombre],
+          cantidadAsignada: [cantidadAsignada, [Validators.min(0)]],
+          direccionEntrega: [sucursalEntrega.direccion || ''],
+          seleccionado: [false], // Para el modo borrado
+          distribucionId: [existingDistribucion?.id || null], // ID de la distribución existente
+          modoVisualizacion: ['trazabilidad'] // Para identificar el modo
+        });
+
+        distribucionesArray.push(distribucionGroup);
+      });
+    });
+  }
+
+  private loadDistribucionesSimplificadas(distribucionesArray: FormArray): void {
+    // Agrupar distribuciones existentes por sucursal de entrega
+    const distribucionesPorEntrega = new Map<number, {
+      sucursalEntrega: Sucursal;
+      cantidadTotal: number;
+      distribucionesIds: number[];
+      sucursalesInfluencia: Sucursal[];
+    }>();
+
+    // Procesar distribuciones existentes
+    this.data.distribuciones.forEach(dist => {
+      const sucursalEntregaId = dist.sucursalEntrega?.id;
+      if (sucursalEntregaId) {
+        if (!distribucionesPorEntrega.has(sucursalEntregaId)) {
+          distribucionesPorEntrega.set(sucursalEntregaId, {
+            sucursalEntrega: dist.sucursalEntrega!,
+            cantidadTotal: 0,
+            distribucionesIds: [],
+            sucursalesInfluencia: []
+          });
+        }
+        
+        const grupo = distribucionesPorEntrega.get(sucursalEntregaId)!;
+        grupo.cantidadTotal += dist.cantidadAsignada || 0;
+        grupo.distribucionesIds.push(dist.id!);
+        
+        // Agregar sucursal de influencia si no existe
+        if (dist.sucursalInfluencia && !grupo.sucursalesInfluencia.find(si => si.id === dist.sucursalInfluencia?.id)) {
+          grupo.sucursalesInfluencia.push(dist.sucursalInfluencia);
+        }
+      }
+    });
+
+    // Crear controles para cada sucursal de entrega que tiene distribuciones existentes
+    distribucionesPorEntrega.forEach((grupo, sucursalEntregaId) => {
+      // Convertir cantidad total de unidades base a presentación si es necesario
+      const cantidadAsignada = this.distribuyePorPresentacion
+        ? grupo.cantidadTotal / this.cantidadPorPresentacionComputed
+        : grupo.cantidadTotal;
 
       const distribucionGroup = this.formBuilder.group({
-        sucursalInfluencia: [sucursalInfluencia.nombre, [Validators.required]],
-        sucursalInfluenciaNombre: [sucursalInfluencia.nombre],
-        sucursalEntrega: [defaultSucursalEntrega?.id, [Validators.required]],
+        sucursalInfluencia: [null], // No aplica en modo simplificado
+        sucursalInfluenciaNombre: [grupo.sucursalesInfluencia.map(si => si.nombre).join(', ')],
+        sucursalEntrega: [sucursalEntregaId, [Validators.required]],
+        sucursalEntregaNombre: [grupo.sucursalEntrega.nombre],
         cantidadAsignada: [cantidadAsignada, [Validators.min(0)]],
-        direccionInfluencia: [sucursalInfluencia.direccion || ''],
+        direccionEntrega: [grupo.sucursalEntrega.direccion || ''],
         seleccionado: [false], // Para el modo borrado
-        distribucionId: [existingDistribucion?.id || null] // ID de la distribución existente
+        distribucionId: [grupo.distribucionesIds[0] || null], // ID de la primera distribución del grupo
+        modoVisualizacion: ['simplificado'], // Para identificar el modo
+        distribucionesIds: [grupo.distribucionesIds] // IDs de todas las distribuciones del grupo
       });
 
       distribucionesArray.push(distribucionGroup);
+    });
+
+    // Agregar controles para las sucursales de entrega que NO tienen distribuciones
+    // Esto permite crear nuevas distribuciones para sucursales que aún no tienen asignaciones
+    const sucursalesConDistribuciones = new Set(distribucionesPorEntrega.keys());
+    this.data.sucursalesEntrega.forEach((sucursalEntrega) => {
+      // Solo agregar si esta sucursal no tiene distribuciones
+      if (!sucursalesConDistribuciones.has(sucursalEntrega.id)) {
+        const distribucionGroup = this.formBuilder.group({
+          sucursalInfluencia: [null],
+          sucursalInfluenciaNombre: ['Todas las sucursales'],
+          sucursalEntrega: [sucursalEntrega.id, [Validators.required]],
+          sucursalEntregaNombre: [sucursalEntrega.nombre],
+          cantidadAsignada: [0, [Validators.min(0)]],
+          direccionEntrega: [sucursalEntrega.direccion || ''],
+          seleccionado: [false],
+          distribucionId: [null],
+          modoVisualizacion: ['simplificado'],
+          distribucionesIds: [[]]
+        });
+
+        distribucionesArray.push(distribucionGroup);
+      }
     });
   }
 
   private setupFormSubscriptions(): void {
     this.distribucionForm.valueChanges.subscribe(() => {
       this.updateComputedProperties();
+      this.calculateDistribucionesComputed();
     });
   }
 
@@ -210,6 +334,15 @@ export class DistributeItemDialogComponent implements OnInit {
     this.canSaveComputed = !this.modoBorrado && this.distribucionForm.valid && this.allQuantitiesValid();
     this.canDeleteComputed = this.modoBorrado && this.distribucionesSeleccionadas.length > 0;
     
+    // Title
+    this.titleComputed = this.data.title || 'Distribuir Ítem';
+    this.dialogTitleComputed = this.modoVisualizacion === 'trazabilidad' 
+      ? 'Distribución por Sucursal de Influencia' 
+      : 'Distribución por Sucursal de Entrega';
+    this.dialogSubtitleComputed = this.modoVisualizacion === 'trazabilidad'
+      ? 'Para cada sucursal que necesita el producto, seleccione dónde se entregará y qué cantidad'
+      : 'Para cada sucursal de entrega, asigne la cantidad total que se entregará allí';
+    
     // Calculate formatted values using the display values
     this.totalAsignadoFormattedComputed = this.totalAsignadoMostrarComputed.toFixed(2);
     this.discrepanciaFormattedComputed = this.discrepanciaMostrarComputed.toFixed(2);
@@ -254,6 +387,33 @@ export class DistributeItemDialogComponent implements OnInit {
     this.updateComputedProperties();
   }
 
+  onToggleVisualizacionMode(): void {
+    this.modoVisualizacion = this.modoVisualizacion === 'trazabilidad' ? 'simplificado' : 'trazabilidad';
+    this.calculatePresentationProperties();
+    this.loadDistribuciones();
+    this.updateComputedProperties();
+  }
+
+  private calculateDistribucionesComputed(): void {
+    const distribucionesArray = this.distribucionForm.get('distribuciones') as FormArray;
+    this.distribucionesComputed = [];
+    
+    distribucionesArray.controls.forEach((control) => {
+      const formValue = control.value;
+      this.distribucionesComputed.push({
+        sucursalInfluenciaId: formValue.sucursalInfluencia,
+        sucursalInfluenciaNombre: formValue.sucursalInfluenciaNombre,
+        sucursalEntregaId: formValue.sucursalEntrega,
+        sucursalEntregaNombre: formValue.sucursalEntregaNombre,
+        cantidadAsignada: formValue.cantidadAsignada,
+        direccionEntrega: formValue.direccionEntrega,
+        distribucionId: formValue.distribucionId,
+        modoVisualizacion: formValue.modoVisualizacion,
+        distribucionesIds: formValue.distribucionesIds || []
+      });
+    });
+  }
+
   // Modo borrado
   onToggleBorradoMode(): void {
     this.modoBorrado = !this.modoBorrado;
@@ -271,20 +431,19 @@ export class DistributeItemDialogComponent implements OnInit {
   }
 
   onToggleSeleccion(index: number): void {
-    const distribuciones = this.distribucionForm.get('distribuciones') as FormArray;
-    const control = distribuciones.at(index);
+    if (!this.modoBorrado) return;
+    
+    const distribucionesArray = this.distribucionForm.get('distribuciones') as FormArray;
+    const control = distribucionesArray.at(index);
     const seleccionado = control.get('seleccionado')?.value;
     
     control.get('seleccionado')?.setValue(!seleccionado);
     
-    // Actualizar lista de seleccionados
+    // Update selected array (using indices, not IDs)
     this.distribucionesSeleccionadas = [];
-    distribuciones.controls.forEach((ctrl, idx) => {
+    distribucionesArray.controls.forEach((ctrl, idx) => {
       if (ctrl.get('seleccionado')?.value) {
-        const distribucionId = ctrl.get('distribucionId')?.value;
-        if (distribucionId) {
-          this.distribucionesSeleccionadas.push(distribucionId);
-        }
+        this.distribucionesSeleccionadas.push(idx);
       }
     });
     
@@ -293,14 +452,13 @@ export class DistributeItemDialogComponent implements OnInit {
 
   // Distribution actions
   onDistribuirUniforme(): void {
+    const distribucionesArray = this.distribucionForm.get('distribuciones') as FormArray;
     const cantidadBase = this.distribuyePorPresentacion 
       ? this.cantidadSolicitadaPorPresentacionComputed 
       : this.cantidadSolicitadaComputed;
-      
-    const cantidadPorSucursal = cantidadBase / this.data.sucursalesInfluencia.length;
-    const distribuciones = this.distribucionForm.get('distribuciones') as FormArray;
+    const cantidadPorSucursal = cantidadBase / distribucionesArray.length;
     
-    distribuciones.controls.forEach(control => {
+    distribucionesArray.controls.forEach(control => {
       control.get('cantidadAsignada')?.setValue(cantidadPorSucursal);
     });
   }
@@ -314,20 +472,21 @@ export class DistributeItemDialogComponent implements OnInit {
   }
 
   onAsignarTotal(): void {
+    const distribucionesArray = this.distribucionForm.get('distribuciones') as FormArray;
     const cantidadBase = this.distribuyePorPresentacion 
       ? this.cantidadSolicitadaPorPresentacionComputed 
       : this.cantidadSolicitadaComputed;
-      
-    // Assign all quantity to first sucursal and clear others
-    const distribuciones = this.distribucionForm.get('distribuciones') as FormArray;
     
-    distribuciones.controls.forEach((control, index) => {
-      if (index === 0) {
-        control.get('cantidadAsignada')?.setValue(cantidadBase);
-      } else {
-        control.get('cantidadAsignada')?.setValue(0);
+    if (distribucionesArray.length > 0) {
+      // Asignar todo a la primera sucursal
+      const primeraSucursal = distribucionesArray.at(0);
+      primeraSucursal.get('cantidadAsignada')?.setValue(cantidadBase);
+      
+      // Limpiar las demás
+      for (let i = 1; i < distribucionesArray.length; i++) {
+        distribucionesArray.at(i).get('cantidadAsignada')?.setValue(0);
       }
-    });
+    }
   }
 
   // Keyboard navigation for quantity inputs
@@ -374,6 +533,7 @@ export class DistributeItemDialogComponent implements OnInit {
         ? `La cantidad distribuida (${this.totalAsignadoFormattedComputed} ${this.unidadMostrarComputed}) es mayor a la solicitada (${this.cantidadSolicitadaFormattedComputed} ${this.unidadMostrarComputed}).`
         : `La cantidad distribuida (${this.totalAsignadoFormattedComputed} ${this.unidadMostrarComputed}) es menor a la solicitada (${this.cantidadSolicitadaFormattedComputed} ${this.unidadMostrarComputed}).`;
       this.notificacionService.openAlgoSalioMal(message);
+      this.savingComputed = false; // Resetear flag para permitir reintentos
       return;
 
       // if (confirm(message)) {
@@ -384,103 +544,89 @@ export class DistributeItemDialogComponent implements OnInit {
 
     const formValue = this.distribucionForm.value;
     const distribuciones: PedidoItemDistribucionInput[] = [];
-    const distribucionesToDelete: number[] = [];
 
     formValue.distribuciones.forEach((d: any) => {
       const distribucionId = d.distribucionId;
       const cantidadAsignada = parseFloat(d.cantidadAsignada) || 0;
+      const modoVisualizacion = d.modoVisualizacion;
       
       if (cantidadAsignada > 0) {
-        // Crear o actualizar distribución
-        const sucursalInfluencia = this.data.sucursalesInfluencia.find(si => si.nombre === d.sucursalInfluencia);
-        const sucursalEntrega = this.data.sucursalesEntrega.find(se => se.id === d.sucursalEntrega);
-        
-        // Convertir la cantidad a unidades base si se está distribuyendo por presentación
-        const cantidadEnUnidadBase = this.distribuyePorPresentacion
-          ? cantidadAsignada * this.cantidadPorPresentacionComputed
-          : cantidadAsignada;
-        
-        let distribucion = new PedidoItemDistribucion();
-        distribucion.id = distribucionId || undefined;
-        distribucion.pedidoItem = this.data.item;
-        distribucion.sucursalInfluencia = sucursalInfluencia!;
-        distribucion.sucursalEntrega = sucursalEntrega!;
-        distribucion.cantidadAsignada = cantidadEnUnidadBase;
-        distribuciones.push(distribucion.toInput());
-      } else if (distribucionId) {
-        // Si la cantidad es 0 y existe un ID, marcar para eliminación
-        distribucionesToDelete.push(distribucionId);
+        if (modoVisualizacion === 'trazabilidad') {
+          // MODO TRAZABILIDAD: Crear distribución individual
+          const sucursalInfluencia = this.data.sucursalesInfluencia.find(si => si.id === d.sucursalInfluencia);
+          const sucursalEntrega = this.data.sucursalesEntrega.find(se => se.id === d.sucursalEntrega);
+          
+          // Convertir la cantidad a unidades base (siempre guardamos en unidades base)
+          const cantidadEnUnidadBase = this.distribuyePorPresentacion
+            ? cantidadAsignada * this.cantidadPorPresentacionComputed
+            : cantidadAsignada;
+          
+          let distribucion = new PedidoItemDistribucion();
+          // Incluir ID si existe para que el merge pueda actualizar en lugar de crear
+          distribucion.id = distribucionId || undefined;
+          distribucion.pedidoItem = this.data.item;
+          distribucion.sucursalInfluencia = sucursalInfluencia!;
+          distribucion.sucursalEntrega = sucursalEntrega!;
+          distribucion.cantidadAsignada = cantidadEnUnidadBase;
+          distribuciones.push(distribucion.toInput());
+        } else {
+          // MODO SIMPLIFICADO: Crear distribuciones para todas las sucursales de influencia
+          const sucursalEntrega = this.data.sucursalesEntrega.find(se => se.id === d.sucursalEntrega);
+          
+          // Convertir la cantidad total a unidades base (siempre guardamos en unidades base)
+          const cantidadTotalEnUnidadBase = this.distribuyePorPresentacion
+            ? cantidadAsignada * this.cantidadPorPresentacionComputed
+            : cantidadAsignada;
+          
+          // Distribuir proporcionalmente entre las sucursales de influencia
+          const sucursalesInfluencia = this.data.sucursalesInfluencia;
+          const cantidadPorSucursal = cantidadTotalEnUnidadBase / sucursalesInfluencia.length;
+          
+          sucursalesInfluencia.forEach((sucursalInfluencia, index) => {
+            let distribucion = new PedidoItemDistribucion();
+            // En modo simplificado, intentar mantener IDs si existen
+            // El backend merge identificará por combinación sucursal_influencia + sucursal_entrega
+            const distribucionesIds = d.distribucionesIds || [];
+            distribucion.id = distribucionesIds[index] || undefined;
+            distribucion.pedidoItem = this.data.item;
+            distribucion.sucursalInfluencia = sucursalInfluencia;
+            distribucion.sucursalEntrega = sucursalEntrega!;
+            distribucion.cantidadAsignada = cantidadPorSucursal;
+            distribuciones.push(distribucion.toInput());
+          });
+        }
       }
     });
 
-    // Ejecutar operaciones de guardado y eliminación
-    this.executeSaveOperations(distribuciones, distribucionesToDelete);
+    // Usar merge para actualizar existentes, crear nuevas y eliminar las que ya no están
+    // Esto mantiene los IDs de las distribuciones existentes cuando es posible
+    this.executeMergeOperations(distribuciones);
   }
 
-  private executeSaveOperations(distribuciones: PedidoItemDistribucionInput[], distribucionesToDelete: number[]): void {
-    let operationsCompleted = 0;
-    let totalOperations = 0;
-    let hasErrors = false;
-
-    // Contar operaciones totales
-    if (distribuciones.length > 0) totalOperations++;
-    if (distribucionesToDelete.length > 0) totalOperations++;
-
-    if (totalOperations === 0) {
-      // No hay operaciones que realizar
-      this.savingComputed = false;
-      this.dialogRef.close({ success: true, action: 'save' });
-      return;
-    }
-
-    const checkCompletion = () => {
-      operationsCompleted++;
-      if (operationsCompleted >= totalOperations) {
+  private executeMergeOperations(distribuciones: PedidoItemDistribucionInput[]): void {
+    this.pedidoService.onMergePedidoItemDistribuciones(this.data.item.id, distribuciones).subscribe({
+      next: (result) => {
+        console.log('Distribuciones guardadas:', result);
         this.savingComputed = false;
-        if (hasErrors) {
-          this.dialogRef.close({ success: false, action: 'save' });
-        } else {
-          this.notificacionService.openSucess("Distribuciones guardadas exitosamente");
-          this.dialogRef.close({ success: true, action: 'save' });
-        }
+        this.notificacionService.openSucess('Distribución guardada correctamente');
+        this.dialogRef.close({
+          success: true,
+          action: 'save',
+          message: 'Distribución actualizada correctamente'
+        });
+      },
+      error: (error) => {
+        console.error('Error al guardar distribuciones:', error);
+        this.savingComputed = false;
+        this.notificacionService.openAlgoSalioMal('Error al guardar las distribuciones');
+        this.dialogRef.close({ success: false, action: 'save' });
       }
-    };
-
-    // Guardar distribuciones con cantidad > 0
-    if (distribuciones.length > 0) {
-      this.pedidoService.onSavePedidoItemDistribuciones(this.data.item.id, distribuciones as any).subscribe({
-        next: (savedDistribuciones) => {
-          console.log('Distribuciones guardadas:', savedDistribuciones);
-          checkCompletion();
-        },
-        error: (error) => {
-          console.error("Error guardando distribuciones:", error);
-          this.notificacionService.openAlgoSalioMal("Error al guardar las distribuciones");
-          hasErrors = true;
-          checkCompletion();
-        }
-      });
-    }
-
-    // Eliminar distribuciones con cantidad = 0
-    if (distribucionesToDelete.length > 0) {
-      this.pedidoService.onDeletePedidoItemDistribuciones(distribucionesToDelete).subscribe({
-        next: (deleted) => {
-          console.log('Distribuciones eliminadas:', deleted);
-          checkCompletion();
-        },
-        error: (error) => {
-          console.error("Error eliminando distribuciones:", error);
-          this.notificacionService.openAlgoSalioMal("Error al eliminar las distribuciones");
-          hasErrors = true;
-          checkCompletion();
-        }
-      });
-    }
+    });
   }
 
   onDeleteDistribuciones(): void {
-    if (!this.canDeleteComputed) {
+    if (this.distribucionesSeleccionadas.length === 0) {
+      this.notificacionService.openAlgoSalioMal('Seleccione al menos una distribución para eliminar');
       return;
     }
 
@@ -490,17 +636,64 @@ export class DistributeItemDialogComponent implements OnInit {
 
     this.savingComputed = true;
 
-    this.pedidoService.onDeletePedidoItemDistribuciones(this.distribucionesSeleccionadas).subscribe({
-      next: (deleted) => {
-        console.log('Distribuciones eliminadas:', deleted);
+    // Get IDs of selected distributions
+    const distribucionesArray = this.distribucionForm.get('distribuciones') as FormArray;
+    const idsToDelete: number[] = [];
+    
+    this.distribucionesSeleccionadas.forEach(index => {
+      const control = distribucionesArray.at(index);
+      const distribucionId = control.get('distribucionId')?.value;
+      if (distribucionId) {
+        idsToDelete.push(distribucionId);
+      }
+    });
+
+    // Replace with remaining distributions (exclude selected ones)
+    const remainingDistribuciones: PedidoItemDistribucionInput[] = [];
+    
+    distribucionesArray.controls.forEach((control, index) => {
+      if (!this.distribucionesSeleccionadas.includes(index)) {
+        const cantidadAsignada = parseFloat(control.get('cantidadAsignada')?.value) || 0;
+        if (cantidadAsignada > 0) {
+          const modoVisualizacion = control.get('modoVisualizacion')?.value;
+          const sucursalInfluenciaId = control.get('sucursalInfluencia')?.value;
+          const sucursalEntregaId = control.get('sucursalEntrega')?.value;
+          
+          if (modoVisualizacion === 'trazabilidad') {
+            const sucursalInfluencia = this.data.sucursalesInfluencia.find(si => si.id === sucursalInfluenciaId);
+            const sucursalEntrega = this.data.sucursalesEntrega.find(se => se.id === sucursalEntregaId);
+            
+            const cantidadEnUnidadBase = this.distribuyePorPresentacion
+              ? cantidadAsignada * this.cantidadPorPresentacionComputed
+              : cantidadAsignada;
+            
+            let distribucion = new PedidoItemDistribucion();
+            // Incluir ID si existe para que el merge pueda actualizar en lugar de crear
+            distribucion.id = control.get('distribucionId')?.value || undefined;
+            distribucion.pedidoItem = this.data.item;
+            distribucion.sucursalInfluencia = sucursalInfluencia!;
+            distribucion.sucursalEntrega = sucursalEntrega!;
+            distribucion.cantidadAsignada = cantidadEnUnidadBase;
+            remainingDistribuciones.push(distribucion.toInput());
+          }
+        }
+      }
+    });
+
+    this.pedidoService.onMergePedidoItemDistribuciones(this.data.item.id, remainingDistribuciones).subscribe({
+      next: (result) => {
         this.savingComputed = false;
-        this.notificacionService.openSucess("Distribuciones eliminadas exitosamente");
-        this.dialogRef.close({ success: true, action: 'delete' });
+        this.notificacionService.openSucess('Distribuciones eliminadas correctamente');
+        this.dialogRef.close({
+          success: true,
+          action: 'delete',
+          message: 'Distribuciones eliminadas correctamente'
+        });
       },
       error: (error) => {
-        console.error("Error eliminando distribuciones:", error);
+        console.error('Error al eliminar distribuciones:', error);
         this.savingComputed = false;
-        this.notificacionService.openAlgoSalioMal("Error al eliminar las distribuciones");
+        this.notificacionService.openAlgoSalioMal('Error al eliminar las distribuciones');
         this.dialogRef.close({ success: false, action: 'delete' });
       }
     });

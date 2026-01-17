@@ -20,6 +20,8 @@ import { PageInfo } from '../../../app.component';
 // PedidoItemDistribucion imports
 import { GetPedidoItemDistribucionesGQL } from './gestion-compras/graphql/getPedidoItemDistribuciones';
 import { SavePedidoItemDistribucionesGQL } from './gestion-compras/graphql/savePedidoItemDistribuciones';
+import { ReplacePedidoItemDistribucionesGQL } from './gestion-compras/graphql/replacePedidoItemDistribuciones';
+import { MergePedidoItemDistribucionesGQL } from './gestion-compras/graphql/mergePedidoItemDistribuciones';
 import { DeletePedidoItemDistribucionesGQL } from './gestion-compras/graphql/deletePedidoItemDistribuciones';
 import { IsDistribucionConcluidaGQL } from './gestion-compras/graphql/isDistribucionConcluida';
 import { PedidoItemDistribucion, PedidoItemDistribucionInput } from './gestion-compras/pedido-item-distribucion.model';
@@ -85,6 +87,8 @@ export class PedidoService {
     // PedidoItemDistribucion services
     private getPedidoItemDistribucionesGQL: GetPedidoItemDistribucionesGQL,
     private savePedidoItemDistribucionesGQL: SavePedidoItemDistribucionesGQL,
+    private replacePedidoItemDistribucionesGQL: ReplacePedidoItemDistribucionesGQL,
+    private mergePedidoItemDistribucionesGQL: MergePedidoItemDistribucionesGQL,
     private deletePedidoItemDistribucionesGQL: DeletePedidoItemDistribucionesGQL,
     private isDistribucionConcluidaGQL: IsDistribucionConcluidaGQL,
     // NotaRecepcionItemDistribucion services
@@ -251,6 +255,37 @@ export class PedidoService {
    */
   onDeletePedidoItemDistribuciones(ids: number[]): Observable<boolean> {
     return this.genericCrudService.onCustomMutation(this.deletePedidoItemDistribucionesGQL, { ids });
+  }
+
+  /**
+   * Reemplaza todas las distribuciones de un ítem de pedido
+   * @param pedidoItemId - ID del ítem de pedido
+   * @param distribucionesInput - Array de nuevas distribuciones
+   * @returns Observable<PedidoItemDistribucion[]>
+   */
+  onReplacePedidoItemDistribuciones(pedidoItemId: number, distribucionesInput: PedidoItemDistribucionInput[]): Observable<PedidoItemDistribucion[]> {
+    const data = {
+      pedidoItemId,
+      inputs: distribucionesInput
+    };
+    
+    return this.genericCrudService.onCustomMutation(this.replacePedidoItemDistribucionesGQL, data);
+  }
+
+  /**
+   * Merge inteligente de distribuciones: actualiza existentes, crea nuevas, elimina las que ya no están
+   * Mantiene los IDs de las distribuciones existentes cuando es posible
+   * @param pedidoItemId - ID del ítem de pedido
+   * @param distribucionesInput - Array de distribuciones (con IDs si existen)
+   * @returns Observable<PedidoItemDistribucion[]>
+   */
+  onMergePedidoItemDistribuciones(pedidoItemId: number, distribucionesInput: PedidoItemDistribucionInput[]): Observable<PedidoItemDistribucion[]> {
+    const data = {
+      pedidoItemId,
+      inputs: distribucionesInput
+    };
+    
+    return this.genericCrudService.onCustomMutation(this.mergePedidoItemDistribucionesGQL, data);
   }
 
   /**
