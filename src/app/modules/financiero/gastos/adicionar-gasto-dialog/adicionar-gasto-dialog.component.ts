@@ -402,16 +402,17 @@ export class AdicionarGastoDialogComponent implements OnInit, OnDestroy {
                   this.cargandoDialog.closeDialog();
                   if (gastoResponse != null) {
                     gasto.id = gastoResponse.id;
+                    if (gasto.responsable?.persona?.id) {
+                      this.notificationHttpService.sendGastoNotification(
+                        gasto.id,
+                        this.mainService.sucursalActual.id,
+                        gasto.responsable.persona.id,
+                        gasto.retiroGs
+                      ).subscribe();
+                    }
+
                     this.gastoService.onSave(gasto, true).subscribe(res => {
                       this.cargandoDialog.closeDialog();
-                      if (res && gasto.responsable?.persona?.id) {
-                        this.notificationHttpService.sendGastoNotification(
-                          gasto.id,
-                          this.mainService.sucursalActual.id,
-                          gasto.responsable.persona.id,
-                          gasto.retiroGs
-                        ).subscribe();
-                      }
                     });
                     this.gastoList.push(gastoResponse as Gasto);
                     this.dataSource.data = orderByIdDesc<Gasto>(this.gastoList);

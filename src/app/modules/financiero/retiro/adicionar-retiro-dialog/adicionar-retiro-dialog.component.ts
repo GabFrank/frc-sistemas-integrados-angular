@@ -213,16 +213,19 @@ export class AdicionarRetiroDialogComponent implements OnInit, OnDestroy, AfterV
             this.cargandoDialog.closeDialog()
             if (retiroResponse != null) {
               retiro.id = retiroResponse.id;
+
+              // Enviar notificación inmediatamente después de guardar
+              if (retiro.responsable?.persona?.id) {
+                this.notificationHttpService.sendRetiroNotification(
+                  retiro.id,
+                  this.mainService.sucursalActual.id,
+                  retiro.responsable.persona.id,
+                  retiro.retiroGs
+                ).subscribe();
+              }
+
               this.retiroService.onSave(retiro, true).subscribe(res => {
                 this.cargandoDialog.closeDialog();
-                if (res && retiro.responsable?.persona?.id) {
-                  this.notificationHttpService.sendRetiroNotification(
-                    retiro.id,
-                    this.mainService.sucursalActual.id,
-                    retiro.responsable.persona.id,
-                    retiro.retiroGs
-                  ).subscribe();
-                }
               });
               this.dialogRef.close(true)
             } else {
