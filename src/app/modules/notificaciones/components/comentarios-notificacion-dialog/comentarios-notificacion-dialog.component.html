@@ -31,10 +31,7 @@
       </div>
 
       <div *ngFor="let usuario of usuariosDestinatariosFiltrados" class="participant-item">
-        <div class="participant-avatar" [attr.data-initial]="usuario.initials"
-          [style.background]="'linear-gradient(135deg, ' + usuario.color + ', ' + usuario.color2 + ')'">
-          {{ usuario.initials }}
-        </div>
+        <img [src]="usuario.avatarUrl" class="participant-avatar" alt="Avatar">
         <div class="participant-info">
           <span class="participant-name">{{ usuario.persona?.nombre || usuario.nickname }}</span>
           <span class="participant-username">@{{ usuario.nickname }}</span>
@@ -61,11 +58,29 @@
 
       <div *ngIf="!cargando" class="messages-list comentarios-list">
         <div *ngIf="comentarios.length === 0" class="empty-messages">
-          <div class="empty-icon-wrapper">
-            <mat-icon>chat_bubble_outline</mat-icon>
+          <div class="hero-section">
+            <div class="avatar-group" *ngIf="usuariosDestinatariosFiltrados.length > 0">
+              <div class="avatar-wrapper" *ngFor="let user of usuariosDestinatariosFiltrados | slice:0:5; let i = index"
+                [style.z-index]="10 - i">
+                <img [src]="user.avatarUrl" class="big-avatar" alt="Avatar">
+              </div>
+            </div>
+
+            <h2 class="group-title" *ngIf="usuariosDestinatariosFiltrados.length > 0">
+              <ng-container
+                *ngFor="let user of usuariosDestinatariosFiltrados | slice:0:5; let isLast = last; let i = index">
+                {{ user.nickname | uppercase }}<span *ngIf="!isLast || (usuariosDestinatariosFiltrados.length > 5)">,
+                </span>
+              </ng-container>
+              <ng-container *ngIf="usuariosDestinatariosFiltrados.length > 5">
+                y {{ usuariosDestinatariosFiltrados.length - 5 }} más
+              </ng-container>
+            </h2>
+
+            <p class="welcome-text">
+              Bienvenido a los comentarios. Empieza la conversación cuando estés listo.
+            </p>
           </div>
-          <h3>No hay comentarios aún</h3>
-          <p>Sé el primero en comentar</p>
         </div>
 
         <div *ngFor="let comentario of comentarios; let i = index" class="message-wrapper"
@@ -73,11 +88,8 @@
           [id]="'comentario-' + comentario.id">
 
           <div class="message-bubble">
-            <div *ngIf="!comentario.comentarioPadre && !comentario.isSameAuthor" class="message-avatar"
-              [attr.data-initial]="comentario.initials"
-              [style.background]="'linear-gradient(135deg, ' + comentario.color + ', ' + comentario.color2 + ')'">
-              {{ comentario.initials }}
-            </div>
+            <img *ngIf="!comentario.comentarioPadre && !comentario.isSameAuthor" [src]="comentario.avatarUrl"
+              class="message-avatar" alt="Avatar">
 
             <div class="message-content" [style.background]="comentario.lightColor"
               [style.border-left-color]="comentario.color">
@@ -122,10 +134,7 @@
 
       <div *ngIf="mostrarAutocompletado && usuariosFiltrados.length > 0" class="mention-autocomplete">
         <div *ngFor="let usuario of usuariosFiltrados" class="mention-option" (click)="seleccionarUsuario(usuario)">
-          <div class="mention-avatar" [attr.data-initial]="usuario.initials"
-            [style.background]="'linear-gradient(135deg, ' + usuario.color + ', ' + usuario.color2 + ')'">
-            {{ usuario.initials }}
-          </div>
+          <img [src]="usuario.avatarUrl" class="mention-avatar" alt="Avatar">
           <div class="mention-info">
             <span class="mention-name" [style.color]="usuario.color">{{ usuario.persona?.nombre ||
               usuario.nickname }}</span>
@@ -140,14 +149,15 @@
         </button>
         <div class="textarea-wrapper">
           <textarea [(ngModel)]="nuevoComentario" (input)="onTextareaInput($event); adjustTextareaHeight($event)"
-            (keydown)="onKeyDown($event)" [disabled]="enviando" placeholder="Escribe un mensaje..."
-            class="gemini-textarea" #mensajeTextarea></textarea>
+            (keydown)="onKeyDown($event)" [disabled]="enviando" placeholder="Mensaje para el grupo"
+            class="gemini-textarea" #mensajeTextarea rows="1"></textarea>
+
+          <button mat-icon-button class="send-button-gemini" type="button"
+            [disabled]="!nuevoComentario.trim() || enviando" (click)="enviarComentario()">
+            <mat-icon *ngIf="!enviando">send</mat-icon>
+            <mat-spinner *ngIf="enviando" diameter="20" class="send-spinner"></mat-spinner>
+          </button>
         </div>
-        <button mat-icon-button class="send-button-gemini" type="button"
-          [disabled]="!nuevoComentario.trim() || enviando" (click)="enviarComentario()">
-          <mat-icon *ngIf="!enviando">send</mat-icon>
-          <mat-spinner *ngIf="enviando" diameter="20" class="send-spinner"></mat-spinner>
-        </button>
       </div>
     </div>
   </div>

@@ -30,10 +30,11 @@ export interface ComentariosDialogData {
 interface UsuarioExtendido {
   id: number;
   nickname: string;
-  persona?: { id: number; nombre: string };
+  persona?: { id: number; nombre: string; imagenes?: string };
   initials: string;
   color: string;
   color2: string;
+  avatarUrl: string;
 }
 
 interface ComentarioExtendido extends NotificacionComentario {
@@ -45,7 +46,10 @@ interface ComentarioExtendido extends NotificacionComentario {
   isSameAuthor: boolean;
   replyColor?: string;
   replyLightColor?: string;
+  avatarUrl: string;
 }
+
+
 
 @UntilDestroy()
 @Component({
@@ -189,6 +193,10 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     return textoFormateado.replace(/\n/g, '<br>');
   }
 
+  private obtenerAvatar(usuario: any): string {
+    return usuario?.persona?.imagenes || `https://ui-avatars.com/api/?name=${usuario?.nickname}&background=random`;
+  }
+
   private mapComentario(c: NotificacionComentario, index: number, array: NotificacionComentario[]): ComentarioExtendido {
     const isSameAuthor = index > 0 && array[index - 1].usuario.id === c.usuario.id;
     const color = this.getUserColor(c.usuario.id);
@@ -196,6 +204,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     const lightColor = this.getUserLightColor(c.usuario.id);
     const initials = this.getUserInitials(c.usuario);
     const formattedText = this.formatearComentario(c.comentario);
+    const avatarUrl = this.obtenerAvatar(c.usuario);
 
     let replyColor: string | undefined;
     let replyLightColor: string | undefined;
@@ -214,16 +223,18 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
       formattedText,
       isSameAuthor,
       replyColor,
-      replyLightColor
+      replyLightColor,
+      avatarUrl
     };
   }
 
-  private mapUsuario(u: { id: number; nickname: string; persona?: { id: number; nombre: string } }): UsuarioExtendido {
+  private mapUsuario(u: { id: number; nickname: string; persona?: { id: number; nombre: string; imagenes?: string } }): UsuarioExtendido {
     return {
       ...u,
       initials: this.getUserInitials(u),
       color: this.getUserColor(u.id),
-      color2: this.getUserColor(u.id + 1)
+      color2: this.getUserColor(u.id + 1),
+      avatarUrl: this.obtenerAvatar(u)
     };
   }
 

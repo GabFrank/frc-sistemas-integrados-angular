@@ -1,18 +1,19 @@
-$primary-color: #f44336;
-$accent-color: #43a047;
+$primary-color: #5865f2; // Mobile accent color
+$accent-color: #5865f2;
 $warn-color: #f57c00;
-$background-dark: #0e1621;
-$background-sidebar: #17212b;
-$background-message: #242f3d;
-$background-input: #1e2732;
+$background-dark: #1e2023; // Mobile background
+$background-sidebar: #1e2023; // Matching mobile background
+$background-message: #2b2d31; // Mobile comment bubble
+$background-input: #2b2d31; // Mobile input bg
 $text-primary: #ffffff;
-$text-secondary: rgba(255, 255, 255, 0.7);
-$text-muted: rgba(255, 255, 255, 0.5);
-$border-color: rgba(255, 255, 255, 0.1);
-$hover-bg: rgba(255, 255, 255, 0.05);
-$message-bubble-sent: #43a047;
-$message-bubble-received: #242f3d;
-$reply-indicator: rgba(67, 160, 71, 0.2);
+$text-secondary: #949ba4; // Mobile text secondary
+$text-muted: #6d6f78; // Mobile placeholder/muted
+$border-color: #2f3136; // Mobile border
+$hover-bg: #35373c;
+
+$message-bubble-sent: #5865f2; // Mobile accent
+$message-bubble-received: #2b2d31; // Mobile bubble
+$reply-indicator: rgba(88, 101, 242, 0.1);
 
 $red-light: #ef5350;
 $red-dark: #c62828;
@@ -185,27 +186,6 @@ $green-dark: #2e7d32;
   }
 }
 
-.participant-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: $text-primary;
-  font-weight: 600;
-  font-size: 14px;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  border: 2px solid transparent;
-
-  &:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  }
-}
-
 .participant-info {
   display: flex;
   flex-direction: column;
@@ -327,12 +307,85 @@ $green-dark: #2e7d32;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 40px;
+  padding: 40px 20px;
   gap: 20px;
   color: $text-muted;
   text-align: center;
   flex: 1;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
 
+  .hero-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    animation: fadeIn 0.5s ease-out;
+
+    .avatar-group {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 32px;
+      position: relative;
+      height: 80px;
+
+      .avatar-wrapper {
+        position: relative;
+        margin-left: -24px;
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        cursor: default;
+
+        &:first-child {
+          margin-left: 0;
+        }
+
+        &:hover {
+          transform: translateY(-8px) scale(1.1);
+          z-index: 100 !important;
+        }
+      }
+
+      .big-avatar {
+        width: 88px;
+        height: 88px;
+        border-radius: 50%;
+        border: 4px solid $background-dark;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        object-fit: cover;
+      }
+    }
+
+    .group-title {
+      color: $text-primary;
+      font-size: 28px;
+      font-weight: 800;
+      text-align: center;
+      line-height: 1.3;
+      margin-bottom: 16px;
+      max-width: 90%;
+      text-transform: uppercase;
+      letter-spacing: -0.5px;
+
+      background: linear-gradient(180deg, #fff 0%, #ccc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .welcome-text {
+      color: $text-secondary;
+      text-align: center;
+      font-size: 16px;
+      max-width: 600px;
+      line-height: 1.6;
+      font-weight: 500;
+    }
+  }
+
+  // Fallback if needed, though we will replace the HTML content
   .empty-icon-wrapper {
     width: 80px;
     height: 80px;
@@ -361,6 +414,34 @@ $green-dark: #2e7d32;
     margin: 0;
     font-size: 14px;
     color: $text-muted;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.participant-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 2px solid transparent;
+  object-fit: cover; // Ensure image fits well
+
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   }
 }
 
@@ -406,17 +487,12 @@ $green-dark: #2e7d32;
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: $text-primary;
-  font-weight: 600;
-  font-size: 13px;
   flex-shrink: 0;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   margin-top: 2px;
   border: 2px solid rgba(255, 255, 255, 0.2);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  object-fit: cover;
 
   &:hover {
     transform: scale(1.1);
@@ -685,15 +761,10 @@ $green-dark: #2e7d32;
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: $text-primary;
-  font-weight: 600;
-  font-size: 13px;
   flex-shrink: 0;
   border: 2px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  object-fit: cover;
 }
 
 .mention-info {
@@ -724,72 +795,54 @@ $green-dark: #2e7d32;
 
 .input-container {
   display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(10px);
+  align-items: center; // Center vertically
+  gap: 12px;
+  padding: 0; // Remove padding from container, it will be handled by children
+  background: transparent; // Container is transparent
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
   position: relative;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  max-width: 600px;
+  max-width: 700px;
   margin: 0 auto;
   width: 100%;
 
   &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 24px;
-    padding: 1px;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask-composite: exclude;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    display: none; // Remove the gradient border effect
   }
 
-  &:hover {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3);
-    background: rgba(255, 255, 255, 0.1);
-
-    &::before {
-      opacity: 1;
-    }
-  }
-
+  &:hover,
   &:focus-within {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.4);
-    border-color: rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.12);
+    box-shadow: none;
+    background: transparent;
 
     &::before {
-      opacity: 1;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+      opacity: 0;
     }
   }
 
   .add-button {
     flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    color: $text-secondary;
+    width: 32px;
+    height: 32px;
+    background: #3f4147; // Mobile add button bg
+    border-radius: 50%;
+    color: $text-primary;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.2s ease;
+    padding: 0; // Reset mat-icon-button padding if needed
 
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: $text-primary;
+      background: lighten(#3f4147, 10%);
     }
 
     mat-icon {
       font-size: 20px;
       width: 20px;
       height: 20px;
+      color: $text-primary;
     }
   }
 
@@ -797,89 +850,80 @@ $green-dark: #2e7d32;
     flex: 1;
     display: flex;
     align-items: center;
-    min-height: 36px;
-  }
+    background: $background-input; // #2b2d31
+    border-radius: 20px; // Pill shape
+    min-height: 40px;
+    padding: 4px 16px; // Internal padding
+    transition: background 0.2s;
 
-  .gemini-textarea {
-    width: 100%;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: $text-primary;
-    font-size: 15px;
-    line-height: 1.5;
-    min-height: 20px;
-    max-height: 200px;
-    resize: none;
-    padding: 8px 0;
-    font-family: inherit;
-    overflow-y: auto;
-
-    &::placeholder {
-      color: $text-muted;
-    }
-
-    &:focus {
-      outline: none;
-    }
-
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    &::-webkit-scrollbar-track {
+    textarea.gemini-textarea {
+      flex: 1;
       background: transparent;
-    }
+      border: none;
+      color: $text-primary;
+      font-size: 15px; // Mobile font size
+      line-height: 1.4;
+      resize: none;
+      padding: 8px 0;
+      min-height: 24px;
+      max-height: 120px;
+      outline: none;
 
-    &::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 3px;
+      &::placeholder {
+        color: #6d6f78;
+      }
 
-      &:hover {
-        background: rgba(255, 255, 255, 0.3);
+      // Remove scrollbar if possible or style it
+      &::-webkit-scrollbar {
+        width: 0px;
+        background: transparent;
       }
     }
-  }
 
-  .send-button-gemini {
-    flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    background: linear-gradient(135deg, $primary-color, $accent-color);
-    color: $text-primary;
-    transition: all 0.2s ease;
-    border-radius: 50%;
+    .send-button-gemini {
+      width: 32px;
+      height: 32px;
+      min-width: 32px; // Prevent shrinking
+      margin-left: 8px;
+      color: #ffffff; // User requested white
+      background: transparent; // Ensure transparent background by default
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0; // Fix cropping/padding issues from mat-icon-button
+      border-radius: 50%; // Circular hover effect
 
-    &:hover:not(:disabled) {
-      transform: scale(1.1);
-      box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
-    }
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        line-height: 20px; // Ensure vertical centering
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
 
-    &:active:not(:disabled) {
-      transform: scale(0.95);
-    }
+      &:hover {
+        background: rgba(255, 255, 255, 0.1); // Subtle background on hover
+      }
 
-    &:disabled {
-      background: rgba(255, 255, 255, 0.1);
-      color: $text-muted;
-      cursor: not-allowed;
-    }
+      &:active:not(:disabled) {
+        transform: scale(0.95);
+      }
 
-    mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-    }
+      &:disabled {
+        opacity: 0.5;
+        color: rgba(255, 255, 255, 0.3); // Dimmed white for disabled
+        background: transparent;
+        cursor: not-allowed;
+      }
 
-    .send-spinner {
+      .send-spinner {
 
-      :deep(.mdc-circular-progress__determinate-circle),
-      :deep(.mdc-circular-progress__indeterminate-circle-graphic) {
-        stroke: $text-primary;
+        :deep(.mdc-circular-progress__determinate-circle),
+        :deep(.mdc-circular-progress__indeterminate-circle-graphic) {
+          stroke: #ffffff;
+        }
       }
     }
   }
