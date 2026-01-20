@@ -91,8 +91,7 @@
             <img *ngIf="!comentario.comentarioPadre && !comentario.isSameAuthor" [src]="comentario.avatarUrl"
               class="message-avatar" alt="Avatar">
 
-            <div class="message-content" [style.background]="comentario.lightColor"
-              [style.border-left-color]="comentario.color">
+            <div class="message-content" [style.background]="comentario.lightColor">
               <div *ngIf="!comentario.comentarioPadre && !comentario.isSameAuthor" class="message-header">
                 <span class="message-author" [style.color]="comentario.color">{{
                   comentario.usuario.persona?.nombre || comentario.usuario.nickname }}</span>
@@ -108,14 +107,21 @@
               </div>
 
               <div *ngIf="comentario.mediaUrl" class="message-media">
-                <ng-container
-                  *ngIf="comentario.mediaUrl.includes('.mp4') || comentario.mediaUrl.includes('.webm') || comentario.mediaUrl.includes('.mov'); else imageTemplate">
-                  <video [src]="comentario.mediaUrl" controls class="media-content video-content"
-                    preload="metadata"></video>
-                </ng-container>
-                <ng-template #imageTemplate>
-                  <img [src]="comentario.mediaUrl" class="media-content image-content" alt="Adjunto" loading="lazy">
-                </ng-template>
+                <div class="media-wrapper">
+                  <ng-container
+                    *ngIf="comentario.mediaUrl.includes('.mp4') || comentario.mediaUrl.includes('.webm') || comentario.mediaUrl.includes('.mov'); else imageTemplate">
+                    <video [src]="comentario.mediaUrl" controls class="media-content video-content"
+                      preload="metadata"></video>
+                  </ng-container>
+                  <ng-template #imageTemplate>
+                    <img [src]="comentario.mediaUrl" class="media-content image-content" alt="Adjunto" loading="lazy">
+                  </ng-template>
+
+                  <button mat-icon-button class="download-btn" (click)="descargarMedia(comentario.mediaUrl)"
+                    matTooltip="Descargar archivo">
+                    <mat-icon>download</mat-icon>
+                  </button>
+                </div>
               </div>
 
               <div class="message-text" [innerHTML]="comentario.formattedText"></div>
@@ -182,16 +188,18 @@
             </div>
           </div>
 
-          <textarea [(ngModel)]="nuevoComentario" (input)="onTextareaInput($event); adjustTextareaHeight($event)"
-            (keydown)="onKeyDown($event)" [disabled]="enviando || isUploading" placeholder="Mensaje para el grupo"
-            class="gemini-textarea" #mensajeTextarea rows="1"></textarea>
+          <div class="input-row">
+            <textarea [(ngModel)]="nuevoComentario" (input)="onTextareaInput($event); adjustTextareaHeight($event)"
+              (keydown)="onKeyDown($event)" [disabled]="enviando || isUploading" placeholder="Mensaje para el grupo"
+              class="gemini-textarea" #mensajeTextarea rows="1"></textarea>
 
-          <button mat-icon-button class="send-button-gemini" type="button"
-            [disabled]="(!nuevoComentario.trim() && !selectedFile) || enviando || isUploading"
-            (click)="enviarComentario()">
-            <mat-icon *ngIf="!enviando && !isUploading">send</mat-icon>
-            <mat-spinner *ngIf="enviando || isUploading" diameter="20" class="send-spinner"></mat-spinner>
-          </button>
+            <button mat-icon-button class="send-button-gemini" type="button"
+              [disabled]="(!nuevoComentario.trim() && !selectedFile) || enviando || isUploading"
+              (click)="enviarComentario()">
+              <mat-icon *ngIf="!enviando && !isUploading">send</mat-icon>
+              <mat-spinner *ngIf="enviando || isUploading" diameter="20" class="send-spinner"></mat-spinner>
+            </button>
+          </div>
         </div>
       </div>
     </div>

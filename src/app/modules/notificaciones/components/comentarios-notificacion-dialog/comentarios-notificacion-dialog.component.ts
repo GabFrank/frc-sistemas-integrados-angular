@@ -148,9 +148,24 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
   private getUserColor(usuarioId: number): string {
     if (!this.userColorsCache.has(usuarioId)) {
       const colors = [
-        '#f44336', '#43a047', '#e53935', '#66bb6a', '#d32f2f', '#388e3c',
-        '#ef5350', '#81c784', '#c62828', '#2e7d32', '#ff5252', '#4caf50',
-        '#b71c1c', '#1b5e20', '#ff1744', '#00e676',
+        '#f44336',
+        '#E91E63',
+        '#9C27B0',
+        '#673AB7',
+        '#3F51B5',
+        '#2196F3',
+        '#03A9F4',
+        '#00BCD4',
+        '#009688',
+        '#4CAF50',
+        '#8BC34A',
+        '#CDDC39',
+        '#FFEB3B',
+        '#FFC107',
+        '#FF9800',
+        '#FF5722',
+        '#795548',
+        '#607D8B',
       ];
       this.userColorsCache.set(usuarioId, colors[usuarioId % colors.length]);
     }
@@ -164,7 +179,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
       const r = parseInt(hex.substr(0, 2), 16);
       const g = parseInt(hex.substr(2, 2), 16);
       const b = parseInt(hex.substr(4, 2), 16);
-      this.userLightColorsCache.set(usuarioId, `rgba(${r}, ${g}, ${b}, 0.15)`);
+      this.userLightColorsCache.set(usuarioId, `rgba(${r}, ${g}, ${b}, 0.25)`);
     }
     return this.userLightColorsCache.get(usuarioId)!;
   }
@@ -205,8 +220,12 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     return textoFormateado.replace(/\n/g, '<br>');
   }
 
-  private obtenerAvatar(usuario: any): string {
-    return usuario?.persona?.imagenes || `https://ui-avatars.com/api/?name=${usuario?.nickname}&background=random`;
+  private obtenerAvatar(usuario: any, colorHex?: string): string {
+    if (usuario?.persona?.imagenes) {
+      return usuario.persona.imagenes;
+    }
+    const bg = colorHex ? colorHex.replace('#', '') : 'random';
+    return `https://ui-avatars.com/api/?name=${usuario?.nickname}&background=${bg}&color=fff&size=128&bold=true`;
   }
 
   private mapComentario(c: NotificacionComentario, index: number, array: NotificacionComentario[]): ComentarioExtendido {
@@ -216,7 +235,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     const lightColor = this.getUserLightColor(c.usuario.id);
     const initials = this.getUserInitials(c.usuario);
     const formattedText = this.formatearComentario(c.comentario);
-    const avatarUrl = this.obtenerAvatar(c.usuario);
+    const avatarUrl = this.obtenerAvatar(c.usuario, color);
 
     let replyColor: string | undefined;
     let replyLightColor: string | undefined;
@@ -241,12 +260,13 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
   }
 
   private mapUsuario(u: { id: number; nickname: string; persona?: { id: number; nombre: string; imagenes?: string } }): UsuarioExtendido {
+    const color = this.getUserColor(u.id);
     return {
       ...u,
       initials: this.getUserInitials(u),
-      color: this.getUserColor(u.id),
+      color: color,
       color2: this.getUserColor(u.id + 1),
-      avatarUrl: this.obtenerAvatar(u)
+      avatarUrl: this.obtenerAvatar(u, color)
     };
   }
 
@@ -674,6 +694,17 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
           this.cdr.markForCheck();
         }
       });
+  }
+
+  descargarMedia(url: string): void {
+    if (!url) return;
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.download = url.split('/').pop() || 'archivo';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 }
 

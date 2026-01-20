@@ -385,7 +385,6 @@ $green-dark: #2e7d32;
     }
   }
 
-  // Fallback if needed, though we will replace the HTML content
   .empty-icon-wrapper {
     width: 80px;
     height: 80px;
@@ -437,7 +436,7 @@ $green-dark: #2e7d32;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   border: 2px solid transparent;
-  object-fit: cover; // Ensure image fits well
+  object-fit: cover;
 
   &:hover {
     transform: scale(1.05);
@@ -461,6 +460,10 @@ $green-dark: #2e7d32;
     .message-avatar {
       visibility: hidden;
     }
+
+    .message-content {
+      border-top-left-radius: 12px;
+    }
   }
 }
 
@@ -480,6 +483,8 @@ $green-dark: #2e7d32;
   display: flex;
   gap: 12px;
   max-width: 70%;
+  width: fit-content;
+  min-width: 200px;
   align-items: flex-start;
 }
 
@@ -501,29 +506,16 @@ $green-dark: #2e7d32;
 }
 
 .message-content {
-  flex: 1;
   min-width: 0;
-  background: $message-bubble-received;
-  border-radius: 12px;
-  padding: 10px 14px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border-radius: 0 12px 12px 12px;
+  padding: 8px 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   transition: all 0.2s ease;
-  border-left: 3px solid transparent;
   position: relative;
 
-  &:hover {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    transform: translateX(2px);
-  }
 
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    border-radius: 12px 0 0 12px;
+  &:hover {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
   }
 }
 
@@ -601,6 +593,80 @@ $green-dark: #2e7d32;
       background: rgba(244, 67, 54, 0.35);
       border-color: rgba(244, 67, 54, 0.5);
       transform: scale(1.05);
+    }
+  }
+}
+
+// Estilos para imágenes y videos en mensajes (estilo WhatsApp)
+.message-media {
+  margin-bottom: 8px;
+  max-width: 260px;
+  width: fit-content;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+
+  .media-wrapper {
+    position: relative;
+    display: block;
+    width: 100%;
+    max-width: 260px;
+    line-height: 0;
+
+    &:hover .download-btn {
+      opacity: 1;
+    }
+  }
+
+  .media-content {
+    display: block;
+    max-width: 260px;
+    max-height: 260px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.1);
+
+    &.image-content {
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+
+      &:hover {
+        opacity: 0.92;
+      }
+    }
+
+    &.video-content {
+      max-width: 260px;
+      max-height: 260px;
+    }
+  }
+
+  .download-btn {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #ffffff;
+    width: 32px;
+    height: 32px;
+    opacity: 0;
+    transition: opacity 0.2s ease, background 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    backdrop-filter: blur(4px);
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.8);
     }
   }
 }
@@ -795,10 +861,10 @@ $green-dark: #2e7d32;
 
 .input-container {
   display: flex;
-  align-items: center; // Center vertically
+  align-items: center;
   gap: 12px;
-  padding: 0; // Remove padding from container, it will be handled by children
-  background: transparent; // Container is transparent
+  padding: 0;
+  background: transparent;
   border: none;
   box-shadow: none;
   backdrop-filter: none;
@@ -808,7 +874,7 @@ $green-dark: #2e7d32;
   width: 100%;
 
   &::before {
-    display: none; // Remove the gradient border effect
+    display: none;
   }
 
   &:hover,
@@ -825,14 +891,14 @@ $green-dark: #2e7d32;
     flex-shrink: 0;
     width: 32px;
     height: 32px;
-    background: #3f4147; // Mobile add button bg
+    background: #3f4147;
     border-radius: 50%;
     color: $text-primary;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    padding: 0; // Reset mat-icon-button padding if needed
+    padding: 0;
 
     &:hover {
       background: lighten(#3f4147, 10%);
@@ -849,259 +915,228 @@ $green-dark: #2e7d32;
   .textarea-wrapper {
     flex: 1;
     display: flex;
-    align-items: center;
-    background: $background-input; // #2b2d31
-    border-radius: 20px; // Pill shape
+    flex-direction: column;
+    align-items: stretch;
+    background: $background-input;
+    border-radius: 20px;
     min-height: 40px;
-    padding: 4px 16px; // Internal padding
+    padding: 4px 16px;
     transition: background 0.2s;
 
-    textarea.gemini-textarea {
-      flex: 1;
-      background: transparent;
-      border: none;
-      color: $text-primary;
-      font-size: 15px; // Mobile font size
-      line-height: 1.4;
-      resize: none;
-      padding: 8px 0;
-      min-height: 24px;
-      max-height: 120px;
-      outline: none;
-
-      &::placeholder {
-        color: #6d6f78;
-      }
-
-      // Remove scrollbar if possible or style it
-      &::-webkit-scrollbar {
-        width: 0px;
-        background: transparent;
-      }
-    }
-
-    .send-button-gemini {
-      width: 32px;
-      height: 32px;
-      min-width: 32px; // Prevent shrinking
-      margin-left: 8px;
-      color: #ffffff; // User requested white
-      background: transparent; // Ensure transparent background by default
+    .input-row {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0; // Fix cropping/padding issues from mat-icon-button
-      border-radius: 50%; // Circular hover effect
+      align-items: flex-end;
+      width: 100%;
 
-      mat-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
-        line-height: 20px; // Ensure vertical centering
+      textarea.gemini-textarea {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: $text-primary;
+        font-size: 15px;
+        line-height: 1.4;
+        resize: none;
+        padding: 8px 0;
+        min-height: 24px;
+        max-height: 120px;
+        outline: none;
+
+        &::placeholder {
+          color: #6d6f78;
+        }
+
+        &::-webkit-scrollbar {
+          width: 0px;
+          background: transparent;
+        }
+      }
+
+      .send-button-gemini {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        margin-left: 8px;
+        color: #ffffff;
+        background: transparent;
         display: flex;
         align-items: center;
         justify-content: center;
-      }
+        padding: 0;
+        border-radius: 50%;
 
-      &:hover {
-        background: rgba(255, 255, 255, 0.1); // Subtle background on hover
-      }
+        mat-icon {
+          font-size: 20px;
+          width: 20px;
+          height: 20px;
+          line-height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
 
-      &:active:not(:disabled) {
-        transform: scale(0.95);
-      }
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
 
-      &:disabled {
-        opacity: 0.5;
-        color: rgba(255, 255, 255, 0.3); // Dimmed white for disabled
-        background: transparent;
-        cursor: not-allowed;
-      }
+        &:active:not(:disabled) {
+          transform: scale(0.95);
+        }
 
-      .send-spinner {
+        &:disabled {
+          opacity: 0.5;
+          color: rgba(255, 255, 255, 0.3);
+          background: transparent;
+          cursor: not-allowed;
+        }
 
-        :deep(.mdc-circular-progress__determinate-circle),
-        :deep(.mdc-circular-progress__indeterminate-circle-graphic) {
-          stroke: #ffffff;
+        .send-spinner {
+
+          :deep(.mdc-circular-progress__determinate-circle),
+          :deep(.mdc-circular-progress__indeterminate-circle-graphic) {
+            stroke: #ffffff;
+          }
         }
       }
     }
   }
-}
 
-.participants-list::-webkit-scrollbar,
-.messages-list::-webkit-scrollbar,
-.mention-autocomplete::-webkit-scrollbar {
-  width: 8px;
-}
-
-.participants-list::-webkit-scrollbar-track,
-.messages-list::-webkit-scrollbar-track,
-.mention-autocomplete::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.participants-list::-webkit-scrollbar-thumb,
-.messages-list::-webkit-scrollbar-thumb,
-.mention-autocomplete::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-  }
-}
-
-.message-wrapper.highlighted-comment {
-  animation: highlightPulse 3s ease-out;
-}
-
-@keyframes highlightPulse {
-  0% {
-    background: linear-gradient(90deg, rgba(244, 67, 54, 0.3), rgba(67, 160, 71, 0.3));
-    border-radius: 8px;
-    box-shadow: 0 0 20px rgba(244, 67, 54, 0.5);
+  .participants-list::-webkit-scrollbar,
+  .messages-list::-webkit-scrollbar,
+  .mention-autocomplete::-webkit-scrollbar {
+    width: 8px;
   }
 
-  50% {
-    box-shadow: 0 0 30px rgba(67, 160, 71, 0.5);
-  }
-
-  100% {
+  .participants-list::-webkit-scrollbar-track,
+  .messages-list::-webkit-scrollbar-track,
+  .mention-autocomplete::-webkit-scrollbar-track {
     background: transparent;
-    box-shadow: none;
-  }
-}
-
-@media (max-width: 768px) {
-  .participants-sidebar {
-    display: none;
   }
 
-  .message-bubble {
-    max-width: 85%;
+  .participants-list::-webkit-scrollbar-thumb,
+  .messages-list::-webkit-scrollbar-thumb,
+  .mention-autocomplete::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
   }
-}
 
-// File Preview styles
-.file-preview-container {
-  width: 100%;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  margin-bottom: 8px;
+  .message-wrapper.highlighted-comment {
+    animation: highlightPulse 3s ease-out;
+  }
 
-  .preview-content {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 8px;
-    border-radius: 8px;
-    position: relative;
-
-    .preview-image,
-    .preview-video {
-      width: 64px;
-      height: 64px;
-      object-fit: cover;
-      border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+  @keyframes highlightPulse {
+    0% {
+      background: linear-gradient(90deg, rgba(244, 67, 54, 0.3), rgba(67, 160, 71, 0.3));
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(244, 67, 54, 0.5);
     }
 
-    .file-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      flex: 1;
-      min-width: 0;
-
-      .file-name {
-        font-size: 13px;
-        color: $text-primary;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        font-weight: 500;
-      }
-
-      .file-size {
-        font-size: 11px;
-        color: $text-secondary;
-      }
+    50% {
+      box-shadow: 0 0 30px rgba(67, 160, 71, 0.5);
     }
 
-    .remove-file-btn {
-      color: $text-secondary;
-      width: 28px;
-      height: 28px;
+    100% {
+      background: transparent;
+      box-shadow: none;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .participants-sidebar {
+      display: none;
+    }
+
+    .message-bubble {
+      max-width: 85%;
+    }
+  }
+
+  .file-preview-container {
+    width: 100%;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 8px;
+
+    .preview-content {
       display: flex;
       align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.05);
-      transition: all 0.2s ease;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 8px;
+      border-radius: 8px;
+      position: relative;
 
-      mat-icon {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
+      .preview-image,
+      .preview-video {
+        width: 64px;
+        height: 64px;
+        object-fit: cover;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
       }
 
-      &:hover {
-        background: rgba(244, 67, 54, 0.2);
-        color: $red-light;
+      .file-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+        min-width: 0;
+
+        .file-name {
+          font-size: 13px;
+          color: $text-primary;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          font-weight: 500;
+        }
+
+        .file-size {
+          font-size: 11px;
+          color: $text-secondary;
+        }
+      }
+
+      .remove-file-btn {
+        color: $text-secondary;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.05);
+        transition: all 0.2s ease;
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+
+        &:hover {
+          background: rgba(244, 67, 54, 0.2);
+          color: $red-light;
+        }
+      }
+    }
+
+    .upload-progress-bar {
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      margin-top: 8px;
+      overflow: hidden;
+
+      .progress-fill {
+        height: 100%;
+        background: $green-light;
+        transition: width 0.3s ease;
+        box-shadow: 0 0 8px rgba(129, 199, 132, 0.5);
       }
     }
   }
-
-  .upload-progress-bar {
-    height: 4px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
-    margin-top: 8px;
-    overflow: hidden;
-
-    .progress-fill {
-      height: 100%;
-      background: $green-light;
-      transition: width 0.3s ease;
-      box-shadow: 0 0 8px rgba(129, 199, 132, 0.5);
-    }
-  }
-}
-
-// Media in messages
-.message-media {
-  margin-bottom: 8px;
-  max-width: 100%;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-
-  .media-content {
-    display: block;
-    max-width: 100%;
-    max-height: 320px;
-    object-fit: contain;
-    border-radius: 8px;
-    background: rgba(0, 0, 0, 0.2);
-
-    &.image-content {
-      cursor: pointer;
-      transition: transform 0.2s ease;
-
-      &:hover {
-        opacity: 0.9;
-      }
-    }
-
-    &.video-content {
-      width: 100%;
-      max-height: 320px;
-    }
-  }
-}
-
-.input-container .textarea-wrapper {
-  flex-wrap: wrap;
 }
