@@ -561,7 +561,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
   }
 
   private procesarEnvioComentario(comentarioTexto: string, mediaUrl?: string): void {
-    const commentaire = comentarioTexto || (mediaUrl ? 'Adjunto archivo multimedia' : '');
+    const commentaire = comentarioTexto || (mediaUrl ? 'Adjunto archivo' : '');
     const comentarioPadreIdTemp = this.comentarioPadreId;
 
     this.nuevoComentario = '';

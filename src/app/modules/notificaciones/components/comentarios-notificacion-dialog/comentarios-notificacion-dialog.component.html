@@ -108,14 +108,66 @@
 
               <div *ngIf="comentario.mediaUrl" class="message-media">
                 <div class="media-wrapper">
+                  <!-- Video -->
                   <ng-container
-                    *ngIf="comentario.mediaUrl.includes('.mp4') || comentario.mediaUrl.includes('.webm') || comentario.mediaUrl.includes('.mov'); else imageTemplate">
+                    *ngIf="comentario.mediaUrl.includes('.mp4') || comentario.mediaUrl.includes('.webm') || comentario.mediaUrl.includes('.mov')">
                     <video [src]="comentario.mediaUrl" controls class="media-content video-content"
                       preload="metadata"></video>
                   </ng-container>
-                  <ng-template #imageTemplate>
+
+                  <!-- Imagen -->
+                  <ng-container
+                    *ngIf="!comentario.mediaUrl.includes('.mp4') && !comentario.mediaUrl.includes('.webm') && !comentario.mediaUrl.includes('.mov') && !comentario.mediaUrl.includes('.pdf') && !comentario.mediaUrl.includes('.doc') && !comentario.mediaUrl.includes('.xls') && !comentario.mediaUrl.includes('.ppt') && !comentario.mediaUrl.includes('.zip') && !comentario.mediaUrl.includes('.rar') && !comentario.mediaUrl.includes('.txt')">
                     <img [src]="comentario.mediaUrl" class="media-content image-content" alt="Adjunto" loading="lazy">
-                  </ng-template>
+                  </ng-container>
+
+                  <!-- PDF -->
+                  <ng-container *ngIf="comentario.mediaUrl.includes('.pdf')">
+                    <div class="file-attachment pdf-file">
+                      <mat-icon class="file-type-icon">picture_as_pdf</mat-icon>
+                      <span class="file-type-name">{{ comentario.mediaUrl.split('/').pop() }}</span>
+                    </div>
+                  </ng-container>
+
+                  <!-- Word -->
+                  <ng-container *ngIf="comentario.mediaUrl.includes('.doc')">
+                    <div class="file-attachment word-file">
+                      <mat-icon class="file-type-icon">description</mat-icon>
+                      <span class="file-type-name">{{ comentario.mediaUrl.split('/').pop() }}</span>
+                    </div>
+                  </ng-container>
+
+                  <!-- Excel -->
+                  <ng-container *ngIf="comentario.mediaUrl.includes('.xls')">
+                    <div class="file-attachment excel-file">
+                      <mat-icon class="file-type-icon">table_chart</mat-icon>
+                      <span class="file-type-name">{{ comentario.mediaUrl.split('/').pop() }}</span>
+                    </div>
+                  </ng-container>
+
+                  <!-- PowerPoint -->
+                  <ng-container *ngIf="comentario.mediaUrl.includes('.ppt')">
+                    <div class="file-attachment ppt-file">
+                      <mat-icon class="file-type-icon">slideshow</mat-icon>
+                      <span class="file-type-name">{{ comentario.mediaUrl.split('/').pop() }}</span>
+                    </div>
+                  </ng-container>
+
+                  <!-- ZIP/RAR -->
+                  <ng-container *ngIf="comentario.mediaUrl.includes('.zip') || comentario.mediaUrl.includes('.rar')">
+                    <div class="file-attachment archive-file">
+                      <mat-icon class="file-type-icon">folder_zip</mat-icon>
+                      <span class="file-type-name">{{ comentario.mediaUrl.split('/').pop() }}</span>
+                    </div>
+                  </ng-container>
+
+                  <!-- TXT -->
+                  <ng-container *ngIf="comentario.mediaUrl.includes('.txt')">
+                    <div class="file-attachment txt-file">
+                      <mat-icon class="file-type-icon">text_snippet</mat-icon>
+                      <span class="file-type-name">{{ comentario.mediaUrl.split('/').pop() }}</span>
+                    </div>
+                  </ng-container>
 
                   <button mat-icon-button class="download-btn" (click)="descargarMedia(comentario.mediaUrl)"
                     matTooltip="Descargar archivo">
@@ -161,7 +213,8 @@
       </div>
 
       <div class="input-container">
-        <input type="file" #fileInput hidden (change)="onFileSelected($event)" accept="image/*,video/*">
+        <input type="file" #fileInput hidden (change)="onFileSelected($event)"
+          accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt">
 
         <button mat-icon-button class="add-button" type="button" (click)="triggerFileInput()"
           matTooltip="Adjuntar archivo">
@@ -171,10 +224,45 @@
         <div class="textarea-wrapper">
           <div *ngIf="selectedFile" class="file-preview-container">
             <div class="preview-content">
+              <!-- Imagen -->
               <img *ngIf="filePreview && selectedFile.type.startsWith('image/')" [src]="filePreview"
                 class="preview-image">
+              <!-- Video -->
               <video *ngIf="filePreview && selectedFile.type.startsWith('video/')" [src]="filePreview"
                 class="preview-video" controls></video>
+              <!-- PDF -->
+              <div *ngIf="selectedFile.type === 'application/pdf'" class="preview-file-icon pdf-preview">
+                <mat-icon>picture_as_pdf</mat-icon>
+              </div>
+              <!-- Word -->
+              <div
+                *ngIf="selectedFile.type.includes('word') || selectedFile.name.endsWith('.doc') || selectedFile.name.endsWith('.docx')"
+                class="preview-file-icon word-preview">
+                <mat-icon>description</mat-icon>
+              </div>
+              <!-- Excel -->
+              <div
+                *ngIf="selectedFile.type.includes('spreadsheet') || selectedFile.type.includes('excel') || selectedFile.name.endsWith('.xls') || selectedFile.name.endsWith('.xlsx')"
+                class="preview-file-icon excel-preview">
+                <mat-icon>table_chart</mat-icon>
+              </div>
+              <!-- PowerPoint -->
+              <div
+                *ngIf="selectedFile.type.includes('presentation') || selectedFile.type.includes('powerpoint') || selectedFile.name.endsWith('.ppt') || selectedFile.name.endsWith('.pptx')"
+                class="preview-file-icon ppt-preview">
+                <mat-icon>slideshow</mat-icon>
+              </div>
+              <!-- ZIP/RAR -->
+              <div
+                *ngIf="selectedFile.type.includes('zip') || selectedFile.type.includes('rar') || selectedFile.name.endsWith('.zip') || selectedFile.name.endsWith('.rar')"
+                class="preview-file-icon archive-preview">
+                <mat-icon>folder_zip</mat-icon>
+              </div>
+              <!-- TXT -->
+              <div *ngIf="selectedFile.type === 'text/plain' || selectedFile.name.endsWith('.txt')"
+                class="preview-file-icon txt-preview">
+                <mat-icon>text_snippet</mat-icon>
+              </div>
               <div class="file-info">
                 <span class="file-name">{{ selectedFile.name }}</span>
                 <span class="file-size">{{ (selectedFile.size / 1024 / 1024) | number:'1.2-2' }} MB</span>
