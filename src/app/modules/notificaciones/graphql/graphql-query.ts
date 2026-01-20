@@ -115,6 +115,7 @@ export const comentariosNotificacionQuery = gql`
     data: comentariosNotificacion(notificacionId: $notificacionId) {
       id
       comentario
+      mediaUrl
       creadoEn
       actualizadoEn
       usuario {
@@ -143,10 +144,11 @@ export const conteoComentariosNotificacionQuery = gql`
 `;
 
 export const crearComentarioNotificacionMutation = gql`
-  mutation ($notificacionId: Int!, $comentario: String!, $comentarioPadreId: Int) {
-    data: crearComentarioNotificacion(notificacionId: $notificacionId, comentario: $comentario, comentarioPadreId: $comentarioPadreId) {
+  mutation ($notificacionId: Int!, $comentario: String!, $mediaUrl: String, $comentarioPadreId: Int) {
+    data: crearComentarioNotificacion(notificacionId: $notificacionId, comentario: $comentario, mediaUrl: $mediaUrl, comentarioPadreId: $comentarioPadreId) {
       id
       comentario
+      mediaUrl
       creadoEn
       usuario {
         id

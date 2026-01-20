@@ -1,9 +1,9 @@
 import { Injectable } from "@angular/core";
 import { Query, Mutation } from "apollo-angular";
-import { 
-  comentariosNotificacionQuery, 
+import {
+  comentariosNotificacionQuery,
   conteoComentariosNotificacionQuery,
-  crearComentarioNotificacionMutation 
+  crearComentarioNotificacionMutation
 } from "./graphql-query";
 
 export interface UsuarioComentario {
@@ -29,6 +29,7 @@ export interface NotificacionComentario {
   creadoEn: string;
   actualizadoEn?: string;
   usuario: UsuarioComentario;
+  mediaUrl?: string;
   comentarioPadre?: ComentarioPadre;
 }
 

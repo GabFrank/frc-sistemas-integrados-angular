@@ -107,6 +107,17 @@
                     comentario.comentarioPadre.usuario.nickname }}</strong></span>
               </div>
 
+              <div *ngIf="comentario.mediaUrl" class="message-media">
+                <ng-container
+                  *ngIf="comentario.mediaUrl.includes('.mp4') || comentario.mediaUrl.includes('.webm') || comentario.mediaUrl.includes('.mov'); else imageTemplate">
+                  <video [src]="comentario.mediaUrl" controls class="media-content video-content"
+                    preload="metadata"></video>
+                </ng-container>
+                <ng-template #imageTemplate>
+                  <img [src]="comentario.mediaUrl" class="media-content image-content" alt="Adjunto" loading="lazy">
+                </ng-template>
+              </div>
+
               <div class="message-text" [innerHTML]="comentario.formattedText"></div>
 
               <div class="message-actions">
@@ -144,18 +155,42 @@
       </div>
 
       <div class="input-container">
-        <button mat-icon-button class="add-button" type="button">
-          <mat-icon>add</mat-icon>
+        <input type="file" #fileInput hidden (change)="onFileSelected($event)" accept="image/*,video/*">
+
+        <button mat-icon-button class="add-button" type="button" (click)="triggerFileInput()"
+          matTooltip="Adjuntar archivo">
+          <mat-icon>attach_file</mat-icon>
         </button>
+
         <div class="textarea-wrapper">
+          <div *ngIf="selectedFile" class="file-preview-container">
+            <div class="preview-content">
+              <img *ngIf="filePreview && selectedFile.type.startsWith('image/')" [src]="filePreview"
+                class="preview-image">
+              <video *ngIf="filePreview && selectedFile.type.startsWith('video/')" [src]="filePreview"
+                class="preview-video" controls></video>
+              <div class="file-info">
+                <span class="file-name">{{ selectedFile.name }}</span>
+                <span class="file-size">{{ (selectedFile.size / 1024 / 1024) | number:'1.2-2' }} MB</span>
+              </div>
+              <button mat-icon-button (click)="removeFile()" class="remove-file-btn">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+            <div *ngIf="isUploading" class="upload-progress-bar">
+              <div class="progress-fill" [style.width.%]="uploadProgress"></div>
+            </div>
+          </div>
+
           <textarea [(ngModel)]="nuevoComentario" (input)="onTextareaInput($event); adjustTextareaHeight($event)"
-            (keydown)="onKeyDown($event)" [disabled]="enviando" placeholder="Mensaje para el grupo"
+            (keydown)="onKeyDown($event)" [disabled]="enviando || isUploading" placeholder="Mensaje para el grupo"
             class="gemini-textarea" #mensajeTextarea rows="1"></textarea>
 
           <button mat-icon-button class="send-button-gemini" type="button"
-            [disabled]="!nuevoComentario.trim() || enviando" (click)="enviarComentario()">
-            <mat-icon *ngIf="!enviando">send</mat-icon>
-            <mat-spinner *ngIf="enviando" diameter="20" class="send-spinner"></mat-spinner>
+            [disabled]="(!nuevoComentario.trim() && !selectedFile) || enviando || isUploading"
+            (click)="enviarComentario()">
+            <mat-icon *ngIf="!enviando && !isUploading">send</mat-icon>
+            <mat-spinner *ngIf="enviando || isUploading" diameter="20" class="send-spinner"></mat-spinner>
           </button>
         </div>
       </div>

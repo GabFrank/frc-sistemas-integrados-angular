@@ -47,11 +47,13 @@ export class ComentariosNotificacionService {
   crearComentario(
     notificacionId: number,
     comentario: string,
-    comentarioPadreId?: number
+    comentarioPadreId?: number,
+    mediaUrl?: string
   ): Observable<NotificacionComentario> {
     return this.genericService.onCustomMutation(this.crearComentarioGQL, {
       notificacionId,
       comentario,
+      mediaUrl: mediaUrl || null,
       comentarioPadreId: comentarioPadreId || null
     }).pipe(
       tap(nuevoComentario => {

@@ -1,18 +1,18 @@
-$primary-color: #5865f2; // Mobile accent color
+$primary-color: #5865f2;
 $accent-color: #5865f2;
 $warn-color: #f57c00;
-$background-dark: #1e2023; // Mobile background
-$background-sidebar: #1e2023; // Matching mobile background
-$background-message: #2b2d31; // Mobile comment bubble
-$background-input: #2b2d31; // Mobile input bg
+$background-dark: #1e2023;
+$background-sidebar: #1e2023;
+$background-message: #2b2d31;
+$background-input: #2b2d31;
 $text-primary: #ffffff;
-$text-secondary: #949ba4; // Mobile text secondary
-$text-muted: #6d6f78; // Mobile placeholder/muted
-$border-color: #2f3136; // Mobile border
+$text-secondary: #949ba4;
+$text-muted: #6d6f78;
+$border-color: #2f3136;
 $hover-bg: #35373c;
 
-$message-bubble-sent: #5865f2; // Mobile accent
-$message-bubble-received: #2b2d31; // Mobile bubble
+$message-bubble-sent: #5865f2;
+$message-bubble-received: #2b2d31;
 $reply-indicator: rgba(88, 101, 242, 0.1);
 
 $red-light: #ef5350;
@@ -981,4 +981,127 @@ $green-dark: #2e7d32;
   .message-bubble {
     max-width: 85%;
   }
+}
+
+// File Preview styles
+.file-preview-container {
+  width: 100%;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 8px;
+
+  .preview-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 8px;
+    border-radius: 8px;
+    position: relative;
+
+    .preview-image,
+    .preview-video {
+      width: 64px;
+      height: 64px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .file-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+      min-width: 0;
+
+      .file-name {
+        font-size: 13px;
+        color: $text-primary;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: 500;
+      }
+
+      .file-size {
+        font-size: 11px;
+        color: $text-secondary;
+      }
+    }
+
+    .remove-file-btn {
+      color: $text-secondary;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.2s ease;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+
+      &:hover {
+        background: rgba(244, 67, 54, 0.2);
+        color: $red-light;
+      }
+    }
+  }
+
+  .upload-progress-bar {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+
+    .progress-fill {
+      height: 100%;
+      background: $green-light;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 8px rgba(129, 199, 132, 0.5);
+    }
+  }
+}
+
+// Media in messages
+.message-media {
+  margin-bottom: 8px;
+  max-width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+  .media-content {
+    display: block;
+    max-width: 100%;
+    max-height: 320px;
+    object-fit: contain;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+
+    &.image-content {
+      cursor: pointer;
+      transition: transform 0.2s ease;
+
+      &:hover {
+        opacity: 0.9;
+      }
+    }
+
+    &.video-content {
+      width: 100%;
+      max-height: 320px;
+    }
+  }
+}
+
+.input-container .textarea-wrapper {
+  flex-wrap: wrap;
 }

@@ -1,4 +1,5 @@
 import { Component, Inject, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject, ViewChild, ElementRef } from '@angular/core';
+import { HttpClient, HttpEventType, HttpClientModule } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -16,7 +17,7 @@ import { UsuariosActivosGQL } from '../../graphql/usuariosActivos.gql';
 import { UsuariosDestinatariosNotificacionGQL } from '../../graphql/usuariosDestinatariosNotificacion.gql';
 import { UsuariosConAccesoNotificacionGQL } from '../../graphql/usuariosConAccesoNotificacion.gql';
 import { Observable, BehaviorSubject, combineLatest, interval, of } from 'rxjs';
-import { map, debounceTime, distinctUntilChanged, switchMap, startWith, tap, catchError } from 'rxjs/operators';
+import { map, debounceTime, distinctUntilChanged, switchMap, startWith, tap, catchError, filter } from 'rxjs/operators';
 
 export interface ComentariosDialogData {
   notificacionId: number;
@@ -47,6 +48,7 @@ interface ComentarioExtendido extends NotificacionComentario {
   replyColor?: string;
   replyLightColor?: string;
   avatarUrl: string;
+  mediaUrl?: string;
 }
 
 
@@ -64,7 +66,8 @@ interface ComentarioExtendido extends NotificacionComentario {
     MatInputModule,
     MatFormFieldModule,
     MatProgressSpinnerModule,
-    MatTooltipModule
+    MatTooltipModule,
+    HttpClientModule
   ],
   templateUrl: './comentarios-notificacion-dialog.component.html',
   styleUrls: ['./comentarios-notificacion-dialog.component.scss'],
@@ -79,14 +82,23 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
   private readonly usuariosConAccesoGQL = inject(UsuariosConAccesoNotificacionGQL);
   private readonly mainService = inject(MainService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly http = inject(HttpClient);
 
   @ViewChild('mensajeTextarea') mensajeTextarea?: ElementRef<HTMLTextAreaElement>;
+  @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
 
   comentarios: ComentarioExtendido[] = [];
   nuevoComentario = '';
   comentarioPadreId: number | null = null;
   cargando = false;
   enviando = false;
+
+  selectedFile: File | null = null;
+  filePreview: string | null = null;
+  isUploading = false;
+  uploadProgress = 0;
+
+
 
   usuarios: Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> = [];
   usuariosFiltrados: UsuarioExtendido[] = [];
@@ -434,12 +446,102 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     }
   }
 
+  triggerFileInput(): void {
+    this.fileInput?.nativeElement.click();
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedFile = input.files[0];
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.filePreview = reader.result as string;
+        this.cdr.markForCheck();
+      };
+
+      reader.readAsDataURL(this.selectedFile);
+      this.cdr.markForCheck();
+    }
+  }
+
+  removeFile(): void {
+    this.selectedFile = null;
+    this.filePreview = null;
+    if (this.fileInput) {
+      this.fileInput.nativeElement.value = '';
+    }
+    this.cdr.markForCheck();
+  }
+
+  uploadFile(file: File): Observable<string> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'frc-sistemas-informaticos');
+
+    this.isUploading = true;
+    this.uploadProgress = 0;
+    this.cdr.markForCheck();
+
+    return this.http.post<any>('https://api.cloudinary.com/v1_1/daf3cny90/auto/upload', formData, {
+      reportProgress: true,
+      observe: 'events'
+    }).pipe(
+      map(event => {
+        if (event.type === HttpEventType.UploadProgress) {
+          if (event.total) {
+            this.uploadProgress = Math.round(100 * event.loaded / event.total);
+            this.cdr.markForCheck();
+          }
+        } else if (event.type === HttpEventType.Response) {
+          return event.body.secure_url;
+        }
+        return null;
+      }),
+      filter((url): url is string => !!url),
+      tap(() => {
+        this.isUploading = false;
+        this.cdr.markForCheck();
+      }),
+      catchError(error => {
+        this.isUploading = false;
+        console.error('Error uploading to Cloudinary', error);
+        if (error.error) {
+          console.error('Cloudinary detailed error:', error.error);
+        }
+        this.cdr.markForCheck();
+        throw error;
+      })
+    );
+  }
+
   enviarComentario(): void {
     const comentarioTexto = this.nuevoComentario.trim();
-    if (!comentarioTexto || this.enviando) {
+    if ((!comentarioTexto && !this.selectedFile) || this.enviando || this.isUploading) {
       return;
     }
 
+    this.enviando = true;
+
+    if (this.selectedFile) {
+      this.uploadFile(this.selectedFile).subscribe({
+        next: (url) => {
+          this.procesarEnvioComentario(comentarioTexto, url);
+          this.removeFile();
+        },
+        error: () => {
+          this.enviando = false;
+          this.cdr.markForCheck();
+        }
+      });
+    } else {
+      this.procesarEnvioComentario(comentarioTexto);
+    }
+  }
+
+  private procesarEnvioComentario(comentarioTexto: string, mediaUrl?: string): void {
+    const commentaire = comentarioTexto || (mediaUrl ? 'Adjunto archivo multimedia' : '');
     const comentarioPadreIdTemp = this.comentarioPadreId;
 
     this.nuevoComentario = '';
@@ -453,6 +555,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     this.cdr.markForCheck();
 
     const usuarioActual = this.mainService.usuarioActual;
+
     if (usuarioActual) {
       const comentarioPadreTemp = comentarioPadreIdTemp
         ? this.comentarios.find(c => c.id === comentarioPadreIdTemp)
@@ -460,7 +563,8 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
 
       const comentarioTemporalRaw: NotificacionComentario = {
         id: -1,
-        comentario: comentarioTexto,
+        comentario: commentaire,
+        mediaUrl: mediaUrl,
         creadoEn: new Date().toISOString(),
         actualizadoEn: new Date().toISOString(),
         usuario: {
@@ -489,13 +593,11 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
       }, 0);
     }
 
-    this.enviando = true;
-    this.cdr.markForCheck();
-
     this.comentariosService.crearComentario(
       this.data.notificacionId,
-      comentarioTexto,
-      comentarioPadreIdTemp || undefined
+      commentaire,
+      comentarioPadreIdTemp || undefined,
+      mediaUrl
     ).pipe(
       untilDestroyed(this),
       switchMap(() => {
