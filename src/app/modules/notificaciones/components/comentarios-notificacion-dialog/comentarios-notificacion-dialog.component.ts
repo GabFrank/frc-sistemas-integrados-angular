@@ -1,5 +1,4 @@
-import { Component, Inject, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, inject, ViewChild, ElementRef, NgZone } from '@angular/core';
-import { HttpClient, HttpEventType, HttpClientModule } from '@angular/common/http';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, inject, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -14,44 +13,18 @@ import { ComentariosNotificacionService } from '../../services/comentarios-notif
 import { NotificacionComentario } from '../../graphql/comentariosNotificacion.gql';
 import { MainService } from '../../../../main.service';
 import { UsuariosActivosGQL } from '../../graphql/usuariosActivos.gql';
-import { UsuariosDestinatariosNotificacionGQL } from '../../graphql/usuariosDestinatariosNotificacion.gql';
 import { UsuariosConAccesoNotificacionGQL } from '../../graphql/usuariosConAccesoNotificacion.gql';
-import { Observable, BehaviorSubject, combineLatest, interval, of } from 'rxjs';
-import { map, debounceTime, distinctUntilChanged, switchMap, startWith, tap, catchError, filter } from 'rxjs/operators';
+import { Observable, interval, of } from 'rxjs';
+import { switchMap, tap, catchError, map } from 'rxjs/operators';
+import { MediaUploadService } from '../../../../shared/services/media-upload.service';
+import { AudioRecordingService, EstadoGrabacion } from '../../../../shared/services/audio-recording.service';
+import { AvatarService } from '../../../../shared/services/avatar.service';
+import { MediaTypeService } from '../../../../shared/services/media-type.service';
+import { TextFormatterService } from '../../../../shared/services/text-formatter.service';
+import { MencionUsuarioService } from '../../../../shared/services/mencion-usuario.service';
+import { ComentariosDialogData, UsuarioExtendido, ComentarioExtendido } from './comentarios.models';
 
-export interface ComentariosDialogData {
-  notificacionId: number;
-  notificacion: {
-    id: number;
-    titulo: string;
-  };
-  comentarioId?: number;
-}
-
-interface UsuarioExtendido {
-  id: number;
-  nickname: string;
-  persona?: { id: number; nombre: string; imagenes?: string };
-  initials: string;
-  color: string;
-  color2: string;
-  avatarUrl: string;
-}
-
-interface ComentarioExtendido extends NotificacionComentario {
-  initials: string;
-  color: string;
-  color2: string;
-  lightColor: string;
-  formattedText: string;
-  isSameAuthor: boolean;
-  replyColor?: string;
-  replyLightColor?: string;
-  avatarUrl: string;
-  mediaUrl?: string;
-}
-
-
+export { ComentariosDialogData } from './comentarios.models';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -66,8 +39,7 @@ interface ComentarioExtendido extends NotificacionComentario {
     MatInputModule,
     MatFormFieldModule,
     MatProgressSpinnerModule,
-    MatTooltipModule,
-    HttpClientModule
+    MatTooltipModule
   ],
   templateUrl: './comentarios-notificacion-dialog.component.html',
   styleUrls: ['./comentarios-notificacion-dialog.component.scss'],
@@ -78,12 +50,15 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
   public readonly data = inject<ComentariosDialogData>(MAT_DIALOG_DATA);
   private readonly comentariosService = inject(ComentariosNotificacionService);
   private readonly usuariosActivosGQL = inject(UsuariosActivosGQL);
-  private readonly usuariosDestinatariosGQL = inject(UsuariosDestinatariosNotificacionGQL);
   private readonly usuariosConAccesoGQL = inject(UsuariosConAccesoNotificacionGQL);
   private readonly mainService = inject(MainService);
   private readonly cdr = inject(ChangeDetectorRef);
-  private readonly http = inject(HttpClient);
-  private readonly ngZone = inject(NgZone);
+  private readonly mediaUploadService = inject(MediaUploadService);
+  private readonly audioRecordingService = inject(AudioRecordingService);
+  private readonly avatarService = inject(AvatarService);
+  private readonly mediaTypeService = inject(MediaTypeService);
+  private readonly textFormatterService = inject(TextFormatterService);
+  private readonly mencionService = inject(MencionUsuarioService);
 
   @ViewChild('mensajeTextarea') mensajeTextarea?: ElementRef<HTMLTextAreaElement>;
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
@@ -99,20 +74,11 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
   isUploading = false;
   uploadProgress = 0;
 
-  isRecording = false;
-  recordingDuration = 0;
-  private mediaRecorder: MediaRecorder | null = null;
-  private audioChunks: Blob[] = [];
-  private recordingTimer: any = null;
-  recordedAudio: Blob | null = null;
-  recordedAudioUrl: string | null = null;
-
-
+  readonly estadoGrabacion$ = this.audioRecordingService.estado$;
+  readonly duracionFormateada$ = this.audioRecordingService.duracionFormateada$;
 
   usuarios: Array<{ id: number; nickname: string; persona?: { id: number; nombre: string } }> = [];
   usuariosFiltrados: UsuarioExtendido[] = [];
-  usuariosFiltrados$: Observable<UsuarioExtendido[]>;
-  textoBusqueda$ = new BehaviorSubject<string>('');
   mostrarAutocompletado = false;
   posicionCursor = 0;
 
@@ -121,25 +87,18 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
   filtroUsuarios: string = '';
   cargandoUsuarios = false;
 
-  private userColorsCache = new Map<number, string>();
-  private userLightColorsCache = new Map<number, string>();
-  private userInitialsCache = new Map<string, string>();
-
   private ultimoConteoComentarios = 0;
   audioWaveformBars = Array.from({ length: 30 }, () => Math.floor(Math.random() * 20) + 4);
 
   constructor() {
-    this.usuariosFiltrados$ = this.textoBusqueda$.pipe(
-      debounceTime(200),
-      distinctUntilChanged(),
-      map((busqueda) => {
+    this.mencionService.textoBusqueda$.pipe(
+      untilDestroyed(this),
+      map(busqueda => {
         this.usuariosFiltrados = this.filtrarUsuarios(busqueda);
         this.cdr.markForCheck();
         return this.usuariosFiltrados;
       })
-    );
-
-    this.usuariosFiltrados$.pipe(untilDestroyed(this)).subscribe();
+    ).subscribe();
   }
 
   ngOnInit(): void {
@@ -155,128 +114,49 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
     this.iniciarPollingComentarios();
   }
 
-  private getUserColor(usuarioId: number): string {
-    if (!this.userColorsCache.has(usuarioId)) {
-      const colors = [
-        '#f44336',
-        '#E91E63',
-        '#9C27B0',
-        '#673AB7',
-        '#3F51B5',
-        '#2196F3',
-        '#03A9F4',
-        '#00BCD4',
-        '#009688',
-        '#4CAF50',
-        '#8BC34A',
-        '#CDDC39',
-        '#FFEB3B',
-        '#FFC107',
-        '#FF9800',
-        '#FF5722',
-        '#795548',
-        '#607D8B',
-      ];
-      this.userColorsCache.set(usuarioId, colors[usuarioId % colors.length]);
-    }
-    return this.userColorsCache.get(usuarioId)!;
-  }
-
-  private getUserLightColor(usuarioId: number): string {
-    if (!this.userLightColorsCache.has(usuarioId)) {
-      const baseColor = this.getUserColor(usuarioId);
-      const hex = baseColor.replace('#', '');
-      const r = parseInt(hex.substr(0, 2), 16);
-      const g = parseInt(hex.substr(2, 2), 16);
-      const b = parseInt(hex.substr(4, 2), 16);
-      this.userLightColorsCache.set(usuarioId, `rgba(${r}, ${g}, ${b}, 0.25)`);
-    }
-    return this.userLightColorsCache.get(usuarioId)!;
-  }
-
-  private getUserInitials(usuario: { nickname: string; persona?: { nombre?: string } }): string {
-    const key = `${usuario.nickname}-${usuario.persona?.nombre || ''}`;
-    if (!this.userInitialsCache.has(key)) {
-      const nombre = usuario.persona?.nombre || usuario.nickname || 'U';
-      const partes = nombre.trim().split(' ').filter(p => p.length > 0);
-      let initials: string;
-      if (partes.length >= 2) {
-        initials = (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
-      } else {
-        initials = nombre.substring(0, Math.min(2, nombre.length)).toUpperCase();
-      }
-      this.userInitialsCache.set(key, initials);
-    }
-    return this.userInitialsCache.get(key)!;
-  }
-
   private formatearComentario(comentario: string): string {
-    if (!comentario) {
-      return '';
-    }
-
-    const textoEscapado = comentario
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-
-    const textoFormateado = textoEscapado.replace(
-      /@([a-zA-Z0-9_]+)/g,
-      '<span class="mention">@$1</span>'
-    );
-
-    return textoFormateado.replace(/\n/g, '<br>');
-  }
-
-  private obtenerAvatar(usuario: any, colorHex?: string): string {
-    if (usuario?.persona?.imagenes) {
-      return usuario.persona.imagenes;
-    }
-    const bg = colorHex ? colorHex.replace('#', '') : 'random';
-    return `https://ui-avatars.com/api/?name=${usuario?.nickname}&background=${bg}&color=fff&size=128&bold=true`;
+    return this.textFormatterService.formatearComentario(comentario);
   }
 
   private mapComentario(c: NotificacionComentario, index: number, array: NotificacionComentario[]): ComentarioExtendido {
     const isSameAuthor = index > 0 && array[index - 1].usuario.id === c.usuario.id;
-    const color = this.getUserColor(c.usuario.id);
-    const color2 = this.getUserColor(c.usuario.id + 1);
-    const lightColor = this.getUserLightColor(c.usuario.id);
-    const initials = this.getUserInitials(c.usuario);
+    const datosAvatar = this.avatarService.calcularDatosAvatar(c.usuario);
     const formattedText = this.formatearComentario(c.comentario);
-    const avatarUrl = this.obtenerAvatar(c.usuario, color);
+    const tipoMedia = c.mediaUrl ? this.mediaTypeService.obtenerTipoMedia(c.mediaUrl) : 'desconocido';
+    const nombreArchivo = c.mediaUrl ? this.mediaTypeService.obtenerNombreArchivo(c.mediaUrl) : '';
 
     let replyColor: string | undefined;
     let replyLightColor: string | undefined;
 
     if (c.comentarioPadre) {
-      replyColor = this.getUserColor(c.comentarioPadre.usuario.id);
-      replyLightColor = this.getUserLightColor(c.comentarioPadre.usuario.id);
+      replyColor = this.avatarService.obtenerColor(c.comentarioPadre.usuario.id);
+      replyLightColor = this.avatarService.obtenerColorClaro(c.comentarioPadre.usuario.id);
     }
 
     return {
       ...c,
-      initials,
-      color,
-      color2,
-      lightColor,
+      initials: datosAvatar.iniciales,
+      color: datosAvatar.color,
+      color2: this.avatarService.obtenerColor(c.usuario.id + 1),
+      lightColor: datosAvatar.colorClaro,
       formattedText,
       isSameAuthor,
       replyColor,
       replyLightColor,
-      avatarUrl
+      avatarUrl: datosAvatar.avatarUrl,
+      tipoMedia,
+      nombreArchivo
     };
   }
 
   private mapUsuario(u: { id: number; nickname: string; persona?: { id: number; nombre: string; imagenes?: string } }): UsuarioExtendido {
-    const color = this.getUserColor(u.id);
+    const datosAvatar = this.avatarService.calcularDatosAvatar(u);
     return {
       ...u,
-      initials: this.getUserInitials(u),
-      color: color,
-      color2: this.getUserColor(u.id + 1),
-      avatarUrl: this.obtenerAvatar(u, color)
+      initials: datosAvatar.iniciales,
+      color: datosAvatar.color,
+      color2: this.avatarService.obtenerColor(u.id + 1),
+      avatarUrl: datosAvatar.avatarUrl
     };
   }
 
@@ -400,20 +280,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
     const texto = textarea.value;
     this.posicionCursor = textarea.selectionStart;
 
-    const textoAntesCursor = texto.substring(0, this.posicionCursor);
-    const ultimoArroba = textoAntesCursor.lastIndexOf('@');
-
-    if (ultimoArroba !== -1) {
-      const textoDespuesArroba = textoAntesCursor.substring(ultimoArroba + 1);
-      if (!textoDespuesArroba.includes('\n') && !textoDespuesArroba.endsWith(' ')) {
-        this.mostrarAutocompletado = true;
-        this.textoBusqueda$.next(textoDespuesArroba);
-        this.cdr.markForCheck();
-        return;
-      }
-    }
-
-    this.mostrarAutocompletado = false;
+    this.mostrarAutocompletado = this.mencionService.detectarMencion(texto, this.posicionCursor);
     this.cdr.markForCheck();
   }
 
@@ -505,41 +372,26 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
     this.cdr.markForCheck();
   }
 
-  uploadFile(file: File): Observable<string> {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', 'frc-sistemas-informaticos');
-
+  subirArchivo(archivo: File): Observable<string> {
     this.isUploading = true;
     this.uploadProgress = 0;
     this.cdr.markForCheck();
 
-    return this.http.post<any>('https://api.cloudinary.com/v1_1/daf3cny90/auto/upload', formData, {
-      reportProgress: true,
-      observe: 'events'
-    }).pipe(
-      map(event => {
-        if (event.type === HttpEventType.UploadProgress) {
-          if (event.total) {
-            this.uploadProgress = Math.round(100 * event.loaded / event.total);
-            this.cdr.markForCheck();
-          }
-        } else if (event.type === HttpEventType.Response) {
-          return event.body.secure_url;
-        }
-        return null;
-      }),
-      filter((url): url is string => !!url),
+    this.mediaUploadService.progreso$.pipe(
+      untilDestroyed(this)
+    ).subscribe(progreso => {
+      this.uploadProgress = progreso.progreso;
+      this.isUploading = progreso.estado === 'subiendo';
+      this.cdr.markForCheck();
+    });
+
+    return this.mediaUploadService.subirArchivo(archivo).pipe(
       tap(() => {
         this.isUploading = false;
         this.cdr.markForCheck();
       }),
       catchError(error => {
         this.isUploading = false;
-        console.error('Error uploading to Cloudinary', error);
-        if (error.error) {
-          console.error('Cloudinary detailed error:', error.error);
-        }
         this.cdr.markForCheck();
         throw error;
       })
@@ -555,7 +407,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
     this.enviando = true;
 
     if (this.selectedFile) {
-      this.uploadFile(this.selectedFile).subscribe({
+      this.subirArchivo(this.selectedFile).subscribe({
         next: (url) => {
           this.procesarEnvioComentario(comentarioTexto, url);
           this.removeFile();
@@ -718,106 +570,35 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
   }
 
   async startRecording(): Promise<void> {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      this.mediaRecorder = new MediaRecorder(stream);
-      this.audioChunks = [];
-      this.recordingDuration = 0;
-
-      this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          this.audioChunks.push(event.data);
-        }
-      };
-
-      this.mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-        this.recordedAudio = audioBlob;
-        this.recordedAudioUrl = URL.createObjectURL(audioBlob);
-
-        stream.getTracks().forEach(track => track.stop());
-
-        this.ngZone.run(() => {
-          this.cdr.markForCheck();
-        });
-      };
-
-      this.mediaRecorder.start();
-      this.isRecording = true;
-
-      this.recordingTimer = setInterval(() => {
-        this.ngZone.run(() => {
-          this.recordingDuration++;
-          this.cdr.markForCheck();
-        });
-      }, 1000);
-
-      this.cdr.markForCheck();
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-    }
+    await this.audioRecordingService.iniciarGrabacion();
+    this.cdr.markForCheck();
   }
 
   stopRecording(): void {
-    if (this.mediaRecorder && this.isRecording) {
-      this.mediaRecorder.stop();
-      this.isRecording = false;
-
-      if (this.recordingTimer) {
-        clearInterval(this.recordingTimer);
-        this.recordingTimer = null;
-      }
-
-      this.cdr.markForCheck();
-    }
+    this.audioRecordingService.detenerGrabacion();
+    this.cdr.markForCheck();
   }
 
   cancelRecording(): void {
-    if (this.mediaRecorder && this.isRecording) {
-      this.mediaRecorder.stop();
-    }
-    this.isRecording = false;
-    this.recordingDuration = 0;
-    this.recordedAudio = null;
-    if (this.recordedAudioUrl) {
-      URL.revokeObjectURL(this.recordedAudioUrl);
-      this.recordedAudioUrl = null;
-    }
-    this.audioChunks = [];
-
-    if (this.recordingTimer) {
-      clearInterval(this.recordingTimer);
-      this.recordingTimer = null;
-    }
-
+    this.audioRecordingService.cancelarGrabacion();
     this.cdr.markForCheck();
   }
 
   removeRecordedAudio(): void {
-    this.recordedAudio = null;
-    if (this.recordedAudioUrl) {
-      URL.revokeObjectURL(this.recordedAudioUrl);
-      this.recordedAudioUrl = null;
-    }
-    this.recordingDuration = 0;
+    this.audioRecordingService.eliminarAudioGrabado();
     this.cdr.markForCheck();
   }
 
-  formatRecordingTime(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
-
   sendAudioMessage(): void {
-    if (!this.recordedAudio || this.enviando || this.isUploading) {
+    const estado = this.audioRecordingService.obtenerEstadoActual();
+    if (!estado.audioGrabado || this.enviando || this.isUploading) {
       return;
     }
 
     this.enviando = true;
-    const audioFile = new File([this.recordedAudio], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
+    const audioFile = new File([estado.audioGrabado], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
 
-    this.uploadFile(audioFile).subscribe({
+    this.subirArchivo(audioFile).subscribe({
       next: (url) => {
         this.procesarEnvioComentario('Adjunto archivo multimedia', url);
         this.removeRecordedAudio();
@@ -827,13 +608,6 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
         this.cdr.markForCheck();
       }
     });
-  }
-
-  isAudioFile(url: string): boolean {
-    if (!url) return false;
-    const audioExtensions = ['.mp3', '.wav', '.ogg', '.webm', '.m4a', '.aac', '.flac'];
-    const lowerUrl = url.toLowerCase();
-    return audioExtensions.some(ext => lowerUrl.includes(ext));
   }
 
   toggleAudioPlay(event: Event): void {
@@ -872,7 +646,6 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
       }
     };
 
-    // Actualizar tiempo durante reproducción
     audio.ontimeupdate = () => {
       if (durationSpan) {
         const mins = Math.floor(audio.currentTime / 60);
@@ -881,7 +654,6 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
       }
     };
 
-    // Resetear cuando termina
     audio.onended = () => {
       if (icon) icon.textContent = 'play_arrow';
       audio.currentTime = 0;
@@ -889,15 +661,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy
   }
 
   ngOnDestroy(): void {
-    if (this.recordingTimer) {
-      clearInterval(this.recordingTimer);
-    }
-    if (this.recordedAudioUrl) {
-      URL.revokeObjectURL(this.recordedAudioUrl);
-    }
-    if (this.mediaRecorder && this.isRecording) {
-      this.mediaRecorder.stop();
-    }
+    this.audioRecordingService.destruir();
   }
 }
 

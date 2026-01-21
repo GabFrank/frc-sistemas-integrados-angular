@@ -108,74 +108,76 @@
 
               <div *ngIf="comentario.mediaUrl" class="message-media">
                 <div class="media-wrapper">
-                  <ng-container *ngIf="isAudioFile(comentario.mediaUrl)">
-                    <div class="whatsapp-audio-player">
-                      <button class="audio-play-btn" (click)="toggleAudioPlay($event)">
-                        <mat-icon>play_arrow</mat-icon>
-                      </button>
-                      <div class="audio-waveform">
-                        <div class="waveform-bars">
-                          <span *ngFor="let bar of audioWaveformBars" class="bar" [style.height.px]="bar"></span>
+                  <ng-container [ngSwitch]="comentario.tipoMedia">
+                    <ng-container *ngSwitchCase="'audio'">
+                      <div class="whatsapp-audio-player">
+                        <button class="audio-play-btn" (click)="toggleAudioPlay($event)">
+                          <mat-icon>play_arrow</mat-icon>
+                        </button>
+                        <div class="audio-waveform">
+                          <div class="waveform-bars">
+                            <span *ngFor="let bar of audioWaveformBars" class="bar" [style.height.px]="bar"></span>
+                          </div>
+                          <div class="audio-progress"></div>
                         </div>
-                        <div class="audio-progress"></div>
+                        <span class="audio-duration">0:00</span>
+                        <img [src]="comentario.avatarUrl" class="audio-avatar" alt="Avatar">
+                        <audio [src]="comentario.mediaUrl" class="hidden-audio" preload="metadata"></audio>
                       </div>
-                      <span class="audio-duration">0:00</span>
-                      <img [src]="comentario.avatarUrl" class="audio-avatar" alt="Avatar">
-                      <audio [src]="comentario.mediaUrl" class="hidden-audio" preload="metadata"></audio>
-                    </div>
-                  </ng-container>
+                    </ng-container>
+                    <ng-container *ngSwitchCase="'video'">
+                      <video [src]="comentario.mediaUrl" controls class="media-content video-content"
+                        preload="metadata"></video>
+                    </ng-container>
 
-                  <ng-container
-                    *ngIf="!isAudioFile(comentario.mediaUrl) && (comentario.mediaUrl.includes('.mp4') || comentario.mediaUrl.includes('.mov'))">
-                    <video [src]="comentario.mediaUrl" controls class="media-content video-content"
-                      preload="metadata"></video>
-                  </ng-container>
+                    <ng-container *ngSwitchCase="'imagen'">
+                      <img [src]="comentario.mediaUrl" class="media-content image-content" alt="Adjunto" loading="lazy">
+                    </ng-container>
+                    <ng-container *ngSwitchCase="'pdf'">
+                      <div class="file-attachment pdf-file">
+                        <mat-icon class="file-type-icon">picture_as_pdf</mat-icon>
+                        <span class="file-type-name">{{ comentario.nombreArchivo }}</span>
+                      </div>
+                    </ng-container>
 
-                  <ng-container
-                    *ngIf="!isAudioFile(comentario.mediaUrl) && !comentario.mediaUrl.includes('.mp4') && !comentario.mediaUrl.includes('.mov') && !comentario.mediaUrl.includes('.pdf') && !comentario.mediaUrl.includes('.doc') && !comentario.mediaUrl.includes('.xls') && !comentario.mediaUrl.includes('.ppt') && !comentario.mediaUrl.includes('.zip') && !comentario.mediaUrl.includes('.rar') && !comentario.mediaUrl.includes('.txt')">
-                    <img [src]="comentario.mediaUrl" class="media-content image-content" alt="Adjunto" loading="lazy">
-                  </ng-container>
+                    <ng-container *ngSwitchCase="'documento'">
+                      <div class="file-attachment word-file">
+                        <mat-icon class="file-type-icon">description</mat-icon>
+                        <span class="file-type-name">{{ comentario.nombreArchivo }}</span>
+                      </div>
+                    </ng-container>
 
-                  <ng-container *ngIf="comentario.mediaUrl.includes('.pdf')">
-                    <div class="file-attachment pdf-file">
-                      <mat-icon class="file-type-icon">picture_as_pdf</mat-icon>
-                      <span class="file-type-name">{{ comentario.mediaUrl.split('/').pop() }}</span>
-                    </div>
-                  </ng-container>
+                    <ng-container *ngSwitchCase="'hoja_calculo'">
+                      <div class="file-attachment excel-file">
+                        <mat-icon class="file-type-icon">table_chart</mat-icon>
+                        <span class="file-type-name">{{ comentario.nombreArchivo }}</span>
+                      </div>
+                    </ng-container>
 
-                  <ng-container *ngIf="comentario.mediaUrl.includes('.doc')">
-                    <div class="file-attachment word-file">
-                      <mat-icon class="file-type-icon">description</mat-icon>
-                      <span class="file-type-name">{{ comentario.mediaUrl.split('/').pop() }}</span>
-                    </div>
-                  </ng-container>
+                    <ng-container *ngSwitchCase="'presentacion'">
+                      <div class="file-attachment ppt-file">
+                        <mat-icon class="file-type-icon">slideshow</mat-icon>
+                        <span class="file-type-name">{{ comentario.nombreArchivo }}</span>
+                      </div>
+                    </ng-container>
 
-                  <ng-container *ngIf="comentario.mediaUrl.includes('.xls')">
-                    <div class="file-attachment excel-file">
-                      <mat-icon class="file-type-icon">table_chart</mat-icon>
-                      <span class="file-type-name">{{ comentario.mediaUrl.split('/').pop() }}</span>
-                    </div>
-                  </ng-container>
+                    <ng-container *ngSwitchCase="'comprimido'">
+                      <div class="file-attachment archive-file">
+                        <mat-icon class="file-type-icon">folder_zip</mat-icon>
+                        <span class="file-type-name">{{ comentario.nombreArchivo }}</span>
+                      </div>
+                    </ng-container>
 
-                  <ng-container *ngIf="comentario.mediaUrl.includes('.ppt')">
-                    <div class="file-attachment ppt-file">
-                      <mat-icon class="file-type-icon">slideshow</mat-icon>
-                      <span class="file-type-name">{{ comentario.mediaUrl.split('/').pop() }}</span>
-                    </div>
-                  </ng-container>
+                    <ng-container *ngSwitchCase="'texto'">
+                      <div class="file-attachment txt-file">
+                        <mat-icon class="file-type-icon">text_snippet</mat-icon>
+                        <span class="file-type-name">{{ comentario.nombreArchivo }}</span>
+                      </div>
+                    </ng-container>
 
-                  <ng-container *ngIf="comentario.mediaUrl.includes('.zip') || comentario.mediaUrl.includes('.rar')">
-                    <div class="file-attachment archive-file">
-                      <mat-icon class="file-type-icon">folder_zip</mat-icon>
-                      <span class="file-type-name">{{ comentario.mediaUrl.split('/').pop() }}</span>
-                    </div>
-                  </ng-container>
-
-                  <ng-container *ngIf="comentario.mediaUrl.includes('.txt')">
-                    <div class="file-attachment txt-file">
-                      <mat-icon class="file-type-icon">text_snippet</mat-icon>
-                      <span class="file-type-name">{{ comentario.mediaUrl.split('/').pop() }}</span>
-                    </div>
+                    <ng-container *ngSwitchDefault>
+                      <img [src]="comentario.mediaUrl" class="media-content image-content" alt="Adjunto" loading="lazy">
+                    </ng-container>
                   </ng-container>
 
                   <button mat-icon-button class="download-btn" (click)="descargarMedia(comentario.mediaUrl)"
@@ -225,120 +227,124 @@
         <input type="file" #fileInput hidden (change)="onFileSelected($event)"
           accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.txt">
 
-        <ng-container *ngIf="isRecording">
-          <div class="recording-container">
-            <button mat-icon-button class="cancel-recording-btn" (click)="cancelRecording()" matTooltip="Cancelar">
-              <mat-icon>close</mat-icon>
-            </button>
-            <div class="recording-indicator">
-              <div class="recording-pulse"></div>
-              <mat-icon class="mic-recording-icon">mic</mat-icon>
-            </div>
-            <span class="recording-time">{{ formatRecordingTime(recordingDuration) }}</span>
-            <div class="recording-wave">
-              <span class="wave-bar"></span>
-              <span class="wave-bar"></span>
-              <span class="wave-bar"></span>
-              <span class="wave-bar"></span>
-              <span class="wave-bar"></span>
-            </div>
-            <button mat-icon-button class="stop-recording-btn" (click)="stopRecording()" matTooltip="Detener">
-              <mat-icon>stop</mat-icon>
-            </button>
-          </div>
-        </ng-container>
-
-        <ng-container *ngIf="recordedAudio && !isRecording">
-          <div class="recorded-audio-container">
-            <button mat-icon-button class="remove-audio-btn" (click)="removeRecordedAudio()" matTooltip="Eliminar">
-              <mat-icon>close</mat-icon>
-            </button>
-            <div class="audio-preview">
-              <mat-icon class="audio-preview-icon">graphic_eq</mat-icon>
-              <audio [src]="recordedAudioUrl" controls class="recorded-audio-player"></audio>
-            </div>
-            <button mat-icon-button class="send-audio-btn" (click)="sendAudioMessage()"
-              [disabled]="enviando || isUploading" matTooltip="Enviar audio">
-              <mat-icon *ngIf="!enviando">send</mat-icon>
-              <mat-spinner *ngIf="enviando" diameter="20"></mat-spinner>
-            </button>
-          </div>
-        </ng-container>
-
-        <ng-container *ngIf="!isRecording && !recordedAudio">
-          <button mat-icon-button class="add-button" type="button" (click)="triggerFileInput()"
-            matTooltip="Adjuntar archivo">
-            <mat-icon>attach_file</mat-icon>
-          </button>
-
-          <div class="textarea-wrapper">
-            <div *ngIf="selectedFile" class="file-preview-container">
-              <div class="preview-content">
-                <img *ngIf="filePreview && selectedFile.type.startsWith('image/')" [src]="filePreview"
-                  class="preview-image">
-                <video *ngIf="filePreview && selectedFile.type.startsWith('video/')" [src]="filePreview"
-                  class="preview-video" controls></video>
-                <div *ngIf="selectedFile.type.startsWith('audio/')" class="preview-file-icon audio-preview">
-                  <mat-icon>graphic_eq</mat-icon>
-                </div>
-                <div *ngIf="selectedFile.type === 'application/pdf'" class="preview-file-icon pdf-preview">
-                  <mat-icon>picture_as_pdf</mat-icon>
-                </div>
-                <div
-                  *ngIf="selectedFile.type.includes('word') || selectedFile.name.endsWith('.doc') || selectedFile.name.endsWith('.docx')"
-                  class="preview-file-icon word-preview">
-                  <mat-icon>description</mat-icon>
-                </div>
-                <div
-                  *ngIf="selectedFile.type.includes('spreadsheet') || selectedFile.type.includes('excel') || selectedFile.name.endsWith('.xls') || selectedFile.name.endsWith('.xlsx')"
-                  class="preview-file-icon excel-preview">
-                  <mat-icon>table_chart</mat-icon>
-                </div>
-                <div
-                  *ngIf="selectedFile.type.includes('presentation') || selectedFile.type.includes('powerpoint') || selectedFile.name.endsWith('.ppt') || selectedFile.name.endsWith('.pptx')"
-                  class="preview-file-icon ppt-preview">
-                  <mat-icon>slideshow</mat-icon>
-                </div>
-                <div
-                  *ngIf="selectedFile.type.includes('zip') || selectedFile.type.includes('rar') || selectedFile.name.endsWith('.zip') || selectedFile.name.endsWith('.rar')"
-                  class="preview-file-icon archive-preview">
-                  <mat-icon>folder_zip</mat-icon>
-                </div>
-                <div *ngIf="selectedFile.type === 'text/plain' || selectedFile.name.endsWith('.txt')"
-                  class="preview-file-icon txt-preview">
-                  <mat-icon>text_snippet</mat-icon>
-                </div>
-                <div class="file-info">
-                  <span class="file-name">{{ selectedFile.name }}</span>
-                  <span class="file-size">{{ (selectedFile.size / 1024 / 1024) | number:'1.2-2' }} MB</span>
-                </div>
-                <button mat-icon-button (click)="removeFile()" class="remove-file-btn">
-                  <mat-icon>close</mat-icon>
-                </button>
+        <ng-container *ngIf="estadoGrabacion$ | async as estadoGrabacion">
+          <ng-container *ngIf="estadoGrabacion.grabando">
+            <div class="recording-container">
+              <button mat-icon-button class="cancel-recording-btn" (click)="cancelRecording()" matTooltip="Cancelar">
+                <mat-icon>close</mat-icon>
+              </button>
+              <div class="recording-indicator">
+                <div class="recording-pulse"></div>
+                <mat-icon class="mic-recording-icon">mic</mat-icon>
               </div>
-              <div *ngIf="isUploading" class="upload-progress-bar">
-                <div class="progress-fill" [style.width.%]="uploadProgress"></div>
+              <span class="recording-time">{{ duracionFormateada$ | async }}</span>
+              <div class="recording-wave">
+                <span class="wave-bar"></span>
+                <span class="wave-bar"></span>
+                <span class="wave-bar"></span>
+                <span class="wave-bar"></span>
+                <span class="wave-bar"></span>
               </div>
-            </div>
-
-            <div class="input-row">
-              <textarea [(ngModel)]="nuevoComentario" (input)="onTextareaInput($event); adjustTextareaHeight($event)"
-                (keydown)="onKeyDown($event)" [disabled]="enviando || isUploading" placeholder="Mensaje para el grupo"
-                class="gemini-textarea" #mensajeTextarea rows="1"></textarea>
-
-              <button mat-icon-button class="send-button-gemini" type="button"
-                [disabled]="(!nuevoComentario.trim() && !selectedFile) || enviando || isUploading"
-                (click)="enviarComentario()">
-                <mat-icon *ngIf="!enviando && !isUploading">send</mat-icon>
-                <mat-spinner *ngIf="enviando || isUploading" diameter="20" class="send-spinner"></mat-spinner>
+              <button mat-icon-button class="stop-recording-btn" (click)="stopRecording()" matTooltip="Detener">
+                <mat-icon>stop</mat-icon>
               </button>
             </div>
-          </div>
+          </ng-container>
 
-          <button mat-icon-button class="mic-button" type="button" (click)="startRecording()" matTooltip="Grabar audio"
-            [disabled]="enviando || isUploading">
-            <mat-icon>mic</mat-icon>
-          </button>
+          <ng-container *ngIf="estadoGrabacion.audioGrabado && !estadoGrabacion.grabando">
+            <div class="recorded-audio-container">
+              <button mat-icon-button class="remove-audio-btn" (click)="removeRecordedAudio()" matTooltip="Eliminar">
+                <mat-icon>close</mat-icon>
+              </button>
+              <div class="audio-preview">
+                <mat-icon class="audio-preview-icon">graphic_eq</mat-icon>
+                <audio [src]="estadoGrabacion.urlAudio" controls class="recorded-audio-player"></audio>
+              </div>
+              <button mat-icon-button class="send-audio-btn" (click)="sendAudioMessage()"
+                [disabled]="enviando || isUploading" matTooltip="Enviar audio">
+                <mat-icon *ngIf="!enviando">send</mat-icon>
+                <mat-spinner *ngIf="enviando" diameter="20"></mat-spinner>
+              </button>
+            </div>
+          </ng-container>
+        </ng-container>
+
+        <ng-container *ngIf="(estadoGrabacion$ | async) as estado">
+          <ng-container *ngIf="!estado.grabando && !estado.audioGrabado">
+            <button mat-icon-button class="add-button" type="button" (click)="triggerFileInput()"
+              matTooltip="Adjuntar archivo">
+              <mat-icon>attach_file</mat-icon>
+            </button>
+
+            <div class="textarea-wrapper">
+              <div *ngIf="selectedFile" class="file-preview-container">
+                <div class="preview-content">
+                  <img *ngIf="filePreview && selectedFile.type.startsWith('image/')" [src]="filePreview"
+                    class="preview-image">
+                  <video *ngIf="filePreview && selectedFile.type.startsWith('video/')" [src]="filePreview"
+                    class="preview-video" controls></video>
+                  <div *ngIf="selectedFile.type.startsWith('audio/')" class="preview-file-icon audio-preview">
+                    <mat-icon>graphic_eq</mat-icon>
+                  </div>
+                  <div *ngIf="selectedFile.type === 'application/pdf'" class="preview-file-icon pdf-preview">
+                    <mat-icon>picture_as_pdf</mat-icon>
+                  </div>
+                  <div
+                    *ngIf="selectedFile.type.includes('word') || selectedFile.name.endsWith('.doc') || selectedFile.name.endsWith('.docx')"
+                    class="preview-file-icon word-preview">
+                    <mat-icon>description</mat-icon>
+                  </div>
+                  <div
+                    *ngIf="selectedFile.type.includes('spreadsheet') || selectedFile.type.includes('excel') || selectedFile.name.endsWith('.xls') || selectedFile.name.endsWith('.xlsx')"
+                    class="preview-file-icon excel-preview">
+                    <mat-icon>table_chart</mat-icon>
+                  </div>
+                  <div
+                    *ngIf="selectedFile.type.includes('presentation') || selectedFile.type.includes('powerpoint') || selectedFile.name.endsWith('.ppt') || selectedFile.name.endsWith('.pptx')"
+                    class="preview-file-icon ppt-preview">
+                    <mat-icon>slideshow</mat-icon>
+                  </div>
+                  <div
+                    *ngIf="selectedFile.type.includes('zip') || selectedFile.type.includes('rar') || selectedFile.name.endsWith('.zip') || selectedFile.name.endsWith('.rar')"
+                    class="preview-file-icon archive-preview">
+                    <mat-icon>folder_zip</mat-icon>
+                  </div>
+                  <div *ngIf="selectedFile.type === 'text/plain' || selectedFile.name.endsWith('.txt')"
+                    class="preview-file-icon txt-preview">
+                    <mat-icon>text_snippet</mat-icon>
+                  </div>
+                  <div class="file-info">
+                    <span class="file-name">{{ selectedFile.name }}</span>
+                    <span class="file-size">{{ (selectedFile.size / 1024 / 1024) | number:'1.2-2' }} MB</span>
+                  </div>
+                  <button mat-icon-button (click)="removeFile()" class="remove-file-btn">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+                <div *ngIf="isUploading" class="upload-progress-bar">
+                  <div class="progress-fill" [style.width.%]="uploadProgress"></div>
+                </div>
+              </div>
+
+              <div class="input-row">
+                <textarea [(ngModel)]="nuevoComentario" (input)="onTextareaInput($event); adjustTextareaHeight($event)"
+                  (keydown)="onKeyDown($event)" [disabled]="enviando || isUploading" placeholder="Mensaje para el grupo"
+                  class="gemini-textarea" #mensajeTextarea rows="1"></textarea>
+
+                <button mat-icon-button class="send-button-gemini" type="button"
+                  [disabled]="(!nuevoComentario.trim() && !selectedFile) || enviando || isUploading"
+                  (click)="enviarComentario()">
+                  <mat-icon *ngIf="!enviando && !isUploading">send</mat-icon>
+                  <mat-spinner *ngIf="enviando || isUploading" diameter="20" class="send-spinner"></mat-spinner>
+                </button>
+              </div>
+            </div>
+
+            <button mat-icon-button class="mic-button" type="button" (click)="startRecording()"
+              matTooltip="Grabar audio" [disabled]="enviando || isUploading">
+              <mat-icon>mic</mat-icon>
+            </button>
+          </ng-container>
         </ng-container>
       </div>
     </div>
