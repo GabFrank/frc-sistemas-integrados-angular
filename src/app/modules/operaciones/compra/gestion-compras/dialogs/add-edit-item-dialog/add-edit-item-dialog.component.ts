@@ -5,7 +5,7 @@ import {
   ElementRef,
   Inject,
 } from "@angular/core";
-import { FormBuilder, FormGroup, Validators } from "@angular/forms";
+import { FormBuilder, FormGroup, FormArray, Validators, FormControl } from "@angular/forms";
 import {
   MatDialogRef,
   MAT_DIALOG_DATA,
@@ -34,6 +34,13 @@ import { NotificacionSnackbarService } from "../../../../../../notificacion-snac
 import { dateToString } from "../../../../../../commons/core/utils/dateUtils";
 import { MatButton } from "@angular/material/button";
 import { DialogosService } from "../../../../../../shared/components/dialogos/dialogos.service";
+import { Sucursal } from "../../../../../empresarial/sucursal/sucursal.model";
+import { PedidoItemDistribucion, PedidoItemDistribucionInput } from "../../pedido-item-distribucion.model";
+import { ProductoService } from "../../../../../productos/producto/producto.service";
+import { MovimientoStockService } from "../../../../../operaciones/movimiento-stock/movimiento-stock.service";
+import { TipoMovimiento } from "../../../../../operaciones/movimiento-stock/movimiento-stock.enums";
+import { MatTableDataSource } from "@angular/material/table";
+import { SelectSucursalesDialogComponent, SelectSucursalesDialogData, SelectSucursalesDialogResult } from "./select-sucursales-dialog.component";
 
 export interface AddEditItemDialogData {
   title: string;
@@ -47,6 +54,17 @@ export interface AddEditItemDialogResult {
   action: "save" | "cancel";
 }
 
+export interface DistribucionItem {
+  sucursalInfluencia: Sucursal;
+  sucursalEntrega: Sucursal;
+  stockActual: number;
+  stockActualLoading: boolean;
+  cantidadSugerida: number;
+  cantidadSugeridaLoading: boolean;
+  cantidadPedir: number;
+  distribucionId?: number; // Para modo edición
+}
+
 @Component({
   selector: "app-add-edit-item-dialog",
   templateUrl: "./add-edit-item-dialog.component.html",
@@ -54,7 +72,6 @@ export interface AddEditItemDialogResult {
 })
 export class AddEditItemDialogComponent implements OnInit {
   @ViewChild("productoInput") productoInput!: ElementRef;
-  @ViewChild("cantidadInput") cantidadInput!: ElementRef;
   @ViewChild("bonificacionCheckbox") bonificacionCheckbox!: MatCheckbox;
   @ViewChild("presentacionSelect") presentacionSelect!: MatSelect;
   @ViewChild("precioUnitarioInput") precioUnitarioInput!: ElementRef;
@@ -82,11 +99,70 @@ export class AddEditItemDialogComponent implements OnInit {
   // Display text computed properties (avoid function calls in template)
   productoDisplayTextComputed = "";
   presentacionDisplayTextComputed = "";
-  cantidadEnUnidadesBaseComputed = 0;
-  cantidadPorPresentacionComputed = 0;
+  presentacionSelectedComputed = false;
+  cantidadTotalComputed = 0;
+  cantidadTotalComputedText = "";
+  hasCantidadTotalError = false;
+
+  // Simplified view properties
+  stockTotalSimplificadoComputed = 0;
+  stockBreakdownTooltipComputed = "";
+  cantidadSimplificadaControl = new FormControl(0, [Validators.required, Validators.min(0.01)]);
 
   // Loading state
   savingComputed = false;
+
+  private _distribucionModo: 'COMPLETA' | 'SIMPLIFICADA' = 'COMPLETA';
+  
+  get distribucionModo(): 'COMPLETA' | 'SIMPLIFICADA' {
+    return this._distribucionModo;
+  }
+  
+  set distribucionModo(value: 'COMPLETA' | 'SIMPLIFICADA') {
+    if (this._distribucionModo !== value) {
+      this._distribucionModo = value;
+      // Actualizar propiedades computadas cuando cambia el modo
+      this.updateComputedProperties();
+      
+      // En modo simplificado, inicializar distribuciones si solo hay una sucursal de influencia y entrega
+      if (value === 'SIMPLIFICADA' && 
+          this.sucursalesInfluencia.length === 1 && 
+          this.sucursalesEntrega.length === 1 &&
+          this.distribucionesItems.length === 0) {
+        this.initializeDistribuciones();
+      }
+      
+      // Si cambia a modo simplificado, sumar todas las cantidades de las distribuciones
+      if (value === 'SIMPLIFICADA' && this.distribucionesItems.length > 0) {
+        let sumaTotal = 0;
+        this.distribucionesFormArray.controls.forEach(control => {
+          const cantidadPedir = control.get('cantidadPedir')?.value || 0;
+          sumaTotal += cantidadPedir;
+        });
+        // Establecer el valor en el control simplificado
+        this.cantidadSimplificadaControl.setValue(sumaTotal, { emitEvent: false });
+      }
+      
+      // Mover el foco al elemento correspondiente según el modo
+      setTimeout(() => {
+        if (value === 'COMPLETA') {
+          // Mover foco al primer input de la lista de distribuciones
+          const firstInput = this.getFirstDistribucionInput();
+          if (firstInput) {
+            firstInput.focus();
+            firstInput.select();
+          }
+        } else if (value === 'SIMPLIFICADA') {
+          // Mover foco al input de cantidad total simplificada
+          const simplifiedInput = document.querySelector('input.cantidad-simplificada-input') as HTMLInputElement;
+          if (simplifiedInput) {
+            simplifiedInput.focus();
+            simplifiedInput.select();
+          }
+        }
+      }, 100);
+    }
+  }
 
   currencyMask = new CurrencyMask();
   selectedCurrencyOptions = null; //select it based on the selected moneda from pedido on dialog data
@@ -99,6 +175,21 @@ export class AddEditItemDialogComponent implements OnInit {
   // Bandera para evitar validaciones durante la carga inicial de datos
   private isLoadingInitialData = false;
 
+  // Distribuciones
+  distribucionesFormArray: FormArray;
+  distribucionesItems: DistribucionItem[] = [];
+  distribucionesDataSource = new MatTableDataSource<DistribucionItem>([]);
+  distribucionesDisplayedColumns: string[] = [
+    'sucursalInfluencia',
+    'sucursalEntrega',
+    'stockActual',
+    'cantidadSugerida',
+    'cantidadPedir',
+    'acciones'
+  ];
+  sucursalesInfluencia: Sucursal[] = [];
+  sucursalesEntrega: Sucursal[] = [];
+
   constructor(
     private formBuilder: FormBuilder,
     private dialogRef: MatDialogRef<AddEditItemDialogComponent>,
@@ -107,9 +198,12 @@ export class AddEditItemDialogComponent implements OnInit {
     private pedidoService: PedidoService,
     private notificacionService: NotificacionSnackbarService,
     private dialogosService: DialogosService,
+    private productoService: ProductoService,
+    private movimientoStockService: MovimientoStockService,
     @Inject(MAT_DIALOG_DATA) public data: AddEditItemDialogData
   ) {
     this.initializeForm();
+    this.initializeSucursales();
   }
 
   ngOnInit(): void {
@@ -170,14 +264,30 @@ export class AddEditItemDialogComponent implements OnInit {
       productoSearch: [""], // Campo de búsqueda de producto
       producto: [null, [Validators.required]],
       presentacion: [null, [Validators.required]],
-      cantidadPorPresentacion: [1, [Validators.required, Validators.min(0.01)]], // Cantidad por presentación (UI)
-      cantidadSolicitada: [1, [Validators.required, Validators.min(0.01)]], // Cantidad en unidades base (hidden)
+      cantidadSolicitada: [0, [Validators.required, Validators.min(0.01)]], // Cantidad en unidades base (calculada desde distribuciones)
       precioUnitarioSolicitado: [0, [Validators.min(0)]],
       precioUnitarioPorPresentacion: [0, [Validators.min(0)]],
       esBonificacion: [false],
       vencimientoEsperado: [null],
       observacion: [""],
+      distribuciones: this.formBuilder.array([]) // FormArray para distribuciones
     });
+    this.distribucionesFormArray = this.itemForm.get('distribuciones') as FormArray;
+  }
+
+  private initializeSucursales(): void {
+    // Extraer sucursales del pedido con validación extra
+    const pedido = this.data.pedido;
+    if (pedido) {
+      // Mapear con el wrapper .sucursal (estándar de GraphQL)
+      this.sucursalesInfluencia = (pedido.sucursalInfluenciaList || [])
+        .map(si => si.sucursal)
+        .filter((s): s is Sucursal => s != null && s.id != null);
+        
+      this.sucursalesEntrega = (pedido.sucursalEntregaList || [])
+        .map(se => se.sucursal)
+        .filter((s): s is Sucursal => s != null && s.id != null);
+    }
   }
 
   private loadDataIfEdit(): void {
@@ -197,12 +307,6 @@ export class AddEditItemDialogComponent implements OnInit {
         ) || item.presentacionCreacion; // Fallback al original si no se encuentra
       }
 
-      // Convertir cantidad de unidades base a cantidad por presentación
-      const cantidadPorPresentacion =
-        presentacionSeleccionada && presentacionSeleccionada.cantidad > 0
-          ? item.cantidadSolicitada / presentacionSeleccionada.cantidad
-          : item.cantidadSolicitada;
-
       // Calcular precio por presentación basándose en precio unitario y cantidad de presentación
       const precioUnitarioPorPresentacion =
         presentacionSeleccionada && presentacionSeleccionada.cantidad > 0
@@ -213,7 +317,6 @@ export class AddEditItemDialogComponent implements OnInit {
         productoSearch: item.producto?.descripcion || "",
         producto: item.producto,
         presentacion: presentacionSeleccionada,
-        cantidadPorPresentacion: cantidadPorPresentacion,
         cantidadSolicitada: item.cantidadSolicitada,
         precioUnitarioSolicitado: item.precioUnitarioSolicitado,
         precioUnitarioPorPresentacion: precioUnitarioPorPresentacion,
@@ -221,6 +324,9 @@ export class AddEditItemDialogComponent implements OnInit {
         vencimientoEsperado: item.vencimientoEsperado,
         observacion: item.observacion,
       });
+
+      // Cargar distribuciones existentes
+      this.loadDistribucionesExistentes(item.id);
 
       // Guardar el precio original para comparar cambios
       this.precioOriginal = item.precioUnitarioSolicitado || 0;
@@ -235,26 +341,37 @@ export class AddEditItemDialogComponent implements OnInit {
   }
 
   private setInitialFocus(): void {
-    // Si hay producto y presentación ya seleccionados, el foco debe ir al input de cantidad
+    // Si hay producto y presentación ya seleccionados, el foco debe ir al precio
     setTimeout(() => {
       const producto = this.itemForm.get("producto")?.value;
       const presentacion = this.itemForm.get("presentacion")?.value;
       
       if (producto && presentacion) {
-        // Si ya hay producto y presentación seleccionados, ir directamente a cantidad
-        this.cantidadInput?.nativeElement.focus();
-        this.cantidadInput?.nativeElement.select();
+        // Si ya hay producto y presentación seleccionados, ir directamente a precio
+        if (!this.isBonificacionComputed) {
+          this.precioPorPresentacionInput?.nativeElement.focus();
+          this.precioPorPresentacionInput?.nativeElement.select();
+        } else {
+          // Si es bonificación, ir a vencimiento u observación
+          if (this.productoManejaVencimientoComputed) {
+            this.vencimientoInput?.nativeElement.focus();
+          } else {
+            this.observacionInput?.nativeElement.focus();
+          }
+        }
       } else if (producto && !presentacion) {
         // Si hay producto pero no presentación, ir al select de presentación
-        if (this.presentacionesDisponibles.length > 1) {
+        if (this.presentacionesDisponibles.length > 0) {
           this.presentacionSelect?.focus();
           setTimeout(() => {
             this.presentacionSelect?.open();
           }, 100);
-        } else if (this.presentacionesDisponibles.length === 1) {
-          // Si hay solo una presentación, ir a cantidad
-          this.cantidadInput?.nativeElement.focus();
-          this.cantidadInput?.nativeElement.select();
+        } else {
+          // Si no hay presentaciones disponibles, ir a precio
+          if (!this.isBonificacionComputed) {
+            this.precioPorPresentacionInput?.nativeElement.focus();
+            this.precioPorPresentacionInput?.nativeElement.select();
+          }
         }
       } else {
         // Si no hay producto, el foco ya está en el input de búsqueda
@@ -277,12 +394,10 @@ export class AddEditItemDialogComponent implements OnInit {
       this.updateComputedProperties();
     });
 
-    // Listen to cantidad por presentación changes
-    this.itemForm
-      .get("cantidadPorPresentacion")
-      ?.valueChanges.subscribe((value) => {
-        this.updateCantidadBase(value);
-      });
+    // Listen to distribuciones changes
+    this.distribucionesFormArray.valueChanges.subscribe(() => {
+      this.calculateCantidadTotal();
+    });
 
     // Listen to precio unitario changes
     this.itemForm
@@ -302,38 +417,70 @@ export class AddEditItemDialogComponent implements OnInit {
     // Listen to presentacion changes
     this.itemForm.get("presentacion")?.valueChanges.subscribe(() => {
       this.updatePricesOnPresentacionChange();
-      this.updateCantidadBase(
-        this.itemForm.get("cantidadPorPresentacion")?.value || 1
-      );
+      this.updateComputedProperties();
+      // Si hay producto y presentación, inicializar distribuciones si no existen
+      if (this.itemForm.get("producto")?.value && this.itemForm.get("presentacion")?.value) {
+        if (this.distribucionesItems.length === 0 && !this.data.isEdit) {
+          this.initializeDistribuciones();
+        }
+      }
     });
 
     // Listen to producto changes
     this.itemForm.get("producto")?.valueChanges.subscribe(() => {
       this.updateComputedProperties();
+      // Limpiar distribuciones cuando cambia el producto
+      this.clearDistribuciones();
+    });
+
+    // Listen to cantidad simplificada changes
+    this.cantidadSimplificadaControl.valueChanges.subscribe((value) => {
+      if (this.distribucionModo === 'SIMPLIFICADA') {
+        this.updateDistribucionesFromSimplified(value || 0);
+      }
     });
 
     // La validación de vencimiento se hace en el evento blur, no aquí
   }
 
-  private updateCantidadBase(cantidadPorPresentacion: number): void {
+  private calculateCantidadTotal(): void {
+    let total = 0;
+    this.distribucionesFormArray.controls.forEach(control => {
+      const cantidadPedir = control.get('cantidadPedir')?.value || 0;
+      total += cantidadPedir;
+    });
+    
+    // Las cantidades en distribuciones están en unidades de presentación
+    // Mostrar total en unidades de presentación
+    this.cantidadTotalComputed = total;
+    
+    // Convertir a unidades base usando la presentación para guardar en cantidadSolicitada
     const presentacion = this.itemForm.get("presentacion")?.value;
+    let cantidadEnUnidadesBase = total;
     if (presentacion && presentacion.cantidad > 0) {
-      const cantidadEnUnidadesBase =
-        cantidadPorPresentacion * presentacion.cantidad;
-      this.itemForm
-        .get("cantidadSolicitada")
-        ?.setValue(cantidadEnUnidadesBase, { emitEvent: false });
-    } else {
-      this.itemForm
-        .get("cantidadSolicitada")
-        ?.setValue(cantidadPorPresentacion, { emitEvent: false });
+      cantidadEnUnidadesBase = total * presentacion.cantidad;
     }
+    
+    this.itemForm.get("cantidadSolicitada")?.setValue(cantidadEnUnidadesBase, { emitEvent: false });
+    this.hasCantidadTotalError = total <= 0;
     this.updateComputedProperties();
   }
 
   private updateComputedProperties(): void {
     this.titleComputed = this.data.title;
-    this.canSaveComputed = this.itemForm.valid && !this.savingComputed;
+    
+    // Calcular canSaveComputed considerando el modo de distribución
+    let formValid = this.itemForm.valid;
+    if (this.distribucionModo === 'SIMPLIFICADA') {
+      formValid = formValid && this.cantidadSimplificadaControl.valid;
+    } else {
+      // En modo completo, validar que haya distribuciones y cantidad total > 0
+      formValid = formValid && 
+                  this.distribucionesItems.length > 0 && 
+                  this.cantidadTotalComputed > 0;
+    }
+    this.canSaveComputed = formValid && !this.savingComputed;
+    
     this.productoSelectedComputed = !!this.itemForm.get("producto")?.value;
     this.isBonificacionComputed =
       this.itemForm.get("esBonificacion")?.value || false;
@@ -355,25 +502,46 @@ export class AddEditItemDialogComponent implements OnInit {
     const producto = this.itemForm.get("producto")?.value;
     this.productoManejaVencimientoComputed = producto?.vencimiento === true;
 
+    // Check if presentacion is selected
+    const presentacion = this.itemForm.get("presentacion")?.value;
+    this.presentacionSelectedComputed = !!presentacion;
+
     // Calculate subtotal using base units
     const cantidadBase = this.itemForm.get("cantidadSolicitada")?.value || 0;
     const precio = this.itemForm.get("precioUnitarioSolicitado")?.value || 0;
     this.subtotalComputed = cantidadBase * precio;
-
-    // Update computed quantities
-    this.cantidadEnUnidadesBaseComputed = cantidadBase;
-    this.cantidadPorPresentacionComputed =
-      this.itemForm.get("cantidadPorPresentacion")?.value || 0;
 
     // Update display texts (avoid function calls in template)
     this.productoDisplayTextComputed = producto
       ? `${producto.descripcion} (${producto.codigoPrincipal})`
       : "Seleccionar producto...";
 
-    const presentacion = this.itemForm.get("presentacion")?.value;
     this.presentacionDisplayTextComputed = presentacion
       ? `${presentacion.descripcion} (x${presentacion.cantidad})`
       : "Seleccionar presentación...";
+
+    // Update simplified stock and tooltip
+    this.stockTotalSimplificadoComputed = 0;
+    let tooltipText = "Desglose por Sucursal:\n";
+    this.distribucionesItems.forEach(item => {
+      const stock = item.stockActual || 0;
+      if (stock > 0) {
+        this.stockTotalSimplificadoComputed += stock;
+      }
+      tooltipText += `${item.sucursalInfluencia.nombre}: ${this.getCantidadPorPresentacion(stock).toFixed(2)} (${stock} unidades)\n`;
+    });
+    this.stockBreakdownTooltipComputed = tooltipText;
+
+    // Update cantidad total computed text
+    if (presentacion) {
+      if (presentacion.cantidad > 1) {
+        this.cantidadTotalComputedText = `${this.cantidadTotalComputed} ${presentacion.descripcion} (${cantidadBase} unidades)`;
+      } else {
+        this.cantidadTotalComputedText = `${cantidadBase} unidades`;
+      }
+    } else {
+      this.cantidadTotalComputedText = "";
+    }
   }
 
   private updatePrecioPorPresentacionFromUnitario(
@@ -447,7 +615,11 @@ export class AddEditItemDialogComponent implements OnInit {
               this.presentacionSelect?.open();
             }, 100);
           } else {
-            this.cantidadInput?.nativeElement.select();
+            // Si hay producto y presentación, ir a precio
+            if (!this.isBonificacionComputed) {
+              this.precioPorPresentacionInput?.nativeElement.focus();
+              this.precioPorPresentacionInput?.nativeElement.select();
+            }
           }
         }, 500);
       });
@@ -459,8 +631,12 @@ export class AddEditItemDialogComponent implements OnInit {
     this.selectedProducto = producto;
     this.presentacionesDisponibles = producto.presentaciones || [];
 
+    // Solo seleccionar automáticamente la primera presentación si NO se proporcionó una presentación
+    // y hay exactamente una presentación disponible
+    // Si se proporcionó una presentación, usarla (modo edición o selección previa)
+    // Si NO se proporcionó y hay múltiples presentaciones, dejar null para que el usuario seleccione
     const presentacionSeleccionada = presentacion ||
-      (this.presentacionesDisponibles.length > 0
+      (this.presentacionesDisponibles.length === 1
         ? this.presentacionesDisponibles[0]
         : null);
 
@@ -485,16 +661,26 @@ export class AddEditItemDialogComponent implements OnInit {
       this.isLoadingInitialData = false;
     }, 100);
 
+    // Inicializar distribuciones si hay producto y presentación seleccionados
+    if (presentacionSeleccionada && this.distribucionesItems.length === 0 && !this.data.isEdit) {
+      this.initializeDistribuciones();
+    }
+
     // Manejar el foco inicial según si la presentación ya fue proporcionada
     setTimeout(() => {
-      // Si la presentación ya fue proporcionada (previamente seleccionada), ir directamente a cantidad
-      if (presentacion) {
-        this.cantidadInput?.nativeElement.focus();
-        this.cantidadInput?.nativeElement.select();
-      } else if (this.presentacionesDisponibles.length === 1) {
-        // Si hay solo una presentación, saltar al input de cantidad
-        this.cantidadInput?.nativeElement.focus();
-        this.cantidadInput?.nativeElement.select();
+      // Si la presentación ya fue proporcionada (previamente seleccionada o modo edición), ir directamente a precio
+      if (presentacion || (this.presentacionesDisponibles.length === 1 && presentacionSeleccionada)) {
+        if (!this.isBonificacionComputed) {
+          this.precioPorPresentacionInput?.nativeElement.focus();
+          this.precioPorPresentacionInput?.nativeElement.select();
+        } else {
+          // Si es bonificación, ir a vencimiento u observación
+          if (this.productoManejaVencimientoComputed) {
+            this.vencimientoInput?.nativeElement.focus();
+          } else {
+            this.observacionInput?.nativeElement.focus();
+          }
+        }
       } else if (this.presentacionesDisponibles.length > 1) {
         // Si hay más de una presentación y no fue proporcionada, mover el foco al select y abrirlo
         this.presentacionSelect?.focus();
@@ -502,6 +688,12 @@ export class AddEditItemDialogComponent implements OnInit {
         setTimeout(() => {
           this.presentacionSelect?.open();
         }, 100);
+      } else if (this.presentacionesDisponibles.length === 0) {
+        // Si no hay presentaciones disponibles, ir a precio
+        if (!this.isBonificacionComputed) {
+          this.precioPorPresentacionInput?.nativeElement.focus();
+          this.precioPorPresentacionInput?.nativeElement.select();
+        }
       }
     }, 200);
   }
@@ -514,25 +706,7 @@ export class AddEditItemDialogComponent implements OnInit {
     }
   }
 
-  onCantidadKeydown(event: KeyboardEvent): void {
-    if (
-      event.key === "Enter" &&
-      this.itemForm.get("cantidadPorPresentacion")?.valid
-    ) {
-      event.preventDefault();
-      // Navegar a Precio por Presentación
-      if (!this.isBonificacionComputed) {
-        this.precioPorPresentacionInput?.nativeElement.select();
-      } else {
-        // Si es bonificación, saltar directamente a vencimiento u observación
-        if (this.productoManejaVencimientoComputed) {
-          this.vencimientoInput?.nativeElement.select();
-        } else {
-          this.observacionInput?.nativeElement.select();
-        }
-      }
-    }
-  }
+  // Removed onCantidadKeydown - cantidad is now calculated from distributions
 
   onBonificacionKeydown(event: KeyboardEvent): void {
     // if (event.key === "Enter") {
@@ -546,13 +720,22 @@ export class AddEditItemDialogComponent implements OnInit {
   }
 
   onPresentacionClosed(): void {
-    // Cuando el select se cierra después de seleccionar, mover el foco a cantidad
+    // Cuando el select se cierra después de seleccionar, mover el foco a precio por presentación
     setTimeout(() => {
       // Validar que la presentación esté seleccionada antes de navegar
       const presentacion = this.itemForm.get("presentacion")?.value;
       if (presentacion && this.itemForm.get("presentacion")?.valid) {
-        this.cantidadInput?.nativeElement.focus();
-        this.cantidadInput?.nativeElement.select();
+        if (!this.isBonificacionComputed) {
+          this.precioPorPresentacionInput?.nativeElement.focus();
+          this.precioPorPresentacionInput?.nativeElement.select();
+        } else {
+          // Si es bonificación, ir a vencimiento u observación
+          if (this.productoManejaVencimientoComputed) {
+            this.vencimientoInput?.nativeElement.focus();
+          } else {
+            this.observacionInput?.nativeElement.focus();
+          }
+        }
       }
     }, 100);
   }
@@ -569,16 +752,61 @@ export class AddEditItemDialogComponent implements OnInit {
   }
 
   onPrecioUnitarioKeydown(event: KeyboardEvent): void {
-    if (
-      event.key === "Enter" &&
-      this.itemForm.get("precioUnitarioSolicitado")?.valid
-    ) {
-      event.preventDefault();
-      // Navegar directamente al botón Guardar
-      if (this.canSaveComputed) {
-        this.guardarBtn?.focus();
+    if (event.key === "Enter" || event.key === "Tab") {
+      if (event.key === "Enter") {
+        event.preventDefault();
+      }
+      
+      // Si hay distribuciones, prevenir el comportamiento por defecto del Tab
+      if (event.key === "Tab") {
+        event.preventDefault();
+      }
+      
+      // Navegar según el modo
+      if (this.distribucionModo === 'COMPLETA' && this.distribucionesItems.length > 0) {
+        setTimeout(() => {
+          const firstInput = this.getFirstDistribucionInput();
+          if (firstInput) {
+            firstInput.focus();
+            firstInput.select();
+          }
+        }, 0);
+      } else if (this.distribucionModo === 'SIMPLIFICADA') {
+        setTimeout(() => {
+          const simplifiedInput = document.querySelector('input.cantidad-simplificada-input') as HTMLInputElement;
+          if (simplifiedInput) {
+            simplifiedInput.focus();
+            simplifiedInput.select();
+          }
+        }, 0);
+      } else {
+        // Si no hay distribuciones, ir al botón Guardar
+        if (event.key === "Enter" && this.canSaveComputed) {
+          this.guardarBtn?.focus();
+        }
       }
     }
+  }
+
+  /**
+   * Obtiene el primer input de cantidad de la lista de distribuciones
+   */
+  private getFirstDistribucionInput(): HTMLInputElement | null {
+    const inputs = document.querySelectorAll<HTMLInputElement>(
+      'input.cantidad-pedir-input'
+    );
+    return inputs.length > 0 ? inputs[0] : null;
+  }
+
+  /**
+   * Calcula la cantidad por presentación a partir de la cantidad en unidades base
+   */
+  getCantidadPorPresentacion(cantidadUnidades: number): number {
+    const presentacion = this.itemForm.get("presentacion")?.value;
+    if (presentacion && presentacion.cantidad > 0) {
+      return cantidadUnidades / presentacion.cantidad;
+    }
+    return cantidadUnidades;
   }
 
   onVencimientoKeydown(event: KeyboardEvent): void {
@@ -622,8 +850,31 @@ export class AddEditItemDialogComponent implements OnInit {
 
   // Dialog actions
   onSave(): void {
+    // Validar formulario
     if (!this.itemForm.valid) {
       this.markFormGroupTouched();
+      return;
+    }
+
+    // Validar que haya al menos una distribución
+    if (this.distribucionesItems.length === 0) {
+      this.notificacionService.openWarn("Debe agregar al menos una distribución por sucursal");
+      return;
+    }
+
+    // Validar que la cantidad total sea mayor a 0
+    if (this.cantidadTotalComputed <= 0) {
+      this.notificacionService.openWarn("La cantidad total debe ser mayor a 0");
+      return;
+    }
+
+    // Validar que todas las distribuciones sean válidas (permitir cantidad 0)
+    const distribucionesInvalidas = this.distribucionesFormArray.controls.filter(
+      control => !control.valid
+    );
+    
+    if (distribucionesInvalidas.length > 0) {
+      this.notificacionService.openWarn("Todas las distribuciones deben tener una cantidad válida (puede ser 0)");
       return;
     }
 
@@ -655,32 +906,69 @@ export class AddEditItemDialogComponent implements OnInit {
       }
     );
 
-    // Call the service
+    // Call the service to save PedidoItem first
     this.pedidoService.onSavePedidoItem(pedidoToSave.toInput()).subscribe({
       next: (savedItem) => {
         console.log("PedidoItem guardado exitosamente:", savedItem);
 
-        // Update the saved item with additional computed properties
-        const itemResult: PedidoItem = Object.assign(new PedidoItem(), {
-          ...savedItem,
-          // Add frontend-specific properties
-          presentacion: formValue.presentacion,
-          precioUnitarioPorPresentacion:
-            formValue.precioUnitarioPorPresentacion,
+        // Preparar distribuciones para guardar
+        const distribucionesInput: PedidoItemDistribucionInput[] = this.distribucionesItems.map((item, index) => {
+          const control = this.distribucionesFormArray.at(index);
+          const cantidadPedir = control?.get('cantidadPedir')?.value || 0;
+          
+          // Convertir cantidad de presentación a unidades base
+          // Las cantidades en el formulario están en unidades de presentación
+          const presentacion = formValue.presentacion;
+          const cantidadEnUnidadesBase = presentacion && presentacion.cantidad > 0
+            ? cantidadPedir * presentacion.cantidad
+            : cantidadPedir;
+
+          return {
+            id: item.distribucionId,
+            pedidoItemId: savedItem.id,
+            sucursalInfluenciaId: item.sucursalInfluencia.id,
+            sucursalEntregaId: item.sucursalEntrega.id,
+            cantidadAsignada: cantidadEnUnidadesBase
+          };
         });
 
-        this.notificacionService.openSucess(
-          this.data.isEdit
-            ? "Ítem actualizado exitosamente"
-            : "Ítem añadido exitosamente"
-        );
+        // Guardar distribuciones usando merge
+        this.pedidoService.onMergePedidoItemDistribuciones(savedItem.id, distribucionesInput).subscribe({
+          next: (distribucionesGuardadas) => {
+            console.log("Distribuciones guardadas exitosamente:", distribucionesGuardadas);
 
-        const result: AddEditItemDialogResult = {
-          item: itemResult,
-          action: "save",
-        };
+            // Update the saved item with additional computed properties
+            const itemResult: PedidoItem = Object.assign(new PedidoItem(), {
+              ...savedItem,
+              // Add frontend-specific properties
+              presentacion: formValue.presentacion,
+              precioUnitarioPorPresentacion:
+                formValue.precioUnitarioPorPresentacion,
+            });
 
-        this.dialogRef.close(result);
+            this.notificacionService.openSucess(
+              this.data.isEdit
+                ? "Ítem y distribuciones actualizados exitosamente"
+                : "Ítem y distribuciones añadidos exitosamente"
+            );
+
+            const result: AddEditItemDialogResult = {
+              item: itemResult,
+              action: "save",
+            };
+
+            this.dialogRef.close(result);
+          },
+          error: (error) => {
+            console.error("Error guardando distribuciones:", error);
+            // El PedidoItem ya fue guardado, pero las distribuciones fallaron
+            this.notificacionService.openAlgoSalioMal(
+              "El ítem fue guardado, pero hubo un error al guardar las distribuciones. Puede intentar guardarlas nuevamente."
+            );
+            this.savingComputed = false;
+            this.updateComputedProperties();
+          }
+        });
       },
       error: (error) => {
         console.error("Error guardando PedidoItem:", error);
@@ -847,6 +1135,442 @@ export class AddEditItemDialogComponent implements OnInit {
   onClearProducto(): void {
     this.itemForm.get("producto")?.setValue(null);
     this.itemForm.get("presentacion")?.setValue(null);
+    this.clearDistribuciones();
     this.updateComputedProperties();
+  }
+
+  // ===== MÉTODOS DE DISTRIBUCIONES =====
+
+  /**
+   * Inicializa las distribuciones en modo creación
+   * Crea un item por cada sucursal de influencia con la primera sucursal de entrega
+   */
+  private initializeDistribuciones(): void {
+    if (this.sucursalesInfluencia.length === 0) {
+      return;
+    }
+
+    const primeraSucursalEntrega = this.sucursalesEntrega.length > 0 ? this.sucursalesEntrega[0] : null;
+
+    this.sucursalesInfluencia.forEach(sucursalInfluencia => {
+      if (primeraSucursalEntrega) {
+        // Solo agregar si no existe ya una distribución con esta combinación
+        if (!this.existeDistribucion(sucursalInfluencia.id, primeraSucursalEntrega.id)) {
+          this.addDistribucionItem(sucursalInfluencia, primeraSucursalEntrega);
+        }
+      }
+    });
+  }
+
+  /**
+   * Carga las distribuciones existentes en modo edición
+   */
+  private loadDistribucionesExistentes(pedidoItemId: number): void {
+    this.pedidoService.onGetPedidoItemDistribucionesByPedidoItemId(pedidoItemId).subscribe({
+      next: (distribuciones) => {
+        if (distribuciones && distribuciones.length > 0) {
+          // Convertir cantidad de unidades base a cantidad por presentación
+          const presentacion = this.itemForm.get("presentacion")?.value;
+          distribuciones.forEach(dist => {
+            let cantidadPorPresentacion = dist.cantidadAsignada || 0;
+            if (presentacion && presentacion.cantidad > 0) {
+              cantidadPorPresentacion = cantidadPorPresentacion / presentacion.cantidad;
+            }
+            this.addDistribucionItem(
+              dist.sucursalInfluencia,
+              dist.sucursalEntrega,
+              cantidadPorPresentacion,
+              dist.id
+            );
+          });
+        } else {
+          // Si no hay distribuciones, inicializar como en modo creación
+          this.initializeDistribuciones();
+        }
+      },
+      error: (error) => {
+        console.error('Error cargando distribuciones:', error);
+        // En caso de error, inicializar como en modo creación
+        this.initializeDistribuciones();
+      }
+    });
+  }
+
+  /**
+   * Verifica si ya existe una distribución con la misma combinación de sucursales
+   */
+  private existeDistribucion(sucursalInfluenciaId: number, sucursalEntregaId: number): boolean {
+    return this.distribucionesItems.some(
+      item => item.sucursalInfluencia.id === sucursalInfluenciaId &&
+              item.sucursalEntrega.id === sucursalEntregaId
+    );
+  }
+
+  /**
+   * Agrega un item de distribución
+   */
+  private addDistribucionItem(
+    sucursalInfluencia: Sucursal,
+    sucursalEntrega: Sucursal,
+    cantidadInicial: number = 0,
+    distribucionId?: number
+  ): void {
+    // Validar que no exista ya una distribución con la misma combinación
+    if (this.existeDistribucion(sucursalInfluencia.id, sucursalEntrega.id)) {
+      this.notificacionService.openWarn(
+        `Ya existe una distribución para la combinación: ${sucursalInfluencia.nombre} - ${sucursalEntrega.nombre}`
+      );
+      return;
+    }
+    const distribucionItem: DistribucionItem = {
+      sucursalInfluencia,
+      sucursalEntrega,
+      stockActual: 0,
+      stockActualLoading: true,
+      cantidadSugerida: 0,
+      cantidadSugeridaLoading: true,
+      cantidadPedir: cantidadInicial,
+      distribucionId
+    };
+
+    this.distribucionesItems.push(distribucionItem);
+
+    // Agregar control al FormArray
+    const control = this.formBuilder.group({
+      sucursalInfluenciaId: [sucursalInfluencia.id],
+      sucursalEntregaId: [sucursalEntrega.id],
+      cantidadPedir: [cantidadInicial, [Validators.required, Validators.min(0)]]
+    });
+
+    this.distribucionesFormArray.push(control);
+
+    // Actualizar data source
+    this.distribucionesDataSource.data = [...this.distribucionesItems];
+
+    // Cargar stock actual y cantidad sugerida
+    this.loadStockActual(distribucionItem);
+    this.calculateCantidadSugerida(distribucionItem);
+
+    this.calculateCantidadTotal();
+  }
+
+  /**
+   * Elimina un item de distribución
+   */
+  onRemoveDistribucion(index: number): void {
+    if (index >= 0 && index < this.distribucionesItems.length) {
+      this.distribucionesItems.splice(index, 1);
+      this.distribucionesFormArray.removeAt(index);
+      this.distribucionesDataSource.data = [...this.distribucionesItems];
+      this.calculateCantidadTotal();
+    }
+  }
+
+  /**
+   * Abre diálogo para agregar nueva distribución
+   */
+  onAddDistribucion(): void {
+    // Asegurarse de que las sucursales estén inicializadas antes de abrir el diálogo
+    if (this.sucursalesInfluencia.length === 0 || this.sucursalesEntrega.length === 0) {
+      this.initializeSucursales();
+    }
+
+    // Si solo hay una sucursal de influencia y una de entrega, agregar directamente
+    if (this.sucursalesInfluencia.length === 1 && this.sucursalesEntrega.length === 1) {
+      // Verificar que no esté ya agregada usando el método de validación
+      if (!this.existeDistribucion(this.sucursalesInfluencia[0].id, this.sucursalesEntrega[0].id)) {
+        this.addDistribucionItem(this.sucursalesInfluencia[0], this.sucursalesEntrega[0]);
+      }
+      return;
+    }
+
+    // Abrir diálogo para seleccionar sucursales
+    const dialogData: SelectSucursalesDialogData = {
+      sucursalesInfluencia: this.sucursalesInfluencia,
+      sucursalesEntrega: this.sucursalesEntrega,
+      sucursalesInfluenciaUsadas: this.distribucionesItems.map(d => d.sucursalInfluencia.id),
+      sucursalesEntregaUsadas: this.distribucionesItems.map(d => d.sucursalEntrega.id)
+    };
+
+    const dialogRef = this.dialog.open(SelectSucursalesDialogComponent, {
+      width: '500px',
+      data: dialogData,
+      disableClose: true
+    });
+
+    dialogRef.afterClosed().subscribe((result: SelectSucursalesDialogResult | null) => {
+      if (result) {
+        // Verificar que no esté duplicada usando el método de validación
+        if (!this.existeDistribucion(result.sucursalInfluencia.id, result.sucursalEntrega.id)) {
+          this.addDistribucionItem(result.sucursalInfluencia, result.sucursalEntrega);
+        }
+      }
+    });
+  }
+
+  /**
+   * Obtiene el control de una distribución específica
+   */
+  getDistribucionControl(index: number, fieldName: string): FormControl {
+    const control = this.distribucionesFormArray.at(index)?.get(fieldName);
+    return control as FormControl;
+  }
+
+  /**
+   * Carga el stock actual para una distribución
+   */
+  private loadStockActual(distribucionItem: DistribucionItem): void {
+    const producto = this.itemForm.get("producto")?.value;
+    if (!producto?.id || !distribucionItem.sucursalInfluencia?.id) {
+      distribucionItem.stockActualLoading = false;
+      return;
+    }
+
+    this.productoService.onGetStockPorProductoAndSucursal(
+      producto.id,
+      distribucionItem.sucursalInfluencia.id
+    ).subscribe({
+      next: (stock) => {
+        distribucionItem.stockActual = stock || 0;
+        distribucionItem.stockActualLoading = false;
+        // Actualizar el stock total simplificado cuando se carga el stock
+        this.updateComputedProperties();
+      },
+      error: (error) => {
+        console.error('Error cargando stock:', error);
+        distribucionItem.stockActual = 0;
+        distribucionItem.stockActualLoading = false;
+        // Actualizar también en caso de error
+        this.updateComputedProperties();
+      }
+    });
+  }
+
+  /**
+   * Calcula la cantidad sugerida para una distribución
+   */
+  private calculateCantidadSugerida(distribucionItem: DistribucionItem): void {
+    const producto = this.itemForm.get("producto")?.value;
+    if (!producto?.id || !distribucionItem.sucursalInfluencia?.id) {
+      distribucionItem.cantidadSugeridaLoading = false;
+      distribucionItem.cantidadSugerida = 0;
+      return;
+    }
+
+    distribucionItem.cantidadSugeridaLoading = true;
+
+    // Obtener fecha del mes actual del año pasado
+    const ahora = new Date();
+    const añoPasado = ahora.getFullYear() - 1;
+    const mesActual = ahora.getMonth(); // 0-11
+
+    const inicio = new Date(añoPasado, mesActual, 1);
+    const fin = new Date(añoPasado, mesActual + 1, 0, 23, 59, 59);
+
+    // Obtener movimientos de compra/transferencia (positivas) y venta
+    const tipoMovimientosCompra: TipoMovimiento[] = [TipoMovimiento.COMPRA, TipoMovimiento.TRANSFERENCIA];
+    const tipoMovimientosVenta: TipoMovimiento[] = [TipoMovimiento.VENTA];
+
+    // Obtener movimientos de compra
+    this.movimientoStockService.onGetMovimientoStockPorFiltros(
+      dateToString(inicio),
+      dateToString(fin),
+      [distribucionItem.sucursalInfluencia.id],
+      producto.id,
+      tipoMovimientosCompra,
+      null,
+      0,
+      1000
+    ).subscribe({
+      next: (comprasPage) => {
+        const compras = comprasPage?.getContent || [];
+        
+        // Obtener movimientos de venta
+        this.movimientoStockService.onGetMovimientoStockPorFiltros(
+          dateToString(inicio),
+          dateToString(fin),
+          [distribucionItem.sucursalInfluencia.id],
+          producto.id,
+          tipoMovimientosVenta,
+          null,
+          0,
+          1000
+        ).subscribe({
+          next: (ventasPage) => {
+            const ventas = ventasPage?.getContent || [];
+            
+            // Calcular cantidad sugerida
+            const cantidadSugerida = this.calcularCantidadSugeridaInteligente(
+              compras,
+              ventas,
+              distribucionItem.stockActual
+            );
+            
+            distribucionItem.cantidadSugerida = cantidadSugerida;
+            distribucionItem.cantidadSugeridaLoading = false;
+          },
+          error: (error) => {
+            console.error('Error calculando cantidad sugerida (ventas):', error);
+            distribucionItem.cantidadSugerida = 0;
+            distribucionItem.cantidadSugeridaLoading = false;
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Error calculando cantidad sugerida (compras):', error);
+        distribucionItem.cantidadSugerida = 0;
+        distribucionItem.cantidadSugeridaLoading = false;
+      }
+    });
+  }
+
+  /**
+   * Calcula la cantidad sugerida de forma inteligente
+   */
+  private calcularCantidadSugeridaInteligente(
+    compras: any[],
+    ventas: any[],
+    stockActual: number
+  ): number {
+    if (compras.length === 0 && ventas.length === 0) {
+      return 0; // Sin datos históricos
+    }
+
+    // Filtrar transferencias positivas (solo las que aumentan stock)
+    const comprasFiltradas = compras.filter(c => {
+      if (c.tipoMovimiento === TipoMovimiento.TRANSFERENCIA) {
+        return c.cantidad > 0;
+      }
+      return true;
+    });
+
+    // Calcular frecuencia de compra (días entre compras)
+    let frecuenciaCompraDias = 30; // Default: mensual
+    if (comprasFiltradas.length > 1) {
+      const fechasCompras = comprasFiltradas
+        .map(c => new Date(c.creadoEn))
+        .filter(d => !isNaN(d.getTime())) // Filtrar fechas inválidas
+        .sort((a, b) => a.getTime() - b.getTime());
+      
+      if (fechasCompras.length > 1) {
+        let totalDias = 0;
+        for (let i = 1; i < fechasCompras.length; i++) {
+          const diff = fechasCompras[i].getTime() - fechasCompras[i - 1].getTime();
+          totalDias += diff / (1000 * 60 * 60 * 24); // Convertir a días
+        }
+        frecuenciaCompraDias = totalDias / (fechasCompras.length - 1);
+      }
+    } else if (comprasFiltradas.length === 1) {
+      // Si solo hay una compra, usar 30 días como frecuencia por defecto
+      frecuenciaCompraDias = 30;
+    }
+
+    // Calcular consumo diario promedio (ventas)
+    const totalVentas = ventas.reduce((sum, v) => sum + Math.abs(v.cantidad || 0), 0);
+    const diasDelMes = 30; // Aproximación
+    const consumoDiarioPromedio = totalVentas > 0 ? totalVentas / diasDelMes : 0;
+
+    // Calcular días hasta próxima compra esperada
+    const ultimaCompra = comprasFiltradas.length > 0 
+      ? (() => {
+          const fecha = new Date(comprasFiltradas[comprasFiltradas.length - 1].creadoEn);
+          return !isNaN(fecha.getTime()) ? fecha : null;
+        })()
+      : null;
+    
+    const ahora = new Date();
+    let diasHastaProximaCompra = frecuenciaCompraDias;
+    
+    if (ultimaCompra) {
+      const diasDesdeUltimaCompra = (ahora.getTime() - ultimaCompra.getTime()) / (1000 * 60 * 60 * 24);
+      diasHastaProximaCompra = Math.max(0, frecuenciaCompraDias - diasDesdeUltimaCompra);
+    }
+
+    // Calcular cantidad sugerida
+    // Cantidad sugerida = (consumo diario × días hasta próxima compra) - stock actual
+    const cantidadNecesaria = consumoDiarioPromedio * diasHastaProximaCompra;
+    const cantidadSugerida = Math.max(0, cantidadNecesaria - stockActual);
+
+    return Math.round(cantidadSugerida * 100) / 100; // Redondear a 2 decimales
+  }
+
+  /**
+   * Limpia todas las distribuciones
+   */
+  private clearDistribuciones(): void {
+    while (this.distribucionesFormArray.length > 0) {
+      this.distribucionesFormArray.removeAt(0);
+    }
+    this.distribucionesItems = [];
+    this.distribucionesDataSource.data = [];
+    this.cantidadTotalComputed = 0;
+    this.calculateCantidadTotal();
+  }
+
+  /**
+   * Maneja el keydown en el input de cantidad a pedir
+   */
+  onCantidadPedirKeydown(event: KeyboardEvent, index: number): void {
+    if (event.key === "Enter" || (event.key === "Tab" && !event.shiftKey)) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+      }
+      
+      // Navegar al siguiente campo o botón
+      const nextIndex = index + 1;
+      if (nextIndex < this.distribucionesItems.length) {
+        // Focus en el siguiente input
+        setTimeout(() => {
+          const inputs = document.querySelectorAll<HTMLInputElement>(
+            'input.cantidad-pedir-input'
+          );
+          if (inputs[nextIndex]) {
+            inputs[nextIndex].focus();
+            inputs[nextIndex].select();
+          }
+        }, 0);
+      } else {
+        // Si es el último, ir al botón guardar
+        if (this.canSaveComputed) {
+          this.guardarBtn?.focus();
+        }
+      }
+    }
+  }
+
+  /**
+   * Maneja el blur en el input de cantidad a pedir
+   */
+  onCantidadPedirBlur(index: number): void {
+    this.calculateCantidadTotal();
+  }
+
+  /**
+   * Actualiza las distribuciones desde el modo simplificado
+   */
+  private updateDistribucionesFromSimplified(cantidad: number): void {
+    if (this.distribucionesItems.length > 0) {
+      // Asignar el total a la primera distribución y poner las demás en 0
+      this.distribucionesFormArray.controls.forEach((control, index) => {
+        const val = index === 0 ? cantidad : 0;
+        control.get('cantidadPedir')?.setValue(val, { emitEvent: false });
+        this.distribucionesItems[index].cantidadPedir = val;
+      });
+    }
+    this.calculateCantidadTotal();
+  }
+
+  /**
+   * Maneja el keydown en el input simplificado
+   */
+  onCantidadSimplificadaKeydown(event: KeyboardEvent): void {
+    if (event.key === "Enter" || (event.key === "Tab" && !event.shiftKey)) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+      }
+      if (this.canSaveComputed) {
+        this.guardarBtn?.focus();
+      }
+    }
   }
 }

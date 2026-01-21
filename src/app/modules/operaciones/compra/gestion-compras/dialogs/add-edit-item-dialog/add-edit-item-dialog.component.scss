@@ -202,9 +202,14 @@
     padding: 16px 24px;
     display: flex;
     justify-content: flex-end;
+    align-items: center;
     gap: 12px;
     border-top: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.02);
+
+    .footer-left {
+      margin-right: auto;
+    }
 
     .cancel-btn {
       color: rgba(255, 255, 255, 0.7);
@@ -283,6 +288,12 @@
     background: rgba(97, 97, 97, 0.95);
     color: #fff;
     font-size: 12px;
+
+    &.multiline-tooltip {
+      white-space: pre-line;
+      line-height: 1.5;
+      padding: 8px 12px;
+    }
   }
 
   // Card styling
@@ -321,6 +332,175 @@
 
       button {
         width: 100%;
+      }
+    }
+  }
+}
+
+// Distribuciones section
+  .distribuciones-section {
+    margin-top: 24px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    &.simplified {
+      .simplified-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 24px;
+
+        .stock-total-container {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding: 8px 16px;
+          border-radius: 4px;
+          background: rgba(255, 255, 255, 0.05);
+          cursor: help;
+
+          .label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+          }
+
+          .cantidad-display {
+            align-items: center;
+          }
+        }
+
+        .cantidad-total-field {
+          flex: 1;
+        }
+      }
+    }
+
+    .distribuciones-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+
+    h4 {
+      margin: 0;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    button {
+      color: #4CAF50;
+    }
+  }
+
+  .distribuciones-table-container {
+    overflow-x: auto;
+    margin-bottom: 16px;
+
+    .distribuciones-table {
+      width: 100%;
+      background: transparent;
+
+      th {
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 500;
+        padding: 12px 8px;
+        text-align: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      td {
+        color: #fff;
+        padding: 12px 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+        .cantidad-input-field {
+          width: 120px;
+
+          ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+            margin-top: 0;
+          }
+
+          input {
+            text-align: right;
+          }
+        }
+
+        .cantidad-display {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          line-height: 1.2;
+          text-align: center;
+
+          .cantidad-presentacion {
+            font-size: 14px;
+            color: #fff;
+          }
+
+          .cantidad-unidades {
+            font-size: 11px;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 2px;
+          }
+        }
+      }
+
+      tr:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+    }
+  }
+
+  .no-distribuciones-message {
+    padding: 24px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+  }
+
+  .cantidad-total-display {
+    margin-top: 16px;
+
+    .total-card {
+      background: rgba(76, 175, 80, 0.1);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+
+      .total-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .total-label {
+          font-weight: 500;
+          color: #4CAF50;
+          font-size: 14px;
+        }
+
+        .total-value {
+          font-size: 16px;
+          font-weight: 600;
+          color: #4CAF50;
+        }
+      }
+
+      .total-error {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        color: #f44336;
+        font-size: 12px;
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
       }
     }
   }

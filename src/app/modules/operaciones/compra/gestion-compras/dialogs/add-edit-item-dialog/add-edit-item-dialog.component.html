@@ -74,9 +74,9 @@
           </mat-card>
         </div>
 
-        <!-- Fila 2: Presentación y Cantidad -->
+        <!-- Fila 2: Presentación, Precios y Bonificación -->
         <div class="form-row" *ngIf="productoSelectedComputed">
-          <mat-form-field appearance="outline" class="full-width">
+          <mat-form-field appearance="outline">
             <mat-label>Presentación</mat-label>
             <mat-select
               #presentacionSelect
@@ -99,43 +99,6 @@
             </mat-error>
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Cantidad por Presentación</mat-label>
-            <input
-              matInput
-              #cantidadInput
-              type="number"
-              step="0.01"
-              min="0.01"
-              formControlName="cantidadPorPresentacion"
-              (keydown)="onCantidadKeydown($event)"
-            />
-            <mat-hint *ngIf="cantidadEnUnidadesBaseComputed > 0">
-              = {{ cantidadEnUnidadesBaseComputed | number : "1.0-2" }} unidades
-              base
-            </mat-hint>
-            <mat-error
-              *ngIf="
-                itemForm.get('cantidadPorPresentacion')?.hasError('required')
-              "
-            >
-              La cantidad es requerida
-            </mat-error>
-            <mat-error
-              *ngIf="itemForm.get('cantidadPorPresentacion')?.hasError('min')"
-            >
-              La cantidad debe ser mayor a 0
-            </mat-error>
-          </mat-form-field>
-        </div>
-
-        <!-- Fila 3: Cantidad -->
-        <!-- <div class="form-row" *ngIf="productoSelectedComputed">
-          
-        </div> -->
-
-        <!-- Fila 4: Precios y Bonificación -->
-        <div class="form-row" *ngIf="productoSelectedComputed">
           <mat-form-field appearance="outline">
             <mat-label>Precio por Presentación</mat-label>
             <input
@@ -194,7 +157,169 @@
           </div>
         </div>
 
-        <!-- Fila 5: Vencimiento (solo si el producto maneja vencimiento) -->
+        <!-- Fila 3: Distribuciones por Sucursales (MODO COMPLETO) -->
+        <div class="distribuciones-section" *ngIf="productoSelectedComputed && presentacionSelectedComputed && distribucionModo === 'COMPLETA'">
+          <div class="distribuciones-header">
+            <h4>Distribución por Sucursales</h4>
+            <button
+              mat-icon-button
+              color="primary"
+              (click)="onAddDistribucion()"
+              matTooltip="Agregar distribución"
+              type="button"
+            >
+              <mat-icon>add</mat-icon>
+            </button>
+          </div>
+
+          <!-- Tabla de distribuciones -->
+          <div class="distribuciones-table-container" *ngIf="distribucionesItems.length > 0">
+            <table mat-table [dataSource]="distribucionesDataSource" class="distribuciones-table">
+              <!-- Sucursal Influencia Column -->
+              <ng-container matColumnDef="sucursalInfluencia">
+                <th mat-header-cell *matHeaderCellDef style="text-align: left;">Sucursal Influencia</th>
+                <td mat-cell *matCellDef="let item; let i = index" style="text-align: left;">
+                  {{ item.sucursalInfluencia?.nombre }}
+                </td>
+              </ng-container>
+
+              <!-- Sucursal Entrega Column -->
+              <ng-container matColumnDef="sucursalEntrega">
+                <th mat-header-cell *matHeaderCellDef style="text-align: left;">Suc de Entrega</th>
+                <td mat-cell *matCellDef="let item; let i = index" style="text-align: left;">
+                  {{ item.sucursalEntrega?.nombre }}
+                </td>
+              </ng-container>
+
+              <!-- Stock Actual Column -->
+              <ng-container matColumnDef="stockActual">
+                <th mat-header-cell *matHeaderCellDef>Stock Actual</th>
+                <td mat-cell *matCellDef="let item; let i = index">
+                  <span *ngIf="item.stockActualLoading">Cargando...</span>
+                  <div *ngIf="!item.stockActualLoading" class="cantidad-display">
+                    <div class="cantidad-presentacion">{{ getCantidadPorPresentacion(item.stockActual) | number : "1.0-2" }}</div>
+                    <div class="cantidad-unidades">({{ item.stockActual | number : "1.0-2" }} unidades)</div>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Cantidad Sugerida Column -->
+              <ng-container matColumnDef="cantidadSugerida">
+                <th mat-header-cell *matHeaderCellDef>Cant. Sugerida</th>
+                <td mat-cell *matCellDef="let item; let i = index">
+                  <span *ngIf="item.cantidadSugeridaLoading">Calculando...</span>
+                  <div *ngIf="!item.cantidadSugeridaLoading" class="cantidad-display">
+                    <div class="cantidad-presentacion">{{ getCantidadPorPresentacion(item.cantidadSugerida) | number : "1.0-2" }}</div>
+                    <div class="cantidad-unidades">({{ item.cantidadSugerida | number : "1.0-2" }} unidades)</div>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Cantidad a Pedir Column -->
+              <ng-container matColumnDef="cantidadPedir">
+                <th mat-header-cell *matHeaderCellDef>Cantidad a Pedir</th>
+                <td mat-cell *matCellDef="let item; let i = index">
+                  <mat-form-field appearance="outline" class="cantidad-input-field">
+                    <input
+                      matInput
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      [formControl]="getDistribucionControl(i, 'cantidadPedir')"
+                      (keydown)="onCantidadPedirKeydown($event, i)"
+                      (blur)="onCantidadPedirBlur(i)"
+                      [attr.data-index]="i"
+                      class="cantidad-pedir-input"
+                    />
+                    <mat-error
+                      *ngIf="getDistribucionControl(i, 'cantidadPedir')?.hasError('required')"
+                    >
+                      Requerido
+                    </mat-error>
+                    <mat-error
+                      *ngIf="getDistribucionControl(i, 'cantidadPedir')?.hasError('min')"
+                    >
+                      No puede ser negativo
+                    </mat-error>
+                  </mat-form-field>
+                </td>
+              </ng-container>
+
+              <!-- Acciones Column -->
+              <ng-container matColumnDef="acciones">
+                <th mat-header-cell *matHeaderCellDef>Acciones</th>
+                <td mat-cell *matCellDef="let item; let i = index">
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    (click)="onRemoveDistribucion(i)"
+                    matTooltip="Eliminar distribución"
+                    type="button"
+                  >
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="distribucionesDisplayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: distribucionesDisplayedColumns"></tr>
+            </table>
+          </div>
+
+          <!-- Mensaje cuando no hay distribuciones -->
+          <div class="no-distribuciones-message" *ngIf="distribucionesItems.length === 0">
+            <p>No hay distribuciones configuradas. Haga clic en el botón "+" para agregar una.</p>
+          </div>
+
+          <!-- Total de cantidad -->
+          <div class="cantidad-total-display" *ngIf="distribucionesItems.length > 0">
+            <mat-card class="total-card">
+              <mat-card-content>
+                <div class="total-content">
+                  <span class="total-label">Cantidad Total:</span>
+                  <span class="total-value">{{ cantidadTotalComputedText }}</span>
+                </div>
+                <div class="total-error" *ngIf="hasCantidadTotalError">
+                  <mat-icon color="warn">warning</mat-icon>
+                  <span>La cantidad total debe ser mayor a 0</span>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </div>
+
+        <!-- Fila 3: Distribución (MODO SIMPLIFICADO) -->
+        <div class="distribuciones-section simplified" *ngIf="productoSelectedComputed && presentacionSelectedComputed && distribucionModo === 'SIMPLIFICADA'">
+          <div class="simplified-row">
+            <!-- Stock Total -->
+            <div class="stock-total-container" [matTooltip]="stockBreakdownTooltipComputed" matTooltipClass="multiline-tooltip">
+              <span class="label">Stock Actual (Influencia):</span>
+              <div class="cantidad-display">
+                <div class="cantidad-presentacion">{{ getCantidadPorPresentacion(stockTotalSimplificadoComputed) | number : "1.0-2" }}</div>
+                <div class="cantidad-unidades">({{ stockTotalSimplificadoComputed | number : "1.0-2" }} unidades)</div>
+              </div>
+            </div>
+
+            <!-- Input Cantidad Total -->
+            <mat-form-field appearance="outline" class="cantidad-total-field">
+              <mat-label>Cantidad Total a Pedir</mat-label>
+              <input
+                matInput
+                class="cantidad-simplificada-input"
+                type="number"
+                step="0.01"
+                min="0"
+                [formControl]="cantidadSimplificadaControl"
+                (keydown)="onCantidadSimplificadaKeydown($event)"
+              />
+              <mat-hint>{{ cantidadTotalComputedText }}</mat-hint>
+              <mat-error *ngIf="cantidadSimplificadaControl.hasError('required')">Requerido</mat-error>
+              <mat-error *ngIf="cantidadSimplificadaControl.hasError('min')">Debe ser mayor a 0</mat-error>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <!-- Fila 4: Vencimiento (solo si el producto maneja vencimiento) -->
         <div
           class="form-row"
           *ngIf="productoSelectedComputed && productoManejaVencimientoComputed"
@@ -221,7 +346,7 @@
           </mat-form-field>
         </div>
 
-        <!-- Fila 6: Observación -->
+        <!-- Fila 5: Observación -->
         <div class="form-row" *ngIf="productoSelectedComputed">
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Observaciones</mat-label>
@@ -259,6 +384,15 @@
 
   <!-- Actions -->
   <div class="dialog-actions">
+    <div class="footer-left">
+      <mat-button-toggle-group 
+        [(ngModel)]="distribucionModo" 
+        [ngModelOptions]="{standalone: true}"
+      >
+        <mat-button-toggle value="COMPLETA">Distribución Completa</mat-button-toggle>
+        <mat-button-toggle value="SIMPLIFICADA">Distribución Simplificada</mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
     <button
       mat-button
       #cancelarBtn
