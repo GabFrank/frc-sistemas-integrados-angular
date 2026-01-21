@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject, ViewChild, ElementRef } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, inject, ViewChild, ElementRef, NgZone } from '@angular/core';
 import { HttpClient, HttpEventType, HttpClientModule } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -53,7 +53,7 @@ interface ComentarioExtendido extends NotificacionComentario {
 
 
 
-@UntilDestroy()
+@UntilDestroy({ checkProperties: true })
 @Component({
   selector: 'app-comentarios-notificacion-dialog',
   standalone: true,
@@ -73,7 +73,7 @@ interface ComentarioExtendido extends NotificacionComentario {
   styleUrls: ['./comentarios-notificacion-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ComentariosNotificacionDialogComponent implements OnInit {
+export class ComentariosNotificacionDialogComponent implements OnInit, OnDestroy {
   private readonly dialogRef = inject(MatDialogRef<ComentariosNotificacionDialogComponent>);
   public readonly data = inject<ComentariosDialogData>(MAT_DIALOG_DATA);
   private readonly comentariosService = inject(ComentariosNotificacionService);
@@ -83,6 +83,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
   private readonly mainService = inject(MainService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly http = inject(HttpClient);
+  private readonly ngZone = inject(NgZone);
 
   @ViewChild('mensajeTextarea') mensajeTextarea?: ElementRef<HTMLTextAreaElement>;
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
@@ -97,6 +98,14 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
   filePreview: string | null = null;
   isUploading = false;
   uploadProgress = 0;
+
+  isRecording = false;
+  recordingDuration = 0;
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
+  private recordingTimer: any = null;
+  recordedAudio: Blob | null = null;
+  recordedAudioUrl: string | null = null;
 
 
 
@@ -117,6 +126,7 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
   private userInitialsCache = new Map<string, string>();
 
   private ultimoConteoComentarios = 0;
+  audioWaveformBars = Array.from({ length: 30 }, () => Math.floor(Math.random() * 20) + 4);
 
   constructor() {
     this.usuariosFiltrados$ = this.textoBusqueda$.pipe(
@@ -705,6 +715,189 @@ export class ComentariosNotificacionDialogComponent implements OnInit {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }
+
+  async startRecording(): Promise<void> {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.mediaRecorder = new MediaRecorder(stream);
+      this.audioChunks = [];
+      this.recordingDuration = 0;
+
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          this.audioChunks.push(event.data);
+        }
+      };
+
+      this.mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+        this.recordedAudio = audioBlob;
+        this.recordedAudioUrl = URL.createObjectURL(audioBlob);
+
+        stream.getTracks().forEach(track => track.stop());
+
+        this.ngZone.run(() => {
+          this.cdr.markForCheck();
+        });
+      };
+
+      this.mediaRecorder.start();
+      this.isRecording = true;
+
+      this.recordingTimer = setInterval(() => {
+        this.ngZone.run(() => {
+          this.recordingDuration++;
+          this.cdr.markForCheck();
+        });
+      }, 1000);
+
+      this.cdr.markForCheck();
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+    }
+  }
+
+  stopRecording(): void {
+    if (this.mediaRecorder && this.isRecording) {
+      this.mediaRecorder.stop();
+      this.isRecording = false;
+
+      if (this.recordingTimer) {
+        clearInterval(this.recordingTimer);
+        this.recordingTimer = null;
+      }
+
+      this.cdr.markForCheck();
+    }
+  }
+
+  cancelRecording(): void {
+    if (this.mediaRecorder && this.isRecording) {
+      this.mediaRecorder.stop();
+    }
+    this.isRecording = false;
+    this.recordingDuration = 0;
+    this.recordedAudio = null;
+    if (this.recordedAudioUrl) {
+      URL.revokeObjectURL(this.recordedAudioUrl);
+      this.recordedAudioUrl = null;
+    }
+    this.audioChunks = [];
+
+    if (this.recordingTimer) {
+      clearInterval(this.recordingTimer);
+      this.recordingTimer = null;
+    }
+
+    this.cdr.markForCheck();
+  }
+
+  removeRecordedAudio(): void {
+    this.recordedAudio = null;
+    if (this.recordedAudioUrl) {
+      URL.revokeObjectURL(this.recordedAudioUrl);
+      this.recordedAudioUrl = null;
+    }
+    this.recordingDuration = 0;
+    this.cdr.markForCheck();
+  }
+
+  formatRecordingTime(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  sendAudioMessage(): void {
+    if (!this.recordedAudio || this.enviando || this.isUploading) {
+      return;
+    }
+
+    this.enviando = true;
+    const audioFile = new File([this.recordedAudio], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
+
+    this.uploadFile(audioFile).subscribe({
+      next: (url) => {
+        this.procesarEnvioComentario('Adjunto archivo multimedia', url);
+        this.removeRecordedAudio();
+      },
+      error: () => {
+        this.enviando = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  isAudioFile(url: string): boolean {
+    if (!url) return false;
+    const audioExtensions = ['.mp3', '.wav', '.ogg', '.webm', '.m4a', '.aac', '.flac'];
+    const lowerUrl = url.toLowerCase();
+    return audioExtensions.some(ext => lowerUrl.includes(ext));
+  }
+
+  toggleAudioPlay(event: Event): void {
+    const button = event.currentTarget as HTMLElement;
+    const container = button.closest('.whatsapp-audio-player');
+    if (!container) return;
+
+    const audio = container.querySelector('.hidden-audio') as HTMLAudioElement;
+    const icon = button.querySelector('mat-icon');
+    const durationSpan = container.querySelector('.audio-duration');
+
+    if (!audio) return;
+
+    if (audio.paused) {
+      document.querySelectorAll('.hidden-audio').forEach((otherAudio: Element) => {
+        const audioEl = otherAudio as HTMLAudioElement;
+        if (audioEl !== audio && !audioEl.paused) {
+          audioEl.pause();
+          const otherBtn = audioEl.closest('.whatsapp-audio-player')?.querySelector('.audio-play-btn mat-icon');
+          if (otherBtn) otherBtn.textContent = 'play_arrow';
+        }
+      });
+
+      audio.play();
+      if (icon) icon.textContent = 'pause';
+    } else {
+      audio.pause();
+      if (icon) icon.textContent = 'play_arrow';
+    }
+
+    audio.onloadedmetadata = () => {
+      if (durationSpan && audio.duration) {
+        const mins = Math.floor(audio.duration / 60);
+        const secs = Math.floor(audio.duration % 60);
+        durationSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+      }
+    };
+
+    // Actualizar tiempo durante reproducción
+    audio.ontimeupdate = () => {
+      if (durationSpan) {
+        const mins = Math.floor(audio.currentTime / 60);
+        const secs = Math.floor(audio.currentTime % 60);
+        durationSpan.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+      }
+    };
+
+    // Resetear cuando termina
+    audio.onended = () => {
+      if (icon) icon.textContent = 'play_arrow';
+      audio.currentTime = 0;
+    };
+  }
+
+  ngOnDestroy(): void {
+    if (this.recordingTimer) {
+      clearInterval(this.recordingTimer);
+    }
+    if (this.recordedAudioUrl) {
+      URL.revokeObjectURL(this.recordedAudioUrl);
+    }
+    if (this.mediaRecorder && this.isRecording) {
+      this.mediaRecorder.stop();
+    }
   }
 }
 
