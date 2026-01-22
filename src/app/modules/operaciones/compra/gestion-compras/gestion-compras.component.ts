@@ -264,6 +264,7 @@ export class GestionComprasComponent
   itemsCountComputed = 0;
   distributedItemsCountComputed = 0;
   pendingDistributionCountComputed = 0;
+  canCancelarSeleccionComputed = false; // Para habilitar botón de cancelar selección
   // Removed hasItemsComputed and canFinalizePlanningComputed - using direct logic in template
 
   // Paginación para ítems del pedido
@@ -1059,7 +1060,13 @@ export class GestionComprasComponent
     // Update computed flags for buttons
     // Se puede crear/asignar si hay items seleccionados o si está activado "select all"
     this.canCreateNotaForItemsComputed = this.selectedItemsPendientes.length > 0 || this.selectAllItemsPendientes;
-    this.canAssignItemsToNotaComputed = this.selectedItemsPendientes.length > 0 || this.selectAllItemsPendientes;
+    // Para asignar a nota, además de items seleccionados, debe haber una nota seleccionada
+    this.canAssignItemsToNotaComputed = (this.selectedItemsPendientes.length > 0 || this.selectAllItemsPendientes) 
+      && this.selectedNotaRecepcion !== null;
+    // Botón cancelar habilitado si hay items seleccionados, "select all" activado, o nota seleccionada
+    this.canCancelarSeleccionComputed = this.selectedItemsPendientes.length > 0 
+      || this.selectAllItemsPendientes 
+      || this.selectedNotaRecepcion !== null;
     
     // Calcular si se puede finalizar la conciliación
     // Condiciones:
@@ -2115,20 +2122,15 @@ export class GestionComprasComponent
         this.currentPedido.id,
         this.itemsPendientesPageIndex,
         this.itemsPendientesPageSize,
-        this.itemsPendientesSearchText
+        this.itemsPendientesSearchText || undefined,
+        true // soloPendientes = true: filtrar en el backend solo items con cantidad pendiente > 0
       )
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          
-          // Filtrar solo ítems con cantidad pendiente > 0
-          const items = (response.getContent || []).filter((item: PedidoItem) => {
-            // Usar el campo cantidadPendiente calculado en el backend
-            return (item.cantidadPendiente || 0) > 0;
-          });
-
+          // El backend ya filtra por cantidad pendiente > 0, no necesitamos filtrar en el frontend
           // Procesar ítems para mostrar
-          const processedItems = items.map((item: PedidoItem) => {
+          const processedItems = (response.getContent || []).map((item: PedidoItem) => {
             const mockItem = this.processItemForDisplay(item) as MockPedidoItem;
             
             // Usar la cantidad pendiente calculada en el backend
@@ -2490,6 +2492,25 @@ export class GestionComprasComponent
     return this.selectedNotaRecepcion === nota;
   }
 
+  /**
+   * Cancela todas las selecciones: items pendientes y nota de recepción
+   */
+  onCancelarSeleccion(): void {
+    // Limpiar selección de items
+    this.selectedItemsPendientes = [];
+    this.selectAllItemsPendientes = false;
+    
+    // Limpiar selección de nota
+    this.selectedNotaRecepcion = null;
+    
+    // Actualizar checkboxes en la UI
+    // Los checkboxes se actualizan automáticamente porque usan isSelectedComputed
+    // que se calcula basado en selectedItemsPendientes
+    
+    // Actualizar propiedades computadas
+    this.updateStep3ComputedProperties();
+  }
+
   // Métodos para paginación y búsqueda de ítems del pedido
   onItemsPageChange(event: PageEvent): void {
     this.itemsPageIndex = event.pageIndex;
@@ -2645,7 +2666,16 @@ export class GestionComprasComponent
   }
 
   onAsignarItemsALaNota(nota: NotaRecepcion): void {
-    if (this.selectedItemsPendientes.length === 0) return;
+    if (this.selectedItemsPendientes.length === 0 && !this.selectAllItemsPendientes) {
+      this.notificacionService.openWarn("Debe seleccionar al menos un ítem para asignar");
+      return;
+    }
+
+    // Validar que se proporcionó una nota válida
+    if (!nota || !nota.id) {
+      this.notificacionService.openWarn("Debe seleccionar una nota de recepción para asignar los ítems");
+      return;
+    }
 
     // Asignar ítems a la nota especificada
     this.asignarItemsANota(nota);
@@ -2654,7 +2684,9 @@ export class GestionComprasComponent
   }
 
   private asignarItemsANota(nota: NotaRecepcion): void {
-    if (this.selectedItemsPendientes.length === 0) return;
+    if ((this.selectedItemsPendientes.length === 0 && !this.selectAllItemsPendientes) || !nota || !nota.id) {
+      return;
+    }
 
     const pedidoItemIds = this.selectedItemsPendientes.map(item => item.id);
 
@@ -3422,15 +3454,10 @@ export class GestionComprasComponent
       // El producto del ProductoProveedor ya debería tener presentaciones y costo
       // según la query GraphQL actualizada
       if (dialogComponent && producto) {
-        // Verificar si el producto tiene presentaciones
-        if (producto.presentaciones && producto.presentaciones.length > 0) {
-          // El producto ya tiene presentaciones, podemos usarlo directamente
-          dialogComponent.onProductoSelected(producto, producto.presentaciones[0]);
-        } else {
-          // Si no tiene presentaciones, intentar usar el producto tal como está
-          // El diálogo manejará la carga de presentaciones si es necesario
-          dialogComponent.onProductoSelected(producto);
-        }
+        // NO pasar automáticamente la primera presentación
+        // Esto permite que el usuario seleccione la presentación manualmente
+        // El foco se establecerá en el select de presentación si no hay presentación preseleccionada
+        dialogComponent.onProductoSelected(producto);
       }
     });
 

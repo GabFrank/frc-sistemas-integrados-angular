@@ -1011,6 +1011,15 @@
                         <mat-icon>assignment_turned_in</mat-icon>
                         Asignar a Nota
                       </button>
+                      <button
+                        mat-button
+                        color="warn"
+                        [disabled]="!canCancelarSeleccionComputed"
+                        (click)="onCancelarSeleccion()"
+                      >
+                        <mat-icon>clear</mat-icon>
+                        Cancelar
+                      </button>
                     </div>
                   </div>
                 </div>

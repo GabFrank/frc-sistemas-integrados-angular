@@ -45,6 +45,7 @@ import { ModificarSucursalPagoDetalleComponent } from './pago/pago-detalle-cuota
 
 import { GestionComprasComponent } from './compra/gestion-compras/gestion-compras.component';
 import { AddEditItemDialogComponent } from './compra/gestion-compras/dialogs/add-edit-item-dialog/add-edit-item-dialog.component';
+import { SelectSucursalesDialogComponent } from './compra/gestion-compras/dialogs/add-edit-item-dialog/select-sucursales-dialog.component';
 import { DistributeItemDialogComponent } from './compra/gestion-compras/dialogs/distribute-item-dialog/distribute-item-dialog.component';
 import { AddEditNotaRecepcionDialogComponent } from './compra/gestion-compras/dialogs/add-edit-nota-recepcion-dialog/add-edit-nota-recepcion-dialog.component';
 import { EditNotaRecepcionItemDialogComponent } from './compra/gestion-compras/dialogs/edit-nota-recepcion-item-dialog/edit-nota-recepcion-item-dialog.component';
@@ -95,6 +96,7 @@ import { CreateEditSolicitudPagoCompraDialogComponent } from './compra/gestion-c
     ModificarSucursalPagoDetalleComponent,
     GestionComprasComponent,
     AddEditItemDialogComponent,
+    SelectSucursalesDialogComponent,
     DistributeItemDialogComponent,
     AddEditNotaRecepcionDialogComponent,
     EditNotaRecepcionItemDialogComponent,

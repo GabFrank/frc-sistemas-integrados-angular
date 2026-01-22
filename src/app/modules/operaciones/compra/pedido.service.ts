@@ -155,8 +155,8 @@ export class PedidoService {
     return this.genericCrudService.onCustomQuery(this.getPedidoItemsGQL, { id: pedidoId });
   }
 
-  onGetPedidoItemPorPedidoPage(pedidoId: number, page: number, size: number, texto: string): Observable<PageInfo<PedidoItem>> {
-    return this.genericCrudService.onCustomQuery(this.getPedidoItemPorPedidoPageGQL, { pedidoId, page, size, texto });
+  onGetPedidoItemPorPedidoPage(pedidoId: number, page: number, size: number, texto?: string, soloPendientes?: boolean): Observable<PageInfo<PedidoItem>> {
+    return this.genericCrudService.onCustomQuery(this.getPedidoItemPorPedidoPageGQL, { pedidoId, page, size, texto, soloPendientes });
   }
 
   /**

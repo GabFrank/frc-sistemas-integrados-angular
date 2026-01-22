@@ -124,23 +124,38 @@ export class AddEditItemDialogComponent implements OnInit {
       // Actualizar propiedades computadas cuando cambia el modo
       this.updateComputedProperties();
       
-      // En modo simplificado, inicializar distribuciones si solo hay una sucursal de influencia y entrega
+      // Si cambia a modo simplificado con múltiples sucursales, limpiar distribuciones existentes
       if (value === 'SIMPLIFICADA' && 
-          this.sucursalesInfluencia.length === 1 && 
-          this.sucursalesEntrega.length === 1 &&
-          this.distribucionesItems.length === 0) {
-        this.initializeDistribuciones();
-      }
-      
-      // Si cambia a modo simplificado, sumar todas las cantidades de las distribuciones
-      if (value === 'SIMPLIFICADA' && this.distribucionesItems.length > 0) {
-        let sumaTotal = 0;
-        this.distribucionesFormArray.controls.forEach(control => {
-          const cantidadPedir = control.get('cantidadPedir')?.value || 0;
-          sumaTotal += cantidadPedir;
-        });
-        // Establecer el valor en el control simplificado
-        this.cantidadSimplificadaControl.setValue(sumaTotal, { emitEvent: false });
+          (this.sucursalesInfluencia.length > 1 || this.sucursalesEntrega.length > 1)) {
+        console.log('Cambiando a modo simplificado con múltiples sucursales. Distribuciones antes de limpiar:', this.distribucionesItems.length);
+        // Sumar cantidades antes de limpiar (si hay distribuciones)
+        if (this.distribucionesItems.length > 0) {
+          let sumaTotal = 0;
+          this.distribucionesFormArray.controls.forEach(control => {
+            const cantidadPedir = control.get('cantidadPedir')?.value || 0;
+            sumaTotal += cantidadPedir;
+          });
+          // Establecer el valor en el control simplificado
+          this.cantidadSimplificadaControl.setValue(sumaTotal, { emitEvent: false });
+        }
+        // Limpiar distribuciones porque en modo simplificado con múltiples sucursales no deben existir
+        this.clearDistribuciones();
+        console.log('Distribuciones después de limpiar:', this.distribucionesItems.length);
+      } else if (value === 'SIMPLIFICADA' && 
+                 this.sucursalesInfluencia.length === 1 && 
+                 this.sucursalesEntrega.length === 1) {
+        // En modo simplificado con una sola combinación, inicializar si no hay distribuciones
+        if (this.distribucionesItems.length === 0) {
+          this.initializeDistribuciones();
+        } else {
+          // Si ya hay distribuciones, sumar las cantidades
+          let sumaTotal = 0;
+          this.distribucionesFormArray.controls.forEach(control => {
+            const cantidadPedir = control.get('cantidadPedir')?.value || 0;
+            sumaTotal += cantidadPedir;
+          });
+          this.cantidadSimplificadaControl.setValue(sumaTotal, { emitEvent: false });
+        }
       }
       
       // Mover el foco al elemento correspondiente según el modo
@@ -419,9 +434,14 @@ export class AddEditItemDialogComponent implements OnInit {
       this.updatePricesOnPresentacionChange();
       this.updateComputedProperties();
       // Si hay producto y presentación, inicializar distribuciones si no existen
+      // Solo si no estamos en modo simplificado con múltiples sucursales
       if (this.itemForm.get("producto")?.value && this.itemForm.get("presentacion")?.value) {
         if (this.distribucionesItems.length === 0 && !this.data.isEdit) {
-          this.initializeDistribuciones();
+          const esModoSimplificadoMultiSucursal = this.distribucionModo === 'SIMPLIFICADA' && 
+              (this.sucursalesInfluencia.length > 1 || this.sucursalesEntrega.length > 1);
+          if (!esModoSimplificadoMultiSucursal) {
+            this.initializeDistribuciones();
+          }
         }
       }
     });
@@ -437,6 +457,10 @@ export class AddEditItemDialogComponent implements OnInit {
     this.cantidadSimplificadaControl.valueChanges.subscribe((value) => {
       if (this.distribucionModo === 'SIMPLIFICADA') {
         this.updateDistribucionesFromSimplified(value || 0);
+        // Si no hay distribuciones, actualizar directamente la cantidad total
+        if (this.distribucionesItems.length === 0) {
+          this.calculateCantidadTotal();
+        }
       }
     });
 
@@ -445,10 +469,17 @@ export class AddEditItemDialogComponent implements OnInit {
 
   private calculateCantidadTotal(): void {
     let total = 0;
-    this.distribucionesFormArray.controls.forEach(control => {
-      const cantidadPedir = control.get('cantidadPedir')?.value || 0;
-      total += cantidadPedir;
-    });
+    
+    // En modo simplificado sin distribuciones, usar el valor del input simplificado
+    if (this.distribucionModo === 'SIMPLIFICADA' && this.distribucionesItems.length === 0) {
+      total = this.cantidadSimplificadaControl.value || 0;
+    } else {
+      // En modo completo o simplificado con distribuciones, sumar las distribuciones
+      this.distribucionesFormArray.controls.forEach(control => {
+        const cantidadPedir = control.get('cantidadPedir')?.value || 0;
+        total += cantidadPedir;
+      });
+    }
     
     // Las cantidades en distribuciones están en unidades de presentación
     // Mostrar total en unidades de presentación
@@ -662,8 +693,13 @@ export class AddEditItemDialogComponent implements OnInit {
     }, 100);
 
     // Inicializar distribuciones si hay producto y presentación seleccionados
+    // Solo si no estamos en modo simplificado con múltiples sucursales
     if (presentacionSeleccionada && this.distribucionesItems.length === 0 && !this.data.isEdit) {
-      this.initializeDistribuciones();
+      const esModoSimplificadoMultiSucursal = this.distribucionModo === 'SIMPLIFICADA' && 
+          (this.sucursalesInfluencia.length > 1 || this.sucursalesEntrega.length > 1);
+      if (!esModoSimplificadoMultiSucursal) {
+        this.initializeDistribuciones();
+      }
     }
 
     // Manejar el foco inicial según si la presentación ya fue proporcionada
@@ -857,7 +893,11 @@ export class AddEditItemDialogComponent implements OnInit {
     }
 
     // Validar que haya al menos una distribución
-    if (this.distribucionesItems.length === 0) {
+    // Excepción: En modo simplificado con múltiples sucursales, se permite guardar sin distribuciones
+    const esModoSimplificadoMultiSucursal = this.distribucionModo === 'SIMPLIFICADA' && 
+        (this.sucursalesInfluencia.length > 1 || this.sucursalesEntrega.length > 1);
+    
+    if (this.distribucionesItems.length === 0 && !esModoSimplificadoMultiSucursal) {
       this.notificacionService.openWarn("Debe agregar al menos una distribución por sucursal");
       return;
     }
@@ -912,28 +952,50 @@ export class AddEditItemDialogComponent implements OnInit {
         console.log("PedidoItem guardado exitosamente:", savedItem);
 
         // Preparar distribuciones para guardar
-        const distribucionesInput: PedidoItemDistribucionInput[] = this.distribucionesItems.map((item, index) => {
-          const control = this.distribucionesFormArray.at(index);
-          const cantidadPedir = control?.get('cantidadPedir')?.value || 0;
-          
-          // Convertir cantidad de presentación a unidades base
-          // Las cantidades en el formulario están en unidades de presentación
-          const presentacion = formValue.presentacion;
-          const cantidadEnUnidadesBase = presentacion && presentacion.cantidad > 0
-            ? cantidadPedir * presentacion.cantidad
-            : cantidadPedir;
-
-          return {
-            id: item.distribucionId,
-            pedidoItemId: savedItem.id,
-            sucursalInfluenciaId: item.sucursalInfluencia.id,
-            sucursalEntregaId: item.sucursalEntrega.id,
-            cantidadAsignada: cantidadEnUnidadesBase
-          };
+        // En modo completo: solo guardar distribuciones con cantidad > 0
+        // En modo simplificado: guardar todas las distribuciones (ya están filtradas por la lógica de creación)
+        console.log('ANTES de preparar distribuciones:', {
+          distribucionesItems: this.distribucionesItems.length,
+          modo: this.distribucionModo,
+          sucursalesInfluencia: this.sucursalesInfluencia.length,
+          sucursalesEntrega: this.sucursalesEntrega.length
         });
+        const distribucionesInput: PedidoItemDistribucionInput[] = this.distribucionesItems
+          .map((item, index) => {
+            const control = this.distribucionesFormArray.at(index);
+            const cantidadPedir = control?.get('cantidadPedir')?.value || 0;
+            
+            // Convertir cantidad de presentación a unidades base
+            // Las cantidades en el formulario están en unidades de presentación
+            const presentacion = formValue.presentacion;
+            const cantidadEnUnidadesBase = presentacion && presentacion.cantidad > 0
+              ? cantidadPedir * presentacion.cantidad
+              : cantidadPedir;
+
+            return {
+              id: item.distribucionId,
+              pedidoItemId: savedItem.id,
+              sucursalInfluenciaId: item.sucursalInfluencia.id,
+              sucursalEntregaId: item.sucursalEntrega.id,
+              cantidadAsignada: cantidadEnUnidadesBase
+            };
+          });
+        
+        console.log('Distribuciones DESPUÉS del map (antes del filter):', distribucionesInput);
+        
+        const distribucionesFiltradas = distribucionesInput.filter(dist => {
+            // En ambos modos, solo guardar distribuciones con cantidad > 0
+            // En modo simplificado con múltiples sucursales, no debería haber distribuciones
+            return dist.cantidadAsignada > 0;
+          });
+
+        // Log para verificar qué se está enviando
+        console.log('Distribuciones a guardar (después del filter):', distribucionesFiltradas);
+        console.log('Modo de distribución:', this.distribucionModo);
+        console.log('Cantidad de distribuciones:', distribucionesFiltradas.length);
 
         // Guardar distribuciones usando merge
-        this.pedidoService.onMergePedidoItemDistribuciones(savedItem.id, distribucionesInput).subscribe({
+        this.pedidoService.onMergePedidoItemDistribuciones(savedItem.id, distribucionesFiltradas).subscribe({
           next: (distribucionesGuardadas) => {
             console.log("Distribuciones guardadas exitosamente:", distribucionesGuardadas);
 
@@ -946,11 +1008,16 @@ export class AddEditItemDialogComponent implements OnInit {
                 formValue.precioUnitarioPorPresentacion,
             });
 
-            this.notificacionService.openSucess(
-              this.data.isEdit
-                ? "Ítem y distribuciones actualizados exitosamente"
-                : "Ítem y distribuciones añadidos exitosamente"
-            );
+            // Mensaje de éxito según si se guardaron distribuciones o no
+            const mensajeExito = distribucionesInput.length > 0
+              ? (this.data.isEdit
+                  ? "Ítem y distribuciones actualizados exitosamente"
+                  : "Ítem y distribuciones añadidos exitosamente")
+              : (this.data.isEdit
+                  ? "Ítem actualizado exitosamente"
+                  : "Ítem añadido exitosamente");
+            
+            this.notificacionService.openSucess(mensajeExito);
 
             const result: AddEditItemDialogResult = {
               item: itemResult,
@@ -1143,13 +1210,33 @@ export class AddEditItemDialogComponent implements OnInit {
 
   /**
    * Inicializa las distribuciones en modo creación
-   * Crea un item por cada sucursal de influencia con la primera sucursal de entrega
+   * - En modo COMPLETA: Crea un item por cada sucursal de influencia con la primera sucursal de entrega
+   * - En modo SIMPLIFICADA: Solo crea automáticamente si hay una única sucursal de influencia y una de entrega
    */
   private initializeDistribuciones(): void {
+    console.log('initializeDistribuciones llamado. Modo:', this.distribucionModo, 
+                'Sucursales influencia:', this.sucursalesInfluencia.length,
+                'Sucursales entrega:', this.sucursalesEntrega.length);
+    
     if (this.sucursalesInfluencia.length === 0) {
       return;
     }
 
+    // En modo simplificado, solo inicializar si hay una única sucursal de influencia y una de entrega
+    if (this.distribucionModo === 'SIMPLIFICADA') {
+      if (this.sucursalesInfluencia.length === 1 && 
+          this.sucursalesEntrega.length === 1 &&
+          !this.existeDistribucion(this.sucursalesInfluencia[0].id, this.sucursalesEntrega[0].id)) {
+        console.log('Creando distribución automática en modo simplificado (1-1 sucursales)');
+        this.addDistribucionItem(this.sucursalesInfluencia[0], this.sucursalesEntrega[0]);
+      } else {
+        console.log('NO se crean distribuciones automáticas en modo simplificado (múltiples sucursales)');
+      }
+      // Si hay más de una sucursal, no crear ninguna distribución automáticamente
+      return;
+    }
+
+    // En modo completo, crear una distribución por cada sucursal de influencia
     const primeraSucursalEntrega = this.sucursalesEntrega.length > 0 ? this.sucursalesEntrega[0] : null;
 
     this.sucursalesInfluencia.forEach(sucursalInfluencia => {
@@ -1185,13 +1272,23 @@ export class AddEditItemDialogComponent implements OnInit {
           });
         } else {
           // Si no hay distribuciones, inicializar como en modo creación
-          this.initializeDistribuciones();
+          // Solo si no estamos en modo simplificado con múltiples sucursales
+          const esModoSimplificadoMultiSucursal = this.distribucionModo === 'SIMPLIFICADA' && 
+              (this.sucursalesInfluencia.length > 1 || this.sucursalesEntrega.length > 1);
+          if (!esModoSimplificadoMultiSucursal) {
+            this.initializeDistribuciones();
+          }
         }
       },
       error: (error) => {
         console.error('Error cargando distribuciones:', error);
         // En caso de error, inicializar como en modo creación
-        this.initializeDistribuciones();
+        // Solo si no estamos en modo simplificado con múltiples sucursales
+        const esModoSimplificadoMultiSucursal = this.distribucionModo === 'SIMPLIFICADA' && 
+            (this.sucursalesInfluencia.length > 1 || this.sucursalesEntrega.length > 1);
+        if (!esModoSimplificadoMultiSucursal) {
+          this.initializeDistribuciones();
+        }
       }
     });
   }
@@ -1215,8 +1312,18 @@ export class AddEditItemDialogComponent implements OnInit {
     cantidadInicial: number = 0,
     distribucionId?: number
   ): void {
+    console.log('addDistribucionItem llamado:', {
+      sucursalInfluencia: sucursalInfluencia.nombre,
+      sucursalEntrega: sucursalEntrega.nombre,
+      cantidadInicial,
+      distribucionId,
+      modo: this.distribucionModo,
+      distribucionesActuales: this.distribucionesItems.length
+    });
+    
     // Validar que no exista ya una distribución con la misma combinación
     if (this.existeDistribucion(sucursalInfluencia.id, sucursalEntrega.id)) {
+      console.warn('Intento de agregar distribución duplicada:', sucursalInfluencia.nombre, '-', sucursalEntrega.nombre);
       this.notificacionService.openWarn(
         `Ya existe una distribución para la combinación: ${sucursalInfluencia.nombre} - ${sucursalEntrega.nombre}`
       );
@@ -1549,7 +1656,13 @@ export class AddEditItemDialogComponent implements OnInit {
    * Actualiza las distribuciones desde el modo simplificado
    */
   private updateDistribucionesFromSimplified(cantidad: number): void {
-    if (this.distribucionesItems.length > 0) {
+    // Si no hay distribuciones y hay sucursales disponibles, crear una distribución automáticamente
+    // Solo si hay una única sucursal de influencia y una de entrega (para mantener consistencia)
+    if (this.distribucionesItems.length === 0 && 
+        this.sucursalesInfluencia.length === 1 && 
+        this.sucursalesEntrega.length === 1) {
+      this.addDistribucionItem(this.sucursalesInfluencia[0], this.sucursalesEntrega[0], cantidad);
+    } else if (this.distribucionesItems.length > 0) {
       // Asignar el total a la primera distribución y poner las demás en 0
       this.distribucionesFormArray.controls.forEach((control, index) => {
         const val = index === 0 ? cantidad : 0;
@@ -1557,6 +1670,8 @@ export class AddEditItemDialogComponent implements OnInit {
         this.distribucionesItems[index].cantidadPedir = val;
       });
     }
+    // Si hay múltiples sucursales y no hay distribuciones, no crear automáticamente
+    // El usuario deberá cambiar a modo completo para crear distribuciones manualmente
     this.calculateCantidadTotal();
   }
 

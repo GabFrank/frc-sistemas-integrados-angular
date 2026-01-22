@@ -85,12 +85,13 @@ export const pedidoItemsByPedidoQuery = gql`
 `;
 
 export const pedidoItemsByPedidoPageQuery = gql`
-  query ($pedidoId: ID!, $page: Int = 0, $size: Int = 10, $texto: String) {
+  query ($pedidoId: ID!, $page: Int = 0, $size: Int = 10, $texto: String, $soloPendientes: Boolean) {
     data: pedidoItemPorPedidoPage(
       id: $pedidoId
       page: $page
       size: $size
       texto: $texto
+      soloPendientes: $soloPendientes
     ) {
       getTotalPages
       getTotalElements
