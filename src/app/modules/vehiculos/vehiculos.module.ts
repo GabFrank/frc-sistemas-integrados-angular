@@ -12,6 +12,8 @@ import { BuscarTipoVehiculoDialogComponent } from './vehiculo/buscar-tipo-vehicu
 import { VehiculoSucursalDialogComponent } from './vehiculo/vehiculo-sucursal-dialog/vehiculo-sucursal-dialog.component';
 import { VehiculosDashboardComponent } from './vehiculos-dashboard/vehiculos-dashboard.component';
 import { ListVehiculoSucursalComponent } from './vehiculo-sucursal/list-vehiculo-sucursal/list-vehiculo-sucursal.component';
+import { AdicionarTipoVehiculoDialogComponent } from './vehiculo/adicionar-tipo-vehiculo-dialog/adicionar-tipo-vehiculo-dialog.component';
+import { AdicionarModeloDialogComponent } from './vehiculo/adicionar-modelo-dialog/adicionar-modelo-dialog.component';
 
 @NgModule({
   declarations: [
@@ -22,7 +24,9 @@ import { ListVehiculoSucursalComponent } from './vehiculo-sucursal/list-vehiculo
     BuscarTipoVehiculoDialogComponent,
     VehiculoSucursalDialogComponent,
     VehiculosDashboardComponent,
-    ListVehiculoSucursalComponent
+    ListVehiculoSucursalComponent,
+    AdicionarTipoVehiculoDialogComponent,
+    AdicionarModeloDialogComponent
   ],
   imports: [
     CommonModule,

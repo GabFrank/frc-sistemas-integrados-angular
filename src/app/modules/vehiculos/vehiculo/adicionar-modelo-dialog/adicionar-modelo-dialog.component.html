@@ -1,0 +1,57 @@
+<div mat-dialog-title>
+    <div fxLayout="row" fxLayoutAlign="start center">
+        <span class="titulo">REGISTRAR NUEVO MODELO</span>
+    </div>
+</div>
+
+<mat-divider style="opacity: 0.1;"></mat-divider>
+
+<mat-dialog-content style="min-width: 500px; padding-top: 20px;">
+    <div fxLayout="column" fxLayoutGap="20px">
+
+        <div class="form-section">
+            <h3 class="section-title">1. REGISTRAR NUEVA MARCA (SI NO EXISTE)</h3>
+            <form [formGroup]="marcaForm" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
+                <mat-form-field fxFlex>
+                    <mat-label>Nombre de la Marca</mat-label>
+                    <input matInput formControlName="descripcion" placeholder="Ej: TOYOTA"
+                        (keyup.enter)="onGuardarMarca()">
+                </mat-form-field>
+                <button mat-raised-button color="accent" [disabled]="marcaForm.invalid" (click)="onGuardarMarca()">
+                    <mat-icon>save</mat-icon> GUARDAR MARCA
+                </button>
+            </form>
+        </div>
+
+        <mat-divider style="opacity: 0.1;"></mat-divider>
+
+        <div class="form-section">
+            <h3 class="section-title">2. REGISTRAR NUEVO MODELO</h3>
+            <div fxLayout="column" fxLayoutGap="15px">
+                <frc-searchable-select titulo="Seleccione Marca" [list]="marcas$ | async" [isFilter]="false"
+                    [initialValue]="false" [currentData]="currentMarca" (inputChanged)="onFiltrarMarcas($event)"
+                    (selectionChanged)="onSelectMarca($event)" [compareFields]="['descripcion']">
+                    <ng-template let-marca>
+                        {{ marca.descripcion | uppercase }}
+                    </ng-template>
+                </frc-searchable-select>
+
+                <form [formGroup]="modeloForm" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
+                    <mat-form-field fxFlex>
+                        <mat-label>Nombre del Modelo</mat-label>
+                        <input matInput formControlName="descripcion" placeholder="Ej: HILUX"
+                            (keyup.enter)="onGuardarModelo()">
+                    </mat-form-field>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" style="padding: 15px 24px;">
+    <button mat-button (click)="onCancelar()" style="margin-right: 10px;">CANCELAR</button>
+    <button mat-raised-button color="accent" [disabled]="modeloForm.invalid" (click)="onGuardarModelo()">
+        <mat-icon>save</mat-icon> GUARDAR Y SELECCIONAR
+    </button>
+</mat-dialog-actions>

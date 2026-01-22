@@ -3,9 +3,6 @@
         <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px">
             <span class="titulo" style="color: white;">BUSCAR MODELO</span>
         </div>
-        <button mat-icon-button (click)="onCancelar()">
-            <mat-icon>close</mat-icon>
-        </button>
     </div>
 </div>
 
@@ -20,12 +17,12 @@
                 <mat-icon matSuffix>search</mat-icon>
             </mat-form-field>
 
-            <button mat-raised-button [color]="showAddForm ? 'warn' : 'accent'" (click)="toggleAddForm()">
-                <mat-icon>{{ showAddForm ? 'keyboard_arrow_left' : 'add' }}</mat-icon>
-                {{ showAddForm ? 'VOLVER' : 'ADICIONAR' }}
+            <button mat-raised-button color="accent" (click)="onAdicionar()">
+                <mat-icon>add</mat-icon>
+                ADICIONAR
             </button>
         </div>
-        <div *ngIf="!showAddForm" class="table-container mat-elevation-z2">
+        <div class="table-container mat-elevation-z2">
             <table mat-table [dataSource]="dataSource" style="width: 100%">
                 <ng-container matColumnDef="id">
                     <th mat-header-cell *matHeaderCellDef style="width: 60px;"> ID </th>
@@ -54,9 +51,6 @@
                 <ng-container matColumnDef="editarEliminar">
                     <th mat-header-cell *matHeaderCellDef style="width: 120px; text-align: center;"> Acciones </th>
                     <td mat-cell *matCellDef="let modelo" style="text-align: center;">
-                        <button mat-icon-button color="primary" (click)="onEditarModelo(modelo)" style="color: green;">
-                            <mat-icon>edit</mat-icon>
-                        </button>
                         <button mat-icon-button color="warn" (click)="onEliminarModelo(modelo)" style="color: red;">
                             <mat-icon>delete</mat-icon>
                         </button>
@@ -75,48 +69,7 @@
             </div>
         </div>
 
-        <div *ngIf="showAddForm" fxLayout="column" fxLayoutGap="20px" class="add-form-container">
-            <div class="form-section">
-                <h3 class="section-title">1. REGISTRAR NUEVA MARCA (SI NO EXISTE)</h3>
-                <form [formGroup]="marcaForm" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
-                    <mat-form-field fxFlex>
-                        <mat-label>Nombre de la Marca</mat-label>
-                        <input matInput formControlName="descripcion" placeholder="Ej: TOYOTA"
-                            (keyup.enter)="onGuardarMarca()">
-                    </mat-form-field>
-                    <button mat-raised-button color="accent" [disabled]="marcaForm.invalid" (click)="onGuardarMarca()">
-                        <mat-icon>save</mat-icon> GUARDAR MARCA
-                    </button>
-                </form>
-            </div>
 
-            <mat-divider style="opacity: 0.1;"></mat-divider>
-
-            <div class="form-section">
-                <h3 class="section-title">2. {{ modeloForm.get('id')?.value ? 'EDITAR MODELO' : 'REGISTRAR NUEVO MODELO' }}</h3>
-                <div fxLayout="column" fxLayoutGap="15px">
-                    <frc-searchable-select titulo="Seleccione Marca" [list]="marcas$ | async" [isFilter]="false"
-                        [initialValue]="false" [currentData]="currentMarca" (inputChanged)="onFiltrarMarcas($event)"
-                        (selectionChanged)="onSelectMarca($event)" [compareFields]="['descripcion']">
-                        <ng-template let-marca>
-                            {{ marca.descripcion | uppercase }}
-                        </ng-template>
-                    </frc-searchable-select>
-
-                    <form [formGroup]="modeloForm" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
-                        <mat-form-field fxFlex>
-                            <mat-label>Nombre del Modelo</mat-label>
-                            <input matInput formControlName="descripcion" placeholder="Ej: HILUX"
-                                (keyup.enter)="onGuardarModelo()">
-                        </mat-form-field>
-                        <button mat-raised-button color="accent" [disabled]="modeloForm.invalid"
-                            (click)="onGuardarModelo()">
-                            <mat-icon>save</mat-icon> {{ modeloForm.get('id')?.value ? 'ACTUALIZAR' : 'GUARDAR Y SELECCIONAR' }}
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
     </div>
 </mat-dialog-content>
 

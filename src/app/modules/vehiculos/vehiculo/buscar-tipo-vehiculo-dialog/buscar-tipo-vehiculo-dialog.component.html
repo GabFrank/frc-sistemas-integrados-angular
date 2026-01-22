@@ -21,13 +21,13 @@
                 <mat-icon matSuffix>search</mat-icon>
             </mat-form-field>
 
-            <button mat-raised-button [color]="showAddForm ? 'warn' : 'accent'" (click)="toggleAddForm()">
-                <mat-icon>{{ showAddForm ? 'keyboard_arrow_left' : 'add' }}</mat-icon>
-                {{ showAddForm ? 'VOLVER' : 'ADICIONAR' }}
+            <button mat-raised-button color="accent" (click)="onAdicionar()">
+                <mat-icon>add</mat-icon>
+                ADICIONAR
             </button>
         </div>
 
-        <div *ngIf="!showAddForm" class="table-container mat-elevation-z2">
+        <div class="table-container mat-elevation-z2">
             <table mat-table [dataSource]="dataSource" style="width: 100%">
                 <ng-container matColumnDef="id">
                     <th mat-header-cell *matHeaderCellDef style="width: 60px;"> ID </th>
@@ -60,21 +60,7 @@
             </div>
         </div>
 
-        <div *ngIf="showAddForm" fxLayout="column" fxLayoutGap="20px" class="add-form-container">
-            <div class="form-section">
-                <h3 class="section-title">1. REGISTRAR NUEVO TIPO DE VEHÍCULO</h3>
-                <form [formGroup]="tipoForm" fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
-                    <mat-form-field fxFlex>
-                        <mat-label>Nombre del Tipo</mat-label>
-                        <input matInput formControlName="descripcion" placeholder="Ej: CAMIÓN"
-                            (keyup.enter)="onGuardarTipo()">
-                    </mat-form-field>
-                    <button mat-raised-button color="accent" [disabled]="tipoForm.invalid" (click)="onGuardarTipo()">
-                        <mat-icon>save</mat-icon> GUARDAR Y SELECCIONAR
-                    </button>
-                </form>
-            </div>
-        </div>
+
     </div>
 </mat-dialog-content>
 
