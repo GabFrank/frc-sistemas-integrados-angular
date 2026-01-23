@@ -7,7 +7,6 @@ import {
   NotificacionSnackbarService,
 } from "../../../notificacion-snackbar.service";
 import { SavePersonaGQL } from "./graphql/savePersona";
-import { MainService } from "../../../main.service";
 import { PersonaInput } from "./persona/persona-input.model";
 import { PersonaPorIdGQL } from "./graphql/personaPorId";
 
@@ -31,9 +30,9 @@ export class PersonaService {
     private deletePersona: DeletePersonaGQL,
     private getPersonas: PersonasGQL,
     private personaPorDocumento: PersonaPorDocumentoGQL
-  ) {}
+  ) { }
 
-  onGetAll(page, servidor: boolean = true): Observable<Persona[]>{
+  onGetAll(page, servidor: boolean = true): Observable<Persona[]> {
     return this.genericService.onGetAll(this.getPersonas, page, null, servidor)
   }
 
@@ -42,7 +41,7 @@ export class PersonaService {
   }
 
   onGetPorDocumento(texto, servidor: boolean = true): Observable<Persona> {
-    return this.genericService.onCustomQuery(this.personaPorDocumento, {texto}, servidor)
+    return this.genericService.onCustomQuery(this.personaPorDocumento, { texto }, servidor)
   }
 
   onSavePersona(input: PersonaInput, servidor: boolean = true): Observable<any> {

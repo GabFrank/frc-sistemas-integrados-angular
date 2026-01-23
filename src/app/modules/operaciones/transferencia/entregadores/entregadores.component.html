@@ -1,0 +1,115 @@
+<div class="entregadores-container">
+    <div class="header">
+        <h2>Choferes con Entregas</h2>
+    </div>
+
+    <mat-form-field appearance="outline" class="filter-field">
+        <mat-label>Buscar chofer</mat-label>
+        <input matInput (keyup)="applyFilter($event)" placeholder="Nombre, documento o teléfono...">
+        <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <div class="table-container mat-elevation-z2">
+        <div *ngIf="isLoading" class="loading-container">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Cargando choferes...</p>
+        </div>
+
+        <table mat-table [dataSource]="dataSource" multiTemplateDataRows *ngIf="!isLoading">
+
+            <ng-container matColumnDef="id">
+                <th mat-header-cell *matHeaderCellDef>ID</th>
+                <td mat-cell *matCellDef="let element">{{element.id}}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="nombre">
+                <th mat-header-cell *matHeaderCellDef>Nombre</th>
+                <td mat-cell *matCellDef="let element">{{element.nombre | uppercase}}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="documento">
+                <th mat-header-cell *matHeaderCellDef>Documento</th>
+                <td mat-cell *matCellDef="let element">{{element.documento || '-'}}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="telefono">
+                <th mat-header-cell *matHeaderCellDef>Teléfono</th>
+                <td mat-cell *matCellDef="let element">{{element.telefono || '-'}}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="acciones">
+                <th mat-header-cell *matHeaderCellDef></th>
+                <td mat-cell *matCellDef="let element">
+                    <button mat-icon-button (click)="onExpandRow(element); $event.stopPropagation()">
+                        <mat-icon>{{expandedElement === element ? 'expand_less' : 'expand_more'}}</mat-icon>
+                    </button>
+                </td>
+            </ng-container>
+
+            <ng-container matColumnDef="expandedDetail">
+                <td mat-cell *matCellDef="let element" [attr.colspan]="displayedColumns.length" class="expanded-cell">
+                    <div class="element-detail" [@detailExpand]="element == expandedElement ? 'expanded' : 'collapsed'">
+
+                        <div class="detail-container">
+                            <h3>Transferencias entregadas</h3>
+
+                            <div *ngIf="loadingTransferencias[element.id]" class="loading-detail">
+                                <mat-spinner diameter="30"></mat-spinner>
+                                <span>Cargando transferencias...</span>
+                            </div>
+
+                            <div *ngIf="!loadingTransferencias[element.id] && transferenciasCache[element.id]?.length === 0"
+                                class="no-data-detail">
+                                No se encontraron transferencias para este chofer.
+                            </div>
+
+                            <table
+                                *ngIf="!loadingTransferencias[element.id] && transferenciasCache[element.id]?.length > 0"
+                                class="detail-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID Transf.</th>
+                                        <th>Vehículo</th>
+                                        <th>Origen</th>
+                                        <th>Destino</th>
+                                        <th>Estado</th>
+                                        <th>Fecha Creación</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let transf of transferenciasCache[element.id]">
+                                        <td>{{transf.id}}</td>
+                                        <td>
+                                            <span *ngIf="transf.hojaRuta?.vehiculo">
+                                                {{transf.hojaRuta.vehiculo.modelo?.descripcion}}
+                                                ({{transf.hojaRuta.vehiculo.chapa}})
+                                            </span>
+                                            <span *ngIf="!transf.hojaRuta?.vehiculo">-</span>
+                                        </td>
+                                        <td>{{transf.sucursalOrigen?.nombre}}</td>
+                                        <td>{{transf.sucursalDestino?.nombre}}</td>
+                                        <td>{{transf.estado}}</td>
+                                        <td>{{transf.fecha | date:'dd/MM/yyyy HH:mm'}}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let element; columns: displayedColumns;" class="element-row"
+                [class.expanded-row]="expandedElement === element" (click)="onExpandRow(element)">
+            </tr>
+            <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="detail-row"></tr>
+
+            <tr class="mat-row" *matNoDataRow>
+                <td class="mat-cell no-data" colspan="5">
+                    <mat-icon>local_shipping</mat-icon>
+                    <span>No se encontraron choferes con entregas</span>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>

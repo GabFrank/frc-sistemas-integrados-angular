@@ -985,3 +985,243 @@ export const transferenciaItensPorTransferenciaIdWithFilter = gql`
     }
   }
 `;
+
+export const hojaRutaQuery = gql`
+  query ($id: ID!) {
+    data: hojaRuta(id: $id) {
+      id
+      vehiculo {
+        id
+        modelo {
+          descripcion
+        }
+        chapa
+      }
+      chofer {
+        id
+        nombre
+      }
+      fechaSalida
+      fechaLlegada
+      kmSalida
+      kmLlegada
+      estado
+      creadoEn
+      acompanantes {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
+export const hojaRutaListQuery = gql`
+  query ($page: Int, $size: Int) {
+    data: hojaRutaList(page: $page, size: $size) {
+      id
+      vehiculo {
+        id
+        modelo {
+          descripcion
+        }
+        chapa
+      }
+      chofer {
+        id
+        nombre
+      }
+      fechaSalida
+      fechaLlegada
+      kmSalida
+      kmLlegada
+      estado
+      creadoEn
+    }
+  }
+`;
+
+export const hojaRutaPorVehiculoQuery = gql`
+  query ($vehiculoId: ID!, $page: Int, $size: Int) {
+    data: hojaRutaPorVehiculo(vehiculoId: $vehiculoId, page: $page, size: $size) {
+      id
+      vehiculo {
+        id
+        modelo {
+          descripcion
+        }
+        chapa
+      }
+      chofer {
+        id
+        nombre
+      }
+      fechaSalida
+      fechaLlegada
+      kmSalida
+      kmLlegada
+      estado
+      creadoEn
+    }
+  }
+`;
+
+export const hojaRutaPorChoferQuery = gql`
+  query ($choferId: ID!, $page: Int, $size: Int) {
+    data: hojaRutaPorChofer(choferId: $choferId, page: $page, size: $size) {
+      id
+      vehiculo {
+        id
+        modelo {
+          descripcion
+        }
+        chapa
+      }
+      chofer {
+        id
+        nombre
+      }
+      fechaSalida
+      fechaLlegada
+      kmSalida
+      kmLlegada
+      estado
+      creadoEn
+    }
+  }
+`;
+
+export const hojaRutaActivaPorVehiculoQuery = gql`
+  query ($vehiculoId: ID!) {
+    data: hojaRutaActivaPorVehiculo(vehiculoId: $vehiculoId) {
+      id
+      vehiculo {
+        id
+        modelo {
+          descripcion
+        }
+        chapa
+      }
+      chofer {
+        id
+        nombre
+      }
+      fechaSalida
+      fechaLlegada
+      kmSalida
+      kmLlegada
+      estado
+      creadoEn
+    }
+  }
+`;
+
+export const saveHojaRuta = gql`
+  mutation saveHojaRuta($entity: HojaRutaInput!) {
+    data: saveHojaRuta(input: $entity) {
+      id
+      vehiculo {
+        id
+        modelo {
+          descripcion
+        }
+        chapa
+      }
+      chofer {
+        id
+        nombre
+      }
+      fechaSalida
+      fechaLlegada
+      kmSalida
+      kmLlegada
+      estado
+      creadoEn
+      acompanantes {
+        id
+        nombre
+      }
+    }
+  }
+`;
+
+export const deleteHojaRuta = gql`
+  mutation deleteHojaRuta($id: ID!) {
+    data: deleteHojaRuta(id: $id)
+  }
+`;
+
+export const acompanhantesPorHojaRutaQuery = gql`
+  query ($hojaRutaId: ID!) {
+    data: acompanhantesPorHojaRuta(hojaRutaId: $hojaRutaId) {
+        id {
+            hojaRutaId
+            personaId
+        }
+        persona {
+            id
+            nombre
+        }
+    }
+  }
+`;
+
+export const saveAcompanhante = gql`
+  mutation saveAcompanhante($entity: AcompanhanteInput!) {
+    data: saveAcompanhante(input: $entity) {
+        id {
+            hojaRutaId
+            personaId
+        }
+        persona {
+            id
+            nombre
+        }
+    }
+  }
+`;
+
+export const deleteAcompanhante = gql`
+  mutation deleteAcompanhante($hojaRutaId: ID!, $personaId: ID!) {
+    data: deleteAcompanhante(hojaRutaId: $hojaRutaId, personaId: $personaId)
+  }
+`;
+
+export const choferesConEntregasQuery = gql`
+  query ($page: Int, $size: Int) {
+    data: choferesConEntregas(page: $page, size: $size) {
+      id
+      nombre
+      documento
+      telefono
+    }
+  }
+`;
+
+export const transferenciasPorChoferQuery = gql`
+  query ($choferId: ID!, $page: Int, $size: Int) {
+    data: transferenciasPorChofer(choferId: $choferId, page: $page, size: $size) {
+      id
+      sucursalOrigen {
+        id
+        nombre
+      }
+      sucursalDestino {
+        id
+        nombre
+      }
+      estado
+      fecha: creadoEn
+      hojaRuta {
+        id
+        vehiculo {
+          chapa
+          modelo {
+            descripcion
+          }
+        }
+      }
+    }
+  }
+`;
+
+

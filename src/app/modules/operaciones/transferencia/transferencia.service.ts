@@ -12,12 +12,11 @@ import { Observable, tap } from 'rxjs';
 import { GetTransferenciaGQL } from './graphql/getTransferencia';
 import { GenericCrudService } from './../../../generics/generic-crud.service';
 import { Injectable } from '@angular/core';
-import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaInput, TipoTransferencia } from './transferencia.model';
+import { EtapaTransferencia, Transferencia, TransferenciaEstado, TransferenciaItem, TransferenciaInput, TipoTransferencia, HojaRuta, Acompanhante, AcompanhanteInput, HojaRutaInput } from './transferencia.model';
 import { DeleteTransferenciaGQL } from './graphql/deleteTransferencia';
 import { GetTransferenciasPorUsuarioGQL } from './graphql/getTransferenciasPorUsuario';
 import { GetTransferenciasWithFilterGQL } from './graphql/getTransferenciasWithFilter';
 import { ImprimirTransferenciaGQL } from './graphql/imprimirTransferencia';
-import { environment } from '../../../../environments/environment';
 import { ReporteService } from '../../reportes/reporte.service';
 import { TabService } from '../../../layouts/tab/tab.service';
 import { Tab } from '../../../layouts/tab/tab.model';
@@ -28,6 +27,20 @@ import { GetTransferenciaItemGQL } from './graphql/getTransferenciaItem';
 import { GetTransferenciaItensPorTransferenciaIdGQL } from './graphql/getTransferenciaItensPorTransferenciaIdWithFilter';
 import { GetTransferenciaItensPorTransferenciaIdWithFilterGQL } from './graphql/getTransferenciaItensPorTransferenciaId';
 import { ConfiguracionService } from '../../../shared/services/configuracion.service';
+import { GetHojaRutaGQL } from './graphql/getHojaRuta';
+import { GetHojaRutaListGQL } from './graphql/getHojaRutaList';
+import { GetHojaRutaPorVehiculoGQL } from './graphql/getHojaRutaPorVehiculo';
+import { GetHojaRutaPorChoferGQL } from './graphql/getHojaRutaPorChofer';
+import { GetHojaRutaActivaPorVehiculoGQL } from './graphql/getHojaRutaActivaPorVehiculo';
+import { SaveHojaRutaGQL } from './graphql/saveHojaRuta';
+import { DeleteHojaRutaGQL } from './graphql/deleteHojaRuta';
+import { GetAcompanhantesPorHojaRutaGQL } from './graphql/getAcompanhantesPorHojaRuta';
+import { SaveAcompanhanteGQL } from './graphql/saveAcompanhante';
+import { DeleteAcompanhanteGQL } from './graphql/deleteAcompanhante';
+import { GetChoferesConEntregasGQL } from './graphql/getChoferesConEntregas';
+import { GetTransferenciasPorChoferGQL } from './graphql/getTransferenciasPorChofer';
+import { Persona } from '../../personas/persona/persona.model';
+
 @UntilDestroy({ checkProperties: true })
 @Injectable({
   providedIn: 'root'
@@ -54,7 +67,19 @@ export class TransferenciaService {
     private reporteService: ReporteService,
     private tabService: TabService,
     private getTransferenciaItem: GetTransferenciaItemGQL,
-    private configService: ConfiguracionService
+    private configService: ConfiguracionService,
+    private getHojaRuta: GetHojaRutaGQL,
+    private getHojaRutaList: GetHojaRutaListGQL,
+    private getHojaRutaPorVehiculo: GetHojaRutaPorVehiculoGQL,
+    private getHojaRutaPorChofer: GetHojaRutaPorChoferGQL,
+    private getHojaRutaActivaPorVehiculo: GetHojaRutaActivaPorVehiculoGQL,
+    private saveHojaRutaService: SaveHojaRutaGQL,
+    private deleteHojaRuta: DeleteHojaRutaGQL,
+    private getAcompanhantesPorHojaRuta: GetAcompanhantesPorHojaRutaGQL,
+    private saveAcompanhante: SaveAcompanhanteGQL,
+    private deleteAcompanhante: DeleteAcompanhanteGQL,
+    private getChoferesConEntregas: GetChoferesConEntregasGQL,
+    private getTransferenciasPorChofer: GetTransferenciasPorChoferGQL
   ) { }
 
   onImprimirTransferencia(id, ticket?, servidor = true) {
@@ -205,7 +230,53 @@ export class TransferenciaService {
 
   onGetTransferenciaItensPorTransferenciaIdWithFilter(id?, texto?, page?, size?, servidor = true) {
     return this.genericCrudService.onCustomQuery(this.transferenciaItemPorTransferenciaIdWithFilter, { id, name: texto, page, size }, servidor);
+  }
+  onGetHojaRuta(id: number, servidor = true): Observable<HojaRuta> {
+    return this.genericCrudService.onGetById(this.getHojaRuta, id, null, null, servidor);
+  }
 
+  onGetHojaRutaList(page?, size?, servidor = true): Observable<PageInfo<HojaRuta>> {
+    return this.genericCrudService.onCustomQuery(this.getHojaRutaList, { page, size }, servidor);
+  }
+
+  onGetHojaRutaPorVehiculo(vehiculoId: number, page?, size?, servidor = true): Observable<PageInfo<HojaRuta>> {
+    return this.genericCrudService.onCustomQuery(this.getHojaRutaPorVehiculo, { vehiculoId, page, size }, servidor);
+  }
+
+  onGetHojaRutaPorChofer(choferId: number, page?, size?, servidor = true): Observable<PageInfo<HojaRuta>> {
+    return this.genericCrudService.onCustomQuery(this.getHojaRutaPorChofer, { choferId, page, size }, servidor);
+  }
+
+  onGetHojaRutaActivaPorVehiculo(vehiculoId: number, servidor = true): Observable<HojaRuta> {
+    return this.genericCrudService.onCustomQuery(this.getHojaRutaActivaPorVehiculo, { vehiculoId }, servidor);
+  }
+
+  onSaveHojaRuta(input: HojaRutaInput, servidor = true): Observable<HojaRuta> {
+    return this.genericCrudService.onSave(this.saveHojaRutaService, input, null, null, servidor);
+  }
+
+  onDeleteHojaRuta(id: number, servidor = true): Observable<boolean> {
+    return this.genericCrudService.onDelete(this.deleteHojaRuta, id, '¿Eliminar hoja de ruta?', null, true, servidor);
+  }
+
+  onGetAcompanhantesPorHojaRuta(hojaRutaId: number, servidor = true): Observable<Acompanhante[]> {
+    return this.genericCrudService.onCustomQuery(this.getAcompanhantesPorHojaRuta, { hojaRutaId }, servidor);
+  }
+
+  onSaveAcompanhante(input: AcompanhanteInput, servidor = true): Observable<Acompanhante> {
+    return this.genericCrudService.onSave(this.saveAcompanhante, input, null, null, servidor);
+  }
+
+  onDeleteAcompanhante(hojaRutaId: number, personaId: number, servidor = true): Observable<boolean> {
+    return this.genericCrudService.onCustomMutation(this.deleteAcompanhante, { hojaRutaId, personaId }, servidor);
+  }
+
+  onGetChoferesConEntregas(page?: number, size?: number, servidor = true): Observable<Persona[]> {
+    return this.genericCrudService.onCustomQuery(this.getChoferesConEntregas, { page, size }, servidor);
+  }
+
+  onGetTransferenciasPorChofer(choferId: number, page?: number, size?: number, servidor = true): Observable<Transferencia[]> {
+    return this.genericCrudService.onCustomQuery(this.getTransferenciasPorChofer, { choferId, page, size }, servidor);
   }
 
 }

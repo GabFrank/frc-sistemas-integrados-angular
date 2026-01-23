@@ -139,6 +139,7 @@
             Verificar para transporte
           </button>
         </div>
+
         <div fxFlex="15%" *ngIf="isTransporteVerificacion && puedeEditar">
           <button style="width: 100%" mat-raised-button color="accent" (click)="onAvanzarEtapa('TRANSPORTE_EN_CAMINO')"
             [disabled]="!isAllConfirmedTransporte">

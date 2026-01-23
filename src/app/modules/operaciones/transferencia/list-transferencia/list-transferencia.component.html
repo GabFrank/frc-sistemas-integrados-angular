@@ -1,27 +1,15 @@
-<app-generic-list
-  titulo="Transferencias"
-  (adicionar)="onAdd()"
-  (filtrar)="onFilter()"
-  (resetFiltro)="onResetFiltro()"
+<app-generic-list titulo="Transferencias" (adicionar)="onAdd()" (filtrar)="onFilter()" (resetFiltro)="onResetFiltro()"
   [isAdicionar]="mainService?.usuarioActual?.roles.includes('ADMIN') || mainService?.usuarioActual?.roles.includes('CREAR_TRANSFERENCIA') ? true : false"
->
+  [isCustom]="true" customName="Asignar Ruta" [disableCustom]="selection.selected.length == 0"
+  (customFunction)="onAsignarRuta()">
   <div filtros fxLayout="column" style="width: 100%; height: 100%">
     <div fxLayout="row wrap" fxLayoutGap="10px">
       <mat-form-field fxFlex="10">
-        <input
-          placeholder="Id"
-          matInput
-          [formControl]="idControl"
-          (keyup.enter)="onFilter()"
-          type="number"
-        />
+        <input placeholder="Id" matInput [formControl]="idControl" (keyup.enter)="onFilter()" type="number" />
       </mat-form-field>
 
       <mat-form-field fxFlex="25">
-        <mat-select
-          placeholder="Sucursal de Origen"
-          [formControl]="sucOrigenControl"
-        >
+        <mat-select placeholder="Sucursal de Origen" [formControl]="sucOrigenControl">
           <mat-option *ngFor="let sucursal of sucursalList" [value]="sucursal">
             {{ sucursal.id }} - {{ sucursal.nombre }}
           </mat-option>
@@ -57,45 +45,21 @@
 
       <mat-form-field fxFlex="25">
         <mat-label>Rango de fecha</mat-label>
-        <mat-date-range-input
-          [formGroup]="fechaFormGroup"
-          [rangePicker]="picker"
-          style="font-size: 1em; width: 100%"
-        >
-          <input
-            matStartDate
-            formControlName="inicio"
-            placeholder="Inicio"
-            [max]="today"
-          />
-          <input
-            matEndDate
-            formControlName="fin"
-            placeholder="Fin"
-            [max]="fechaInicioControl.value"
-          />
+        <mat-date-range-input [formGroup]="fechaFormGroup" [rangePicker]="picker" style="font-size: 1em; width: 100%">
+          <input matStartDate formControlName="inicio" placeholder="Inicio" [max]="today" />
+          <input matEndDate formControlName="fin" placeholder="Fin" [max]="fechaInicioControl.value" />
         </mat-date-range-input>
         <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
         <mat-date-range-picker #picker></mat-date-range-picker>
 
-        <mat-error
-          *ngIf="fechaFormGroup.controls.inicio.hasError('matStartDateInvalid')"
-          >Fecha inicial inválida</mat-error
-        >
-        <mat-error
-          *ngIf="fechaFormGroup.controls.fin.hasError('matEndDateInvalid')"
-          >Fecha final inválida</mat-error
-        >
+        <mat-error *ngIf="fechaFormGroup.controls.inicio.hasError('matStartDateInvalid')">Fecha inicial
+          inválida</mat-error>
+        <mat-error *ngIf="fechaFormGroup.controls.fin.hasError('matEndDateInvalid')">Fecha final inválida</mat-error>
       </mat-form-field>
     </div>
 
     <div fxFlex="80%" style="height: 100%"></div>
-    <div
-      fxFlex="20%"
-      fxLayout="row"
-      style="width: 100%"
-      fxLayoutAlign="start center"
-    >
+    <div fxFlex="20%" fxLayout="row" style="width: 100%" fxLayoutAlign="start center">
       <div fxFlex="3%">
         <mat-icon style="color: #43a047">circle</mat-icon>
       </div>
@@ -117,118 +81,71 @@
       <div fxFlex="10%">En Recepción</div>
     </div>
   </div>
-  <div
-    table
-    style="height: 100%; background-color: rgb(70, 70, 70)"
-    fxLayout="column"
-    fxLayoutAlign="space-between start"
-  >
-    <table
-      mat-table
-      [dataSource]="dataSource"
-      multiTemplateDataRows
-      class="mat-elevation-z8"
-      style="width: 100%"
-    >
-      <ng-container matColumnDef="id" style="width: 5%">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 5%"
-        >
-          Id
+  <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
+    fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
+      <ng-container matColumnDef="select">
+        <th mat-header-cell *matHeaderCellDef style="width: 5%">
+          <mat-checkbox (change)="$event ? masterToggle() : null" [checked]="selection.hasValue() && isAllSelected()"
+            [indeterminate]="selection.hasValue() && !isAllSelected()">
+          </mat-checkbox>
         </th>
-        <td
-          mat-cell
-          *matCellDef="let transferencia"
-          style="text-align: center; width: 5%"
-        >
-          {{ transferencia.id }}
+        <td mat-cell *matCellDef="let row">
+          <mat-checkbox (click)="$event.stopPropagation()" (change)="$event ? selection.toggle(row) : null"
+            [checked]="selection.isSelected(row)">
+          </mat-checkbox>
         </td>
       </ng-container>
 
-      <!-- Name Column -->
+      <ng-container matColumnDef="id" style="width: 5%">
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
+          Id
+        </th>
+        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 5%">
+          {{ transferencia.id }}
+        </td>
+      </ng-container>
       <ng-container matColumnDef="origen">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 20%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
           Suc. Origen
         </th>
-        <td
-          mat-cell
-          *matCellDef="let transferencia"
-          style="text-align: center; width: 20%"
-        >
+        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 20%">
           {{ transferencia?.sucursalOrigen?.nombre | uppercase }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="destino">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 20%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
           Suc. Destino
         </th>
-        <td
-          mat-cell
-          *matCellDef="let transferencia"
-          style="text-align: center; width: 20%"
-        >
+        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 20%">
           {{ transferencia?.sucursalDestino?.nombre | uppercase }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="estado">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 20%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
           Estado
         </th>
-        <td
-          mat-cell
-          *matCellDef="let transferencia"
-          style="text-align: center; width: 20%"
-        >
+        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 20%">
           {{ transferencia?.estado | enumToString | titlecase }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="etapa">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 20%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 20%">
           Etapa
         </th>
-        <td
-          mat-cell
-          *matCellDef="let transferencia"
-          style="text-align: center; width: 20%"
-        >
+        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 20%">
           {{ transferencia?.etapa }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="fecha">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 15%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 15%">
           Fecha
         </th>
-        <td
-          mat-cell
-          *matCellDef="let transferencia"
-          style="text-align: center; width: 15%"
-        >
+        <td mat-cell *matCellDef="let transferencia" style="text-align: center; width: 15%">
           {{ transferencia?.creadoEn | date : "short" }}
         </td>
       </ng-container>
@@ -243,23 +160,11 @@
       </ng-container>
 
       <ng-container matColumnDef="acciones">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="width: 5%; text-align: center"
-        >
+        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">
           ...
         </th>
-        <td
-          mat-cell
-          *matCellDef="let transferencia; let i = dataIndex"
-          style="text-align: center; width: 5%"
-        >
-          <button
-            mat-icon-button
-            [matMenuTriggerFor]="menu"
-            (click)="$event.stopPropagation()"
-          >
+        <td mat-cell *matCellDef="let transferencia; let i = dataIndex" style="text-align: center; width: 5%">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
@@ -269,11 +174,7 @@
             <button mat-menu-item (click)="onImprimir(transferencia.id)">
               Imprimir
             </button>
-            <button
-              mat-menu-item
-              (click)="onDelete(transferencia, i)"
-              style="color: red"
-            >
+            <button mat-menu-item (click)="onDelete(transferencia, i)" style="color: red">
               Eliminar
             </button>
           </mat-menu>
@@ -284,33 +185,14 @@
 
       <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
       <ng-container matColumnDef="expandedDetail">
-        <td
-          mat-cell
-          *matCellDef="let transferencia"
-          [attr.colspan]="displayedColumns.length"
-          class="expanded"
-        >
-          <div
-            class="example-element-detail"
-            [@detailExpand]="
+        <td mat-cell *matCellDef="let transferencia" [attr.colspan]="displayedColumns.length" class="expanded">
+          <div class="example-element-detail" [@detailExpand]="
               transferencia == expandedTransferencia ? 'expanded' : 'collapsed'
-            "
-            style="text-align: center"
-            fxLayout="column"
-            fxLayoutAlign="start start"
-          >
-            <div
-              fxLayout="row"
-              fxLayoutAlign="center start"
-              style="width: 100%"
-            >
+            " style="text-align: center" fxLayout="column" fxLayoutAlign="start start">
+            <div fxLayout="row" fxLayoutAlign="center start" style="width: 100%">
               <div fxLayout="column" style="width: 90%">
                 <br />
-                <div
-                  *ngFor="let item of transferencia?.transferenciaItemList"
-                  fxLayout="row"
-                  style="width: 100%"
-                >
+                <div *ngFor="let item of transferencia?.transferenciaItemList" fxLayout="row" style="width: 100%">
                   <div fxFlex="50%">
                     {{ item?.presentacion?.producto?.descripcion | uppercase }}
                   </div>
@@ -326,51 +208,32 @@
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-      <tr
-        class="example-element-row"
-        mat-row
-        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
-        [class.example-expanded-row]="expandedTransferencia === row"
-        (click)="
+      <tr class="example-element-row" mat-row *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+        [class.example-expanded-row]="expandedTransferencia === row" (click)="
           onRowClick(row, i);
           expandedTransferencia = expandedTransferencia === row ? null : row
-        "
-        [class.en-origen]="
+        " [class.en-origen]="
           row?.etapa == 'PRE_TRANSFERENCIA_CREACION' ||
           row?.etapa == 'PRE_TRANSFERENCIA_ORIGEN'
-        "
-        [class.en-origen-preparacion]="
+        " [class.en-origen-preparacion]="
           row?.etapa == 'PREPARACION_MERCADERIA' ||
           row?.etapa == 'PREPARACION_MERCADERIA_CONCLUIDA'
-        "
-        [class.en-origen-transito]="
+        " [class.en-origen-transito]="
           row?.etapa == 'TRANSPORTE_VERIFICACION' ||
           row?.etapa == 'TRANSPORTE_EN_CAMINO' ||
           row?.etapa == 'TRANSPORTE_EN_DESTINO'
-        "
-        [class.en-destino-destino]="
+        " [class.en-destino-destino]="
           row?.etapa == 'RECEPCION_EN_VERIFICACION' ||
           row?.etapa == 'RECEPCION_CONCLUIDA'
-        "
-        [class.en-destino-recepcion]="
+        " [class.en-destino-recepcion]="
           row?.etapa == 'RECEPCION_EN_VERIFICACION' ||
           row?.etapa == 'RECEPCION_CONCLUIDA'
-        "
-      ></tr>
+        "></tr>
 
-      <tr
-        mat-row
-        *matRowDef="let row; columns: ['expandedDetail']"
-        class="example-detail-row"
-      ></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
-    <mat-paginator
-      itemsPerPageLabel="Itens por pagina"
-      [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)"
-      [length]="selectedPageInfo?.getTotalElements"
-      style="width: 100%"
-      showFirstLastButtons
-    ></mat-paginator>
+    <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements" style="width: 100%"
+      showFirstLastButtons></mat-paginator>
   </div>
 </app-generic-list>

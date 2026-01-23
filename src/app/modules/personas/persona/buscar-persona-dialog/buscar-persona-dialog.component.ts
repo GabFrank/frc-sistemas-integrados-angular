@@ -1,95 +1,80 @@
-import { trigger, state, style, transition, animate } from "@angular/animations";
 import { Component, Inject, OnInit } from "@angular/core";
 import { FormControl } from "@angular/forms";
 import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import { MatTableDataSource } from "@angular/material/table";
 import { Persona } from "../persona.model";
-import { PersonaService } from "../persona.service";
+import { PersonaSearchGQL } from "../graphql/personaSearch";
+import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
+import { debounceTime, distinctUntilChanged, filter, switchMap, tap, catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
 
 export class BuscarPersonaData {
   persona?: Persona;
 }
-
-import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
   selector: "app-buscar-persona-dialog",
   templateUrl: "./buscar-persona-dialog.component.html",
   styleUrls: ["./buscar-persona-dialog.component.scss"],
-  animations: [
-    trigger("detailExpand", [
-      state("collapsed", style({ height: "0px", minHeight: "0" })),
-      state("expanded", style({ height: "*" })),
-      transition(
-        "expanded <=> collapsed",
-        animate("225ms cubic-bezier(0.4, 0.0, 0.2, 1)")
-      ),
-    ]),
-  ],
 })
 export class BuscarPersonaDialogComponent implements OnInit {
   buscarControl = new FormControl();
   dataSource = new MatTableDataSource<Persona>();
-  selectedRowIndex;
-  expandedPersona: Persona;
+  selectedRow: Persona | null = null;
   isSearching = false;
-  onSearchTimer;
 
-  displayedColumns = [
-    "id",
-    "nombre",
-    "apodo",
-    "vinculo",
-    "documento",
-    "telefono",
-    "creadoEn",
-    "creadoPor",
-  ];
+  displayedColumns = ["id", "nombre", "documento"];
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: BuscarPersonaData,
     private matDialogRef: MatDialogRef<BuscarPersonaDialogComponent>,
-    private personaService: PersonaService
-  ) {}
+    private personaSearchGQL: PersonaSearchGQL
+  ) { }
 
   ngOnInit(): void {
-    this.buscarControl.valueChanges.pipe(untilDestroyed(this)).subscribe((value) => {
-      if (value != null) this.onSearchPersona(value);
+    this.buscarControl.valueChanges.pipe(
+      debounceTime(500),
+      distinctUntilChanged(),
+      tap(value => {
+        if (!value || value.trim() === '') {
+          this.dataSource.data = [];
+          this.isSearching = false;
+        }
+      }),
+      filter(value => value && value.trim() !== ''),
+      tap(() => this.isSearching = true),
+      switchMap(value =>
+        this.personaSearchGQL.fetch(
+          { texto: value.toUpperCase() },
+          { fetchPolicy: 'no-cache', errorPolicy: 'all', context: { clientName: 'servidor' } }
+        ).pipe(
+          catchError(() => of({ data: { data: [] } }))
+        )
+      ),
+      untilDestroyed(this)
+    ).subscribe(res => {
+      this.isSearching = false;
+      if (res?.data?.['data']) {
+        this.dataSource.data = res.data['data'];
+      } else {
+        this.dataSource.data = [];
+      }
     });
   }
 
-  keydownEvent(e) {}
-
-  onSearchPersona(text: string, offset?: number) {
-    this.isSearching = true;
-    if (this.onSearchTimer != null) {
-      clearTimeout(this.onSearchTimer);
-    }
-    if (text == "" || text == null || text == " ") {
-      this.dataSource != undefined ? (this.dataSource.data = []) : null;
-      this.isSearching = false;
-    } else {
-      this.onSearchTimer = setTimeout(() => {
-        this.personaService.onSearch(text).pipe(untilDestroyed(this)).subscribe((res) => {
-          this.dataSource.data = res;
-          this.isSearching = false;
-        });
-      }, 1000);
+  onSearch(): void {
+    const text = this.buscarControl.value;
+    if (text && text.trim() !== '') {
+      this.buscarControl.setValue(text);
     }
   }
 
-  highlight(index: number) {
-    if (index >= 0 && index <= this.dataSource.data.length - 1) {
-      this.selectedRowIndex = index;
-      this.expandedPersona = this.dataSource.data[index];
-      this.getPersonaDetail(this.expandedPersona, index);
-    }
-  }
-
-  onSelectRow(row: Persona){
+  onSelectRow(row: Persona): void {
     this.matDialogRef.close(row);
   }
 
-  getPersonaDetail(persona?: Persona, index?) {}
+  onCancelar(): void {
+    this.matDialogRef.close();
+  }
 }

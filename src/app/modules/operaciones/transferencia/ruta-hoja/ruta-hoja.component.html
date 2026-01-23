@@ -1,0 +1,78 @@
+<h2 mat-dialog-title>Hoja de Ruta</h2>
+
+<mat-dialog-content>
+    <div fxLayout="column" fxLayoutGap="15px">
+        <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+            <mat-form-field appearance="outline" fxFlex>
+                <mat-label>Vehículo</mat-label>
+                <input matInput
+                    [value]="selectedVehiculo ? (selectedVehiculo.modelo?.marca?.descripcion + ' ' + selectedVehiculo.modelo?.descripcion + ' - ' + selectedVehiculo.chapa) : ''"
+                    readonly>
+                <mat-error *ngIf="vehiculoControl.invalid">El vehículo es obligatorio</mat-error>
+            </mat-form-field>
+            <button mat-raised-button color="primary" (click)="onBuscarVehiculo()" style="height: 50px;">
+                <mat-icon>search</mat-icon> Buscar
+            </button>
+        </div>
+
+        <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
+            <mat-form-field appearance="outline" fxFlex>
+                <mat-label>Chofer</mat-label>
+                <input matInput [formControl]="choferControl" readonly>
+                <mat-error *ngIf="choferControl.hasError('required')">El chofer es obligatorio</mat-error>
+            </mat-form-field>
+            <button mat-raised-button color="primary" (click)="onBuscarChofer()" style="height: 50px;">
+                <mat-icon>search</mat-icon> Buscar
+            </button>
+        </div>
+
+        <div fxLayout="row" fxLayoutGap="10px">
+            <mat-form-field appearance="outline" fxFlex="50">
+                <mat-label>Fecha de Salida</mat-label>
+                <input matInput [matDatepicker]="pickerSalida" [formControl]="fechaSalidaControl">
+                <mat-datepicker-toggle matSuffix [for]="pickerSalida"></mat-datepicker-toggle>
+                <mat-datepicker #pickerSalida></mat-datepicker>
+            </mat-form-field>
+        </div>
+
+        <div>
+            <div fxLayout="row" fxLayoutAlign="space-between center">
+                <h3>Acompañantes</h3>
+                <button mat-raised-button color="accent" (click)="onAddAcompanhante()">
+                    <mat-icon>add</mat-icon> Agregar
+                </button>
+            </div>
+
+            <table mat-table [dataSource]="dataSource" class="mat-elevation-z8" style="width: 100%; margin-top: 10px;">
+                <ng-container matColumnDef="id">
+                    <th mat-header-cell *matHeaderCellDef> ID </th>
+                    <td mat-cell *matCellDef="let element"> {{element.id}} </td>
+                </ng-container>
+                <ng-container matColumnDef="nombre">
+                    <th mat-header-cell *matHeaderCellDef> Nombre </th>
+                    <td mat-cell *matCellDef="let element"> {{element.nombre | uppercase}} </td>
+                </ng-container>
+                <ng-container matColumnDef="accion">
+                    <th mat-header-cell *matHeaderCellDef> </th>
+                    <td mat-cell *matCellDef="let element">
+                        <button mat-icon-button color="warn" (click)="onRemoveAcompanhante(element)">
+                            <mat-icon>delete</mat-icon>
+                        </button>
+                    </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+            </table>
+        </div>
+
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button (click)="onCancel()">Cancelar</button>
+    <button mat-raised-button color="primary" (click)="onSave()"
+        [disabled]="vehiculoControl.invalid || choferControl.invalid">
+        Guardar
+    </button>
+</mat-dialog-actions>

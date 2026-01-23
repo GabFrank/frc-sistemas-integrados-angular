@@ -5,6 +5,7 @@ import { BotonData } from '../../../shared/components/boton/boton.component';
 import { ListVehiculosComponent } from '../vehiculo/list-vehiculos/list-vehiculos.component';
 import { ListVehiculoSucursalComponent } from '../vehiculo-sucursal/list-vehiculo-sucursal/list-vehiculo-sucursal.component';
 import { Tab } from '../../../layouts/tab/tab.model';
+import { ListGpsComponent } from '../list-gps/list-gps.component';
 
 @Component({
   selector: 'app-vehiculos-dashboard',
@@ -41,6 +42,13 @@ export class VehiculosDashboardComponent implements OnInit {
         icon: 'location_on',
         iconSize: 4,
         expression: false
+      },
+      {
+        nombre: 'Gps',
+        clickEvent: 'gps',
+        icon: 'location_on',
+        iconSize: 4,
+        expression: false
       }
     )
   }
@@ -53,15 +61,22 @@ export class VehiculosDashboardComponent implements OnInit {
       case 'list-vehiculo-sucursal':
         this.onListVehiculoSucursal()
         break;
+      case 'gps':
+        this.onGps()
+        break;
     }
   }
 
-  onListVehiculos(){
+  onListVehiculos() {
     this.tabService.addTab(new Tab(ListVehiculosComponent, "Lista de vehículos", null, VehiculosDashboardComponent))
   }
 
-  onListVehiculoSucursal(){
+  onListVehiculoSucursal() {
     this.tabService.addTab(new Tab(ListVehiculoSucursalComponent, "Vehículo por Sucursal", null, VehiculosDashboardComponent))
+  }
+
+  onGps() {
+    this.tabService.addTab(new Tab(ListGpsComponent, "Gps", null, VehiculosDashboardComponent))
   }
 }
 

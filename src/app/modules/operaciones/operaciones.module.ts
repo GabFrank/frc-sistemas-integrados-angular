@@ -53,6 +53,9 @@ import { ListPagoComponent } from './pago/list-pago/list-pago.component';
 import { EditPagoComponent } from './pago/edit-pago/edit-pago.component';
 import { PagoDetalleDialogComponent } from './pago/edit-pago/pago-detalle-dialog/pago-detalle-dialog.component';
 import { ModificarSucursalPagoDetalleComponent } from './pago/pago-detalle-cuota/modificar-sucursal-pago-detalle/modificar-sucursal-pago-detalle.component';
+import { AcompanhanteComponent } from './transferencia/acompanhante/acompanhante.component';
+import { RutaHojaComponent } from './transferencia/ruta-hoja/ruta-hoja.component';
+import { EntregadoresComponent } from './transferencia/entregadores/entregadores.component';
 
 @NgModule({
   declarations: [
@@ -101,7 +104,10 @@ import { ModificarSucursalPagoDetalleComponent } from './pago/pago-detalle-cuota
     ListPagoComponent,
     EditPagoComponent,
     PagoDetalleDialogComponent,
-    ModificarSucursalPagoDetalleComponent
+    ModificarSucursalPagoDetalleComponent,
+    AcompanhanteComponent,
+    RutaHojaComponent,
+    EntregadoresComponent
   ],
   imports: [
     CommonModule,

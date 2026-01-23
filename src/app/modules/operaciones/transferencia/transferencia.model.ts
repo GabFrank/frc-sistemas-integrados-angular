@@ -2,6 +2,8 @@ import { Sucursal } from "../../empresarial/sucursal/sucursal.model";
 import { Usuario } from "../../personas/usuarios/usuario.model";
 import { Presentacion } from "../../productos/presentacion/presentacion.model";
 import { dateToString } from '../../../commons/core/utils/dateUtils';
+import { Vehiculo } from '../../vehiculos/vehiculo/models/vehiculo.model';
+import { Persona } from '../../personas/persona/persona.model';
 
 export enum TransferenciaEstado {
   ABIERTA = 'ABIERTA', //la transferencia esta siendo creada
@@ -61,6 +63,7 @@ export class Transferencia {
   isDestino: boolean;
   creadoEn: Date;
   transferenciaItemList: TransferenciaItem[]
+  hojaRuta: HojaRuta;
 
   toInput(): TransferenciaInput {
     let input = new TransferenciaInput;
@@ -76,6 +79,7 @@ export class Transferencia {
     input.usuarioTransporteId = this.usuarioTransporte?.id;
     input.usuarioRecepcionId = this.usuarioRecepcion?.id;
     input.etapa = this.etapa;
+    input.hojaRutaId = this.hojaRuta?.id;
     return input;
   }
 }
@@ -92,6 +96,7 @@ export class TransferenciaInput {
   usuarioPreTransferenciaId: number;
   usuarioPreparacionId: number;
   usuarioRecepcionId: number;
+  hojaRutaId: number;
   creadoEn: string;
 }
 
@@ -156,7 +161,7 @@ export class TransferenciaItem {
     input.motivoRechazoTransporte = this.motivoRechazoTransporte;
     input.motivoRechazoRecepcion = this.motivoRechazoRecepcion;
     input.activo = this.activo;
-    input.poseeVencimiento  = this.poseeVencimiento;     
+    input.poseeVencimiento = this.poseeVencimiento;
     input.usuarioId = this.usuario?.id;
     return input;
   }
@@ -193,4 +198,43 @@ export class TransferenciaItemInput {
   poseeVencimiento: boolean
   usuarioId: number = null;
   creadoEn: Date;
+}
+
+export class HojaRuta {
+  id: number;
+  vehiculo: Vehiculo;
+  chofer: Persona;
+  fechaSalida: Date;
+  fechaLlegada: Date;
+  kmSalida: number;
+  kmLlegada: number;
+  estado: string;
+  acompanantes: Persona[];
+  creadoEn: Date;
+}
+
+export class HojaRutaInput {
+  id: number;
+  vehiculoId: number;
+  choferId: number;
+  fechaSalida: string;
+  fechaLlegada: string;
+  kmSalida: number;
+  kmLlegada: number;
+  estado: string;
+  acompanantesIds: number[];
+}
+
+export class Acompanhante {
+  id: {
+    hojaRutaId: number;
+    personaId: number;
+  };
+  hojaRuta: HojaRuta;
+  persona: Persona;
+}
+
+export class AcompanhanteInput {
+  hojaRutaId: number;
+  personaId: number;
 } 

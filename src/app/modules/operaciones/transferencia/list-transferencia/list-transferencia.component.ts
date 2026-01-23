@@ -21,6 +21,7 @@ import {
   EtapaTransferencia,
   Transferencia,
   TransferenciaEstado,
+  TransferenciaInput,
 } from "../transferencia.model";
 import { TabData, TabService } from "./../../../../layouts/tab/tab.service";
 import { MainService } from "./../../../../main.service";
@@ -33,6 +34,8 @@ import {
   NotificacionColor,
   NotificacionSnackbarService,
 } from "./../../../../notificacion-snackbar.service";
+import { SelectionModel } from "@angular/cdk/collections";
+import { RutaHojaComponent } from "../ruta-hoja/ruta-hoja.component";
 
 @UntilDestroy()
 @Component({
@@ -56,6 +59,7 @@ export class ListTransferenciaComponent implements OnInit {
   titulo = "Lista de Transferencias";
 
   dataSource = new MatTableDataSource<Transferencia>([]);
+  selection = new SelectionModel<Transferencia>(true, []);
 
   selectedTransferencia: Transferencia;
   expandedTransferencia: Transferencia;
@@ -75,6 +79,7 @@ export class ListTransferenciaComponent implements OnInit {
   today = new Date();
 
   displayedColumns = [
+    "select",
     "id",
     "origen",
     "destino",
@@ -99,7 +104,7 @@ export class ListTransferenciaComponent implements OnInit {
     private sucursalService: SucursalService,
     private matDialog: MatDialog,
     private notificacionService: NotificacionSnackbarService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
 
@@ -129,8 +134,8 @@ export class ListTransferenciaComponent implements OnInit {
       })
     });
 
-    interval(300000).pipe(untilDestroyed(this)).subscribe(()=> {
-      this.onFilter();      
+    interval(300000).pipe(untilDestroyed(this)).subscribe(() => {
+      this.onFilter();
     });
   }
 
@@ -235,14 +240,14 @@ export class ListTransferenciaComponent implements OnInit {
   onDelete(transferencia: Transferencia, index) {
     // Primero cargar los detalles completos de la transferencia para verificar si tiene productos
     this.cargandoService.openDialog();
-    
+
     this.transferenciaService
       .onGetTransferencia(transferencia.id)
       .pipe(untilDestroyed(this))
       .subscribe({
         next: (transferenciaCompleta) => {
           this.cargandoService.closeDialog();
-          
+
           // Verificar si la transferencia tiene productos
           if (transferenciaCompleta?.transferenciaItemList && transferenciaCompleta.transferenciaItemList.length > 0) {
             this.notificacionService.notification$.next({
@@ -296,6 +301,67 @@ export class ListTransferenciaComponent implements OnInit {
 
   onImprimir(id) {
     this.transferenciaService.onImprimirTransferencia(id);
+  }
+
+  isAllSelected() {
+    const numSelected = this.selection.selected?.length;
+    const numRows = this.dataSource.data?.length;
+    return numSelected === numRows;
+  }
+
+  masterToggle() {
+    this.isAllSelected() ?
+      this.selection.clear() :
+      this.dataSource.data.forEach(row => this.selection.select(row));
+  }
+
+  onAsignarRuta() {
+    if (this.selection.selected.length > 0) {
+      this.matDialog.open(RutaHojaComponent, {
+        width: '50%',
+        disableClose: true
+      }).afterClosed().subscribe(async (res) => {
+        if (res) {
+          this.cargandoService.openDialog();
+          let count = 0;
+          try {
+            for (let transferencia of this.selection.selected) {
+              const input = new TransferenciaInput();
+              input.id = transferencia.id;
+              input.sucursalOrigenId = transferencia.sucursalOrigen?.id;
+              input.sucursalDestinoId = transferencia.sucursalDestino?.id;
+              input.estado = transferencia.estado;
+              input.tipo = transferencia.tipo;
+              input.etapa = transferencia.etapa;
+              input.hojaRutaId = res.id;
+
+              await new Promise<void>((resolve, reject) => {
+                this.transferenciaService.onSaveTransferencia(input).subscribe({
+                  next: (result) => {
+                    count++;
+                    resolve();
+                  },
+                  error: (err) => {
+                    console.error('Error al guardar transferencia:', err);
+                    resolve(); // Continuar con las siguientes aunque falle una
+                  }
+                });
+              });
+            }
+            this.notificacionService.openSucess('Ruta asignada a ' + count + ' transferencias.');
+          } catch (error) {
+            console.error('Error en asignación de ruta:', error);
+            this.notificacionService.openWarn('Ocurrió un error durante la asignación');
+          } finally {
+            this.cargandoService.closeDialog();
+            this.selection.clear();
+            this.onFilter();
+          }
+        }
+      });
+    } else {
+      this.notificacionService.openWarn('Debe seleccionar al menos una transferencia');
+    }
   }
 
   handlePageEvent(e: PageEvent) {
