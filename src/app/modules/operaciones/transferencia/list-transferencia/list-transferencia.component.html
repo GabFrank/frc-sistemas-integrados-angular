@@ -1,8 +1,8 @@
 <app-generic-list titulo="Transferencias" (adicionar)="onAdd()" (filtrar)="onFilter()" (resetFiltro)="onResetFiltro()"
   [isAdicionar]="mainService?.usuarioActual?.roles.includes('ADMIN') || mainService?.usuarioActual?.roles.includes('CREAR_TRANSFERENCIA') ? true : false"
-  [isCustom]="true" customName="Asignar Ruta" [disableCustom]="selection.selected.length == 0"
+  [isCustom]="true" customName="Entregadores" [disableCustom]="selection.selected.length == 0"
   (customFunction)="onAsignarRuta()">
-  <div filtros fxLayout="column" style="width: 100%; height: 100%">
+  <div filtros fxLayout="column" style="width: 100%">
     <div fxLayout="row wrap" fxLayoutGap="10px">
       <mat-form-field fxFlex="10">
         <input placeholder="Id" matInput [formControl]="idControl" (keyup.enter)="onFilter()" type="number" />
@@ -58,8 +58,8 @@
       </mat-form-field>
     </div>
 
-    <div fxFlex="80%" style="height: 100%"></div>
-    <div fxFlex="20%" fxLayout="row" style="width: 100%" fxLayoutAlign="start center">
+    <div style="height: 10px"></div>
+    <div fxLayout="row" style="width: 100%" fxLayoutAlign="start center">
       <div fxFlex="3%">
         <mat-icon style="color: #43a047">circle</mat-icon>
       </div>

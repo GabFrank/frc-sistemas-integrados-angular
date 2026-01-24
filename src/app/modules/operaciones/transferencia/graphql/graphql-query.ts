@@ -1256,6 +1256,10 @@ export const hojaRutaPorFechaQuery = gql`
       kmLlegada
       estado
       creadoEn
+      acompanantes {
+        id
+        nombre
+      }
     }
   }
 `;

@@ -343,7 +343,7 @@ export class ListTransferenciaComponent implements OnInit {
                   },
                   error: (err) => {
                     console.error('Error al guardar transferencia:', err);
-                    resolve(); // Continuar con las siguientes aunque falle una
+                    resolve();
                   }
                 });
               });

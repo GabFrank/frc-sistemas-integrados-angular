@@ -105,8 +105,6 @@ export class VehiculoComponent implements OnInit {
                 ? this.vehiculo.fechaAdquisicion
                 : new Date(this.vehiculo.fechaAdquisicion))
             : null;
-
-        // Validar que la fecha sea válida
         const fechaValida = fechaAdquisicion && !isNaN(fechaAdquisicion.getTime()) ? fechaAdquisicion : null;
 
         this.form.patchValue({

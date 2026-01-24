@@ -1,5 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
 import { FormControl } from '@angular/forms';
+import { MatPaginator } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { TransferenciaService } from '../transferencia.service';
@@ -20,14 +21,16 @@ import { finalize } from 'rxjs/operators';
     ]),
   ],
 })
-export class EntregadoresComponent implements OnInit {
+export class EntregadoresComponent implements OnInit, AfterViewInit {
 
-  displayedColumns: string[] = ['id', 'chofer', 'vehiculo', 'fechaSalida', 'acciones'];
+  displayedColumns: string[] = ['id', 'chofer', 'vehiculo', 'fechaSalida'];
   dataSource = new MatTableDataSource<HojaRuta>([]);
   isLoading = true;
   expandedElement: HojaRuta | null;
   transferenciasCache: { [key: number]: Transferencia[] } = {};
   loadingTransferencias: { [key: number]: boolean } = {};
+
+  @ViewChild(MatPaginator) paginator: MatPaginator;
 
   fechaInicioControl = new FormControl(new Date());
   fechaFinControl = new FormControl(new Date());
@@ -46,6 +49,10 @@ export class EntregadoresComponent implements OnInit {
       return dataStr.indexOf(filter) !== -1;
     };
     this.loadHojasRuta();
+  }
+
+  ngAfterViewInit(): void {
+    this.dataSource.paginator = this.paginator;
   }
 
   loadHojasRuta(): void {
@@ -74,6 +81,7 @@ export class EntregadoresComponent implements OnInit {
       .subscribe({
         next: (hojasRuta) => {
           this.dataSource.data = hojasRuta || [];
+          this.paginator?.firstPage();
           this.isLoading = false;
         },
         error: (err) => {
@@ -103,7 +111,6 @@ export class EntregadoresComponent implements OnInit {
         untilDestroyed(this),
         finalize(() => {
           this.loadingTransferencias[hojaRutaId] = false;
-          // Trigger change detection for object property change
           this.loadingTransferencias = { ...this.loadingTransferencias };
         })
       )

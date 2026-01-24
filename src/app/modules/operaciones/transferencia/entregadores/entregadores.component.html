@@ -1,68 +1,63 @@
-<div class="entregadores-container">
-    <div class="header">
-        <h2>Choferes con Entregas</h2>
+<app-generic-list titulo="Choferes con Entregas" [isMenu]="false">
+    <div filtros>
+        <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
+            <mat-form-field fxFlex="30">
+                <mat-label>Rango de fechas</mat-label>
+                <mat-date-range-input [rangePicker]="picker">
+                    <input matStartDate [formControl]="fechaInicioControl" placeholder="Inicio">
+                    <input matEndDate [formControl]="fechaFinControl" placeholder="Fin" (dateChange)="loadHojasRuta()">
+                </mat-date-range-input>
+                <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                <mat-date-range-picker #picker></mat-date-range-picker>
+            </mat-form-field>
+
+            <mat-form-field fxFlex="70">
+                <mat-label>Buscar chofer</mat-label>
+                <input matInput (keyup)="applyFilter($event)" placeholder="Nombre, documento o teléfono...">
+                <mat-icon matSuffix>search</mat-icon>
+            </mat-form-field>
+        </div>
     </div>
 
+    <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
+        fxLayoutAlign="space-between start">
 
-    <div class="filters" style="display: flex; gap: 1rem; align-items: baseline;">
-        <mat-form-field appearance="outline" style="width: 300px;">
-            <mat-label>Rango de fechas</mat-label>
-            <mat-date-range-input [rangePicker]="picker">
-                <input matStartDate [formControl]="fechaInicioControl" placeholder="Inicio">
-                <input matEndDate [formControl]="fechaFinControl" placeholder="Fin" (dateChange)="loadHojasRuta()">
-            </mat-date-range-input>
-            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-            <mat-date-range-picker #picker></mat-date-range-picker>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="filter-field" style="flex: 1;">
-            <mat-label>Buscar chofer</mat-label>
-            <input matInput (keyup)="applyFilter($event)" placeholder="Nombre, documento o teléfono...">
-            <mat-icon matSuffix>search</mat-icon>
-        </mat-form-field>
-    </div>
-
-    <div class="table-container mat-elevation-z2">
-        <div *ngIf="isLoading" class="loading-container">
+        <div *ngIf="isLoading"
+            style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; width: 100%;">
             <mat-spinner diameter="40"></mat-spinner>
-            <p>Cargando choferes...</p>
+            <p style="color: white; margin-top: 10px;">Cargando choferes...</p>
         </div>
 
-        <table mat-table [dataSource]="dataSource" multiTemplateDataRows *ngIf="!isLoading">
+        <table mat-table [dataSource]="dataSource" multiTemplateDataRows *ngIf="!isLoading" class="mat-elevation-z8"
+            style="width: 100%">
 
-            <ng-container matColumnDef="id">
-                <th mat-header-cell *matHeaderCellDef>ID</th>
-                <td mat-cell *matCellDef="let element">{{element.id}}</td>
+            <ng-container matColumnDef="id" style="width: 5%">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">ID</th>
+                <td mat-cell *matCellDef="let element" style="text-align: center; width: 5%">{{element.id}}</td>
             </ng-container>
 
             <ng-container matColumnDef="chofer">
-                <th mat-header-cell *matHeaderCellDef>Chofer</th>
-                <td mat-cell *matCellDef="let element">{{element.chofer?.nombre | uppercase}}</td>
+                <th mat-header-cell *matHeaderCellDef style="text-align: center">Chofer</th>
+                <td mat-cell *matCellDef="let element" style="text-align: center">{{element.chofer?.nombre | uppercase}}
+                </td>
             </ng-container>
 
             <ng-container matColumnDef="vehiculo">
-                <th mat-header-cell *matHeaderCellDef>Vehículo</th>
-                <td mat-cell *matCellDef="let element">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center">Vehículo</th>
+                <td mat-cell *matCellDef="let element" style="text-align: center">
                     {{element.vehiculo?.modelo?.descripcion}} - {{element.vehiculo?.chapa}}
                 </td>
             </ng-container>
 
             <ng-container matColumnDef="fechaSalida">
-                <th mat-header-cell *matHeaderCellDef>Fecha Salida</th>
-                <td mat-cell *matCellDef="let element">{{element.fechaSalida | date:'dd/MM/yyyy HH:mm'}}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="acciones">
-                <th mat-header-cell *matHeaderCellDef></th>
-                <td mat-cell *matCellDef="let element">
-                    <button mat-icon-button (click)="onExpandRow(element); $event.stopPropagation()">
-                        <mat-icon>{{expandedElement === element ? 'expand_less' : 'expand_more'}}</mat-icon>
-                    </button>
-                </td>
+                <th mat-header-cell *matHeaderCellDef style="text-align: center">Fecha Salida</th>
+                <td mat-cell *matCellDef="let element" style="text-align: center">{{element.fechaSalida |
+                    date:'dd/MM/yyyy HH:mm'}}</td>
             </ng-container>
 
             <ng-container matColumnDef="expandedDetail">
-                <td mat-cell *matCellDef="let element" [attr.colspan]="displayedColumns.length" class="expanded-cell">
+                <td mat-cell *matCellDef="let element" [attr.colspan]="displayedColumns.length" class="expanded-cell"
+                    style="background-color: rgb(50, 50, 50)">
                     <div class="element-detail" [@detailExpand]="element == expandedElement ? 'expanded' : 'collapsed'">
 
                         <div class="detail-container">
@@ -84,21 +79,22 @@
                                 <thead>
                                     <tr>
                                         <th>ID Transf.</th>
-
-                                        <th>Origen</th>
-                                        <th>Destino</th>
                                         <th>Estado</th>
-                                        <th>Fecha Creación</th>
+                                        <th>Acompañantes</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr *ngFor="let transf of transferenciasCache[element.id]">
                                         <td>{{transf.id}}</td>
-
-                                        <td>{{transf.sucursalOrigen?.nombre}}</td>
-                                        <td>{{transf.sucursalDestino?.nombre}}</td>
                                         <td>{{transf.estado}}</td>
-                                        <td>{{transf.fecha | date:'dd/MM/yyyy HH:mm'}}</td>
+                                        <td>
+                                            <span *ngFor="let a of element.acompanantes; let isLast=last">
+                                                {{a.nombre | uppercase}}{{isLast ? '' : ', '}}
+                                            </span>
+                                            <span *ngIf="!element.acompanantes || element.acompanantes.length === 0">
+                                                ---
+                                            </span>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -109,16 +105,19 @@
 
             <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
             <tr mat-row *matRowDef="let element; columns: displayedColumns;" class="element-row"
-                [class.expanded-row]="expandedElement === element" (click)="onExpandRow(element)">
+                [class.expanded-row]="expandedElement === element" (click)="onExpandRow(element)"
+                style="cursor: pointer">
             </tr>
             <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="detail-row"></tr>
 
             <tr class="mat-row" *matNoDataRow>
-                <td class="mat-cell no-data" colspan="5">
+                <td class="mat-cell no-data" colspan="4" style="text-align: center; padding: 20px;">
                     <mat-icon>local_shipping</mat-icon>
                     <span>No se encontraron choferes con entregas</span>
                 </td>
             </tr>
         </table>
+        <mat-paginator [pageSizeOptions]="[15, 25, 50, 100]" showFirstLastButtons style="width: 100%">
+        </mat-paginator>
     </div>
-</div>
+</app-generic-list>

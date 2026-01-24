@@ -1,211 +1,73 @@
-$dark-bg: #1e1e1e;
-$dark-surface: #2d2d2d;
-$dark-element: #363636;
-$primary-color: #c2185b; // Un color acento
-$text-primary: #e0e0e0;
+$primary-color: #38853c;
 $text-secondary: #aaaaaa;
 
-.entregadores-container {
-    padding: 24px;
-    height: 100%;
+table {
+    width: 100%;
+}
+
+tr.detail-row {
+    height: 0;
+}
+
+.element-row {
+    &:hover {
+        background: whitesmoke;
+        cursor: pointer;
+    }
+
+    &.expanded-row {
+        background: $primary-color;
+    }
+}
+
+.element-row:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+}
+
+.expanded-row {
+    background-color: $primary-color !important;
+}
+
+.element-detail {
+    overflow: hidden;
     display: flex;
-    flex-direction: column;
-    background-color: $dark-bg;
-    color: $text-primary;
-    box-sizing: border-box;
+}
 
-    .header {
-        margin-bottom: 24px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+.detail-container {
+    padding: 16px;
+    width: 100%;
+}
 
-        h2 {
-            margin: 0;
-            color: white;
-            font-weight: 300;
-            font-size: 24px;
-            letter-spacing: 0.5px;
-        }
+.detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+
+    th,
+    td {
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        color: #e0e0e0;
     }
 
-    .filter-field {
-        width: 100%;
-        max-width: 450px;
-        margin-bottom: 20px;
-
-        ::ng-deep .mat-form-field-wrapper {
-            background-color: $dark-element;
-            padding: 0 15px;
-            border-radius: 4px;
-        }
-
-        ::ng-deep .mat-form-field-underline {
-            display: none;
-        }
-
-        ::ng-deep .mat-form-field-label {
-            color: $text-secondary;
-        }
-
-        input {
-            color: white;
-        }
-
-        mat-icon {
-            color: $text-secondary;
-        }
+    th {
+        font-weight: bold;
+        color: $text-secondary;
     }
+}
 
-    .table-container {
-        flex: 1;
-        overflow: auto;
-        background: $dark-surface;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+.loading-detail {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    color: $text-secondary;
+}
 
-        .loading-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 60px;
-            color: $text-secondary;
-
-            p {
-                margin-top: 20px;
-                font-size: 16px;
-            }
-        }
-
-        table {
-            width: 100%;
-            background-color: transparent;
-
-            th.mat-header-cell {
-                font-weight: 500;
-                color: $text-secondary;
-                background-color: #252525;
-                padding: 18px 24px;
-                border-bottom: 1px solid #3d3d3d;
-                text-transform: uppercase;
-                font-size: 12px;
-                letter-spacing: 1px;
-            }
-
-            td.mat-cell {
-                padding: 16px 24px;
-                border-bottom: 1px solid #3d3d3d;
-                color: $text-primary;
-                font-size: 14px;
-            }
-
-            tr.element-row:not(.expanded-row):hover {
-                background-color: rgba(255, 255, 255, 0.04);
-                cursor: pointer;
-            }
-
-            tr.element-row.expanded-row {
-                background-color: rgba($primary-color, 0.1);
-            }
-
-            tr.detail-row {
-                height: 0;
-            }
-
-            .expanded-cell {
-                padding: 0 !important;
-                border-bottom: none;
-            }
-
-            .element-detail {
-                overflow: hidden;
-                display: flex;
-                background-color: #232323;
-                box-shadow: inset 0 6px 6px -6px rgba(0, 0, 0, 0.4);
-            }
-
-            .detail-container {
-                padding: 24px 32px;
-                width: 100%;
-                border-left: 4px solid $primary-color;
-
-                h3 {
-                    margin-top: 0;
-                    margin-bottom: 20px;
-                    color: $primary-color;
-                    font-size: 16px;
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                    font-weight: 600;
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-
-                    &::before {
-                        content: '';
-                        display: block;
-                        width: 8px;
-                        height: 8px;
-                        background: $primary-color;
-                        border-radius: 50%;
-                    }
-                }
-
-                .loading-detail {
-                    display: flex;
-                    align-items: center;
-                    gap: 15px;
-                    color: $text-secondary;
-                    padding: 30px;
-                    justify-content: center;
-                    background: rgba(0, 0, 0, 0.2);
-                    border-radius: 4px;
-                }
-
-                .no-data-detail {
-                    color: $text-secondary;
-                    font-style: italic;
-                    padding: 30px;
-                    text-align: center;
-                    background: rgba(0, 0, 0, 0.2);
-                    border-radius: 4px;
-                    border: 1px dashed #444;
-                }
-
-                .detail-table {
-                    width: 100%;
-                    border-collapse: separate;
-                    border-spacing: 0;
-                    font-size: 13px;
-                    border-radius: 4px;
-                    overflow: hidden;
-
-                    th {
-                        background-color: #333;
-                        text-align: left;
-                        padding: 12px 15px;
-                        color: #ccc;
-                        font-weight: 600;
-                        border-bottom: 2px solid $primary-color;
-                    }
-
-                    td {
-                        padding: 12px 15px;
-                        border-bottom: 1px solid #333;
-                        color: #ddd;
-                        background-color: rgba(255, 255, 255, 0.02);
-                    }
-
-                    tr:last-child td {
-                        border-bottom: none;
-                    }
-
-                    tr:hover td {
-                        background-color: rgba(255, 255, 255, 0.05);
-                    }
-                }
-            }
-        }
-    }
+.no-data-detail {
+    padding: 10px;
+    font-style: italic;
+    color: $text-secondary;
 }
