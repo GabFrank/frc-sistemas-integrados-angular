@@ -37,9 +37,10 @@ import { DeleteHojaRutaGQL } from './graphql/deleteHojaRuta';
 import { GetAcompanhantesPorHojaRutaGQL } from './graphql/getAcompanhantesPorHojaRuta';
 import { SaveAcompanhanteGQL } from './graphql/saveAcompanhante';
 import { DeleteAcompanhanteGQL } from './graphql/deleteAcompanhante';
-import { GetChoferesConEntregasGQL } from './graphql/getChoferesConEntregas';
-import { GetTransferenciasPorChoferGQL } from './graphql/getTransferenciasPorChofer';
+import { GetHojasRutaConEntregasGQL } from './graphql/getHojasRutaConEntregas';
+import { GetTransferenciasPorHojaRutaGQL } from './graphql/getTransferenciasPorHojaRuta';
 import { Persona } from '../../personas/persona/persona.model';
+import { GetHojaRutaPorFechaGQL } from './graphql/getHojaRutaPorFecha';
 
 @UntilDestroy({ checkProperties: true })
 @Injectable({
@@ -78,8 +79,9 @@ export class TransferenciaService {
     private getAcompanhantesPorHojaRuta: GetAcompanhantesPorHojaRutaGQL,
     private saveAcompanhante: SaveAcompanhanteGQL,
     private deleteAcompanhante: DeleteAcompanhanteGQL,
-    private getChoferesConEntregas: GetChoferesConEntregasGQL,
-    private getTransferenciasPorChofer: GetTransferenciasPorChoferGQL
+    private getHojasRutaConEntregas: GetHojasRutaConEntregasGQL,
+    private getTransferenciasPorHojaRuta: GetTransferenciasPorHojaRutaGQL,
+    private getHojaRutaPorFecha: GetHojaRutaPorFechaGQL
   ) { }
 
   onImprimirTransferencia(id, ticket?, servidor = true) {
@@ -99,6 +101,11 @@ export class TransferenciaService {
   onGetTrasferenciasPorFecha(inicio, fin, servidor = true) {
     return this.genericCrudService.onGetByFecha(this.getTransferenciasPorFecha, inicio, fin, servidor);
   }
+
+  onGetHojaRutaPorFecha(inicio, fin, servidor = true): Observable<HojaRuta[]> {
+    return this.genericCrudService.onGetByFecha(this.getHojaRutaPorFecha, inicio, fin, servidor);
+  }
+
 
   onGetTrasnferenciasPorUsuario(id, servidor = true): Observable<Transferencia[]> {
     return this.genericCrudService.onGetById(this.transferenciasPorUsuario, id, servidor);
@@ -271,12 +278,12 @@ export class TransferenciaService {
     return this.genericCrudService.onCustomMutation(this.deleteAcompanhante, { hojaRutaId, personaId }, servidor);
   }
 
-  onGetChoferesConEntregas(page?: number, size?: number, servidor = true): Observable<Persona[]> {
-    return this.genericCrudService.onCustomQuery(this.getChoferesConEntregas, { page, size }, servidor);
+  onGetHojasRutaConEntregas(page?: number, size?: number, servidor = true): Observable<HojaRuta[]> {
+    return this.genericCrudService.onCustomQuery(this.getHojasRutaConEntregas, { page, size }, servidor);
   }
 
-  onGetTransferenciasPorChofer(choferId: number, page?: number, size?: number, servidor = true): Observable<Transferencia[]> {
-    return this.genericCrudService.onCustomQuery(this.getTransferenciasPorChofer, { choferId, page, size }, servidor);
+  onGetTransferenciasPorHojaRuta(hojaRutaId: number, page?: number, size?: number, servidor = true): Observable<Transferencia[]> {
+    return this.genericCrudService.onCustomQuery(this.getTransferenciasPorHojaRuta, { hojaRutaId, page, size }, servidor, { networkError: { propagate: true } });
   }
 
 }

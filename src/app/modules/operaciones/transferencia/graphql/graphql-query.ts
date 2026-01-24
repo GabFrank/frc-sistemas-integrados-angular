@@ -30,7 +30,7 @@ export const transferenciasQuery = gql`
 `;
 
 export const transferenciaQuery = gql`
-  query ($id: ID!) {
+  query ($id: Int!) {
     data: transferencia(id: $id) {
       id
       sucursalOrigen {
@@ -174,7 +174,7 @@ export const transferenciaQuery = gql`
 `;
 
 export const transferenciasPorUsuarioQuery = gql`
-  query ($id: ID!) {
+  query ($id: Int!) {
     data: transferenciasPorUsuario(id: $id) {
       id
       sucursalOrigen {
@@ -509,7 +509,7 @@ export const saveTransferenciaItem = gql`
 `;
 
 export const deleteTransferenciaItemQuery = gql`
-  mutation deleteTransferenciaItem($id: ID!) {
+  mutation deleteTransferenciaItem($id: Int!) {
     data: deleteTransferenciaItem(id: $id)
   }
 `;
@@ -625,13 +625,13 @@ export const saveTransferenciaItemDetalle = gql`
 `;
 
 export const deleteTransferenciaItemDetalleQuery = gql`
-  mutation deleteTransferenciaItemDetalle($id: ID!) {
+  mutation deleteTransferenciaItemDetalle($id: Int!) {
     data: deleteTransferenciaItemDetalle(id: $id)
   }
 `;
 
 export const transferenciaItemPorTransferenciaIdQuery = gql`
-  query ($id: ID!, $page: Int, $size: Int) {
+  query ($id: Int!, $page: Int, $size: Int) {
     data: transferenciaItensPorTransferenciaId(
       id: $id
       page: $page
@@ -752,7 +752,7 @@ export const transferenciaItemPorTransferenciaIdQuery = gql`
 `;
 
 export const transferenciaItemQuery = gql`
-  query ($id: ID!) {
+  query ($id: Int!) {
     data: transferenciaItem(id: $id) {
       id
       transferencia {
@@ -865,7 +865,7 @@ export const transferenciaItemQuery = gql`
 
 
 export const transferenciaItensPorTransferenciaIdWithFilter = gql`
-  query ($id: ID, $name: String, $page:Int = 0, $size:Int = 10) {
+  query ($id: Int, $name: String, $page:Int = 0, $size:Int = 10) {
     data: transferenciaItensPorTransferenciaIdWithFilter(
       id: $id
       name: $name
@@ -987,7 +987,7 @@ export const transferenciaItensPorTransferenciaIdWithFilter = gql`
 `;
 
 export const hojaRutaQuery = gql`
-  query ($id: ID!) {
+  query ($id: Int!) {
     data: hojaRuta(id: $id) {
       id
       vehiculo {
@@ -1041,7 +1041,7 @@ export const hojaRutaListQuery = gql`
 `;
 
 export const hojaRutaPorVehiculoQuery = gql`
-  query ($vehiculoId: ID!, $page: Int, $size: Int) {
+  query ($vehiculoId: Int!, $page: Int, $size: Int) {
     data: hojaRutaPorVehiculo(vehiculoId: $vehiculoId, page: $page, size: $size) {
       id
       vehiculo {
@@ -1066,7 +1066,7 @@ export const hojaRutaPorVehiculoQuery = gql`
 `;
 
 export const hojaRutaPorChoferQuery = gql`
-  query ($choferId: ID!, $page: Int, $size: Int) {
+  query ($choferId: Int!, $page: Int, $size: Int) {
     data: hojaRutaPorChofer(choferId: $choferId, page: $page, size: $size) {
       id
       vehiculo {
@@ -1091,7 +1091,7 @@ export const hojaRutaPorChoferQuery = gql`
 `;
 
 export const hojaRutaActivaPorVehiculoQuery = gql`
-  query ($vehiculoId: ID!) {
+  query ($vehiculoId: Int!) {
     data: hojaRutaActivaPorVehiculo(vehiculoId: $vehiculoId) {
       id
       vehiculo {
@@ -1145,13 +1145,13 @@ export const saveHojaRuta = gql`
 `;
 
 export const deleteHojaRuta = gql`
-  mutation deleteHojaRuta($id: ID!) {
+  mutation deleteHojaRuta($id: Int!) {
     data: deleteHojaRuta(id: $id)
   }
 `;
 
 export const acompanhantesPorHojaRutaQuery = gql`
-  query ($hojaRutaId: ID!) {
+  query ($hojaRutaId: Int!) {
     data: acompanhantesPorHojaRuta(hojaRutaId: $hojaRutaId) {
         id {
             hojaRutaId
@@ -1181,25 +1181,34 @@ export const saveAcompanhante = gql`
 `;
 
 export const deleteAcompanhante = gql`
-  mutation deleteAcompanhante($hojaRutaId: ID!, $personaId: ID!) {
+  mutation deleteAcompanhante($hojaRutaId: Int!, $personaId: Int!) {
     data: deleteAcompanhante(hojaRutaId: $hojaRutaId, personaId: $personaId)
   }
 `;
 
-export const choferesConEntregasQuery = gql`
+export const hojasRutaConEntregasQuery = gql`
   query ($page: Int, $size: Int) {
-    data: choferesConEntregas(page: $page, size: $size) {
+    data: hojasRutaConEntregas(page: $page, size: $size) {
       id
-      nombre
-      documento
-      telefono
+      chofer {
+        id
+        nombre
+      }
+      vehiculo {
+        id
+        chapa
+        modelo {
+          descripcion
+        }
+      }
+      fechaSalida
     }
   }
 `;
 
-export const transferenciasPorChoferQuery = gql`
-  query ($choferId: ID!, $page: Int, $size: Int) {
-    data: transferenciasPorChofer(choferId: $choferId, page: $page, size: $size) {
+export const transferenciasPorHojaRutaQuery = gql`
+  query ($hojaRutaId: ID!, $page: Int!, $size: Int!) {
+    data: transferenciasPorHojaRuta(hojaRutaId: $hojaRutaId, page: $page, size: $size) {
       id
       sucursalOrigen {
         id
@@ -1225,3 +1234,28 @@ export const transferenciasPorChoferQuery = gql`
 `;
 
 
+
+export const hojaRutaPorFechaQuery = gql`
+  query ($inicio: String, $fin: String) {
+    data: hojaRutaPorFecha(inicio: $inicio, fin: $fin) {
+      id
+      vehiculo {
+        id
+        modelo {
+          descripcion
+        }
+        chapa
+      }
+      chofer {
+        id
+        nombre
+      }
+      fechaSalida
+      fechaLlegada
+      kmSalida
+      kmLlegada
+      estado
+      creadoEn
+    }
+  }
+`;

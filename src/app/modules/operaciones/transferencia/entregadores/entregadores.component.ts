@@ -1,10 +1,11 @@
 import { Component, OnInit } from '@angular/core';
+import { FormControl } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
-import { Persona } from '../../../personas/persona/persona.model';
 import { TransferenciaService } from '../transferencia.service';
 import { trigger, state, style, transition, animate } from '@angular/animations';
-import { Transferencia } from '../transferencia.model';
+import { HojaRuta, Transferencia } from '../transferencia.model';
+import { finalize } from 'rxjs/operators';
 
 @UntilDestroy({ checkProperties: true })
 @Component({
@@ -21,34 +22,62 @@ import { Transferencia } from '../transferencia.model';
 })
 export class EntregadoresComponent implements OnInit {
 
-  displayedColumns: string[] = ['id', 'nombre', 'documento', 'telefono', 'acciones'];
-  dataSource = new MatTableDataSource<Persona>([]);
+  displayedColumns: string[] = ['id', 'chofer', 'vehiculo', 'fechaSalida', 'acciones'];
+  dataSource = new MatTableDataSource<HojaRuta>([]);
   isLoading = true;
-  expandedElement: Persona | null;
-
-  // Cache para las transferencias cargadas
+  expandedElement: HojaRuta | null;
   transferenciasCache: { [key: number]: Transferencia[] } = {};
   loadingTransferencias: { [key: number]: boolean } = {};
+
+  fechaInicioControl = new FormControl(new Date());
+  fechaFinControl = new FormControl(new Date());
 
   constructor(
     private transferenciaService: TransferenciaService
   ) { }
 
   ngOnInit(): void {
-    this.loadChoferes();
+    this.dataSource.filterPredicate = (data: HojaRuta, filter: string) => {
+      const dataStr = (
+        (data.chofer?.nombre || '') +
+        (data.vehiculo?.chapa || '') +
+        (data.vehiculo?.modelo?.descripcion || '')
+      ).toLowerCase();
+      return dataStr.indexOf(filter) !== -1;
+    };
+    this.loadHojasRuta();
   }
 
-  loadChoferes(): void {
+  loadHojasRuta(): void {
     this.isLoading = true;
-    this.transferenciaService.onGetChoferesConEntregas(0, 100)
+    const inicioInfo = this.fechaInicioControl.value;
+    const finInfo = this.fechaFinControl.value;
+
+    const formatDate = (date: Date) => {
+      if (!date) return null;
+      const d = new Date(date);
+      let month = '' + (d.getMonth() + 1);
+      let day = '' + d.getDate();
+      const year = d.getFullYear();
+
+      if (month.length < 2) month = '0' + month;
+      if (day.length < 2) day = '0' + day;
+
+      return [year, month, day].join('-');
+    };
+
+    const inicio = formatDate(inicioInfo);
+    const fin = formatDate(finInfo);
+
+    this.transferenciaService.onGetHojaRutaPorFecha(inicio, fin)
       .pipe(untilDestroyed(this))
       .subscribe({
-        next: (choferes) => {
-          this.dataSource.data = choferes || [];
+        next: (hojasRuta) => {
+          this.dataSource.data = hojasRuta || [];
           this.isLoading = false;
         },
         error: (err) => {
-          console.error('Error al cargar choferes:', err);
+          console.error('Error al cargar hojas de ruta:', err);
           this.isLoading = false;
         }
       });
@@ -59,7 +88,7 @@ export class EntregadoresComponent implements OnInit {
     this.dataSource.filter = filterValue.trim().toLowerCase();
   }
 
-  onExpandRow(element: Persona): void {
+  onExpandRow(element: HojaRuta): void {
     this.expandedElement = this.expandedElement === element ? null : element;
 
     if (this.expandedElement && !this.transferenciasCache[element.id]) {
@@ -67,18 +96,23 @@ export class EntregadoresComponent implements OnInit {
     }
   }
 
-  loadTransferencias(choferId: number): void {
-    this.loadingTransferencias[choferId] = true;
-    this.transferenciaService.onGetTransferenciasPorChofer(choferId, 0, 20)
-      .pipe(untilDestroyed(this))
+  loadTransferencias(hojaRutaId: number): void {
+    this.loadingTransferencias[hojaRutaId] = true;
+    this.transferenciaService.onGetTransferenciasPorHojaRuta(hojaRutaId, 0, 20)
+      .pipe(
+        untilDestroyed(this),
+        finalize(() => {
+          this.loadingTransferencias[hojaRutaId] = false;
+          // Trigger change detection for object property change
+          this.loadingTransferencias = { ...this.loadingTransferencias };
+        })
+      )
       .subscribe({
         next: (transferencias) => {
-          this.transferenciasCache[choferId] = transferencias;
-          this.loadingTransferencias[choferId] = false;
+          this.transferenciasCache[hojaRutaId] = transferencias;
         },
         error: (err) => {
-          console.error(`Error al cargar transferencias para chofer ${choferId}:`, err);
-          this.loadingTransferencias[choferId] = false;
+          console.error(`Error al cargar transferencias para hoja de ruta ${hojaRutaId}:`, err);
         }
       });
   }

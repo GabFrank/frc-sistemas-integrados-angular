@@ -3,11 +3,24 @@
         <h2>Choferes con Entregas</h2>
     </div>
 
-    <mat-form-field appearance="outline" class="filter-field">
-        <mat-label>Buscar chofer</mat-label>
-        <input matInput (keyup)="applyFilter($event)" placeholder="Nombre, documento o teléfono...">
-        <mat-icon matSuffix>search</mat-icon>
-    </mat-form-field>
+
+    <div class="filters" style="display: flex; gap: 1rem; align-items: baseline;">
+        <mat-form-field appearance="outline" style="width: 300px;">
+            <mat-label>Rango de fechas</mat-label>
+            <mat-date-range-input [rangePicker]="picker">
+                <input matStartDate [formControl]="fechaInicioControl" placeholder="Inicio">
+                <input matEndDate [formControl]="fechaFinControl" placeholder="Fin" (dateChange)="loadHojasRuta()">
+            </mat-date-range-input>
+            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-date-range-picker #picker></mat-date-range-picker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field" style="flex: 1;">
+            <mat-label>Buscar chofer</mat-label>
+            <input matInput (keyup)="applyFilter($event)" placeholder="Nombre, documento o teléfono...">
+            <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+    </div>
 
     <div class="table-container mat-elevation-z2">
         <div *ngIf="isLoading" class="loading-container">
@@ -22,19 +35,21 @@
                 <td mat-cell *matCellDef="let element">{{element.id}}</td>
             </ng-container>
 
-            <ng-container matColumnDef="nombre">
-                <th mat-header-cell *matHeaderCellDef>Nombre</th>
-                <td mat-cell *matCellDef="let element">{{element.nombre | uppercase}}</td>
+            <ng-container matColumnDef="chofer">
+                <th mat-header-cell *matHeaderCellDef>Chofer</th>
+                <td mat-cell *matCellDef="let element">{{element.chofer?.nombre | uppercase}}</td>
             </ng-container>
 
-            <ng-container matColumnDef="documento">
-                <th mat-header-cell *matHeaderCellDef>Documento</th>
-                <td mat-cell *matCellDef="let element">{{element.documento || '-'}}</td>
+            <ng-container matColumnDef="vehiculo">
+                <th mat-header-cell *matHeaderCellDef>Vehículo</th>
+                <td mat-cell *matCellDef="let element">
+                    {{element.vehiculo?.modelo?.descripcion}} - {{element.vehiculo?.chapa}}
+                </td>
             </ng-container>
 
-            <ng-container matColumnDef="telefono">
-                <th mat-header-cell *matHeaderCellDef>Teléfono</th>
-                <td mat-cell *matCellDef="let element">{{element.telefono || '-'}}</td>
+            <ng-container matColumnDef="fechaSalida">
+                <th mat-header-cell *matHeaderCellDef>Fecha Salida</th>
+                <td mat-cell *matCellDef="let element">{{element.fechaSalida | date:'dd/MM/yyyy HH:mm'}}</td>
             </ng-container>
 
             <ng-container matColumnDef="acciones">
@@ -69,7 +84,7 @@
                                 <thead>
                                     <tr>
                                         <th>ID Transf.</th>
-                                        <th>Vehículo</th>
+
                                         <th>Origen</th>
                                         <th>Destino</th>
                                         <th>Estado</th>
@@ -79,13 +94,7 @@
                                 <tbody>
                                     <tr *ngFor="let transf of transferenciasCache[element.id]">
                                         <td>{{transf.id}}</td>
-                                        <td>
-                                            <span *ngIf="transf.hojaRuta?.vehiculo">
-                                                {{transf.hojaRuta.vehiculo.modelo?.descripcion}}
-                                                ({{transf.hojaRuta.vehiculo.chapa}})
-                                            </span>
-                                            <span *ngIf="!transf.hojaRuta?.vehiculo">-</span>
-                                        </td>
+
                                         <td>{{transf.sucursalOrigen?.nombre}}</td>
                                         <td>{{transf.sucursalDestino?.nombre}}</td>
                                         <td>{{transf.estado}}</td>
