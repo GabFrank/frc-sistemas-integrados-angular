@@ -2,28 +2,29 @@
 
 <mat-dialog-content>
     <div fxLayout="column" fxLayoutGap="15px">
-        <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
-            <mat-form-field appearance="outline" fxFlex>
+        <div fxLayout="row" fxLayoutAlign="start center">
+            <mat-form-field appearance="fill" fxFlex class="custom-dark-input">
                 <mat-label>Vehículo</mat-label>
                 <input matInput
                     [value]="selectedVehiculo ? (selectedVehiculo.modelo?.marca?.descripcion + ' ' + selectedVehiculo.modelo?.descripcion + ' - ' + selectedVehiculo.chapa) : ''"
-                    readonly>
+                    readonly (click)="onBuscarVehiculo()" style="cursor: pointer;">
+                <button mat-icon-button matSuffix (click)="onBuscarVehiculo()">
+                    <mat-icon>search</mat-icon>
+                </button>
                 <mat-error *ngIf="vehiculoControl.invalid">El vehículo es obligatorio</mat-error>
             </mat-form-field>
-            <button mat-raised-button color="primary" (click)="onBuscarVehiculo()" style="height: 50px;">
-                <mat-icon>search</mat-icon> Buscar
-            </button>
         </div>
 
-        <div fxLayout="row" fxLayoutGap="10px" fxLayoutAlign="start center">
-            <mat-form-field appearance="outline" fxFlex>
+        <div fxLayout="row" fxLayoutAlign="start center">
+            <mat-form-field appearance="fill" fxFlex class="custom-dark-input">
                 <mat-label>Chofer</mat-label>
-                <input matInput [formControl]="choferControl" readonly>
+                <input matInput [formControl]="choferControl" readonly (click)="onBuscarChofer()"
+                    style="cursor: pointer;">
+                <button mat-icon-button matSuffix (click)="onBuscarChofer()">
+                    <mat-icon>search</mat-icon>
+                </button>
                 <mat-error *ngIf="choferControl.hasError('required')">El chofer es obligatorio</mat-error>
             </mat-form-field>
-            <button mat-raised-button color="primary" (click)="onBuscarChofer()" style="height: 50px;">
-                <mat-icon>search</mat-icon> Buscar
-            </button>
         </div>
 
         <div fxLayout="row" fxLayoutGap="10px">

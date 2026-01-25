@@ -30,7 +30,7 @@ export const transferenciasQuery = gql`
 `;
 
 export const transferenciaQuery = gql`
-  query ($id: Int!) {
+  query ($id: ID!) {
     data: transferencia(id: $id) {
       id
       sucursalOrigen {
@@ -177,7 +177,7 @@ export const transferenciaQuery = gql`
 `;
 
 export const transferenciasPorUsuarioQuery = gql`
-  query ($id: Int!) {
+  query ($id: ID!) {
     data: transferenciasPorUsuario(id: $id) {
       id
       sucursalOrigen {
@@ -637,7 +637,7 @@ export const deleteTransferenciaItemDetalleQuery = gql`
 `;
 
 export const transferenciaItemPorTransferenciaIdQuery = gql`
-  query ($id: Int!, $page: Int, $size: Int) {
+  query ($id: ID!, $page: Int, $size: Int) {
     data: transferenciaItensPorTransferenciaId(
       id: $id
       page: $page

@@ -1,0 +1,68 @@
+.custom-dark-input {
+    width: 100%;
+
+    ::ng-deep {
+
+        // Background color and height for the filled field
+        .mdc-text-field--filled {
+            background-color: #2e2e2e !important;
+            height: 50px !important; // Increased slightly to accommodate label and text
+            min-height: 50px !important;
+            padding-top: 18px !important; // Push content down to make room for label
+            padding-bottom: 0px !important;
+            align-items: baseline !important; // Align text to baseline
+        }
+
+        // Text color for input
+        .mat-mdc-input-element {
+            color: white !important;
+            caret-color: white !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            height: 100% !important;
+        }
+
+        // Label color & positioning
+        .mdc-floating-label,
+        .mat-mdc-floating-label {
+            color: rgba(255, 255, 255, 0.6) !important;
+            top: 14px !important; // Center label vertically when not floating
+        }
+
+        // Floating label (focused/populated) - Shift it up properly
+        .mdc-text-field--filled .mdc-floating-label--float-above {
+            transform: translateY(-8px) scale(0.75) !important;
+            top: 14px !important; // Keep top anchor
+            color: rgba(255, 255, 255, 0.87) !important;
+        }
+
+        // Underline color
+        .mdc-line-ripple::before {
+            border-bottom-color: rgba(255, 255, 255, 0.42) !important;
+        }
+
+        .mdc-line-ripple::after {
+            border-bottom-color: white !important;
+        }
+
+        // Search Icon color
+        .mat-icon {
+            color: white !important;
+        }
+
+        // Button Ripple
+        .mat-mdc-icon-button {
+            color: white !important;
+            height: 48px !important; // Match input height roughly
+            width: 48px !important;
+            padding: 12px !important;
+            top: 0px !important;
+        }
+
+        // Override focus indicator color (the thin line)
+        .mdc-text-field--focused:not(.mdc-text-field--disabled) .mdc-line-ripple::after {
+            transform: scaleX(1);
+            opacity: 1;
+        }
+    }
+}

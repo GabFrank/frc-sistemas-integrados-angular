@@ -61,7 +61,7 @@
                     <div class="element-detail" [@detailExpand]="element == expandedElement ? 'expanded' : 'collapsed'">
 
                         <div class="detail-container">
-                            <h3>Transferencias entregadas</h3>
+                            <h3>Transferencias</h3>
 
                             <div *ngIf="loadingTransferencias[element.id]" class="loading-detail">
                                 <mat-spinner diameter="30"></mat-spinner>
@@ -70,7 +70,7 @@
 
                             <div *ngIf="!loadingTransferencias[element.id] && transferenciasCache[element.id]?.length === 0"
                                 class="no-data-detail">
-                                No se encontraron transferencias para este chofer.
+                                No se encontraron transferencias.
                             </div>
 
                             <table
