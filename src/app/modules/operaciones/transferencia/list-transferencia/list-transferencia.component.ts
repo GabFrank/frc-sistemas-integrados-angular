@@ -106,9 +106,6 @@ export class ListTransferenciaComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-
-    // this.dialogoService.
-
     setTimeout(() => {
       this.paginator._changePageSize(this.paginator.pageSizeOptions[1]);
       this.pageSize = this.paginator.pageSizeOptions[1];

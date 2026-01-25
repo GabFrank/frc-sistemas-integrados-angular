@@ -23,7 +23,7 @@ import { finalize } from 'rxjs/operators';
 })
 export class EntregadoresComponent implements OnInit, AfterViewInit {
 
-  displayedColumns: string[] = ['id', 'chofer', 'vehiculo', 'fechaSalida'];
+  displayedColumns: string[] = ['id', 'chofer', 'vehiculo', 'fechaSalida', 'ubicacion'];
   dataSource = new MatTableDataSource<HojaRuta>([]);
   isLoading = true;
   expandedElement: HojaRuta | null;
@@ -122,5 +122,8 @@ export class EntregadoresComponent implements OnInit, AfterViewInit {
           console.error(`Error al cargar transferencias para hoja de ruta ${hojaRutaId}:`, err);
         }
       });
+  }
+  onVerUbicacion(hojaRuta: HojaRuta): void {
+    console.log('Ver ubicación para hoja de ruta:', hojaRuta.id);
   }
 }

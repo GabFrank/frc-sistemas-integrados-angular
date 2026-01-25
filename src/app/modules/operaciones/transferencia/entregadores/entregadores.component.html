@@ -55,6 +55,17 @@
                     date:'dd/MM/yyyy HH:mm'}}</td>
             </ng-container>
 
+            <ng-container matColumnDef="ubicacion">
+                <th mat-header-cell *matHeaderCellDef style="text-align: center">Ubicación</th>
+                <td mat-cell *matCellDef="let element" style="text-align: center">
+                    <button mat-button style="color: #2196f3"
+                        (click)="$event.stopPropagation(); onVerUbicacion(element)">
+                        <mat-icon>location_on</mat-icon>
+                        Ver ubicación
+                    </button>
+                </td>
+            </ng-container>
+
             <ng-container matColumnDef="expandedDetail">
                 <td mat-cell *matCellDef="let element" [attr.colspan]="displayedColumns.length" class="expanded-cell"
                     style="background-color: rgb(50, 50, 50)">

@@ -515,7 +515,7 @@ export const saveTransferenciaItem = gql`
 `;
 
 export const deleteTransferenciaItemQuery = gql`
-  mutation deleteTransferenciaItem($id: Int!) {
+  mutation deleteTransferenciaItem($id: ID!) {
     data: deleteTransferenciaItem(id: $id)
   }
 `;
@@ -758,7 +758,7 @@ export const transferenciaItemPorTransferenciaIdQuery = gql`
 `;
 
 export const transferenciaItemQuery = gql`
-  query ($id: Int!) {
+  query ($id: ID!) {
     data: transferenciaItem(id: $id) {
       id
       transferencia {
