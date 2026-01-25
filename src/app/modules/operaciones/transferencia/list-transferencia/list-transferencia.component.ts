@@ -28,7 +28,6 @@ import { MainService } from "./../../../../main.service";
 import { CargandoDialogService } from "./../../../../shared/components/cargando-dialog/cargando-dialog.service";
 import { TransferenciaService } from "./../transferencia.service";
 import { MatDialog } from "@angular/material/dialog";
-import { DialogoNuevasFuncionesComponent } from "../../../../shared/components/dialogo-nuevas-funciones/dialogo-nuevas-funciones.component";
 import { interval } from "rxjs";
 import {
   NotificacionColor,
@@ -305,14 +304,16 @@ export class ListTransferenciaComponent implements OnInit {
 
   isAllSelected() {
     const numSelected = this.selection.selected?.length;
-    const numRows = this.dataSource.data?.length;
+    const numRows = this.dataSource.data?.filter(t => t.hojaRuta == null).length;
     return numSelected === numRows;
   }
 
   masterToggle() {
     this.isAllSelected() ?
       this.selection.clear() :
-      this.dataSource.data.forEach(row => this.selection.select(row));
+      this.dataSource.data.forEach(row => {
+        if (row.hojaRuta == null) this.selection.select(row)
+      });
   }
 
   onAsignarRuta() {

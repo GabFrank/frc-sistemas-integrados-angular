@@ -48,6 +48,9 @@ export const transferenciaQuery = gql`
       etapa
       observacion
       creadoEn
+      hojaRuta {
+        id
+      }
       usuarioPreTransferencia {
         id
         persona {
@@ -367,6 +370,9 @@ export const transferenciaWithFiltersQuery = gql`
         etapa
         observacion
         creadoEn
+        hojaRuta {
+          id
+        }
       }
     }
   }
