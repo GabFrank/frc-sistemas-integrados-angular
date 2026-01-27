@@ -1,21 +1,8 @@
-<app-generic-list
-  [data]="dataSource.data"
-  (filtrar)="onFiltrar()"
-  (resetFiltro)="resetFiltro()"
-  (adicionar)="onAddProducto()"
-  [isAdicionar]="isAdicionarEnabled"
-  [isCustom]="true"
-  (customFunction)="onGenerarReporte()"
-  [disableCustom]="isGenerarPdfDisabled"
-  customName="Generar Pdf"
->
+<app-generic-list [data]="dataSource.data" (filtrar)="onFiltrar()" (resetFiltro)="resetFiltro()"
+  (adicionar)="onAddProducto()" [isAdicionar]="isAdicionarEnabled" [isCustom]="true"
+  (customFunction)="onGenerarReporte()" [disableCustom]="isGenerarPdfDisabled" customName="Generar Pdf">
   <div filtros>
-    <div
-      fxLayout="row"
-      fxLayoutAlign="start center"
-      fxLayoutGap="10px"
-      style="width: 100%"
-    >
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
       <div fxFlex="45" fxLayout="column">
         <div fxLayout="row" fxLayoutAlign="start space-between">
           <div fxFlex="90" fxLayout="column" fxLayoutAlign="center start">
@@ -23,24 +10,15 @@
               <div>
                 <mat-form-field style="width: 100%">
                   <mat-label>Buscar producto</mat-label>
-                  <input
-                    #filtroProductoInput
-                    matInput
-                    type="text"
-                    [formControl]="filtroProductoControl"
-                    (keyup.enter)="onFiltrar()"
-                    (focusin)="filtroProductoInput.select()"
-                  />
+                  <input #filtroProductoInput matInput type="text" [formControl]="filtroProductoControl"
+                    (keyup.enter)="onFiltrar()" (focusin)="filtroProductoInput.select()" />
                 </mat-form-field>
               </div>
             </span>
           </div>
           <div fxFlex="10">
             <span>
-              <button
-                mat-icon-button
-                (click)="filtroProductoControl.setValue('')"
-              >
+              <button mat-icon-button (click)="filtroProductoControl.setValue('')">
                 <mat-icon>clear</mat-icon>
               </button>
             </span>
@@ -55,13 +33,8 @@
         </div>
       </div>
       <div fxFlex="9" fxLayout="column" fxLayoutAlign="center start">
-        <mat-label style="padding-left: 5px; color: #f57c00"
-            >Estado</mat-label
-          >
-          <mat-checkbox
-            [checked]="activoControl.value == true"
-            [indeterminate]="activoControl.value == null"
-            (click)="
+        <mat-label style="padding-left: 5px; color: #f57c00">Estado</mat-label>
+        <mat-checkbox [checked]="activoControl.value == true" [indeterminate]="activoControl.value == null" (click)="
               activoControl.setValue(
                 activoControl.value === null
                   ? true
@@ -69,25 +42,19 @@
                   ? false
                   : null
               )
-            "
-          >
-            {{
-              activoControl.value == null
-                ? "Todos"
-                : activoControl.value == true
-                ? "Activos"
-                : "Inactivos"
-            }}
-          </mat-checkbox>
-        </div>
+            ">
+          {{
+          activoControl.value == null
+          ? "Todos"
+          : activoControl.value == true
+          ? "Activos"
+          : "Inactivos"
+          }}
+        </mat-checkbox>
+      </div>
       <div fxFlex="11" fxLayout="column" fxLayoutAlign="center start">
-        <mat-label style="padding-left: 5px; color: #f57c00"
-            >Movimienta stock</mat-label
-          >
-          <mat-checkbox
-            [checked]="stockControl.value == true"
-            [indeterminate]="stockControl.value == null"
-            (click)="
+        <mat-label style="padding-left: 5px; color: #f57c00">Movimienta stock</mat-label>
+        <mat-checkbox [checked]="stockControl.value == true" [indeterminate]="stockControl.value == null" (click)="
               stockControl.setValue(
                 stockControl.value === null
                   ? true
@@ -95,25 +62,19 @@
                   ? false
                   : null
               )
-            "
-          >
-            {{
-              stockControl.value == null
-                ? "Todos"
-                : stockControl.value == true
-                ? "Si"
-                : "No"
-            }}
-          </mat-checkbox>
-        </div>
+            ">
+          {{
+          stockControl.value == null
+          ? "Todos"
+          : stockControl.value == true
+          ? "Si"
+          : "No"
+          }}
+        </mat-checkbox>
+      </div>
       <div fxFlex="11" fxLayout="column" fxLayoutAlign="center start">
-        <mat-label style="padding-left: 5px; color: #f57c00"
-            >Pesable</mat-label
-          >
-          <mat-checkbox
-            [checked]="balanzaControl.value == true"
-            [indeterminate]="balanzaControl.value == null"
-            (click)="
+        <mat-label style="padding-left: 5px; color: #f57c00">Pesable</mat-label>
+        <mat-checkbox [checked]="balanzaControl.value == true" [indeterminate]="balanzaControl.value == null" (click)="
               balanzaControl.setValue(
                 balanzaControl.value === null
                   ? true
@@ -121,25 +82,20 @@
                   ? false
                   : null
               )
-            "
-          >
-            {{
-              balanzaControl.value == null
-                ? "Todos"
-                : balanzaControl.value == true
-                ? "Si"
-                : "No"
-            }}
-          </mat-checkbox>
-        </div>
+            ">
+          {{
+          balanzaControl.value == null
+          ? "Todos"
+          : balanzaControl.value == true
+          ? "Si"
+          : "No"
+          }}
+        </mat-checkbox>
+      </div>
       <div fxFlex="11" fxLayout="column" fxLayoutAlign="center start">
-        <mat-label style="padding-left: 5px; color: #f57c00"
-            >Posee vencimiento</mat-label
-          >
-          <mat-checkbox
-            [checked]="vencimientoControl.value == true"
-            [indeterminate]="vencimientoControl.value == null"
-            (click)="
+        <mat-label style="padding-left: 5px; color: #f57c00">Posee vencimiento</mat-label>
+        <mat-checkbox [checked]="vencimientoControl.value == true" [indeterminate]="vencimientoControl.value == null"
+          (click)="
               vencimientoControl.setValue(
                 vencimientoControl.value === null
                   ? true
@@ -147,24 +103,19 @@
                   ? false
                   : null
               )
-            "
-          >
-            {{
-              vencimientoControl.value == null
-                ? "Todos"
-                : vencimientoControl.value == true
-                ? "Si"
-                : "No"
-            }}
-          </mat-checkbox>
+            ">
+          {{
+          vencimientoControl.value == null
+          ? "Todos"
+          : vencimientoControl.value == true
+          ? "Si"
+          : "No"
+          }}
+        </mat-checkbox>
       </div>
       <div fxFlex="11" fxLayout="column" fxLayoutAlign="center start">
-        <mat-label style="padding-left: 5px; color: #f57c00"
-          >Costo cero</mat-label
-        >
-        <mat-checkbox
-          [checked]="costoCeroControl.value == true"
-          [indeterminate]="costoCeroControl.value == null"
+        <mat-label style="padding-left: 5px; color: #f57c00">Costo cero</mat-label>
+        <mat-checkbox [checked]="costoCeroControl.value == true" [indeterminate]="costoCeroControl.value == null"
           (click)="
             costoCeroControl.setValue(
               costoCeroControl.value === null
@@ -173,83 +124,51 @@
                 ? false
                 : null
             )
-          "
-        >
+          ">
           {{
-            costoCeroControl.value == null
-              ? "Todos"
-              : costoCeroControl.value == true
-              ? "Si"
-              : "No"
+          costoCeroControl.value == null
+          ? "Todos"
+          : costoCeroControl.value == true
+          ? "Si"
+          : "No"
           }}
         </mat-checkbox>
       </div>
     </div>
 
-    <div
-      fxLayout="row"
-      fxLayoutAlign="start center"
-      fxLayoutGap="10px"
-      style="width: 100%"
-    >
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
       <div fxFlex="42" fxLayout="column">
         <div fxLayout="row" fxLayoutAlign="start center">
           <mat-form-field style="width: 100%">
             <mat-label>Subfamilia</mat-label>
-            <input
-              #proveedorInput
-              type="text"
-              matInput
-              [formControl]="subfamiliaControl"
-              (keyup.enter)="onBuscarSubfamilia()"
-            />
+            <input #proveedorInput type="text" matInput [formControl]="subfamiliaControl"
+              (keyup.enter)="onBuscarSubfamilia()" />
             <span matTextSuffix>
-              <mat-icon
-                (click)="onBuscarSubfamilia(); $event.stopPropagation()"
-                class="icon"
-                >search</mat-icon
-              >
-              <mat-icon
-                *ngIf="selectedSubfamilia != null"
-                (click)="onClearSubfamilia()"
-                class="highlight-hover-danger"
-                >clear</mat-icon
-              >
+              <mat-icon (click)="onBuscarSubfamilia(); $event.stopPropagation()" class="icon">search</mat-icon>
+              <mat-icon *ngIf="selectedSubfamilia != null" (click)="onClearSubfamilia()"
+                class="highlight-hover-danger">clear</mat-icon>
             </span>
           </mat-form-field>
         </div>
       </div>
-      <!-- Mat-selects de Stock y Sucursal -->
       <div fxFlex="55" fxLayout="row" fxLayoutGap="15px">
         <div fxFlex="50">
           <mat-form-field style="width: 100%">
             <mat-label>Stock</mat-label>
-            <mat-select 
-              [formControl]="stockFiltroControl"
-              (selectionChange)="onStockFiltroChange()"
-            >
-              <mat-option 
-                *ngFor="let option of stockOptions" 
-                [value]="option.value"
-              >
+            <mat-select [formControl]="stockFiltroControl" (selectionChange)="onStockFiltroChange()">
+              <mat-option *ngFor="let option of stockOptions" [value]="option.value">
                 {{ option.label }}
               </mat-option>
             </mat-select>
           </mat-form-field>
         </div>
         <div fxFlex="50">
-          <mat-form-field style="width: 100%" 
-          [hidden]="!isSucursalSelectEnabled">
+          <mat-form-field style="width: 100%" [hidden]="!isSucursalSelectEnabled">
             <mat-label>Sucursal</mat-label>
-            <mat-select 
-              [formControl]="sucursalFiltroControl"
-            >
+            <mat-select [formControl]="sucursalFiltroControl">
               <mat-option [value]="null">Seleccionar sucursal</mat-option>
-              <mat-option 
-                *ngFor="let sucursal of sucursales" 
-                [value]="sucursal.id"
-              >
-               {{ sucursal.id }} - {{ sucursal.nombre }}
+              <mat-option *ngFor="let sucursal of sucursales" [value]="sucursal.id">
+                {{ sucursal.id }} - {{ sucursal.nombre }}
               </mat-option>
             </mat-select>
           </mat-form-field>
@@ -257,49 +176,23 @@
       </div>
     </div>
   </div>
-  <div
-    table
-    style="height: 100%; background-color: rgb(70, 70, 70)"
-    fxLayout="column"
-    fxLayoutAlign="space-between start"
-  >
-    <table
-      mat-table
-      [dataSource]="dataSource"
-      multiTemplateDataRows
-      class="mat-elevation-z8"
-      style="width: 100%"
-    >
+  <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
+    fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
       <ng-container matColumnDef="id" style="width: 5%">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 5%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
           Id
         </th>
-        <td
-          mat-cell
-          *matCellDef="let producto"
-          style="text-align: center; width: 5%"
-        >
+        <td mat-cell *matCellDef="let producto" style="text-align: center; width: 5%">
           {{ producto?.id }}
         </td>
       </ng-container>
 
       <ng-container matColumnDef="descripcion" style="width: 40%">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 40%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 40%">
           Descripción
         </th>
-        <td
-          mat-cell
-          *matCellDef="let producto"
-          style="text-align: center; width: 40%"
-        >
+        <td mat-cell *matCellDef="let producto" style="text-align: center; width: 40%">
           {{ producto?.descripcion | uppercase }}
         </td>
       </ng-container>
@@ -308,12 +201,7 @@
         <th mat-header-cell *matHeaderCellDef style="text-align: center">
           Código principal
         </th>
-        <td
-          mat-cell
-          *matCellDef="let producto"
-          style="text-align: center"
-          copiarAClipboard
-        >
+        <td mat-cell *matCellDef="let producto" style="text-align: center" copiarAClipboard>
           {{ producto?.codigoPrincipal }}
         </td>
       </ng-container>
@@ -355,42 +243,23 @@
       </ng-container>
 
       <ng-container matColumnDef="acciones">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="width: 5%; text-align: center"
-        >
+        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">
           ...
         </th>
-        <td
-          mat-cell
-          *matCellDef="let producto; let i = index"
-          style="text-align: center; width: 5%"
-        >
-          <button
-            mat-icon-button
-            [matMenuTriggerFor]="menu"
-            (click)="$event.stopPropagation()"
-          >
+        <td mat-cell *matCellDef="let producto; let i = index" style="text-align: center; width: 5%">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button
-              mat-menu-item
-              (click)="onEditProducto(producto, i)"
-              *ngIf="
+            <button mat-menu-item (click)="onEditProducto(producto, i)" *ngIf="
                 mainService.usuarioActual?.roles.includes(
                   ROLES.EDITAR_PRODUCTOS
                 )
-              "
-            >
+              ">
               <mat-icon>edit</mat-icon>
               Editar
             </button>
-            <button
-              mat-menu-item
-              (click)="onPrintPriceLabel(producto)"
-            >
+            <button mat-menu-item (click)="onPrintPriceLabel(producto)">
               <mat-icon>print</mat-icon>
               Imprimir Etiqueta de Precio
             </button>
@@ -401,27 +270,19 @@
             >
               Ver movimientos
             </button> -->
-            <button
-              mat-menu-item
-              (click)="onAjustarStock(producto)"
-              *ngIf="
+            <button mat-menu-item (click)="onAjustarStock(producto)" *ngIf="
                 mainService.usuarioActual?.roles.includes(
                   ROLES.EDITAR_PRODUCTOS
                 )
-              "
-            >
+              ">
               <mat-icon>production_quantity_limits</mat-icon>
               Ajustar stock
             </button>
-            <button
-              mat-menu-item
-              (click)="onAjustarCosto(producto)"
-              *ngIf="
+            <button mat-menu-item (click)="onAjustarCosto(producto)" *ngIf="
                 mainService.usuarioActual?.roles.includes(
                   ROLES.EDITAR_PRODUCTOS
                 )
-              "
-            >
+              ">
               <mat-icon>price_change</mat-icon>
               Ajustar costo
             </button>
@@ -432,45 +293,32 @@
       <mat-divider></mat-divider>
 
       <ng-container matColumnDef="expandedDetail">
-        <td
-          mat-cell
-          *matCellDef="let producto"
-          [attr.colspan]="displayedColumns.length"
-          class="expanded"
-          style="background-color: rgb(50, 50, 50)"
-        >
-          <div
-            class="example-producto-detail"
-            [@detailExpand]="
+        <td mat-cell *matCellDef="let producto" [attr.colspan]="displayedColumns.length" class="expanded"
+          style="background-color: rgb(50, 50, 50)">
+          <div class="example-producto-detail" [@detailExpand]="
               producto?.id == expandedProducto?.id ? 'expanded' : 'collapsed'
-            "
-            style="text-align: center"
-            fxLayout="row" fxLayoutAlign="center center"
-          >
-            <div 
-              fxFlex="50" 
-              style="width: 100%; 
+            " style="text-align: center" fxLayout="row" fxLayoutAlign="center center">
+            <div fxFlex="50" style="width: 100%; 
               margin: 10px; 
               max-height: 150px; 
-              overflow-y: auto;"
-            >
+              overflow-y: auto;">
               <mat-card fxLayout="column" fxLayoutAlign="start start"
                 style="padding: 10px; background-color: rgb(32, 32, 32);">
-                
+
                 <!-- Add loading indicator -->
                 <mat-spinner *ngIf="!producto?.sucursales" diameter="30"></mat-spinner>
-                
+
                 <!-- Show sucursal data when loaded -->
                 <div *ngIf="producto?.sucursales" fxLayout="column" style="width: 100%">
                   <div style="text-align: center; margin-bottom: 10px">
-                    {{ sucursalFiltroControl.value && isSucursalSelectEnabled ? 
+                    {{ sucursalFiltroControl.value && isSucursalSelectEnabled ?
                     'Stock en Sucursal Seleccionada' : 'Stock por Sucursal' }}
                   </div>
                   <div style="max-height: 425px; overflow-y: auto;">
                     <table style="width: 100%; table-layout: fixed;">
                       <thead>
                         <tr>
-                          <th class="titulo titulo-cell" >Sucursal</th>
+                          <th class="titulo titulo-cell">Sucursal</th>
                           <th class="titulo stock-cell">Stock Disponible</th>
                         </tr>
                       </thead>
@@ -504,29 +352,15 @@
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
-        [class.example-expanded-row]="expandedProducto === row"
-        [class.selectedRow]="expandedProducto === row"
-        (click)="
+      <tr mat-row *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
+        [class.example-expanded-row]="expandedProducto === row" [class.selectedRow]="expandedProducto === row" (click)="
           onRowClick(row, expandedProducto === row);
           expandedProducto = expandedProducto === row ? null : row
-        "
-      ></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: ['expandedDetail']"
-        class="example-detail-row"
-      ></tr>
+        "></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
     </table>
-    <mat-paginator
-      itemsPerPageLabel="Itens por pagina"
-      [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)"
-      [length]="selectedPageInfo?.getTotalElements"
-      style="width: 100%"
-      showFirstLastButtons
-    ></mat-paginator>
+    <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="selectedPageInfo?.getTotalElements" style="width: 100%"
+      showFirstLastButtons></mat-paginator>
   </div>
 </app-generic-list>

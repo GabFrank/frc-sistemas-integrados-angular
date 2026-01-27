@@ -1,0 +1,78 @@
+<div mat-dialog-title>
+    <div fxLayout="row" fxLayoutAlign="start center" fxLayoutGap="15px">
+        <div class="icon-circle">
+            <mat-icon [class.icon-edit]="gps?.id" [class.icon-new]="!gps?.id">{{ gps?.id ? 'edit' : 'gps_fixed'
+                }}</mat-icon>
+        </div>
+        <div>
+            <h2 class="titulo" style="margin: 0;">{{ gps?.id ? 'Editar GPS' : 'Nuevo GPS' }}</h2>
+            <p class="sub-descripcion" style="margin: 0; opacity: 0.7; font-size: 0.9em;">
+                {{ gps?.id ? 'ID: ' + gps.id + ' | ' + (gps.imei) :
+                'Complete los campos para registrar un nuevo dispositivo GPS' }}
+            </p>
+        </div>
+        <span fxFlex></span>
+        <button mat-icon-button (click)="onCancelar()">
+            <mat-icon>close</mat-icon>
+        </button>
+    </div>
+</div>
+
+<mat-divider style="opacity: 0.1;"></mat-divider>
+
+<mat-dialog-content style="padding-top: 20px;">
+    <form [formGroup]="form" fxLayout="column" fxLayoutGap="15px">
+
+        <div fxLayout="row" fxLayoutGap="20px">
+            <mat-form-field fxFlex="50">
+                <mat-label class="required-field">IMEI</mat-label>
+                <input matInput formControlName="imei" placeholder="123456789012345" (keyup.enter)="modelo.focus()">
+                <mat-error *ngIf="form.get('imei')?.hasError('required')">El IMEI es requerido</mat-error>
+            </mat-form-field>
+
+            <mat-form-field fxFlex="50">
+                <mat-label class="required-field">Modelo Tracker</mat-label>
+                <input #modelo matInput formControlName="modeloTracker" placeholder="Modelo X"
+                    (keyup.enter)="sim.focus()">
+            </mat-form-field>
+        </div>
+
+        <div fxLayout="row" fxLayoutGap="20px">
+            <mat-form-field fxFlex="50">
+                <mat-label>Número SIM</mat-label>
+                <input #sim matInput formControlName="simNumero" placeholder="09XX XXX XXX">
+            </mat-form-field>
+
+            <div fxFlex="50">
+                <mat-form-field style="width: 100%;">
+                    <mat-label>Vehículo Asociado</mat-label>
+                    <input matInput [value]="vehiculoDescripcion" readonly (click)="onBuscarVehiculo()"
+                        style="cursor: pointer; font-weight: 500;">
+                    <button mat-icon-button matSuffix (click)="onBuscarVehiculo()" class="search-icon-btn">
+                        <mat-icon>search</mat-icon>
+                    </button>
+                    <button mat-icon-button matSuffix *ngIf="vehiculoSelected" (click)="onLimpiarVehiculo($event)"
+                        class="search-icon-btn">
+                        <mat-icon>close</mat-icon>
+                    </button>
+                </mat-form-field>
+            </div>
+        </div>
+
+        <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="30px"
+            style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+            <mat-slide-toggle formControlName="activo" color="accent">Activo</mat-slide-toggle>
+        </div>
+    </form>
+</mat-dialog-content>
+
+<mat-divider style="opacity: 0.1;"></mat-divider>
+
+<mat-dialog-actions fxLayout="row" fxLayoutAlign="end center" fxLayoutGap="15px" style="padding: 15px 24px;">
+    <button mat-raised-button (click)="onCancelar()" class="btn-cancelar">
+        CANCELAR
+    </button>
+    <button mat-raised-button (click)="onGuardar()" [disabled]="form.invalid" class="btn-guardar">
+        {{ gps?.id ? 'GUARDAR' : 'REGISTRAR' }}
+    </button>
+</mat-dialog-actions>

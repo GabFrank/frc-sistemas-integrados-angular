@@ -214,3 +214,145 @@ export const vehiculosSucursalBySucursalQuery = gql`
     }
   }
 `;
+
+export const gpsQuery = gql`
+  query gps($id: ID!) {
+    data: gps(id: $id) {
+      id
+      imei
+      modeloTracker
+      simNumero
+      activo
+      creadoEm
+      vehiculo {
+        id
+        chapa
+      }
+      ultimaTelemetria {
+        id
+        fechaGps
+        latitud
+        longitud
+        velocidad
+        direccion
+        ignicion
+        alarma
+      }
+    }
+  }
+`;
+
+export const gpsListQuery = gql`
+  query gpsList($page: Int, $size: Int) {
+    data: gpsList(page: $page, size: $size) {
+      id
+      imei
+      modeloTracker
+      simNumero
+      activo
+      creadoEm
+      vehiculo {
+        id
+        chapa
+      }
+      ultimaTelemetria {
+        id
+        fechaGps
+        latitud
+        longitud
+        velocidad
+        direccion
+        ignicion
+        alarma
+      }
+    }
+  }
+`;
+
+export const gpsSearchQuery = gql`
+  query gpsSearch($texto: String) {
+    data: gpsSearch(texto: $texto) {
+      id
+      imei
+      modeloTracker
+      simNumero
+      activo
+      creadoEm
+      vehiculo {
+        id
+        chapa
+      }
+      ultimaTelemetria {
+        id
+        fechaGps
+        latitud
+        longitud
+        velocidad
+        direccion
+        ignicion
+        alarma
+      }
+    }
+  }
+`;
+
+export const gpsByVehiculoQuery = gql`
+  query gpsByVehiculo($vehiculoId: ID!) {
+    data: gpsByVehiculo(vehiculoId: $vehiculoId) {
+      id
+      imei
+      modeloTracker
+      simNumero
+      activo
+      creadoEm
+      ultimaTelemetria {
+        id
+        latitud
+        longitud
+        velocidad
+      }
+    }
+  }
+`;
+
+export const gpsByImeiQuery = gql`
+  query gpsByImei($imei: String!) {
+    data: gpsByImei(imei: $imei) {
+      id
+      imei
+      modeloTracker
+      simNumero
+      activo
+      creadoEm
+      vehiculo {
+        id
+        chapa
+      }
+      ultimaTelemetria {
+        id
+        latitud
+        longitud
+        velocidad
+      }
+    }
+  }
+`;
+
+export const saveGpsMutation = gql`
+  mutation saveGps($entity: GpsInput!) {
+    data: saveGps(gps: $entity) {
+      id
+      imei
+      modeloTracker
+      simNumero
+      activo
+      creadoEm
+    }
+  }
+`;
+
+export const deleteGpsMutation = gql`
+  mutation deleteGps($id: ID!) {
+    data: deleteGps(id: $id)
+  }
+`;

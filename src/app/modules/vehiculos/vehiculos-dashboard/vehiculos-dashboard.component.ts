@@ -6,6 +6,7 @@ import { ListVehiculosComponent } from '../vehiculo/list-vehiculos/list-vehiculo
 import { ListVehiculoSucursalComponent } from '../vehiculo-sucursal/list-vehiculo-sucursal/list-vehiculo-sucursal.component';
 import { Tab } from '../../../layouts/tab/tab.model';
 import { ListGpsComponent } from '../list-gps/list-gps.component';
+import { ListMapasComponent } from '../list-mapas/list-mapas.component';
 
 @Component({
   selector: 'app-vehiculos-dashboard',
@@ -44,8 +45,15 @@ export class VehiculosDashboardComponent implements OnInit {
         expression: false
       },
       {
-        nombre: 'Gps',
+        nombre: 'Dispositivos Gps',
         clickEvent: 'gps',
+        icon: 'location_on',
+        iconSize: 4,
+        expression: false
+      },
+      {
+        nombre: 'Mapas',
+        clickEvent: 'mapas',
         icon: 'location_on',
         iconSize: 4,
         expression: false
@@ -64,6 +72,9 @@ export class VehiculosDashboardComponent implements OnInit {
       case 'gps':
         this.onGps()
         break;
+      case 'mapas':
+        this.onMapas()
+        break;
     }
   }
 
@@ -77,6 +88,10 @@ export class VehiculosDashboardComponent implements OnInit {
 
   onGps() {
     this.tabService.addTab(new Tab(ListGpsComponent, "Gps", null, VehiculosDashboardComponent))
+  }
+
+  onMapas() {
+    this.tabService.addTab(new Tab(ListMapasComponent, "Mapas", null, VehiculosDashboardComponent))
   }
 }
 

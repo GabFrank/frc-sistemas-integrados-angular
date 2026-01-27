@@ -15,7 +15,9 @@ import { ListVehiculoSucursalComponent } from './vehiculo-sucursal/list-vehiculo
 import { AdicionarTipoVehiculoDialogComponent } from './vehiculo/adicionar-tipo-vehiculo-dialog/adicionar-tipo-vehiculo-dialog.component';
 import { AdicionarModeloDialogComponent } from './vehiculo/adicionar-modelo-dialog/adicionar-modelo-dialog.component';
 import { ListGpsComponent } from './list-gps/list-gps.component';
+import { GpsComponent } from './vehiculo/gps-form/gps.component';
 import { BuscarVehiculoDialogComponent } from './vehiculo/buscar-vehiculo-dialog/buscar-vehiculo-dialog.component';
+import { ListMapasComponent } from './list-mapas/list-mapas.component';
 @NgModule({
   declarations: [
     VehiculoComponent,
@@ -29,7 +31,9 @@ import { BuscarVehiculoDialogComponent } from './vehiculo/buscar-vehiculo-dialog
     ListVehiculoSucursalComponent,
     AdicionarTipoVehiculoDialogComponent,
     AdicionarModeloDialogComponent,
-    ListGpsComponent
+    ListGpsComponent,
+    GpsComponent,
+    ListMapasComponent
   ],
   imports: [
     CommonModule,

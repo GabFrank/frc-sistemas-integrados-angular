@@ -1,27 +1,11 @@
-<app-generic-list
-  [data]="dataSource.data"
-  (filtrar)="onFiltrar()"
-  (resetFiltro)="resetFiltro()"
-  (adicionar)="onAdicionar()"
-  [isAdicionar]="true"
->
+<app-generic-list [data]="dataSource.data" (filtrar)="onFiltrar()" (resetFiltro)="resetFiltro()"
+  (adicionar)="onAdicionar()" [isAdicionar]="true">
   <div filtros>
-    <div
-      fxLayout="row wrap"
-      fxLayoutAlign="start center"
-      fxLayoutGap="10px"
-      style="width: 100%"
-    >
+    <div fxLayout="row wrap" fxLayoutAlign="start center" fxLayoutGap="10px" style="width: 100%">
       <div fxFlex="40%">
         <mat-form-field style="width: 90%">
           <mat-label>Nombre, chapa o marca</mat-label>
-          <input
-            #buscar
-            type="text"
-            matInput
-            [formControl]="filtroControl"
-            (keyup.enter)="onFiltrar()"
-          />
+          <input #buscar type="text" matInput [formControl]="filtroControl" (keyup.enter)="onFiltrar()" />
         </mat-form-field>
       </div>
       <div fxFlex="20%">
@@ -37,32 +21,14 @@
       </div>
     </div>
   </div>
-  <div
-    table
-    style="height: 100%; background-color: rgb(70, 70, 70)"
-    fxLayout="column"
-    fxLayoutAlign="space-between start"
-  >
-    <table
-      mat-table
-      [dataSource]="dataSource"
-      multiTemplateDataRows
-      class="mat-elevation-z8"
-      style="width: 100%"
-    >
+  <div table style="height: 100%; background-color: rgb(70, 70, 70)" fxLayout="column"
+    fxLayoutAlign="space-between start">
+    <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="mat-elevation-z8" style="width: 100%">
       <ng-container matColumnDef="id" style="width: 5%">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="text-align: center; width: 5%"
-        >
+        <th mat-header-cell *matHeaderCellDef style="text-align: center; width: 5%">
           Id
         </th>
-        <td
-          mat-cell
-          *matCellDef="let vehiculo"
-          style="text-align: center; width: 5%"
-        >
+        <td mat-cell *matCellDef="let vehiculo" style="text-align: center; width: 5%">
           {{ vehiculo?.id }}
         </td>
       </ng-container>
@@ -122,36 +88,18 @@
       </ng-container>
 
       <ng-container matColumnDef="acciones">
-        <th
-          mat-header-cell
-          *matHeaderCellDef
-          style="width: 5%; text-align: center"
-        >
+        <th mat-header-cell *matHeaderCellDef style="width: 5%; text-align: center">
           ...
         </th>
-        <td
-          mat-cell
-          *matCellDef="let vehiculo; let i = index"
-          style="text-align: center; width: 5%"
-        >
-          <button
-            mat-icon-button
-            [matMenuTriggerFor]="menu"
-            (click)="$event.stopPropagation()"
-          >
+        <td mat-cell *matCellDef="let vehiculo; let i = index" style="text-align: center; width: 5%">
+          <button mat-icon-button [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
-            <button
-              mat-menu-item
-              (click)="onEditar(vehiculo)"
-            >
+            <button mat-menu-item (click)="onEditar(vehiculo)">
               Editar
             </button>
-            <button
-              mat-menu-item
-              (click)="onEliminar(vehiculo)"
-            >
+            <button mat-menu-item (click)="onEliminar(vehiculo)">
               Eliminar
             </button>
           </mat-menu>
@@ -162,18 +110,10 @@
 
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-      <tr
-        mat-row
-        *matRowDef="let row; columns: displayedColumns; let i = dataIndex"
-      ></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns; let i = dataIndex"></tr>
     </table>
-    <mat-paginator
-      itemsPerPageLabel="Itens por pagina"
-      [pageSizeOptions]="[15, 25, 50, 100]"
-      (page)="handlePageEvent($event)"
-      [length]="totalElements"
-      style="width: 100%"
-      showFirstLastButtons
-    ></mat-paginator>
+    <mat-paginator itemsPerPageLabel="Itens por pagina" [pageSizeOptions]="[15, 25, 50, 100]"
+      (page)="handlePageEvent($event)" [length]="totalElements" style="width: 100%"
+      showFirstLastButtons></mat-paginator>
   </div>
 </app-generic-list>
