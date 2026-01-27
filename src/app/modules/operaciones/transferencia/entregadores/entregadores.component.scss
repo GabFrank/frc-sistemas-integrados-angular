@@ -1,9 +1,51 @@
+@import 'src/styles.scss';
+
 $primary-color: #38853c;
 $text-secondary: #aaaaaa;
+
+:host {
+    ::ng-deep {
+
+        .mat-column-id,
+        .mat-column-acciones {
+            width: 5% !important;
+            text-align: center !important;
+        }
+
+        .mat-mdc-table {
+            background-color: transparent !important;
+        }
+
+        .mat-mdc-row,
+        .mat-mdc-header-row {
+            background-color: #464646 !important;
+            color: white !important;
+        }
+
+        .mat-mdc-header-cell {
+            color: white !important;
+        }
+
+        .mat-mdc-cell {
+            color: white !important;
+        }
+
+        .mat-mdc-paginator {
+            background-color: transparent !important;
+            color: white !important;
+        }
+
+        .mat-mdc-icon-button {
+            color: white !important;
+        }
+    }
+}
 
 table {
     width: 100%;
 }
+
+
 
 tr.detail-row {
     height: 0;

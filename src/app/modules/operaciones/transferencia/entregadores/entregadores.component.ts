@@ -35,6 +35,8 @@ export class EntregadoresComponent implements OnInit, AfterViewInit {
   fechaInicioControl = new FormControl(new Date());
   fechaFinControl = new FormControl(new Date());
 
+  searchControl = new FormControl('');
+
   constructor(
     private transferenciaService: TransferenciaService
   ) { }
@@ -48,6 +50,11 @@ export class EntregadoresComponent implements OnInit, AfterViewInit {
       ).toLowerCase();
       return dataStr.indexOf(filter) !== -1;
     };
+
+    this.searchControl.valueChanges.pipe(untilDestroyed(this)).subscribe(value => {
+      this.dataSource.filter = value.trim().toLowerCase();
+    })
+
     this.loadHojasRuta();
   }
 
@@ -91,9 +98,15 @@ export class EntregadoresComponent implements OnInit, AfterViewInit {
       });
   }
 
-  applyFilter(event: Event): void {
-    const filterValue = (event.target as HTMLInputElement).value;
-    this.dataSource.filter = filterValue.trim().toLowerCase();
+  onFiltrar(): void {
+    this.loadHojasRuta();
+  }
+
+  onResetFiltro(): void {
+    this.searchControl.setValue('');
+    this.fechaInicioControl.setValue(new Date());
+    this.fechaFinControl.setValue(new Date());
+    this.loadHojasRuta();
   }
 
   onExpandRow(element: HojaRuta): void {
