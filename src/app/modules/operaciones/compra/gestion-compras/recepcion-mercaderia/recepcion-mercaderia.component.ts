@@ -4,7 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSelect } from '@angular/material/select';
 import { MatTableDataSource } from '@angular/material/table';
-import { Subject } from 'rxjs';
+import { Subject, forkJoin } from 'rxjs';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
@@ -117,7 +117,11 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
   items: NotaRecepcionItem[] = [];
   itemsDataSource = new MatTableDataSource<NotaRecepcionItem>([]);
   // Columnas de la tabla de ítems
-  itemsDisplayedColumns = ['producto', 'presentacion', 'cantidadEsperada', 'cantidadRecibida', 'cantidadRechazada', 'estado', 'acciones'];
+  itemsDisplayedColumns = ['seleccionar', 'producto', 'presentacion', 'cantidadEsperada', 'cantidadRecibida', 'cantidadRechazada', 'estado', 'acciones'];
+  
+  // Selección de items para recepción
+  selectedItems: NotaRecepcionItem[] = [];
+  selectAllItems = false;
 
   // Paginación
   notasPageSize = 10;
@@ -142,6 +146,15 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
   // Control del botón de finalizar recepción
   botonFinalizarHabilitadoComputed = false;
   recepcionFinalizadaComputed = false;
+  
+  // Control de botones de recepción
+  canRecepcionarSeleccionComputed = false;
+  canRecepcionarTodoComputed = false;
+  canDeshacerVerificacionTodoComputed = false;
+  canDeshacerSeleccionComputed = false;
+  tieneSeleccionMixtaComputed = false;
+  todosItemsVerificadosComputed = false;
+  tieneItemsPendientesOparcialesComputed = false;
   
   // Propiedad para almacenar la etapa actual del proceso
   etapaActualComputed: ProcesoEtapaTipo | null = null;
@@ -247,12 +260,17 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
       .subscribe(filtro => {
         // No necesitamos asignar a una propiedad, el getter ya obtiene el valor del FormGroup
         
-        // Si hay items cargados, refrescar la tabla localmente
-        if (this.items.length > 0) {
-          this.refrescarTablaItems();
-        } else if (this.notaSeleccionada) {
-          // Si no hay items cargados, cargar desde backend
+        // Si hay una nota seleccionada, recargar desde el backend con el nuevo filtro
+        // Esto asegura que los items se filtren correctamente según el nuevo filtro
+        // y mantiene la selección de la nota
+        if (this.notaSeleccionada) {
+          // Reset a primera página cuando cambia el filtro
+          this.itemsPageIndex = 0;
+          // Recargar items de la nota seleccionada con el nuevo filtro
           this.loadItemsNotaRecepcion(this.notaSeleccionada.id);
+        } else if (this.items.length > 0) {
+          // Si no hay nota seleccionada pero hay items cargados, refrescar la tabla localmente
+          this.refrescarTablaItems();
         }
       });
 
@@ -309,6 +327,109 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
                                            !this.recepcionFinalizadaComputed &&
                                            etapaCorrecta &&
                                            estadoCorrecto;
+    
+    // Lógica simplificada basada en el filtro de verificación
+    const filtroActual = this.filtroVerificacion();
+    const itemsVisibles = this.itemsDataSource.data;
+    const hayItemsSeleccionados = this.selectedItems.length > 0;
+
+    // Calcular propiedades según el filtro
+    switch (filtroActual) {
+      case 'PENDIENTES':
+        // Filtro en PENDIENTES: Solo botones de recepción
+        this.canRecepcionarTodoComputed = 
+          this.notaSeleccionada !== null && 
+          itemsVisibles.length > 0;
+        this.canDeshacerVerificacionTodoComputed = false;
+        this.canRecepcionarSeleccionComputed = hayItemsSeleccionados;
+        this.tieneSeleccionMixtaComputed = false; // No aplica en este filtro
+        break;
+
+      case 'VERIFICADOS':
+        // Filtro en VERIFICADOS: Solo botones de deshacer
+        this.canRecepcionarTodoComputed = false;
+        this.canDeshacerVerificacionTodoComputed = 
+          this.notaSeleccionada !== null && 
+          itemsVisibles.length > 0;
+        this.canRecepcionarSeleccionComputed = false;
+        this.canDeshacerSeleccionComputed = hayItemsSeleccionados;
+        this.tieneSeleccionMixtaComputed = false; // No aplica en este filtro
+        break;
+
+      case 'TODOS':
+        // Filtro en TODOS: Calcular según selección
+        this.tieneSeleccionMixtaComputed = this.detectarSeleccionMixta();
+        
+        if (this.tieneSeleccionMixtaComputed) {
+          // Selección mixta: Deshabilitar todos los botones
+          this.canRecepcionarTodoComputed = false;
+          this.canDeshacerVerificacionTodoComputed = false;
+          this.canRecepcionarSeleccionComputed = false;
+        } else {
+          // Sin selección mixta: Calcular según estados de items seleccionados o visibles
+          const tieneSoloVerificados = hayItemsSeleccionados
+            ? this.selectedItems.every(item => item.estadoRecepcion === 'VERIFICADO')
+            : itemsVisibles.every(item => item.estadoRecepcion === 'VERIFICADO');
+          
+          const tieneSoloPendientesOParciales = hayItemsSeleccionados
+            ? this.selectedItems.every(item => 
+                item.estadoRecepcion === 'PENDIENTE' || item.estadoRecepcion === 'PARCIAL')
+            : itemsVisibles.some(item => 
+                item.estadoRecepcion === 'PENDIENTE' || item.estadoRecepcion === 'PARCIAL');
+
+          if (tieneSoloVerificados) {
+            // Solo verificados: Botones de deshacer
+            this.canRecepcionarTodoComputed = false;
+            this.canDeshacerVerificacionTodoComputed = 
+              this.notaSeleccionada !== null && 
+              (hayItemsSeleccionados ? hayItemsSeleccionados : itemsVisibles.length > 0);
+            this.canRecepcionarSeleccionComputed = false;
+            this.canDeshacerSeleccionComputed = hayItemsSeleccionados;
+          } else if (tieneSoloPendientesOParciales) {
+            // Solo pendientes/parciales: Botones de recepción
+            this.canRecepcionarTodoComputed = 
+              this.notaSeleccionada !== null && 
+              itemsVisibles.length > 0;
+            this.canDeshacerVerificacionTodoComputed = false;
+            this.canRecepcionarSeleccionComputed = hayItemsSeleccionados;
+            this.canDeshacerSeleccionComputed = false;
+          } else {
+            // Estados mixtos sin selección: Deshabilitar todo
+            this.canRecepcionarTodoComputed = false;
+            this.canDeshacerVerificacionTodoComputed = false;
+            this.canRecepcionarSeleccionComputed = false;
+            this.canDeshacerSeleccionComputed = false;
+          }
+        }
+        break;
+
+      case 'RECHAZADOS':
+        // Filtro en RECHAZADOS: Solo botones de deshacer rechazo (similar a VERIFICADOS)
+        this.canRecepcionarTodoComputed = false;
+        this.canDeshacerVerificacionTodoComputed = 
+          this.notaSeleccionada !== null && 
+          itemsVisibles.length > 0;
+        this.canRecepcionarSeleccionComputed = false;
+        this.canDeshacerSeleccionComputed = hayItemsSeleccionados;
+        this.tieneSeleccionMixtaComputed = false; // No aplica en este filtro
+        break;
+
+      default:
+        // Default: Deshabilitar todo
+        this.canRecepcionarTodoComputed = false;
+        this.canDeshacerVerificacionTodoComputed = false;
+        this.canRecepcionarSeleccionComputed = false;
+        this.canDeshacerSeleccionComputed = false;
+        this.tieneSeleccionMixtaComputed = false;
+    }
+
+    // Propiedades computadas adicionales para compatibilidad
+    this.todosItemsVerificadosComputed = filtroActual === 'VERIFICADOS' || 
+      (filtroActual === 'TODOS' && itemsVisibles.length > 0 && 
+       itemsVisibles.every(item => item.estadoRecepcion === 'VERIFICADO'));
+    this.tieneItemsPendientesOparcialesComputed = filtroActual === 'PENDIENTES' || 
+      (filtroActual === 'TODOS' && itemsVisibles.some(item => 
+        item.estadoRecepcion === 'PENDIENTE' || item.estadoRecepcion === 'PARCIAL'));
   }
 
   private calculateNotaComputedProperties(nota: NotaRecepcion): void {
@@ -447,6 +568,10 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
     // Limpiar filtro de texto al seleccionar nueva nota
     this.filtroTexto = '';
     
+    // Limpiar selección de items al cambiar de nota
+    this.selectedItems = [];
+    this.selectAllItems = false;
+    
     // Actualizar estado de controles después de seleccionar nota
     this.updateFormControlsState();
     
@@ -476,8 +601,8 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
       return;
     }
     
-    // Convertir filtro para compatibilidad con el backend
-    const filtroBackend = this.convertirFiltroParaBackend(this.filtroVerificacion());
+    const filtroActual = this.filtroVerificacion();
+    const filtroBackend = this.convertirFiltroParaBackend(filtroActual);
     
     // Usar el servicio para cargar items filtrados por sucursales, estado de verificación y texto
     this.pedidoService.onGetNotaRecepcionItemListPorNotaRecepcionIdYSucursales(
@@ -493,18 +618,20 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
         next: (pageInfo) => {
           if (pageInfo && pageInfo.getContent && pageInfo.getContent.length > 0) {
             // Usar directamente los datos del backend
-            const items = pageInfo.getContent.map((item: any) => {
+            let items = pageInfo.getContent.map((item: any) => {
               // Los datos ya vienen con los campos de recepción física del backend
               // No necesitamos conversión adicional
               return item;
             });
 
-            this.items = items;
+            // Paginación backend-driven: el total debe venir del backend para que el paginator sea correcto
             this.itemsTotalElements = pageInfo.getTotalElements || 0;
+
+            this.items = items;
           } else {
             this.items = [];
             this.itemsTotalElements = 0;
-            console.warn(`No se encontraron items con filtro '${this.filtroVerificacion()}' para la nota de recepción:`, notaId);
+            console.warn(`No se encontraron items con filtro '${filtroActual}' para la nota de recepción:`, notaId);
           }
           
           // ✅ CORREGIDO: Mostrar todos los items normalmente, solo filtrar por recién verificados si es necesario
@@ -585,6 +712,9 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
       // Calcular si hay diferencia entre cantidad esperada y total
       item.mostrarCantidadTotalComputed = item.cantidadEnNota && 
                                          item.cantidadEsperadaComputed !== item.cantidadEnNota;
+      
+      // Calcular si el item está seleccionado
+      (item as any).isSelectedComputed = this.isItemSelected(item);
     });
   }
 
@@ -606,6 +736,16 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
       .reduce((sum: number, dist: any) => sum + (dist.cantidad || 0), 0);
 
     return cantidadEsperada;
+  }
+
+  /**
+   * Calcula la cantidad esperada para un ítem basada en las sucursales seleccionadas
+   * Versión auxiliar que puede usarse en contextos donde no se tiene acceso directo a this.sucursalesSeleccionadas
+   * @param item NotaRecepcionItem con sus distribuciones
+   * @returns Cantidad esperada sumada de las sucursales seleccionadas
+   */
+  private calcularCantidadEsperadaParaItem(item: any): number {
+    return this.calcularCantidadEsperada(item);
   }
 
   /**
@@ -691,9 +831,9 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
    * Valida si se puede realizar verificación rápida
    */
   private validarVerificacionRapida(item: NotaRecepcionItem): boolean {
-    // Verificar que el ítem esté pendiente
-    if (item.estadoRecepcion !== 'PENDIENTE') {
-      this.notificacionService.openAlgoSalioMal('Este ítem ya fue verificado');
+    // Verificar que el ítem esté pendiente o parcial (parcial permite continuar recibiendo)
+    if (item.estadoRecepcion !== 'PENDIENTE' && item.estadoRecepcion !== 'PARCIAL') {
+      this.notificacionService.openAlgoSalioMal('Este ítem ya fue verificado completamente');
       return false;
     }
 
@@ -744,47 +884,70 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
         next: (distribuciones) => {
           console.log('Distribuciones encontradas:', distribuciones);
           
-          // Buscar la distribución que coincida con la sucursal seleccionada
-          const distribucionEncontrada = distribuciones.find(dist => 
+          // Filtrar distribuciones que coincidan con la sucursal seleccionada
+          const distribucionesFiltradas = distribuciones.filter(dist => 
             dist.sucursalEntrega?.id === sucursalSeleccionada.id
           );
           
-          // Crear input para guardar
-          const itemInput: any = {
-            notaRecepcionItemId: item.id,
-            productoId: item.producto?.id,
-            presentacionRecibidaId: item.presentacionEnNota?.id || null,
-            sucursalEntregaId: sucursalSeleccionada.id,
-            usuarioId: 1, // TODO: Obtener usuario actual del sistema de autenticación
-            cantidadRecibida: item.cantidadEsperadaComputed || 0,
-            cantidadRechazada: 0,
-            esBonificacion: item.esBonificacion || false
-          };
+          console.log('Distribuciones filtradas para sucursal:', distribucionesFiltradas.length);
           
-          // Si se encontró la distribución, incluir su ID para vinculación directa
-          if (distribucionEncontrada) {
-            itemInput.notaRecepcionItemDistribucionId = distribucionEncontrada.id;
-            console.log('=== DISTRIBUCIÓN ENCONTRADA PARA VINCULACIÓN ===');
-            console.log('Distribución ID:', distribucionEncontrada.id);
-            console.log('Sucursal:', distribucionEncontrada.sucursalEntrega?.nombre);
-            console.log('Cantidad en distribución:', distribucionEncontrada.cantidad);
-          } else {
-            console.log('=== ADVERTENCIA: No se encontró distribución para la sucursal ===');
-            console.log('Sucursal seleccionada:', sucursalSeleccionada.nombre);
-            console.log('Distribuciones disponibles:', distribuciones.length);
-          }
-
-          console.log('Guardando item de recepción:', itemInput);
-
-          // Guardar en backend (esto creará la recepción automáticamente si es la primera)
-          this.pedidoService.onSaveRecepcionMercaderiaItem(itemInput)
-            .subscribe({
-              next: (result) => {
-                console.log('Item guardado exitosamente:', result);
+          // Si hay múltiples distribuciones, crear un item por cada una
+          if (distribucionesFiltradas.length > 1) {
+            console.log('=== MÚLTIPLES DISTRIBUCIONES DETECTADAS ===');
+            console.log('Creando un RecepcionMercaderiaItem por cada distribución');
+            
+            // Calcular cantidad pendiente si el estado es PARCIAL
+            let cantidadPendienteTotal = item.cantidadEsperadaComputed || 0;
+            
+            if (item.estadoRecepcion === 'PARCIAL') {
+              const cantidadEsperada = item.cantidadEsperadaComputed || 0;
+              const cantidadRecibida = item.cantidadRecibida || 0;
+              const cantidadRechazada = item.cantidadRechazada || 0;
+              cantidadPendienteTotal = Math.max(0, cantidadEsperada - cantidadRecibida - cantidadRechazada);
+              
+              console.log('Estado PARCIAL detectado. Cantidad pendiente total:', cantidadPendienteTotal);
+            }
+            
+            // Crear items para cada distribución
+            const itemsToSave = distribucionesFiltradas.map(distribucion => {
+              // Calcular cantidad a recibir para esta distribución
+              // Si hay cantidad pendiente, distribuir proporcionalmente
+              let cantidadARecibir = distribucion.cantidad;
+              
+              if (item.estadoRecepcion === 'PARCIAL' && cantidadPendienteTotal > 0) {
+                // Distribuir la cantidad pendiente proporcionalmente
+                const cantidadTotalDistribuciones = distribucionesFiltradas.reduce((sum, dist) => sum + dist.cantidad, 0);
+                const proporcion = distribucion.cantidad / cantidadTotalDistribuciones;
+                cantidadARecibir = Math.min(distribucion.cantidad, cantidadPendienteTotal * proporcion);
+              }
+              
+              return {
+                notaRecepcionItemId: item.id,
+                notaRecepcionItemDistribucionId: distribucion.id,
+                productoId: item.producto?.id,
+                presentacionRecibidaId: item.presentacionEnNota?.id || null,
+                sucursalEntregaId: sucursalSeleccionada.id,
+                usuarioId: 1, // TODO: Obtener usuario actual del sistema de autenticación
+                cantidadRecibida: cantidadARecibir,
+                cantidadRechazada: 0,
+                esBonificacion: item.esBonificacion || false
+              };
+            });
+            
+            console.log('Items a guardar:', itemsToSave);
+            
+            // Guardar todos los items en paralelo
+            forkJoin(
+              itemsToSave.map(itemInput => 
+                this.pedidoService.onSaveRecepcionMercaderiaItem(itemInput)
+              )
+            ).subscribe({
+              next: (results) => {
+                console.log('Items guardados exitosamente:', results);
                 
-                // Si es la primera vez, obtener el ID de la recepción
-                if (!this.isRecepcionCreada && result && result.recepcionMercaderiaId) {
-                  this.recepcionMercaderiaId = result.recepcionMercaderiaId;
+                // Si es la primera vez, obtener el ID de la recepción del primer resultado
+                if (!this.isRecepcionCreada && results.length > 0 && results[0] && results[0].recepcionMercaderiaId) {
+                  this.recepcionMercaderiaId = results[0].recepcionMercaderiaId;
                   this.isRecepcionCreada = true;
                   console.log('Recepción creada automáticamente con ID:', this.recepcionMercaderiaId);
                 }
@@ -792,37 +955,136 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
                 // Actualizar UI
                 this.actualizarUIItemVerificado(item);
                 
-                // Recargar pedido primero para obtener las etapas actualizadas
-                // Luego recargar etapa actual para actualizar el estado del botón "Finalizar Recepción Física"
-                // Esto es necesario porque el backend cambia la etapa a EN_PROCESO cuando se crea el primer item
+                // Recargar pedido y etapa actual
                 if (this.pedidoId) {
                   this.pedidoService.onGetPedidoById(this.pedidoId)
                     .pipe(untilDestroyed(this))
                     .subscribe({
                       next: (pedido) => {
                         this.pedido = pedido;
-                        // Después de recargar el pedido, cargar la etapa actual
-                        // Esto asegura que tenemos las etapas actualizadas
                         this.loadEtapaActual();
                       },
                       error: (error) => {
                         console.error('Error al recargar pedido:', error);
-                        // Intentar cargar etapa actual aunque falle la recarga del pedido
                         this.loadEtapaActual();
                       }
                     });
                 } else {
-                  // Si no hay pedidoId, solo cargar etapa actual
                   this.loadEtapaActual();
                 }
                 
-                this.notificacionService.openSucess('Ítem verificado exitosamente');
+                this.notificacionService.openSucess(`${results.length} ítem(s) verificado(s) exitosamente`);
               },
               error: (error) => {
-                console.error('Error al guardar item:', error);
-                this.notificacionService.openAlgoSalioMal('Error al verificar ítem: ' + (error.message || 'Error desconocido'));
+                console.error('Error al guardar items:', error);
+                this.notificacionService.openAlgoSalioMal('Error al verificar ítem(es): ' + (error.message || 'Error desconocido'));
               }
             });
+          } else {
+            // Lógica original para una sola distribución
+            const distribucionEncontrada = distribucionesFiltradas[0] || distribuciones.find(dist => 
+              dist.sucursalEntrega?.id === sucursalSeleccionada.id
+            );
+            
+            // Calcular cantidad a recibir
+            // Si el estado es PARCIAL, calcular la cantidad pendiente
+            // Si el estado es PENDIENTE, usar la cantidad esperada completa
+            let cantidadARecibir = item.cantidadEsperadaComputed || 0;
+            
+            if (item.estadoRecepcion === 'PARCIAL') {
+              // Calcular cantidad pendiente
+              const cantidadEsperada = item.cantidadEsperadaComputed || 0;
+              const cantidadRecibida = item.cantidadRecibida || 0;
+              const cantidadRechazada = item.cantidadRechazada || 0;
+              const cantidadPendiente = cantidadEsperada - cantidadRecibida - cantidadRechazada;
+              
+              // Usar la cantidad pendiente en lugar de la esperada completa
+              cantidadARecibir = Math.max(0, cantidadPendiente);
+              
+              console.log('Estado PARCIAL detectado. Calculando cantidad pendiente:', {
+                cantidadEsperada,
+                cantidadRecibida,
+                cantidadRechazada,
+                cantidadPendiente,
+                cantidadARecibir
+              });
+            }
+            
+            // Crear input para guardar
+            const itemInput: any = {
+              notaRecepcionItemId: item.id,
+              productoId: item.producto?.id,
+              presentacionRecibidaId: item.presentacionEnNota?.id || null,
+              sucursalEntregaId: sucursalSeleccionada.id,
+              usuarioId: 1, // TODO: Obtener usuario actual del sistema de autenticación
+              cantidadRecibida: cantidadARecibir,
+              cantidadRechazada: 0,
+              esBonificacion: item.esBonificacion || false
+            };
+            
+            // Si se encontró la distribución, incluir su ID para vinculación directa
+            if (distribucionEncontrada) {
+              itemInput.notaRecepcionItemDistribucionId = distribucionEncontrada.id;
+              console.log('=== DISTRIBUCIÓN ENCONTRADA PARA VINCULACIÓN ===');
+              console.log('Distribución ID:', distribucionEncontrada.id);
+              console.log('Sucursal:', distribucionEncontrada.sucursalEntrega?.nombre);
+              console.log('Cantidad en distribución:', distribucionEncontrada.cantidad);
+            } else {
+              console.log('=== ADVERTENCIA: No se encontró distribución para la sucursal ===');
+              console.log('Sucursal seleccionada:', sucursalSeleccionada.nombre);
+              console.log('Distribuciones disponibles:', distribuciones.length);
+            }
+
+            console.log('Guardando item de recepción:', itemInput);
+
+            // Guardar en backend (esto creará la recepción automáticamente si es la primera)
+            this.pedidoService.onSaveRecepcionMercaderiaItem(itemInput)
+              .subscribe({
+                next: (result) => {
+                  console.log('Item guardado exitosamente:', result);
+                  
+                  // Si es la primera vez, obtener el ID de la recepción
+                  if (!this.isRecepcionCreada && result && result.recepcionMercaderiaId) {
+                    this.recepcionMercaderiaId = result.recepcionMercaderiaId;
+                    this.isRecepcionCreada = true;
+                    console.log('Recepción creada automáticamente con ID:', this.recepcionMercaderiaId);
+                  }
+
+                  // Actualizar UI
+                  this.actualizarUIItemVerificado(item);
+                  
+                  // Recargar pedido primero para obtener las etapas actualizadas
+                  // Luego recargar etapa actual para actualizar el estado del botón "Finalizar Recepción Física"
+                  // Esto es necesario porque el backend cambia la etapa a EN_PROCESO cuando se crea el primer item
+                  if (this.pedidoId) {
+                    this.pedidoService.onGetPedidoById(this.pedidoId)
+                      .pipe(untilDestroyed(this))
+                      .subscribe({
+                        next: (pedido) => {
+                          this.pedido = pedido;
+                          // Después de recargar el pedido, cargar la etapa actual
+                          // Esto asegura que tenemos las etapas actualizadas
+                          this.loadEtapaActual();
+                        },
+                        error: (error) => {
+                          console.error('Error al recargar pedido:', error);
+                          // Intentar cargar etapa actual aunque falle la recarga del pedido
+                          this.loadEtapaActual();
+                        }
+                      });
+                  } else {
+                    // Si no hay pedidoId, solo cargar etapa actual
+                    this.loadEtapaActual();
+                  }
+                  
+                  this.notificacionService.openSucess('Ítem verificado exitosamente');
+                },
+                error: (error) => {
+                  console.error('Error al guardar item:', error);
+                  this.notificacionService.openAlgoSalioMal('Error al verificar ítem: ' + (error.message || 'Error desconocido'));
+                }
+              });
+          }
         },
         error: (error) => {
           console.error('Error al obtener distribuciones:', error);
@@ -1036,11 +1298,37 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
     // Aplicar filtro normal
     switch (filtro) {
       case 'PENDIENTES':
-        return item.estadoRecepcion === 'PENDIENTE';
+        // Incluir items pendientes Y items parciales/rechazados que tengan cantidad pendiente
+        if (item.estadoRecepcion === 'PENDIENTE') {
+          return true;
+        }
+        
+        // Verificar si tiene cantidad pendiente (estado PARCIAL o RECHAZADO con cantidad pendiente > 0)
+        if (item.estadoRecepcion === 'PARCIAL' || item.estadoRecepcion === 'RECHAZADO') {
+          const cantidadEsperada = this.calcularCantidadEsperada(item);
+          const cantidadRecibida = item.cantidadRecibida || 0;
+          const cantidadRechazada = item.cantidadRechazada || 0;
+          const cantidadPendiente = cantidadEsperada - cantidadRecibida - cantidadRechazada;
+          
+          // Si hay cantidad pendiente, mostrarlo en el filtro de pendientes
+          return cantidadPendiente > 0.001; // Tolerancia para punto flotante
+        }
+        
+        return false;
       case 'VERIFICADOS':
         return item.estadoRecepcion === 'VERIFICADO';
       case 'RECHAZADOS':
-        return item.estadoRecepcion === 'RECHAZADO';
+        // Incluir items completamente rechazados (sin cantidad pendiente)
+        if (item.estadoRecepcion === 'RECHAZADO') {
+          const cantidadEsperada = this.calcularCantidadEsperada(item);
+          const cantidadRecibida = item.cantidadRecibida || 0;
+          const cantidadRechazada = item.cantidadRechazada || 0;
+          const cantidadPendiente = cantidadEsperada - cantidadRecibida - cantidadRechazada;
+          
+          // Solo mostrar si no hay cantidad pendiente (rechazo completo)
+          return cantidadPendiente <= 0.001; // Tolerancia para punto flotante
+        }
+        return false;
       case 'TODOS':
         return true;
       default:
@@ -1075,17 +1363,17 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
   }
 
   onCancelarVerificacion(item: NotaRecepcionItem): void {
-    console.log('Cancelando verificación para item:', item);
+    console.log('Deshaciendo verificación para item:', item);
     
     // Usar diálogo genérico del sistema
     this.dialogosService.confirm(
-      'Cancelar Verificación',
-      '¿Está seguro que desea cancelar la verificación de este ítem?',
+      'Deshacer Verificación',
+      '¿Está seguro que desea deshacer la verificación de este ítem?',
       'Esta acción no se puede deshacer.',
       undefined,
       true,
-      'Cancelar',
-      'No Cancelar'
+      'Deshacer',
+      'No'
     ).subscribe(result => {
       if (result) {
       this.ejecutarCancelacionVerificacion(item);
@@ -1094,17 +1382,17 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
   }
 
   onCancelarRechazo(item: NotaRecepcionItem): void {
-    console.log('Cancelando rechazo para item:', item);
+    console.log('Deshaciendo rechazo para item:', item);
     
     // Usar diálogo genérico del sistema
     this.dialogosService.confirm(
-      'Cancelar Rechazo',
-      '¿Está seguro que desea cancelar el rechazo de este ítem?',
+      'Deshacer Rechazo',
+      '¿Está seguro que desea deshacer el rechazo de este ítem?',
       'Esta acción no se puede deshacer.',
       undefined,
       true,
-      'Cancelar',
-      'No Cancelar'
+      'Deshacer',
+      'No'
     ).subscribe(result => {
       if (result) {
       this.ejecutarCancelacionRechazo(item);
@@ -1116,7 +1404,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
    * Ejecuta la cancelación de verificación
    */
   private ejecutarCancelacionVerificacion(item: NotaRecepcionItem): void {
-    console.log('Ejecutando cancelación de verificación...');
+    console.log('Ejecutando deshacer verificación...');
 
     // Validar que tenemos sucursales seleccionadas
     if (this.sucursalesSeleccionadas.length === 0) {
@@ -1137,18 +1425,18 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
       if (exitosas === total) {
         // Todas las cancelaciones fueron exitosas
         this.actualizarUIItemCancelado(item);
-        this.notificacionService.openSucess(`Verificación cancelada exitosamente en ${exitosas} sucursal(es)`);
+        this.notificacionService.openSucess(`Verificación deshecha exitosamente en ${exitosas} sucursal(es)`);
       } else if (exitosas > 0) {
         // Algunas cancelaciones fueron exitosas
         this.actualizarUIItemCancelado(item);
-        this.notificacionService.openSucess(`Verificación cancelada parcialmente: ${exitosas}/${total} sucursales`);
+        this.notificacionService.openSucess(`Verificación deshecha parcialmente: ${exitosas}/${total} sucursales`);
       } else {
         // Ninguna cancelación fue exitosa
-        this.notificacionService.openAlgoSalioMal('No se pudo cancelar la verificación en ninguna sucursal');
+        this.notificacionService.openAlgoSalioMal('No se pudo deshacer la verificación en ninguna sucursal');
       }
     }).catch(error => {
-      console.error('Error al cancelar verificación:', error);
-      this.notificacionService.openAlgoSalioMal('Error al cancelar verificación: ' + error.message);
+      console.error('Error al deshacer verificación:', error);
+      this.notificacionService.openAlgoSalioMal('Error al deshacer verificación: ' + error.message);
     });
   }
 
@@ -1156,7 +1444,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
    * Ejecuta la cancelación de rechazo
    */
   private ejecutarCancelacionRechazo(item: NotaRecepcionItem): void {
-    console.log('Ejecutando cancelación de rechazo...');
+    console.log('Ejecutando deshacer rechazo...');
 
     // Validar que tenemos sucursales seleccionadas
     if (this.sucursalesSeleccionadas.length === 0) {
@@ -1177,18 +1465,18 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
       if (exitosas === total) {
         // Todas las cancelaciones fueron exitosas
         this.actualizarUIItemRechazoCancelado(item);
-        this.notificacionService.openSucess(`Rechazo cancelado exitosamente en ${exitosas} sucursal(es)`);
+        this.notificacionService.openSucess(`Rechazo deshecho exitosamente en ${exitosas} sucursal(es)`);
       } else if (exitosas > 0) {
         // Algunas cancelaciones fueron exitosas
         this.actualizarUIItemRechazoCancelado(item);
-        this.notificacionService.openSucess(`Rechazo cancelado parcialmente: ${exitosas}/${total} sucursales`);
+        this.notificacionService.openSucess(`Rechazo deshecho parcialmente: ${exitosas}/${total} sucursales`);
       } else {
         // Ninguna cancelación fue exitosa
-        this.notificacionService.openAlgoSalioMal('No se pudo cancelar el rechazo en ninguna sucursal');
+        this.notificacionService.openAlgoSalioMal('No se pudo deshacer el rechazo en ninguna sucursal');
       }
     }).catch(error => {
-      console.error('Error al cancelar rechazo:', error);
-      this.notificacionService.openAlgoSalioMal('Error al cancelar rechazo: ' + error.message);
+      console.error('Error al deshacer rechazo:', error);
+      this.notificacionService.openAlgoSalioMal('Error al deshacer rechazo: ' + error.message);
     });
   }
 
@@ -1210,14 +1498,33 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
    * Actualiza la UI después de cancelar el rechazo de un ítem
    */
   private actualizarUIItemRechazoCancelado(item: NotaRecepcionItem): void {
-    // Actualizar estado del ítem
-    item.estadoRecepcion = 'PENDIENTE';
-    item.cantidadRecibida = 0;
-    item.cantidadRechazada = 0;
-    // No tenemos recepcionMercaderiaId en NotaRecepcionItem, se maneja en el backend
-
-    // Actualizar propiedades computadas
-    this.updateItemsComputedProperties();
+    // Recargar el ítem desde el backend para obtener el estado y cantidades actualizados
+    // El backend calcula los totales sumando todos los RecepcionMercaderiaItem relacionados
+    // Esto asegura que el estado sea correcto después de cancelar el rechazo
+    if (this.notaSeleccionada) {
+      // Recargar items de la nota para obtener datos actualizados
+      setTimeout(() => {
+        this.loadItemsNotaRecepcion(this.notaSeleccionada!.id);
+      }, 500);
+    } else {
+      // Si no hay nota seleccionada, actualizar localmente (no debería ocurrir)
+      // Calcular estado basándose en las cantidades actuales
+      const cantidadEsperada = this.calcularCantidadEsperada(item);
+      const cantidadRecibida = item.cantidadRecibida || 0;
+      const cantidadRechazada = item.cantidadRechazada || 0;
+      
+      // Determinar el nuevo estado
+      const nuevoEstado = this.determinarEstadoRecepcion(
+        cantidadEsperada,
+        cantidadRecibida,
+        cantidadRechazada
+      );
+      
+      item.estadoRecepcion = nuevoEstado;
+      
+      // Actualizar propiedades computadas
+      this.updateItemsComputedProperties();
+    }
   }
 
   private abrirDialogoVerificacionRapidaSucursales(item: NotaRecepcionItem): void {
@@ -1291,18 +1598,18 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
           
           console.log('Distribuciones filtradas por sucursales seleccionadas:', distribucionesFiltradas);
           
-          // Agrupar distribuciones por sucursal de entrega
-          const distribucionesAgrupadas = this.agruparDistribucionesPorSucursal(distribucionesFiltradas);
+          // NO agrupar distribuciones - pasar las distribuciones originales al diálogo
+          // Esto permite que el diálogo maneje correctamente la distribución proporcional de rechazos
+          // cuando hay múltiples distribuciones con la misma sucursal de entrega pero diferente influencia
+          console.log('Usando distribuciones originales (sin agrupar) para permitir distribución proporcional de rechazos');
           
-          console.log('Distribuciones agrupadas por sucursal:', distribucionesAgrupadas);
-          
-          // Abrir diálogo con los datos agrupados
+          // Abrir diálogo con las distribuciones originales
           const dialogRef = this.dialog.open(RecepcionMercaderiaRechazarItemDialogComponent, {
-            width: '60%',
-            height: '60%',
+            width: '1100px',
+            height: '85vh',
             data: {
               item: item,
-              distribuciones: distribucionesAgrupadas,
+              distribuciones: distribucionesFiltradas, // Usar distribuciones originales, no agrupadas
               sucursalesSeleccionadas: this.sucursalesSeleccionadas,
               presentacionesDisponibles: [] // Se cargarán en el diálogo
             } as RecepcionMercaderiaRechazarItemDialogData,
@@ -1489,6 +1796,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
       presentacionId: result.presentacionId,
       rechazos: result.rechazos.map((rechazo: any) => ({
         sucursalId: rechazo.sucursalId,
+        notaRecepcionItemDistribucionId: rechazo.notaRecepcionItemDistribucionId, // Incluir ID de distribución
         cantidadRechazada: rechazo.cantidadRechazada,
         motivoRechazo: rechazo.motivoRechazo,
         observaciones: rechazo.observaciones || ''
@@ -1504,36 +1812,368 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
         next: (response) => {
           console.log('Rechazo procesado exitosamente:', response);
           
-          // Actualizar estado local del item
-          const cantidadTotalRechazada = result.rechazos.reduce((total: number, rechazo: any) => {
+          // Calcular cantidad total rechazada en este rechazo (suma de todos los rechazos del diálogo)
+          const cantidadRechazadaEnEsteRechazo = result.rechazos.reduce((total: number, rechazo: any) => {
             return total + rechazo.cantidadRechazada;
           }, 0);
 
-          item.cantidadRechazada = cantidadTotalRechazada;
-          item.estadoRecepcion = 'RECHAZADO';
+          // Obtener cantidades actuales del item
+          const cantidadRecibidaActual = item.cantidadRecibida || 0;
+          const cantidadRechazadaAnterior = item.cantidadRechazada || 0;
           
-          // Notificar éxito
-          this.notificacionService.openSucess('Rechazo registrado exitosamente');
+          // Calcular cantidad esperada basada en las sucursales seleccionadas
+          const cantidadEsperada = this.calcularCantidadEsperada(item);
           
-          // Actualizar propiedades computadas
-          this.updateComputedProperties();
+          // Calcular nueva cantidad rechazada total (anterior + nueva)
+          const cantidadRechazadaNueva = cantidadRechazadaAnterior + cantidadRechazadaEnEsteRechazo;
           
-          console.log('Rechazo procesado:', {
-            itemId: item.id,
-            cantidadTotalRechazada,
-            rechazos: result.rechazos.length,
-            detalleRechazos: result.rechazos.map((r: any) => ({
-              sucursalId: r.sucursalId,
-              cantidadRechazada: r.cantidadRechazada,
-              motivoRechazo: r.motivoRechazo
-            }))
-          });
+          // Calcular cantidad pendiente después del rechazo
+          const cantidadPendiente = cantidadEsperada - cantidadRecibidaActual - cantidadRechazadaNueva;
+          
+          // Si hay cantidad pendiente después del rechazo parcial, marcarla automáticamente como recibida
+          if (cantidadPendiente > 0.001 && cantidadRechazadaNueva < cantidadEsperada) {
+            console.log('Rechazo parcial detectado. Marcando cantidad restante como recibida automáticamente...');
+            this.procesarRecepcionAutomaticaRestante(item, result, cantidadPendiente, cantidadEsperada);
+          } else {
+            // Rechazo completo o sin cantidad pendiente, solo actualizar UI
+            this.actualizarUIDespuesRechazo(item, cantidadRechazadaNueva, cantidadRecibidaActual, cantidadEsperada, cantidadPendiente);
+          }
         },
         error: (error) => {
           console.error('Error al procesar rechazo:', error);
           this.notificacionService.openAlgoSalioMal('Error al registrar rechazo: ' + (error.message || 'Error desconocido'));
         }
       });
+  }
+
+  /**
+   * Procesa automáticamente la recepción de la cantidad restante después de un rechazo parcial
+   * @param item Item que fue rechazado parcialmente
+   * @param result Resultado del diálogo de rechazo
+   * @param cantidadPendiente Cantidad pendiente que debe ser recibida automáticamente
+   * @param cantidadEsperada Cantidad esperada total del ítem
+   */
+  private procesarRecepcionAutomaticaRestante(
+    item: NotaRecepcionItem,
+    result: any,
+    cantidadPendiente: number,
+    cantidadEsperada: number
+  ): void {
+    console.log('Procesando recepción automática de cantidad restante:', {
+      itemId: item.id,
+      cantidadPendiente,
+      cantidadEsperada
+    });
+
+    // Obtener distribuciones del backend para calcular la cantidad restante por sucursal
+    this.pedidoService.onGetNotaRecepcionItemDistribucionesByNotaRecepcionItemId(item.id)
+      .subscribe({
+        next: (distribucionesBackend) => {
+          console.log('Distribuciones del backend para recepción automática:', distribucionesBackend);
+
+          // Crear un mapa de rechazos por distribución (notaRecepcionItemDistribucionId) para calcular la cantidad restante
+          // Esto es crítico cuando hay múltiples distribuciones con la misma sucursal pero diferentes cantidades
+          const rechazosPorDistribucion = new Map<number, number>();
+          result.rechazos.forEach((rechazo: any) => {
+            if (rechazo.notaRecepcionItemDistribucionId) {
+              const cantidadActual = rechazosPorDistribucion.get(rechazo.notaRecepcionItemDistribucionId) || 0;
+              rechazosPorDistribucion.set(rechazo.notaRecepcionItemDistribucionId, cantidadActual + rechazo.cantidadRechazada);
+            }
+          });
+
+          // Crear promesas para recibir automáticamente la cantidad restante en cada distribución
+          const promesasRecepcion: Promise<any>[] = [];
+
+          distribucionesBackend.forEach((distribucion: any) => {
+            const distribucionId = distribucion.id;
+            const sucursalId = distribucion.sucursalEntrega?.id;
+            if (!sucursalId || !distribucionId) return;
+
+            const cantidadEsperadaDistribucion = distribucion.cantidad || 0;
+            // Obtener el rechazo específico de esta distribución, no de toda la sucursal
+            const cantidadRechazadaDistribucion = rechazosPorDistribucion.get(distribucionId) || 0;
+            const cantidadRestanteDistribucion = cantidadEsperadaDistribucion - cantidadRechazadaDistribucion;
+
+            // Si hay cantidad restante en esta distribución, crear recepción automática
+            if (cantidadRestanteDistribucion > 0.001) {
+              console.log(`Creando recepción automática para distribución ${distribucionId} (sucursal ${sucursalId}):`, {
+                cantidadEsperada: cantidadEsperadaDistribucion,
+                cantidadRechazada: cantidadRechazadaDistribucion,
+                cantidadRestante: cantidadRestanteDistribucion
+              });
+
+              const itemInput: any = {
+                notaRecepcionItemId: item.id,
+                productoId: item.producto?.id,
+                presentacionRecibidaId: result.presentacionId || item.presentacionEnNota?.id,
+                sucursalEntregaId: sucursalId,
+                usuarioId: 1, // TODO: Obtener usuario actual del sistema de autenticación
+                cantidadRecibida: cantidadRestanteDistribucion, // Cantidad restante automáticamente recibida para esta distribución específica
+                cantidadRechazada: 0,
+                esBonificacion: item.esBonificacion || false,
+                notaRecepcionItemDistribucionId: distribucionId // Siempre incluir el ID de distribución
+              };
+
+              promesasRecepcion.push(
+                this.pedidoService.onSaveRecepcionMercaderiaItem(itemInput).toPromise()
+              );
+            }
+          });
+
+          // Ejecutar todas las recepciones automáticas
+          if (promesasRecepcion.length > 0) {
+            Promise.all(promesasRecepcion)
+              .then((results) => {
+                console.log('Recepciones automáticas completadas:', results);
+
+                // Si es la primera vez, obtener el ID de la recepción del primer resultado
+                if (!this.isRecepcionCreada && results.length > 0 && results[0] && results[0].recepcionMercaderiaId) {
+                  this.recepcionMercaderiaId = results[0].recepcionMercaderiaId;
+                  this.isRecepcionCreada = true;
+                  console.log('Recepción creada automáticamente con ID:', this.recepcionMercaderiaId);
+                }
+
+                // Actualizar UI del item
+                const cantidadRechazadaAnterior = item.cantidadRechazada || 0;
+                const cantidadRechazadaEnEsteRechazo = result.rechazos.reduce((total: number, rechazo: any) => {
+                  return total + rechazo.cantidadRechazada;
+                }, 0);
+                const cantidadRechazadaNueva = cantidadRechazadaAnterior + cantidadRechazadaEnEsteRechazo;
+                const cantidadRecibidaActual = item.cantidadRecibida || 0;
+                const cantidadRecibidaNueva = cantidadRecibidaActual + cantidadPendiente;
+
+                // Esperar más tiempo antes de recargar para asegurar que el backend haya procesado todo
+                // El backend necesita tiempo para calcular correctamente el estado cuando hay rechazo + recepción
+                // Aumentar el tiempo de espera a 3 segundos para dar más tiempo al backend de procesar todas las recepciones automáticas
+                setTimeout(() => {
+                  this.actualizarUIDespuesRechazo(
+                    item,
+                    cantidadRechazadaNueva,
+                    cantidadRecibidaNueva,
+                    cantidadEsperada,
+                    0, // No hay cantidad pendiente, todo fue procesado
+                    true // Indicar que se debe recargar desde el backend
+                  );
+                }, 3000); // Esperar 3 segundos para que el backend procese todo y calcule el estado correctamente
+
+                // Notificar éxito
+                this.notificacionService.openSucess(
+                  `Rechazo parcial registrado. La cantidad restante (${cantidadPendiente.toFixed(2)} unidades) fue automáticamente marcada como recibida.`
+                );
+              })
+              .catch((error) => {
+                console.error('Error en recepción automática:', error);
+                this.notificacionService.openAlgoSalioMal(
+                  'Rechazo registrado, pero hubo un error al marcar la cantidad restante como recibida: ' + 
+                  (error.message || 'Error desconocido')
+                );
+                
+                // Aún así actualizar UI con el rechazo
+                const cantidadRechazadaAnterior = item.cantidadRechazada || 0;
+                const cantidadRechazadaEnEsteRechazo = result.rechazos.reduce((total: number, rechazo: any) => {
+                  return total + rechazo.cantidadRechazada;
+                }, 0);
+                const cantidadRechazadaNueva = cantidadRechazadaAnterior + cantidadRechazadaEnEsteRechazo;
+                const cantidadRecibidaActual = item.cantidadRecibida || 0;
+
+                this.actualizarUIDespuesRechazo(
+                  item,
+                  cantidadRechazadaNueva,
+                  cantidadRecibidaActual,
+                  cantidadEsperada,
+                  cantidadPendiente
+                );
+              });
+          } else {
+            // No hay recepciones automáticas que crear (no debería ocurrir si cantidadPendiente > 0)
+            console.warn('No se encontraron distribuciones para crear recepción automática');
+            const cantidadRechazadaAnterior = item.cantidadRechazada || 0;
+            const cantidadRechazadaEnEsteRechazo = result.rechazos.reduce((total: number, rechazo: any) => {
+              return total + rechazo.cantidadRechazada;
+            }, 0);
+            const cantidadRechazadaNueva = cantidadRechazadaAnterior + cantidadRechazadaEnEsteRechazo;
+            const cantidadRecibidaActual = item.cantidadRecibida || 0;
+
+            this.actualizarUIDespuesRechazo(
+              item,
+              cantidadRechazadaNueva,
+              cantidadRecibidaActual,
+              cantidadEsperada,
+              cantidadPendiente
+            );
+          }
+        },
+        error: (error) => {
+          console.error('Error al obtener distribuciones para recepción automática:', error);
+          this.notificacionService.openAlgoSalioMal(
+            'Rechazo registrado, pero hubo un error al obtener distribuciones para marcar la cantidad restante como recibida.'
+          );
+          
+          // Aún así actualizar UI con el rechazo
+          const cantidadRechazadaAnterior = item.cantidadRechazada || 0;
+          const cantidadRechazadaEnEsteRechazo = result.rechazos.reduce((total: number, rechazo: any) => {
+            return total + rechazo.cantidadRechazada;
+          }, 0);
+          const cantidadRechazadaNueva = cantidadRechazadaAnterior + cantidadRechazadaEnEsteRechazo;
+          const cantidadRecibidaActual = item.cantidadRecibida || 0;
+
+          this.actualizarUIDespuesRechazo(
+            item,
+            cantidadRechazadaNueva,
+            cantidadRecibidaActual,
+            cantidadEsperada,
+            cantidadPendiente
+          );
+        }
+      });
+  }
+
+  /**
+   * Actualiza la UI después de procesar un rechazo
+   * @param item Item que fue rechazado
+   * @param cantidadRechazadaNueva Nueva cantidad rechazada total
+   * @param cantidadRecibidaNueva Nueva cantidad recibida total
+   * @param cantidadEsperada Cantidad esperada total
+   * @param cantidadPendiente Cantidad pendiente restante
+   * @param recargarDesdeBackend Si debe recargar desde el backend (por defecto true)
+   */
+  private actualizarUIDespuesRechazo(
+    item: NotaRecepcionItem,
+    cantidadRechazadaNueva: number,
+    cantidadRecibidaNueva: number,
+    cantidadEsperada: number,
+    cantidadPendiente: number,
+    recargarDesdeBackend: boolean = true
+  ): void {
+    // Actualizar cantidades del item localmente (temporal hasta recargar desde backend)
+    item.cantidadRechazada = cantidadRechazadaNueva;
+    item.cantidadRecibida = cantidadRecibidaNueva;
+
+    // Determinar el estado basándose en las cantidades
+    const nuevoEstado = this.determinarEstadoRecepcion(
+      cantidadEsperada,
+      cantidadRecibidaNueva,
+      cantidadRechazadaNueva
+    );
+
+    item.estadoRecepcion = nuevoEstado;
+
+    // Determinar mensaje según el tipo de rechazo
+    const esRechazoCompleto = cantidadRechazadaNueva >= cantidadEsperada;
+    let mensaje = '';
+
+    if (esRechazoCompleto) {
+      mensaje = 'Rechazo completo registrado exitosamente. El ítem está completamente rechazado.';
+    } else if (cantidadPendiente <= 0.001) {
+      // No hay cantidad pendiente, todo fue procesado (rechazo + recepción automática)
+      mensaje = 'Rechazo parcial registrado. La cantidad restante fue automáticamente marcada como recibida.';
+    } else {
+      mensaje = `Rechazo parcial registrado exitosamente. Cantidad pendiente: ${cantidadPendiente.toFixed(2)} unidades.`;
+    }
+
+    // Notificar éxito con mensaje descriptivo
+    if (mensaje) {
+      this.notificacionService.openSucess(mensaje);
+    }
+
+    // Actualizar propiedades computadas
+    this.updateComputedProperties();
+
+    // Recargar el ítem desde el backend para obtener el estado y cantidades actualizados
+    // El backend calcula los totales sumando todos los RecepcionMercaderiaItem relacionados
+    // Esto asegura que el estado calculado en el backend sea el que se muestre
+    if (recargarDesdeBackend && this.notaSeleccionada) {
+      // Esperar más tiempo si hay recepción automática para dar tiempo al backend de procesar todo
+      // El backend necesita tiempo adicional para calcular correctamente el estado cuando hay rechazo + recepción
+      // Aumentar el tiempo de espera cuando no hay cantidad pendiente (todo fue procesado) para asegurar que el estado se calcule correctamente
+      const tiempoEspera = cantidadPendiente <= 0.001 ? 3500 : 500;
+      setTimeout(() => {
+        this.loadItemsNotaRecepcion(this.notaSeleccionada!.id);
+      }, tiempoEspera);
+    }
+
+    console.log('Rechazo procesado:', {
+      itemId: item.id,
+      cantidadEsperada,
+      cantidadRecibida: cantidadRecibidaNueva,
+      cantidadRechazada: cantidadRechazadaNueva,
+      cantidadPendiente,
+      estado: nuevoEstado,
+      esRechazoCompleto
+    });
+  }
+
+  /**
+   * Determina el estado de recepción basándose en las cantidades
+   * @param cantidadEsperada Cantidad esperada del ítem
+   * @param cantidadRecibida Cantidad recibida del ítem
+   * @param cantidadRechazada Cantidad rechazada del ítem
+   * @returns Estado de recepción: 'PENDIENTE', 'VERIFICADO', 'RECHAZADO', 'PARCIAL'
+   */
+  private determinarEstadoRecepcion(
+    cantidadEsperada: number,
+    cantidadRecibida: number,
+    cantidadRechazada: number
+  ): 'PENDIENTE' | 'VERIFICADO' | 'RECHAZADO' | 'PARCIAL' {
+    // Validar que cantidadEsperada sea válida
+    if (!cantidadEsperada || cantidadEsperada <= 0) {
+      return 'PENDIENTE';
+    }
+
+    // Si no se ha procesado nada
+    if (cantidadRecibida === 0 && cantidadRechazada === 0) {
+      return 'PENDIENTE';
+    }
+
+    // Calcular cantidad pendiente
+    const cantidadPendiente = cantidadEsperada - cantidadRecibida - cantidadRechazada;
+    
+    // Tolerancia para comparaciones de punto flotante
+    const TOLERANCIA = 0.001;
+
+    // Caso 1: Rechazo completo - toda la cantidad esperada fue rechazada
+    if (cantidadRechazada >= cantidadEsperada - TOLERANCIA) {
+      return 'RECHAZADO';
+    }
+
+    // Caso 2: La suma de recibido + rechazado cubre toda la cantidad esperada
+    if (Math.abs((cantidadRecibida + cantidadRechazada) - cantidadEsperada) < TOLERANCIA) {
+      // Si hay cantidad recibida, está verificado (aunque haya rechazo)
+      if (cantidadRecibida > 0) {
+        return 'VERIFICADO';
+      } else {
+        // Solo rechazo, completamente rechazado
+        return 'RECHAZADO';
+      }
+    }
+
+    // Caso 3: Hay cantidad pendiente (recepción/rechazo parcial)
+    if (cantidadPendiente > TOLERANCIA) {
+      // Si hay rechazo, el estado es PARCIAL (indica que hay cantidad pendiente)
+      // El backend puede determinar si es PARCIAL o RECHAZADO según su lógica
+      // Por ahora, usamos PARCIAL para indicar que hay cantidad pendiente
+      if (cantidadRechazada > 0) {
+        // Hay rechazo parcial, pero también puede haber recepción parcial
+        // El estado PARCIAL indica que hay cantidad pendiente
+        return 'PARCIAL';
+      } else if (cantidadRecibida > 0) {
+        // Solo recepción parcial, hay cantidad pendiente
+        return 'PARCIAL';
+      }
+    }
+
+    // Caso 4: Si no hay cantidad pendiente pero las cantidades no suman exactamente
+    // (puede ser por redondeo o error de cálculo)
+    if (Math.abs(cantidadPendiente) < TOLERANCIA) {
+      if (cantidadRecibida > 0) {
+        return 'VERIFICADO';
+      } else if (cantidadRechazada > 0) {
+        return 'RECHAZADO';
+      }
+    }
+
+    // Caso edge: no debería ocurrir
+    return 'PENDIENTE';
   }
 
   // Paginación
@@ -1559,7 +2199,25 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
   }
 
   // Métodos auxiliares para UI
-  getEstadoChipClass(estado: string): string {
+  getEstadoChipClass(estado: string, item?: NotaRecepcionItem): string {
+    // Si el estado es RECHAZADO y hay item, verificar si es completo o parcial
+    if (estado === 'RECHAZADO' && item) {
+      const cantidadEsperada = this.calcularCantidadEsperada(item);
+      const cantidadRechazada = item.cantidadRechazada || 0;
+      const cantidadRecibida = item.cantidadRecibida || 0;
+      const cantidadPendiente = cantidadEsperada - cantidadRecibida - cantidadRechazada;
+      const TOLERANCIA = 0.001;
+      
+      // Si es rechazo completo, usar clase de rechazado (rojo)
+      if (cantidadPendiente <= TOLERANCIA || cantidadRechazada >= cantidadEsperada - TOLERANCIA) {
+        return 'estado-rechazado';
+      } else {
+        // Rechazo parcial, usar clase parcial (naranja/azul)
+        return 'estado-parcial';
+      }
+    }
+    
+    // Para otros estados, usar la clase estándar
     switch (estado) {
       case 'PENDIENTE':
         return 'estado-pendiente';
@@ -1574,15 +2232,44 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
     }
   }
 
-  getEstadoText(estado: string): string {
+  getEstadoText(estado: string, item?: NotaRecepcionItem): string {
     switch (estado) {
       case 'PENDIENTE':
         return 'PENDIENTE';
       case 'VERIFICADO':
         return 'VERIFICADO';
       case 'RECHAZADO':
+        // Si hay item, verificar si es rechazo completo o parcial
+        if (item) {
+          const cantidadEsperada = this.calcularCantidadEsperada(item);
+          const cantidadRechazada = item.cantidadRechazada || 0;
+          const cantidadRecibida = item.cantidadRecibida || 0;
+          const cantidadPendiente = cantidadEsperada - cantidadRecibida - cantidadRechazada;
+          const TOLERANCIA = 0.001;
+          
+          // Si es rechazo completo (no hay cantidad pendiente o la rechazada >= esperada)
+          if (cantidadPendiente <= TOLERANCIA || cantidadRechazada >= cantidadEsperada - TOLERANCIA) {
+            return 'RECHAZADO COMPLETO';
+          } else if (cantidadRechazada > 0) {
+            // Rechazo parcial (hay cantidad pendiente)
+            return 'RECHAZADO PARCIAL';
+          }
+        }
         return 'RECHAZADO';
       case 'PARCIAL':
+        // Si hay item, verificar si es recepción parcial o rechazo parcial
+        if (item) {
+          const cantidadRechazada = item.cantidadRechazada || 0;
+          const cantidadRecibida = item.cantidadRecibida || 0;
+          
+          if (cantidadRechazada > 0 && cantidadRecibida > 0) {
+            return 'PARCIAL (RECEPCIÓN + RECHAZO)';
+          } else if (cantidadRechazada > 0) {
+            return 'PARCIAL (RECHAZO)';
+          } else if (cantidadRecibida > 0) {
+            return 'PARCIAL (RECEPCIÓN)';
+          }
+        }
         return 'PARCIAL';
       default:
         return 'PENDIENTE';
@@ -1759,5 +2446,800 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
           this.updateComputedProperties();
         }
       });
+  }
+
+  // ===== MÉTODOS PARA SELECCIÓN Y RECEPCIÓN DE ITEMS =====
+
+  /**
+   * Maneja el toggle de selección de un item individual
+   */
+  onToggleItemSelection(item: NotaRecepcionItem, isSelected: boolean): void {
+    // Si se selecciona/deselecciona un item individual, desactivar "seleccionar todos"
+    this.selectAllItems = false;
+    
+    if (isSelected) {
+      if (!this.selectedItems.includes(item)) {
+        this.selectedItems.push(item);
+      }
+    } else {
+      const index = this.selectedItems.indexOf(item);
+      if (index > -1) {
+        this.selectedItems.splice(index, 1);
+      }
+    }
+    this.updateComputedProperties();
+  }
+
+  /**
+   * Maneja el toggle de selección de todos los items
+   */
+  onToggleAllItemsSelection(isSelected: boolean): void {
+    if (isSelected) {
+      // Seleccionar todos los items de la página actual
+      this.selectedItems = [...this.itemsDataSource.data];
+      // Activar bandera para indicar que se marcó "select all"
+      this.selectAllItems = true;
+    } else {
+      // Desactivar bandera y limpiar selección
+      this.selectAllItems = false;
+      this.selectedItems = [];
+    }
+    this.updateComputedProperties();
+  }
+
+  /**
+   * Verifica si un item está seleccionado
+   */
+  isItemSelected(item: NotaRecepcionItem): boolean {
+    return this.selectedItems.includes(item);
+  }
+
+  /**
+   * Detecta los estados de los items y retorna un resumen
+   */
+  private detectarEstadosItems(items: NotaRecepcionItem[]): { pendientes: number, parciales: number, verificados: number, rechazados: number } {
+    const estados = {
+      pendientes: 0,
+      parciales: 0,
+      verificados: 0,
+      rechazados: 0
+    };
+
+    items.forEach(item => {
+      const estado = item.estadoRecepcion;
+      if (estado === 'PENDIENTE') {
+        estados.pendientes++;
+      } else if (estado === 'PARCIAL') {
+        estados.parciales++;
+      } else if (estado === 'VERIFICADO') {
+        estados.verificados++;
+      } else if (estado === 'RECHAZADO') {
+        estados.rechazados++;
+      }
+    });
+
+    return estados;
+  }
+
+  /**
+   * Detecta si hay selección mixta (items verificados y pendientes/parciales seleccionados simultáneamente)
+   */
+  private detectarSeleccionMixta(): boolean {
+    if (this.selectedItems.length === 0) {
+      return false;
+    }
+
+    const tieneVerificados = this.selectedItems.some(item => item.estadoRecepcion === 'VERIFICADO');
+    const tienePendientesOParciales = this.selectedItems.some(item => 
+      item.estadoRecepcion === 'PENDIENTE' || item.estadoRecepcion === 'PARCIAL'
+    );
+
+    return tieneVerificados && tienePendientesOParciales;
+  }
+
+  /**
+   * Verifica si todos los items visibles están verificados
+   */
+  private todosItemsEstanVerificados(): boolean {
+    const itemsVisibles = this.itemsDataSource.data;
+    if (itemsVisibles.length === 0) {
+      return false;
+    }
+
+    return itemsVisibles.every(item => item.estadoRecepcion === 'VERIFICADO');
+  }
+
+  /**
+   * Verifica si hay items pendientes o parciales en los items visibles
+   */
+  private tieneItemsPendientesOparciales(): boolean {
+    const itemsVisibles = this.itemsDataSource.data;
+    return itemsVisibles.some(item => 
+      item.estadoRecepcion === 'PENDIENTE' || item.estadoRecepcion === 'PARCIAL'
+    );
+  }
+
+  /**
+   * Maneja el botón "Recepcionar todo"
+   * Abre un diálogo de confirmación antes de recepcionar todos los items
+   */
+  onRecepcionarTodo(): void {
+    if (!this.notaSeleccionada) {
+      this.notificacionService.openWarn('Debe seleccionar una nota de recepción');
+      return;
+    }
+
+    // Obtener TODOS los items de la nota (ignorar filtro actual)
+    // Usar el servicio para obtener todos los items sin filtro de estado
+    const sucursalesIds = this.sucursalesSeleccionadas.map(s => s.id);
+    
+    if (sucursalesIds.length === 0) {
+      this.notificacionService.openWarn('Debe seleccionar al menos una sucursal');
+      return;
+    }
+
+    // Obtener todos los items de la nota (filtro 'TODOS' para ignorar el filtro de verificación)
+    this.pedidoService.onGetNotaRecepcionItemListPorNotaRecepcionIdYSucursales(
+      this.notaSeleccionada.id,
+      sucursalesIds,
+      0, // Primera página
+      9999, // Tamaño grande para obtener todos
+      'TODOS', // Filtro 'TODOS' para obtener todos los items independientemente del estado
+      '' // Sin filtro de texto
+    ).subscribe({
+      next: (pageInfo) => {
+        if (!pageInfo || !pageInfo.getContent || pageInfo.getContent.length === 0) {
+          this.notificacionService.openWarn('No hay items para recepcionar');
+          return;
+        }
+
+        // Filtrar solo items con estado PENDIENTE o PARCIAL (recepcionables)
+        const itemsRecepcionables = pageInfo.getContent.filter((item: any) => 
+          item.estadoRecepcion === 'PENDIENTE' || item.estadoRecepcion === 'PARCIAL'
+        );
+
+        if (itemsRecepcionables.length === 0) {
+          this.notificacionService.openWarn('No hay items pendientes o parciales para recepcionar');
+          return;
+        }
+
+        // Mostrar diálogo de confirmación
+        this.dialogosService.confirm(
+          'Recepcionar Todos los Items',
+          `Se recepcionarán automáticamente ${itemsRecepcionables.length} item(s) pendiente(s) o parcial(es). Asegúrese de que todas las informaciones estén correctas antes de continuar.`,
+          'Esta acción marcará todos los items pendientes/parciales como recepcionados con las cantidades esperadas.',
+          undefined,
+          true, // action: true para mostrar botones de acción
+          'Recepcionar Todo',
+          'Cancelar'
+        ).subscribe(confirmed => {
+          if (confirmed) {
+            this.ejecutarRecepcionTodo(itemsRecepcionables);
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Error al obtener items de la nota:', error);
+        this.notificacionService.openAlgoSalioMal('Error al obtener los items de la nota');
+      }
+    });
+  }
+
+  /**
+   * Maneja el botón "Recepcionar Selección"
+   * Abre un diálogo de confirmación antes de recepcionar los items seleccionados
+   */
+  onRecepcionarSeleccion(): void {
+    if (this.selectedItems.length === 0 && !this.selectAllItems) {
+      this.notificacionService.openWarn('Debe seleccionar al menos un item para recepcionar');
+      return;
+    }
+
+    // Validar que NO haya selección mixta
+    if (this.tieneSeleccionMixtaComputed) {
+      this.notificacionService.openWarn('No se puede recepcionar una selección mixta. Por favor, seleccione solo items pendientes/parciales o solo items verificados.');
+      return;
+    }
+
+    // Determinar items a recepcionar
+    let itemsARecepcionar: NotaRecepcionItem[];
+    
+    if (this.selectAllItems) {
+      // Si se seleccionaron todos, usar los items visibles
+      itemsARecepcionar = this.itemsDataSource.data;
+    } else {
+      // Usar los items seleccionados
+      itemsARecepcionar = this.selectedItems;
+    }
+
+    // Filtrar solo items recepcionables (PENDIENTE o PARCIAL)
+    const itemsRecepcionables = itemsARecepcionar.filter(item => 
+      item.estadoRecepcion === 'PENDIENTE' || item.estadoRecepcion === 'PARCIAL'
+    );
+
+    if (itemsRecepcionables.length === 0) {
+      this.notificacionService.openWarn('Los items seleccionados no son recepcionables. Solo se pueden recepcionar items con estado PENDIENTE o PARCIAL.');
+      return;
+    }
+
+    // Si hay items verificados en la selección, mostrar advertencia
+    const itemsVerificados = itemsARecepcionar.filter(item => item.estadoRecepcion === 'VERIFICADO');
+    if (itemsVerificados.length > 0) {
+      this.notificacionService.openWarn('Algunos items seleccionados ya están verificados y no serán recepcionados nuevamente.');
+    }
+
+    // Determinar el mensaje según la cantidad de items recepcionables
+    const mensaje = `Se recepcionarán automáticamente ${itemsRecepcionables.length} item(s) seleccionado(s). Asegúrese de que todas las informaciones estén correctas antes de continuar.`;
+
+    // Mostrar diálogo de confirmación
+    this.dialogosService.confirm(
+      'Recepcionar Items Seleccionados',
+      mensaje,
+      'Esta acción marcará los items seleccionados como recepcionados con las cantidades esperadas.',
+      undefined,
+      true, // action: true para mostrar botones de acción
+      'Recepcionar Selección',
+      'Cancelar'
+    ).subscribe(confirmed => {
+      if (confirmed) {
+        this.ejecutarRecepcionSeleccion(itemsRecepcionables);
+      }
+    });
+  }
+
+  /**
+   * Ejecuta la recepción automática de todos los items recepcionables de la nota
+   */
+  private ejecutarRecepcionTodo(itemsRecepcionables: NotaRecepcionItem[]): void {
+    if (!this.notaSeleccionada) {
+      this.notificacionService.openWarn('Debe seleccionar una nota de recepción');
+      return;
+    }
+
+    const sucursalesIds = this.sucursalesSeleccionadas.map(s => s.id);
+    if (sucursalesIds.length === 0) {
+      this.notificacionService.openWarn('Debe seleccionar al menos una sucursal');
+      return;
+    }
+
+    this.loading = true;
+    console.log(`Iniciando recepción masiva de la nota ${this.notaSeleccionada.id} para sucursales ${sucursalesIds}`);
+
+    // Llamar al nuevo método masivo del backend
+    this.pedidoService.onRecepcionarTodoPorNota(
+      this.notaSeleccionada.id,
+      sucursalesIds,
+      1 // TODO: Obtener usuario actual
+    ).subscribe({
+      next: (success) => {
+        console.log('Recepción masiva completada:', success);
+
+        // Recargar datos
+        if (this.notaSeleccionada) {
+          setTimeout(() => {
+            this.loadItemsNotaRecepcion(this.notaSeleccionada!.id);
+          }, 500);
+        }
+
+        // Recargar pedido y etapa
+        if (this.pedidoId) {
+          this.pedidoService.onGetPedidoById(this.pedidoId)
+            .pipe(untilDestroyed(this))
+            .subscribe({
+              next: (pedido) => {
+                this.pedido = pedido;
+                this.loadEtapaActual();
+              },
+              error: () => this.loadEtapaActual()
+            });
+        } else {
+          this.loadEtapaActual();
+        }
+
+        this.loading = false;
+        this.notificacionService.openSucess('Todos los ítems pendientes han sido recepcionados exitosamente');
+      },
+      error: (error) => {
+        console.error('Error en recepción masiva:', error);
+        this.loading = false;
+        this.notificacionService.openAlgoSalioMal('Error al recepcionar todos los ítems: ' + (error.message || 'Error desconocido'));
+      }
+    });
+  }
+
+  /**
+   * Ejecuta la recepción automática de los items seleccionados
+   */
+  private ejecutarRecepcionSeleccion(itemsRecepcionables: NotaRecepcionItem[]): void {
+    if (itemsRecepcionables.length === 0) {
+      this.notificacionService.openWarn('No hay items para recepcionar');
+      return;
+    }
+
+    if (!this.notaSeleccionada) {
+      this.notificacionService.openWarn('Debe seleccionar una nota de recepción');
+      return;
+    }
+
+    const sucursalesIds = this.sucursalesSeleccionadas.map(s => s.id);
+    if (sucursalesIds.length === 0) {
+      this.notificacionService.openWarn('Debe seleccionar al menos una sucursal');
+      return;
+    }
+
+    this.loading = true;
+    console.log(`Iniciando recepción masiva de ${itemsRecepcionables.length} item(s) seleccionados para sucursales ${sucursalesIds}`);
+
+    const itemIds = itemsRecepcionables.map(item => item.id);
+
+    // Llamar al método masivo del backend pasando los itemIds seleccionados
+    this.pedidoService.onRecepcionarTodoPorNota(
+      this.notaSeleccionada.id,
+      sucursalesIds,
+      1, // TODO: Obtener usuario actual
+      itemIds
+    ).subscribe({
+      next: (success) => {
+        console.log('Recepción masiva de selección completada:', success);
+
+        // Limpiar selección
+        this.selectedItems = [];
+        this.selectAllItems = false;
+
+        // Recargar datos
+        if (this.notaSeleccionada) {
+          setTimeout(() => {
+            this.loadItemsNotaRecepcion(this.notaSeleccionada!.id);
+          }, 500);
+        }
+
+        // Recargar pedido y etapa
+        if (this.pedidoId) {
+          this.pedidoService.onGetPedidoById(this.pedidoId)
+            .pipe(untilDestroyed(this))
+            .subscribe({
+              next: (pedido) => {
+                this.pedido = pedido;
+                this.loadEtapaActual();
+              },
+              error: () => this.loadEtapaActual()
+            });
+        } else {
+          this.loadEtapaActual();
+        }
+
+        this.loading = false;
+        this.notificacionService.openSucess(`${itemsRecepcionables.length} ítem(s) seleccionado(s) han sido recepcionado(s) exitosamente`);
+      },
+      error: (error) => {
+        console.error('Error en recepción masiva de selección:', error);
+        this.loading = false;
+        this.notificacionService.openAlgoSalioMal('Error al recepcionar los ítems seleccionados: ' + (error.message || 'Error desconocido'));
+      }
+    });
+  }
+
+  /**
+   * Maneja el botón "Deshacer Verificación Todo"
+   * Cancela la verificación de todos los items verificados de la nota
+   */
+  onDeshacerVerificacionTodo(): void {
+    if (!this.notaSeleccionada) {
+      this.notificacionService.openWarn('Debe seleccionar una nota de recepción');
+      return;
+    }
+
+    // Obtener todos los items verificados de la nota
+    const itemsVerificados = this.itemsDataSource.data.filter(item => 
+      item.estadoRecepcion === 'VERIFICADO'
+    );
+
+    if (itemsVerificados.length === 0) {
+      this.notificacionService.openWarn('No hay items verificados para deshacer');
+      return;
+    }
+
+    // Mostrar diálogo de confirmación
+    this.dialogosService.confirm(
+      'Deshacer Verificación de Todos los Items',
+      `Se cancelará la verificación de ${itemsVerificados.length} item(s) verificado(s). Esta acción no se puede deshacer.`,
+      'Todos los items verificados volverán al estado PENDIENTE.',
+      undefined,
+      true, // action: true para mostrar botones de acción
+      'Deshacer Verificación',
+      'Cancelar'
+    ).subscribe(confirmed => {
+      if (confirmed) {
+        this.ejecutarDeshacerVerificacionTodo(itemsVerificados);
+      }
+    });
+  }
+
+  /**
+   * Ejecuta la cancelación de verificación para todos los items verificados
+   */
+  private ejecutarDeshacerVerificacionTodo(itemsVerificados: NotaRecepcionItem[]): void {
+    console.log('Ejecutando deshacer verificación de todos los items...');
+
+    // Validar que tenemos sucursales seleccionadas
+    if (this.sucursalesSeleccionadas.length === 0) {
+      this.notificacionService.openAlgoSalioMal('Debe seleccionar al menos una sucursal');
+      return;
+    }
+
+    // Crear array de promesas para cancelar verificación de todos los items
+    const cancelaciones: Promise<boolean>[] = [];
+
+    itemsVerificados.forEach(item => {
+      this.sucursalesSeleccionadas.forEach(sucursal => {
+        cancelaciones.push(
+          this.pedidoService.onCancelarVerificacion(item.id, sucursal.id).toPromise()
+        );
+      });
+    });
+
+    // Ejecutar todas las cancelaciones
+    Promise.all(cancelaciones).then(results => {
+      const exitosas = results.filter(result => result === true).length;
+      const total = results.length;
+      
+      if (exitosas === total) {
+        // Todas las cancelaciones fueron exitosas
+        this.notificacionService.openSucess(
+          `Verificación cancelada exitosamente para ${itemsVerificados.length} item(s) en ${this.sucursalesSeleccionadas.length} sucursal(es)`
+        );
+        
+        // Recargar items después de un breve delay para que el backend procese
+        if (this.notaSeleccionada) {
+          setTimeout(() => {
+            this.loadItemsNotaRecepcion(this.notaSeleccionada!.id);
+          }, 500);
+        }
+      } else if (exitosas > 0) {
+        // Algunas cancelaciones fueron exitosas
+        this.notificacionService.openSucess(
+          `Verificación cancelada parcialmente: ${exitosas}/${total} operaciones exitosas`
+        );
+        
+        // Recargar items después de un breve delay
+        if (this.notaSeleccionada) {
+          setTimeout(() => {
+            this.loadItemsNotaRecepcion(this.notaSeleccionada!.id);
+          }, 500);
+        }
+      } else {
+        // Ninguna cancelación fue exitosa
+        this.notificacionService.openAlgoSalioMal('No se pudo cancelar la verificación de ningún item');
+      }
+    }).catch(error => {
+      console.error('Error al deshacer verificación:', error);
+      this.notificacionService.openAlgoSalioMal('Error al deshacer verificación: ' + error.message);
+    });
+  }
+
+  /**
+   * Maneja el botón "Deshacer Selección"
+   * Cancela la verificación de los items seleccionados
+   */
+  onDeshacerSeleccion(): void {
+    if (this.selectedItems.length === 0) {
+      this.notificacionService.openWarn('Debe seleccionar al menos un item para deshacer verificación');
+      return;
+    }
+
+    // Filtrar solo items verificados
+    const itemsVerificados = this.selectedItems.filter(item => 
+      item.estadoRecepcion === 'VERIFICADO'
+    );
+
+    if (itemsVerificados.length === 0) {
+      this.notificacionService.openWarn('Los items seleccionados no están verificados');
+      return;
+    }
+
+    // Si hay items no verificados en la selección, mostrar advertencia
+    const itemsNoVerificados = this.selectedItems.filter(item => 
+      item.estadoRecepcion !== 'VERIFICADO'
+    );
+    if (itemsNoVerificados.length > 0) {
+      this.notificacionService.openWarn('Algunos items seleccionados no están verificados y no serán procesados.');
+    }
+
+    // Mostrar diálogo de confirmación
+    this.dialogosService.confirm(
+      'Deshacer Verificación de Items Seleccionados',
+      `Se cancelará la verificación de ${itemsVerificados.length} item(s) seleccionado(s). Esta acción no se puede deshacer.`,
+      'Los items seleccionados volverán al estado PENDIENTE.',
+      undefined,
+      true, // action: true para mostrar botones de acción
+      'Deshacer Verificación',
+      'Cancelar'
+    ).subscribe(confirmed => {
+      if (confirmed) {
+        this.ejecutarDeshacerSeleccion(itemsVerificados);
+      }
+    });
+  }
+
+  /**
+   * Ejecuta la cancelación de verificación para los items seleccionados
+   */
+  private ejecutarDeshacerSeleccion(itemsVerificados: NotaRecepcionItem[]): void {
+    console.log('Ejecutando deshacer verificación de items seleccionados...');
+
+    // Validar que tenemos sucursales seleccionadas
+    if (this.sucursalesSeleccionadas.length === 0) {
+      this.notificacionService.openAlgoSalioMal('Debe seleccionar al menos una sucursal');
+      return;
+    }
+
+    // Crear array de promesas para cancelar verificación de los items seleccionados
+    const cancelaciones: Promise<boolean>[] = [];
+
+    itemsVerificados.forEach(item => {
+      this.sucursalesSeleccionadas.forEach(sucursal => {
+        cancelaciones.push(
+          this.pedidoService.onCancelarVerificacion(item.id, sucursal.id).toPromise()
+        );
+      });
+    });
+
+    // Ejecutar todas las cancelaciones
+    Promise.all(cancelaciones).then(results => {
+      const exitosas = results.filter(result => result === true).length;
+      const total = results.length;
+      
+      if (exitosas === total) {
+        // Todas las cancelaciones fueron exitosas
+        this.notificacionService.openSucess(
+          `Verificación deshecha exitosamente para ${itemsVerificados.length} item(s) en ${this.sucursalesSeleccionadas.length} sucursal(es)`
+        );
+        
+        // Limpiar selección después de deshacer
+        this.selectedItems = [];
+        this.selectAllItems = false;
+        
+        // Recargar items después de un breve delay para que el backend procese
+        if (this.notaSeleccionada) {
+          setTimeout(() => {
+            this.loadItemsNotaRecepcion(this.notaSeleccionada!.id);
+          }, 500);
+        }
+      } else if (exitosas > 0) {
+        // Algunas cancelaciones fueron exitosas
+        this.notificacionService.openSucess(
+          `Verificación deshecha parcialmente: ${exitosas}/${total} operaciones exitosas`
+        );
+        
+        // Limpiar selección
+        this.selectedItems = [];
+        this.selectAllItems = false;
+        
+        // Recargar items después de un breve delay
+        if (this.notaSeleccionada) {
+          setTimeout(() => {
+            this.loadItemsNotaRecepcion(this.notaSeleccionada!.id);
+          }, 500);
+        }
+      } else {
+        // Ninguna cancelación fue exitosa
+        this.notificacionService.openAlgoSalioMal('No se pudo deshacer la verificación de ningún item');
+      }
+    }).catch(error => {
+      console.error('Error al deshacer verificación:', error);
+      this.notificacionService.openAlgoSalioMal('Error al deshacer verificación: ' + error.message);
+    });
+  }
+
+  /**
+   * Maneja el botón "Deshacer Rechazo Todo"
+   * Cancela el rechazo de todos los items rechazados de la nota
+   */
+  onDeshacerRechazoTodo(): void {
+    if (!this.notaSeleccionada) {
+      this.notificacionService.openWarn('Debe seleccionar una nota de recepción');
+      return;
+    }
+
+    // Obtener todos los items rechazados de la nota
+    const itemsRechazados = this.itemsDataSource.data.filter(item => 
+      item.estadoRecepcion === 'RECHAZADO'
+    );
+
+    if (itemsRechazados.length === 0) {
+      this.notificacionService.openWarn('No hay items rechazados para deshacer');
+      return;
+    }
+
+    // Mostrar diálogo de confirmación
+    this.dialogosService.confirm(
+      'Deshacer Rechazo de Todos los Items',
+      `Se cancelará el rechazo de ${itemsRechazados.length} item(s) rechazado(s). Esta acción no se puede deshacer.`,
+      'Todos los items rechazados volverán al estado PENDIENTE.',
+      undefined,
+      true, // action: true para mostrar botones de acción
+      'Deshacer Rechazo',
+      'Cancelar'
+    ).subscribe(confirmed => {
+      if (confirmed) {
+        this.ejecutarDeshacerRechazoTodo(itemsRechazados);
+      }
+    });
+  }
+
+  /**
+   * Ejecuta la cancelación de rechazo para todos los items rechazados
+   */
+  private ejecutarDeshacerRechazoTodo(itemsRechazados: NotaRecepcionItem[]): void {
+    console.log('Ejecutando deshacer rechazo de todos los items...');
+
+    // Validar que tenemos sucursales seleccionadas
+    if (this.sucursalesSeleccionadas.length === 0) {
+      this.notificacionService.openAlgoSalioMal('Debe seleccionar al menos una sucursal');
+      return;
+    }
+
+    // Crear array de promesas para cancelar rechazo de todos los items
+    const cancelaciones: Promise<boolean>[] = [];
+
+    itemsRechazados.forEach(item => {
+      this.sucursalesSeleccionadas.forEach(sucursal => {
+        cancelaciones.push(
+          this.pedidoService.onCancelarRechazo(item.id, sucursal.id).toPromise()
+        );
+      });
+    });
+
+    // Ejecutar todas las cancelaciones
+    Promise.all(cancelaciones).then(results => {
+      const exitosas = results.filter(result => result === true).length;
+      const total = results.length;
+      
+      if (exitosas === total) {
+        // Todas las cancelaciones fueron exitosas
+        this.notificacionService.openSucess(
+          `Rechazo deshecho exitosamente para ${itemsRechazados.length} item(s) en ${this.sucursalesSeleccionadas.length} sucursal(es)`
+        );
+        
+        // Recargar items después de un breve delay para que el backend procese
+        if (this.notaSeleccionada) {
+          setTimeout(() => {
+            this.loadItemsNotaRecepcion(this.notaSeleccionada!.id);
+          }, 500);
+        }
+      } else if (exitosas > 0) {
+        // Algunas cancelaciones fueron exitosas
+        this.notificacionService.openSucess(
+          `Rechazo deshecho parcialmente: ${exitosas}/${total} operaciones exitosas`
+        );
+        
+        // Recargar items después de un breve delay
+        if (this.notaSeleccionada) {
+          setTimeout(() => {
+            this.loadItemsNotaRecepcion(this.notaSeleccionada!.id);
+          }, 500);
+        }
+      } else {
+        // Ninguna cancelación fue exitosa
+        this.notificacionService.openAlgoSalioMal('No se pudo deshacer el rechazo de ningún item');
+      }
+    }).catch(error => {
+      console.error('Error al deshacer rechazo:', error);
+      this.notificacionService.openAlgoSalioMal('Error al deshacer rechazo: ' + error.message);
+    });
+  }
+
+  /**
+   * Maneja el botón "Deshacer Rechazo Selección"
+   * Cancela el rechazo de los items seleccionados
+   */
+  onDeshacerRechazoSeleccion(): void {
+    if (this.selectedItems.length === 0) {
+      this.notificacionService.openWarn('Debe seleccionar al menos un item para deshacer rechazo');
+      return;
+    }
+
+    // Filtrar solo items rechazados
+    const itemsRechazados = this.selectedItems.filter(item => 
+      item.estadoRecepcion === 'RECHAZADO'
+    );
+
+    if (itemsRechazados.length === 0) {
+      this.notificacionService.openWarn('Los items seleccionados no están rechazados');
+      return;
+    }
+
+    // Si hay items no rechazados en la selección, mostrar advertencia
+    const itemsNoRechazados = this.selectedItems.filter(item => 
+      item.estadoRecepcion !== 'RECHAZADO'
+    );
+    if (itemsNoRechazados.length > 0) {
+      this.notificacionService.openWarn('Algunos items seleccionados no están rechazados y no serán procesados.');
+    }
+
+    // Mostrar diálogo de confirmación
+    this.dialogosService.confirm(
+      'Deshacer Rechazo de Items Seleccionados',
+      `Se cancelará el rechazo de ${itemsRechazados.length} item(s) seleccionado(s). Esta acción no se puede deshacer.`,
+      'Los items seleccionados volverán al estado PENDIENTE.',
+      undefined,
+      true, // action: true para mostrar botones de acción
+      'Deshacer Rechazo',
+      'Cancelar'
+    ).subscribe(confirmed => {
+      if (confirmed) {
+        this.ejecutarDeshacerRechazoSeleccion(itemsRechazados);
+      }
+    });
+  }
+
+  /**
+   * Ejecuta la cancelación de rechazo para los items seleccionados
+   */
+  private ejecutarDeshacerRechazoSeleccion(itemsRechazados: NotaRecepcionItem[]): void {
+    console.log('Ejecutando deshacer rechazo de items seleccionados...');
+
+    // Validar que tenemos sucursales seleccionadas
+    if (this.sucursalesSeleccionadas.length === 0) {
+      this.notificacionService.openAlgoSalioMal('Debe seleccionar al menos una sucursal');
+      return;
+    }
+
+    // Crear array de promesas para cancelar rechazo de los items seleccionados
+    const cancelaciones: Promise<boolean>[] = [];
+
+    itemsRechazados.forEach(item => {
+      this.sucursalesSeleccionadas.forEach(sucursal => {
+        cancelaciones.push(
+          this.pedidoService.onCancelarRechazo(item.id, sucursal.id).toPromise()
+        );
+      });
+    });
+
+    // Ejecutar todas las cancelaciones
+    Promise.all(cancelaciones).then(results => {
+      const exitosas = results.filter(result => result === true).length;
+      const total = results.length;
+      
+      if (exitosas === total) {
+        // Todas las cancelaciones fueron exitosas
+        this.notificacionService.openSucess(
+          `Rechazo deshecho exitosamente para ${itemsRechazados.length} item(s) en ${this.sucursalesSeleccionadas.length} sucursal(es)`
+        );
+        
+        // Limpiar selección después de deshacer
+        this.selectedItems = [];
+        this.selectAllItems = false;
+        
+        // Recargar items después de un breve delay para que el backend procese
+        if (this.notaSeleccionada) {
+          setTimeout(() => {
+            this.loadItemsNotaRecepcion(this.notaSeleccionada!.id);
+          }, 500);
+        }
+      } else if (exitosas > 0) {
+        // Algunas cancelaciones fueron exitosas
+        this.notificacionService.openSucess(
+          `Rechazo deshecho parcialmente: ${exitosas}/${total} operaciones exitosas`
+        );
+        
+        // Limpiar selección
+        this.selectedItems = [];
+        this.selectAllItems = false;
+        
+        // Recargar items después de un breve delay
+        if (this.notaSeleccionada) {
+          setTimeout(() => {
+            this.loadItemsNotaRecepcion(this.notaSeleccionada!.id);
+          }, 500);
+        }
+      } else {
+        // Ninguna cancelación fue exitosa
+        this.notificacionService.openAlgoSalioMal('No se pudo deshacer el rechazo de ningún item');
+      }
+    }).catch(error => {
+      console.error('Error al deshacer rechazo:', error);
+      this.notificacionService.openAlgoSalioMal('Error al deshacer rechazo: ' + error.message);
+    });
   }
 } 

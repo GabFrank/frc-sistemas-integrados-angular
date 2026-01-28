@@ -4,20 +4,33 @@
     <mat-card class="header-card">
       <mat-card-header>
         <mat-card-title>
-          Gestión de Compras
-          <mat-chip-listbox>
-            <mat-chip-option [color]="estadoChipColorComputed" selected>
-              {{ headerDataComputed.estado }}
-            </mat-chip-option>
-            <mat-chip-option *ngIf="isEditMode" color="primary" selected>
-              <mat-icon>edit</mat-icon>
-              Modo Edición
-            </mat-chip-option>
-            <mat-chip-option *ngIf="loadingPedido" color="warn" selected>
-              <mat-icon>hourglass_empty</mat-icon>
-              Cargando...
-            </mat-chip-option>
-          </mat-chip-listbox>
+          <div class="title-content">
+            <div class="title-left">
+              Gestión de Compras
+              <mat-chip-listbox>
+                <mat-chip-option [color]="estadoChipColorComputed" selected>
+                  {{ headerDataComputed.estado }}
+                </mat-chip-option>
+                <mat-chip-option *ngIf="isEditMode" color="primary" selected>
+                  <mat-icon>edit</mat-icon>
+                  Modo Edición
+                </mat-chip-option>
+                <mat-chip-option *ngIf="loadingPedido" color="warn" selected>
+                  <mat-icon>hourglass_empty</mat-icon>
+                  Cargando...
+                </mat-chip-option>
+              </mat-chip-listbox>
+            </div>
+            <button
+              mat-icon-button
+              color="primary"
+              (click)="onActualizarPedido()"
+              matTooltip="Actualizar datos del pedido"
+              [disabled]="loadingPedido || !isEditMode"
+            >
+              <mat-icon>refresh</mat-icon>
+            </button>
+          </div>
         </mat-card-title>
       </mat-card-header>
 

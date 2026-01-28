@@ -214,7 +214,6 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   }
 
   private initializeForm(): void {
-    console.log('data.nota', this.data.nota);
     this.notaRecepcionForm = this.formBuilder.group({
       numero: [
         this.data.nota?.numero || '', 
@@ -262,7 +261,6 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (items: NotaRecepcionItem[]) => {
-            console.log('Ítems de nota de recepción cargados:', items);
             this.itemsDataSource.data = items;
             this.loadingItems = false;
             this.updateComputedProperties();
@@ -286,7 +284,6 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   private setupKeyboardNavigation(): void {
     // Sistema de navegación eliminado para evitar conflictos
     // Ahora usamos solo los eventos individuales de cada campo
-    console.log('Sistema de navegación por teclado configurado');
   }
 
   private focusNextField(fieldName: string): void {
@@ -481,9 +478,6 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
 
   private updateItemsComputedData(): void {
     this.computedItemsData = this.itemsDataSource.data.map(item => {
-      // Debug: mostrar el estado del ítem
-      console.log(`Item ${item.id} - Producto: ${item.producto?.descripcion} - Estado:`, item.estado, 'Tipo:', typeof item.estado);
-      
       return {
         ...item,
         productoNombre: item.producto?.descripcion || item.pedidoItem?.producto?.descripcion || 'Producto no especificado',
@@ -647,8 +641,9 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     // Manejar resultado del diálogo
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        console.log('Ítem agregado:', result);
         this.notificacionService.openSucess('Ítem agregado exitosamente');
+        // Marcar que se hicieron cambios (esto puede afectar el estado de la nota)
+        this.changesMade = true;
         // Recargar la tabla de ítems
         this.loadItems();
       }
@@ -661,8 +656,6 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       this.notificacionService.openAlgoSalioMal('No se pueden editar ítems de una nota de rechazo');
       return;
     }
-    
-    console.log('Editar ítem', item);
     
     // Abrir diálogo de edición
     const dialogRef = this.dialog.open(EditNotaRecepcionItemDialogComponent, {
@@ -678,8 +671,9 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     // Manejar resultado del diálogo
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        console.log('Ítem actualizado:', result);
         this.notificacionService.openSucess('Ítem actualizado exitosamente');
+        // Marcar que se hicieron cambios (esto puede afectar el estado de la nota)
+        this.changesMade = true;
         // Recargar la tabla de ítems
         this.loadItems();
       }
@@ -687,40 +681,28 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
   }
 
   onDeleteItem(item: NotaRecepcionItem): void {
-    console.log('onDeleteItem llamado con:', item);
-    
     // Mostrar confirmación antes de eliminar (usando patrón simple)
     this.dialogosService.confirm(
       'Eliminar Ítem',
       `¿Está seguro de que desea eliminar el ítem "${item.producto?.descripcion || 'Producto'}"?`
     ).subscribe(confirmed => {
-      console.log('Resultado del diálogo de confirmación:', confirmed);
       if (confirmed) {
-        console.log('Usuario confirmó eliminación, llamando deleteItem');
         this.deleteItem(item);
-      } else {
-        console.log('Usuario canceló eliminación');
       }
     });
   }
 
   private deleteItem(item: NotaRecepcionItem): void {
-    console.log('deleteItem llamado con:', item);
-    
     if (!item.id) {
-      console.log('Ítem sin ID, no se puede eliminar');
       this.notificacionService.openAlgoSalioMal('No se puede eliminar un ítem sin ID');
       return;
     }
-
-    console.log('Eliminando ítem con ID:', item.id);
 
     // Llamar servicio para eliminar
     this.pedidoService.onDeleteNotaRecepcionItem(item.id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (success) => {
-          console.log('Respuesta del servicio de eliminación:', success);
           if (success) {
             this.notificacionService.openSucess('Ítem eliminado exitosamente');
             // Marcar que se hicieron cambios
@@ -751,20 +733,12 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       return;
     }
 
-    console.log('Abriendo diálogo de distribución para item:', item);
-    console.log('Item ID:', item.id);
-
     // Cargar las distribuciones existentes del ítem
     this.pedidoService.onGetNotaRecepcionItemDistribucionesByNotaRecepcionItemId(item.id).subscribe({
       next: (distribuciones) => {
-        console.log('Distribuciones cargadas:', distribuciones);
-        
         // Cargar las sucursales del pedido
         const sucursalesInfluencia = this.data.pedido?.sucursalInfluenciaList?.map(psi => psi.sucursal) || [];
         const sucursalesEntrega = this.data.pedido?.sucursalEntregaList?.map(pse => pse.sucursal) || [];
-        
-        console.log('Sucursales de influencia:', sucursalesInfluencia);
-        console.log('Sucursales de entrega:', sucursalesEntrega);
 
         // Abrir el diálogo de distribución
         const dialogRef = this.dialog.open(DistributeNotaRecepcionItemDialogComponent, {
@@ -782,8 +756,13 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         dialogRef.afterClosed().subscribe(result => {
           if (result && result.success) {
             this.notificacionService.openSucess(result.message || 'Distribución actualizada correctamente');
+            // Marcar que se hicieron cambios (esto actualiza el estado de la nota en el backend)
+            this.changesMade = true;
             // Recargar los ítems para actualizar el estado de distribución
-            this.loadItems();
+            // Usar setTimeout para dar tiempo al backend a actualizar el estado
+            setTimeout(() => {
+              this.loadItems();
+            }, 500);
           }
         });
       },
@@ -806,9 +785,6 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
       this.notificacionService.openAlgoSalioMal('Debe guardar el ítem antes de poder rechazarlo');
       return;
     }
-
-    console.log('Abriendo diálogo de rechazo para item:', item);
-    console.log('Item ID:', item.id);
 
     // Verificar si el ítem ya está rechazado
     if (item.estado === 'RECHAZADO') {
@@ -853,7 +829,6 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
 
     dialogRef.afterClosed().subscribe(result => {
       if (result && result.success) {
-        console.log('Ítem rechazado:', result);
         this.notificacionService.openSucess(result.message || 'Ítem rechazado exitosamente');
         // Marcar que se hicieron cambios
         this.changesMade = true;
@@ -1007,7 +982,6 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (items: NotaRecepcionItem[]) => {
-            console.log('Ítems recargados después de crear nota:', items);
             this.itemsDataSource.data = items;
             this.updateComputedProperties();
             
@@ -1037,7 +1011,6 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
     }
 
     this.assigningItems = true;
-    console.log('Asignando ítems automáticamente:', this.selectedItemsToAssign);
 
     const pedidoItemIds = this.selectedItemsToAssign.map(item => item.id);
 
@@ -1079,7 +1052,6 @@ export class AddEditNotaRecepcionDialogComponent implements OnInit, AfterViewIni
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (items: NotaRecepcionItem[]) => {
-            console.log('Ítems recargados después de asignación automática:', items);
             this.itemsDataSource.data = items;
             this.updateComputedProperties();
             

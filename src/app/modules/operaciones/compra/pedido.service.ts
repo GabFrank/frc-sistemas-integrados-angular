@@ -65,6 +65,7 @@ import { CancelarVerificacionGQL } from './gestion-compras/recepcion-mercaderia/
 import { CancelarRechazoGQL } from './gestion-compras/recepcion-mercaderia/graphql/cancelarRechazo';
 import { ValidarFinalizacionRecepcionPorPedidoGQL } from './gestion-compras/recepcion-mercaderia/graphql/validarFinalizacionRecepcionPorPedido';
 import { FinalizarRecepcionFisicaPorPedidoGQL } from './gestion-compras/recepcion-mercaderia/graphql/finalizarRecepcionFisicaPorPedido';
+import { RecepcionarTodoPorNotaGQL } from './gestion-compras/recepcion-mercaderia/graphql/recepcionarTodoPorNota';
 
 // Models
 import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
@@ -125,6 +126,7 @@ export class PedidoService {
     private cancelarRechazoGQL: CancelarRechazoGQL,
     private validarFinalizacionRecepcionPorPedidoGQL: ValidarFinalizacionRecepcionPorPedidoGQL,
     private finalizarRecepcionFisicaPorPedidoGQL: FinalizarRecepcionFisicaPorPedidoGQL,
+    private recepcionarTodoPorNotaGQL: RecepcionarTodoPorNotaGQL,
     private getPedidosWithFiltersGQL: GetPedidosWithFiltersGQL
   ) {}
 
@@ -661,6 +663,23 @@ export class PedidoService {
     return this.genericCrudService.onCustomMutation(this.finalizarRecepcionFisicaPorPedidoGQL, {
       pedidoId,
       sucursalesIds
+    });
+  }
+
+  /**
+   * Recepciona todos los ítems de una nota para las sucursales dadas
+   * @param notaId - ID de la nota
+   * @param sucursalesIds - Lista de IDs de sucursales
+   * @param usuarioId - ID del usuario
+   * @param itemIds - Lista opcional de IDs de ítems de nota de recepción
+   * @returns Observable<boolean>
+   */
+  onRecepcionarTodoPorNota(notaId: number, sucursalesIds: number[], usuarioId: number, itemIds?: number[]): Observable<boolean> {
+    return this.genericCrudService.onCustomMutation(this.recepcionarTodoPorNotaGQL, {
+      notaId,
+      sucursalesIds,
+      usuarioId,
+      itemIds
     });
   }
 

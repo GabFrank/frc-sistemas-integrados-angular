@@ -634,6 +634,63 @@ export class GestionComprasComponent
   }
 
   /**
+   * Actualiza los datos del pedido recargándolos desde el backend
+   */
+  /**
+   * Recarga completamente el componente como si se estuviera cerrando y abriendo nuevamente
+   * Esto incluye:
+   * - Limpiar todos los tabs cargados
+   * - Recargar el pedido completo desde el backend
+   * - Recargar la etapa actual
+   * - Resetear al tab inicial según la etapa
+   * - Recargar todos los datos del tab inicial
+   * - Recargar el resumen del pedido
+   */
+  onActualizarPedido(): void {
+    if (!this.pedidoId || !this.isEditMode) {
+      return;
+    }
+
+    this.loadingPedido = true;
+
+    // Limpiar todos los tabs cargados para forzar recarga completa
+    this.loadedTabs.clear();
+
+    // Recargar pedido completo y etapa actual
+    forkJoin({
+      pedido: this.pedidoService.onGetPedidoById(this.pedidoId),
+      etapaActual: this.procesoEtapaService.onGetEtapaActual(this.pedidoId),
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (result) => {
+          // Actualizar pedido actual
+          this.currentPedido = result.pedido;
+          
+          // Recargar datos del pedido en el formulario
+          this.loadPedidoIntoForm(result.pedido);
+
+          // Actualizar estados de tabs y resetear al tab inicial según la etapa
+          // preserveTabIndex = false para que vuelva al tab inicial y recargue todo
+          this.updateTabStates(result.etapaActual, false);
+
+          // Recargar resumen del pedido
+          this.loadPedidoResumen();
+
+          this.loadingPedido = false;
+          this.updateComputedProperties();
+
+          this.notificacionService.openSucess("Componente recargado completamente. Todos los datos han sido actualizados desde el backend.");
+        },
+        error: (error) => {
+          console.error("Error recargando componente:", error);
+          this.notificacionService.openAlgoSalioMal("Error al recargar los datos del pedido");
+          this.loadingPedido = false;
+        },
+      });
+  }
+
+  /**
    * Carga solo la información básica del pedido para el header
    * Sin cargar datos de ítems que pueden no ser necesarios inicialmente
    */
@@ -2615,8 +2672,11 @@ export class GestionComprasComponent
         this.selectAllItemsPendientes = false;
 
         // Recargar datos reales del backend
-        this.markTabAsUnloaded(2);
-        this.reloadTabData(2);
+        // Usar setTimeout para dar tiempo al backend a actualizar el estado de la nota
+        setTimeout(() => {
+          this.markTabAsUnloaded(2);
+          this.reloadTabData(2);
+        }, 500);
 
         this.updateComputedProperties();
         
@@ -2649,8 +2709,11 @@ export class GestionComprasComponent
       if (result && result.changesMade) {
 
         // Recargar datos reales del backend
-        this.markTabAsUnloaded(2);
-        this.reloadTabData(2);
+        // Usar setTimeout para dar tiempo al backend a actualizar el estado de la nota
+        setTimeout(() => {
+          this.markTabAsUnloaded(2);
+          this.reloadTabData(2);
+        }, 500);
 
         this.updateComputedProperties();
         
@@ -2752,8 +2815,11 @@ export class GestionComprasComponent
       if (result && result.changesMade) {
 
         // Recargar datos reales del backend
-        this.markTabAsUnloaded(2);
-        this.reloadTabData(2);
+        // Usar setTimeout para dar tiempo al backend a actualizar el estado de la nota
+        setTimeout(() => {
+          this.markTabAsUnloaded(2);
+          this.reloadTabData(2);
+        }, 500);
 
         // Actualizar propiedades computadas incluyendo el monto total
         this.updateComputedProperties();

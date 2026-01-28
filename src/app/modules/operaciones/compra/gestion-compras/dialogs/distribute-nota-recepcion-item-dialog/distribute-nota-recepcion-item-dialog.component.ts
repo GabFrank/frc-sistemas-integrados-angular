@@ -7,6 +7,7 @@ import { NotaRecepcionItemDistribucion, NotaRecepcionItemDistribucionInput } fro
 import { Sucursal } from '../../../../../empresarial/sucursal/sucursal.model';
 import { PedidoService } from '../../../pedido.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
+import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
 
 export interface DistributeNotaRecepcionItemDialogData {
   item: NotaRecepcionItem;
@@ -101,26 +102,13 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
     private dialogRef: MatDialogRef<DistributeNotaRecepcionItemDialogComponent>,
     private pedidoService: PedidoService,
     private notificacionService: NotificacionSnackbarService,
+    private dialogosService: DialogosService,
     @Inject(MAT_DIALOG_DATA) public data: DistributeNotaRecepcionItemDialogData
   ) {
     this.initializeForm();
   }
 
     ngOnInit(): void {
-    console.log('DistributeNotaRecepcionItemDialog - ngOnInit');
-    console.log('Data recibida:', this.data);
-    console.log('Distribuciones existentes:', this.data.distribuciones);
-    console.log('Sucursales de influencia:', this.data.sucursalesInfluencia);
-    console.log('Sucursales de entrega:', this.data.sucursalesEntrega);
-    
-    // Verificar estructura de distribuciones
-    if (this.data.distribuciones && this.data.distribuciones.length > 0) {
-      console.log('Primera distribución:', this.data.distribuciones[0]);
-      console.log('¿Tiene sucursalInfluencia?', !!this.data.distribuciones[0].sucursalInfluencia);
-      console.log('¿Tiene sucursalEntrega?', !!this.data.distribuciones[0].sucursalEntrega);
-      console.log('¿Tiene cantidad?', this.data.distribuciones[0].cantidad);
-    }
-    
     // Calcular propiedades de presentación ANTES de cargar distribuciones
     this.calculatePresentationProperties();
     this.loadDistribuciones();
@@ -183,12 +171,6 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
   }
 
   private loadDistribuciones(): void {
-    console.log('loadDistribuciones - Iniciando');
-    console.log('Modo de visualización:', this.modoVisualizacion);
-    console.log('Sucursales de influencia disponibles:', this.data.sucursalesInfluencia);
-    console.log('Sucursales de entrega disponibles:', this.data.sucursalesEntrega);
-    console.log('Distribuciones existentes:', this.data.distribuciones);
-    
     const distribucionesArray = this.distribucionForm.get('distribuciones') as FormArray;
     
     // Clear existing controls
@@ -206,27 +188,16 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
     
     // Calcular propiedades computadas para el template
     this.calculateDistribucionesComputed();
-    
-    console.log('FormArray final:', distribucionesArray.value);
   }
 
   private loadDistribucionesPorTrazabilidad(distribucionesArray: FormArray): void {
-    console.log('Cargando distribuciones en modo TRAZABILIDAD');
-    console.log('Distribuciones existentes:', this.data.distribuciones);
-    
     // Verificar si hay distribuciones sin sucursalInfluencia
     const distribucionesSinSucursalInfluencia = this.data.distribuciones.filter(d => !d.sucursalInfluencia);
     const distribucionesConSucursalInfluencia = this.data.distribuciones.filter(d => d.sucursalInfluencia);
     
-    console.log('Distribuciones sin sucursalInfluencia:', distribucionesSinSucursalInfluencia);
-    console.log('Distribuciones con sucursalInfluencia:', distribucionesConSucursalInfluencia);
-    
     // Si hay distribuciones con sucursalInfluencia, mostrarlas individualmente
     if (distribucionesConSucursalInfluencia.length > 0) {
-      console.log('Mostrando distribuciones con sucursalInfluencia individualmente');
-      
       distribucionesConSucursalInfluencia.forEach((distribucion, index) => {
-        console.log(`Procesando distribución ${index}:`, distribucion);
         
         // Convertir cantidad de unidades base a presentación si es necesario
         const cantidadAsignada = this.convertirUnidadBaseAPresentacion(distribucion.cantidad || 0);
@@ -249,10 +220,7 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
     // Si solo hay distribuciones sin sucursalInfluencia, mostrarlas como distribuciones individuales
     // asignando cada una a una sucursal de influencia diferente
     else if (distribucionesSinSucursalInfluencia.length > 0) {
-      console.log('Mostrando distribuciones sin sucursalInfluencia como distribuciones individuales');
-      
       distribucionesSinSucursalInfluencia.forEach((distribucion, index) => {
-        console.log(`Procesando distribución sin sucursalInfluencia ${index}:`, distribucion);
         
         // Asignar a una sucursal de influencia (por índice)
         const sucursalInfluenciaIndex = index % this.data.sucursalesInfluencia.length;
@@ -278,8 +246,6 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
     }
     // Si no hay distribuciones existentes, crear controles vacíos para cada sucursal de influencia
     else {
-      console.log('No hay distribuciones existentes, creando controles vacíos para cada sucursal de influencia');
-      
       this.data.sucursalesInfluencia.forEach((sucursalInfluencia, index) => {
         const distribucionGroup = this.formBuilder.group({
           sucursalInfluencia: [sucursalInfluencia.id, [Validators.required]],
@@ -333,10 +299,8 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
 
     // Crear controles para cada sucursal de entrega
     distribucionesPorEntrega.forEach((grupo, sucursalEntregaId) => {
-      // Convertir cantidad total de unidades base a presentación si es necesario
-      const cantidadAsignada = this.convertirUnidadBaseAPresentacion(grupo.cantidadTotal);
-
-      console.log('grupo.sucursalesInfluencia', grupo.sucursalesInfluencia);
+          // Convertir cantidad total de unidades base a presentación si es necesario
+          const cantidadAsignada = this.convertirUnidadBaseAPresentacion(grupo.cantidadTotal);
 
       const distribucionGroup = this.formBuilder.group({
         sucursalInfluencia: [null], // No aplica en modo simplificado
@@ -350,8 +314,6 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
         modoVisualizacion: ['simplificado'], // Para identificar el modo
         distribucionesIds: [grupo.distribucionesIds] // IDs de todas las distribuciones del grupo
       });
-
-      console.log('suc influencia form', distribucionGroup.get('sucursalInfluencia')?.value);
 
       distribucionesArray.push(distribucionGroup);
     });
@@ -483,7 +445,6 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
   }
 
   onToggleVisualizacionMode(): void {
-    console.log('Cambiando modo de visualización de', this.modoVisualizacion, 'a', this.modoVisualizacion === 'trazabilidad' ? 'simplificado' : 'trazabilidad');
     this.modoVisualizacion = this.modoVisualizacion === 'trazabilidad' ? 'simplificado' : 'trazabilidad';
     this.calculatePresentationProperties();
     this.loadDistribuciones();
@@ -508,8 +469,6 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
         distribucionesIds: formValue.distribucionesIds || []
       });
     });
-    
-    console.log('Distribuciones computadas:', this.distribucionesComputed);
   }
 
   onToggleBorradoMode(): void {
@@ -627,17 +586,43 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
 
     this.savingComputed = true;
 
-    // Check for discrepancy and ask user if they want to update the original quantity
-    // for now, do not let user to continue if there is a discrepancy
+    // Si hay discrepancia, mostrar diálogo de confirmación
     if (this.hasDiscrepanciaComputed) {
-      const message = this.discrepanciaMostrarComputed > 0 
-        ? `La cantidad distribuida (${this.totalAsignadoFormattedComputed} ${this.unidadMostrarComputed}) es mayor a la solicitada (${this.cantidadEnNotaFormattedComputed} ${this.unidadMostrarComputed}).`
-        : `La cantidad distribuida (${this.totalAsignadoFormattedComputed} ${this.unidadMostrarComputed}) es menor a la solicitada (${this.cantidadEnNotaFormattedComputed} ${this.unidadMostrarComputed}).`;
-      this.notificacionService.openAlgoSalioMal(message);
-      this.savingComputed = false;
+      const cantidadDistribuida = this.totalAsignadoFormattedComputed;
+      const cantidadSolicitada = this.cantidadEnNotaFormattedComputed;
+      const unidad = this.unidadMostrarComputed;
+      
+      let mensaje = '';
+      if (this.discrepanciaMostrarComputed > 0) {
+        mensaje = `La cantidad distribuida (${cantidadDistribuida} ${unidad}) es mayor a la solicitada (${cantidadSolicitada} ${unidad}).`;
+      } else if (this.totalAsignadoMostrarComputed === 0) {
+        mensaje = `No se ha distribuido ninguna cantidad. Esto eliminará todas las distribuciones y el estado del ítem quedará como "Pendiente de Distribución".`;
+      } else {
+        mensaje = `La cantidad distribuida (${cantidadDistribuida} ${unidad}) es menor a la solicitada (${cantidadSolicitada} ${unidad}).`;
+      }
+      
+      mensaje += '\n\n¿Desea continuar? El estado del ítem quedará como "Pendiente de Distribución".';
+      
+      this.dialogosService.confirm(
+        'Distribución Incompleta',
+        mensaje
+      ).subscribe(confirmed => {
+        if (confirmed) {
+          // Proceder con el guardado
+          this.proceedWithSave();
+        } else {
+          // Cancelar y resetear flag
+          this.savingComputed = false;
+        }
+      });
       return;
     }
 
+    // Si no hay discrepancia, proceder normalmente
+    this.proceedWithSave();
+  }
+
+  private proceedWithSave(): void {
     const formValue = this.distribucionForm.value;
     const distribuciones: NotaRecepcionItemDistribucionInput[] = [];
     const distribucionesToDelete: number[] = [];
@@ -730,7 +715,6 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
     if (distribuciones.length > 0) {
       this.pedidoService.onReplaceNotaRecepcionItemDistribuciones(this.data.item.id, distribuciones).subscribe({
         next: (result) => {
-          console.log('Distribuciones guardadas:', result);
           checkCompletion();
         },
         error: (error) => {
@@ -748,7 +732,6 @@ export class DistributeNotaRecepcionItemDialogComponent implements OnInit {
     if (distribucionesToDelete.length > 0) {
       this.pedidoService.onReplaceNotaRecepcionItemDistribuciones(this.data.item.id, []).subscribe({
         next: (result) => {
-          console.log('Distribuciones eliminadas:', result);
           checkCompletion();
         },
         error: (error) => {

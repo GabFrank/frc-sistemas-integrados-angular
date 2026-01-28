@@ -297,4 +297,11 @@ export const FINALIZAR_RECEPCION_FISICA_POR_PEDIDO_MUTATION = gql`
   mutation finalizarRecepcionFisicaPorPedido($pedidoId: ID!, $sucursalesIds: [ID!]!) {
     data: finalizarRecepcionFisicaPorPedido(pedidoId: $pedidoId, sucursalesIds: $sucursalesIds)
   }
+`;
+
+// Mutation para recepcionar todo por nota
+export const RECEPCIONAR_TODO_POR_NOTA_MUTATION = gql`
+  mutation recepcionarTodoPorNota($notaId: ID!, $sucursalesIds: [ID!]!, $usuarioId: ID!, $itemIds: [ID!]) {
+    data: recepcionarTodoPorNota(notaId: $notaId, sucursalesIds: $sucursalesIds, usuarioId: $usuarioId, itemIds: $itemIds)
+  }
 `; 

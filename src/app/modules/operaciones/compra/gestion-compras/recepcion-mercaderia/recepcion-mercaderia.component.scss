@@ -156,6 +156,73 @@
         border-radius: 8px;
         overflow: hidden;
 
+        .panel-header {
+          padding: 16px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+
+          h4 {
+            margin: 0 0 12px 0;
+            color: #ffa726;
+            font-weight: 500;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            .nota-info {
+              color: rgba(255, 255, 255, 0.87);
+              font-weight: 400;
+              font-size: 16px;
+            }
+          }
+
+          .panel-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+
+            .search-field {
+              width: 50%;
+              padding-left: 10px;
+
+              ::ng-deep .mat-mdc-form-field {
+                color: #f0f0f0;
+              }
+
+              ::ng-deep .mat-mdc-form-field-outline-thick,
+              ::ng-deep .mat-mdc-form-field.mat-focused .mat-mdc-form-field-label {
+                color: #667eea !important;
+              }
+
+              ::ng-deep .mat-mdc-input-element {
+                color: #ffffff;
+              }
+
+              ::ng-deep .mat-mdc-form-field-label {
+                color: rgba(255, 255, 255, 0.7);
+              }
+
+              ::ng-deep .mat-mdc-form-field-outline {
+                background-color: rgba(255, 255, 255, 0.42);
+              }
+            }
+
+            .action-buttons {
+              display: flex;
+              gap: 8px;
+              padding-right: 10px;
+
+              button {
+                mat-icon {
+                  margin-right: 4px;
+                }
+              }
+            }
+          }
+        }
+
         .header-content {
           display: flex;
           align-items: center;
@@ -396,6 +463,54 @@
     display: flex;
     gap: 4px;
     justify-content: center;
+
+    .btn-edit-orange {
+      color: #ff9800; // Naranja
+
+      &:hover {
+        background-color: rgba(255, 152, 0, 0.1);
+      }
+
+      &:disabled {
+        color: rgba(255, 152, 0, 0.3);
+      }
+
+      mat-icon {
+        color: #ff9800;
+      }
+    }
+
+    .btn-reject-red {
+      color: #f44336; // Rojo
+
+      &:hover {
+        background-color: rgba(244, 67, 54, 0.1);
+      }
+
+      &:disabled {
+        color: rgba(244, 67, 54, 0.3);
+      }
+
+      mat-icon {
+        color: #f44336;
+      }
+    }
+
+    .btn-cancel-orange {
+      color: #ff9800; // Naranja (para botones de cancelar)
+
+      &:hover {
+        background-color: rgba(255, 152, 0, 0.1);
+      }
+
+      &:disabled {
+        color: rgba(255, 152, 0, 0.3);
+      }
+
+      mat-icon {
+        color: #ff9800;
+      }
+    }
   }
 
   // Estados de cantidad

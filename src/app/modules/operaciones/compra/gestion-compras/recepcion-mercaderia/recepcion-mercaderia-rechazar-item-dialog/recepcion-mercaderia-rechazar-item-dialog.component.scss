@@ -10,19 +10,19 @@
     flex-shrink: 0;
 
     h3 {
-          margin: 0;
-          font-size: 22px;
-          font-weight: 600;
-          color: #ffffff;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-          display: flex;
-          align-items: center;
-          gap: 12px;
+      margin: 0;
+      font-size: 22px;
+      font-weight: 600;
+      color: #ffffff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 12px;
 
       mat-icon {
-            font-size: 24px;
-            width: 24px;
-            height: 24px;
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
       }
     }
   }
@@ -31,8 +31,8 @@
 mat-dialog-content {
   padding: 20px;
   margin: 0;
-  min-height: 600px;
-  max-height: 85vh;
+  min-height: 550px;
+  max-height: 80vh;
   overflow: hidden;
 
   .form-container {
@@ -41,663 +41,201 @@ mat-dialog-content {
     flex-direction: column;
 
     .main-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    height: 100%;
-      min-height: 500px;
+      display: flex;
+      flex-direction: row;
+      gap: 24px;
+      height: 100%;
+      overflow: hidden;
 
-      // Panel superior (30%)
-      .top-panel {
-        flex: 0 0 auto;
-        margin-bottom: 20px;
-
-        .producto-info-card {
-      background-color: #363636;
-      border: 1px solid #444;
-      border-radius: 8px;
-          padding: 10px;
-
-          .producto-header {
-          display: flex;
-          align-items: center;
-            justify-content: flex-start;
-            gap: 16px;
-            margin-bottom: 16px;
-
-            .producto-icon {
-            color: #ffa726;
-              font-size: 24px;
-              width: 24px;
-              height: 24px;
-            }
-
-            .producto-text {
-              flex: 1;
-
-              .producto-nombre {
-                color: #ffffff;
-                font-weight: 600;
-                margin: 0 0 8px 0;
-                line-height: 1.2;
-              }
-
-              .producto-codigo {
-                color: #f57c00;
-                font-size: 14px;
-                font-weight: 500;
-                display: block;
-              }
-            }
-          }
-
-          // Sección de Presentación
-          .presentacion-section {
-            margin-bottom: 16px;
-            padding: 12px;
-            background-color: #2d2d2d;
-            border-radius: 6px;
-            border: 1px solid #444;
-
-            .loading-presentaciones {
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              padding: 12px;
-              color: #f57c00;
-              font-size: 14px;
-              
-              mat-spinner {
-                color: #f57c00;
-              }
-            }
-
-            .section-title {
-              color: #ffa726;
-              font-size: 14px;
-              font-weight: 600;
-              margin: 0 0 12px 0;
-              display: flex;
-              align-items: center;
-              gap: 8px;
-            }
-
-            .presentacion-field {
-              width: 100%;
-
-              ::ng-deep .mat-mdc-form-field {
-                .mat-mdc-form-field-label {
-                  color: #cccccc !important;
-                }
-
-                .mat-mdc-input-element {
-                  color: #ffffff !important;
-                }
-
-                .mat-mdc-form-field-outline {
-                  color: #555 !important;
-                }
-
-                .mat-mdc-form-field-outline-thick {
-                  color: #f44336 !important;
-                }
-
-                .mat-mdc-form-field-error {
-                  color: #f44336 !important;
-                }
-              }
-            }
-          }
-
-          // Resumen de Cantidades en Row
-          .cantidades-summary-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 20px;
-            padding: 16px;
-            border-radius: 6px;
-            border: 1px solid #444;
-
-        .summary-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-          flex: 1;
-          text-align: center;
-
-              .label {
-            color: #cccccc;
-            font-size: 12px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-          }
-
-              .value {
-            font-size: 18px;
-            font-weight: 700;
-                padding: 4px 8px;
-                border-radius: 4px;
-                min-width: 60px;
-
-                &.esperado {
-              color: #4caf50;
-              background-color: rgba(76, 175, 80, 0.1);
-            }
-
-                &.rechazado {
-                  color: #f44336;
-                  background-color: rgba(244, 67, 54, 0.1);
-
-                  &.negative {
-                    color: #f44336;
-                    background-color: rgba(244, 67, 54, 0.1);
-                  }
-                }
-
-                &.disponible {
-                  &.disponible-cero {
-                    color: #f44336;
-                    background-color: rgba(244, 67, 54, 0.1);
-                  }
-
-                  &.disponible-no-cero {
-                    color: #4caf50;
-                    background-color: rgba(76, 175, 80, 0.1);
-                  }
-                }
-
-                &.rechazos {
-                  &.rechazos-si {
-              color: #f44336;
-              background-color: rgba(244, 67, 54, 0.1);
-            }
-
-                  &.rechazos-no {
-                    color: #4caf50;
-                    background-color: rgba(76, 175, 80, 0.1);
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      // Panel inferior (70%)
-      .bottom-panel {
-        flex: 1;
-        overflow-y: auto;
-
-        .panel-title {
-          color: #f44336;
-          margin-bottom: 20px;
-          margin-top: 0;
-          text-transform: uppercase;
-          font-size: 16px;
-          font-weight: 600;
-        }
-
-        // Estilos para secciones del formulario
-        .section-title {
-          color: #ffa726;
-          font-size: 14px;
-          font-weight: 600;
-          margin: 0 0 16px 0;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-
-          mat-icon {
-            font-size: 18px;
-            width: 18px;
-            height: 18px;
-          }
-        }
-
-        .form-row {
-          display: flex;
-          gap: 16px;
-          margin-bottom: 16px;
-        }
-
-        // Contenedor de Distribuciones
-        .distribuciones-container {
-          .distribucion-panel {
-            margin-bottom: 12px;
-            background-color: #2d2d2d;
-            border: 1px solid #444;
-
-            ::ng-deep .mat-expansion-panel-header {
-              background-color: #363636;
-              border-bottom: 1px solid #444;
-              // padding: 20px 16px 24px 16px;
-              min-height: 60px;
-              align-items: center;
-              overflow: visible;
-
-              .mat-expansion-panel-header-title {
-                color: #ffffff;
-                font-weight: 600;
-                margin: 0;
-                flex: 1;
-              }
-
-              .mat-expansion-indicator {
-                color: #cccccc;
-                margin-left: 8px;
-                margin-top: 4px;
-              }
-            }
-
-            .distribucion-header {
-              .distribucion-header-content {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                width: 100%;
-                gap: 20px;
-                padding: 0 4px;
-
-                .sucursal-info {
-                  display: flex;
-                  align-items: center;
-                  gap: 12px;
-                  flex: 1;
-                  min-width: 0;
-
-                  .sucursal-icon {
-                    color: #ffa726;
-                    font-size: 22px;
-                    width: 22px;
-                    height: 22px;
-                    flex-shrink: 0;
-                  }
-
-                  .sucursal-nombre {
-                    color: #ffffff;
-                    font-weight: 600;
-                    font-size: 16px;
-                    line-height: 1.2;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                  }
-                }
-
-                .cantidad-info {
+      .left-panel {
+        flex: 0 0 50%;
         display: flex;
         flex-direction: column;
-                  align-items: flex-end;
-                  gap: 6px;
-                  min-width: 140px;
-                  flex-shrink: 0;
+        gap: 16px;
+        overflow-y: auto;
+        padding-right: 12px;
 
-                  .cantidad-esperada {
-                    color: #4caf50;
-                    font-size: 13px;
-                    font-weight: 500;
-                    line-height: 1;
-                  }
+        &::-webkit-scrollbar { width: 4px; }
+        &::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
 
-                  .cantidad-rechazada {
-                    font-size: 13px;
-                    font-weight: 600;
-                    line-height: 1;
-
-                    &.cantidad-correcta {
-                      color: #4caf50;
-                    }
-
-                    &.cantidad-rechazo {
-                      color: #f44336;
-                    }
-                  }
-                }
-
-                .cantidad-input-section {
-                  flex: 0 0 180px;
-                  margin: 0 8px;
-
-                  .cantidad-header-field {
-          width: 100%;
-                    margin-top: 8px;
-
-          ::ng-deep .mat-mdc-form-field {
-                      .mat-mdc-form-field-wrapper {
-                        padding-bottom: 0;
-                        padding-top: 8px;
-                      }
-
-            .mat-mdc-form-field-label {
-              color: #cccccc !important;
-                        font-size: 12px !important;
-                        transform: translateY(-2em) scale(0.75) !important;
-                        background-color: #363636 !important;
-                        padding: 0 6px !important;
-                        z-index: 10 !important;
-                        position: relative !important;
-            }
-
-            .mat-mdc-input-element {
-              color: #ffffff !important;
-                        text-align: center !important;
-                        font-size: 16px !important;
-                        font-weight: 600 !important;
-                        padding: 12px 8px !important;
-                        height: 48px !important;
-            }
-
-            .mat-mdc-form-field-outline {
-              color: #555 !important;
-            }
-
-            .mat-mdc-form-field-outline-thick {
-              color: #f44336 !important;
-            }
-
-            .mat-mdc-form-field-error {
-              color: #f44336 !important;
-                        font-size: 11px !important;
-                      }
-
-                      .mat-mdc-form-field-subscript-wrapper {
-                        display: none !important;
-            }
-
-                      .mat-mdc-form-field-infix {
-                        padding-top: 8px !important;
-                        padding-bottom: 8px !important;
-            }
-          }
-
-          &.invalid ::ng-deep .mat-mdc-form-field-outline {
-            color: #f44336 !important;
-          }
-        }
-                }
-
-                .rechazo-indicator {
-                  display: flex;
-                  align-items: center;
-                  gap: 6px;
-                  padding: 6px 10px;
-                  background-color: rgba(244, 67, 54, 0.15);
-                  border-radius: 6px;
-                  flex-shrink: 0;
-                  min-width: 80px;
-
-                  .warning-icon {
-                    color: #f44336;
-                    font-size: 16px;
-                    width: 16px;
-                    height: 16px;
-                  }
-
-                  .rechazo-text {
-                    color: #f44336;
-                    font-size: 11px;
-                    font-weight: 600;
-                    text-transform: uppercase;
-                    line-height: 1;
-                  }
-                }
-              }
-            }
-
-            .distribucion-content {
-              padding: 20px;
-              background-color: #2d2d2d;
-
-              .seccion-expandida {
-                margin-bottom: 24px;
-
-                &:last-child {
-                  margin-bottom: 0;
-                }
-              }
-
-              .form-row {
-          display: flex;
-          gap: 16px;
-                margin-bottom: 16px;
-
-                .motivo-field {
-            flex: 1;
-
-                  ::ng-deep .mat-mdc-form-field {
-                    .mat-mdc-form-field-label {
-                      color: #cccccc;
-                    }
-
-                    .mat-mdc-input-element {
-                      color: #ffffff;
-                    }
-
-                    .mat-mdc-form-field-outline {
-                      color: #555;
-                    }
-
-                    .mat-mdc-form-field-outline-thick {
-                      color: #f44336;
-                    }
-                  }
-                }
-              }
-
-              .observaciones-field {
-                width: 100%;
-
-                ::ng-deep .mat-mdc-form-field {
-                  .mat-mdc-form-field-label {
-                    color: #cccccc;
-                  }
-
-                  .mat-mdc-input-element {
-                    color: #ffffff;
-                  }
-
-                  .mat-mdc-form-field-outline {
-                    color: #555;
-                  }
-
-                  .mat-mdc-form-field-outline-thick {
-                    color: #f44336;
-                  }
-
-                  .mat-mdc-form-field-hint {
-                    color: #666;
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        // Resumen de Rechazo
-        .rechazo-summary-section {
+        .producto-info-card {
           background-color: #363636;
           border: 1px solid #444;
           border-radius: 8px;
           padding: 16px;
+        }
 
-          .summary-content {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+        .producto-header {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 20px;
 
-            .summary-item {
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-start;
-              padding: 4px 0;
+          .producto-icon {
+            color: #ffa726;
+            font-size: 32px;
+            width: 32px;
+            height: 32px;
+          }
 
-              .summary-label {
-                color: #cccccc;
-                font-size: 13px;
-                font-weight: 500;
-                flex: 0 0 40%;
-              }
+          .producto-nombre {
+            color: #ffffff;
+            font-weight: 600;
+            margin: 0;
+            line-height: 1.2;
+            font-size: 16px;
+          }
 
-              .summary-value {
-                color: #ffffff;
-                font-size: 13px;
-                font-weight: 500;
-                flex: 0 0 60%;
-                text-align: right;
-
-                &.disponible {
-                  color: #4caf50;
-                  font-weight: 600;
-                }
-
-                &.rechazos {
-                  color: #f44336;
-                  font-weight: 500;
-                }
-              }
-            }
+          .producto-codigo {
+            color: #f57c00;
+            font-size: 12px;
+            display: block;
           }
         }
       }
+
+      .right-panel {
+        flex: 0 0 50%;
+        display: flex;
+        flex-direction: column;
+        background-color: #252525;
+        border-radius: 8px;
+        border: 1px solid #333;
+        overflow: hidden;
+        padding-left: 12px;
+
+        .distribucion-header {
+          padding: 16px;
+          background: #2d2d2d;
+          border-bottom: 1px solid #444;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          
+          .section-title { margin: 0; }
+        }
+
+        .distribuciones-scroll {
+          flex: 1;
+          overflow-y: auto;
+          padding: 16px;
+
+          &::-webkit-scrollbar { width: 6px; }
+          &::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+        }
+      }
     }
   }
 }
 
-// Dialog Actions
+.section-title {
+  color: #ffa726;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.presentacion-section,
+.cantidad-total-rechazo-section,
+.motivo-observaciones-section {
+  padding: 12px;
+  background-color: #2d2d2d;
+  border-radius: 6px;
+  border: 1px solid #444;
+  margin-bottom: 12px;
+
+  .presentacion-field,
+  .cantidad-total-rechazo-field,
+  .motivo-global-field,
+  .observaciones-global-field {
+    width: 100%;
+  }
+}
+
+.summary-dashboard {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 12px;
+  background: #252525;
+  border-radius: 8px;
+  border: 1px solid #333;
+
+  .summary-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    background: #2d2d2d;
+    border-radius: 4px;
+    
+    .label { font-size: 9px; color: #888; font-weight: 600; margin-bottom: 2px; }
+    .value { font-size: 16px; font-weight: 700; color: #fff; }
+    
+    &.highlight {
+      border: 1px solid rgba(244, 67, 54, 0.3);
+      .value { color: #f44336; }
+    }
+  }
+}
+
+.distribucion-card {
+  background: #333;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+
+  &.has-rechazo {
+    border-left: 4px solid #f44336;
+    background: rgba(244, 67, 54, 0.05);
+  }
+
+  .sucursal-info {
+    display: flex;
+    flex-direction: column;
+    .nombre { font-weight: 600; color: #fff; font-size: 14px; }
+    .esperado { font-size: 12px; color: #888; }
+  }
+
+  .input-section {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+    
+    .cantidad-input {
+      width: 100%;
+      max-width: 150px;
+      margin-bottom: -1.25em;
+    }
+  }
+}
+
+.count-badge {
+  font-size: 10px;
+  background: #444;
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: #bbb;
+}
+
+.info-text.small {
+  font-size: 11px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+}
+
 mat-dialog-actions {
-  padding: 16px 20px;
-  margin: 0;
+  padding: 12px 20px;
   border-top: 1px solid #444;
-
-  button {
-    margin-left: 8px;
-
-    &[mat-button] {
-    color: #cccccc;
-
-    mat-icon {
-      margin-right: 8px;
-    }
-  }
-
-    &[mat-raised-button] {
-    background-color: #f44336;
-    color: #ffffff;
-
-    &:disabled {
-      background-color: #555;
-      color: #666;
-    }
-
-    mat-icon {
-      margin-right: 8px;
-    }
-    }
-  }
 }
-
-// Global styles for form fields in dialog
-::ng-deep .dialog-container {
-  .mat-mdc-form-field {
-    .mat-mdc-form-field-label {
-      color: #cccccc !important;
-    }
-
-    .mat-mdc-input-element {
-      color: #ffffff !important;
-    }
-
-    .mat-mdc-form-field-outline {
-      color: #555 !important;
-    }
-
-    .mat-mdc-form-field-outline-thick {
-      color: #f44336 !important;
-    }
-
-    .mat-mdc-form-field-hint {
-      color: #666 !important;
-    }
-
-    .mat-mdc-form-field-error {
-      color: #f44336 !important;
-    }
-  }
-
-  .mat-mdc-select {
-    color: #ffffff !important;
-  }
-
-  .mat-mdc-select-arrow {
-    color: #cccccc !important;
-  }
-
-  .mat-mdc-option {
-    color: #ffffff !important;
-    background-color: #2d2d2d !important;
-
-    &:hover {
-      background-color: #444 !important;
-    }
-
-    &.mat-mdc-option-active {
-      background-color: #f44336 !important;
-    }
-  }
-}
-
-// Responsive Design
-@media (max-width: 768px) {
-  .top-panel .producto-info-card {
-    .cantidades-summary-row {
-      flex-direction: column;
-      gap: 12px;
-
-      .summary-item {
-        flex-direction: row;
-        justify-content: space-between;
-        width: 100%;
-
-        .label {
-          text-align: left;
-        }
-
-        .value {
-          text-align: right;
-        }
-      }
-    }
-  }
-
-  .bottom-panel {
-    .distribuciones-container .distribucion-panel {
-      .distribucion-header .distribucion-header-content {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-
-        .cantidad-info {
-          align-items: flex-start;
-          min-width: auto;
-        }
-
-        .cantidad-input-section {
-          flex: 0 0 auto;
-          width: 100%;
-        }
-
-        .rechazo-indicator {
-          align-self: flex-end;
-        }
-      }
-
-      .distribucion-content .form-row {
-        flex-direction: column;
-        gap: 12px;
-      }
-    }
-  }
-} 

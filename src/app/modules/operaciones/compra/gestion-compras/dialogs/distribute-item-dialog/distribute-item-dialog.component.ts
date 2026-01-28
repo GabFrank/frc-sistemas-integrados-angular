@@ -7,6 +7,7 @@ import { PedidoItemDistribucion, PedidoItemDistribucionInput } from '../../pedid
 import { Sucursal } from '../../../../../empresarial/sucursal/sucursal.model';
 import { PedidoService } from '../../../pedido.service';
 import { NotificacionSnackbarService } from '../../../../../../notificacion-snackbar.service';
+import { DialogosService } from '../../../../../../shared/components/dialogos/dialogos.service';
 
 export interface DistributeItemDialogData {
   item: PedidoItem;
@@ -101,6 +102,7 @@ export class DistributeItemDialogComponent implements OnInit {
     private dialogRef: MatDialogRef<DistributeItemDialogComponent>,
     private pedidoService: PedidoService,
     private notificacionService: NotificacionSnackbarService,
+    private dialogosService: DialogosService,
     @Inject(MAT_DIALOG_DATA) public data: DistributeItemDialogData
   ) {
     this.initializeForm();
@@ -526,22 +528,43 @@ export class DistributeItemDialogComponent implements OnInit {
 
     this.savingComputed = true;
 
-    // Check for discrepancy and ask user if they want to update the original quantity
-    // for now, do not let user to continue if there is a discrepancy
+    // Si hay discrepancia, mostrar diálogo de confirmación
     if (this.hasDiscrepanciaComputed) {
-      const message = this.discrepanciaMostrarComputed > 0 
-        ? `La cantidad distribuida (${this.totalAsignadoFormattedComputed} ${this.unidadMostrarComputed}) es mayor a la solicitada (${this.cantidadSolicitadaFormattedComputed} ${this.unidadMostrarComputed}).`
-        : `La cantidad distribuida (${this.totalAsignadoFormattedComputed} ${this.unidadMostrarComputed}) es menor a la solicitada (${this.cantidadSolicitadaFormattedComputed} ${this.unidadMostrarComputed}).`;
-      this.notificacionService.openAlgoSalioMal(message);
-      this.savingComputed = false; // Resetear flag para permitir reintentos
+      const cantidadDistribuida = this.totalAsignadoFormattedComputed;
+      const cantidadSolicitada = this.cantidadSolicitadaFormattedComputed;
+      const unidad = this.unidadMostrarComputed;
+      
+      let mensaje = '';
+      if (this.discrepanciaMostrarComputed > 0) {
+        mensaje = `La cantidad distribuida (${cantidadDistribuida} ${unidad}) es mayor a la solicitada (${cantidadSolicitada} ${unidad}).`;
+      } else if (this.totalAsignadoMostrarComputed === 0) {
+        mensaje = `No se ha distribuido ninguna cantidad. Esto eliminará todas las distribuciones y el estado del ítem quedará como "Pendiente de Distribución".`;
+      } else {
+        mensaje = `La cantidad distribuida (${cantidadDistribuida} ${unidad}) es menor a la solicitada (${cantidadSolicitada} ${unidad}).`;
+      }
+      
+      mensaje += '\n\n¿Desea continuar? El estado del ítem quedará como "Pendiente de Distribución".';
+      
+      this.dialogosService.confirm(
+        'Distribución Incompleta',
+        mensaje
+      ).subscribe(confirmed => {
+        if (confirmed) {
+          // Proceder con el guardado
+          this.proceedWithSave();
+        } else {
+          // Cancelar y resetear flag
+          this.savingComputed = false;
+        }
+      });
       return;
-
-      // if (confirm(message)) {
-      //   // User confirmed to update the original quantity
-      //   // This would be handled by the parent component
-      // }
     }
 
+    // Si no hay discrepancia, proceder normalmente
+    this.proceedWithSave();
+  }
+
+  private proceedWithSave(): void {
     const formValue = this.distribucionForm.value;
     const distribuciones: PedidoItemDistribucionInput[] = [];
 

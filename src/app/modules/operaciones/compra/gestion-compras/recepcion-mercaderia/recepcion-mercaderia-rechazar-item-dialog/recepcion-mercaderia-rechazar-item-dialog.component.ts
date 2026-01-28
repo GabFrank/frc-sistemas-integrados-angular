@@ -25,6 +25,7 @@ interface DistribucionRechazoFormData {
   motivoRechazo: MotivoRechazoFisico | null;
   observaciones: string;
   tieneRechazo: boolean;
+  notaRecepcionItemDistribucionId?: number;
 }
 
 export interface RecepcionMercaderiaRechazarItemDialogData {
@@ -150,7 +151,14 @@ export class RecepcionMercaderiaRechazarItemDialogComponent implements OnInit {
         this.initializeForm();
         this.setupFormSubscriptions();
         this.setupKeyboardNavigation();
-        this.updateComputedProperties();
+        
+        // Usar setTimeout para evitar ExpressionChangedAfterItHasBeenCheckedError
+        setTimeout(() => {
+          this.updateComputedProperties();
+        }, 0);
+        
+        // NO distribuir automáticamente al iniciar - el usuario debe ingresar la cantidad manualmente
+        // La distribución automática se activará cuando el usuario ingrese un valor en cantidadTotalRechazo
         
         this.loadingPresentaciones = false;
       },
@@ -163,7 +171,11 @@ export class RecepcionMercaderiaRechazarItemDialogComponent implements OnInit {
         this.initializeForm();
         this.setupFormSubscriptions();
         this.setupKeyboardNavigation();
-        this.updateComputedProperties();
+        
+        // Usar setTimeout para evitar ExpressionChangedAfterItHasBeenCheckedError
+        setTimeout(() => {
+          this.updateComputedProperties();
+        }, 0);
       }
     });
   }
@@ -203,7 +215,8 @@ export class RecepcionMercaderiaRechazarItemDialogComponent implements OnInit {
         cantidadRechazada: 0, // Se calculará basado en la presentación
         motivoRechazo: null,
         observaciones: '',
-        tieneRechazo: false
+        tieneRechazo: false,
+        notaRecepcionItemDistribucionId: undefined
       }));
       
       console.log('Distribuciones por defecto creadas:', this.distribucionesFormData);
@@ -220,7 +233,8 @@ export class RecepcionMercaderiaRechazarItemDialogComponent implements OnInit {
           cantidadRechazada: 0, // Inicialmente no hay rechazo
           motivoRechazo: null,
           observaciones: '',
-          tieneRechazo: false
+          tieneRechazo: false,
+          notaRecepcionItemDistribucionId: dist.id
         };
         
         console.log('Distribución procesada:', {
@@ -228,6 +242,7 @@ export class RecepcionMercaderiaRechazarItemDialogComponent implements OnInit {
           cantidadOriginal: dist.cantidad,
           cantidadEnPresentacion: cantidadEnPresentacion,
           presentacion: presentacion?.descripcion,
+          distribucionId: dist.id,
           esAgrupada: (dist as any).distribucionesOriginales && (dist as any).distribucionesOriginales.length > 1
         });
         
@@ -240,20 +255,20 @@ export class RecepcionMercaderiaRechazarItemDialogComponent implements OnInit {
 
   private initializeForm(): void {
     const formControls: { [key: string]: any } = {
-      presentacionGlobal: [this.presentacionSeleccionadaComputed] // Usar la presentación ya seleccionada
+      presentacionGlobal: [this.presentacionSeleccionadaComputed], // Usar la presentación ya seleccionada
+      cantidadTotalRechazo: [0, [Validators.min(0)]], // Campo para cantidad total de rechazo (inicia en cero)
+      motivoRechazoGlobal: [null], // Motivo de rechazo general (no requerido inicialmente, solo cuando hay rechazos)
+      observacionesGlobal: ['', [Validators.maxLength(500)]] // Observaciones generales
     };
 
-    // Crear controles para cada distribución
+    // Crear controles para cada distribución (solo cantidad, sin motivo ni observaciones individuales)
     this.distribucionesFormData.forEach((dist, index) => {
       const prefix = `dist_${index}`;
       
       formControls[`${prefix}_cantidadRechazada`] = [
-        dist.cantidadRechazada,
-        [Validators.required, Validators.min(0), Validators.max(dist.cantidadEsperada)]
+        0, // Inicializar en cero
+        [Validators.min(0), Validators.max(dist.cantidadEsperada)]
       ];
-      
-      formControls[`${prefix}_motivoRechazo`] = [null];
-      formControls[`${prefix}_observaciones`] = ['', [Validators.maxLength(500)]];
     });
 
     this.rechazarForm = this.fb.group(formControls);
@@ -262,11 +277,31 @@ export class RecepcionMercaderiaRechazarItemDialogComponent implements OnInit {
   }
 
   private setupFormSubscriptions(): void {
+    // Suscribirse a cambios en el campo de cantidad total de rechazo para distribuir automáticamente
+    const cantidadTotalControl = this.rechazarForm.get('cantidadTotalRechazo');
+    if (cantidadTotalControl) {
+      cantidadTotalControl.valueChanges
+        .pipe(takeUntil(this.destroy$))
+        .subscribe((cantidadTotal) => {
+          // Solo distribuir si hay una cantidad válida y hay múltiples distribuciones
+          if (cantidadTotal && cantidadTotal > 0 && this.presentacionSeleccionadaComputed && this.distribucionesFormData.length > 1) {
+            // Convertir a unidades base
+            const cantidadEnBase = cantidadTotal * (this.presentacionSeleccionadaComputed.cantidad || 1);
+            console.log('Cantidad total de rechazo ingresada:', cantidadTotal, 'presentaciones →', cantidadEnBase, 'unidades base');
+            // Distribuir proporcionalmente (usar emitEvent: false para evitar bucle infinito)
+            this.distribuirRechazoProporcionalmente(cantidadEnBase);
+          }
+        });
+    }
+    
     // Suscribirse a cambios en el formulario para actualizar propiedades computadas
+    // Usar setTimeout para evitar ExpressionChangedAfterItHasBeenCheckedError
     this.rechazarForm.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-        this.updateComputedProperties();
+        setTimeout(() => {
+          this.updateComputedProperties();
+        }, 0);
       });
   }
 
@@ -311,19 +346,56 @@ export class RecepcionMercaderiaRechazarItemDialogComponent implements OnInit {
       return cantidadRechazada > 0;
     });
 
+    // Obtener motivo y observaciones globales
+    const motivoRechazoGlobal = this.rechazarForm.get('motivoRechazoGlobal')?.value;
+    const observacionesGlobal = this.rechazarForm.get('observacionesGlobal')?.value || '';
+
     // Actualizar datos de formulario
     this.distribucionesFormData.forEach((dist, index) => {
       const cantidadRechazada = this.rechazarForm.get(`dist_${index}_cantidadRechazada`)?.value || 0;
       dist.cantidadRechazada = cantidadRechazada;
       dist.tieneRechazo = cantidadRechazada > 0;
-      dist.motivoRechazo = this.rechazarForm.get(`dist_${index}_motivoRechazo`)?.value;
-      dist.observaciones = this.rechazarForm.get(`dist_${index}_observaciones`)?.value || '';
+      // Usar motivo y observaciones globales para todas las distribuciones
+      dist.motivoRechazo = motivoRechazoGlobal;
+      dist.observaciones = observacionesGlobal;
     });
 
-    // Validar formulario
-    this.formValidComputed = this.rechazarForm.valid && 
-      this.cantidadTotalRechazadaComputed > 0 &&
-      this.validarMotivosRechazo();
+    // Validar motivo solo si hay rechazos - usar setTimeout para evitar ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      const motivoControl = this.rechazarForm.get('motivoRechazoGlobal');
+      if (this.hayRechazosComputed) {
+        if (!motivoControl?.value) {
+          motivoControl?.setErrors({ required: true });
+          motivoControl?.markAsTouched();
+        } else {
+          const errors = motivoControl.errors;
+          if (errors) {
+            delete errors['required'];
+            if (Object.keys(errors).length === 0) {
+              motivoControl.setErrors(null);
+            } else {
+              motivoControl.setErrors(errors);
+            }
+          }
+        }
+      } else if (motivoControl) {
+        // Si no hay rechazos, limpiar errores del motivo
+        const errors = motivoControl.errors;
+        if (errors) {
+          delete errors['required'];
+          if (Object.keys(errors).length === 0) {
+            motivoControl.setErrors(null);
+          } else {
+            motivoControl.setErrors(errors);
+          }
+        }
+      }
+      
+      // Validar formulario
+      this.formValidComputed = this.rechazarForm.valid && 
+        this.cantidadTotalRechazadaComputed > 0 &&
+        this.validarMotivosRechazo();
+    }, 0);
   }
 
   private recalcularCantidadesBasadasEnPresentacion(): void {
@@ -343,11 +415,8 @@ export class RecepcionMercaderiaRechazarItemDialogComponent implements OnInit {
       // La cantidad esperada ahora es en unidades de presentación
       dist.cantidadEsperada = cantidadPorSucursal + (index < cantidadRestante ? 1 : 0);
       
-      // Actualizar el valor del formulario si no ha sido modificado por el usuario
-      const control = this.rechazarForm.get(`dist_${index}_cantidadRechazada`);
-      if (control && !control.dirty) {
-        control.setValue(0); // Inicialmente no hay rechazo
-      }
+      // NO establecer valores en los controles aquí - solo actualizar la cantidad esperada
+      // Los controles ya están inicializados en 0 en initializeForm()
     });
     
     console.log('Recálculo de cantidades basado en presentación:', {
@@ -362,18 +431,180 @@ export class RecepcionMercaderiaRechazarItemDialogComponent implements OnInit {
   }
 
   private validarMotivosRechazo(): boolean {
-    return this.distribucionesFormData.every((dist, index) => {
-      if (!dist.tieneRechazo) return true;
+    // Validar que hay motivo global si hay algún rechazo
+    if (!this.hayRechazosComputed) {
+      return true; // No hay rechazos, no necesita validación
+    }
+    
+    const motivoRechazoGlobal = this.rechazarForm.get('motivoRechazoGlobal')?.value;
+    return motivoRechazoGlobal && motivoRechazoGlobal.trim();
+  }
+
+  /**
+   * Distribuye un rechazo parcial proporcionalmente entre múltiples distribuciones
+   * Considera presentaciones y redondea inteligentemente
+   */
+  distribuirRechazoProporcionalmente(cantidadRechazadaTotal: number): void {
+    if (!this.presentacionSeleccionadaComputed) {
+      console.warn('No hay presentación seleccionada para distribuir rechazo');
+      return;
+    }
+
+    if (this.distribucionesFormData.length === 0) {
+      console.warn('No hay distribuciones para distribuir rechazo');
+      return;
+    }
+
+    const cantidadPorPresentacion = this.presentacionSeleccionadaComputed.cantidad;
+    const rechazoEnPresentaciones = cantidadRechazadaTotal / cantidadPorPresentacion;
+
+    console.log('=== DISTRIBUCIÓN PROPORCIONAL DE RECHAZO ===');
+    console.log('Cantidad rechazada total (unidades base):', cantidadRechazadaTotal);
+    console.log('Cantidad por presentación:', cantidadPorPresentacion);
+    console.log('Rechazo en presentaciones:', rechazoEnPresentaciones);
+
+    // Si el rechazo es menor que una unidad de presentación
+    if (rechazoEnPresentaciones < 1) {
+      console.log('Rechazo menor que una unidad de presentación, asignando todo a la distribución con mayor cantidad');
+      // Asignar todo a la distribución con mayor cantidad
+      const distMayor = this.distribucionesFormData.reduce((max, dist) => 
+        dist.cantidadEsperada > max.cantidadEsperada ? dist : max
+      );
+      const indexMayor = this.distribucionesFormData.indexOf(distMayor);
       
-      const motivoRechazo = this.rechazarForm.get(`dist_${index}_motivoRechazo`)?.value;
+      // Convertir a unidades de presentación y luego a unidades base
+      const cantidadEnPresentacion = cantidadRechazadaTotal / cantidadPorPresentacion;
+      const control = this.rechazarForm.get(`dist_${indexMayor}_cantidadRechazada`);
+      if (control) {
+        control.setValue(cantidadEnPresentacion);
+        control.markAsDirty();
+      }
       
-      return motivoRechazo && motivoRechazo.trim();
+      console.log('Rechazo asignado a distribución:', distMayor.sucursalNombre, 'Cantidad:', cantidadEnPresentacion);
+      setTimeout(() => {
+        this.updateComputedProperties();
+      }, 0);
+      return;
+    }
+
+    // Calcular total de cantidades esperadas (en unidades de presentación)
+    const cantidadTotalEnPresentacion = this.distribucionesFormData.reduce((sum, dist) => {
+      return sum + dist.cantidadEsperada;
+    }, 0);
+
+    console.log('Cantidad total esperada (en presentaciones):', cantidadTotalEnPresentacion);
+
+    // Distribuir proporcionalmente
+    const distribucionesConRechazo = this.distribucionesFormData.map((dist, index) => {
+      const proporcion = dist.cantidadEsperada / cantidadTotalEnPresentacion;
+      const rechazoCalculado = rechazoEnPresentaciones * proporcion;
+      
+      return {
+        index,
+        distribucion: dist,
+        proporcion,
+        rechazoEnPresentaciones: rechazoCalculado
+      };
     });
+
+    // Ordenar por cantidad esperada (mayor primero)
+    distribucionesConRechazo.sort((a, b) => b.distribucion.cantidadEsperada - a.distribucion.cantidadEsperada);
+
+    console.log('Distribuciones con rechazo calculado:', distribucionesConRechazo.map(d => ({
+      sucursal: d.distribucion.sucursalNombre,
+      proporcion: d.proporcion,
+      rechazoEnPresentaciones: d.rechazoEnPresentaciones
+    })));
+
+    // Redondear: hacia arriba para la mayor, hacia abajo para las demás
+    let rechazoRestante = rechazoEnPresentaciones;
+    const rechazosAsignados: { index: number; cantidad: number }[] = [];
+
+    distribucionesConRechazo.forEach((dist, arrayIndex) => {
+      let rechazoRedondeado: number;
+      
+      if (arrayIndex === 0) {
+        // Primera (mayor): redondear hacia arriba
+        rechazoRedondeado = Math.ceil(dist.rechazoEnPresentaciones);
+      } else if (arrayIndex === distribucionesConRechazo.length - 1) {
+        // Última: usar el resto para que sume exacto
+        rechazoRedondeado = rechazoRestante;
+      } else {
+        // Resto: redondear hacia abajo
+        rechazoRedondeado = Math.floor(dist.rechazoEnPresentaciones);
+      }
+
+      rechazoRestante -= rechazoRedondeado;
+      rechazosAsignados.push({
+        index: dist.index,
+        cantidad: rechazoRedondeado
+      });
+
+      console.log(`Distribución ${dist.distribucion.sucursalNombre}: ${dist.rechazoEnPresentaciones.toFixed(2)} → ${rechazoRedondeado} presentaciones`);
+    });
+
+    // Aplicar los rechazos calculados a los controles del formulario
+    rechazosAsignados.forEach(({ index, cantidad }) => {
+      const control = this.rechazarForm.get(`dist_${index}_cantidadRechazada`);
+      if (control) {
+        control.setValue(cantidad, { emitEvent: false }); // Usar emitEvent: false para evitar bucle infinito
+        control.markAsDirty();
+      }
+    });
+
+    console.log('=== DISTRIBUCIÓN COMPLETADA ===');
+    console.log('Total rechazo asignado:', rechazosAsignados.reduce((sum, r) => sum + r.cantidad, 0), 'presentaciones');
+    console.log('Total esperado:', rechazoEnPresentaciones, 'presentaciones');
+
+    // Usar setTimeout para evitar ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      this.updateComputedProperties();
+    }, 0);
+  }
+
+  /**
+   * Método público para distribuir rechazo automáticamente desde el template
+   * Distribuye la cantidad total de rechazo del campo global proporcionalmente
+   */
+  onDistribuirRechazoAutomaticamente(): void {
+    if (!this.presentacionSeleccionadaComputed) {
+      console.warn('No hay presentación seleccionada');
+      return;
+    }
+
+    // Obtener cantidad total de rechazo del campo global
+    const cantidadTotalRechazo = this.rechazarForm.get('cantidadTotalRechazo')?.value || 0;
+    
+    if (cantidadTotalRechazo <= 0) {
+      // Si no hay cantidad, calcular cantidad total esperada y usar un porcentaje pequeño (5%)
+      const cantidadTotalEsperadaEnBase = this.distribucionesFormData.reduce((sum, dist) => {
+        const cantidadEnBase = dist.cantidadEsperada * (this.presentacionSeleccionadaComputed?.cantidad || 1);
+        return sum + cantidadEnBase;
+      }, 0);
+      
+      // Usar 5% de la cantidad esperada como ejemplo
+      const cantidadPorDefecto = Math.max(1, Math.floor(cantidadTotalEsperadaEnBase * 0.05));
+      const cantidadPorDefectoEnPresentacion = cantidadPorDefecto / (this.presentacionSeleccionadaComputed?.cantidad || 1);
+      console.log('Distribuyendo cantidad por defecto (5%):', cantidadPorDefecto, 'unidades base');
+      // Establecer en el campo y dejar que valueChanges lo distribuya
+      this.rechazarForm.get('cantidadTotalRechazo')?.setValue(cantidadPorDefectoEnPresentacion, { emitEvent: false });
+      this.distribuirRechazoProporcionalmente(cantidadPorDefecto);
+    } else {
+      // Convertir a unidades base y distribuir
+      const cantidadEnBase = cantidadTotalRechazo * (this.presentacionSeleccionadaComputed?.cantidad || 1);
+      console.log('Distribuyendo cantidad del campo global:', cantidadTotalRechazo, 'presentaciones →', cantidadEnBase, 'unidades base');
+      this.distribuirRechazoProporcionalmente(cantidadEnBase);
+    }
   }
 
   private setupKeyboardNavigation(): void {
     // Definir el orden de navegación de campos
     this.navigationFields = ['presentacionGlobal'];
+    
+    // Agregar campo de cantidad total de rechazo si hay múltiples distribuciones
+    if (this.distribucionesFormData.length > 1) {
+      this.navigationFields.push('cantidadTotalRechazo');
+    }
     
     this.distribucionesFormData.forEach((dist, index) => {
       const prefix = `dist_${index}`;
@@ -440,6 +671,7 @@ export class RecepcionMercaderiaRechazarItemDialogComponent implements OnInit {
           
           return {
             sucursalId: dist.sucursalId,
+            notaRecepcionItemDistribucionId: dist.notaRecepcionItemDistribucionId,
             cantidadRechazada: cantidadEnUnidadesBase, // Convertir a unidades base para el backend
             motivoRechazo: dist.motivoRechazo,
             observaciones: dist.observaciones
