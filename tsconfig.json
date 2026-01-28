@@ -12,6 +12,8 @@
     "experimentalDecorators": true,
     "allowJs": true,
     "target": "ES2022",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "typeRoots": [
       "node_modules/@types",
       "node_modules"
@@ -32,7 +34,10 @@
   //   "dist",
   //   ".angular"
   // ],
-  "include": ["src/**/*.ts", "src/**/*.html"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.html"
+  ],
   "angularCompilerOptions": {
     "strictTemplates": true,
     "fullTemplateTypeCheck": true,

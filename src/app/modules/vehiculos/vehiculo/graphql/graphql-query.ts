@@ -227,6 +227,14 @@ export const gpsQuery = gql`
       vehiculo {
         id
         chapa
+        modelo {
+          id
+          descripcion
+          marca {
+            id
+            descripcion
+          }
+        }
       }
       ultimaTelemetria {
         id
@@ -254,6 +262,14 @@ export const gpsListQuery = gql`
       vehiculo {
         id
         chapa
+        modelo {
+          id
+          descripcion
+          marca {
+            id
+            descripcion
+          }
+        }
       }
       ultimaTelemetria {
         id
@@ -281,6 +297,14 @@ export const gpsSearchQuery = gql`
       vehiculo {
         id
         chapa
+        modelo {
+          id
+          descripcion
+          marca {
+            id
+            descripcion
+          }
+        }
       }
       ultimaTelemetria {
         id

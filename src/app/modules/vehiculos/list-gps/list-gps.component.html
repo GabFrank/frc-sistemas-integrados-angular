@@ -33,7 +33,7 @@
 
             <ng-container matColumnDef="modelo">
                 <th mat-header-cell *matHeaderCellDef style="text-align: center">
-                    Modelo Tracker
+                    Modelo
                 </th>
                 <td mat-cell *matCellDef="let gps" style="text-align: center">
                     {{ gps?.modeloTracker | uppercase }}
@@ -42,7 +42,7 @@
 
             <ng-container matColumnDef="sim">
                 <th mat-header-cell *matHeaderCellDef style="text-align: center">
-                    Sim Numero
+                    Sim
                 </th>
                 <td mat-cell *matCellDef="let gps" style="text-align: center">
                     {{ gps?.simNumero }}
@@ -54,7 +54,8 @@
                     Vehiculo
                 </th>
                 <td mat-cell *matCellDef="let gps" style="text-align: center">
-                    {{ gps?.vehiculo?.chapa | uppercase }}
+                    {{ gps?.vehiculo?.modelo?.marca?.descripcion | uppercase }} {{ gps?.vehiculo?.modelo?.descripcion |
+                    uppercase }}
                 </td>
             </ng-container>
 
