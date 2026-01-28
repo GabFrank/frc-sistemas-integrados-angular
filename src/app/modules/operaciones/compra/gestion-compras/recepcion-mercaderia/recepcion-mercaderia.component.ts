@@ -2829,20 +2829,12 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Obtener todos los items verificados de la nota
-    const itemsVerificados = this.itemsDataSource.data.filter(item => 
-      item.estadoRecepcion === 'VERIFICADO'
-    );
-
-    if (itemsVerificados.length === 0) {
-      this.notificacionService.openWarn('No hay items verificados para deshacer');
-      return;
-    }
+    // NOTA: La operación es masiva backend-driven. No depende de la lista visible/paginada.
 
     // Mostrar diálogo de confirmación
     this.dialogosService.confirm(
       'Deshacer Verificación de Todos los Items',
-      `Se cancelará la verificación de ${itemsVerificados.length} item(s) verificado(s). Esta acción no se puede deshacer.`,
+      `Se cancelará la verificación de TODOS los items verificados de la nota (para las sucursales seleccionadas). Esta acción no se puede deshacer.`,
       'Todos los items verificados volverán al estado PENDIENTE.',
       undefined,
       true, // action: true para mostrar botones de acción
@@ -2850,7 +2842,7 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
       'Cancelar'
     ).subscribe(confirmed => {
       if (confirmed) {
-        this.ejecutarDeshacerVerificacionTodo(itemsVerificados);
+        this.ejecutarDeshacerVerificacionTodoMasivo();
       }
     });
   }
@@ -2858,8 +2850,11 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
   /**
    * Ejecuta la cancelación de verificación para todos los items verificados
    */
-  private ejecutarDeshacerVerificacionTodo(itemsVerificados: NotaRecepcionItem[]): void {
-    console.log('Ejecutando deshacer verificación de todos los items...');
+  private ejecutarDeshacerVerificacionTodoMasivo(): void {
+    if (!this.notaSeleccionada) {
+      this.notificacionService.openWarn('Debe seleccionar una nota de recepción');
+      return;
+    }
 
     // Validar que tenemos sucursales seleccionadas
     if (this.sucursalesSeleccionadas.length === 0) {
@@ -2867,53 +2862,30 @@ export class RecepcionMercaderiaComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Crear array de promesas para cancelar verificación de todos los items
-    const cancelaciones: Promise<boolean>[] = [];
+    const sucursalesIds = this.sucursalesSeleccionadas.map(s => s.id);
 
-    itemsVerificados.forEach(item => {
-      this.sucursalesSeleccionadas.forEach(sucursal => {
-        cancelaciones.push(
-          this.pedidoService.onCancelarVerificacion(item.id, sucursal.id).toPromise()
-        );
-      });
-    });
+    this.loading = true;
 
-    // Ejecutar todas las cancelaciones
-    Promise.all(cancelaciones).then(results => {
-      const exitosas = results.filter(result => result === true).length;
-      const total = results.length;
-      
-      if (exitosas === total) {
-        // Todas las cancelaciones fueron exitosas
-        this.notificacionService.openSucess(
-          `Verificación cancelada exitosamente para ${itemsVerificados.length} item(s) en ${this.sucursalesSeleccionadas.length} sucursal(es)`
-        );
-        
+    this.pedidoService.onDeshacerVerificacionTodoPorNota(
+      this.notaSeleccionada.id,
+      sucursalesIds,
+      1 // TODO: obtener usuario actual
+    ).subscribe({
+      next: () => {
         // Recargar items después de un breve delay para que el backend procese
-        if (this.notaSeleccionada) {
-          setTimeout(() => {
-            this.loadItemsNotaRecepcion(this.notaSeleccionada!.id);
-          }, 500);
-        }
-      } else if (exitosas > 0) {
-        // Algunas cancelaciones fueron exitosas
-        this.notificacionService.openSucess(
-          `Verificación cancelada parcialmente: ${exitosas}/${total} operaciones exitosas`
-        );
-        
-        // Recargar items después de un breve delay
-        if (this.notaSeleccionada) {
-          setTimeout(() => {
-            this.loadItemsNotaRecepcion(this.notaSeleccionada!.id);
-          }, 500);
-        }
-      } else {
-        // Ninguna cancelación fue exitosa
-        this.notificacionService.openAlgoSalioMal('No se pudo cancelar la verificación de ningún item');
+        setTimeout(() => {
+          if (this.notaSeleccionada) {
+            this.loadItemsNotaRecepcion(this.notaSeleccionada.id);
+          }
+        }, 500);
+
+        this.loading = false;
+        this.notificacionService.openSucess('Se deshizo la verificación de todos los ítems verificados.');
+      },
+      error: (error) => {
+        this.loading = false;
+        this.notificacionService.openAlgoSalioMal('Error al deshacer verificación: ' + (error?.message || 'Error desconocido'));
       }
-    }).catch(error => {
-      console.error('Error al deshacer verificación:', error);
-      this.notificacionService.openAlgoSalioMal('Error al deshacer verificación: ' + error.message);
     });
   }
 

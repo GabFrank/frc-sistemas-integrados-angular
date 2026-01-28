@@ -66,6 +66,7 @@ import { CancelarRechazoGQL } from './gestion-compras/recepcion-mercaderia/graph
 import { ValidarFinalizacionRecepcionPorPedidoGQL } from './gestion-compras/recepcion-mercaderia/graphql/validarFinalizacionRecepcionPorPedido';
 import { FinalizarRecepcionFisicaPorPedidoGQL } from './gestion-compras/recepcion-mercaderia/graphql/finalizarRecepcionFisicaPorPedido';
 import { RecepcionarTodoPorNotaGQL } from './gestion-compras/recepcion-mercaderia/graphql/recepcionarTodoPorNota';
+import { DeshacerVerificacionTodoPorNotaGQL } from './gestion-compras/recepcion-mercaderia/graphql/deshacerVerificacionTodoPorNota';
 
 // Models
 import { Sucursal } from '../../empresarial/sucursal/sucursal.model';
@@ -127,6 +128,7 @@ export class PedidoService {
     private validarFinalizacionRecepcionPorPedidoGQL: ValidarFinalizacionRecepcionPorPedidoGQL,
     private finalizarRecepcionFisicaPorPedidoGQL: FinalizarRecepcionFisicaPorPedidoGQL,
     private recepcionarTodoPorNotaGQL: RecepcionarTodoPorNotaGQL,
+    private deshacerVerificacionTodoPorNotaGQL: DeshacerVerificacionTodoPorNotaGQL,
     private getPedidosWithFiltersGQL: GetPedidosWithFiltersGQL
   ) {}
 
@@ -676,6 +678,23 @@ export class PedidoService {
    */
   onRecepcionarTodoPorNota(notaId: number, sucursalesIds: number[], usuarioId: number, itemIds?: number[]): Observable<boolean> {
     return this.genericCrudService.onCustomMutation(this.recepcionarTodoPorNotaGQL, {
+      notaId,
+      sucursalesIds,
+      usuarioId,
+      itemIds
+    });
+  }
+
+  /**
+   * Deshace (cancela) la verificación física masivamente por nota y sucursales.
+   * @param notaId - ID de la nota
+   * @param sucursalesIds - Lista de IDs de sucursales
+   * @param usuarioId - ID del usuario
+   * @param itemIds - Lista opcional de IDs de ítems de nota de recepción (para selección)
+   * @returns Observable<boolean>
+   */
+  onDeshacerVerificacionTodoPorNota(notaId: number, sucursalesIds: number[], usuarioId: number, itemIds?: number[]): Observable<boolean> {
+    return this.genericCrudService.onCustomMutation(this.deshacerVerificacionTodoPorNotaGQL, {
       notaId,
       sucursalesIds,
       usuarioId,

@@ -305,3 +305,10 @@ export const RECEPCIONAR_TODO_POR_NOTA_MUTATION = gql`
     data: recepcionarTodoPorNota(notaId: $notaId, sucursalesIds: $sucursalesIds, usuarioId: $usuarioId, itemIds: $itemIds)
   }
 `; 
+
+// Mutation para deshacer verificación todo por nota (backend-driven)
+export const DESHACER_VERIFICACION_TODO_POR_NOTA_MUTATION = gql`
+  mutation deshacerVerificacionTodoPorNota($notaId: ID!, $sucursalesIds: [ID!]!, $usuarioId: ID!, $itemIds: [ID!]) {
+    data: deshacerVerificacionTodoPorNota(notaId: $notaId, sucursalesIds: $sucursalesIds, usuarioId: $usuarioId, itemIds: $itemIds)
+  }
+`;
