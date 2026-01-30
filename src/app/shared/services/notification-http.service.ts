@@ -1,18 +1,27 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
+
+declare global {
+    interface Window {
+        environment?: {
+            centralIp?: string;
+            centralPort?: string;
+            [key: string]: any;
+        };
+    }
+}
 
 @Injectable({
     providedIn: 'root'
 })
 export class NotificationHttpService {
-    private baseUrl: string;
 
-    constructor(private http: HttpClient) {
-        const centralIp = (environment as any).serverCentralIp || 'localhost';
-        const centralPort = (environment as any).serverCentralPort || '8081';
-        this.baseUrl = `http://${centralIp}:${centralPort}`;
+    constructor(private http: HttpClient) { }
+    private get baseUrl(): string {
+        const centralIp = window.environment?.centralIp || 'localhost';
+        const centralPort = window.environment?.centralPort || '8081';
+        return `http://${centralIp}:${centralPort}`;
     }
 
     sendVentaCreditoNotification(
