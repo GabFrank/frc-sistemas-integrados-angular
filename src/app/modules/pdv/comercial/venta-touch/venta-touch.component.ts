@@ -210,6 +210,7 @@ export class VentaTouchComponent implements OnInit, OnDestroy, AfterViewInit {
             this.openSelectCajaDialog();
           }
         } else {
+          this.cajaService.selectedCaja = null;
           this.openSelectCajaDialog();
         }
       });
